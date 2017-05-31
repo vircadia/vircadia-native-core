@@ -242,7 +242,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     state->setColorWriteMask(true, true, true, false);
 
     if (lightVolume) {
-        state->setStencilTest(true, 0x00, gpu::State::StencilTest(1, 0xFF, gpu::LESS_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+        state->setStencilTest(true, 0x00, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
        
         state->setCullMode(gpu::State::CULL_BACK);
    //     state->setCullMode(gpu::State::CULL_FRONT);
@@ -255,7 +255,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 
     } else {
         // Stencil test all the light passes for objects pixels only, not the background
-        state->setStencilTest(true, 0x00, gpu::State::StencilTest(0, 0x01, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+        state->setStencilTest(true, 0x00, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 
         state->setCullMode(gpu::State::CULL_BACK);
         // additive blending
@@ -477,7 +477,7 @@ void PrepareDeferred::run(const RenderContextPointer& renderContext, const Input
             gpu::Framebuffer::BUFFER_COLOR0 | gpu::Framebuffer::BUFFER_COLOR1 | gpu::Framebuffer::BUFFER_COLOR2 | gpu::Framebuffer::BUFFER_COLOR3 |
             gpu::Framebuffer::BUFFER_DEPTH |
             gpu::Framebuffer::BUFFER_STENCIL,
-            vec4(vec3(0), 0), 1.0, 0, true);
+            vec4(vec3(0), 0), 1.0, 1, true);
 
         // For the rest of the rendering, bind the lighting model
         batch.setUniformBuffer(LIGHTING_MODEL_BUFFER_SLOT, lightingModel->getParametersBuffer());

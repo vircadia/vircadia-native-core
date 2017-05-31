@@ -18,6 +18,9 @@
 #include "DrawViewportQuadTransformTexcoord_vert.h"
 #include "DrawVertexPosition_vert.h"
 #include "DrawTransformVertexPosition_vert.h"
+
+const char DrawNada_frag[] = "void main(void) {}"; // DrawNada is really simple...
+
 #include "DrawWhite_frag.h"
 #include "DrawTexture_frag.h"
 #include "DrawTextureOpaque_frag.h"
@@ -31,6 +34,7 @@ ShaderPointer StandardShaderLib::_drawTexcoordRectTransformUnitQuadVS;
 ShaderPointer StandardShaderLib::_drawViewportQuadTransformTexcoordVS;
 ShaderPointer StandardShaderLib::_drawVertexPositionVS;
 ShaderPointer StandardShaderLib::_drawTransformVertexPositionVS;
+ShaderPointer StandardShaderLib::_drawNadaPS;
 ShaderPointer StandardShaderLib::_drawWhitePS;
 ShaderPointer StandardShaderLib::_drawTexturePS;
 ShaderPointer StandardShaderLib::_drawTextureOpaquePS;
@@ -105,6 +109,13 @@ ShaderPointer StandardShaderLib::getDrawTransformVertexPositionVS() {
     return _drawTransformVertexPositionVS;
 }
 
+ShaderPointer StandardShaderLib::getDrawNadaPS() {
+    if (!_drawNadaPS) {
+        _drawNadaPS = gpu::Shader::createPixel(std::string(DrawNada_frag));
+    }
+    return _drawNadaPS;
+}
+
 ShaderPointer StandardShaderLib::getDrawWhitePS() {
     if (!_drawWhitePS) {
         _drawWhitePS = gpu::Shader::createPixel(std::string(DrawWhite_frag));
@@ -125,8 +136,6 @@ ShaderPointer StandardShaderLib::getDrawTextureOpaquePS() {
     }
     return _drawTextureOpaquePS;
 }
-
-
 
 ShaderPointer StandardShaderLib::getDrawColoredTexturePS() {
     if (!_drawColoredTexturePS) {

@@ -13,7 +13,6 @@
 #define hifi_RenderDeferredTask_h
 
 #include <gpu/Pipeline.h>
-#include <model/Geometry.h>
 #include <render/RenderFetchCullSortTask.h>
 #include "LightingModel.h"
 
@@ -121,35 +120,6 @@ protected:
     bool _stateSort;
 };
 
-class DeferredFramebuffer;
-class DrawStencilDeferred {
-public:
-    using JobModel = render::Job::ModelI<DrawStencilDeferred, std::shared_ptr<DeferredFramebuffer>>;
-
-    void run(const render::RenderContextPointer& renderContext, const std::shared_ptr<DeferredFramebuffer>& deferredFramebuffer);
-
-protected:
-    gpu::PipelinePointer _opaquePipeline;
-
-    gpu::PipelinePointer getOpaquePipeline();
-};
-
-using DrawBackgroundDeferredConfig = render::GPUJobConfig;
-
-class DrawBackgroundDeferred {
-public:
-    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
-
-    using Config = DrawBackgroundDeferredConfig;
-    using JobModel = render::Job::ModelI<DrawBackgroundDeferred, Inputs, Config>;
-
-    void configure(const Config& config) {}
-    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
-
-protected:
-    gpu::RangeTimerPointer _gpuTimer;
-};
-
 class DrawOverlay3DConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
@@ -185,24 +155,6 @@ protected:
     int _maxDrawn; // initialized by Config
     bool _opaquePass{ true };
 };
-
-class PrepareStencil {
-public:
-    using JobModel = render::Job::ModelI<PrepareStencil, gpu::FramebufferPointer>;
-
-    void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& dstFramebuffer);
-
-    static const gpu::int8 STENCIL_MASK = 64;
-
-private:
-    gpu::PipelinePointer _drawStencilPipeline;
-    gpu::PipelinePointer getDrawStencilPipeline();
-
-    model::MeshPointer _mesh;
-    model::MeshPointer getMesh();
-
-};
-
 
 class Blit {
 public:

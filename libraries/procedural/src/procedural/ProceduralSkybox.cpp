@@ -23,7 +23,7 @@ ProceduralSkybox::ProceduralSkybox() : model::Skybox() {
     _procedural._fragmentSource = skybox_frag;
     // Adjust the pipeline state for background using the stencil test
     _procedural.setDoesFade(false);
-    _procedural._opaqueState->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+    _procedural._opaqueState->setStencilTest(true, 0xFF, gpu::State::StencilTest(1, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 }
 
 bool ProceduralSkybox::empty() {

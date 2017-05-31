@@ -42,6 +42,9 @@ public:
     static ShaderPointer getDrawVertexPositionVS();
     static ShaderPointer getDrawTransformVertexPositionVS();
 
+    // PShader does nothing, no really nothing, but still needed for defining a program triggering rasterization
+    static ShaderPointer getDrawNadaPS();
+
     static ShaderPointer getDrawWhitePS();
     static ShaderPointer getDrawTexturePS();
     static ShaderPointer getDrawTextureOpaquePS();
@@ -61,6 +64,7 @@ protected:
     static ShaderPointer _drawVertexPositionVS;
     static ShaderPointer _drawTransformVertexPositionVS;
 
+    static ShaderPointer _drawNadaPS;
     static ShaderPointer _drawWhitePS;
     static ShaderPointer _drawTexturePS;
     static ShaderPointer _drawTextureOpaquePS;
