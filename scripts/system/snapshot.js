@@ -13,7 +13,7 @@
 (function() { // BEGIN LOCAL_SCOPE
 
 var SNAPSHOT_DELAY = 500; // 500ms
-var FINISH_SOUND_DELAY = 350;
+var FINISH_SOUND_DELAY = 350; //350ms
 var resetOverlays;
 var reticleVisible;
 var clearOverlayWhenMoving;
@@ -410,8 +410,15 @@ function takeSnapshot() {
         Menu.setIsOptionChecked("Overlays", false);
     }
 
+    var snapActivateSound = SoundCache.getSound(Script.resolvePath("assets/sounds/snap.wav"));
+
     // take snapshot (with no notification)
     Script.setTimeout(function () {
+        Audio.playSound(snapActivateSound, {
+            position: { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z },
+            localOnly: true,
+            volume: 0.2
+        });
         HMD.closeTablet();
         Script.setTimeout(function () {
             Window.takeSnapshot(false, includeAnimated, 1.91);
