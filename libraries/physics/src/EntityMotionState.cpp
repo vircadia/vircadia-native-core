@@ -84,7 +84,7 @@ EntityMotionState::~EntityMotionState() {
 
 void EntityMotionState::updateServerPhysicsVariables() {
     assert(entityTreeIsLocked());
-    if (_entity->getSimulatorID() == Physics::getSessionUUID()) {
+    if (isLocallyOwned()) {
         // don't slam these values if we are the simulation owner
         return;
     }
@@ -135,7 +135,7 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
                 _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
             }
             _loopsWithoutOwner = 0;
-        } else if (_entity->getSimulatorID() == Physics::getSessionUUID()) {
+        } else if (isLocallyOwned()) {
             // we just inherited ownership, make sure our desired priority matches what we have
             upgradeOutgoingPriority(_entity->getSimulationPriority());
         } else {
@@ -315,7 +315,7 @@ bool EntityMotionState::isCandidateForOwnership() const {
     assert(_entity);
     assert(entityTreeIsLocked());
     return _outgoingPriority != 0
-        || Physics::getSessionUUID() == _entity->getSimulatorID()
+        || isLocallyOwned()
         || _entity->dynamicDataNeedsTransmit();
 }
 
@@ -489,7 +489,7 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
         return true;
     }
 
-    if (_entity->getSimulatorID() != Physics::getSessionUUID()) {
+    if (!isLocallyOwned()) {
         // we don't own the simulation
 
         // NOTE: we do not volunteer to own kinematic or static objects
@@ -597,7 +597,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         properties.clearSimulationOwner();
         _outgoingPriority = 0;
         _entity->setPendingOwnershipPriority(_outgoingPriority, now);
-    } else if (Physics::getSessionUUID() != _entity->getSimulatorID()) {
+    } else if (!isLocallyOwned()) {
         // we don't own the simulation for this entity yet, but we're sending a bid for it
         quint8 bidPriority = glm::max<uint8_t>(_outgoingPriority, VOLUNTEER_SIMULATION_PRIORITY);
         properties.setSimulationOwner(Physics::getSessionUUID(), bidPriority);
@@ -784,6 +784,10 @@ QString EntityMotionState::getName() const {
 void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const {
     assert(_entity);
     _entity->computeCollisionGroupAndFinalMask(group, mask);
+}
+
+bool EntityMotionState::isLocallyOwned() const {
+    return _entity->getSimulatorID() == Physics::getSessionUUID();
 }
 
 bool EntityMotionState::shouldBeLocallyOwned() const {

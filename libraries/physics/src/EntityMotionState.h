@@ -79,6 +79,7 @@ public:
 
     virtual void computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const override;
 
+    bool isLocallyOwned() const override;
     bool shouldBeLocallyOwned() const override;
 
     friend class PhysicalEntitySimulation;
