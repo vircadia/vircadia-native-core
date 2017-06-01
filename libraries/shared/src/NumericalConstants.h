@@ -50,10 +50,13 @@ const int KILO_PER_MEGA = 1000;
 
 #define KB_TO_BYTES_SHIFT 10
 #define MB_TO_BYTES_SHIFT 20
+#define GB_TO_BYTES_SHIFT 30
 
+#define GB_TO_BYTES(X) ((size_t)(X) << GB_TO_BYTES_SHIFT)
 #define MB_TO_BYTES(X) ((size_t)(X) << MB_TO_BYTES_SHIFT)
 #define KB_TO_BYTES(X) ((size_t)(X) << KB_TO_BYTES_SHIFT)
 
+#define BYTES_TO_GB(X) (X >> GB_TO_BYTES_SHIFT)
 #define BYTES_TO_MB(X) (X >> MB_TO_BYTES_SHIFT)
 #define BYTES_TO_KB(X) (X >> KB_TO_BYTES_SHIFT)
 
