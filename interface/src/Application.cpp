@@ -591,8 +591,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _aboutToQuit(false),
     _notifiedPacketVersionMismatchThisDomain(false),
     _maxOctreePPS(maxOctreePacketsPerSecond.get()),
-    _lastFaceTrackerUpdate(0)/*,
-    _snapshotSound(nullptr)*/
+    _lastFaceTrackerUpdate(0),
+    _snapshotSound(nullptr)
 {
     auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
     setProperty(hifi::properties::STEAM, (steamClient && steamClient->isRunning()));
@@ -1421,8 +1421,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return entityServerNode && !isPhysicsEnabled();
     });
 
-    /*QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
-    _snapshotSound = DependencyManager::get<SoundCache>()->getSound(QUrl::fromLocalFile(inf.absoluteFilePath()));*/
+    QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
+    _snapshotSound = DependencyManager::get<SoundCache>()->getSound(QUrl::fromLocalFile(inf.absoluteFilePath()));
 
     QVariant testProperty = property(hifi::properties::TEST);
     qDebug() << testProperty;
@@ -1656,9 +1656,9 @@ void Application::cleanupBeforeQuit() {
     // stop QML
     DependencyManager::destroy<OffscreenUi>();
 
-    /*if (_snapshotSoundInjector != nullptr) {
+    if (_snapshotSoundInjector != nullptr) {
         _snapshotSoundInjector->stop();
-    }*/
+    }
 
     // FIXME: something else is holding a reference to AudioClient,
     // so it must be explicitly synchronously stopped here
@@ -6315,7 +6315,7 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
     
     //keep sound thread out of event loop scope
 
-    /*AudioInjectorOptions options;
+    AudioInjectorOptions options;
     options.localOnly = true;
     options.stereo = true;
 
@@ -6325,7 +6325,7 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
     } else {
         QByteArray samples = _snapshotSound->getByteArray();
         _snapshotSoundInjector = AudioInjector::playSound(samples, options);
-    }*/
+    }
 
     postLambdaEvent([notify, includeAnimated, aspectRatio, this] {
         // Get a screenshot and save it

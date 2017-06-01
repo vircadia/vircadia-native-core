@@ -13,7 +13,7 @@
 (function() { // BEGIN LOCAL_SCOPE
 
 var SNAPSHOT_DELAY = 500; // 500ms
-var FINISH_SOUND_DELAY = 350; //350ms
+var FINISH_SOUND_DELAY = 350;
 var resetOverlays;
 var reticleVisible;
 var clearOverlayWhenMoving;
