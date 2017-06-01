@@ -63,21 +63,7 @@ void DrawStencilDeferred::run(const RenderContextPointer& renderContext, const g
     args->_batch = nullptr;
 }
 
-gpu::PipelinePointer PrepareStencil::getDrawStencilPipeline() {
-    if (!_drawStencilPipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawVertexPositionVS();
-        auto ps = gpu::StandardShaderLib::getDrawNadaPS();
-        auto program = gpu::Shader::createProgram(vs, ps);
-        gpu::Shader::makeProgram((*program));
 
-        auto state = std::make_shared<gpu::State>();
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_MASK, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE));
-     //   state->setColorWriteMask(0);
-
-        _drawStencilPipeline = gpu::Pipeline::create(program, state);
-    }
-    return _drawStencilPipeline;
-}
 
 model::MeshPointer PrepareStencil::getMesh() {
     if (!_mesh) {
@@ -94,6 +80,37 @@ model::MeshPointer PrepareStencil::getMesh() {
     return _mesh;
 }
 
+gpu::PipelinePointer PrepareStencil::getMeshStencilPipeline() {
+    if (!_meshStencilPipeline) {
+        auto vs = gpu::StandardShaderLib::getDrawVertexPositionVS();
+        auto ps = gpu::StandardShaderLib::getDrawNadaPS();
+        auto program = gpu::Shader::createProgram(vs, ps);
+        gpu::Shader::makeProgram((*program));
+
+        auto state = std::make_shared<gpu::State>();
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_MASK, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE));
+        state->setColorWriteMask(0);
+
+        _meshStencilPipeline = gpu::Pipeline::create(program, state);
+    }
+    return _meshStencilPipeline;
+}
+
+gpu::PipelinePointer PrepareStencil::getPaintStencilPipeline() {
+    if (!_paintStencilPipeline) {
+        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
+        auto ps = gpu::StandardShaderLib::getDrawNadaPS();
+        auto program = gpu::Shader::createProgram(vs, ps);
+        gpu::Shader::makeProgram((*program));
+
+        auto state = std::make_shared<gpu::State>();
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_MASK, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE));
+        state->setColorWriteMask(0);
+
+        _paintStencilPipeline = gpu::Pipeline::create(program, state);
+    }
+    return _paintStencilPipeline;
+}
 
 void PrepareStencil::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer) {
     assert(renderContext->args);
@@ -106,16 +123,21 @@ void PrepareStencil::run(const RenderContextPointer& renderContext, const gpu::F
 
         batch.setViewportTransform(args->_viewport);
 
-        batch.setPipeline(getDrawStencilPipeline());
+        if (true) {
+            batch.setPipeline(getMeshStencilPipeline());
 
-        auto mesh = getMesh();
-        batch.setIndexBuffer(mesh->getIndexBuffer());
-        batch.setInputFormat((mesh->getVertexFormat()));
-        batch.setInputStream(0, mesh->getVertexStream());
+            auto mesh = getMesh();
+            batch.setIndexBuffer(mesh->getIndexBuffer());
+            batch.setInputFormat((mesh->getVertexFormat()));
+            batch.setInputStream(0, mesh->getVertexStream());
 
-        // Draw
-        auto part = mesh->getPartBuffer().get<model::Mesh::Part>(0);
-        batch.drawIndexed(gpu::TRIANGLES, part._numIndices, part._startIndex);
+            // Draw
+            auto part = mesh->getPartBuffer().get<model::Mesh::Part>(0);
+            batch.drawIndexed(gpu::TRIANGLES, part._numIndices, part._startIndex);
+        } else {
+            batch.setPipeline(getPaintStencilPipeline());
+            batch.draw(gpu::TRIANGLE_STRIP, 4);
+        }
     });
     args->_batch = nullptr;
 }

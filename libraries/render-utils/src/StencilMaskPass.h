@@ -40,8 +40,11 @@ public:
     static const gpu::int8 STENCIL_SCENE = 0;
 
 private:
-    gpu::PipelinePointer _drawStencilPipeline;
-    gpu::PipelinePointer getDrawStencilPipeline();
+    gpu::PipelinePointer _meshStencilPipeline;
+    gpu::PipelinePointer getMeshStencilPipeline();
+
+    gpu::PipelinePointer _paintStencilPipeline;
+    gpu::PipelinePointer getPaintStencilPipeline();
 
     model::MeshPointer _mesh;
     model::MeshPointer getMesh();
