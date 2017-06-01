@@ -93,7 +93,7 @@ namespace controller {
     }
 
 
-    void exportToFile(QJsonObject& object) {
+    void exportToFile(const QJsonObject& object) {
         if (!QDir(SAVE_DIRECTORY).exists()) {
             QDir().mkdir(SAVE_DIRECTORY);
         }
@@ -186,7 +186,8 @@ namespace controller {
     }
 
     void InputRecorder::saveRecording() {
-        exportToFile(recordDataToJson());
+        QJsonObject jsonData = recordDataToJson();
+        exportToFile(jsonData);
     }
 
     void InputRecorder::loadRecording(const QString& path) {
