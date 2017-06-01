@@ -169,7 +169,7 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
         batch.setUniformBuffer(ZONE_DEFERRED_TRANSFORM_BUFFER, deferredTransform->getFrameTransformBuffer());
 
         batch.setPipeline(getKeyLightPipeline());
-        auto numKeys = keyLightStack.size();
+        auto numKeys = (int) keyLightStack.size();
         for (int i = numKeys - 1; i >= 0; i--) {
             model.setTranslation(glm::vec3(-4.0, -3.0 + (i * 1.0), -10.0 - (i * 3.0)));
             batch.setModelTransform(model);
@@ -180,7 +180,7 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
         }
 
         batch.setPipeline(getAmbientPipeline());
-        auto numAmbients = ambientLightStack.size();
+        auto numAmbients = (int) ambientLightStack.size();
         for (int i = numAmbients - 1; i >= 0; i--) {
             model.setTranslation(glm::vec3(0.0, -3.0 + (i * 1.0), -10.0 - (i * 3.0)));
             batch.setModelTransform(model);
@@ -194,7 +194,7 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
         }
 
         batch.setPipeline(getBackgroundPipeline());
-        auto numBackgrounds = skyboxStack.size();
+        auto numBackgrounds = (int) skyboxStack.size();
         for (int i = numBackgrounds - 1; i >= 0; i--) {
             model.setTranslation(glm::vec3(4.0, -3.0 + (i * 1.0), -10.0 - (i * 3.0)));
             batch.setModelTransform(model);
