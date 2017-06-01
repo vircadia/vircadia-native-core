@@ -1466,16 +1466,16 @@ void AnimInverseKinematics::computeSplineJointInfosForIKTarget(const AnimContext
     // measure the total arc length along the spline
     float totalArcLength = spline.arcLength(1.0f);
 
-    // FIXME: TODO: this won't work for horizontal splines...
-    float baseToTipHeight = tipPose.trans().y - basePose.trans().y;
+    glm::vec3 baseToTip = tipPose.trans() - basePose.trans();
+    float baseToTipLength = glm::length(baseToTip);
+    glm::vec3 baseToTipNormal = baseToTip / baseToTipLength;
 
     int index = target.getIndex();
     int endIndex = _skeleton->getParentIndex(_hipsIndex);
     while (index != endIndex) {
         AnimPose defaultPose = _skeleton->getAbsoluteDefaultPose(index);
 
-        // FIXME: TODO: this wont work for horizontal splines...
-        float ratio = (defaultPose.trans().y - basePose.trans().y) / baseToTipHeight;
+        float ratio = glm::dot(defaultPose.trans() - basePose.trans(), baseToTipNormal) / baseToTipLength;
 
         // compute offset from spline to the default pose.
         float t = spline.arcLengthInverse(ratio * totalArcLength);
