@@ -519,10 +519,26 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
             AnimPose absPose = AnimPose(glm::vec3(1.0f), rot, trans) * splineJointInfo.offsetPose;
             AnimPose relPose = parentAbsPose.inverse() * absPose;
             _rotationAccumulators[splineJointInfo.jointIndex].add(relPose.rot(), target.getWeight());
+
+            // constrain the amount the spine can stretch or compress
+            float length = glm::length(relPose.trans());
+            float defaultLength = glm::length(_skeleton->getRelativeDefaultPose(splineJointInfo.jointIndex).trans());
+            const float STRETCH_COMPRESS_PERCENTAGE = 0.15f;
+            const float MAX_LENGTH = defaultLength * (1.0f + STRETCH_COMPRESS_PERCENTAGE);
+            const float MIN_LENGTH = defaultLength * (1.0f - STRETCH_COMPRESS_PERCENTAGE);
+            bool constrained = false;
+            if (length > MAX_LENGTH) {
+                relPose.trans() = (relPose.trans() / length) * MAX_LENGTH;
+                constrained = true;
+            } else if (length < MIN_LENGTH) {
+                relPose.trans() = (relPose.trans() / length) * MIN_LENGTH;
+                constrained = true;
+            }
+
             _translationAccumulators[splineJointInfo.jointIndex].add(relPose.trans(), target.getWeight());
 
             if (debug) {
-                debugJointMap[splineJointInfo.jointIndex] = DebugJoint(relPose.rot(), relPose.trans(), false);
+                debugJointMap[splineJointInfo.jointIndex] = DebugJoint(relPose.rot(), relPose.trans(), constrained);
             }
 
             parentAbsPose = absPose;
