@@ -10,7 +10,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* global Script, Users, Overlays, AvatarList, Controller, Camera, getControllerWorldLocation */
+/* global Script, Users, Overlays, AvatarList, Controller, Camera, getControllerWorldLocation, UserActivityLogger */
 
 (function () { // BEGIN LOCAL_SCOPE
     var button;
@@ -76,6 +76,7 @@
     // Called from the C++ scripting interface to show the bubble overlay
     function enteredIgnoreRadius() {
         createOverlays();
+        UserActivityLogger.bubbleActivated();
     }
 
     // Used to set the state of the bubble HUD button
@@ -142,6 +143,7 @@
     function onBubbleToggled() {
         var bubbleActive = Users.getIgnoreRadiusEnabled();
         writeButtonProperties(bubbleActive);
+        UserActivityLogger.bubbleToggled(bubbleActive);
         if (bubbleActive) {
             createOverlays();
         } else {
