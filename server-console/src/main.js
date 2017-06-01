@@ -821,6 +821,15 @@ for (var key in trayIcons) {
 
 const notificationIcon = path.join(__dirname, '../resources/console-notification.png');
 
+function isProcessRunning(pid) {
+    try {
+        running = process.kill(pid, 0);
+        return true;
+    } catch (e) {
+    }
+    return false;
+}
+
 function onContentLoaded() {
     // Disable splash window for now.
     // maybeShowSplash();
@@ -880,6 +889,19 @@ function onContentLoaded() {
     if (argv.launchInterface) {
         log.debug("Interface launch requested... argv.launchInterface:", argv.launchInterface);
         startInterface();
+    }
+
+    if (argv.watchProcessShutdown) {
+        let pid = argv.watchProcessShutdown;
+        console.log("Watching process: ", pid);
+        let watchProcessInterval = setInterval(function() {
+            let isRunning = isProcessRunning(pid);
+            if (!isRunning) {
+                log.debug("Watched process is no longer running, shutting down");
+                clearTimeout(watchProcessInterval);
+                forcedShutdown();
+            }
+        }, 5000);
     }
 
     // If we were launched with the shutdownWatcher option, then we need to watch for the interface app

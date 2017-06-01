@@ -199,7 +199,7 @@ int main(int argc, const char* argv[]) {
         bool serverContentPathOptionIsSet = parser.isSet(serverContentPathOption);
         QString serverContentPath = serverContentPathOptionIsSet ? parser.value(serverContentPathOption) : QString();
         if (runServer) {
-            SandboxUtils::runLocalSandbox(serverContentPath, true, RUNNING_MARKER_FILENAME, noUpdater);
+            SandboxUtils::runLocalSandbox(serverContentPath, true, noUpdater);
         }
 
         Application app(argc, const_cast<char**>(argv), startupTime, runningMarkerExisted);
