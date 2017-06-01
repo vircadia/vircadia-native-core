@@ -52,9 +52,8 @@ bool readStatus(QByteArray statusData) {
     return false;
 }
 
-void runLocalSandbox(QString contentPath, bool autoShutdown, QString runningMarkerName, bool noUpdater) {
+void runLocalSandbox(QString contentPath, bool autoShutdown, bool noUpdater) {
     QString serverPath = "./server-console/server-console.exe";
-    qCDebug(networking) << "Running marker path is: " << runningMarkerName;
     qCDebug(networking) << "Server path is: " << serverPath;
     qCDebug(networking) << "autoShutdown: " << autoShutdown;
     qCDebug(networking) << "noUpdater: " << noUpdater;
@@ -74,8 +73,9 @@ void runLocalSandbox(QString contentPath, bool autoShutdown, QString runningMark
     }
 
     if (autoShutdown) {
-        QString interfaceRunningStateFile = RunningMarker::getMarkerFilePath(runningMarkerName);
-        args << "--shutdownWatcher" << interfaceRunningStateFile;
+        auto pid = qApp->applicationPid();
+        qCDebug(networking) << "autoShutdown pid is" << pid;
+        args << "--watchProcessShutdown" << QString::number(pid);
     }
 
     if (noUpdater) {

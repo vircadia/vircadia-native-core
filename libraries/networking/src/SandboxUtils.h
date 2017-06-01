@@ -21,7 +21,7 @@ namespace SandboxUtils {
 
     QNetworkReply* getStatus();
     bool readStatus(QByteArray statusData);
-    void runLocalSandbox(QString contentPath, bool autoShutdown, QString runningMarkerName, bool noUpdater);
+    void runLocalSandbox(QString contentPath, bool autoShutdown, bool noUpdater);
 };
 
 #endif // hifi_SandboxUtils_h
