@@ -850,7 +850,8 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         glm::quat sensorToWorldQuat;
         unpackOrientationQuatFromSixBytes(data->sensorToWorldQuat, sensorToWorldQuat);
         float sensorToWorldScale;
-        unpackFloatScalarFromSignedTwoByteFixed((int16_t*)&data->sensorToWorldScale, &sensorToWorldScale, SENSOR_TO_WORLD_SCALE_RADIX);
+        auto srcSensorToWorldScale = data->sensorToWorldScale;
+        unpackFloatScalarFromSignedTwoByteFixed((int16_t*)&srcSensorToWorldScale, &sensorToWorldScale, SENSOR_TO_WORLD_SCALE_RADIX);
         glm::vec3 sensorToWorldTrans(data->sensorToWorldTrans[0], data->sensorToWorldTrans[1], data->sensorToWorldTrans[2]);
         glm::mat4 sensorToWorldMatrix = createMatFromScaleQuatAndPos(glm::vec3(sensorToWorldScale), sensorToWorldQuat, sensorToWorldTrans);
         if (_sensorToWorldMatrixCache.get() != sensorToWorldMatrix) {
