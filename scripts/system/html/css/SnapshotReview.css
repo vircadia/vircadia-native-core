@@ -286,6 +286,50 @@ input[type=button].naked:active {
 // END styling of snapshot controls (bottom panel) and its contents
 */
 
+
+/*
+// START polaroid styling
+*/
+
+#print-button {
+    width: 72px;
+    height: 72px;
+    margin-left: 30px;
+    margin-top: -10px;
+    box-sizing: content-box;
+    display: inline;
+    outline:none;
+}
+
+.print-icon-enabled {
+    background: url(../img/button-snap-print.svg);
+    background-repeat: no-repeat;
+    margin: auto;
+    width: 48px;
+    height: 48px;
+}
+
+.print-icon-loading {
+    background: url(../img/loader.gif);
+    background-repeat: no-repeat;
+    margin: auto;
+    width: 32px;
+    height: 32px;
+}
+
+.print-icon-disabled {
+    background: url(../img/button-snap-print.svg);
+    background-repeat: no-repeat;
+    margin: auto;
+    width: 48px;
+    height: 48px;
+}
+
+/*
+// END polaroid styling
+*/
+
+
 /*
 // START misc styling
 */
