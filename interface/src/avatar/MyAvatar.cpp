@@ -2340,32 +2340,31 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
         auto delta = glm::distance(upperIntersection, lowerIntersection);
         if (delta > (2 * halfHeight)) {
             // There is room for us to fit in that clearing. If there wasn't, physics would oscilate us between the objects above and below.
-            if (upperId != lowerId) { // An optimization over what follows: the simplest case of not being inside an entity.
-                // We're going to iterate upwards through successive roofIntersections, testing to see if we're contained within the top surface of some entity.
-                // There will be one of two outcomes:
-                // a) We're not contained, so we have enough room and our position is good.
-                // b) We are contained, so we'll bail out of this but try again at a position above the containing entity.
-                for (;;) {
-                    ignore.push_back(upperId);
-                    if (!findIntersection(upperIntersection, up, upperIntersection, upperId, upperNormal)) {
-                        // We're not inside an entity, and from the nested tests, we have room between what is above and below. So position is good!
-                        //qDebug() << "FIXME upper:" << upperId << upperIntersection << " n:" << upperNormal.y << " lower:" << lowerId << lowerIntersection << " n:" << lowerNormal.y << " delta:" << delta << " halfHeight:" << halfHeight;
-                        return ok("enough room");
-                    }
-                    if (isUp(upperNormal)) {
-                        // This new intersection is the top surface of an entity that we have not yet seen, which means we're contained within it.
-                        // We could break here and recurse from the top of the original ceiling, but since we've already done the work to find the top
-                        // of the enclosing entity, let's put our feet at upperIntersection and start over.
-                        return mustMove();
-                    }
-                    // We found a new bottom surface, which we're not interested in.
-                    // But there could still be a top surface above us for an entity we haven't seen, so keep looking upward.
+            // We're now going to iterate upwards through successive upperIntersections, testing to see if we're contained within the top surface of some entity.
+            // There will be one of two outcomes:
+            // a) We're not contained, so we have enough room and our position is good.
+            // b) We are contained, so we'll bail out of this but try again at a position above the containing entity.
+            for (;;) {
+                ignore.push_back(upperId);
+                if (!findIntersection(upperIntersection, up, upperIntersection, upperId, upperNormal)) {
+                    // We're not inside an entity, and from the nested tests, we have room between what is above and below. So position is good!
+                    //qDebug() << "FIXME upper:" << upperId << upperIntersection << " n:" << upperNormal.y << " lower:" << lowerId << lowerIntersection << " n:" << lowerNormal.y << " delta:" << delta << " halfHeight:" << halfHeight;
+                    return ok("enough room");
                 }
+                if (isUp(upperNormal)) {
+                    // This new intersection is the top surface of an entity that we have not yet seen, which means we're contained within it.
+                    // We could break here and recurse from the top of the original ceiling, but since we've already done the work to find the top
+                    // of the enclosing entity, let's put our feet at upperIntersection and start over.
+                    qDebug() << "FIXME inside above:" << upperId << " below:" << lowerId;
+                    return mustMove();
+                }
+                // We found a new bottom surface, which we're not interested in.
+                // But there could still be a top surface above us for an entity we haven't seen, so keep looking upward.
             }
         }
     }
 
-    //qDebug() << "FIXME need to compute safe landing for" << capsuleCenter << " based on " << upperIntersection << "@" << upperId << " and " << lowerIntersection << "@" << lowerId;
+    qDebug() << "FIXME need to compute safe landing for" << capsuleCenter << " based on " << (isDown(upperNormal) ? "down " : "up ") << upperIntersection << "@" << upperId << " and " << (isUp(lowerNormal) ? "up " : "down ") << lowerIntersection << "@" << lowerId;
     const float big = (float)TREE_SCALE;
     const auto skyHigh = up * big;
     auto fromAbove = capsuleCenter + skyHigh;
