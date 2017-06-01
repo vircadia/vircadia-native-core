@@ -90,6 +90,8 @@ AccountManager::AccountManager(UserAgentGetter userAgentGetter) :
     qRegisterMetaType<QHttpMultiPart*>("QHttpMultiPart*");
 
     qRegisterMetaType<AccountManagerAuth::Type>();
+
+    qCDebug(networking) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(_sessionID);
 }
 
 const QString DOUBLE_SLASH_SUBSTITUTE = "slashslash";
@@ -203,7 +205,7 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
 
 void AccountManager::setSessionID(const QUuid& sessionID) {
     if (_sessionID != sessionID) {
-        qCDebug(networking) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(sessionID);
+        qCDebug(networking) << "Metaverse session ID changed to" << uuidStringWithoutCurlyBraces(sessionID);
         _sessionID = sessionID;
     }
 }
