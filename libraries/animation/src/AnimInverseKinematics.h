@@ -117,10 +117,11 @@ protected:
     AnimPoseVec _relativePoses; // current relative poses
     AnimPoseVec _limitCenterPoses;  // relative
 
+    // used to pre-compute information about each joint influeced by a spline IK target.
     struct SplineJointInfo {
-        int jointIndex;
-        float ratio;
-        AnimPose offsetPose;
+        int jointIndex;       // joint in the skeleton that this information pertains to.
+        float ratio;          // percentage (0..1) along the spline for this joint.
+        AnimPose offsetPose;  // local offset from the spline to the joint.
     };
     std::map<int, std::vector<SplineJointInfo>> _splineJointInfoMap;
 

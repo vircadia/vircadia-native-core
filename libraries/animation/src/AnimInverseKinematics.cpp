@@ -1445,10 +1445,11 @@ void AnimInverseKinematics::initRelativePosesFromSolutionSource(SolutionSource s
     }
 }
 
+// pre-compute information about each joint influeced by this spline IK target.
 void AnimInverseKinematics::computeSplineJointInfosForIKTarget(const AnimContext& context, const IKTarget& target) {
     std::vector<SplineJointInfo> splineJointInfoVec;
 
-    // build default spline
+    // build spline between the default poses.
     AnimPose tipPose = _skeleton->getAbsoluteDefaultPose(target.getIndex());
     AnimPose basePose = _skeleton->getAbsoluteDefaultPose(_hipsIndex);
 
@@ -1461,9 +1462,11 @@ void AnimInverseKinematics::computeSplineJointInfosForIKTarget(const AnimContext
     } else {
         spline = computeSplineFromTipAndBase(tipPose, basePose);
     }
+
+    // measure the total arc length along the spline
     float totalArcLength = spline.arcLength(1.0f);
 
-    // AJT: FIXME: TODO: this won't work for horizontal splines...
+    // FIXME: TODO: this won't work for horizontal splines...
     float baseToTipHeight = tipPose.trans().y - basePose.trans().y;
 
     int index = target.getIndex();
@@ -1471,10 +1474,10 @@ void AnimInverseKinematics::computeSplineJointInfosForIKTarget(const AnimContext
     while (index != endIndex) {
         AnimPose defaultPose = _skeleton->getAbsoluteDefaultPose(index);
 
-        // AJT: FIXME: TODO: this wont work for horizontal splines...
+        // FIXME: TODO: this wont work for horizontal splines...
         float ratio = (defaultPose.trans().y - basePose.trans().y) / baseToTipHeight;
 
-        // compute offset from default spline pose to default pose.
+        // compute offset from spline to the default pose.
         float t = spline.arcLengthInverse(ratio * totalArcLength);
         AnimPose pose(glm::vec3(1.0f), glm::normalize(glm::lerp(basePose.rot(), tipPose.rot(), t)), spline(t));
         AnimPose offsetPose = pose.inverse() * defaultPose;
