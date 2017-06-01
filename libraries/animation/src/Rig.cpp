@@ -401,16 +401,6 @@ void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, flo
     }
 }
 
-void Rig::restoreJointRotation(int index, float fraction, float priority) {
-    // AJT: DEAD CODE?
-    ASSERT(false);
-}
-
-void Rig::restoreJointTranslation(int index, float fraction, float priority) {
-    // AJT: DEAD CODE?
-    ASSERT(false);
-}
-
 bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position, glm::vec3 translation, glm::quat rotation) const {
     if (isIndexValid(jointIndex)) {
         position = (rotation * _internalPoseSet._absolutePoses[jointIndex].trans()) + translation;
@@ -1040,7 +1030,7 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
         _animVars.set("hipsType", (int)IKTarget::Type::Unknown);
     }
 
-    if (params.spine2Enabled) {
+    if (params.hipsEnabled && params.spine2Enabled) {
         _animVars.set("spine2Type", (int)IKTarget::Type::Spline);
         _animVars.set("spine2Position", extractTranslation(params.spine2Matrix));
         _animVars.set("spine2Rotation", glmExtractRotation(params.spine2Matrix));
@@ -1051,7 +1041,7 @@ void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
     if (params.leftArmEnabled) {
         _animVars.set("leftArmType", (int)IKTarget::Type::RotationAndPosition);
         _animVars.set("leftArmPosition", params.leftArmPosition);
-        _animVars.set("leftArmRotation", params.leftArmRotation);        
+        _animVars.set("leftArmRotation", params.leftArmRotation);
     } else {
         _animVars.set("leftArmType", (int)IKTarget::Type::Unknown);
     }

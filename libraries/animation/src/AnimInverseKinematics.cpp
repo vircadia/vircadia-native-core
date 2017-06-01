@@ -465,6 +465,16 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
     }
 }
 
+static CubicHermiteSplineFunctorWithArcLength computeSplineFromTipAndBase(const AnimPose& tipPose, const AnimPose& basePose, float baseGain = 1.0f, float tipGain = 1.0f) {
+    float linearDistance = glm::length(basePose.trans() - tipPose.trans());
+    glm::vec3 p0 = basePose.trans();
+    glm::vec3 m0 = baseGain * linearDistance * (basePose.rot() * Vectors::UNIT_Y);
+    glm::vec3 p1 = tipPose.trans();
+    glm::vec3 m1 = tipGain * linearDistance * (tipPose.rot() * Vectors::UNIT_Y);
+
+    return CubicHermiteSplineFunctorWithArcLength(p0, m0, p1, m1);
+}
+
 void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug) {
 
     std::map<int, DebugJoint> debugJointMap;
@@ -475,15 +485,15 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
     AnimPose tipPose = AnimPose(glm::vec3(1.0f), target.getRotation(), target.getTranslation());
     AnimPose basePose = absolutePoses[baseIndex];
 
-    const float BASE_GAIN = 0.5f;
-    const float TIP_GAIN = 1.0f;
-    float d = glm::length(basePose.trans() - tipPose.trans());
-    glm::vec3 p0 = basePose.trans();
-    glm::vec3 m0 = BASE_GAIN * d * (basePose.rot() * Vectors::UNIT_Y);
-    glm::vec3 p1 = tipPose.trans();
-    glm::vec3 m1 = TIP_GAIN * d * (tipPose.rot() * Vectors::UNIT_Y);
-
-    CubicHermiteSplineFunctorWithArcLength spline(p0, m0, p1, m1);
+    CubicHermiteSplineFunctorWithArcLength spline;
+    if (target.getIndex() == _headIndex) {
+        // set gain factors so that more curvature occurs near the tip of the spline.
+        const float HIPS_GAIN = 0.5f;
+        const float HEAD_GAIN = 1.0f;
+        spline = computeSplineFromTipAndBase(tipPose, basePose, HIPS_GAIN, HEAD_GAIN);
+    } else {
+        spline = computeSplineFromTipAndBase(tipPose, basePose);
+    }
     float totalArcLength = spline.arcLength(1.0f);
 
     // find or create splineJointInfo for the head target
@@ -515,24 +525,32 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
             const SplineJointInfo& splineJointInfo = (*splineJointInfoVec)[i];
             float t = spline.arcLengthInverse(splineJointInfo.ratio * totalArcLength);
             glm::vec3 trans = spline(t);
-            glm::quat rot = glm::normalize(glm::lerp(basePose.rot(), tipPose.rot(), t));
+
+            // for head splines, preform most rotation toward the tip by using ease in function. t^2
+            float rotT = t;
+            if (target.getIndex() == _headIndex) {
+                rotT = t * t;
+            }
+            glm::quat rot = glm::normalize(glm::lerp(basePose.rot(), tipPose.rot(), rotT));
             AnimPose absPose = AnimPose(glm::vec3(1.0f), rot, trans) * splineJointInfo.offsetPose;
             AnimPose relPose = parentAbsPose.inverse() * absPose;
             _rotationAccumulators[splineJointInfo.jointIndex].add(relPose.rot(), target.getWeight());
 
-            // constrain the amount the spine can stretch or compress
-            float length = glm::length(relPose.trans());
-            float defaultLength = glm::length(_skeleton->getRelativeDefaultPose(splineJointInfo.jointIndex).trans());
-            const float STRETCH_COMPRESS_PERCENTAGE = 0.15f;
-            const float MAX_LENGTH = defaultLength * (1.0f + STRETCH_COMPRESS_PERCENTAGE);
-            const float MIN_LENGTH = defaultLength * (1.0f - STRETCH_COMPRESS_PERCENTAGE);
             bool constrained = false;
-            if (length > MAX_LENGTH) {
-                relPose.trans() = (relPose.trans() / length) * MAX_LENGTH;
-                constrained = true;
-            } else if (length < MIN_LENGTH) {
-                relPose.trans() = (relPose.trans() / length) * MIN_LENGTH;
-                constrained = true;
+            if (splineJointInfo.jointIndex != _hipsIndex) {
+                // constrain the amount the spine can stretch or compress
+                float length = glm::length(relPose.trans());
+                float defaultLength = glm::length(_skeleton->getRelativeDefaultPose(splineJointInfo.jointIndex).trans());
+                const float STRETCH_COMPRESS_PERCENTAGE = 0.15f;
+                const float MAX_LENGTH = defaultLength * (1.0f + STRETCH_COMPRESS_PERCENTAGE);
+                const float MIN_LENGTH = defaultLength * (1.0f - STRETCH_COMPRESS_PERCENTAGE);
+                if (length > MAX_LENGTH) {
+                    relPose.trans() = (relPose.trans() / length) * MAX_LENGTH;
+                    constrained = true;
+                } else if (length < MIN_LENGTH) {
+                    relPose.trans() = (relPose.trans() / length) * MIN_LENGTH;
+                    constrained = true;
+                }
             }
 
             _translationAccumulators[splineJointInfo.jointIndex].add(relPose.trans(), target.getWeight());
@@ -1434,19 +1452,19 @@ void AnimInverseKinematics::computeSplineJointInfosForIKTarget(const AnimContext
     AnimPose tipPose = _skeleton->getAbsoluteDefaultPose(target.getIndex());
     AnimPose basePose = _skeleton->getAbsoluteDefaultPose(_hipsIndex);
 
-    const float BASE_GAIN = 0.5f;
-    const float TIP_GAIN = 1.0f;
-    float d = glm::length(basePose.trans() - tipPose.trans());
-    glm::vec3 p0 = basePose.trans();
-    glm::vec3 m0 = BASE_GAIN * d * (basePose.rot() * Vectors::UNIT_Y);
-    glm::vec3 p1 = tipPose.trans();
-    glm::vec3 m1 = TIP_GAIN * d * (tipPose.rot() * Vectors::UNIT_Y);
+    CubicHermiteSplineFunctorWithArcLength spline;
+    if (target.getIndex() == _headIndex) {
+        // set gain factors so that more curvature occurs near the tip of the spline.
+        const float HIPS_GAIN = 0.5f;
+        const float HEAD_GAIN = 1.0f;
+        spline = computeSplineFromTipAndBase(tipPose, basePose, HIPS_GAIN, HEAD_GAIN);
+    } else {
+        spline = computeSplineFromTipAndBase(tipPose, basePose);
+    }
+    float totalArcLength = spline.arcLength(1.0f);
 
     // AJT: FIXME: TODO: this won't work for horizontal splines...
     float baseToTipHeight = tipPose.trans().y - basePose.trans().y;
-
-    CubicHermiteSplineFunctorWithArcLength spline(p0, m0, p1, m1);
-    float totalArcLength = spline.arcLength(1.0f);
 
     int index = target.getIndex();
     int endIndex = _skeleton->getParentIndex(_hipsIndex);
@@ -1483,15 +1501,15 @@ void AnimInverseKinematics::debugDrawSpineSplines(const AnimContext& context, co
         AnimPose tipPose = AnimPose(glm::vec3(1.0f), target.getRotation(), target.getTranslation());
         AnimPose basePose = _skeleton->getAbsolutePose(baseIndex, _relativePoses);
 
-        const float BASE_GAIN = 0.5f;
-        const float TIP_GAIN = 1.0f;
-        float d = glm::length(basePose.trans() - tipPose.trans());
-        glm::vec3 p0 = basePose.trans();
-        glm::vec3 m0 = BASE_GAIN * d * (basePose.rot() * Vectors::UNIT_Y);
-        glm::vec3 p1 = tipPose.trans();
-        glm::vec3 m1 = TIP_GAIN * d * (tipPose.rot() * Vectors::UNIT_Y);
-
-        CubicHermiteSplineFunctorWithArcLength spline(p0, m0, p1, m1);
+        CubicHermiteSplineFunctorWithArcLength spline;
+        if (target.getIndex() == _headIndex) {
+            // set gain factors so that more curvature occurs near the tip of the spline.
+            const float HIPS_GAIN = 0.5f;
+            const float HEAD_GAIN = 1.0f;
+            spline = computeSplineFromTipAndBase(tipPose, basePose, HIPS_GAIN, HEAD_GAIN);
+        } else {
+            spline = computeSplineFromTipAndBase(tipPose, basePose);
+        }
         float totalArcLength = spline.arcLength(1.0f);
 
         const glm::vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);

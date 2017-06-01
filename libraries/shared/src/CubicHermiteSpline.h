@@ -14,6 +14,7 @@
 
 class CubicHermiteSplineFunctor {
 public:
+    CubicHermiteSplineFunctor() : _p0(), _m0(), _p1(), _m1() {}
     CubicHermiteSplineFunctor(const glm::vec3& p0, const glm::vec3& m0, const glm::vec3& p1, const glm::vec3& m1) : _p0(p0), _m0(m0), _p1(p1), _m1(m1) {}
 
     CubicHermiteSplineFunctor(const CubicHermiteSplineFunctor& orig) : _p0(orig._p0), _m0(orig._m0), _p1(orig._p1), _m1(orig._m1) {}
@@ -61,6 +62,9 @@ class CubicHermiteSplineFunctorWithArcLength : public CubicHermiteSplineFunctor 
 public:
     enum Constants { NUM_SUBDIVISIONS = 30 };
 
+    CubicHermiteSplineFunctorWithArcLength() : CubicHermiteSplineFunctor() {
+        memset(_values, 0, sizeof(float) * NUM_SUBDIVISIONS + 1);
+    }
     CubicHermiteSplineFunctorWithArcLength(const glm::vec3& p0, const glm::vec3& m0, const glm::vec3& p1, const glm::vec3& m1) : CubicHermiteSplineFunctor(p0, m0, p1, m1) {
         // initialize _values with the accumulated arcLength along the spline.
         const float DELTA = 1.0f / NUM_SUBDIVISIONS;
