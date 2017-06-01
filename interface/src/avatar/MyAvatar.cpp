@@ -2805,7 +2805,7 @@ glm::mat4 MyAvatar::getLeftArmCalibrationMat() const {
         auto leftArmRot = getAbsoluteDefaultJointRotationInObjectFrame(leftArmIndex);
         return createMatFromQuatAndPos(leftArmRot, leftArmPos);
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTARM_ROT, DEFAULT_AVATAR_RIGHTARM_POS);
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTARM_ROT, DEFAULT_AVATAR_LEFTARM_POS);
     }
 }
 
