@@ -1172,10 +1172,10 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
         // TODO: add isHipsEnabled
         bool bodySensorTrackingEnabled = params.isLeftFootEnabled || params.isRightFootEnabled;
 
+        const float RELAX_DURATION = 0.6f;
+
         if (params.isLeftEnabled) {
-
             glm::vec3 handPosition = params.leftPosition;
-
             if (!bodySensorTrackingEnabled) {
                 // prevent the hand IK targets from intersecting the body capsule
                 glm::vec3 displacement;
@@ -1187,16 +1187,46 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
             _animVars.set("leftHandPosition", handPosition);
             _animVars.set("leftHandRotation", params.leftOrientation);
             _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
+
+            _isLeftHandControlled = true;
+            _lastLeftHandControlledPosition = handPosition;
+            _lastLeftHandControlledOrientation = params.leftOrientation;
         } else {
-            _animVars.unset("leftHandPosition");
-            _animVars.unset("leftHandRotation");
-            _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
+            if (_isLeftHandControlled) {
+                _leftHandRelaxDuration = RELAX_DURATION;
+                _isLeftHandControlled = false;
+            }
+
+            if (_leftHandRelaxDuration > 0) {
+                // Move hand from controlled position to non-controlled position.
+                _leftHandRelaxDuration = std::max(_leftHandRelaxDuration - dt, 0.0f);
+
+                auto ikNode = getAnimInverseKinematicsNode();
+                if (ikNode) {
+                    float alpha = _leftHandRelaxDuration / RELAX_DURATION;
+                    auto uncontrolledHandPose = ikNode->getUncontrolledLeftHandPose();
+                    auto uncontrolledHipsPose = ikNode->getUncontrolledHipPose();
+
+                    glm::vec3 relaxedPosition = _geometryOffset * (uncontrolledHandPose.trans() - uncontrolledHipsPose.trans());
+                    glm::vec3 handPosition = alpha * _lastLeftHandControlledPosition + (1.0f - alpha) * relaxedPosition;
+
+                    const AnimPose geometryToRigPose(_geometryToRigTransform);
+                    glm::quat handOrientation = geometryToRigPose.rot() * uncontrolledHandPose.rot();
+                    handOrientation = slerp(handOrientation, _lastLeftHandControlledOrientation, alpha);
+
+                    _animVars.set("leftHandPosition", handPosition);
+                    _animVars.set("leftHandRotation", handOrientation);
+                    _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
+                }
+            } else {
+                _animVars.unset("leftHandPosition");
+                _animVars.unset("leftHandRotation");
+                _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
+            }
         }
 
         if (params.isRightEnabled) {
-
             glm::vec3 handPosition = params.rightPosition;
-
             if (!bodySensorTrackingEnabled) {
                 // prevent the hand IK targets from intersecting the body capsule
                 glm::vec3 displacement;
@@ -1208,10 +1238,42 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
             _animVars.set("rightHandPosition", handPosition);
             _animVars.set("rightHandRotation", params.rightOrientation);
             _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
+
+            _isRightHandControlled = true;
+            _lastRightHandControlledPosition = handPosition;
+            _lastRightHandControlledOrientation = params.rightOrientation;
         } else {
-            _animVars.unset("rightHandPosition");
-            _animVars.unset("rightHandRotation");
-            _animVars.set("rightHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
+            if (_isRightHandControlled) {
+                _rightHandRelaxDuration = RELAX_DURATION;
+                _isRightHandControlled = false;
+            }
+
+            if (_rightHandRelaxDuration > 0) {
+                // Move hand from controlled position to non-controlled position.
+                _rightHandRelaxDuration = std::max(_rightHandRelaxDuration - dt, 0.0f);
+
+                auto ikNode = getAnimInverseKinematicsNode();
+                if (ikNode) {
+                    float alpha = _rightHandRelaxDuration / RELAX_DURATION;
+                    auto uncontrolledHandPose = ikNode->getUncontrolledRightHandPose();
+                    auto uncontrolledHipsPose = ikNode->getUncontrolledHipPose();
+
+                    glm::vec3 relaxedPosition = _geometryOffset * (uncontrolledHandPose.trans() - uncontrolledHipsPose.trans());
+                    glm::vec3 handPosition = alpha * _lastRightHandControlledPosition + (1.0f - alpha) * relaxedPosition;
+
+                    const AnimPose geometryToRigPose(_geometryToRigTransform);
+                    glm::quat handOrientation = geometryToRigPose.rot() * uncontrolledHandPose.rot();
+                    handOrientation = slerp(handOrientation, _lastRightHandControlledOrientation, alpha);
+
+                    _animVars.set("rightHandPosition", handPosition);
+                    _animVars.set("rightHandRotation", handOrientation);
+                    _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
+                }
+            } else {
+                _animVars.unset("rightHandPosition");
+                _animVars.unset("rightHandRotation");
+                _animVars.set("rightHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
+            }
         }
 
         if (params.isLeftFootEnabled) {
@@ -1233,7 +1295,6 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
             _animVars.unset("rightFootRotation");
             _animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
         }
-
     }
 }
 
@@ -1509,5 +1570,3 @@ void Rig::computeAvatarBoundingCapsule(
     glm::vec3 rigCenter = (geometryToRig * (0.5f * (totalExtents.maximum + totalExtents.minimum)));
     localOffsetOut = rigCenter - (geometryToRig * rootPosition);
 }
-
-

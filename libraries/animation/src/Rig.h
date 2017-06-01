@@ -355,6 +355,15 @@ private:
     QMap<int, StateHandler> _stateHandlers;
     int _nextStateHandlerId { 0 };
     QMutex _stateMutex;
+
+    bool _isLeftHandControlled { false };
+    bool _isRightHandControlled { false };
+    float _leftHandRelaxDuration { 0.0f };
+    float _rightHandRelaxDuration { 0.0f };
+    glm::vec3 _lastLeftHandControlledPosition;
+    glm::vec3 _lastRightHandControlledPosition;
+    glm::quat _lastLeftHandControlledOrientation;
+    glm::quat _lastRightHandControlledOrientation;
 };
 
 #endif /* defined(__hifi__Rig__) */
