@@ -221,8 +221,11 @@ bool OculusControllerManager::isHeadController() const {
     return status.HmdMounted == ovrTrue;
 }
 
-void OculusControllerManager::TouchDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
+void OculusControllerManager::TouchDevice::update(float deltaTime,
+                                                  const controller::InputCalibrationData& inputCalibrationData) {
     _buttonPressedMap.clear();
+    _poseStateMap.erase(controller::HEAD);
+
     if (!_parent.isHeadController()) {
         // if the HMD isn't on someone's head, don't take input from the controllers
         return;
@@ -258,7 +261,6 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
         handleRotationForUntrackedHand(inputCalibrationData, hand, tracking.HandPoses[hand]);
     });
 
-    _poseStateMap.erase(controller::HEAD);
     handleHeadPose(deltaTime, inputCalibrationData, tracking.HeadPose);
 
     using namespace controller;

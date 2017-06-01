@@ -2328,7 +2328,6 @@ glm::quat MyAvatar::getWorldBodyOrientation() const {
 // old school meat hook style
 glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
 
-    // HMD is in sensor space.
     const glm::vec3 headPosition = getHeadControllerPoseInSensorFrame().translation;
     const glm::quat headOrientation = getHeadControllerPoseInSensorFrame().rotation * Quaternions::Y_180;
     const glm::quat headOrientationYawOnly = cancelOutRollAndPitch(headOrientation);
@@ -2352,8 +2351,8 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     // apply simplistic head/neck model
     // figure out where the avatar body should be by applying offsets from the avatar's neck & head joints.
 
-    // eyeToNeck offset is relative full HMD orientation.
-    // while neckToRoot offset is only relative to HMDs yaw.
+    // eyeToNeck offset is relative to head's full orientation,
+    // while neckToRoot offset is only relative to head's yaw.
     // Y_180 is necessary because rig is z forward and headOrientation is -z forward
     glm::vec3 eyeToNeck = headOrientation * Quaternions::Y_180 * (localNeck - localEyes);
     glm::vec3 neckToRoot = headOrientationYawOnly * Quaternions::Y_180 * -localNeck;
