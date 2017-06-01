@@ -33,7 +33,6 @@ namespace controller {
 
         void saveRecording();
         void loadRecording(const QString& path);
-        void convertFile(const QString& path);
         void startRecording();
         void startPlayback();
         void stopPlayback();
