@@ -24,8 +24,6 @@ class ClosureEventSender : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    void sendCrashEventSync();
-
     bool hasTimedOutQuitEvent();
     bool hasFinishedQuitEvent() { return _hasFinishedQuitEvent; }
 
