@@ -3992,7 +3992,7 @@ void Application::updateMyAvatarLookAtPosition() {
             //  I am not looking at anyone else, so just look forward
             if (isHMD) {
                 glm::mat4 worldHMDMat = myAvatar->getSensorToWorldMatrix() *
-                    (glm::mat4)myAvatar->getHeadControllerPoseInSensorFrame() * Matrices::Y_180;
+                    myAvatar->getHeadControllerPoseInSensorFrame().getMatrix() * Matrices::Y_180;
                 lookAtSpot = transformPoint(worldHMDMat, glm::vec3(0.0f, 0.0f, -TREE_SCALE));
             } else {
                 lookAtSpot = myAvatar->getHead()->getEyePosition() +

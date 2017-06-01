@@ -24,7 +24,7 @@
 #include <gl/QOpenGLContextWrapper.h>
 #include <PerfStat.h>
 #include <ViewFrustum.h>
-#include <gpu/gl/GLbackend.h>
+#include <gpu/gl/GLBackend.h>
 
 #include <ui-plugins/PluginContainer.h>
 

@@ -1885,7 +1885,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     getHead()->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
 
     if (qApp->isHeadControllerEnabled()) {
-        glm::quat localOrientation = getHeadControllerPoseInAvatarFrame();
+        glm::quat localOrientation = getHeadControllerPoseInAvatarFrame().rotation;
         // these angles will be in radians
         // ... so they need to be converted to degrees before we do math...
         glm::vec3 euler = glm::eulerAngles(localOrientation) * DEGREES_PER_RADIAN;
@@ -2328,8 +2328,8 @@ glm::quat MyAvatar::getWorldBodyOrientation() const {
 glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
 
     // HMD is in sensor space.
-    const glm::vec3 headPosition = getHeadControllerPoseInSensorFrame();
-    const glm::quat headOrientation = (glm::quat)getHeadControllerPoseInSensorFrame() * Quaternions::Y_180;
+    const glm::vec3 headPosition = getHeadControllerPoseInSensorFrame().translation;
+    const glm::quat headOrientation = getHeadControllerPoseInSensorFrame().rotation * Quaternions::Y_180;
     const glm::quat headOrientationYawOnly = cancelOutRollAndPitch(headOrientation);
 
     const Rig& rig = _skeletonModel->getRig();
@@ -2765,7 +2765,7 @@ glm::mat4 MyAvatar::getLeftFootCalibrationMat() const {
         auto leftFootRot = getAbsoluteDefaultJointRotationInObjectFrame(leftFootIndex);
         return createMatFromQuatAndPos(leftFootRot, leftFootPos);
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTFOOT_POS, DEFAULT_AVATAR_LEFTFOOT_POS);
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTFOOT_ROT, DEFAULT_AVATAR_LEFTFOOT_POS);
     }
 }
 
@@ -2777,7 +2777,7 @@ glm::mat4 MyAvatar::getRightFootCalibrationMat() const {
         auto rightFootRot = getAbsoluteDefaultJointRotationInObjectFrame(rightFootIndex);
         return createMatFromQuatAndPos(rightFootRot, rightFootPos);
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTFOOT_POS, DEFAULT_AVATAR_RIGHTFOOT_POS);
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTFOOT_ROT, DEFAULT_AVATAR_RIGHTFOOT_POS);
     }
 }
 
@@ -2800,7 +2800,7 @@ glm::mat4 MyAvatar::getLeftArmCalibrationMat() const {
         auto leftArmRot = getAbsoluteDefaultJointRotationInObjectFrame(leftArmIndex);
         return createMatFromQuatAndPos(leftArmRot, leftArmPos);
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTARM_ROT, DEFAULT_AVATAR_RIGHTARM_POS);
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTARM_ROT, DEFAULT_AVATAR_LEFTARM_POS);
     }
 }
 
