@@ -49,7 +49,6 @@ public:
         if (inputRecorder->isPlayingback()) {
             auto userInputMapper = DependencyManager::get<UserInputMapper>();
             QString actionName =  userInputMapper->getStandardPoseName(_input.getChannel());
-            qDebug() << actionName;
             return inputRecorder->getPoseState(actionName);
         }
         return VirtualEndpoint::pose();

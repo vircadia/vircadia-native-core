@@ -332,7 +332,7 @@ QString UserInputMapper::getActionName(Action action) const {
 QString UserInputMapper::getStandardPoseName(uint16_t pose) {
     Locker locker(_lock);
     for (auto posePair : getStandardInputs()) {
-        if (posePair.first.channel == pose) {
+        if (posePair.first.channel == pose && posePair.first.getType() == ChannelType::POSE) {
             return posePair.second;
         }
     }
