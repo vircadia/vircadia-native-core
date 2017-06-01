@@ -681,7 +681,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 // and pretend that we own it (we assume we'll recover it soon)
 
                 // However, for now, when the server uses a newer time than what we sent, listen to what we're told.
-                if (overwriteLocalData) weOwnSimulation = false;
+                if (overwriteLocalData) {
+                    weOwnSimulation = false;
+                }
             } else if (_simulationOwner.set(newSimOwner)) {
                 markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
                 somethingChanged = true;
