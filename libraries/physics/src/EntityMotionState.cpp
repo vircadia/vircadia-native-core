@@ -65,8 +65,7 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     _lastStep(0),
     _loopsWithoutOwner(0),
     _accelerationNearlyGravityCount(0),
-    _numInactiveUpdates(1),
-    _outgoingPriority(0)
+    _numInactiveUpdates(1)
 {
     _type = MOTIONSTATE_TYPE_ENTITY;
     assert(_entity);
@@ -75,6 +74,8 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     // we need the side-effects of EntityMotionState::setShape() so we call it explicitly here
     // rather than pass the legit shape pointer to the ObjectMotionState ctor above.
     setShape(shape);
+
+    _outgoingPriority = _entity->getPendingOwnershipPriority();
 }
 
 EntityMotionState::~EntityMotionState() {
@@ -135,23 +136,23 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
                 _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
             }
             _loopsWithoutOwner = 0;
+            _numInactiveUpdates = 0;
         } else if (isLocallyOwned()) {
             // we just inherited ownership, make sure our desired priority matches what we have
             upgradeOutgoingPriority(_entity->getSimulationPriority());
         } else {
             _outgoingPriority = 0;
             _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
+            _numInactiveUpdates = 0;
         }
     }
     if (flags & Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY) {
-        // The DIRTY_SIMULATOR_OWNERSHIP_PRIORITY bits really mean "we should bid for ownership because
-        // a local script has been changing physics properties, or we should adjust our own ownership priority".
-        // The desired priority is determined by which bits were set.
-        if (flags & Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_GRAB) {
-            _outgoingPriority = SCRIPT_GRAB_SIMULATION_PRIORITY;
-        } else {
-            _outgoingPriority = SCRIPT_POKE_SIMULATION_PRIORITY;
-        }
+        // The DIRTY_SIMULATOR_OWNERSHIP_PRIORITY bit means one of the following:
+        // (1) we own it but may need to change the priority OR...
+        // (2) we don't own it but should bid (because a local script has been changing physics properties)
+        uint8_t newPriority = isLocallyOwned() ? _entity->getSimulationOwner().getPriority() : _entity->getSimulationOwner().getPendingPriority();
+        _outgoingPriority = glm::max(_outgoingPriority, newPriority);
+
         // reset bid expiry so that we bid ASAP
         _nextOwnershipBid = 0;
     }
