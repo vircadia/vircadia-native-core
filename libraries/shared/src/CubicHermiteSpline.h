@@ -37,7 +37,7 @@ public:
         float t2 = t * t;
         float w0 = -6.0f * t + 6.0f * t2;
         float w1 = 1.0f - 4.0f * t + 3.0f * t2;
-        float w2 = 6.0 * t - 6.0f * t2;
+        float w2 = 6.0f * t - 6.0f * t2;
         float w3 = -2.0f * t + 3.0f * t2;
         return w0 * _p0 + w1 * _m0 + w2 * _p1 + w3 * _m1;
     }
