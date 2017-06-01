@@ -823,8 +823,7 @@ const notificationIcon = path.join(__dirname, '../resources/console-notification
 
 function isProcessRunning(pid) {
     try {
-        running = process.kill(pid, 0);
-        return true;
+        return process.kill(pid, 0);
     } catch (e) {
     }
     return false;
