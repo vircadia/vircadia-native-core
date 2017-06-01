@@ -1889,6 +1889,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
         // these angles will be in radians
         // ... so they need to be converted to degrees before we do math...
         glm::vec3 euler = glm::eulerAngles(localOrientation) * DEGREES_PER_RADIAN;
+
         Head* head = getHead();
         head->setBaseYaw(YAW(euler));
         head->setBasePitch(PITCH(euler));
