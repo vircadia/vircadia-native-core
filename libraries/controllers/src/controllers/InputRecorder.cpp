@@ -93,7 +93,7 @@ namespace controller {
     }
 
 
-    void exportToFile(QJsonObject& object) {
+    void exportToFile(const QJsonObject& object) {
         if (!QDir(SAVE_DIRECTORY).exists()) {
             QDir().mkdir(SAVE_DIRECTORY);
         }
@@ -186,7 +186,8 @@ namespace controller {
     }
 
     void InputRecorder::saveRecording() {
-        exportToFile(recordDataToJson());
+        QJsonObject jsonData = recordDataToJson();
+        exportToFile(jsonData);
     }
 
     void InputRecorder::loadRecording(const QString& path) {
@@ -258,34 +259,16 @@ namespace controller {
                 _poseStateList.push_back(_currentFramePoses);
                 _currentFramePoses.clear();
             }
-
-            convertFile(filePath);
         }
 
         _loading = false;
-    }
-
-    void InputRecorder::convertFile(const QString& path) {
-        if (!QDir(SAVE_DIRECTORY).exists()) {
-            QDir().mkdir(SAVE_DIRECTORY);
-        }
-        
-        QJsonObject data = recordDataToJson();
-        QFile saveFile (path);
-        if (!saveFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-            qWarning() << "could not open file: " << path;
-            return;
-        }
-        QJsonDocument saveData(data);
-        QByteArray compressedData = qCompress(saveData.toJson(QJsonDocument::Compact));
-        saveFile.write(compressedData);
     }
     
     void InputRecorder::stopRecording() {
         _recording = false;
         _framesRecorded = (int)_actionStateList.size();
     }
-
+    
     void InputRecorder::startPlayback() {
         _playback = true;
         _recording = false;

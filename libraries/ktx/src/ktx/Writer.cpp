@@ -229,7 +229,7 @@ namespace ktx {
                     } else {
                         Image::FaceBytes faceBytes(NUM_CUBEMAPFACES);
                         auto faceSize = srcImages[l]._faceSize;
-                        for (int face = 0; face < NUM_CUBEMAPFACES; face++) {
+                        for (uint32_t face = 0; face < NUM_CUBEMAPFACES; face++) {
                              memcpy(currentPtr, srcImages[l]._faceBytes[face], faceSize);
                              faceBytes[face] = currentPtr;
                              currentPtr += faceSize;
