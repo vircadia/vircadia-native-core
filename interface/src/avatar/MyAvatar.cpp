@@ -435,9 +435,9 @@ void MyAvatar::update(float deltaTime) {
         // so we update now. It's ok if it updates again in the normal way.
         updateSensorToWorldMatrix();
         emit positionGoneTo();
-        _physicsSafetyPending = true;
+        _physicsSafetyPending = getCollisionsEnabled();  // Run safety tests as soon as we can after goToLocation, or clear if we're not colliding.
     }
-    if (_physicsSafetyPending && qApp->isPhysicsEnabled()) {
+    if (_physicsSafetyPending && qApp->isPhysicsEnabled() && _characterController.isEnabledAndReady()) { // fix only when needed and ready
         _physicsSafetyPending = false;
         safeLanding(_goToPosition); // no-op if already safe
     }
@@ -1555,6 +1555,11 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
 
     if (_characterController.isEnabledAndReady()) {
         setVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
+        if (_characterController.isStuck()) {
+            _physicsSafetyPending = true;
+            _goToPosition = getPosition();
+            qDebug() << "FIXME setting safety test at:" << _goToPosition;
+        }
     } else {
         setVelocity(getVelocity() + _characterController.getFollowVelocity());
     }
@@ -2242,55 +2247,53 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
     // For b, use that top surface point.
     // We then place our feet there, recurse with new capsule center point, and return true.
 
-    // I'm not sure the true/false return is useful, and it does make things more complicated. Might get rid of it.
-    // E.g., Q_RETURN_ARG, and direct() could be a normal method.
     if (QThread::currentThread() != thread()) {
         bool result;
         QMetaObject::invokeMethod(this, "safeLanding", Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, result), Q_ARG(const glm::vec3&, position));
         return result;
     }
     glm::vec3 better;
-    if (requiresSafeLanding(position, better)) {
-        qDebug() << "rechecking" << position << " => " << better << " collisions:" << getCollisionsEnabled() << " physics:" << qApp->isPhysicsEnabled();
-        if (!getCollisionsEnabled()) {
-            goToLocation(better);  // recurses
-        } else { // If you try to go while stuck, physics will keep you stuck.
-            setCollisionsEnabled(false);
-            // Don't goToLocation just yet. Yield so that physics can act on the above.
-            QMetaObject::invokeMethod(this, "goToLocationAndEnableCollisions", Qt::QueuedConnection, // The equivalent of javascript nextTick
-                Q_ARG(glm::vec3, better)); // I.e., capsuleCenter - offset
-        }
-        return true;
+    if (!requiresSafeLanding(position, better)) {
+        return false;
     }
-    return false;
+    qDebug() << "rechecking" << position << " => " << better << " collisions:" << getCollisionsEnabled() << " physics:" << qApp->isPhysicsEnabled();
+    if (!getCollisionsEnabled()) {
+        goToLocation(better);  // recurses
+     } else { // If you try to go while stuck, physics will keep you stuck.
+        setCollisionsEnabled(false);
+        // Don't goToLocation just yet. Yield so that physics can act on the above.
+        QMetaObject::invokeMethod(this, "goToLocationAndEnableCollisions", Qt::QueuedConnection, // The equivalent of javascript nextTick
+            Q_ARG(glm::vec3, better)); // I.e., capsuleCenter - offset
+     }
+     return true;
 }
 
-bool MyAvatar::requiresSafeLanding(const glm::vec3& position, glm::vec3& betterPosition) {
-    const auto offset = getOrientation() *_characterController.getCapsuleLocalOffset();
-    const auto capsuleCenter = position + offset;
+// If position is not reliably safe from being stuck by physics, answer true and place a candidate better position in betterPositionOut.
+bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& betterPositionOut) {
     // We could repeat this whole test for each of the four corners of our bounding box, in case the surface is uneven. However:
     // 1) This is only meant to cover the most important cases, and even the four corners won't handle random spikes in the surfaces or avatar.
     // 2) My feeling is that this code is already at the limit of what can realistically be reviewed and maintained.
-    auto direct = [&](const char* label) {  // position is good to go, or at least, we cannot do better
-        qDebug() << "Already safe" << label << position << " collisions:" << getCollisionsEnabled() << " physics:" << qApp->isPhysicsEnabled();
+    auto ok = [&](const char* label) {  // position is good to go, or at least, we cannot do better
+        qDebug() << "Already safe" << label << positionIn << " collisions:" << getCollisionsEnabled() << " physics:" << qApp->isPhysicsEnabled();
         return false;
     };
     auto halfHeight = _characterController.getCapsuleHalfHeight();
     if (halfHeight == 0) {
-        return direct("zero height avatar");
+        return ok("zero height avatar");
     }
     auto entityTree = DependencyManager::get<EntityTreeRenderer>()->getTree();
     if (!entityTree) {
-        return direct("no entity tree");
+        return ok("no entity tree");
     }
 
+    const auto offset = getOrientation() *_characterController.getCapsuleLocalOffset();
+    const auto capsuleCenter = positionIn + offset;
+    const auto up = _worldUpDirection, down = -up;
     glm::vec3 upperIntersection, upperNormal, lowerIntersection, lowerNormal;
     EntityItemID upperId, lowerId;
-    const auto up = _worldUpDirection, down = -up;
-    QVector<EntityItemID> include{};
-    QVector<EntityItemID> ignore{};
-    auto recurse = [&] {  // Place bottom of capsule at the upperIntersection, and check again based on the capsule center.
-        betterPosition = upperIntersection + (up * halfHeight) - offset;
+    QVector<EntityItemID> include{}, ignore{};
+    auto mustMove = [&] {  // Place bottom of capsule at the upperIntersection, and check again based on the capsule center.
+        betterPositionOut = upperIntersection + (up * halfHeight) - offset;
         return true;
     };
     auto findIntersection = [&](const glm::vec3& startPointIn, const glm::vec3& directionIn, glm::vec3& intersectionOut, EntityItemID& entityIdOut, glm::vec3& normalOut) {
@@ -2322,12 +2325,12 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& position, glm::vec3& betterP
         // We currently believe that physics will reliably push us out if our feet are embedded,
         // as long as our capsule center is out and there's room above us. Here we have those
         // conditions, so no need to check our feet below.
-        return direct("nothing above");
+        return ok("nothing above");
     }
 
     if (!findIntersection(capsuleCenter, down, lowerIntersection, lowerId, lowerNormal)) {
         // Our head may be embedded, but our center is out and there's room below. See corresponding comment above.
-        return direct("nothing below");
+        return ok("nothing below");
     }
  
     // See if we have room between entities above and below, but that we are not contained.
@@ -2347,13 +2350,13 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& position, glm::vec3& betterP
                     if (!findIntersection(upperIntersection, up, upperIntersection, upperId, upperNormal)) {
                         // We're not inside an entity, and from the nested tests, we have room between what is above and below. So position is good!
                         //qDebug() << "FIXME upper:" << upperId << upperIntersection << " n:" << upperNormal.y << " lower:" << lowerId << lowerIntersection << " n:" << lowerNormal.y << " delta:" << delta << " halfHeight:" << halfHeight;
-                        return direct("enough room");
+                        return ok("enough room");
                     }
                     if (isUp(upperNormal)) {
                         // This new intersection is the top surface of an entity that we have not yet seen, which means we're contained within it.
                         // We could break here and recurse from the top of the original ceiling, but since we've already done the work to find the top
                         // of the enclosing entity, let's put our feet at upperIntersection and start over.
-                        return recurse();
+                        return mustMove();
                     }
                     // We found a new bottom surface, which we're not interested in.
                     // But there could still be a top surface above us for an entity we haven't seen, so keep looking upward.
@@ -2368,10 +2371,10 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& position, glm::vec3& betterP
     auto fromAbove = capsuleCenter + skyHigh;
     include.push_back(upperId); // We're looking for the intersection from above onto this entity.
     if (!findIntersection(fromAbove, down, upperIntersection, upperId, upperNormal)) {
-        return direct("Unable to find a landing");
+        return ok("Unable to find a landing");
     }
     // Our arbitrary rule is to always go up. There's no need to look down or sideways for a "closer" safe candidate.
-    return recurse();
+    return mustMove();
 }
 
 void MyAvatar::updateMotionBehaviorFromMenu() {
