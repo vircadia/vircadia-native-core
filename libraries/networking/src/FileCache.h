@@ -46,6 +46,9 @@ public:
     FileCache(const std::string& dirname, const std::string& ext, QObject* parent = nullptr);
     virtual ~FileCache();
 
+    // Remove all unlocked items from the cache
+    void wipe();
+
     size_t getNumTotalFiles() const { return _numTotalFiles; }
     size_t getNumCachedFiles() const { return _numUnusedFiles; }
     size_t getSizeTotalFiles() const { return _totalFilesSize; }
@@ -95,6 +98,9 @@ public:
 private:
     using Mutex = std::recursive_mutex;
     using Lock = std::unique_lock<Mutex>;
+    using Map = std::unordered_map<Key, std::weak_ptr<File>>;
+    using Set = std::unordered_set<FilePointer>;
+    using KeySet = std::unordered_set<Key>;
 
     friend class File;
 
@@ -105,6 +111,8 @@ private:
     void removeUnusedFile(const FilePointer& file);
     void clean();
     void clear();
+    // Remove a file from the cache
+    void eject(const FilePointer& file);
 
     size_t getOverbudgetAmount() const;
 
@@ -122,10 +130,10 @@ private:
     std::string _dirpath;
     bool _initialized { false };
 
-    std::unordered_map<Key, std::weak_ptr<File>> _files;
+    Map _files;
     Mutex _filesMutex;
 
-    std::unordered_set<FilePointer> _unusedFiles;
+    Set _unusedFiles;
     Mutex _unusedFilesMutex;
 };
 
@@ -136,8 +144,8 @@ public:
     using Key = FileCache::Key;
     using Metadata = FileCache::Metadata;
 
-    Key getKey() const { return _key; }
-    size_t getLength() const { return _length; }
+    const Key& getKey() const { return _key; }
+    const size_t& getLength() const { return _length; }
     std::string getFilepath() const { return _filepath; }
 
     virtual ~File();

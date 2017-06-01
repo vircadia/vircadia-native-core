@@ -236,6 +236,28 @@ namespace cache {
     };
 }
 
+void FileCache::eject(const FilePointer& file) {
+    file->_cache = nullptr;
+    const auto& length = file->getLength();
+    const auto& key = file->getKey();
+
+    {
+        Lock lock(_filesMutex);
+        if (0 != _files.erase(key)) {
+            _numTotalFiles -= 1;
+            _totalFilesSize -= length;
+        }
+    }
+
+    {
+        Lock unusedLock(_unusedFilesMutex);
+        if (0 != _unusedFiles.erase(file)) {
+            _numUnusedFiles -= 1;
+            _unusedFilesSize -= length;
+        }
+    }
+}
+
 void FileCache::clean() {
     size_t overbudgetAmount = getOverbudgetAmount();
 
@@ -250,25 +272,20 @@ void FileCache::clean() {
     for (const auto& file : _unusedFiles) {
         queue.push(file);
     }
+
     while (!queue.empty() && overbudgetAmount > 0) {
         auto file = queue.top();
         queue.pop();
+        eject(file);
         auto length = file->getLength();
-
-        unusedLock.unlock();
-        {
-            file->_cache = nullptr;
-            Lock lock(_filesMutex);
-            _files.erase(file->getKey());
-        }
-        unusedLock.lock();
-
-        _unusedFiles.erase(file);
-        _numTotalFiles -= 1;
-        _numUnusedFiles -= 1;
-        _totalFilesSize -= length;
-        _unusedFilesSize -= length;
         overbudgetAmount -= std::min(length, overbudgetAmount);
+    }
+}
+
+void FileCache::wipe() {
+    Lock unusedFilesLock(_unusedFilesMutex);
+    while (!_unusedFiles.empty()) {
+        eject(*_unusedFiles.begin());
     }
 }
 

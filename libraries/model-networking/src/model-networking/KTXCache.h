@@ -27,6 +27,11 @@ class KTXCache : public cache::FileCache {
     Q_OBJECT
 
 public:
+    // Whenever a change is made to the serialized format for the KTX cache that isn't backward compatible,
+    // this value should be incremented.  This will force the KTX cache to be wiped
+    static const int CURRENT_VERSION;
+    static const int INVALID_VERSION;
+
     KTXCache(const std::string& dir, const std::string& ext);
 
     KTXFilePointer writeFile(const char* data, Metadata&& metadata);
