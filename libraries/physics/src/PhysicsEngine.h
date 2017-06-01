@@ -13,6 +13,7 @@
 #define hifi_PhysicsEngine_h
 
 #include <stdint.h>
+#include <set>
 #include <vector>
 
 #include <QUuid>
@@ -114,7 +115,7 @@ private:
     CollisionEvents _collisionEvents;
     QHash<QUuid, EntityDynamicPointer> _objectDynamics;
     QHash<btRigidBody*, QSet<QUuid>> _objectDynamicsByBody;
-    std::vector<btRigidBody*> _activeStaticBodies;
+    std::set<btRigidBody*> _activeStaticBodies;
 
     glm::vec3 _originOffset;
 
