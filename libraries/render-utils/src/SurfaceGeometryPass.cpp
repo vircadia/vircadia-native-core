@@ -250,6 +250,7 @@ const gpu::PipelinePointer& LinearDepthPass::getDownsamplePipeline() {
 
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_SCENE, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 
         state->setColorWriteMask(true, true, true, false);
 

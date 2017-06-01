@@ -22,50 +22,6 @@
 
 using namespace render;
 
-gpu::PipelinePointer DrawStencilDeferred::getOpaquePipeline() {
-    if (!_opaquePipeline) {
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::StandardShaderLib::getDrawNadaPS();
-        auto program = gpu::Shader::createProgram(vs, ps);
-        gpu::Shader::makeProgram((*program));
-
-        auto state = std::make_shared<gpu::State>();
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_SCENE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
-        state->setColorWriteMask(0);
-
-        _opaquePipeline = gpu::Pipeline::create(program, state);
-    }
-    return _opaquePipeline;
-}
-
-void DrawStencilDeferred::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& deferredFramebuffer) {
-    return;
-    assert(renderContext->args);
-    assert(renderContext->args->hasViewFrustum());
-
-    // from the touched pixel generate the stencil buffer 
-    RenderArgs* args = renderContext->args;
-    doInBatch(args->_context, [&](gpu::Batch& batch) {
-        args->_batch = &batch;
-
-        batch.enableStereo(false);
-
-   //     batch.setFramebuffer(deferredFramebuffer);
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        batch.setPipeline(getOpaquePipeline());
-
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
-        batch.setResourceTexture(0, nullptr);
-
-    });
-    args->_batch = nullptr;
-}
-
-
-
 model::MeshPointer PrepareStencil::getMesh() {
     if (!_mesh) {
 
@@ -89,7 +45,7 @@ gpu::PipelinePointer PrepareStencil::getMeshStencilPipeline() {
         gpu::Shader::makeProgram((*program));
 
         auto state = std::make_shared<gpu::State>();
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_MASK, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE));
+        drawMask(state);
         state->setColorWriteMask(0);
 
         _meshStencilPipeline = gpu::Pipeline::create(program, state);
@@ -105,7 +61,7 @@ gpu::PipelinePointer PrepareStencil::getPaintStencilPipeline() {
         gpu::Shader::makeProgram((*program));
 
         auto state = std::make_shared<gpu::State>();
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_MASK, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE));
+        drawMask(state);
         state->setColorWriteMask(0);
 
         _paintStencilPipeline = gpu::Pipeline::create(program, state);
@@ -143,3 +99,18 @@ void PrepareStencil::run(const RenderContextPointer& renderContext, const gpu::F
     args->_batch = nullptr;
 }
 
+void PrepareStencil::drawMask(gpu::State& state) {
+    state.setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_MASK, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE));
+}
+
+void PrepareStencil::testMask(gpu::State& state) {
+    state.setStencilTest(true, 0x00, gpu::State::StencilTest(PrepareStencil::STENCIL_MASK, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+}
+
+void PrepareStencil::testBackground(gpu::State& state) {
+    state.setStencilTest(true, 0x00, gpu::State::StencilTest(PrepareStencil::STENCIL_BACKGROUND, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+}
+
+void PrepareStencil::testMaskDrawShape(gpu::State& state) {
+    state.setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_MASK, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_ZERO));
+}

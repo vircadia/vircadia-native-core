@@ -15,7 +15,7 @@
 #include <gpu/StandardShaderLib.h>
 
 #include <RenderArgs.h>
-
+#include "StencilMaskPass.h"
 #include "FramebufferCache.h"
 
 #include "toneMapping_frag.h"
@@ -39,6 +39,7 @@ void ToneMappingEffect::init() {
     slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), ToneMappingEffect_LightingMapSlot));
     gpu::Shader::makeProgram(*blitProgram, slotBindings);
     auto blitState = std::make_shared<gpu::State>();
+    blitState->setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_SCENE, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
     blitState->setColorWriteMask(true, true, true, true);
     _blitLightBuffer = gpu::PipelinePointer(gpu::Pipeline::create(blitProgram, blitState));
 }

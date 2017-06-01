@@ -16,18 +16,6 @@
 #include <gpu/Pipeline.h>
 #include <model/Geometry.h>
 
-class DrawStencilDeferred {
-public:
-    using JobModel = render::Job::ModelI<DrawStencilDeferred, gpu::FramebufferPointer>;
-
-    void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& deferredFramebuffer);
-
-protected:
-    gpu::PipelinePointer _opaquePipeline;
-
-    gpu::PipelinePointer getOpaquePipeline();
-};
-
 class PrepareStencil {
 public:
     class Config : public render::JobConfig {
@@ -43,7 +31,14 @@ public:
 
     static const gpu::int8 STENCIL_MASK = 2;
     static const gpu::int8 STENCIL_BACKGROUND = 1;
-    static const gpu::int8 STENCIL_SCENE = 0;
+    static const gpu::int8 STENCIL_SHAPE = 0;
+
+
+    static void drawMask(gpu::State& state);
+    static void testMask(gpu::State& state);
+    static void testBackground(gpu::State& state);
+    static void testMaskDrawShape(gpu::State& state);
+
 
 private:
     gpu::PipelinePointer _meshStencilPipeline;

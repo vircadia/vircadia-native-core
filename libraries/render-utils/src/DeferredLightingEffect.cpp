@@ -243,7 +243,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
     state->setColorWriteMask(true, true, true, false);
 
     if (lightVolume) {
-        state->setStencilTest(true, 0x00, gpu::State::StencilTest(PrepareStencil::STENCIL_SCENE, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+        PrepareStencil::testShape(*state);
        
         state->setCullMode(gpu::State::CULL_BACK);
    //     state->setCullMode(gpu::State::CULL_FRONT);
@@ -256,7 +256,7 @@ static void loadLightProgram(const char* vertSource, const char* fragSource, boo
 
     } else {
         // Stencil test all the light passes for objects pixels only, not the background
-        state->setStencilTest(true, 0x00, gpu::State::StencilTest(PrepareStencil::STENCIL_SCENE, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+        PrepareStencil::testShape(*state);
 
         state->setCullMode(gpu::State::CULL_BACK);
         // additive blending
