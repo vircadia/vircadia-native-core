@@ -55,6 +55,7 @@ private:
     class InputDevice : public controller::InputDevice {
     public:
         InputDevice(vr::IVRSystem*& system);
+        bool isHeadController() const { return _overrideHead; }
     private:
         // Device functions
         controller::Input::NamedVector getAvailableInputs() const override;
