@@ -613,7 +613,6 @@
                 error = "All participants must be logged in to connect.";
             }
             result = error ? {status: 'error', connection: error} : response;
-            UserActivityLogger.makeUserConnection(connectingId, false, error || response);
             connectionRequestCompleted();
         } else {
             result = response;
@@ -668,8 +667,8 @@
     // to be sure the hand is still close enough.  If not, we terminate
     // the interval, go back to the waiting state.  If we make it
     // the entire CONNECTING_TIME, we make the connection.  We pass in
-    // whether or not the connecting id is actually logged in, as now we 
-    // will allow to start the connection process but have it stop with a 
+    // whether or not the connecting id is actually logged in, as now we
+    // will allow to start the connection process but have it stop with a
     // fail message before trying to call the backend if the other guy isn't
     // logged in.
     function startConnecting(id, jointIndex, isLoggedIn) {

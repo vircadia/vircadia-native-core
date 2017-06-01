@@ -25,7 +25,7 @@
 
 #include <QThread>
 
-const Discoverability::Mode DEFAULT_DISCOVERABILITY_MODE = Discoverability::Friends;
+const Discoverability::Mode DEFAULT_DISCOVERABILITY_MODE = Discoverability::Connections;
 
 DiscoverabilityManager::DiscoverabilityManager() :
     _mode("discoverabilityMode", DEFAULT_DISCOVERABILITY_MODE)

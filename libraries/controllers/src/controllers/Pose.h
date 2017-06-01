@@ -39,13 +39,10 @@ namespace controller {
         quat getRotation() const { return rotation; }
         vec3 getVelocity() const { return velocity; }
         vec3 getAngularVelocity() const { return angularVelocity; }
+        mat4 getMatrix() const { return createMatFromQuatAndPos(rotation, translation); }
 
         Pose transform(const glm::mat4& mat) const;
         Pose postTransform(const glm::mat4& mat) const;
-
-        operator glm::mat4() const { return createMatFromQuatAndPos(rotation, translation); }
-        operator glm::quat() const { return rotation; }
-        operator glm::vec3() const { return translation; }
 
         static QScriptValue toScriptValue(QScriptEngine* engine, const Pose& event);
         static void fromScriptValue(const QScriptValue& object, Pose& event);

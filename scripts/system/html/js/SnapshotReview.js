@@ -293,19 +293,25 @@ function addImage(image_data, isLoggedIn, canShare, isGifLoading, isShowingPrevi
     isGif = img.src.split('.').pop().toLowerCase() === "gif";
     imageContainer.appendChild(img);
     document.getElementById("snapshot-images").appendChild(imageContainer);
-    paths.push(image_data.localPath);
-    if (isGif) {
-        imageContainer.innerHTML += '<span class="gifLabel">GIF</span>';
-    }
-    if (!isGifLoading) {
-        appendShareBar(id, isLoggedIn, canShare, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast);
-    }
-    if (!isGifLoading || (isShowingPreviousImages && !image_data.story_id)) {
-        shareForUrl(id);
-    }
-    if (isShowingPreviousImages && isLoggedIn && image_data.story_id) {
-        updateShareInfo(id, image_data.story_id);
-    }
+    img.onload = function () {
+        paths.push(image_data.localPath);
+        if (isGif) {
+            imageContainer.innerHTML += '<span class="gifLabel">GIF</span>';
+        }
+        if (!isGifLoading) {
+            appendShareBar(id, isLoggedIn, canShare, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast);
+        }
+        if (!isGifLoading || (isShowingPreviousImages && !image_data.story_id)) {
+            shareForUrl(id);
+        }
+        if (isShowingPreviousImages && isLoggedIn && image_data.story_id) {
+            updateShareInfo(id, image_data.story_id);
+        }
+    };
+    img.onerror = function () {
+        img.onload = null;
+        img.src = image_data.errorPath;
+    };
 }
 function showConfirmationMessage(selectedID, destination) {
     if (selectedID.id) {
