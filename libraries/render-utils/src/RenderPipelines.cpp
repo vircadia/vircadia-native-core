@@ -15,6 +15,7 @@
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
 
+#include "StencilMaskPass.h"
 #include "DeferredLightingEffect.h"
 #include "TextureCache.h"
 #include "render/DrawTask.h"
@@ -330,7 +331,7 @@ void addPlumberPipeline(ShapePlumber& plumber,
         bool isWireframed = (i & 4);
 
         auto state = std::make_shared<gpu::State>();
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(2, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_ZERO));
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_MASK, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_ZERO));
 
         // Depth test depends on transparency
         state->setDepthTest(true, !key.isTranslucent(), gpu::LESS_EQUAL);

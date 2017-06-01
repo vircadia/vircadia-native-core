@@ -23,7 +23,6 @@ using namespace render;
 
 gpu::PipelinePointer DrawStencilDeferred::getOpaquePipeline() {
     if (!_opaquePipeline) {
-        const gpu::int8 STENCIL_OPAQUE = 0;
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
         auto ps = gpu::StandardShaderLib::getDrawNadaPS();
         auto program = gpu::Shader::createProgram(vs, ps);
@@ -31,7 +30,7 @@ gpu::PipelinePointer DrawStencilDeferred::getOpaquePipeline() {
 
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_SCENE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
         state->setColorWriteMask(0);
 
         _opaquePipeline = gpu::Pipeline::create(program, state);
@@ -67,12 +66,12 @@ void DrawStencilDeferred::run(const RenderContextPointer& renderContext, const g
 gpu::PipelinePointer PrepareStencil::getDrawStencilPipeline() {
     if (!_drawStencilPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawVertexPositionVS();
-        auto ps = gpu::StandardShaderLib::getDrawWhitePS();
+        auto ps = gpu::StandardShaderLib::getDrawNadaPS();
         auto program = gpu::Shader::createProgram(vs, ps);
         gpu::Shader::makeProgram((*program));
 
         auto state = std::make_shared<gpu::State>();
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(2, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE));
+        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_MASK, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE));
      //   state->setColorWriteMask(0);
 
         _drawStencilPipeline = gpu::Pipeline::create(program, state);

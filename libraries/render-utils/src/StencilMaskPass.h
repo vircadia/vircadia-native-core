@@ -35,7 +35,9 @@ public:
 
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& dstFramebuffer);
 
-    static const gpu::int8 STENCIL_MASK = 64;
+    static const gpu::int8 STENCIL_MASK = 2;
+    static const gpu::int8 STENCIL_BACKGROUND = 1;
+    static const gpu::int8 STENCIL_SCENE = 0;
 
 private:
     gpu::PipelinePointer _drawStencilPipeline;
