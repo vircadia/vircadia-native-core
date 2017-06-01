@@ -19,6 +19,7 @@
 #include <QStandardPaths>
 #include <PathUtils.h>
 #include <QUrl>
+#include <Gzip.h>
 
 #include <BuildInfo.h>
 #include <GLMHelpers.h>
@@ -93,23 +94,26 @@ namespace controller {
     }
 
 
-    void exportToFile(const QJsonObject& object) {
+    void exportToFile(const QJsonObject& object, const QString& fileName) {
         if (!QDir(SAVE_DIRECTORY).exists()) {
             QDir().mkdir(SAVE_DIRECTORY);
         }
-
-        QString timeStamp = QDateTime::currentDateTime().toString(Qt::ISODate);
-        timeStamp.replace(":", "-");
-        QString fileName = SAVE_DIRECTORY + FILE_PREFIX_NAME + timeStamp + COMPRESS_EXTENSION;
-        qDebug() << fileName;
+       
         QFile saveFile (fileName);
         if (!saveFile.open(QIODevice::WriteOnly)) {
             qWarning() << "could not open file: " << fileName;
             return;
         }
         QJsonDocument saveData(object);
-        QByteArray compressedData = qCompress(saveData.toJson(QJsonDocument::Compact));
-        saveFile.write(compressedData);
+        QByteArray jsonData = saveData.toJson(QJsonDocument::Indented);
+        QByteArray jsonDataForFile;
+
+        if (!gzip(jsonData, jsonDataForFile, -1)) {
+            qCritical("unable to gzip while saving to json.");
+            return;
+        }
+        
+        saveFile.write(jsonDataForFile);
         saveFile.close();
     }
 
@@ -121,8 +125,16 @@ namespace controller {
             status = false;
             return object;
         }
-        QByteArray compressedData = qUncompress(openFile.readAll());
-        QJsonDocument jsonDoc = QJsonDocument::fromJson(compressedData);
+        QByteArray compressedData = openFile.readAll();
+        QByteArray jsonData;
+
+        if (!gunzip(compressedData, jsonData)) {
+            qCritical() << "json file not in gzip format: " << file;
+            status = false;
+            return object;
+        }
+        
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
         object = jsonDoc.object();
         status = true;
         openFile.close();
@@ -153,7 +165,7 @@ namespace controller {
     QJsonObject InputRecorder::recordDataToJson() {
         QJsonObject data;
         data["frameCount"] = _framesRecorded;
-        data["version"] = "1.0";
+        data["version"] = "0.0";
         
         QJsonArray actionArrayList;
         QJsonArray poseArrayList;
@@ -187,7 +199,10 @@ namespace controller {
 
     void InputRecorder::saveRecording() {
         QJsonObject jsonData = recordDataToJson();
-        exportToFile(jsonData);
+        QString timeStamp = QDateTime::currentDateTime().toString(Qt::ISODate);
+        timeStamp.replace(":", "-");
+        QString fileName = SAVE_DIRECTORY + FILE_PREFIX_NAME + timeStamp + COMPRESS_EXTENSION;
+        exportToFile(jsonData, fileName);
     }
 
     void InputRecorder::loadRecording(const QString& path) {
@@ -202,10 +217,12 @@ namespace controller {
         QString filePath = urlPath.toLocalFile();
         QFileInfo info(filePath);
         QString extension = info.suffix();
+        
         if (extension != "gz") {
             qWarning() << "can not load file with exentsion of " << extension;
             return;
         }
+        
         bool success = false;
         QJsonObject data = openFile(filePath, success);
         auto keyValue = data.find("version");
@@ -233,34 +250,7 @@ namespace controller {
                 _poseStateList.push_back(_currentFramePoses);
                 _currentFramePoses.clear();
             }
-        } else if (success) {
-            //convert recording to new reacording standard and rewrite file
-            auto userInputMapper = DependencyManager::get<UserInputMapper>();
-            _framesRecorded = data["frameCount"].toInt();
-            QJsonArray actionArrayList = data["actionList"].toArray();
-            QJsonArray poseArrayList = data["poseList"].toArray();
-            
-            for (int actionIndex = 0; actionIndex < actionArrayList.size(); actionIndex++) {
-                QJsonArray actionState = actionArrayList[actionIndex].toArray();
-                for (int index = 0; index < actionState.size(); index++) {
-                    QString actionName = userInputMapper->getActionName(Action(index));
-                    _currentFrameActions[actionName] = actionState[index].toDouble();
-                }
-                _actionStateList.push_back(_currentFrameActions);
-                _currentFrameActions.clear();
-            }
-            
-            for (int poseIndex = 0; poseIndex < poseArrayList.size(); poseIndex++) {
-                QJsonArray poseState = poseArrayList[poseIndex].toArray();
-                for (int index = 0; index < poseState.size(); index++) {
-                    QString actionName = userInputMapper->getActionName(Action(index));
-                    _currentFramePoses[actionName] = jsonObjectToPose(poseState[index].toObject());
-                }
-                _poseStateList.push_back(_currentFramePoses);
-                _currentFramePoses.clear();
-            }
-        }
-
+        } 
         _loading = false;
     }
     
