@@ -32,8 +32,7 @@ public:
     JSConsole(QWidget* parent, ScriptEngine* scriptEngine = NULL);
     ~JSConsole();
 
-    void setScriptEngine(ScriptEngine* scriptEngine = NULL);
-    void clear();
+    void setScriptEngine(ScriptEngine* scriptEngine = NULL);    
 
 public slots:
     void executeCommand(const QString& command);
@@ -51,7 +50,8 @@ protected slots:
     void handleInfo(const QString& message, const QString& scriptName);
     void handleWarning(const QString& message, const QString& scriptName);
     void handleError(const QString& message, const QString& scriptName);
-    void commandFinished();
+    void commandFinished();    
+    void clear();
 
 private:
     void appendMessage(const QString& gutter, const QString& message);

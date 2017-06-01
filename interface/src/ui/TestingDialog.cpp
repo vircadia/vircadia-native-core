@@ -26,10 +26,11 @@ TestingDialog::TestingDialog(QWidget* parent) :
     auto _engines = DependencyManager::get<ScriptEngines>();
     _engine = _engines->loadScript(qApp->applicationDirPath() + testRunnerRelativePath);
     _console->setScriptEngine(_engine);
-    connect(_engine, &ScriptEngine::finished, this, &TestingDialog::onTestingFinished);
+    connect(_engine, &ScriptEngine::finished, this, &TestingDialog::onTestingFinished);    
 }
 
 void TestingDialog::onTestingFinished(const QString& scriptPath) {
     _engine = nullptr;
     _console->setScriptEngine(nullptr);
+    
 }

@@ -21,6 +21,7 @@
 #include "Application.h"
 #include "JSConsole.h"
 #include "ScriptHighlighting.h"
+//#include "D:\Dhruvesh\Project\Hifi\github\hifi\libraries\script-engine\src\ScriptEngineLogging.h"
 
 const int NO_CURRENT_HISTORY_COMMAND = -1;
 const int MAX_HISTORY_SIZE = 64;
@@ -84,6 +85,7 @@ void JSConsole::setScriptEngine(ScriptEngine* scriptEngine) {
         disconnect(_scriptEngine, &ScriptEngine::infoMessage, this, &JSConsole::handleInfo);
         disconnect(_scriptEngine, &ScriptEngine::warningMessage, this, &JSConsole::handleWarning);
         disconnect(_scriptEngine, &ScriptEngine::errorMessage, this, &JSConsole::handleError);
+        disconnect(_scriptEngine, &ScriptEngine::clearDebugWindow, this, &JSConsole::clear);
         if (_ownScriptEngine) {
             _scriptEngine->deleteLater();
         }
@@ -97,6 +99,7 @@ void JSConsole::setScriptEngine(ScriptEngine* scriptEngine) {
     connect(_scriptEngine, &ScriptEngine::infoMessage, this, &JSConsole::handleInfo);
     connect(_scriptEngine, &ScriptEngine::warningMessage, this, &JSConsole::handleWarning);
     connect(_scriptEngine, &ScriptEngine::errorMessage, this, &JSConsole::handleError);
+    connect(_scriptEngine, &ScriptEngine::clearDebugWindow, this, &JSConsole::clear);
 }
 
 void JSConsole::executeCommand(const QString& command) {
@@ -144,6 +147,7 @@ void JSConsole::commandFinished() {
 void JSConsole::handleError(const QString& message, const QString& scriptName) {
     Q_UNUSED(scriptName);
     appendMessage(GUTTER_ERROR, "<span style='" + RESULT_ERROR_STYLE + "'>" + message.toHtmlEscaped() + "</span>");
+
 }
 
 void JSConsole::handlePrint(const QString& message, const QString& scriptName) {
@@ -291,11 +295,14 @@ void JSConsole::appendMessage(const QString& gutter, const QString& message) {
 }
 
 void JSConsole::clear() {
+   /* qCDebug(scriptengine) << "=============================";
+    qCDebug(scriptengine) << "Clear fUNCTION";*/
     QLayoutItem* item;
     while ((item = _ui->logArea->layout()->takeAt(0)) != NULL) {
+       // qCDebug(scriptengine) << "While loop called";
         delete item->widget();
         delete item;
     }
-    _ui->logArea->updateGeometry();
-    scrollToBottom();
+   // _ui->logArea->updateGeometry();
+  //  scrollToBottom();
 }

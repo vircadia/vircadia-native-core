@@ -485,7 +485,10 @@ void ScriptEngine::scriptPrintedMessage(const QString& message) {
     qCDebug(scriptengine) << message;
     emit printedMessage(message, getFilename());
 }
-
+void ScriptEngine::clearConsole() {
+    qCDebug(scriptengine) << "Clearing debug window";
+    emit clearDebugWindow();
+}
 // Even though we never pass AnimVariantMap directly to and from javascript, the queued invokeMethod of
 // callAnimationStateHandler requires that the type be registered.
 // These two are meaningful, if we ever do want to use them...
@@ -665,6 +668,7 @@ void ScriptEngine::init() {
     registerGlobalObject("Entities", entityScriptingInterface.data());
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
+    registerGlobalObject("console", &_consoleScriptingInterface);
     registerGlobalObject("Mat4", &_mat4Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
