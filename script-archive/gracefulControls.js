@@ -65,8 +65,9 @@ var velocity = { x: 0, y: 0, z: 0 };
 var velocityVertical = 0;
 var enabled = false;
 
-var lastX = Reticle.getPosition().x;
-var lastY = Reticle.getPosition().y;
+var pos = Reticle.getPosition();
+var lastX = pos.x;
+var lastY = pos.y;
 var yawFromMouse = 0;
 var pitchFromMouse = 0;
 
@@ -76,8 +77,9 @@ var pitchSpeed = 0;
 
 function update(dt) {
     if (enabled && Window.hasFocus()) {
-        var x = Reticle.getPosition().x;
-        var y = Reticle.getPosition().y;
+        var pos = Reticle.getPosition();
+        var x = pos.x;
+        var y = pos.y;
 
         var dx = x - lastX;
         var dy = y - lastY;
@@ -164,9 +166,9 @@ function vecToString(vec) {
 }
 
 function resetCursorPosition() {
-    var newX = Math.floor(Window.x + Window.innerWidth / 2);
-    var newY = Math.floor(Window.y + Window.innerHeight / 2);
-    Reticle.setPosition({ x: newX, y: newY});
+    var newX = Math.floor(Window.innerWidth / 2);
+    var newY = Math.floor(Window.innerHeight / 2);
+    Reticle.setPosition({ x: newX, y: newY });
     lastX = newX;
     lastY = newY;
 }
