@@ -22,6 +22,8 @@
 #include <SettingHandle.h>
 #include "AddressManager.h"
 
+const QString USER_ACTIVITY_URL = "/api/v1/user_activities";
+
 class UserActivityLogger : public QObject {
     Q_OBJECT
     

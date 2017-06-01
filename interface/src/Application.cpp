@@ -144,6 +144,7 @@
 #include "InterfaceLogging.h"
 #include "LODManager.h"
 #include "ModelPackager.h"
+#include "networking/ClosureEventSender.h"
 #include "networking/HFWebEngineProfile.h"
 #include "networking/HFTabletWebEngineProfile.h"
 #include "networking/FileTypeProfile.h"
@@ -534,6 +535,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<AvatarBookmarks>();
     DependencyManager::set<LocationBookmarks>();
     DependencyManager::set<Snapshot>();
+    DependencyManager::set<ClosureEventSender>();
 
     return previousSessionCrashed;
 }
@@ -1567,6 +1569,10 @@ void Application::aboutToQuit() {
     }
 
     getActiveDisplayPlugin()->deactivate();
+
+    // use the ClosureEventSender via an std::thread (to not use QThread while the application is going down)
+    // to send an event that says the user asked for the app to close
+    _userQuitThread = std::thread { &ClosureEventSender::sendQuitStart, DependencyManager::get<ClosureEventSender>() };
 
     // Hide Running Scripts dialog so that it gets destroyed in an orderly manner; prevents warnings at shutdown.
     DependencyManager::get<OffscreenUi>()->hide("RunningScripts");
