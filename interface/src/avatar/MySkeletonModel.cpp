@@ -59,8 +59,7 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     } else {
         if (qApp->isHMDMode()) {
             // get HMD position from sensor space into world space, and back into rig space
-            // glm::mat4 worldHMDMat = myAvatar->getHeadControllerPoseInWorldFrame();
-            glm::mat4 worldHMDMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
+            glm::mat4 worldHMDMat = myAvatar->getHeadControllerPoseInWorldFrame();
             glm::mat4 rigToWorld = createMatFromQuatAndPos(getRotation(), getTranslation());
             glm::mat4 worldToRig = glm::inverse(rigToWorld);
             glm::mat4 rigHMDMat = worldToRig * worldHMDMat;
