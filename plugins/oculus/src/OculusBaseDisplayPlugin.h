@@ -26,6 +26,7 @@ public:
     void resetSensors() override final;
     bool beginFrameRender(uint32_t frameIndex) override;
     float getTargetFrameRate() const override { return _hmdDesc.DisplayRefreshRate; }
+    bool getSupportsAutoSwitch() override final { return true; }
     
 
 protected:

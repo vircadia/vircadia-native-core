@@ -245,7 +245,6 @@ Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTRE
 
 static const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
 static const int INTERVAL_TO_CHECK_HMD_WORN_STATUS = 500; // milliseconds
-static const QString DISPLAY_PLUGIN_NAME_OCULUS_RIFT = "Oculus Rift";
 static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 
 const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
@@ -1344,12 +1343,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         _autoSwitchDisplayModeSupportedHMDPlugin = nullptr;
         foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
             if (displayPlugin->isHmd() && 
-                displayPlugin->getName() == DISPLAY_PLUGIN_NAME_OCULUS_RIFT) {
-                
-                // Currently auto switch display mode support is only for Oculus Rift                
-                // To support other plugins, add a condition
-                // (|| displayPlugin->getName() == "Other HMD Display Plugin Name")
-
+                displayPlugin->getSupportsAutoSwitch()) {
                 _autoSwitchDisplayModeSupportedHMDPlugin = displayPlugin;
                 _autoSwitchDisplayModeSupportedHMDPluginName = 
                     _autoSwitchDisplayModeSupportedHMDPlugin->getName();
