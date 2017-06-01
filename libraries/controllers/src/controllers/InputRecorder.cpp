@@ -234,7 +234,7 @@ namespace controller {
             for (int actionIndex = 0; actionIndex < actionArrayList.size(); actionIndex++) {
                 QJsonArray actionState = actionArrayList[actionIndex].toArray();
                 for (int index = 0; index < actionState.size(); index++) {
-                    QJsonObject actionObject = actionState[index].toObject();;
+                    QJsonObject actionObject = actionState[index].toObject();
                     _currentFrameActions[actionObject["name"].toString()] = actionObject["value"].toDouble();
                 }
                 _actionStateList.push_back(_currentFrameActions);
