@@ -11,6 +11,8 @@
 
 #include "Application.h"
 
+#include <thread>
+
 #include <gl/Config.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
@@ -1570,9 +1572,13 @@ void Application::aboutToQuit() {
 
     getActiveDisplayPlugin()->deactivate();
 
-    // use the ClosureEventSender via an std::thread (to not use QThread while the application is going down)
-    // to send an event that says the user asked for the app to close
-    _userQuitThread = std::thread { &ClosureEventSender::sendQuitStart, DependencyManager::get<ClosureEventSender>() };
+    // use the ClosureEventSender via a QThread to send an event that says the user asked for the app to close
+    auto closureEventSender = DependencyManager::get<ClosureEventSender>();
+    QThread* closureEventThread = new QThread(this);
+    closureEventSender->moveToThread(closureEventThread);
+    // sendQuitEventAsync will bail immediately if the UserActivityLogger is not enabled
+    connect(closureEventThread, &QThread::started, closureEventSender.data(), &ClosureEventSender::sendQuitEventAsync);
+    closureEventThread->start();
 
     // Hide Running Scripts dialog so that it gets destroyed in an orderly manner; prevents warnings at shutdown.
     DependencyManager::get<OffscreenUi>()->hide("RunningScripts");
@@ -1737,6 +1743,15 @@ Application::~Application() {
     _window->setMenuBar(nullptr);
 
     _window->deleteLater();
+
+    // make sure that the quit event has finished sending before we take the application down
+    auto closureEventSender = DependencyManager::get<ClosureEventSender>();
+    while (!closureEventSender->hasFinishedQuitEvent() && !closureEventSender->hasTimedOutQuitEvent()) {
+        // yield so we're not spinning
+        std::this_thread::yield();
+    }
+    // quit the thread used by the closure event sender
+    closureEventSender->thread()->quit();
 
     // Can't log to file passed this point, FileLogger about to be deleted
     qInstallMessageHandler(LogHandler::verboseMessageHandler);

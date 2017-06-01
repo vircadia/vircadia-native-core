@@ -24,13 +24,11 @@
 #include <SandboxUtils.h>
 #include <SharedUtil.h>
 
-
 #include "AddressManager.h"
 #include "Application.h"
 #include "InterfaceLogging.h"
 #include "UserActivityLogger.h"
 #include "MainWindow.h"
-#include "networking/ClosureEventSender.h"
 
 #ifdef HAS_BUGSPLAT
 #include <BugSplat.h>
@@ -267,12 +265,6 @@ int main(int argc, const char* argv[]) {
     }
 
     Application::shutdownPlugins();
-
-    if (UserActivityLogger::getInstance().isEnabled()) {
-        // send a quit finished event here to indicate that this session closed cleanly
-        std::thread quitCompleteThread { &::ClosureEventSender::sendQuitFinish, DependencyManager::get<ClosureEventSender>() };
-        quitCompleteThread.join();
-    }
 
     qCDebug(interfaceapp, "Normal exit.");
 #if !defined(DEBUG) && !defined(Q_OS_LINUX)

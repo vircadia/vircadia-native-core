@@ -12,24 +12,32 @@
 #ifndef hifi_ClosureEventSender_h
 #define hifi_ClosureEventSender_h
 
+#include <atomic>
+
 #include <QtCore/QString>
 #include <QtCore/QUuid>
 
 #include <DependencyManager.h>
 
-class ClosureEventSender : public Dependency {
+class ClosureEventSender : public QObject, public Dependency {
+    Q_OBJECT
     SINGLETON_DEPENDENCY
 
 public:
-    void setSessionID(QUuid sessionID) { _sessionID = sessionID; }
+    void sendCrashEventSync();
 
-    void sendQuitStart();
-    void sendQuitFinish();
-    void sendCrashEvent();
+    bool hasTimedOutQuitEvent();
+    bool hasFinishedQuitEvent() { return _hasFinishedQuitEvent; }
+
+public slots:
+    void sendQuitEventAsync();
+
+private slots:
+    void handleQuitEventFinished();
 
 private:
-    QUuid _sessionID;
-    QString _accessToken;
+    std::atomic<bool> _hasFinishedQuitEvent { false };
+    std::atomic<int64_t> _quitEventStartTimestamp;
 };
 
 #endif // hifi_ClosureEventSender_h
