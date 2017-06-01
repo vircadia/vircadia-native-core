@@ -273,7 +273,8 @@ function fillImageDataFromPrevious() {
             localPath: previousStillSnapPath,
             story_id: previousStillSnapStoryID,
             blastButtonDisabled: previousStillSnapBlastingDisabled,
-            hifiButtonDisabled: previousStillSnapHifiSharingDisabled
+            hifiButtonDisabled: previousStillSnapHifiSharingDisabled,
+            errorPath: Script.resolvePath(Script.resourcesPath() + 'snapshot/img/no-image.jpg')
         });
     }
     if (previousAnimatedSnapPath !== "") {
@@ -281,7 +282,8 @@ function fillImageDataFromPrevious() {
             localPath: previousAnimatedSnapPath,
             story_id: previousAnimatedSnapStoryID,
             blastButtonDisabled: previousAnimatedSnapBlastingDisabled,
-            hifiButtonDisabled: previousAnimatedSnapHifiSharingDisabled
+            hifiButtonDisabled: previousAnimatedSnapHifiSharingDisabled,
+            errorPath: Script.resolvePath(Script.resourcesPath() + 'snapshot/img/no-image.jpg')
         });
     }
 }
