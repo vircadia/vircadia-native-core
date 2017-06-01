@@ -438,6 +438,10 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
     const int listenPort = portStr ? atoi(portStr) : INVALID_PORT;
 
+    static const auto SUPPRESS_SETTINGS_RESET = "--suppress-settings-reset";
+    bool suppressPrompt = cmdOptionExists(argc, const_cast<const char**>(argv), SUPPRESS_SETTINGS_RESET);
+    bool previousSessionCrashed = CrashHandler::checkForResetSettings(runningMarkerExisted, suppressPrompt);
+
     Setting::init();
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
@@ -457,10 +461,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     }
     QCoreApplication::addLibraryPath(audioDLLPath);
 #endif
-
-    static const auto SUPPRESS_SETTINGS_RESET = "--suppress-settings-reset";
-    bool suppressPrompt = cmdOptionExists(argc, const_cast<const char**>(argv), SUPPRESS_SETTINGS_RESET);
-    bool previousSessionCrashed = CrashHandler::checkForResetSettings(runningMarkerExisted, suppressPrompt);
 
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
