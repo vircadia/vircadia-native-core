@@ -388,7 +388,7 @@ Rectangle {
             sortIndicatorColumn: settings.nearbySortIndicatorColumn;
             sortIndicatorOrder: settings.nearbySortIndicatorOrder;
             onSortIndicatorColumnChanged: {
-                if (sortIndicatorColumn > 1) {
+                if (sortIndicatorColumn > 2) {
                     // these are not sortable, switch back to last column
                     sortIndicatorColumn = settings.nearbySortIndicatorColumn;
                 } else {
