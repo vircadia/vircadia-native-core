@@ -13,7 +13,6 @@
 #define hifi_Application_h
 
 #include <functional>
-#include <thread>
 
 #include <QtCore/QHash>
 #include <QtCore/QPointer>
@@ -681,8 +680,6 @@ private:
     FileScriptingInterface* _fileDownload;
     AudioInjector* _snapshotSoundInjector { nullptr };
     SharedSoundPointer _snapshotSound;
-
-    std::thread _userQuitThread;
 };
 
 

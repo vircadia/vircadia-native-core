@@ -9,14 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtCore/QDateTime>
 #include <QtCore/QEventLoop>
 #include <QtCore/QJsonDocument>
-#include <QtNetwork/QHttpMultiPart>
 #include <QtNetwork/QNetworkReply>
 
 #include <AccountManager.h>
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
+#include <NetworkLogging.h>
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
@@ -43,11 +44,13 @@ QNetworkRequest createNetworkRequest() {
 
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
+    request.setPriority(QNetworkRequest::HighPriority);
+
     return request;
 }
 
 QByteArray postDataForAction(QString action) {
-    return QString("{\"action\": \"" + action + "\"}").toUtf8();
+    return QString("{\"action_name\": \"" + action + "\"}").toUtf8();
 }
 
 QNetworkReply* replyForAction(QString action) {
@@ -55,17 +58,33 @@ QNetworkReply* replyForAction(QString action) {
     return networkAccessManager.post(createNetworkRequest(), postDataForAction(action));
 }
 
-void ClosureEventSender::sendQuitStart() {
-
-    QNetworkReply* reply = replyForAction("quit_start");
-
-    QEventLoop loop;
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+void ClosureEventSender::sendQuitEventAsync() {
+    if (UserActivityLogger::getInstance().isEnabled()) {
+        QNetworkReply* reply = replyForAction("quit");
+        connect(reply, &QNetworkReply::finished, this, &ClosureEventSender::handleQuitEventFinished);
+        _quitEventStartTimestamp = QDateTime::currentMSecsSinceEpoch();
+    } else {
+        _hasFinishedQuitEvent = true;
+    }
 }
 
-void ClosureEventSender::sendQuitFinish() {
-    QNetworkReply* reply = replyForAction("quit_finish");
+void ClosureEventSender::handleQuitEventFinished() {
+    _hasFinishedQuitEvent = true;
 
-    QEventLoop loop;
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    auto reply = qobject_cast<QNetworkReply*>(sender());
+    if (reply->error() == QNetworkReply::NoError) {
+        qCDebug(networking) << "Quit event sent successfully";
+    } else {
+        qCDebug(networking) << "Failed to send quit event -" << reply->errorString();
+    }
+
+    reply->deleteLater();
 }
+
+bool ClosureEventSender::hasTimedOutQuitEvent() {
+    const int CLOSURE_EVENT_TIMEOUT_MS = 5000;
+    return _quitEventStartTimestamp != 0
+        && QDateTime::currentMSecsSinceEpoch() - _quitEventStartTimestamp > CLOSURE_EVENT_TIMEOUT_MS;
+}
+
+
