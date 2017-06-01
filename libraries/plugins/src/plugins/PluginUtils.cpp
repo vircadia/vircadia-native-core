@@ -30,11 +30,6 @@ bool PluginUtils::isHeadControllerAvailable(const QString& pluginName) {
             return true;
         }
     }
-    for (auto& displayPlugin : PluginManager::getInstance()->getDisplayPlugins()) {
-        if (displayPlugin->isHeadController() && (pluginName.isEmpty() || displayPlugin->getName() == pluginName)) {
-            return true;
-        }
-    }
     return false;
 };
 

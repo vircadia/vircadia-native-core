@@ -19,8 +19,6 @@ public:
     virtual grouping getGrouping() const override { return ADVANCED; }
     virtual glm::uvec2 getRecommendedRenderSize() const override;
 
-    virtual bool isHeadController() const override { return false; }
-
 private:
     static const QString NAME;
 };

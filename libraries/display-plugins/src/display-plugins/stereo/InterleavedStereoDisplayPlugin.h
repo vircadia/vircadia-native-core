@@ -17,8 +17,6 @@ public:
     grouping getGrouping() const override { return ADVANCED; }
     glm::uvec2 getRecommendedRenderSize() const override;
 
-    virtual bool isHeadController() const override { return false; }
-
 protected:
     // initialize OpenGL context settings needed by the plugin
     void customizeContext() override;

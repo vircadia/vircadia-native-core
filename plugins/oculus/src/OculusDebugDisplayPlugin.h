@@ -15,8 +15,6 @@ public:
     grouping getGrouping() const override { return DEVELOPER; }
     bool isSupported() const override;
 
-    bool isHeadController() const override { return false; }
-
 protected:
     void hmdPresent() override {}
     bool isHmdMounted() const override { return true; }

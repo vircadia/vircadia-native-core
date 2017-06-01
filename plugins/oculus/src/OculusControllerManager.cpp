@@ -210,10 +210,20 @@ void OculusControllerManager::RemoteDevice::focusOutEvent() {
     _buttonPressedMap.clear();
 }
 
+bool OculusControllerManager::isHeadController() const {
+    // this plugin is a head controller if the HMD is mounted.
+    ovrSessionStatus status;
+
+    bool success = OVR_SUCCESS(ovr_GetSessionStatus(_session, &status));
+    if (!success) {
+        return false;
+    }
+    return status.HmdMounted == ovrTrue;
+}
+
 void OculusControllerManager::TouchDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     _buttonPressedMap.clear();
-    ovrSessionStatus status;
-    if (!OVR_SUCCESS(ovr_GetSessionStatus(_parent._session, &status)) || (ovrFalse == status.HmdMounted)) {
+    if (!_parent.isHeadController()) {
         // if the HMD isn't on someone's head, don't take input from the controllers
         return;
     }

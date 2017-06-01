@@ -24,8 +24,6 @@ public:
 
     virtual QJsonObject getHardwareStats() const;
 
-    bool isHeadController() const override { return true; }
-
 protected:
     QThread::Priority getPresentPriority() override { return QThread::TimeCriticalPriority; }
 

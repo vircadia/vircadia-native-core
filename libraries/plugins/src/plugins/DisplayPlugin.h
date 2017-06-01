@@ -135,7 +135,6 @@ public:
 
     virtual int getRequiredThreadCount() const { return 0; }
     virtual bool isHmd() const { return false; }
-    virtual bool isHeadController() const = 0;
     virtual int getHmdScreen() const { return -1; }
     /// By default, all HMDs are stereo
     virtual bool isStereo() const { return isHmd(); }

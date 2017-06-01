@@ -4865,11 +4865,6 @@ bool Application::isHeadControllerEnabled() const {
             return true;
         }
     }
-    foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
-        if (displayPlugin->isActive() && displayPlugin->isHeadController()) {
-            return true;
-        }
-    }
     return false;
 }
 

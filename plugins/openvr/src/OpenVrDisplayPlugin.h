@@ -58,8 +58,6 @@ public:
     // Possibly needs an additional thread for VR submission
     int getRequiredThreadCount() const override;
 
-    bool isHeadController() const override { return true; }
-
 protected:
     bool internalActivate() override;
     void internalDeactivate() override;
