@@ -68,6 +68,7 @@ private:
         void calibrate(const controller::InputCalibrationData& inputCalibration);
         void uncalibrate();
         controller::Pose addOffsetToPuckPose(int joint) const;
+        glm::mat4 recalculateDefaultToReferenceForHeadPuck(const controller::InputCalibrationData& inputCalibration);
         void updateCalibratedLimbs();
         bool checkForCalibrationEvent();
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
@@ -85,11 +86,14 @@ private:
         void loadSettings();
         void saveSettings() const;
         void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, glm::vec3 headXAxis, glm::vec3 headPosition);
         void calibrateHips(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateChest(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         
         void calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
                                 int firstShoulderIndex, int secondShoulderIndex);
+        void calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+
 
         class FilteredStick {
         public:
@@ -120,6 +124,8 @@ private:
             FeetAndHips,
             FeetHipsAndChest,
             FeetHipsAndShoulders,
+            FeetHipsChestAndHead,
+            FeetHipsAndHead
         };
         Config _config { Config::Auto };
         Config _preferedConfig { Config::Auto };
@@ -146,6 +152,7 @@ private:
         bool _triggersPressedHandled { false };
         bool _calibrated { false };
         bool _timeTilCalibrationSet { false };
+        bool _overrideHead { false };
         mutable std::recursive_mutex _lock;
 
         QString configToString(Config config);
