@@ -16,7 +16,6 @@
 #include <gpu/Pipeline.h>
 #include <model/Geometry.h>
 
-
 class DrawStencilDeferred {
 public:
     using JobModel = render::Job::ModelI<DrawStencilDeferred, gpu::FramebufferPointer>;
@@ -31,7 +30,14 @@ protected:
 
 class PrepareStencil {
 public:
-    using JobModel = render::Job::ModelI<PrepareStencil, gpu::FramebufferPointer>;
+    class Config : public render::JobConfig {
+    public:
+        Config(bool enabled = true) : JobConfig(enabled) {}
+    };
+
+    using JobModel = render::Job::ModelI<PrepareStencil, gpu::FramebufferPointer, Config>;
+
+    void configure(const Config& config) {}
 
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& dstFramebuffer);
 

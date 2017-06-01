@@ -18,6 +18,7 @@
 
 #include <gpu/StandardShaderLib.h>
 
+#include "stencil_drawMask_frag.h"
 
 using namespace render;
 
@@ -99,7 +100,7 @@ gpu::PipelinePointer PrepareStencil::getMeshStencilPipeline() {
 gpu::PipelinePointer PrepareStencil::getPaintStencilPipeline() {
     if (!_paintStencilPipeline) {
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::StandardShaderLib::getDrawNadaPS();
+        auto ps = gpu::Shader::createPixel(std::string(stencil_drawMask_frag));
         auto program = gpu::Shader::createProgram(vs, ps);
         gpu::Shader::makeProgram((*program));
 
@@ -123,7 +124,7 @@ void PrepareStencil::run(const RenderContextPointer& renderContext, const gpu::F
 
         batch.setViewportTransform(args->_viewport);
 
-        if (true) {
+        if (false) {
             batch.setPipeline(getMeshStencilPipeline());
 
             auto mesh = getMesh();
