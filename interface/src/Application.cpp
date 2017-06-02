@@ -79,6 +79,7 @@
 #include <input-plugins/InputPlugin.h>
 #include <controllers/UserInputMapper.h>
 #include <controllers/InputRecorder.h>
+#include <plugins/InputConfiguration.h>
 #include <controllers/ScriptingInterface.h>
 #include <controllers/StateController.h>
 #include <UserActivityLoggerScriptingInterface.h>
@@ -522,6 +523,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
                     STATE_CAMERA_FIRST_PERSON, STATE_CAMERA_THIRD_PERSON, STATE_CAMERA_ENTITY, STATE_CAMERA_INDEPENDENT,
                     STATE_SNAP_TURN, STATE_ADVANCED_MOVEMENT_CONTROLS, STATE_GROUNDED, STATE_NAV_FOCUSED } });
     DependencyManager::set<UserInputMapper>();
+    DependencyManager::set<InputConfiguration>();
     DependencyManager::set<controller::ScriptingInterface, ControllerScriptingInterface>();
     DependencyManager::set<InterfaceParentFinder>();
     DependencyManager::set<EntityTreeRenderer>(true, qApp, qApp);

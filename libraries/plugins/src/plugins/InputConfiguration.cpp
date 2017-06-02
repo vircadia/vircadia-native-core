@@ -9,9 +9,18 @@
 
 #include "InputConfiguration.h"
 
-namespace controller {
+#include "PluginManager.h"
 
-    InputConfiguration::InputConfiguration() {
+InputConfiguration::InputConfiguration() {
         
-    }
 }
+
+void InputConfiguration::inputPlugins() {
+    PluginManager* inputPlugin = PluginManager::getInstance();
+}
+
+void InputConfiguration::enabledInputPlugins() {
+    qDebug() << "getting enabled plugins";
+}
+
+

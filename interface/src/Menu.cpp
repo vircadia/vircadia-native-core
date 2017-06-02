@@ -19,6 +19,7 @@
 #include <AudioClient.h>
 #include <CrashHelpers.h>
 #include <DependencyManager.h>
+#include <TabletScriptingInterface.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <PathUtils.h>
 #include <SettingHandle.h>
@@ -310,6 +311,12 @@ Menu::Menu() {
         qApp->showDialog(QString("hifi/dialogs/LodPreferencesDialog.qml"),
             QString("../../hifi/tablet/TabletLodPreferences.qml"), "LodPreferencesDialog");
     });
+
+    action = addActionToQMenuAndActionHash(settingsMenu, "InputConfiguration");
+    connect(action, &QAction::triggered, [] {
+            auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
+            tablet->loadQMLSource("InputConfiguration.qml");
+        });
 
     // Settings > Control with Speech [advanced]
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)

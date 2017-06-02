@@ -51,6 +51,7 @@
 #include "ui/AvatarInputs.h"
 #include "avatar/AvatarManager.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
+#include <plugins/InputConfiguration.h>
 #include "ui/Snapshot.h"
 
 static const float DPI = 30.47f;
@@ -201,7 +202,7 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getRootContext()->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
             _webSurface->getRootContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
             _webSurface->getRootContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
-
+            _webSurface->getRootContext()->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
             _webSurface->getRootContext()->setContextProperty("pathToFonts", "../../");
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
 

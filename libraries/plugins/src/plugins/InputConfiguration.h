@@ -11,16 +11,17 @@
 
 #include <mutex>
 
+#include <QObject>
 #include <DependencyManager.h>
-#include <RegisteredMetaTypes.h>
 
-namespace controller {
-
-    class InputConfiguration : public QObject, public Dependency {
-    public:
-        InputConfiguration();
-        ~InputConfiguration() {}
-    };
-}
+class InputConfiguration : public QObject, public Dependency {
+    Q_OBJECT
+public:
+    InputConfiguration();
+    
+    void inputPlugins();
+public slots:
+    void enabledInputPlugins();
+};
 
 #endif
