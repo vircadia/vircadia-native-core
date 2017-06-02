@@ -823,6 +823,9 @@ const notificationIcon = path.join(__dirname, '../resources/console-notification
 
 function isProcessRunning(pid) {
     try {
+        // Sending a signal of 0 is effectively a NOOP.
+        // If sending the signal is successful, kill will return true.
+        // If the process is not running, an exception will be thrown.
         return process.kill(pid, 0);
     } catch (e) {
     }
