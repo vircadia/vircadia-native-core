@@ -207,7 +207,7 @@ void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
 }
 
 // Same as above, but takes a Set instead of a Vector.  Should only be called during teardown.
-void PhysicsEngine::removeObjects(const SetOfMotionStates& objects) {
+void PhysicsEngine::removeSetOfObjects(const SetOfMotionStates& objects) {
     _contactMap.clear();
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();

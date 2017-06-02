@@ -1459,6 +1459,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateSystemTabletMode();
 
     connect(&_myCamera, &Camera::modeUpdated, this, &Application::cameraModeChanged);
+
+    qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
@@ -1680,6 +1682,10 @@ Application::~Application() {
     DependencyManager::get<AvatarManager>()->deleteAllAvatars();
 
     _physicsEngine->setCharacterController(nullptr);
+
+    // the _shapeManager should have zero references
+    _shapeManager.collectGarbage();
+    assert(_shapeManager.getNumShapes() == 0);
 
     // shutdown render engine
     _main3DScene = nullptr;
@@ -4492,12 +4498,13 @@ void Application::update(float deltaTime) {
 
                 getEntities()->getTree()->withWriteLock([&] {
                     PerformanceTimer perfTimer("handleOutgoingChanges");
-                    const VectorOfMotionStates& deactivations = _physicsEngine->getDeactivatedMotionStates();
-                    _entitySimulation->handleDeactivatedMotionStates(deactivations);
 
                     const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
                     _entitySimulation->handleChangedMotionStates(outgoingChanges);
                     avatarManager->handleChangedMotionStates(outgoingChanges);
+
+                    const VectorOfMotionStates& deactivations = _physicsEngine->getDeactivatedMotionStates();
+                    _entitySimulation->handleDeactivatedMotionStates(deactivations);
                 });
 
                 if (!_aboutToQuit) {

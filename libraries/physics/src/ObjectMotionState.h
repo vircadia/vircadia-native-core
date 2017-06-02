@@ -79,7 +79,7 @@ public:
     static ShapeManager* getShapeManager();
 
     ObjectMotionState(const btCollisionShape* shape);
-    ~ObjectMotionState();
+    virtual ~ObjectMotionState();
 
     virtual void handleEasyChanges(uint32_t& flags);
     virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine);

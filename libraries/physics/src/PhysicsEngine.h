@@ -53,7 +53,7 @@ public:
     uint32_t getNumSubsteps();
 
     void removeObjects(const VectorOfMotionStates& objects);
-    void removeObjects(const SetOfMotionStates& objects); // only called during teardown
+    void removeSetOfObjects(const SetOfMotionStates& objects); // only called during teardown
 
     void addObjects(const VectorOfMotionStates& objects);
     VectorOfMotionStates changeObjects(const VectorOfMotionStates& objects);
