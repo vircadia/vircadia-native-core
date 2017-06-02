@@ -1490,6 +1490,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateSystemTabletMode();
 
     connect(&_myCamera, &Camera::modeUpdated, this, &Application::cameraModeChanged);
+
+    qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
