@@ -2384,15 +2384,16 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     // Check HMD use (may be technically available without being in use)
     bool hasHMD = PluginUtils::isHMDAvailable();
-    bool isUsingHMD = hasHMD && hasHandControllers && _displayPlugin->isHmd();
+    bool isUsingHMD = _displayPlugin->isHmd();
+    bool isUsingHMDAndHandControllers = hasHMD && hasHandControllers && isUsingHMD;
 
     Setting::Handle<bool> tutorialComplete{ "tutorialComplete", false };
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
 
     bool isTutorialComplete = tutorialComplete.get();
-    bool shouldGoToTutorial = isUsingHMD && hasTutorialContent && !isTutorialComplete;
+    bool shouldGoToTutorial = isUsingHMDAndHandControllers && hasTutorialContent && !isTutorialComplete;
 
-    qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMD;
+    qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMDAndHandControllers;
     qCDebug(interfaceapp) << "Tutorial version:" << contentVersion << ", sufficient:" << hasTutorialContent <<
         ", complete:" << isTutorialComplete << ", should go:" << shouldGoToTutorial;
 
@@ -2406,10 +2407,18 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     const QString TUTORIAL_PATH = "/tutorial_begin";
 
+    static const QString SENT_TO_TUTORIAL = "tutorial";
+    static const QString SENT_TO_PREVIOUS_LOCATION = "previous_location";
+    static const QString SENT_TO_ENTRY = "entry";
+    static const QString SENT_TO_SANDBOX = "sandbox";
+
+    QString sentTo;
+
     if (shouldGoToTutorial) {
         if (sandboxIsRunning) {
             qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
             DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
+            sentTo = SENT_TO_TUTORIAL;
         } else {
             qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
             if (firstRun.get()) {
@@ -2417,8 +2426,10 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
             }
             if (addressLookupString.isEmpty()) {
                 DependencyManager::get<AddressManager>()->goToEntry();
+                sentTo = SENT_TO_ENTRY;
             } else {
                 DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+                sentTo = SENT_TO_PREVIOUS_LOCATION;
             }
         }
     } else {
@@ -2431,22 +2442,39 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
         // If this is a first run we short-circuit the address passed in
         if (isFirstRun) {
-            if (isUsingHMD) {
+            if (isUsingHMDAndHandControllers) {
                 if (sandboxIsRunning) {
                     qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
                     DependencyManager::get<AddressManager>()->goToLocalSandbox();
+                    sentTo = SENT_TO_SANDBOX;
                 } else {
                     qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
                     DependencyManager::get<AddressManager>()->goToEntry();
+                    sentTo = SENT_TO_ENTRY;
                 }
             } else {
                 DependencyManager::get<AddressManager>()->goToEntry();
+                sentTo = SENT_TO_ENTRY;
             }
         } else {
             qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
             DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+            sentTo = SENT_TO_PREVIOUS_LOCATION;
         }
     }
+
+    UserActivityLogger::getInstance().logAction("startup_sent_to", {
+        { "sent_to", sentTo },
+        { "sandbox_is_running", sandboxIsRunning },
+        { "has_hmd", hasHMD },
+        { "has_hand_controllers", hasHandControllers },
+        { "is_using_hmd", isUsingHMD },
+        { "is_using_hmd_and_hand_controllers", isUsingHMDAndHandControllers },
+        { "content_version", contentVersion },
+        { "is_tutorial_complete", isTutorialComplete },
+        { "has_tutorial_content", hasTutorialContent },
+        { "should_go_to_tutorial", shouldGoToTutorial }
+    });
 
     _connectionMonitor.init();
 
