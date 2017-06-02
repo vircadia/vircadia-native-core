@@ -104,11 +104,11 @@ void PrepareStencil::drawMask(gpu::State& state) {
 }
 
 void PrepareStencil::testMask(gpu::State& state) {
-    state.setStencilTest(true, 0x00, gpu::State::StencilTest(PrepareStencil::STENCIL_MASK, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+    state.setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_MASK, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 }
 
 void PrepareStencil::testBackground(gpu::State& state) {
-    state.setStencilTest(true, 0x00, gpu::State::StencilTest(PrepareStencil::STENCIL_BACKGROUND, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+    state.setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_BACKGROUND, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 }
 
 void PrepareStencil::testMaskDrawShape(gpu::State& state) {
@@ -116,5 +116,5 @@ void PrepareStencil::testMaskDrawShape(gpu::State& state) {
 }
 
 void PrepareStencil::testShape(gpu::State& state) {
-    state.setStencilTest(true, 0x00, gpu::State::StencilTest(PrepareStencil::STENCIL_SHAPE, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+    state.setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_SHAPE, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 }

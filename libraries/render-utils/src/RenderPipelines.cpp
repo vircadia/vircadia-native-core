@@ -331,7 +331,7 @@ void addPlumberPipeline(ShapePlumber& plumber,
         bool isWireframed = (i & 4);
 
         auto state = std::make_shared<gpu::State>();
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_MASK, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_ZERO));
+        PrepareStencil::testMaskDrawShape(*state);
 
         // Depth test depends on transparency
         state->setDepthTest(true, !key.isTranslucent(), gpu::LESS_EQUAL);
