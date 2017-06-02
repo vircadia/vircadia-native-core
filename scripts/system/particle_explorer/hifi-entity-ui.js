@@ -45,6 +45,10 @@ and If there is any changes to either the Entities or properties of
 
 var RADIAN = Math.PI / 180;
 
+var roundFloat = function (input) {
+    return Math.floor(parseFloat(input) * 1000)/1000;
+};
+
 function HifiEntityUI(parent) {
     this.parent = parent;
 
@@ -140,15 +144,19 @@ HifiEntityUI.prototype = {
     },
     fillFields: function(currentProperties) {
         var self = this;
-
         var fields = document.getElementsByTagName("input");
-        for (var i = 0; i < fields.length; i++) {
-            fields[i].removeAttribute("disabled");
+
+        if (!currentProperties.locked) {
+            for (var i = 0; i < fields.length; i++) {
+                fields[i].removeAttribute("disabled");
+            }
         }
         if (self.onSelect) {
             self.onSelect();
         }
         var keys = Object.keys(currentProperties);
+
+
         for (var e in keys) {
             var value = keys[e];
 
@@ -178,9 +186,9 @@ HifiEntityUI.prototype = {
                         var red = document.getElementById(value + "-red");
                         var blue = document.getElementById(value + "-blue");
                         var green = document.getElementById(value + "-green");
-                        red.value = property.red;
-                        blue.value = property.blue;
-                        green.value = property.green;
+                        red.value = roundFloat(property.red);
+                        blue.value = roundFloat(property.blue);
+                        green.value = roundFloat(property.green);
 
                         red.oninput({
                             target: red
@@ -190,17 +198,17 @@ HifiEntityUI.prototype = {
                         var y = document.getElementById(value + "-y");
                         var z = document.getElementById(value + "-z");
                         // crashes here.
-                        x.value = property.x;
-                        y.value = property.y;
-                        z.value = property.z;
+                        x.value = roundFloat(property.x);
+                        y.value = roundFloat(property.y);
+                        z.value = roundFloat(property.z);
                     } else if (field.className.indexOf("pyr") !== -1) {
                         var pitch = document.getElementById(value + "-Pitch");
                         var yaw = document.getElementById(value + "-Yaw");
                         var roll = document.getElementById(value + "-Roll");
                         // crashes here.
-                        pitch.value = property.x;
-                        yaw.value = property.y;
-                        roll.value = property.z;
+                        pitch.value = roundFloat(property.x);
+                        yaw.value = roundFloat(property.y);
+                        roll.value = roundFloat(property.z);
                     }
                 }
             }
