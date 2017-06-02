@@ -20,7 +20,6 @@ public:
     InputConfiguration();
     
     void inputPlugins();
-public slots:
     void enabledInputPlugins();
 };
 
