@@ -41,7 +41,8 @@ public:
     const QString getName() const override { return NAME; }
 
     bool isHandController() const override { return true; }
-    bool isHeadController() const override;
+    bool isHeadController() const override { return true; }
+    bool isHeadControllerMounted() const;
 
     bool activate() override;
     void deactivate() override;
@@ -55,7 +56,7 @@ private:
     class InputDevice : public controller::InputDevice {
     public:
         InputDevice(vr::IVRSystem*& system);
-        bool isHeadController() const { return _overrideHead; }
+        bool isHeadControllerMounted() const { return _overrideHead; }
     private:
         // Device functions
         controller::Input::NamedVector getAvailableInputs() const override;

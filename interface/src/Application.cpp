@@ -4429,9 +4429,7 @@ void Application::update(float deltaTime) {
     myAvatar->setSpineControllerPosesInSensorFrame(hipsPose.transform(avatarToSensorMatrix), spine2Pose.transform(avatarToSensorMatrix));
 
     controller::Pose headPose = userInputMapper->getPoseState(controller::Action::HEAD);
-    if (headPose.isValid()) {
-        myAvatar->setHeadControllerPoseInSensorFrame(headPose.transform(avatarToSensorMatrix));
-    }
+    myAvatar->setHeadControllerPoseInSensorFrame(headPose.transform(avatarToSensorMatrix));
 
     controller::Pose leftArmPose = userInputMapper->getPoseState(controller::Action::LEFT_ARM);
     controller::Pose rightArmPose = userInputMapper->getPoseState(controller::Action::RIGHT_ARM);
@@ -4865,20 +4863,6 @@ void Application::queryOctree(NodeType_t serverType, PacketType packetType, Node
 
 bool Application::isHMDMode() const {
     return getActiveDisplayPlugin()->isHmd();
-}
-
-bool Application::isHeadControllerEnabled() const {
-    auto pluginManager = PluginManager::getInstance();
-    if (!pluginManager) {
-        return false;
-    }
-    const InputPluginList& inputPlugins = pluginManager->getInputPlugins();
-    for (auto& ip : inputPlugins) {
-        if (ip && ip->isActive() && ip->isHeadController()) {
-            return true;
-        }
-    }
-    return false;
 }
 
 float Application::getTargetFrameRate() const { return getActiveDisplayPlugin()->getTargetFrameRate(); }

@@ -641,9 +641,13 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
         // Ignore unreasonable HMD sensor data
         return;
     }
+
     _hmdSensorPosition = newHmdSensorPosition;
     _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
-    _headControllerFacing = getFacingDir2D(_headControllerPoseInSensorFrameCache.get().rotation);
+    auto headPose = _headControllerPoseInSensorFrameCache.get();
+    if (headPose.isValid()) {
+        _headControllerFacing = getFacingDir2D(headPose.rotation);
+    }
 }
 
 void MyAvatar::updateJointFromController(controller::Action poseKey, ThreadSafeValueCache<glm::mat4>& matrixCache) {
@@ -1884,7 +1888,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
     getHead()->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
 
-    if (qApp->isHeadControllerEnabled()) {
+    if (getHeadControllerPoseInAvatarFrame().isValid()) {
         glm::quat localOrientation = getHeadControllerPoseInAvatarFrame().rotation;
         // these angles will be in radians
         // ... so they need to be converted to degrees before we do math...

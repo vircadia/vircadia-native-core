@@ -164,8 +164,8 @@ void ViveControllerManager::deactivate() {
     _registeredWithInputMapper = false;
 }
 
-bool ViveControllerManager::isHeadController() const {
-    if (_inputDevice && _inputDevice->isHeadController()) {
+bool ViveControllerManager::isHeadControllerMounted() const {
+    if (_inputDevice && _inputDevice->isHeadControllerMounted()) {
         return true;
     }
     vr::EDeviceActivityLevel activityLevel = _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);

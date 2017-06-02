@@ -210,10 +210,8 @@ void OculusControllerManager::RemoteDevice::focusOutEvent() {
     _buttonPressedMap.clear();
 }
 
-bool OculusControllerManager::isHeadController() const {
-    // this plugin is a head controller if the HMD is mounted.
+bool OculusControllerManager::isHeadControllerMounted() const {
     ovrSessionStatus status;
-
     bool success = OVR_SUCCESS(ovr_GetSessionStatus(_session, &status));
     if (!success) {
         return false;
@@ -224,12 +222,12 @@ bool OculusControllerManager::isHeadController() const {
 void OculusControllerManager::TouchDevice::update(float deltaTime,
                                                   const controller::InputCalibrationData& inputCalibrationData) {
     _buttonPressedMap.clear();
-    _poseStateMap.erase(controller::HEAD);
+    // _poseStateMap.erase(controller::HEAD);
 
-    if (!_parent.isHeadController()) {
-        // if the HMD isn't on someone's head, don't take input from the controllers
-        return;
-    }
+    // if (!_parent.isHeadControllerMounted()) {
+    //     // if the HMD isn't on someone's head, don't take input from the controllers
+    //     return;
+    // }
 
     int numTrackedControllers = 0;
     quint64 currentTime = usecTimestampNow();
@@ -261,7 +259,11 @@ void OculusControllerManager::TouchDevice::update(float deltaTime,
         handleRotationForUntrackedHand(inputCalibrationData, hand, tracking.HandPoses[hand]);
     });
 
-    handleHeadPose(deltaTime, inputCalibrationData, tracking.HeadPose);
+    if (_parent.isHeadControllerMounted()) {
+        handleHeadPose(deltaTime, inputCalibrationData, tracking.HeadPose);
+    } else {
+        _poseStateMap[controller::HEAD].valid = false;
+    }
 
     using namespace controller;
     // Axes
