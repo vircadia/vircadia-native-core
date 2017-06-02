@@ -278,8 +278,8 @@ function onMessage(message) {
     }
 }
 
-var polaroid_print_sound = SoundCache.getSound(Script.resolvePath("assets/sounds/sound-print-photo.wav"));
-var model_url = 'http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx';
+var POLAROID_PRINT_SOUND = SoundCache.getSound(Script.resolvePath("assets/sounds/sound-print-photo.wav"));
+var POLAROID_MODEL_URL  = 'http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx';
 
 function printToPolaroid(image_url) {
     var polaroid_url = image_url;                  
@@ -296,7 +296,7 @@ function printToPolaroid(image_url) {
 
         "name": "New Snapshot",
         "description": "Printed from Snaps",                               
-        "modelURL": model_url,
+        "modelURL": POLAROID_MODEL_URL,
 
         "position": model_pos,
         "rotation": model_rot,
@@ -319,7 +319,7 @@ function printToPolaroid(image_url) {
     };
     
     var polaroid = Entities.addEntity(properties);
-    Audio.playSound(polaroid_print_sound, {
+    Audio.playSound(POLAROID_PRINT_SOUND, {
         position: model_pos,
         localOnly: false,
         volume: 0.2
