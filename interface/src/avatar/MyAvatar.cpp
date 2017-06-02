@@ -2932,7 +2932,7 @@ glm::mat4 MyAvatar::getLeftFootCalibrationMat() const {
         auto leftFootRot = getAbsoluteDefaultJointRotationInObjectFrame(leftFootIndex);
         return createMatFromQuatAndPos(leftFootRot, leftFootPos);
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTFOOT_POS, DEFAULT_AVATAR_LEFTFOOT_POS);
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTFOOT_ROT, DEFAULT_AVATAR_LEFTFOOT_POS);
     }
 }
 
@@ -2944,7 +2944,7 @@ glm::mat4 MyAvatar::getRightFootCalibrationMat() const {
         auto rightFootRot = getAbsoluteDefaultJointRotationInObjectFrame(rightFootIndex);
         return createMatFromQuatAndPos(rightFootRot, rightFootPos);
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTFOOT_POS, DEFAULT_AVATAR_RIGHTFOOT_POS);
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_RIGHTFOOT_ROT, DEFAULT_AVATAR_RIGHTFOOT_POS);
     }
 }
 
@@ -2967,7 +2967,7 @@ glm::mat4 MyAvatar::getLeftArmCalibrationMat() const {
         auto leftArmRot = getAbsoluteDefaultJointRotationInObjectFrame(leftArmIndex);
         return createMatFromQuatAndPos(leftArmRot, leftArmPos);
     } else {
-        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTARM_ROT, DEFAULT_AVATAR_RIGHTARM_POS);
+        return createMatFromQuatAndPos(DEFAULT_AVATAR_LEFTARM_ROT, DEFAULT_AVATAR_LEFTARM_POS);
     }
 }
 

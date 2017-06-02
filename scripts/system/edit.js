@@ -2100,7 +2100,13 @@ function selectParticleEntity(entityID) {
 }
 
 entityListTool.webView.webEventReceived.connect(function (data) {
-    data = JSON.parse(data);
+    try {
+        data = JSON.parse(data);
+    } catch(e) {
+        print("edit.js: Error parsing JSON: " + e.name + " data " + data)
+        return;
+    }
+
     if (data.type === 'parent') {
         parentSelectedEntities();
     } else if(data.type === 'unparent') {
