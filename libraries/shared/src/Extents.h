@@ -69,7 +69,7 @@ public:
     glm::vec3 size() const { return maximum - minimum; }
     float largestDimension() const { return glm::compMax(size()); }
 
-    /// \return new Extents which is original rotated around orign by rotation
+    /// \return new Extents which is original rotated around origin by rotation
     Extents getRotated(const glm::quat& rotation) const {
         Extents temp(minimum, maximum);
         temp.rotate(rotation);
