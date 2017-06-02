@@ -717,8 +717,6 @@ function processRezPermissionChange(canRez) {
         action = 'setPrintButtonDisabled';
     }
     
-    print(action);
-    
     tablet.emitScriptEvent(JSON.stringify({
         type: "snapshot",
         action : action
@@ -733,8 +731,8 @@ tablet.screenChanged.connect(onTabletScreenChanged);
 GlobalServices.myUsernameChanged.connect(onUsernameChanged);
 Snapshot.snapshotLocationSet.connect(snapshotLocationSet);
 
-Entities.canRezChanged.connect(processRezPermissionChange);
-Entities.canRezTmpChanged.connect(processRezPermissionChange);
+Entities.canRezChanged.connect(updatePrintPermissions);
+Entities.canRezTmpChanged.connect(updatePrintPermissions);
 
 Script.scriptEnding.connect(function () {
     if (buttonConnected) {
