@@ -2780,6 +2780,17 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted && isMeta && !isOption) {
                     Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
                 } else if (!isOption && !isShifted && isMeta) {
+                    AudioInjectorOptions options;
+                    options.localOnly = true;
+                    options.stereo = true;
+
+                    if (_snapshotSoundInjector) {
+                        _snapshotSoundInjector->setOptions(options);
+                        _snapshotSoundInjector->restart();
+                    } else {
+                        QByteArray samples = _snapshotSound->getByteArray();
+                        _snapshotSoundInjector = AudioInjector::playSound(samples, options);
+                    }
                     takeSnapshot(true);
                 }
                 break;
@@ -6312,21 +6323,6 @@ void Application::loadAddAvatarBookmarkDialog() const {
 }
 
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
-    
-    //keep sound thread out of event loop scope
-
-    AudioInjectorOptions options;
-    options.localOnly = true;
-    options.stereo = true;
-
-    if (_snapshotSoundInjector) {
-        _snapshotSoundInjector->setOptions(options);
-        _snapshotSoundInjector->restart();
-    } else {
-        QByteArray samples = _snapshotSound->getByteArray();
-        _snapshotSoundInjector = AudioInjector::playSound(samples, options);
-    }
-
     postLambdaEvent([notify, includeAnimated, aspectRatio, this] {
         // Get a screenshot and save it
         QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));
