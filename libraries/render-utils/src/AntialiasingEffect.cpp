@@ -71,7 +71,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
-        PrepareStencil::testShape(*state);
+        PrepareStencil::testMask(*state);
 
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
 
@@ -96,7 +96,7 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
-        PrepareStencil::testShape(*state);
+        PrepareStencil::testMask(*state);
 
         // Good to go add the brand new pipeline
         _blendPipeline = gpu::Pipeline::create(program, state);

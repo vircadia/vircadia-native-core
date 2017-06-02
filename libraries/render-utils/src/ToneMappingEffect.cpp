@@ -39,7 +39,7 @@ void ToneMappingEffect::init() {
     slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), ToneMappingEffect_LightingMapSlot));
     gpu::Shader::makeProgram(*blitProgram, slotBindings);
     auto blitState = std::make_shared<gpu::State>();
-    PrepareStencil::testShape(*blitState);
+    PrepareStencil::testMask(*blitState);
     blitState->setColorWriteMask(true, true, true, true);
     _blitLightBuffer = gpu::PipelinePointer(gpu::Pipeline::create(blitProgram, blitState));
 }

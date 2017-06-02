@@ -2185,6 +2185,9 @@ void Application::paintGL() {
             });
             renderArgs._context->setStereoProjections(eyeProjections);
             renderArgs._context->setStereoViews(eyeOffsets);
+
+            // Configure the type of display / stereo
+            renderArgs._displayMode = (isHMDMode() ? RenderArgs::STEREO_HMD : RenderArgs::STEREO_MONITOR);
         }
         renderArgs._blitFramebuffer = finalFramebuffer;
         displaySide(&renderArgs, _myCamera);

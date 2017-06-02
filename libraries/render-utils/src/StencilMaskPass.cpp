@@ -70,12 +70,14 @@ gpu::PipelinePointer PrepareStencil::getPaintStencilPipeline() {
 }
 
 void PrepareStencil::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer) {
-    assert(renderContext->args);
-    assert(renderContext->args->_context);
-
     RenderArgs* args = renderContext->args;
+
+    // Only draw the stencil mask if in HMD mode.
+    if (args->_displayMode != RenderArgs::STEREO_HMD) {
+        return;
+    }
+
     doInBatch(args->_context, [&](gpu::Batch& batch) {
-        args->_batch = &batch;
         batch.enableStereo(false);
 
         batch.setViewportTransform(args->_viewport);
@@ -96,7 +98,6 @@ void PrepareStencil::run(const RenderContextPointer& renderContext, const gpu::F
             batch.draw(gpu::TRIANGLE_STRIP, 4);
         }
     });
-    args->_batch = nullptr;
 }
 
 void PrepareStencil::drawMask(gpu::State& state) {
@@ -104,11 +105,11 @@ void PrepareStencil::drawMask(gpu::State& state) {
 }
 
 void PrepareStencil::testMask(gpu::State& state) {
-    state.setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_MASK, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+    state.setStencilTest(true, 0x00, gpu::State::StencilTest(PrepareStencil::STENCIL_MASK, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 }
 
 void PrepareStencil::testBackground(gpu::State& state) {
-    state.setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_BACKGROUND, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+    state.setStencilTest(true, 0x00, gpu::State::StencilTest(PrepareStencil::STENCIL_BACKGROUND, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 }
 
 void PrepareStencil::testMaskDrawShape(gpu::State& state) {
@@ -116,5 +117,5 @@ void PrepareStencil::testMaskDrawShape(gpu::State& state) {
 }
 
 void PrepareStencil::testShape(gpu::State& state) {
-    state.setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_SHAPE, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+    state.setStencilTest(true, 0x00, gpu::State::StencilTest(PrepareStencil::STENCIL_SHAPE, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 }

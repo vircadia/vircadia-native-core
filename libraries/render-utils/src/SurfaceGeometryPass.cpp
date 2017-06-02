@@ -555,7 +555,7 @@ const gpu::PipelinePointer& SurfaceGeometryPass::getCurvaturePipeline() {
 
 #ifdef USE_STENCIL_TEST
         // Stencil test the curvature pass for objects pixels only, not the background
-        PrepareStencil::testMask(*state);
+        PrepareStencil::testShape(*state);
 #endif
         // Good to go add the brand new pipeline
         _curvaturePipeline = gpu::Pipeline::create(program, state);
