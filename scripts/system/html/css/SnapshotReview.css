@@ -301,28 +301,21 @@ input[type=button].naked:active {
     outline:none;
 }
 
-.print-icon-enabled {
-    background: url(../img/button-snap-print.svg);
-    background-repeat: no-repeat;
+.print-icon {
     margin: auto;
-    width: 48px;
-    height: 48px;
+}
+
+.print-icon-default {
+    background: url(../img/button-snap-print.svg) no-repeat;
+    margin-right: -1px;
+    width: 64px;
+    height: 64px;
 }
 
 .print-icon-loading {
-    background: url(../img/loader.gif);
-    background-repeat: no-repeat;
-    margin: auto;
+    background: url(../img/loader.gif) no-repeat;
     width: 32px;
     height: 32px;
-}
-
-.print-icon-disabled {
-    background: url(../img/button-snap-print.svg);
-    background-repeat: no-repeat;
-    margin: auto;
-    width: 48px;
-    height: 48px;
 }
 
 /*

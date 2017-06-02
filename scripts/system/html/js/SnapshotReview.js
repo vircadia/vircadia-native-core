@@ -311,13 +311,17 @@ function addImage(image_data, isLoggedIn, canShare, isGifLoading, isShowingPrevi
         if (isShowingPreviousImages && isLoggedIn && image_data.story_id) {
             updateShareInfo(id, image_data.story_id);
         }
-        if(isShowingPreviousImages) {
+        if (isShowingPreviousImages) {
             requestPrintButtonUpdate();  
         } 
     };
     img.onerror = function () {
         img.onload = null;
         img.src = image_data.errorPath;
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "snapshot",
+            action: "alertSnapshotLoadFailed"
+        }));
     };
 }
 function showConfirmationMessage(selectedID, destination) {
@@ -718,23 +722,30 @@ function takeSnapshot() {
     }
 }
 
-function isPrintDisabled()   { return document.getElementById('print-icon').className === "print-icon-disabled"; }
-function isPrintProcessing() { return document.getElementById('print-icon').className === "print-icon-loading";  }
-function isPrintEnabled()    { return document.getElementById('print-icon').className === "print-icon-enabled";  }
+function isPrintDisabled() { 
+    return document.getElementById('print-icon').className === "print-icon print-icon-default" &&
+           document.getElementById('print-button').disabled;
+}
+function isPrintProcessing() { 
+    return document.getElementById('print-icon').className === "print-icon print-icon-loading" &&
+           document.getElementById('print-button').disabled;
+}
+function isPrintEnabled() {
+    return document.getElementById('print-icon').className === "print-icon print-icon-default" &&
+           !document.getElementById('print-button').disabled;
+}
 
 function setPrintButtonLoading() {
-    document.getElementById('print-icon').className = "print-icon-loading";
+    document.getElementById('print-icon').className = "print-icon print-icon-loading";
     document.getElementById('print-button').disabled = true;
 }
-
 function setPrintButtonDisabled() {
-    document.getElementById('print-icon').className = "print-icon-disabled";
+    document.getElementById('print-icon').className = "print-icon print-icon-default";
     document.getElementById('print-button').disabled = true;
 }
-
 function setPrintButtonEnabled() { 
     document.getElementById('print-button').disabled = false;
-    document.getElementById('print-icon').className = "print-icon-enabled";
+    document.getElementById('print-icon').className = "print-icon print-icon-default";
 }
 
 function requestPrintButtonUpdate() {
@@ -744,15 +755,12 @@ function requestPrintButtonUpdate() {
     }));
 }
 
-function printToPolaroid() {
-    
-    if (isPrintEnabled()) {
-        
+function printToPolaroid() {   
+    if (isPrintEnabled()) {        
         EventBridge.emitWebEvent(JSON.stringify({
             type: "snapshot",
             action: "printToPolaroid"
-        }));
-        
+        }));       
         //shareBarHelp.innerHTML = "Printed"
         //shareBarHelp.style.backgroundColor = "#000000";
         //shareBarHelp.style.opacity = "0.5";
@@ -760,6 +768,7 @@ function printToPolaroid() {
         setPrintButtonLoading();
     }
 }
+
 function testInBrowser(test) {
     if (test === 0) {
         showSetupInstructions();

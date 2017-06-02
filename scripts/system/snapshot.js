@@ -142,13 +142,13 @@ function onMessage(message) {
             break;
         case 'shareSnapshotForUrl':
             isDomainOpen(Settings.getValue("previousSnapshotDomainID"), function (canShare) {
-                if (canShare) {
-                    isLoggedIn = Account.isLoggedIn();
+                var isGif = fileExtensionMatches(message.data, "gif");      
+                isLoggedIn = Account.isLoggedIn();                        
+                isUploadingPrintableStill = canShare && Account.isLoggedIn() && !isGif;               
+                if (canShare) {                  
                     if (isLoggedIn) {
                         print('Sharing snapshot with audience "for_url":', message.data);
-                        isUploadingPrintableStill = true;
-                        Window.shareSnapshot(message.data, Settings.getValue("previousSnapshotHref"));
-                        var isGif = fileExtensionMatches(message.data, "gif");
+                        Window.shareSnapshot(message.data, Settings.getValue("previousSnapshotHref"));                      
                         if (isGif) {
                             numGifSnapshotUploadsPending++;
                         } else {
@@ -156,14 +156,10 @@ function onMessage(message) {
                         }
                     } else {
                         shareAfterLogin = true;
-                        isUploadingPrintableStill = false;
                         snapshotToShareAfterLogin.push({ path: message.data, href: Settings.getValue("previousSnapshotHref") });
                     }
-                } else {
-                    isUploadingPrintableStill = false;
                 }
-
-            updatePrintPermissions();                
+                updatePrintPermissions();
             });
             break;
         case 'blastToConnections':
@@ -226,13 +222,14 @@ function onMessage(message) {
         case 'requestPrintButtonUpdate':
             updatePrintPermissions();
             break;
-        case 'printToPolaroid': 
-        
-            if(Entities.canRez() || Entities.canRezTmp()) {
+        case 'printToPolaroid':
+            if (Entities.canRez() || Entities.canRezTmp()) {
                printToPolaroid(Settings.getValue("previousStillSnapUrl"));
                removeFromStoryIDsToMaybeDelete(Settings.getValue("previousStillSnapStoryID"));
-            }     
-            
+            }
+            break;
+        case 'alertSnapshotLoadFailed':
+            snapshotFailedToLoad = true;
             break;
         case 'shareSnapshotWithEveryone':
             isLoggedIn = Account.isLoggedIn();
@@ -285,10 +282,9 @@ var polaroid_print_sound = SoundCache.getSound(Script.resolvePath("assets/sounds
 var model_url = 'http://hifi-content.s3.amazonaws.com/alan/dev/Test/snapshot.fbx';
 
 function printToPolaroid(image_url) {
-      
     var polaroid_url = image_url;                  
 
-    var model_pos = Vec3.sum(MyAvatar.position, Vec3.multiply(0.75, Quat.getForward(MyAvatar.orientation)));
+    var model_pos = Vec3.sum(MyAvatar.position, Vec3.multiply(1.25, Quat.getForward(MyAvatar.orientation)));
     
     var model_q1 = MyAvatar.orientation;
     var model_q2 = Quat.angleAxis(90, Quat.getRight(model_q1));
@@ -297,25 +293,26 @@ function printToPolaroid(image_url) {
     var properties = {                                
         "type": 'Model',
         "shapeType": 'box',
-        
+
         "name": "New Snapshot",
         "description": "Printed from Snaps",                               
         "modelURL": model_url,
-        
+
         "position": model_pos,
         "rotation": model_rot,
-              
+
         "textures": JSON.stringify( { "tex.picture": polaroid_url } ),
-                                                                   
+
         "density": 200,
         "restitution": 0.15,                            
-        "gravity": { "x": 0, "y": -1, "z": 0 },
+        "gravity": { "x": 0, "y": -4.5, "z": 0 },
         
-        "linear_accleration" : { "x": 0, "y": 2.0, "z": 0 },
-                                                           
+        "velocity": { "x": 0, "y": 3.5, "z": 0 },
+        "angularVelocity": { "x": -1.0, "y": 0, "z": -1.3 },
+
         "dynamic": true, 
         "collisionsWillMove": true,
-        
+
         "userData": {
             "grabbableKey": { "grabbable" : true }
         }
@@ -442,7 +439,10 @@ function takeSnapshot() {
     Settings.setValue("previousAnimatedSnapBlastingDisabled", false);
     Settings.setValue("previousAnimatedSnapHifiSharingDisabled", false);
     
-    isUploadingPrintableStill = false;
+    // Since we are taking a snapshot, we should make the print button appear to be loading/processing
+    snapshotFailedToLoad = false;
+    isUploadingPrintableStill = true;
+    updatePrintPermissions();
 
     // Raising the desktop for the share dialog at end will interact badly with clearOverlayWhenMoving.
     // Turn it off now, before we start futzing with things (and possibly moving).
@@ -514,7 +514,6 @@ function isDomainOpen(id, callback) {
                 status = response.total_entries ? true : false;
             }
             print("Domain open status:", status);
-            wasPreviousSnapshotShareable = status;
             callback(status);
         });
     } else {
@@ -677,11 +676,8 @@ function onUsernameChanged() {
                             numStillSnapshotUploadsPending++;
                         }
                     });
-                    isUploadingPrintableStill = true;
-                } else {
-                    isUploadingPrintableStill = false;                   
                 }
-                
+                isUploadingPrintableStill = canShare;
                 updatePrintPermissions();
             });
 
@@ -704,19 +700,15 @@ function updatePrintPermissions() {
     processRezPermissionChange(Entities.canRez() || Entities.canRezTmp());
 }
 
+var snapshotFailedToLoad = false;
 var isUploadingPrintableStill = false;
 function processRezPermissionChange(canRez) {
-    
-    print('can we rez0?' + canRez);
-    print('can we rez1?' + Settings.getValue("previousStillSnapUrl")) ;
-    print('can we rez2?' + isUploadingPrintableStill);
-    
     var action = "";
     
-    if(canRez) {  
-        if(Settings.getValue("previousStillSnapUrl")) {
+    if (canRez && !snapshotFailedToLoad) {  
+        if (Settings.getValue("previousStillSnapUrl")) {
             action = 'setPrintButtonEnabled';
-        } else if(isUploadingPrintableStill) {
+        } else if (isUploadingPrintableStill) {
             action = 'setPrintButtonLoading';
         } else {
             action = 'setPrintButtonDisabled';
@@ -724,6 +716,8 @@ function processRezPermissionChange(canRez) {
     } else {
         action = 'setPrintButtonDisabled';
     }
+    
+    print(action);
     
     tablet.emitScriptEvent(JSON.stringify({
         type: "snapshot",
