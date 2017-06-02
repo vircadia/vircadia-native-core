@@ -23,7 +23,7 @@ const float LINE_SCALE_RATIO = 1.2f;
 
 QString const Text3DOverlay::TYPE = "text3d";
 
-Text3DOverlay::Text3DOverlay() : _mutex() {
+Text3DOverlay::Text3DOverlay() {
     _textRenderer = TextRenderer3D::getInstance(SANS_FONT_FAMILY, FIXED_FONT_POINT_SIZE);
     _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
 }
@@ -31,7 +31,6 @@ Text3DOverlay::Text3DOverlay() : _mutex() {
 Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
     Billboard3DOverlay(text3DOverlay),
     _text(text3DOverlay->_text),
-    _mutex(),
     _backgroundColor(text3DOverlay->_backgroundColor),
     _textAlpha(text3DOverlay->_textAlpha),
     _lineHeight(text3DOverlay->_lineHeight),
