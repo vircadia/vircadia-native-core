@@ -20,8 +20,6 @@
 #include <DependencyManager.h>
 #include "AddressManager.h"
 
-static const QString USER_ACTIVITY_URL = "/api/v1/user_activities";
-
 UserActivityLogger& UserActivityLogger::getInstance() {
     static UserActivityLogger sharedInstance;
     return sharedInstance;

@@ -114,6 +114,7 @@ void EntityMotionState::handleDeactivation() {
 
 // virtual
 void EntityMotionState::handleEasyChanges(uint32_t& flags) {
+    assert(_entity);
     assert(entityTreeIsLocked());
     updateServerPhysicsVariables();
     ObjectMotionState::handleEasyChanges(flags);
@@ -170,6 +171,7 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
 
 // virtual
 bool EntityMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
+    assert(_entity);
     updateServerPhysicsVariables();
     return ObjectMotionState::handleHardAndEasyChanges(flags, engine);
 }

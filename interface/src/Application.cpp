@@ -11,6 +11,9 @@
 
 #include "Application.h"
 
+#include <chrono>
+#include <thread>
+
 #include <gl/Config.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
@@ -144,6 +147,7 @@
 #include "InterfaceLogging.h"
 #include "LODManager.h"
 #include "ModelPackager.h"
+#include "networking/CloseEventSender.h"
 #include "networking/HFWebEngineProfile.h"
 #include "networking/HFTabletWebEngineProfile.h"
 #include "networking/FileTypeProfile.h"
@@ -534,6 +538,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<AvatarBookmarks>();
     DependencyManager::set<LocationBookmarks>();
     DependencyManager::set<Snapshot>();
+    DependencyManager::set<CloseEventSender>();
 
     return previousSessionCrashed;
 }
@@ -1570,6 +1575,14 @@ void Application::aboutToQuit() {
 
     getActiveDisplayPlugin()->deactivate();
 
+    // use the CloseEventSender via a QThread to send an event that says the user asked for the app to close
+    auto closeEventSender = DependencyManager::get<CloseEventSender>();
+    QThread* closureEventThread = new QThread(this);
+    closeEventSender->moveToThread(closureEventThread);
+    // sendQuitEventAsync will bail immediately if the UserActivityLogger is not enabled
+    connect(closureEventThread, &QThread::started, closeEventSender.data(), &CloseEventSender::sendQuitEventAsync);
+    closureEventThread->start();
+
     // Hide Running Scripts dialog so that it gets destroyed in an orderly manner; prevents warnings at shutdown.
     DependencyManager::get<OffscreenUi>()->hide("RunningScripts");
 
@@ -1683,6 +1696,10 @@ Application::~Application() {
 
     _physicsEngine->setCharacterController(nullptr);
 
+    // the _shapeManager should have zero references
+    _shapeManager.collectGarbage();
+    assert(_shapeManager.getNumShapes() == 0);
+
     // shutdown render engine
     _main3DScene = nullptr;
     _renderEngine = nullptr;
@@ -1733,6 +1750,15 @@ Application::~Application() {
     _window->setMenuBar(nullptr);
 
     _window->deleteLater();
+
+    // make sure that the quit event has finished sending before we take the application down
+    auto closeEventSender = DependencyManager::get<CloseEventSender>();
+    while (!closeEventSender->hasFinishedQuitEvent() && !closeEventSender->hasTimedOutQuitEvent()) {
+        // sleep a little so we're not spinning at 100%
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    // quit the thread used by the closure event sender
+    closeEventSender->thread()->quit();
 
     // Can't log to file passed this point, FileLogger about to be deleted
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
@@ -4493,12 +4519,13 @@ void Application::update(float deltaTime) {
 
                 getEntities()->getTree()->withWriteLock([&] {
                     PerformanceTimer perfTimer("handleOutgoingChanges");
-                    const VectorOfMotionStates& deactivations = _physicsEngine->getDeactivatedMotionStates();
-                    _entitySimulation->handleDeactivatedMotionStates(deactivations);
 
                     const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
                     _entitySimulation->handleChangedMotionStates(outgoingChanges);
                     avatarManager->handleChangedMotionStates(outgoingChanges);
+
+                    const VectorOfMotionStates& deactivations = _physicsEngine->getDeactivatedMotionStates();
+                    _entitySimulation->handleDeactivatedMotionStates(deactivations);
                 });
 
                 if (!_aboutToQuit) {
