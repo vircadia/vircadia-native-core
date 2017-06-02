@@ -73,7 +73,7 @@ void runLocalSandbox(QString contentPath, bool autoShutdown, bool noUpdater) {
     }
 
     if (autoShutdown) {
-        auto pid = qApp->applicationPid();
+        auto pid = QCoreApplication::applicationPid();
         args << "--shutdownWith" << QString::number(pid);
     }
 
