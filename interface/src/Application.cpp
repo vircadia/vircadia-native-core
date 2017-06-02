@@ -1683,9 +1683,6 @@ Application::~Application() {
 
     _physicsEngine->setCharacterController(nullptr);
 
-    // shutdown render engine
-    _main3DScene = nullptr;
-    _renderEngine = nullptr;
     // the _shapeManager should have zero references
     _shapeManager.collectGarbage();
     assert(_shapeManager.getNumShapes() == 0);
@@ -4497,17 +4494,7 @@ void Application::update(float deltaTime) {
 
                 getEntities()->getTree()->withWriteLock([&] {
                     PerformanceTimer perfTimer("handleOutgoingChanges");
-                    const VectorOfMotionStates& deactivations = _physicsEngine->getDeactivatedMotionStates();
-                    _entitySimulation->handleDeactivatedMotionStates(deactivations);
-                getEntities()->getTree()->withWriteLock([&] {
-                    PerformanceTimer perfTimer("handleOutgoingChanges");
 
-
-
-                    const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
-                    _entitySimulation->handleChangedMotionStates(outgoingChanges);
-                    avatarManager->handleChangedMotionStates(outgoingChanges);
-                });
                     const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
                     _entitySimulation->handleChangedMotionStates(outgoingChanges);
                     avatarManager->handleChangedMotionStates(outgoingChanges);
