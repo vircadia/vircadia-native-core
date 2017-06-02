@@ -24,7 +24,6 @@
 #include <SandboxUtils.h>
 #include <SharedUtil.h>
 
-
 #include "AddressManager.h"
 #include "Application.h"
 #include "InterfaceLogging.h"

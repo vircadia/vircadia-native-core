@@ -20,6 +20,7 @@ private slots:
     void testUnusedFiles();
     void testFreeSpacePreservation();
     void cleanupTestCase();
+    void testWipe();
 
 private:
     size_t getFreeSpace() const;
