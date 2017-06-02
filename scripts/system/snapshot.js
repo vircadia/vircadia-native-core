@@ -417,7 +417,7 @@ function takeSnapshot() {
         Audio.playSound(snapActivateSound, {
             position: { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z },
             localOnly: true,
-            volume: 0.2
+            volume: 1.0
         });
         HMD.closeTablet();
         Script.setTimeout(function () {
