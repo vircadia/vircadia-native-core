@@ -140,6 +140,8 @@
     }
 
     // When the space bubble is toggled...
+    // NOTE: the c++ calls this with just the first param -- we added a second
+    // just for not logging the initial state of the bubble when we startup.
     function onBubbleToggled(enabled, doNotLog) {
         writeButtonProperties(enabled);
         if (doNotLog !== true) {
