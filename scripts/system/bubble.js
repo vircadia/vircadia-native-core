@@ -140,11 +140,12 @@
     }
 
     // When the space bubble is toggled...
-    function onBubbleToggled() {
-        var bubbleActive = Users.getIgnoreRadiusEnabled();
-        writeButtonProperties(bubbleActive);
-        UserActivityLogger.bubbleToggled(bubbleActive);
-        if (bubbleActive) {
+    function onBubbleToggled(enabled, doNotLog) {
+        writeButtonProperties(enabled);
+        if (doNotLog !== true) {
+            UserActivityLogger.bubbleToggled(enabled);
+        }
+        if (enabled) {
             createOverlays();
         } else {
             hideOverlays();
@@ -165,7 +166,7 @@
         sortOrder: 4
     });
 
-    onBubbleToggled();
+    onBubbleToggled(Users.getIgnoreRadiusEnabled(), true); // pass in true so we don't log this initial one in the UserActivity table
 
     button.clicked.connect(Users.toggleIgnoreRadius);
     Users.ignoreRadiusEnabledChanged.connect(onBubbleToggled);
