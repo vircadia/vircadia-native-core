@@ -410,6 +410,7 @@ void Agent::executeScript() {
         bool openedInLastBlock = !_audioGateOpen && audioGateOpen;  // the gate just opened
         bool closedInLastBlock = _audioGateOpen && !audioGateOpen;  // the gate just closed
         _audioGateOpen = audioGateOpen;
+        Q_UNUSED(openedInLastBlock);
 
         // the codec must be flushed to silence before sending silent packets,
         // so delay the transition to silent packets by one packet after becoming silent.
