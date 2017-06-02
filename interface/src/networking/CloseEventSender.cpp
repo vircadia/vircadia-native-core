@@ -1,5 +1,5 @@
 //
-//  ClosureEventSender.cpp
+//  CloseEventSender.cpp
 //  interface/src/networking
 //
 //  Created by Stephen Birarda on 5/31/17.
@@ -21,7 +21,7 @@
 #include <UserActivityLogger.h>
 #include <UUID.h>
 
-#include "ClosureEventSender.h"
+#include "CloseEventSender.h"
 
 QNetworkRequest createNetworkRequest() {
 
@@ -58,17 +58,17 @@ QNetworkReply* replyForAction(QString action) {
     return networkAccessManager.post(createNetworkRequest(), postDataForAction(action));
 }
 
-void ClosureEventSender::sendQuitEventAsync() {
+void CloseEventSender::sendQuitEventAsync() {
     if (UserActivityLogger::getInstance().isEnabled()) {
         QNetworkReply* reply = replyForAction("quit");
-        connect(reply, &QNetworkReply::finished, this, &ClosureEventSender::handleQuitEventFinished);
+        connect(reply, &QNetworkReply::finished, this, &CloseEventSender::handleQuitEventFinished);
         _quitEventStartTimestamp = QDateTime::currentMSecsSinceEpoch();
     } else {
         _hasFinishedQuitEvent = true;
     }
 }
 
-void ClosureEventSender::handleQuitEventFinished() {
+void CloseEventSender::handleQuitEventFinished() {
     _hasFinishedQuitEvent = true;
 
     auto reply = qobject_cast<QNetworkReply*>(sender());
@@ -81,7 +81,7 @@ void ClosureEventSender::handleQuitEventFinished() {
     reply->deleteLater();
 }
 
-bool ClosureEventSender::hasTimedOutQuitEvent() {
+bool CloseEventSender::hasTimedOutQuitEvent() {
     const int CLOSURE_EVENT_TIMEOUT_MS = 5000;
     return _quitEventStartTimestamp != 0
         && QDateTime::currentMSecsSinceEpoch() - _quitEventStartTimestamp > CLOSURE_EVENT_TIMEOUT_MS;

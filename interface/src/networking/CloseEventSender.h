@@ -1,5 +1,5 @@
 //
-//  ClosureEventSender.h
+//  CloseEventSender.h
 //  interface/src/networking
 //
 //  Created by Stephen Birarda on 5/31/17.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_ClosureEventSender_h
-#define hifi_ClosureEventSender_h
+#ifndef hifi_CloseEventSender_h
+#define hifi_CloseEventSender_h
 
 #include <atomic>
 
@@ -19,7 +19,7 @@
 
 #include <DependencyManager.h>
 
-class ClosureEventSender : public QObject, public Dependency {
+class CloseEventSender : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
@@ -38,4 +38,4 @@ private:
     std::atomic<int64_t> _quitEventStartTimestamp;
 };
 
-#endif // hifi_ClosureEventSender_h
+#endif // hifi_CloseEventSender_h
