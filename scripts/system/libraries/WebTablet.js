@@ -261,11 +261,10 @@ WebTablet.prototype.setLandscape = function(newLandscapeValue) {
         return;
     }
 
-    var tabletProperties = {};
-    tabletProperties.visible = true;
     this.landscape = newLandscapeValue;
-    this.calculateTabletAttachmentProperties(NO_HANDS, false, tabletProperties);
-    Overlays.editOverlay(this.tabletEntityID, tabletProperties);
+    Overlays.editOverlay(this.tabletEntityID,
+                         { rotation: this.landscape ? Quat.multiply(Camera.orientation, ROT_LANDSCAPE) :
+                                                      Quat.multiply(Camera.orientation, ROT_Y_180) });
     Overlays.editOverlay(this.webOverlayID, {
         resolution: this.getTabletTextureResolution(),
         rotation: Quat.multiply(Camera.orientation, ROT_LANDSCAPE_WINDOW)
