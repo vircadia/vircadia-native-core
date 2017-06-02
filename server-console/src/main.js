@@ -890,18 +890,18 @@ function onContentLoaded() {
         startInterface();
     }
 
-    if (argv.watchProcessShutdown) {
-        let pid = argv.watchProcessShutdown;
-        console.log("Watching process: ", pid);
-        let watchProcessInterval = setInterval(function() {
+    // If we were launched with the shutdownWith option, then we need to shutdown when that process (pid)
+    // is no longer running.
+    if (argv.shutdownWith) {
+        let pid = argv.shutdownWith;
+        console.log("Shutting down with process: ", pid);
+        let checkProcessInterval = setInterval(function() {
             let isRunning = isProcessRunning(pid);
             if (!isRunning) {
                 log.debug("Watched process is no longer running, shutting down");
-                clearTimeout(watchProcessInterval);
+                clearTimeout(checkProcessInterval);
                 forcedShutdown();
             }
-        }, 5000);
-    }
 
     // If we were launched with the shutdownWatcher option, then we need to watch for the interface app
     // shutting down. The interface app will regularly update a running state file which we will check.

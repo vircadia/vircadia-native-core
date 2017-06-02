@@ -74,8 +74,7 @@ void runLocalSandbox(QString contentPath, bool autoShutdown, bool noUpdater) {
 
     if (autoShutdown) {
         auto pid = qApp->applicationPid();
-        qCDebug(networking) << "autoShutdown pid is" << pid;
-        args << "--watchProcessShutdown" << QString::number(pid);
+        args << "--shutdownWith" << QString::number(pid);
     }
 
     if (noUpdater) {
