@@ -410,8 +410,15 @@ function takeSnapshot() {
         Menu.setIsOptionChecked("Overlays", false);
     }
 
+    var snapActivateSound = SoundCache.getSound(Script.resolvePath("../../resources/sounds/snap.wav"));
+
     // take snapshot (with no notification)
     Script.setTimeout(function () {
+        Audio.playSound(snapActivateSound, {
+            position: { x: MyAvatar.position.x, y: MyAvatar.position.y, z: MyAvatar.position.z },
+            localOnly: true,
+            volume: 1.0
+        });
         HMD.closeTablet();
         Script.setTimeout(function () {
             Window.takeSnapshot(false, includeAnimated, 1.91);
