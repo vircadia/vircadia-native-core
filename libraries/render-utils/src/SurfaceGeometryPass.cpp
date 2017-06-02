@@ -224,7 +224,7 @@ const gpu::PipelinePointer& LinearDepthPass::getLinearDepthPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         // Stencil test the curvature pass for objects pixels only, not the background
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_SCENE, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+        PrepareStencil::testShape(*state);
 
         state->setColorWriteMask(true, false, false, false);
 
@@ -250,7 +250,7 @@ const gpu::PipelinePointer& LinearDepthPass::getDownsamplePipeline() {
 
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_SCENE, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+        PrepareStencil::testShape(*state);
 
         state->setColorWriteMask(true, true, true, false);
 

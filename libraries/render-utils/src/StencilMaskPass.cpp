@@ -45,7 +45,7 @@ gpu::PipelinePointer PrepareStencil::getMeshStencilPipeline() {
         gpu::Shader::makeProgram((*program));
 
         auto state = std::make_shared<gpu::State>();
-        drawMask(state);
+        drawMask(*state);
         state->setColorWriteMask(0);
 
         _meshStencilPipeline = gpu::Pipeline::create(program, state);
@@ -61,7 +61,7 @@ gpu::PipelinePointer PrepareStencil::getPaintStencilPipeline() {
         gpu::Shader::makeProgram((*program));
 
         auto state = std::make_shared<gpu::State>();
-        drawMask(state);
+        drawMask(*state);
         state->setColorWriteMask(0);
 
         _paintStencilPipeline = gpu::Pipeline::create(program, state);
@@ -113,4 +113,8 @@ void PrepareStencil::testBackground(gpu::State& state) {
 
 void PrepareStencil::testMaskDrawShape(gpu::State& state) {
     state.setStencilTest(true, 0xFF, gpu::State::StencilTest(PrepareStencil::STENCIL_MASK, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_ZERO));
+}
+
+void PrepareStencil::testShape(gpu::State& state) {
+    state.setStencilTest(true, 0x00, gpu::State::StencilTest(PrepareStencil::STENCIL_SHAPE, 0xFF, gpu::NOT_EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 }

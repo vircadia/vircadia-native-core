@@ -1783,7 +1783,7 @@ static void buildWebShader(const std::string& vertShaderText, const std::string&
                             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     if (blendEnable) {
-        PrepareStencil::testMaskBlendShape(*state);
+        PrepareStencil::testMask(*state);
     } else {
         PrepareStencil::testMaskDrawShape(*state);
     }

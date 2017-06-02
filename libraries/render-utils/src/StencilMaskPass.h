@@ -38,6 +38,7 @@ public:
     static void testMask(gpu::State& state);
     static void testBackground(gpu::State& state);
     static void testMaskDrawShape(gpu::State& state);
+    static void testShape(gpu::State& state);
 
 
 private:

@@ -33,7 +33,6 @@
 #include "DeferredLightingEffect.h"
 #include "SurfaceGeometryPass.h"
 #include "FramebufferCache.h"
-#include "HitEffect.h"
 #include "TextureCache.h"
 #include "ZoneRenderer.h"
 
@@ -90,9 +89,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).hasVarying();
     task.addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaqueInputs, shapePlumber);
-
-    // Once opaque is all rendered create stencil background
-    task.addJob<DrawStencilDeferred>("DrawOpaqueStencil", primaryFramebuffer);
 
     task.addJob<EndGPURangeTimer>("OpaqueRangeTimer", opaqueRangeTimer);
 
