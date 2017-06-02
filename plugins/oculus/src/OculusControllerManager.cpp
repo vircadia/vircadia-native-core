@@ -326,19 +326,24 @@ void OculusControllerManager::TouchDevice::handlePose(float deltaTime,
 void OculusControllerManager::TouchDevice::handleHeadPose(float deltaTime,
                                                           const controller::InputCalibrationData& inputCalibrationData,
                                                           const ovrPoseStatef& headPose) {
-    auto poseId = controller::HEAD;
-    auto& pose = _poseStateMap[poseId];
+    glm::mat4 mat = createMatFromQuatAndPos(toGlm(headPose.ThePose.Orientation),
+                                            toGlm(headPose.ThePose.Position));
 
-    static const glm::quat yFlip = glm::angleAxis(PI, Vectors::UNIT_Y);
-    pose.translation = toGlm(headPose.ThePose.Position);
-    pose.rotation = toGlm(headPose.ThePose.Orientation) * yFlip;
-    pose.angularVelocity = toGlm(headPose.AngularVelocity);
-    pose.velocity = toGlm(headPose.LinearVelocity);
+    //perform a 180 flip to make the HMD face the +z instead of -z, beacuse the head faces +z
+    glm::mat4 matYFlip = mat * Matrices::Y_180;
+    controller::Pose pose(extractTranslation(matYFlip),
+                          glmExtractRotation(matYFlip),
+                          toGlm(headPose.LinearVelocity), // XXX * matYFlip ?
+                          toGlm(headPose.AngularVelocity));
+
+    glm::mat4 sensorToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
+    glm::mat4 defaultHeadOffset = glm::inverse(inputCalibrationData.defaultCenterEyeMat) *
+        inputCalibrationData.defaultHeadMat;
+
+    controller::Pose hmdHeadPose = pose.transform(sensorToAvatar);
+
     pose.valid = true;
-
-    // transform into avatar frame
-    glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
-    pose = pose.transform(controllerToAvatar);
+    _poseStateMap[controller::HEAD] = hmdHeadPose.postTransform(defaultHeadOffset);
 }
 
 void OculusControllerManager::TouchDevice::handleRotationForUntrackedHand(const controller::InputCalibrationData& inputCalibrationData,

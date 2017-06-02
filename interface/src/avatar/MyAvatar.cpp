@@ -644,9 +644,12 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 
     _hmdSensorPosition = newHmdSensorPosition;
     _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
+    // _headControllerFacing = getFacingDir2D(_hmdSensorOrientation);
     auto headPose = _headControllerPoseInSensorFrameCache.get();
     if (headPose.isValid()) {
         _headControllerFacing = getFacingDir2D(headPose.rotation);
+    } else {
+        _headControllerFacing = glm::vec2(1.0f, 0.0f);
     }
 }
 
@@ -1481,12 +1484,12 @@ void MyAvatar::updateMotors() {
     if (_motionBehaviors & AVATAR_MOTION_ACTION_MOTOR_ENABLED) {
         if (_characterController.getState() == CharacterController::State::Hover ||
                 _characterController.computeCollisionGroup() == BULLET_COLLISION_GROUP_COLLISIONLESS) {
-            motorRotation = getMyHead()->getCameraOrientation();
+            motorRotation = getMyHead()->getHeadOrientation();
         } else {
             // non-hovering = walking: follow camera twist about vertical but not lift
             // so we decompose camera's rotation and store the twist part in motorRotation
             glm::quat liftRotation;
-            swingTwistDecomposition(getMyHead()->getCameraOrientation(), _worldUpDirection, liftRotation, motorRotation);
+            swingTwistDecomposition(getMyHead()->getHeadOrientation(), _worldUpDirection, liftRotation, motorRotation);
         }
         const float DEFAULT_MOTOR_TIMESCALE = 0.2f;
         const float INVALID_MOTOR_TIMESCALE = 1.0e6f;
@@ -1500,7 +1503,7 @@ void MyAvatar::updateMotors() {
     }
     if (_motionBehaviors & AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED) {
         if (_scriptedMotorFrame == SCRIPTED_MOTOR_CAMERA_FRAME) {
-            motorRotation = getMyHead()->getCameraOrientation() * glm::angleAxis(PI, Vectors::UNIT_Y);
+            motorRotation = getMyHead()->getHeadOrientation() * glm::angleAxis(PI, Vectors::UNIT_Y);
         } else if (_scriptedMotorFrame == SCRIPTED_MOTOR_AVATAR_FRAME) {
             motorRotation = getOrientation() * glm::angleAxis(PI, Vectors::UNIT_Y);
         } else {
@@ -1849,7 +1852,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
     if (getCharacterController()->getState() == CharacterController::State::Hover) {
 
         // This is the direction the user desires to fly in.
-        glm::vec3 desiredFacing = getMyHead()->getCameraOrientation() * Vectors::UNIT_Z;
+        glm::vec3 desiredFacing = getMyHead()->getHeadOrientation() * Vectors::UNIT_Z;
         desiredFacing.y = 0.0f;
 
         // This is our reference frame, it is captured when the user begins to move.
@@ -1888,8 +1891,9 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
     getHead()->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
 
-    if (getHeadControllerPoseInAvatarFrame().isValid()) {
-        glm::quat localOrientation = getHeadControllerPoseInAvatarFrame().rotation;
+    auto headPose = getHeadControllerPoseInAvatarFrame();
+    if (headPose.isValid()) {
+        glm::quat localOrientation = headPose.rotation;
         // these angles will be in radians
         // ... so they need to be converted to degrees before we do math...
         glm::vec3 euler = glm::eulerAngles(localOrientation) * DEGREES_PER_RADIAN;
@@ -2003,11 +2007,14 @@ void MyAvatar::updatePosition(float deltaTime) {
     }
 
     // capture the head rotation, in sensor space, when the user first indicates they would like to move/fly.
-    if (!_hoverReferenceCameraFacingIsCaptured && (fabs(getDriveKey(TRANSLATE_Z)) > 0.1f || fabs(getDriveKey(TRANSLATE_X)) > 0.1f)) {
+    if (!_hoverReferenceCameraFacingIsCaptured &&
+        (fabs(getDriveKey(TRANSLATE_Z)) > 0.1f || fabs(getDriveKey(TRANSLATE_X)) > 0.1f)) {
         _hoverReferenceCameraFacingIsCaptured = true;
         // transform the camera facing vector into sensor space.
-        _hoverReferenceCameraFacing = transformVectorFast(glm::inverse(_sensorToWorldMatrix), getMyHead()->getCameraOrientation() * Vectors::UNIT_Z);
-    } else if (_hoverReferenceCameraFacingIsCaptured && (fabs(getDriveKey(TRANSLATE_Z)) <= 0.1f && fabs(getDriveKey(TRANSLATE_X)) <= 0.1f)) {
+        _hoverReferenceCameraFacing = transformVectorFast(glm::inverse(_sensorToWorldMatrix),
+                                                          getMyHead()->getHeadOrientation() * Vectors::UNIT_Z);
+    } else if (_hoverReferenceCameraFacingIsCaptured &&
+               (fabs(getDriveKey(TRANSLATE_Z)) <= 0.1f && fabs(getDriveKey(TRANSLATE_X)) <= 0.1f)) {
         _hoverReferenceCameraFacingIsCaptured = false;
     }
 }
@@ -2332,35 +2339,32 @@ glm::quat MyAvatar::getWorldBodyOrientation() const {
 // old school meat hook style
 glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
 
+    // HMD is in sensor space.
     const glm::vec3 headPosition = getHeadControllerPoseInSensorFrame().translation;
     const glm::quat headOrientation = getHeadControllerPoseInSensorFrame().rotation * Quaternions::Y_180;
     const glm::quat headOrientationYawOnly = cancelOutRollAndPitch(headOrientation);
 
     const Rig& rig = _skeletonModel->getRig();
-    int rightEyeIndex = rig.indexOfJoint("RightEye");
-    int leftEyeIndex = rig.indexOfJoint("LeftEye");
+    int headIndex = rig.indexOfJoint("Head");
     int neckIndex = rig.indexOfJoint("Neck");
     int hipsIndex = rig.indexOfJoint("Hips");
 
-    glm::vec3 rigMiddleEyePos = DEFAULT_AVATAR_MIDDLE_EYE_POS;
-    if (leftEyeIndex >= 0 && rightEyeIndex >= 0) {
-        rigMiddleEyePos =  (rig.getAbsoluteDefaultPose(leftEyeIndex).trans() + rig.getAbsoluteDefaultPose(rightEyeIndex).trans()) / 2.0f;
-    }
+    glm::vec3 rigHeadPos = headIndex != -1 ? rig.getAbsoluteDefaultPose(headIndex).trans() : DEFAULT_AVATAR_HEAD_POS;
     glm::vec3 rigNeckPos = neckIndex != -1 ? rig.getAbsoluteDefaultPose(neckIndex).trans() : DEFAULT_AVATAR_NECK_POS;
     glm::vec3 rigHipsPos = hipsIndex != -1 ? rig.getAbsoluteDefaultPose(hipsIndex).trans() : DEFAULT_AVATAR_HIPS_POS;
 
-    glm::vec3 localEyes = (rigMiddleEyePos - rigHipsPos);
+    glm::vec3 localHead = (rigHeadPos - rigHipsPos);
     glm::vec3 localNeck = (rigNeckPos - rigHipsPos);
 
     // apply simplistic head/neck model
     // figure out where the avatar body should be by applying offsets from the avatar's neck & head joints.
 
-    // eyeToNeck offset is relative to head's full orientation,
-    // while neckToRoot offset is only relative to head's yaw.
-    // Y_180 is necessary because rig is z forward and headOrientation is -z forward
-    glm::vec3 eyeToNeck = headOrientation * Quaternions::Y_180 * (localNeck - localEyes);
-    glm::vec3 neckToRoot = headOrientationYawOnly * Quaternions::Y_180 * -localNeck;
-    glm::vec3 bodyPos = headPosition + eyeToNeck + neckToRoot;
+    // eyeToNeck offset is relative full HMD orientation.
+    // while neckToRoot offset is only relative to HMDs yaw.
+    // Y_180 is necessary because rig is z forward and hmdOrientation is -z forward
+    glm::vec3 headToNeck = headOrientation * Quaternions::Y_180 * (localNeck - localHead);
+    glm::vec3 neckToRoot = headOrientationYawOnly  * Quaternions::Y_180 * -localNeck;
+    glm::vec3 bodyPos = headPosition + headToNeck + neckToRoot;
 
     return createMatFromQuatAndPos(headOrientationYawOnly, bodyPos);
 }
@@ -2478,7 +2482,7 @@ bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar, co
     } else {
         const float FOLLOW_ROTATION_THRESHOLD = cosf(PI / 6.0f); // 30 degrees
         glm::vec2 bodyFacing = getFacingDir2D(currentBodyMatrix);
-        return glm::dot(myAvatar.getHeadControllerFacingMovingAverage() * -1.0f, bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
+        return glm::dot(-myAvatar.getHeadControllerFacingMovingAverage(), bodyFacing) < FOLLOW_ROTATION_THRESHOLD;
     }
 }
 
