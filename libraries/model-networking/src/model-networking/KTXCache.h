@@ -31,6 +31,7 @@ public:
     // this value should be incremented.  This will force the KTX cache to be wiped
     static const int CURRENT_VERSION;
     static const int INVALID_VERSION;
+    static const char* SETTING_VERSION_NAME;
 
     KTXCache(const std::string& dir, const std::string& ext);
 

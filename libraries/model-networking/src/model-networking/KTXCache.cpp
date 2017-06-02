@@ -21,13 +21,13 @@ using FilePointer = cache::FilePointer;
 // this value should be incremented.  This will force the KTX cache to be wiped
 const int KTXCache::CURRENT_VERSION = 0x01;
 const int KTXCache::INVALID_VERSION = 0x00;
-
+const char* KTXCache::SETTING_VERSION_NAME = "hifi.ktx.cache_version";
 
 KTXCache::KTXCache(const std::string& dir, const std::string& ext) :
     FileCache(dir, ext) {
     initialize();
 
-    Setting::Handle<int> cacheVersionHandle("hifi.ktx.cache_version", KTXCache::INVALID_VERSION);
+    Setting::Handle<int> cacheVersionHandle(SETTING_VERSION_NAME, INVALID_VERSION);
     auto cacheVersion = cacheVersionHandle.get();
     if (cacheVersion != CURRENT_VERSION) {
         wipe();
