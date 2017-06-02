@@ -172,10 +172,12 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
                 btScalar hitHeight = _halfHeight + _radius + pointOnCharacter.dot(_currentUp);
                 // If there's non-trivial penetration with a big impulse for several steps, we're probably stuck.
                 // Note it here in the controller, and let MyAvatar figure out what to do about it.
-                const float STUCK_PENETRATION = -0.1f; // always negative into the object.
+                const float STUCK_PENETRATION = -0.05f; // always negative into the object.
                 const float STUCK_IMPULSE = 500.0f;
-                const int STUCK_LIFETIME = 50;
-                if ((contact.getDistance() < -STUCK_PENETRATION) && (contact.getAppliedImpulse() > STUCK_IMPULSE) && (contact.getLifeTime() > STUCK_LIFETIME)) {
+                const int STUCK_LIFETIME = 3;
+                //if (contact.getDistance() < STUCK_PENETRATION) qDebug() << "FIXME checking contact:" << contact.getDistance() << " impulse:" << contact.getAppliedImpulse() << " lifetime:" << contact.getLifeTime();
+                if ((contact.getDistance() < STUCK_PENETRATION) && (contact.getAppliedImpulse() > STUCK_IMPULSE) && (contact.getLifeTime() > STUCK_LIFETIME)) {
+                    qDebug() << "FIXME stuck contact:" << contact.getDistance() << " impulse:" << contact.getAppliedImpulse() << " lifetime:" << contact.getLifeTime();
                     isStuck = true; // latch on
                 }
                 if (hitHeight < _maxStepHeight && normal.dot(_currentUp) > _minFloorNormalDotUp) {

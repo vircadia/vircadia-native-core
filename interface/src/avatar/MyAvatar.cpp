@@ -439,7 +439,7 @@ void MyAvatar::update(float deltaTime) {
     }
     if (_physicsSafetyPending && qApp->isPhysicsEnabled() && _characterController.isEnabledAndReady()) { // fix only when needed and ready
         _physicsSafetyPending = false;
-        safeLanding(_goToPosition); // no-op if already safe
+        safeLanding(_goToPosition, _characterController.isStuck()); // no-op if already safe
     }
 
     Head* head = getHead();
@@ -2236,7 +2236,7 @@ void MyAvatar::goToLocationAndEnableCollisions(const glm::vec3& position) { // S
     goToLocation(position);
     QMetaObject::invokeMethod(this, "setCollisionsEnabled", Qt::QueuedConnection, Q_ARG(bool, true));
 }
-bool MyAvatar::safeLanding(const glm::vec3& position) {
+bool MyAvatar::safeLanding(const glm::vec3& position, bool force) {
     // Considers all collision hull or non-collisionless primitive intersections on a vertical line through the point.
     // There needs to be a "landing" if:
     // a) the closest above and the closest below are less than the avatar capsule height apart, or
@@ -2253,7 +2253,7 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
         return result;
     }
     glm::vec3 better;
-    if (!requiresSafeLanding(position, better)) {
+    if (!requiresSafeLanding(position, better, force)) {
         return false;
     }
     qDebug() << "rechecking" << position << " => " << better << " collisions:" << getCollisionsEnabled() << " physics:" << qApp->isPhysicsEnabled();
@@ -2269,7 +2269,7 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
 }
 
 // If position is not reliably safe from being stuck by physics, answer true and place a candidate better position in betterPositionOut.
-bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& betterPositionOut) {
+bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& betterPositionOut, bool force) {
     // We could repeat this whole test for each of the four corners of our bounding box, in case the surface is uneven. However:
     // 1) This is only meant to cover the most important cases, and even the four corners won't handle random spikes in the surfaces or avatar.
     // 2) My feeling is that this code is already at the limit of what can realistically be reviewed and maintained.
@@ -2324,7 +2324,11 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
     if (!findIntersection(capsuleCenter, up, upperIntersection, upperId, upperNormal)) {
         // We currently believe that physics will reliably push us out if our feet are embedded,
         // as long as our capsule center is out and there's room above us. Here we have those
-        // conditions, so no need to check our feet below.
+        // conditions, so no need to check our feet below, unless forced.
+        if (force) {
+            upperIntersection = capsuleCenter;
+            return mustMove();
+        }
         return ok("nothing above");
     }
 
