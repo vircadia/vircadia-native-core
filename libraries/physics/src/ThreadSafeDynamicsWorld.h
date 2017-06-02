@@ -51,6 +51,8 @@ public:
     const VectorOfMotionStates& getChangedMotionStates() const { return _changedMotionStates; }
     const VectorOfMotionStates& getDeactivatedMotionStates() const { return _deactivatedStates; }
 
+    void addChangedMotionState(ObjectMotionState* motionState) { _changedMotionStates.push_back(motionState); }
+
 private:
     // call this instead of non-virtual btDiscreteDynamicsWorld::synchronizeSingleMotionState()
     void synchronizeMotionState(btRigidBody* body);
