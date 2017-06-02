@@ -53,6 +53,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::JSONFilterWithFamilyTree);
         case PacketType::AvatarIdentity:
+            return static_cast<PacketVersion>(AvatarMixerPacketVersion::MannequinDefaultAvatar);
         case PacketType::AvatarData:
         case PacketType::BulkAvatarData:
         case PacketType::KillAvatar:
