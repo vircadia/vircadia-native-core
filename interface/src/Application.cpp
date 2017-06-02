@@ -1349,16 +1349,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
                     _autoSwitchDisplayModeSupportedHMDPlugin->getName();
                 _previousHMDWornStatus =
                     _autoSwitchDisplayModeSupportedHMDPlugin->isDisplayVisible();
-                qCDebug(interfaceapp) << "_autoSwitchModeSupportedPluginName::" 
-                    << _autoSwitchDisplayModeSupportedHMDPluginName;
                 break;
             }
         }
 
-        if (_autoSwitchDisplayModeSupportedHMDPlugin != nullptr) {
-            // If HMD Plugin is available and current display plugin is not HMD plugin 
-            // then startHMDStandBySession to poll HMD Worn status.
-            if (getActiveDisplayPlugin()->getName() != _autoSwitchDisplayModeSupportedHMDPluginName &&
+        if (_autoSwitchDisplayModeSupportedHMDPlugin) {
+            if (getActiveDisplayPlugin() != _autoSwitchDisplayModeSupportedHMDPlugin &&
                 !_autoSwitchDisplayModeSupportedHMDPlugin->isStandBySessionActive()) {
                     startHMDStandBySession();
             }
@@ -1600,7 +1596,7 @@ void Application::aboutToQuit() {
     }
 
     getActiveDisplayPlugin()->deactivate();
-    if (_autoSwitchDisplayModeSupportedHMDPlugin != nullptr
+    if (_autoSwitchDisplayModeSupportedHMDPlugin 
         && _autoSwitchDisplayModeSupportedHMDPlugin->isStandBySessionActive()) {
         _autoSwitchDisplayModeSupportedHMDPlugin->endStandBySession();
     }
@@ -6769,18 +6765,20 @@ void Application::updateDisplayMode() {
 }
 
 void Application::switchDisplayMode() {
+    if (!_autoSwitchDisplayModeSupportedHMDPlugin) {
+        return;
+    }
     bool currentHMDWornStatus = _autoSwitchDisplayModeSupportedHMDPlugin->isDisplayVisible();
     if (currentHMDWornStatus != _previousHMDWornStatus) {
-        // Switch to respective mode as soon as currentHMDWornStatus changes 
-        if (currentHMDWornStatus == false && _previousHMDWornStatus == true) {
-            qCDebug(interfaceapp) << "Switching from HMD to desktop mode";
-            setActiveDisplayPlugin(DESKTOP_DISPLAY_PLUGIN_NAME);
-            startHMDStandBySession();
-        }
-        if (currentHMDWornStatus == true && _previousHMDWornStatus == false) {
+        // Switch to respective mode as soon as currentHMDWornStatus changes
+        if (currentHMDWornStatus) {
             qCDebug(interfaceapp) << "Switching from Desktop to HMD mode";
             endHMDStandBySession();
             setActiveDisplayPlugin(_autoSwitchDisplayModeSupportedHMDPluginName);
+        } else {
+            qCDebug(interfaceapp) << "Switching from HMD to desktop mode";
+            setActiveDisplayPlugin(DESKTOP_DISPLAY_PLUGIN_NAME);
+            startHMDStandBySession();
         }
     }
     _previousHMDWornStatus = currentHMDWornStatus;

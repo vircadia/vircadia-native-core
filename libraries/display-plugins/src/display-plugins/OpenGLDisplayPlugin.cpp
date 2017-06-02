@@ -315,6 +315,7 @@ bool OpenGLDisplayPlugin::activate() {
     if (isHmd() && (getHmdScreen() >= 0)) {
         _container->showDisplayPluginsTools();
     }
+
     return Parent::activate();
 }
 
@@ -347,7 +348,7 @@ bool OpenGLDisplayPlugin::startStandBySession() {
 
 void OpenGLDisplayPlugin::endStandBySession() {
     deactivateStandBySession();
-    return Parent::endStandBySession();
+    Parent::endStandBySession();
 }
 
 void OpenGLDisplayPlugin::customizeContext() {

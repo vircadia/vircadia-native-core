@@ -681,7 +681,7 @@ private:
     AudioInjector* _snapshotSoundInjector { nullptr };
     SharedSoundPointer _snapshotSound;
 	
-    DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin = nullptr;
+    DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;
     QString _autoSwitchDisplayModeSupportedHMDPluginName;
     bool _previousHMDWornStatus;
     void startHMDStandBySession();
