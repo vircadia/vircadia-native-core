@@ -29,9 +29,9 @@ Text3DOverlay::Text3DOverlay() : _mutex() {
 }
 
 Text3DOverlay::Text3DOverlay(const Text3DOverlay* text3DOverlay) :
-    _mutex(),
     Billboard3DOverlay(text3DOverlay),
     _text(text3DOverlay->_text),
+    _mutex(),
     _backgroundColor(text3DOverlay->_backgroundColor),
     _textAlpha(text3DOverlay->_textAlpha),
     _lineHeight(text3DOverlay->_lineHeight),
