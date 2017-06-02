@@ -18,19 +18,19 @@ public:
 
     int size() const { return _totalWeight > 0.0f; }
 
-    /// \param rotation rotation to add
-    /// \param weight contribution factor of this rotation to total accumulation
+    /// \param translation translation to add
+    /// \param weight contribution factor of this translation to total accumulation
     void add(const glm::vec3& translation, float weight = 1.0f);
 
     glm::vec3 getAverage();
 
-    /// \return true if any rotations were accumulated
+    /// \return true if any translation were accumulated
     bool isDirty() const { return _isDirty; }
 
-    /// \brief clear accumulated rotation but don't change _isDirty
+    /// \brief clear accumulated translation but don't change _isDirty
     void clear();
 
-    /// \brief clear accumulated rotation and set _isDirty to false
+    /// \brief clear accumulated translation and set _isDirty to false
     void clearAndClean();
 
 private:

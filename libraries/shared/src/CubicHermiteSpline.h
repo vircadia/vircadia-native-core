@@ -23,8 +23,8 @@ public:
 
     // evalute the hermite curve at parameter t (0..1)
     glm::vec3 operator()(float t) const {
-        float t3 = t * t * t;
         float t2 = t * t;
+        float t3 = t2 * t;
         float w0 = 2.0f * t3 - 3.0f * t2 + 1.0f;
         float w1 = t3 - 2.0f * t2 + t;
         float w2 = -2.0f * t3 + 3.0f * t2;
@@ -63,7 +63,7 @@ public:
     enum Constants { NUM_SUBDIVISIONS = 30 };
 
     CubicHermiteSplineFunctorWithArcLength() : CubicHermiteSplineFunctor() {
-        memset(_values, 0, sizeof(float) * NUM_SUBDIVISIONS + 1);
+        memset(_values, 0, sizeof(float) * (NUM_SUBDIVISIONS + 1));
     }
     CubicHermiteSplineFunctorWithArcLength(const glm::vec3& p0, const glm::vec3& m0, const glm::vec3& p1, const glm::vec3& m1) : CubicHermiteSplineFunctor(p0, m0, p1, m1) {
         // initialize _values with the accumulated arcLength along the spline.
@@ -80,7 +80,7 @@ public:
     }
 
     CubicHermiteSplineFunctorWithArcLength(const CubicHermiteSplineFunctorWithArcLength& orig) : CubicHermiteSplineFunctor(orig) {
-        memcpy(_values, orig._values, sizeof(float) * NUM_SUBDIVISIONS + 1);
+        memcpy(_values, orig._values, sizeof(float) * (NUM_SUBDIVISIONS + 1));
     }
 
     // given the spline parameter (0..1) output the arcLength of the spline up to that point.

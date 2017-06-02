@@ -540,16 +540,21 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
             if (splineJointInfo.jointIndex != _hipsIndex) {
                 // constrain the amount the spine can stretch or compress
                 float length = glm::length(relPose.trans());
-                float defaultLength = glm::length(_skeleton->getRelativeDefaultPose(splineJointInfo.jointIndex).trans());
-                const float STRETCH_COMPRESS_PERCENTAGE = 0.15f;
-                const float MAX_LENGTH = defaultLength * (1.0f + STRETCH_COMPRESS_PERCENTAGE);
-                const float MIN_LENGTH = defaultLength * (1.0f - STRETCH_COMPRESS_PERCENTAGE);
-                if (length > MAX_LENGTH) {
-                    relPose.trans() = (relPose.trans() / length) * MAX_LENGTH;
-                    constrained = true;
-                } else if (length < MIN_LENGTH) {
-                    relPose.trans() = (relPose.trans() / length) * MIN_LENGTH;
-                    constrained = true;
+                const float EPSILON = 0.0001f;
+                if (length > EPSILON) {
+                    float defaultLength = glm::length(_skeleton->getRelativeDefaultPose(splineJointInfo.jointIndex).trans());
+                    const float STRETCH_COMPRESS_PERCENTAGE = 0.15f;
+                    const float MAX_LENGTH = defaultLength * (1.0f + STRETCH_COMPRESS_PERCENTAGE);
+                    const float MIN_LENGTH = defaultLength * (1.0f - STRETCH_COMPRESS_PERCENTAGE);
+                    if (length > MAX_LENGTH) {
+                        relPose.trans() = (relPose.trans() / length) * MAX_LENGTH;
+                        constrained = true;
+                    } else if (length < MIN_LENGTH) {
+                        relPose.trans() = (relPose.trans() / length) * MIN_LENGTH;
+                        constrained = true;
+                    }
+                } else {
+                    relPose.trans() = glm::vec3(0.0f);
                 }
             }
 
@@ -1521,10 +1526,10 @@ void AnimInverseKinematics::debugDrawSpineSplines(const AnimContext& context, co
         // draw red and white stripped spline, parameterized by arc length.
         // i.e. each stripe should be the same length.
         AnimPose geomToWorldPose = AnimPose(context.getRigToWorldMatrix() * context.getGeometryToRigMatrix());
-        int NUM_SUBDIVISIONS = 20;
-        const float dArcLength = totalArcLength / NUM_SUBDIVISIONS;
+        const int NUM_SEGMENTS = 20;
+        const float dArcLength = totalArcLength / NUM_SEGMENTS;
         float arcLength = 0.0f;
-        for (int i = 0; i < NUM_SUBDIVISIONS; i++) {
+        for (int i = 0; i < NUM_SEGMENTS; i++) {
             float prevT = spline.arcLengthInverse(arcLength);
             float nextT = spline.arcLengthInverse(arcLength + dArcLength);
             DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(spline(prevT)), geomToWorldPose.xformPoint(spline(nextT)), (i % 2) == 0 ? RED : WHITE);
