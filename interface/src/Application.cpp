@@ -146,7 +146,7 @@
 #include "InterfaceLogging.h"
 #include "LODManager.h"
 #include "ModelPackager.h"
-#include "networking/ClosureEventSender.h"
+#include "networking/CloseEventSender.h"
 #include "networking/HFWebEngineProfile.h"
 #include "networking/HFTabletWebEngineProfile.h"
 #include "networking/FileTypeProfile.h"
@@ -537,7 +537,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<AvatarBookmarks>();
     DependencyManager::set<LocationBookmarks>();
     DependencyManager::set<Snapshot>();
-    DependencyManager::set<ClosureEventSender>();
+    DependencyManager::set<CloseEventSender>();
 
     return previousSessionCrashed;
 }
@@ -1572,12 +1572,12 @@ void Application::aboutToQuit() {
 
     getActiveDisplayPlugin()->deactivate();
 
-    // use the ClosureEventSender via a QThread to send an event that says the user asked for the app to close
-    auto closureEventSender = DependencyManager::get<ClosureEventSender>();
+    // use the CloseEventSender via a QThread to send an event that says the user asked for the app to close
+    auto closeEventSender = DependencyManager::get<CloseEventSender>();
     QThread* closureEventThread = new QThread(this);
-    closureEventSender->moveToThread(closureEventThread);
+    closeEventSender->moveToThread(closureEventThread);
     // sendQuitEventAsync will bail immediately if the UserActivityLogger is not enabled
-    connect(closureEventThread, &QThread::started, closureEventSender.data(), &ClosureEventSender::sendQuitEventAsync);
+    connect(closureEventThread, &QThread::started, closeEventSender.data(), &CloseEventSender::sendQuitEventAsync);
     closureEventThread->start();
 
     // Hide Running Scripts dialog so that it gets destroyed in an orderly manner; prevents warnings at shutdown.
@@ -1745,13 +1745,13 @@ Application::~Application() {
     _window->deleteLater();
 
     // make sure that the quit event has finished sending before we take the application down
-    auto closureEventSender = DependencyManager::get<ClosureEventSender>();
-    while (!closureEventSender->hasFinishedQuitEvent() && !closureEventSender->hasTimedOutQuitEvent()) {
+    auto closeEventSender = DependencyManager::get<CloseEventSender>();
+    while (!closeEventSender->hasFinishedQuitEvent() && !closeEventSender->hasTimedOutQuitEvent()) {
         // yield so we're not spinning
         std::this_thread::yield();
     }
     // quit the thread used by the closure event sender
-    closureEventSender->thread()->quit();
+    closeEventSender->thread()->quit();
 
     // Can't log to file passed this point, FileLogger about to be deleted
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
