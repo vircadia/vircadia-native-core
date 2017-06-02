@@ -410,7 +410,7 @@ function takeSnapshot() {
         Menu.setIsOptionChecked("Overlays", false);
     }
 
-    var snapActivateSound = SoundCache.getSound(Script.resolvePath("assets/sounds/snap.wav"));
+    var snapActivateSound = SoundCache.getSound(Script.resolvePath("../../resources/sounds/snap.wav"));
 
     // take snapshot (with no notification)
     Script.setTimeout(function () {
