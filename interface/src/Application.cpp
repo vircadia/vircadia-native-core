@@ -11,6 +11,7 @@
 
 #include "Application.h"
 
+#include <chrono>
 #include <thread>
 
 #include <gl/Config.h>
@@ -1747,8 +1748,8 @@ Application::~Application() {
     // make sure that the quit event has finished sending before we take the application down
     auto closeEventSender = DependencyManager::get<CloseEventSender>();
     while (!closeEventSender->hasFinishedQuitEvent() && !closeEventSender->hasTimedOutQuitEvent()) {
-        // yield so we're not spinning
-        std::this_thread::yield();
+        // sleep a little so we're not spinning at 100%
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
     }
     // quit the thread used by the closure event sender
     closeEventSender->thread()->quit();
