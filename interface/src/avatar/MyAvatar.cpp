@@ -1555,11 +1555,11 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
 
     if (_characterController.isEnabledAndReady()) {
         setVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
-        /*FIXME if (_characterController.isStuck()) {
+        if (_characterController.isStuck()) {
             _physicsSafetyPending = true;
             _goToPosition = getPosition();
             qDebug() << "FIXME setting safety test at:" << _goToPosition;
-        }*/
+        }
     } else {
         setVelocity(getVelocity() + _characterController.getFollowVelocity());
     }
@@ -2258,12 +2258,12 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
     }
     qDebug() << "rechecking" << position << " => " << better << " collisions:" << getCollisionsEnabled() << " physics:" << qApp->isPhysicsEnabled();
     if (!getCollisionsEnabled()) {
-        goToLocation(better);  // recurses
+        goToLocation(better);  // recurses on next update
      } else { // If you try to go while stuck, physics will keep you stuck.
         setCollisionsEnabled(false);
         // Don't goToLocation just yet. Yield so that physics can act on the above.
         QMetaObject::invokeMethod(this, "goToLocationAndEnableCollisions", Qt::QueuedConnection, // The equivalent of javascript nextTick
-            Q_ARG(glm::vec3, better)); // I.e., capsuleCenter - offset
+            Q_ARG(glm::vec3, better));
      }
      return true;
 }
