@@ -618,7 +618,6 @@ var toolBar = (function () {
 
     that.toggle = function () {
         that.setActive(!isActive);
-        activeButton.editProperties({isActive: isActive});
         if (!isActive) {
             tablet.gotoHomeScreen();
         }
@@ -642,6 +641,8 @@ var toolBar = (function () {
             enabled: active
         }));
         isActive = active;
+        activeButton.editProperties({isActive: isActive});
+
         if (!isActive) {
             entityListTool.setVisible(false);
             gridTool.setVisible(false);
