@@ -439,7 +439,7 @@ void MyAvatar::update(float deltaTime) {
     }
     if (_physicsSafetyPending && qApp->isPhysicsEnabled() && _characterController.isEnabledAndReady()) { // fix only when needed and ready
         _physicsSafetyPending = false;
-        safeLanding(_goToPosition, _characterController.isStuck()); // no-op if already safe
+        safeLanding(_goToPosition); // no-op if already safe
     }
 
     Head* head = getHead();
@@ -1555,11 +1555,11 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
 
     if (_characterController.isEnabledAndReady()) {
         setVelocity(_characterController.getLinearVelocity() + _characterController.getFollowVelocity());
-        if (_characterController.isStuck()) {
+        /*FIXME if (_characterController.isStuck()) {
             _physicsSafetyPending = true;
             _goToPosition = getPosition();
             qDebug() << "FIXME setting safety test at:" << _goToPosition;
-        }
+        }*/
     } else {
         setVelocity(getVelocity() + _characterController.getFollowVelocity());
     }
@@ -2236,7 +2236,7 @@ void MyAvatar::goToLocationAndEnableCollisions(const glm::vec3& position) { // S
     goToLocation(position);
     QMetaObject::invokeMethod(this, "setCollisionsEnabled", Qt::QueuedConnection, Q_ARG(bool, true));
 }
-bool MyAvatar::safeLanding(const glm::vec3& position, bool force) {
+bool MyAvatar::safeLanding(const glm::vec3& position) {
     // Considers all collision hull or non-collisionless primitive intersections on a vertical line through the point.
     // There needs to be a "landing" if:
     // a) the closest above and the closest below are less than the avatar capsule height apart, or
@@ -2253,7 +2253,7 @@ bool MyAvatar::safeLanding(const glm::vec3& position, bool force) {
         return result;
     }
     glm::vec3 better;
-    if (!requiresSafeLanding(position, better, force)) {
+    if (!requiresSafeLanding(position, better)) {
         return false;
     }
     qDebug() << "rechecking" << position << " => " << better << " collisions:" << getCollisionsEnabled() << " physics:" << qApp->isPhysicsEnabled();
@@ -2269,7 +2269,7 @@ bool MyAvatar::safeLanding(const glm::vec3& position, bool force) {
 }
 
 // If position is not reliably safe from being stuck by physics, answer true and place a candidate better position in betterPositionOut.
-bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& betterPositionOut, bool force) {
+bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& betterPositionOut) {
     // We could repeat this whole test for each of the four corners of our bounding box, in case the surface is uneven. However:
     // 1) This is only meant to cover the most important cases, and even the four corners won't handle random spikes in the surfaces or avatar.
     // 2) My feeling is that this code is already at the limit of what can realistically be reviewed and maintained.
@@ -2302,7 +2302,8 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
         float distance;
         BoxFace face;
         const bool visibleOnly = false;
-        // FIXME: this doesn't do what we want here. findRayIntersection always works on mesh, skipping entirely based on collidable. What we really want is to use the collision hull! See CharacterGhostObject::rayTest?
+        // This isn't quite what we really want here. findRayIntersection always works on mesh, skipping entirely based on collidable.
+        // What we really want is to use the collision hull!
         // See https://highfidelity.fogbugz.com/f/cases/5003/findRayIntersection-has-option-to-use-collidableOnly-but-doesn-t-actually-use-colliders
         const bool collidableOnly = true;
         const bool precisionPicking = true;
@@ -2324,11 +2325,7 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
     if (!findIntersection(capsuleCenter, up, upperIntersection, upperId, upperNormal)) {
         // We currently believe that physics will reliably push us out if our feet are embedded,
         // as long as our capsule center is out and there's room above us. Here we have those
-        // conditions, so no need to check our feet below, unless forced.
-        if (force) {
-            upperIntersection = capsuleCenter;
-            return mustMove();
-        }
+        // conditions, so no need to check our feet below.
         return ok("nothing above");
     }
 
@@ -2342,7 +2339,8 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
         // The surface above us is the bottom of something, and the surface below us it the top of something.
         // I.e., we are in a clearing between two objects.
         auto delta = glm::distance(upperIntersection, lowerIntersection);
-        if (delta > (2 * halfHeight)) {
+        const float halfHeightFactor = 2.5f; // Until case 5003 is fixed (and maybe after?), we need a fudge factor. Also account for content modelers not being precise.
+        if (delta > (halfHeightFactor * halfHeight)) {
             // There is room for us to fit in that clearing. If there wasn't, physics would oscilate us between the objects above and below.
             // We're now going to iterate upwards through successive upperIntersections, testing to see if we're contained within the top surface of some entity.
             // There will be one of two outcomes:
@@ -2368,11 +2366,11 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
         }
     }
 
-    qDebug() << "FIXME need to compute safe landing for" << capsuleCenter << " based on " << (isDown(upperNormal) ? "down " : "up ") << upperIntersection << "@" << upperId << " and " << (isUp(lowerNormal) ? "up " : "down ") << lowerIntersection << "@" << lowerId;
+    include.push_back(upperId); // We're now looking for the intersection from above onto this entity.
     const float big = (float)TREE_SCALE;
     const auto skyHigh = up * big;
     auto fromAbove = capsuleCenter + skyHigh;
-    include.push_back(upperId); // We're looking for the intersection from above onto this entity.
+    qDebug() << "FIXME need to compute safe landing for" << capsuleCenter << " based on " << (isDown(upperNormal) ? "down " : "up ") << upperIntersection << "@" << upperId << " and " << (isUp(lowerNormal) ? "up " : "down ") << lowerIntersection << "@" << lowerId;
     if (!findIntersection(fromAbove, down, upperIntersection, upperId, upperNormal)) {
         return ok("Unable to find a landing");
     }
