@@ -257,7 +257,7 @@ MeshPointer Mesh::createIndexedTriangles_P3F(uint32_t numVertices, uint32_t numI
         int16_t* shortIndices = nullptr;
         if (indices) {
             shortIndicesVector.resize(numIndices);
-            for (int i = 0; i < numIndices; i++) {
+            for (uint32_t i = 0; i < numIndices; i++) {
                 shortIndicesVector[i] = indices[i];
             }
             shortIndices = shortIndicesVector.data();
