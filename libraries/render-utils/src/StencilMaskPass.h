@@ -16,16 +16,28 @@
 #include <gpu/Pipeline.h>
 #include <model/Geometry.h>
 
+class PrepareStencilConfig : public render::Job::Config {
+    Q_OBJECT
+    Q_PROPERTY(int maskMode MEMBER maskMode NOTIFY dirty)
+    Q_PROPERTY(bool forceDraw MEMBER forceDraw NOTIFY dirty)
+
+public:
+    PrepareStencilConfig(bool enabled = true) : JobConfig(enabled) {}
+
+    int maskMode { 0 };
+    bool forceDraw { false };
+
+signals:
+    void dirty();
+};
+
 class PrepareStencil {
 public:
-    class Config : public render::JobConfig {
-    public:
-        Config(bool enabled = true) : JobConfig(enabled) {}
-    };
+    using Config = PrepareStencilConfig;
 
     using JobModel = render::Job::ModelI<PrepareStencil, gpu::FramebufferPointer, Config>;
 
-    void configure(const Config& config) {}
+    void configure(const Config& config);
 
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& dstFramebuffer);
 
@@ -51,6 +63,8 @@ private:
     model::MeshPointer _mesh;
     model::MeshPointer getMesh();
 
+    int _maskMode { 0 };
+    bool _forceDraw { false };
 };
 
 

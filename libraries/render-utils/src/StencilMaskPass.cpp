@@ -22,6 +22,11 @@
 
 using namespace render;
 
+void PrepareStencil::configure(const Config& config) {
+    _maskMode = config.maskMode;
+    _forceDraw = config.forceDraw;
+}
+
 model::MeshPointer PrepareStencil::getMesh() {
     if (!_mesh) {
 
@@ -72,8 +77,8 @@ gpu::PipelinePointer PrepareStencil::getPaintStencilPipeline() {
 void PrepareStencil::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer) {
     RenderArgs* args = renderContext->args;
 
-    // Only draw the stencil mask if in HMD mode.
-    if (args->_displayMode != RenderArgs::STEREO_HMD) {
+    // Only draw the stencil mask if in HMD mode or not forced.
+    if (!_forceDraw && (args->_displayMode != RenderArgs::STEREO_HMD)) {
         return;
     }
 
@@ -82,7 +87,7 @@ void PrepareStencil::run(const RenderContextPointer& renderContext, const gpu::F
 
         batch.setViewportTransform(args->_viewport);
 
-        if (false) {
+        if (_maskMode < 0) {
             batch.setPipeline(getMeshStencilPipeline());
 
             auto mesh = getMesh();
