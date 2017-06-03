@@ -45,8 +45,9 @@ and If there is any changes to either the Entities or properties of
 
 var RADIAN = Math.PI / 180;
 
-var roundFloat = function (input) {
-    return Math.floor(parseFloat(input) * 1000)/1000;
+var roundFloat = function (input, round) {
+    round = round ? round: 1000;
+    return Math.round(parseFloat(input) * round)/round;
 };
 
 function HifiEntityUI(parent) {
@@ -186,9 +187,9 @@ HifiEntityUI.prototype = {
                         var red = document.getElementById(value + "-red");
                         var blue = document.getElementById(value + "-blue");
                         var green = document.getElementById(value + "-green");
-                        red.value = roundFloat(property.red);
-                        blue.value = roundFloat(property.blue);
-                        green.value = roundFloat(property.green);
+                        red.value = parseInt(property.red);
+                        blue.value = parseInt(property.blue);
+                        green.value = parseInt(property.green);
 
                         red.oninput({
                             target: red
@@ -197,18 +198,19 @@ HifiEntityUI.prototype = {
                         var x = document.getElementById(value + "-x");
                         var y = document.getElementById(value + "-y");
                         var z = document.getElementById(value + "-z");
-                        // crashes here.
-                        x.value = roundFloat(property.x);
-                        y.value = roundFloat(property.y);
-                        z.value = roundFloat(property.z);
+
+                        x.value = roundFloat(property.x, 100);
+                        y.value = roundFloat(property.y, 100);
+                        z.value = roundFloat(property.z, 100);
                     } else if (field.className.indexOf("pyr") !== -1) {
                         var pitch = document.getElementById(value + "-Pitch");
                         var yaw = document.getElementById(value + "-Yaw");
                         var roll = document.getElementById(value + "-Roll");
-                        // crashes here.
-                        pitch.value = roundFloat(property.x);
-                        yaw.value = roundFloat(property.y);
-                        roll.value = roundFloat(property.z);
+
+                        pitch.value = roundFloat(property.x, 100);
+                        yaw.value = roundFloat(property.y, 100);
+                        roll.value = roundFloat(property.z, 100);
+
                     }
                 }
             }
@@ -301,7 +303,7 @@ HifiEntityUI.prototype = {
                     sectionDivBody.style.maxHeight = "0px";
                 } else {
                     sectionDivBody.className += " visible";
-                    sectionDivBody.style.maxHeight = height;
+                    sectionDivBody.style.maxHeight = (animationWrapper.clientHeight) + "px";
                 }
                 // sectionDivBody.style.display = collapsed ? "none": "block";
                 dropDown.innerHTML = collapsed ? "L" : "M";

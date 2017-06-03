@@ -80,22 +80,7 @@ selectionManager.addEventListener(function () {
         }
         var type = Entities.getEntityProperties(selectedEntityID, "type").type;
         if (type === "ParticleEffect") {
-            // Destroy the old particles web view first
-            particleExplorerTool.destroyWebView();
-            particleExplorerTool.createWebView();
-            var properties = Entities.getEntityProperties(selectedEntityID);
-            var particleData = {
-                messageType: "particle_settings",
-                currentProperties: properties
-            };
-            selectedParticleEntityID = selectedEntityID;
-            particleExplorerTool.setActiveParticleEntity(selectedParticleEntityID);
-            particleData.emitOrientation = Quat.safeEulerAngles(particleData.emitOrientation);
-            particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
-
-            // Switch to particle explorer
-            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            tablet.sendToQml({method: 'selectTab', params: {id: 'particle'}});
+            selectParticleEntity(selectedEntityID);
         } else {
             needToDestroyParticleExplorer = true;
         }
@@ -2078,6 +2063,10 @@ var selectedParticleEntityID = null;
 
 function selectParticleEntity(entityID) {
     var properties = Entities.getEntityProperties(entityID);
+
+    if(properties.emitOrientation) {
+        properties.emitOrientation = Quat.safeEulerAngles(properties.emitOrientation);
+    }
     var particleData = {
         messageType: "particle_settings",
         currentProperties: properties
@@ -2087,6 +2076,7 @@ function selectParticleEntity(entityID) {
 
     selectedParticleEntity = entityID;
     particleExplorerTool.setActiveParticleEntity(entityID);
+
     particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
 
     // Switch to particle explorer

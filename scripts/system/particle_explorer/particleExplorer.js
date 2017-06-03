@@ -149,7 +149,11 @@
                     id: "emitOrientation",
                     unit: "deg",
                     name: "Emit Orientation",
-                    type: "VectorQuaternion"
+                    type: "VectorQuaternion",
+                    defaultRange: {
+                        min: 0,
+                        step: 0.01
+                    }
                 },
                 { type: "Row" },
                 {
