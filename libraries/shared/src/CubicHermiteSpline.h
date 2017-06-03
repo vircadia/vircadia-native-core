@@ -71,11 +71,11 @@ public:
         float alpha = 0.0f;
         float accum = 0.0f;
         _values[0] = 0.0f;
-        for (int i = 0; i < NUM_SUBDIVISIONS; i++) {
+        for (int i = 1; i < NUM_SUBDIVISIONS + 1; i++) {
             accum += glm::distance(this->operator()(alpha),
                                    this->operator()(alpha + DELTA));
             alpha += DELTA;
-            _values[i + 1] = accum;
+            _values[i] = accum;
         }
     }
 
