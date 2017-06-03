@@ -681,7 +681,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 // and pretend that we own it (we assume we'll recover it soon)
 
                 // However, for now, when the server uses a newer time than what we sent, listen to what we're told.
-                if (overwriteLocalData) weOwnSimulation = false;
+                if (overwriteLocalData) {
+                    weOwnSimulation = false;
+                }
             } else if (_simulationOwner.set(newSimOwner)) {
                 markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
                 somethingChanged = true;
@@ -1293,27 +1295,15 @@ void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) c
     properties._accelerationChanged = true;
 }
 
-void EntityItem::pokeSimulationOwnership() {
-    markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_POKE);
+void EntityItem::flagForOwnershipBid(uint8_t priority) {
+    markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY);
     auto nodeList = DependencyManager::get<NodeList>();
     if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
         // we already own it
-        _simulationOwner.promotePriority(SCRIPT_POKE_SIMULATION_PRIORITY);
+        _simulationOwner.promotePriority(priority);
     } else {
         // we don't own it yet
-        _simulationOwner.setPendingPriority(SCRIPT_POKE_SIMULATION_PRIORITY, usecTimestampNow());
-    }
-}
-
-void EntityItem::grabSimulationOwnership() {
-    markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_GRAB);
-    auto nodeList = DependencyManager::get<NodeList>();
-    if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
-        // we already own it
-        _simulationOwner.promotePriority(SCRIPT_GRAB_SIMULATION_PRIORITY);
-    } else {
-        // we don't own it yet
-        _simulationOwner.setPendingPriority(SCRIPT_GRAB_SIMULATION_PRIORITY, usecTimestampNow());
+        _simulationOwner.setPendingPriority(priority, usecTimestampNow());
     }
 }
 

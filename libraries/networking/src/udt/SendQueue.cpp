@@ -241,6 +241,9 @@ void SendQueue::handshakeACK(SequenceNumber initialSequenceNumber) {
             std::lock_guard<std::mutex> locker { _handshakeMutex };
             _hasReceivedHandshakeACK = true;
         }
+
+        _lastReceiverResponse = QDateTime::currentMSecsSinceEpoch();
+
         // Notify on the handshake ACK condition
         _handshakeACKCondition.notify_one();
     }
