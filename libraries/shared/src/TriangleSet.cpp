@@ -41,7 +41,7 @@ bool TriangleSet::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
     }
 
     int trianglesTouched = 0;
-    auto result = _triangleOctree.findRayIntersection(origin, direction, distance, face, surfaceNormal, precision, trianglesTouched);
+    auto result = _triangleOctree.findRayIntersection(origin, direction, distance, face, surfaceNormal, precision, trianglesTouched, allowBackface);
 
     #if WANT_DEBUGGING
     if (precision) {

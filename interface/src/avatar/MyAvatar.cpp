@@ -1558,7 +1558,6 @@ void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
         if (_characterController.isStuck()) {
             _physicsSafetyPending = true;
             _goToPosition = getPosition();
-            qDebug() << "FIXME setting safety test at:" << _goToPosition;
         }
     } else {
         setVelocity(getVelocity() + _characterController.getFollowVelocity());
@@ -2232,7 +2231,6 @@ void MyAvatar::goToLocation(const glm::vec3& newPosition,
 }
 
 void MyAvatar::goToLocationAndEnableCollisions(const glm::vec3& position) { // See use case in safeLanding.
-    // FIXME: Doesn't work 100% of time. Need to figure out what isn't happening fast enough. E.g., don't goToLocation until confirmed removed from physics?
     goToLocation(position);
     QMetaObject::invokeMethod(this, "setCollisionsEnabled", Qt::QueuedConnection, Q_ARG(bool, true));
 }
@@ -2274,7 +2272,7 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
     // 1) This is only meant to cover the most important cases, and even the four corners won't handle random spikes in the surfaces or avatar.
     // 2) My feeling is that this code is already at the limit of what can realistically be reviewed and maintained.
     auto ok = [&](const char* label) {  // position is good to go, or at least, we cannot do better
-        qDebug() << "Already safe" << label << positionIn << " collisions:" << getCollisionsEnabled() << " physics:" << qApp->isPhysicsEnabled();
+        //qDebug() << "Already safe" << label << positionIn << " collisions:" << getCollisionsEnabled() << " physics:" << qApp->isPhysicsEnabled();
         return false;
     };
     auto halfHeight = _characterController.getCapsuleHalfHeight();
@@ -2350,14 +2348,12 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
                 ignore.push_back(upperId);
                 if (!findIntersection(upperIntersection, up, upperIntersection, upperId, upperNormal)) {
                     // We're not inside an entity, and from the nested tests, we have room between what is above and below. So position is good!
-                    //qDebug() << "FIXME upper:" << upperId << upperIntersection << " n:" << upperNormal.y << " lower:" << lowerId << lowerIntersection << " n:" << lowerNormal.y << " delta:" << delta << " halfHeight:" << halfHeight;
                     return ok("enough room");
                 }
                 if (isUp(upperNormal)) {
                     // This new intersection is the top surface of an entity that we have not yet seen, which means we're contained within it.
                     // We could break here and recurse from the top of the original ceiling, but since we've already done the work to find the top
                     // of the enclosing entity, let's put our feet at upperIntersection and start over.
-                    qDebug() << "FIXME inside above:" << upperId << " below:" << lowerId;
                     return mustMove();
                 }
                 // We found a new bottom surface, which we're not interested in.
@@ -2370,7 +2366,6 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
     const float big = (float)TREE_SCALE;
     const auto skyHigh = up * big;
     auto fromAbove = capsuleCenter + skyHigh;
-    qDebug() << "FIXME need to compute safe landing for" << capsuleCenter << " based on " << (isDown(upperNormal) ? "down " : "up ") << upperIntersection << "@" << upperId << " and " << (isUp(lowerNormal) ? "up " : "down ") << lowerIntersection << "@" << lowerId;
     if (!findIntersection(fromAbove, down, upperIntersection, upperId, upperNormal)) {
         return ok("Unable to find a landing");
     }
