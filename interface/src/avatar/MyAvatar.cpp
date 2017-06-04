@@ -435,9 +435,11 @@ void MyAvatar::update(float deltaTime) {
         // so we update now. It's ok if it updates again in the normal way.
         updateSensorToWorldMatrix();
         emit positionGoneTo();
-        _physicsSafetyPending = getCollisionsEnabled();  // Run safety tests as soon as we can after goToLocation, or clear if we're not colliding.
+        // Run safety tests as soon as we can after goToLocation, or clear if we're not colliding.
+        _physicsSafetyPending = getCollisionsEnabled();
     }
-    if (_physicsSafetyPending && qApp->isPhysicsEnabled() && _characterController.isEnabledAndReady()) { // fix only when needed and ready
+    if (_physicsSafetyPending && qApp->isPhysicsEnabled() && _characterController.isEnabledAndReady()) {
+        // When needed and ready, arrange to check and fix.
         _physicsSafetyPending = false;
         safeLanding(_goToPosition); // no-op if already safe
     }
@@ -2268,9 +2270,7 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
 
 // If position is not reliably safe from being stuck by physics, answer true and place a candidate better position in betterPositionOut.
 bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& betterPositionOut) {
-    // We could repeat this whole test for each of the four corners of our bounding box, in case the surface is uneven. However:
-    // 1) This is only meant to cover the most important cases, and even the four corners won't handle random spikes in the surfaces or avatar.
-    // 2) My feeling is that this code is already at the limit of what can realistically be reviewed and maintained.
+    // We begin with utilities and tests. The Algorithm in four parts is below.
     auto ok = [&](const char* label) {  // position is good to go, or at least, we cannot do better
         //qDebug() << "Already safe" << label << positionIn << " collisions:" << getCollisionsEnabled() << " physics:" << qApp->isPhysicsEnabled();
         return false;
@@ -2283,7 +2283,7 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
     if (!entityTree) {
         return ok("no entity tree");
     }
-
+    // More utilities.
     const auto offset = getOrientation() *_characterController.getCapsuleLocalOffset();
     const auto capsuleCenter = positionIn + offset;
     const auto up = _worldUpDirection, down = -up;
@@ -2391,7 +2391,6 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
     } else {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
-    qDebug() << "FIXME updateMotionBehaviorFromMenu collisions:" << menu->isOptionChecked(MenuOption::EnableAvatarCollisions) << "physics:" << qApp->isPhysicsEnabled();
     setCollisionsEnabled(menu->isOptionChecked(MenuOption::EnableAvatarCollisions));
 }
 
