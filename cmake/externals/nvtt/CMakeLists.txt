@@ -8,8 +8,8 @@ string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
 if (WIN32)
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL http://s3.amazonaws.com/hifi-public/dependencies/nvtt-win-2.1.0.zip
-    URL_MD5 3ea6eeadbcc69071acf9c49ba565760e
+    URL http://s3.amazonaws.com/hifi-public/dependencies/nvtt-win-2.1.0.hifi.zip
+    URL_MD5 907f2c683e2bcf8b8089576ec38747b4
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""
@@ -29,8 +29,8 @@ else ()
   
   ExternalProject_Add(
     ${EXTERNAL_NAME}
-    URL http://hifi-public.s3.amazonaws.com/dependencies/nvidia-texture-tools-2.1.0.zip
-    URL_MD5 81b8fa6a9ee3f986088eb6e2215d6a57
+    URL http://hifi-public.s3.amazonaws.com/dependencies/nvidia-texture-tools-2.1.0.hifi.zip
+    URL_MD5 cda96482825225511d3effabbc1ddc7e
     CONFIGURE_COMMAND CMAKE_ARGS  ${ANDROID_CMAKE_ARGS} -DNVTT_SHARED=1 -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE} -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
     LOG_DOWNLOAD 1
     LOG_CONFIGURE 1
