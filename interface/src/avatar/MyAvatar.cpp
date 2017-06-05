@@ -2338,10 +2338,13 @@ glm::quat MyAvatar::getWorldBodyOrientation() const {
 
 // old school meat hook style
 glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
-
-    // HMD is in sensor space.
-    const glm::vec3 headPosition = getHeadControllerPoseInSensorFrame().translation;
-    const glm::quat headOrientation = getHeadControllerPoseInSensorFrame().rotation * Quaternions::Y_180;
+    glm::vec3 headPosition;
+    glm::quat headOrientation;
+    auto headPose = getHeadControllerPoseInSensorFrame();
+    if (headPose.isValid()) {
+        headPosition = getHeadControllerPoseInSensorFrame().translation;
+        headOrientation = getHeadControllerPoseInSensorFrame().rotation * Quaternions::Y_180;
+    }
     const glm::quat headOrientationYawOnly = cancelOutRollAndPitch(headOrientation);
 
     const Rig& rig = _skeletonModel->getRig();
