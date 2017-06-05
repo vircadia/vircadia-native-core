@@ -4060,7 +4060,7 @@ void Application::updateMyAvatarLookAtPosition() {
             if (isHMD) {
                 glm::mat4 worldHeadMat = myAvatar->getSensorToWorldMatrix() *
                     myAvatar->getHeadControllerPoseInSensorFrame().getMatrix();
-                lookAtSpot = transformPoint(worldHeadMat, glm::vec3(0.0f, 0.0f, TREE_SCALE));
+                lookAtSpot = transformPoint(worldHeadMat, glm::vec3(0.0f, 0.0f, -TREE_SCALE));
             } else {
                 lookAtSpot = myAvatar->getHead()->getEyePosition() +
                     (myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
