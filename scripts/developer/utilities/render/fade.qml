@@ -14,7 +14,7 @@ import "configSlider"
 
 Row {
 	property var drawOpaqueConfig: Render.getConfig("DrawOpaqueDeferred");
-	property var drawTransparentConfig: Render.getConfig("DrawDeferred");
+	property var drawTransparentConfig: Render.getConfig("DrawTransparentDeferred");
 	spacing: 4
 	Column {
 		spacing: 8

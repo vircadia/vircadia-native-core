@@ -185,7 +185,6 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     auto skinModelFadeVertex = gpu::Shader::createVertex(std::string(skin_model_fade_vert));
     auto skinModelNormalMapFadeVertex = gpu::Shader::createVertex(std::string(skin_model_normal_map_fade_vert));
 
-    // Only models can have fade applied to them (?)
     auto modelFadeVertex = gpu::Shader::createVertex(std::string(model_fade_vert));
     auto modelNormalMapFadeVertex = gpu::Shader::createVertex(std::string(model_normal_map_fade_vert));
     auto simpleFadeVertex = gpu::Shader::createVertex(std::string(simple_fade_vert));
