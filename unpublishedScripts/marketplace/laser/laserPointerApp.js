@@ -1,3 +1,7 @@
+//
+// Created by Alan-Michael Moody on 6/4/2017
+//
+
 'use strict';
 
 (function () {
@@ -34,7 +38,6 @@
 
     var rayExclusionList = [];
 
-
     function laser(hand) {
 
         var PICK_MAX_DISTANCE = 500;
@@ -52,7 +55,6 @@
             direction: Quat.getUp(worldHandRotation),
             length: PICK_MAX_DISTANCE
         };
-
 
         var ray = Entities.findRayIntersection(pickRay, true, [], rayExclusionList, true);
         var avatarRay = AvatarManager.findRayIntersection(pickRay, true, [], rayExclusionList, true);
@@ -108,7 +110,6 @@
                 dimensions: Vec3.multiply(PICK_MAX_DISTANCE * 2, Vec3.ONE),
                 linePoints: [Vec3.ZERO, {x: 0, y: dist, z: 0}]
             };
-
 
             laserEntities[hand].beam = Entities.addEntity(beam,true);
             rayExclusionList.push(laserEntities[hand].beam);
