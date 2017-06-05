@@ -1,7 +1,7 @@
 //
-//  TabletAudioPreferences.qml
+//  TabletAudioBuffers.qml
 //
-//  Created by Davd Rowe on 7 Mar 2017.
+//  Created by Zach Pomerantz on 6/5/2017.
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -17,8 +17,8 @@ StackView {
     id: profileRoot
     initialItem: root
     objectName: "stack"
-    property string title: "Audio Settings"
-
+    property string title: "Audio Buffers"
+    property alias gotoPreviousApp: root.gotoPreviousApp;
     property var eventBridge;
     signal sendToScript(var message);
 
@@ -32,7 +32,7 @@ StackView {
 
     TabletPreferencesDialog {
         id: root
-        objectName: "TabletAudioPreferences"
-        showCategories: ["Audio"]
+        objectName: "TabletAudioBuffersDialog"
+        showCategories: ["Audio Buffers"]
     }
 }

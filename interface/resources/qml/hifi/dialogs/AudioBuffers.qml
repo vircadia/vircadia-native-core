@@ -5,9 +5,9 @@ import "../../dialogs"
 
 PreferencesDialog {
     id: root
-    objectName: "AudioPreferencesDialog"
+    objectName: "AudioBuffersDialog"
     title: "Audio Settings"
-    showCategories: ["Audio"]
+    showCategories: ["Audio Buffers"]
     property var settings: Settings {
         category: root.objectName
         property alias x: root.x

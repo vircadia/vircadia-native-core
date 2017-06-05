@@ -615,7 +615,7 @@ Menu::Menu() {
     action = addActionToQMenuAndActionHash(audioDebugMenu, "Buffers...");
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/AudioBuffers.qml"),
-            QString("../../hifi/dialogs/AudioBuffers.qml"), "AudioPreferencesDialog");
+            QString("../../hifi/tablet/TabletAudioBuffers.qml"), "AudioBuffersDialog");
     });
 
     auto audioIO = DependencyManager::get<AudioClient>();
