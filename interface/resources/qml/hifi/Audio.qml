@@ -17,9 +17,31 @@ import QtGraphicalEffects 1.0
 
 import "../styles-uit"
 import "../controls-uit" as HifiControls
+import "../windows"
 
 import "components"
 
+Rectangle {
+    id: audio;
+
+    HifiConstants { id: hifi; }
+
+    property var eventBridge;
+    property string title: "Audio Settings"
+    signal sendToScript(var message);
+
+    color: "#404040";
+
+    Text {
+        text: "ZZMP"
+    }
+
+    ListView {
+        model: Audio.devices.input
+    }
+}
+
+/*
 Rectangle {
     id: audio;
 
@@ -254,3 +276,4 @@ Rectangle {
         }
     }
 }
+*/
