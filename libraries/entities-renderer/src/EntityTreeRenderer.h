@@ -147,9 +147,6 @@ private:
     void addEntityToScene(EntityItemPointer entity);
     bool findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar = nullptr);
 
-    bool applyZoneAndHasSkybox(const std::shared_ptr<ZoneEntityItem>& zone);
-    bool layerZoneAndHasSkybox(const std::shared_ptr<ZoneEntityItem>& zone);
-    bool applySkyboxAndHasAmbient();
     bool applyLayeredZones();
 
     void checkAndCallPreload(const EntityItemID& entityID, bool reload = false, bool unloadFirst = false);

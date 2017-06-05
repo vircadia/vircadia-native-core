@@ -14,12 +14,15 @@
 
 #include "render/Engine.h"
 
+#include "DeferredFrameTransform.h"
+
 class ZoneRendererConfig : public render::Task::Config {
     Q_OBJECT
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
 public:
 
-    ZoneRendererConfig() : render::Task::Config(false) {}
+    ZoneRendererConfig() : render::Task::Config(
+    ) {}
 
     int maxDrawn { -1 };
 
@@ -48,5 +51,41 @@ public:
 protected:
     int _maxDrawn; // initialized by Config
 };
+
+class DebugZoneLighting {
+public:
+    class Config : public render::JobConfig {
+    public:
+        Config(bool enabled = false) : JobConfig(enabled) {}
+    };
+
+    using Inputs = DeferredFrameTransformPointer;
+    using JobModel = render::Job::ModelI<DebugZoneLighting, Inputs, Config>;
+
+    DebugZoneLighting() {}
+
+    void configure(const Config& configuration) {}
+    void run(const render::RenderContextPointer& context, const Inputs& inputs);
+
+protected:
+
+    enum Slots {
+        ZONE_DEFERRED_TRANSFORM_BUFFER = 0,
+        ZONE_KEYLIGHT_BUFFER,
+        ZONE_AMBIENT_BUFFER,
+        ZONE_AMBIENT_MAP,
+        ZONE_SKYBOX_BUFFER,
+        ZONE_SKYBOX_MAP,
+    };
+
+    gpu::PipelinePointer _keyLightPipeline;
+    gpu::PipelinePointer _ambientPipeline;
+    gpu::PipelinePointer _backgroundPipeline;
+
+    const gpu::PipelinePointer& getKeyLightPipeline();
+    const gpu::PipelinePointer& getAmbientPipeline();
+    const gpu::PipelinePointer& getBackgroundPipeline();
+};
+
 
 #endif

@@ -141,79 +141,69 @@ void DeferredLightingEffect::init() {
     _globalLights.push_back(_lightStage->addLight(lp));
     _lightStage->addShadow(_globalLights[0]);
 
-}
 
-void DeferredLightingEffect::addLight(const model::LightPointer& light) {
-    assert(light);
-    auto lightID = _lightStage->addLight(light);
-    if (light->getType() == model::Light::POINT) {
-        _pointLights.push_back(lightID);
-    } else {
-        _spotLights.push_back(lightID);
+    _backgroundStage = std::make_shared<BackgroundStage>();
+
+    auto textureCache = DependencyManager::get<TextureCache>();
+
+    {
+        PROFILE_RANGE(render, "Process Default Skybox");
+        auto textureCache = DependencyManager::get<TextureCache>();
+
+        auto skyboxUrl = PathUtils::resourcesPath().toStdString() + "images/Default-Sky-9-cubemap.ktx";
+
+        _defaultSkyboxTexture = gpu::Texture::unserialize(skyboxUrl);
+        _defaultSkyboxAmbientTexture = _defaultSkyboxTexture;
+
+        _defaultSkybox->setCubemap(_defaultSkyboxTexture);
     }
-}
 
 
-void DeferredLightingEffect::addPointLight(const glm::vec3& position, float radius, const glm::vec3& color,
-        float intensity, float falloffRadius) {
-    addSpotLight(position, radius, color, intensity, falloffRadius);
-}
-
-void DeferredLightingEffect::addSpotLight(const glm::vec3& position, float radius, const glm::vec3& color,
-    float intensity, float falloffRadius, const glm::quat& orientation, float exponent, float cutoff) {
-    
-    unsigned int lightID = (unsigned int)(_pointLights.size() + _spotLights.size() + _globalLights.size());
-    if (lightID >= _allocatedLights.size()) {
-        _allocatedLights.push_back(std::make_shared<model::Light>());
-    }
-    model::LightPointer lp = _allocatedLights[lightID];
-
-    lp->setPosition(position);
-    lp->setMaximumRadius(radius);
-    lp->setColor(color);
-    lp->setIntensity(intensity);
-    lp->setFalloffRadius(falloffRadius);
-
-    if (exponent == 0.0f && cutoff == PI) {
-        lp->setType(model::Light::POINT);
-        _pointLights.push_back(lightID);
-        
-    } else {
-        lp->setOrientation(orientation);
-        lp->setSpotAngle(cutoff);
-        lp->setSpotExponent(exponent);
-        lp->setType(model::Light::SPOT);
-        _spotLights.push_back(lightID);
-    }
+    lp->setAmbientIntensity(0.5f);
+	lp->setAmbientMap(_defaultSkyboxAmbientTexture);
+	auto irradianceSH = _defaultSkyboxAmbientTexture->getIrradiance();
+	if (irradianceSH) {
+		lp->setAmbientSphere((*irradianceSH));
+	}
 }
 
 void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
     PerformanceTimer perfTimer("DLE->setupBatch()");
-    auto keyLight = _allocatedLights[_globalLights.front()];
+    model::LightPointer keySunLight;
+    if (_lightStage && _lightStage->_currentFrame._sunLights.size()) {
+        keySunLight = _lightStage->getLight(_lightStage->_currentFrame._sunLights.front());
+    } else {
+        keySunLight = _allocatedLights[_globalLights.front()];
+    }
+
+    model::LightPointer keyAmbiLight;
+    if (_lightStage && _lightStage->_currentFrame._ambientLights.size()) {
+        keyAmbiLight = _lightStage->getLight(_lightStage->_currentFrame._ambientLights.front());
+    } else {
+        keyAmbiLight = _allocatedLights[_globalLights.front()];
+    }
 
     if (lightBufferUnit >= 0) {
-        batch.setUniformBuffer(lightBufferUnit, keyLight->getLightSchemaBuffer());
+        batch.setUniformBuffer(lightBufferUnit, keySunLight->getLightSchemaBuffer());
     }
-    if (keyLight->hasAmbient() && (ambientBufferUnit >= 0)) {
-        batch.setUniformBuffer(ambientBufferUnit, keyLight->getAmbientSchemaBuffer());
+    if (ambientBufferUnit >= 0) {
+        batch.setUniformBuffer(ambientBufferUnit, keyAmbiLight->getAmbientSchemaBuffer());
     }
 
-    if (keyLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
-        batch.setResourceTexture(skyboxCubemapUnit, keyLight->getAmbientMap());
+    if (keyAmbiLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
+        batch.setResourceTexture(skyboxCubemapUnit, keyAmbiLight->getAmbientMap());
     }
 }
 
 void DeferredLightingEffect::unsetKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
-    auto keyLight = _allocatedLights[_globalLights.front()];
-
     if (lightBufferUnit >= 0) {
         batch.setUniformBuffer(lightBufferUnit, nullptr);
     }
-    if (keyLight->hasAmbient() && (ambientBufferUnit >= 0)) {
+    if ((ambientBufferUnit >= 0)) {
         batch.setUniformBuffer(ambientBufferUnit, nullptr);
     }
 
-    if (keyLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
+    if ((skyboxCubemapUnit >= 0)) {
         batch.setResourceTexture(skyboxCubemapUnit, nullptr);
     }
 }
@@ -334,14 +324,19 @@ static void loadLightVolumeProgram(const char* vertSource, const char* fragSourc
 }
 
 void DeferredLightingEffect::setGlobalLight(const model::LightPointer& light) {
-    auto globalLight = _allocatedLights.front();
+ /*   auto globalLight = _allocatedLights.front();
     globalLight->setDirection(light->getDirection());
     globalLight->setColor(light->getColor());
     globalLight->setIntensity(light->getIntensity());
     globalLight->setAmbientIntensity(light->getAmbientIntensity());
     globalLight->setAmbientSphere(light->getAmbientSphere());
-    globalLight->setAmbientMap(light->getAmbientMap());
+    globalLight->setAmbientMap(light->getAmbientMap());*/
 }
+
+const model::LightPointer& DeferredLightingEffect::getGlobalLight() const {
+    return _allocatedLights.front();
+}
+
 
 #include <shared/Shapes.h>
 
@@ -771,16 +766,6 @@ void RenderDeferredCleanup::run(const render::RenderContextPointer& renderContex
         batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_GRID_SLOT, nullptr);
         batch.setUniformBuffer(LIGHT_CLUSTER_GRID_CLUSTER_CONTENT_SLOT, nullptr);
 
-    }
-
-    auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
-
-    // End of the Lighting pass
-    if (!deferredLightingEffect->_pointLights.empty()) {
-        deferredLightingEffect->_pointLights.clear();
-    }
-    if (!deferredLightingEffect->_spotLights.empty()) {
-        deferredLightingEffect->_spotLights.clear();
     }
 }
 

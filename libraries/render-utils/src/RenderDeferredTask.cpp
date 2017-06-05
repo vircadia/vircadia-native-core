@@ -75,7 +75,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
     const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
 
-
     // GPU jobs: Start preparing the primary, deferred and lighting buffer
     const auto primaryFramebuffer = task.addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
 
@@ -124,6 +123,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     task.addJob<DrawLight>("DrawLight", lights);
 
+    // Filter zones from the general metas bucket
+    const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
+
     // Light Clustering
     // Create the cluster grid of lights, cpu job for now
     const auto lightClusteringPassInputs = LightClusteringPass::Inputs(deferredFrameTransform, lightingModel, linearDepthTarget).hasVarying();
@@ -136,11 +138,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     
     task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
-    // Use Stencil and draw background in Lighting buffer to complete filling in the opaque
-    const auto backgroundInputs = DrawBackgroundDeferred::Inputs(background, lightingModel).hasVarying();
-    task.addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", backgroundInputs);
-   
-    
+    // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
+    task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", lightingModel);
+
     // Render transparent objects forward in LightingBuffer
     const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).hasVarying();
     task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
@@ -162,7 +162,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         task.addJob<DrawBounds>("DrawOpaqueBounds", opaques);
         task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
     
-        task.addJob<ZoneRendererTask>("ZoneRenderer", opaques);
+        task.addJob<DrawBounds>("DrawLightBounds", lights);
+        task.addJob<DrawBounds>("DrawZones", zones);
     }
 
     // Overlays
@@ -202,6 +203,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
             auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath, image::TextureUsage::STRICT_TEXTURE);
             task.addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
         }
+
+        task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
     }
 
 
