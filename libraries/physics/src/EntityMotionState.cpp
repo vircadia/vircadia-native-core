@@ -65,8 +65,7 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     _lastStep(0),
     _loopsWithoutOwner(0),
     _accelerationNearlyGravityCount(0),
-    _numInactiveUpdates(1),
-    _outgoingPriority(0)
+    _numInactiveUpdates(1)
 {
     _type = MOTIONSTATE_TYPE_ENTITY;
     assert(_entity);
@@ -75,6 +74,8 @@ EntityMotionState::EntityMotionState(btCollisionShape* shape, EntityItemPointer 
     // we need the side-effects of EntityMotionState::setShape() so we call it explicitly here
     // rather than pass the legit shape pointer to the ObjectMotionState ctor above.
     setShape(shape);
+
+    _outgoingPriority = _entity->getPendingOwnershipPriority();
 }
 
 EntityMotionState::~EntityMotionState() {
@@ -84,7 +85,7 @@ EntityMotionState::~EntityMotionState() {
 
 void EntityMotionState::updateServerPhysicsVariables() {
     assert(entityTreeIsLocked());
-    if (_entity->getSimulatorID() == Physics::getSessionUUID()) {
+    if (isLocallyOwned()) {
         // don't slam these values if we are the simulation owner
         return;
     }
@@ -114,6 +115,7 @@ void EntityMotionState::handleDeactivation() {
 
 // virtual
 void EntityMotionState::handleEasyChanges(uint32_t& flags) {
+    assert(_entity);
     assert(entityTreeIsLocked());
     updateServerPhysicsVariables();
     ObjectMotionState::handleEasyChanges(flags);
@@ -135,23 +137,23 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
                 _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
             }
             _loopsWithoutOwner = 0;
-        } else if (_entity->getSimulatorID() == Physics::getSessionUUID()) {
+            _numInactiveUpdates = 0;
+        } else if (isLocallyOwned()) {
             // we just inherited ownership, make sure our desired priority matches what we have
             upgradeOutgoingPriority(_entity->getSimulationPriority());
         } else {
             _outgoingPriority = 0;
             _nextOwnershipBid = usecTimestampNow() + USECS_BETWEEN_OWNERSHIP_BIDS;
+            _numInactiveUpdates = 0;
         }
     }
     if (flags & Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY) {
-        // The DIRTY_SIMULATOR_OWNERSHIP_PRIORITY bits really mean "we should bid for ownership because
-        // a local script has been changing physics properties, or we should adjust our own ownership priority".
-        // The desired priority is determined by which bits were set.
-        if (flags & Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_GRAB) {
-            _outgoingPriority = SCRIPT_GRAB_SIMULATION_PRIORITY;
-        } else {
-            _outgoingPriority = SCRIPT_POKE_SIMULATION_PRIORITY;
-        }
+        // The DIRTY_SIMULATOR_OWNERSHIP_PRIORITY bit means one of the following:
+        // (1) we own it but may need to change the priority OR...
+        // (2) we don't own it but should bid (because a local script has been changing physics properties)
+        uint8_t newPriority = isLocallyOwned() ? _entity->getSimulationOwner().getPriority() : _entity->getSimulationOwner().getPendingPriority();
+        _outgoingPriority = glm::max(_outgoingPriority, newPriority);
+
         // reset bid expiry so that we bid ASAP
         _nextOwnershipBid = 0;
     }
@@ -170,6 +172,7 @@ void EntityMotionState::handleEasyChanges(uint32_t& flags) {
 
 // virtual
 bool EntityMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
+    assert(_entity);
     updateServerPhysicsVariables();
     return ObjectMotionState::handleHardAndEasyChanges(flags, engine);
 }
@@ -182,6 +185,13 @@ PhysicsMotionType EntityMotionState::computePhysicsMotionType() const {
 
     if (_entity->getShapeType() == SHAPE_TYPE_STATIC_MESH
         || (_body && _body->getCollisionShape()->getShapeType() == TRIANGLE_MESH_SHAPE_PROXYTYPE)) {
+        return MOTION_TYPE_STATIC;
+    }
+
+    if (_entity->getLocked()) {
+        if (_entity->isMoving()) {
+            return MOTION_TYPE_KINEMATIC;
+        }
         return MOTION_TYPE_STATIC;
     }
 
@@ -308,7 +318,7 @@ bool EntityMotionState::isCandidateForOwnership() const {
     assert(_entity);
     assert(entityTreeIsLocked());
     return _outgoingPriority != 0
-        || Physics::getSessionUUID() == _entity->getSimulatorID()
+        || isLocallyOwned()
         || _entity->dynamicDataNeedsTransmit();
 }
 
@@ -482,7 +492,7 @@ bool EntityMotionState::shouldSendUpdate(uint32_t simulationStep) {
         return true;
     }
 
-    if (_entity->getSimulatorID() != Physics::getSessionUUID()) {
+    if (!isLocallyOwned()) {
         // we don't own the simulation
 
         // NOTE: we do not volunteer to own kinematic or static objects
@@ -590,7 +600,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         properties.clearSimulationOwner();
         _outgoingPriority = 0;
         _entity->setPendingOwnershipPriority(_outgoingPriority, now);
-    } else if (Physics::getSessionUUID() != _entity->getSimulatorID()) {
+    } else if (!isLocallyOwned()) {
         // we don't own the simulation for this entity yet, but we're sending a bid for it
         quint8 bidPriority = glm::max<uint8_t>(_outgoingPriority, VOLUNTEER_SIMULATION_PRIORITY);
         properties.setSimulationOwner(Physics::getSessionUUID(), bidPriority);
@@ -777,6 +787,10 @@ QString EntityMotionState::getName() const {
 void EntityMotionState::computeCollisionGroupAndMask(int16_t& group, int16_t& mask) const {
     assert(_entity);
     _entity->computeCollisionGroupAndFinalMask(group, mask);
+}
+
+bool EntityMotionState::isLocallyOwned() const {
+    return _entity->getSimulatorID() == Physics::getSessionUUID();
 }
 
 bool EntityMotionState::shouldBeLocallyOwned() const {

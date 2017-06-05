@@ -19,7 +19,7 @@ private:
     using Parent = SkeletonModel;
 
 public:
-    MySkeletonModel(Avatar* owningAvatar, QObject* parent = nullptr, RigPointer rig = nullptr);
+    MySkeletonModel(Avatar* owningAvatar, QObject* parent = nullptr);
     void updateRig(float deltaTime, glm::mat4 parentTransform) override;
 };
 

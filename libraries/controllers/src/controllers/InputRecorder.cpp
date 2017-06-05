@@ -9,7 +9,6 @@
 #include "InputRecorder.h"
 
 #include <QJsonArray>
-#include <QJsonObject>
 #include <QJsonDocument>
 #include <QFile>
 #include <QDir>
@@ -19,13 +18,17 @@
 #include <QByteArray>
 #include <QStandardPaths>
 #include <PathUtils.h>
+#include <QUrl>
+#include <Gzip.h>
 
 #include <BuildInfo.h>
 #include <GLMHelpers.h>
+#include <DependencyManager.h>
+#include "UserInputMapper.h"
 
 QString SAVE_DIRECTORY = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/" + BuildInfo::MODIFIED_ORGANIZATION + "/" + BuildInfo::INTERFACE_NAME + "/hifi-input-recordings/";
 QString FILE_PREFIX_NAME = "input-recording-";
-QString COMPRESS_EXTENSION = "json.gz";
+QString COMPRESS_EXTENSION = ".json.gz";
 namespace controller {
 
     QJsonObject poseToJsonObject(const Pose pose) {
@@ -91,23 +94,27 @@ namespace controller {
     }
 
 
-    void exportToFile(QJsonObject& object) {
+    void exportToFile(const QJsonObject& object, const QString& fileName) {
         if (!QDir(SAVE_DIRECTORY).exists()) {
             QDir().mkdir(SAVE_DIRECTORY);
         }
-
-        QString timeStamp = QDateTime::currentDateTime().toString(Qt::ISODate);
-        timeStamp.replace(":", "-");
-        QString fileName = SAVE_DIRECTORY + FILE_PREFIX_NAME + timeStamp + COMPRESS_EXTENSION;
-        qDebug() << fileName;
+       
         QFile saveFile (fileName);
         if (!saveFile.open(QIODevice::WriteOnly)) {
             qWarning() << "could not open file: " << fileName;
             return;
         }
         QJsonDocument saveData(object);
-        QByteArray compressedData = qCompress(saveData.toJson(QJsonDocument::Compact));
-        saveFile.write(compressedData);
+        QByteArray jsonData = saveData.toJson(QJsonDocument::Indented);
+        QByteArray jsonDataForFile;
+
+        if (!gzip(jsonData, jsonDataForFile, -1)) {
+            qCritical("unable to gzip while saving to json.");
+            return;
+        }
+        
+        saveFile.write(jsonDataForFile);
+        saveFile.close();
     }
 
     QJsonObject openFile(const QString& file, bool& status) {
@@ -118,10 +125,19 @@ namespace controller {
             status = false;
             return object;
         }
-        QByteArray compressedData = qUncompress(openFile.readAll());
-        QJsonDocument jsonDoc = QJsonDocument::fromJson(compressedData);
+        QByteArray compressedData = openFile.readAll();
+        QByteArray jsonData;
+
+        if (!gunzip(compressedData, jsonData)) {
+            qCritical() << "json file not in gzip format: " << file;
+            status = false;
+            return object;
+        }
+        
+        QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonData);
         object = jsonDoc.object();
         status = true;
+        openFile.close();
         return object;
     }
 
@@ -146,31 +162,47 @@ namespace controller {
         _actionStateList.clear();
     }
 
-    void InputRecorder::saveRecording() {
+    QJsonObject InputRecorder::recordDataToJson() {
         QJsonObject data;
         data["frameCount"] = _framesRecorded;
-
+        data["version"] = "0.0";
+        
         QJsonArray actionArrayList;
         QJsonArray poseArrayList;
         for(const ActionStates actionState: _actionStateList) {
             QJsonArray actionArray;
-            for (const float value: actionState) {
-                actionArray.append(value);
+            for (const auto action: actionState) {
+                QJsonObject actionJson;
+                actionJson["name"] = action.first;
+                actionJson["value"] = action.second;
+                actionArray.append(actionJson);
             }
             actionArrayList.append(actionArray);
         }
 
         for (const PoseStates poseState: _poseStateList) {
             QJsonArray poseArray;
-            for (const Pose pose: poseState) {
-                poseArray.append(poseToJsonObject(pose));
+            for (const auto pose: poseState) {
+                QJsonObject poseJson;
+                poseJson["name"] = pose.first;
+                poseJson["pose"] = poseToJsonObject(pose.second);
+                poseArray.append(poseJson);
             }
             poseArrayList.append(poseArray);
         }
 
         data["actionList"] = actionArrayList;
         data["poseList"] = poseArrayList;
-        exportToFile(data);
+
+        return data;
+    }
+
+    void InputRecorder::saveRecording() {
+        QJsonObject jsonData = recordDataToJson();
+        QString timeStamp = QDateTime::currentDateTime().toString(Qt::ISODate);
+        timeStamp.replace(":", "-");
+        QString fileName = SAVE_DIRECTORY + FILE_PREFIX_NAME + timeStamp + COMPRESS_EXTENSION;
+        exportToFile(jsonData, fileName);
     }
 
     void InputRecorder::loadRecording(const QString& path) {
@@ -181,17 +213,20 @@ namespace controller {
         resetFrame();
         _poseStateList.clear();
         _actionStateList.clear();
-        QString filePath = path;
-        filePath.remove(0,8);
+        QUrl urlPath(path);
+        QString filePath = urlPath.toLocalFile();
         QFileInfo info(filePath);
         QString extension = info.suffix();
+        
         if (extension != "gz") {
             qWarning() << "can not load file with exentsion of " << extension;
             return;
         }
+        
         bool success = false;
-        QJsonObject data = openFile(info.absoluteFilePath(), success);
-        if (success) {
+        QJsonObject data = openFile(filePath, success);
+        auto keyValue = data.find("version");
+        if (success && keyValue != data.end()) {
             _framesRecorded = data["frameCount"].toInt();
             QJsonArray actionArrayList = data["actionList"].toArray();
             QJsonArray poseArrayList = data["poseList"].toArray();
@@ -199,30 +234,31 @@ namespace controller {
             for (int actionIndex = 0; actionIndex < actionArrayList.size(); actionIndex++) {
                 QJsonArray actionState = actionArrayList[actionIndex].toArray();
                 for (int index = 0; index < actionState.size(); index++) {
-                    _currentFrameActions[index] = actionState[index].toDouble();
+                    QJsonObject actionObject = actionState[index].toObject();
+                    _currentFrameActions[actionObject["name"].toString()] = actionObject["value"].toDouble();
                 }
                 _actionStateList.push_back(_currentFrameActions);
-                _currentFrameActions = ActionStates(toInt(Action::NUM_ACTIONS));
+                _currentFrameActions.clear();
             }
 
             for (int poseIndex = 0; poseIndex < poseArrayList.size(); poseIndex++) {
                 QJsonArray poseState = poseArrayList[poseIndex].toArray();
                 for (int index = 0; index < poseState.size(); index++) {
-                    _currentFramePoses[index] = jsonObjectToPose(poseState[index].toObject());
+                    QJsonObject poseObject = poseState[index].toObject();
+                    _currentFramePoses[poseObject["name"].toString()] = jsonObjectToPose(poseObject["pose"].toObject());
                 }
                 _poseStateList.push_back(_currentFramePoses);
-                _currentFramePoses = PoseStates(toInt(Action::NUM_ACTIONS));
+                _currentFramePoses.clear();
             }
-        }
-
+        } 
         _loading = false;
     }
-
+    
     void InputRecorder::stopRecording() {
         _recording = false;
         _framesRecorded = (int)_actionStateList.size();
     }
-
+    
     void InputRecorder::startPlayback() {
         _playback = true;
         _recording = false;
@@ -234,41 +270,36 @@ namespace controller {
         _playCount = 0;
     }
 
-    void InputRecorder::setActionState(controller::Action action, float value) {
+    void InputRecorder::setActionState(const QString& action, float value) {
         if (_recording) {
-            _currentFrameActions[toInt(action)] += value;
+            _currentFrameActions[action] += value;
         }
     }
 
-    void InputRecorder::setActionState(controller::Action action, const controller::Pose pose) {
+    void InputRecorder::setActionState(const QString& action, const controller::Pose& pose) {
         if (_recording) {
-            _currentFramePoses[toInt(action)] = pose;
+            _currentFramePoses[action] = pose;
         }
     }
 
     void InputRecorder::resetFrame() {
         if (_recording) {
-            for(auto& channel : _currentFramePoses) {
-                channel = Pose();
-            }
-
-            for(auto& channel : _currentFrameActions) {
-                channel = 0.0f;
-            }
+            _currentFramePoses.clear();
+            _currentFrameActions.clear();
         }
     }
 
-    float InputRecorder::getActionState(controller::Action action) {
+    float InputRecorder::getActionState(const QString& action) {
         if (_actionStateList.size() > 0 ) {
-            return _actionStateList[_playCount][toInt(action)];
+            return _actionStateList[_playCount][action];
         }
 
         return 0.0f;
     }
 
-    controller::Pose InputRecorder::getPoseState(controller::Action action) {
+    controller::Pose InputRecorder::getPoseState(const QString& action) {
         if (_poseStateList.size() > 0) {
-            return _poseStateList[_playCount][toInt(action)];
+            return _poseStateList[_playCount][action];
         }
 
         return Pose();

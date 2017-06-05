@@ -60,11 +60,10 @@ namespace storage {
         FileStorage& operator=(const FileStorage& other) = delete;
 
         const uint8_t* data() const override { return _mapped; }
-        uint8_t* mutableData() override { ensureWriteAccess(); return _mapped; }
+        uint8_t* mutableData() override { return _hasWriteAccess ? _mapped : nullptr; }
         size_t size() const override { return _file.size(); }
         operator bool() const override { return _valid; }
     private:
-        void ensureWriteAccess();
 
         bool _valid { false };
         bool _hasWriteAccess { false };

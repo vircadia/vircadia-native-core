@@ -76,15 +76,7 @@ using GL41Texture = GL41Backend::GL41Texture;
 
 GL41Texture::GL41Texture(const std::weak_ptr<GLBackend>& backend, const Texture& texture)
     : GLTexture(backend, texture, allocate(texture)) {
-    incrementTextureGPUCount();
 }
-
-GLuint GL41Texture::allocate(const Texture& texture) {
-    GLuint result;
-    glGenTextures(1, &result);
-    return result;
-}
-
 
 void GL41Texture::withPreservedTexture(std::function<void()> f) const {
     glActiveTexture(GL_TEXTURE0 + GL41Backend::RESOURCE_TRANSFER_TEX_UNIT);
@@ -97,6 +89,14 @@ void GL41Texture::withPreservedTexture(std::function<void()> f) const {
 }
 
 
+GLuint GL41Texture::allocate(const Texture& texture) {
+    GLuint result;
+    glGenTextures(1, &result);
+    return result;
+}
+
+
+
 void GL41Texture::generateMips() const {
     withPreservedTexture([&] {
         glGenerateMipmap(_target);
@@ -104,7 +104,8 @@ void GL41Texture::generateMips() const {
     (void)CHECK_GL_ERROR();
 }
 
-void GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
+Size GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
+    Size amountCopied = sourceSize;
     if (GL_TEXTURE_2D == _target) {
         switch (internalFormat) {
             case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT:
@@ -112,6 +113,7 @@ void GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
             case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
             case GL_COMPRESSED_RED_RGTC1:
             case GL_COMPRESSED_RG_RGTC2:
+            case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
                 glCompressedTexSubImage2D(_target, mip, 0, yOffset, size.x, size.y, internalFormat,
                                           static_cast<GLsizei>(sourceSize), sourcePointer);
                 break;
@@ -128,6 +130,7 @@ void GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
             case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT:
             case GL_COMPRESSED_RED_RGTC1:
             case GL_COMPRESSED_RG_RGTC2:
+            case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM:
                 glCompressedTexSubImage2D(target, mip, 0, yOffset, size.x, size.y, internalFormat,
                                           static_cast<GLsizei>(sourceSize), sourcePointer);
                 break;
@@ -137,8 +140,10 @@ void GL41Texture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const 
         }
     } else {
         assert(false);
+        amountCopied = 0;
     }
     (void)CHECK_GL_ERROR();
+    return amountCopied;
 }
 
 void GL41Texture::syncSampler() const {
@@ -210,17 +215,22 @@ void GL41FixedAllocationTexture::syncSampler() const {
 using GL41AttachmentTexture = GL41Backend::GL41AttachmentTexture;
 
 GL41AttachmentTexture::GL41AttachmentTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL41FixedAllocationTexture(backend, texture) {
-    Backend::updateTextureGPUFramebufferMemoryUsage(0, size());
+    Backend::textureFramebufferCount.increment();
+    Backend::textureFramebufferGPUMemSize.update(0, size());
 }
 
 GL41AttachmentTexture::~GL41AttachmentTexture() {
-    Backend::updateTextureGPUFramebufferMemoryUsage(size(), 0);
+    Backend::textureFramebufferCount.decrement();
+    Backend::textureFramebufferGPUMemSize.update(size(), 0);
 }
 
 // Strict resource textures
 using GL41StrictResourceTexture = GL41Backend::GL41StrictResourceTexture;
 
 GL41StrictResourceTexture::GL41StrictResourceTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) : GL41FixedAllocationTexture(backend, texture) {
+    Backend::textureResidentCount.increment();
+    Backend::textureResidentGPUMemSize.update(0, size());
+
     withPreservedTexture([&] {
    
         auto mipLevels = _gpuObject.getNumMips();
@@ -238,11 +248,19 @@ GL41StrictResourceTexture::GL41StrictResourceTexture(const std::weak_ptr<GLBacke
     }
 }
 
+GL41StrictResourceTexture::~GL41StrictResourceTexture() {
+    Backend::textureResidentCount.decrement();
+    Backend::textureResidentGPUMemSize.update(size(), 0);
+}
+
+
 using GL41VariableAllocationTexture = GL41Backend::GL41VariableAllocationTexture;
 
 GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture) :
      GL41Texture(backend, texture)
 {
+    Backend::textureResourceCount.increment();
+
     auto mipLevels = texture.getNumMips();
     _allocatedMip = mipLevels;
     _maxAllocatedMip = _populatedMip = mipLevels;
@@ -261,18 +279,15 @@ GL41VariableAllocationTexture::GL41VariableAllocationTexture(const std::weak_ptr
 
     allocateStorage(allocatedMip);
     _memoryPressureStateStale = true;
-    size_t maxFace = GLTexture::getFaceCount(_target);
-    for (uint16_t sourceMip = _populatedMip; sourceMip < mipLevels; ++sourceMip) {
-        uint16_t targetMip = sourceMip - _allocatedMip;
-        for (uint8_t face = 0; face < maxFace; ++face) {
-            copyMipFaceFromTexture(sourceMip, targetMip, face);
-        }
-    }
+    copyMipsFromTexture();
+
     syncSampler();
 }
 
 GL41VariableAllocationTexture::~GL41VariableAllocationTexture() {
-    Backend::updateTextureGPUMemoryUsage(_size, 0);
+    Backend::textureResourceCount.decrement();
+    Backend::textureResourceGPUMemSize.update(_size, 0);
+    Backend::textureResourcePopulatedGPUMemSize.update(_populatedSize, 0);
 }
 
 void GL41VariableAllocationTexture::allocateStorage(uint16 allocatedMip) {
@@ -291,14 +306,32 @@ void GL41VariableAllocationTexture::allocateStorage(uint16 allocatedMip) {
     for (uint16_t mip = _allocatedMip; mip < mipLevels; ++mip) {
         _size += _gpuObject.evalMipSize(mip);
     }
-    Backend::updateTextureGPUMemoryUsage(0, _size);
+    Backend::textureResourceGPUMemSize.update(0, _size);
+
 }
 
+Size GL41VariableAllocationTexture::copyMipsFromTexture() {
+    auto mipLevels = _gpuObject.getNumMips();
+    size_t maxFace = GLTexture::getFaceCount(_target);
+    Size amount = 0;
+    for (uint16_t sourceMip = _populatedMip; sourceMip < mipLevels; ++sourceMip) {
+        uint16_t targetMip = sourceMip - _allocatedMip;
+        for (uint8_t face = 0; face < maxFace; ++face) {
+            amount += copyMipFaceFromTexture(sourceMip, targetMip, face);
+        }
+    }
 
-void GL41VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
+
+    return amount;
+}
+
+Size GL41VariableAllocationTexture::copyMipFaceLinesFromTexture(uint16_t mip, uint8_t face, const uvec3& size, uint32_t yOffset, GLenum internalFormat, GLenum format, GLenum type, Size sourceSize, const void* sourcePointer) const {
+    Size amountCopied = 0;
     withPreservedTexture([&] {
-        Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, internalFormat, format, type, sourceSize, sourcePointer);
+        amountCopied = Parent::copyMipFaceLinesFromTexture(mip, face, size, yOffset, internalFormat, format, type, sourceSize, sourcePointer);
     });
+    incrementPopulatedSize(amountCopied);
+    return amountCopied;
 }
 
 void GL41VariableAllocationTexture::syncSampler() const {
@@ -431,6 +464,17 @@ void copyCompressedTexGPUMem(const gpu::Texture& texture, GLenum texTarget, GLui
     glDeleteBuffers(1, &pbo);
 }
 
+void GL41VariableAllocationTexture::copyTextureMipsInGPUMem(GLuint srcId, GLuint destId, uint16_t srcMipOffset, uint16_t destMipOffset, uint16_t populatedMips) {
+    uint16_t numMips = _gpuObject.getNumMips();
+    withPreservedTexture([&] {
+        if (_texelFormat.isCompressed()) {
+            copyCompressedTexGPUMem(_gpuObject, _target, srcId, destId, numMips, srcMipOffset, destMipOffset, populatedMips);
+        } else {
+            copyUncompressedTexGPUMem(_gpuObject, _target, srcId, destId, numMips, srcMipOffset, destMipOffset, populatedMips);
+        }
+    });
+}
+
 void GL41VariableAllocationTexture::promote() {
     PROFILE_RANGE(render_gpu_gl, __FUNCTION__);
     Q_ASSERT(_allocatedMip > 0);
@@ -449,20 +493,18 @@ void GL41VariableAllocationTexture::promote() {
     allocateStorage(targetAllocatedMip);
 
     // copy pre-existing mips
-    uint16_t numMips = _gpuObject.getNumMips();
-    withPreservedTexture([&] {
-        if (_texelFormat.isCompressed()) {
-            copyCompressedTexGPUMem(_gpuObject, _target, oldId, _id, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
-        } else {
-            copyUncompressedTexGPUMem(_gpuObject, _target, oldId, _id, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
-        }
-        syncSampler();
-    });
+    copyTextureMipsInGPUMem(oldId, _id, oldAllocatedMip, _allocatedMip, _populatedMip);
 
     // destroy the old texture
     glDeleteTextures(1, &oldId);
+
+    // Update sampler
+    syncSampler();
+
     // update the memory usage
-    Backend::updateTextureGPUMemoryUsage(oldSize, 0);
+    Backend::textureResourceGPUMemSize.update(oldSize, 0);
+    // no change to Backend::textureResourcePopulatedGPUMemSize
+
     populateTransferQueue();
 }
 
@@ -471,6 +513,7 @@ void GL41VariableAllocationTexture::demote() {
     Q_ASSERT(_allocatedMip < _maxAllocatedMip);
     auto oldId = _id;
     auto oldSize = _size;
+    auto oldPopulatedMip = _populatedMip;
 
     // allocate new texture
     const_cast<GLuint&>(_id) = allocate(_gpuObject);
@@ -478,22 +521,27 @@ void GL41VariableAllocationTexture::demote() {
     allocateStorage(_allocatedMip + 1);
     _populatedMip = std::max(_populatedMip, _allocatedMip);
 
-    // copy pre-existing mips
-    uint16_t numMips = _gpuObject.getNumMips();
-    withPreservedTexture([&] {
-        if (_texelFormat.isCompressed()) {
-            copyCompressedTexGPUMem(_gpuObject, _target, oldId, _id, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
-        } else {
-            copyUncompressedTexGPUMem(_gpuObject, _target, oldId, _id, numMips, oldAllocatedMip, _allocatedMip, _populatedMip);
-        }
-        syncSampler();
-    });
 
+    // copy pre-existing mips
+    copyTextureMipsInGPUMem(oldId, _id, oldAllocatedMip, _allocatedMip, _populatedMip);
 
     // destroy the old texture
     glDeleteTextures(1, &oldId);
+
+    // Update sampler
+    syncSampler();
+
     // update the memory usage
-    Backend::updateTextureGPUMemoryUsage(oldSize, 0);
+    Backend::textureResourceGPUMemSize.update(oldSize, 0);
+    // Demoting unpopulate the memory delta
+    if (oldPopulatedMip != _populatedMip) {
+        auto numPopulatedDemoted = _populatedMip - oldPopulatedMip;
+        Size amountUnpopulated = 0;
+        for (int i = 0; i < numPopulatedDemoted; i++) {
+            amountUnpopulated += _gpuObject.evalMipSize(oldPopulatedMip + i);
+        }
+        decrementPopulatedSize(amountUnpopulated);
+    }
     populateTransferQueue();
 }
 

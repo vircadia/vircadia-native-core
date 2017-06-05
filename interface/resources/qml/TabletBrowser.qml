@@ -4,6 +4,7 @@ import QtWebChannel 1.0
 import QtWebEngine 1.2
 
 import "controls"
+import "controls-uit" as HifiControls
 import "styles" as HifiStyles
 import "styles-uit"
 import "windows"
@@ -117,6 +118,8 @@ Item {
         onNewViewRequested: {
             request.openIn(webView);
         }
+
+        HifiControls.WebSpinner { }
     }
 
     Keys.onPressed: {

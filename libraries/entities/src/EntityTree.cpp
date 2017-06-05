@@ -122,16 +122,15 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
         _simulation->addEntity(entity);
     }
 
-    if (!entity->isParentIDValid()) {
-        QWriteLocker locker(&_missingParentLock);
-        _missingParent.append(entity);
+    if (!entity->getParentID().isNull()) {
+        addToNeedsParentFixupList(entity);
     }
 
     _isDirty = true;
     emit addingEntity(entity->getEntityItemID());
 
     // find and hook up any entities with this entity as a (previously) missing parent
-    fixupMissingParents();
+    fixupNeedsParentFixups();
 }
 
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
@@ -291,13 +290,11 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
             bool success;
             AACube queryCube = childEntity->getQueryAACube(success);
             if (!success) {
-                QWriteLocker locker(&_missingParentLock);
-                _missingParent.append(childEntity);
+                addToNeedsParentFixupList(childEntity);
                 continue;
             }
-            if (!childEntity->isParentIDValid()) {
-                QWriteLocker locker(&_missingParentLock);
-                _missingParent.append(childEntity);
+            if (!childEntity->getParentID().isNull()) {
+                addToNeedsParentFixupList(childEntity);
             }
 
             UpdateEntityOperator theChildOperator(getThisPointer(), containingElement, childEntity, queryCube);
@@ -383,11 +380,8 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
         // Recurse the tree and store the entity in the correct tree element
         AddEntityOperator theOperator(getThisPointer(), result);
         recurseTreeWithOperator(&theOperator);
-        if (result->getAncestorMissing()) {
-            // we added the entity, but didn't know about all its ancestors, so it went into the wrong place.
-            // add it to a list of entities needing to be fixed once their parents are known.
-            QWriteLocker locker(&_missingParentLock);
-            _missingParent.append(result);
+        if (!result->getParentID().isNull()) {
+            addToNeedsParentFixupList(result);
         }
 
         postAddEntity(result);
@@ -957,6 +951,24 @@ void EntityTree::bumpTimestamp(EntityItemProperties& properties) { //fixme put c
     properties.setLastEdited(properties.getLastEdited() + LAST_EDITED_SERVERSIDE_BUMP);
 }
 
+bool EntityTree::isScriptInWhitelist(const QString& scriptProperty) {
+
+    // grab a URL representation of the entity script so we can check the host for this script
+    auto entityScriptURL = QUrl::fromUserInput(scriptProperty);
+
+    for (const auto& whiteListedPrefix : _entityScriptSourceWhitelist) {
+        auto whiteListURL = QUrl::fromUserInput(whiteListedPrefix);
+
+        // check if this script URL matches the whitelist domain and, optionally, is beneath the path
+        if (entityScriptURL.host().compare(whiteListURL.host(), Qt::CaseInsensitive) == 0 &&
+            entityScriptURL.path().startsWith(whiteListURL.path(), Qt::CaseInsensitive)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                      const SharedNodePointer& senderNode) {
 
@@ -986,7 +998,8 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
             quint64 startFilter = 0, endFilter = 0;
             quint64 startLogging = 0, endLogging = 0;
 
-            bool suppressDisallowedScript = false;
+            bool suppressDisallowedClientScript = false;
+            bool suppressDisallowedServerScript = false;
             bool isPhysics = message.getType() == PacketType::EntityPhysics;
 
             _totalEditMessages++;
@@ -1011,36 +1024,57 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                 }
             }
 
-            if (validEditPacket && !_entityScriptSourceWhitelist.isEmpty() && !properties.getScript().isEmpty()) {
-                bool passedWhiteList = false;
+            if (validEditPacket && !_entityScriptSourceWhitelist.isEmpty()) {
 
-                // grab a URL representation of the entity script so we can check the host for this script
-                auto entityScriptURL = QUrl::fromUserInput(properties.getScript());
+                bool wasDeletedBecauseOfClientScript = false;
 
-                for (const auto& whiteListedPrefix : _entityScriptSourceWhitelist) {
-                    auto whiteListURL = QUrl::fromUserInput(whiteListedPrefix);
+                // check the client entity script to make sure its URL is in the whitelist
+                if (!properties.getScript().isEmpty()) {
+                    bool clientScriptPassedWhitelist = isScriptInWhitelist(properties.getScript());
 
-                    // check if this script URL matches the whitelist domain and, optionally, is beneath the path
-                    if (entityScriptURL.host().compare(whiteListURL.host(), Qt::CaseInsensitive) == 0 &&
-                        entityScriptURL.path().startsWith(whiteListURL.path(), Qt::CaseInsensitive)) {
-                        passedWhiteList = true;
-                        break;
+                    if (!clientScriptPassedWhitelist) {
+                        if (wantEditLogging()) {
+                            qCDebug(entities) << "User [" << senderNode->getUUID()
+                                << "] attempting to set entity script not on whitelist, edit rejected";
+                        }
+
+                        // If this was an add, we also want to tell the client that sent this edit that the entity was not added.
+                        if (isAdd) {
+                            QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                            _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+                            validEditPacket = false;
+                            wasDeletedBecauseOfClientScript = true;
+                        } else {
+                            suppressDisallowedClientScript = true;
+                        }
                     }
                 }
-                if (!passedWhiteList) {
-                    if (wantEditLogging()) {
-                        qCDebug(entities) << "User [" << senderNode->getUUID() << "] attempting to set entity script not on whitelist, edit rejected";
-                    }
 
-                    // If this was an add, we also want to tell the client that sent this edit that the entity was not added.
-                    if (isAdd) {
-                        QWriteLocker locker(&_recentlyDeletedEntitiesLock);
-                        _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
-                        validEditPacket = passedWhiteList;
-                    } else {
-                        suppressDisallowedScript = true;
+                // check all server entity scripts to make sure their URLs are in the whitelist
+                if (!properties.getServerScripts().isEmpty()) {
+                    bool serverScriptPassedWhitelist = isScriptInWhitelist(properties.getServerScripts());
+
+                    if (!serverScriptPassedWhitelist) {
+                        if (wantEditLogging()) {
+                            qCDebug(entities) << "User [" << senderNode->getUUID()
+                                << "] attempting to set server entity script not on whitelist, edit rejected";
+                        }
+
+                        // If this was an add, we also want to tell the client that sent this edit that the entity was not added.
+                        if (isAdd) {
+                            // Make sure we didn't already need to send back a delete because the client script failed
+                            // the whitelist check
+                            if (!wasDeletedBecauseOfClientScript) {
+                                QWriteLocker locker(&_recentlyDeletedEntitiesLock);
+                                _recentlyDeletedEntityItemIDs.insert(usecTimestampNow(), entityItemID);
+                                validEditPacket = false;
+                            }
+                        } else {
+                            suppressDisallowedServerScript = true;
+                        }
                     }
                 }
+
             }
 
             if ((isAdd || properties.lifetimeChanged()) &&
@@ -1075,9 +1109,14 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
 
                 if (existingEntity && !isAdd) {
 
-                    if (suppressDisallowedScript) {
+                    if (suppressDisallowedClientScript) {
                         bumpTimestamp(properties);
                         properties.setScript(existingEntity->getScript());
+                    }
+
+                    if (suppressDisallowedServerScript) {
+                        bumpTimestamp(properties);
+                        properties.setServerScripts(existingEntity->getServerScripts());
                     }
 
                     // if the EntityItem exists, then update it
@@ -1209,60 +1248,68 @@ void EntityTree::entityChanged(EntityItemPointer entity) {
     }
 }
 
-void EntityTree::fixupMissingParents() {
+
+void EntityTree::fixupNeedsParentFixups() {
     MovingEntitiesOperator moveOperator(getThisPointer());
 
-    QList<EntityItemPointer> missingParents;
-    {
-        QWriteLocker locker(&_missingParentLock);
-        QMutableVectorIterator<EntityItemWeakPointer> iter(_missingParent);
-        while (iter.hasNext()) {
-            EntityItemWeakPointer entityWP = iter.next();
-            EntityItemPointer entity = entityWP.lock();
-            if (entity) {
-                if (entity->isParentIDValid()) {
-                    iter.remove();
-                } else {
-                    missingParents.append(entity);
-                }
-            } else {
-                // entity was deleted before we found its parent.
-                iter.remove();
+    QWriteLocker locker(&_needsParentFixupLock);
+
+    QMutableVectorIterator<EntityItemWeakPointer> iter(_needsParentFixup);
+    while (iter.hasNext()) {
+        EntityItemWeakPointer entityWP = iter.next();
+        EntityItemPointer entity = entityWP.lock();
+        if (!entity) {
+            // entity was deleted before we found its parent
+            iter.remove();
+            continue;
+        }
+
+        entity->requiresRecalcBoxes();
+        bool queryAACubeSuccess { false };
+        bool maxAACubeSuccess { false };
+        AACube newCube = entity->getQueryAACube(queryAACubeSuccess);
+        if (queryAACubeSuccess) {
+            // make sure queryAACube encompasses maxAACube
+            AACube maxAACube = entity->getMaximumAACube(maxAACubeSuccess);
+            if (maxAACubeSuccess && !newCube.contains(maxAACube)) {
+                newCube = maxAACube;
             }
         }
-    }
 
-    for (EntityItemPointer entity : missingParents) {
-        if (entity) {
-            bool queryAACubeSuccess;
-            AACube newCube = entity->getQueryAACube(queryAACubeSuccess);
-            if (queryAACubeSuccess) {
-                // make sure queryAACube encompasses maxAACube
-                bool maxAACubeSuccess;
-                AACube maxAACube = entity->getMaximumAACube(maxAACubeSuccess);
-                if (maxAACubeSuccess && !newCube.contains(maxAACube)) {
-                    newCube = maxAACube;
+        bool doMove = false;
+        if (entity->isParentIDValid() && maxAACubeSuccess) { // maxAACubeSuccess of true means all ancestors are known
+            iter.remove(); // this entity is all hooked up; we can remove it from the list
+            // this entity's parent was previously not known, and now is.  Update its location in the EntityTree...
+            doMove = true;
+            // the bounds on the render-item may need to be updated, the rigid body in the physics engine may
+            // need to be moved.
+            entity->markDirtyFlags(Simulation::DIRTY_MOTION_TYPE |
+                                   Simulation::DIRTY_COLLISION_GROUP |
+                                   Simulation::DIRTY_TRANSFORM);
+            entityChanged(entity);
+            entity->forEachDescendant([&](SpatiallyNestablePointer object) {
+                if (object->getNestableType() == NestableType::Entity) {
+                    EntityItemPointer descendantEntity = std::static_pointer_cast<EntityItem>(object);
+                    descendantEntity->markDirtyFlags(Simulation::DIRTY_MOTION_TYPE |
+                                                     Simulation::DIRTY_COLLISION_GROUP |
+                                                     Simulation::DIRTY_TRANSFORM);
+                    entityChanged(descendantEntity);
                 }
+            });
+            entity->locationChanged(true);
+        } else if (getIsServer() && _avatarIDs.contains(entity->getParentID())) {
+            // this is a child of an avatar, which the entity server will never have
+            // a SpatiallyNestable object for.  Add it to a list for cleanup when the avatar leaves.
+            if (!_childrenOfAvatars.contains(entity->getParentID())) {
+                _childrenOfAvatars[entity->getParentID()] = QSet<EntityItemID>();
             }
+            _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
+            doMove = true;
+            iter.remove(); // and pull it out of the list
+        }
 
-            bool doMove = false;
-            if (entity->isParentIDValid()) {
-                // this entity's parent was previously not known, and now is.  Update its location in the EntityTree...
-                doMove = true;
-            } else if (getIsServer() && _avatarIDs.contains(entity->getParentID())) {
-                // this is a child of an avatar, which the entity server will never have
-                // a SpatiallyNestable object for.  Add it to a list for cleanup when the avatar leaves.
-                if (!_childrenOfAvatars.contains(entity->getParentID())) {
-                    _childrenOfAvatars[entity->getParentID()] = QSet<EntityItemID>();
-                }
-                _childrenOfAvatars[entity->getParentID()] += entity->getEntityItemID();
-                doMove = true;
-            }
-
-            if (queryAACubeSuccess && doMove) {
-                moveOperator.addEntityToMoveList(entity, newCube);
-                entity->markAncestorMissing(false);
-            }
+        if (queryAACubeSuccess && doMove) {
+            moveOperator.addEntityToMoveList(entity, newCube);
         }
     }
 
@@ -1279,8 +1326,13 @@ void EntityTree::deleteDescendantsOfAvatar(QUuid avatarID) {
     }
 }
 
+void EntityTree::addToNeedsParentFixupList(EntityItemPointer entity) {
+    QWriteLocker locker(&_needsParentFixupLock);
+    _needsParentFixup.append(entity);
+}
+
 void EntityTree::update() {
-    fixupMissingParents();
+    fixupNeedsParentFixups();
     if (_simulation) {
         withWriteLock([&] {
             _simulation->updateEntities();
@@ -1581,31 +1633,61 @@ QByteArray EntityTree::remapActionDataIDs(QByteArray actionData, QHash<EntityIte
 QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSender, EntityTreePointer localTree,
                                                float x, float y, float z) {
     SendEntitiesOperationArgs args;
-    args.packetSender = packetSender;
     args.ourTree = this;
     args.otherTree = localTree;
     args.root = glm::vec3(x, y, z);
-    // If this is called repeatedly (e.g., multiple pastes with the same data), the new elements will clash unless we use new identifiers.
-    // We need to keep a map so that we can map parent identifiers correctly.
+    // If this is called repeatedly (e.g., multiple pastes with the same data), the new elements will clash unless we
+    // use new identifiers.  We need to keep a map so that we can map parent identifiers correctly.
     QHash<EntityItemID, EntityItemID> map;
     args.map = &map;
     withReadLock([&] {
         recurseTreeWithOperation(sendEntitiesOperation, &args);
     });
-    packetSender->releaseQueuedMessages();
 
-    // the values from map are used as the list of successfully "sent" entities.  If some didn't actually make it,
+    // The values from map are used as the list of successfully "sent" entities.  If some didn't actually make it,
     // pull them out.  Bogus entries could happen if part of the imported data makes some reference to an entity
-    // that isn't in the data being imported.
+    // that isn't in the data being imported.  For those that made it, fix up their queryAACubes and send an
+    // add-entity packet to the server.
+
+    // fix the queryAACubes of any children that were read in before their parents, get them into the correct element
+    MovingEntitiesOperator moveOperator(localTree);
     QHash<EntityItemID, EntityItemID>::iterator i = map.begin();
     while (i != map.end()) {
         EntityItemID newID = i.value();
-        if (localTree->findEntityByEntityItemID(newID)) {
+        EntityItemPointer entity = localTree->findEntityByEntityItemID(newID);
+        if (entity) {
+            if (!entity->getParentID().isNull()) {
+                addToNeedsParentFixupList(entity);
+            }
+            entity->forceQueryAACubeUpdate();
+            moveOperator.addEntityToMoveList(entity, entity->getQueryAACube());
             i++;
         } else {
             i = map.erase(i);
         }
     }
+    if (moveOperator.hasMovingEntities()) {
+        PerformanceTimer perfTimer("recurseTreeWithOperator");
+        localTree->recurseTreeWithOperator(&moveOperator);
+    }
+
+    // send add-entity packets to the server
+    i = map.begin();
+    while (i != map.end()) {
+        EntityItemID newID = i.value();
+        EntityItemPointer entity = localTree->findEntityByEntityItemID(newID);
+        if (entity) {
+            // queue the packet to send to the server
+            entity->computePuffedQueryAACube();
+            EntityItemProperties properties = entity->getProperties();
+            properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
+            packetSender->queueEditEntityMessage(PacketType::EntityAdd, localTree, newID, properties);
+            i++;
+        } else {
+            i = map.erase(i);
+        }
+    }
+    packetSender->releaseQueuedMessages();
 
     return map.values().toVector();
 }
@@ -1659,13 +1741,8 @@ bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extra
         // set creation time to "now" for imported entities
         properties.setCreated(usecTimestampNow());
 
-        properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
-
         EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
         EntityTreePointer tree = entityTreeElement->getTree();
-
-        // queue the packet to send to the server
-        args->packetSender->queueEditEntityMessage(PacketType::EntityAdd, tree, newID, properties);
 
         // also update the local tree instantly (note: this is not our tree, but an alternate tree)
         if (args->otherTree) {

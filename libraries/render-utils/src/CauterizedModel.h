@@ -16,7 +16,7 @@ class CauterizedModel : public Model {
     Q_OBJECT
 
 public:
-    CauterizedModel(RigPointer rig, QObject* parent);
+    CauterizedModel(QObject* parent);
     virtual ~CauterizedModel();
 
     void flagAsCauterized() { _isCauterized = true; }

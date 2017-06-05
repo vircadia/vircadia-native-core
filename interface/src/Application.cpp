@@ -11,6 +11,9 @@
 
 #include "Application.h"
 
+#include <chrono>
+#include <thread>
+
 #include <gl/Config.h>
 #include <glm/glm.hpp>
 #include <glm/gtx/component_wise.hpp>
@@ -145,6 +148,7 @@
 #include "InterfaceLogging.h"
 #include "LODManager.h"
 #include "ModelPackager.h"
+#include "networking/CloseEventSender.h"
 #include "networking/HFWebEngineProfile.h"
 #include "networking/HFTabletWebEngineProfile.h"
 #include "networking/FileTypeProfile.h"
@@ -432,10 +436,14 @@ static const QString STATE_ADVANCED_MOVEMENT_CONTROLS = "AdvancedMovement";
 static const QString STATE_GROUNDED = "Grounded";
 static const QString STATE_NAV_FOCUSED = "NavigationFocused";
 
-bool setupEssentials(int& argc, char** argv) {
+bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
     const int listenPort = portStr ? atoi(portStr) : INVALID_PORT;
+
+    static const auto SUPPRESS_SETTINGS_RESET = "--suppress-settings-reset";
+    bool suppressPrompt = cmdOptionExists(argc, const_cast<const char**>(argv), SUPPRESS_SETTINGS_RESET);
+    bool previousSessionCrashed = CrashHandler::checkForResetSettings(runningMarkerExisted, suppressPrompt);
 
     Setting::init();
 
@@ -456,10 +464,6 @@ bool setupEssentials(int& argc, char** argv) {
     }
     QCoreApplication::addLibraryPath(audioDLLPath);
 #endif
-
-    static const auto SUPPRESS_SETTINGS_RESET = "--suppress-settings-reset";
-    bool suppressPrompt = cmdOptionExists(argc, const_cast<const char**>(argv), SUPPRESS_SETTINGS_RESET);
-    bool previousSessionCrashed = CrashHandler::checkForResetSettings(suppressPrompt);
 
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
     DependencyManager::registerInheritance<AvatarHashMap, AvatarManager>();
@@ -535,6 +539,7 @@ bool setupEssentials(int& argc, char** argv) {
     DependencyManager::set<AvatarBookmarks>();
     DependencyManager::set<LocationBookmarks>();
     DependencyManager::set<Snapshot>();
+    DependencyManager::set<CloseEventSender>();
 
     return previousSessionCrashed;
 }
@@ -564,11 +569,11 @@ const bool DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR = true;
 const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
 const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = false;
 
-Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
+Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runningMarkerExisted) :
     QApplication(argc, argv),
     _window(new MainWindow(desktop())),
     _sessionRunTimer(startupTimer),
-    _previousSessionCrashed(setupEssentials(argc, argv)),
+    _previousSessionCrashed(setupEssentials(argc, argv, runningMarkerExisted)),
     _undoStackScriptingInterface(&_undoStack),
     _entitySimulation(new PhysicalEntitySimulation()),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
@@ -1341,8 +1346,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
 
         auto glInfo = getGLContextData();
         properties["gl_info"] = glInfo;
-        properties["gpu_used_memory"] = (int)BYTES_TO_MB(gpu::Context::getUsedGPUMemory());
-        properties["gpu_free_memory"] = (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemory());
+        properties["gpu_used_memory"] = (int)BYTES_TO_MB(gpu::Context::getUsedGPUMemSize());
+        properties["gpu_free_memory"] = (int)BYTES_TO_MB(gpu::Context::getFreeGPUMemSize());
         properties["gpu_frame_time"] = (float)(qApp->getGPUContext()->getFrameTimerGPUAverage());
         properties["batch_frame_time"] = (float)(qApp->getGPUContext()->getFrameTimerBatchAverage());
         properties["ideal_thread_count"] = QThread::idealThreadCount();
@@ -1460,6 +1465,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer) :
     updateSystemTabletMode();
 
     connect(&_myCamera, &Camera::modeUpdated, this, &Application::cameraModeChanged);
+
+    qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
 }
 
 void Application::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
@@ -1569,6 +1576,14 @@ void Application::aboutToQuit() {
 
     getActiveDisplayPlugin()->deactivate();
 
+    // use the CloseEventSender via a QThread to send an event that says the user asked for the app to close
+    auto closeEventSender = DependencyManager::get<CloseEventSender>();
+    QThread* closureEventThread = new QThread(this);
+    closeEventSender->moveToThread(closureEventThread);
+    // sendQuitEventAsync will bail immediately if the UserActivityLogger is not enabled
+    connect(closureEventThread, &QThread::started, closeEventSender.data(), &CloseEventSender::sendQuitEventAsync);
+    closureEventThread->start();
+
     // Hide Running Scripts dialog so that it gets destroyed in an orderly manner; prevents warnings at shutdown.
     DependencyManager::get<OffscreenUi>()->hide("RunningScripts");
 
@@ -1623,7 +1638,6 @@ void Application::cleanupBeforeQuit() {
     // Clear any queued processing (I/O, FBX/OBJ/Texture parsing)
     QThreadPool::globalInstance()->clear();
 
-    DependencyManager::get<ScriptEngines>()->saveScripts();
     DependencyManager::get<ScriptEngines>()->shutdownScripting(); // stop all currently running global scripts
     DependencyManager::destroy<ScriptEngines>();
 
@@ -1683,6 +1697,10 @@ Application::~Application() {
 
     _physicsEngine->setCharacterController(nullptr);
 
+    // the _shapeManager should have zero references
+    _shapeManager.collectGarbage();
+    assert(_shapeManager.getNumShapes() == 0);
+
     // shutdown render engine
     _main3DScene = nullptr;
     _renderEngine = nullptr;
@@ -1733,6 +1751,15 @@ Application::~Application() {
     _window->setMenuBar(nullptr);
 
     _window->deleteLater();
+
+    // make sure that the quit event has finished sending before we take the application down
+    auto closeEventSender = DependencyManager::get<CloseEventSender>();
+    while (!closeEventSender->hasFinishedQuitEvent() && !closeEventSender->hasTimedOutQuitEvent()) {
+        // sleep a little so we're not spinning at 100%
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    // quit the thread used by the closure event sender
+    closeEventSender->thread()->quit();
 
     // Can't log to file passed this point, FileLogger about to be deleted
     qInstallMessageHandler(LogHandler::verboseMessageHandler);
@@ -2395,15 +2422,16 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     // Check HMD use (may be technically available without being in use)
     bool hasHMD = PluginUtils::isHMDAvailable();
-    bool isUsingHMD = hasHMD && hasHandControllers && _displayPlugin->isHmd();
+    bool isUsingHMD = _displayPlugin->isHmd();
+    bool isUsingHMDAndHandControllers = hasHMD && hasHandControllers && isUsingHMD;
 
     Setting::Handle<bool> tutorialComplete{ "tutorialComplete", false };
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
 
     bool isTutorialComplete = tutorialComplete.get();
-    bool shouldGoToTutorial = isUsingHMD && hasTutorialContent && !isTutorialComplete;
+    bool shouldGoToTutorial = isUsingHMDAndHandControllers && hasTutorialContent && !isTutorialComplete;
 
-    qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMD;
+    qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMDAndHandControllers;
     qCDebug(interfaceapp) << "Tutorial version:" << contentVersion << ", sufficient:" << hasTutorialContent <<
         ", complete:" << isTutorialComplete << ", should go:" << shouldGoToTutorial;
 
@@ -2417,10 +2445,18 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
     const QString TUTORIAL_PATH = "/tutorial_begin";
 
+    static const QString SENT_TO_TUTORIAL = "tutorial";
+    static const QString SENT_TO_PREVIOUS_LOCATION = "previous_location";
+    static const QString SENT_TO_ENTRY = "entry";
+    static const QString SENT_TO_SANDBOX = "sandbox";
+
+    QString sentTo;
+
     if (shouldGoToTutorial) {
         if (sandboxIsRunning) {
             qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
             DependencyManager::get<AddressManager>()->goToLocalSandbox(TUTORIAL_PATH);
+            sentTo = SENT_TO_TUTORIAL;
         } else {
             qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
             if (firstRun.get()) {
@@ -2428,8 +2464,10 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
             }
             if (addressLookupString.isEmpty()) {
                 DependencyManager::get<AddressManager>()->goToEntry();
+                sentTo = SENT_TO_ENTRY;
             } else {
                 DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+                sentTo = SENT_TO_PREVIOUS_LOCATION;
             }
         }
     } else {
@@ -2442,22 +2480,39 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 
         // If this is a first run we short-circuit the address passed in
         if (isFirstRun) {
-            if (isUsingHMD) {
+            if (isUsingHMDAndHandControllers) {
                 if (sandboxIsRunning) {
                     qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
                     DependencyManager::get<AddressManager>()->goToLocalSandbox();
+                    sentTo = SENT_TO_SANDBOX;
                 } else {
                     qCDebug(interfaceapp) << "Home sandbox does not appear to be running, going to Entry.";
                     DependencyManager::get<AddressManager>()->goToEntry();
+                    sentTo = SENT_TO_ENTRY;
                 }
             } else {
                 DependencyManager::get<AddressManager>()->goToEntry();
+                sentTo = SENT_TO_ENTRY;
             }
         } else {
             qCDebug(interfaceapp) << "Not first run... going to" << qPrintable(addressLookupString.isEmpty() ? QString("previous location") : addressLookupString);
             DependencyManager::get<AddressManager>()->loadSettings(addressLookupString);
+            sentTo = SENT_TO_PREVIOUS_LOCATION;
         }
     }
+
+    UserActivityLogger::getInstance().logAction("startup_sent_to", {
+        { "sent_to", sentTo },
+        { "sandbox_is_running", sandboxIsRunning },
+        { "has_hmd", hasHMD },
+        { "has_hand_controllers", hasHandControllers },
+        { "is_using_hmd", isUsingHMD },
+        { "is_using_hmd_and_hand_controllers", isUsingHMDAndHandControllers },
+        { "content_version", contentVersion },
+        { "is_tutorial_complete", isTutorialComplete },
+        { "has_tutorial_content", hasTutorialContent },
+        { "should_go_to_tutorial", shouldGoToTutorial }
+    });
 
     _connectionMonitor.init();
 
@@ -2787,6 +2842,17 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted && isMeta && !isOption) {
                     Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
                 } else if (!isOption && !isShifted && isMeta) {
+                    AudioInjectorOptions options;
+                    options.localOnly = true;
+                    options.stereo = true;
+
+                    if (_snapshotSoundInjector) {
+                        _snapshotSoundInjector->setOptions(options);
+                        _snapshotSoundInjector->restart();
+                    } else {
+                        QByteArray samples = _snapshotSound->getByteArray();
+                        _snapshotSoundInjector = AudioInjector::playSound(samples, options);
+                    }
                     takeSnapshot(true);
                 }
                 break;
@@ -3613,10 +3679,6 @@ void Application::idle(float nsecsElapsed) {
     _overlayConductor.update(secondsSinceLastUpdate);
 }
 
-void Application::setLowVelocityFilter(bool lowVelocityFilter) {
-    controller::InputDevice::setLowVelocityFilter(lowVelocityFilter);
-}
-
 ivec2 Application::getMouse() const {
     return getApplicationCompositor().getReticlePosition();
 }
@@ -3988,7 +4050,7 @@ void Application::updateMyAvatarLookAtPosition() {
             if (faceAngle < MAXIMUM_FACE_ANGLE) {
                 // Randomly look back and forth between look targets
                 eyeContactTarget target = Menu::getInstance()->isOptionChecked(MenuOption::FixGaze) ?
-                LEFT_EYE : myAvatar->getEyeContactTarget();
+                    LEFT_EYE : myAvatar->getEyeContactTarget();
                 switch (target) {
                     case LEFT_EYE:
                         lookAtSpot = lookingAtHead->getLeftEyePosition();
@@ -4380,7 +4442,11 @@ void Application::update(float deltaTime) {
         myAvatar->getSpine2CalibrationMat(),
         myAvatar->getHipsCalibrationMat(),
         myAvatar->getLeftFootCalibrationMat(),
-        myAvatar->getRightFootCalibrationMat()
+        myAvatar->getRightFootCalibrationMat(),
+        myAvatar->getRightArmCalibrationMat(),
+        myAvatar->getLeftArmCalibrationMat(),
+        myAvatar->getRightHandCalibrationMat(),
+        myAvatar->getLeftHandCalibrationMat()
     };
 
     InputPluginPointer keyboardMousePlugin;
@@ -4392,6 +4458,7 @@ void Application::update(float deltaTime) {
         }
     }
 
+    userInputMapper->setInputCalibrationData(calibrationData);
     userInputMapper->update(deltaTime);
 
     if (keyboardMousePlugin && keyboardMousePlugin->isActive()) {
@@ -4434,6 +4501,10 @@ void Application::update(float deltaTime) {
 
     controller::Pose headPose = userInputMapper->getPoseState(controller::Action::HEAD);
     myAvatar->setHeadControllerPoseInSensorFrame(headPose.transform(avatarToSensorMatrix));
+
+    controller::Pose leftArmPose = userInputMapper->getPoseState(controller::Action::LEFT_ARM);
+    controller::Pose rightArmPose = userInputMapper->getPoseState(controller::Action::RIGHT_ARM);
+    myAvatar->setArmControllerPosesInSensorFrame(leftArmPose.transform(avatarToSensorMatrix), rightArmPose.transform(avatarToSensorMatrix));
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
@@ -4496,12 +4567,13 @@ void Application::update(float deltaTime) {
 
                 getEntities()->getTree()->withWriteLock([&] {
                     PerformanceTimer perfTimer("handleOutgoingChanges");
-                    const VectorOfMotionStates& deactivations = _physicsEngine->getDeactivatedMotionStates();
-                    _entitySimulation->handleDeactivatedMotionStates(deactivations);
 
                     const VectorOfMotionStates& outgoingChanges = _physicsEngine->getChangedMotionStates();
                     _entitySimulation->handleChangedMotionStates(outgoingChanges);
                     avatarManager->handleChangedMotionStates(outgoingChanges);
+
+                    const VectorOfMotionStates& deactivations = _physicsEngine->getDeactivatedMotionStates();
+                    _entitySimulation->handleDeactivatedMotionStates(deactivations);
                 });
 
                 if (!_aboutToQuit) {
@@ -4889,12 +4961,6 @@ QRect Application::getDesirableApplicationGeometry() const {
     return applicationGeometry;
 }
 
-glm::vec3 Application::getSunDirection() const {
-    // Sun direction is in fact just the location of the sun relative to the origin
-    auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-    return skyStage->getSunLight()->getDirection();
-}
-
 // FIXME, preprocessor guard this check to occur only in DEBUG builds
 static QThread * activeRenderingThread = nullptr;
 
@@ -4961,90 +5027,6 @@ namespace render {
     }
 }
 
-// Background Render Data & rendering functions
-class BackgroundRenderData {
-public:
-    typedef render::Payload<BackgroundRenderData> Payload;
-    typedef Payload::DataPointer Pointer;
-
-    static render::ItemID _item; // unique WorldBoxRenderData
-};
-
-render::ItemID BackgroundRenderData::_item = 0;
-
-namespace render {
-    template <> const ItemKey payloadGetKey(const BackgroundRenderData::Pointer& stuff) {
-        return ItemKey::Builder::background();
-    }
-
-    template <> const Item::Bound payloadGetBound(const BackgroundRenderData::Pointer& stuff) {
-        return Item::Bound();
-    }
-
-    template <> void payloadRender(const BackgroundRenderData::Pointer& background, RenderArgs* args) {
-        Q_ASSERT(args->_batch);
-        gpu::Batch& batch = *args->_batch;
-
-        // Background rendering decision
-        auto skyStage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        auto backgroundMode = skyStage->getBackgroundMode();
-
-        switch (backgroundMode) {
-            case model::SunSkyStage::SKY_DEFAULT: {
-                auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
-                auto sceneKeyLight = scene->getKeyLight();
-
-                scene->setSunModelEnable(false);
-                sceneKeyLight->setColor(ColorUtils::toVec3(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_COLOR));
-                sceneKeyLight->setIntensity(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_INTENSITY);
-                sceneKeyLight->setAmbientIntensity(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_AMBIENT_INTENSITY);
-                sceneKeyLight->setDirection(KeyLightPropertyGroup::DEFAULT_KEYLIGHT_DIRECTION);
-                // fall through: render a skybox (if available), or the defaults (if requested)
-           }
-
-            case model::SunSkyStage::SKY_BOX: {
-                auto skybox = skyStage->getSkybox();
-                if (!skybox->empty()) {
-                    PerformanceTimer perfTimer("skybox");
-                    skybox->render(batch, args->getViewFrustum());
-                    break;
-                }
-                // fall through: render defaults (if requested)
-            }
-
-            case model::SunSkyStage::SKY_DEFAULT_AMBIENT_TEXTURE: {
-                if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
-                    auto scene = DependencyManager::get<SceneScriptingInterface>()->getStage();
-                    auto sceneKeyLight = scene->getKeyLight();
-                    auto defaultSkyboxAmbientTexture = qApp->getDefaultSkyboxAmbientTexture();
-                    if (defaultSkyboxAmbientTexture) {
-                        sceneKeyLight->setAmbientSphere(defaultSkyboxAmbientTexture->getIrradiance());
-                        sceneKeyLight->setAmbientMap(defaultSkyboxAmbientTexture);
-                    } else {
-                        static QString repeatedMessage = LogHandler::getInstance().addRepeatedMessageRegex(
-                            "Failed to get a valid Default Skybox Ambient Texture ? probably because it couldn't be find during initialization step");
-                    }
-                    // fall through: render defaults skybox
-                } else {
-                    break;
-                }
-            }
-
-            case model::SunSkyStage::SKY_DEFAULT_TEXTURE:
-                if (Menu::getInstance()->isOptionChecked(MenuOption::DefaultSkybox)) {
-                    qApp->getDefaultSkybox()->render(batch, args->getViewFrustum());
-                }
-                break;
-
-            // Any other cases require no extra rendering
-            case model::SunSkyStage::NO_BACKGROUND:
-            default:
-                break;
-        }
-    }
-}
-
-
 void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly) {
 
     // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
@@ -5067,15 +5049,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
     // The pending changes collecting the changes here
     render::Transaction transaction;
-
-    // FIXME: Move this out of here!, Background / skybox should be driven by the enityt content just like the other entities
-    // Background rendering decision
-    if (!render::Item::isValidID(BackgroundRenderData::_item)) {
-        auto backgroundRenderData = make_shared<BackgroundRenderData>();
-        auto backgroundRenderPayload = make_shared<BackgroundRenderData::Payload>(backgroundRenderData);
-        BackgroundRenderData::_item = _main3DScene->allocateID();
-        transaction.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
-    }
 
     // Assuming nothing gets rendered through that
     if (!selfAvatarOnly) {
@@ -5110,12 +5083,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             [](WorldBoxRenderData& payload) {
             payload._val++;
         });
-    }
-
-    // Setup the current Zone Entity lighting
-    {
-        auto stage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(stage->getSunLight());
     }
 
     {
@@ -6418,21 +6385,6 @@ void Application::loadAddAvatarBookmarkDialog() const {
 }
 
 void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
-    
-    //keep sound thread out of event loop scope
-
-    AudioInjectorOptions options;
-    options.localOnly = true;
-    options.stereo = true;
-
-    if (_snapshotSoundInjector) {
-        _snapshotSoundInjector->setOptions(options);
-        _snapshotSoundInjector->restart();
-    } else {
-        QByteArray samples = _snapshotSound->getByteArray();
-        _snapshotSoundInjector = AudioInjector::playSound(samples, options);
-    }
-
     postLambdaEvent([notify, includeAnimated, aspectRatio, this] {
         // Get a screenshot and save it
         QString path = Snapshot::saveSnapshot(getActiveDisplayPlugin()->getScreenshot(aspectRatio));

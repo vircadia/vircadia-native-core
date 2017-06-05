@@ -13,6 +13,7 @@
 
     self.equipped = false;
     self.isActive = false;
+    self.seconds = 0;
 
     self.secondHandID = null;
     self.minuteHandID = null;
@@ -46,11 +47,19 @@
     };
     self.messageReceived = function(channel, message, sender) {
         print("Message received", channel, sender, message); 
-        if (channel === self.messageChannel && message === 'click') {
-            if (self.isActive) {
-                self.resetTimer();
-            } else {
-                self.startTimer();
+        if (channel === self.messageChannel) {
+            switch (message) {
+                case "startStop":
+                    if (self.isActive) {
+                        self.stopTimer();
+                    } else {
+                        self.startTimer();
+                    }
+                    break;
+                case "reset":
+                    self.stopTimer();
+                    self.resetTimer();
+                    break;
             }
         }
     };
@@ -58,23 +67,16 @@
         return Entities.getEntityProperties(self.entityID, "position").position;
     };
     self.resetTimer = function() {
-        print("Stopping stopwatch");
-        if (self.tickInjector) {
-            self.tickInjector.stop();
-        }
-        if (self.tickIntervalID !== null) {
-            Script.clearInterval(self.tickIntervalID);
-            self.tickIntervalID = null;
-        }
+        print("Resetting stopwatch");
         Entities.editEntity(self.secondHandID, {
-            rotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
+            localRotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
             angularVelocity: { x: 0, y: 0, z: 0 },
         });
         Entities.editEntity(self.minuteHandID, {
-            rotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
+            localRotation: Quat.fromPitchYawRollDegrees(0, 0, 0),
             angularVelocity: { x: 0, y: 0, z: 0 },
         });
-        self.isActive = false;
+        self.seconds = 0;
     };
     self.startTimer = function() {
         print("Starting stopwatch");
@@ -88,7 +90,6 @@
             self.tickInjector.restart();
         }
 
-        var seconds = 0;
         self.tickIntervalID = Script.setInterval(function() {
             if (self.tickInjector) {
                 self.tickInjector.setOptions({
@@ -97,14 +98,15 @@
                     loop: true
                 });
             }
-            seconds++;
+            self.seconds++;
             const degreesPerTick = -360 / 60;
             Entities.editEntity(self.secondHandID, {
-                rotation: Quat.fromPitchYawRollDegrees(0, seconds * degreesPerTick, 0),
+                localRotation: Quat.fromPitchYawRollDegrees(0, self.seconds * degreesPerTick, 0),
             });
-            if (seconds % 60 == 0) {
+
+            if (self.seconds % 60 == 0) {
                 Entities.editEntity(self.minuteHandID, {
-                    rotation: Quat.fromPitchYawRollDegrees(0, (seconds / 60) * degreesPerTick, 0),
+                    localRotation: Quat.fromPitchYawRollDegrees(0, (self.seconds / 60) * degreesPerTick, 0),
                 });
                 Audio.playSound(self.chimeSound, {
                     position: self.getStopwatchPosition(),
@@ -115,5 +117,16 @@
         }, 1000);
 
         self.isActive = true;
+    };
+    self.stopTimer = function () {
+        print("Stopping stopwatch");
+        if (self.tickInjector) {
+            self.tickInjector.stop();
+        }
+        if (self.tickIntervalID !== null) {
+            Script.clearInterval(self.tickIntervalID);
+            self.tickIntervalID = null;
+        }
+        self.isActive = false;
     };
 });

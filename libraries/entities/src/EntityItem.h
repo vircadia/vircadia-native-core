@@ -187,7 +187,7 @@ public:
 
     const Transform getTransformToCenter(bool& success) const;
 
-    inline void requiresRecalcBoxes();
+    void requiresRecalcBoxes();
 
     // Hyperlink related getters and setters
     QString getHref() const;
@@ -305,6 +305,7 @@ public:
 
     bool getLocked() const;
     void setLocked(bool value);
+    void updateLocked(bool value);
 
     QString getUserData() const;
     virtual void setUserData(const QString& value);
@@ -320,6 +321,7 @@ public:
     void updateSimulationOwner(const SimulationOwner& owner);
     void clearSimulationOwnership();
     void setPendingOwnershipPriority(quint8 priority, const quint64& timestamp);
+    uint8_t getPendingOwnershipPriority() const { return _simulationOwner.getPendingPriority(); }
     void rememberHasSimulationOwnershipBid() const;
 
     QString getMarketplaceID() const;
@@ -393,8 +395,7 @@ public:
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
-    void pokeSimulationOwnership();
-    void grabSimulationOwnership();
+    void flagForOwnershipBid(uint8_t priority);
     void flagForMotionStateChange() { _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; }
 
     QString actionsToDebugString();
@@ -475,6 +476,8 @@ public:
 
     virtual bool getMeshes(MeshProxyList& result) { return true; }
 
+    virtual void locationChanged(bool tellPhysics = true) override;
+
 protected:
 
     void setSimulated(bool simulated) { _simulated = simulated; }
@@ -482,7 +485,6 @@ protected:
     const QByteArray getDynamicDataInternal() const;
     void setDynamicDataInternal(QByteArray dynamicData);
 
-    virtual void locationChanged(bool tellPhysics = true) override;
     virtual void dimensionsChanged() override;
 
     EntityTypes::EntityType _type;

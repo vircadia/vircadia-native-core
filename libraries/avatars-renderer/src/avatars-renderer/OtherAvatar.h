@@ -13,7 +13,7 @@
 
 class OtherAvatar : public Avatar {
 public:
-    explicit OtherAvatar(QThread* thread, RigPointer rig = nullptr);
+    explicit OtherAvatar(QThread* thread);
     virtual void instantiableAvatar() override {};
 };
 

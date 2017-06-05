@@ -53,7 +53,6 @@ public:
     glm::vec3 root;
     EntityTree* ourTree;
     EntityTreePointer otherTree;
-    EntityEditPacketSender* packetSender;
     QHash<EntityItemID, EntityItemID>* map;
 };
 
@@ -272,6 +271,8 @@ public:
     void forgetAvatarID(QUuid avatarID) { _avatarIDs -= avatarID; }
     void deleteDescendantsOfAvatar(QUuid avatarID);
 
+    void addToNeedsParentFixupList(EntityItemPointer entity);
+
     void notifyNewCollisionSoundURL(const QString& newCollisionSoundURL, const EntityItemID& entityID);
 
     static const float DEFAULT_MAX_TMP_ENTITY_LIFETIME;
@@ -303,6 +304,8 @@ protected:
 
     void notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode);
 
+    bool isScriptInWhitelist(const QString& scriptURL);
+    
     QReadWriteLock _newlyCreatedHooksLock;
     QVector<NewlyCreatedEntityHook*> _newlyCreatedHooks;
 
@@ -352,9 +355,9 @@ protected:
     quint64 _maxEditDelta = 0;
     quint64 _treeResetTime = 0;
 
-    void fixupMissingParents(); // try to hook members of _missingParent to parent instances
-    QVector<EntityItemWeakPointer> _missingParent; // entites with a parentID but no (yet) known parent instance
-    mutable QReadWriteLock _missingParentLock;
+    void fixupNeedsParentFixups(); // try to hook members of _needsParentFixup to parent instances
+    QVector<EntityItemWeakPointer> _needsParentFixup; // entites with a parentID but no (yet) known parent instance
+    mutable QReadWriteLock _needsParentFixupLock;
 
     // we maintain a list of avatarIDs to notice when an entity is a child of one.
     QSet<QUuid> _avatarIDs; // IDs of avatars connected to entity server

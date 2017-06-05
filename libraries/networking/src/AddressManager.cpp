@@ -30,9 +30,9 @@
 #include "udt/PacketHeaders.h"
 
 #if USE_STABLE_GLOBAL_SERVICES
-const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome";
+const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome/hello";
 #else
-const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome";
+const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome/hello";
 #endif
 
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
@@ -136,7 +136,13 @@ void AddressManager::goForward() {
 }
 
 void AddressManager::storeCurrentAddress() {
-    currentAddressHandle.set(currentAddress());
+    auto url = currentAddress();
+    
+    if (!url.host().isEmpty()) {
+        currentAddressHandle.set(url);
+    } else {
+        qCWarning(networking) << "Ignoring attempt to save current address with an empty host" << url;
+    }
 }
 
 QString AddressManager::currentPath(bool withOrientation) const {
