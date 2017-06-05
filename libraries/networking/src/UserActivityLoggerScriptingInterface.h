@@ -30,6 +30,8 @@ public:
     Q_INVOKABLE void palAction(QString action, QString target);
     Q_INVOKABLE void palOpened(float secondsOpen);
     Q_INVOKABLE void makeUserConnection(QString otherUser, bool success, QString details = "");
+    Q_INVOKABLE void bubbleToggled(bool newValue);
+    Q_INVOKABLE void bubbleActivated();
     Q_INVOKABLE void logAction(QString action, QVariantMap details = QVariantMap{});
 private:
     void doLogAction(QString action, QJsonObject details = {});

@@ -113,18 +113,21 @@ void FileCacheTests::testUnusedFiles() {
             QVERIFY(!file.get());
         }
 
-        QThread::msleep(1000);
         // Test files 90 to 99 are present
         for (int i = 90; i < 100; ++i) {
             std::string key = getFileKey(i);
             auto file = cache->getFile(key);
             QVERIFY(file.get());
             inUseFiles.push_back(file);
-            // Each access touches the file, so we need to sleep here to ensure that the files are 
-            // spaced out in numeric order, otherwise later tests can't reliably determine the order 
-            // for cache ejection
-            QThread::msleep(1000);
+
+            if (i == 94) {
+                // Each access touches the file, so we need to sleep here to ensure that the the last 5 files 
+                // have later times for cache ejection priority, otherwise the test runs too fast to reliably
+                // differentiate 
+                QThread::msleep(1000);
+            }
         }
+        
         QCOMPARE(cache->getNumCachedFiles(), (size_t)0);
         QCOMPARE(cache->getNumTotalFiles(), (size_t)10);
         inUseFiles.clear();
@@ -164,6 +167,20 @@ void FileCacheTests::testFreeSpacePreservation() {
         QVERIFY(file.get());
     }
 }
+
+void FileCacheTests::testWipe() {
+    // Reset the cache
+    auto cache = makeFileCache(_testDir.path());
+    QCOMPARE(cache->getNumCachedFiles(), (size_t)5);
+    QCOMPARE(cache->getNumTotalFiles(), (size_t)5);
+    cache->wipe();
+    QCOMPARE(cache->getNumCachedFiles(), (size_t)0);
+    QCOMPARE(cache->getNumTotalFiles(), (size_t)0);
+    QVERIFY(getCacheDirectorySize() > 0);
+    forceDeletes();
+    QCOMPARE(getCacheDirectorySize(), (size_t)0);
+}
+
 
 void FileCacheTests::cleanupTestCase() {
 }

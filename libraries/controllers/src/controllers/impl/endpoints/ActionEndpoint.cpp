@@ -36,9 +36,6 @@ void ActionEndpoint::apply(const Pose& value, const Pointer& source) {
     auto userInputMapper = DependencyManager::get<UserInputMapper>();
     QString actionName = userInputMapper->getActionName(Action(_input.getChannel()));
     inputRecorder->setActionState(actionName, _currentPose);
-    if (inputRecorder->isPlayingback()) {
-        _currentPose = inputRecorder->getPoseState(actionName);
-    }
     
     if (!_currentPose.isValid()) {
         return;
