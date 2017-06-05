@@ -51,11 +51,14 @@ private:
 
 class AudioDevices : public QObject {
     Q_OBJECT
-    Q_PROPERTY(AudioDeviceList* input READ getInputList)
-    Q_PROPERTY(AudioDeviceList* output READ getOutputList)
+    Q_PROPERTY(AudioDeviceList* input READ getInputList NOTIFY nop)
+    Q_PROPERTY(AudioDeviceList* output READ getOutputList NOTIFY nop)
 
 public:
     AudioDevices();
+
+signals:
+    void nop();
 
 private slots:
     void onDeviceChanged(QAudio::Mode mode, const QAudioDeviceInfo& device);

@@ -27,10 +27,13 @@ class Audio : public AudioScriptingInterface {
     // TODO: Q_PROPERTY(float inputVolume)
     // TODO: Q_PROPERTY(bool showMicLevel)
     // TODO: Q_PROPERTY(QString context)
-    Q_PROPERTY(AudioDevices* devices READ getDevices)
+    Q_PROPERTY(AudioDevices* devices READ getDevices NOTIFY nop)
 
 public:
     virtual ~Audio() {}
+
+signals:
+    void nop();
 
 protected:
     Audio() {}
