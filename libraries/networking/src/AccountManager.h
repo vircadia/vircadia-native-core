@@ -52,6 +52,7 @@ namespace AccountManagerAuth {
 Q_DECLARE_METATYPE(AccountManagerAuth::Type);
 
 const QByteArray ACCESS_TOKEN_AUTHORIZATION_HEADER = "Authorization";
+const auto METAVERSE_SESSION_ID_HEADER = QString("HFM-SessionID").toLocal8Bit();
 
 using UserAgentGetter = std::function<QString()>;
 

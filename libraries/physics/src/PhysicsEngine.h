@@ -13,6 +13,7 @@
 #define hifi_PhysicsEngine_h
 
 #include <stdint.h>
+#include <set>
 #include <vector>
 
 #include <QUuid>
@@ -53,7 +54,7 @@ public:
     uint32_t getNumSubsteps();
 
     void removeObjects(const VectorOfMotionStates& objects);
-    void removeObjects(const SetOfMotionStates& objects); // only called during teardown
+    void removeSetOfObjects(const SetOfMotionStates& objects); // only called during teardown
 
     void addObjects(const VectorOfMotionStates& objects);
     VectorOfMotionStates changeObjects(const VectorOfMotionStates& objects);
@@ -114,7 +115,7 @@ private:
     CollisionEvents _collisionEvents;
     QHash<QUuid, EntityDynamicPointer> _objectDynamics;
     QHash<btRigidBody*, QSet<QUuid>> _objectDynamicsByBody;
-    std::vector<btRigidBody*> _activeStaticBodies;
+    std::set<btRigidBody*> _activeStaticBodies;
 
     glm::vec3 _originOffset;
 
