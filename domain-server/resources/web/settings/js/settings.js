@@ -123,7 +123,7 @@ var viewHelpers = {
 
           form_group += "<input type='" + input_type + "'" +  common_attrs() +
             "placeholder='" + (_.has(setting, 'placeholder') ? setting.placeholder : "") +
-            "' value='" + setting_value + "'/>"
+            "' value='" + (_.has(setting, 'password_placeholder') ? setting.password_placeholder : setting_value) + "'/>"
         }
 
         form_group += "<span class='help-block'>" + setting.help + "</span>"
@@ -981,40 +981,38 @@ function saveSettings() {
 
   if (validateInputs()) {
     // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
+    var canPost = true;
 
     // disable any inputs not changed
-    $("input:not([data-changed])").each(function(){
+    $("input:not([data-changed])").each(function () {
       $(this).prop('disabled', true);
     });
 
     // grab a JSON representation of the form via form2js
     var formJSON = form2js('settings-form', ".", false, cleanupFormValues, true);
 
-    // check if we've set the basic http password - if so convert it to base64
+    // check if we've set the basic http password
     if (formJSON["security"]) {
+
       var password = formJSON["security"]["http_password"];
-      if (password && password.length > 0) {
+      var verify_password = formJSON["security"]["verify_http_password"];
+
+      // if they've only emptied out the default password field, we should go ahead and acknowledge 
+      // the verify password field
+      if (password != undefined && verify_password == undefined) {
+        verify_password = "";
+      }
+
+      // if we have a password and its verification, convert it to sha256 for comparison
+      if (password != undefined && verify_password != undefined) {
         formJSON["security"]["http_password"] = sha256_digest(password);
-      }
-      var verify_password = formJSON["security"]["verify_http_password"];
-      if (verify_password && verify_password.length > 0) {
         formJSON["security"]["verify_http_password"] = sha256_digest(verify_password);
-      }
-    }
 
-    // verify that the password and confirmation match before saving
-    var canPost = true;
-
-    if (formJSON["security"]) {
-      var password = formJSON["security"]["http_password"];
-      var verify_password = formJSON["security"]["verify_http_password"];
-
-      if (password && password.length > 0) {
-        if (password != verify_password) {
-          bootbox.alert({"message": "Passwords must match!", "title":"Password Error"});
-          canPost = false;
-        } else {
+        if (password == verify_password) {
           delete formJSON["security"]["verify_http_password"];
+        } else {
+          bootbox.alert({ "message": "Passwords must match!", "title": "Password Error" });
+          canPost = false;
         }
       }
     }
@@ -1023,7 +1021,7 @@ function saveSettings() {
     console.log(formJSON);
 
     // re-enable all inputs
-    $("input").each(function(){
+    $("input").each(function () {
       $(this).prop('disabled', false);
     });
 
@@ -1031,6 +1029,27 @@ function saveSettings() {
     $(this).blur();
 
     if (canPost) {
+      if (formJSON["security"]) {
+        var username = formJSON["security"]["http_username"];
+        var password = formJSON["security"]["http_password"];
+
+        if ((password == sha256_digest("")) && (username == undefined || (username && username.length != 0))) {
+          swal({
+            title: "Are you sure?",
+            text: "You have entered a blank password with a non-blank username. Are you sure you want to require a blank password?",
+            type: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#5cb85c",
+            confirmButtonText: "Yes!",
+            closeOnConfirm: true
+          },
+          function () {
+              formJSON["security"]["http_password"] = "";
+              postSettings(formJSON);
+          });
+          return;
+        }
+      }
       // POST the form JSON to the domain-server settings.json endpoint so the settings are saved
       postSettings(formJSON);
     }
@@ -1360,6 +1379,8 @@ function addTableRow(row) {
   var setting_name = table.attr("name");
   row.addClass(Settings.DATA_ROW_CLASS + " " + Settings.NEW_ROW_CLASS);
 
+  var focusChanged = false;
+
   _.each(row.children(), function(element) {
     if ($(element).hasClass("numbered")) {
       // Index row
@@ -1408,6 +1429,11 @@ function addTableRow(row) {
         keyInput.on('change', function(){
           input.attr("name", setting_name + "." +  $(this).val() + "." + colName);
         });
+      }
+
+      if (!focusChanged) {
+          input.focus();
+          focusChanged = true;
       }
 
       if (isCheckbox) {

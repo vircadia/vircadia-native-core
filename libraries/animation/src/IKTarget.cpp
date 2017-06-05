@@ -23,7 +23,6 @@ void IKTarget::setFlexCoefficients(size_t numFlexCoefficientsIn, const float* fl
 
 float IKTarget::getFlexCoefficient(size_t chainDepth) const {
     const float DEFAULT_FLEX_COEFFICIENT = 0.5f;
-
     if (chainDepth < _numFlexCoefficients) {
         return _flexCoefficients[chainDepth];
     } else {

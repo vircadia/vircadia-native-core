@@ -101,6 +101,8 @@ enum class Action {
     // Bisected aliases for TRANSLATE_CAMERA_Z
     BOOM_IN,
     BOOM_OUT,
+    LEFT_ARM,
+    RIGHT_ARM,
 
 
     NUM_ACTIONS,

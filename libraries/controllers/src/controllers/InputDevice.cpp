@@ -15,8 +15,6 @@
 
 namespace controller {
 
-    bool InputDevice::_lowVelocityFilter = false;
-
     const float DEFAULT_HAND_RETICLE_MOVE_SPEED = 37.5f;
     float InputDevice::_reticleMoveSpeed = DEFAULT_HAND_RETICLE_MOVE_SPEED;
 

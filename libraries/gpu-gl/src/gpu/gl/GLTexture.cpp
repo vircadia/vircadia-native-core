@@ -115,24 +115,27 @@ GLTexture::~GLTexture() {
     }
 }
 
-void GLTexture::copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const {
+Size GLTexture::copyMipFaceFromTexture(uint16_t sourceMip, uint16_t targetMip, uint8_t face) const {
     if (!_gpuObject.isStoredMipFaceAvailable(sourceMip)) {
-        return;
+        return 0;
     }
-    auto size = _gpuObject.evalMipDimensions(sourceMip);
+    auto dim = _gpuObject.evalMipDimensions(sourceMip);
     auto mipData = _gpuObject.accessStoredMipFace(sourceMip, face);
     auto mipSize = _gpuObject.getStoredMipFaceSize(sourceMip, face);
     if (mipData) {
         GLTexelFormat texelFormat = GLTexelFormat::evalGLTexelFormat(_gpuObject.getTexelFormat(), _gpuObject.getStoredMipFormat());
-        copyMipFaceLinesFromTexture(targetMip, face, size, 0, texelFormat.internalFormat, texelFormat.format, texelFormat.type, mipSize, mipData->readData());
+        return copyMipFaceLinesFromTexture(targetMip, face, dim, 0, texelFormat.internalFormat, texelFormat.format, texelFormat.type, mipSize, mipData->readData());
     } else {
         qCDebug(gpugllogging) << "Missing mipData level=" << sourceMip << " face=" << (int)face << " for texture " << _gpuObject.source().c_str();
     }
+    return 0;
 }
 
 
 GLExternalTexture::GLExternalTexture(const std::weak_ptr<GLBackend>& backend, const Texture& texture, GLuint id) 
-    : Parent(backend, texture, id) { }
+    : Parent(backend, texture, id) {
+    Backend::textureExternalCount.increment();
+}
 
 GLExternalTexture::~GLExternalTexture() {
     auto backend = _backend.lock();
@@ -145,6 +148,7 @@ GLExternalTexture::~GLExternalTexture() {
         }
         const_cast<GLuint&>(_id) = 0;
     }
+    Backend::textureExternalCount.decrement();
 }
 
 
@@ -211,7 +215,7 @@ TransferJob::TransferJob(const GLTexture& parent, uint16_t sourceMip, uint16_t t
         _transferSize = bytesPerLine * lines;
     }
 
-    Backend::updateTextureTransferPendingSize(0, _transferSize);
+    Backend::texturePendingGPUTransferMemSize.update(0, _transferSize);
 
     if (_transferSize > GLVariableAllocationSupport::MAX_TRANSFER_SIZE) {
         qCWarning(gpugllogging) << "Transfer size of " << _transferSize << " exceeds theoretical maximum transfer size";
@@ -233,7 +237,7 @@ TransferJob::TransferJob(const GLTexture& parent, std::function<void()> transfer
 }
 
 TransferJob::~TransferJob() {
-    Backend::updateTextureTransferPendingSize(_transferSize, 0);
+    Backend::texturePendingGPUTransferMemSize.update(_transferSize, 0);
 }
 
 bool TransferJob::tryTransfer() {
@@ -535,12 +539,14 @@ void GLVariableAllocationSupport::processWorkQueue(WorkQueue& workQueue) {
             vartexture->demote();
             workQueue.pop();
             addToWorkQueue(texture);
+            _memoryPressureStateStale = true;
             break;
 
         case MemoryPressureState::Undersubscribed:
             vartexture->promote();
             workQueue.pop();
             addToWorkQueue(texture);
+            _memoryPressureStateStale = true;
             break;
 
         case MemoryPressureState::Transfer:
@@ -667,3 +673,24 @@ void GLVariableAllocationSupport::executeNextBuffer(const TexturePointer& curren
     }
 }
 #endif
+
+void GLVariableAllocationSupport::incrementPopulatedSize(Size delta) const {
+    _populatedSize += delta;
+    // Keep the 2 code paths to be able to debug
+    if (_size < _populatedSize) {
+        Backend::textureResourcePopulatedGPUMemSize.update(0, delta);
+    } else  {
+        Backend::textureResourcePopulatedGPUMemSize.update(0, delta);
+    }
+}
+void GLVariableAllocationSupport::decrementPopulatedSize(Size delta) const {
+    _populatedSize -= delta;
+    // Keep the 2 code paths to be able to debug
+    if (_size < _populatedSize) {
+        Backend::textureResourcePopulatedGPUMemSize.update(delta, 0);
+    } else  {
+        Backend::textureResourcePopulatedGPUMemSize.update(delta, 0);
+    }
+}
+
+

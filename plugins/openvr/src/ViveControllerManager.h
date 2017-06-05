@@ -27,6 +27,8 @@
 #include <render/Scene.h>
 #include "OpenVrHelpers.h"
 
+using PuckPosePair = std::pair<uint32_t, controller::Pose>;
+
 namespace vr {
     class IVRSystem;
 }
@@ -65,6 +67,7 @@ private:
         void calibrate(const controller::InputCalibrationData& inputCalibration);
         void uncalibrate();
         controller::Pose addOffsetToPuckPose(int joint) const;
+        glm::mat4 recalculateDefaultToReferenceForHeadPuck(const controller::InputCalibrationData& inputCalibration);
         void updateCalibratedLimbs();
         bool checkForCalibrationEvent();
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
@@ -78,6 +81,18 @@ private:
                                  const vec3& angularVelocity);
         void partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPsuedoButton, int xPseudoButton, int yPseudoButton);
         void printDeviceTrackingResultChange(uint32_t deviceIndex);
+        void setConfigFromString(const QString& value);
+        void loadSettings();
+        void saveSettings() const;
+        void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, glm::vec3 headXAxis, glm::vec3 headPosition);
+        void calibrateHips(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateChest(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        
+        void calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
+                                int firstShoulderIndex, int secondShoulderIndex);
+        void calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+
 
         class FilteredStick {
         public:
@@ -102,13 +117,21 @@ private:
             float _timer { 0.0f };
             glm::vec2 _stick { 0.0f, 0.0f };
         };
-        enum class Config { Feet, FeetAndHips, FeetHipsAndChest, Auto };
+        enum class Config {
+            Auto,
+            Feet,
+            FeetAndHips,
+            FeetHipsAndChest,
+            FeetHipsAndShoulders,
+            FeetHipsChestAndHead,
+            FeetHipsAndHead
+        };
         Config _config { Config::Auto };
         Config _preferedConfig { Config::Auto };
         FilteredStick _filteredLeftStick;
         FilteredStick _filteredRightStick;
 
-        std::vector<std::pair<uint32_t, controller::Pose>> _validTrackedObjects;
+        std::vector<PuckPosePair> _validTrackedObjects;
         std::map<uint32_t, glm::mat4> _pucksOffset;
         std::map<int, uint32_t> _jointToPuckMap;
         std::map<Config, QString> _configStringMap;
@@ -128,12 +151,10 @@ private:
         bool _triggersPressedHandled { false };
         bool _calibrated { false };
         bool _timeTilCalibrationSet { false };
+        bool _overrideHead { false };
         mutable std::recursive_mutex _lock;
 
         QString configToString(Config config);
-        void setConfigFromString(const QString& value);
-        void loadSettings();
-        void saveSettings() const;
         friend class ViveControllerManager;
     };
 

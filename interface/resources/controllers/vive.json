@@ -3,7 +3,7 @@
     "channels": [
         { "from": "Vive.LY", "when": "Vive.LSY", "filters": ["invert"], "to": "Standard.LY" },
         { "from": "Vive.LX", "when": "Vive.LSX", "to": "Standard.LX" },
-        { 
+        {
             "from": "Vive.LT", "to": "Standard.LT",
             "filters": [
                 { "type": "deadZone", "min": 0.05 }
@@ -17,7 +17,7 @@
 
         { "from": "Vive.RY", "when": "Vive.RSY", "filters": ["invert"], "to": "Standard.RY" },
         { "from": "Vive.RX", "when": "Vive.RSX", "to": "Standard.RX" },
-        { 
+        {
             "from": "Vive.RT", "to": "Standard.RT",
             "filters": [
                 { "type": "deadZone", "min": 0.05 }
@@ -34,12 +34,36 @@
         { "from": "Vive.RSCenter", "to": "Standard.RightPrimaryThumb" },
         { "from": "Vive.RightApplicationMenu", "to": "Standard.RightSecondaryThumb" },
 
-        { "from": "Vive.LeftHand", "to": "Standard.LeftHand", "when": [ "Application.InHMD" ]  },
-        { "from": "Vive.RightHand", "to": "Standard.RightHand", "when": [ "Application.InHMD" ]  },
-        { "from": "Vive.LeftFoot", "to" : "Standard.LeftFoot",  "when": [ "Application.InHMD"] },
-        { "from": "Vive.RightFoot", "to" : "Standard.RightFoot",  "when": [ "Application.InHMD"] },
-        { "from": "Vive.Hips", "to" : "Standard.Hips",  "when": [ "Application.InHMD"] },
-        { "from": "Vive.Spine2", "to" : "Standard.Spine2",  "when": [ "Application.InHMD"] },
-        { "from": "Vive.Head", "to" : "Standard.Head", "when" : [ "Application.InHMD"] }
+        { "from": "Vive.LeftHand", "to": "Standard.LeftHand", "when": [ "Application.InHMD" ] },
+        { "from": "Vive.RightHand", "to": "Standard.RightHand", "when": [ "Application.InHMD" ] },
+
+        {
+            "from": "Vive.LeftFoot", "to" : "Standard.LeftFoot",
+            "filters" : [{"type" :  "lowVelocity", "rotation" : 1.0, "translation": 1.0}],
+            "when": [ "Application.InHMD" ]
+        },
+
+        {
+            "from": "Vive.RightFoot", "to" : "Standard.RightFoot",
+            "filters" : [{"type" :  "lowVelocity", "rotation" : 1.0, "translation": 1.0}],
+            "when": [ "Application.InHMD" ]
+        },
+
+        {
+            "from": "Vive.Hips", "to" : "Standard.Hips",
+            "filters" : [{"type" :  "lowVelocity", "rotation" : 0.01, "translation": 0.01}],
+            "when": [ "Application.InHMD" ]
+        },
+
+        {
+            "from": "Vive.Spine2", "to" : "Standard.Spine2",
+            "filters" : [{"type" :  "lowVelocity", "rotation" : 0.01, "translation": 0.01}],
+            "when": [ "Application.InHMD" ]
+        },
+
+        { "from": "Vive.Head", "to" : "Standard.Head", "when": [ "Application.InHMD" ] },
+
+        { "from": "Vive.RightArm", "to" : "Standard.RightArm", "when": [ "Application.InHMD" ] },
+        { "from": "Vive.LeftArm", "to" : "Standard.LeftArm", "when": [ "Application.InHMD" ] }
     ]
 }

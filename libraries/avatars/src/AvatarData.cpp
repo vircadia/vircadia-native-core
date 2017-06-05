@@ -850,7 +850,10 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         glm::quat sensorToWorldQuat;
         unpackOrientationQuatFromSixBytes(data->sensorToWorldQuat, sensorToWorldQuat);
         float sensorToWorldScale;
-        unpackFloatScalarFromSignedTwoByteFixed((int16_t*)&data->sensorToWorldScale, &sensorToWorldScale, SENSOR_TO_WORLD_SCALE_RADIX);
+        // Grab a local copy of sensorToWorldScale to be able to use the unpack function with a pointer on it,
+        // a direct pointer on the struct attribute triggers warnings because of potential misalignement.
+        auto srcSensorToWorldScale = data->sensorToWorldScale;
+        unpackFloatScalarFromSignedTwoByteFixed((int16_t*)&srcSensorToWorldScale, &sensorToWorldScale, SENSOR_TO_WORLD_SCALE_RADIX);
         glm::vec3 sensorToWorldTrans(data->sensorToWorldTrans[0], data->sensorToWorldTrans[1], data->sensorToWorldTrans[2]);
         glm::mat4 sensorToWorldMatrix = createMatFromScaleQuatAndPos(glm::vec3(sensorToWorldScale), sensorToWorldQuat, sensorToWorldTrans);
         if (_sensorToWorldMatrixCache.get() != sensorToWorldMatrix) {
@@ -2030,17 +2033,6 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         version = JSON_AVATAR_JOINT_ROTATIONS_IN_RELATIVE_FRAME_VERSION;
     }
 
-    // The head setOrientation likes to overwrite the avatar orientation,
-    // so lets do the head first
-    // Most head data is relative to the avatar, and needs no basis correction,
-    // but the lookat vector does need correction
-    if (json.contains(JSON_AVATAR_HEAD)) {
-        if (!_headData) {
-            _headData = new HeadData(this);
-        }
-        _headData->fromJson(json[JSON_AVATAR_HEAD].toObject());
-    }
-
     if (json.contains(JSON_AVATAR_BODY_MODEL)) {
         auto bodyModelURL = json[JSON_AVATAR_BODY_MODEL].toString();
         if (useFrameSkeleton && bodyModelURL != getSkeletonModelURL().toString()) {
@@ -2077,6 +2069,14 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         // We still set the position in the case that there is no movement.
         setPosition(currentBasis->getTranslation());
         setOrientation(currentBasis->getRotation());
+    }
+
+    // Do after avatar orientation because head look-at needs avatar orientation.
+    if (json.contains(JSON_AVATAR_HEAD)) {
+        if (!_headData) {
+            _headData = new HeadData(this);
+        }
+        _headData->fromJson(json[JSON_AVATAR_HEAD].toObject());
     }
 
     if (json.contains(JSON_AVATAR_SCALE)) {

@@ -27,7 +27,6 @@
 
 class Rig;
 class AnimInverseKinematics;
-typedef std::shared_ptr<Rig> RigPointer;
 
 // Rig instances are reentrant.
 // However only specific methods thread-safe.  Noted below.
@@ -47,9 +46,15 @@ public:
         glm::mat4 spine2Matrix = glm::mat4();         // rig space
         glm::quat rigHeadOrientation = glm::quat();   // rig space (-z forward)
         glm::vec3 rigHeadPosition = glm::vec3();      // rig space
+        glm::vec3 rightArmPosition = glm::vec3();     // rig space
+        glm::quat rightArmRotation = glm::quat();     // rig space
+        glm::vec3 leftArmPosition = glm::vec3();      // rig space
+        glm::quat leftArmRotation = glm::quat();      // rig space
         bool hipsEnabled = false;
         bool headEnabled = false;
         bool spine2Enabled = false;
+        bool leftArmEnabled = false;
+        bool rightArmEnabled = false;
         bool isTalking = false;
     };
 
@@ -232,6 +237,7 @@ public:
 
     void setEnableDebugDrawIKTargets(bool enableDebugDrawIKTargets) { _enableDebugDrawIKTargets = enableDebugDrawIKTargets; }
     void setEnableDebugDrawIKConstraints(bool enableDebugDrawIKConstraints) { _enableDebugDrawIKConstraints = enableDebugDrawIKConstraints; }
+    void setEnableDebugDrawIKChains(bool enableDebugDrawIKChains) { _enableDebugDrawIKChains = enableDebugDrawIKChains; }
 
     // input assumed to be in rig space
     void computeHeadFromHMD(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut) const;
@@ -343,6 +349,7 @@ protected:
 
     bool _enableDebugDrawIKTargets { false };
     bool _enableDebugDrawIKConstraints { false };
+    bool _enableDebugDrawIKChains { false };
 
 private:
     QMap<int, StateHandler> _stateHandlers;
