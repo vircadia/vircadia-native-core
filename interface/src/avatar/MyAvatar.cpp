@@ -2271,17 +2271,13 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
 // If position is not reliably safe from being stuck by physics, answer true and place a candidate better position in betterPositionOut.
 bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& betterPositionOut) {
     // We begin with utilities and tests. The Algorithm in four parts is below.
-    auto ok = [&](const char* label) {  // position is good to go, or at least, we cannot do better
-        //qDebug() << "Already safe" << label << positionIn << " collisions:" << getCollisionsEnabled() << " physics:" << qApp->isPhysicsEnabled();
-        return false;
-    };
     auto halfHeight = _characterController.getCapsuleHalfHeight();
     if (halfHeight == 0) {
-        return ok("zero height avatar");
+        return false; // zero height avatar
     }
     auto entityTree = DependencyManager::get<EntityTreeRenderer>()->getTree();
     if (!entityTree) {
-        return ok("no entity tree");
+        return false; // no entity tree
     }
     // More utilities.
     const auto offset = getOrientation() *_characterController.getCapsuleLocalOffset();
@@ -2324,12 +2320,12 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
         // We currently believe that physics will reliably push us out if our feet are embedded,
         // as long as our capsule center is out and there's room above us. Here we have those
         // conditions, so no need to check our feet below.
-        return ok("nothing above");
+        return false; // nothing above
     }
 
     if (!findIntersection(capsuleCenter, down, lowerIntersection, lowerId, lowerNormal)) {
         // Our head may be embedded, but our center is out and there's room below. See corresponding comment above.
-        return ok("nothing below");
+        return false; // nothing below
     }
  
     // See if we have room between entities above and below, but that we are not contained.
@@ -2348,7 +2344,7 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
                 ignore.push_back(upperId);
                 if (!findIntersection(upperIntersection, up, upperIntersection, upperId, upperNormal)) {
                     // We're not inside an entity, and from the nested tests, we have room between what is above and below. So position is good!
-                    return ok("enough room");
+                    return false; // enough room
                 }
                 if (isUp(upperNormal)) {
                     // This new intersection is the top surface of an entity that we have not yet seen, which means we're contained within it.
@@ -2367,7 +2363,7 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
     const auto skyHigh = up * big;
     auto fromAbove = capsuleCenter + skyHigh;
     if (!findIntersection(fromAbove, down, upperIntersection, upperId, upperNormal)) {
-        return ok("Unable to find a landing");
+        return false; // Unable to find a landing
     }
     // Our arbitrary rule is to always go up. There's no need to look down or sideways for a "closer" safe candidate.
     return mustMove();
