@@ -20,7 +20,8 @@ var ICON_FOR_TYPE = {
     Light: "p",
     Zone: "o",
     PolyVox: "&#xe005;",
-    Multiple: "&#xe000;"
+    Multiple: "&#xe000;",
+    PolyLine: "&#xe01b;"
 }
 
 var EDITOR_TIMEOUT_DURATION = 1500;
