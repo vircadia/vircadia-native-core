@@ -23,6 +23,7 @@
 #include <controllers/Pose.h>
 #include <controllers/Actions.h>
 #include <avatars-renderer/Avatar.h>
+#include <avatars-renderer/ScriptAvatar.h>
 
 #include "AtRestDetector.h"
 #include "MyCharacterController.h"
@@ -131,6 +132,9 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(bool collisionsEnabled READ getCollisionsEnabled WRITE setCollisionsEnabled)
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
     Q_PROPERTY(bool useAdvancedMovementControls READ useAdvancedMovementControls WRITE setUseAdvancedMovementControls)
+
+    Q_PROPERTY(float yawSpeed MEMBER _yawSpeed)
+    Q_PROPERTY(float pitchSpeed MEMBER _pitchSpeed)
 
 public:
     enum DriveKeys {
@@ -368,6 +372,7 @@ public:
     Q_INVOKABLE glm::vec3 getEyePosition() const { return getHead()->getEyePosition(); }
 
     Q_INVOKABLE glm::vec3 getTargetAvatarPosition() const { return _targetAvatarPosition; }
+    Q_INVOKABLE ScriptAvatarData* getTargetAvatar() const;
 
     Q_INVOKABLE glm::vec3 getLeftHandPosition() const;
     Q_INVOKABLE glm::vec3 getRightHandPosition() const;

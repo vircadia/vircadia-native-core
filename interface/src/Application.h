@@ -54,6 +54,7 @@
 #include "BandwidthRecorder.h"
 #include "FancyCamera.h"
 #include "ConnectionMonitor.h"
+#include "CursorManager.h"
 #include "gpu/Context.h"
 #include "Menu.h"
 #include "octree/OctreePacketProcessor.h"
@@ -163,7 +164,7 @@ public:
     QSize getDeviceSize() const;
     bool hasFocus() const;
 
-    void showCursor(const QCursor& cursor);
+    void showCursor(const Cursor::Icon& cursor);
 
     bool isThrottleRendering() const;
 
@@ -639,7 +640,7 @@ private:
 
     void checkChangeCursor();
     mutable QMutex _changeCursorLock { QMutex::Recursive };
-    QCursor _desiredCursor{ Qt::BlankCursor };
+    Qt::CursorShape _desiredCursor{ Qt::BlankCursor };
     bool _cursorNeedsChanging { false };
 
     QThread* _deadlockWatchdogThread;

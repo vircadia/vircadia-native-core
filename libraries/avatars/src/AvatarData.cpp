@@ -85,6 +85,8 @@ AvatarData::AvatarData() :
     ASSERT(sizeof(AvatarDataPacket::AdditionalFlags) == AvatarDataPacket::ADDITIONAL_FLAGS_SIZE);
     ASSERT(sizeof(AvatarDataPacket::ParentInfo) == AvatarDataPacket::PARENT_INFO_SIZE);
     ASSERT(sizeof(AvatarDataPacket::FaceTrackerInfo) == AvatarDataPacket::FACE_TRACKER_INFO_SIZE);
+
+    connect(this, &AvatarData::lookAtSnappingChanged, this, &AvatarData::markIdentityDataChanged);
 }
 
 AvatarData::~AvatarData() {
@@ -1479,14 +1481,18 @@ void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& ide
                  >> identityOut.displayName
                  >> identityOut.sessionDisplayName
                  >> identityOut.avatarEntityData
-                 >> identityOut.sequenceId;
+                 >> identityOut.sequenceId
+                 >> identityOut.lookAtSnappingEnabled
+        ;
 
 #ifdef WANT_DEBUG
     qCDebug(avatars) << __FUNCTION__
         << "identityOut.uuid:" << identityOut.uuid
         << "identityOut.skeletonModelURL:" << identityOut.skeletonModelURL
         << "identityOut.displayName:" << identityOut.displayName
-        << "identityOut.sessionDisplayName:" << identityOut.sessionDisplayName;
+        << "identityOut.sessionDisplayName:" << identityOut.sessionDisplayName
+        << "identityOut.lookAtSnappingEnabled:" << identityOut.lookAtSnappingEnabled
+    ;
 #endif
 
 }
@@ -1541,6 +1547,13 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
         identityChanged = true;
     }
 
+    if (_lookAtSnappingEnabled != identity.lookAtSnappingEnabled) {
+#ifdef DEBUG_LOOKAT_SNAPPING
+        qCDebug(avatars) << __FUNCTION__ << identity.sessionDisplayName << "_lookAtSnappingEnabled" << _lookAtSnappingEnabled << "->" << identity.lookAtSnappingEnabled;
+#endif
+        setProperty("lookAtSnappingEnabled", identity.lookAtSnappingEnabled);
+        identityChanged = true;
+    }
 }
 
 QByteArray AvatarData::identityByteArray() const {
@@ -1549,13 +1562,16 @@ QByteArray AvatarData::identityByteArray() const {
     const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL); // depends on _skeletonModelURL
 
     _avatarEntitiesLock.withReadLock([&] {
-        identityStream << getSessionUUID()
-                       << urlToSend
-                       << _attachmentData
-                       << _displayName
-                       << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
-                       << _avatarEntityData
-                       << _identitySequenceId;
+        identityStream
+            << getSessionUUID()
+            << urlToSend
+            << _attachmentData
+            << _displayName
+            << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
+            << _avatarEntityData
+            << _identitySequenceId
+            << _lookAtSnappingEnabled
+        ;
     });
 
     return identityData;

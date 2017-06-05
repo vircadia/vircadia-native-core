@@ -882,14 +882,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
 
-#ifdef Q_OS_MAC
-    auto cursorTarget = _window; // OSX doesn't seem to provide for hiding the cursor only on the GL widget
-#else
-    // On windows and linux, hiding the top level cursor also means it's invisible when hovering over the
-    // window menu, which is a pain, so only hide it for the GL surface
-    auto cursorTarget = _glWidget;
-#endif
-    cursorTarget->setCursor(Qt::BlankCursor);
+    bool useSystemCursor = cmdOptionExists(argc, constArgv, "--system-cursor");
+    showCursor(useSystemCursor ? Cursor::Icon::SYSTEM : Cursor::Icon::DEFAULT);
 
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
@@ -1547,9 +1541,16 @@ void Application::checkChangeCursor() {
     }
 }
 
-void Application::showCursor(const QCursor& cursor) {
+void Application::showCursor(const Cursor::Icon& cursor) {
     QMutexLocker locker(&_changeCursorLock);
-    _desiredCursor = cursor;
+
+    auto managedCursor = Cursor::Manager::instance().getCursor();
+    auto curIcon = managedCursor->getIcon();
+    if (curIcon != cursor) {
+        managedCursor->setIcon(cursor);
+        curIcon = cursor;
+    }
+    _desiredCursor = cursor == Cursor::Icon::SYSTEM ? Qt::ArrowCursor : Qt::BlankCursor;
     _cursorNeedsChanging = true;
 }
 
@@ -1958,9 +1959,9 @@ void Application::initializeUi() {
     _window->setMenuBar(new Menu());
 
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
-    connect(compositorHelper.data(), &CompositorHelper::allowMouseCaptureChanged, [=] {
+    connect(compositorHelper.data(), &CompositorHelper::allowMouseCaptureChanged, this, [=] {
         if (isHMDMode()) {
-            showCursor(compositorHelper->getAllowMouseCapture() ? Qt::BlankCursor : Qt::ArrowCursor);
+            showCursor(compositorHelper->getAllowMouseCapture() ? Cursor::Icon::DEFAULT : Cursor::Icon::SYSTEM);
         }
     });
 
@@ -2784,9 +2785,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     auto cursor = Cursor::Manager::instance().getCursor();
                     auto curIcon = cursor->getIcon();
                     if (curIcon == Cursor::Icon::DEFAULT) {
-                        cursor->setIcon(Cursor::Icon::LINK);
+                        showCursor(Cursor::Icon::SYSTEM);
+                    } else if (curIcon == Cursor::Icon::SYSTEM) {
+                        showCursor(Cursor::Icon::LINK);
                     } else {
-                        cursor->setIcon(Cursor::Icon::DEFAULT);
+                        showCursor(Cursor::Icon::DEFAULT);
                     }
                 } else {
                     resetSensors(true);
@@ -3958,10 +3961,13 @@ void Application::updateMyAvatarLookAtPosition() {
         }
     } else {
         AvatarSharedPointer lookingAt = myAvatar->getLookAtTargetAvatar().lock();
-        if (lookingAt && myAvatar.get() != lookingAt.get()) {
+        bool haveLookAtCandidate = lookingAt && myAvatar.get() != lookingAt.get();
+        auto avatar = static_pointer_cast<Avatar>(lookingAt);
+        bool mutualLookAtSnappingEnabled = avatar && avatar->getLookAtSnappingEnabled() && myAvatar->getLookAtSnappingEnabled();
+        if (haveLookAtCandidate && mutualLookAtSnappingEnabled) {
             //  If I am looking at someone else, look directly at one of their eyes
             isLookingAtSomeone = true;
-            auto lookingAtHead = static_pointer_cast<Avatar>(lookingAt)->getHead();
+            auto lookingAtHead = avatar->getHead();
 
             const float MAXIMUM_FACE_ANGLE = 65.0f * RADIANS_PER_DEGREE;
             glm::vec3 lookingAtFaceOrientation = lookingAtHead->getFinalOrientationInWorldFrame() * IDENTITY_FORWARD;

@@ -18,6 +18,7 @@ namespace Cursor {
     };
 
     enum Icon {
+        SYSTEM,
         DEFAULT,
         LINK,
         GRAB,

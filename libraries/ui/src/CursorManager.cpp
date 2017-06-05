@@ -35,6 +35,7 @@ namespace Cursor {
     static uint16_t _customIconId = Icon::USER_BASE;
 
     Manager::Manager() {
+        ICONS[Icon::SYSTEM] = PathUtils::resourcesPath() + "images/cursor-none.png";
         ICONS[Icon::DEFAULT] = PathUtils::resourcesPath() + "images/arrow.png";
         ICONS[Icon::LINK] = PathUtils::resourcesPath() + "images/link.png";
     }
