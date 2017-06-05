@@ -400,10 +400,6 @@ ItemKey ModelMeshPartPayload::getKey() const {
                 builder.withTransparent();
             }
         }
-
-        if (_fadeState != FADE_COMPLETE) {
-            builder.withTransparent();
-        }
     }
     return builder.build();
 }
@@ -537,9 +533,9 @@ float ModelMeshPartPayload::computeFadePercent() const {
         return 0.0f;
     }
     float fadeAlpha = 1.0f;
-    const float INV_FADE_PERIOD = 1.0f / (float)(3 * USECS_PER_SECOND);
-    float fraction = (float)(usecTimestampNow() - _fadeStartTime) * INV_FADE_PERIOD;
-    if (fraction < 1.0f) {
+    const double INV_FADE_PERIOD = 1.0 / (double)(10 * USECS_PER_SECOND);
+    double fraction = (double)(usecTimestampNow() - _fadeStartTime) * INV_FADE_PERIOD;
+    if (fraction < 1.0) {
         fadeAlpha = Interpolate::simpleNonLinearBlend(fraction);
     }
     if (fadeAlpha >= 1.0f) {
@@ -549,9 +545,9 @@ float ModelMeshPartPayload::computeFadePercent() const {
         if (model) {
             model->setRenderItemsNeedUpdate();
         }
-        return 1.0f;
+        fadeAlpha = 1.0f;
     }
-    return Interpolate::simpleNonLinearBlend(fadeAlpha);
+    return fadeAlpha;
 }
 
 void ModelMeshPartPayload::bindFade(gpu::Batch& batch, const RenderArgs* args) const {

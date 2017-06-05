@@ -33,7 +33,7 @@ vec2 hash2D(vec3 position) {
     return position.xy* vec2(0.1677,  0.221765) + position.z*0.561;
 }
 
-float evalFadeMask(vec3 position, vec3 normal) {
+float evalFadeMask(vec3 position) {
     const float FADE_MASK_INV_SCALE = 1.0;
 
     // Do tri-linear interpolation
@@ -56,8 +56,8 @@ float evalFadeMask(vec3 position, vec3 normal) {
     return mix(maskY.x, maskY.y, noisePositionFraction.y);
 }
 
-void applyFade(vec3 position, vec3 normal) {
-    if (evalFadeMask(position, normal) < fade._Percent) {
+void applyFade(vec3 position) {
+    if (evalFadeMask(position) > fade._Percent) {
         discard;
     }
 }

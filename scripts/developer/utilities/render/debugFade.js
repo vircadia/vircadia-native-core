@@ -14,7 +14,7 @@ var qml = Script.resolvePath('fade.qml');
 var window = new OverlayWindow({
     title: 'Fade',
     source: qml,
-    width: 400, 
+    width: 500, 
     height: 80
 });
 window.setPosition(50, 50);

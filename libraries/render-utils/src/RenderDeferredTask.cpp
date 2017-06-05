@@ -147,7 +147,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // Render transparent objects forward in LightingBuffer
     const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).hasVarying();
-    task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
+    task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber, fadeMaskMap);
 
     // LIght Cluster Grid Debuging job
     {
@@ -276,6 +276,16 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         if (lightingModel->isWireframeEnabled()) {
             keyBuilder.withWireframe();
         }
+        // Prepare fade effect
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::FADE_MASK, _fadeMaskMap);
+        if (_debugFade) {
+            args->_debugFlags = static_cast<RenderArgs::DebugFlags>(args->_debugFlags |
+                static_cast<int>(RenderArgs::RENDER_DEBUG_FADE));
+            args->_debugFadePercent = _debugFadePercent;
+            // Force fade for everyone
+            keyBuilder.withFade();
+        }
+
         ShapeKey globalKey = keyBuilder.build();
         args->_globalShapeKey = globalKey._flags.to_ulong();
 
@@ -283,6 +293,13 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
 
         args->_batch = nullptr;
         args->_globalShapeKey = 0;
+
+        // Not sure this is really needed...
+        if (_debugFade) {
+            // Turn off fade debug
+            args->_debugFlags = static_cast<RenderArgs::DebugFlags>(args->_debugFlags &
+                ~static_cast<int>(RenderArgs::RENDER_DEBUG_FADE));
+        }
     });
 
     config->setNumDrawn((int)inItems.size());

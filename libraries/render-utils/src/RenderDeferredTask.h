@@ -45,17 +45,31 @@ protected:
 };
 
 
+class DrawFadableDeferred {
+protected:
+    DrawFadableDeferred(gpu::TexturePointer fadeMaskMap) : _fadeMaskMap{ fadeMaskMap } {}
+
+    gpu::TexturePointer _fadeMaskMap;
+    float _debugFadePercent;
+    bool _stateSort;
+    bool _debugFade;
+};
+
 class DrawConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY newStats)
-
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
+    Q_PROPERTY(bool debugFade MEMBER debugFade NOTIFY dirty)
+    Q_PROPERTY(float debugFadePercent MEMBER debugFadePercent NOTIFY dirty)
+
 public:
 
     int getNumDrawn() { return _numDrawn; }
     void setNumDrawn(int numDrawn) { _numDrawn = numDrawn;  emit newStats(); }
 
     int maxDrawn{ -1 };
+    float debugFadePercent{ 0.f };
+    bool debugFade{ false };
 
 signals:
     void newStats();
@@ -65,15 +79,15 @@ protected:
     int _numDrawn{ 0 };
 };
 
-class DrawDeferred {
+class DrawDeferred : public DrawFadableDeferred {
 public:
     using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
     using Config = DrawConfig;
     using JobModel = render::Job::ModelI<DrawDeferred, Inputs, Config>;
 
-    DrawDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
+    DrawDeferred(render::ShapePlumberPointer shapePlumber, gpu::TexturePointer fadeMaskMap) : _shapePlumber{ shapePlumber }, DrawFadableDeferred{ fadeMaskMap } {}
 
-    void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
+    void configure(const Config& config) { _maxDrawn = config.maxDrawn; _debugFadePercent = config.debugFadePercent; _debugFade = config.debugFade; }
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 protected:
@@ -94,8 +108,8 @@ public:
     void setNumDrawn(int num) { numDrawn = num; emit numDrawnChanged(); }
 
     int maxDrawn{ -1 };
-    float debugFadePercent{ 0.f };
     bool stateSort{ true };
+    float debugFadePercent{ 0.f };
     bool debugFade{ false };
 
 signals:
@@ -106,25 +120,21 @@ protected:
     int numDrawn{ 0 };
 };
 
-class DrawStateSortDeferred {
+class DrawStateSortDeferred : public DrawFadableDeferred {
 public:
     using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
 
     using Config = DrawStateSortConfig;
     using JobModel = render::Job::ModelI<DrawStateSortDeferred, Inputs, Config>;
 
-    DrawStateSortDeferred(render::ShapePlumberPointer shapePlumber, gpu::TexturePointer fadeMaskMap) : _shapePlumber{ shapePlumber }, _fadeMaskMap{ fadeMaskMap } {}
+    DrawStateSortDeferred(render::ShapePlumberPointer shapePlumber, gpu::TexturePointer fadeMaskMap) : _shapePlumber{ shapePlumber }, DrawFadableDeferred{ fadeMaskMap } {}
 
     void configure(const Config& config) { _maxDrawn = config.maxDrawn; _stateSort = config.stateSort; _debugFadePercent = config.debugFadePercent; _debugFade = config.debugFade; }
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 protected:
     render::ShapePlumberPointer _shapePlumber;
-    gpu::TexturePointer _fadeMaskMap;
     int _maxDrawn; // initialized by Config
-    float _debugFadePercent;
-    bool _stateSort;
-    bool _debugFade;
 };
 
 class DeferredFramebuffer;
@@ -207,6 +217,7 @@ public:
     RenderDeferredTask() {}
 
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
+
 };
 
 #endif // hifi_RenderDeferredTask_h
