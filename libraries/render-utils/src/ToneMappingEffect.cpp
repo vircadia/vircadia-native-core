@@ -15,7 +15,7 @@
 #include <gpu/StandardShaderLib.h>
 
 #include <RenderArgs.h>
-
+#include "StencilMaskPass.h"
 #include "FramebufferCache.h"
 
 #include "toneMapping_frag.h"

@@ -192,7 +192,7 @@ void EntityTreeRenderer::update() {
         tree->update();
 
         // Handle enter/leave entity logic
-        bool updated = checkEnterLeaveEntities();
+        checkEnterLeaveEntities();
 
         // Even if we're not moving the mouse, if we started clicking on an entity and we have
         // not yet released the hold then this is still considered a holdingClickOnEntity event

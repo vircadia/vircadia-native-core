@@ -12,21 +12,14 @@
 #ifndef hifi_RunningMarker_h
 #define hifi_RunningMarker_h
 
-#include <QObject>
 #include <QString>
-
-class QThread;
-class QTimer;
 
 class RunningMarker {
 public:
-    RunningMarker(QObject* parent, QString name);
+    RunningMarker(QString name);
     ~RunningMarker();
 
-    void startRunningMarker();
-
     QString getFilePath() const;
-    static QString getMarkerFilePath(QString name);
 
     bool fileExists() const;
 
@@ -34,10 +27,7 @@ public:
     void deleteRunningMarkerFile();
 
 private:
-    QObject* _parent { nullptr };
     QString _name;
-    QThread* _runningMarkerThread { nullptr };
-    QTimer* _runningMarkerTimer { nullptr };
 };
 
 #endif // hifi_RunningMarker_h
