@@ -109,7 +109,13 @@ EntityListTool = function(opts) {
     };
 
     webView.webEventReceived.connect(function(data) {
-        data = JSON.parse(data);
+        try {
+            data = JSON.parse(data);
+        } catch(e) {
+            print("entityList.js: Error parsing JSON: " + e.name + " data " + data)
+            return;
+        }
+
         if (data.type == "selectionUpdate") {
             var ids = data.entityIds;
             var entityIDs = [];

@@ -367,7 +367,6 @@ void RenderableZoneEntityItem::sceneUpdateRenderItemFromEntity(render::Transacti
 
     bool sunChanged = _keyLightPropertiesChanged;
     bool backgroundChanged = _backgroundPropertiesChanged;
-    bool stageChanged = _stagePropertiesChanged;
     bool skyboxChanged = _skyboxPropertiesChanged;
 
     transaction.updateItem<RenderableZoneEntityItemMeta>(_myMetaItem, [=](RenderableZoneEntityItemMeta& data) {

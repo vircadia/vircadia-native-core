@@ -12,6 +12,11 @@
 
 #include "../Endpoint.h"
 
+#include <DependencyManager.h>
+
+#include "../../InputRecorder.h"
+#include "../../UserInputMapper.h"
+
 namespace controller {
 
 class StandardEndpoint : public VirtualEndpoint {
@@ -40,6 +45,12 @@ public:
 
     virtual Pose pose() override {
         _read = true;
+        InputRecorder* inputRecorder = InputRecorder::getInstance();
+        if (inputRecorder->isPlayingback()) {
+            auto userInputMapper = DependencyManager::get<UserInputMapper>();
+            QString actionName =  userInputMapper->getStandardPoseName(_input.getChannel());
+            return inputRecorder->getPoseState(actionName);
+        }
         return VirtualEndpoint::pose();
     }
 
