@@ -95,7 +95,7 @@ public:
             const Transform& boundTransform,
             const gpu::BufferPointer& buffer);
 
-    float computeFadeAlpha();
+    float computeFadePercent() const;
 
     // Render Item interface
     render::ItemKey getKey() const override;
@@ -106,6 +106,7 @@ public:
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
+    void bindFade(gpu::Batch& batch, const RenderArgs* args) const;
 
     void initCache();
 
@@ -122,8 +123,13 @@ public:
     bool _materialNeedsUpdate { true };
 
 private:
-    quint64 _fadeStartTime { 0 };
-    uint8_t _fadeState { FADE_WAITING_TO_START };
+
+    struct Fade;
+
+    mutable gpu::BufferView _fadeBuffer;
+    mutable quint64 _fadeStartTime { 0 };
+    mutable uint8_t _fadeState { FADE_WAITING_TO_START };
+
 };
 
 namespace render {

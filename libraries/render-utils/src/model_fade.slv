@@ -1,0 +1,46 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//  model_fade.slv
+//  vertex shader
+//
+//  Created by Olivier Prat on 04/24/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Inputs.slh@>
+<@include gpu/Color.slh@>
+<@include gpu/Transform.slh@>
+<$declareStandardTransform()$>
+
+<@include MaterialTextures.slh@>
+<$declareMaterialTexMapArrayBuffer()$>
+
+<@include Fade.slh@>
+
+out vec3 _color;
+out float _alpha;
+out vec2 _texCoord0;
+out vec2 _texCoord1;
+out vec4 _position;
+out vec4 _worldFadePosition;
+out vec3 _normal;
+
+void main(void) {
+    _color = colorToLinearRGB(inColor.xyz);
+    _alpha = inColor.w;
+
+    TexMapArray texMapArray = getTexMapArray();
+    <$evalTexMapArrayTexcoord0(texMapArray, inTexCoord0, _texCoord0)$>
+    <$evalTexMapArrayTexcoord1(texMapArray, inTexCoord0, _texCoord1)$>
+
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToEyeAndClipPos(cam, obj, inPosition, _position, gl_Position)$>
+    <$transformModelToFadePos(obj, inPosition, _worldFadePosition)$>
+    <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normal)$>
+}

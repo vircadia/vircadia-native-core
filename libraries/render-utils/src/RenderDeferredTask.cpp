@@ -85,9 +85,13 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto deferredFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(0);
     const auto lightingFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(1);
 
+    // Fade texture mask
+    auto texturePath = PathUtils::resourcesPath() + "images/fadeMask.png";
+    auto fadeMaskMap = DependencyManager::get<TextureCache>()->getImageTexture(texturePath, image::TextureUsage::STRICT_TEXTURE);
+
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).hasVarying();
-    task.addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaqueInputs, shapePlumber);
+    task.addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaqueInputs, shapePlumber, fadeMaskMap);
 
     // Once opaque is all rendered create stencil background
     task.addJob<DrawStencilDeferred>("DrawOpaqueStencil", deferredFramebuffer);
@@ -313,11 +317,22 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
         // Setup lighting model for all items;
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
-        // From the lighting model define a global shapKey ORED with individiual keys
+        // From the lighting model define a global shapeKey ORED with individiual keys
         ShapeKey::Builder keyBuilder;
         if (lightingModel->isWireframeEnabled()) {
             keyBuilder.withWireframe();
         }
+
+        // Prepare fade effect
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::FADE_MASK, _fadeMaskMap);
+        if (_debugFade) {
+            args->_debugFlags = static_cast<RenderArgs::DebugFlags>(args->_debugFlags |
+                static_cast<int>(RenderArgs::RENDER_DEBUG_FADE));
+            args->_debugFadePercent = _debugFadePercent;
+            // Force fade for everyone
+            keyBuilder.withFade();
+        }
+
         ShapeKey globalKey = keyBuilder.build();
         args->_globalShapeKey = globalKey._flags.to_ulong();
 
@@ -328,6 +343,13 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
         }
         args->_batch = nullptr;
         args->_globalShapeKey = 0;
+
+        // Not sure this is really needed...
+        if (_debugFade) {
+            // Turn off fade debug
+            args->_debugFlags = static_cast<RenderArgs::DebugFlags>(args->_debugFlags &
+                ~static_cast<int>(RenderArgs::RENDER_DEBUG_FADE));
+        }
     });
 
     config->setNumDrawn((int)inItems.size());

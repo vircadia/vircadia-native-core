@@ -320,13 +320,23 @@ template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, Ren
 }
 }
 
+struct ModelMeshPartPayload::Fade
+{
+    glm::vec3 _offset;  // The noise offset
+    float _percent;     // The fade percent
+};
+
 ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int _meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform) :
     _meshIndex(_meshIndex),
     _shapeID(shapeIndex) {
 
+    Fade fade;
+    _fadeBuffer = gpu::BufferView(std::make_shared<gpu::Buffer>(sizeof(Fade), (const gpu::Byte*) &fade));
+
     assert(model && model->isLoaded());
     _model = model;
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
+
     updateMeshPart(modelMesh, partIndex);
 
     updateTransform(transform, offsetTransform);
@@ -465,7 +475,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     ShapeKey::Builder builder;
     builder.withMaterial();
 
-    if (isTranslucent || _fadeState != FADE_COMPLETE) {
+    if (isTranslucent) {
         builder.withTranslucent();
     }
     if (hasTangents) {
@@ -485,6 +495,9 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     }
     if (wireframe) {
         builder.withWireframe();
+    }
+    if (_fadeState != FADE_COMPLETE) {
+        builder.withFade();
     }
     return builder.build();
 }
@@ -509,12 +522,6 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
             batch.setInputStream(0, _drawMesh->getVertexStream());
         }
     }
-
-    if (_fadeState != FADE_COMPLETE) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, computeFadeAlpha());
-    } else if (!_hasColorAttrib) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
-    }
 }
 
 void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {
@@ -525,12 +532,12 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
     batch.setModelTransform(_transform);
 }
 
-float ModelMeshPartPayload::computeFadeAlpha() {
+float ModelMeshPartPayload::computeFadePercent() const {
     if (_fadeState == FADE_WAITING_TO_START) {
         return 0.0f;
     }
     float fadeAlpha = 1.0f;
-    const float INV_FADE_PERIOD = 1.0f / (float)(1 * USECS_PER_SECOND);
+    const float INV_FADE_PERIOD = 1.0f / (float)(3 * USECS_PER_SECOND);
     float fraction = (float)(usecTimestampNow() - _fadeStartTime) * INV_FADE_PERIOD;
     if (fraction < 1.0f) {
         fadeAlpha = Interpolate::simpleNonLinearBlend(fraction);
@@ -545,6 +552,26 @@ float ModelMeshPartPayload::computeFadeAlpha() {
         return 1.0f;
     }
     return Interpolate::simpleNonLinearBlend(fadeAlpha);
+}
+
+void ModelMeshPartPayload::bindFade(gpu::Batch& batch, const RenderArgs* args) const {
+    const bool isDebugEnabled = (args->_debugFlags & RenderArgs::RENDER_DEBUG_FADE) != 0;
+
+    if (_fadeState != FADE_COMPLETE || isDebugEnabled) {
+        auto& fade = _fadeBuffer.edit<Fade>();
+        glm::vec3 offset = _transform.getTranslation();
+
+        // A bit ugly to have the test at every bind...
+        if (!isDebugEnabled) {
+            fade._percent = computeFadePercent();
+        }
+        else {
+            fade._percent = args->_debugFadePercent;
+        }
+
+        fade._offset = offset;
+        batch.setUniformBuffer(ShapePipeline::Slot::BUFFER::FADE, _fadeBuffer);
+    }
 }
 
 void ModelMeshPartPayload::render(RenderArgs* args) {
@@ -592,6 +619,9 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
 
     // apply material properties
     bindMaterial(batch, locations, args->_enableTexturing);
+
+    // Apply fade effect
+    bindFade(batch, args);
 
     args->_details._materialSwitches++;
 

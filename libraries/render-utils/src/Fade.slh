@@ -1,0 +1,66 @@
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Created by Olivier Prat on 04/12/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+<@if not FADE_SLH@>
+<@def FADE_SLH@>
+
+<@func transformModelToFadePos(objectTransform, objectPosition, fadePosition)@>
+    {
+        <$transformModelToWorldPos($objectTransform$, $objectPosition$, $fadePosition$)$>
+        <$fadePosition$> -= vec4(<$objectTransform$>._model[3].xyz, 0.f);
+    }
+<@endfunc@>
+
+<@func declareFadeFragment()@>
+
+struct Fade {
+    vec3 _Offset;
+    float  _Percent;
+};
+
+uniform fadeBuffer {
+    Fade fade;
+};
+
+uniform sampler2D fadeMaskMap;
+
+vec2 hash2D(vec3 position) {
+    return position.xy* vec2(0.1677,  0.221765) + position.z*0.561;
+}
+
+float evalFadeMask(vec3 position, vec3 normal) {
+    const float FADE_MASK_INV_SCALE = 1.0;
+
+    // Do tri-linear interpolation
+    vec3    noisePosition = position * FADE_MASK_INV_SCALE + fade._Offset;
+    vec3    noisePositionFloored = floor(noisePosition);
+    vec3    noisePositionFraction = fract(noisePosition);
+    float   noiseLowXLowYLowZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored), 0).r;
+    float   noiseLowXHighYLowZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored+vec3(0,1,0)), 0).r;
+    float   noiseHighXLowYLowZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored+vec3(1,0,0)), 0).r;
+    float   noiseHighXHighYLowZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored+vec3(1,1,0)), 0).r;
+    float   noiseLowXLowYHighZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored+vec3(0,0,1)), 0).r;
+    float   noiseLowXHighYHighZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored+vec3(0,1,1)), 0).r;
+    float   noiseHighXLowYHighZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored+vec3(1,0,1)), 0).r;
+    float   noiseHighXHighYHighZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored+vec3(1,1,1)), 0).r;
+    vec4    maskLowZ = vec4(noiseLowXLowYLowZ, noiseLowXHighYLowZ, noiseHighXLowYLowZ, noiseHighXHighYLowZ);
+    vec4    maskHighZ = vec4(noiseLowXLowYHighZ, noiseLowXHighYHighZ, noiseHighXLowYHighZ, noiseHighXHighYHighZ);
+    vec4    maskXY = mix(maskLowZ, maskHighZ, noisePositionFraction.z);
+    vec2    maskY = mix(maskXY.xy, maskXY.zw, noisePositionFraction.x);
+
+    return mix(maskY.x, maskY.y, noisePositionFraction.y);
+}
+
+void applyFade(vec3 position, vec3 normal) {
+    if (evalFadeMask(position, normal) < fade._Percent) {
+        discard;
+    }
+}
+<@endfunc@>
+
+<@endif@>

@@ -41,6 +41,12 @@
 #include "model_normal_specular_map_frag.h"
 #include "model_specular_map_frag.h"
 
+#include "model_fade_vert.h"
+#include "model_normal_map_fade_vert.h"
+
+#include "model_fade_frag.h"
+#include "model_normal_map_fade_frag.h"
+
 #include "forward_model_frag.h"
 #include "forward_model_unlit_frag.h"
 #include "forward_model_normal_map_frag.h"
@@ -151,6 +157,10 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     auto skinModelNormalMapVertex = gpu::Shader::createVertex(std::string(skin_model_normal_map_vert));
     auto skinModelShadowVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_vert));
 
+    // Only models can have fade applied to them (?)
+    auto modelFadeVertex = gpu::Shader::createVertex(std::string(model_fade_vert));
+    auto modelNormalMapFadeVertex = gpu::Shader::createVertex(std::string(model_normal_map_fade_vert));
+
     // Pixel shaders
     auto simplePixel = gpu::Shader::createPixel(std::string(simple_textured_frag));
     auto simpleUnlitPixel = gpu::Shader::createPixel(std::string(simple_textured_unlit_frag));
@@ -168,6 +178,10 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     auto modelLightmapNormalMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_map_frag));
     auto modelLightmapSpecularMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_specular_map_frag));
     auto modelLightmapNormalSpecularMapPixel = gpu::Shader::createPixel(std::string(model_lightmap_normal_specular_map_frag));
+
+    // Only models can have fade applied to them (?)
+    auto modelFadePixel = gpu::Shader::createPixel(std::string(model_fade_frag));
+    auto modelNormalMapFadePixel = gpu::Shader::createPixel(std::string(model_normal_map_fade_frag));
 
     using Key = render::ShapeKey;
     auto addPipeline = std::bind(&addPlumberPipeline, std::ref(plumber), _1, _2, _3);
@@ -194,6 +208,14 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     addPipeline(
         Key::Builder().withMaterial().withTangents().withSpecular(),
         modelNormalMapVertex, modelNormalSpecularMapPixel);
+    // Same thing but with Fade on
+    addPipeline(
+        Key::Builder().withMaterial().withFade(),
+        modelFadeVertex, modelFadePixel);
+    addPipeline(
+        Key::Builder().withMaterial().withTangents().withFade(),
+        modelNormalMapFadeVertex, modelNormalMapFadePixel);
+
     // Translucents
     addPipeline(
         Key::Builder().withMaterial().withTranslucent(),
