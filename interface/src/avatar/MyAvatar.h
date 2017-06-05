@@ -523,7 +523,7 @@ public slots:
                       bool shouldFaceLocation = false);
     void goToLocation(const QVariant& properties);
     void goToLocationAndEnableCollisions(const glm::vec3& newPosition);
-    bool safeLanding(const glm::vec3& position, bool force = false);
+    bool safeLanding(const glm::vec3& position);
 
     void restrictScaleFromDomainSettings(const QJsonObject& domainSettingsObject);
     void clearScaleRestriction();
@@ -571,7 +571,7 @@ private:
 
     glm::vec3 getWorldBodyPosition() const;
     glm::quat getWorldBodyOrientation() const;
-    bool requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& positionOut, bool force = false);
+    bool requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& positionOut);
 
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail) override;
 

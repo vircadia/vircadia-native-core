@@ -605,7 +605,7 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
 
     QString extraInfo;
     return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance,
-                                                       face, surfaceNormal, extraInfo, precisionPicking);
+                                                       face, surfaceNormal, extraInfo, precisionPicking, precisionPicking);
 }
 
 void RenderableModelEntityItem::getCollisionGeometryResource() {

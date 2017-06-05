@@ -175,9 +175,7 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
                 const float STUCK_PENETRATION = -0.05f; // always negative into the object.
                 const float STUCK_IMPULSE = 500.0f;
                 const int STUCK_LIFETIME = 3;
-                //if (contact.getDistance() < STUCK_PENETRATION) qDebug() << "FIXME checking contact:" << contact.getDistance() << " impulse:" << contact.getAppliedImpulse() << " lifetime:" << contact.getLifeTime();
                 if ((contact.getDistance() < STUCK_PENETRATION) && (contact.getAppliedImpulse() > STUCK_IMPULSE) && (contact.getLifeTime() > STUCK_LIFETIME)) {
-                    qDebug() << "FIXME stuck contact:" << contact.getDistance() << " impulse:" << contact.getAppliedImpulse() << " lifetime:" << contact.getLifeTime();
                     isStuck = true; // latch on
                 }
                 if (hitHeight < _maxStepHeight && normal.dot(_currentUp) > _minFloorNormalDotUp) {
@@ -193,7 +191,7 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
                     if (!_stepUpEnabled || hitHeight > _maxStepHeight) {
                         // this manifold is invalidated by point that is too high
                         stepContactIndex = -1;
-                        qDebug() << "FIXME breaking early";  break;
+                        break;
                     } else if (hitHeight > highestStep && normal.dot(_targetVelocity) < 0.0f ) {
                         highestStep = hitHeight;
                         stepContactIndex = j;
