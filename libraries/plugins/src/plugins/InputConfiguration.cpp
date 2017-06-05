@@ -8,19 +8,43 @@
 
 
 #include "InputConfiguration.h"
-
+#include "DisplayPlugin.h"
+#include "InputPlugin.h"
 #include "PluginManager.h"
 
 InputConfiguration::InputConfiguration() {
-        
 }
 
-void InputConfiguration::inputPlugins() {
-    PluginManager* inputPlugin = PluginManager::getInstance();
+QStringList InputConfiguration::inputPlugins() {
+    QStringList inputPlugins;
+    for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
+        inputPlugins << QString(plugin->getName());
+    }
+    return inputPlugins;
 }
 
-void InputConfiguration::enabledInputPlugins() {
-    qDebug() << "getting enabled plugins";
+
+QStringList InputConfiguration::activeInputPlugins() {
+    QStringList activePlugins;
+    for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
+        if (plugin->isActive()) {
+            activePlugins << QString(plugin->getName());
+        }
+    }
+    return activePlugins;
 }
 
+QString InputConfiguration::configurationLayout(QString pluginName) {
+    QString sourcePath; 
 
+    for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
+        if (plugin->getName() == pluginName) {
+            qDebug() << "------------> testing <----------";
+        }
+    }
+    return sourcePath;
+}
+
+void InputConfiguration::configurationSettings(QJsonObject configurationSettings, QString pluginName) {
+    qDebug() << configurationSettings["Test"];
+}

@@ -42,6 +42,8 @@ public:
 
     bool isHandController() const override { return true; }
 
+    void inputPluginConfigurationSettings(const QJsonObject configurationSettings) override;
+
     bool activate() override;
     void deactivate() override;
 
@@ -145,6 +147,7 @@ private:
         bool _triggersPressedHandled { false };
         bool _calibrated { false };
         bool _timeTilCalibrationSet { false };
+        bool _calibrate { false };
         mutable std::recursive_mutex _lock;
 
         QString configToString(Config config);

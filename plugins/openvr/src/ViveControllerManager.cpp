@@ -94,6 +94,9 @@ bool ViveControllerManager::isSupported() const {
     return openVrSupported();
 }
 
+void ViveControllerManager::inputPluginConfigurationSettings(const QJsonObject configurationSettings) {
+}
+
 bool ViveControllerManager::activate() {
     InputPlugin::activate();
 

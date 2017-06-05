@@ -20,6 +20,8 @@ Rectangle {
 
     color: hifi.colors.baseGray
 
+    property var pluginSettings: null
+
     Rectangle {
         width: inputConfiguration.width
         height: 1
@@ -71,17 +73,22 @@ Rectangle {
         HifiControls.ComboBox {
             id: box
             width: 160
-            
+            editable: true
             colorScheme: hifi.colorSchemes.dark
             model: inputPlugins()
+            
+            onCurrentIndexChanged: {
+                var object = {"Test": "hello"};
+                InputConfiguration.configurationSettings(object, box.currentText);
+            }
         }
 
         HifiControls.CheckBox {
             onClicked: {
                 if (checked) {
-                    console.log("button checked");
-                    Tablet.getTablet("");
-                    InputConfiguration.inputPlugins();
+                    box.model = InputConfiguration.activeInputPlugins();
+                } else {
+                    box.model = InputConfiguration.inputPlugins();
                 }
             }
         }
@@ -89,7 +96,6 @@ Rectangle {
     }
 
     function inputPlugins() {
-        var plugins = ["temp"];
-        return plugins
+        return InputConfiguration.inputPlugins();
     }
 }

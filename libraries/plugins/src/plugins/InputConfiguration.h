@@ -12,15 +12,20 @@
 #include <mutex>
 
 #include <QObject>
+#include <QString>
+#include <QStringList>
+#include <QJsonObject>
 #include <DependencyManager.h>
 
 class InputConfiguration : public QObject, public Dependency {
     Q_OBJECT
 public:
     InputConfiguration();
-    
-    void inputPlugins();
-    void enabledInputPlugins();
+
+    Q_INVOKABLE QStringList inputPlugins();
+    Q_INVOKABLE QStringList activeInputPlugins();
+    Q_INVOKABLE QString configurationLayout(QString pluginName);
+    Q_INVOKABLE void configurationSettings(QJsonObject configurationSettings, QString pluginName);
 };
 
 #endif

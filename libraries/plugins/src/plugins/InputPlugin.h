@@ -11,6 +11,7 @@
 #pragma once
 
 #include "Plugin.h"
+#include <QJsonObject>
 
 namespace controller {
     struct InputCalibrationData;
@@ -25,5 +26,5 @@ public:
     // If an input plugin is only a single device, it will only return it's primary name.
     virtual QStringList getSubdeviceNames() { return { getName() }; };
     virtual bool isHandController() const = 0;
+    virtual void inputPluginConfigurationSettings(const QJsonObject configurationSettings) { }
 };
-
