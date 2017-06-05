@@ -1893,7 +1893,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
     auto headPose = getHeadControllerPoseInAvatarFrame();
     if (headPose.isValid()) {
-        glm::quat localOrientation = headPose.rotation;
+        glm::quat localOrientation = headPose.rotation * Quaternions::Y_180;
         // these angles will be in radians
         // ... so they need to be converted to degrees before we do math...
         glm::vec3 euler = glm::eulerAngles(localOrientation) * DEGREES_PER_RADIAN;
