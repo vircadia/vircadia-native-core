@@ -28,11 +28,12 @@
 #include "skin_model_shadow_vert.h"
 #include "skin_model_normal_map_vert.h"
 
-#include "skin_model_fade_vert.h"
-#include "skin_model_normal_map_fade_vert.h"
-
+#include "model_shadow_fade_vert.h"
 #include "model_lightmap_fade_vert.h"
 #include "model_lightmap_normal_map_fade_vert.h"
+#include "skin_model_fade_vert.h"
+#include "skin_model_shadow_fade_vert.h"
+#include "skin_model_normal_map_fade_vert.h"
 
 #include "simple_vert.h"
 #include "simple_textured_frag.h"
@@ -55,6 +56,7 @@
 #include "model_normal_map_fade_vert.h"
 
 #include "model_fade_frag.h"
+#include "model_shadow_fade_frag.h"
 #include "model_unlit_fade_frag.h"
 #include "model_normal_map_fade_frag.h"
 #include "model_normal_specular_map_fade_frag.h"
@@ -183,6 +185,8 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     auto modelFadeVertex = gpu::Shader::createVertex(std::string(model_fade_vert));
     auto modelNormalMapFadeVertex = gpu::Shader::createVertex(std::string(model_normal_map_fade_vert));
     auto simpleFadeVertex = gpu::Shader::createVertex(std::string(simple_fade_vert));
+    auto modelShadowFadeVertex = gpu::Shader::createVertex(std::string(model_shadow_fade_vert));
+    auto skinModelShadowFadeVertex = gpu::Shader::createVertex(std::string(skin_model_shadow_fade_vert));
 
     // Pixel shaders
     auto simplePixel = gpu::Shader::createPixel(std::string(simple_textured_frag));
@@ -211,6 +215,7 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     auto modelNormalMapFadePixel = gpu::Shader::createPixel(std::string(model_normal_map_fade_frag));
     auto modelSpecularMapFadePixel = gpu::Shader::createPixel(std::string(model_specular_map_fade_frag));
     auto modelNormalSpecularMapFadePixel = gpu::Shader::createPixel(std::string(model_normal_specular_map_fade_frag));
+    auto modelShadowFadePixel = gpu::Shader::createPixel(std::string(model_shadow_fade_frag));
     auto simpleFadePixel = gpu::Shader::createPixel(std::string(simple_textured_fade_frag));
     auto simpleUnlitFadePixel = gpu::Shader::createPixel(std::string(simple_textured_unlit_fade_frag));
 
@@ -364,6 +369,13 @@ void initDeferredPipelines(render::ShapePlumber& plumber) {
     addPipeline(
         Key::Builder().withSkinned().withDepthOnly(),
         skinModelShadowVertex, modelShadowPixel);
+    // Same thing but with Fade on
+    addPipeline(
+        Key::Builder().withDepthOnly().withFade(),
+        modelShadowFadeVertex, modelShadowFadePixel);
+    addPipeline(
+        Key::Builder().withSkinned().withDepthOnly().withFade(),
+        skinModelShadowFadeVertex, modelShadowFadePixel);
 }
 
 void initForwardPipelines(render::ShapePlumber& plumber) {
