@@ -7,10 +7,11 @@
         APP_ICON = 'https://binaryrelay.com/files/public-docs/hifi/laser/laser.svg',
         APP_ICON_ACTIVE = 'https://binaryrelay.com/files/public-docs/hifi/laser/laser-a.svg';
 
-
     var POINT_INDEX_CHANNEL = "Hifi-Point-Index",
         GRAB_DISABLE_CHANNEL = "Hifi-Grab-Disable",
         POINTER_DISABLE_CHANNEL = "Hifi-Pointer-Disable";
+
+    var TRIGGER_PRESSURE = 0.95;
 
     var tablet = Tablet.getTablet('com.highfidelity.interface.tablet.system');
 
@@ -29,8 +30,8 @@
             beam: null,
             sphere: null
         }
-
     };
+
     var rayExclusionList = [];
 
 
@@ -40,14 +41,14 @@
 
         var isNewEntityNeeded = (laserEntities[hand].beam === null);
 
-        var _hand = hand === 'right' ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
-        var _joint = hand === 'right' ? 'RightHand' : 'LeftHand'; //'RightHandIndex4' : 'LeftHandIndex4'
-        var controllerLocation = getControllerWorldLocation(_hand, true);
+        var currentHand = hand === 'right' ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
+        var jointName = hand === 'right' ? 'RightHand' : 'LeftHand'; //'RightHandIndex4' : 'LeftHandIndex4'
+        var controllerLocation = getControllerWorldLocation(currentHand, true);
 
         var worldHandRotation = controllerLocation.orientation;
 
         var pickRay = {
-            origin: MyAvatar.getJointPosition(_joint),
+            origin: MyAvatar.getJointPosition(jointName),
             direction: Quat.getUp(worldHandRotation),
             length: PICK_MAX_DISTANCE
         };
@@ -83,8 +84,7 @@
 
             var sphere = {
                 lifetime: 360,
-                type: 'Shape',
-                shape: 'circle3d',
+                type: 'Sphere',
                 dimensions: {x: sphereSize, y: sphereSize, z: sphereSize},
                 color: {red: 0, green: 255, blue: 0},
                 position: intersection,
@@ -102,7 +102,7 @@
                 drawInFront: true,
                 color: {red: 0, green: 255, blue: 0},
                 parentID: MyAvatar.sessionUUID,
-                parentJointIndex: MyAvatar.getJointIndex(_joint),
+                parentJointIndex: MyAvatar.getJointIndex(jointName),
                 localPosition: {x: 0, y: .2, z: 0},
                 localRotation: Quat.normalize({}),
                 dimensions: Vec3.multiply(PICK_MAX_DISTANCE * 2, Vec3.ONE),
@@ -110,11 +110,11 @@
             };
 
 
-            laserEntities[hand].beam = Entities.addEntity(beam);
+            laserEntities[hand].beam = Entities.addEntity(beam,true);
             rayExclusionList.push(laserEntities[hand].beam);
 
             if (ray.intersects || avatarRay.intersects) {
-                laserEntities[hand].sphere = Entities.addEntity(sphere);
+                laserEntities[hand].sphere = Entities.addEntity(sphere,true);
                 rayExclusionList.push(laserEntities[hand].sphere);
             }
 
@@ -123,7 +123,7 @@
 
                 Entities.editEntity(laserEntities[hand].beam, {
                     parentID: MyAvatar.sessionUUID,
-                    parentJointIndex: MyAvatar.getJointIndex(_joint),
+                    parentJointIndex: MyAvatar.getJointIndex(jointName),
                     localPosition: {x: 0, y: .2, z: 0},
                     localRotation: Quat.normalize({}),
                     dimensions: Vec3.multiply(PICK_MAX_DISTANCE * 2, Vec3.ONE),
@@ -138,7 +138,7 @@
             } else {
                 Entities.editEntity(laserEntities[hand].beam, {
                     parentID: MyAvatar.sessionUUID,
-                    parentJointIndex: MyAvatar.getJointIndex(_joint),
+                    parentJointIndex: MyAvatar.getJointIndex(jointName),
                     localPosition: {x: 0, y: .2, z: 0},
                     localRotation: Quat.normalize({}),
                     dimensions: Vec3.multiply(PICK_MAX_DISTANCE * 2, Vec3.ONE),
@@ -155,14 +155,14 @@
         var deleteBeamLeft = true,
             deleteBeamRight = true;
 
-        if (Controller.getValue(Controller.Standard.LT) > .95) {
+        if (Controller.getValue(Controller.Standard.LT) > TRIGGER_PRESSURE) {
             deleteBeamLeft = false;
-            laser('left', deltaTime);
+            laser('left');
         }
 
-        if (Controller.getValue(Controller.Standard.RT) > .95) {
+        if (Controller.getValue(Controller.Standard.RT) > TRIGGER_PRESSURE) {
             deleteBeamRight = false;
-            laser('right', deltaTime);
+            laser('right');
         }
 
         if (deleteBeamLeft && laserEntities.left.beam !== null) {
@@ -181,7 +181,7 @@
             laserEntities.right.sphere = null;
 
         }
-        if (deleteBeamRight && laserEntities.right.beam !== null && deleteBeamLeft && laserEntities.left.beam !== null) {
+        if (deleteBeamRight && deleteBeamLeft) {
             rayExclusionList = [];
         }
     }
@@ -202,7 +202,7 @@
 
     var _switch = true;
 
-    function bSwitch() {
+    function buttonSwitch() {
         if (_switch) {
             Script.update.connect(triggerWatcher);
             Messages.subscribe(POINT_INDEX_CHANNEL);
@@ -221,7 +221,7 @@
         _switch = !_switch;
     }
 
-    button.clicked.connect(bSwitch);
+    button.clicked.connect(buttonSwitch);
 
     function clean() {
         tablet.removeButton(button);
