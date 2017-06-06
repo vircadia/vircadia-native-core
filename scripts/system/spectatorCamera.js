@@ -1,6 +1,6 @@
 "use strict";
 /*jslint vars:true, plusplus:true, forin:true*/
-/*global Tablet, */
+/*global Tablet, Script,  */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 //
 // spectatorCamera.js
@@ -14,44 +14,61 @@
 
 (function () { // BEGIN LOCAL_SCOPE
 
+    //
+    // FUNCTION VAR DECLARATIONS
+    //
+    var sendToQml, onTabletScreenChanged, fromQml, onTabletButtonClicked, wireEventBridge, startup, shutdown;
 
     //
-    // Function Name: sendToQml()
+    // Function Name: startup()
     //
     // Relevant Variables:
-    // None
+    // button: The tablet button.
+    // buttonName: The name of the button.
+    // tablet: The tablet instance to be modified.
     // 
     // Arguments:
-    // message: The message to send to the SpectatorCamera QML.
-    //     Messages are in format "{method, params}", like json-rpc. See also fromQml().
+    // None
     // 
     // Description:
-    // Use this function to send a message to the QML (i.e. to change appearances).
+    // startup() will be called when the script is loaded.
     //
-    function sendToQml(message) {
-        tablet.sendToQml(message);
+    var button;
+    var buttonName = "SPECTATOR";
+    var tablet = null;
+    function startup() {
+        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        button = tablet.addButton({
+            text: buttonName
+        });
+        button.clicked.connect(onTabletButtonClicked);
+        tablet.screenChanged.connect(onTabletScreenChanged);
     }
 
     //
-    // Function Name: fromQml()
+    // Function Name: wireEventBridge()
     //
     // Relevant Variables:
-    // None
+    // hasEventBridge: true/false depending on whether we've already connected the event bridge
     // 
     // Arguments:
-    // message: The message sent from the SpectatorCamera QML.
-    //     Messages are in format "{method, params}", like json-rpc. See also sendToQml().
+    // on: Enable or disable the event bridge
     // 
     // Description:
-    // Called when a message is received from SpectatorCamera.qml.
+    // Used to connect/disconnect the script's response to the tablet's "fromQml" signal.
     //
-    function fromQml(message) { // 
-        var data;
-        switch (message.method) {
-            case 'XXX':
-                break;
-            default:
-                print('Unrecognized message from SpectatorCamera.qml:', JSON.stringify(message));
+    var hasEventBridge = false;
+    function wireEventBridge(on) {
+        if (on) {
+            if (!hasEventBridge) {
+                tablet.fromQml.connect(fromQml);
+                hasEventBridge = true;
+            }
+        } else {
+            if (hasEventBridge) {
+                tablet.fromQml.disconnect(fromQml);
+                hasEventBridge = false;
+            }
         }
     }
 
@@ -83,33 +100,6 @@
     }
 
     //
-    // Function Name: wireEventBridge()
-    //
-    // Relevant Variables:
-    // hasEventBridge: true/false depending on whether we've already connected the event bridge
-    // 
-    // Arguments:
-    // on: Enable or disable the event bridge
-    // 
-    // Description:
-    // Used to connect/disconnect the script's response to the tablet's "fromQml" signal.
-    //
-    var hasEventBridge = false;
-    function wireEventBridge(on) {
-        if (on) {
-            if (!hasEventBridge) {
-                tablet.fromQml.connect(fromQml);
-                hasEventBridge = true;
-            }
-        } else {
-            if (hasEventBridge) {
-                tablet.fromQml.disconnect(fromQml);
-                hasEventBridge = false;
-            }
-        }
-    }
-
-    //
     // Function Name: onTabletScreenChanged()
     //
     // Relevant Variables:
@@ -131,29 +121,42 @@
     }
 
     //
-    // Function Name: shutdown()
+    // Function Name: sendToQml()
     //
     // Relevant Variables:
-    // button: The tablet button.
-    // buttonName: The name of the button.
-    // tablet: The tablet instance to be modified.
-    // 
-    // Arguments:
     // None
     // 
+    // Arguments:
+    // message: The message to send to the SpectatorCamera QML.
+    //     Messages are in format "{method, params}", like json-rpc. See also fromQml().
+    // 
     // Description:
-    // startup() will be called when the script is loaded.
+    // Use this function to send a message to the QML (i.e. to change appearances).
     //
-    var button;
-    var buttonName = "Spectator";
-    var tablet = null;
-    function startup() {
-        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        button = tablet.addButton({
-            text: buttonName
-        });
-        button.clicked.connect(onTabletButtonClicked);
-        tablet.screenChanged.connect(onTabletScreenChanged);
+    function sendToQml(message) {
+        tablet.sendToQml(message);
+    }
+
+    //
+    // Function Name: fromQml()
+    //
+    // Relevant Variables:
+    // None
+    // 
+    // Arguments:
+    // message: The message sent from the SpectatorCamera QML.
+    //     Messages are in format "{method, params}", like json-rpc. See also sendToQml().
+    // 
+    // Description:
+    // Called when a message is received from SpectatorCamera.qml.
+    //
+    function fromQml(message) {
+        switch (message.method) {
+            case 'XXX':
+                break;
+            default:
+                print('Unrecognized message from SpectatorCamera.qml:', JSON.stringify(message));
+        }
     }
 
     //
