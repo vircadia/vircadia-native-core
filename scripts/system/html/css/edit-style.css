@@ -610,6 +610,7 @@ hr {
 .dropdown dl[dropped="true"] {
     color: #404040;
     background: linear-gradient(#afafaf, #afafaf);
+    z-index: 998;
 }
 
 .dropdown dt {
