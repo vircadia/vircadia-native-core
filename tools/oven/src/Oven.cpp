@@ -11,13 +11,16 @@
 
 #include <QtCore/QDebug>
 #include <QtCore/QThread>
+#include <QtCore/QCommandLineParser>
+#include <QtCore/QCoreApplication>
 
 #include <image/Image.h>
 #include <SettingInterface.h>
 
 #include "ui/OvenMainWindow.h"
-
+#include "ModelBakingLoggingCategory.h"
 #include "Oven.h"
+#include "BakerCli.h"
 
 static const QString OUTPUT_FOLDER = "/Users/birarda/code/hifi/lod/test-oven/export";
 
@@ -30,17 +33,22 @@ Oven::Oven(int argc, char* argv[]) :
     // init the settings interface so we can save and load settings
     Setting::init();
 
+    // parse the command line parameters
+    QCommandLineParser parser;
+   
+    parser.addOptions({
+        { "i", "Input filename.", "input" },
+        { "o", "Output filename.", "output" }
+    });
+    parser.addHelpOption();
+
+    parser.process(*this);
+
     // enable compression in image library, except for cube maps
     image::setColorTexturesCompressionEnabled(true);
     image::setGrayscaleTexturesCompressionEnabled(true);
     image::setNormalTexturesCompressionEnabled(true);
     image::setCubeTexturesCompressionEnabled(true);
-
-    // check if we were passed any command line arguments that would tell us just to run without the GUI
-
-    // setup the GUI
-    _mainWindow = new OvenMainWindow;
-    _mainWindow->show();
 
     // setup our worker threads
     setupWorkerThreads(QThread::idealThreadCount() - 1);
@@ -48,6 +56,16 @@ Oven::Oven(int argc, char* argv[]) :
     // Autodesk's SDK means that we need a single thread for all FBX importing/exporting in the same process
     // setup the FBX Baker thread
     setupFBXBakerThread();
+
+    // check if we were passed any command line arguments that would tell us just to run without the GUI
+    if (parser.isSet("i") && parser.isSet("o")) {
+        BakerCLI* cli = new BakerCLI();
+        cli->bakeFile(parser.value("i"), parser.value("o"));
+    } else {
+        // setup the GUI
+        _mainWindow = new OvenMainWindow;
+        _mainWindow->show();
+    }
 }
 
 Oven::~Oven() {
