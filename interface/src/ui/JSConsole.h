@@ -32,9 +32,10 @@ public:
     JSConsole(QWidget* parent, ScriptEngine* scriptEngine = NULL);
     ~JSConsole();
 
-    void setScriptEngine(ScriptEngine* scriptEngine = NULL);    
+    void setScriptEngine(ScriptEngine* scriptEngine = NULL);
+    void clear();
 
-public slots:
+    public slots:
     void executeCommand(const QString& command);
 
 protected:
@@ -43,15 +44,14 @@ protected:
     virtual void mouseReleaseEvent(QMouseEvent* event) override;
     virtual void showEvent(QShowEvent* event) override;
 
-protected slots:
+    protected slots:
     void scrollToBottom();
     void resizeTextInput();
     void handlePrint(const QString& message, const QString& scriptName);
     void handleInfo(const QString& message, const QString& scriptName);
     void handleWarning(const QString& message, const QString& scriptName);
     void handleError(const QString& message, const QString& scriptName);
-    void commandFinished();    
-    void clear();
+    void commandFinished();
 
 private:
     void appendMessage(const QString& gutter, const QString& message);

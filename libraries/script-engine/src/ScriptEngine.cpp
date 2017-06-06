@@ -485,10 +485,11 @@ void ScriptEngine::scriptPrintedMessage(const QString& message) {
     qCDebug(scriptengine) << message;
     emit printedMessage(message, getFilename());
 }
+
 void ScriptEngine::clearConsole() {
-    qCDebug(scriptengine) << "Clearing debug window";
     emit clearDebugWindow();
 }
+
 // Even though we never pass AnimVariantMap directly to and from javascript, the queued invokeMethod of
 // callAnimationStateHandler requires that the type be registered.
 // These two are meaningful, if we ever do want to use them...

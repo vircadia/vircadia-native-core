@@ -15,8 +15,8 @@
 #include "Application.h"
 
 TestingDialog::TestingDialog(QWidget* parent) :
-    QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint),
-    _console(new JSConsole(this))
+QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint),
+_console(new JSConsole(this))
 {
     setAttribute(Qt::WA_DeleteOnClose);
     setWindowTitle(windowLabel);
@@ -26,11 +26,10 @@ TestingDialog::TestingDialog(QWidget* parent) :
     auto _engines = DependencyManager::get<ScriptEngines>();
     _engine = _engines->loadScript(qApp->applicationDirPath() + testRunnerRelativePath);
     _console->setScriptEngine(_engine);
-    connect(_engine, &ScriptEngine::finished, this, &TestingDialog::onTestingFinished);    
+    connect(_engine, &ScriptEngine::finished, this, &TestingDialog::onTestingFinished);
 }
 
 void TestingDialog::onTestingFinished(const QString& scriptPath) {
     _engine = nullptr;
     _console->setScriptEngine(nullptr);
-    
 }

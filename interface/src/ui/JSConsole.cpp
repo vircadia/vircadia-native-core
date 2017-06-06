@@ -21,7 +21,6 @@
 #include "Application.h"
 #include "JSConsole.h"
 #include "ScriptHighlighting.h"
-//#include "D:\Dhruvesh\Project\Hifi\github\hifi\libraries\script-engine\src\ScriptEngineLogging.h"
 
 const int NO_CURRENT_HISTORY_COMMAND = -1;
 const int MAX_HISTORY_SIZE = 64;
@@ -36,15 +35,15 @@ const QString RESULT_ERROR_STYLE = "color: #d13b22;";
 const QString GUTTER_PREVIOUS_COMMAND = "<span style=\"color: #57b8bb;\">&lt;</span>";
 const QString GUTTER_ERROR = "<span style=\"color: #d13b22;\">X</span>";
 
-const QString JSConsole::_consoleFileName { "about:console" };
+const QString JSConsole::_consoleFileName{ "about:console" };
 
 JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
-    QWidget(parent),
-    _ui(new Ui::Console),
-    _currentCommandInHistory(NO_CURRENT_HISTORY_COMMAND),
-    _commandHistory(),
-    _ownScriptEngine(scriptEngine == NULL),
-    _scriptEngine(NULL) {
+QWidget(parent),
+_ui(new Ui::Console),
+_currentCommandInHistory(NO_CURRENT_HISTORY_COMMAND),
+_commandHistory(),
+_ownScriptEngine(scriptEngine == NULL),
+_scriptEngine(NULL) {
 
     _ui->setupUi(this);
     _ui->promptTextEdit->setLineWrapMode(QTextEdit::NoWrap);
@@ -85,7 +84,6 @@ void JSConsole::setScriptEngine(ScriptEngine* scriptEngine) {
         disconnect(_scriptEngine, &ScriptEngine::infoMessage, this, &JSConsole::handleInfo);
         disconnect(_scriptEngine, &ScriptEngine::warningMessage, this, &JSConsole::handleWarning);
         disconnect(_scriptEngine, &ScriptEngine::errorMessage, this, &JSConsole::handleError);
-        disconnect(_scriptEngine, &ScriptEngine::clearDebugWindow, this, &JSConsole::clear);
         if (_ownScriptEngine) {
             _scriptEngine->deleteLater();
         }
@@ -99,7 +97,6 @@ void JSConsole::setScriptEngine(ScriptEngine* scriptEngine) {
     connect(_scriptEngine, &ScriptEngine::infoMessage, this, &JSConsole::handleInfo);
     connect(_scriptEngine, &ScriptEngine::warningMessage, this, &JSConsole::handleWarning);
     connect(_scriptEngine, &ScriptEngine::errorMessage, this, &JSConsole::handleError);
-    connect(_scriptEngine, &ScriptEngine::clearDebugWindow, this, &JSConsole::clear);
 }
 
 void JSConsole::executeCommand(const QString& command) {
@@ -119,9 +116,9 @@ void JSConsole::executeCommand(const QString& command) {
 QScriptValue JSConsole::executeCommandInWatcher(const QString& command) {
     QScriptValue result;
     QMetaObject::invokeMethod(_scriptEngine, "evaluate", Qt::ConnectionType::BlockingQueuedConnection,
-                              Q_RETURN_ARG(QScriptValue, result),
-                              Q_ARG(const QString&, command),
-                              Q_ARG(const QString&, _consoleFileName));
+        Q_RETURN_ARG(QScriptValue, result),
+        Q_ARG(const QString&, command),
+        Q_ARG(const QString&, _consoleFileName));
     return result;
 }
 
@@ -147,7 +144,6 @@ void JSConsole::commandFinished() {
 void JSConsole::handleError(const QString& message, const QString& scriptName) {
     Q_UNUSED(scriptName);
     appendMessage(GUTTER_ERROR, "<span style='" + RESULT_ERROR_STYLE + "'>" + message.toHtmlEscaped() + "</span>");
-
 }
 
 void JSConsole::handlePrint(const QString& message, const QString& scriptName) {
@@ -184,7 +180,8 @@ bool JSConsole::eventFilter(QObject* sender, QEvent* event) {
                     // If the shift key is being used then treat it as a regular return/enter.  If this isn't done,
                     // a new QTextBlock isn't created.
                     keyEvent->setModifiers(keyEvent->modifiers() & ~Qt::ShiftModifier);
-                } else {
+                }
+                else {
                     QString command = _ui->promptTextEdit->toPlainText().trimmed();
 
                     if (!command.isEmpty()) {
@@ -196,7 +193,8 @@ bool JSConsole::eventFilter(QObject* sender, QEvent* event) {
 
                     return true;
                 }
-            } else if (key == Qt::Key_Down) {
+            }
+            else if (key == Qt::Key_Down) {
                 // Go to the next command in history if the cursor is at the last line of the current command.
                 int blockNumber = _ui->promptTextEdit->textCursor().blockNumber();
                 int blockCount = _ui->promptTextEdit->document()->blockCount();
@@ -204,7 +202,8 @@ bool JSConsole::eventFilter(QObject* sender, QEvent* event) {
                     setToNextCommandInHistory();
                     return true;
                 }
-            } else if (key == Qt::Key_Up) {
+            }
+            else if (key == Qt::Key_Up) {
                 // Go to the previous command in history if the cursor is at the first line of the current command.
                 int blockNumber = _ui->promptTextEdit->textCursor().blockNumber();
                 if (blockNumber == 0) {
@@ -222,7 +221,8 @@ void JSConsole::setToNextCommandInHistory() {
         _currentCommandInHistory--;
         if (_currentCommandInHistory == NO_CURRENT_HISTORY_COMMAND) {
             setAndSelectCommand(_rootCommand);
-        } else {
+        }
+        else {
             setAndSelectCommand(_commandHistory[_currentCommandInHistory]);
         }
     }
@@ -295,14 +295,11 @@ void JSConsole::appendMessage(const QString& gutter, const QString& message) {
 }
 
 void JSConsole::clear() {
-   /* qCDebug(scriptengine) << "=============================";
-    qCDebug(scriptengine) << "Clear fUNCTION";*/
     QLayoutItem* item;
     while ((item = _ui->logArea->layout()->takeAt(0)) != NULL) {
-       // qCDebug(scriptengine) << "While loop called";
         delete item->widget();
         delete item;
     }
-   // _ui->logArea->updateGeometry();
-  //  scrollToBottom();
+    _ui->logArea->updateGeometry();
+    scrollToBottom();
 }

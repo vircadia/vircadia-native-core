@@ -54,6 +54,10 @@ void ScriptEngines::onInfoMessage(const QString& message, const QString& scriptN
     emit infoMessage(message, scriptName);
 }
 
+void ScriptEngines::OnClearConsole() {
+    emit clearDebugWindow();
+}
+
 void ScriptEngines::onErrorLoadingScript(const QString& url) {
     emit errorLoadingScript(url);
 }

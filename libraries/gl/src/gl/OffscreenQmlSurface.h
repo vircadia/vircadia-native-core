@@ -37,7 +37,7 @@ class QQuickItem;
 
 class OffscreenQmlSurface : public QObject {
     Q_OBJECT
-    Q_PROPERTY(bool focusText READ isFocusText NOTIFY focusTextChanged)
+        Q_PROPERTY(bool focusText READ isFocusText NOTIFY focusTextChanged)
 public:
     OffscreenQmlSurface();
     virtual ~OffscreenQmlSurface();
@@ -95,12 +95,12 @@ signals:
     void focusObjectChanged(QObject* newFocus);
     void focusTextChanged(bool focusText);
 
-public slots:
+    public slots:
     void onAboutToQuit();
     void focusDestroyed(QObject *obj);
 
     // event bridge
-public slots:
+    public slots:
     void emitScriptEvent(const QVariant& scriptMessage);
     void emitWebEvent(const QVariant& webMessage);
 signals:
@@ -108,7 +108,7 @@ signals:
     void webEventReceived(const QVariant& message);
 
     // qml event bridge
-public slots:
+    public slots:
     void sendToQml(const QVariant& message);
 signals:
     void fromQml(QVariant message);
@@ -126,37 +126,37 @@ private:
     void cleanup();
     QJsonObject getGLContextData();
 
-private slots:
+    private slots:
     void updateQuick();
     void onFocusObjectChanged(QObject* newFocus);
 
 private:
-    QQuickWindow* _quickWindow { nullptr };
+    QQuickWindow* _quickWindow{ nullptr };
     QMyQuickRenderControl* _renderControl{ nullptr };
-    QQmlEngine* _qmlEngine { nullptr };
-    QQmlComponent* _qmlComponent { nullptr };
-    QQuickItem* _rootItem { nullptr };
-    OffscreenGLCanvas* _canvas { nullptr };
+    QQmlEngine* _qmlEngine{ nullptr };
+    QQmlComponent* _qmlComponent{ nullptr };
+    QQuickItem* _rootItem{ nullptr };
+    OffscreenGLCanvas* _canvas{ nullptr };
     QJsonObject _glData;
 
     QTimer _updateTimer;
-    uint32_t _fbo { 0 };
-    uint32_t _depthStencil { 0 };
-    uint64_t _lastRenderTime { 0 };
+    uint32_t _fbo{ 0 };
+    uint32_t _depthStencil{ 0 };
+    uint64_t _lastRenderTime{ 0 };
     uvec2 _size;
 
     // Texture management
-    TextureAndFence _latestTextureAndFence { 0, 0 };
+    TextureAndFence _latestTextureAndFence{ 0, 0 };
 
-    bool _render { false };
-    bool _polish { true };
-    bool _paused { true };
-    bool _focusText { false };
-    uint8_t _maxFps { 60 };
-    MouseTranslator _mouseTranslator { [](const QPointF& p) { return p.toPoint();  } };
-    QWindow* _proxyWindow { nullptr };
+    bool _render{ false };
+    bool _polish{ true };
+    bool _paused{ true };
+    bool _focusText{ false };
+    uint8_t _maxFps{ 60 };
+    MouseTranslator _mouseTranslator{ [](const QPointF& p) { return p.toPoint();  } };
+    QWindow* _proxyWindow{ nullptr };
 
-    QQuickItem* _currentFocusItem { nullptr };
+    QQuickItem* _currentFocusItem{ nullptr };
 };
 
 #endif

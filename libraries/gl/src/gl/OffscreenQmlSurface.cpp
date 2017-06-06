@@ -44,7 +44,7 @@ Q_LOGGING_CATEGORY(trace_render_qml_gl, "trace.render.qml.gl")
 
 struct TextureSet {
     // The number of surfaces with this size
-    size_t count { 0 };
+    size_t count{ 0 };
     std::list<OffscreenQmlSurface::TextureAndFence> returnedTextures;
 };
 
@@ -193,7 +193,7 @@ private:
     std::unordered_map<GLuint, uvec2> _textureSizes;
     Mutex _mutex;
     std::list<OffscreenQmlSurface::TextureAndFence> _returnedTextures;
-    size_t _totalTextureUsage { 0 };
+    size_t _totalTextureUsage{ 0 };
 } offscreenTextures;
 
 class UrlHandler : public QObject {
@@ -286,7 +286,7 @@ void OffscreenQmlSurface::render() {
     }
 
     PROFILE_RANGE(render_qml_gl, __FUNCTION__)
-    _canvas->makeCurrent();
+        _canvas->makeCurrent();
 
     _renderControl->sync();
     _quickWindow->setRenderTarget(_fbo, QSize(_size.x, _size.y));
@@ -532,8 +532,8 @@ QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQm
     if (_qmlComponent->isLoading()) {
         connect(_qmlComponent, &QQmlComponent::statusChanged, this,
             [this, f](QQmlComponent::Status){
-                finishQmlLoad(f);
-            });
+            finishQmlLoad(f);
+        });
         return nullptr;
     }
 
@@ -563,7 +563,8 @@ QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QOb
         QString webChannelStr = QTextStream(&webChannelFile).readAll();
         QString createGlobalEventBridgeStr = QTextStream(&createGlobalEventBridgeFile).readAll();
         javaScriptToInject = webChannelStr + createGlobalEventBridgeStr;
-    } else {
+    }
+    else {
         qCWarning(glLogging) << "Unable to find qwebchannel.js or createGlobalEventBridge.js";
     }
 
@@ -634,7 +635,7 @@ void OffscreenQmlSurface::updateQuick() {
 
     if (_polish) {
         PROFILE_RANGE(render_qml, "OffscreenQML polish")
-        _renderControl->polishItems();
+            _renderControl->polishItems();
         _polish = false;
     }
 
@@ -648,7 +649,8 @@ QPointF OffscreenQmlSurface::mapWindowToUi(const QPointF& sourcePosition, QObjec
     vec2 sourceSize;
     if (dynamic_cast<QWidget*>(sourceObject)) {
         sourceSize = toGlm(((QWidget*)sourceObject)->size());
-    } else if (dynamic_cast<QWindow*>(sourceObject)) {
+    }
+    else if (dynamic_cast<QWindow*>(sourceObject)) {
         sourceSize = toGlm(((QWindow*)sourceObject)->size());
     }
     vec2 offscreenPosition = toGlm(sourcePosition);
@@ -691,61 +693,61 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
 #endif
 
     switch (event->type()) {
-        case QEvent::Resize: {
-            QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
-            QWidget* widget = dynamic_cast<QWidget*>(originalDestination);
-            if (widget) {
-                this->resize(resizeEvent->size());
-            }
-            break;
+    case QEvent::Resize: {
+        QResizeEvent* resizeEvent = static_cast<QResizeEvent*>(event);
+        QWidget* widget = dynamic_cast<QWidget*>(originalDestination);
+        if (widget) {
+            this->resize(resizeEvent->size());
         }
+        break;
+    }
 
-        case QEvent::KeyPress:
-        case QEvent::KeyRelease: {
-            event->ignore();
-            if (QCoreApplication::sendEvent(_quickWindow, event)) {
-                return event->isAccepted();
-            }
-            break;
+    case QEvent::KeyPress:
+    case QEvent::KeyRelease: {
+        event->ignore();
+        if (QCoreApplication::sendEvent(_quickWindow, event)) {
+            return event->isAccepted();
         }
+        break;
+    }
 
-        case QEvent::Wheel: {
-            QWheelEvent* wheelEvent = static_cast<QWheelEvent*>(event);
-            QPointF transformedPos = mapToVirtualScreen(wheelEvent->pos(), originalDestination);
-            QWheelEvent mappedEvent(
-                    transformedPos,
-                    wheelEvent->delta(),  wheelEvent->buttons(),
-                    wheelEvent->modifiers(), wheelEvent->orientation());
-            mappedEvent.ignore();
-            if (QCoreApplication::sendEvent(_quickWindow, &mappedEvent)) {
-                return mappedEvent.isAccepted();
-            }
-            break;
+    case QEvent::Wheel: {
+        QWheelEvent* wheelEvent = static_cast<QWheelEvent*>(event);
+        QPointF transformedPos = mapToVirtualScreen(wheelEvent->pos(), originalDestination);
+        QWheelEvent mappedEvent(
+            transformedPos,
+            wheelEvent->delta(), wheelEvent->buttons(),
+            wheelEvent->modifiers(), wheelEvent->orientation());
+        mappedEvent.ignore();
+        if (QCoreApplication::sendEvent(_quickWindow, &mappedEvent)) {
+            return mappedEvent.isAccepted();
         }
+        break;
+    }
 
-        // Fall through
-        case QEvent::MouseButtonDblClick:
-        case QEvent::MouseButtonPress:
-        case QEvent::MouseButtonRelease:
-        case QEvent::MouseMove: {
-            QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
-            QPointF transformedPos = mapToVirtualScreen(mouseEvent->localPos(), originalDestination);
-            QMouseEvent mappedEvent(mouseEvent->type(),
-                    transformedPos,
-                    mouseEvent->screenPos(), mouseEvent->button(),
-                    mouseEvent->buttons(), mouseEvent->modifiers());
-            if (event->type() == QEvent::MouseMove) {
-                _qmlEngine->rootContext()->setContextProperty("lastMousePosition", transformedPos);
-            }
-            mappedEvent.ignore();
-            if (QCoreApplication::sendEvent(_quickWindow, &mappedEvent)) {
-                return mappedEvent.isAccepted();
-            }
-            break;
+                        // Fall through
+    case QEvent::MouseButtonDblClick:
+    case QEvent::MouseButtonPress:
+    case QEvent::MouseButtonRelease:
+    case QEvent::MouseMove: {
+        QMouseEvent* mouseEvent = static_cast<QMouseEvent*>(event);
+        QPointF transformedPos = mapToVirtualScreen(mouseEvent->localPos(), originalDestination);
+        QMouseEvent mappedEvent(mouseEvent->type(),
+            transformedPos,
+            mouseEvent->screenPos(), mouseEvent->button(),
+            mouseEvent->buttons(), mouseEvent->modifiers());
+        if (event->type() == QEvent::MouseMove) {
+            _qmlEngine->rootContext()->setContextProperty("lastMousePosition", transformedPos);
         }
+        mappedEvent.ignore();
+        if (QCoreApplication::sendEvent(_quickWindow, &mappedEvent)) {
+            return mappedEvent.isAccepted();
+        }
+        break;
+    }
 
-        default:
-            break;
+    default:
+        break;
     }
 
     return false;
@@ -800,7 +802,7 @@ Q_DECLARE_METATYPE(std::function<QVariant()>);
 auto VariantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
 
 
-void OffscreenQmlSurface::executeOnUiThread(std::function<void()> function, bool blocking ) {
+void OffscreenQmlSurface::executeOnUiThread(std::function<void()> function, bool blocking) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "executeOnUiThread", blocking ? Qt::BlockingQueuedConnection : Qt::QueuedConnection,
             Q_ARG(std::function<void()>, function));
@@ -892,16 +894,20 @@ void OffscreenQmlSurface::synthesizeKeyPress(QString key) {
         if (equals(utf8Key, SHIFT_ARROW) || equals(utf8Key, NUMERIC_SHIFT_ARROW) ||
             equals(utf8Key, (uint8_t*)PUNCTUATION_STRING) || equals(utf8Key, (uint8_t*)ALPHABET_STRING)) {
             return;  // ignore
-        } else if (equals(utf8Key, BACKSPACE_SYMBOL)) {
+        }
+        else if (equals(utf8Key, BACKSPACE_SYMBOL)) {
             scanCode = Qt::Key_Backspace;
             keyString = "\x08";
-        } else if (equals(utf8Key, RETURN_SYMBOL)) {
+        }
+        else if (equals(utf8Key, RETURN_SYMBOL)) {
             scanCode = Qt::Key_Return;
             keyString = "\x0d";
-        } else if (equals(utf8Key, LEFT_ARROW)) {
+        }
+        else if (equals(utf8Key, LEFT_ARROW)) {
             scanCode = Qt::Key_Left;
             keyString = "";
-        } else if (equals(utf8Key, RIGHT_ARROW)) {
+        }
+        else if (equals(utf8Key, RIGHT_ARROW)) {
             scanCode = Qt::Key_Right;
             keyString = "";
         }
@@ -941,7 +947,8 @@ void OffscreenQmlSurface::setKeyboardRaised(QObject* object, bool raised, bool n
 void OffscreenQmlSurface::emitScriptEvent(const QVariant& message) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
-    } else {
+    }
+    else {
         emit scriptEventReceived(message);
     }
 }
@@ -949,7 +956,8 @@ void OffscreenQmlSurface::emitScriptEvent(const QVariant& message) {
 void OffscreenQmlSurface::emitWebEvent(const QVariant& message) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "emitWebEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
-    } else {
+    }
+    else {
         // Special case to handle raising and lowering the virtual keyboard.
         const QString RAISE_KEYBOARD = "_RAISE_KEYBOARD";
         const QString RAISE_KEYBOARD_NUMERIC = "_RAISE_KEYBOARD_NUMERIC";
@@ -957,9 +965,11 @@ void OffscreenQmlSurface::emitWebEvent(const QVariant& message) {
         QString messageString = message.type() == QVariant::String ? message.toString() : "";
         if (messageString.left(RAISE_KEYBOARD.length()) == RAISE_KEYBOARD) {
             setKeyboardRaised(_currentFocusItem, true, messageString == RAISE_KEYBOARD_NUMERIC);
-        } else if (messageString == LOWER_KEYBOARD) {
+        }
+        else if (messageString == LOWER_KEYBOARD) {
             setKeyboardRaised(_currentFocusItem, false);
-        } else {
+        }
+        else {
             emit webEventReceived(message);
         }
     }
@@ -968,7 +978,8 @@ void OffscreenQmlSurface::emitWebEvent(const QVariant& message) {
 void OffscreenQmlSurface::sendToQml(const QVariant& message) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "emitQmlEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
-    } else if (_rootItem) {
+    }
+    else if (_rootItem) {
         // call fromScript method on qml root
         QMetaObject::invokeMethod(_rootItem, "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
     }

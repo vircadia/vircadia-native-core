@@ -74,6 +74,12 @@ Windows.Window {
             root.dynamicContent.fromScript(message);
         }
     }
+
+	function fromConsole() {
+        if (root.dynamicContent && root.dynamicContent.fromConsole) {
+		    root.dynamicContent.fromConsole();
+        }
+    }
     
     // Handle message traffic from our loaded QML to the script that launched us
     signal sendToScript(var message);

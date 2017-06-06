@@ -29,7 +29,7 @@ Rectangle {
         height: parent.height
         text:""
     }
-
+	
     function fromScript(message) {
         var MAX_LINE_COUNT = 2000;
         var TRIM_LINES = 500;
@@ -40,6 +40,10 @@ Rectangle {
         }
         textArea.append(message);
     }
+		
+	function fromConsole(){
+		textArea.remove(0,textArea.length);
+	}
 }
 
 
