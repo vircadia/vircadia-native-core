@@ -222,12 +222,6 @@ bool OculusControllerManager::isHeadControllerMounted() const {
 void OculusControllerManager::TouchDevice::update(float deltaTime,
                                                   const controller::InputCalibrationData& inputCalibrationData) {
     _buttonPressedMap.clear();
-    // _poseStateMap.erase(controller::HEAD);
-
-    // if (!_parent.isHeadControllerMounted()) {
-    //     // if the HMD isn't on someone's head, don't take input from the controllers
-    //     return;
-    // }
 
     int numTrackedControllers = 0;
     quint64 currentTime = usecTimestampNow();
