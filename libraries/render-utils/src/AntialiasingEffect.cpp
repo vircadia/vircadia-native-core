@@ -17,6 +17,7 @@
 #include <gpu/Context.h>
 
 #include "AntialiasingEffect.h"
+#include "StencilMaskPass.h"
 #include "TextureCache.h"
 #include "FramebufferCache.h"
 #include "DependencyManager.h"
@@ -70,6 +71,8 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
+        PrepareStencil::testMask(*state);
+
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
 
         // Good to go add the brand new pipeline
@@ -93,6 +96,7 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
         state->setDepthTest(false, false, gpu::LESS_EQUAL);
+        PrepareStencil::testMask(*state);
 
         // Good to go add the brand new pipeline
         _blendPipeline = gpu::Pipeline::create(program, state);

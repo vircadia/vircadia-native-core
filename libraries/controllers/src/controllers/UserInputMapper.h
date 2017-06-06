@@ -80,6 +80,7 @@ namespace controller {
 
         QVector<Action> getAllActions() const;
         QString getActionName(Action action) const;
+        QString getStandardPoseName(uint16_t pose);
         float getActionState(Action action) const { return _actionStates[toInt(action)]; }
         Pose getPoseState(Action action) const;
         int findAction(const QString& actionName) const;

@@ -191,16 +191,12 @@
             gTablet.updateAudioBar(currentMicLevel);
         }
 
-        if (validCheckTime - now > MSECS_PER_SEC/4) {
-            //each 250ms should be just fine
+        if (now - validCheckTime > MSECS_PER_SEC) {
+            validCheckTime = now;
             updateTabletWidthFromSettings();
             if (UIWebTablet) {
                 UIWebTablet.setLandscape(landscape);
             }
-        }
-
-        if (validCheckTime - now > MSECS_PER_SEC) {
-            validCheckTime = now;
             if (tabletRezzed && UIWebTablet && !tabletIsValid()) {
                 // when we switch domains, the tablet entity gets destroyed and recreated.  this causes
                 // the overlay to be deleted, but not recreated.  If the overlay is deleted for this or any

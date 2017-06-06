@@ -82,32 +82,21 @@ private:
 
     gpu::PipelinePointer _directionalSkyboxLight;
     gpu::PipelinePointer _directionalAmbientSphereLight;
-    gpu::PipelinePointer _directionalLight;
 
     gpu::PipelinePointer _directionalSkyboxLightShadow;
     gpu::PipelinePointer _directionalAmbientSphereLightShadow;
-    gpu::PipelinePointer _directionalLightShadow;
 
     gpu::PipelinePointer _localLight;
     gpu::PipelinePointer _localLightOutline;
 
-    gpu::PipelinePointer _pointLightBack;
-    gpu::PipelinePointer _pointLightFront;
-    gpu::PipelinePointer _spotLightBack;
-    gpu::PipelinePointer _spotLightFront;
-
     LightLocationsPtr _directionalSkyboxLightLocations;
     LightLocationsPtr _directionalAmbientSphereLightLocations;
-    LightLocationsPtr _directionalLightLocations;
 
     LightLocationsPtr _directionalSkyboxLightShadowLocations;
     LightLocationsPtr _directionalAmbientSphereLightShadowLocations;
-    LightLocationsPtr _directionalLightShadowLocations;
 
     LightLocationsPtr _localLightLocations;
     LightLocationsPtr _localLightOutlineLocations;
-    LightLocationsPtr _pointLightLocations;
-    LightLocationsPtr _spotLightLocations;
 
     using Lights = std::vector<model::LightPointer>;
 
