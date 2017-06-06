@@ -15,7 +15,7 @@
 
 #include "DeferredLightingEffect.h"
 #include "EntityItem.h"
-#include "FadeManager.h"
+#include "FadeEffect.h"
 
 using namespace render;
 
@@ -552,7 +552,7 @@ float ModelMeshPartPayload::computeFadePercent() const {
 }
 
 void ModelMeshPartPayload::bindFade(gpu::Batch& batch) const {
-    const bool isDebugEnabled = DependencyManager::get<FadeManager>()->isDebugEnabled();
+    const bool isDebugEnabled = DependencyManager::get<FadeEffect>()->isDebugEnabled();
 
     if (_fadeState != FADE_COMPLETE || isDebugEnabled) {
         auto& fade = _fadeBuffer.edit<Fade>();
@@ -563,7 +563,7 @@ void ModelMeshPartPayload::bindFade(gpu::Batch& batch) const {
             fade._percent = computeFadePercent();
         }
         else {
-            fade._percent = DependencyManager::get<FadeManager>()->getDebugFadePercent();
+            fade._percent = DependencyManager::get<FadeEffect>()->getDebugFadePercent();
         }
 
         fade._offset = offset;

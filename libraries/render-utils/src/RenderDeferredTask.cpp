@@ -35,7 +35,7 @@
 #include "HitEffect.h"
 #include "TextureCache.h"
 #include "ZoneRenderer.h"
-#include "FadeManager.h"
+#include "FadeEffect.h"
 
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
@@ -53,8 +53,8 @@ extern void initDeferredPipelines(render::ShapePlumber& plumber);
 
 void RenderDeferredTask::configure(const Config& config)
 {
-    DependencyManager::get<FadeManager>()->setDebugEnabled(config.debugFade);
-    DependencyManager::get<FadeManager>()->setDebugFadePercent(config.debugFadePercent);
+    DependencyManager::get<FadeEffect>()->setDebugEnabled(config.debugFade);
+    DependencyManager::get<FadeEffect>()->setDebugFadePercent(config.debugFadePercent);
 }
 
 void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
@@ -92,7 +92,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto deferredFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(0);
     const auto lightingFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(1);
 
-    DependencyManager::set<FadeManager>();
+    DependencyManager::set<FadeEffect>();
 
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).hasVarying();
@@ -257,8 +257,8 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
     const auto& lightingModel = inputs.get1();
 
     RenderArgs* args = renderContext->args;
-    ShapeKey::Builder   defaultKeyBuilder = DependencyManager::get<FadeManager>()->getKeyBuilder();
-    gpu::TexturePointer fadeMaskMap = DependencyManager::get<FadeManager>()->getFadeMaskMap();
+    ShapeKey::Builder   defaultKeyBuilder = DependencyManager::get<FadeEffect>()->getKeyBuilder();
+    gpu::TexturePointer fadeMaskMap = DependencyManager::get<FadeEffect>()->getFadeMaskMap();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
@@ -309,8 +309,8 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
     const auto& lightingModel = inputs.get1();
 
     RenderArgs* args = renderContext->args;
-    ShapeKey::Builder   defaultKeyBuilder = DependencyManager::get<FadeManager>()->getKeyBuilder();
-    gpu::TexturePointer fadeMaskMap = DependencyManager::get<FadeManager>()->getFadeMaskMap();
+    ShapeKey::Builder   defaultKeyBuilder = DependencyManager::get<FadeEffect>()->getKeyBuilder();
+    gpu::TexturePointer fadeMaskMap = DependencyManager::get<FadeEffect>()->getFadeMaskMap();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;

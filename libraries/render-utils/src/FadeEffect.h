@@ -1,5 +1,5 @@
 //
-//  FadeManager.h
+//  FadeEffect.h
 //  libraries/render-utils/src/
 //
 //  Created by Olivier Prat on 06/06/17.
@@ -8,19 +8,19 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-#ifndef hifi_FadeManager_h
-#define hifi_FadeManager_h
+#ifndef hifi_FadeEffect_h
+#define hifi_FadeEffect_h
 
 #include <DependencyManager.h>
 #include <gpu/Pipeline.h>
 #include <render/ShapePipeline.h>
 
 // Centralizes fade effect data and functions
-class FadeManager : public Dependency {
+class FadeEffect : public Dependency {
 	SINGLETON_DEPENDENCY
 public:
 
-	FadeManager();
+	FadeEffect();
 
 	const gpu::TexturePointer getFadeMaskMap() const { return _fadeMaskMap; }
 
@@ -40,4 +40,4 @@ private:
 
 };
 
-#endif // hifi_FadeManager_h
+#endif // hifi_FadeEffect_h

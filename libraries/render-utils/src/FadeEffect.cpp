@@ -1,9 +1,9 @@
-#include "FadeManager.h"
+#include "FadeEffect.h"
 #include "TextureCache.h"
 
 #include <PathUtils.h>
 
-FadeManager::FadeManager() :
+FadeEffect::FadeEffect() :
 	_isDebugEnabled{ false },
 	_debugFadePercent{ 0.f }
 {
@@ -11,7 +11,7 @@ FadeManager::FadeManager() :
 	_fadeMaskMap = DependencyManager::get<TextureCache>()->getImageTexture(texturePath, image::TextureUsage::STRICT_TEXTURE);
 }
 
-render::ShapeKey::Builder FadeManager::getKeyBuilder() const
+render::ShapeKey::Builder FadeEffect::getKeyBuilder() const
 {
 	render::ShapeKey::Builder	builder;
 
