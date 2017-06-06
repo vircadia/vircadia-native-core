@@ -29,7 +29,7 @@ Rectangle {
         x: -hifi.dimensions.contentMargin.x
     }
 
-    RalewayBold {
+    RalewayRegular {
         id: header
         text: "Controller Settings"
         size: 22
@@ -49,25 +49,38 @@ Rectangle {
         anchors.topMargin: 10
     }
 
-    RalewayBold {
-        id: configuration
-        text: "SELECT DEVICE"
-        size: 18
-        color: hifi.colors.lightGray
-
+    HiFiGlyphs {
+        id: sourceGlyph
+        text: hifi.glyphs.source
+        size: 36
+        color: hifi.colors.blueHighlight
 
         anchors.top: headerSeparator.bottom
         anchors.left: inputConfiguration.left
-        anchors.leftMargin: 20
+        anchors.leftMargin: 40
         anchors.topMargin: 20
+    }
+
+    RalewayRegular {
+        id: configuration
+        text: "SELECT DEVICE"
+        size: 15
+        color: hifi.colors.lightGrayText
+
+
+        anchors.top: headerSeparator.bottom
+        anchors.left: sourceGlyph.right
+        anchors.leftMargin: 10
+        anchors.topMargin: 30
+        anchors.verticalCenter: sourceGlyph.horizontalCenter
     }
 
     Row {
         id: configRow
         z: 999
-        anchors.top: configuration.bottom
+        anchors.top: sourceGlyph.bottom
         anchors.topMargin: 20
-        anchors.left: configuration.left
+        anchors.left: sourceGlyph.left
         anchors.leftMargin: 40
         spacing: 10
         HifiControls.ComboBox {
@@ -98,38 +111,57 @@ Rectangle {
 
 
     Separator {
-        id: configurationSeperator
+        id: configurationSeparator
         z: 0
         width: inputConfiguration.width
         anchors.top: configRow.bottom
         anchors.topMargin: 10
     }
 
-    Row {
-        z: 0
-        id: configurationHeader
-        anchors.top: configurationSeperator.bottom
-        anchors.topMargin: 20
+
+    HiFiGlyphs {
+        id: sliderGlyph
+        text: hifi.glyphs.sliders
+        size: 36
+        color: hifi.colors.blueHighlight
+
+        anchors.top: configurationSeparator.bottom
         anchors.left: inputConfiguration.left
         anchors.leftMargin: 40
-        spacing: 10
-        RalewayBold {
-            text: "CONFIGURATION"
-            size: 18
-            color: hifi.colors.lightGray
-        }
+        anchors.topMargin: 20
+    }
+
+    RalewayRegular {
+        id: configurationHeader
+        text: "CONFIGURATION"
+        size: 15
+        color: hifi.colors.lightGrayText
+
+
+        anchors.top: configurationSeparator.bottom
+        anchors.left: sliderGlyph.right
+        anchors.leftMargin: 10
+        anchors.topMargin: 30
+        anchors.verticalCenter: sliderGlyph.horizontalCenter
     }
 
     Loader {
         id: loader
         asynchronous: false
 
-        width: configurationHeader.width
+        width: inputConfiguration.width
         anchors.left: inputConfiguration.left
         anchors.right: inputConfiguration.right
         anchors.top: configurationHeader.bottom
         anchors.topMargin: 10
         anchors.bottom: inputConfiguration.bottom
+
+
+        onLoaded: {
+            if (loader.item.hasOwnProeprty("pluginName")) {
+                loader.item.pluginName = box.currentText
+            }
+        }
     }
 
     function inputPlugins() {

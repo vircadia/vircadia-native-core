@@ -7,6 +7,7 @@
 //
 
 import QtQuick 2.5
+import QtQuick.Controls 1.4
 import QtGraphicalEffects 1.0
 import "../../styles-uit"
 import "../../controls"
@@ -20,7 +21,8 @@ Rectangle {
     height: parent.height
     anchors.fill: parent
 
-    property int leftMargin: 55
+    property int leftMargin: 75
+    property string pluginName: ""
 
     HifiConstants { id: hifi }
 
@@ -30,7 +32,7 @@ Rectangle {
         id: head
 
         text: "Head:"
-        size: 15
+        size: 12
 
         color: "white"
 
@@ -54,7 +56,7 @@ Rectangle {
         }
             
         RalewayBold {
-            size: 15
+            size: 12
             text: "Vive HMD"
             color: hifi.colors.lightGrayText
         }
@@ -67,7 +69,7 @@ Rectangle {
         }
 
         RalewayBold {
-            size: 15
+            size: 12
             text: "Tracker"
             color: hifi.colors.lightGrayText
         }
@@ -77,7 +79,7 @@ Rectangle {
         id: hands
         
         text: "Hands:"
-        size: 15
+        size: 12
         
         color: "white"
 
@@ -103,20 +105,20 @@ Rectangle {
         }
         
         RalewayBold {
-            size: 15
+            size: 12
             text: "Controllers"
             color: hifi.colors.lightGrayText
         }
         
         HifiControls.CheckBox {
             id: handPuckBox
-            width: 15
+            width: 12
             height: 15
             boxRadius: 7
         }
         
         RalewayBold {
-            size: 15
+            size: 12
             text: "Trackers"
             color: hifi.colors.lightGrayText
         }
@@ -126,7 +128,7 @@ Rectangle {
         id: additional
         
         text: "Additional Trackers"
-        size: 15
+        size: 12
         
         color: hifi.colors.white
 
@@ -152,7 +154,7 @@ Rectangle {
         }
         
         RalewayBold {
-            size: 15
+            size: 12
             text: "Feet"
             color: hifi.colors.lightGrayText
         }
@@ -174,12 +176,12 @@ Rectangle {
         }
         
         RalewayBold {
-            size: 15
+            size: 12
             text: "Hips"
             color: hifi.colors.lightGrayText
         }
 
-        RalewayBold {
+        RalewayRegular {
             size: 12
             text: "requires feet"
             color: hifi.colors.lightGray
@@ -203,12 +205,12 @@ Rectangle {
         }
         
         RalewayBold {
-            size: 15
+            size: 12
             text: "Chest"
             color: hifi.colors.lightGrayText
         }
 
-        RalewayBold {
+        RalewayRegular {
             size: 12
             text: "requires hips"
             color: hifi.colors.lightGray
@@ -216,7 +218,7 @@ Rectangle {
      }
 
 
-     Row {
+    Row {
         id: shoulderConfig
         anchors.top: chestConfig.bottom
         anchors.topMargin: 15
@@ -232,22 +234,72 @@ Rectangle {
         }
         
         RalewayBold {
-            size: 15
+            size: 12
             text: "Shoulders"
             color: hifi.colors.lightGrayText
         }
 
-        RalewayBold {
+        RalewayRegular {
             size: 12
             text: "requires hips"
             color: hifi.colors.lightGray
         }
-     }
-
+    }
+    
     Separator {
         id: bottomSeperator
         width: parent.width
         anchors.top: shoulderConfig.bottom
         anchors.topMargin: 10
     }
+
+
+    Rectangle {
+        id: calibrationButton
+        width: 200
+        height: 35
+        radius: 6
+
+        color: hifi.colors.blueHighlight
+
+        anchors.top: bottomSeperator.bottom
+        anchors.topMargin: 10
+        anchors.left: parent.left
+        anchors.leftMargin: leftMargin
+
+
+        HiFiGlyphs {
+            id: calibrationGlyph
+            text: hifi.glyphs.sliders
+            size: 36
+            color: hifi.colors.white
+
+            anchors.horizontalCenter: parent.verticalCenter
+            anchors.left: parent.left
+            anchors.leftMargin: 30
+            
+        }
+        
+        RalewayRegular {
+            id: calibrate
+            text: "CALIBRATE"
+            size: 17
+            color: hifi.colors.white
+
+            anchors.left: calibrationGlyph.right
+            anchors.top: parent.top
+            anchors.topMargin: 8
+        }
+
+        MouseArea {
+            anchors.fill: parent
+
+            onClicked: {
+                InputCalibration.calibratePlugin(pluginName);
+            }
+        }
+    }
+
+
+    
 }

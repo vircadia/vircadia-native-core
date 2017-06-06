@@ -48,3 +48,11 @@ QString InputConfiguration::configurationLayout(QString pluginName) {
 void InputConfiguration::configurationSettings(QJsonObject configurationSettings, QString pluginName) {
     qDebug() << configurationSettings["Test"];
 }
+
+void InputConfiguration::calibratePlugin(QString pluginName) {
+    for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
+        if (plugin->getName() == pluginName) {
+            //calibrtate plugin
+        }
+    }
+}

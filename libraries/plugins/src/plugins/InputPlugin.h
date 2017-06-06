@@ -28,4 +28,6 @@ public:
     virtual bool isHandController() const = 0;
     virtual void configurationSettings(const QJsonObject configurationSettings) { }
     virtual QString configurationLayout() { return QString(); }
+    virtual void calibrate() {}
+    virtual bool configurable() { return false; }
 };
