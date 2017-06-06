@@ -18,15 +18,8 @@
 
 <@func declareFadeFragment()@>
 
-struct Fade {
-    vec3 _Offset;
-    float  _Percent;
-};
-
-uniform fadeBuffer {
-    Fade fade;
-};
-
+uniform vec3 fadeOffset;
+uniform float fadePercent;
 uniform sampler2D fadeMaskMap;
 
 vec2 hash2D(vec3 position) {
@@ -37,7 +30,7 @@ float evalFadeMask(vec3 position) {
     const float FADE_MASK_INV_SCALE = 1.0;
 
     // Do tri-linear interpolation
-    vec3    noisePosition = position * FADE_MASK_INV_SCALE + fade._Offset;
+    vec3    noisePosition = position * FADE_MASK_INV_SCALE + fadeOffset;
     vec3    noisePositionFloored = floor(noisePosition);
     vec3    noisePositionFraction = fract(noisePosition);
     float   noiseLowXLowYLowZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored), 0).r;
@@ -57,7 +50,7 @@ float evalFadeMask(vec3 position) {
 }
 
 void applyFade(vec3 position) {
-    if (evalFadeMask(position) > fade._Percent) {
+    if (evalFadeMask(position) > fadePercent) {
         discard;
     }
 }

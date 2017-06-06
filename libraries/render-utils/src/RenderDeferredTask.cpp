@@ -258,7 +258,6 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
 
     RenderArgs* args = renderContext->args;
     ShapeKey::Builder   defaultKeyBuilder = DependencyManager::get<FadeEffect>()->getKeyBuilder();
-    gpu::TexturePointer fadeMaskMap = DependencyManager::get<FadeEffect>()->getFadeMaskMap();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
@@ -285,7 +284,7 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         }
 
         // Prepare fade effect
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::FADE_MASK, fadeMaskMap);
+        DependencyManager::get<FadeEffect>()->bindPerBatch(batch);
 
         ShapeKey globalKey = keyBuilder.build();
         args->_globalShapeKey = globalKey._flags.to_ulong();
@@ -310,7 +309,6 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
 
     RenderArgs* args = renderContext->args;
     ShapeKey::Builder   defaultKeyBuilder = DependencyManager::get<FadeEffect>()->getKeyBuilder();
-    gpu::TexturePointer fadeMaskMap = DependencyManager::get<FadeEffect>()->getFadeMaskMap();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
@@ -337,7 +335,7 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
         }
 
         // Prepare fade effect
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::FADE_MASK, fadeMaskMap);
+        DependencyManager::get<FadeEffect>()->bindPerBatch(batch);
 
         ShapeKey globalKey = keyBuilder.build();
         args->_globalShapeKey = globalKey._flags.to_ulong();

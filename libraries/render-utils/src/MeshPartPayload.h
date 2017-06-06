@@ -22,10 +22,7 @@
 #include <model/Geometry.h>
 
 #include "Model.h"
-
-const uint8_t FADE_WAITING_TO_START = 0;
-const uint8_t FADE_IN_PROGRESS = 1;
-const uint8_t FADE_COMPLETE = 2;
+#include "FadeEffect.h"
 
 class Model;
 
@@ -95,8 +92,6 @@ public:
             const Transform& boundTransform,
             const gpu::BufferPointer& buffer);
 
-    float computeFadePercent() const;
-
     // Render Item interface
     render::ItemKey getKey() const override;
     int getLayer() const;
@@ -106,7 +101,6 @@ public:
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
-    void bindFade(gpu::Batch& batch) const;
 
     void initCache();
 
@@ -124,11 +118,8 @@ public:
 
 private:
 
-    struct Fade;
-
-    mutable gpu::BufferView _fadeBuffer;
     mutable quint64 _fadeStartTime { 0 };
-    mutable uint8_t _fadeState { FADE_WAITING_TO_START };
+    mutable FadeEffect::State _fadeState { FadeEffect::WaitingToStart } ;
 
 };
 
