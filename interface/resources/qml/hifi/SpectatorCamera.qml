@@ -94,7 +94,7 @@ Rectangle {
             size: 48;
             // Anchors
             anchors.left: parent.left;
-            anchors.leftMargin: 20;
+            anchors.leftMargin: 45;
             anchors.top: parent.top;
             anchors.topMargin: 0;
             // Style
@@ -110,7 +110,7 @@ Rectangle {
             // Text size
             size: 14;
             // Size
-            width: parent.width - 40 - 60;
+            width: parent.width - 90 - 60;
             height: paintedHeight;
             // Anchors
             anchors.top: parent.top;
@@ -182,13 +182,14 @@ Rectangle {
     Item {
         id: spectatorControlsContainer;
         // Size
-        width: spectatorCamera.width;
         height: spectatorCamera.height - spectatorDescriptionContainer.height - titleBarContainer.height;
         // Anchors
         anchors.top: spectatorDescriptionContainer.bottom;
-        anchors.topMargin: 12;
+        anchors.topMargin: 20;
         anchors.left: parent.left;
-        anchors.leftMargin: 20;
+        anchors.leftMargin: 40;
+        anchors.right: parent.right;
+        anchors.rightMargin: 40;
 
         // "Camera On" Checkbox
         HifiControlsUit.CheckBox {
@@ -197,13 +198,25 @@ Rectangle {
             anchors.top: parent.top;
             //checked: true; // FIXME
             text: "Camera On";
-            boxSize: 32;
-            onCheckedChanged: {
-                console.log("CAMERA ON: " + checked);
+            boxSize: 30;
+            onClicked: {
+                sendToScript({method: (checked ? 'enableSpectatorCamera' : 'disableSpectatorCamera')});
             }
         }
 
         // Preview
+        Image {
+            id: spectatorCameraPreview;
+            height: 300;
+            anchors.left: parent.left;
+            anchors.top: cameraToggleCheckBox.bottom;
+            anchors.topMargin: 20;
+            anchors.right: parent.right;
+            fillMode: Image.PreserveAspectFit;
+            horizontalAlignment: Image.AlignHCenter;
+            verticalAlignment: Image.AlignVCenter;
+            source: "http://1.bp.blogspot.com/-1GABEq__054/T03B00j_OII/AAAAAAAAAa8/jo55LcvEPHI/s1600/Winning.jpg";
+        }
     }    
     //
     // SPECTATOR CONTROLS END
@@ -227,7 +240,8 @@ Rectangle {
     //
     function fromScript(message) {
         switch (message.method) {
-        case 'XXX':
+        case 'updateSpectatorCameraCheckbox':
+            cameraToggleCheckBox.checked = message.params;
         break;
         default:
             console.log('Unrecognized message from spectatorCamera.js:', JSON.stringify(message));
