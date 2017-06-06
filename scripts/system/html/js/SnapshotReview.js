@@ -761,9 +761,6 @@ function printToPolaroid() {
             type: "snapshot",
             action: "printToPolaroid"
         }));       
-        //shareBarHelp.innerHTML = "Printed"
-        //shareBarHelp.style.backgroundColor = "#000000";
-        //shareBarHelp.style.opacity = "0.5";
     } else {
         setPrintButtonLoading();
     }
