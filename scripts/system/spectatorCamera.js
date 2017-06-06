@@ -223,6 +223,7 @@
             tablet.loadQMLSource("../SpectatorCamera.qml");
             onSpectatorCameraScreen = true;
             sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
+            sendToQml({ method: 'updateMonitorShowsSwitch', params: !!Settings.getValue('spectatorCamera/monitorShowsCameraView', false) });
         }
     }
 
@@ -285,11 +286,13 @@
             case 'disableSpectatorCamera':
                 disableSpectatorCamera();
                 break;
+            case 'showHmdPreviewOnMonitor':
+                print('FIXME: showHmdPreviewOnMonitor');
+                Settings.setValue('spectatorCamera/monitorShowsCameraView', false);
+                break;
             case 'showCameraViewOnMonitor':
                 print('FIXME: showCameraViewOnMonitor');
-                break;
-            case 'showMyViewOnMonitor':
-                print('FIXME: showMyViewOnMonitor');
+                Settings.setValue('spectatorCamera/monitorShowsCameraView', true);
                 break;
             case 'changeSwitchViewFromControllerPreference':
                 print('FIXME: Preference is now: ' + message.params);

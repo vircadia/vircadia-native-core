@@ -85,7 +85,7 @@ Item {
             id: labelOff;
             text: labelTextOff;
             size: hifi.fontSizes.inputLabel;
-            color: hifi.colors.lightGrayText;
+            color: originalSwitch.checked ? hifi.colors.lightGrayText : hifi.colors.faintGray;
             anchors.top: parent.top;
             anchors.right: parent.right;
             width: paintedWidth;
@@ -97,7 +97,7 @@ Item {
             id: labelGlyphOff;
             text: labelGlyphOffText;
             size: labelGlyphOffSize;
-            color: hifi.colors.lightGrayText;
+            color: labelOff.color;
             anchors.top: parent.top;
             anchors.topMargin: 2;
             anchors.right: labelOff.left;
@@ -126,7 +126,7 @@ Item {
             id: labelOn;
             text: labelTextOn;
             size: hifi.fontSizes.inputLabel;
-            color: hifi.colors.lightGrayText;
+            color: originalSwitch.checked ? hifi.colors.faintGray : hifi.colors.lightGrayText;
             anchors.top: parent.top;
             anchors.left: parent.left;
             width: paintedWidth;
@@ -138,7 +138,7 @@ Item {
             id: labelGlyphOn;
             text: labelGlyphOnText;
             size: labelGlyphOnSize;
-            color: hifi.colors.lightGrayText;
+            color: labelOn.color;
             anchors.top: parent.top;
             anchors.left: labelOn.right;
         }

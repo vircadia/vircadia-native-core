@@ -99,7 +99,7 @@ Rectangle {
         // "Spectator" app description text
         RalewayLight {
             id: spectatorDescriptionText;
-            text: "Spectator lets you switch what your monitor displays while you're using an HMD. Use Spectator to stream and record video.";
+            text: "Spectator lets you change what your monitor displays while you're using an HMD. Use Spectator when streaming and recording video.";
             // Text size
             size: 14;
             // Size
@@ -244,7 +244,7 @@ Rectangle {
             labelTextOn: "Camera View";
             labelGlyphOnText: hifi.glyphs.alert;
             onCheckedChanged: {
-                sendToScript({method: (checked ? 'showCameraViewOnMonitor' : 'showMyViewOnMonitor')});
+                sendToScript({method: (checked ? 'showCameraViewOnMonitor' : 'showHmdPreviewOnMonitor')});
             }
         }
 
@@ -286,6 +286,9 @@ Rectangle {
         switch (message.method) {
         case 'updateSpectatorCameraCheckbox':
             cameraToggleCheckBox.checked = message.params;
+        break;
+        case 'updateMonitorShowsSwitch':
+            monitorShowsSwitch.checked = message.params;
         break;
         default:
             console.log('Unrecognized message from spectatorCamera.js:', JSON.stringify(message));
