@@ -651,6 +651,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
 
     auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->startThread();
 
     // Set up a watchdog thread to intentionally crash the application on deadlocks
     _deadlockWatchdogThread = new DeadlockWatchdogThread();
@@ -676,25 +677,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     updateHeartbeat();
 
-    // start the nodeThread so its event loop is running
-    QThread* nodeThread = new QThread(this);
-    nodeThread->setObjectName("NodeList Thread");
-    nodeThread->start();
-
-    // make sure the node thread is given highest priority
-    nodeThread->setPriority(QThread::TimeCriticalPriority);
-
     // setup a timer for domain-server check ins
     QTimer* domainCheckInTimer = new QTimer(nodeList.data());
     connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
     domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
 
-    // put the NodeList and datagram processing on the node thread
-    nodeList->moveToThread(nodeThread);
-
-    // put the audio processing on a separate thread
-    QThread* audioThread = new QThread();
-    audioThread->setObjectName("Audio Thread");
 
     auto audioIO = DependencyManager::get<AudioClient>();
     audioIO->setPositionGetter([]{
@@ -710,7 +697,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return myAvatar ? myAvatar->getOrientationForAudio() : Quaternions::IDENTITY;
     });
 
-    audioIO->moveToThread(audioThread);
     recording::Frame::registerFrameHandler(AudioConstants::getAudioFrameName(), [=](recording::Frame::ConstPointer frame) {
         audioIO->handleRecordedAudioInput(frame->data);
     });
@@ -724,9 +710,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
     auto audioScriptingInterface = DependencyManager::set<AudioScriptingInterface>();
-    connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
-    connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
-    connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
     connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
     connect(audioIO.data(), &AudioClient::mutedByMixer, audioScriptingInterface.data(), &AudioScriptingInterface::mutedByMixer);
     connect(audioIO.data(), &AudioClient::receivedFirstPacket, audioScriptingInterface.data(), &AudioScriptingInterface::receivedFirstPacket);
@@ -744,19 +727,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
-    audioThread->start();
+    audioIO->startThread();
 
     ResourceManager::init();
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
     // Setup MessagesClient
-    auto messagesClient = DependencyManager::get<MessagesClient>();
-    QThread* messagesThread = new QThread;
-    messagesThread->setObjectName("Messages Client Thread");
-    messagesClient->moveToThread(messagesThread);
-    connect(messagesThread, &QThread::started, messagesClient.data(), &MessagesClient::init);
-    messagesThread->start();
+    DependencyManager::get<MessagesClient>()->startThread();
 
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
@@ -1648,12 +1626,7 @@ void Application::aboutToQuit() {
     getActiveDisplayPlugin()->deactivate();
 
     // use the CloseEventSender via a QThread to send an event that says the user asked for the app to close
-    auto closeEventSender = DependencyManager::get<CloseEventSender>();
-    QThread* closureEventThread = new QThread(this);
-    closeEventSender->moveToThread(closureEventThread);
-    // sendQuitEventAsync will bail immediately if the UserActivityLogger is not enabled
-    connect(closureEventThread, &QThread::started, closeEventSender.data(), &CloseEventSender::sendQuitEventAsync);
-    closureEventThread->start();
+    DependencyManager::get<CloseEventSender>()->startThread();
 
     // Hide Running Scripts dialog so that it gets destroyed in an orderly manner; prevents warnings at shutdown.
     DependencyManager::get<OffscreenUi>()->hide("RunningScripts");
@@ -1741,6 +1714,8 @@ void Application::cleanupBeforeQuit() {
     // stop QML
     DependencyManager::destroy<OffscreenUi>();
 
+    DependencyManager::destroy<OffscreenQmlSurfaceCache>();
+
     if (_snapshotSoundInjector != nullptr) {
         _snapshotSoundInjector->stop();
     }
@@ -1800,14 +1775,8 @@ Application::~Application() {
 
     ResourceManager::cleanup();
 
-    QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
-
     // remove the NodeList from the DependencyManager
     DependencyManager::destroy<NodeList>();
-
-    // ask the node thread to quit and wait until it is done
-    nodeThread->quit();
-    nodeThread->wait();
 
     Leapmotion::destroy();
 

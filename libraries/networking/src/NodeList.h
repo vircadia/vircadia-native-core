@@ -52,6 +52,7 @@ class NodeList : public LimitedNodeList {
     SINGLETON_DEPENDENCY
 
 public:
+    void startThread();
     NodeType_t getOwnerType() const { return _ownerType.load(); }
     void setOwnerType(NodeType_t ownerType) { _ownerType.store(ownerType); }
 
