@@ -1,6 +1,6 @@
 set(TARGET_NAME gl)
 setup_hifi_library(OpenGL Qml Quick)
-link_hifi_libraries(shared)
+link_hifi_libraries(shared networking)
 
 target_opengl()
 

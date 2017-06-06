@@ -2,7 +2,6 @@ import QtQuick 2.5
 import QtQuick.Controls 1.2
 import QtWebChannel 1.0
 import QtWebEngine 1.2
-import FileTypeProfile 1.0
 
 import "controls-uit"
 import "styles" as HifiStyles
@@ -209,6 +208,7 @@ ScrollingWindow {
         WebView {
             id: webview
             url: "https://highfidelity.com/"
+            profile: FileTypeProfile;
 
             property alias eventBridgeWrapper: eventBridgeWrapper
 
@@ -218,10 +218,6 @@ ScrollingWindow {
                 property var eventBridge;
             }
             
-            profile: FileTypeProfile {
-                id: webviewProfile
-                storageName: "qmlWebEngine"
-            }
 
             webChannel.registeredObjects: [eventBridgeWrapper]
 
