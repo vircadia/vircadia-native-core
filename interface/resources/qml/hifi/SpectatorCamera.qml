@@ -99,7 +99,7 @@ Rectangle {
         // "Spectator" app description text
         RalewayLight {
             id: spectatorDescriptionText;
-            text: "Spectator lets you change what your monitor displays while you're using an HMD. Use Spectator when streaming and recording video.";
+            text: "Spectator lets you change what your monitor displays while you're using a VR headset. Use Spectator when streaming and recording video.";
             // Text size
             size: 14;
             // Size
