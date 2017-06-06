@@ -44,6 +44,8 @@
     //     render job. Controls position and orientation.
     // viewFinderOverlay: The in-world overlay that displays the spectator camera's view.
     // camera: The in-world entity that corresponds to the spectator camera.
+    // cameraIsDynamic: "false" for now while we figure out why dynamic, parented overlays
+    //     drift with respect to their parent
     // 
     // Arguments:
     // None
@@ -56,13 +58,16 @@
     var beginSpectatorFrameRenderConfig = Render.getConfig("BeginSelfie");
     var viewFinderOverlay = false;
     var camera = false;
+    var cameraIsDynamic = false;
     function updateRenderFromCamera() {
         var cameraData = Entities.getEntityProperties(camera, ['position', 'rotation']);
         // FIXME: don't muck with config if properties haven't changed.
         beginSpectatorFrameRenderConfig.position = cameraData.position;
         beginSpectatorFrameRenderConfig.orientation = cameraData.rotation;
-        // BUG: image3d overlays don't retain their locations properly when parented to a dynamic object
-        Overlays.editOverlay(viewFinderOverlay, { orientation: flip(cameraData.rotation) });
+        if (cameraIsDynamic) {
+            // BUG: image3d overlays don't retain their locations properly when parented to a dynamic object
+            Overlays.editOverlay(viewFinderOverlay, { orientation: flip(cameraData.rotation) });
+        }
     }
 
     //
@@ -92,7 +97,7 @@
             type: 'Box',
             dimensions: { x: 0.4, y: 0.2, z: 0.4 },
             userData: '{"grabbableKey":{"grabbable":true}}',
-            dynamic: true,
+            dynamic: cameraIsDynamic,
             color: { red: 255, green: 0, blue: 0 },
             name: 'SpectatorCamera',
             position: cameraPosition, // Put the camera in front of me so that I can find it.
