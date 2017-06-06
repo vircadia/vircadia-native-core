@@ -657,7 +657,8 @@ hr {
     font-family: FiraSans-SemiBold;
     font-size: 15px;
     color: #404040;
-    background-color: #afafaf
+    background-color: #afafaf;
+    z-index: 999;
 }
 .dropdown li:hover {
     background-color: #00b4ef;
