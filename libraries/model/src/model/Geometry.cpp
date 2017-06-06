@@ -241,6 +241,42 @@ void Mesh::forEach(std::function<void(glm::vec3)> vertexFunc,
     }
 }
 
+MeshPointer Mesh::createIndexedTriangles_P3F(uint32_t numVertices, uint32_t numIndices, const glm::vec3* vertices, const uint32_t* indices) {
+    MeshPointer mesh;
+    if (numVertices == 0) { return mesh; }
+    if (numIndices < 3) { return mesh; }
+
+    mesh = std::make_shared<Mesh>();
+
+    // Vertex buffer
+    mesh->setVertexBuffer(gpu::BufferView(new gpu::Buffer(numVertices * sizeof(glm::vec3), (gpu::Byte*) vertices), gpu::Element::VEC3F_XYZ));
+
+    // trim down the indices to shorts if possible
+    if (numIndices < std::numeric_limits<uint16_t>::max()) {
+        Indices16 shortIndicesVector;
+        int16_t* shortIndices = nullptr;
+        if (indices) {
+            shortIndicesVector.resize(numIndices);
+            for (uint32_t i = 0; i < numIndices; i++) {
+                shortIndicesVector[i] = indices[i];
+            }
+            shortIndices = shortIndicesVector.data();
+        }
+
+        mesh->setIndexBuffer(gpu::BufferView(new gpu::Buffer(numIndices * sizeof(uint16_t), (gpu::Byte*) shortIndices), gpu::Element::INDEX_UINT16));
+    } else {
+
+        mesh->setIndexBuffer(gpu::BufferView(new gpu::Buffer(numIndices * sizeof(uint32_t), (gpu::Byte*) indices), gpu::Element::INDEX_INT32));
+    }
+
+    
+    std::vector<model::Mesh::Part> parts;
+    parts.push_back(model::Mesh::Part(0, numIndices, 0, model::Mesh::TRIANGLES));
+    mesh->setPartBuffer(gpu::BufferView(new gpu::Buffer(parts.size() * sizeof(model::Mesh::Part), (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
+
+    return mesh;
+}
+
 
 Geometry::Geometry() {
 }
@@ -256,3 +292,5 @@ Geometry::~Geometry() {
 void Geometry::setMesh(const MeshPointer& mesh) {
     _mesh = mesh;
 }
+
+

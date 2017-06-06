@@ -642,6 +642,8 @@ var toolBar = (function () {
             enabled: active
         }));
         isActive = active;
+        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+
         if (!isActive) {
             entityListTool.setVisible(false);
             gridTool.setVisible(false);
@@ -650,8 +652,8 @@ var toolBar = (function () {
             selectionManager.clearSelections();
             cameraManager.disable();
             selectionDisplay.triggerMapping.disable();
+            tablet.landscape = false;
         } else {
-            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             tablet.loadQMLSource("Edit.qml");
             UserActivityLogger.enabledEdit();
             entityListTool.setVisible(true);
@@ -659,6 +661,8 @@ var toolBar = (function () {
             grid.setEnabled(true);
             propertiesTool.setVisible(true);
             selectionDisplay.triggerMapping.enable();
+            print("starting tablet in landscape mode")
+            tablet.landscape = true;
             // Not sure what the following was meant to accomplish, but it currently causes
             // everybody else to think that Interface has lost focus overall. fogbugzid:558
             // Window.setFocus();

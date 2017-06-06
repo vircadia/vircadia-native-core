@@ -31,12 +31,8 @@
 #include <render-utils/deferred_light_point_vert.h>
 #include <render-utils/deferred_light_spot_vert.h>
 
-#include <render-utils/directional_light_frag.h>
 #include <render-utils/directional_ambient_light_frag.h>
 #include <render-utils/directional_skybox_light_frag.h>
-
-#include <render-utils/point_light_frag.h>
-#include <render-utils/spot_light_frag.h>
 
 #include <render-utils/standardTransformPNTC_vert.h>
 #include <render-utils/standardDrawTexture_frag.h>
@@ -65,9 +61,6 @@
 #include <entities-renderer/untextured_particle_vert.h>
 #include <entities-renderer/textured_particle_frag.h>
 #include <entities-renderer/textured_particle_vert.h>
-
-#include <render-utils/hit_effect_vert.h>
-#include <render-utils/hit_effect_frag.h>
 
 #include <render-utils/overlay3D_vert.h>
 #include <render-utils/overlay3D_frag.h>
@@ -155,11 +148,8 @@ void QTestWindow::draw() {
         testShaderBuild(simple_vert, simple_frag);
         testShaderBuild(simple_vert, simple_textured_frag);
         testShaderBuild(simple_vert, simple_textured_unlit_frag);
-        testShaderBuild(deferred_light_vert, directional_light_frag);
         testShaderBuild(deferred_light_vert, directional_ambient_light_frag);
         testShaderBuild(deferred_light_vert, directional_skybox_light_frag);
-        testShaderBuild(deferred_light_point_vert, point_light_frag);
-        testShaderBuild(deferred_light_spot_vert, spot_light_frag);
         testShaderBuild(standardTransformPNTC_vert, standardDrawTexture_frag);
         testShaderBuild(standardTransformPNTC_vert, DrawTextureOpaque_frag);
 
@@ -190,7 +180,6 @@ void QTestWindow::draw() {
         testShaderBuild(ambient_occlusion_vert, ambient_occlusion_frag);
         testShaderBuild(ambient_occlusion_vert, occlusion_blend_frag);
 */
-        testShaderBuild(hit_effect_vert, hit_effect_frag);
 
         testShaderBuild(overlay3D_vert, overlay3D_frag);
 
