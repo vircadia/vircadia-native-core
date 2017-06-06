@@ -12,3 +12,10 @@
 #include "Audio.h"
 
 using namespace scripting;
+
+static const QString DESKTOP_CONTEXT { "Desktop" };
+static const QString HMD_CONTEXT { "VR" };
+
+QString Audio::getContext() {
+    return _contextIsHMD ? HMD_CONTEXT : DESKTOP_CONTEXT;
+}

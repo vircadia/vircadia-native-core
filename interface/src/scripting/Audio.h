@@ -26,7 +26,7 @@ class Audio : public AudioScriptingInterface {
     // TODO: Q_PROPERTY(bool reverb)
     // TODO: Q_PROPERTY(float inputVolume)
     // TODO: Q_PROPERTY(bool showMicLevel)
-    // TODO: Q_PROPERTY(QString context)
+    Q_PROPERTY(QString context READ getContext NOTIFY changedContext)
     Q_PROPERTY(AudioDevices* devices READ getDevices NOTIFY nop)
 
 public:
@@ -34,13 +34,18 @@ public:
 
 signals:
     void nop();
+    void changedContext(QString);
 
 protected:
     Audio() {}
 
+    QString getContext();
+
 private:
     AudioDevices* getDevices() { return &_devices; }
     AudioDevices _devices;
+
+    bool _contextIsHMD { false };
 };
 
 };
