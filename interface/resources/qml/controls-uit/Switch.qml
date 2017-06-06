@@ -50,7 +50,7 @@ Item {
             }
 
             groove: Rectangle {
-                color: hifi.colors.darkGray;
+                color: "#252525";
                 implicitWidth: rootSwitch.switchWidth;
                 implicitHeight: rootSwitch.height;
                 radius: rootSwitch.switchRadius;
@@ -85,7 +85,7 @@ Item {
             id: labelOff;
             text: labelTextOff;
             size: hifi.fontSizes.inputLabel;
-            color: originalSwitch.checked ? hifi.colors.lightGrayText : hifi.colors.faintGray;
+            color: originalSwitch.checked ? hifi.colors.lightGrayText : "#FFFFFF";
             anchors.top: parent.top;
             anchors.right: parent.right;
             width: paintedWidth;
@@ -126,7 +126,7 @@ Item {
             id: labelOn;
             text: labelTextOn;
             size: hifi.fontSizes.inputLabel;
-            color: originalSwitch.checked ? hifi.colors.faintGray : hifi.colors.lightGrayText;
+            color: originalSwitch.checked ? "#FFFFFF" : hifi.colors.lightGrayText;
             anchors.top: parent.top;
             anchors.left: parent.left;
             width: paintedWidth;

@@ -239,8 +239,6 @@ Rectangle {
             anchors.top: monitorShowsSwitchLabel.bottom;
             anchors.topMargin: 10;
             labelTextOff: "HMD Preview";
-            labelGlyphOffText: hifi.glyphs.hmd;
-            labelGlyphOffSize: 26;
             labelTextOn: "Camera View";
             labelGlyphOnText: hifi.glyphs.alert;
             onCheckedChanged: {
