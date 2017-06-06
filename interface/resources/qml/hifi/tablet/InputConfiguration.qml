@@ -101,8 +101,12 @@ Rectangle {
             onClicked: {
                 if (checked) {
                     box.model = InputConfiguration.activeInputPlugins();
+                    loader.source = "";
+                    loader.source = InputConfiguration.configurationLayout(box.currentText);
                 } else {
                     box.model = InputConfiguration.inputPlugins();
+                    loader.source = "";
+                    loader.source = InputConfiguration.configurationLayout(box.currentText);
                 }
             }
         }

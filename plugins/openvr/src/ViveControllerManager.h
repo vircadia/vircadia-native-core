@@ -41,6 +41,7 @@ public:
     const QString getName() const override { return NAME; }
 
     bool isHandController() const override { return true; }
+    bool configurable() override { return true; }
 
     QString configurationLayout() override;
     void configurationSettings(const QJsonObject configurationSettings) override;

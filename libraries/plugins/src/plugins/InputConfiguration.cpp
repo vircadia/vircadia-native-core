@@ -27,7 +27,7 @@ QStringList InputConfiguration::inputPlugins() {
 QStringList InputConfiguration::activeInputPlugins() {
     QStringList activePlugins;
     for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
-        if (plugin->isActive()) {
+        if (plugin->configurable()) {
             activePlugins << QString(plugin->getName());
         }
     }
