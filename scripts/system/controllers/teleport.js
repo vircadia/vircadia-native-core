@@ -383,7 +383,7 @@ function getAvatarFootOffset() {
         // default vertical offset from foot to avatar root.
         return -MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(footJointIndex).y;
     } else {
-        return DEFAULT_ROOT_TO_FOOT_OFFSET;
+        return DEFAULT_ROOT_TO_FOOT_OFFSET * MyAvatar.scale;
     }
 }
 
