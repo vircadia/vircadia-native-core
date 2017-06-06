@@ -12,13 +12,11 @@
 #include <QtCore/QDebug>
 #include <QtCore/QThread>
 #include <QtCore/QCommandLineParser>
-#include <QtCore/QCoreApplication>
 
 #include <image/Image.h>
 #include <SettingInterface.h>
 
 #include "ui/OvenMainWindow.h"
-#include "ModelBakingLoggingCategory.h"
 #include "Oven.h"
 #include "BakerCli.h"
 
@@ -37,11 +35,10 @@ Oven::Oven(int argc, char* argv[]) :
     QCommandLineParser parser;
    
     parser.addOptions({
-        { "i", "Input filename.", "input" },
-        { "o", "Output filename.", "output" }
+        { "i", "Path to file that you would like to bake.", "input" },
+        { "o", "Path to folder that will be used as output.", "output" }
     });
     parser.addHelpOption();
-
     parser.process(*this);
 
     // enable compression in image library, except for cube maps

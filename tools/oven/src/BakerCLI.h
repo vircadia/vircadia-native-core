@@ -12,10 +12,6 @@
 #ifndef hifi_BakerCLI_h
 #define hifi_BakerCLI_h
 
-#include <QString>
-#include <QUrl>
-
-#include <QtCore/QThread>
 #include <QtCore/QObject>
 
 class BakerCLI : public QObject {
