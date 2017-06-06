@@ -26,6 +26,14 @@ class RotationConstraint;
 class AnimInverseKinematics : public AnimNode {
 public:
 
+    struct JointChainInfo {
+        glm::quat relRot;
+        glm::vec3 relTrans;
+        float weight;
+        int jointIndex;
+        bool constrained;
+    };
+
     explicit AnimInverseKinematics(const QString& id);
     virtual ~AnimInverseKinematics() override;
 
@@ -67,14 +75,7 @@ protected:
     void solveTargetWithCCD(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug);
     void solveTargetWithSpline(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug);
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
-    struct DebugJoint {
-        DebugJoint() : relRot(), constrained(false) {}
-        DebugJoint(const glm::quat& relRotIn, const glm::vec3& relTransIn, bool constrainedIn) : relRot(relRotIn), relTrans(relTransIn), constrained(constrainedIn) {}
-        glm::quat relRot;
-        glm::vec3 relTrans;
-        bool constrained;
-    };
-    void debugDrawIKChain(std::map<int, DebugJoint>& debugJointMap, const AnimContext& context) const;
+    void debugDrawIKChain(JointChainInfo* jointChainInfos, size_t numJointChainInfos, const AnimContext& context) const;
     void debugDrawRelativePoses(const AnimContext& context) const;
     void debugDrawConstraints(const AnimContext& context) const;
     void debugDrawSpineSplines(const AnimContext& context, const std::vector<IKTarget>& targets) const;
