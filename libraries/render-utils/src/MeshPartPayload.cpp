@@ -533,7 +533,7 @@ float ModelMeshPartPayload::computeFadePercent() const {
         return 0.0f;
     }
     float fadeAlpha = 1.0f;
-    const double INV_FADE_PERIOD = 1.0 / (double)(10 * USECS_PER_SECOND);
+    const double INV_FADE_PERIOD = 1.0 / (double)(3 * USECS_PER_SECOND);
     double fraction = (double)(usecTimestampNow() - _fadeStartTime) * INV_FADE_PERIOD;
     if (fraction < 1.0) {
         fadeAlpha = Interpolate::simpleNonLinearBlend(fraction);

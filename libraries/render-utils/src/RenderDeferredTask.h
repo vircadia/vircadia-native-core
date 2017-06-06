@@ -51,7 +51,6 @@ protected:
 
     gpu::TexturePointer _fadeMaskMap;
     float _debugFadePercent;
-    bool _stateSort;
     bool _debugFade;
 };
 
@@ -135,6 +134,7 @@ public:
 protected:
     render::ShapePlumberPointer _shapePlumber;
     int _maxDrawn; // initialized by Config
+    bool _stateSort;
 };
 
 class DeferredFramebuffer;
