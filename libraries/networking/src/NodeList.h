@@ -20,7 +20,7 @@
 #include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
-#include <tbb/concurrent_unordered_set.h>
+#include <TBBHelpers.h>
 
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QMutex>
