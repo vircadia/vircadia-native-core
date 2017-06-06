@@ -185,6 +185,7 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getRootContext()->setContextProperty("offscreenFlags", flags);
             _webSurface->getRootContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
             _webSurface->getRootContext()->setContextProperty("Account", AccountScriptingInterface::getInstance());
+            _webSurface->getRootContext()->setContextProperty("Audio", DependencyManager::get<AudioScriptingInterface>().data());
             _webSurface->getRootContext()->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
             _webSurface->getRootContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
             _webSurface->getRootContext()->setContextProperty("fileDialogHelper", new FileDialogHelper());
