@@ -256,7 +256,7 @@ void setupSmoothShape(GeometryCache::ShapeData& shapeData, const geometry::Solid
 }
 
 template <uint32_t N>
-void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer, bool conical=false) {
+void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer, bool isConical=false) {
     using namespace geometry;
     Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
     VertexVector vertices;
@@ -264,7 +264,7 @@ void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& ver
 
     // Top (if not conical) and bottom faces
     std::vector<vec3> shape = polygon<N>();
-    if (conical) {
+    if (isConical) {
         for (const vec3& v : shape) {
             vertices.push_back(vec3(0, 0.5f, 0));
             vertices.push_back(vec3(0, 1, 0));
@@ -302,8 +302,8 @@ void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& ver
         vec3 left = shape[i];
         vec3 right = shape[(i + 1) % N];
         vec3 normal = glm::normalize(left + right);
-        vec3 topLeft = (conical ? vec3(0.0, 0.5f, 0.0) : vec3(left.x, 0.5f, left.z));
-        vec3 topRight = (conical? vec3(0.0, 0.5f, 0.0) : vec3(right.x, 0.5f, right.z));
+        vec3 topLeft = (isConical ? vec3(0.0, 0.5f, 0.0) : vec3(left.x, 0.5f, left.z));
+        vec3 topRight = (isConical? vec3(0.0, 0.5f, 0.0) : vec3(right.x, 0.5f, right.z));
         vec3 bottomLeft = vec3(left.x, -0.5f, left.z);
         vec3 bottomRight = vec3(right.x, -0.5f, right.z);
 
