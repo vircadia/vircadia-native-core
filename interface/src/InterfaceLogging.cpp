@@ -11,6 +11,6 @@
 
 #include "InterfaceLogging.h"
 
-Q_LOGGING_CATEGORY(interfaceapp, "hifi.interface")
+Q_LOGGING_CATEGORY(interfaceapp, "hifi.interface", QtFatalMsg)
 Q_LOGGING_CATEGORY(interfaceapp_timing, "hifi.interface.timing")
 Q_LOGGING_CATEGORY(interfaceapp_deadlock, "hifi.interface.deadlock")
