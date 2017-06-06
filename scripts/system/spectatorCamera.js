@@ -102,7 +102,7 @@
             name: 'SpectatorCamera',
             position: cameraPosition, // Put the camera in front of me so that I can find it.
             rotation: cameraRotation
-        }); // FIXME: avatar entity so that you don't need rez rights.;
+        }, true);
         // Put an image3d overlay on the near face, as a viewFinder.
         viewFinderOverlay = Overlays.addOverlay("image3d", {
             url: "http://selfieFrame",
