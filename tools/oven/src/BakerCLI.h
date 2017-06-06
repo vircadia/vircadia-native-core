@@ -14,11 +14,14 @@
 
 #include <QtCore/QObject>
 
+#include "Oven.h"
+
 class BakerCLI : public QObject {
     Q_OBJECT   
 
 public:
-    void bakeFile(const QString inputFilename, const QString outputFilename);
+    BakerCLI(Oven* parent);
+    void bakeFile(const QString inputFilename, const QString outputPath);
 
 private slots:
     void handleFinishedBaker();

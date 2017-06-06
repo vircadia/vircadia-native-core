@@ -22,6 +22,9 @@
 
 static const QString OUTPUT_FOLDER = "/Users/birarda/code/hifi/lod/test-oven/export";
 
+static const QString CLI_INPUT_PARAMETER = "i";
+static const QString CLI_OUTPUT_PARAMETER = "o";
+
 Oven::Oven(int argc, char* argv[]) :
     QApplication(argc, argv)
 {
@@ -35,8 +38,8 @@ Oven::Oven(int argc, char* argv[]) :
     QCommandLineParser parser;
    
     parser.addOptions({
-        { "i", "Path to file that you would like to bake.", "input" },
-        { "o", "Path to folder that will be used as output.", "output" }
+        { CLI_INPUT_PARAMETER, "Path to file that you would like to bake.", "input" },
+        { CLI_OUTPUT_PARAMETER, "Path to folder that will be used as output.", "output" }
     });
     parser.addHelpOption();
     parser.process(*this);
@@ -55,9 +58,9 @@ Oven::Oven(int argc, char* argv[]) :
     setupFBXBakerThread();
 
     // check if we were passed any command line arguments that would tell us just to run without the GUI
-    if (parser.isSet("i") && parser.isSet("o")) {
-        BakerCLI* cli = new BakerCLI();
-        cli->bakeFile(parser.value("i"), parser.value("o"));
+    if (parser.isSet(CLI_INPUT_PARAMETER) && parser.isSet(CLI_OUTPUT_PARAMETER)) {
+        BakerCLI* cli = new BakerCLI(this);
+        cli->bakeFile(parser.value(CLI_INPUT_PARAMETER), parser.value(CLI_OUTPUT_PARAMETER));
     } else {
         // setup the GUI
         _mainWindow = new OvenMainWindow;

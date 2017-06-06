@@ -9,16 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QObject>
 #include <QImageReader>
 #include <QtCore/QDebug>
-#include "ModelBakingLoggingCategory.h"
 
+#include "ModelBakingLoggingCategory.h"
 #include "Oven.h"
 #include "BakerCLI.h"
 #include "FBXBaker.h"
 #include "TextureBaker.h"
 
-void BakerCLI::bakeFile(const QString inputFilename, const QString outputFilename) {
+BakerCLI::BakerCLI(Oven* parent) : QObject() {
+}
+
+void BakerCLI::bakeFile(const QString inputFilename, const QString outputPath) {
     QUrl inputUrl(inputFilename);
 
     // if the URL doesn't have a scheme, assume it is a local file
@@ -40,12 +44,12 @@ void BakerCLI::bakeFile(const QString inputFilename, const QString outputFilenam
     Baker* baker;
 
     if (isFBX) {
-        baker = new FBXBaker(inputUrl, outputFilename, []() -> QThread* {
+        baker = new FBXBaker(inputUrl, outputPath, []() -> QThread* {
             return qApp->getNextWorkerThread();
         });
         baker->moveToThread(qApp->getFBXBakerThread());
     } else if (isSupportedImage) {
-        baker = new TextureBaker(inputUrl, image::TextureUsage::CUBE_TEXTURE, outputFilename);
+        baker = new TextureBaker(inputUrl, image::TextureUsage::CUBE_TEXTURE, outputPath);
         baker->moveToThread(qApp->getNextWorkerThread());
     } else {
         qCDebug(model_baking) << "Failed to determine baker type for file" << inputUrl;
