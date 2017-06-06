@@ -15,7 +15,12 @@
 
 #include <QFile>
 
+#include <StatTracker.h>
+
 void FileResourceRequest::doSend() {
+    auto statTracker = DependencyManager::get<StatTracker>();
+    statTracker->incrementStat(STAT_FILE_REQUEST_STARTED);
+
     QString filename = _url.toLocalFile();
     
     // sometimes on windows, we see the toLocalFile() return null,
@@ -60,4 +65,10 @@ void FileResourceRequest::doSend() {
     
     _state = Finished;
     emit finished();
+
+    if (_result == ResourceRequest::Success) {
+        statTracker->incrementStat(STAT_FILE_REQUEST_SUCCESS);
+    } else {
+        statTracker->incrementStat(STAT_FILE_REQUEST_FAILED);
+    }
 }
