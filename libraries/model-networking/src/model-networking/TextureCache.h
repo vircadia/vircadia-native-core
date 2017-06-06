@@ -174,6 +174,7 @@ public:
     NetworkTexturePointer getSelfieNetworkTexture();
     const gpu::TexturePointer& getSelfieTexture();
     const gpu::FramebufferPointer& getSelfieFramebuffer();
+    void resetSelfieFramebuffer(int width, int height);
 
 protected:
     // Overload ResourceCache::prefetch to allow specifying texture type for loads

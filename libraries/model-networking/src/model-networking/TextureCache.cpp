@@ -888,7 +888,8 @@ void ImageReader::read() {
 NetworkTexturePointer TextureCache::getSelfieNetworkTexture() {
     if (!_selfieNetworkTexture) {
         _selfieNetworkTexture.reset(new NetworkTexture(QUrl(SELFIE_FRAME_URL.c_str())));
-        _selfieNetworkTexture->setImage(getSelfieTexture(), 2048, 1024);
+        auto texture = getSelfieTexture();
+        _selfieNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
     }
     return _selfieNetworkTexture;
  }
@@ -901,9 +902,14 @@ const gpu::TexturePointer& TextureCache::getSelfieTexture() {
 }
 const gpu::FramebufferPointer& TextureCache::getSelfieFramebuffer() {
     if (!_selfieFramebuffer) {
-           _selfieFramebuffer.reset(gpu::Framebuffer::create("selfie", gpu::Element::COLOR_SRGBA_32, 2048, 1024));
-           _selfieTexture = _selfieFramebuffer->getRenderBuffer(0);
+        resetSelfieFramebuffer(2048, 1024);
     }
 
     return _selfieFramebuffer;
+}
+
+void TextureCache::resetSelfieFramebuffer(int width, int height) {
+    _selfieFramebuffer.reset(gpu::Framebuffer::create("selfie", gpu::Element::COLOR_SRGBA_32, 2048, 1024));
+    _selfieTexture = _selfieFramebuffer->getRenderBuffer(0);
+    _selfieNetworkTexture.reset();
 }
