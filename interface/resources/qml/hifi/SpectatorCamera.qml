@@ -20,13 +20,12 @@ import "../controls" as HifiControls
 // references HMD, XXX from root context
 
 Rectangle {
+    HifiConstants { id: hifi; }
+
     id: spectatorCamera;
     // Size
     // Style
-    color: "#FFFFFF";
-    // Properties
-
-    HifiConstants { id: hifi; }
+    color: hifi.colors.baseGray;
     
     //
     // TITLE BAR START
@@ -50,7 +49,7 @@ Rectangle {
             anchors.fill: parent;
             anchors.leftMargin: 16;
             // Style
-            color: hifi.colors.darkGray;
+            color: hifi.colors.lightGrayText;
             // Alignment
             horizontalAlignment: Text.AlignHLeft;
             verticalAlignment: Text.AlignVCenter;
@@ -91,34 +90,34 @@ Rectangle {
             // Size
             width: 20;
             height: parent.height;
-            size: 48;
+            size: 60;
             // Anchors
             anchors.left: parent.left;
-            anchors.leftMargin: 45;
+            anchors.leftMargin: 20;
             anchors.top: parent.top;
             anchors.topMargin: 0;
             // Style
-            color: hifi.colors.blueAccent;
+            color: hifi.colors.lightGrayText;
             horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
+            verticalAlignment: Text.AlignTop;
         }
 
         // "Spectator" app description text
-        RalewaySemiBold {
+        RalewayLight {
             id: spectatorDescriptionText;
-            text: "Spectator lets you switch what your monitor displays while you're using an HMD.";
+            text: "Spectator lets you switch what your monitor displays while you're using an HMD. Use Spectator to stream and record video.";
             // Text size
             size: 14;
             // Size
-            width: parent.width - 90 - 60;
+            width: 350;
             height: paintedHeight;
             // Anchors
             anchors.top: parent.top;
             anchors.topMargin: 10;
             anchors.left: spectatorDescriptionGlyph.right;
-            anchors.leftMargin: 30;
+            anchors.leftMargin: 40;
             // Style
-            color: hifi.colors.darkGray;
+            color: hifi.colors.lightGrayText;
             wrapMode: Text.WordWrap;
             // Alignment
             horizontalAlignment: Text.AlignHLeft;
@@ -187,16 +186,15 @@ Rectangle {
         anchors.top: spectatorDescriptionContainer.bottom;
         anchors.topMargin: 20;
         anchors.left: parent.left;
-        anchors.leftMargin: 40;
+        anchors.leftMargin: 25;
         anchors.right: parent.right;
-        anchors.rightMargin: 40;
+        anchors.rightMargin: anchors.leftMargin;
 
         // "Camera On" Checkbox
         HifiControlsUit.CheckBox {
             id: cameraToggleCheckBox;
             anchors.left: parent.left;
             anchors.top: parent.top;
-            //checked: true; // FIXME
             text: "Camera On";
             boxSize: 30;
             onClicked: {
@@ -204,7 +202,7 @@ Rectangle {
             }
         }
 
-        // Preview
+        // Spectator Camera Preview
         Image {
             id: spectatorCameraPreview;
             height: 300;
@@ -216,6 +214,46 @@ Rectangle {
             horizontalAlignment: Image.AlignHCenter;
             verticalAlignment: Image.AlignVCenter;
             source: "http://1.bp.blogspot.com/-1GABEq__054/T03B00j_OII/AAAAAAAAAa8/jo55LcvEPHI/s1600/Winning.jpg";
+        }
+        
+        // "Monitor Shows" Switch Label
+        RalewayLight {
+            id: monitorShowsSwitchLabel;
+            text: "MONITOR SHOWS";
+            anchors.top: spectatorCameraPreview.bottom;
+            anchors.topMargin: 20;
+            anchors.left: parent.left;
+            size: 16;
+            width: paintedWidth;
+            height: paintedHeight;
+            color: hifi.colors.lightGrayText;
+            verticalAlignment: Text.AlignVCenter;
+        }
+        // "Monitor Shows" Switch
+        HifiControlsUit.Switch {
+            id: monitorShowsSwitch;
+            height: 34;
+            anchors.left: parent.left;
+            anchors.right: parent.right;
+            anchors.top: monitorShowsSwitchLabel.bottom;
+            anchors.topMargin: 10;
+            switchLabelText: "Monitor Shows:";
+            //onClicked: {
+            //    sendToScript({method: (checked ? 'showCameraViewOnMonitor' : 'showMyViewOnMonitor')});
+            //}
+        }
+
+        // "Switch View From Controller" Checkbox
+        HifiControlsUit.CheckBox {
+            id: switchViewFromControllerCheckBox;
+            anchors.left: parent.left;
+            anchors.top: monitorShowsSwitch.bottom;
+            anchors.topMargin: 20;
+            text: "Pressing Vive's Left Thumbpad Switches Monitor View";
+            boxSize: 30;
+            onClicked: {
+                sendToScript({method: 'changeSwitchViewFromControllerPreference', params: checked});
+            }
         }
     }    
     //

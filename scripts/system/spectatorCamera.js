@@ -285,6 +285,15 @@
             case 'disableSpectatorCamera':
                 disableSpectatorCamera();
                 break;
+            case 'showCameraViewOnMonitor':
+                print('FIXME: showCameraViewOnMonitor');
+                break;
+            case 'showMyViewOnMonitor':
+                print('FIXME: showMyViewOnMonitor');
+                break;
+            case 'changeSwitchViewFromControllerPreference':
+                print('FIXME: Preference is now: ' + message.params);
+                break;
             default:
                 print('Unrecognized message from SpectatorCamera.qml:', JSON.stringify(message));
         }
