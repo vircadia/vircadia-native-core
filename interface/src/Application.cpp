@@ -72,6 +72,7 @@
 #include <ErrorDialog.h>
 #include <FileScriptingInterface.h>
 #include <Finally.h>
+#include <FingerprintUtils.h>
 #include <FramebufferCache.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
@@ -114,6 +115,7 @@
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
 #include <ResourceCache.h>
+#include <ResourceRequest.h>
 #include <SandboxUtils.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngines.h>
@@ -951,6 +953,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["processor_l3_cache_count"] = procInfo.numProcessorCachesL3;
     }
 
+    // add firstRun flag from settings to launch event
+    Setting::Handle<bool> firstRun { Settings::firstRun, true };
+    properties["first_run"] = firstRun.get();
+
+    // add the user's machine ID to the launch event
+    properties["machine_fingerprint"] = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
+
     UserActivityLogger::getInstance().logAction("launch", properties);
 
     // Tell our entity edit sender about our known jurisdictions
@@ -1310,6 +1319,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["kbps_in"] = bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond();
         properties["kbps_out"] = bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond();
 
+        properties["atp_in_kbps"] = bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AssetServer);
+
         auto nodeList = DependencyManager::get<NodeList>();
         SharedNodePointer entityServerNode = nodeList->soloNodeOfType(NodeType::EntityServer);
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
@@ -1323,8 +1334,61 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["messages_ping"] = messagesMixerNode ? messagesMixerNode->getPingMs() : -1;
 
         auto loadingRequests = ResourceCache::getLoadingRequests();
+
+        QJsonArray loadingRequestsStats;
+        for (const auto& request : loadingRequests) {
+            QJsonObject requestStats;
+            requestStats["filename"] = request->getURL().fileName();
+            requestStats["received"] = request->getBytesReceived();
+            requestStats["total"] = request->getBytesTotal();
+            requestStats["attempts"] = (int)request->getDownloadAttempts();
+            loadingRequestsStats.append(requestStats);
+        }
+
         properties["active_downloads"] = loadingRequests.size();
         properties["pending_downloads"] = ResourceCache::getPendingRequestCount();
+        properties["active_downloads_details"] = loadingRequestsStats;
+
+        auto statTracker = DependencyManager::get<StatTracker>();
+
+        properties["processing_resources"] = statTracker->getStat("Processing").toInt();
+        properties["pending_processing_resources"] = statTracker->getStat("PendingProcessing").toInt();
+
+        QJsonObject startedRequests;
+        startedRequests["atp"] = statTracker->getStat(STAT_ATP_REQUEST_STARTED).toInt();
+        startedRequests["http"] = statTracker->getStat(STAT_HTTP_REQUEST_STARTED).toInt();
+        startedRequests["file"] = statTracker->getStat(STAT_FILE_REQUEST_STARTED).toInt();
+        startedRequests["total"] = startedRequests["atp"].toInt() + startedRequests["http"].toInt()
+            + startedRequests["file"].toInt();
+        properties["started_requests"] = startedRequests;
+
+        QJsonObject successfulRequests;
+        successfulRequests["atp"] = statTracker->getStat(STAT_ATP_REQUEST_SUCCESS).toInt();
+        successfulRequests["http"] = statTracker->getStat(STAT_HTTP_REQUEST_SUCCESS).toInt();
+        successfulRequests["file"] = statTracker->getStat(STAT_FILE_REQUEST_SUCCESS).toInt();
+        successfulRequests["total"] = successfulRequests["atp"].toInt() + successfulRequests["http"].toInt()
+            + successfulRequests["file"].toInt();
+        properties["successful_requests"] = successfulRequests;
+
+        QJsonObject failedRequests;
+        failedRequests["atp"] = statTracker->getStat(STAT_ATP_REQUEST_FAILED).toInt();
+        failedRequests["http"] = statTracker->getStat(STAT_HTTP_REQUEST_FAILED).toInt();
+        failedRequests["file"] = statTracker->getStat(STAT_FILE_REQUEST_FAILED).toInt();
+        failedRequests["total"] = failedRequests["atp"].toInt() + failedRequests["http"].toInt()
+            + failedRequests["file"].toInt();
+        properties["failed_requests"] = failedRequests;
+
+        QJsonObject cacheRequests;
+        cacheRequests["atp"] = statTracker->getStat(STAT_ATP_REQUEST_CACHE).toInt();
+        cacheRequests["http"] = statTracker->getStat(STAT_HTTP_REQUEST_CACHE).toInt();
+        cacheRequests["total"] = cacheRequests["atp"].toInt() + cacheRequests["http"].toInt();
+        properties["cache_requests"] = cacheRequests;
+
+        QJsonObject atpMappingRequests;
+        atpMappingRequests["started"] = statTracker->getStat(STAT_ATP_MAPPING_REQUEST_STARTED).toInt();
+        atpMappingRequests["failed"] = statTracker->getStat(STAT_ATP_MAPPING_REQUEST_FAILED).toInt();
+        atpMappingRequests["successful"] = statTracker->getStat(STAT_ATP_MAPPING_REQUEST_SUCCESS).toInt();
+        properties["atp_mapping_requests"] = atpMappingRequests;
 
         properties["throttled"] = _displayPlugin ? _displayPlugin->isThrottled() : false;
 
@@ -1339,6 +1403,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["added_entity_cnt"] = entityActivityTracking.addedEntityCount;
         properties["deleted_entity_cnt"] = entityActivityTracking.deletedEntityCount;
         properties["edited_entity_cnt"] = entityActivityTracking.editedEntityCount;
+
+        NodeToOctreeSceneStats* octreeServerSceneStats = getOcteeSceneStats();
+        unsigned long totalServerOctreeElements = 0;
+        for (NodeToOctreeSceneStatsIterator i = octreeServerSceneStats->begin(); i != octreeServerSceneStats->end(); i++) {
+            totalServerOctreeElements += i->second.getTotalElements();
+        }
+
+        properties["local_octree_elements"] = (qint64) OctreeElement::getInternalNodeCount();
+        properties["server_octree_elements"] = (qint64) totalServerOctreeElements;
 
         properties["active_display_plugin"] = getActiveDisplayPlugin()->getName();
         properties["using_hmd"] = isHMDMode();
@@ -1364,6 +1437,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             || ((rightHandPose.valid || lastRightHandPose.valid) && (rightHandPose != lastRightHandPose));
         lastLeftHandPose = leftHandPose;
         lastRightHandPose = rightHandPose;
+
+        properties["local_socket_changes"] = DependencyManager::get<StatTracker>()->getStat(LOCAL_SOCKET_CHANGE_STAT).toInt();
 
         UserActivityLogger::getInstance().logAction("stats", properties);
     });
