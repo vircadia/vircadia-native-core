@@ -188,7 +188,7 @@ Rectangle {
             text: "Camera On";
             boxSize: 24;
             onClicked: {
-                sendToScript({method: (checked ? 'enableSpectatorCamera' : 'disableSpectatorCamera')});
+                sendToScript({method: (checked ? 'spectatorCameraOn' : 'spectatorCameraOff')});
             }
         }
 

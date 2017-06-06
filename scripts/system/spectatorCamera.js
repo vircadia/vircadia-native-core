@@ -66,7 +66,7 @@
     }
 
     //
-    // Function Name: enableSpectatorCamera()
+    // Function Name: spectatorCameraOn()
     //
     // Relevant Variables:
     // isUpdateRenderWired: Bool storing whether or not the camera's update
@@ -80,7 +80,7 @@
     //     spawn the camera entity.
     //
     var isUpdateRenderWired = false;
-    function enableSpectatorCamera() {
+    function spectatorCameraOn() {
         // Set the special texture size based on the window in which it will eventually be displayed.
         var size = Controller.getViewportDimensions(); // FIXME: Need a signal to hook into when the dimensions change.
         spectatorFrameRenderConfig.resetSize(size.x, size.y);
@@ -115,7 +115,7 @@
     }
 
     //
-    // Function Name: disableSpectatorCamera()
+    // Function Name: spectatorCameraOff()
     //
     // Relevant Variables:
     // None
@@ -127,20 +127,21 @@
     // Call this function to shut down the spectator camera and
     //     destroy the camera entity.
     //
-    function disableSpectatorCamera() {
+    function spectatorCameraOff() {
         spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = false;
         if (isUpdateRenderWired) {
             Script.update.disconnect(updateRenderFromCamera);
             isUpdateRenderWired = false;
         }
-        if (viewFinderOverlay) {
-            Overlays.deleteOverlay(viewFinderOverlay);
-            viewFinderOverlay = false;
-        }
         if (camera) {
             Entities.deleteEntity(camera);
-            camera = false;
+            print("ZACH FOX GOODBYE");
         }
+        if (viewFinderOverlay) {
+            Overlays.deleteOverlay(viewFinderOverlay);
+        }
+        camera = false;
+        viewFinderOverlay = false;
     }
 
     //
@@ -167,6 +168,7 @@
         });
         button.clicked.connect(onTabletButtonClicked);
         tablet.screenChanged.connect(onTabletScreenChanged);
+        Window.domainChanged.connect(spectatorCameraOff);
         viewFinderOverlay = false;
         camera = false;
     }
@@ -280,11 +282,11 @@
     //
     function fromQml(message) {
         switch (message.method) {
-            case 'enableSpectatorCamera':
-                enableSpectatorCamera();
+            case 'spectatorCameraOn':
+                spectatorCameraOn();
                 break;
-            case 'disableSpectatorCamera':
-                disableSpectatorCamera();
+            case 'spectatorCameraOff':
+                spectatorCameraOff();
                 break;
             case 'showHmdPreviewOnMonitor':
                 print('FIXME: showHmdPreviewOnMonitor');
@@ -315,7 +317,8 @@
     // shutdown() will be called when the script ends (i.e. is stopped).
     //
     function shutdown() {
-        disableSpectatorCamera();
+        spectatorCameraOff();
+        Window.domainChanged.disconnect(spectatorCameraOff);
         tablet.removeButton(button);
         button.clicked.disconnect(onTabletButtonClicked);
         tablet.screenChanged.disconnect(onTabletScreenChanged);
