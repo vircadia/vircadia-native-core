@@ -379,18 +379,14 @@ public:
     Q_INVOKABLE controller::Pose getLeftHandTipPose() const;
     Q_INVOKABLE controller::Pose getRightHandTipPose() const;
 
-	////////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////////
-	//:1P: world-space to avatar-space rigconversion functions
-	Q_INVOKABLE glm::vec3 worldToAvatarPoint(const glm::vec3& position, const int jointIndex = -1) const;
-	Q_INVOKABLE glm::vec3 worldToAvatarDirection(const glm::vec3& direction, const int jointIndex = -1) const;
-	Q_INVOKABLE glm::quat worldToAvatarRotation(const glm::quat& rotation, const int jointIndex = -1) const;
+    // world-space to avatar-space rigconversion functions
+    Q_INVOKABLE glm::vec3 worldToJointPoint(const glm::vec3& position, const int jointIndex = -1) const;
+    Q_INVOKABLE glm::vec3 worldToJointDirection(const glm::vec3& direction, const int jointIndex = -1) const;
+    Q_INVOKABLE glm::quat worldToJointRotation(const glm::quat& rotation, const int jointIndex = -1) const;
 
-	Q_INVOKABLE glm::vec3 avatarToWorldPoint(const glm::vec3& position, const int jointIndex = -1) const;
-	Q_INVOKABLE glm::vec3 avatarToWorldDirection(const glm::vec3& direction, const int jointIndex = -1) const;
-	Q_INVOKABLE glm::quat avatarToWorldRotation(const glm::quat& rotation, const int jointIndex = -1) const;
-	////////////////////////////////////////////////////////////////////////////////////////////
-	////////////////////////////////////////////////////////////////////////////////////////////
+    Q_INVOKABLE glm::vec3 jointToWorldPoint(const glm::vec3& position, const int jointIndex = -1) const;
+    Q_INVOKABLE glm::vec3 jointToWorldDirection(const glm::vec3& direction, const int jointIndex = -1) const;
+    Q_INVOKABLE glm::quat jointToWorldRotation(const glm::quat& rotation, const int jointIndex = -1) const;
 
     AvatarWeakPointer getLookAtTargetAvatar() const { return _lookAtTargetAvatar; }
     void updateLookAtTargetAvatar();
