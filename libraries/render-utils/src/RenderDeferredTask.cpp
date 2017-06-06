@@ -35,6 +35,7 @@
 #include "HitEffect.h"
 #include "TextureCache.h"
 #include "ZoneRenderer.h"
+#include "FadeManager.h"
 
 #include "AmbientOcclusionEffect.h"
 #include "AntialiasingEffect.h"
@@ -49,6 +50,12 @@
 using namespace render;
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
 extern void initDeferredPipelines(render::ShapePlumber& plumber);
+
+void RenderDeferredTask::configure(const Config& config)
+{
+    DependencyManager::get<FadeManager>()->setDebugEnabled(config.debugFade);
+    DependencyManager::get<FadeManager>()->setDebugFadePercent(config.debugFadePercent);
+}
 
 void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
     auto items = input.get<Input>();
@@ -85,13 +92,11 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto deferredFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(0);
     const auto lightingFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(1);
 
-    // Fade texture mask
-    auto texturePath = PathUtils::resourcesPath() + "images/fadeMask.png";
-    auto fadeMaskMap = DependencyManager::get<TextureCache>()->getImageTexture(texturePath, image::TextureUsage::STRICT_TEXTURE);
+    DependencyManager::set<FadeManager>();
 
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).hasVarying();
-    task.addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaqueInputs, shapePlumber, fadeMaskMap);
+    task.addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaqueInputs, shapePlumber);
 
     // Once opaque is all rendered create stencil background
     task.addJob<DrawStencilDeferred>("DrawOpaqueStencil", deferredFramebuffer);
@@ -147,7 +152,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // Render transparent objects forward in LightingBuffer
     const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).hasVarying();
-    task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber, fadeMaskMap);
+    task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
 
     // LIght Cluster Grid Debuging job
     {
@@ -252,15 +257,8 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
     const auto& lightingModel = inputs.get1();
 
     RenderArgs* args = renderContext->args;
-    ShapeKey::Builder   defaultKeyBuilder;
-
-    if (_debugFade) {
-        args->_debugFlags = static_cast<RenderArgs::DebugFlags>(args->_debugFlags |
-            static_cast<int>(RenderArgs::RENDER_DEBUG_FADE));
-        args->_debugFadePercent = _debugFadePercent;
-        // Force fade for everyone
-        defaultKeyBuilder.withFade();
-    }
+    ShapeKey::Builder   defaultKeyBuilder = DependencyManager::get<FadeManager>()->getKeyBuilder();
+    gpu::TexturePointer fadeMaskMap = DependencyManager::get<FadeManager>()->getFadeMaskMap();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
@@ -285,8 +283,9 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         if (lightingModel->isWireframeEnabled()) {
             keyBuilder.withWireframe();
         }
+
         // Prepare fade effect
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::FADE_MASK, _fadeMaskMap);
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::FADE_MASK, fadeMaskMap);
 
         ShapeKey globalKey = keyBuilder.build();
         args->_globalShapeKey = globalKey._flags.to_ulong();
@@ -296,13 +295,6 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         args->_batch = nullptr;
         args->_globalShapeKey = 0;
     });
-
-    // Not sure this is really needed...
-    if (_debugFade) {
-        // Turn off fade debug
-        args->_debugFlags = static_cast<RenderArgs::DebugFlags>(args->_debugFlags &
-            ~static_cast<int>(RenderArgs::RENDER_DEBUG_FADE));
-    }
 
     config->setNumDrawn((int)inItems.size());
 }
@@ -317,15 +309,8 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
     const auto& lightingModel = inputs.get1();
 
     RenderArgs* args = renderContext->args;
-    ShapeKey::Builder   defaultKeyBuilder;
-
-    if (_debugFade) {
-        args->_debugFlags = static_cast<RenderArgs::DebugFlags>(args->_debugFlags |
-            static_cast<int>(RenderArgs::RENDER_DEBUG_FADE));
-        args->_debugFadePercent = _debugFadePercent;
-        // Force fade for everyone
-        defaultKeyBuilder.withFade();
-    }
+    ShapeKey::Builder   defaultKeyBuilder = DependencyManager::get<FadeManager>()->getKeyBuilder();
+    gpu::TexturePointer fadeMaskMap = DependencyManager::get<FadeManager>()->getFadeMaskMap();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
@@ -352,7 +337,7 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
         }
 
         // Prepare fade effect
-        batch.setResourceTexture(ShapePipeline::Slot::MAP::FADE_MASK, _fadeMaskMap);
+        batch.setResourceTexture(ShapePipeline::Slot::MAP::FADE_MASK, fadeMaskMap);
 
         ShapeKey globalKey = keyBuilder.build();
         args->_globalShapeKey = globalKey._flags.to_ulong();
@@ -365,13 +350,6 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
         args->_batch = nullptr;
         args->_globalShapeKey = 0;
     });
-
-    // Not sure this is really needed...
-    if (_debugFade) {
-        // Turn off fade debug
-        args->_debugFlags = static_cast<RenderArgs::DebugFlags>(args->_debugFlags &
-            ~static_cast<int>(RenderArgs::RENDER_DEBUG_FADE));
-    }
 
     config->setNumDrawn((int)inItems.size());
 }

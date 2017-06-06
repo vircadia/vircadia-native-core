@@ -13,21 +13,15 @@ import QtQuick.Controls 1.4
 import "configSlider"
 
 Row {
-	property var drawOpaqueConfig: Render.getConfig("DrawOpaqueDeferred");
-	property var drawTransparentConfig: Render.getConfig("DrawTransparentDeferred");
+	property var taskConfig: Render.getConfig("RenderDeferredTask");
 	spacing: 4
 	Column {
 		spacing: 8
 
 		CheckBox {
-			text: "Force Fade Opaque"
-			checked: drawOpaqueConfig["debugFade"]
-			onCheckedChanged: { drawOpaqueConfig["debugFade"] = checked }
-		}
-		CheckBox {
-			text: "Force Fade Transparent"
-			checked: drawTransparentConfig["debugFade"]
-			onCheckedChanged: { drawTransparentConfig["debugFade"] = checked }
+			text: "Force Fade"
+			checked: taskConfig["debugFade"]
+			onCheckedChanged: { taskConfig["debugFade"] = checked }
 		}
 	}
 	Column {
@@ -36,16 +30,7 @@ Row {
 		ConfigSlider {
 			label: "Percent"
 			integral: false
-			config: drawOpaqueConfig
-			property: "debugFadePercent"
-			max: 1.0
-			min: 0.0
-			width: 250
-		}
-		ConfigSlider {
-			label: "Percent"
-			integral: false
-			config: drawTransparentConfig
+			config: taskConfig
 			property: "debugFadePercent"
 			max: 1.0
 			min: 0.0

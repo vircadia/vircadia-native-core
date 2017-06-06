@@ -80,7 +80,6 @@ public:
     enum DebugFlags {
         RENDER_DEBUG_NONE = 0,
         RENDER_DEBUG_HULLS = 1,
-        RENDER_DEBUG_FADE = 2,
     };
 
     RenderArgs(std::shared_ptr<gpu::Context> context = nullptr,
@@ -133,7 +132,6 @@ public:
     RenderDetails _details;
     render::ScenePointer _scene; // HACK
     int8_t _cameraMode { -1 }; // HACK
-    float _debugFadePercent{ 0.f }; // HACK too
 };
 
 #endif // hifi_RenderArgs_h

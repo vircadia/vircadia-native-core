@@ -106,7 +106,7 @@ public:
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
-    void bindFade(gpu::Batch& batch, const RenderArgs* args) const;
+    void bindFade(gpu::Batch& batch) const;
 
     void initCache();
 

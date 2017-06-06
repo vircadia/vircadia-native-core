@@ -44,22 +44,10 @@ public:
 protected:
 };
 
-
-class DrawFadableDeferred {
-protected:
-    DrawFadableDeferred(gpu::TexturePointer fadeMaskMap) : _fadeMaskMap{ fadeMaskMap } {}
-
-    gpu::TexturePointer _fadeMaskMap;
-    float _debugFadePercent;
-    bool _debugFade;
-};
-
 class DrawConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY newStats)
     Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
-    Q_PROPERTY(bool debugFade MEMBER debugFade NOTIFY dirty)
-    Q_PROPERTY(float debugFadePercent MEMBER debugFadePercent NOTIFY dirty)
 
 public:
 
@@ -67,8 +55,6 @@ public:
     void setNumDrawn(int numDrawn) { _numDrawn = numDrawn;  emit newStats(); }
 
     int maxDrawn{ -1 };
-    float debugFadePercent{ 0.f };
-    bool debugFade{ false };
 
 signals:
     void newStats();
@@ -78,15 +64,15 @@ protected:
     int _numDrawn{ 0 };
 };
 
-class DrawDeferred : public DrawFadableDeferred {
+class DrawDeferred {
 public:
     using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
     using Config = DrawConfig;
     using JobModel = render::Job::ModelI<DrawDeferred, Inputs, Config>;
 
-    DrawDeferred(render::ShapePlumberPointer shapePlumber, gpu::TexturePointer fadeMaskMap) : _shapePlumber{ shapePlumber }, DrawFadableDeferred{ fadeMaskMap } {}
+    DrawDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
 
-    void configure(const Config& config) { _maxDrawn = config.maxDrawn; _debugFadePercent = config.debugFadePercent; _debugFade = config.debugFade; }
+    void configure(const Config& config) { _maxDrawn = config.maxDrawn; }
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 protected:
@@ -99,8 +85,6 @@ class DrawStateSortConfig : public render::Job::Config {
         Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)
         Q_PROPERTY(int maxDrawn MEMBER maxDrawn NOTIFY dirty)
         Q_PROPERTY(bool stateSort MEMBER stateSort NOTIFY dirty)
-        Q_PROPERTY(bool debugFade MEMBER debugFade NOTIFY dirty)
-        Q_PROPERTY(float debugFadePercent MEMBER debugFadePercent NOTIFY dirty)
 public:
 
     int getNumDrawn() { return numDrawn; }
@@ -108,8 +92,6 @@ public:
 
     int maxDrawn{ -1 };
     bool stateSort{ true };
-    float debugFadePercent{ 0.f };
-    bool debugFade{ false };
 
 signals:
     void numDrawnChanged();
@@ -119,16 +101,16 @@ protected:
     int numDrawn{ 0 };
 };
 
-class DrawStateSortDeferred : public DrawFadableDeferred {
+class DrawStateSortDeferred {
 public:
     using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
 
     using Config = DrawStateSortConfig;
     using JobModel = render::Job::ModelI<DrawStateSortDeferred, Inputs, Config>;
 
-    DrawStateSortDeferred(render::ShapePlumberPointer shapePlumber, gpu::TexturePointer fadeMaskMap) : _shapePlumber{ shapePlumber }, DrawFadableDeferred{ fadeMaskMap } {}
+    DrawStateSortDeferred(render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber } {}
 
-    void configure(const Config& config) { _maxDrawn = config.maxDrawn; _stateSort = config.stateSort; _debugFadePercent = config.debugFadePercent; _debugFade = config.debugFade; }
+    void configure(const Config& config) { _maxDrawn = config.maxDrawn; _stateSort = config.stateSort; }
     void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 protected:
@@ -209,13 +191,28 @@ public:
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer);
 };
 
+class RenderDeferredTaskConfig : public render::Task::Config {
+    Q_OBJECT
+        Q_PROPERTY(bool debugFade MEMBER debugFade NOTIFY dirty)
+        Q_PROPERTY(float debugFadePercent MEMBER debugFadePercent NOTIFY dirty)
+public:
+    float debugFadePercent{ 0.f };
+    bool debugFade{ false };
+
+signals:
+    void dirty();
+
+};
+
 class RenderDeferredTask {
 public:
     using Input = RenderFetchCullSortTask::Output;
-    using JobModel = render::Task::ModelI<RenderDeferredTask, Input>;
+    using Config = RenderDeferredTaskConfig;
+    using JobModel = render::Task::ModelI<RenderDeferredTask, Input, Config>;
 
     RenderDeferredTask() {}
 
+    void configure(const Config& config);
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
 
 };
