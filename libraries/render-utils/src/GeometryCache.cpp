@@ -422,7 +422,6 @@ void GeometryCache::buildShapes() {
     drawCircle(_shapes[Circle], _shapeVertices, _shapeIndices);
     // Not implememented yet:
     //Quad,
-    //Circle,
     //Torus, 
  
 }
