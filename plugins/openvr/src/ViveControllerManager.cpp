@@ -39,7 +39,7 @@ extern PoseData _nextSimPoseData;
 vr::IVRSystem* acquireOpenVrSystem();
 void releaseOpenVrSystem();
 
-
+static const QString OPENVR_LAYOUT = QString("OpenVrConfiguration.qml");
 static const char* CONTROLLER_MODEL_STRING = "vr_controller_05_wireless_b";
 const quint64 CALIBRATION_TIMELAPSE = 1 * USECS_PER_SECOND;
 
@@ -120,7 +120,11 @@ bool ViveControllerManager::isSupported() const {
     return openVrSupported();
 }
 
-void ViveControllerManager::inputPluginConfigurationSettings(const QJsonObject configurationSettings) {
+void ViveControllerManager::configurationSettings(const QJsonObject configurationSettings) {
+}
+
+QString ViveControllerManager::configurationLayout() {
+    return OPENVR_LAYOUT;
 }
 
 bool ViveControllerManager::activate() {

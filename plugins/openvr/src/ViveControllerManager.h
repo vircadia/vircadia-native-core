@@ -42,7 +42,8 @@ public:
 
     bool isHandController() const override { return true; }
 
-    void inputPluginConfigurationSettings(const QJsonObject configurationSettings) override;
+    QString configurationLayout() override;
+    void configurationSettings(const QJsonObject configurationSettings) override;
 
     bool activate() override;
     void deactivate() override;

@@ -39,7 +39,7 @@ QString InputConfiguration::configurationLayout(QString pluginName) {
 
     for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
         if (plugin->getName() == pluginName) {
-            qDebug() << "------------> testing <----------";
+            return plugin->configurationLayout();
         }
     }
     return sourcePath;

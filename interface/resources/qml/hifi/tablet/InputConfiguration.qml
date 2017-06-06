@@ -64,7 +64,7 @@ Rectangle {
 
     Row {
         id: configRow
-
+        z: 999
         anchors.top: configuration.bottom
         anchors.topMargin: 20
         anchors.left: configuration.left
@@ -73,13 +73,14 @@ Rectangle {
         HifiControls.ComboBox {
             id: box
             width: 160
+            z: 999
             editable: true
             colorScheme: hifi.colorSchemes.dark
             model: inputPlugins()
             
             onCurrentIndexChanged: {
-                var object = {"Test": "hello"};
-                InputConfiguration.configurationSettings(object, box.currentText);
+                loader.source = ""
+                loader.source = InputConfiguration.configurationLayout(box.currentText);
             }
         }
 
@@ -93,6 +94,42 @@ Rectangle {
             }
         }
 
+    }
+
+
+    Separator {
+        id: configurationSeperator
+        z: 0
+        width: inputConfiguration.width
+        anchors.top: configRow.bottom
+        anchors.topMargin: 10
+    }
+
+    Row {
+        z: 0
+        id: configurationHeader
+        anchors.top: configurationSeperator.bottom
+        anchors.topMargin: 20
+        anchors.left: inputConfiguration.left
+        anchors.leftMargin: 40
+        spacing: 10
+        RalewayBold {
+            text: "CONFIGURATION"
+            size: 18
+            color: hifi.colors.lightGray
+        }
+    }
+
+    Loader {
+        id: loader
+        asynchronous: false
+
+        width: configurationHeader.width
+        anchors.left: inputConfiguration.left
+        anchors.right: inputConfiguration.right
+        anchors.top: configurationHeader.bottom
+        anchors.topMargin: 10
+        anchors.bottom: inputConfiguration.bottom
     }
 
     function inputPlugins() {
