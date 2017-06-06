@@ -76,7 +76,7 @@ public:
 class RenderArgs {
 public:
     enum RenderMode { DEFAULT_RENDER_MODE, SHADOW_RENDER_MODE, DIFFUSE_RENDER_MODE, NORMAL_RENDER_MODE, MIRROR_RENDER_MODE };
-    enum RenderSide { MONO, STEREO_LEFT, STEREO_RIGHT };
+    enum DisplayMode { MONO, STEREO_MONITOR, STEREO_HMD };
     enum DebugFlags {
         RENDER_DEBUG_NONE = 0,
         RENDER_DEBUG_HULLS = 1
@@ -87,7 +87,7 @@ public:
                float sizeScale = 1.0f,
                int boundaryLevelAdjust = 0,
                RenderMode renderMode = DEFAULT_RENDER_MODE,
-               RenderSide renderSide = MONO,
+               DisplayMode displayMode = MONO,
                DebugFlags debugFlags = RENDER_DEBUG_NONE,
                gpu::Batch* batch = nullptr) :
     _context(context),
@@ -95,7 +95,7 @@ public:
     _sizeScale(sizeScale),
     _boundaryLevelAdjust(boundaryLevelAdjust),
     _renderMode(renderMode),
-    _renderSide(renderSide),
+    _displayMode(displayMode),
     _debugFlags(debugFlags),
     _batch(batch) {
     }
@@ -121,7 +121,7 @@ public:
     float _sizeScale = 1.0f;
     int _boundaryLevelAdjust = 0;
     RenderMode _renderMode = DEFAULT_RENDER_MODE;
-    RenderSide _renderSide = MONO;
+    DisplayMode _displayMode = MONO;
     DebugFlags _debugFlags = RENDER_DEBUG_NONE;
     gpu::Batch* _batch = nullptr;
 

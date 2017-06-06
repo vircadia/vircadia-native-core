@@ -12,6 +12,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include <GeometryCache.h>
+#include <StencilMaskPass.h>
 #include <TextureCache.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
@@ -69,6 +70,7 @@ void RenderablePolyLineEntityItem::createPipeline() {
 
     gpu::StatePointer state = gpu::StatePointer(new gpu::State());
     state->setDepthTest(true, true, gpu::LESS_EQUAL);
+    PrepareStencil::testMask(*state);
     state->setBlendFunction(true,
         gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
