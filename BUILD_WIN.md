@@ -31,12 +31,12 @@ Download and install the [Win64 OpenSSL v1.0.2L Installer](https://slproweb.com/
 ### Step 6. Running CMake to Generate Build Files
 
 Run Command Prompt from Start and run the following commands:
-
-> cd "%HIFI_DIR%"
-> mkdir build
-> cd build
-> cmake .. -G "Visual Studio 12 Win64"
-
+````
+cd "%HIFI_DIR%"
+mkdir build
+cd build
+cmake .. -G "Visual Studio 12 Win64"
+````
     
 Where `%HIFI_DIR%` is the directory for the highfidelity repository.     
 
