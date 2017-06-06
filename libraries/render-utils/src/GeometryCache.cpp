@@ -256,7 +256,7 @@ void setupSmoothShape(GeometryCache::ShapeData& shapeData, const geometry::Solid
 }
 
 template <uint32_t N>
-void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer, bool isConical=false) {
+void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer, bool isConical = false) {
     using namespace geometry;
     Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
     VertexVector vertices;
