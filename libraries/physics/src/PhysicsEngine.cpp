@@ -129,6 +129,9 @@ void PhysicsEngine::addObjectToDynamicsWorld(ObjectMotionState* motionState) {
             }
             body->setCollisionFlags(btCollisionObject::CF_STATIC_OBJECT);
             body->updateInertiaTensor();
+            if (motionState->isLocallyOwned()) {
+                _activeStaticBodies.insert(body);
+            }
             break;
         }
     }
@@ -174,19 +177,9 @@ void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
         // frame (because the framerate is faster than our physics simulation rate).  When this happens we must scan
         // _activeStaticBodies for objects that were recently deleted so we don't try to access a dangling pointer.
         for (auto object : objects) {
-            btRigidBody* body = object->getRigidBody();
-
-            std::vector<btRigidBody*>::reverse_iterator itr = _activeStaticBodies.rbegin();
-            while (itr != _activeStaticBodies.rend()) {
-                if (body == *itr) {
-                    if (*itr != *(_activeStaticBodies.rbegin())) {
-                        // swap with rbegin
-                        *itr = *(_activeStaticBodies.rbegin());
-                    }
-                    _activeStaticBodies.pop_back();
-                    break;
-                }
-                ++itr;
+            std::set<btRigidBody*>::iterator itr = _activeStaticBodies.find(object->getRigidBody());
+            if (itr != _activeStaticBodies.end()) {
+                _activeStaticBodies.erase(itr);
             }
         }
     }
@@ -207,7 +200,7 @@ void PhysicsEngine::removeObjects(const VectorOfMotionStates& objects) {
 }
 
 // Same as above, but takes a Set instead of a Vector.  Should only be called during teardown.
-void PhysicsEngine::removeObjects(const SetOfMotionStates& objects) {
+void PhysicsEngine::removeSetOfObjects(const SetOfMotionStates& objects) {
     _contactMap.clear();
     for (auto object : objects) {
         btRigidBody* body = object->getRigidBody();
@@ -245,14 +238,16 @@ VectorOfMotionStates PhysicsEngine::changeObjects(const VectorOfMotionStates& ob
             object->clearIncomingDirtyFlags();
         }
         if (object->getMotionType() == MOTION_TYPE_STATIC && object->isActive()) {
-            _activeStaticBodies.push_back(object->getRigidBody());
+            _activeStaticBodies.insert(object->getRigidBody());
         }
     }
     // active static bodies have changed (in an Easy way) and need their Aabbs updated
     // but we've configured Bullet to NOT update them automatically (for improved performance)
     // so we must do it ourselves
-    for (size_t i = 0; i < _activeStaticBodies.size(); ++i) {
-        _dynamicsWorld->updateSingleAabb(_activeStaticBodies[i]);
+    std::set<btRigidBody*>::const_iterator itr = _activeStaticBodies.begin();
+    while (itr != _activeStaticBodies.end()) {
+        _dynamicsWorld->updateSingleAabb(*itr);
+        ++itr;
     }
     return stillNeedChange;
 }
@@ -496,13 +491,23 @@ const CollisionEvents& PhysicsEngine::getCollisionEvents() {
 
 const VectorOfMotionStates& PhysicsEngine::getChangedMotionStates() {
     BT_PROFILE("copyOutgoingChanges");
+
+    _dynamicsWorld->synchronizeMotionStates();
+
     // Bullet will not deactivate static objects (it doesn't expect them to be active)
     // so we must deactivate them ourselves
-    for (size_t i = 0; i < _activeStaticBodies.size(); ++i) {
-        _activeStaticBodies[i]->forceActivationState(ISLAND_SLEEPING);
+    std::set<btRigidBody*>::const_iterator itr = _activeStaticBodies.begin();
+    while (itr != _activeStaticBodies.end()) {
+        btRigidBody* body = *itr;
+        body->forceActivationState(ISLAND_SLEEPING);
+        ObjectMotionState* motionState = static_cast<ObjectMotionState*>(body->getUserPointer());
+        if (motionState) {
+            _dynamicsWorld->addChangedMotionState(motionState);
+        }
+        ++itr;
     }
     _activeStaticBodies.clear();
-    _dynamicsWorld->synchronizeMotionStates();
+
     _hasOutgoingChanges = false;
     return _dynamicsWorld->getChangedMotionStates();
 }

@@ -52,6 +52,7 @@ namespace AccountManagerAuth {
 Q_DECLARE_METATYPE(AccountManagerAuth::Type);
 
 const QByteArray ACCESS_TOKEN_AUTHORIZATION_HEADER = "Authorization";
+const auto METAVERSE_SESSION_ID_HEADER = QString("HFM-SessionID").toLocal8Bit();
 
 using UserAgentGetter = std::function<QString()>;
 
@@ -90,7 +91,7 @@ public:
     static QJsonObject dataObjectFromResponse(QNetworkReply& requestReply);
 
     QUuid getSessionID() const { return _sessionID; }
-    void setSessionID(const QUuid& sessionID) { _sessionID = sessionID; }
+    void setSessionID(const QUuid& sessionID);
 
     void setTemporaryDomain(const QUuid& domainID, const QString& key);
     const QString& getTemporaryDomainKey(const QUuid& domainID) { return _accountInfo.getTemporaryDomainKey(domainID); }

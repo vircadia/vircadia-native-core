@@ -46,6 +46,9 @@
 #endif
 
 #include "model/Geometry.h"
+
+#include "StencilMaskPass.h"
+
 #include "EntityTreeRenderer.h"
 #include "polyvox_vert.h"
 #include "polyvox_frag.h"
@@ -743,6 +746,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        PrepareStencil::testMaskDrawShape(*state);
 
         _pipeline = gpu::Pipeline::create(program, state);
 
@@ -750,6 +754,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         wireframeState->setCullMode(gpu::State::CULL_BACK);
         wireframeState->setDepthTest(true, true, gpu::LESS_EQUAL);
         wireframeState->setFillMode(gpu::State::FILL_LINE);
+        PrepareStencil::testMaskDrawShape(*wireframeState);
 
         _wireframePipeline = gpu::Pipeline::create(program, wireframeState);
     }
