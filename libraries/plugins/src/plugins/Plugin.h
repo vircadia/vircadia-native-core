@@ -54,16 +54,16 @@ public:
         return _active;
     }
     virtual bool startStandBySession() {
-        _standbysessionstatus = true;
-        return _standbysessionstatus;
+        _sessionStatus = true;
+        return _sessionStatus;
     }
 
-    virtual void endStandBySession() {
-        _standbysessionstatus = false;
+    virtual void endSession() {
+        _sessionStatus = false;
     }
 
-    virtual bool isStandBySessionActive() {
-        return _standbysessionstatus;
+    virtual bool isSessionActive() {
+        return _sessionStatus;
     }
 
     /**
@@ -85,7 +85,7 @@ signals:
 
 protected:
     bool _active { false };
-    bool _standbysessionstatus { false };
+    bool _sessionStatus { false };
     PluginContainer* _container { nullptr };
     static const char* UNKNOWN_PLUGIN_ID;
 

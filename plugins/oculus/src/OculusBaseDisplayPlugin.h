@@ -35,7 +35,7 @@ protected:
     bool internalActivate() override;
     void internalDeactivate() override;
     bool activateStandBySession() override;
-    void deactivateStandBySession() override;
+    void deactivateSession() override;
     void updatePresentPose() override;
 
 protected:

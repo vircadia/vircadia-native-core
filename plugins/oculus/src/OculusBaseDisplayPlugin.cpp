@@ -123,8 +123,6 @@ bool OculusBaseDisplayPlugin::internalActivate() {
 
 void OculusBaseDisplayPlugin::internalDeactivate() {
     Parent::internalDeactivate();
-    releaseOculusSession();
-    _session = nullptr;
 }
 
 bool OculusBaseDisplayPlugin::activateStandBySession() {
@@ -134,7 +132,7 @@ bool OculusBaseDisplayPlugin::activateStandBySession() {
     }
     return true;
 }
-void OculusBaseDisplayPlugin::deactivateStandBySession() {
+void OculusBaseDisplayPlugin::deactivateSession() {
     releaseOculusSession();
     _session = nullptr;
 }

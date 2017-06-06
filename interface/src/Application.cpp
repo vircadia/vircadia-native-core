@@ -1360,7 +1360,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
         if (_autoSwitchDisplayModeSupportedHMDPlugin) {
             if (getActiveDisplayPlugin() != _autoSwitchDisplayModeSupportedHMDPlugin &&
-                !_autoSwitchDisplayModeSupportedHMDPlugin->isStandBySessionActive()) {
+                !_autoSwitchDisplayModeSupportedHMDPlugin->isSessionActive()) {
                     startHMDStandBySession();
             }
             // Poll periodically to check whether the user has worn HMD or not. Switch Display mode accordingly.
@@ -1602,8 +1602,8 @@ void Application::aboutToQuit() {
 
     getActiveDisplayPlugin()->deactivate();
     if (_autoSwitchDisplayModeSupportedHMDPlugin 
-        && _autoSwitchDisplayModeSupportedHMDPlugin->isStandBySessionActive()) {
-        _autoSwitchDisplayModeSupportedHMDPlugin->endStandBySession();
+        && _autoSwitchDisplayModeSupportedHMDPlugin->isSessionActive()) {
+        _autoSwitchDisplayModeSupportedHMDPlugin->endSession();
     }
     // use the CloseEventSender via a QThread to send an event that says the user asked for the app to close
     auto closeEventSender = DependencyManager::get<CloseEventSender>();
@@ -6827,13 +6827,14 @@ void Application::switchDisplayMode() {
         // Switch to respective mode as soon as currentHMDWornStatus changes
         if (currentHMDWornStatus) {
             qCDebug(interfaceapp) << "Switching from Desktop to HMD mode";
-            endHMDStandBySession();
+            endHMDSession();
             setActiveDisplayPlugin(_autoSwitchDisplayModeSupportedHMDPluginName);
         } else {
             qCDebug(interfaceapp) << "Switching from HMD to desktop mode";
             setActiveDisplayPlugin(DESKTOP_DISPLAY_PLUGIN_NAME);
             startHMDStandBySession();
         }
+        emit activeDisplayPluginChanged();
     }
     _previousHMDWornStatus = currentHMDWornStatus;
 }
@@ -6842,8 +6843,8 @@ void Application::startHMDStandBySession() {
     _autoSwitchDisplayModeSupportedHMDPlugin->startStandBySession();
 }
 
-void Application::endHMDStandBySession() {
-    _autoSwitchDisplayModeSupportedHMDPlugin->endStandBySession();
+void Application::endHMDSession() {
+    _autoSwitchDisplayModeSupportedHMDPlugin->endSession();
 }
 
 mat4 Application::getEyeProjection(int eye) const {

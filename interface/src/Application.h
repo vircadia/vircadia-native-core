@@ -685,6 +685,6 @@ private:
     QString _autoSwitchDisplayModeSupportedHMDPluginName;
     bool _previousHMDWornStatus;
     void startHMDStandBySession();
-    void endHMDStandBySession();
+    void endHMDSession();
 };
 #endif // hifi_Application_h

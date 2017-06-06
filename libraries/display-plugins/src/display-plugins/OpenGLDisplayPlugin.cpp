@@ -346,9 +346,9 @@ bool OpenGLDisplayPlugin::startStandBySession() {
     return Parent::startStandBySession();
 }
 
-void OpenGLDisplayPlugin::endStandBySession() {
-    deactivateStandBySession();
-    Parent::endStandBySession();
+void OpenGLDisplayPlugin::endSession() {
+    deactivateSession();
+    Parent::endSession();
 }
 
 void OpenGLDisplayPlugin::customizeContext() {
