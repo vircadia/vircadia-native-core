@@ -169,7 +169,11 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
 
                 // AJT: HACK REMOVE manually set pole vector.
                 if (targetVar.jointName == "RightHand") {
-                    target.setPoleVector(glm::normalize(glm::vec3(-1, 0, 0)));
+                    target.setPoleVector(glm::normalize(glm::vec3(-1, -1, 0)));
+                    target.setPoleIndex(_skeleton->nameToJointIndex(targetVar.jointName));
+                }
+                if (targetVar.jointName == "LeftHand") {
+                    target.setPoleVector(glm::normalize(glm::vec3(1, -1, 0)));
                     target.setPoleIndex(_skeleton->nameToJointIndex(targetVar.jointName));
                 }
 
@@ -478,60 +482,99 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
 
     if (target.getPoleIndex() != -1) {
 
-        int topIndex = target.getPoleIndex();
-        int midIndex = _skeleton->getParentIndex(topIndex);
-        if (midIndex != -1) {
-            int baseIndex = _skeleton->getParentIndex(midIndex);
-            if (baseIndex != -1) {
-                int baseParentIndex = _skeleton->getParentIndex(baseIndex);
+        int topJointIndex = target.getPoleIndex();
+        int midJointIndex = _skeleton->getParentIndex(topJointIndex);
+        if (midJointIndex != -1) {
+            int baseJointIndex = _skeleton->getParentIndex(midJointIndex);
+            if (baseJointIndex != -1) {
+                int baseParentJointIndex = _skeleton->getParentIndex(baseJointIndex);
                 AnimPose topPose, midPose, basePose, baseParentPose;
+                int topChainIndex = -1, baseChainIndex = -1;
                 AnimPose postAbsPoses[MAX_CHAIN_DEPTH];
                 AnimPose accum = absolutePoses[_hipsIndex];
                 for (int i = (int)chainDepth - 1; i >= 0; i--) {
                     accum = accum * AnimPose(glm::vec3(1.0f), jointChainInfos[i].relRot, jointChainInfos[i].relTrans);
                     postAbsPoses[i] = accum;
-                    if (jointChainInfos[i].jointIndex == topIndex) {
+                    if (jointChainInfos[i].jointIndex == topJointIndex) {
+                        topChainIndex = i;
                         topPose = accum;
                     }
-                    if (jointChainInfos[i].jointIndex == midIndex) {
+                    if (jointChainInfos[i].jointIndex == midJointIndex) {
                         midPose = accum;
                     }
-                    if (jointChainInfos[i].jointIndex == baseIndex) {
+                    if (jointChainInfos[i].jointIndex == baseJointIndex) {
+                        baseChainIndex = i;
                         basePose = accum;
                     }
-                    if (jointChainInfos[i].jointIndex == baseParentIndex) {
+                    if (jointChainInfos[i].jointIndex == baseParentJointIndex) {
                         baseParentPose = accum;
                     }
                 }
 
-                // AJT: TODO: check for parallel edge cases.
-                glm::vec3 d = glm::normalize(basePose.trans() - topPose.trans());
-                glm::vec3 e = midPose.trans() - topPose.trans();
-                glm::vec3 dHat = glm::dot(e, d) * d + topPose.trans();
-                glm::vec3 eHat = glm::normalize(midPose.trans() - dHat);
-                float theta = acos(glm::dot(eHat, target.getPoleVector()));
-                glm::vec3 axis = glm::normalize(glm::cross(eHat, target.getPoleVector()));
-                glm::quat poleRot = glm::angleAxis(-theta, axis);
+                glm::quat poleRot = Quaternions::IDENTITY;
+                glm::vec3 d = basePose.trans() - topPose.trans();
+                float dLen = glm::length(d);
+                if (dLen > EPSILON) {
+                    glm::vec3 dUnit = d / dLen;
+                    glm::vec3 e = midPose.trans() - basePose.trans();
+                    glm::vec3 p = target.getPoleVector();
+                    glm::vec3 eProj = e - glm::dot(e, dUnit) * dUnit;
+                    glm::vec3 pProj = p - glm::dot(p, dUnit) * dUnit;
+                    float eProjLen = glm::length(eProj);
+                    float pProjLen = glm::length(pProj);
+                    if (eProjLen > EPSILON && pProjLen > EPSILON) {
+                        float dot = glm::clamp(glm::dot(eProj / eProjLen, pProj / pProjLen), 0.0f, 1.0f);
+                        float theta = acos(dot);
+                        glm::vec3 cross = glm::cross(eProj, pProj);
+                        float crossLen = glm::length(cross);
+                        if (crossLen > EPSILON) {
+                            glm::vec3 axis = cross / crossLen;
+                            poleRot = glm::angleAxis(theta, axis);
+                        }
+                    }
+                }
 
                 if (debug) {
-
                     const vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);
                     const vec4 GREEN(0.0f, 1.0f, 0.0f, 1.0f);
                     const vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
+                    const vec4 YELLOW(1.0f, 1.0f, 0.0f, 1.0f);
+                    const vec4 WHITE(1.0f, 1.0f, 1.0f, 1.0f);
 
                     AnimPose geomToWorldPose = AnimPose(context.getRigToWorldMatrix() * context.getGeometryToRigMatrix());
 
+                    glm::vec3 dUnit = d / dLen;
+                    glm::vec3 e = midPose.trans() - basePose.trans();
+                    glm::vec3 p = target.getPoleVector();
+                    glm::vec3 eProj = e - glm::dot(e, dUnit) * dUnit;
+                    glm::vec3 pProj = p - glm::dot(p, dUnit) * dUnit;
+                    float eProjLen = glm::length(eProj);
+                    float pProjLen = glm::length(pProj);
+
                     const float POLE_VECTOR_LEN = 10.0f;
-                    DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(basePose.trans()), geomToWorldPose.xformPoint(topPose.trans()), GREEN);
-                    DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(dHat), geomToWorldPose.xformPoint(dHat + POLE_VECTOR_LEN * eHat), RED);
-                    DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(dHat), geomToWorldPose.xformPoint(dHat + POLE_VECTOR_LEN * target.getPoleVector()), BLUE);
+                    glm::vec3 midPoint = (basePose.trans() + topPose.trans()) * 0.5f;
+                    DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(basePose.trans()),
+                                                     geomToWorldPose.xformPoint(topPose.trans()),
+                                                     YELLOW);
+                    DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(midPoint),
+                                                     geomToWorldPose.xformPoint(midPoint + POLE_VECTOR_LEN * glm::normalize(eProj)),
+                                                     RED);
+                    /*
+                    DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(midPoint),
+                                                     geomToWorldPose.xformPoint(midPoint + POLE_VECTOR_LEN * glm::normalize(p)),
+                                                     BLUE);
+                    */
+                    DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(midPoint),
+                                                     geomToWorldPose.xformPoint(midPoint + POLE_VECTOR_LEN * glm::normalize(pProj)),
+                                                     GREEN);
                 }
 
-                glm::quat newBaseRelRot = glm::inverse(baseParentPose.rot()) * poleRot * basePose.rot() * glm::inverse(jointChainInfos[baseIndex].relRot);
-                jointChainInfos[baseIndex].relRot = glm::quat(); //newBaseRelRot * jointChainInfos[baseIndex].relRot;
 
-                glm::quat newTopRelRot = glm::inverse(midPose.rot()) * glm::inverse(poleRot) * topPose.rot() * glm::inverse(jointChainInfos[topIndex].relRot);
-                jointChainInfos[topIndex].relRot = glm::quat(); //newTopRelRot * jointChainInfos[topIndex].relRot;
+                glm::quat newBaseRelRot = glm::inverse(baseParentPose.rot()) * poleRot * basePose.rot();
+                jointChainInfos[baseChainIndex].relRot = newBaseRelRot;
+
+                glm::quat newTopRelRot = glm::inverse(midPose.rot()) * glm::inverse(poleRot) * topPose.rot();
+                jointChainInfos[topChainIndex].relRot = newTopRelRot;
             }
         }
     }
@@ -1222,7 +1265,7 @@ void AnimInverseKinematics::initConstraints() {
             // we determine the max/min angles by rotating the swing limit lines from parent- to child-frame
             // then measure the angles to swing the yAxis into alignment
             glm::vec3 hingeAxis = - mirror * Vectors::UNIT_Z;
-            const float MIN_ELBOW_ANGLE = 0.05f;
+            const float MIN_ELBOW_ANGLE = 0.15f; // ~8.6 deg (ajt-rad-to-deg 0.15)
             const float MAX_ELBOW_ANGLE = 11.0f * PI / 12.0f;
             glm::quat invReferenceRotation = glm::inverse(referenceRotation);
             glm::vec3 minSwingAxis = invReferenceRotation * glm::angleAxis(MIN_ELBOW_ANGLE, hingeAxis) * Vectors::UNIT_Y;
@@ -1387,6 +1430,7 @@ void AnimInverseKinematics::debugDrawRelativePoses(const AnimContext& context) c
 
     // convert relative poses to absolute
     _skeleton->convertRelativePosesToAbsolute(poses);
+
 
     mat4 geomToWorldMatrix = context.getRigToWorldMatrix() * context.getGeometryToRigMatrix();
 
