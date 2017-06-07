@@ -50,7 +50,7 @@ Q_LOGGING_CATEGORY(trace_resource_parse_image_ktx, "trace.resource.parse.image.k
 const std::string TextureCache::KTX_DIRNAME { "ktx_cache" };
 const std::string TextureCache::KTX_EXT { "ktx" };
 
-const std::string TextureCache::SPECTATOR_CAMERA_FRAME_URL { "http://spectatorCameraFrame" };
+const std::string TextureCache::SPECTATOR_CAMERA_FRAME_URL { "resource://spectatorCameraFrame" };
 
 static const float SKYBOX_LOAD_PRIORITY { 10.0f }; // Make sure skybox loads first
 static const float HIGH_MIPS_LOAD_PRIORITY { 9.0f }; // Make sure high mips loads after skybox but before models

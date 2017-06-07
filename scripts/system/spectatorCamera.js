@@ -105,7 +105,7 @@
         }, true);
         // Put an image3d overlay on the near face, as a viewFinder.
         viewFinderOverlay = Overlays.addOverlay("image3d", {
-            url: "http://spectatorCameraFrame",
+            url: "resource://spectatorCameraFrame",
             parentID: camera,
             alpha: 1,
             position: inFrontOf(-0.25, cameraPosition, cameraRotation),
