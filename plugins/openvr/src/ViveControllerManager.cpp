@@ -164,6 +164,14 @@ void ViveControllerManager::deactivate() {
     _registeredWithInputMapper = false;
 }
 
+bool ViveControllerManager::isHeadControllerMounted() const {
+    if (_inputDevice && _inputDevice->isHeadControllerMounted()) {
+        return true;
+    }
+    vr::EDeviceActivityLevel activityLevel = _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
+    return activityLevel == vr::k_EDeviceActivityLevel_UserInteraction;
+}
+
 void ViveControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
 
     if (!_system) {
