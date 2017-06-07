@@ -26,8 +26,9 @@ public:
     // If an input plugin is only a single device, it will only return it's primary name.
     virtual QStringList getSubdeviceNames() { return { getName() }; };
     virtual bool isHandController() const = 0;
-    virtual void configurationSettings(const QJsonObject configurationSettings) { }
+    virtual void setConfigurationSettings(const QJsonObject configurationSettings) { }
+    virtual QJsonObject configurationSettings() { return QJsonObject(); } 
     virtual QString configurationLayout() { return QString(); }
-    virtual void calibrate() {}
+    virtual bool calibrate() { return false; }
     virtual bool configurable() { return false; }
 };

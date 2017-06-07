@@ -162,7 +162,7 @@ Rectangle {
 
 
         onLoaded: {
-            if (loader.item.hasOwnProeprty("pluginName")) {
+            if (loader.item.hasOwnProperty("pluginName")) {
                 loader.item.pluginName = box.currentText
             }
         }

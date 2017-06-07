@@ -44,7 +44,8 @@ public:
     bool configurable() override { return true; }
 
     QString configurationLayout() override;
-    void configurationSettings(const QJsonObject configurationSettings) override;
+    void setConfigurationSettings(const QJsonObject configurationSettings) override;
+    QJsonObject configurationSettings() override;
 
     bool activate() override;
     void deactivate() override;
@@ -70,6 +71,8 @@ private:
         void calibrateOrUncalibrate(const controller::InputCalibrationData& inputCalibration);
         void calibrate(const controller::InputCalibrationData& inputCalibration);
         void uncalibrate();
+        void configureCalibrationSettings(const QJsonObject configurationSettings);
+        QJsonObject configurationSettings();
         controller::Pose addOffsetToPuckPose(int joint) const;
         glm::mat4 recalculateDefaultToReferenceForHeadPuck(const controller::InputCalibrationData& inputCalibration);
         void updateCalibratedLimbs();
@@ -128,10 +131,23 @@ private:
             FeetHipsAndChest,
             FeetHipsAndShoulders,
             FeetHipsChestAndHead,
-            FeetHipsAndHead
+            FeetHipsAndHead,
         };
+
+        enum class HeadConfig {
+            HMD,
+            Puck
+        };
+
+        enum class HandConfig {
+            HandController,
+            Pucks
+        };
+            
         Config _config { Config::Auto };
         Config _preferedConfig { Config::Auto };
+        HeadConfig _headConfig { HeadConfig::HMD };
+        HandConfig _handConfig { HandConfig::HandController };
         FilteredStick _filteredLeftStick;
         FilteredStick _filteredRightStick;
 
@@ -157,6 +173,7 @@ private:
         bool _timeTilCalibrationSet { false };
         bool _calibrate { false };
         bool _overrideHead { false };
+        bool _overrideHands { false };
         mutable std::recursive_mutex _lock;
 
         QString configToString(Config config);

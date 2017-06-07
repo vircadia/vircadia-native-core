@@ -45,14 +45,25 @@ QString InputConfiguration::configurationLayout(QString pluginName) {
     return sourcePath;
 }
 
-void InputConfiguration::configurationSettings(QJsonObject configurationSettings, QString pluginName) {
-    qDebug() << configurationSettings["Test"];
+void InputConfiguration::setConfigurationSettings(QJsonObject configurationSettings, QString pluginName) {
+    for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
+        if (plugin->getName() == pluginName) {
+            plugin->setConfigurationSettings(configurationSettings);
+        }
+    }
+}
+
+QJsonObject InputConfiguration::configurationSettings(QString pluginName) {
+    return QJsonObject();
 }
 
 void InputConfiguration::calibratePlugin(QString pluginName) {
     for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
         if (plugin->getName() == pluginName) {
-            //calibrtate plugin
+            plugin->calibrate();
         }
     }
+}
+
+void InputConfiguration::calibrated() {
 }

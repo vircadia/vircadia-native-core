@@ -120,7 +120,18 @@ bool ViveControllerManager::isSupported() const {
     return openVrSupported();
 }
 
-void ViveControllerManager::configurationSettings(const QJsonObject configurationSettings) {
+void ViveControllerManager::setConfigurationSettings(const QJsonObject configurationSettings) {
+    if (isSupported()) {
+        _inputDevice->configureCalibrationSettings(configurationSettings);
+    }
+}
+
+QJsonObject ViveControllerManager::configurationSettings() {
+    if (isSupported()) {
+        return _inputDevice->configurationSettings();
+    }
+
+    return QJsonObject();
 }
 
 QString ViveControllerManager::configurationLayout() {
@@ -279,6 +290,44 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
 
     updateCalibratedLimbs();
     _lastSimPoseData = _nextSimPoseData;
+}
+
+void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJsonObject configurationSettings) {
+    Locker locker(_lock);
+
+    if (!configurationSettings.empty()) {
+        auto iter = configurationSettings.begin();
+        auto end = configurationSettings.end();
+        while (iter != end) {
+            if (iter.key() == "trackerConfiguration") {
+                setConfigFromString(iter.value().toString());
+            } else if (iter.key() == "overrideHead") {
+                bool overrideHead = iter.value().toBool();
+                if (overrideHead) {
+                    _headConfig = HeadConfig::Puck;
+                } else {
+                    _headConfig = HeadConfig::HMD;
+                }
+            } else if (iter.key() == "overrideHandController") {
+                bool overrideHands = iter.value().toBool();
+                if (overrideHands) {
+                    _handConfig = HandConfig::Pucks;
+                } else {
+                    _handConfig = HandConfig::HandController;
+                }
+            }
+            iter++;
+        }
+    }
+}
+
+QJsonObject ViveControllerManager::InputDevice::configurationSettings() {
+    Locker locker(_lock);
+    QJsonObject configurationSettings;
+    configurationSettings["trackerConfiguration"] = configToString(_config);
+    configurationSettings["HMDHead"] = (_headConfig == HeadConfig::HMD) ? true : false;
+    configurationSettings["handController"] = (_handConfig == HandConfig::HandController) ? true : false;
+    return configurationSettings;
 }
 
 void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData) {

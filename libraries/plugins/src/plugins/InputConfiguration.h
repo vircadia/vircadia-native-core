@@ -25,8 +25,10 @@ public:
     Q_INVOKABLE QStringList inputPlugins();
     Q_INVOKABLE QStringList activeInputPlugins();
     Q_INVOKABLE QString configurationLayout(QString pluginName);
-    Q_INVOKABLE void configurationSettings(QJsonObject configurationSettings, QString pluginName);
+    Q_INVOKABLE void setConfigurationSettings(QJsonObject configurationSettings, QString pluginName);
     Q_INVOKABLE void calibratePlugin(QString pluginName);
+    Q_INVOKABLE QJsonObject configurationSettings(QString pluginName);
+    void calibrated();
 };
 
 #endif

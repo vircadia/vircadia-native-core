@@ -24,6 +24,15 @@ Rectangle {
     property int leftMargin: 75
     property string pluginName: ""
 
+    readonly property bool feetChecked: feetBox.checked
+    readonly property bool hipsChecked: hipBox.checked
+    readonly property bool chestChecked: chestBox.checked
+    readonly property bool shouldersChecked: shoulderBox.checked
+    readonly property bool hmdHead: headBox.checked
+    readonly property bool headPuck: headPuckBox.checked
+    readonly property bool handController: handBox.checked
+    readonly property bool handPuck: handPuckBox.checked
+
     HifiConstants { id: hifi }
 
     color: hifi.colors.baseGray
@@ -53,6 +62,15 @@ Rectangle {
             width: 15
             height: 15
             boxRadius: 7
+
+            onClicked: {
+                if (checked) {
+                    headPuckBox.checked = false;
+                } else {
+                    checked = true;
+                }
+                composeConfigurationSettings();
+            }
         }
             
         RalewayBold {
@@ -66,6 +84,15 @@ Rectangle {
             width: 15
             height: 15
             boxRadius: 7
+
+            onClicked: {
+                if (checked) {
+                    headBox.checked = false;
+                } else {
+                    checked = true;
+                }
+                composeConfigurationSettings();
+            }
         }
 
         RalewayBold {
@@ -102,6 +129,15 @@ Rectangle {
             width: 15
             height: 15
             boxRadius: 7
+
+            onClicked: {
+                if (checked) {
+                    handPuckBox.checked = false;
+                } else {
+                    checked = true;
+                }
+                composeConfigurationSettings();
+            }
         }
         
         RalewayBold {
@@ -115,6 +151,15 @@ Rectangle {
             width: 12
             height: 15
             boxRadius: 7
+
+            onClicked: {
+                if (checked) {
+                    handBox.checked = false;
+                } else {
+                    checked = true;
+                }
+                composeConfigurationSettings();
+            }
         }
         
         RalewayBold {
@@ -151,6 +196,13 @@ Rectangle {
             width: 15
             height: 15
             boxRadius: 7
+
+            onClicked: {
+                if (hipsChecked) {
+                    checked = true;
+                }
+                composeConfigurationSettings();
+            }
         }
         
         RalewayBold {
@@ -173,6 +225,17 @@ Rectangle {
             width: 15
             height: 15
             boxRadius: 7
+
+            onClicked: {
+                if (checked) {
+                    feetBox.checked = true;
+                }
+
+                if (chestChecked) {
+                    checked = true;
+                }
+                composeConfigurationSettings();
+            }
         }
         
         RalewayBold {
@@ -202,6 +265,14 @@ Rectangle {
             width: 15
             height: 15
             boxRadius: 7
+
+            onClicked: {
+                if (checked) {
+                    hipBox.checked = true;
+                    feetBox.checked = true;
+                }
+                composeConfigurationSettings();
+            }
         }
         
         RalewayBold {
@@ -231,6 +302,14 @@ Rectangle {
             width: 15
             height: 15
             boxRadius: 7
+
+            onClicked: {
+                if (checked) {
+                    hipBox.checked = true;
+                    feetBox.checked = true;
+                }
+                composeConfigurationSettings();
+            }
         }
         
         RalewayBold {
@@ -300,6 +379,60 @@ Rectangle {
         }
     }
 
+    HifiControls.SpinBox {
+        id: timeToCalibrate
+
+        anchors.top: calibrationButton.bottom
+        anchors.topMargin: 40
+        anchors.left: parent.left
+        anchors.leftMargin: leftMargin
+
+        label: "Time til calibration ( in seconds )"
+        colorScheme: hifi.colorSchemes.dark
+    }
+
+    Component.onCompleted: {
+        var settings = InputConfiguration.configurationSettings(pluginName);
+    }
 
     
+    function composeConfigurationSettings() {
+        var trackerConfiguration = "";
+        var overrideHead = false;
+        var overrideHandController = false;
+
+        if (shouldersChecked && chestChecked) {
+            trackerConfiguration = "FeetHipsChestAndShoulders";
+        } else if (shouldersChecked) {
+            trackerConfiguration = "FeetHipsAndShoulders";
+        } else if (chestChecked) {
+            trackerConfiguration = "FeetHipsChest";
+        } else if (hipsChecked) {
+            trackerConfiguration = "FeetAndHips";
+        } else if (feetChecked) {
+            trackerConfiguration = "Feet";
+        }
+
+        if (headPuck) {
+            overrideHead = true;
+        } else if (hmdHead) {
+            overrideHead = false;
+        }
+
+        if (handController) {
+            overrideHandController = false;
+        } else if (handPuck) {
+            overrideHandController = true;
+        }
+            
+        
+        var settingsObject = {
+            "trackerConfiguration": trackerConfiguration,
+            "overrideHead": overrideHead,
+            "overrideHandController": overrideHandController
+        }
+
+        InputConfiguration.setConfigurationSettings(settingsObject, pluginName);
+        
+    }
 }
