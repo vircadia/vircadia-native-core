@@ -113,6 +113,7 @@
 #include <render/RenderFetchCullSortTask.h>
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
+#include <RenderViewTask.h>
 #include <ResourceCache.h>
 #include <SandboxUtils.h>
 #include <SceneScriptingInterface.h>
@@ -1795,15 +1796,9 @@ void Application::initializeGL() {
 
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
-    _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
-    const auto items = _renderEngine->addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
-    assert(items.canCast<RenderFetchCullSortTask::Output>());
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
-    if (QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD)) {
-        _renderEngine->addJob<RenderForwardTask>("Forward", items);
-    } else {
-        _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", items);
-    }
+    bool isDeferred = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
+    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, isDeferred);
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
 
@@ -5008,7 +5003,7 @@ namespace render {
     template <> const ItemKey payloadGetKey(const WorldBoxRenderData::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }
     template <> const Item::Bound payloadGetBound(const WorldBoxRenderData::Pointer& stuff) { return Item::Bound(); }
     template <> void payloadRender(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args) {
-        if (args->_renderMode != RenderArgs::MIRROR_RENDER_MODE && Menu::getInstance()->isOptionChecked(MenuOption::WorldAxes)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::WorldAxes)) {
             PerformanceTimer perfTimer("worldBox");
 
             auto& batch = *args->_batch;
