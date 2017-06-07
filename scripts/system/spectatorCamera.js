@@ -205,6 +205,20 @@
         }
     }
 
+    const CAMERA_PREVIEW_WHEN_OFF = "http://1.bp.blogspot.com/-1GABEq__054/T03B00j_OII/AAAAAAAAAa8/jo55LcvEPHI/s1600/Winning.jpg"; // FIXME instructions?
+    const MONITOR_SHOWS_CAMERA_VIEW_DEFAULT = false;
+    var monitorShowsCameraView = !!Settings.getValue('spectatorCamera/monitorShowsCameraView', MONITOR_SHOWS_CAMERA_VIEW_DEFAULT);
+    function setMonitorShowsCameraView(showCameraView) {
+        if (showCameraView === monitorShowsCameraView) {
+            return;
+        }
+        monitorShowsCameraView = showCameraView;
+        var url = showCameraView ? (isUpdateRenderWired ? "http://selfieFrame" : CAMERA_PREVIEW_WHEN_OFF) : "";
+        print('setDisplayTexture', url,
+            Window.setDisplayTexture(url));
+        Settings.setValue('spectatorCamera/monitorShowsCameraView', showCameraView);
+    }
+
     //
     // Function Name: onTabletButtonClicked()
     //
@@ -229,8 +243,9 @@
             shouldActivateButton = true;
             tablet.loadQMLSource("../SpectatorCamera.qml");
             onSpectatorCameraScreen = true;
-            sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
-            sendToQml({ method: 'updateMonitorShowsSwitch', params: !!Settings.getValue('spectatorCamera/monitorShowsCameraView', false) });
+            sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });;
+            setMonitorShowsCameraView(monitorShowsCameraView);
+            sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
         }
     }
 
@@ -293,13 +308,8 @@
             case 'spectatorCameraOff':
                 spectatorCameraOff();
                 break;
-            case 'showHmdPreviewOnMonitor':
-                print('FIXME: showHmdPreviewOnMonitor');
-                Settings.setValue('spectatorCamera/monitorShowsCameraView', false);
-                break;
-            case 'showCameraViewOnMonitor':
-                print('FIXME: showCameraViewOnMonitor');
-                Settings.setValue('spectatorCamera/monitorShowsCameraView', true);
+            case 'setMonitorShowsCameraView':
+                setMonitorShowsCameraView(message.params);
                 break;
             case 'changeSwitchViewFromControllerPreference':
                 print('FIXME: Preference is now: ' + message.params);

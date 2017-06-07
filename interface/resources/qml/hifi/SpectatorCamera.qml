@@ -242,7 +242,7 @@ Rectangle {
             labelTextOn: "Camera View";
             labelGlyphOnText: hifi.glyphs.alert;
             onCheckedChanged: {
-                sendToScript({method: (checked ? 'showCameraViewOnMonitor' : 'showHmdPreviewOnMonitor')});
+                sendToScript({method: 'setMonitorShowsCameraView', params: checked});
             }
         }
 
