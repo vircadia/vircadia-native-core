@@ -169,11 +169,11 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
 
                 // AJT: HACK REMOVE manually set pole vector.
                 if (targetVar.jointName == "RightHand") {
-                    target.setPoleVector(glm::normalize(glm::vec3(-1, -1, 0)));
+                    target.setPoleVector(glm::normalize(glm::vec3(-1, -2, -1)));
                     target.setPoleIndex(_skeleton->nameToJointIndex(targetVar.jointName));
                 }
                 if (targetVar.jointName == "LeftHand") {
-                    target.setPoleVector(glm::normalize(glm::vec3(1, -1, 0)));
+                    target.setPoleVector(glm::normalize(glm::vec3(1, -2, -1)));
                     target.setPoleIndex(_skeleton->nameToJointIndex(targetVar.jointName));
                 }
 
@@ -522,7 +522,8 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                     glm::vec3 pProj = p - glm::dot(p, dUnit) * dUnit;
                     float eProjLen = glm::length(eProj);
                     float pProjLen = glm::length(pProj);
-                    if (eProjLen > EPSILON && pProjLen > EPSILON) {
+                    const float MIN_E_PROJ_LEN = 0.2f;  // cm
+                    if (eProjLen > MIN_E_PROJ_LEN && pProjLen > EPSILON) {
                         float dot = glm::clamp(glm::dot(eProj / eProjLen, pProj / pProjLen), 0.0f, 1.0f);
                         float theta = acos(dot);
                         glm::vec3 cross = glm::cross(eProj, pProj);
@@ -1265,7 +1266,7 @@ void AnimInverseKinematics::initConstraints() {
             // we determine the max/min angles by rotating the swing limit lines from parent- to child-frame
             // then measure the angles to swing the yAxis into alignment
             glm::vec3 hingeAxis = - mirror * Vectors::UNIT_Z;
-            const float MIN_ELBOW_ANGLE = 0.15f; // ~8.6 deg (ajt-rad-to-deg 0.15)
+            const float MIN_ELBOW_ANGLE = 0.05f; // ~2.8 deg (ajt-rad-to-deg 0.05)
             const float MAX_ELBOW_ANGLE = 11.0f * PI / 12.0f;
             glm::quat invReferenceRotation = glm::inverse(referenceRotation);
             glm::vec3 minSwingAxis = invReferenceRotation * glm::angleAxis(MIN_ELBOW_ANGLE, hingeAxis) * Vectors::UNIT_Y;
