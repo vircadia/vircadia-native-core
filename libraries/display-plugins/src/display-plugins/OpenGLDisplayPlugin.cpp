@@ -496,6 +496,17 @@ void OpenGLDisplayPlugin::submitFrame(const gpu::FramePointer& newFrame) {
         _newFrameQueue.push(newFrame);
     });
 }
+void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor) {
+    batch.enableStereo(false);
+    batch.resetViewTransform();
+    batch.setFramebuffer(gpu::FramebufferPointer());
+    batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
+    batch.setStateScissorRect(scissor);
+    batch.setViewportTransform(viewport);
+    batch.setResourceTexture(0, texture);
+    batch.setPipeline(_presentPipeline);
+    batch.draw(gpu::TRIANGLE_STRIP, 4);
+}
 
 void OpenGLDisplayPlugin::updateFrameData() {
     PROFILE_RANGE(render, __FUNCTION__)
@@ -605,14 +616,9 @@ void OpenGLDisplayPlugin::compositeLayers() {
 
 void OpenGLDisplayPlugin::internalPresent() {
     render([&](gpu::Batch& batch) {
-        batch.enableStereo(false);
-        batch.resetViewTransform();
-        batch.setFramebuffer(gpu::FramebufferPointer());
-        batch.setViewportTransform(ivec4(uvec2(0), getSurfacePixels()));
-        batch.setResourceTexture(0, _compositeFramebuffer->getRenderBuffer(0));
-        batch.setPipeline(_presentPipeline);
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
-    });
+        auto viewport = ivec4(uvec2(0), getSurfacePixels());
+        renderFromTexture(batch, _displayTexture ? _displayTexture : _compositeFramebuffer->getRenderBuffer(0), viewport, viewport);
+     });
     swapBuffers();
     _presentRate.increment();
 }
@@ -692,6 +698,20 @@ void OpenGLDisplayPlugin::withMainThreadContext(std::function<void()> f) const {
     static auto presentThread = DependencyManager::get<PresentThread>();
     presentThread->withMainThreadContext(f);
     _container->makeRenderingContextCurrent();
+}
+
+bool OpenGLDisplayPlugin::setDisplayTexture(const QString& name) {
+    if (name.isEmpty()) {
+        _displayTexture.reset();
+        return true;
+    }
+    auto textureCache = DependencyManager::get<TextureCache>();
+    auto networkTexture = textureCache->getTexture(name);
+    if (!networkTexture) {
+        return false;
+    }
+    _displayTexture = networkTexture->getGPUTexture();
+    return !!_displayTexture;
 }
 
 QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) const {
