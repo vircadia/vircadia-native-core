@@ -19,11 +19,10 @@
 #include "FBXBaker.h"
 #include "TextureBaker.h"
 
-BakerCLI::BakerCLI(Oven* parent) : QObject() {
+BakerCLI::BakerCLI(Oven* parent) : QObject(parent) {
 }
 
-void BakerCLI::bakeFile(const QString inputFilename, const QString outputPath) {
-    QUrl inputUrl(inputFilename);
+void BakerCLI::bakeFile(QUrl inputUrl, const QString outputPath) {
 
     // if the URL doesn't have a scheme, assume it is a local file
     if (inputUrl.scheme() != "http" && inputUrl.scheme() != "https" && inputUrl.scheme() != "ftp") {
@@ -33,11 +32,11 @@ void BakerCLI::bakeFile(const QString inputFilename, const QString outputPath) {
     static const QString MODEL_EXTENSION { ".fbx" };
 
     // check what kind of baker we should be creating
-    bool isFBX = inputFilename.endsWith(MODEL_EXTENSION, Qt::CaseInsensitive);
+    bool isFBX = inputUrl.toDisplayString().endsWith(MODEL_EXTENSION, Qt::CaseInsensitive);
     bool isSupportedImage = false;
 
     for (QByteArray format : QImageReader::supportedImageFormats()) {
-        isSupportedImage |= inputFilename.endsWith(format, Qt::CaseInsensitive);
+        isSupportedImage |= inputUrl.toDisplayString().endsWith(format, Qt::CaseInsensitive);
     }
 
     // create our appropiate baker

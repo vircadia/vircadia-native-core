@@ -21,7 +21,7 @@ class BakerCLI : public QObject {
 
 public:
     BakerCLI(Oven* parent);
-    void bakeFile(const QString inputFilename, const QString outputPath);
+    void bakeFile(QUrl inputUrl, const QString outputPath);
 
 private slots:
     void handleFinishedBaker();

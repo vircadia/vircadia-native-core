@@ -58,9 +58,14 @@ Oven::Oven(int argc, char* argv[]) :
     setupFBXBakerThread();
 
     // check if we were passed any command line arguments that would tell us just to run without the GUI
-    if (parser.isSet(CLI_INPUT_PARAMETER) && parser.isSet(CLI_OUTPUT_PARAMETER)) {
-        BakerCLI* cli = new BakerCLI(this);
-        cli->bakeFile(parser.value(CLI_INPUT_PARAMETER), parser.value(CLI_OUTPUT_PARAMETER));
+    if (parser.isSet(CLI_INPUT_PARAMETER) || parser.isSet(CLI_OUTPUT_PARAMETER)) {
+        if (parser.isSet(CLI_INPUT_PARAMETER) && parser.isSet(CLI_OUTPUT_PARAMETER)) {
+            BakerCLI* cli = new BakerCLI(this);
+            cli->bakeFile(parser.value(CLI_INPUT_PARAMETER), parser.value(CLI_OUTPUT_PARAMETER));
+        } else {
+            parser.showHelp();
+            QApplication::quit();
+        } 
     } else {
         // setup the GUI
         _mainWindow = new OvenMainWindow;
