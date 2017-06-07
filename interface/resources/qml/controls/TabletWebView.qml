@@ -2,7 +2,6 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtWebEngine 1.2
 import QtWebChannel 1.0
-import HFTabletWebEngineProfile 1.0
 import "../controls-uit" as HiFiControls
 import "../styles" as HifiStyles
 import "../styles-uit"
@@ -150,10 +149,7 @@ Item {
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height - web.headerHeight : parent.height - web.headerHeight
         anchors.top: buttons.bottom
-        profile: HFTabletWebEngineProfile {
-            id: webviewTabletProfile
-            storageName: "qmlTabletWebEngine"
-        }
+        profile: HFTabletWebEngineProfile;
 
         property string userScriptUrl: ""
 

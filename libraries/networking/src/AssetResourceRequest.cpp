@@ -13,12 +13,14 @@
 
 #include <QtCore/QLoggingCategory>
 
+#include <Trace.h>
+#include <Profile.h>
+#include <StatTracker.h>
+
 #include "AssetClient.h"
 #include "AssetUtils.h"
 #include "MappingRequest.h"
 #include "NetworkLogging.h"
-#include <Trace.h>
-#include <Profile.h>
 
 static const int DOWNLOAD_PROGRESS_LOG_INTERVAL_SECONDS = 5;
 
@@ -48,6 +50,8 @@ bool AssetResourceRequest::urlIsAssetHash(const QUrl& url) {
 }
 
 void AssetResourceRequest::doSend() {
+    DependencyManager::get<StatTracker>()->incrementStat(STAT_ATP_REQUEST_STARTED);
+
     // We'll either have a hash or an ATP path to a file (that maps to a hash)
     if (urlIsAssetHash(_url)) {
         // We've detected that this is a hash - simply use AssetClient to request that asset
@@ -65,11 +69,16 @@ void AssetResourceRequest::doSend() {
 }
 
 void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
+    auto statTracker = DependencyManager::get<StatTracker>();
+    statTracker->incrementStat(STAT_ATP_MAPPING_REQUEST_STARTED);
+
     auto assetClient = DependencyManager::get<AssetClient>();
     _assetMappingRequest = assetClient->createGetMappingRequest(path);
 
     // make sure we'll hear about the result of the get mapping request
     connect(_assetMappingRequest, &GetMappingRequest::finished, this, [this, path](GetMappingRequest* request){
+        auto statTracker = DependencyManager::get<StatTracker>();
+        
         Q_ASSERT(_state == InProgress);
         Q_ASSERT(request == _assetMappingRequest);
 
@@ -79,6 +88,8 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
                 qCDebug(networking) << "Got mapping for:" << path << "=>" << request->getHash();
 
                 requestHash(request->getHash());
+
+                statTracker->incrementStat(STAT_ATP_MAPPING_REQUEST_SUCCESS);
 
                 break;
             default: {
@@ -99,6 +110,9 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
                 // since we've failed we know we are finished
                 _state = Finished;
                 emit finished();
+
+                statTracker->incrementStat(STAT_ATP_MAPPING_REQUEST_FAILED);
+                statTracker->incrementStat(STAT_ATP_REQUEST_FAILED);
 
                 break;
             }
@@ -140,9 +154,25 @@ void AssetResourceRequest::requestHash(const AssetHash& hash) {
                 _result = Error;
                 break;
         }
-        
+
+        auto statTracker = DependencyManager::get<StatTracker>();
+
+        if (_assetRequest->loadedFromCache()) {
+            _loadedFromCache = true;
+        }
+
         _state = Finished;
         emit finished();
+
+        if (_result == Success) {
+            statTracker->incrementStat(STAT_ATP_REQUEST_SUCCESS);
+
+            if (loadedFromCache()) {
+                statTracker->incrementStat(STAT_ATP_REQUEST_CACHE);
+            }
+        } else {
+            statTracker->incrementStat(STAT_ATP_REQUEST_FAILED);
+        }
 
         _assetRequest->deleteLater();
         _assetRequest = nullptr;

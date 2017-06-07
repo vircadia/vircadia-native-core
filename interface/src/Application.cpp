@@ -72,6 +72,7 @@
 #include <ErrorDialog.h>
 #include <FileScriptingInterface.h>
 #include <Finally.h>
+#include <FingerprintUtils.h>
 #include <FramebufferCache.h>
 #include <gpu/Batch.h>
 #include <gpu/Context.h>
@@ -114,6 +115,7 @@
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
 #include <ResourceCache.h>
+#include <ResourceRequest.h>
 #include <SandboxUtils.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngines.h>
@@ -148,9 +150,6 @@
 #include "LODManager.h"
 #include "ModelPackager.h"
 #include "networking/CloseEventSender.h"
-#include "networking/HFWebEngineProfile.h"
-#include "networking/HFTabletWebEngineProfile.h"
-#include "networking/FileTypeProfile.h"
 #include "scripting/TestScriptingInterface.h"
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
@@ -248,6 +247,8 @@ static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStanda
 Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 
 static const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
+static const int INTERVAL_TO_CHECK_HMD_WORN_STATUS = 500; // milliseconds
+static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 
 const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
@@ -951,6 +952,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["processor_l3_cache_count"] = procInfo.numProcessorCachesL3;
     }
 
+    // add firstRun flag from settings to launch event
+    Setting::Handle<bool> firstRun { Settings::firstRun, true };
+    properties["first_run"] = firstRun.get();
+
+    // add the user's machine ID to the launch event
+    properties["machine_fingerprint"] = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
+
     UserActivityLogger::getInstance().logAction("launch", properties);
 
     // Tell our entity edit sender about our known jurisdictions
@@ -1310,6 +1318,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["kbps_in"] = bandwidthRecorder->getCachedTotalAverageInputKilobitsPerSecond();
         properties["kbps_out"] = bandwidthRecorder->getCachedTotalAverageOutputKilobitsPerSecond();
 
+        properties["atp_in_kbps"] = bandwidthRecorder->getAverageInputKilobitsPerSecond(NodeType::AssetServer);
+
         auto nodeList = DependencyManager::get<NodeList>();
         SharedNodePointer entityServerNode = nodeList->soloNodeOfType(NodeType::EntityServer);
         SharedNodePointer audioMixerNode = nodeList->soloNodeOfType(NodeType::AudioMixer);
@@ -1323,8 +1333,61 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["messages_ping"] = messagesMixerNode ? messagesMixerNode->getPingMs() : -1;
 
         auto loadingRequests = ResourceCache::getLoadingRequests();
+
+        QJsonArray loadingRequestsStats;
+        for (const auto& request : loadingRequests) {
+            QJsonObject requestStats;
+            requestStats["filename"] = request->getURL().fileName();
+            requestStats["received"] = request->getBytesReceived();
+            requestStats["total"] = request->getBytesTotal();
+            requestStats["attempts"] = (int)request->getDownloadAttempts();
+            loadingRequestsStats.append(requestStats);
+        }
+
         properties["active_downloads"] = loadingRequests.size();
         properties["pending_downloads"] = ResourceCache::getPendingRequestCount();
+        properties["active_downloads_details"] = loadingRequestsStats;
+
+        auto statTracker = DependencyManager::get<StatTracker>();
+
+        properties["processing_resources"] = statTracker->getStat("Processing").toInt();
+        properties["pending_processing_resources"] = statTracker->getStat("PendingProcessing").toInt();
+
+        QJsonObject startedRequests;
+        startedRequests["atp"] = statTracker->getStat(STAT_ATP_REQUEST_STARTED).toInt();
+        startedRequests["http"] = statTracker->getStat(STAT_HTTP_REQUEST_STARTED).toInt();
+        startedRequests["file"] = statTracker->getStat(STAT_FILE_REQUEST_STARTED).toInt();
+        startedRequests["total"] = startedRequests["atp"].toInt() + startedRequests["http"].toInt()
+            + startedRequests["file"].toInt();
+        properties["started_requests"] = startedRequests;
+
+        QJsonObject successfulRequests;
+        successfulRequests["atp"] = statTracker->getStat(STAT_ATP_REQUEST_SUCCESS).toInt();
+        successfulRequests["http"] = statTracker->getStat(STAT_HTTP_REQUEST_SUCCESS).toInt();
+        successfulRequests["file"] = statTracker->getStat(STAT_FILE_REQUEST_SUCCESS).toInt();
+        successfulRequests["total"] = successfulRequests["atp"].toInt() + successfulRequests["http"].toInt()
+            + successfulRequests["file"].toInt();
+        properties["successful_requests"] = successfulRequests;
+
+        QJsonObject failedRequests;
+        failedRequests["atp"] = statTracker->getStat(STAT_ATP_REQUEST_FAILED).toInt();
+        failedRequests["http"] = statTracker->getStat(STAT_HTTP_REQUEST_FAILED).toInt();
+        failedRequests["file"] = statTracker->getStat(STAT_FILE_REQUEST_FAILED).toInt();
+        failedRequests["total"] = failedRequests["atp"].toInt() + failedRequests["http"].toInt()
+            + failedRequests["file"].toInt();
+        properties["failed_requests"] = failedRequests;
+
+        QJsonObject cacheRequests;
+        cacheRequests["atp"] = statTracker->getStat(STAT_ATP_REQUEST_CACHE).toInt();
+        cacheRequests["http"] = statTracker->getStat(STAT_HTTP_REQUEST_CACHE).toInt();
+        cacheRequests["total"] = cacheRequests["atp"].toInt() + cacheRequests["http"].toInt();
+        properties["cache_requests"] = cacheRequests;
+
+        QJsonObject atpMappingRequests;
+        atpMappingRequests["started"] = statTracker->getStat(STAT_ATP_MAPPING_REQUEST_STARTED).toInt();
+        atpMappingRequests["failed"] = statTracker->getStat(STAT_ATP_MAPPING_REQUEST_FAILED).toInt();
+        atpMappingRequests["successful"] = statTracker->getStat(STAT_ATP_MAPPING_REQUEST_SUCCESS).toInt();
+        properties["atp_mapping_requests"] = atpMappingRequests;
 
         properties["throttled"] = _displayPlugin ? _displayPlugin->isThrottled() : false;
 
@@ -1340,8 +1403,42 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["deleted_entity_cnt"] = entityActivityTracking.deletedEntityCount;
         properties["edited_entity_cnt"] = entityActivityTracking.editedEntityCount;
 
+        NodeToOctreeSceneStats* octreeServerSceneStats = getOcteeSceneStats();
+        unsigned long totalServerOctreeElements = 0;
+        for (NodeToOctreeSceneStatsIterator i = octreeServerSceneStats->begin(); i != octreeServerSceneStats->end(); i++) {
+            totalServerOctreeElements += i->second.getTotalElements();
+        }
+
+        properties["local_octree_elements"] = (qint64) OctreeElement::getInternalNodeCount();
+        properties["server_octree_elements"] = (qint64) totalServerOctreeElements;
+
         properties["active_display_plugin"] = getActiveDisplayPlugin()->getName();
         properties["using_hmd"] = isHMDMode();
+
+        _autoSwitchDisplayModeSupportedHMDPlugin = nullptr;
+        foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
+            if (displayPlugin->isHmd() && 
+                displayPlugin->getSupportsAutoSwitch()) {
+                _autoSwitchDisplayModeSupportedHMDPlugin = displayPlugin;
+                _autoSwitchDisplayModeSupportedHMDPluginName = 
+                    _autoSwitchDisplayModeSupportedHMDPlugin->getName();
+                _previousHMDWornStatus =
+                    _autoSwitchDisplayModeSupportedHMDPlugin->isDisplayVisible();
+                break;
+            }
+        }
+
+        if (_autoSwitchDisplayModeSupportedHMDPlugin) {
+            if (getActiveDisplayPlugin() != _autoSwitchDisplayModeSupportedHMDPlugin &&
+                !_autoSwitchDisplayModeSupportedHMDPlugin->isSessionActive()) {
+                    startHMDStandBySession();
+            }
+            // Poll periodically to check whether the user has worn HMD or not. Switch Display mode accordingly.
+            // If the user wears HMD then switch to VR mode. If the user removes HMD then switch to Desktop mode.
+            QTimer* autoSwitchDisplayModeTimer = new QTimer(this);
+            connect(autoSwitchDisplayModeTimer, SIGNAL(timeout()), this, SLOT(switchDisplayMode()));
+            autoSwitchDisplayModeTimer->start(INTERVAL_TO_CHECK_HMD_WORN_STATUS);
+        }
 
         auto glInfo = getGLContextData();
         properties["gl_info"] = glInfo;
@@ -1364,6 +1461,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             || ((rightHandPose.valid || lastRightHandPose.valid) && (rightHandPose != lastRightHandPose));
         lastLeftHandPose = leftHandPose;
         lastRightHandPose = rightHandPose;
+
+        properties["local_socket_changes"] = DependencyManager::get<StatTracker>()->getStat(LOCAL_SOCKET_CHANGE_STAT).toInt();
 
         UserActivityLogger::getInstance().logAction("stats", properties);
     });
@@ -1574,7 +1673,10 @@ void Application::aboutToQuit() {
     }
 
     getActiveDisplayPlugin()->deactivate();
-
+    if (_autoSwitchDisplayModeSupportedHMDPlugin 
+        && _autoSwitchDisplayModeSupportedHMDPlugin->isSessionActive()) {
+        _autoSwitchDisplayModeSupportedHMDPlugin->endSession();
+    }
     // use the CloseEventSender via a QThread to send an event that says the user asked for the app to close
     auto closeEventSender = DependencyManager::get<CloseEventSender>();
     QThread* closureEventThread = new QThread(this);
@@ -1852,14 +1954,10 @@ void Application::initializeUi() {
     UpdateDialog::registerType();
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
-    qmlRegisterType<HFWebEngineProfile>("HFWebEngineProfile", 1, 0, "HFWebEngineProfile");
-    qmlRegisterType<HFTabletWebEngineProfile>("HFTabletWebEngineProfile", 1, 0, "HFTabletWebEngineProfile");
-    qmlRegisterType<FileTypeProfile>("FileTypeProfile", 1, 0, "FileTypeProfile");
-
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     offscreenUi->create(_glWidget->qglContext());
 
-    auto rootContext = offscreenUi->getRootContext();
+    auto surfaceContext = offscreenUi->getSurfaceContext();
 
     offscreenUi->setProxyWindow(_window->windowHandle());
     offscreenUi->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
@@ -1871,7 +1969,7 @@ void Application::initializeUi() {
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
 
-    auto engine = rootContext->engine();
+    auto engine = surfaceContext->engine();
     connect(engine, &QQmlEngine::quit, [] {
         qApp->quit();
     });
@@ -1880,79 +1978,78 @@ void Application::initializeUi() {
 
     // For some reason there is already an "Application" object in the QML context,
     // though I can't find it. Hence, "ApplicationInterface"
-    rootContext->setContextProperty("ApplicationInterface", this);
-    rootContext->setContextProperty("Audio", DependencyManager::get<AudioScriptingInterface>().data());
-    rootContext->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
-    rootContext->setContextProperty("AudioScope", DependencyManager::get<AudioScope>().data());
+    surfaceContext->setContextProperty("Audio", DependencyManager::get<AudioScriptingInterface>().data());
+    surfaceContext->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
+    surfaceContext->setContextProperty("AudioScope", DependencyManager::get<AudioScope>().data());
 
-    rootContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
-    rootContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
+    surfaceContext->setContextProperty("Controller", DependencyManager::get<controller::ScriptingInterface>().data());
+    surfaceContext->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
     _fileDownload = new FileScriptingInterface(engine);
-    rootContext->setContextProperty("File", _fileDownload);
+    surfaceContext->setContextProperty("File", _fileDownload);
     connect(_fileDownload, &FileScriptingInterface::unzipResult, this, &Application::handleUnzip);
-    rootContext->setContextProperty("MyAvatar", getMyAvatar().get());
-    rootContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
-    rootContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
-    rootContext->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
-    rootContext->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
-    rootContext->setContextProperty("FrameTimings", &_frameTimingsScriptingInterface);
-    rootContext->setContextProperty("Rates", new RatesScriptingInterface(this));
-    rootContext->setContextProperty("pathToFonts", "../../");
+    surfaceContext->setContextProperty("MyAvatar", getMyAvatar().get());
+    surfaceContext->setContextProperty("Messages", DependencyManager::get<MessagesClient>().data());
+    surfaceContext->setContextProperty("Recording", DependencyManager::get<RecordingScriptingInterface>().data());
+    surfaceContext->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
+    surfaceContext->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
+    surfaceContext->setContextProperty("FrameTimings", &_frameTimingsScriptingInterface);
+    surfaceContext->setContextProperty("Rates", new RatesScriptingInterface(this));
 
-    rootContext->setContextProperty("TREE_SCALE", TREE_SCALE);
-    rootContext->setContextProperty("Quat", new Quat());
-    rootContext->setContextProperty("Vec3", new Vec3());
-    rootContext->setContextProperty("Uuid", new ScriptUUID());
-    rootContext->setContextProperty("Assets", DependencyManager::get<AssetMappingsScriptingInterface>().data());
+    surfaceContext->setContextProperty("TREE_SCALE", TREE_SCALE);
+    // FIXME Quat and Vec3 won't work with QJSEngine used by QML
+    surfaceContext->setContextProperty("Quat", new Quat());
+    surfaceContext->setContextProperty("Vec3", new Vec3());
+    surfaceContext->setContextProperty("Uuid", new ScriptUUID());
+    surfaceContext->setContextProperty("Assets", DependencyManager::get<AssetMappingsScriptingInterface>().data());
 
-    rootContext->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
-    rootContext->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
+    surfaceContext->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
+    surfaceContext->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
 
-    rootContext->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
+    surfaceContext->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
 
-    rootContext->setContextProperty("Camera", &_myCamera);
+    surfaceContext->setContextProperty("Camera", &_myCamera);
 
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
-    rootContext->setContextProperty("SpeechRecognizer", DependencyManager::get<SpeechRecognizer>().data());
+    surfaceContext->setContextProperty("SpeechRecognizer", DependencyManager::get<SpeechRecognizer>().data());
 #endif
 
-    rootContext->setContextProperty("Overlays", &_overlays);
-    rootContext->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
-    rootContext->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
-    rootContext->setContextProperty("Stats", Stats::getInstance());
-    rootContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
-    rootContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
-    rootContext->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
-    rootContext->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
-    rootContext->setContextProperty("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
+    surfaceContext->setContextProperty("Overlays", &_overlays);
+    surfaceContext->setContextProperty("Window", DependencyManager::get<WindowScriptingInterface>().data());
+    surfaceContext->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
+    surfaceContext->setContextProperty("Stats", Stats::getInstance());
+    surfaceContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
+    surfaceContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
+    surfaceContext->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+    surfaceContext->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
+    surfaceContext->setContextProperty("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
 
     // Caches
-    rootContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
-    rootContext->setContextProperty("TextureCache", DependencyManager::get<TextureCache>().data());
-    rootContext->setContextProperty("ModelCache", DependencyManager::get<ModelCache>().data());
-    rootContext->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
+    surfaceContext->setContextProperty("AnimationCache", DependencyManager::get<AnimationCache>().data());
+    surfaceContext->setContextProperty("TextureCache", DependencyManager::get<TextureCache>().data());
+    surfaceContext->setContextProperty("ModelCache", DependencyManager::get<ModelCache>().data());
+    surfaceContext->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
 
-    rootContext->setContextProperty("Account", AccountScriptingInterface::getInstance());
-    rootContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data()); 
-    rootContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
-    rootContext->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
-    rootContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
-    rootContext->setContextProperty("AvatarManager", DependencyManager::get<AvatarManager>().data());
-    rootContext->setContextProperty("UndoStack", &_undoStackScriptingInterface);
-    rootContext->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
-    rootContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
-    rootContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
-    rootContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
-    rootContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
-    rootContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
-    rootContext->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
+    surfaceContext->setContextProperty("Account", AccountScriptingInterface::getInstance());
+    surfaceContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
+    surfaceContext->setContextProperty("DialogsManager", _dialogsManagerScriptingInterface);
+    surfaceContext->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
+    surfaceContext->setContextProperty("FaceTracker", DependencyManager::get<DdeFaceTracker>().data());
+    surfaceContext->setContextProperty("AvatarManager", DependencyManager::get<AvatarManager>().data());
+    surfaceContext->setContextProperty("UndoStack", &_undoStackScriptingInterface);
+    surfaceContext->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
+    surfaceContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
+    surfaceContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
+    surfaceContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
+    surfaceContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
+    surfaceContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
+    surfaceContext->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
 
-    rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
+    surfaceContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
-    rootContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
+    surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
-        rootContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
+        surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
     }
 
 
@@ -2211,6 +2308,9 @@ void Application::paintGL() {
             });
             renderArgs._context->setStereoProjections(eyeProjections);
             renderArgs._context->setStereoViews(eyeOffsets);
+
+            // Configure the type of display / stereo
+            renderArgs._displayMode = (isHMDMode() ? RenderArgs::STEREO_HMD : RenderArgs::STEREO_MONITOR);
         }
         renderArgs._blitFramebuffer = finalFramebuffer;
         displaySide(&renderArgs, _myCamera);
@@ -6785,6 +6885,35 @@ void Application::updateDisplayMode() {
     getMyAvatar()->reset(false);
 
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
+}
+
+void Application::switchDisplayMode() {
+    if (!_autoSwitchDisplayModeSupportedHMDPlugin) {
+        return;
+    }
+    bool currentHMDWornStatus = _autoSwitchDisplayModeSupportedHMDPlugin->isDisplayVisible();
+    if (currentHMDWornStatus != _previousHMDWornStatus) {
+        // Switch to respective mode as soon as currentHMDWornStatus changes
+        if (currentHMDWornStatus) {
+            qCDebug(interfaceapp) << "Switching from Desktop to HMD mode";
+            endHMDSession();
+            setActiveDisplayPlugin(_autoSwitchDisplayModeSupportedHMDPluginName);
+        } else {
+            qCDebug(interfaceapp) << "Switching from HMD to desktop mode";
+            setActiveDisplayPlugin(DESKTOP_DISPLAY_PLUGIN_NAME);
+            startHMDStandBySession();
+        }
+        emit activeDisplayPluginChanged();
+    }
+    _previousHMDWornStatus = currentHMDWornStatus;
+}
+
+void Application::startHMDStandBySession() {
+    _autoSwitchDisplayModeSupportedHMDPlugin->startStandBySession();
+}
+
+void Application::endHMDSession() {
+    _autoSwitchDisplayModeSupportedHMDPlugin->endSession();
 }
 
 mat4 Application::getEyeProjection(int eye) const {

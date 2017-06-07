@@ -1,5 +1,5 @@
 set(TARGET_NAME networking)
-setup_hifi_library(Network)
+setup_hifi_library(Network WebEngine)
 link_hifi_libraries(shared)
 
 target_include_directories(${TARGET_NAME} PRIVATE "${CMAKE_BINARY_DIR}/includes")

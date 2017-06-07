@@ -115,7 +115,7 @@ private:
 
 VrMenu::VrMenu(OffscreenUi* parent) : QObject(parent) {
     _rootMenu = parent->getRootItem()->findChild<QObject*>("rootMenu");
-    parent->getRootContext()->setContextProperty("rootMenu", _rootMenu);
+    parent->getSurfaceContext()->setContextProperty("rootMenu", _rootMenu);
 }
 
 QObject* VrMenu::findMenuObject(const QString& menuOption) {

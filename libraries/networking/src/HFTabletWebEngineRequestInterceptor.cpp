@@ -11,7 +11,7 @@
 
 #include "HFTabletWebEngineRequestInterceptor.h"
 #include <QtCore/QDebug>
-#include <AccountManager.h>
+#include "AccountManager.h"
 
 bool isTabletAuthableHighFidelityURL(const QUrl& url) {
     static const QStringList HF_HOSTS = {
