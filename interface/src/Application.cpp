@@ -247,6 +247,8 @@ static const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStanda
 Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTREE_PPS);
 
 static const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
+static const int INTERVAL_TO_CHECK_HMD_WORN_STATUS = 500; // milliseconds
+static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 
 const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
@@ -1413,6 +1415,31 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["active_display_plugin"] = getActiveDisplayPlugin()->getName();
         properties["using_hmd"] = isHMDMode();
 
+        _autoSwitchDisplayModeSupportedHMDPlugin = nullptr;
+        foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
+            if (displayPlugin->isHmd() && 
+                displayPlugin->getSupportsAutoSwitch()) {
+                _autoSwitchDisplayModeSupportedHMDPlugin = displayPlugin;
+                _autoSwitchDisplayModeSupportedHMDPluginName = 
+                    _autoSwitchDisplayModeSupportedHMDPlugin->getName();
+                _previousHMDWornStatus =
+                    _autoSwitchDisplayModeSupportedHMDPlugin->isDisplayVisible();
+                break;
+            }
+        }
+
+        if (_autoSwitchDisplayModeSupportedHMDPlugin) {
+            if (getActiveDisplayPlugin() != _autoSwitchDisplayModeSupportedHMDPlugin &&
+                !_autoSwitchDisplayModeSupportedHMDPlugin->isSessionActive()) {
+                    startHMDStandBySession();
+            }
+            // Poll periodically to check whether the user has worn HMD or not. Switch Display mode accordingly.
+            // If the user wears HMD then switch to VR mode. If the user removes HMD then switch to Desktop mode.
+            QTimer* autoSwitchDisplayModeTimer = new QTimer(this);
+            connect(autoSwitchDisplayModeTimer, SIGNAL(timeout()), this, SLOT(switchDisplayMode()));
+            autoSwitchDisplayModeTimer->start(INTERVAL_TO_CHECK_HMD_WORN_STATUS);
+        }
+
         auto glInfo = getGLContextData();
         properties["gl_info"] = glInfo;
         properties["gpu_used_memory"] = (int)BYTES_TO_MB(gpu::Context::getUsedGPUMemSize());
@@ -1646,7 +1673,10 @@ void Application::aboutToQuit() {
     }
 
     getActiveDisplayPlugin()->deactivate();
-
+    if (_autoSwitchDisplayModeSupportedHMDPlugin 
+        && _autoSwitchDisplayModeSupportedHMDPlugin->isSessionActive()) {
+        _autoSwitchDisplayModeSupportedHMDPlugin->endSession();
+    }
     // use the CloseEventSender via a QThread to send an event that says the user asked for the app to close
     auto closeEventSender = DependencyManager::get<CloseEventSender>();
     QThread* closureEventThread = new QThread(this);
@@ -6853,6 +6883,35 @@ void Application::updateDisplayMode() {
     getMyAvatar()->reset(false);
 
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
+}
+
+void Application::switchDisplayMode() {
+    if (!_autoSwitchDisplayModeSupportedHMDPlugin) {
+        return;
+    }
+    bool currentHMDWornStatus = _autoSwitchDisplayModeSupportedHMDPlugin->isDisplayVisible();
+    if (currentHMDWornStatus != _previousHMDWornStatus) {
+        // Switch to respective mode as soon as currentHMDWornStatus changes
+        if (currentHMDWornStatus) {
+            qCDebug(interfaceapp) << "Switching from Desktop to HMD mode";
+            endHMDSession();
+            setActiveDisplayPlugin(_autoSwitchDisplayModeSupportedHMDPluginName);
+        } else {
+            qCDebug(interfaceapp) << "Switching from HMD to desktop mode";
+            setActiveDisplayPlugin(DESKTOP_DISPLAY_PLUGIN_NAME);
+            startHMDStandBySession();
+        }
+        emit activeDisplayPluginChanged();
+    }
+    _previousHMDWornStatus = currentHMDWornStatus;
+}
+
+void Application::startHMDStandBySession() {
+    _autoSwitchDisplayModeSupportedHMDPlugin->startStandBySession();
+}
+
+void Application::endHMDSession() {
+    _autoSwitchDisplayModeSupportedHMDPlugin->endSession();
 }
 
 mat4 Application::getEyeProjection(int eye) const {
