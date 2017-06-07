@@ -1,6 +1,6 @@
 #pragma once
-#ifndef hifi_PrototypeSelfie_h
-#define hifi_PrototypeSelfie_h
+#ifndef hifi_SecondaryCamera_h
+#define hifi_SecondaryCamera_h
     
 #include <RenderShadowTask.h>
 #include <render/RenderFetchCullSortTask.h>
@@ -18,33 +18,33 @@ public:
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred = true);
 };
 
-class BeginSelfieFrameConfig : public render::Task::Config { // Exposes view frustum position/orientation to javascript.
+class BeginSecondaryCameraFrameConfig : public render::Task::Config { // Exposes view frustum position/orientation to javascript.
     Q_OBJECT
     Q_PROPERTY(glm::vec3 position MEMBER position NOTIFY dirty)  // of viewpoint to render from
     Q_PROPERTY(glm::quat orientation MEMBER orientation NOTIFY dirty)  // of viewpoint to render from
 public:
     glm::vec3 position{};
     glm::quat orientation{};
-    BeginSelfieFrameConfig() : render::Task::Config(false) {}
+    BeginSecondaryCameraFrameConfig() : render::Task::Config(false) {}
 signals:
     void dirty();
 };
 
-class SelfieRenderTaskConfig : public render::Task::Config {
+class SecondaryCameraRenderTaskConfig : public render::Task::Config {
     Q_OBJECT
 public:
-    SelfieRenderTaskConfig() : render::Task::Config(false) {}
+    SecondaryCameraRenderTaskConfig() : render::Task::Config(false) {}
 signals:
     void dirty();
 public slots:
     void resetSize(int width, int height);
 };
 
-class SelfieRenderTask {
+class SecondaryCameraRenderTask {
 public:
-    using Config = SelfieRenderTaskConfig;
-    using JobModel = render::Task::Model<SelfieRenderTask, Config>;
-    SelfieRenderTask() {}
+    using Config = SecondaryCameraRenderTaskConfig;
+    using JobModel = render::Task::Model<SecondaryCameraRenderTask, Config>;
+    SecondaryCameraRenderTask() {}
     void configure(const Config& config) {}
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor);
 };

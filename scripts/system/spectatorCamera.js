@@ -54,8 +54,8 @@
     // The update function for the spectator camera. Modifies the camera's position
     //     and orientation.
     //
-    var spectatorFrameRenderConfig = Render.getConfig("SelfieFrame");
-    var beginSpectatorFrameRenderConfig = Render.getConfig("BeginSelfie");
+    var spectatorFrameRenderConfig = Render.getConfig("SecondaryCameraFrame");
+    var beginSpectatorFrameRenderConfig = Render.getConfig("BeginSecondaryCamera");
     var viewFinderOverlay = false;
     var camera = false;
     var cameraIsDynamic = false;
@@ -105,8 +105,7 @@
         }, true);
         // Put an image3d overlay on the near face, as a viewFinder.
         viewFinderOverlay = Overlays.addOverlay("image3d", {
-            url: "http://selfieFrame",
-            //url: "http://1.bp.blogspot.com/-1GABEq__054/T03B00j_OII/AAAAAAAAAa8/jo55LcvEPHI/s1600/Winning.jpg",
+            url: "http://secondaryCameraFrame",
             parentID: camera,
             alpha: 1,
             position: inFrontOf(-0.25, cameraPosition, cameraRotation),
@@ -141,7 +140,6 @@
         }
         if (camera) {
             Entities.deleteEntity(camera);
-            print("ZACH FOX GOODBYE");
         }
         if (viewFinderOverlay) {
             Overlays.deleteOverlay(viewFinderOverlay);

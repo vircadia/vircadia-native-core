@@ -50,7 +50,7 @@ Q_LOGGING_CATEGORY(trace_resource_parse_image_ktx, "trace.resource.parse.image.k
 const std::string TextureCache::KTX_DIRNAME { "ktx_cache" };
 const std::string TextureCache::KTX_EXT { "ktx" };
 
-const std::string TextureCache::SELFIE_FRAME_URL { "http://selfieFrame" };
+const std::string TextureCache::SECONDARY_CAMERA_FRAME_URL { "http://secondaryCameraFrame" };
 
 static const float SKYBOX_LOAD_PRIORITY { 10.0f }; // Make sure skybox loads first
 static const float HIGH_MIPS_LOAD_PRIORITY { 9.0f }; // Make sure high mips loads after skybox but before models
@@ -182,9 +182,9 @@ ScriptableResource* TextureCache::prefetch(const QUrl& url, int type, int maxNum
 }
 
 NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels) {
-    if (url == QUrl(SELFIE_FRAME_URL.c_str())) {
+    if (url == QUrl(SECONDARY_CAMERA_FRAME_URL.c_str())) {
          
-        return getSelfieNetworkTexture();
+        return getSecondaryCameraNetworkTexture();
     }
     TextureExtra extra = { type, content, maxNumPixels };
     return ResourceCache::getResource(url, QUrl(), &extra).staticCast<NetworkTexture>();
@@ -885,31 +885,31 @@ void ImageReader::read() {
 }
 
 
-NetworkTexturePointer TextureCache::getSelfieNetworkTexture() {
-    if (!_selfieNetworkTexture) {
-        _selfieNetworkTexture.reset(new NetworkTexture(QUrl(SELFIE_FRAME_URL.c_str())));
-        auto texture = getSelfieTexture();
-        _selfieNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
+NetworkTexturePointer TextureCache::getSecondaryCameraNetworkTexture() {
+    if (!_secondaryCameraNetworkTexture) {
+        _secondaryCameraNetworkTexture.reset(new NetworkTexture(QUrl(SECONDARY_CAMERA_FRAME_URL.c_str())));
+        auto texture = getSecondaryCameraTexture();
+        _secondaryCameraNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
     }
-    return _selfieNetworkTexture;
+    return _secondaryCameraNetworkTexture;
  }
 
-const gpu::TexturePointer& TextureCache::getSelfieTexture() {
-    if (!_selfieTexture) {
-        getSelfieFramebuffer();
+const gpu::TexturePointer& TextureCache::getSecondaryCameraTexture() {
+    if (!_secondaryCameraTexture) {
+        getSecondaryCameraFramebuffer();
     }
-    return _selfieTexture;
+    return _secondaryCameraTexture;
 }
-const gpu::FramebufferPointer& TextureCache::getSelfieFramebuffer() {
-    if (!_selfieFramebuffer) {
-        resetSelfieFramebuffer(2048, 1024);
+const gpu::FramebufferPointer& TextureCache::getSecondaryCameraFramebuffer() {
+    if (!_secondaryCameraFramebuffer) {
+        resetSecondaryCameraFramebuffer(2048, 1024);
     }
 
-    return _selfieFramebuffer;
+    return _secondaryCameraFramebuffer;
 }
 
-void TextureCache::resetSelfieFramebuffer(int width, int height) {
-    _selfieFramebuffer.reset(gpu::Framebuffer::create("selfie", gpu::Element::COLOR_SRGBA_32, 2048, 1024));
-    _selfieTexture = _selfieFramebuffer->getRenderBuffer(0);
-    _selfieNetworkTexture.reset();
+void TextureCache::resetSecondaryCameraFramebuffer(int width, int height) {
+    _secondaryCameraFramebuffer.reset(gpu::Framebuffer::create("secondaryCamera", gpu::Element::COLOR_SRGBA_32, 2048, 1024));
+    _secondaryCameraTexture = _secondaryCameraFramebuffer->getRenderBuffer(0);
+    _secondaryCameraNetworkTexture.reset();
 }

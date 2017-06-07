@@ -1,5 +1,5 @@
 
-#include "PrototypeSelfie.h"
+#include "SecondaryCamera.h"
 
 #include <gpu/Context.h>
 
@@ -20,21 +20,21 @@ void MainRenderTask::build(JobModel& task, const render::Varying& inputs, render
 
 using RenderArgsPointer = std::shared_ptr<RenderArgs>;
 
-void SelfieRenderTaskConfig::resetSize(int width, int height) { // Carefully adjust the framebuffer / texture.
+void SecondaryCameraRenderTaskConfig::resetSize(int width, int height) { // Carefully adjust the framebuffer / texture.
     bool wasEnabled = isEnabled();
     setEnabled(false);
     auto textureCache = DependencyManager::get<TextureCache>();
-    textureCache->resetSelfieFramebuffer(width, height);
+    textureCache->resetSecondaryCameraFramebuffer(width, height);
     setEnabled(wasEnabled);
 }
 
-class BeginSelfieFrame {  // Changes renderContext for our framebuffer and and view.
+class BeginSecondaryCameraFrame {  // Changes renderContext for our framebuffer and and view.
     glm::vec3 _position{};
     glm::quat _orientation{};
 public:
-    using Config = BeginSelfieFrameConfig;
-    using JobModel = render::Job::ModelO<BeginSelfieFrame, RenderArgsPointer, Config>;
-    BeginSelfieFrame() {
+    using Config = BeginSecondaryCameraFrameConfig;
+    using JobModel = render::Job::ModelO<BeginSecondaryCameraFrame, RenderArgsPointer, Config>;
+    BeginSecondaryCameraFrame() {
         _cachedArgsPointer = std::make_shared<RenderArgs>(_cachedArgs);
     }
 
@@ -48,7 +48,7 @@ public:
     void run(const render::RenderContextPointer& renderContext, RenderArgsPointer& cachedArgs) {
         auto args = renderContext->args;
         auto textureCache = DependencyManager::get<TextureCache>();
-        auto destFramebuffer = textureCache->getSelfieFramebuffer();
+        auto destFramebuffer = textureCache->getSecondaryCameraFramebuffer();
         // Caching/restoring the old values doesn't seem to be needed. Is it because we happen to be last in the pipeline (which would be a bug waiting to happen)?
         _cachedArgsPointer->_blitFramebuffer = args->_blitFramebuffer;
         _cachedArgsPointer->_viewport = args->_viewport;
@@ -76,9 +76,9 @@ protected:
     RenderArgsPointer _cachedArgsPointer;
 };
 
-class EndSelfieFrame {  // Restores renderContext.
+class EndSecondaryCameraFrame {  // Restores renderContext.
 public:
-    using JobModel = render::Job::ModelI<EndSelfieFrame, RenderArgsPointer>;
+    using JobModel = render::Job::ModelI<EndSecondaryCameraFrame, RenderArgsPointer>;
 
     void run(const render::RenderContextPointer& renderContext, const RenderArgsPointer& cachedArgs) {
         auto args = renderContext->args;
@@ -93,10 +93,10 @@ public:
     }
 };
 
-void SelfieRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor) {
-    const auto cachedArg = task.addJob<BeginSelfieFrame>("BeginSelfie");
+void SecondaryCameraRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor) {
+    const auto cachedArg = task.addJob<BeginSecondaryCameraFrame>("BeginSecondaryCamera");
     const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
     assert(items.canCast<RenderFetchCullSortTask::Output>());
     task.addJob<RenderDeferredTask>("RenderDeferredTask", items);
-    task.addJob<EndSelfieFrame>("EndSelfie", cachedArg);
+    task.addJob<EndSecondaryCameraFrame>("EndSecondaryCamera", cachedArg);
 }
