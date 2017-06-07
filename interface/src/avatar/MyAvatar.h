@@ -564,10 +564,6 @@ signals:
 
 private:
 
-    glm::vec3 getWorldBodyPosition() const;
-    glm::quat getWorldBodyOrientation() const;
-
-
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail) override;
 
     void simulate(float deltaTime);

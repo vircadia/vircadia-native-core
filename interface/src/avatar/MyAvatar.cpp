@@ -417,7 +417,7 @@ void MyAvatar::update(float deltaTime) {
     }
 
 #ifdef DEBUG_DRAW_HMD_MOVING_AVERAGE
-    glm::vec3 p = transformPoint(getSensorToWorldMatrix(), getHeadControllerPoseInAvatarFrame() +
+    glm::vec3 p = transformPoint(getSensorToWorldMatrix(), getHeadControllerPoseInAvatarFrame() *
                                  glm::vec3(_headControllerFacingMovingAverage.x, 0.0f, _headControllerFacingMovingAverage.y));
     DebugDraw::getInstance().addMarker("facing-avg", getOrientation(), p, glm::vec4(1.0f));
     p = transformPoint(getSensorToWorldMatrix(), getHMDSensorPosition() +
@@ -644,7 +644,6 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 
     _hmdSensorPosition = newHmdSensorPosition;
     _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
-    // _headControllerFacing = getFacingDir2D(_hmdSensorOrientation);
     auto headPose = _headControllerPoseInSensorFrameCache.get();
     if (headPose.isValid()) {
         _headControllerFacing = getFacingDir2D(headPose.rotation);
@@ -2326,14 +2325,6 @@ bool MyAvatar::isDriveKeyDisabled(DriveKeys key) const {
         qCCritical(interfaceapp) << Q_FUNC_INFO << ": Index out of bounds";
         return true;
     }
-}
-
-glm::vec3 MyAvatar::getWorldBodyPosition() const {
-    return transformPoint(_sensorToWorldMatrix, extractTranslation(_bodySensorMatrix));
-}
-
-glm::quat MyAvatar::getWorldBodyOrientation() const {
-    return glm::quat_cast(_sensorToWorldMatrix * _bodySensorMatrix);
 }
 
 // old school meat hook style
