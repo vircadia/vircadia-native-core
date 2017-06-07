@@ -723,15 +723,24 @@ function takeSnapshot() {
 }
 
 function isPrintDisabled() { 
-    return document.getElementById('print-icon').className === "print-icon print-icon-default" &&
+    var printElement = document.getElementById('print-icon');
+    
+    return printElement.classList.contains("print-icon") &&
+           printElement.classList.contains("print-icon-default") &&
            document.getElementById('print-button').disabled;
 }
 function isPrintProcessing() { 
-    return document.getElementById('print-icon').className === "print-icon print-icon-loading" &&
+    var printElement = document.getElementById('print-icon');  
+    
+    return printElement.classList.contains("print-icon") &&
+           printElement.classList.contains("print-icon-loading") &&
            document.getElementById('print-button').disabled;
 }
 function isPrintEnabled() {
-    return document.getElementById('print-icon').className === "print-icon print-icon-default" &&
+    var printElement = document.getElementById('print-icon');    
+    
+    return printElement.classList.contains("print-icon") &&
+           printElement.classList.contains("print-icon-default") &&
            !document.getElementById('print-button').disabled;
 }
 
