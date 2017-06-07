@@ -339,6 +339,18 @@ void OpenGLDisplayPlugin::deactivate() {
     Parent::deactivate();
 }
 
+bool OpenGLDisplayPlugin::startStandBySession() {
+    if (!activateStandBySession()) {
+        return false;
+    }
+    return Parent::startStandBySession();
+}
+
+void OpenGLDisplayPlugin::endSession() {
+    deactivateSession();
+    Parent::endSession();
+}
+
 void OpenGLDisplayPlugin::customizeContext() {
     auto presentThread = DependencyManager::get<PresentThread>();
     Q_ASSERT(thread() == presentThread->thread());

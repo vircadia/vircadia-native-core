@@ -14,7 +14,7 @@
 
 #include <QtCore/QDebug>
 
-#include <AccountManager.h>
+#include "AccountManager.h"
 
 namespace {
 

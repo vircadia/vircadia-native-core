@@ -185,7 +185,6 @@ public:
     const glm::mat4& getHMDSensorMatrix() const { return _hmdSensorMatrix; }
     const glm::vec3& getHMDSensorPosition() const { return _hmdSensorPosition; }
     const glm::quat& getHMDSensorOrientation() const { return _hmdSensorOrientation; }
-    const glm::vec2& getHMDSensorFacingMovingAverage() const { return _hmdSensorFacingMovingAverage; }
 
     Q_INVOKABLE void setOrientationVar(const QVariant& newOrientationVar);
     Q_INVOKABLE QVariant getOrientationVar() const;
@@ -470,6 +469,8 @@ public:
     controller::Pose getHeadControllerPoseInSensorFrame() const;
     controller::Pose getHeadControllerPoseInWorldFrame() const;
     controller::Pose getHeadControllerPoseInAvatarFrame() const;
+    const glm::vec2& getHeadControllerFacingMovingAverage() const { return _headControllerFacingMovingAverage; }
+
 
     void setArmControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right);
     controller::Pose getLeftArmControllerPoseInSensorFrame() const;
@@ -569,8 +570,6 @@ signals:
 
 private:
 
-    glm::vec3 getWorldBodyPosition() const;
-    glm::quat getWorldBodyOrientation() const;
     bool requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& positionOut);
 
     virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail) override;
@@ -682,13 +681,13 @@ private:
     // working copies -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
     glm::mat4 _sensorToWorldMatrix { glm::mat4() };
 
-    // cache of the current HMD sensor position and orientation
-    // in sensor space.
+    // cache of the current HMD sensor position and orientation in sensor space.
     glm::mat4 _hmdSensorMatrix;
     glm::quat _hmdSensorOrientation;
     glm::vec3 _hmdSensorPosition;
-    glm::vec2 _hmdSensorFacing;  // facing vector in xz plane
-    glm::vec2 _hmdSensorFacingMovingAverage { 0, 0 };   // facing vector in xz plane
+    // cache head controller pose in sensor space
+    glm::vec2 _headControllerFacing;  // facing vector in xz plane
+    glm::vec2 _headControllerFacingMovingAverage { 0, 0 };   // facing vector in xz plane
 
     // cache of the current body position and orientation of the avatar's body,
     // in sensor space.

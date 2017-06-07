@@ -13,6 +13,7 @@
 #include <gpu/Batch.h>
 
 #include <DependencyManager.h>
+#include <StencilMaskPass.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
 
@@ -93,6 +94,7 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
         _procedural->_fragmentSource = simple_frag;
         _procedural->_opaqueState->setCullMode(gpu::State::CULL_NONE);
         _procedural->_opaqueState->setDepthTest(true, true, gpu::LESS_EQUAL);
+        PrepareStencil::testMaskDrawShape(*_procedural->_opaqueState);
         _procedural->_opaqueState->setBlendFunction(false,
             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
