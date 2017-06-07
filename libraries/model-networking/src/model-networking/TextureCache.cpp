@@ -50,7 +50,7 @@ Q_LOGGING_CATEGORY(trace_resource_parse_image_ktx, "trace.resource.parse.image.k
 const std::string TextureCache::KTX_DIRNAME { "ktx_cache" };
 const std::string TextureCache::KTX_EXT { "ktx" };
 
-const std::string TextureCache::SECONDARY_CAMERA_FRAME_URL { "http://secondaryCameraFrame" };
+const std::string TextureCache::SPECTATOR_CAMERA_FRAME_URL { "http://spectatorCameraFrame" };
 
 static const float SKYBOX_LOAD_PRIORITY { 10.0f }; // Make sure skybox loads first
 static const float HIGH_MIPS_LOAD_PRIORITY { 9.0f }; // Make sure high mips loads after skybox but before models
@@ -182,9 +182,9 @@ ScriptableResource* TextureCache::prefetch(const QUrl& url, int type, int maxNum
 }
 
 NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels) {
-    if (url == QUrl(SECONDARY_CAMERA_FRAME_URL.c_str())) {
+    if (url == QUrl(SPECTATOR_CAMERA_FRAME_URL.c_str())) {
          
-        return getSecondaryCameraNetworkTexture();
+        return getSpectatorCameraNetworkTexture();
     }
     TextureExtra extra = { type, content, maxNumPixels };
     return ResourceCache::getResource(url, QUrl(), &extra).staticCast<NetworkTexture>();
@@ -885,31 +885,31 @@ void ImageReader::read() {
 }
 
 
-NetworkTexturePointer TextureCache::getSecondaryCameraNetworkTexture() {
-    if (!_secondaryCameraNetworkTexture) {
-        _secondaryCameraNetworkTexture.reset(new NetworkTexture(QUrl(SECONDARY_CAMERA_FRAME_URL.c_str())));
-        auto texture = getSecondaryCameraTexture();
-        _secondaryCameraNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
+NetworkTexturePointer TextureCache::getSpectatorCameraNetworkTexture() {
+    if (!_spectatorCameraNetworkTexture) {
+        _spectatorCameraNetworkTexture.reset(new NetworkTexture(QUrl(SPECTATOR_CAMERA_FRAME_URL.c_str())));
+        auto texture = getSpectatorCameraTexture();
+        _spectatorCameraNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
     }
-    return _secondaryCameraNetworkTexture;
+    return _spectatorCameraNetworkTexture;
  }
 
-const gpu::TexturePointer& TextureCache::getSecondaryCameraTexture() {
-    if (!_secondaryCameraTexture) {
-        getSecondaryCameraFramebuffer();
+const gpu::TexturePointer& TextureCache::getSpectatorCameraTexture() {
+    if (!_spectatorCameraTexture) {
+        getSpectatorCameraFramebuffer();
     }
-    return _secondaryCameraTexture;
+    return _spectatorCameraTexture;
 }
-const gpu::FramebufferPointer& TextureCache::getSecondaryCameraFramebuffer() {
-    if (!_secondaryCameraFramebuffer) {
-        resetSecondaryCameraFramebuffer(2048, 1024);
+const gpu::FramebufferPointer& TextureCache::getSpectatorCameraFramebuffer() {
+    if (!_spectatorCameraFramebuffer) {
+        resetSpectatorCameraFramebuffer(2048, 1024);
     }
 
-    return _secondaryCameraFramebuffer;
+    return _spectatorCameraFramebuffer;
 }
 
-void TextureCache::resetSecondaryCameraFramebuffer(int width, int height) {
-    _secondaryCameraFramebuffer.reset(gpu::Framebuffer::create("secondaryCamera", gpu::Element::COLOR_SRGBA_32, 2048, 1024));
-    _secondaryCameraTexture = _secondaryCameraFramebuffer->getRenderBuffer(0);
-    _secondaryCameraNetworkTexture.reset();
+void TextureCache::resetSpectatorCameraFramebuffer(int width, int height) {
+    _spectatorCameraFramebuffer.reset(gpu::Framebuffer::create("spectatorCamera", gpu::Element::COLOR_SRGBA_32, 2048, 1024));
+    _spectatorCameraTexture = _spectatorCameraFramebuffer->getRenderBuffer(0);
+    _spectatorCameraNetworkTexture.reset();
 }

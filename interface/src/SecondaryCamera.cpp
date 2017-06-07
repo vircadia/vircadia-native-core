@@ -24,7 +24,7 @@ void SecondaryCameraRenderTaskConfig::resetSize(int width, int height) { // Care
     bool wasEnabled = isEnabled();
     setEnabled(false);
     auto textureCache = DependencyManager::get<TextureCache>();
-    textureCache->resetSecondaryCameraFramebuffer(width, height);
+    textureCache->resetSpectatorCameraFramebuffer(width, height);
     setEnabled(wasEnabled);
 }
 
@@ -48,7 +48,7 @@ public:
     void run(const render::RenderContextPointer& renderContext, RenderArgsPointer& cachedArgs) {
         auto args = renderContext->args;
         auto textureCache = DependencyManager::get<TextureCache>();
-        auto destFramebuffer = textureCache->getSecondaryCameraFramebuffer();
+        auto destFramebuffer = textureCache->getSpectatorCameraFramebuffer();
         // Caching/restoring the old values doesn't seem to be needed. Is it because we happen to be last in the pipeline (which would be a bug waiting to happen)?
         _cachedArgsPointer->_blitFramebuffer = args->_blitFramebuffer;
         _cachedArgsPointer->_viewport = args->_viewport;
