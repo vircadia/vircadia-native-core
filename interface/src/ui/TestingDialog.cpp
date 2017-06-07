@@ -15,8 +15,8 @@
 #include "Application.h"
 
 TestingDialog::TestingDialog(QWidget* parent) :
-QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint),
-_console(new JSConsole(this))
+    QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint),
+    _console(new JSConsole(this))
 {
     setAttribute(Qt::WA_DeleteOnClose);
     setWindowTitle(windowLabel);

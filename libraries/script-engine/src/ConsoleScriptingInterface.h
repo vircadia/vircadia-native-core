@@ -21,7 +21,7 @@
 #include <QtCore/QObject>
 #include <QtCore/QString>
 #include <QtScript/QScriptable>
-#include <QMap>
+#include <QHash>
 
 
 /// Scriptable interface of console object. Used exclusively in the JavaScript API
@@ -36,14 +36,14 @@ public slots:
     void exception(QString message);
     void time(QString labelName);
     void timeEnd(QString labelName);
-    void asserts(bool condition, QString data="");
+    void asserts(bool condition, QString message = "");
     void trace(QString labelName);
     void clear();
 public:
     QString secondsToString(qint64 seconds);
     bool isInteger(const std::string & s);
 private:
-    QMap<QString, QDateTime> _listOfTimeValues;
+    QHash<QString, QDateTime> _listOfTimeValues;
     const qint64 DAY = 86400;
     const QString TIME_FORMAT = "yyyy-MM-dd HH:mm";
 };

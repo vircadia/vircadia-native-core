@@ -226,6 +226,7 @@ public:
     void scriptWarningMessage(const QString& message);
     void scriptInfoMessage(const QString& message);
     void scriptPrintedMessage(const QString& message);
+
     void clearConsole();
     int getNumRunningEntityScripts() const;
     bool getEntityScriptDetails(const EntityItemID& entityID, EntityScriptDetails &details) const;

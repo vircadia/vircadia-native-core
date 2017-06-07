@@ -2,7 +2,6 @@ import QtQuick 2.5
 import QtWebEngine 1.1
 import QtWebChannel 1.0
 import "../controls-uit" as HiFiControls
-import HFTabletWebEngineProfile 1.0
 
 Item {
     property alias url: root.url
@@ -39,10 +38,7 @@ Item {
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
 
-        profile: HFTabletWebEngineProfile {
-            id: webviewProfile
-            storageName: "qmlTabletWebEngine"
-        }
+        profile: HFTabletWebEngineProfile;
 
         property string userScriptUrl: ""
 

@@ -35,7 +35,7 @@ public:
     void setScriptEngine(ScriptEngine* scriptEngine = NULL);
     void clear();
 
-    public slots:
+public slots:
     void executeCommand(const QString& command);
 
 protected:
@@ -44,7 +44,7 @@ protected:
     virtual void mouseReleaseEvent(QMouseEvent* event) override;
     virtual void showEvent(QShowEvent* event) override;
 
-    protected slots:
+protected slots:
     void scrollToBottom();
     void resizeTextInput();
     void handlePrint(const QString& message, const QString& scriptName);

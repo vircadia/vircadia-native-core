@@ -53,15 +53,8 @@ void ConsoleScriptingInterface::exception(QString message) {
 }
 
 void  ConsoleScriptingInterface::time(QString labelName) {
-    QDateTime date;
-    std::string val_string = "2017-06-06 11:15:00.000";
-    QString d = QString::fromStdString(val_string.substr(0, 19));
-    date = QDateTime::fromString(d, "yyyy-MM-dd HH:mm:ss");
-    qDebug() << d;
-    qDebug() << d.length() << date.toUTC();
-
    QDateTime _currentTime = QDateTime::currentDateTime().toUTC();
-   _listOfTimeValues.insert(labelName, date.toUTC());
+   _listOfTimeValues.insert(labelName, _currentTime.toUTC());
 }
 
 void ConsoleScriptingInterface::timeEnd(QString labelName) {
@@ -79,6 +72,7 @@ void ConsoleScriptingInterface::timeEnd(QString labelName) {
        }
        return;
    }
+
    QDateTime _currentDateTimeValue = QDateTime::currentDateTime().toUTC();
    _dateTimeOfLabel = _listOfTimeValues.value(labelName);
 
@@ -113,7 +107,7 @@ void  ConsoleScriptingInterface::asserts(bool condition, QString message) {
        if (message.isEmpty()) {
            message = assertFailed;
        } else {                      
-           if (typeid(message) != typeid(QString)) {           
+           if (typeid(message) != typeid(QString)) {
                message = assertFailed;
            } else {
                message = assertFailed + " " + message;
@@ -122,7 +116,7 @@ void  ConsoleScriptingInterface::asserts(bool condition, QString message) {
        if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
            scriptEngine->scriptErrorMessage(message);
        }
-   }    
+   }
 }
 
 void  ConsoleScriptingInterface::trace(QString labelName) {
@@ -130,7 +124,8 @@ void  ConsoleScriptingInterface::trace(QString labelName) {
        scriptEngine->scriptErrorMessage(labelName);
    }
 }
-void  ConsoleScriptingInterface::clear() {    
+
+void  ConsoleScriptingInterface::clear() {
     if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
         scriptEngine->clearConsole();
     }
