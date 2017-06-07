@@ -2261,7 +2261,6 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
     if (!requiresSafeLanding(position, better)) {
         return false;
     }
-    qDebug() << "rechecking" << position << " => " << better << " collisions:" << getCollisionsEnabled() << " physics:" << qApp->isPhysicsEnabled();
     if (!getCollisionsEnabled()) {
         goToLocation(better);  // recurses on next update
      } else { // If you try to go while stuck, physics will keep you stuck.
@@ -2334,18 +2333,19 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
     }
  
     // See if we have room between entities above and below, but that we are not contained.
+    // First check if the surface above us is the bottom of something, and the surface below us it the top of something.
+    // I.e., we are in a clearing between two objects.
     if (isDown(upperNormal) && isUp(lowerNormal)) {
-        // The surface above us is the bottom of something, and the surface below us it the top of something.
-        // I.e., we are in a clearing between two objects.
-        auto delta = glm::distance(upperIntersection, lowerIntersection);
+        auto spaceBetween = glm::distance(upperIntersection, lowerIntersection);
         const float halfHeightFactor = 2.5f; // Until case 5003 is fixed (and maybe after?), we need a fudge factor. Also account for content modelers not being precise.
-        if (delta > (halfHeightFactor * halfHeight)) {
+        if (spaceBetween > (halfHeightFactor * halfHeight)) {
             // There is room for us to fit in that clearing. If there wasn't, physics would oscilate us between the objects above and below.
             // We're now going to iterate upwards through successive upperIntersections, testing to see if we're contained within the top surface of some entity.
             // There will be one of two outcomes:
             // a) We're not contained, so we have enough room and our position is good.
             // b) We are contained, so we'll bail out of this but try again at a position above the containing entity.
-            for (;;) {
+            const int iterationLimit = 1000;
+            for (int counter = 0; counter < iterationLimit; counter++) {
                 ignore.push_back(upperId);
                 if (!findIntersection(upperIntersection, up, upperIntersection, upperId, upperNormal)) {
                     // We're not inside an entity, and from the nested tests, we have room between what is above and below. So position is good!
@@ -2360,6 +2360,7 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
                 // We found a new bottom surface, which we're not interested in.
                 // But there could still be a top surface above us for an entity we haven't seen, so keep looking upward.
             }
+            qCDebug(interfaceapp) << "Loop in requiresSafeLanding. Floor/ceiling do not make sense.";
         }
     }
 
