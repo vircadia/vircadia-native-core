@@ -213,7 +213,8 @@ void HmdDisplayPlugin::internalPresent() {
     hmdPresent();
 
     if (_displayTexture) {
-        auto viewport = getViewportForSourceSize(uvec2(_displayTexture->getDimensions()));
+        uvec2 dims = uvec2(_displayTexture->getDimensions());
+        auto viewport = ivec4(uvec2(0), dims);
         render([&](gpu::Batch& batch) {
             renderFromTexture(batch, _displayTexture, viewport, viewport);
         });

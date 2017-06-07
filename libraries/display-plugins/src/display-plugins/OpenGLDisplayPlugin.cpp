@@ -616,7 +616,8 @@ void OpenGLDisplayPlugin::compositeLayers() {
 
 void OpenGLDisplayPlugin::internalPresent() {
     render([&](gpu::Batch& batch) {
-        auto viewport = ivec4(uvec2(0), getSurfacePixels());
+        uvec2 dims = _displayTexture ? uvec2(_displayTexture->getDimensions()) : getSurfacePixels();
+        auto viewport = ivec4(uvec2(0),  dims);
         renderFromTexture(batch, _displayTexture ? _displayTexture : _compositeFramebuffer->getRenderBuffer(0), viewport, viewport);
      });
     swapBuffers();
