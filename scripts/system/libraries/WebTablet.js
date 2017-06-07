@@ -22,7 +22,9 @@ var DEFAULT_WIDTH = 0.4375;
 var DEFAULT_VERTICAL_FIELD_OF_VIEW = 45; // degrees
 var SENSOR_TO_ROOM_MATRIX = -2;
 var CAMERA_MATRIX = -7;
-var ROT_Y_180 = {x: 0, y: 1, z: 0, w: 0};
+var ROT_Y_180 = {x: 0.0, y: 1.0, z: 0, w: 0};
+var ROT_LANDSCAPE = {x: 1.0, y: 1.0, z: 0, w: 0};
+var ROT_LANDSCAPE_WINDOW = {x: 0.0, y: 0.0, z: 0.0, w: 0};
 var ROT_IDENT = {x: 0, y: 0, z: 0, w: 1};
 var TABLET_TEXTURE_RESOLUTION = { x: 480, y: 706 };
 var INCHES_TO_METERS = 1 / 39.3701;
@@ -243,29 +245,29 @@ WebTablet = function (url, width, dpi, hand, clientOnly, location, visible) {
 };
 
 WebTablet.prototype.getDimensions = function() {
-    if (this.landscape) {
-        return { x: this.width * 2, y: this.height, z: this.depth };
-    } else {
-        return { x: this.width, y: this.height, z: this.depth };
-    }
+    return { x: this.width, y: this.height, z: this.depth };
 };
 
 WebTablet.prototype.getTabletTextureResolution = function() {
     if (this.landscape) {
-        return { x: TABLET_TEXTURE_RESOLUTION.x * 2, y: TABLET_TEXTURE_RESOLUTION.y };
+        return { x: TABLET_TEXTURE_RESOLUTION.y , y: TABLET_TEXTURE_RESOLUTION.x };
     } else {
         return TABLET_TEXTURE_RESOLUTION;
     }
 };
 
 WebTablet.prototype.setLandscape = function(newLandscapeValue) {
-    if (this.landscape == newLandscapeValue) {
+    if (this.landscape === newLandscapeValue) {
         return;
     }
+
     this.landscape = newLandscapeValue;
-    Overlays.editOverlay(this.tabletEntityID, { dimensions: this.getDimensions() });
+    Overlays.editOverlay(this.tabletEntityID,
+                         { rotation: this.landscape ? Quat.multiply(Camera.orientation, ROT_LANDSCAPE) :
+                                                      Quat.multiply(Camera.orientation, ROT_Y_180) });
     Overlays.editOverlay(this.webOverlayID, {
-        resolution: this.getTabletTextureResolution()
+        resolution: this.getTabletTextureResolution(),
+        rotation: Quat.multiply(Camera.orientation, ROT_LANDSCAPE_WINDOW)
     });
 };
 
@@ -407,7 +409,7 @@ WebTablet.prototype.calculateWorldAttitudeRelativeToCamera = function (windowPos
 
     return {
         position: worldMousePosition,
-        rotation: Quat.multiply(Camera.orientation, ROT_Y_180)
+        rotation: this.landscape ? Quat.multiply(Camera.orientation, ROT_LANDSCAPE) : Quat.multiply(Camera.orientation, ROT_Y_180)
     };
 };
 

@@ -4,7 +4,6 @@ import QtQuick.Controls 1.4
 import QtQml 2.2
 import QtWebChannel 1.0
 import QtWebEngine  1.1
-import HFWebEngineProfile 1.0
 
 
 import "."

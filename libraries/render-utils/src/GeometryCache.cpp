@@ -24,6 +24,7 @@
 
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"
+#include "StencilMaskPass.h"
 
 #include "gpu/StandardShaderLib.h"
 
@@ -1610,6 +1611,9 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
         state->setBlendFunction(true, 
             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+        PrepareStencil::testMask(*state);
+
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("lineData"), LINE_DATA_SLOT));
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -1663,11 +1667,14 @@ void GeometryCache::useSimpleDrawPipeline(gpu::Batch& batch, bool noBlend) {
 
         // enable decal blend
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+        PrepareStencil::testMask(*state);
 
         _standardDrawPipeline = gpu::Pipeline::create(program, state);
 
 
         auto stateNoBlend = std::make_shared<gpu::State>();
+        PrepareStencil::testMaskDrawShape(*state);
+
         auto noBlendPS = gpu::StandardShaderLib::getDrawTextureOpaquePS();
         auto programNoBlend = gpu::Shader::createProgram(vs, noBlendPS);
         gpu::Shader::makeProgram((*programNoBlend));
@@ -1690,12 +1697,14 @@ void GeometryCache::useGridPipeline(gpu::Batch& batch, GridBuffer gridBuffer, bo
 
         auto stateLayered = std::make_shared<gpu::State>();
         stateLayered->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+        PrepareStencil::testMask(*stateLayered);
         _gridPipelineLayered = gpu::Pipeline::create(program, stateLayered);
 
         auto state = std::make_shared<gpu::State>(stateLayered->getValues());
         const float DEPTH_BIAS = 0.001f;
         state->setDepthBias(DEPTH_BIAS);
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        PrepareStencil::testMaskDrawShape(*state);
         _gridPipeline = gpu::Pipeline::create(program, state);
     }
 
@@ -1773,6 +1782,11 @@ static void buildWebShader(const std::string& vertShaderText, const std::string&
     state->setBlendFunction(blendEnable,
                             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+    if (blendEnable) {
+        PrepareStencil::testMask(*state);
+    } else {
+        PrepareStencil::testMaskDrawShape(*state);
+    }
 
     pipelinePointerOut = gpu::Pipeline::create(shaderPointerOut, state);
 }
@@ -1857,6 +1871,12 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
     state->setBlendFunction(config.isTransparent(),
         gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+
+    if (config.isTransparent()) {
+        PrepareStencil::testMask(*state);
+    } else {
+        PrepareStencil::testMaskDrawShape(*state);
+    }
 
     gpu::ShaderPointer program = (config.isUnlit()) ? _unlitShader : _simpleShader;
     gpu::PipelinePointer pipeline = gpu::Pipeline::create(program, state);

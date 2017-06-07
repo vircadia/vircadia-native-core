@@ -1,7 +1,6 @@
 import QtQuick 2.0
 import Hifi 1.0
 import QtQuick.Controls 1.4
-import HFTabletWebEngineProfile 1.0
 import "../../dialogs"
 import "../../controls"
 
