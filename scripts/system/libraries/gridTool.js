@@ -79,29 +79,37 @@ Grid = function(opts) {
         }
     }
 
-    that.snapToSurface = function(position, dimensions) {
+    that.snapToSurface = function(position, dimensions, registration) {
         if (!snapToGrid) {
             return position;
         }
 
         if (dimensions === undefined) {
             dimensions = { x: 0, y: 0, z: 0 };
+        }
+
+        if (registration === undefined) {
+            registration = { x: 0.5, y: 0.5, z: 0.5 };
         }
 
         return {
             x: position.x,
-            y: origin.y + (dimensions.y / 2),
+            y: origin.y + (registration.y * dimensions.y),
             z: position.z
         };
     }
 
-    that.snapToGrid = function(position, majorOnly, dimensions) {
+    that.snapToGrid = function(position, majorOnly, dimensions, registration) {
         if (!snapToGrid) {
             return position;
         }
 
         if (dimensions === undefined) {
             dimensions = { x: 0, y: 0, z: 0 };
+        }
+
+        if (registration === undefined) {
+            registration = { x: 0.5, y: 0.5, z: 0.5 };
         }
 
         var spacing = majorOnly ? majorGridEvery : minorGridEvery;
@@ -112,7 +120,7 @@ Grid = function(opts) {
         position.y = Math.round(position.y / spacing) * spacing;
         position.z = Math.round(position.z / spacing) * spacing;
 
-        return Vec3.sum(Vec3.sum(position, Vec3.multiply(0.5, dimensions)), origin);
+        return Vec3.sum(Vec3.sum(position, Vec3.multiplyVbyV(registration, dimensions)), origin);
     }
 
     that.snapToSpacing = function(delta, majorOnly) {
@@ -161,9 +169,9 @@ Grid = function(opts) {
 
         if (data.origin) {
             var pos = data.origin;
-            pos.x = pos.x === undefined ? origin.x : pos.x;
-            pos.y = pos.y === undefined ? origin.y : pos.y;
-            pos.z = pos.z === undefined ? origin.z : pos.z;
+            pos.x = pos.x === undefined ? origin.x : parseFloat(pos.x);
+            pos.y = pos.y === undefined ? origin.y : parseFloat(pos.y);
+            pos.z = pos.z === undefined ? origin.z : parseFloat(pos.z);
             that.setPosition(pos, true);
         }
 
@@ -238,7 +246,13 @@ GridTool = function(opts) {
     });
 
     webView.webEventReceived.connect(function(data) {
-        data = JSON.parse(data);
+        try {
+            data = JSON.parse(data);
+        } catch(e) {
+            print("gridTool.js: Error parsing JSON: " + e.name + " data " + data)
+            return;
+        }
+
         if (data.type == "init") {
             horizontalGrid.emitUpdate();
         } else if (data.type == "update") {

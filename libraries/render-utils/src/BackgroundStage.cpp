@@ -112,7 +112,6 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
                 skybox->render(batch, args->getViewFrustum());
             });
             args->_batch = nullptr;
-            gpu::Batch& batch = *args->_batch;
 
              // break;
         }

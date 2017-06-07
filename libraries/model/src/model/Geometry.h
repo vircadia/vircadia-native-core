@@ -65,6 +65,9 @@ public:
     const gpu::BufferStream& getVertexStream() const { return _vertexStream; }
 
     // Index Buffer
+    using Indices16 = std::vector<int16_t>;
+    using Indices32 = std::vector<int32_t>;
+
     void setIndexBuffer(const BufferView& buffer);
     const BufferView& getIndexBuffer() const { return _indexBuffer; }
     size_t getNumIndices() const { return _indexBuffer.getNumElements(); }
@@ -126,6 +129,9 @@ public:
     void forEach(std::function<void(glm::vec3)> vertexFunc,
                  std::function<void(glm::vec3)> normalFunc,
                  std::function<void(uint32_t)> indexFunc);
+
+
+    static MeshPointer createIndexedTriangles_P3F(uint32_t numVertices, uint32_t numTriangles, const glm::vec3* vertices = nullptr, const uint32_t* indices = nullptr);
 
 protected:
 

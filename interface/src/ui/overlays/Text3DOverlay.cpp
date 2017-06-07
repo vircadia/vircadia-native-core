@@ -51,6 +51,16 @@ Text3DOverlay::~Text3DOverlay() {
     }
 }
 
+const QString Text3DOverlay::getText() const {
+    QMutexLocker lock(&_mutex);
+    return _text;
+}
+
+void Text3DOverlay::setText(const QString& text) {
+    QMutexLocker lock(&_mutex);
+    _text = text;
+}
+
 xColor Text3DOverlay::getBackgroundColor() {
     if (_colorPulse == 0.0f) {
         return _backgroundColor;
@@ -125,7 +135,7 @@ void Text3DOverlay::render(RenderArgs* args) {
     // FIXME: Factor out textRenderer so that Text3DOverlay overlay parts can be grouped by pipeline
     //        for a gpu performance increase. Currently,
     //        Text renderer sets its own pipeline,
-    _textRenderer->draw(batch, 0, 0, _text, textColor, glm::vec2(-1.0f), getDrawInFront());
+    _textRenderer->draw(batch, 0, 0, getText(), textColor, glm::vec2(-1.0f), getDrawInFront());
     //        so before we continue, we must reset the pipeline
     batch.setPipeline(args->_pipeline->pipeline);
     args->_pipeline->prepare(batch);
@@ -188,7 +198,7 @@ void Text3DOverlay::setProperties(const QVariantMap& properties) {
 
 QVariant Text3DOverlay::getProperty(const QString& property) {
     if (property == "text") {
-        return _text;
+        return getText();
     }
     if (property == "textAlpha") {
         return _textAlpha;
@@ -231,7 +241,7 @@ QSizeF Text3DOverlay::textSize(const QString& text) const {
     return QSizeF(extents.x, extents.y) * pointToWorldScale;
 }
 
-bool Text3DOverlay::findRayIntersection(const glm::vec3 &origin, const glm::vec3 &direction, float &distance, 
+bool Text3DOverlay::findRayIntersection(const glm::vec3 &origin, const glm::vec3 &direction, float &distance,
                                             BoxFace &face, glm::vec3& surfaceNormal) {
     Transform transform = getTransform();
     applyTransformTo(transform, true);

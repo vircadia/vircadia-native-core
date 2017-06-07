@@ -127,7 +127,7 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
 
     _webSurface->resume();
     _webSurface->getRootItem()->setProperty("url", _sourceUrl);
-    _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
+    _webSurface->getSurfaceContext()->setContextProperty("desktop", QVariant());
     // FIXME - Keyboard HMD only: Possibly add "HMDinfo" object to context for WebView.qml.
 
     // forward web events to EntityScriptingInterface
@@ -271,7 +271,7 @@ void RenderableWebEntityItem::loadSourceURL() {
         });
 
         _webSurface->getRootItem()->setProperty("url", _sourceUrl);
-        _webSurface->getRootContext()->setContextProperty("desktop", QVariant());
+        _webSurface->getSurfaceContext()->setContextProperty("desktop", QVariant());
 
     } else {
         _contentType = qmlContent;
@@ -284,7 +284,7 @@ void RenderableWebEntityItem::loadSourceURL() {
                                                        _webSurface->getRootItem(), _webSurface.data());
         }
     }
-    _webSurface->getRootContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
+    _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
 }
 
 
@@ -420,7 +420,7 @@ void RenderableWebEntityItem::update(const quint64& now) {
 
     if (_webSurface) {
         // update globalPosition
-        _webSurface->getRootContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
+        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
     }
 
     auto interval = now - _lastRenderTime;

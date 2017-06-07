@@ -388,8 +388,13 @@ Rectangle {
             sortIndicatorColumn: settings.nearbySortIndicatorColumn;
             sortIndicatorOrder: settings.nearbySortIndicatorOrder;
             onSortIndicatorColumnChanged: {
-                settings.nearbySortIndicatorColumn = sortIndicatorColumn;
-                sortModel();
+                if (sortIndicatorColumn > 2) {
+                    // these are not sortable, switch back to last column
+                    sortIndicatorColumn = settings.nearbySortIndicatorColumn;
+                } else {
+                    settings.nearbySortIndicatorColumn = sortIndicatorColumn;
+                    sortModel();
+                }
             }
             onSortIndicatorOrderChanged: {
                 settings.nearbySortIndicatorOrder = sortIndicatorOrder;
