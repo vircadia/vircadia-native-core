@@ -40,30 +40,25 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString outputPath) {
     }
 
     // create our appropiate baker
-    Baker* baker;
-
     if (isFBX) {
-        baker = new FBXBaker(inputUrl, outputPath, []() -> QThread* {
-            return qApp->getNextWorkerThread();
-        });
-        baker->moveToThread(qApp->getFBXBakerThread());
+        _baker = std::unique_ptr<Baker> { new FBXBaker(inputUrl, outputPath, []() -> QThread* { return qApp->getNextWorkerThread(); }) };
+        _baker->moveToThread(qApp->getFBXBakerThread());
     } else if (isSupportedImage) {
-        baker = new TextureBaker(inputUrl, image::TextureUsage::CUBE_TEXTURE, outputPath);
-        baker->moveToThread(qApp->getNextWorkerThread());
+        _baker = std::unique_ptr<Baker> { new TextureBaker(inputUrl, image::TextureUsage::CUBE_TEXTURE, outputPath) };
+        _baker->moveToThread(qApp->getNextWorkerThread());
     } else {
         qCDebug(model_baking) << "Failed to determine baker type for file" << inputUrl;
         return;
     }
 
     // invoke the bake method on the baker thread
-    QMetaObject::invokeMethod(baker, "bake");
+    QMetaObject::invokeMethod(_baker.get(), "bake");
 
     // make sure we hear about the results of this baker when it is done
-    connect(baker, &Baker::finished, this, &BakerCLI::handleFinishedBaker);
+    connect(_baker.get(), &Baker::finished, this, &BakerCLI::handleFinishedBaker);
 }
 
 void BakerCLI::handleFinishedBaker() {
     qCDebug(model_baking) << "Finished baking file.";
-    sender()->deleteLater();
     QApplication::quit();
 }

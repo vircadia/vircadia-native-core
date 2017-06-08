@@ -14,6 +14,7 @@
 
 #include <QtCore/QObject>
 
+#include "Baker.h"
 #include "Oven.h"
 
 class BakerCLI : public QObject {
@@ -24,8 +25,10 @@ public:
     void bakeFile(QUrl inputUrl, const QString outputPath);
 
 private slots:
-    void handleFinishedBaker();
+    void handleFinishedBaker();  
 
+private:
+    std::unique_ptr<Baker> _baker;
 };
 
 #endif // hifi_BakerCLI_h
