@@ -484,7 +484,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     if (wireframe) {
         builder.withWireframe();
     }
-    if (_fadeState != FadeEffect::Complete) {
+    if (_fadeState != STATE_COMPLETE) {
         builder.withFade();
     }
     return builder.build();
@@ -528,13 +528,13 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
         return; // bail asap
     }
 
-    if (_fadeState == FadeEffect::WaitingToStart) {
+    if (_fadeState == STATE_WAITING_TO_START) {
         if (model->isLoaded()) {
             if (EntityItem::getEntitiesShouldFadeFunction()()) {
                 _fadeStartTime = usecTimestampNow();
-                _fadeState = FadeEffect::InProgress;
+                _fadeState = STATE_IN_PROGRESS;
             } else {
-                _fadeState = FadeEffect::Complete;
+                _fadeState = STATE_COMPLETE;
             }
             model->setRenderItemsNeedUpdate();
         } else {
@@ -567,7 +567,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     bindMaterial(batch, locations, args->_enableTexturing);
 
     // Apply fade effect
-    DependencyManager::get<FadeEffect>()->bindPerItem(batch, args, _transform.getTranslation(), _fadeStartTime, _fadeState);
+    DependencyManager::get<FadeEffect>()->bindPerItem(batch, args, _transform.getTranslation(), _fadeStartTime, _fadeState!=STATE_COMPLETE);
 
     args->_details._materialSwitches++;
 

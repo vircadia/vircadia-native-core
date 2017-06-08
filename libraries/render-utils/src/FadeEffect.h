@@ -20,12 +20,6 @@ class FadeEffect : public Dependency {
 	SINGLETON_DEPENDENCY
 public:
 
-    enum State : uint8_t {
-        WaitingToStart = 0,
-        InProgress = 1,
-        Complete = 2,
-    };
-
 	FadeEffect();
 
 	const gpu::TexturePointer getFadeMaskMap() const { return _fadeMaskMap; }
@@ -38,9 +32,10 @@ public:
 
 	render::ShapeKey::Builder getKeyBuilder(render::ShapeKey::Builder builder = render::ShapeKey::Builder()) const;
 
-    void bindPerBatch(gpu::Batch& batch) const;
-    void bindPerItem(gpu::Batch& batch, RenderArgs* args, glm::vec3 offset, quint64 startTime, State state = InProgress) const;
-    void bindPerItem(gpu::Batch& batch, const gpu::Pipeline* pipeline, glm::vec3 offset, quint64 startTime, State state = InProgress) const;
+    void bindPerBatch(gpu::Batch& batch, int fadeMaskMapLocation = render::ShapePipeline::Slot::MAP::FADE_MASK) const;
+    void bindPerBatch(gpu::Batch& batch, const gpu::PipelinePointer& pipeline) const;
+    bool bindPerItem(gpu::Batch& batch, RenderArgs* args, glm::vec3 offset, quint64 startTime, bool isFading) const;
+    bool bindPerItem(gpu::Batch& batch, const gpu::Pipeline* pipeline, glm::vec3 offset, quint64 startTime, bool isFading) const;
 
     float computeFadePercent(quint64 startTime) const;
 

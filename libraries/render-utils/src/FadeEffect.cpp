@@ -22,9 +22,13 @@ render::ShapeKey::Builder FadeEffect::getKeyBuilder(render::ShapeKey::Builder bu
 	return builder;
 }
 
-void FadeEffect::bindPerBatch(gpu::Batch& batch) const
-{
-    batch.setResourceTexture(render::ShapePipeline::Slot::MAP::FADE_MASK, _fadeMaskMap);
+void FadeEffect::bindPerBatch(gpu::Batch& batch, int fadeMaskMapLocation) const {
+    batch.setResourceTexture(fadeMaskMapLocation, _fadeMaskMap);
+}
+
+void FadeEffect::bindPerBatch(gpu::Batch& batch, const gpu::PipelinePointer& pipeline) const {
+    auto slot = pipeline->getProgram()->getTextures().findLocation("fadeMaskMap");
+    batch.setResourceTexture(slot, _fadeMaskMap);
 }
 
 float FadeEffect::computeFadePercent(quint64 startTime) const {
@@ -37,12 +41,12 @@ float FadeEffect::computeFadePercent(quint64 startTime) const {
     return fadeAlpha;
 }
 
-void FadeEffect::bindPerItem(gpu::Batch& batch, RenderArgs* args, glm::vec3 offset, quint64 startTime, State state) const {
-    bindPerItem(batch, args->_pipeline->pipeline.get(), offset, startTime, state);
+bool FadeEffect::bindPerItem(gpu::Batch& batch, RenderArgs* args, glm::vec3 offset, quint64 startTime, bool isFading) const {
+    return bindPerItem(batch, args->_pipeline->pipeline.get(), offset, startTime, isFading);
 }
 
-void FadeEffect::bindPerItem(gpu::Batch& batch, const gpu::Pipeline* pipeline, glm::vec3 offset, quint64 startTime, State state) const {
-    if (state != Complete || _isDebugEnabled) {
+bool FadeEffect::bindPerItem(gpu::Batch& batch, const gpu::Pipeline* pipeline, glm::vec3 offset, quint64 startTime, bool isFading) const {
+    if (isFading || _isDebugEnabled) {
         auto& program = pipeline->getProgram();
         auto fadeOffsetLoc = program->getUniforms().findLocation("fadeOffset");
         auto fadePercentLoc = program->getUniforms().findLocation("fadePercent");
@@ -60,5 +64,7 @@ void FadeEffect::bindPerItem(gpu::Batch& batch, const gpu::Pipeline* pipeline, g
             batch._glUniform1f(fadePercentLoc, percent);
             batch._glUniform3f(fadeOffsetLoc, offset.x, offset.y, offset.z);
         }
+        return true;
     }
+    return false;
 }

@@ -214,7 +214,6 @@ public:
             LIGHTING_MODEL,
             LIGHT,
             LIGHT_AMBIENT_BUFFER,
-            FADE,
         };
 
         enum MAP {
@@ -245,7 +244,6 @@ public:
         int lightBufferUnit;
         int lightAmbientBufferUnit;
         int lightAmbientMapUnit;
-        int fadeBufferUnit;
         int fadeMaskTextureUnit;
     };
     using LocationsPointer = std::shared_ptr<Locations>;

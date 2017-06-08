@@ -118,8 +118,14 @@ public:
 
 private:
 
+    enum State : uint8_t {
+        STATE_WAITING_TO_START = 0,
+        STATE_IN_PROGRESS = 1,
+        STATE_COMPLETE = 2,
+    };
+
     mutable quint64 _fadeStartTime { 0 };
-    mutable FadeEffect::State _fadeState { FadeEffect::WaitingToStart } ;
+    mutable State _fadeState { STATE_WAITING_TO_START } ;
 
 };
 
