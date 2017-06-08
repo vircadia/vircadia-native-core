@@ -117,6 +117,7 @@
             orientation: flip(cameraRotation),
             scale: -0.35,
         });
+        setDisplay(monitorShowsCameraView);
     }
 
     //
@@ -147,6 +148,12 @@
         }
         camera = false;
         viewFinderOverlay = false;
+        setDisplay(monitorShowsCameraView);
+    }
+
+    function onHMDChanged(isHMDMode) {
+        // Will also eventually enable disable app, camera, etc.
+        setDisplay(monitorShowsCameraView);
     }
 
     //
@@ -175,6 +182,7 @@
         tablet.screenChanged.connect(onTabletScreenChanged);
         Window.domainChanged.connect(spectatorCameraOff);
         Controller.keyPressEvent.connect(keyPressEvent);
+        HMD.displayModeChanged.connect(onHMDChanged);
         viewFinderOverlay = false;
         camera = false;
     }
@@ -206,7 +214,11 @@
         }
     }
 
-    const CAMERA_PREVIEW_WHEN_OFF = "http://1.bp.blogspot.com/-1GABEq__054/T03B00j_OII/AAAAAAAAAa8/jo55LcvEPHI/s1600/Winning.jpg"; // FIXME instructions?
+    function setDisplay(showCameraView) {
+        // It would be fancy if (showCameraView && !isUpdateRenderWired) would show instructions, but that's out of scope for now.
+        var url = (showCameraView && isUpdateRenderWired) ? "http://selfieFrame" : "";
+        Window.setDisplayTexture(url);
+    }
     const MONITOR_SHOWS_CAMERA_VIEW_DEFAULT = false;
     var monitorShowsCameraView = !!Settings.getValue('spectatorCamera/monitorShowsCameraView', MONITOR_SHOWS_CAMERA_VIEW_DEFAULT);
     function setMonitorShowsCameraView(showCameraView) {
@@ -214,8 +226,7 @@
             return;
         }
         monitorShowsCameraView = showCameraView;
-        var url = (showCameraView && isUpdateRenderWired) ? "http://selfieFrame" : "";
-        Window.setDisplayTexture(url);
+        setDisplay(showCameraView);
         Settings.setValue('spectatorCamera/monitorShowsCameraView', showCameraView);
     }
     function setMonitorShowsCameraViewAndSendToQml(showCameraView) {
@@ -345,6 +356,7 @@
         tablet.removeButton(button);
         button.clicked.disconnect(onTabletButtonClicked);
         tablet.screenChanged.disconnect(onTabletScreenChanged);
+        HMD.displayModeChanged.disconnect(onHMDChanged);
         Controller.keyPressEvent.disconnect(keyPressEvent);
     }
 
