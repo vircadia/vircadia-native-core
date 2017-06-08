@@ -1,3 +1,14 @@
+//
+//  SecondaryCamera.h
+//  interface/src
+//
+//  Created by Samuel Gateau, Howard Stearns, and Zach Fox on 2017-06-08.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 #pragma once
 #ifndef hifi_SecondaryCamera_h
 #define hifi_SecondaryCamera_h
@@ -34,10 +45,12 @@ class SecondaryCameraRenderTaskConfig : public render::Task::Config {
     Q_OBJECT
 public:
     SecondaryCameraRenderTaskConfig() : render::Task::Config(false) {}
+private:
+    void resetSize(int width, int height);
 signals:
     void dirty();
 public slots:
-    void resetSize(int width, int height);
+    void resetSizeSpectatorCamera(int width, int height);
 };
 
 class SecondaryCameraRenderTask {

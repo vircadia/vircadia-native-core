@@ -171,8 +171,7 @@ public:
 
 
     /// SpectatorCamera rendering targets.
-    NetworkTexturePointer getSpectatorCameraNetworkTexture();
-    const gpu::TexturePointer& getSpectatorCameraTexture();
+    NetworkTexturePointer getResourceTexture(QUrl resourceTextureUrl);
     const gpu::FramebufferPointer& getSpectatorCameraFramebuffer();
     void resetSpectatorCameraFramebuffer(int width, int height);
 
@@ -193,7 +192,6 @@ private:
 
     static const std::string KTX_DIRNAME;
     static const std::string KTX_EXT;
-    static const std::string SPECTATOR_CAMERA_FRAME_URL;
 
     KTXCache _ktxCache;
     // Map from image hashes to texture weak pointers
@@ -206,10 +204,8 @@ private:
     gpu::TexturePointer _blueTexture;
     gpu::TexturePointer _blackTexture;
 
-
-    gpu::FramebufferPointer _spectatorCameraFramebuffer;
-    gpu::TexturePointer _spectatorCameraTexture;
     NetworkTexturePointer _spectatorCameraNetworkTexture;
+    gpu::FramebufferPointer _spectatorCameraFramebuffer;
 };
 
 #endif // hifi_TextureCache_h

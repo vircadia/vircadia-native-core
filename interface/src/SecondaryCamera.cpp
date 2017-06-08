@@ -1,7 +1,19 @@
+//
+//  SecondaryCamera.cpp
+//  interface/src
+//
+//  Created by Samuel Gateau, Howard Stearns, and Zach Fox on 2017-06-08.
+//  Copyright 2013 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
 
 #include "SecondaryCamera.h"
-
+#include <TextureCache.h>
 #include <gpu/Context.h>
+
+using RenderArgsPointer = std::shared_ptr<RenderArgs>;
 
 void MainRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred) {
 
@@ -15,17 +27,16 @@ void MainRenderTask::build(JobModel& task, const render::Varying& inputs, render
     }
 }
 
-
-#include <TextureCache.h>
-
-using RenderArgsPointer = std::shared_ptr<RenderArgs>;
-
-void SecondaryCameraRenderTaskConfig::resetSize(int width, int height) { // Carefully adjust the framebuffer / texture.
+void SecondaryCameraRenderTaskConfig::resetSize(int width, int height) { // FIXME: Add an arg here for "destinationFramebuffer"
     bool wasEnabled = isEnabled();
     setEnabled(false);
     auto textureCache = DependencyManager::get<TextureCache>();
-    textureCache->resetSpectatorCameraFramebuffer(width, height);
+    textureCache->resetSpectatorCameraFramebuffer(width, height); // FIXME: Call the correct reset function based on the "destinationFramebuffer" arg
     setEnabled(wasEnabled);
+}
+
+void SecondaryCameraRenderTaskConfig::resetSizeSpectatorCamera(int width, int height) { // Carefully adjust the framebuffer / texture.
+    resetSize(width, height);
 }
 
 class BeginSecondaryCameraFrame {  // Changes renderContext for our framebuffer and and view.
@@ -39,36 +50,36 @@ public:
     }
 
     void configure(const Config& config) {
-        // Why does this run all the time, even when not enabled? Should we check and bail?
-        //qDebug() << "FIXME pos" << config.position << "orient" << config.orientation;
-        _position = config.position;
-        _orientation = config.orientation;
+        if (config.enabled || config.alwaysEnabled) {
+            _position = config.position;
+            _orientation = config.orientation;
+        }
     }
 
     void run(const render::RenderContextPointer& renderContext, RenderArgsPointer& cachedArgs) {
         auto args = renderContext->args;
         auto textureCache = DependencyManager::get<TextureCache>();
-        auto destFramebuffer = textureCache->getSpectatorCameraFramebuffer();
-        // Caching/restoring the old values doesn't seem to be needed. Is it because we happen to be last in the pipeline (which would be a bug waiting to happen)?
-        _cachedArgsPointer->_blitFramebuffer = args->_blitFramebuffer;
-        _cachedArgsPointer->_viewport = args->_viewport;
-        _cachedArgsPointer->_displayMode = args->_displayMode;
-        args->_blitFramebuffer = destFramebuffer;
-        args->_viewport = glm::ivec4(0, 0, destFramebuffer->getWidth(), destFramebuffer->getHeight());
-        args->_viewport = glm::ivec4(0, 0, destFramebuffer->getWidth(), destFramebuffer->getHeight());
-        args->_displayMode = RenderArgs::MONO;
+        gpu::FramebufferPointer destFramebuffer;
+        destFramebuffer = textureCache->getSpectatorCameraFramebuffer(); // FIXME: Change the destination based on some unimplemented config var
+        if (destFramebuffer) {
+            // Caching/restoring the old values doesn't seem to be needed. Is it because we happen to be last in the pipeline (which would be a bug waiting to happen)?
+            _cachedArgsPointer->_blitFramebuffer = args->_blitFramebuffer;
+            _cachedArgsPointer->_viewport = args->_viewport;
+            _cachedArgsPointer->_displayMode = args->_displayMode;
+            args->_blitFramebuffer = destFramebuffer;
+            args->_viewport = glm::ivec4(0, 0, destFramebuffer->getWidth(), destFramebuffer->getHeight());
+            args->_displayMode = RenderArgs::MONO;
 
-        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-            batch.disableContextStereo();
-        });
+            gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+                batch.disableContextStereo();
+            });
 
-        auto srcViewFrustum = args->getViewFrustum();
-        srcViewFrustum.setPosition(_position);
-        srcViewFrustum.setOrientation(_orientation);
-        //srcViewFrustum.calculate(); // do we need this? I don't think so
-        //qDebug() << "FIXME pos" << _position << "orient" << _orientation << "frust pos" << srcViewFrustum.getPosition() << "orient" << srcViewFrustum.getOrientation() << "direct" << srcViewFrustum.getDirection();
-        args->pushViewFrustum(srcViewFrustum);
-        cachedArgs = _cachedArgsPointer;
+            auto srcViewFrustum = args->getViewFrustum();
+            srcViewFrustum.setPosition(_position);
+            srcViewFrustum.setOrientation(_orientation);
+            args->pushViewFrustum(srcViewFrustum);
+            cachedArgs = _cachedArgsPointer;
+        }
     }
 
 protected:
