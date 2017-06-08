@@ -174,6 +174,7 @@
         button.clicked.connect(onTabletButtonClicked);
         tablet.screenChanged.connect(onTabletScreenChanged);
         Window.domainChanged.connect(spectatorCameraOff);
+        Controller.keyPressEvent.connect(keyPressEvent);
         viewFinderOverlay = false;
         camera = false;
     }
@@ -213,10 +214,18 @@
             return;
         }
         monitorShowsCameraView = showCameraView;
-        var url = showCameraView ? (isUpdateRenderWired ? "http://selfieFrame" : CAMERA_PREVIEW_WHEN_OFF) : "";
-        print('setDisplayTexture', url,
-            Window.setDisplayTexture(url));
+        var url = (showCameraView && isUpdateRenderWired) ? "http://selfieFrame" : "";
+        Window.setDisplayTexture(url);
         Settings.setValue('spectatorCamera/monitorShowsCameraView', showCameraView);
+    }
+    function setMonitorShowsCameraViewAndSendToQml(showCameraView) {
+        setMonitorShowsCameraView(showCameraView);
+        sendToQml({ method: 'updateMonitorShowsSwitch', params: showCameraView });
+    }
+    function keyPressEvent(event) {
+        if ((event.text === "0") && !event.isAutoRepeat && !event.isShifted && !event.isMeta && event.isControl && !event.isAlt) {
+            setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
+        }
     }
 
     //
@@ -243,9 +252,8 @@
             shouldActivateButton = true;
             tablet.loadQMLSource("../SpectatorCamera.qml");
             onSpectatorCameraScreen = true;
-            sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });;
-            setMonitorShowsCameraView(monitorShowsCameraView);
-            sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
+            sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
+            setMonitorShowsCameraViewAndSendToQml(monitorShowsCameraView);
         }
     }
 
@@ -337,6 +345,7 @@
         tablet.removeButton(button);
         button.clicked.disconnect(onTabletButtonClicked);
         tablet.screenChanged.disconnect(onTabletScreenChanged);
+        Controller.keyPressEvent.disconnect(keyPressEvent);
     }
 
     //
