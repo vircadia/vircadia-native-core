@@ -237,7 +237,7 @@
 
     function setDisplay(showCameraView) {
         // It would be fancy if (showCameraView && !isUpdateRenderWired) would show instructions, but that's out of scope for now.
-        var url = (showCameraView && isUpdateRenderWired) ? "http://selfieFrame" : "";
+        var url = (showCameraView && isUpdateRenderWired) ? "resource://spectatorCameraFrame" : "";
         Window.setDisplayTexture(url);
     }
     const MONITOR_SHOWS_CAMERA_VIEW_DEFAULT = false;
