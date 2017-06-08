@@ -30,7 +30,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include <controllers/UserInputMapper.h>
-
+#include <Plugins/InputConfiguration.h>
 #include <controllers/StandardControls.h>
 
 
@@ -123,7 +123,6 @@ bool ViveControllerManager::isSupported() const {
 void ViveControllerManager::setConfigurationSettings(const QJsonObject configurationSettings) {
     if (isSupported()) {
         _inputDevice->configureCalibrationSettings(configurationSettings);
-        qDebug() << "sending back information";
     }
 }
 
@@ -325,10 +324,16 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
 QJsonObject ViveControllerManager::InputDevice::configurationSettings() {
     Locker locker(_lock);
     QJsonObject configurationSettings;
-    configurationSettings["trackerConfiguration"] = configToString(_config);
+    configurationSettings["trackerConfiguration"] = configToString(_preferedConfig);
     configurationSettings["HMDHead"] = (_headConfig == HeadConfig::HMD) ? true : false;
     configurationSettings["handController"] = (_handConfig == HandConfig::HandController) ? true : false;
     return configurationSettings;
+}
+
+void ViveControllerManager::InputDevice::emitCalibrationStatus() {
+    auto inputConfiguration = DependencyManager::get<InputConfiguration>();
+    QJsonObject status = QJsonObject();
+    inputConfiguration->calibrated(status);
 }
 
 void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData) {
@@ -463,6 +468,7 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
         return;
     }
     _calibrated = true;
+    emitCalibrationStatus();
     qDebug() << "PuckCalibration: " << configToString(_config) << " Configuration Successful";
 }
 
@@ -860,6 +866,7 @@ QString ViveControllerManager::InputDevice::configToString(Config config) {
 }
 
 void ViveControllerManager::InputDevice::setConfigFromString(const QString& value) {
+    qDebug() << "------------> setConfigFromString" << value;
     if (value ==  "Auto") {
         _preferedConfig = Config::Auto;
     } else if (value == "Feet") {

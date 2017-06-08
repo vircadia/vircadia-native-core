@@ -72,7 +72,6 @@ Rectangle {
         anchors.left: sourceGlyph.right
         anchors.leftMargin: 10
         anchors.topMargin: 30
-        anchors.verticalCenter: sourceGlyph.horizontalCenter
     }
 
     Row {
@@ -96,21 +95,6 @@ Rectangle {
                 loader.source = InputConfiguration.configurationLayout(box.currentText);
             }
         }
-
-        HifiControls.CheckBox {
-            onClicked: {
-                if (checked) {
-                    box.model = InputConfiguration.activeInputPlugins();
-                    loader.source = "";
-                    loader.source = InputConfiguration.configurationLayout(box.currentText);
-                } else {
-                    box.model = InputConfiguration.inputPlugins();
-                    loader.source = "";
-                    loader.source = InputConfiguration.configurationLayout(box.currentText);
-                }
-            }
-        }
-
     }
 
 
@@ -146,7 +130,6 @@ Rectangle {
         anchors.left: sliderGlyph.right
         anchors.leftMargin: 10
         anchors.topMargin: 30
-        anchors.verticalCenter: sliderGlyph.horizontalCenter
     }
 
     Loader {
@@ -160,15 +143,35 @@ Rectangle {
         anchors.topMargin: 10
         anchors.bottom: inputConfiguration.bottom
 
-
+        source: InputConfiguration.configurationLayout(box.currentText);
         onLoaded: {
             if (loader.item.hasOwnProperty("pluginName")) {
                 loader.item.pluginName = box.currentText
+
+                if (loader.item.hasOwnProperty("displayInformation")) {
+                    loader.item.displayInformation();
+                }
             }
         }
     }
-
+    
     function inputPlugins() {
-        return InputConfiguration.inputPlugins();
+        return InputConfiguration.activeInputPlugins();
+    }
+
+    function initialize() {
+        loader.source = "";
+        loader.source = InputConfiguration.configurationLayout(box.currentText);
+    }
+
+    Timer {
+        id: timer
+        repeat: false
+        interval: 300
+        onTriggered: initialize()
+    }
+
+    Component.onCompleted: {
+        timer.start();
     }
 }

@@ -100,6 +100,8 @@ private:
                                 int firstShoulderIndex, int secondShoulderIndex);
         void calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
 
+        void emitCalibrationStatus();
+
 
         class FilteredStick {
         public:

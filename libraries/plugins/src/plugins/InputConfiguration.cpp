@@ -70,5 +70,6 @@ void InputConfiguration::calibratePlugin(QString pluginName) {
     }
 }
 
-void InputConfiguration::calibrated() {
+void InputConfiguration::calibrated(const QJsonObject& status) {
+    emit calibrationStatus(status);
 }

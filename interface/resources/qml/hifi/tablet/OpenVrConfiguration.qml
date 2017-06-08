@@ -23,6 +23,7 @@ Rectangle {
 
     property int leftMargin: 75
     property string pluginName: ""
+    property var displayInformation: openVrConfiguration.displayConfiguration()
 
     readonly property bool feetChecked: feetBox.checked
     readonly property bool hipsChecked: hipBox.checked
@@ -353,7 +354,6 @@ Rectangle {
             size: 36
             color: hifi.colors.white
 
-            anchors.horizontalCenter: parent.verticalCenter
             anchors.left: parent.left
             anchors.leftMargin: 30
             
@@ -379,6 +379,10 @@ Rectangle {
         }
     }
 
+    Component.onCompleted: {
+        InputConfiguration.calibrationStatus.connect(calibrationStatus);
+    }
+
     HifiControls.SpinBox {
         id: timeToCalibrate
 
@@ -391,34 +395,39 @@ Rectangle {
         colorScheme: hifi.colorSchemes.dark
     }
 
-    Component.onCompleted: {
-        var settings = InputConfiguration.configurationSettings(pluginName);
+    function calibrationStatus(status) {
+        console.log("getting calibration status");
+    }
 
+    function displayConfiguration() {
+        var settings = InputConfiguration.configurationSettings(pluginName);
         var configurationType = settings["trackerConfiguration"];
         displayTrackerConfiguration(configurationType);
 
         
         var HmdHead = settings["HMDHead"];
         var viveController = settings["handController"];
-
-        console.log(HmdHead);
-        console.log(viveController);
+        
         if (HmdHead) {
             headBox.checked = true;
+            headPuckBox.checked = false;
         } else {
             headPuckBox.checked = true;
+            headBox.checked = false;
         }
 
         if (viveController) {
             handBox.checked = true;
+            handPuckBox.checked = false;
         } else {
             handPuckBox.checked = true;
+            handBox.checked = false;
         }
     }
 
 
     function displayTrackerConfiguration(type) {
-
+        console.log(type);
         if (type === "Feet") {
             feetBox.checked = true;
         } else if (type === "FeetAndHips") {
