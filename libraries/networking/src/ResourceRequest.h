@@ -19,6 +19,21 @@
 
 #include "ByteRange.h"
 
+const QString STAT_ATP_REQUEST_STARTED = "StartedATPRequest";
+const QString STAT_HTTP_REQUEST_STARTED = "StartedHTTPRequest";
+const QString STAT_FILE_REQUEST_STARTED = "StartedFileRequest";
+const QString STAT_ATP_REQUEST_SUCCESS = "SuccessfulATPRequest";
+const QString STAT_HTTP_REQUEST_SUCCESS = "SuccessfulHTTPRequest";
+const QString STAT_FILE_REQUEST_SUCCESS = "SuccessfulFileRequest";
+const QString STAT_ATP_REQUEST_FAILED = "FailedATPRequest";
+const QString STAT_HTTP_REQUEST_FAILED = "FailedHTTPRequest";
+const QString STAT_FILE_REQUEST_FAILED = "FailedFileRequest";
+const QString STAT_ATP_REQUEST_CACHE = "CacheATPRequest";
+const QString STAT_HTTP_REQUEST_CACHE = "CacheHTTPRequest";
+const QString STAT_ATP_MAPPING_REQUEST_STARTED = "StartedATPMappingRequest";
+const QString STAT_ATP_MAPPING_REQUEST_FAILED = "FailedATPMappingRequest";
+const QString STAT_ATP_MAPPING_REQUEST_SUCCESS = "SuccessfulATPMappingRequest";
+
 class ResourceRequest : public QObject {
     Q_OBJECT
 public:

@@ -52,6 +52,8 @@ public:
     QUrl getUrl() const { return ::getATPUrl(_hash); }
     QString getHash() const { return _hash; }
 
+    bool loadedFromCache() const { return _loadedFromCache; }
+
 signals:
     void finished(AssetRequest* thisRequest);
     void progress(qint64 totalReceived, qint64 total);
@@ -66,6 +68,7 @@ private:
     int _numPendingRequests { 0 };
     MessageID _assetRequestID { INVALID_MESSAGE_ID };
     const ByteRange _byteRange;
+    bool _loadedFromCache { false };
 };
 
 #endif

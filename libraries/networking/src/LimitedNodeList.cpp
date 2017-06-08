@@ -29,6 +29,7 @@
 #include <NumericalConstants.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
+#include <StatTracker.h>
 #include <UUID.h>
 
 #include "AccountManager.h"
@@ -37,7 +38,6 @@
 #include "HifiSockAddr.h"
 #include "NetworkLogging.h"
 #include "udt/Packet.h"
-#include <Trace.h>
 
 static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.LocalPort", 0);
 
@@ -1044,10 +1044,10 @@ void LimitedNodeList::setLocalSocket(const HifiSockAddr& sockAddr) {
             qCInfo(networking) << "Local socket is" << sockAddr;
         } else {
             qCInfo(networking) << "Local socket has changed from" << _localSockAddr << "to" << sockAddr;
+            DependencyManager::get<StatTracker>()->incrementStat(LOCAL_SOCKET_CHANGE_STAT);
         }
 
         _localSockAddr = sockAddr;
-
         emit localSockAddrChanged(_localSockAddr);
     }
 }
