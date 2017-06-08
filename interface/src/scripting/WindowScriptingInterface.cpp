@@ -284,6 +284,11 @@ void WindowScriptingInterface::copyToClipboard(const QString& text) {
     QApplication::clipboard()->setText(text);
 }
 
+
+bool WindowScriptingInterface::setDisplayTexture(const QString& name) {
+    return  qApp->getActiveDisplayPlugin()->setDisplayTexture(name);   // Plugins that don't know how, answer false.
+}
+
 void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, float aspectRatio) {
     qApp->takeSnapshot(notify, includeAnimated, aspectRatio);
 }

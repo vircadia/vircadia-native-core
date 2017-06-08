@@ -117,6 +117,7 @@
             orientation: flip(cameraRotation),
             scale: -0.35,
         });
+        setDisplay(monitorShowsCameraView);
     }
 
     //
@@ -147,6 +148,12 @@
         }
         camera = false;
         viewFinderOverlay = false;
+        setDisplay(monitorShowsCameraView);
+    }
+
+    function onHMDChanged(isHMDMode) {
+        // Will also eventually enable disable app, camera, etc.
+        setDisplay(monitorShowsCameraView);
     }
 
     //
@@ -174,6 +181,8 @@
         button.clicked.connect(onTabletButtonClicked);
         tablet.screenChanged.connect(onTabletScreenChanged);
         Window.domainChanged.connect(spectatorCameraOff);
+        Controller.keyPressEvent.connect(keyPressEvent);
+        HMD.displayModeChanged.connect(onHMDChanged);
         viewFinderOverlay = false;
         camera = false;
     }
@@ -205,6 +214,31 @@
         }
     }
 
+    function setDisplay(showCameraView) {
+        // It would be fancy if (showCameraView && !isUpdateRenderWired) would show instructions, but that's out of scope for now.
+        var url = (showCameraView && isUpdateRenderWired) ? "http://selfieFrame" : "";
+        Window.setDisplayTexture(url);
+    }
+    const MONITOR_SHOWS_CAMERA_VIEW_DEFAULT = false;
+    var monitorShowsCameraView = !!Settings.getValue('spectatorCamera/monitorShowsCameraView', MONITOR_SHOWS_CAMERA_VIEW_DEFAULT);
+    function setMonitorShowsCameraView(showCameraView) {
+        if (showCameraView === monitorShowsCameraView) {
+            return;
+        }
+        monitorShowsCameraView = showCameraView;
+        setDisplay(showCameraView);
+        Settings.setValue('spectatorCamera/monitorShowsCameraView', showCameraView);
+    }
+    function setMonitorShowsCameraViewAndSendToQml(showCameraView) {
+        setMonitorShowsCameraView(showCameraView);
+        sendToQml({ method: 'updateMonitorShowsSwitch', params: showCameraView });
+    }
+    function keyPressEvent(event) {
+        if ((event.text === "0") && !event.isAutoRepeat && !event.isShifted && !event.isMeta && event.isControl && !event.isAlt) {
+            setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
+        }
+    }
+
     //
     // Function Name: onTabletButtonClicked()
     //
@@ -230,7 +264,7 @@
             tablet.loadQMLSource("../SpectatorCamera.qml");
             onSpectatorCameraScreen = true;
             sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
-            sendToQml({ method: 'updateMonitorShowsSwitch', params: !!Settings.getValue('spectatorCamera/monitorShowsCameraView', false) });
+            setMonitorShowsCameraViewAndSendToQml(monitorShowsCameraView);
         }
     }
 
@@ -293,13 +327,8 @@
             case 'spectatorCameraOff':
                 spectatorCameraOff();
                 break;
-            case 'showHmdPreviewOnMonitor':
-                print('FIXME: showHmdPreviewOnMonitor');
-                Settings.setValue('spectatorCamera/monitorShowsCameraView', false);
-                break;
-            case 'showCameraViewOnMonitor':
-                print('FIXME: showCameraViewOnMonitor');
-                Settings.setValue('spectatorCamera/monitorShowsCameraView', true);
+            case 'setMonitorShowsCameraView':
+                setMonitorShowsCameraView(message.params);
                 break;
             case 'changeSwitchViewFromControllerPreference':
                 print('FIXME: Preference is now: ' + message.params);
@@ -327,6 +356,8 @@
         tablet.removeButton(button);
         button.clicked.disconnect(onTabletButtonClicked);
         tablet.screenChanged.disconnect(onTabletScreenChanged);
+        HMD.displayModeChanged.disconnect(onHMDChanged);
+        Controller.keyPressEvent.disconnect(keyPressEvent);
     }
 
     //

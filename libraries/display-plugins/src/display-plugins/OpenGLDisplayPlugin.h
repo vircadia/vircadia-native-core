@@ -57,6 +57,7 @@ public:
         return getSurfaceSize();
     }
 
+    virtual bool setDisplayTexture(const QString& name) override;
     QImage getScreenshot(float aspectRatio = 0.0f) const override;
 
     float presentRate() const override;
@@ -109,6 +110,7 @@ protected:
     // Plugin specific functionality to send the composed scene to the output window or device
     virtual void internalPresent();
 
+    void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor);
     virtual void updateFrameData();
 
     void withMainThreadContext(std::function<void()> f) const;
@@ -134,6 +136,7 @@ protected:
     gpu::PipelinePointer _simplePipeline;
     gpu::PipelinePointer _presentPipeline;
     gpu::PipelinePointer _cursorPipeline;
+    gpu::TexturePointer _displayTexture{};
     float _compositeOverlayAlpha { 1.0f };
 
     struct CursorData {
