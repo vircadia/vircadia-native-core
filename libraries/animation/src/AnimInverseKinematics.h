@@ -56,6 +56,10 @@ public:
     void setSolutionSource(SolutionSource solutionSource) { _solutionSource = solutionSource; }
     void setSolutionSourceVar(const QString& solutionSourceVar) { _solutionSourceVar = solutionSourceVar; }
 
+    const AnimPose& getUncontrolledLeftHandPose() { return _uncontrolledLeftHandPose; }
+    const AnimPose& getUncontrolledRightHandPose() { return _uncontrolledRightHandPose; }
+    const AnimPose& getUncontrolledHipPose() { return _uncontrolledHipsPose; }
+
 protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
     void solveWithCyclicCoordinateDescent(const AnimContext& context, const std::vector<IKTarget>& targets);
@@ -118,6 +122,8 @@ protected:
     int _hipsIndex { -1 };
     int _hipsParentIndex { -1 };
     int _hipsTargetIndex { -1 };
+    int _leftHandIndex { -1 };
+    int _rightHandIndex { -1 };
 
     // _maxTargetIndex is tracked to help optimize the recalculation of absolute poses
     // during the the cyclic coordinate descent algorithm
@@ -127,6 +133,10 @@ protected:
     bool _previousEnableDebugIKTargets { false };
     SolutionSource _solutionSource { SolutionSource::RelaxToUnderPoses };
     QString _solutionSourceVar;
+
+    AnimPose _uncontrolledLeftHandPose { AnimPose() };
+    AnimPose _uncontrolledRightHandPose { AnimPose() };
+    AnimPose _uncontrolledHipsPose { AnimPose() };
 };
 
 #endif // hifi_AnimInverseKinematics_h

@@ -453,7 +453,6 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
 
 //virtual
 const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
-
     // allows solutionSource to be overridden by an animVar
     auto solutionSource = animVars.lookup(_solutionSourceVar, (int)_solutionSource);
 
@@ -579,6 +578,16 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 _hipsOffset = Vectors::ZERO;
             }
         }
+    }
+
+    if (_leftHandIndex > -1) {
+        _uncontrolledLeftHandPose = _skeleton->getAbsolutePose(_leftHandIndex, underPoses);
+    }
+    if (_rightHandIndex > -1) {
+        _uncontrolledRightHandPose = _skeleton->getAbsolutePose(_rightHandIndex, underPoses);
+    }
+    if (_hipsIndex > -1) {
+        _uncontrolledHipsPose = _skeleton->getAbsolutePose(_hipsIndex, underPoses);
     }
 
     return _relativePoses;
@@ -722,8 +731,10 @@ void AnimInverseKinematics::initConstraints() {
 
     loadDefaultPoses(_skeleton->getRelativeBindPoses());
 
-    // compute corresponding absolute poses
     int numJoints = (int)_defaultRelativePoses.size();
+
+    /* KEEP THIS CODE for future experimentation
+    // compute corresponding absolute poses
     AnimPoseVec absolutePoses;
     absolutePoses.resize(numJoints);
     for (int i = 0; i < numJoints; ++i) {
@@ -734,6 +745,7 @@ void AnimInverseKinematics::initConstraints() {
             absolutePoses[i] = absolutePoses[parentIndex] * _defaultRelativePoses[i];
         }
     }
+    */
 
     clearConstraints();
     for (int i = 0; i < numJoints; ++i) {
@@ -1061,12 +1073,21 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
         } else {
             _hipsParentIndex = -1;
         }
+
+        _leftHandIndex = _skeleton->nameToJointIndex("LeftHand");
+        _rightHandIndex = _skeleton->nameToJointIndex("RightHand");
     } else {
         clearConstraints();
         _headIndex = -1;
         _hipsIndex = -1;
         _hipsParentIndex = -1;
+        _leftHandIndex = -1;
+        _rightHandIndex = -1;
     }
+
+    _uncontrolledLeftHandPose = AnimPose();
+    _uncontrolledRightHandPose = AnimPose();
+    _uncontrolledHipsPose = AnimPose();
 }
 
 static glm::vec3 sphericalToCartesian(float phi, float theta) {
