@@ -641,9 +641,9 @@ var toolBar = (function () {
             enabled: active
         }));
         isActive = active;
-	activeButton.editProperties({isActive: isActive});
+        activeButton.editProperties({isActive: isActive});
 	
-	var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
         if (!isActive) {
             entityListTool.setVisible(false);
