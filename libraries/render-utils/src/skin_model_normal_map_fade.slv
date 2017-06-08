@@ -55,7 +55,7 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToEyeAndClipPos(cam, obj, position, _position, gl_Position)$>
-    <$transformModelToFadePos(obj, inPosition, _worldFadePosition)$>
+    <$transformModelToFadePos(obj, position, _worldFadePosition)$>
     <$transformModelToWorldDir(cam, obj, interpolatedNormal.xyz, interpolatedNormal.xyz)$>
     <$transformModelToWorldDir(cam, obj, interpolatedTangent.xyz, interpolatedTangent.xyz)$>
 

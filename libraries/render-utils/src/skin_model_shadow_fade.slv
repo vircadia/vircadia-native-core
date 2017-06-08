@@ -30,5 +30,5 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, position, gl_Position)$>
-    <$transformModelToFadePos(obj, inPosition, _worldFadePosition)$>
+    <$transformModelToFadePos(obj, position, _worldFadePosition)$>
 }

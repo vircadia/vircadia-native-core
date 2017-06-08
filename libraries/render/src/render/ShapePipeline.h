@@ -128,8 +128,8 @@ public:
             Builder& withCullFace() { _flags.reset(NO_CULL_FACE); _mask.set(NO_CULL_FACE); return (*this); }
             Builder& withoutCullFace() { _flags.set(NO_CULL_FACE); _mask.set(NO_CULL_FACE); return (*this); }
 
-            Builder& withFade() { _flags.reset(FADE); _mask.set(FADE); return (*this); }
-            Builder& withoutFade() { _flags.set(FADE); _mask.set(FADE); return (*this); }
+            Builder& withFade() { _flags.set(FADE); _mask.set(FADE); return (*this); }
+            Builder& withoutFade() { _flags.reset(FADE); _mask.set(FADE); return (*this); }
 
         protected:
             friend class Filter;

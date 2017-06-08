@@ -308,7 +308,7 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
     const auto& lightingModel = inputs.get1();
 
     RenderArgs* args = renderContext->args;
-    ShapeKey::Builder   defaultKeyBuilder = DependencyManager::get<FadeEffect>()->getKeyBuilder();
+    ShapeKey::Builder defaultKeyBuilder = DependencyManager::get<FadeEffect>()->getKeyBuilder();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
