@@ -15,11 +15,13 @@
 
 #include <QtCore/QThread>
 
+#include <StatTracker.h>
+#include <Trace.h>
+
 #include "AssetClient.h"
 #include "NetworkLogging.h"
 #include "NodeList.h"
 #include "ResourceCache.h"
-#include <Trace.h>
 
 static int requestID = 0;
 
@@ -62,9 +64,12 @@ void AssetRequest::start() {
     _data = loadFromCache(getUrl());
     if (!_data.isNull()) {
         _error = NoError;
-        
+
+        _loadedFromCache = true;
+
         _state = Finished;
         emit finished(this);
+
         return;
     }
 

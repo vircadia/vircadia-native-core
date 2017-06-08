@@ -73,7 +73,7 @@ public:
     QQuickItem* getRootItem();
     QQuickWindow* getWindow();
     QObject* getEventHandler();
-    QQmlContext* getRootContext();
+    QQmlContext* getSurfaceContext();
 
     QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
@@ -133,11 +133,10 @@ private slots:
 private:
     QQuickWindow* _quickWindow { nullptr };
     QMyQuickRenderControl* _renderControl{ nullptr };
-    QQmlEngine* _qmlEngine { nullptr };
+    QQmlContext* _qmlContext { nullptr };
     QQmlComponent* _qmlComponent { nullptr };
     QQuickItem* _rootItem { nullptr };
     OffscreenGLCanvas* _canvas { nullptr };
-    QJsonObject _glData;
 
     QTimer _updateTimer;
     uint32_t _fbo { 0 };

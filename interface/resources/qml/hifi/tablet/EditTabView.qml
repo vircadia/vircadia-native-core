@@ -5,7 +5,6 @@ import QtWebChannel 1.0
 import QtQuick.Controls.Styles 1.4
 import "../../controls"
 import "../toolbars"
-import HFWebEngineProfile 1.0
 import QtGraphicalEffects 1.0
 import "../../controls-uit" as HifiControls
 import "../../styles-uit"
