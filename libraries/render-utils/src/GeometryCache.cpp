@@ -265,7 +265,7 @@ void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& ver
     // Top (if not conical) and bottom faces
     std::vector<vec3> shape = polygon<N>();
     if (isConical) {
-		for (uint32_t i = 0; i < N; i++) {
+        for (uint32_t i = 0; i < N; i++) {
             vertices.push_back(vec3(0, 0.5f, 0));
             vertices.push_back(vec3(0, 1, 0));
         }
