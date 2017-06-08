@@ -36,10 +36,12 @@ public:
     void setDebugFadePercent(float value) { assert(value >= 0.f && value <= 1.f); _debugFadePercent = value; }
     float getDebugFadePercent() const { return _debugFadePercent; }
 
-	render::ShapeKey::Builder getKeyBuilder() const;
+	render::ShapeKey::Builder getKeyBuilder(render::ShapeKey::Builder builder = render::ShapeKey::Builder()) const;
 
     void bindPerBatch(gpu::Batch& batch) const;
     void bindPerItem(gpu::Batch& batch, RenderArgs* args, glm::vec3 offset, quint64 startTime, State state = InProgress) const;
+    void bindPerItem(gpu::Batch& batch, const gpu::Pipeline* pipeline, glm::vec3 offset, quint64 startTime, State state = InProgress) const;
+
     float computeFadePercent(quint64 startTime) const;
 
 private:

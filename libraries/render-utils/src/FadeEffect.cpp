@@ -14,14 +14,11 @@ FadeEffect::FadeEffect() :
 	_fadeMaskMap = DependencyManager::get<TextureCache>()->getImageTexture(texturePath, image::TextureUsage::STRICT_TEXTURE);
 }
 
-render::ShapeKey::Builder FadeEffect::getKeyBuilder() const {
-	render::ShapeKey::Builder	builder;
-
+render::ShapeKey::Builder FadeEffect::getKeyBuilder(render::ShapeKey::Builder builder) const {
 	if (_isDebugEnabled) {
 		// Force fade for everyone
 		builder.withFade();
 	}
-
 	return builder;
 }
 
@@ -41,20 +38,27 @@ float FadeEffect::computeFadePercent(quint64 startTime) const {
 }
 
 void FadeEffect::bindPerItem(gpu::Batch& batch, RenderArgs* args, glm::vec3 offset, quint64 startTime, State state) const {
-    if (state != Complete || _isDebugEnabled) {
-        const gpu::ShaderPointer& program = args->_pipeline->pipeline->getProgram();
-        int fadeOffsetLoc = program->getUniforms().findLocation("fadeOffset");
-        int fadePercentLoc = program->getUniforms().findLocation("fadePercent");
-        float percent;
+    bindPerItem(batch, args->_pipeline->pipeline.get(), offset, startTime, state);
+}
 
-        // A bit ugly to have the test at every bind...
-        if (!_isDebugEnabled) {
-            percent = computeFadePercent(startTime);
+void FadeEffect::bindPerItem(gpu::Batch& batch, const gpu::Pipeline* pipeline, glm::vec3 offset, quint64 startTime, State state) const {
+    if (state != Complete || _isDebugEnabled) {
+        auto& program = pipeline->getProgram();
+        auto fadeOffsetLoc = program->getUniforms().findLocation("fadeOffset");
+        auto fadePercentLoc = program->getUniforms().findLocation("fadePercent");
+
+        if (fadeOffsetLoc >= 0 && fadePercentLoc >= 0) {
+            float percent;
+
+            // A bit ugly to have the test at every bind...
+            if (!_isDebugEnabled) {
+                percent = computeFadePercent(startTime);
+            }
+            else {
+                percent = _debugFadePercent;
+            }
+            batch._glUniform1f(fadePercentLoc, percent);
+            batch._glUniform3f(fadeOffsetLoc, offset.x, offset.y, offset.z);
         }
-        else {
-            percent = _debugFadePercent;
-        }
-        batch._glUniform1f(fadePercentLoc, percent);
-        batch._glUniform3f(fadeOffsetLoc, offset.x, offset.y, offset.z);
     }
 }

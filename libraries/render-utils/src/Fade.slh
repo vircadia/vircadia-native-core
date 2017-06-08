@@ -11,8 +11,8 @@
 
 <@func transformModelToFadePos(objectTransform, objectPosition, fadePosition)@>
     {
-        <$transformModelToWorldPos($objectTransform$, $objectPosition$, $fadePosition$)$>
-        <$fadePosition$> -= vec4(<$objectTransform$>._model[3].xyz, 0.f);
+        vec4 objectVector = vec4(<$objectPosition$>.xyz, 0.f);
+        <$transformModelToWorldPos($objectTransform$, objectVector, $fadePosition$)$>
     }
 <@endfunc@>
 
@@ -26,6 +26,17 @@ vec2 hash2D(vec3 position) {
     return position.xy* vec2(0.1677,  0.221765) + position.z*0.561;
 }
 
+float noise3D(vec3 position) {
+    return textureLod(fadeMaskMap, hash2D(position), 0).r;
+    /*const float ONE_OVER_MAX_POSITIVE_INT = (1.f / 2147483648.f);
+    int3 iPosition = int3(position);
+    int position = iPosition.x + (iPosition.y*57) + (iPosition.z*3023);
+    int bits = (position << 13) ^ position;
+    int pseudoRandomPositiveInt = (bits * ((bits*bits*15731)+789221)+1376312589) & 0x7fffffff;
+    float pseudoRandomFloatZeroToOne = ONE_OVER_MAX_POSITIVE_INT * (float)pseudoRandomPositiveInt;
+    return pseudoRandomFloatZeroToOne;*/
+}
+
 float evalFadeMask(vec3 position) {
     const float FADE_MASK_INV_SCALE = 1.0;
 
@@ -33,14 +44,14 @@ float evalFadeMask(vec3 position) {
     vec3    noisePosition = position * FADE_MASK_INV_SCALE + fadeOffset;
     vec3    noisePositionFloored = floor(noisePosition);
     vec3    noisePositionFraction = fract(noisePosition);
-    float   noiseLowXLowYLowZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored), 0).r;
-    float   noiseLowXHighYLowZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored+vec3(0,1,0)), 0).r;
-    float   noiseHighXLowYLowZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored+vec3(1,0,0)), 0).r;
-    float   noiseHighXHighYLowZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored+vec3(1,1,0)), 0).r;
-    float   noiseLowXLowYHighZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored+vec3(0,0,1)), 0).r;
-    float   noiseLowXHighYHighZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored+vec3(0,1,1)), 0).r;
-    float   noiseHighXLowYHighZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored+vec3(1,0,1)), 0).r;
-    float   noiseHighXHighYHighZ = textureLod(fadeMaskMap, hash2D(noisePositionFloored+vec3(1,1,1)), 0).r;
+    float   noiseLowXLowYLowZ = noise3D(noisePositionFloored);
+    float   noiseLowXHighYLowZ = noise3D(noisePositionFloored+vec3(0,1,0));
+    float   noiseHighXLowYLowZ = noise3D(noisePositionFloored+vec3(1,0,0));
+    float   noiseHighXHighYLowZ = noise3D(noisePositionFloored+vec3(1,1,0));
+    float   noiseLowXLowYHighZ = noise3D(noisePositionFloored+vec3(0,0,1));
+    float   noiseLowXHighYHighZ = noise3D(noisePositionFloored+vec3(0,1,1));
+    float   noiseHighXLowYHighZ = noise3D(noisePositionFloored+vec3(1,0,1));
+    float   noiseHighXHighYHighZ = noise3D(noisePositionFloored+vec3(1,1,1));
     vec4    maskLowZ = vec4(noiseLowXLowYLowZ, noiseLowXHighYLowZ, noiseHighXLowYLowZ, noiseHighXHighYLowZ);
     vec4    maskHighZ = vec4(noiseLowXLowYHighZ, noiseLowXHighYHighZ, noiseHighXLowYHighZ, noiseHighXHighYHighZ);
     vec4    maskXY = mix(maskLowZ, maskHighZ, noisePositionFraction.z);
