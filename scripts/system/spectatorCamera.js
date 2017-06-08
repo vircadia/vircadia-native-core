@@ -28,7 +28,7 @@
     // Spectator camera utility functions and variables.
     //
     function inFrontOf(distance, position, orientation) {
-        return Vec3.sum(position || Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }),
+        return Vec3.sum(position || MyAvatar.position,
                         Vec3.multiply(distance, Quat.getForward(orientation || MyAvatar.orientation)));
     }
     var aroundY = Quat.fromPitchYawRollDegrees(0, 180, 0);
@@ -65,13 +65,13 @@
     var lastCameraRotation = false;
     function updateRenderFromCamera() {
         var cameraData = Entities.getEntityProperties(camera, ['position', 'rotation']);
-        if (JSON.stringify(lastCameraPosition) !== JSON.stringify(cameraData.position)) {
-            lastCameraPosition = cameraData.position;
-            beginSpectatorFrameRenderConfig.position = lastCameraPosition;
-        }
         if (JSON.stringify(lastCameraRotation) !== JSON.stringify(cameraData.rotation)) {
             lastCameraRotation = cameraData.rotation;
             beginSpectatorFrameRenderConfig.orientation = lastCameraRotation;
+        }
+        if (JSON.stringify(lastCameraPosition) !== JSON.stringify(cameraData.position)) {
+            lastCameraPosition = cameraData.position;
+            beginSpectatorFrameRenderConfig.position = Vec3.sum(inFrontOf(0.17, lastCameraPosition, lastCameraRotation), {x: 0, y: 0.02, z: 0});
         }
         if (cameraIsDynamic) {
             // BUG: image3d overlays don't retain their locations properly when parented to a dynamic object
@@ -99,12 +99,12 @@
         var size = Controller.getViewportDimensions(); // FIXME: Need a signal to hook into when the dimensions change.
         spectatorFrameRenderConfig.resetSizeSpectatorCamera(size.x, size.y);
         spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = true;
-        var cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(2);
+        var cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
         Script.update.connect(updateRenderFromCamera);
         isUpdateRenderWired = true;
         camera = Entities.addEntity({
             "angularDamping": 0.98000001907348633,
-            "collisionsWillMove": 1,
+            "collisionsWillMove": 0,
             "damping": 0.98000001907348633,
             "dimensions": {
                 "x": 0.2338641881942749,
@@ -119,25 +119,26 @@
                 "y": -0.30420243740081787,
                 "z": -0.30420243740081787
             },
-            "rotation": cameraRotation,
-            "position": cameraPosition,
+            "rotation": { x: 0, y: 0, z: 0 },
+            "position": { x: 0, y: 0, z: 0 },
             "shapeType": "simple-compound",
             "type": "Model",
             "userData": "{\"grabbableKey\":{\"grabbable\":true}}"
         }, true);
-        // Put an image3d overlay on the near face, as a viewFinder.
+        // This image3d overlay acts as the camera's preview screen.
         viewFinderOverlay = Overlays.addOverlay("image3d", {
             url: "resource://spectatorCameraFrame",
             parentID: camera,
             alpha: 1,
-            position: inFrontOf(0, Vec3.sum(cameraPosition, { x: 0, y: 0.15, z: 0 }), cameraRotation),
-            // FIXME: We shouldn't need the flip and the negative scale.
-            // e.g., This isn't necessary using an ordinary .jpg with lettering, above.
-            // Must be something about the view frustum projection matrix?
-            // But don't go changing that in (c++ code) without getting all the way to a desktop display!
-            orientation: flip(cameraRotation),
+            position: { x: 0.007, y: 0.15, z: -0.005 },
             scale: -0.16,
         });
+        Entities.editEntity(camera, { position: cameraPosition, rotation: cameraRotation });
+        // FIXME: We shouldn't need the flip and the negative scale.
+        // e.g., This isn't necessary using an ordinary .jpg with lettering, above.
+        // Must be something about the view frustum projection matrix?
+        // But don't go changing that in (c++ code) without getting all the way to a desktop display!
+        Overlays.editOverlay(viewFinderOverlay, { orientation: flip(cameraRotation) });
         setDisplay(monitorShowsCameraView);
     }
 
@@ -284,6 +285,7 @@
             tablet.loadQMLSource("../SpectatorCamera.qml");
             onSpectatorCameraScreen = true;
             sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
+            sendToQml({ method: 'updateMonitorShowsSwitch', params: !!Settings.getValue('spectatorCamera/monitorShowsCameraView', false) });
             setMonitorShowsCameraViewAndSendToQml(monitorShowsCameraView);
         }
     }
