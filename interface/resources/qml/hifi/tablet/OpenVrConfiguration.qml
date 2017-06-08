@@ -393,6 +393,51 @@ Rectangle {
 
     Component.onCompleted: {
         var settings = InputConfiguration.configurationSettings(pluginName);
+
+        var configurationType = settings["trackerConfiguration"];
+        displayTrackerConfiguration(configurationType);
+
+        
+        var HmdHead = settings["HMDHead"];
+        var viveController = settings["handController"];
+
+        console.log(HmdHead);
+        console.log(viveController);
+        if (HmdHead) {
+            headBox.checked = true;
+        } else {
+            headPuckBox.checked = true;
+        }
+
+        if (viveController) {
+            handBox.checked = true;
+        } else {
+            handPuckBox.checked = true;
+        }
+    }
+
+
+    function displayTrackerConfiguration(type) {
+
+        if (type === "Feet") {
+            feetBox.checked = true;
+        } else if (type === "FeetAndHips") {
+            feetBox.checked = true;
+            hipBox.checked = true;
+        } else if (type === "FeetHipsChest") {
+            feetBox.checked = true;
+            hipBox.checked = true;
+            chestBox.checked = true;
+        } else if (type === "FeetHipsAndShoulders") {
+            feetBox.checked = true;
+            hipBox.checked = true;
+            shoulderBox.checked = true;
+        } else if (type === "FeetHipsChestAndShoulders") {
+            feetBox.checked = true;
+            hipBox.checked = true;
+            chestBox.checked = true;
+            shoulderBox.checked = true;
+        }
     }
 
     

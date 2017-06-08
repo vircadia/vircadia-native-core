@@ -123,6 +123,7 @@ bool ViveControllerManager::isSupported() const {
 void ViveControllerManager::setConfigurationSettings(const QJsonObject configurationSettings) {
     if (isSupported()) {
         _inputDevice->configureCalibrationSettings(configurationSettings);
+        qDebug() << "sending back information";
     }
 }
 

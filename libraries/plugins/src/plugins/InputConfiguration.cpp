@@ -54,6 +54,11 @@ void InputConfiguration::setConfigurationSettings(QJsonObject configurationSetti
 }
 
 QJsonObject InputConfiguration::configurationSettings(QString pluginName) {
+    for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
+        if (plugin->getName() == pluginName) {
+            return plugin->configurationSettings();
+        }
+    }
     return QJsonObject();
 }
 
