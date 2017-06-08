@@ -20,7 +20,7 @@
 #include <unistd.h> // not on windows, not needed for mac or windows
 #endif
 
-#include <tbb/concurrent_unordered_set.h>
+#include <TBBHelpers.h>
 
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QMutex>
@@ -52,6 +52,7 @@ class NodeList : public LimitedNodeList {
     SINGLETON_DEPENDENCY
 
 public:
+    void startThread();
     NodeType_t getOwnerType() const { return _ownerType.load(); }
     void setOwnerType(NodeType_t ownerType) { _ownerType.store(ownerType); }
 
