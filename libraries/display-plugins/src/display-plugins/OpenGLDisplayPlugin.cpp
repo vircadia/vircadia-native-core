@@ -616,6 +616,7 @@ void OpenGLDisplayPlugin::compositeLayers() {
 
 void OpenGLDisplayPlugin::internalPresent() {
     render([&](gpu::Batch& batch) {
+        // Note: _displayTexture must currently be the same size as the display.
         uvec2 dims = _displayTexture ? uvec2(_displayTexture->getDimensions()) : getSurfacePixels();
         auto viewport = ivec4(uvec2(0),  dims);
         renderFromTexture(batch, _displayTexture ? _displayTexture : _compositeFramebuffer->getRenderBuffer(0), viewport, viewport);
@@ -702,16 +703,17 @@ void OpenGLDisplayPlugin::withMainThreadContext(std::function<void()> f) const {
 }
 
 bool OpenGLDisplayPlugin::setDisplayTexture(const QString& name) {
+    // Note: it is the caller's responsibility to keep the network texture in cache.
     if (name.isEmpty()) {
         _displayTexture.reset();
         return true;
     }
     auto textureCache = DependencyManager::get<TextureCache>();
-    auto networkTexture = textureCache->getTexture(name);
-    if (!networkTexture) {
+    auto displayNetworkTexture = textureCache->getTexture(name);
+    if (!displayNetworkTexture) {
         return false;
     }
-    _displayTexture = networkTexture->getGPUTexture();
+    _displayTexture = displayNetworkTexture->getGPUTexture();
     return !!_displayTexture;
 }
 
