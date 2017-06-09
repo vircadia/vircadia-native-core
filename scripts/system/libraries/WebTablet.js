@@ -71,10 +71,12 @@ function calcSpawnInfo(hand, tabletHeight) {
             rotation = Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(0, -90, 0));
         }
         var normal = Vec3.multiplyQbyV(rotation, Vec3.UNIT_NEG_Y);
-        var lookAt =  Quat.lookAt({x: 0, y: 0, z: 0}, normal, Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.UNIT_Y));
-        rotation = Quat.multiply(Quat.angleAxis(30, Vec3.multiplyQbyV(lookAt, Vec3.UNIT_X)), lookAt);
+        var lookAt = Quat.lookAt(Vec3.ZERO, normal, Vec3.multiplyQbyV(MyAvatar.orientation, Vec3.UNIT_Y));
+        var TABLET_RAKE_ANGLE = 30;
+        rotation = Quat.multiply(Quat.angleAxis(TABLET_RAKE_ANGLE, Vec3.multiplyQbyV(lookAt, Vec3.UNIT_X)), lookAt);
 
-        position = Vec3.sum(position, Vec3.multiplyQbyV(rotation, { x: 0, y: tabletHeight * 0.4, z: tabletHeight * 0.05 }));
+        var RELATIVE_SPAWN_OFFSET = { x: 0, y: 0.4, z: 0.05 };
+        position = Vec3.sum(position, Vec3.multiplyQbyV(rotation, Vec3.multiply(tabletHeight, RELATIVE_SPAWN_OFFSET)));
 
         return {
             position: position,
