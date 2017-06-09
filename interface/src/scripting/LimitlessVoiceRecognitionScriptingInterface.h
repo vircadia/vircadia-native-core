@@ -41,7 +41,6 @@ private:
     static const int _voiceTimeoutDuration;
 
     QTimer _voiceTimer;
-    QThread _connectionThread;
     LimitlessConnection _connection;
 
     void voiceTimeout();

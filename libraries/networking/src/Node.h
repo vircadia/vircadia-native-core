@@ -24,7 +24,7 @@
 #include <QReadLocker>
 #include <UUIDHasher.h>
 
-#include <tbb/concurrent_unordered_set.h>
+#include <TBBHelpers.h>
 
 #include "HifiSockAddr.h"
 #include "NetworkPeer.h"

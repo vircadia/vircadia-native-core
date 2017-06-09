@@ -31,7 +31,7 @@
 #include <QtNetwork/QUdpSocket>
 #include <QtNetwork/QHostAddress>
 
-#include <tbb/concurrent_unordered_map.h>
+#include <TBBHelpers.h>
 
 #include <DependencyManager.h>
 #include <SharedUtil.h>
@@ -68,9 +68,8 @@ const QString USERNAME_UUID_REPLACEMENT_STATS_KEY = "$username";
 
 const QString LOCAL_SOCKET_CHANGE_STAT = "LocalSocketChanges";
 
-using namespace tbb;
 typedef std::pair<QUuid, SharedNodePointer> UUIDNodePair;
-typedef concurrent_unordered_map<QUuid, SharedNodePointer, UUIDHasher> NodeHash;
+typedef tbb::concurrent_unordered_map<QUuid, SharedNodePointer, UUIDHasher> NodeHash;
 
 typedef quint8 PingType_t;
 namespace PingType {
