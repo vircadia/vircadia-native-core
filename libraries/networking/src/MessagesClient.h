@@ -28,7 +28,7 @@ class MessagesClient : public QObject, public Dependency {
 public:
     MessagesClient();
     
-    Q_INVOKABLE void init();
+    void startThread();
 
     Q_INVOKABLE void sendMessage(QString channel, QString message, bool localOnly = false);
     Q_INVOKABLE void sendLocalMessage(QString channel, QString message);

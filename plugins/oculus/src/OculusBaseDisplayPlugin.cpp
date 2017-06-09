@@ -123,10 +123,19 @@ bool OculusBaseDisplayPlugin::internalActivate() {
 
 void OculusBaseDisplayPlugin::internalDeactivate() {
     Parent::internalDeactivate();
+}
+
+bool OculusBaseDisplayPlugin::activateStandBySession() {
+    _session = acquireOculusSession();
+    if (!_session) {
+        return false;
+    }
+    return true;
+}
+void OculusBaseDisplayPlugin::deactivateSession() {
     releaseOculusSession();
     _session = nullptr;
 }
-
 void OculusBaseDisplayPlugin::updatePresentPose() {
     //mat4 sensorResetMat;
     //_currentPresentFrameInfo.sensorSampleTime = ovr_GetTimeInSeconds();

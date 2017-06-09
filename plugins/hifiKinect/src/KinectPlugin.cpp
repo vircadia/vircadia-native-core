@@ -273,7 +273,7 @@ bool KinectPlugin::activate() {
     return false;
 }
 
-bool KinectPlugin::isHandController() const { 
+bool KinectPlugin::isHandController() const {
     bool sensorAvailable = false;
 #ifdef HAVE_KINECT
     if (_kinectSensor) {
@@ -283,6 +283,10 @@ bool KinectPlugin::isHandController() const {
     }
 #endif
     return _enabled && _initialized && sensorAvailable;
+}
+
+bool KinectPlugin::isHeadController() const {
+    return isHandController();
 }
 
 

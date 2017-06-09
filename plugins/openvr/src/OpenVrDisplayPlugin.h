@@ -56,7 +56,7 @@ public:
     bool isKeyboardVisible() override;
 
     // Possibly needs an additional thread for VR submission
-    int getRequiredThreadCount() const override; 
+    int getRequiredThreadCount() const override;
 
 protected:
     bool internalActivate() override;

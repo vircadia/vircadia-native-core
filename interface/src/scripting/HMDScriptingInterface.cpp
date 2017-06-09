@@ -54,6 +54,10 @@ bool HMDScriptingInterface::isHMDAvailable(const QString& name) {
     return PluginUtils::isHMDAvailable(name);
 }
 
+bool HMDScriptingInterface::isHeadControllerAvailable(const QString& name) {
+    return PluginUtils::isHeadControllerAvailable(name);
+}
+
 bool HMDScriptingInterface::isHandControllerAvailable(const QString& name) {
     return PluginUtils::isHandControllerAvailable(name);
 }

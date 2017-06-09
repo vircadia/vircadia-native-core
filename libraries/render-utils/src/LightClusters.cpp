@@ -16,6 +16,8 @@
 
 #include <gpu/StandardShaderLib.h>
 
+#include "StencilMaskPass.h"
+
 #include "lightClusters_drawGrid_vert.h"
 #include "lightClusters_drawGrid_frag.h"
 

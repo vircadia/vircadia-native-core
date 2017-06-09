@@ -83,7 +83,7 @@ bool findRayRectangleIntersection(const glm::vec3& origin, const glm::vec3& dire
         const glm::vec3& position, const glm::vec2& dimensions, float& distance);
 
 bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance);
+                                    const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance, bool allowBackface = false);
 
 /// \brief decomposes rotation into its components such that: rotation = swing * twist
 /// \param rotation[in] rotation to decompose
@@ -104,8 +104,8 @@ public:
 };
 
 inline bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                                    const Triangle& triangle, float& distance) {
-    return findRayTriangleIntersection(origin, direction, triangle.v0, triangle.v1, triangle.v2, distance);
+                                    const Triangle& triangle, float& distance, bool allowBackface = false) {
+    return findRayTriangleIntersection(origin, direction, triangle.v0, triangle.v1, triangle.v2, distance, allowBackface);
 }
 
 

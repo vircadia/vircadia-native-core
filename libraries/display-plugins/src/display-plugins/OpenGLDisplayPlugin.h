@@ -42,6 +42,8 @@ public:
     // between the main thread and the presentation thread
     bool activate() override final;
     void deactivate() override final;
+    bool startStandBySession() override final;
+    void endSession() override final;
     bool eventFilter(QObject* receiver, QEvent* event) override;
     bool isDisplayVisible() const override { return true; }
 
@@ -99,6 +101,10 @@ protected:
     // Returns true on successful activation
     virtual bool internalActivate() { return true; }
     virtual void internalDeactivate() {}
+	
+    // Returns true on successful activation of standby session
+    virtual bool activateStandBySession() { return true; }
+    virtual void deactivateSession() {}
 
     // Plugin specific functionality to send the composed scene to the output window or device
     virtual void internalPresent();

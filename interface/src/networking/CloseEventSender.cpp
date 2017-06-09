@@ -14,6 +14,7 @@
 #include <QtCore/QJsonDocument>
 #include <QtNetwork/QNetworkReply>
 
+#include <ThreadHelpers.h>
 #include <AccountManager.h>
 #include <NetworkAccessManager.h>
 #include <NetworkingConstants.h>
@@ -87,4 +88,8 @@ bool CloseEventSender::hasTimedOutQuitEvent() {
         && QDateTime::currentMSecsSinceEpoch() - _quitEventStartTimestamp > CLOSURE_EVENT_TIMEOUT_MS;
 }
 
-
+void CloseEventSender::startThread() {
+    moveToNewNamedThread(this, "CloseEvent Logger Thread", [this] { 
+        sendQuitEventAsync(); 
+    });
+}
