@@ -115,7 +115,7 @@
             // Must be something about the view frustum projection matrix?
             // But don't go changing that in (c++ code) without getting all the way to a desktop display!
             orientation: flip(cameraRotation),
-            scale: -1.0,
+            scale: -0.35,
         });
     }
 
