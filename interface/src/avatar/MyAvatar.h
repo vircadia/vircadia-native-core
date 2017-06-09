@@ -702,7 +702,6 @@ private:
             Vertical,
             NumFollowTypes
         };
-        glm::mat4 _desiredBodyMatrix;
         float _timeRemaining[NumFollowTypes];
 
         void deactivate();
