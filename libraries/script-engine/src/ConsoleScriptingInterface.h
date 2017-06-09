@@ -22,6 +22,7 @@
 #include <QtCore/QString>
 #include <QtScript/QScriptable>
 #include <QHash>
+#include <QList>
 
 
 /// Scriptable interface of console object. Used exclusively in the JavaScript API
@@ -35,25 +36,29 @@ public slots:
     void error(QString message);
     void exception(QString message);
     void time(QString labelName);
-    void timeEnd(QString labelName);
+    void timeEnd(QString labelName);    
     void asserts(bool condition, QString message = "");
     void trace(QString labelName);
-    void clear();
+    void clear();    
     void group(QString groupName);
-    void groupCollapsed(QString groupName);
-    void consoleLog(QString groupName);
-    void groupEnd();
+    void groupCollapsed(QString groupName);    
+    void groupEnd();    
+    void consoleLog(QString message);
+    void showdata(QString currentGroup, QString groupName);
 public:
     QString secondsToString(qint64 seconds);
     bool isInteger(const std::string & s);
 private:
     QHash<QString, QDateTime> _listOfTimeValues;
     const qint64 DAY = 86400;
-    const QString TIME_FORMAT = "yyyy-MM-dd HH:mm";
-    QString currentGroupSelection;
-    QString defaultGroupName = "group";
-    QString defaultGroupCollapseName = "groupCollapse";
-    QList<QPair<QString, QString> > listgrp;
+    const QString TIME_FORMAT = "yyyy-MM-dd HH:mm";       
+    QString _selectedGroup;
+    const QString GROUP = "group";
+    const QString GROUPCOLLAPSED = "groupCollapse";
+    const QString GROUPEND = "groupEnd";
+    bool _isSameLevel = false;
+    QString _addSpace = "";
+    QList<QPair<QString, QString> > _listOfGroupData;
 };
 
 #endif // hifi_ConsoleScriptingInterface_h
