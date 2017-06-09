@@ -390,6 +390,15 @@ void Batch::resetStages() {
     ADD_COMMAND(resetStages);
 }
 
+
+void Batch::disableContextStereo() {
+    ADD_COMMAND(disableContextStereo);
+}
+
+void Batch::restoreContextStereo() {
+    ADD_COMMAND(restoreContextStereo);
+}
+
 void Batch::runLambda(std::function<void()> f) {
     ADD_COMMAND(runLambda);
     _params.emplace_back(_lambdas.cache(f));
