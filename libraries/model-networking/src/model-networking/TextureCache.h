@@ -170,11 +170,10 @@ public:
     gpu::TexturePointer cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture);
 
 
-    /// Selfie rendering targets.
-    NetworkTexturePointer getSelfieNetworkTexture();
-    const gpu::TexturePointer& getSelfieTexture();
-    const gpu::FramebufferPointer& getSelfieFramebuffer();
-    void resetSelfieFramebuffer(int width, int height);
+    /// SpectatorCamera rendering targets.
+    NetworkTexturePointer getResourceTexture(QUrl resourceTextureUrl);
+    const gpu::FramebufferPointer& getSpectatorCameraFramebuffer();
+    void resetSpectatorCameraFramebuffer(int width, int height);
 
 protected:
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
@@ -193,7 +192,6 @@ private:
 
     static const std::string KTX_DIRNAME;
     static const std::string KTX_EXT;
-    static const std::string SELFIE_FRAME_URL;
 
     KTXCache _ktxCache;
     // Map from image hashes to texture weak pointers
@@ -206,10 +204,8 @@ private:
     gpu::TexturePointer _blueTexture;
     gpu::TexturePointer _blackTexture;
 
-
-    gpu::FramebufferPointer _selfieFramebuffer;
-    gpu::TexturePointer _selfieTexture;
-    NetworkTexturePointer _selfieNetworkTexture;
+    NetworkTexturePointer _spectatorCameraNetworkTexture;
+    gpu::FramebufferPointer _spectatorCameraFramebuffer;
 };
 
 #endif // hifi_TextureCache_h

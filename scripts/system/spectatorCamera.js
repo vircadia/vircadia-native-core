@@ -46,6 +46,8 @@
     // camera: The in-world entity that corresponds to the spectator camera.
     // cameraIsDynamic: "false" for now while we figure out why dynamic, parented overlays
     //     drift with respect to their parent
+    // lastCameraPosition: Holds the last known camera position
+    // lastCameraRotation: Holds the last known camera rotation
     // 
     // Arguments:
     // None
@@ -54,16 +56,23 @@
     // The update function for the spectator camera. Modifies the camera's position
     //     and orientation.
     //
-    var spectatorFrameRenderConfig = Render.getConfig("SelfieFrame");
-    var beginSpectatorFrameRenderConfig = Render.getConfig("BeginSelfie");
+    var spectatorFrameRenderConfig = Render.getConfig("SecondaryCameraFrame");
+    var beginSpectatorFrameRenderConfig = Render.getConfig("BeginSecondaryCamera");
     var viewFinderOverlay = false;
     var camera = false;
     var cameraIsDynamic = false;
+    var lastCameraPosition = false;
+    var lastCameraRotation = false;
     function updateRenderFromCamera() {
         var cameraData = Entities.getEntityProperties(camera, ['position', 'rotation']);
-        // FIXME: don't muck with config if properties haven't changed.
-        beginSpectatorFrameRenderConfig.position = cameraData.position;
-        beginSpectatorFrameRenderConfig.orientation = cameraData.rotation;
+        if (JSON.stringify(lastCameraRotation) !== JSON.stringify(cameraData.rotation)) {
+            lastCameraRotation = cameraData.rotation;
+            beginSpectatorFrameRenderConfig.orientation = lastCameraRotation;
+        }
+        if (JSON.stringify(lastCameraPosition) !== JSON.stringify(cameraData.position)) {
+            lastCameraPosition = cameraData.position;
+            beginSpectatorFrameRenderConfig.position = Vec3.sum(inFrontOf(0.17, lastCameraPosition, lastCameraRotation), {x: 0, y: 0.02, z: 0});
+        }
         if (cameraIsDynamic) {
             // BUG: image3d overlays don't retain their locations properly when parented to a dynamic object
             Overlays.editOverlay(viewFinderOverlay, { orientation: flip(cameraData.rotation) });
@@ -88,35 +97,49 @@
     function spectatorCameraOn() {
         // Set the special texture size based on the window in which it will eventually be displayed.
         var size = Controller.getViewportDimensions(); // FIXME: Need a signal to hook into when the dimensions change.
-        spectatorFrameRenderConfig.resetSize(size.x, size.y);
+        spectatorFrameRenderConfig.resetSizeSpectatorCamera(size.x, size.y);
         spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = true;
-        var cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(2);
+        var cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
         Script.update.connect(updateRenderFromCamera);
         isUpdateRenderWired = true;
         camera = Entities.addEntity({
-            type: 'Box',
-            dimensions: { x: 0.4, y: 0.2, z: 0.4 },
-            userData: '{"grabbableKey":{"grabbable":true}}',
-            dynamic: cameraIsDynamic,
-            color: { red: 255, green: 0, blue: 0 },
-            name: 'SpectatorCamera',
-            position: cameraPosition, // Put the camera in front of me so that I can find it.
-            rotation: cameraRotation
+            "angularDamping": 0.98000001907348633,
+            "collisionsWillMove": 0,
+            "damping": 0.98000001907348633,
+            "dimensions": {
+                "x": 0.2338641881942749,
+                "y": 0.407032310962677,
+                "z": 0.38702544569969177
+            },
+            "dynamic": cameraIsDynamic,
+            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/spectator-camera.fbx",
+            "queryAACube": {
+                "scale": 0.60840487480163574,
+                "x": -0.30420243740081787,
+                "y": -0.30420243740081787,
+                "z": -0.30420243740081787
+            },
+            "rotation": { x: 0, y: 0, z: 0 },
+            "position": { x: 0, y: 0, z: 0 },
+            "shapeType": "simple-compound",
+            "type": "Model",
+            "userData": "{\"grabbableKey\":{\"grabbable\":true}}"
         }, true);
-        // Put an image3d overlay on the near face, as a viewFinder.
+        // This image3d overlay acts as the camera's preview screen.
         viewFinderOverlay = Overlays.addOverlay("image3d", {
-            url: "http://selfieFrame",
-            //url: "http://1.bp.blogspot.com/-1GABEq__054/T03B00j_OII/AAAAAAAAAa8/jo55LcvEPHI/s1600/Winning.jpg",
+            url: "resource://spectatorCameraFrame",
+            emissive: true,
             parentID: camera,
             alpha: 1,
-            position: inFrontOf(-0.25, cameraPosition, cameraRotation),
-            // FIXME: We shouldn't need the flip and the negative scale.
-            // e.g., This isn't necessary using an ordinary .jpg with lettering, above.
-            // Must be something about the view frustum projection matrix?
-            // But don't go changing that in (c++ code) without getting all the way to a desktop display!
-            orientation: flip(cameraRotation),
-            scale: -0.35,
+            position: { x: 0.007, y: 0.15, z: -0.005 },
+            scale: -0.16,
         });
+        Entities.editEntity(camera, { position: cameraPosition, rotation: cameraRotation });
+        // FIXME: We shouldn't need the flip and the negative scale.
+        // e.g., This isn't necessary using an ordinary .jpg with lettering, above.
+        // Must be something about the view frustum projection matrix?
+        // But don't go changing that in (c++ code) without getting all the way to a desktop display!
+        Overlays.editOverlay(viewFinderOverlay, { orientation: flip(cameraRotation) });
         setDisplay(monitorShowsCameraView);
     }
 
@@ -141,7 +164,6 @@
         }
         if (camera) {
             Entities.deleteEntity(camera);
-            print("ZACH FOX GOODBYE");
         }
         if (viewFinderOverlay) {
             Overlays.deleteOverlay(viewFinderOverlay);
@@ -216,7 +238,7 @@
 
     function setDisplay(showCameraView) {
         // It would be fancy if (showCameraView && !isUpdateRenderWired) would show instructions, but that's out of scope for now.
-        var url = (showCameraView && isUpdateRenderWired) ? "http://selfieFrame" : "";
+        var url = (showCameraView && isUpdateRenderWired) ? "resource://spectatorCameraFrame" : "";
         Window.setDisplayTexture(url);
     }
     const MONITOR_SHOWS_CAMERA_VIEW_DEFAULT = false;
@@ -264,6 +286,7 @@
             tablet.loadQMLSource("../SpectatorCamera.qml");
             onSpectatorCameraScreen = true;
             sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
+            sendToQml({ method: 'updateMonitorShowsSwitch', params: !!Settings.getValue('spectatorCamera/monitorShowsCameraView', false) });
             setMonitorShowsCameraViewAndSendToQml(monitorShowsCameraView);
         }
     }

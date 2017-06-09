@@ -114,7 +114,7 @@
 #include <render/RenderFetchCullSortTask.h>
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
-#include <PrototypeSelfie.h>
+#include <SecondaryCamera.h>
 #include <ResourceCache.h>
 #include <ResourceRequest.h>
 #include <SandboxUtils.h>
@@ -1874,7 +1874,7 @@ void Application::initializeGL() {
     }
 
     _renderEngine->addJob<MainRenderTask>("MainFrame", cullFunctor, isDeferred);
-    _renderEngine->addJob<SelfieRenderTask>("SelfieFrame", cullFunctor);
+    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraFrame", cullFunctor);
 
     
 /*    _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
