@@ -4157,13 +4157,13 @@ void Application::updateMyAvatarLookAtPosition() {
             }
         } else {
             //  I am not looking at anyone else, so just look forward
-            if (isHMD) {
-                glm::mat4 worldHeadMat = myAvatar->getSensorToWorldMatrix() *
-                    myAvatar->getHeadControllerPoseInSensorFrame().getMatrix();
+            auto headPose = myAvatar->getHeadControllerPoseInSensorFrame();
+            if (headPose.isValid()) {
+                glm::mat4 worldHeadMat = myAvatar->getSensorToWorldMatrix() * headPose.getMatrix();
                 lookAtSpot = transformPoint(worldHeadMat, glm::vec3(0.0f, 0.0f, TREE_SCALE));
             } else {
                 lookAtSpot = myAvatar->getHead()->getEyePosition() +
-                    (myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, TREE_SCALE));
+                    (myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
             }
         }
 
