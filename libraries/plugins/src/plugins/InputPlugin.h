@@ -29,6 +29,6 @@ public:
     virtual void setConfigurationSettings(const QJsonObject configurationSettings) { }
     virtual QJsonObject configurationSettings() { return QJsonObject(); } 
     virtual QString configurationLayout() { return QString(); }
-    virtual bool calibrate() { return false; }
+    virtual void calibrate() {}
     virtual bool configurable() { return false; }
 };

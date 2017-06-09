@@ -156,7 +156,7 @@ Rectangle {
     }
     
     function inputPlugins() {
-        return InputConfiguration.activeInputPlugins();
+        return InputConfiguration.inputPlugins();
     }
 
     function initialize() {

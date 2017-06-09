@@ -22,6 +22,7 @@ Rectangle {
     anchors.fill: parent
 
     property int leftMargin: 75
+    property int countDown: 0
     property string pluginName: ""
     property var displayInformation: openVrConfiguration.displayConfiguration()
 
@@ -36,6 +37,16 @@ Rectangle {
 
     HifiConstants { id: hifi }
 
+    MouseArea {
+        id: mouseArea
+
+        anchors.fill: parent
+        propagateComposedEvents: true
+        onPressed: {
+            parent.forceActiveFocus()
+            mouse.accepted = false;
+        }
+    }
     color: hifi.colors.baseGray
 
     RalewayBold {
@@ -374,13 +385,43 @@ Rectangle {
             anchors.fill: parent
 
             onClicked: {
-                InputCalibration.calibratePlugin(pluginName);
+                console.log("calibration button pressed...");
+                openVrConfiguration.countDown = timeToCalibrate.value;
+                numberAnimation.start();
+                calibrationTimer.start();
+                info.visible = true;
+                info.showCountDown = true;
             }
         }
     }
 
+    Timer {
+        id: calibrationTimer
+        repeat: false
+        interval: 20
+        onTriggered: {
+            InputConfiguration.calibratePlugin(pluginName)
+            info.visible = false;
+            info.showCountDown = false;
+            console.log("calibration started");
+        }
+    }
+
+    Timer {
+        id: displayTimer
+        repeat: false
+        interval: 3000
+        onTriggered: {
+            info.showCountDown = false;
+            info.calibrationFailed = false
+            info.calibrationSucceed = false;
+            info.showCalibrationStatus = false;
+            info.visible = false;
+        }
+    }
+
     Component.onCompleted: {
-        InputConfiguration.calibrationStatus.connect(calibrationStatus);
+        InputConfiguration.calibrationStatus.connect(calibrationStatusInfo);
     }
 
     HifiControls.SpinBox {
@@ -393,10 +434,63 @@ Rectangle {
 
         label: "Time til calibration ( in seconds )"
         colorScheme: hifi.colorSchemes.dark
+
+        onEditingFinished: {
+            calibrationTimer.interval = value * 1000;
+            openVrConfiguration.countDown = value;
+            numberAnimation.duration = calibrationTimer.interval;
+        }
+    }
+    
+    NumberAnimation {
+        id: numberAnimation
+        target: openVrConfiguration
+        property: "countDown"
+        to: 0
     }
 
-    function calibrationStatus(status) {
-        console.log("getting calibration status");
+    function calibrationStatusInfo(status) {
+        if (status["calibrated"]) {
+            info.visible = true;
+            info.showCalibrationStatus = true;
+            info.calibrationSucceed = true;
+        } else if (!status["calibrated"]) {
+            var uncalibrated = status["success"];
+            if (uncalibrated) {
+            } else {
+                info.visible = true;
+                info.showCalibrationStatus = true;
+                info.calibrationFailed = true;
+            }
+        }
+        displayTimer.start();
+    }
+
+
+    function trackersForConfiguration() {
+        var pucksNeeded = 0;
+
+        if (headPuckBox.checked) {
+            pucksNeeded++;
+        }
+
+        if (feetBox.checked) {
+            pucksNeeded++;
+        }
+
+        if (hipBox.checked) {
+            pucksNeeded++;
+        }
+
+        if (chestBox.checked) {
+            pucksNeeded++;
+        }
+
+        if (shoulderBox.checked) {
+            pucksNeeded++;
+        }
+
+        return pucksNeeded;
     }
 
     function displayConfiguration() {
@@ -426,8 +520,70 @@ Rectangle {
     }
 
 
+    Rectangle {
+        id: info
+        property bool showCountDown: false
+        property bool showCalibrationStatus: false
+        property bool calibrationFailed: false
+        property bool calibrationSucceed: false
+        
+        visible: false
+        color: hifi.colors.baseGray
+        anchors.top: openVrConfiguration.top
+        anchors.bottom: bottomSeperator.bottom
+        anchors.left: openVrConfiguration.left
+        anchors.right: openVrConfiguration.right
+
+        Item {
+            id: countDownContainer
+            visible: info.showCountDown
+            anchors.centerIn: parent
+            RalewayBold {
+                id: countDownText
+                
+                text: openVrConfiguration.countDown
+                size: 92
+                
+                color: hifi.colors.blueHighlight
+                
+                anchors.centerIn: parent
+            }
+        }
+
+        Item {
+            id: calibrationStatus
+            visible: info.showCalibrationStatus
+            anchors.centerIn: parent
+            Item {
+                id: successInfo
+                visible: info.calibrationSucceed
+                anchors.centerIn: parent
+                RalewayBold {
+                    id: successText
+                    text: "Calibration Successful"
+                    size: 42
+                    color: hifi.colors.greenHighlight
+                    anchors.centerIn: parent
+                }
+            }
+
+            Item {
+                id: failedInfo
+                visible: info.calibrationFailed
+                anchors.fill: parent
+                RalewayBold {
+                    id: failedText
+                    text: "Calibration Failed"
+                    size: 42
+                    color: hifi.colors.redAccent
+                    anchors.centerIn: parent
+                }
+            }      
+        }
+    }
+        
+        
     function displayTrackerConfiguration(type) {
-        console.log(type);
         if (type === "Feet") {
             feetBox.checked = true;
         } else if (type === "FeetAndHips") {
@@ -449,7 +605,6 @@ Rectangle {
         }
     }
 
-    
     function composeConfigurationSettings() {
         var trackerConfiguration = "";
         var overrideHead = false;

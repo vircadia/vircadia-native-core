@@ -46,6 +46,7 @@ public:
     QString configurationLayout() override;
     void setConfigurationSettings(const QJsonObject configurationSettings) override;
     QJsonObject configurationSettings() override;
+    void calibrate() override { _inputDevice->calibrateNextFrame(); }
 
     bool activate() override;
     void deactivate() override;
@@ -99,8 +100,10 @@ private:
         void calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
                                 int firstShoulderIndex, int secondShoulderIndex);
         void calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
-
-        void emitCalibrationStatus();
+        void calibrateFromHandController(const controller::InputCalibrationData& inputCalibrationData);
+        void calibrateFromUI(const controller::InputCalibrationData& inputCalibrationData);
+        void emitCalibrationStatus(const bool success);
+        void calibrateNextFrame();
 
 
         class FilteredStick {

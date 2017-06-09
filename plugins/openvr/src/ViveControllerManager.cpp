@@ -272,6 +272,14 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
     }
     _trackedControllers = numTrackedControllers;
 
+    calibrateFromHandController(inputCalibrationData);
+    calibrateFromUI(inputCalibrationData);
+
+    updateCalibratedLimbs();
+    _lastSimPoseData = _nextSimPoseData;
+}
+
+void ViveControllerManager::InputDevice::calibrateFromHandController(const controller::InputCalibrationData& inputCalibrationData) {
     if (checkForCalibrationEvent()) {
         quint64 currentTime = usecTimestampNow();
         if (!_timeTilCalibrationSet) {
@@ -287,9 +295,14 @@ void ViveControllerManager::InputDevice::update(float deltaTime, const controlle
         _triggersPressedHandled = false;
         _timeTilCalibrationSet = false;
     }
+}
 
-    updateCalibratedLimbs();
-    _lastSimPoseData = _nextSimPoseData;
+void ViveControllerManager::InputDevice::calibrateFromUI(const controller::InputCalibrationData& inputCalibrationData) {
+    if (_calibrate) {
+        calibrateOrUncalibrate(inputCalibrationData);
+        _calibrate = false;
+        qDebug() << "------------> calibrateFromUI <-------------";
+    }
 }
 
 void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJsonObject configurationSettings) {
@@ -321,6 +334,12 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
     }
 }
 
+void ViveControllerManager::InputDevice::calibrateNextFrame() {
+    Locker locker(_lock);
+    _calibrate = true;
+    qDebug() << "---------> calibrateNextFrame <----------";
+}
+
 QJsonObject ViveControllerManager::InputDevice::configurationSettings() {
     Locker locker(_lock);
     QJsonObject configurationSettings;
@@ -330,9 +349,23 @@ QJsonObject ViveControllerManager::InputDevice::configurationSettings() {
     return configurationSettings;
 }
 
-void ViveControllerManager::InputDevice::emitCalibrationStatus() {
+void ViveControllerManager::InputDevice::emitCalibrationStatus(const bool success) {
     auto inputConfiguration = DependencyManager::get<InputConfiguration>();
     QJsonObject status = QJsonObject();
+
+    if (_calibrated && success) {
+        status["calibrated"] = _calibrated;
+        status["configuration"] = configToString(_preferedConfig);
+    } else if (!_calibrated && !success) {
+        status["calibrated"] = _calibrated;
+        status["success"] = success;
+    } else if (!_calibrated && success) {
+        status["calibrated"] = _calibrated;
+        status["success"] = success;
+        status["configuration"] = configToString(_preferedConfig);
+        status["puckCount"] = (int)_validTrackedObjects.size();
+    }
+    
     inputConfiguration->calibrated(status);
 }
 
@@ -381,6 +414,7 @@ void ViveControllerManager::InputDevice::calibrateOrUncalibrate(const controller
         calibrate(inputCalibration);
     } else {
         uncalibrate();
+        emitCalibrationStatus(true);
     }
 }
 
@@ -410,6 +444,7 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
     if (_config != Config::Auto && puckCount < MIN_PUCK_COUNT) {
         qDebug() << "Puck Calibration: Failed: Could not meet the minimal # of pucks";
         uncalibrate();
+        emitCalibrationStatus(false);
         return;
     } else if (_config == Config::Auto){
         if (puckCount == MIN_PUCK_COUNT) {
@@ -424,6 +459,7 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
         } else {
             qDebug() << "Puck Calibration: Auto Config Failed: Could not meet the minimal # of pucks";
             uncalibrate();
+            emitCalibrationStatus(false);
             return;
         }
     }
@@ -465,10 +501,11 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
     } else {
         qDebug() << "Puck Calibration: " << configToString(_config) << " Config Failed: Could not meet the minimal # of pucks";
         uncalibrate();
+        emitCalibrationStatus(false);
         return;
     }
     _calibrated = true;
-    emitCalibrationStatus();
+    emitCalibrationStatus(true);
     qDebug() << "PuckCalibration: " << configToString(_config) << " Configuration Successful";
 }
 
