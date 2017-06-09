@@ -269,8 +269,7 @@ void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& ver
             vertices.push_back(vec3(0.0f, 0.5f, 0.0f));
             vertices.push_back(vec3(0.0f, 1.0f, 0.0f));
         }
-    }
-    else {
+    } else {
         for (const vec3& v : shape) {
             vertices.push_back(vec3(v.x, 0.5f, v.z));
             vertices.push_back(vec3(0.0f, 1.0f, 0.0f));
