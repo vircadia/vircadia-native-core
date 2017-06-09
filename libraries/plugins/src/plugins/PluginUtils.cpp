@@ -24,6 +24,15 @@ bool PluginUtils::isHMDAvailable(const QString& pluginName) {
     return false;
 }
 
+bool PluginUtils::isHeadControllerAvailable(const QString& pluginName) {
+    for (auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
+        if (inputPlugin->isHeadController() && (pluginName.isEmpty() || inputPlugin->getName() == pluginName)) {
+            return true;
+        }
+    }
+    return false;
+};
+
 bool PluginUtils::isHandControllerAvailable(const QString& pluginName) {
     for (auto& inputPlugin : PluginManager::getInstance()->getInputPlugins()) {
         if (inputPlugin->isHandController() && (pluginName.isEmpty() || inputPlugin->getName() == pluginName)) {

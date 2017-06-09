@@ -24,6 +24,7 @@ class CloseEventSender : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
+    void startThread();
     bool hasTimedOutQuitEvent();
     bool hasFinishedQuitEvent() { return _hasFinishedQuitEvent; }
 
