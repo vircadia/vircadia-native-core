@@ -1,0 +1,841 @@
+// movement-utils.js -- helper classes that help manage related Controller.*Event and input API bindings for movement controls
+
+/* eslint-disable comma-dangle */
+/* global require: true */
+/* eslint-env commonjs */
+"use strict";
+
+module.exports = {
+    version: '0.0.2c-0104',
+
+    CameraControls: CameraControls,
+    MovementEventMapper: MovementEventMapper,
+    MovementMapping: MovementMapping,
+    VelocityTracker: VelocityTracker,
+    VirtualDriveKeys: VirtualDriveKeys,
+
+    applyEasing: applyEasing,
+    calculateThrust: calculateThrust,
+    vec3damp: vec3damp,
+    vec3eclamp: vec3eclamp,
+
+    DriveModes: {
+        JITTER_TEST: 'jitter-test',
+        POSITION: 'position', // ~ MyAvatar.position
+        MOTOR: 'motor',       // ~ MyAvatar.motorVelocity
+        THRUST: 'thrust',     // ~ MyAvatar.setThrust
+    },
+};
+
+var MAPPING_TEMPLATE = require('./movement-utils.mapping.json' + (Script.resolvePath('').match(/[?#].*$/)||[''])[0]);
+
+var WANT_DEBUG = false;
+
+function log() {
+    print('movement-utils | ' + [].slice.call(arguments).join(' '));
+}
+
+var debugPrint = function() {};
+
+log(module.exports.version);
+
+var _utils = require('./_utils.js'),
+    assert = _utils.assert;
+
+if (1||WANT_DEBUG) {
+    require = _utils.makeDebugRequire(Script.resolvePath('.'));
+    _utils = require('./_utils.js'); // re-require in debug mode
+    if (WANT_DEBUG) debugPrint = log;
+}
+
+Object.assign = Object.assign || _utils.assign;
+
+var enumMeta = require('./EnumMeta.js');
+assert(enumMeta.version >= '0.0.1', 'enumMeta >= 0.0.1 expected but got: ' + enumMeta.version);
+
+MovementEventMapper.CAPTURE_DRIVE_KEYS = 'drive-keys';
+MovementEventMapper.CAPTURE_ACTION_EVENTS = 'action-events';
+//MovementEventMapper.CAPTURE_KEYBOARD_EVENTS = 'key-events';
+
+function MovementEventMapper(options) {
+    assert('namespace' in options, '.namespace expected ' + Object.keys(options) );
+    this.namespace = options.namespace;
+    this.enabled = false;
+
+    this.options = Object.assign({
+        namespace: this.namespace,
+        captureMode: MovementEventMapper.CAPTURE_ACTION_EVENTS,
+        excludeNames: null,
+        mouseSmooth: true,
+        keyboardMultiplier: 1.0,
+        mouseMultiplier: 1.0,
+        eventFilter: null,
+        controllerMapping: MAPPING_TEMPLATE,
+    }, options);
+
+    this.isShifted = false;
+    this.isGrounded = false;
+    this.isRightMouseButton = false;
+    this.rightMouseButtonReleased = undefined;
+
+    this.inputMapping = new MovementMapping(this.options);
+    this.inputMapping.virtualActionEvent.connect(this, 'onVirtualActionEvent');
+}
+MovementEventMapper.prototype = {
+    defaultEventFilter: function(from, event) {
+        return event.actionValue;
+    },
+    getState: function(options) {
+        var state = this.states ? this.states.getDriveKeys(options) : { };
+
+        state.enabled = this.enabled;
+
+        state.mouseSmooth = this.options.mouseSmooth;
+        state.captureMode = this.options.captureMode;
+        state.mouseMultiplier = this.options.mouseMultiplier;
+        state.keyboardMultiplier = this.options.keyboardMultiplier;
+
+        state.isGrounded = this.isGrounded;
+        state.isShifted = this.isShifted;
+        state.isRightMouseButton = this.isRightMouseButton;
+        state.rightMouseButtonReleased = this.rightMouseButtonReleased;
+
+        return state;
+    },
+    updateOptions: function(options) {
+        var changed = 0;
+        for (var p in this.options) {
+            if (p in options) {
+                log('MovementEventMapper updating options.'+p, this.options[p] + ' -> ' + options[p]);
+                this.options[p] = options[p];
+                changed++;
+            }
+        }
+        for (var p in options) {
+            if (!(p in this.options)) {
+                var value = options[p];
+                log('MovementEventMapper warning: ignoring option:', p, (value +'').substr(0, 40)+'...');
+            }
+        }
+        return changed;
+    },
+    applyOptions: function(options, applyNow) {
+        var changed = this.updateOptions(options || {});
+        if (changed && applyNow) {
+            this.reset();
+        }
+    },
+    reset: function() {
+        log(this.constructor.name, 'reset', JSON.stringify(Object.assign({}, this.options, { controllerMapping: undefined }),0,2));
+        var enabled = this.enabled;
+        enabled && this.disable();
+        enabled && this.enable();
+    },
+    disable: function() {
+        this.inputMapping.disable();
+        this.bindEvents(false);
+        this.enabled = false;
+    },
+    enable: function() {
+        if (!this.enabled) {
+            this.enabled = true;
+            this.states = new VirtualDriveKeys({
+                eventFilter: this.options.eventFilter && _utils.bind(this, this.options.eventFilter)
+            });
+            this.bindEvents(true);
+            this.inputMapping.updateOptions(this.options);
+            this.inputMapping.enable();
+        }
+    },
+    bindEvents: function bindEvents(capture) {
+        assert(function assertion() {
+            return captureMode === MovementEventMapper.CAPTURE_ACTION_EVENTS ||
+                captureMode === MovementEventMapper.CAPTURE_DRIVE_KEYS;
+        });
+        log('bindEvents....', capture, this.options.captureMode);
+        var exclude = Array.isArray(this.options.excludeNames) && this.options.excludeNames;
+
+        if (!capture || this.options.captureMode === MovementEventMapper.CAPTURE_ACTION_EVENTS) {
+            var tmp = capture ? 'captureActionEvents' : 'releaseActionEvents';
+            log('bindEvents -- ', tmp.toUpperCase());
+            Controller[tmp]();
+        }
+        if (!capture || this.options.captureMode === MovementEventMapper.CAPTURE_DRIVE_KEYS) {
+            var tmp = capture ? 'disableDriveKey' : 'enableDriveKey';
+            log('bindEvents -- ', tmp.toUpperCase());
+            for (var p in DriveKeys) {
+                if (capture && (exclude && ~exclude.indexOf(p))) {
+                    log(tmp.toUpperCase(), 'excluding DriveKey===' + p);
+                } else {
+                    MyAvatar[tmp](DriveKeys[p]);
+                }
+            }
+        }
+        try {
+            Controller.actionEvent[capture ? 'connect' : 'disconnect'](this, 'onActionEvent');
+        } catch (e) { /* eslint-disable-line empty-block */ }
+
+        if (!capture || !/person/i.test(Camera.mode)) {
+            Controller[capture ? 'captureWheelEvents' : 'releaseWheelEvents']();
+            try {
+                Controller.wheelEvent[capture ? 'connect' : 'disconnect'](this, 'onWheelEvent');
+            } catch (e) { /* eslint-disable-line empty-block */ }
+        }
+    },
+    onWheelEvent: function onWheelEvent(event) {
+        var actionID = enumMeta.ACTION_TRANSLATE_CAMERA_Z,
+            actionValue = -event.delta;
+        return this.onActionEvent(actionID, actionValue, event);
+    },
+    onActionEvent: function(actionID, actionValue, extra) {
+        var actionName = enumMeta.Controller.ActionNames[actionID],
+            driveKeyName = enumMeta.getDriveKeyNameFromActionName(actionName),
+            prefix = (actionValue > 0 ? '+' : actionValue < 0 ? '-' : ' ');
+
+        var event = {
+            id: prefix + actionName,
+            actionName: actionName,
+            driveKey: DriveKeys[driveKeyName],
+            driveKeyName: driveKeyName,
+            actionValue: actionValue,
+            extra: extra
+        };
+        if(0)debugPrint('onActionEvent', actionID, actionName, driveKeyName);
+        this.states.handleActionEvent('Actions.' + actionName, event);
+    },
+    onVirtualActionEvent: function(from, event) {
+        if (from === 'Application.Grounded') {
+            this.isGrounded = !!event.applicationValue;
+        } else if (from === 'Keyboard.Shift') {
+            this.isShifted = !!event.value;
+        } else if (from === 'Keyboard.RightMouseButton') {
+            this.isRightMouseButton = !!event.value;
+            this.rightMouseButtonReleased = !event.value ? new Date : undefined;
+        }
+        this.states.handleActionEvent(from, event);
+    }
+}; // MovementEventMapper.prototype
+
+// ----------------------------------------------------------------------------
+// helper JS class to track drive keys -> translation / rotation influences
+function VirtualDriveKeys(options) {
+    options = options || {};
+    Object.defineProperties(this, {
+        $pendingReset: { value: {} },
+        $eventFilter: { value: options.eventFilter },
+        $valueUpdated: { value: _utils.signal(function valueUpdated(action, newValue, oldValue){}) }
+    });
+}
+VirtualDriveKeys.prototype = {
+    update: function update(dt) {
+        Object.keys(this.$pendingReset).forEach(_utils.bind(this, function(i) {
+            var reset = this.$pendingReset[i];
+            if (reset.event.driveKey in this) {
+                this.setValue(reset.event, 0);
+            }
+        }));
+    },
+    getValue: function(driveKey, defaultValue) {
+        return driveKey in this ? this[driveKey] : defaultValue;
+    },
+    handleActionEvent: function(from, event) {
+        var value = event.actionValue;
+        if (this.$eventFilter) {
+            value = this.$eventFilter(from, event, function(from, event) {
+                return event.actionValue;
+            });
+        }
+        if (event.driveKeyName) {
+            return this.setValue(event, value);
+        }
+        return false;
+    },
+    setValue: function(event, value) {
+        var driveKeyName = event.driveKeyName,
+            driveKey = DriveKeys[driveKeyName],
+            id = event.id,
+            previous = this[driveKey],
+            autoReset = (driveKeyName === 'ZOOM');
+
+        if(0)debugPrint('setValue', 'id:'+id, 'driveKey:' + driveKey, 'driveKeyName:'+driveKeyName, 'actionName:'+event.actionName, 'previous:'+previous, 'value:'+value);
+
+        this[driveKey] = value;
+
+        if (previous !== value) {
+            this.$valueUpdated(event, value, previous);
+        }
+        if (value === 0.0) {
+            delete this.$pendingReset[id];
+        } else if (autoReset) {
+            this.$pendingReset[id] = { event: event, value: value };
+        }
+    },
+    reset: function() {
+        Object.keys(this).forEach(_utils.bind(this, function(p) {
+            this[p] = 0.0;
+            if(0)debugPrint('actionStates.$pendingReset reset', enumMeta.DriveKeyNames[p]);
+        }));
+        Object.keys(this.$pendingReset).forEach(_utils.bind(this, function(p) {
+            delete this.$pendingReset[p];
+        }));
+    },
+    toJSON: function() {
+        var obj = {};
+        for (var key in this) {
+            if (enumMeta.DriveKeyNames[key]) {
+                obj[enumMeta.DriveKeyNames[key]] = this[key];
+            }
+        }
+        return obj;
+    },
+    getDriveKeys: function(options) {
+        options = options || {};
+        try {
+            return {
+                translation: {
+                    x: this.getValue(DriveKeys.TRANSLATE_X) || 0,
+                    y: this.getValue(DriveKeys.TRANSLATE_Y) || 0,
+                    z: this.getValue(DriveKeys.TRANSLATE_Z) || 0
+                },
+                step_translation: {
+                    x: 'STEP_TRANSLATE_X' in DriveKeys && this.getValue(DriveKeys.STEP_TRANSLATE_X) || 0,
+                    y: 'STEP_TRANSLATE_Y' in DriveKeys && this.getValue(DriveKeys.STEP_TRANSLATE_Y) || 0,
+                    z: 'STEP_TRANSLATE_Z' in DriveKeys && this.getValue(DriveKeys.STEP_TRANSLATE_Z) || 0
+                },
+                rotation: {
+                    x: this.getValue(DriveKeys.PITCH) || 0,
+                    y: this.getValue(DriveKeys.YAW) || 0,
+                    z: 'ROLL' in DriveKeys && this.getValue(DriveKeys.ROLL) || 0
+                },
+                step_rotation: {
+                    x: 'STEP_PITCH' in DriveKeys && this.getValue(DriveKeys.STEP_PITCH) || 0,
+                    y: 'STEP_YAW' in DriveKeys && this.getValue(DriveKeys.STEP_YAW) || 0,
+                    z: 'STEP_ROLL' in DriveKeys && this.getValue(DriveKeys.STEP_ROLL) || 0
+                },
+                zoom: Vec3.multiply(this.getValue(DriveKeys.ZOOM) || 0, Vec3.ONE)
+            };
+        } finally {
+            options.update && this.update(options.update);
+        }
+    }
+};
+
+// ----------------------------------------------------------------------------
+// MovementMapping
+
+function MovementMapping(options) {
+    options = options || {};
+    assert('namespace' in options && 'controllerMapping' in options);
+    this.namespace = options.namespace;
+    this.enabled = false;
+    this.options = {
+        keyboardMultiplier: 1.0,
+        mouseMultiplier: 1.0,
+        mouseSmooth: true,
+        captureMode: MovementEventMapper.CAPTURE_ACTION_EVENTS,
+        excludeNames: null,
+        controllerMapping: MAPPING_TEMPLATE,
+    };
+    this.updateOptions(options);
+    this.virtualActionEvent = _utils.signal(function virtualActionEvent(from, event) {});
+}
+MovementMapping.prototype = {
+    enable: function() {
+        this.enabled = true;
+        if (this.mapping) {
+            this.mapping.disable();
+        }
+        this.mapping = this._createMapping();
+        log('ENABLE CONTROLLER MAPPING', this.mapping.name);
+        this.mapping.enable();
+    },
+    disable: function() {
+        this.enabled = false;
+        if (this.mapping) {
+            log('DISABLE CONTROLLER MAPPING', this.mapping.name);
+            this.mapping.disable();
+        }
+    },
+    reset: function() {
+        var enabled = this.enabled;
+        enabled && this.disable();
+        this.mapping = this._createMapping();
+        enabled && this.enable();
+    },
+    updateOptions: function(options) {
+        var changed = 0;
+        for (var p in this.options) {
+            if (p in options) {
+                log('MovementMapping updating options.'+p, this.options[p] + ' -> ' + options[p]);
+                this.options[p] = options[p];
+                changed++;
+            }
+        }
+        for (var p in options) {
+            if (!(p in this.options)) {
+                var value = options[p];
+                log('MovementMapping warning: ignoring option:', p, (value +'').substr(0, 40)+'...');
+            }
+        }
+        return changed;
+    },
+    applyOptions: function(options) {
+        var changed = this.updateOptions(options || {});
+        if (changed && applyNow) {
+            this.reset();
+        }
+    },
+    onShiftKey: function onShiftKey(value, key) {
+        var event = {
+            type: value ? 'keypress' : 'keyrelease',
+            keyboardKey: key,
+            keyboardText: 'SHIFT',
+            keyboardValue: value,
+            actionName: 'Shift',
+            actionValue: !!value,
+            value: !!value,
+            at: +new Date
+        };
+        this.virtualActionEvent('Keyboard.Shift', event);
+    },
+    onRightMouseButton: function onRightMouseButton(value, key) {
+        var event = {
+            type: value ? 'mousepress' : 'mouserelease',
+            keyboardKey: key,
+            keyboardValue: value,
+            actionName: 'RightMouseButton',
+            actionValue: !!value,
+            value: !!value,
+            at: +new Date
+        };
+        this.virtualActionEvent('Keyboard.RightMouseButton', event);
+    },
+    onApplicationEvent: function _onApplicationEvent(key, name, value) {
+        var event = {
+            type: 'application',
+            actionName: 'Application.' + name,
+            applicationKey: key,
+            applicationName: name,
+            applicationValue: value,
+            actionValue: !!value,
+            value: !!value
+        };
+        this.virtualActionEvent('Application.' + name, event);
+    },
+    _createMapping: function() {
+        this._mapping = this._getTemplate();
+        var mappingJSON = JSON.stringify(this._mapping, 0, 2);
+        var mapping = Controller.parseMapping(mappingJSON);
+        log(mappingJSON);
+        mapping.name = mapping.name || this._mapping.name;
+
+        mapping.from(Controller.Hardware.Keyboard.Shift).peek().to(_utils.bind(this, 'onShiftKey'));
+        mapping.from(Controller.Hardware.Keyboard.RightMouseButton).peek().to(_utils.bind(this, 'onRightMouseButton'));
+
+        var boundApplicationHandler = _utils.bind(this, 'onApplicationEvent');
+        Object.keys(Controller.Hardware.Application).forEach(function(name) {
+            var key = Controller.Hardware.Application[name];
+            debugPrint('observing Controller.Hardware.Application.'+ name, key);
+            mapping.from(key).to(function(value) {
+                boundApplicationHandler(key, name, value);
+            });
+        });
+
+        return mapping;
+    },
+    _getTemplate: function() {
+        assert(this.options.controllerMapping, 'MovementMapping._getTemplate -- !this.options.controllerMapping');
+        var template = JSON.parse(JSON.stringify(this.options.controllerMapping)); // make a local copy
+        template.name = this.namespace;
+        template.channels = template.channels.filter(function(item) {
+            // ignore any "JSON comment" or other bindings without a from spec
+            return item.from && item.from.makeAxis;
+        });
+        var exclude = Array.isArray(this.options.excludeNames) ? this.options.excludeNames : [];
+        if (!this.options.mouseSmooth) {
+            exclude.push('Keyboard.RightMouseButton');
+        }
+
+        log('EXCLUSIONS:' + exclude);
+
+        template.channels = template.channels.filter(_utils.bind(this, function(item, i) {
+            debugPrint('channel['+i+']', item.from && item.from.makeAxis, item.to, JSON.stringify(item.filters) || '');
+            //var hasFilters = Array.isArray(item.filters) && !item.filters[1];
+            item.filters = Array.isArray(item.filters) ? item.filters :
+                typeof item.filters === 'string' ? [ { type: item.filters }] : [ item.filters ];
+
+            if (/Mouse/.test(item.from && item.from.makeAxis)) {
+                item.filters.push({ type: 'scale', scale: this.options.mouseMultiplier });
+                log('applied mouse multiplier:', item.from.makeAxis, item.when, item.to, this.options.mouseMultiplier);
+            } else if (/Keyboard/.test(item.from && item.from.makeAxis)) {
+                item.filters.push({ type: 'scale', scale: this.options.keyboardMultiplier });
+                log('applied keyboard multiplier:', item.from.makeAxis, item.when, item.to, this.options.keyboardMultiplier);
+            }
+            item.filters = item.filters.filter(Boolean);
+            if (~exclude.indexOf(item.to)) {
+                log('EXCLUDING item.to === ' + item.to);
+                return false;
+            }
+            var when = Array.isArray(item.when) ? item.when : [item.when];
+            when = when.filter(shouldInclude);
+            function shouldIncludeWhen(p, i) {
+                if (~exclude.indexOf(when)) {
+                    log('EXCLUDING item.when === ' + when);
+                    return false;
+                }
+                return true;
+            }
+            item.when = when.length > 1 ? when : when[0];
+
+            if (item.from && Array.isArray(item.from.makeAxis)) {
+                var makeAxis = item.from.makeAxis;
+                function shouldInclude(p, i) {
+                    if (~exclude.indexOf(p)) {
+                        log('EXCLUDING from.makeAxis[][' + i + '] === ' + p);
+                        return false;
+                    }
+                    return true;
+                }
+                item.from.makeAxis = makeAxis.map(function(axis) {
+                    if (Array.isArray(axis))
+                        return axis.filter(shouldInclude);
+                    else
+                        return shouldInclude(axis, -1) && axis;
+                }).filter(Boolean);
+            }
+            return true;
+        }));
+        debugPrint(JSON.stringify(template,0,2));
+        return template;
+    }
+}; // MovementMapping.prototype
+
+// ----------------------------------------------------------------------------
+function calculateThrust(maxVelocity, targetVelocity, previousThrust) {
+    var THRUST_FALLOFF = 0.1; // round to ZERO if component is below this threshold
+    // Note: MyAvatar.setThrust might need an update to account for the recent avatar density changes...
+    // For now, this discovered scaling factor seems to accomodate a similar easing effect to the other movement models.
+    var magicScalingFactor = 12.0 * (maxVelocity + 120) / 16 - Math.sqrt( maxVelocity / 8 );
+
+    var targetThrust = Vec3.multiply(magicScalingFactor, targetVelocity);
+    targetThrust = vec3eclamp(targetThrust, THRUST_FALLOFF, maxVelocity);
+    if (Vec3.length(MyAvatar.velocity) > maxVelocity) {
+        targetThrust = Vec3.multiply(0.5, targetThrust);
+    }
+    return targetThrust;
+}
+
+// ----------------------------------------------------------------------------
+// clamp components and magnitude to maxVelocity, rounding to Vec3.ZERO if below epsilon
+function vec3eclamp(velocity, epsilon, maxVelocity) {
+    velocity = {
+        x: Math.max(-maxVelocity, Math.min(maxVelocity, velocity.x)),
+        y: Math.max(-maxVelocity, Math.min(maxVelocity, velocity.y)),
+        z: Math.max(-maxVelocity, Math.min(maxVelocity, velocity.z))
+    };
+
+    if (Math.abs(velocity.x) < epsilon) {
+        velocity.x = 0;
+    }
+    if (Math.abs(velocity.y) < epsilon) {
+        velocity.y = 0;
+    }
+    if (Math.abs(velocity.z) < epsilon) {
+        velocity.z = 0;
+    }
+
+    var length = Vec3.length(velocity);
+    if (length > maxVelocity) {
+        velocity = Vec3.multiply(maxVelocity, Vec3.normalize(velocity));
+    } else if (length < epsilon) {
+        velocity = Vec3.ZERO;
+    }
+    return velocity;
+}
+
+function vec3damp(targetVelocity, velocity, drag) {
+    // If force isn't being applied in a direction, incorporate drag;
+    var dragEffect = {
+        x: targetVelocity.x ? 0 : drag.x,
+        y: targetVelocity.y ? 0 : drag.y,
+        z: targetVelocity.z ? 0 : drag.z,
+    };
+    return Vec3.subtract(Vec3.sum(velocity, targetVelocity), dragEffect);
+}
+
+
+// ----------------------------------------------------------------------------
+function VelocityTracker(defaultValues) {
+    Object.defineProperty(this, 'defaultValues', { configurable: true, value: defaultValues });
+}
+VelocityTracker.prototype = {
+    reset: function() {
+        Object.assign(this, this.defaultValues);
+    },
+    integrate: function(targetState, currentVelocities, drag, settings) {
+        var args = [].slice.call(arguments);
+        this._applyIntegration('translation', args);
+        this._applyIntegration('rotation', args);
+        this._applyIntegration('zoom', args);
+    },
+    _applyIntegration: function(component, args) {
+        return this._integrate.apply(this, [component].concat(args));
+    },
+    _integrate: function(component, targetState, currentVelocities, drag, settings) {
+        var result = vec3damp(
+            targetState[component],
+            currentVelocities[component],
+            drag[component]
+        );
+        var maxVelocity = settings[component].maxVelocity,
+            epsilon = settings[component].epsilon;
+        return this[component] = vec3eclamp(result, epsilon, maxVelocity);
+    },
+};
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+Object.assign(CameraControls, {
+    SCRIPT_UPDATE: 'update',
+    ANIMATION_FRAME: 'requestAnimationFrame', // emulated
+    NEXT_TICK: 'nextTick', // emulated
+    SET_IMMEDIATE: 'setImmediate', // emulated
+});
+
+function CameraControls(options) {
+    options = options || {};
+    assert('update' in options && 'threadMode' in options);
+    this.update = options.update;
+    this.threadMode = options.threadMode;
+    this.fps = options.fps || 60;
+    this.getRuntimeSeconds = options.getRuntimeSeconds || function() { return +new Date / 1000.0; };
+    this.backupOptions = _utils.DeferredUpdater.createGroup({
+        MyAvatar: MyAvatar,
+        Camera: Camera,
+        Reticle: Reticle,
+    });
+
+    this.enabled = false;
+    this.enabledChanged = _utils.signal(function enabledChanged(enabled){});
+    this.modeChanged = _utils.signal(function modeChanged(mode, oldMode){});
+}
+CameraControls.prototype = {
+    $animate: null,
+    $start: function() {
+        if (this.$animate) {
+            return;
+        }
+
+        switch(this.threadMode) {
+
+            case CameraControls.SCRIPT_UPDATE: {
+                this.$animate = this.update;
+                Script.update.connect(this, '$animate');
+                this.$animate.disconnect = _utils.bind(this, function() { Script.update.disconnect(this, '$animate'); });
+            } break;
+
+            case CameraControls.ANIMATION_FRAME: {
+                this.requestAnimationFrame = _utils.createAnimationStepper({
+                    getRuntimeSeconds: this.getRuntimeSeconds,
+                    fps: this.fps
+                });
+                this.$animate = _utils.bind(this, function(dt) {
+                    this.update(dt);
+                    this.requestAnimationFrame(this.$animate);
+                });
+                this.$animate.disconnect = _utils.bind(this.requestAnimationFrame, 'reset');
+                this.requestAnimationFrame(this.$animate);
+            } break;
+
+            case CameraControls.SET_IMMEDIATE: {
+                // emulate process.setImmediate (attempt to execute at start of next update frame, sans Script.update throttling)
+                var lastTime = this.getRuntimeSeconds();
+                this.$animate = Script.setInterval(_utils.bind(this, function() {
+                    this.update(this.getRuntimeSeconds(lastTime));
+                    lastTime = this.getRuntimeSeconds();
+                }), 5);
+                this.$animate.disconnect = function() {
+                    Script.clearInterval(this);
+                };
+            } break;
+
+            case CameraControls.NEXT_TICK: {
+                // emulate process.nextTick (attempt to queue at the very next opportunity beyond current scope)
+                var lastTime = this.getRuntimeSeconds();
+                this.$animate = _utils.bind(this, function() {
+                    this.$animate.timeout = 0;
+                    if (this.$animate.quit) {
+                        return;
+                    }
+                    this.update(this.getRuntimeSeconds(lastTime));
+                    lastTime = this.getRuntimeSeconds();
+                    this.$animate.timeout = Script.setTimeout(this.$animate, 1);
+                });
+                this.$animate.quit = false;
+                this.$animate.disconnect = function() {
+                    this.timeout && Script.clearTimeout(this.timeout);
+                    this.timeout = 0;
+                    this.quit = true;
+                };
+                this.$animate();
+            } break;
+            default: throw new Error('unknown threadMode: ' + this.threadMode);
+        }
+        log(
+            '...$started update thread', '(threadMode: ' + this.threadMode + ')',
+            this.threadMode === CameraControls.ANIMATION_FRAME && this.fps
+        );
+    },
+    $stop: function() {
+        if (!this.$animate) {
+            return;
+        }
+        try {
+            this.$animate.disconnect();
+        } catch(e) {
+            log('$animate.disconnect error: ' + e, '(threadMode: ' + this.threadMode +')');
+        }
+        this.$animate = null;
+        log('...$stopped updated thread', '(threadMode: ' + this.threadMode +')');
+    },
+    onModeUpdated: function onModeUpdated(mode, oldMode) {
+        oldMode = oldMode || this.previousMode;
+        this.previousMode = mode;
+        log('onModeUpdated', oldMode + '->' + mode);
+        // user changed modes, so leave the current mode intact later when restoring backup values
+        delete this.backupOptions.Camera.$setModeString;
+        if (/person/.test(oldMode) && /person/.test(mode)) {
+            return; // disregard first -> third and third ->first transitions
+        }
+        this.modeChanged(mode, oldMode);
+    },
+
+    reset: function() {
+        if (this.enabled) {
+            this.disable();
+            this.enable();
+        }
+    },
+    setEnabled: function setEnabled(enabled) {
+        if (!this.enabled && enabled) {
+            this.enable();
+        } else if (this.enabled && !enabled) {
+            this.disable();
+        }
+    },
+    enable: function enable() {
+        if (this.enabled) {
+            throw new Error('CameraControls.enable -- already enabled..');
+        }
+        log('ENABLE enableCameraMove', this.threadMode);
+
+        this._backup();
+
+        this.previousMode = Camera.mode;
+        Camera.modeUpdated.connect(this, 'onModeUpdated');
+
+        this.$start();
+
+        if (this.enabled !== true) {
+            this.enabled = true;
+            this.enabledChanged(this.enabled);
+        }
+    },
+    disable: function disable() {
+        log("DISABLE CameraControls");
+        try {
+            Camera.modeUpdated.disconnect(this, 'onModeUpdated');
+        } catch (e) {
+            debugPrint(e);
+        }
+        this.$stop();
+
+        this._restore();
+
+        if (this.enabled !== false) {
+            this.enabled = false;
+            this.enabledChanged(this.enabled);
+        }
+    },
+    _restore: function() {
+        var submitted = this.backupOptions.submit();
+        log('restored previous values: ' + JSON.stringify(submitted,0,2));
+        return submitted;
+    },
+    _backup: function() {
+        this.backupOptions.reset();
+        Object.assign(this.backupOptions.Reticle, {
+            scale: Reticle.scale,
+        });
+        Object.assign(this.backupOptions.Camera, {
+            $setModeString: Camera.mode,
+        });
+        Object.assign(this.backupOptions.MyAvatar, {
+            motorTimescale: MyAvatar.motorTimescale,
+            motorReferenceFrame: MyAvatar.motorReferenceFrame,
+            motorVelocity: Vec3.ZERO,
+        });
+    },
+}; // CameraControls
+
+// ----------------------------------------------------------------------------
+function applyEasing(deltaTime, direction, settings, state, scaling) {
+    var obj = {};
+    for (var p in scaling) {
+        var group = settings[p],
+            easeConst = group[direction],
+            multiplier = group.speed,
+            scale = scaling[p],
+            stateVector = state[p];
+        var vec = obj[p] = Vec3.multiply(easeConst * scale * deltaTime, stateVector);
+        // vec.x *= multiplier.x;
+        // vec.y *= multiplier.y;
+        // vec.z *= multiplier.z;
+    }
+    return obj;
+}
+
+// ----------------------------------------------------------------------------
+// currently unused
+/*
+function normalizeDegrees(x) {
+    while (x > 360) {
+        x -= 360;
+    }
+    while (x < 0) {
+        x += 360;
+    }
+    return x;
+}
+function getEffectiveVelocities(deltaTime, collisionsEnabled, previousValues) {
+    // use native values if available, otherwise compute a derivative over deltaTime
+    var effectiveVelocity = collisionsEnabled ? MyAvatar.velocity : Vec3.multiply(Vec3.subtract(
+        MyAvatar.position, previousValues.position
+    ), 1/deltaTime);
+    var effectiveAngularVelocity = // collisionsEnabled ? MyAvatar.angularVelocity :
+        Vec3.multiply(
+            Quat.safeEulerAngles(Quat.multiply(
+                MyAvatar.orientation,
+                Quat.inverse(previousValues.orientation)
+            )), 1/deltaTime);
+
+    effectiveVelocity = Vec3.multiplyQbyV(Quat.inverse(previousValues.orientation), effectiveVelocity);
+
+    effectiveAngularVelocity = {
+        x: normalizeDegrees(effectiveAngularVelocity.x),
+        y: normalizeDegrees(effectiveAngularVelocity.y),
+        z: normalizeDegrees(effectiveAngularVelocity.z),
+    };
+
+    return {
+        velocity: effectiveVelocity,
+        angularVelocity: effectiveAngularVelocity,
+    };
+}
+function _isAvatarNearlyUpright(maxDegrees) {
+    maxDegrees = maxDegrees || 5;
+    return Math.abs(MyAvatar.headRoll) < maxDegrees && Math.abs(MyAvatar.bodyPitch) < maxDegrees;
+}
+
+
+*/

@@ -1,0 +1,1076 @@
+<!doctype html>
+<html class="tablet-ui">
+  <head>
+    <title>Camera Move</title>
+    <script> VERSION = '0.0.1'; </script>
+
+    <!-- hide the page content until fully loaded -->
+    <style>
+      body { background-color: #393939 }
+      .content { display: none }
+    </style>
+
+    <!-- bring in jQuery and jQuery UI -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/themes/base/jquery-ui.css" />
+
+    <!--script src="https://d3js.org/d3-ease.v1.min.js"></script-->
+
+    <script src="https://cdn.jsdelivr.net/jquery.tooltipster/4.2.5/js/tooltipster.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/g/jquery.tooltipster@4.2.5(css/tooltipster.bundle.min.css+css/plugins/tooltipster/sideTip/themes/tooltipster-sideTip-noir.min.css)">
+
+    <script src='./_debug.js'></script>
+
+    <!-- load our local scripts -->
+    <script type='require' src='./modules/_utils.js'></script>
+    <script type='require' src='./modules/custom-settings-app/browser/BridgedSettings.js'></script>
+    <script type='require' src='./modules/custom-settings-app/browser/JQuerySettings.js'></script>
+    <script type='require'>{
+        signal = _utils.signal;
+        assert = _utils.assert;
+        Object.assign = Object.assign || _utils.assign;
+        browserUtils = new _utils.BrowserUtils(window);
+    }</script>
+    <script type='require' src='./app.js'></script>
+
+    <script>
+      _debug.loadScriptNodes('script[type=require]');
+    </script>
+
+    <script>;
+{
+    // Qt web views only show the first parameter passed to console; patch if needed so all parameters show up
+    console = browserUtils.makeConsoleWorkRight(console);
+
+    // display unhandled exceptions in an error div
+    if (/debug/.test(location) || window.qt) {
+        window.onerror = _debug.handleUncaughtException;
+    }
+
+    // process querystring parameters from main client script
+    var PARAMS = browserUtils.extendWithQueryParams({
+        namespace: location.pathname.split('/').pop(),
+        uuid: undefined,
+        debug: false,
+        tooltiptest: false,
+    }, location.href);
+
+    log.prefix = 'html.' + PARAMS.namespace + ' | ';
+    function log(msg) {
+        console.info.apply(console, [log.prefix + msg].concat([].slice.call(arguments,1)));
+    }
+    function _debugPrint(msg) {
+        console.debug.apply(console, [log.prefix + msg].concat([].slice.call(arguments,1)));
+    }
+    var debugPrint = PARAMS.debug ? _debugPrint : function() {};
+
+    $(document).ready(function() {
+        defineCustomWidgets();
+        initializeDOM();
+        viewportUpdated.connect(preconfigureLESS.onViewportUpdated);
+
+        // event bridge intialization
+        log('document.ready...');
+        if (typeof QWebChannel === 'function') {
+            // Qt/Interface within an embedded web view
+            browserUtils.openEventBridge(onEventBridgeOpened);
+        } else {
+            // Testing in Desktop Chrome
+            _debug.openEventBridgeMock(onEventBridgeOpened);
+        }
+    });
+
+    function onEventBridgeOpened(eventBridge) {
+        EventBridge = eventBridge;
+        log('openEventBridge.opened', EventBridge);
+
+        bridgedSettings = new BridgedSettings({
+            eventBridge: EventBridge,
+            namespace: PARAMS.namespace,
+            uuid: PARAMS.uuid,
+            debug: PARAMS.debug,
+        });
+        window.addEventListener('unload', bridgedSettings.cleanup.bind(bridgedSettings));
+        bridgedSettings.callbackError.connect(function onCallbackError(err, msg)  {
+            console.error(err.stack);
+            throw err;
+        });
+
+        jquerySettings = new JQuerySettings({
+            namespace: PARAMS.namespace,
+            uuid: PARAMS.uuid,
+            debug: PARAMS.debug,
+        });
+
+        debugPrint('>>> SENDING ACK');
+        // let Client script know we are ready
+        EventBridge.emitWebEvent(location.href);
+
+        // keep Interface in sync when DOM changes
+        jquerySettings.valueUpdated.connect(function(key, value, oldValue, origin) {
+            logValueUpdate('jquerySettings.valueUpdated', key, value, oldValue, origin);
+            bridgedSettings.syncValue(key, value, origin);
+        });
+
+        // keep DOM in sync when Interface changes
+        bridgedSettings.valueUpdated.connect(function(key, value, oldValue, origin) {
+            logValueUpdate('bridgedSettings.valueUpdated', key, value, oldValue, origin);
+            jquerySettings.setValue(key, value);
+        });
+
+        setupUI();
+
+        setTimeout(function() {
+            // wait a tic before showing so initial async settings have time to queue/arrive
+            $('section').show();
+        }, 150);
+    }
+}</script>
+  </head>
+
+  <body class="settings-app">
+    <div id="errors" style="display:none"><pre class='output'></pre><button onclick=location.reload()>adsfsadf</button></div>
+    <div class="content">
+      <header class="title">
+        <div class="inner-title">
+          <h1>Camera Move</h1>
+          <div class="bool row">
+            <input class="setting" type="checkbox" id="camera-move-enabled" />
+            <label for="camera-move-enabled">Enabled</label>
+          </div>
+          <div id="appVersion"><span class='output'>...</span></div>
+        </div>
+      </header>
+
+      <div class='scrollable'>
+        <!-- generate debug line rows -->
+        <pre style='display:none;font-size:8px'>
+          <script id='delme'>for (var i=0; !(i >= 100); i++) document.write('<span class=content></span>'); </script>
+        </pre>
+        <script>with({ parent: '', node: document.getElementById('delme') }) node.parentNode.removeChild(node);</script>
+
+        <section>
+          <h2>Translation</h2>
+          <div class="number row">
+            <label>Max Linear Velocity<span class="unit">m/s</span></label>
+            <input class="setting" data-type="number" step=".1" id="translation-max-velocity" />
+          </div>
+          <div class="slider row">
+            <label>Ease In Coefficient</label>
+            <div class="control"></div>
+            <input class="setting" data-type="number" id="translation-ease-in" />
+          </div>
+          <div class="slider row">
+            <label>Ease Out Coefficient</label>
+            <div class="control"></div>
+            <input class="setting" data-type="number" id="translation-ease-out"  />
+          </div>
+        </section>
+
+        <hr />
+
+        <section>
+          <h2>Rotation</h2>
+          <div class="number row">
+            <label>Max Angular Velocity<span class="unit">deg/s</span></label>
+            <input class="setting" data-type="number" step=".1" id="rotation-max-velocity" />
+          </div>
+          <div class="slider row">
+            <label>Ease In Coefficient</label>
+            <div class="control"></div>
+            <input class="setting" data-type="number" id="rotation-ease-in" />
+          </div>
+          <div class="slider row">
+            <label>Ease Out Coefficient</label>
+            <div class="control"></div>
+            <input class="setting" data-type="number" id="rotation-ease-out"  />
+          </div>
+        </section>
+
+        <hr />
+
+        <section>
+          <h2>Options</h2>
+          <div class="bool row">
+            <input class="setting" id="enable-lookat-snapping" name="Avatar/lookAtSnappingEnabled" type="checkbox" />
+            <label for="enable-lookat-snapping">Avatars snap look at camera</label>
+          </div>
+          <div class="bool row">
+            <input class="setting" id="use-snap-turn" name="Avatar/useSnapTurn" type="checkbox" />
+            <label for="use-snap-turn">Enable snap turn in HMD</label>
+          </div>
+          <div class="bool row">
+            <input class="setting" id="enable-mouse-smooth" type="checkbox"  />
+            <label for="enable-mouse-smooth">Enable smooth mouselook</label>
+          </div>
+          <div class="bool row">
+            <input class="setting" id="minimal-cursor" type="checkbox" />
+            <label for="minimal-cursor">Enable minimal cursor</label>
+          </div>
+        </section>
+
+        <!-- advanced-options -->
+        <div style='display: none' id='advanced-options'>
+          <br />
+          <div class='content'>
+            <hr />
+            <section>
+              <h2>Rotation Speeds</h2>
+              <div class="column">
+                <div class="number row">
+                  <label for='rotation-x-speed'>Pitch speed<span class="unit">deg/s</span></label>
+                  <input class="setting" data-type="number" step="1" id="rotation-x-speed" />
+                </div>
+                <div class="number row">
+                  <label for='rotation-y-speed'>Yaw speed<span class="unit">deg/s</span></label>
+                  <input class="setting" data-type="number" step="1" id="rotation-y-speed" />
+                </div>
+              </div>
+            </section>
+
+            <hr />
+
+            <section>
+              <h2>input scaling</h2>
+              <div class="column">
+                <div class="number row">
+                  <label for='rotation-keyboard-multiplier'>Keyboard multiplier</label>
+                  <input class="setting" data-type="number" step=".1" id="rotation-keyboard-multiplier" />
+                </div>
+                <div class="number row">
+                  <label for='rotation-mouse-multiplier'>Mouse multiplier</label>
+                  <input class="setting" data-type="number" step=".1" id="rotation-mouse-multiplier" />
+                </div>
+              </div>
+            </section>
+
+            <hr />
+
+            <section>
+              <h2>Advanced Options</h2>
+              <div class="bool row">
+                <input class="setting" id="stay-grounded" type="checkbox" />
+                <label for="stay-grounded">Stay on ground</label>
+              </div>
+              <div class="bool row">
+                <input class="setting" id="use-head" type="checkbox" />
+                <label for="use-head">Apply rotations to Avatar Head</label>
+              </div>
+              <div class="bool row">
+                <input class="setting" id="prevent-roll" type="checkbox" />
+                <label for="prevent-roll">Prevent Roll</label>
+              </div>
+              <div class="bool row">
+                <input class="setting" id="constant-delta-time" type="checkbox" />
+                <label for="constant-delta-time">Use constant &Delta; time for frame updates</label>
+              </div>
+              <div class="bool row">
+                <input class="setting" id="normalize-inputs" type="checkbox" />
+                <label for="normalize-inputs">Normalize mouse movement</label>
+              </div>
+              <div class="bool row">
+                <input class="setting" id="collisions-enabled" name="Avatar/Enable Avatar Collisions" type="checkbox" />
+                <label for="collisions-enabled">Enable Avatar Collisions</label>
+              </div>
+              <div class="bool row">
+                <input class="setting" id="draw-mesh" name="Avatar/Draw Mesh" type="checkbox" />
+                <label for="draw-mesh">Draw My Avatar</label>
+              </div>
+              <div class="bool row">
+                <input class="setting" id="ui-enable-tooltips" type="checkbox" />
+                <label for="ui-enable-tooltips">Enable UI tooltips</label>
+              </div>
+              <br />
+            </section>
+
+            <hr />
+
+            <section>
+              <h2>Update Mode</h2>
+              <div class='column'>
+                <div class="radio row" id="drive-mode" >
+                  <div>
+                    <input class="setting" name="drive-mode" id="motor" type="radio" />
+                    <label for="motor">Scripted Motor Control</label>
+                  </div>
+                  <div>
+                    <input class="setting" name="drive-mode" id="position" type="radio" />
+                    <label for="position">Absolute Avatar position</label>
+                  </div>
+                  <div>
+                    <input class="setting" name="drive-mode" id="thrust" type="radio" />
+                    <label for="thrust">Thrust/force vectors</label>
+                  </div>
+                  <div>
+                    <input class="setting" name="drive-mode" id="jitter-test" type="radio" />
+                    <label for="jitter-test">Debug Jitter Testing</label>
+                  </div>
+                </div>
+                <!--/section>
+                    <hr />
+                    <section>
+                      <h2>Script update mode:</h2-->
+                <div class="radio row" id="thread-update-mode" >
+                  <div>
+                    <input class="setting" name="thread-update-mode" id="update" type="radio" />
+                    <label for="update"><code>Script.update</code></label>
+                  </div>
+                  <div class='row tooltip-target' for="requestAnimationFrame" data-tooltip-side='left'>
+                    <label for="requestAnimationFrame"><code>requestAnimationFrame</code></label>
+                    <input class="setting" name="thread-update-mode" id="requestAnimationFrame" type="radio" />
+                    <br />&nbsp; <small>fps:</small> <input class="setting" data-type="number" step="1" id="fps" />
+                  </div>
+                  <div>
+                    <input class="setting" name="thread-update-mode" id="setImmediate" type="radio" />
+                    <label for="setImmediate"><code>setImmediate</code></label>
+                  </div>
+                  <div>
+                    <input class="setting" name="thread-update-mode" id="nextTick" type="radio" />
+                    <label for="nextTick"><code>nextTick</code></label>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <hr />
+
+            <section id='debug-menu'>
+              <h2>debug menu</h2>
+              <div>
+                <div style='float:left'>
+                  <button id='reset-sensors'>Reset Avatar</button>
+                  <button class='localhost-only' id='page-reload'>window.reload</button>
+                  <button class='localhost-only' id='script-reload'>script.reload</button>
+                </div>
+                <div style='float:right'>
+                  <button id='copy-json'>Export JSON</button>
+                  <button id='paste-json'>Import JSON</button>
+                </div>
+              </div>
+            </section>
+
+            <hr />
+            <div style='height: 32px'>&nbsp;</div>
+          </div>
+        </div><!-- /advanced-options -->
+      </div><!-- /scrollable -->
+
+      <footer>
+        <div style='float:left'>
+          <button id='reset-to-defaults' title='Replace applicable settings with System Defaults'>Reset</button>
+        </div>
+        <center>
+          <div id='toggleKey'>keybinding: &nbsp; <span class='binding'>&hellip;</span></div>
+        </center>
+        <div style='float:right'>
+          <button id='toggle-advanced-options'>Advanced<span class='chevron'></span></button>
+        </div>
+        <br />
+      </footer>
+    </div>
+
+    <!-- tooltips -->
+    <div id="tooltips" style="display:none">
+      <section>
+        <div for="translation-max-velocity">
+          avatar walking/flying speed limit (ie: the value eased-into)
+        </div>
+        <div for="translation-ease-in">
+          <ul>
+            <li>lower values gently ramp-into moving</li>
+            <li>higher values rapidly accelerate to top speed</li>
+          </ul>
+        </div>
+        <div for="translation-ease-out">
+          <ul>
+            <li>lower values bring movement to a rolling stop</li>
+            <li>higher values stop movements more immediately</li>
+          </ul>
+        </div>
+        <div for="rotation-max-velocity">
+          look up/down (pitch) and turn left/right (yaw) speed limit
+        </div>
+      </section>
+
+      <section>
+        <div for="rotation-ease-in">
+          <ul>
+            <li>lower values gently start turning or looking up/down</li>
+            <li>higher values quickly turn and look around</li>
+          </ul>
+        </div>
+        <div for="rotation-ease-out">
+          <ul>
+            <li>lower values bring turning/looking to a rolling stop</li>
+            <li>higher values stop turning/looking more immediately</li>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <div for="enable-lookat-snapping">
+          uncheck this to prevent avatars from automatically making eye contact with the camera
+        </div>
+        <div for="enable-mouse-smooth">
+          uncheck this to bypass smoothing for right-mouse-button drag controls
+        </div>
+        <div for="use-snap-turn">
+          toggles <b>Settings &gt; Avatar &gt; Snap turn while in HMD</b>
+        </div>
+        <div for="minimal-cursor">
+          use half-sized mouse cursor
+        </div>
+      </section>
+
+      <section>
+        <div for="stay-grounded">
+          prevents your Avatar from gaining altitude when looking up/down and moving
+        </div>
+        <div for="use-head">
+          update <b>MyAvatar.headOrientation</b> (instead of body orientation)
+        </div>
+        <div for="prevent-roll">
+          keep upright by applying <b>Quat.cancelOutRoll</b> to resulting rotations
+        </div>
+        <div for="constant-delta-time">
+          ignore actual time between frames and instead calculate using <b>(1s / requestAnimationFrame.fps)</b> or <b>(1s / 90fps)</b>
+        </div>
+        <div for="normalize-inputs">
+          convert variable mouse movements into unit values <b>&plus;1, 0, &minus;1</b>
+        </div>
+        <div for="collisions-enabled">
+          toggles <b>Avatar &gt; Enable Avatar Collisions</b>
+        </div>
+        <div for="draw-mesh">
+          toggles <b>Developer &gt; Avatar &gt; Draw Mesh</b>
+        </div>
+        <div for="ui-enable-tooltips">
+          toggle display of tooltips like this one
+        </div>
+      </section>
+
+      <section>
+        <div for="rotation-x-speed">degrees per up/down controller inputs</div>
+        <div for="rotation-y-speed">degrees per left/right controller inputs</div>
+        <div for="rotation-keyboard-multiplier">prescale raw controller inputs by this amount</div>
+        <div for="rotation-mouse-multiplier">prescale raw controller inputs by this amount</div>
+      </section>
+
+      <section>
+        <div for="motor">
+          ~ <b>MyAvatar.motorVelocity</b>
+        </div>
+        <div for="position">
+          ~ <b>MyAvatar.position</b>
+        </div>
+        <div for="thrust">
+          ~ <b>MyAvatar.setThrust</b>
+        </div>
+        <div for="jitter-test">
+          <b>Diagnostic test:</b> Applies a constant rotation to reveal system-level jitter and update interference
+        </div>
+      </section>
+
+      <section>
+        <div for="update">
+          Script.update events fire at rightly ~60 times per second
+        </div>
+        <div for="requestAnimationFrame">
+          <b>requestAnimationFrame</b> emulation attempts to schedule frame updates in a way that maintains the given frame rate
+        </div>
+        <div for="setImmediate">
+          <b>setImmediate</b> emulation schedules frame updates "next in line" (ie: after pending tasks)
+        </div>
+        <div for="nextTick">
+          <b>nextTick</b> emulation queues frame updates "first in line" (ie: before other tasks)
+        </div>
+      </section>
+
+      <section>
+        <div for="copy-json">
+          exports current settings as JSON
+        </div>
+        <div for="paste-json">
+          replace current settings with previously-exported JSON
+        </div>
+        <div for="reset-sensors">
+          trigger <b>MyAvatar &gt; Reset Sensors</b> and then reset <b>bodyPitch</b> and <b>bodyYaw</b>
+        </div>
+        <div for="toggle-advanced-options">
+          show / hide advanced settings
+        </div>
+      </section>
+    </div><!-- /tooltips -->
+
+    <style id='tablet-ui-less' type="text/less">
+// Embedded LESS stylesheets are used as a structured way to manage page styling.
+// The template rules below get compiled at page load time by less.js.
+//   see: app.js:preconfigureLESS() and http://lesscss.org/usage/ for more info
+// ----------------------------------------------------------------------------
+// tablet-ui.less
+.tablet-ui {
+    .mixins > .load-hifi-font(@custom-font-family);
+    .mixins > .load-hifi-font(@input-font-family);
+
+    input, textarea {
+        font-family: '@{input-font-family}', sans-serif;
+    }
+
+    .mixin-tablet-mode() {
+        width: 100%;
+        margin-left: 0;
+        margin-right: 0;
+        overflow-x: hidden;
+    }
+    .tablet-mode { .mixin-tablet-mode() !important; }
+
+    body {
+        color: @color-text;
+        background-color: @color-bg;
+
+        font-family: '@{custom-font-family}';
+        font-size: 15px;
+        text-rendering: optimizeLegibility;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+        overflow: hidden;
+        overflow-x: hidden !important;
+        padding: 0;
+        margin: 0;
+
+        height: @client-height * 1px;
+        //margin-top: 6px;
+        margin-left: -5px;
+        overflow: hidden;
+    }
+
+    p { margin: 2px 0; }
+
+    header { z-index: 2; }
+
+    section { padding: 0 24px; }
+
+    hr {
+        border: none;
+        background: #404040 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAAjSURBVBhXY1RVVf3PgARYjIyMoEwIYHRwcEBRwQSloYCBAQCwjgPMiI7W2QAAAABJRU5ErkJggg==) repeat-x top left;
+        padding: 1px;
+        margin: 0px;
+        width: 100%;
+        //position: absolute;
+    }
+
+    .title {
+        position: relative;
+        padding: 6px 0 6px 10px;
+        text-align: left;
+        clear: both;
+
+        h1, label {
+            font-weight: normal;
+            //margin: 16px 0;
+            display: inline-block;
+        }
+    }
+
+    #errors .content { padding: 1px 3px; background-color: black; color:blue; display:block; }
+    #errors span:nth-child(1).content:before { content: 'hash:@{hash}\000a'; }
+
+    h1 { font-size: 18px; }
+
+    h2 {
+        margin-left: -12px;
+        font-size: 14px;
+        color: #ddd;
+    }
+
+    input[type=text], input[data-type=number], textarea {
+        margin: 0;
+        padding: 0 0 0 12px;
+        color: @color-text;
+        background-color: @color-bg-darker;
+        border: none;
+        font-size: 15px;
+        &:disabled {
+            background-color: lighten(@color-bg-darker, 25%);
+            color: darken(@color-text, 25%);
+        }
+    }
+}
+
+.mixins() {
+    .load-hifi-font(@font-family) {
+        @font-face {
+            font-family: '@{font-family}';
+            src: url('../../../../resources/fonts/@{font-family}.ttf'),  /* Windows production */
+            url('../../../../fonts/@{font-family}.ttf'),  /* OSX production */
+            url('../../../../interface/resources/fonts/@{font-family}.ttf'),  /* Development, running script in /HiFi/examples */
+            url('https://cdn.rawgit.com/highfidelity/hifi/9fa900ba/interface/resources/fonts/@{font-family}.ttf'); /* fallback to rawgit/github */
+        }
+        //@import (css) url("https://fonts.googleapis.com/css?family=@{custom-font-family}");
+    }
+}
+
+.scrollable {
+    top: @header-height * 1px + 1;
+    padding-top: 0;
+    padding-right: 5px;
+    left: 0;
+    position: relative;
+    //width: @client-width * 1px;
+    overflow-x: hidden;
+    height: @inner-height * 1px - @footer-height - @header-height;
+    overflow-y: scroll;
+    &::-webkit-scrollbar { width: 12px; height: 0px; }
+    &::-webkit-scrollbar-button { width: 0px; height: 0px;}
+    &::-webkit-scrollbar-thumb { background: darken(@color-highlight, 5%); border-radius: 4px; }
+    &::-webkit-scrollbar-thumb:hover { background: lighten(@color-highlight, 5%); border-radius: 4px;}
+    //&::-webkit-scrollbar-thumb:active { background: #fff; border: 1px dotted black;}
+    &::-webkit-scrollbar-track:disabled { background: @color-bg; border: 0px none #ffffff; border-radius: 0px;}
+    &::-webkit-scrollbar-track { background: #666666; border: 0px none #ffffff; border-radius: 0px;}
+    &::-webkit-scrollbar-track:hover { background: #666666;}
+    &::-webkit-scrollbar-track:active { xborder: 2px dotted #666; background: #555;}
+    &::-webkit-scrollbar-corner { background: transparent;}
+}
+</style>
+<style id='jquery-ui-overrides-less' type='text/less'>
+// ----------------------------------------------------------------------------
+// jquery-ui-overrides.less
+.tablet-ui {
+    .tooltipster-base {
+        @tooltip-bg-color: darken(#624888, 5%);
+        @tooltip-text-color: contrast(@tooltip-bg-color);
+        .tooltipster-box {
+            background-color: @tooltip-bg-color;
+            .tooltipster-content {
+                ul {
+                    margin: 0; padding: 0;
+                    li {
+                        list-style-position: outside;
+                        text-indent: -4px;
+                        margin-left: 14px;
+                    }
+                }
+                color: @tooltip-text-color;
+                font-weight: normal;
+                font-size: 12.5px;
+                overflow-y: hidden;
+                padding: 3px 6px 2px 6px;
+            }
+        }
+        .arrow-border(@side) {
+            &.tooltipster-@{side} {
+                .tooltipster-arrow {
+                    .tooltipster-arrow-background { border-@{side}-color: @tooltip-bg-color; }
+                    .tooltipster-arrow-border { border-@{side}-color: black; }
+                }
+            }
+        }
+        .arrow-border(top);
+        .arrow-border(right);
+        .arrow-border(left);
+        .arrow-border(bottom);
+    }
+    .radio {
+        label.ui-state-active { color: white !important; }
+        .ui-checkboxradio-label .ui-icon { border-radius: .5em; }
+    }
+
+    .ui-checkboxradio-label {
+        padding: 3px 0;
+        &:hover {
+            .ui-icon-background { background-color: white; }
+            &.ui-state-active .ui-icon-background {
+                border-color: white;
+                background-color: @color-highlight;
+            }
+        }
+        .ui-checkboxradio-icon-space {
+            width: 8px;
+            display: inline-block;
+        }
+        &.ui-visual-focus { box-shadow: inherit; }
+        .ui-icon {
+            background-color: @color-bg-icon;
+            box-shadow: none;
+            border-radius: .25em;
+        }
+        &.ui-state-active {
+            .ui-icon-background {
+                background-color: @color-highlight;
+                padding: 2px;
+                border: solid 2px @color-bg-icon;
+                width: 8px;
+                height: 8px;
+            }
+        }
+    }
+    .ui-slider-range { background-color: @color-highlight; }
+
+    .ui-spinner {
+        border: none;
+        background-color: transparent;
+        margin: 4px 2px;
+        padding: 0;
+        .ui-button {
+            border-left: solid 1px rgba(158, 158, 158, 0.151);
+            background-color: inherit;
+        }
+        input.ui-spinner-input {
+            margin: 0 !important;
+            xwidth: inherit !important;
+            &::-webkit-outer-spin-button,
+            &::-webkit-inner-spin-button {
+                -webkit-appearance: none;
+            }
+        }
+    }
+
+    .ui-slider-horizontal {
+        background-color: @color-bg-darker;
+        border-color: @color-bg-darker !important;
+        .ui-slider-handle {
+            top: -.5em;
+            width: 1.4em;
+            height: 1.4em;
+            border-radius: 100%;
+            outline: none;
+            background-color: #757575;
+            border-color: @color-bg-darker;
+            &:focus  { border-color: white; }
+            // custom inner slider handle circle
+            .inner-ui-slider-handle {
+                border-radius: 100%;
+                padding: 0px;
+                right: 2px;
+                bottom: 2px;
+                position: absolute;
+                left: 2px;
+                top: 2px;
+                border: solid black 2px;
+            }
+        }
+    }
+}
+</style>
+<style id='CustomSettingsApp-less' type='text/less'>
+// ----------------------------------------------------------------------------
+// CustomSettingsApp.less
+.tablet-ui .settings-app {
+    @subtle-border: solid 1px rgba(158, 158, 158, 0.151);
+
+    br { clear: both; }
+
+    .content { display: block; }
+
+    #overlay {
+        opacity: .15;
+        background-color: white;
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        z-index: 9999999;
+    }
+    &:not(.active) #overlay { display: block; }
+    &.active #overlay { display: none; }
+
+    section {
+        clear: both;
+        h2 {
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+    }
+
+    .content footer {
+        bottom: 0;
+        top: auto;
+        text-align: center;
+        height: @footer-height * 1px;
+        border-bottom: none;
+        box-shadow: none;
+        center {
+            //line-height: @footer-height * 1px;
+            vertical-align: middle;
+            font-size: .8em;
+            width: @client-width * .5px;
+            position: absolute;
+            display: block;
+            margin-left: 24%;
+            left: 0;
+            div { display: inline-block; }
+        }
+        button {
+            margin-top: 3px;
+        }
+    }
+    header, footer {
+        border: solid 1px black;
+        height: @header-height * 1px;
+        margin: 0;
+        position: fixed;
+        left: 0;
+        padding: 0;
+        top: 0;
+        width: 100%;
+        background-color: lighten(@color-bg,10%);
+        box-shadow: 2px 2px 10px rgba(0,0,0,.5);
+        z-index: 10;
+        white-space: nowrap;
+        > div {
+            position: relative;
+            padding: 0 6px;
+        }
+        .ui-icon { background-color: lighten(@color-bg-icon, 10%); }
+        .ui-checkboxradio-label {
+            &.ui-state-active {
+                .ui-icon { border-color: lighten(@color-bg-icon, 10%); }
+                &:hover .ui-icon { border-color: inherit; }
+            }
+        }
+        .row {
+            margin-top: 2px;
+            margin-left: 10px;
+            font-size: .9em;
+            display: inline-block !important;
+            &.bool {
+                margin-top: inherit !important;
+                margin-bottom: inherit !important;
+            }
+        }
+    }
+
+    // row styles in two column mode
+    .column {
+        margin-left: -16px;
+        margin-right: -16px;
+        .row {
+            width: 40%;
+            &:nth-child(1) { margin-right: 5%; }
+            display: inline-block;
+            &.radio {
+                padding-top: .5em;
+                padding-bottom: .5em;
+            }
+        }
+    }
+
+    .focused() { outline: dotted 1px @color-highlight; }
+
+    // general row styles
+    .row {
+        white-space: nowrap;
+        margin-top: .3em;
+        margin-bottom: .3em;
+
+        &:focus, div:focus { .focused }
+        &.disabled input.setting { color: #000; }
+        &.invalid input.setting { border: solid 1px mix(red, @color-highlight, 55%); }
+        input {
+            outline: none !important;
+            font-size: 1.1em;
+            margin: 8px;
+            padding: 8px;
+            border: solid 1px transparent;
+            &:focus { border: solid 1px @color-highlight !important; }
+        }
+        &.slider {
+            label { display: block; clear: both }
+            .ui-spinner {
+                position: relative;
+                width: 100px;
+                input { width: 80% }
+            }
+            .control  {
+                float: left;
+                clear: left;
+                width: 75%;
+                margin: 13px;
+                top: 6px;
+                height: 6px;
+            }
+        }
+        &.bool {
+            input[type=checkbox] { display: none; }
+            label.ui-widget { padding-left: 0px; }
+            display: table-row;
+            margin-top: .6em;
+            margin-bottom: .6em;
+        }
+
+        &.radio {
+            vertical-align: top;
+            input[type=radio] { display: inline-block; }
+            label.ui-visual-focus { .focused; }
+            border: @subtle-border;
+            border-right: @subtle-border;
+            border-radius: .5em;
+            padding-left: 12px;
+            padding-right: 12px;
+        }
+
+        &.radio, &.bool {
+            label.ui-button {
+                text-align: left;
+                background: inherit;
+                border: inherit;
+                color: inherit;
+                .ui-icon { background-image: none; }
+            }
+            //.ui-checkboxradio-checked { color: white }
+        }
+        &.number {
+            label {
+                display: block;
+                width: 100%;
+                margin-right: 26px;
+            }
+            input { width: 10em; }
+        }
+        .unit {
+            margin-left: 6px;
+            font-weight: lighter;
+            font-size: .8em;
+            font-style: italic;
+        }
+    }
+    code {
+        font-family: monospace;
+        font-size: .8em;
+        font-weight: bold;
+        //color: mix(@color-text, magenta, 90%);
+    }
+    kbd {
+        display: inline-block;
+        margin: 0 .1em;
+        padding: .1em .6em;
+        font-family: Arial,"Helvetica Neue",Helvetica,sans-serif;
+        font-size: .85em;
+        font-weight: bold;
+        line-height: 1.1em;
+        color: #242729;
+        text-shadow: 0 1px 0 darken(#FFF, 25%);
+        background-color: darken(#e1e3e5, 25%);
+        border: 1px solid darken(#adb3b9, 25%);
+        border-radius: 3px;
+        box-shadow: 0 1px 0 rgba(12,13,14,0.2),0 0 0 2px darken(#FFF,25%) inset;
+        white-space: nowrap;
+    }
+}
+</style>
+<style id='app-less' type='text/less'>
+// ----------------------------------------------------------------------------
+// app.less
+.tablet-ui .settings-app {
+    &.camera-move-enabled header {
+        border-bottom: solid 1px @color-highlight;
+        label { color: white !important; font-weight: bold; }
+    }
+
+    button {
+        font-weight: bold;
+        font-family: arial;
+        font-size: 12px;
+        //padding: 6px 8px;
+        cursor: pointer;
+        background-color: @color-primary-button;
+        color: white;
+        border-color: transparent;
+        margin: 2px;
+        text-transform: uppercase;
+        &:hover { background-color: lighten(@color-primary-button,10%); }
+        border: solid 1px transparent;
+        &:focus { border: dotted 1px tint(@color-highlight) !important; }
+    }
+    .localhost-only {
+        //display: none;
+        &when (@debug), (@localhost) {
+            display: inline-block;
+        }
+    }
+    #advanced-options {
+        .content { background-color: #333; }
+        display: none;
+    }
+    #toggle-advanced-options {
+        background-color: darken(@color-alt-button, 5%);
+        .chevron {
+            width: 2em;
+            display: inline-block;
+            &:after { content: ' \25B7'; }
+        }
+        &:hover { background-color: lighten(@color-alt-button, 5%); }
+    }
+    #reset-to-defaults {
+        background-color: darken(@color-caution-button, 5%);
+        &:hover { background-color: lighten(@color-caution-button, 5%); }
+    }
+}
+.ui-show-advanced-options {
+    #advanced-options { display: block !important; }
+    #toggle-advanced-options .chevron:after { content: ' \25BC' !important; }
+}
+
+#appVersion {
+    z-index: 1;
+    float: right;
+}
+#toggleKey { line-height: @footer-height * 1px; }
+
+// #overlay when(not(@interface-mode)) {
+//     height: 16px !important;
+// }
+
+#errors {
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: auto;
+    width: 100%;
+    font-size: .8em;
+    background-color: rgb(95,0,0);
+    color: white;
+    overflow: auto;
+    margin: 0;
+    padding: 8px;
+    z-index: 9999999;
+}
+
+footer center > div { display: none; }
+#tooltips { display: none }
+
+.tablet-ui .settings-app .row[for=requestAnimationFrame] {
+    display: inherit !important;
+    margin-top: 0;
+    margin-bottom: 0;
+    .ui-spinner { margin: 0; }
+    .ui-checkboxradio-label { margin: 0; padding: 0;}
+    #fps {
+        padding: 3px;
+        height: .7em;
+        font-size: .9em;
+        width: 50px;
+    }
+}
+</style>
+<script> preconfigureLESS(); </script>
+<script data-env-'development' xx-data-env='production' src="https://cdnjs.cloudflare.com/ajax/libs/less.js/2.7.2/less.js"></script>
+
+<!-- JSON DUMP TEMPLATE -->
+<script type='text/html' id='POPUP'>
+  <html>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/ir-black.min.css" />
+    <xx-script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></xx-script>
+    <body style='margin:0;overflow:hidden;'>
+      <pre><code class="json" style='height:100%'>JSON</code></pre>
+      <xx-script>hljs.initHighlighting();</xx-script>
+    </body>
+  </html>
+</script>
+
+<div id='overlay'></div>
+</body>
+</html>
