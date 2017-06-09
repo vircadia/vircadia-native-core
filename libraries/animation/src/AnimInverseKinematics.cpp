@@ -20,6 +20,8 @@
 #include "ElbowConstraint.h"
 #include "SwingTwistConstraint.h"
 #include "AnimationLogging.h"
+#include "CubicHermiteSpline.h"
+#include "AnimUtil.h"
 
 AnimInverseKinematics::IKTargetVar::IKTargetVar(const QString& jointNameIn, const QString& positionVarIn, const QString& rotationVarIn,
                                                 const QString& typeVarIn, const QString& weightVarIn, float weightIn, const std::vector<float>& flexCoefficientsIn) :
@@ -59,7 +61,8 @@ AnimInverseKinematics::AnimInverseKinematics(const QString& id) : AnimNode(AnimN
 
 AnimInverseKinematics::~AnimInverseKinematics() {
     clearConstraints();
-    _accumulators.clear();
+    _rotationAccumulators.clear();
+    _translationAccumulators.clear();
     _targetVarVec.clear();
 }
 
@@ -72,10 +75,12 @@ void AnimInverseKinematics::loadPoses(const AnimPoseVec& poses) {
     assert(_skeleton && ((poses.size() == 0) || (_skeleton->getNumJoints() == (int)poses.size())));
     if (_skeleton->getNumJoints() == (int)poses.size()) {
         _relativePoses = poses;
-        _accumulators.resize(_relativePoses.size());
+        _rotationAccumulators.resize(_relativePoses.size());
+        _translationAccumulators.resize(_relativePoses.size());
     } else {
         _relativePoses.clear();
-        _accumulators.clear();
+        _rotationAccumulators.clear();
+        _translationAccumulators.clear();
     }
 }
 
@@ -175,14 +180,17 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
     }
 }
 
-void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const AnimContext& context, const std::vector<IKTarget>& targets) {
+void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<IKTarget>& targets) {
     // compute absolute poses that correspond to relative target poses
     AnimPoseVec absolutePoses;
     absolutePoses.resize(_relativePoses.size());
     computeAbsolutePoses(absolutePoses);
 
     // clear the accumulators before we start the IK solver
-    for (auto& accumulator: _accumulators) {
+    for (auto& accumulator : _rotationAccumulators) {
+        accumulator.clearAndClean();
+    }
+    for (auto& accumulator : _translationAccumulators) {
         accumulator.clearAndClean();
     }
 
@@ -197,14 +205,22 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const AnimContext& 
 
         // solve all targets
         for (auto& target: targets) {
-            solveTargetWithCCD(context, target, absolutePoses, debug);
+            if (target.getType() == IKTarget::Type::Spline) {
+                solveTargetWithSpline(context, target, absolutePoses, debug);
+            } else {
+                solveTargetWithCCD(context, target, absolutePoses, debug);
+            }
         }
 
         // harvest accumulated rotations and apply the average
         for (int i = 0; i < (int)_relativePoses.size(); ++i) {
-            if (_accumulators[i].size() > 0) {
-                _relativePoses[i].rot() = _accumulators[i].getAverage();
-                _accumulators[i].clear();
+            if (_rotationAccumulators[i].size() > 0) {
+                _relativePoses[i].rot() = _rotationAccumulators[i].getAverage();
+                _rotationAccumulators[i].clear();
+            }
+            if (_translationAccumulators[i].size() > 0) {
+                _relativePoses[i].trans() = _translationAccumulators[i].getAverage();
+                _translationAccumulators[i].clear();
             }
         }
 
@@ -236,7 +252,7 @@ void AnimInverseKinematics::solveWithCyclicCoordinateDescent(const AnimContext& 
         int parentIndex = _skeleton->getParentIndex(tipIndex);
 
         // update rotationOnly targets that don't lie on the ik chain of other ik targets.
-        if (parentIndex != -1 && !_accumulators[tipIndex].isDirty() && target.getType() == IKTarget::Type::RotationOnly) {
+        if (parentIndex != -1 && !_rotationAccumulators[tipIndex].isDirty() && target.getType() == IKTarget::Type::RotationOnly) {
             const glm::quat& targetRotation = target.getRotation();
             // compute tip's new parent-relative rotation
             // Q = Qp * q   -->   q' = Qp^ * Q
@@ -311,10 +327,13 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
         }
 
         // store the relative rotation change in the accumulator
-        _accumulators[tipIndex].add(tipRelativeRotation, target.getWeight());
+        _rotationAccumulators[tipIndex].add(tipRelativeRotation, target.getWeight());
+
+        glm::vec3 tipRelativeTranslation = _relativePoses[target.getIndex()].trans();
+        _translationAccumulators[tipIndex].add(tipRelativeTranslation);
 
         if (debug) {
-            debugJointMap[tipIndex] = DebugJoint(tipRelativeRotation, constrained);
+            debugJointMap[tipIndex] = DebugJoint(tipRelativeRotation, tipRelativeTranslation, constrained);
         }
     }
 
@@ -422,10 +441,13 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
         }
 
         // store the relative rotation change in the accumulator
-        _accumulators[pivotIndex].add(newRot, target.getWeight());
+        _rotationAccumulators[pivotIndex].add(newRot, target.getWeight());
+
+        glm::vec3 newTrans = _relativePoses[pivotIndex].trans();
+        _translationAccumulators[pivotIndex].add(newTrans);
 
         if (debug) {
-            debugJointMap[pivotIndex] = DebugJoint(newRot, constrained);
+            debugJointMap[pivotIndex] = DebugJoint(newRot, newTrans, constrained);
         }
 
         // keep track of tip's new transform as we descend towards root
@@ -444,6 +466,187 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
     }
 }
 
+static CubicHermiteSplineFunctorWithArcLength computeSplineFromTipAndBase(const AnimPose& tipPose, const AnimPose& basePose, float baseGain = 1.0f, float tipGain = 1.0f) {
+    float linearDistance = glm::length(basePose.trans() - tipPose.trans());
+    glm::vec3 p0 = basePose.trans();
+    glm::vec3 m0 = baseGain * linearDistance * (basePose.rot() * Vectors::UNIT_Y);
+    glm::vec3 p1 = tipPose.trans();
+    glm::vec3 m1 = tipGain * linearDistance * (tipPose.rot() * Vectors::UNIT_Y);
+
+    return CubicHermiteSplineFunctorWithArcLength(p0, m0, p1, m1);
+}
+
+// pre-compute information about each joint influeced by this spline IK target.
+void AnimInverseKinematics::computeSplineJointInfosForIKTarget(const AnimContext& context, const IKTarget& target) {
+    std::vector<SplineJointInfo> splineJointInfoVec;
+
+    // build spline between the default poses.
+    AnimPose tipPose = _skeleton->getAbsoluteDefaultPose(target.getIndex());
+    AnimPose basePose = _skeleton->getAbsoluteDefaultPose(_hipsIndex);
+
+    CubicHermiteSplineFunctorWithArcLength spline;
+    if (target.getIndex() == _headIndex) {
+        // set gain factors so that more curvature occurs near the tip of the spline.
+        const float HIPS_GAIN = 0.5f;
+        const float HEAD_GAIN = 1.0f;
+        spline = computeSplineFromTipAndBase(tipPose, basePose, HIPS_GAIN, HEAD_GAIN);
+    } else {
+        spline = computeSplineFromTipAndBase(tipPose, basePose);
+    }
+
+    // measure the total arc length along the spline
+    float totalArcLength = spline.arcLength(1.0f);
+
+    glm::vec3 baseToTip = tipPose.trans() - basePose.trans();
+    float baseToTipLength = glm::length(baseToTip);
+    glm::vec3 baseToTipNormal = baseToTip / baseToTipLength;
+
+    int index = target.getIndex();
+    int endIndex = _skeleton->getParentIndex(_hipsIndex);
+    while (index != endIndex) {
+        AnimPose defaultPose = _skeleton->getAbsoluteDefaultPose(index);
+
+        float ratio = glm::dot(defaultPose.trans() - basePose.trans(), baseToTipNormal) / baseToTipLength;
+
+        // compute offset from spline to the default pose.
+        float t = spline.arcLengthInverse(ratio * totalArcLength);
+
+        // compute the rotation by using the derivative of the spline as the y-axis, and the defaultPose x-axis
+        glm::vec3 y = glm::normalize(spline.d(t));
+        glm::vec3 x = defaultPose.rot() * Vectors::UNIT_X;
+        glm::vec3 u, v, w;
+        generateBasisVectors(y, x, v, u, w);
+        glm::mat3 m(u, v, glm::cross(u, v));
+        glm::quat rot = glm::normalize(glm::quat_cast(m));
+
+        AnimPose pose(glm::vec3(1.0f), rot, spline(t));
+        AnimPose offsetPose = pose.inverse() * defaultPose;
+
+        SplineJointInfo splineJointInfo = { index, ratio, offsetPose };
+        splineJointInfoVec.push_back(splineJointInfo);
+        index = _skeleton->getParentIndex(index);
+    }
+
+    _splineJointInfoMap[target.getIndex()] = splineJointInfoVec;
+}
+
+const std::vector<AnimInverseKinematics::SplineJointInfo>* AnimInverseKinematics::findOrCreateSplineJointInfo(const AnimContext& context, const IKTarget& target) {
+    // find or create splineJointInfo for this target
+    auto iter = _splineJointInfoMap.find(target.getIndex());
+    if (iter != _splineJointInfoMap.end()) {
+        return &(iter->second);
+    } else {
+        computeSplineJointInfosForIKTarget(context, target);
+        auto iter = _splineJointInfoMap.find(target.getIndex());
+        if (iter != _splineJointInfoMap.end()) {
+            return &(iter->second);
+        }
+    }
+
+    return nullptr;
+}
+
+void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug) {
+
+    std::map<int, DebugJoint> debugJointMap;
+
+    const int baseIndex = _hipsIndex;
+
+    // build spline from tip to base
+    AnimPose tipPose = AnimPose(glm::vec3(1.0f), target.getRotation(), target.getTranslation());
+    AnimPose basePose = absolutePoses[baseIndex];
+    CubicHermiteSplineFunctorWithArcLength spline;
+    if (target.getIndex() == _headIndex) {
+        // set gain factors so that more curvature occurs near the tip of the spline.
+        const float HIPS_GAIN = 0.5f;
+        const float HEAD_GAIN = 1.0f;
+        spline = computeSplineFromTipAndBase(tipPose, basePose, HIPS_GAIN, HEAD_GAIN);
+    } else {
+        spline = computeSplineFromTipAndBase(tipPose, basePose);
+    }
+    float totalArcLength = spline.arcLength(1.0f);
+
+    // This prevents the rotation interpolation from rotating the wrong physical way (but correct mathematical way)
+    // when the head is arched backwards very far.
+    glm::quat halfRot = glm::normalize(glm::lerp(basePose.rot(), tipPose.rot(), 0.5f));
+    if (glm::dot(halfRot * Vectors::UNIT_Z, basePose.rot() * Vectors::UNIT_Z) < 0.0f) {
+        tipPose.rot() = -tipPose.rot();
+    }
+
+    // find or create splineJointInfo for this target
+    const std::vector<SplineJointInfo>* splineJointInfoVec = findOrCreateSplineJointInfo(context, target);
+
+    if (splineJointInfoVec && splineJointInfoVec->size() > 0) {
+        const int baseParentIndex = _skeleton->getParentIndex(baseIndex);
+        AnimPose parentAbsPose = (baseParentIndex >= 0) ? absolutePoses[baseParentIndex] : AnimPose();
+
+        // go thru splineJointInfoVec backwards (base to tip)
+        for (int i = (int)splineJointInfoVec->size() - 1; i >= 0; i--) {
+            const SplineJointInfo& splineJointInfo = (*splineJointInfoVec)[i];
+            float t = spline.arcLengthInverse(splineJointInfo.ratio * totalArcLength);
+            glm::vec3 trans = spline(t);
+
+            // for head splines, preform most twist toward the tip by using ease in function. t^2
+            float rotT = t;
+            if (target.getIndex() == _headIndex) {
+                rotT = t * t;
+            }
+            glm::quat twistRot = glm::normalize(glm::lerp(basePose.rot(), tipPose.rot(), rotT));
+
+            // compute the rotation by using the derivative of the spline as the y-axis, and the twistRot x-axis
+            glm::vec3 y = glm::normalize(spline.d(t));
+            glm::vec3 x = twistRot * Vectors::UNIT_X;
+            glm::vec3 u, v, w;
+            generateBasisVectors(y, x, v, u, w);
+            glm::mat3 m(u, v, glm::cross(u, v));
+            glm::quat rot = glm::normalize(glm::quat_cast(m));
+
+            AnimPose desiredAbsPose = AnimPose(glm::vec3(1.0f), rot, trans) * splineJointInfo.offsetPose;
+
+            // apply flex coefficent
+            AnimPose flexedAbsPose;
+            ::blend(1, &absolutePoses[splineJointInfo.jointIndex], &desiredAbsPose, target.getFlexCoefficient(i), &flexedAbsPose);
+
+            AnimPose relPose = parentAbsPose.inverse() * flexedAbsPose;
+            _rotationAccumulators[splineJointInfo.jointIndex].add(relPose.rot(), target.getWeight());
+
+            bool constrained = false;
+            if (splineJointInfo.jointIndex != _hipsIndex) {
+                // constrain the amount the spine can stretch or compress
+                float length = glm::length(relPose.trans());
+                const float EPSILON = 0.0001f;
+                if (length > EPSILON) {
+                    float defaultLength = glm::length(_skeleton->getRelativeDefaultPose(splineJointInfo.jointIndex).trans());
+                    const float STRETCH_COMPRESS_PERCENTAGE = 0.15f;
+                    const float MAX_LENGTH = defaultLength * (1.0f + STRETCH_COMPRESS_PERCENTAGE);
+                    const float MIN_LENGTH = defaultLength * (1.0f - STRETCH_COMPRESS_PERCENTAGE);
+                    if (length > MAX_LENGTH) {
+                        relPose.trans() = (relPose.trans() / length) * MAX_LENGTH;
+                        constrained = true;
+                    } else if (length < MIN_LENGTH) {
+                        relPose.trans() = (relPose.trans() / length) * MIN_LENGTH;
+                        constrained = true;
+                    }
+                } else {
+                    relPose.trans() = glm::vec3(0.0f);
+                }
+            }
+
+            _translationAccumulators[splineJointInfo.jointIndex].add(relPose.trans(), target.getWeight());
+
+            if (debug) {
+                debugJointMap[splineJointInfo.jointIndex] = DebugJoint(relPose.rot(), relPose.trans(), constrained);
+            }
+
+            parentAbsPose = flexedAbsPose;
+        }
+    }
+
+    if (debug) {
+        debugDrawIKChain(debugJointMap, context);
+    }
+}
+
 //virtual
 const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimNode::Triggers& triggersOut) {
     // don't call this function, call overlay() instead
@@ -453,13 +656,8 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
 
 //virtual
 const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
-
     // allows solutionSource to be overridden by an animVar
     auto solutionSource = animVars.lookup(_solutionSourceVar, (int)_solutionSource);
-
-    if (context.getEnableDebugDrawIKConstraints()) {
-        debugDrawConstraints(context);
-    }
 
     const float MAX_OVERLAY_DT = 1.0f / 30.0f; // what to clamp delta-time to in AnimInverseKinematics::overlay
     if (dt > MAX_OVERLAY_DT) {
@@ -569,7 +767,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
 
             {
                 PROFILE_RANGE_EX(simulation_animation, "ik/ccd", 0xffff00ff, 0);
-                solveWithCyclicCoordinateDescent(context, targets);
+                solve(context, targets);
             }
 
             if (_hipsTargetIndex < 0) {
@@ -579,6 +777,20 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 _hipsOffset = Vectors::ZERO;
             }
         }
+
+        if (context.getEnableDebugDrawIKConstraints()) {
+            debugDrawConstraints(context);
+        }
+    }
+
+    if (_leftHandIndex > -1) {
+        _uncontrolledLeftHandPose = _skeleton->getAbsolutePose(_leftHandIndex, underPoses);
+    }
+    if (_rightHandIndex > -1) {
+        _uncontrolledRightHandPose = _skeleton->getAbsolutePose(_rightHandIndex, underPoses);
+    }
+    if (_hipsIndex > -1) {
+        _uncontrolledHipsPose = _skeleton->getAbsolutePose(_hipsIndex, underPoses);
     }
 
     return _relativePoses;
@@ -722,8 +934,10 @@ void AnimInverseKinematics::initConstraints() {
 
     loadDefaultPoses(_skeleton->getRelativeBindPoses());
 
-    // compute corresponding absolute poses
     int numJoints = (int)_defaultRelativePoses.size();
+
+    /* KEEP THIS CODE for future experimentation
+    // compute corresponding absolute poses
     AnimPoseVec absolutePoses;
     absolutePoses.resize(numJoints);
     for (int i = 0; i < numJoints; ++i) {
@@ -734,6 +948,7 @@ void AnimInverseKinematics::initConstraints() {
             absolutePoses[i] = absolutePoses[parentIndex] * _defaultRelativePoses[i];
         }
     }
+    */
 
     clearConstraints();
     for (int i = 0; i < numJoints; ++i) {
@@ -1045,7 +1260,10 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
 
     _maxTargetIndex = -1;
 
-    for (auto& accumulator: _accumulators) {
+    for (auto& accumulator: _rotationAccumulators) {
+        accumulator.clearAndClean();
+    }
+    for (auto& accumulator: _translationAccumulators) {
         accumulator.clearAndClean();
     }
 
@@ -1061,12 +1279,21 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
         } else {
             _hipsParentIndex = -1;
         }
+
+        _leftHandIndex = _skeleton->nameToJointIndex("LeftHand");
+        _rightHandIndex = _skeleton->nameToJointIndex("RightHand");
     } else {
         clearConstraints();
         _headIndex = -1;
         _hipsIndex = -1;
         _hipsParentIndex = -1;
+        _leftHandIndex = -1;
+        _rightHandIndex = -1;
     }
+
+    _uncontrolledLeftHandPose = AnimPose();
+    _uncontrolledRightHandPose = AnimPose();
+    _uncontrolledHipsPose = AnimPose();
 }
 
 static glm::vec3 sphericalToCartesian(float phi, float theta) {
@@ -1117,6 +1344,7 @@ void AnimInverseKinematics::debugDrawIKChain(std::map<int, DebugJoint>& debugJoi
     // copy debug joint rotations into the relative poses
     for (auto& debugJoint : debugJointMap) {
         poses[debugJoint.first].rot() = debugJoint.second.relRot;
+        poses[debugJoint.first].trans() = debugJoint.second.relTrans;
     }
 
     // convert relative poses to absolute
@@ -1282,7 +1510,7 @@ void AnimInverseKinematics::blendToPoses(const AnimPoseVec& targetPoses, const A
     int numJoints = (int)_relativePoses.size();
     for (int i = 0; i < numJoints; ++i) {
         float dotSign = copysignf(1.0f, glm::dot(_relativePoses[i].rot(), targetPoses[i].rot()));
-        if (_accumulators[i].isDirty()) {
+        if (_rotationAccumulators[i].isDirty()) {
             // this joint is affected by IK --> blend toward the targetPoses rotation
             _relativePoses[i].rot() = glm::normalize(glm::lerp(_relativePoses[i].rot(), dotSign * targetPoses[i].rot(), blendFactor));
         } else {
@@ -1314,5 +1542,48 @@ void AnimInverseKinematics::initRelativePosesFromSolutionSource(SolutionSource s
         // essentially copy limitCenterPoses over to _relativePoses.
         blendToPoses(_limitCenterPoses, underPoses, COPY_BLEND_FACTOR);
         break;
+    }
+}
+
+void AnimInverseKinematics::debugDrawSpineSplines(const AnimContext& context, const std::vector<IKTarget>& targets) const {
+
+    for (auto& target : targets) {
+
+        if (target.getType() != IKTarget::Type::Spline) {
+            continue;
+        }
+
+        const int baseIndex = _hipsIndex;
+
+        // build spline
+        AnimPose tipPose = AnimPose(glm::vec3(1.0f), target.getRotation(), target.getTranslation());
+        AnimPose basePose = _skeleton->getAbsolutePose(baseIndex, _relativePoses);
+
+        CubicHermiteSplineFunctorWithArcLength spline;
+        if (target.getIndex() == _headIndex) {
+            // set gain factors so that more curvature occurs near the tip of the spline.
+            const float HIPS_GAIN = 0.5f;
+            const float HEAD_GAIN = 1.0f;
+            spline = computeSplineFromTipAndBase(tipPose, basePose, HIPS_GAIN, HEAD_GAIN);
+        } else {
+            spline = computeSplineFromTipAndBase(tipPose, basePose);
+        }
+        float totalArcLength = spline.arcLength(1.0f);
+
+        const glm::vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);
+        const glm::vec4 WHITE(1.0f, 1.0f, 1.0f, 1.0f);
+
+        // draw red and white stripped spline, parameterized by arc length.
+        // i.e. each stripe should be the same length.
+        AnimPose geomToWorldPose = AnimPose(context.getRigToWorldMatrix() * context.getGeometryToRigMatrix());
+        const int NUM_SEGMENTS = 20;
+        const float dArcLength = totalArcLength / NUM_SEGMENTS;
+        float arcLength = 0.0f;
+        for (int i = 0; i < NUM_SEGMENTS; i++) {
+            float prevT = spline.arcLengthInverse(arcLength);
+            float nextT = spline.arcLengthInverse(arcLength + dArcLength);
+            DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(spline(prevT)), geomToWorldPose.xformPoint(spline(nextT)), (i % 2) == 0 ? RED : WHITE);
+            arcLength += dArcLength;
+        }
     }
 }

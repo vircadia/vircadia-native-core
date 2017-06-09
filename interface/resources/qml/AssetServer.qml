@@ -177,7 +177,7 @@ ScrollingWindow {
                     SHAPE_TYPE_STATIC_MESH
                 ],
                 checkStateOnDisable: false,
-                warningOnDisable: "Models with 'Exact' automatic collisions cannot be dynamic"
+                warningOnDisable: "Models with 'Exact' automatic collisions cannot be dynamic, and should not be used as floors"
             }
         });
 

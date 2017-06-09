@@ -9,7 +9,7 @@
 
 (function() {
 
-    var webPageURL = "ChatPage.html"; // URL of tablet web page.
+    var webPageURL = Script.resolvePath("html/ChatPage.html"); // URL of tablet web page.
     var randomizeWebPageURL = true; // Set to true for debugging.
     var lastWebPageURL = ""; // Last random URL of tablet web page.
     var onChatPage = false; // True when chat web page is opened.

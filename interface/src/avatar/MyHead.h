@@ -18,7 +18,7 @@ public:
     explicit MyHead(MyAvatar* owningAvatar);
 
     /// \return orientationBody * orientationBasePitch
-    glm::quat getCameraOrientation() const;
+    glm::quat getHeadOrientation() const;
     void simulate(float deltaTime) override;
 
 private:

@@ -111,22 +111,12 @@ ATPGetApp::ATPGetApp(int argc, char* argv[]) :
 
 
     auto nodeList = DependencyManager::get<NodeList>();
-
-    // start the nodeThread so its event loop is running
-    QThread* nodeThread = new QThread(this);
-    nodeThread->setObjectName("NodeList Thread");
-    nodeThread->start();
-
-    // make sure the node thread is given highest priority
-    nodeThread->setPriority(QThread::TimeCriticalPriority);
+    nodeList->startThread();
 
     // setup a timer for domain-server check ins
     QTimer* domainCheckInTimer = new QTimer(nodeList.data());
     connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
     domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
-
-    // put the NodeList and datagram processing on the node thread
-    nodeList->moveToThread(nodeThread);
 
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
@@ -258,12 +248,8 @@ void ATPGetApp::finish(int exitCode) {
     // tell the packet receiver we're shutting down, so it can drop packets
     nodeList->getPacketReceiver().setShouldDropPackets(true);
 
-    QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
     // remove the NodeList from the DependencyManager
     DependencyManager::destroy<NodeList>();
-    // ask the node thread to quit and wait until it is done
-    nodeThread->quit();
-    nodeThread->wait();
 
     QCoreApplication::exit(exitCode);
 }

@@ -12,8 +12,13 @@
 #define hifi_ThreadHelpers_h
 
 #include <exception>
-#include <QMutex>
-#include <QMutexLocker>
+#include <functional>
+
+#include <QtCore/QMutex>
+#include <QtCore/QMutexLocker>
+#include <QtCore/QObject>
+#include <QtCore/QString>
+#include <QtCore/QThread>
 
 template <typename L, typename F>
 void withLock(L lock, F function) {
@@ -25,5 +30,8 @@ void withLock(QMutex& lock, F function) {
     QMutexLocker locker(&lock);
     function();
 }
+
+void moveToNewNamedThread(QObject* object, const QString& name, std::function<void()> startCallback, QThread::Priority priority = QThread::InheritPriority);
+void moveToNewNamedThread(QObject* object, const QString& name, QThread::Priority priority = QThread::InheritPriority);
 
 #endif

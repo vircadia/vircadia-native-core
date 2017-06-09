@@ -31,7 +31,7 @@ void TriangleSet::clear() {
 }
 
 bool TriangleSet::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-    float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision) {
+    float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, bool allowBackface) {
 
     // reset our distance to be the max possible, lower level tests will store best distance here
     distance = std::numeric_limits<float>::max();
@@ -41,7 +41,7 @@ bool TriangleSet::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
     }
 
     int trianglesTouched = 0;
-    auto result = _triangleOctree.findRayIntersection(origin, direction, distance, face, surfaceNormal, precision, trianglesTouched);
+    auto result = _triangleOctree.findRayIntersection(origin, direction, distance, face, surfaceNormal, precision, trianglesTouched, allowBackface);
 
     #if WANT_DEBUGGING
     if (precision) {
@@ -95,7 +95,7 @@ void TriangleSet::balanceOctree() {
 // Determine of the given ray (origin/direction) in model space intersects with any triangles
 // in the set. If an intersection occurs, the distance and surface normal will be provided.
 bool TriangleSet::TriangleOctreeCell::findRayIntersectionInternal(const glm::vec3& origin, const glm::vec3& direction,
-            float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched) {
+            float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched, bool allowBackface) {
 
     bool intersectedSomething = false;
     float boxDistance = distance;
@@ -114,7 +114,7 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersectionInternal(const glm::vec
                 const auto& triangle = _allTriangles[triangleIndex];
                 float thisTriangleDistance;
                 trianglesTouched++;
-                if (findRayTriangleIntersection(origin, direction, triangle, thisTriangleDistance)) {
+                if (findRayTriangleIntersection(origin, direction, triangle, thisTriangleDistance, allowBackface)) {
                     if (thisTriangleDistance < bestDistance) {
                         bestDistance = thisTriangleDistance;
                         intersectedSomething = true;
@@ -203,7 +203,7 @@ void TriangleSet::TriangleOctreeCell::insert(size_t triangleIndex) {
 }
 
 bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-                float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched) {
+                float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched, bool allowBackface) {
 
     if (_population < 1) {
         return false; // no triangles below here, so we can't intersect
@@ -247,7 +247,7 @@ bool TriangleSet::TriangleOctreeCell::findRayIntersection(const glm::vec3& origi
             }
         }
         // also check our local triangle set
-        if (findRayIntersectionInternal(origin, direction, childDistance, childFace, childNormal, precision, trianglesTouched)) {
+        if (findRayIntersectionInternal(origin, direction, childDistance, childFace, childNormal, precision, trianglesTouched, allowBackface)) {
             if (childDistance < bestLocalDistance) {
                 bestLocalDistance = childDistance;
                 bestLocalFace = childFace;
