@@ -128,6 +128,7 @@
         // This image3d overlay acts as the camera's preview screen.
         viewFinderOverlay = Overlays.addOverlay("image3d", {
             url: "resource://spectatorCameraFrame",
+            emissive: true,
             parentID: camera,
             alpha: 1,
             position: { x: 0.007, y: 0.15, z: -0.005 },
