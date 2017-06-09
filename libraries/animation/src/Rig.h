@@ -134,10 +134,6 @@ public:
     void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority);
     void setJointRotation(int index, bool valid, const glm::quat& rotation, float priority);
 
-    // legacy
-    void restoreJointRotation(int index, float fraction, float priority);
-    void restoreJointTranslation(int index, float fraction, float priority);
-
     // if translation and rotation is identity, position will be in rig space
     bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position,
                                       glm::vec3 translation, glm::quat rotation) const;
