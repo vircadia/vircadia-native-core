@@ -1,6 +1,7 @@
 
 #include "PrototypeSelfie.h"
 
+#include <gpu/Context.h>
 
 void MainRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred) {
 
@@ -51,9 +52,15 @@ public:
         // Caching/restoring the old values doesn't seem to be needed. Is it because we happen to be last in the pipeline (which would be a bug waiting to happen)?
         _cachedArgsPointer->_blitFramebuffer = args->_blitFramebuffer;
         _cachedArgsPointer->_viewport = args->_viewport;
+        _cachedArgsPointer->_displayMode = args->_displayMode;
         args->_blitFramebuffer = destFramebuffer;
         args->_viewport = glm::ivec4(0, 0, destFramebuffer->getWidth(), destFramebuffer->getHeight());
-        // FIXME: We're also going to need to clear/restore the stereo setup!
+        args->_viewport = glm::ivec4(0, 0, destFramebuffer->getWidth(), destFramebuffer->getHeight());
+        args->_displayMode = RenderArgs::MONO;
+
+        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+            batch.disableContextStereo();
+        });
 
         auto srcViewFrustum = args->getViewFrustum();
         srcViewFrustum.setPosition(_position);
@@ -78,6 +85,11 @@ public:
         args->_blitFramebuffer = cachedArgs->_blitFramebuffer;
         args->_viewport = cachedArgs->_viewport;
         args->popViewFrustum();
+        args->_displayMode = cachedArgs->_displayMode;
+
+        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+            batch.restoreContextStereo();
+        });
     }
 };
 

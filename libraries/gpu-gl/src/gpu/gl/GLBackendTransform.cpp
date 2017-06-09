@@ -37,7 +37,7 @@ void GLBackend::do_setViewportTransform(const Batch& batch, size_t paramOffset) 
         glViewport(vp.x, vp.y, vp.z, vp.w);
 
         // Where we assign the GL viewport
-        if (_stereo._enable) {
+        if (_stereo.isStereo()) {
             vp.z /= 2;
             if (_stereo._pass) {
                 vp.x += vp.z;
