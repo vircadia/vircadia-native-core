@@ -18,6 +18,7 @@
 #include <QString>
 #include <QJsonObject>
 #include <QNetworkReply>
+#include <QElapsedTimer>
 
 #include <SettingHandle.h>
 #include "AddressManager.h"
@@ -51,8 +52,10 @@ private slots:
     void requestError(QNetworkReply& errorReply);
     
 private:
-    UserActivityLogger() {};
+    UserActivityLogger();
     Setting::Handle<bool> _disabled { "UserActivityLoggerDisabled", false };
+
+    QElapsedTimer _timer;
 };
 
 #endif // hifi_UserActivityLogger_h
