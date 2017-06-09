@@ -779,8 +779,7 @@ glm::vec3 MyAvatar::worldToJointPoint(const glm::vec3& position, const int joint
     if (jointIndex != -1) {
         if (_skeletonModel->getJointPositionInWorldFrame(jointIndex, jointPos)) {
             _skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot);
-        }
-        else {
+        } else {
             qWarning() << "Invalid joint index specified: " << jointIndex;
         }
     }
@@ -816,8 +815,7 @@ glm::vec3 MyAvatar::jointToWorldPoint(const glm::vec3& jointSpacePos, const int 
     if (jointIndex != -1) {
         if (_skeletonModel->getJointPositionInWorldFrame(jointIndex, jointPos)) {
             _skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot);
-        }
-        else {
+        } else {
             qWarning() << "Invalid joint index specified: " << jointIndex;
         }
     }
