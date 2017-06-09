@@ -266,7 +266,7 @@ void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& ver
     std::vector<vec3> shape = polygon<N>();
     if (isConical) {
         for (uint32_t i = 0; i < N; i++) {
-            vertices.push_back(vec3(0, 0.5f, 0));
+            vertices.push_back(vec3(0.0f, 0.5f, 0.0f));
             vertices.push_back(vec3(0, 1, 0));
         }
     }
@@ -302,8 +302,8 @@ void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& ver
         vec3 left = shape[i];
         vec3 right = shape[(i + 1) % N];
         vec3 normal = glm::normalize(left + right);
-        vec3 topLeft = (isConical ? vec3(0.0, 0.5f, 0.0) : vec3(left.x, 0.5f, left.z));
-        vec3 topRight = (isConical? vec3(0.0, 0.5f, 0.0) : vec3(right.x, 0.5f, right.z));
+        vec3 topLeft = (isConical ? vec3(0.0f, 0.5f, 0.0f) : vec3(left.x, 0.5f, left.z));
+        vec3 topRight = (isConical? vec3(0.0f, 0.5f, 0.0f) : vec3(right.x, 0.5f, right.z));
         vec3 bottomLeft = vec3(left.x, -0.5f, left.z);
         vec3 bottomRight = vec3(right.x, -0.5f, right.z);
 
@@ -340,26 +340,27 @@ void drawCircle(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexB
     Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
     VertexVector vertices;
     IndexVector solidIndices, wireIndices;
+    const int numCircleVertices = 64;
 
-    std::vector<vec3> shape = polygon<64>();
+    std::vector<vec3> shape = polygon<numCircleVertices>();
     for (const vec3& v : shape) {
-        vertices.push_back(vec3(v.x, 0, v.z));
+        vertices.push_back(vec3(v.x, 0.0f, v.z));
         vertices.push_back(vec3(0, 0, 0));
     }
 
-    for (uint32_t i = 2; i < 64; ++i) {
+    for (uint32_t i = 2; i < numCircleVertices; ++i) {
         solidIndices.push_back(baseVertex + 0);
         solidIndices.push_back(baseVertex + i);
         solidIndices.push_back(baseVertex + i - 1);
-        solidIndices.push_back(baseVertex + 64);
-        solidIndices.push_back(baseVertex + i + 64 - 1);
-        solidIndices.push_back(baseVertex + i + 64);
+        solidIndices.push_back(baseVertex + numCircleVertices);
+        solidIndices.push_back(baseVertex + i + numCircleVertices - 1);
+        solidIndices.push_back(baseVertex + i + numCircleVertices);
     }
-    for (uint32_t i = 1; i <= 64; ++i) {
-        wireIndices.push_back(baseVertex + (i % 64));
+    for (uint32_t i = 1; i <= numCircleVertices; ++i) {
+        wireIndices.push_back(baseVertex + (i % numCircleVertices));
         wireIndices.push_back(baseVertex + i - 1);
-        wireIndices.push_back(baseVertex + (i % 64) + 64);
-        wireIndices.push_back(baseVertex + (i - 1) + 64);
+        wireIndices.push_back(baseVertex + (i % numCircleVertices) + numCircleVertices);
+        wireIndices.push_back(baseVertex + (i - 1) + numCircleVertices);
     }
 
     shapeData.setupVertices(vertexBuffer, vertices);
