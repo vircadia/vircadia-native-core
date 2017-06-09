@@ -22,7 +22,10 @@ void ConsoleScriptingInterface::info(QString message) {
    }
 }
 
-void ConsoleScriptingInterface::log(QString message) {
+void ConsoleScriptingInterface::log(QString message) { 
+    /*if (!listgrp.isEmpty()){
+        listgrp.append(qMakePair(currentGroupSelection, message));
+    }*/
    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {       
        scriptEngine->scriptPrintedMessage(message);
    }
@@ -129,4 +132,63 @@ void  ConsoleScriptingInterface::clear() {
     if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
         scriptEngine->clearConsole();
     }
+}
+
+void ConsoleScriptingInterface::group(QString groupName) {
+    listgrp.append(qMakePair(defaultGroupName, groupName));
+    currentGroupSelection = groupName;
+}
+
+void ConsoleScriptingInterface::groupCollapsed(QString  groupName) {
+    listgrp.append(qMakePair(defaultGroupCollapseName, groupName));
+    currentGroupSelection = groupName;
+}
+
+void ConsoleScriptingInterface::consoleLog(QString  groupName) {
+    if (!listgrp.isEmpty()){
+        listgrp.append(qMakePair(currentGroupSelection, groupName));
+    }
+}
+
+int collapseCount = 0;
+QString addSpace = " ";
+void ConsoleScriptingInterface::groupEnd() {   
+    QString endGroup= "endGroup";
+    listgrp.append(qMakePair(currentGroupSelection, endGroup));
+    //currentGroupSelection = groupName;
+}
+
+void show(){
+    QString tmp;
+    QPair<QString, QString> pair;
+    for (int i = 0; i<listgrp.count(); i++) {
+        pair = listgrp.at(i);
+        if (pair.first == "group") {
+            tmp = pair.second;
+            addSpace = "";
+            debug(pair.second);
+        }
+        else if (pair.first == "groupCollapse") {
+            tmp = pair.second;
+            int count = 0;
+            addSpace = collapseCount == 0 ? "\t" : " ";
+            while (count<collapseCount) {
+                addSpace += '\t\t';
+                count++;
+            }
+            collapseCount++;
+            pair.second = addSpace + pair.second;
+            debug(pair.second);
+        }
+        else {
+            if (pair.first == tmp) {
+                pair.second = addSpace + pair.second;
+                debug(pair.second);
+            }
+        }
+    }
+    addSpace = "";
+    tmp = "";
+    collapseCount = 0;
+    listgrp.clear();
 }
