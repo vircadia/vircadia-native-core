@@ -42,6 +42,10 @@ static void lookupJointChainInfo(AnimInverseKinematics::JointChainInfo* jointCha
     }
 }
 
+float easeOutExpo(float t) {
+    return 1.0f - powf(2, -10.0f * t);
+}
+
 AnimInverseKinematics::IKTargetVar::IKTargetVar(const QString& jointNameIn, const QString& positionVarIn, const QString& rotationVarIn,
                                                 const QString& typeVarIn, const QString& weightVarIn, float weightIn, const std::vector<float>& flexCoefficientsIn) :
     jointName(jointNameIn),
@@ -166,14 +170,50 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
                 target.setIndex(targetVar.jointIndex);
                 target.setWeight(weight);
                 target.setFlexCoefficients(targetVar.numFlexCoefficients, targetVar.flexCoefficients);
+                target.setPoleIndex(-1);
 
+                /*
                 // AJT: HACK REMOVE manually set pole vector.
                 if (targetVar.jointName == "RightHand") {
-                    target.setPoleVector(glm::normalize(glm::vec3(-1, -2, -1)));
+                    int armJointIndex = _skeleton->nameToJointIndex("RightArm");
+                    glm::vec3 armPosition = _skeleton->getAbsolutePose(armJointIndex, _relativePoses).trans();
+                    glm::vec3 d = glm::normalize(translation - armPosition);
+
+                    // project hand y-axis onto d.
+                    glm::vec3 handY = rotation * Vectors::UNIT_Y;
+                    glm::vec3 handYProj = handY - glm::dot(handY, d) * d;
+
+                    // project negative pole vector on to d.
+                    glm::vec3 p = glm::normalize(glm::vec3(-1, -3, -3));
+                    glm::vec3 pProj = p - glm::dot(p, d) * d;
+
+                    // compute a rotation around d that will bring the pProj to to yProj
+                    float theta = acosf(glm::dot(glm::normalize(-pProj), glm::normalize(handYProj)));
+                    glm::vec3 axis = glm::normalize(glm::cross(-pProj, handYProj));
+
+                    if (glm::dot(axis, d) < 0.0f) {
+                        // as eProjLen and pProjLen become orthognal to d, reduce the amount of rotation.
+                        float magnitude = easeOutExpo(glm::min(glm::length(handYProj), glm::length(pProj)));
+                        glm::quat poleAdjustRot = angleAxis(magnitude * (theta / 4.0f), axis);
+                        target.setPoleVector(poleAdjustRot * p);
+                    } else {
+                        target.setPoleVector(p);
+                    }
                     target.setPoleIndex(_skeleton->nameToJointIndex(targetVar.jointName));
                 }
                 if (targetVar.jointName == "LeftHand") {
-                    target.setPoleVector(glm::normalize(glm::vec3(1, -2, -1)));
+                    target.setPoleVector(glm::normalize(glm::vec3(1, -3, -3)));
+                    target.setPoleIndex(_skeleton->nameToJointIndex(targetVar.jointName));
+                }
+                */
+
+                if (targetVar.jointName == "LeftFoot") {
+                    glm::vec3 footY = rotation * Vectors::UNIT_Y;
+                    target.setPoleVector(footY);
+                    target.setPoleIndex(_skeleton->nameToJointIndex(targetVar.jointName));
+                } else if (targetVar.jointName == "RightFoot") {
+                    glm::vec3 footY = rotation * Vectors::UNIT_Y;
+                    target.setPoleVector(footY);
                     target.setPoleIndex(_skeleton->nameToJointIndex(targetVar.jointName));
                 }
 
@@ -524,13 +564,17 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                     float pProjLen = glm::length(pProj);
                     const float MIN_E_PROJ_LEN = 0.2f;  // cm
                     if (eProjLen > MIN_E_PROJ_LEN && pProjLen > EPSILON) {
+
+                        // as eProjLen and pProjLen become orthognal to d, reduce the amount of rotation.
+                        float magnitude = easeOutExpo(glm::min(eProjLen, pProjLen));
+
                         float dot = glm::clamp(glm::dot(eProj / eProjLen, pProj / pProjLen), 0.0f, 1.0f);
-                        float theta = acos(dot);
+                        float theta = acosf(dot);
                         glm::vec3 cross = glm::cross(eProj, pProj);
                         float crossLen = glm::length(cross);
                         if (crossLen > EPSILON) {
                             glm::vec3 axis = cross / crossLen;
-                            poleRot = glm::angleAxis(theta, axis);
+                            poleRot = glm::angleAxis(magnitude * theta, axis);
                         }
                     }
                 }
@@ -552,24 +596,22 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                     float eProjLen = glm::length(eProj);
                     float pProjLen = glm::length(pProj);
 
-                    const float POLE_VECTOR_LEN = 10.0f;
+                    const float PROJ_VECTOR_LEN = 10.0f;
+                    const float POLE_VECTOR_LEN = 100.0f;
                     glm::vec3 midPoint = (basePose.trans() + topPose.trans()) * 0.5f;
                     DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(basePose.trans()),
                                                      geomToWorldPose.xformPoint(topPose.trans()),
                                                      YELLOW);
                     DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(midPoint),
-                                                     geomToWorldPose.xformPoint(midPoint + POLE_VECTOR_LEN * glm::normalize(eProj)),
+                                                     geomToWorldPose.xformPoint(midPoint + PROJ_VECTOR_LEN * glm::normalize(eProj)),
                                                      RED);
-                    /*
+                    DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(midPoint),
+                                                     geomToWorldPose.xformPoint(midPoint + PROJ_VECTOR_LEN * glm::normalize(pProj)),
+                                                     GREEN);
                     DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(midPoint),
                                                      geomToWorldPose.xformPoint(midPoint + POLE_VECTOR_LEN * glm::normalize(p)),
                                                      BLUE);
-                    */
-                    DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(midPoint),
-                                                     geomToWorldPose.xformPoint(midPoint + POLE_VECTOR_LEN * glm::normalize(pProj)),
-                                                     GREEN);
                 }
-
 
                 glm::quat newBaseRelRot = glm::inverse(baseParentPose.rot()) * poleRot * basePose.rot();
                 jointChainInfos[baseChainIndex].relRot = newBaseRelRot;
@@ -672,7 +714,8 @@ const std::vector<AnimInverseKinematics::SplineJointInfo>* AnimInverseKinematics
 
 void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug) {
 
-    std::map<int, DebugJoint> debugJointMap;
+    const size_t MAX_CHAIN_DEPTH = 30;
+    JointChainInfo jointChainInfos[MAX_CHAIN_DEPTH];
 
     const int baseIndex = _hipsIndex;
 
@@ -732,7 +775,6 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
             ::blend(1, &absolutePoses[splineJointInfo.jointIndex], &desiredAbsPose, target.getFlexCoefficient(i), &flexedAbsPose);
 
             AnimPose relPose = parentAbsPose.inverse() * flexedAbsPose;
-            _rotationAccumulators[splineJointInfo.jointIndex].add(relPose.rot(), target.getWeight());
 
             bool constrained = false;
             if (splineJointInfo.jointIndex != _hipsIndex) {
@@ -756,18 +798,19 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
                 }
             }
 
-            _translationAccumulators[splineJointInfo.jointIndex].add(relPose.trans(), target.getWeight());
-
-            if (debug) {
-                debugJointMap[splineJointInfo.jointIndex] = DebugJoint(relPose.rot(), relPose.trans(), constrained);
-            }
+            jointChainInfos[i] = { relPose.rot(), relPose.trans(), target.getWeight(), splineJointInfo.jointIndex, constrained };
 
             parentAbsPose = flexedAbsPose;
         }
     }
 
+    for (size_t i = 0; i < splineJointInfoVec->size(); i++) {
+        _rotationAccumulators[jointChainInfos[i].jointIndex].add(jointChainInfos[i].relRot, jointChainInfos[i].weight);
+        _translationAccumulators[jointChainInfos[i].jointIndex].add(jointChainInfos[i].relTrans, jointChainInfos[i].weight);
+    }
+
     if (debug) {
-        debugDrawIKChain(debugJointMap, context);
+        debugDrawIKChain(jointChainInfos, splineJointInfoVec->size(), context);
     }
 }
 
@@ -1611,7 +1654,7 @@ void AnimInverseKinematics::debugDrawConstraints(const AnimContext& context) con
                             glm::vec3 worldSwungAxis = transformVectorFast(geomToWorldMatrix, parentAbsRot * refRot * swungAxis);
                             glm::vec3 swingTip = pos + SWING_LENGTH * worldSwungAxis;
 
-                            float prevPhi = acos(swingTwistConstraint->getMinDots()[j]);
+                            float prevPhi = acosf(swingTwistConstraint->getMinDots()[j]);
                             float prevTheta = theta - D_THETA;
                             glm::vec3 prevSwungAxis = sphericalToCartesian(prevPhi, prevTheta - PI_2);
                             glm::vec3 prevWorldSwungAxis = transformVectorFast(geomToWorldMatrix, parentAbsRot * refRot * prevSwungAxis);
