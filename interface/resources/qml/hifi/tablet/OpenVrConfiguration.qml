@@ -385,7 +385,6 @@ Rectangle {
             anchors.fill: parent
 
             onClicked: {
-                console.log("calibration button pressed...");
                 openVrConfiguration.countDown = timeToCalibrate.value;
                 numberAnimation.start();
                 calibrationTimer.start();
@@ -403,7 +402,6 @@ Rectangle {
             InputConfiguration.calibratePlugin(pluginName)
             info.visible = false;
             info.showCountDown = false;
-            console.log("calibration started");
         }
     }
 

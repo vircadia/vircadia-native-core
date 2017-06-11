@@ -89,12 +89,24 @@ Rectangle {
             editable: true
             colorScheme: hifi.colorSchemes.dark
             model: inputPlugins()
+	    label: ""
             
             onCurrentIndexChanged: {
-                loader.source = ""
-                loader.source = InputConfiguration.configurationLayout(box.currentText);
+		changeSource();
             }
         }
+
+	HifiControls.CheckBox {
+	    id: checkBox
+	    colorScheme: hifi.colorSchemes.dark
+	    text: "show all input plugins"
+
+	    onClicked: {
+		console.log("clicked");
+		inputPlugins();
+		changeSource();
+	    }
+	}
     }
 
 
@@ -156,12 +168,26 @@ Rectangle {
     }
     
     function inputPlugins() {
-        return InputConfiguration.inputPlugins();
+	if (checkBox.checked) {
+            return InputConfiguration.inputPlugins();
+	} else {
+	    return InputConfiguration.activeInputPlugins();
+	}
     }
 
     function initialize() {
-        loader.source = "";
-        loader.source = InputConfiguration.configurationLayout(box.currentText);
+        chanageSource();
+    }
+
+    function changeSource() {
+	loader.source = "";
+	var source = InputConfiguration.configurationLayout(box.currentText);
+	loader.source = "OpenVrConfiguration.qml";
+	if (source === "") {
+	    box.label = "(not configurable)";
+	} else {
+	    box.label = "";
+	}
     }
 
     Timer {

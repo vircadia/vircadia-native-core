@@ -301,7 +301,6 @@ void ViveControllerManager::InputDevice::calibrateFromUI(const controller::Input
     if (_calibrate) {
         calibrateOrUncalibrate(inputCalibrationData);
         _calibrate = false;
-        qDebug() << "------------> calibrateFromUI <-------------";
     }
 }
 
@@ -337,7 +336,6 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
 void ViveControllerManager::InputDevice::calibrateNextFrame() {
     Locker locker(_lock);
     _calibrate = true;
-    qDebug() << "---------> calibrateNextFrame <----------";
 }
 
 QJsonObject ViveControllerManager::InputDevice::configurationSettings() {
@@ -903,7 +901,6 @@ QString ViveControllerManager::InputDevice::configToString(Config config) {
 }
 
 void ViveControllerManager::InputDevice::setConfigFromString(const QString& value) {
-    qDebug() << "------------> setConfigFromString" << value;
     if (value ==  "Auto") {
         _preferedConfig = Config::Auto;
     } else if (value == "Feet") {
