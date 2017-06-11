@@ -9,7 +9,7 @@
 //  This Client script sets up the Camera Control Tablet App, which can be used to configure and
 //  drive your avatar with easing/smoothing movement constraints for a less jittery filming experience.
 
-/* eslint-disable comma-dangle */
+/* eslint-disable comma-dangle, no-empty */
 "use strict";
 
 var VERSION = '0.0.0d',
@@ -19,7 +19,7 @@ var VERSION = '0.0.0d',
         text: '\nCam Drive',
         icon: Script.resolvePath('Eye-Camera.svg'),
     },
-    DEFAULT_TOGGLE_KEY = '{ "text": "SPACE" }';
+    DEFAULT_TOGGLE_KEY = { text: 'SPACE' };
 
 var MINIMAL_CURSOR_SCALE = 0.5,
     FILENAME = Script.resolvePath(''),
@@ -27,10 +27,7 @@ var MINIMAL_CURSOR_SCALE = 0.5,
         false || (FILENAME.match(/[&#?]debug[=](\w+)/)||[])[1] ||
             Settings.getValue(NAMESPACE + '/debug')
     ),
-    EPSILON = 1e-6,
-    DEG_TO_RAD = Math.PI / 180.0;
-
-WANT_DEBUG = 1;
+    EPSILON = 1e-6;
 
 function log() {
     print( NAMESPACE + ' | ' + [].slice.call(arguments).join(' ') );
@@ -42,6 +39,7 @@ var require = Script.require,
     overlayDebugOutput = function(){};
 
 if (WANT_DEBUG) {
+    log('WANT_DEBUG is true; instrumenting debug rigging', WANT_DEBUG);
     _instrumentDebugValues();
 }
 
@@ -49,7 +47,9 @@ var _utils = require('./modules/_utils.js'),
     assert = _utils.assert,
     CustomSettingsApp = require('./modules/custom-settings-app/CustomSettingsApp.js'),
     movementUtils = require('./modules/movement-utils.js?'+ +new Date),
-    configUtils = require('./modules/config-utils.js');
+    configUtils = require('./modules/config-utils.js'),
+    AvatarUpdater = require('./avatar-updater.js');
+
 
 Object.assign = Object.assign || _utils.assign;
 
@@ -78,11 +78,13 @@ var DEFAULTS = {
     'rotation-x-speed': 45,
     'rotation-y-speed': 60,
     'rotation-z-speed': 1,
-    'rotation-mouse-multiplier': 1.0,
-    'rotation-keyboard-multiplier': 1.0,
+    'mouse-multiplier': 1.0,
+    'keyboard-multiplier': 1.0,
 
     'ui-enable-tooltips': true,
     'ui-show-advanced-options': false,
+
+    // 'toggle-key': DEFAULT_TOGGLE_KEY,
 };
 
 // map setting names to/from corresponding Menu and API properties
@@ -117,8 +119,18 @@ var APPLICATION_SETTINGS = {
             cameraControls.setEnabled(!!nv);
         },
     },
+    // 'toggle-key': {
+    //     get: function() { try {
+    //         return JSON.parse(cameraConfig.getValue('toggle-key'));
+    //     } catch (e) {
+    //         return DEFAULT_TOGGLE_KEY;
+    //     } },
+    //     set: function(nv) {
+    //         assert(typeof nv === 'object', 'new toggle-key is not an object: ' + nv);
+    //         cameraConfig.setValue('toggle-key', JSON.parse(JSON.stringify(nv)));
+    //     },
+    // },
 };
-
 
 var DEBUG_INFO = {
     // these values are also sent to the tablet app after EventBridge initialization
@@ -157,9 +169,9 @@ var globalState = {
     // current input controls' effective velocities
     currentVelocities: new movementUtils.VelocityTracker({
         translation: Vec3.ZERO,
-        step_translation: Vec3.ZERO,
+        step_translation: Vec3.ZERO, // eslint-disable-line camelcase
         rotation: Vec3.ZERO,
-        step_rotation: Vec3.ZERO,
+        step_rotation: Vec3.ZERO,    // eslint-disable-line camelcase
         zoom: Vec3.ZERO,
     }),
 };
@@ -186,9 +198,11 @@ function main() {
         defaultValues: DEFAULTS,
     });
 
-    var toggleKey = JSON.parse(DEFAULT_TOGGLE_KEY);
+    var toggleKey = DEFAULT_TOGGLE_KEY;
     if (cameraConfig.getValue('toggle-key')) {
-        try { toggleKey = JSON.parse(cameraConfig.getValue('toggle-key')); } catch(e) {}
+        try {
+            toggleKey = JSON.parse(cameraConfig.getValue('toggle-key'));
+        } catch (e) {}
     }
     // set up a monitor to observe configuration changes between the two sources
     var MONITOR_INTERVAL_MS = 1000;
@@ -219,11 +233,11 @@ function main() {
     });
 
     settingsApp.onUnhandledMessage = function(msg) {
-        switch(msg.method) {
+        switch (msg.method) {
             case 'window.close': {
                 this.toggle(false);
             } break;
-            case 'reloadClientScript':  {
+            case 'reloadClientScript': {
                 log('reloadClientScript...');
                 _utils.reloadClientScript(FILENAME);
             } break;
@@ -236,10 +250,9 @@ function main() {
                 }, 500);
             } break;
             case 'reset': {
-                //if (!Window.confirm('Reset all camera move settings to system defaults?')) {
+                // if (!Window.confirm('Reset all camera move settings to system defaults?')) {
                 //    return;
-                //}
-                var novalue = Uuid.generate();
+                // }
                 var resetValues = {};
                 Object.keys(DEFAULTS).reduce(function(out, key) {
                     var resolved = cameraConfig.resolve(key);
@@ -259,7 +272,7 @@ function main() {
                 }
             } break;
             case 'overlayWebWindow': {
-                _overlayWebWindow(msg.options);
+                _utils._overlayWebWindow(msg.options);
             } break;
             default: {
                 log('onUnhandledMessage', JSON.stringify(msg,0,2));
@@ -273,8 +286,8 @@ function main() {
         namespace: DEFAULTS.namespace,
         mouseSmooth: cameraConfig.getValue('enable-mouse-smooth'),
         xexcludeNames: [ 'Keyboard.C', 'Keyboard.E', 'Actions.TranslateY' ],
-        mouseMultiplier: cameraConfig.getValue('rotation-mouse-multiplier'),
-        keyboardMultiplier: cameraConfig.getValue('rotation-keyboard-multiplier'),
+        mouseMultiplier: cameraConfig.getValue('mouse-multiplier'),
+        keyboardMultiplier: cameraConfig.getValue('keyboard-multiplier'),
         eventFilter: function eventFilter(from, event, defaultFilter) {
             var result = defaultFilter(from, event),
                 driveKeyName = event.driveKeyName;
@@ -299,15 +312,21 @@ function main() {
     Script.scriptEnding.connect(eventMapper, 'disable');
     applicationConfig.register({
         'enable-mouse-smooth': { object: [ eventMapper.options, 'mouseSmooth' ] },
-        'rotation-keyboard-multiplier': { object: [ eventMapper.options, 'keyboardMultiplier' ] },
-        'rotation-mouse-multiplier': { object: [ eventMapper.options, 'mouseMultiplier' ] },
+        'keyboard-multiplier': { object: [ eventMapper.options, 'keyboardMultiplier' ] },
+        'mouse-multiplier': { object: [ eventMapper.options, 'mouseMultiplier' ] },
     });
 
     // ----------------------------------------------------------------------------
     // set up the top-level camera controls manager / animator
+    var avatarUpdater = new AvatarUpdater({
+        debugChannel: _debugChannel,
+        globalState: globalState,
+        getCameraMovementSettings: getCameraMovementSettings,
+        getMovementState: _utils.bind(eventMapper, 'getState'),
+    });
     cameraControls = new movementUtils.CameraControls({
         namespace: DEFAULTS.namespace,
-        update: update,
+        update: avatarUpdater,
         threadMode: cameraConfig.getValue('thread-update-mode'),
         fps: cameraConfig.getValue('fps'),
         getRuntimeSeconds: _utils.getRuntimeSeconds,
@@ -358,7 +377,7 @@ function main() {
     function updateButtonText() {
         var lines = [
             settingsApp.isActive ? '(app open)' : '',
-            cameraControls.enabled ? (update.momentaryFPS||0).toFixed(2) + 'fps' : BUTTON_CONFIG.text.trim()
+            cameraControls.enabled ? (avatarUpdater.update.momentaryFPS||0).toFixed(2) + 'fps' : BUTTON_CONFIG.text.trim()
         ];
         button && button.editProperties({ text: lines.join('\n') });
     }
@@ -375,15 +394,15 @@ function main() {
                 fpsTimeout = 0;
             }
             eventMapper.disable();
-            _resetMyAvatarMotor({ MyAvatar: MyAvatar });
+            avatarUpdater._resetMyAvatarMotor({ MyAvatar: MyAvatar });
             updateButtonText();
         }
-        cameraConfig.getValue('debug') && Overlays.editOverlay(overlayDebugOutput.overlayID, { visible: enabled });
+        overlayDebugOutput.overlayID && Overlays.editOverlay(overlayDebugOutput.overlayID, { visible: enabled });
     });
 
     var resetIfChanged = [
         'minimal-cursor', 'drive-mode', 'fps', 'thread-update-mode',
-        'rotation-mouse-multiplier', 'rotation-keyboard-multiplier',
+        'mouse-multiplier', 'keyboard-multiplier',
         'enable-mouse-smooth', 'constant-delta-time',
     ].filter(Boolean).map(_utils.bind(cameraConfig, 'resolve'));
 
@@ -430,7 +449,7 @@ function onCameraControlsEnabled() {
         Reticle.scale = MINIMAL_CURSOR_SCALE;
     }
     log('cameraConfig', JSON.stringify({
-        cameraConfig: getCameraMovementSettings(cameraConfig),
+        cameraConfig: getCameraMovementSettings(),
         //DEFAULTS: DEFAULTS
     }));
 }
@@ -463,20 +482,22 @@ function onCameraModeChanged(mode, oldMode) {
 }
 
 // consolidate and normalize cameraConfig settings
-function getCameraMovementSettings(cameraConfig) {
+function getCameraMovementSettings() {
     return {
         epsilon: EPSILON,
         debug: cameraConfig.getValue('debug'),
         driveMode: cameraConfig.getValue('drive-mode'),
         threadMode: cameraConfig.getValue('thread-update-mode'),
+        fps: cameraConfig.getValue('fps'),
         useHead: cameraConfig.getValue('use-head'),
         stayGrounded: cameraConfig.getValue('stay-grounded'),
         preventRoll: cameraConfig.getValue('prevent-roll'),
         useConstantDeltaTime: cameraConfig.getValue('constant-delta-time'),
 
+        collisionsEnabled: applicationConfig.getValue('Avatar/Enable Avatar Collisions'),
         mouseSmooth: cameraConfig.getValue('enable-mouse-smooth'),
-        mouseMultiplier: cameraConfig.getValue('rotation-mouse-multiplier'),
-        keyboardMultiplier: cameraConfig.getValue('rotation-keyboard-multiplier'),
+        mouseMultiplier: cameraConfig.getValue('mouse-multiplier'),
+        keyboardMultiplier: cameraConfig.getValue('keyboard-multiplier'),
 
         rotation: _getEasingGroup(cameraConfig, 'rotation'),
         translation: _getEasingGroup(cameraConfig, 'translation'),
@@ -489,12 +510,8 @@ function getCameraMovementSettings(cameraConfig) {
         if (group === 'zoom') {
             // BoomIn / TranslateCameraZ support is only partially plumbed -- for now use scaled translation easings
             group = 'translation';
-            multiplier = 0.01;
-        } else if (group === 'rotation') {
-            // degrees -> radians
-            //multiplier = DEG_TO_RAD;
+            multiplier = 0.001;
         }
-
         return {
             easeIn: cameraConfig.getFloat(group + '-ease-in'),
             easeOut: cameraConfig.getFloat(group + '-ease-out'),
@@ -508,232 +525,7 @@ function getCameraMovementSettings(cameraConfig) {
     }
 }
 
-var DEFAULT_MOTOR_TIMESCALE = 1e6; // a large value that matches Interface's default
-var EASED_MOTOR_TIMESCALE = 0.01;  // a small value to make Interface quickly apply MyAvatar.motorVelocity
-var EASED_MOTOR_THRESHOLD = 0.1;   // above this speed (m/s) EASED_MOTOR_TIMESCALE is used
-var ACCELERATION_MULTIPLIERS = { translation: 1, rotation: 1, zoom: 1 };
-var STAYGROUNDED_PITCH_THRESHOLD = 45.0; // degrees; ground level is maintained when pitch is within this threshold
-var MIN_DELTA_TIME = 0.0001; // to avoid math overflow, never consider dt less than this value
-
-update.frameCount = 0;
-update.endTime = _utils.getRuntimeSeconds();
-
-function update(dt) {
-    update.frameCount++;
-    var startTime = _utils.getRuntimeSeconds();
-    var settings = getCameraMovementSettings(cameraConfig);
-
-    var collisions = applicationConfig.getValue('Avatar/Enable Avatar Collisions'),
-        independentCamera = Camera.mode === 'independent',
-        headPitch = MyAvatar.headPitch;
-
-    var actualDeltaTime = Math.max(MIN_DELTA_TIME, (startTime - update.endTime)),
-        deltaTime;
-
-    if (settings.useConstantDeltaTime) {
-        deltaTime = settings.threadMode === movementUtils.CameraControls.ANIMATION_FRAME ?
-            (1 / cameraControls.fps) : (1 / 90);
-    } else if (settings.threadMode === movementUtils.CameraControls.SCRIPT_UPDATE) {
-        deltaTime = dt;
-    } else {
-        deltaTime = actualDeltaTime;
-    }
-
-    var orientationProperty = settings.useHead ? 'headOrientation' : 'orientation',
-        currentOrientation = independentCamera ? Camera.orientation : MyAvatar[orientationProperty],
-        currentPosition = MyAvatar.position;
-
-    var previousValues = globalState.previousValues,
-        pendingChanges = globalState.pendingChanges,
-        currentVelocities = globalState.currentVelocities;
-
-    var movementState = eventMapper.getState({ update: deltaTime }),
-        targetState = movementUtils.applyEasing(deltaTime, 'easeIn', settings, movementState, ACCELERATION_MULTIPLIERS),
-        dragState = movementUtils.applyEasing(deltaTime, 'easeOut', settings, currentVelocities, ACCELERATION_MULTIPLIERS);
-
-    currentVelocities.integrate(targetState, currentVelocities, dragState, settings);
-
-    var currentSpeed = Vec3.length(currentVelocities.translation),
-        targetSpeed = Vec3.length(movementState.translation),
-        verticalHold = movementState.isGrounded && settings.stayGrounded && Math.abs(headPitch) < STAYGROUNDED_PITCH_THRESHOLD;
-
-    var deltaOrientation = Quat.fromVec3Degrees(Vec3.multiply(deltaTime, currentVelocities.rotation)),
-        targetOrientation = Quat.normalize(Quat.multiply(currentOrientation, deltaOrientation));
-
-    var targetVelocity = Vec3.multiplyQbyV(targetOrientation, currentVelocities.translation);
-
-    if (verticalHold) {
-        targetVelocity.y = 0;
-    }
-
-    var deltaPosition = Vec3.multiply(deltaTime, targetVelocity);
-
-    _resetMyAvatarMotor(pendingChanges);
-
-    if (!independentCamera) {
-        var DriveModes = movementUtils.DriveModes;
-        switch(settings.driveMode) {
-            case DriveModes.MOTOR: {
-                if (currentSpeed > EPSILON || targetSpeed > EPSILON) {
-                    var motorTimescale = (currentSpeed > EASED_MOTOR_THRESHOLD ? EASED_MOTOR_TIMESCALE : DEFAULT_MOTOR_TIMESCALE);
-                    var motorPitch = Quat.fromPitchYawRollDegrees(headPitch, 180, 0),
-                        motorVelocity = Vec3.multiplyQbyV(motorPitch, currentVelocities.translation);
-                    if (verticalHold) {
-                        motorVelocity.y = 0;
-                    }
-                    Object.assign(pendingChanges.MyAvatar, {
-                        motorVelocity: motorVelocity,
-                        motorTimescale: motorTimescale,
-                    });
-                }
-                break;
-            }
-            case DriveModes.THRUST: {
-                var thrustVector = currentVelocities.translation,
-                    maxThrust = settings.translation.maxVelocity,
-                    thrust;
-                if (targetSpeed > EPSILON) {
-                    thrust = movementUtils.calculateThrust(maxThrust * 5, thrustVector, previousValues.thrust);
-                } else if (currentSpeed > 1 && Vec3.length(previousValues.thrust) > 1) {
-                    thrust = Vec3.multiply(-currentSpeed / 10.0, thrustVector);
-                } else {
-                    thrust = Vec3.ZERO;
-                }
-                if (thrust) {
-                    thrust = Vec3.multiplyQbyV(MyAvatar[orientationProperty], thrust);
-                    if (verticalHold) {
-                        thrust.y = 0;
-                    }
-                }
-                previousValues.thrust = pendingChanges.MyAvatar.setThrust = thrust;
-                break;
-            }
-            case DriveModes.JITTER_TEST:
-            case DriveModes.POSITION: {
-                pendingChanges.MyAvatar.position = Vec3.sum(currentPosition, deltaPosition);
-                break;
-            }
-            default: {
-                throw new Error('unknown driveMode: ' + settings.driveMode);
-                break;
-            }
-        }
-    }
-
-    var finalOrientation;
-    switch (Camera.mode) {
-        case 'mirror': // fall through
-        case 'independent':
-            targetOrientation = settings.preventRoll ? Quat.cancelOutRoll(targetOrientation) : targetOrientation;
-            var boomVector = Vec3.multiply(-currentVelocities.zoom.z, Quat.getFront(targetOrientation)),
-                deltaCameraPosition = Vec3.sum(boomVector, deltaPosition);
-            Object.assign(pendingChanges.Camera, {
-                position: Vec3.sum(Camera.position, deltaCameraPosition),
-                orientation: targetOrientation,
-            });
-            break;
-        case 'entity':
-            finalOrientation = targetOrientation;
-            break;
-        default: // 'first person', 'third person'
-            finalOrientation = targetOrientation;
-            break;
-    }
-
-    if (settings.driveMode === movementUtils.DriveModes.JITTER_TEST) {
-        finalOrientation = Quat.multiply(MyAvatar[orientationProperty], Quat.fromPitchYawRollDegrees(0, 60 * deltaTime, 0));
-        // Quat.fromPitchYawRollDegrees(0, _utils.getRuntimeSeconds() * 60, 0)
-    }
-
-    if (finalOrientation) {
-        if (settings.preventRoll) {
-            finalOrientation = Quat.cancelOutRoll(finalOrientation);
-        }
-        previousValues.finalOrientation = pendingChanges.MyAvatar[orientationProperty] = Quat.normalize(finalOrientation);
-    }
-
-    if (!movementState.mouseSmooth && movementState.isRightMouseButton) {
-        // directly apply mouse pitch and yaw when mouse smoothing is disabled
-        _applyDirectPitchYaw(deltaTime, movementState, settings);
-    }
-
-    var endTime = _utils.getRuntimeSeconds();
-    var cycleTime = endTime - update.endTime;
-    update.endTime = endTime;
-
-    var submitted = pendingChanges.submit();
-
-    update.momentaryFPS = 1 / actualDeltaTime;
-
-    if (settings.debug && update.frameCount % 120  === 0) {
-        Messages.sendLocalMessage(_debugChannel, JSON.stringify({
-            threadMode: cameraControls.threadMode,
-            driveMode: settings.driveMode,
-            orientationProperty: orientationProperty,
-            isGrounded: movementState.isGrounded,
-            targetAnimationFPS: cameraControls.threadMode === movementUtils.CameraControls.ANIMATION_FRAME ? cameraControls.fps : undefined,
-            actualFPS: 1 / actualDeltaTime,
-            effectiveAnimationFPS: 1 / deltaTime,
-            seconds: {
-                startTime: startTime,
-                endTime: endTime,
-            },
-            milliseconds: {
-                actualDeltaTime: actualDeltaTime * 1000,
-                deltaTime: deltaTime * 1000,
-                cycleTime: cycleTime * 1000,
-                calculationTime: (endTime - startTime) * 1000,
-            },
-            finalOrientation: finalOrientation,
-            thrust: thrust,
-            maxVelocity: settings.translation,
-            targetVelocity: targetVelocity,
-            currentSpeed: currentSpeed,
-            targetSpeed: targetSpeed,
-        }, 0, 2));
-    }
-}
-
-if (0) {
-    Script.update.connect(gc);
-    Script.scriptEnding.connect(function() {
-        Script.update.disconnect(gc);
-    });
-}
-
-function _applyDirectPitchYaw(deltaTime, movementState, settings) {
-    var orientationProperty = settings.useHead ? 'headOrientation' : 'orientation',
-        rotation = movementState.rotation,
-        speed = Vec3.multiply(-DEG_TO_RAD / 2.0, settings.rotation.speed);
-
-    var previousValues = globalState.previousValues,
-        pendingChanges = globalState.pendingChanges,
-        currentVelocities = globalState.currentVelocities;
-
-    var previous = previousValues.pitchYawRoll,
-        target = Vec3.multiply(deltaTime, Vec3.multiplyVbyV(rotation, speed)),
-        pitchYawRoll = Vec3.mix(previous, target, 0.5),
-        orientation = Quat.fromVec3Degrees(pitchYawRoll);
-
-    previousValues.pitchYawRoll = pitchYawRoll;
-
-    if (pendingChanges.MyAvatar.headOrientation || pendingChanges.MyAvatar.orientation) {
-        var newOrientation = Quat.multiply(MyAvatar[orientationProperty], orientation);
-        delete pendingChanges.MyAvatar.headOrientation;
-        delete pendingChanges.MyAvatar.orientation;
-        if (settings.preventRoll) {
-            newOrientation = Quat.cancelOutRoll(newOrientation);
-        }
-        MyAvatar[orientationProperty] = newOrientation;
-    } else if (pendingChanges.Camera.orientation) {
-        var cameraOrientation = Quat.multiply(Camera.orientation, orientation);
-        if (settings.preventRoll) {
-            cameraOrientation = Quat.cancelOutRoll(cameraOrientation);
-        }
-        Camera.orientation = cameraOrientation;
-    }
-    currentVelocities.rotation = Vec3.ZERO;
-}
+// ----------------------------------------------------------------------------
 
 // ----------------------------------------------------------------------------
 function _startConfigationMonitor(applicationConfig, cameraConfig, interval) {
@@ -751,20 +543,6 @@ function _startConfigationMonitor(applicationConfig, cameraConfig, interval) {
             }
         });
     }, interval);
-}
-
-// ----------------------------------------------------------------------------
-
-function _resetMyAvatarMotor(targetObject) {
-    if (MyAvatar.motorTimescale !== DEFAULT_MOTOR_TIMESCALE) {
-        targetObject.MyAvatar.motorTimescale = DEFAULT_MOTOR_TIMESCALE;
-    }
-    if (MyAvatar.motorReferenceFrame !== 'avatar') {
-        targetObject.MyAvatar.motorReferenceFrame = 'avatar';
-    }
-    if (Vec3.length(MyAvatar.motorVelocity)) {
-        targetObject.MyAvatar.motorVelocity = Vec3.ZERO;
-    }
 }
 
 // ----------------------------------------------------------------------------
@@ -789,7 +567,7 @@ function _createOverlayDebugOutput(options) {
 
     Script.scriptEnding.connect(function() {
         Overlays.deleteOverlay(overlayDebugOutput.overlayID);
-        Messages.unsubscribe(debugChannel);
+        Messages.unsubscribe(_debugChannel);
         Messages.messageReceived.disconnect(onMessageReceived);
     });
     function overlayDebugOutput(output) {
@@ -835,8 +613,8 @@ function _instrumentDebugValues() {
     require = Script.require(Script.resolvePath('./modules/_utils.js') + cacheBuster).makeDebugRequire(Script.resolvePath('.'));
     APP_HTML_URL += cacheBuster;
     overlayDebugOutput = _createOverlayDebugOutput({
-        lineHeight: 10,
-        font: { size: 10 },
+        lineHeight: 12,
+        font: { size: 12 },
         width: 250, height: 800 });
     // auto-disable camera move mode when debugging
     Script.scriptEnding.connect(function() {
@@ -847,11 +625,13 @@ function _instrumentDebugValues() {
 // Show fatal (unhandled) exceptions in a BSOD popup
 Script.unhandledException.connect(function onUnhandledException(error) {
     log('UNHANDLED EXCEPTION!!', error, error && error.stack);
-    try { cameraControls.disable(); } catch(e) {}
+    try {
+        cameraControls.disable();
+    } catch (e) {}
     Script.unhandledException.disconnect(onUnhandledException);
     if (WANT_DEBUG) {
         // show blue screen of death with the error details
-        _utils.BSOD({
+        new _utils.BSOD({
             error: error,
             buttons: [ 'Abort', 'Retry', 'Fail' ],
             debugInfo: DEBUG_INFO,

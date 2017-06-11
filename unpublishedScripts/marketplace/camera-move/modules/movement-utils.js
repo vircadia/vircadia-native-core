@@ -1,7 +1,7 @@
 // movement-utils.js -- helper classes that help manage related Controller.*Event and input API bindings for movement controls
 
-/* eslint-disable comma-dangle */
-/* global require: true */
+/* eslint-disable comma-dangle, no-empty */
+/* global require: true, DriveKeys, console, __filename, __dirname */
 /* eslint-env commonjs */
 "use strict";
 
@@ -27,12 +27,13 @@ module.exports = {
     },
 };
 
-var MAPPING_TEMPLATE = require('./movement-utils.mapping.json' + (Script.resolvePath('').match(/[?#].*$/)||[''])[0]);
+var MAPPING_TEMPLATE = require('./movement-utils.mapping.json' + (__filename.match(/[?#].*$/)||[''])[0]);
 
 var WANT_DEBUG = false;
 
 function log() {
-    print('movement-utils | ' + [].slice.call(arguments).join(' '));
+    // eslint-disable-next-line no-console
+    (typeof Script === 'object' ? print : console.log)('movement-utils | ' + [].slice.call(arguments).join(' '));
 }
 
 var debugPrint = function() {};
@@ -43,9 +44,11 @@ var _utils = require('./_utils.js'),
     assert = _utils.assert;
 
 if (1||WANT_DEBUG) {
-    require = _utils.makeDebugRequire(Script.resolvePath('.'));
+    require = _utils.makeDebugRequire(__dirname);
     _utils = require('./_utils.js'); // re-require in debug mode
-    if (WANT_DEBUG) debugPrint = log;
+    if (WANT_DEBUG) {
+        debugPrint = log;
+    }
 }
 
 Object.assign = Object.assign || _utils.assign;
@@ -55,7 +58,7 @@ assert(enumMeta.version >= '0.0.1', 'enumMeta >= 0.0.1 expected but got: ' + enu
 
 MovementEventMapper.CAPTURE_DRIVE_KEYS = 'drive-keys';
 MovementEventMapper.CAPTURE_ACTION_EVENTS = 'action-events';
-//MovementEventMapper.CAPTURE_KEYBOARD_EVENTS = 'key-events';
+// MovementEventMapper.CAPTURE_KEYBOARD_EVENTS = 'key-events';
 
 function MovementEventMapper(options) {
     assert('namespace' in options, '.namespace expected ' + Object.keys(options) );
@@ -82,6 +85,7 @@ function MovementEventMapper(options) {
     this.inputMapping.virtualActionEvent.connect(this, 'onVirtualActionEvent');
 }
 MovementEventMapper.prototype = {
+    constructor: MovementEventMapper,
     defaultEventFilter: function(from, event) {
         return event.actionValue;
     },
@@ -103,25 +107,10 @@ MovementEventMapper.prototype = {
         return state;
     },
     updateOptions: function(options) {
-        var changed = 0;
-        for (var p in this.options) {
-            if (p in options) {
-                log('MovementEventMapper updating options.'+p, this.options[p] + ' -> ' + options[p]);
-                this.options[p] = options[p];
-                changed++;
-            }
-        }
-        for (var p in options) {
-            if (!(p in this.options)) {
-                var value = options[p];
-                log('MovementEventMapper warning: ignoring option:', p, (value +'').substr(0, 40)+'...');
-            }
-        }
-        return changed;
+        return _updateOptions(this.options, options || {}, this.constructor.name);
     },
     applyOptions: function(options, applyNow) {
-        var changed = this.updateOptions(options || {});
-        if (changed && applyNow) {
+        if (this.updateOptions(options) && applyNow) {
             this.reset();
         }
     },
@@ -148,6 +137,7 @@ MovementEventMapper.prototype = {
         }
     },
     bindEvents: function bindEvents(capture) {
+        var captureMode = this.options.captureMode;
         assert(function assertion() {
             return captureMode === MovementEventMapper.CAPTURE_ACTION_EVENTS ||
                 captureMode === MovementEventMapper.CAPTURE_DRIVE_KEYS;
@@ -155,13 +145,14 @@ MovementEventMapper.prototype = {
         log('bindEvents....', capture, this.options.captureMode);
         var exclude = Array.isArray(this.options.excludeNames) && this.options.excludeNames;
 
+        var tmp;
         if (!capture || this.options.captureMode === MovementEventMapper.CAPTURE_ACTION_EVENTS) {
-            var tmp = capture ? 'captureActionEvents' : 'releaseActionEvents';
+            tmp = capture ? 'captureActionEvents' : 'releaseActionEvents';
             log('bindEvents -- ', tmp.toUpperCase());
             Controller[tmp]();
         }
         if (!capture || this.options.captureMode === MovementEventMapper.CAPTURE_DRIVE_KEYS) {
-            var tmp = capture ? 'disableDriveKey' : 'enableDriveKey';
+            tmp = capture ? 'disableDriveKey' : 'enableDriveKey';
             log('bindEvents -- ', tmp.toUpperCase());
             for (var p in DriveKeys) {
                 if (capture && (exclude && ~exclude.indexOf(p))) {
@@ -173,7 +164,7 @@ MovementEventMapper.prototype = {
         }
         try {
             Controller.actionEvent[capture ? 'connect' : 'disconnect'](this, 'onActionEvent');
-        } catch (e) { /* eslint-disable-line empty-block */ }
+        } catch (e) { }
 
         if (!capture || !/person/i.test(Camera.mode)) {
             Controller[capture ? 'captureWheelEvents' : 'releaseWheelEvents']();
@@ -200,7 +191,7 @@ MovementEventMapper.prototype = {
             actionValue: actionValue,
             extra: extra
         };
-        if(0)debugPrint('onActionEvent', actionID, actionName, driveKeyName);
+        // debugPrint('onActionEvent', actionID, actionName, driveKeyName);
         this.states.handleActionEvent('Actions.' + actionName, event);
     },
     onVirtualActionEvent: function(from, event) {
@@ -227,28 +218,22 @@ function VirtualDriveKeys(options) {
     });
 }
 VirtualDriveKeys.prototype = {
+    constructor: VirtualDriveKeys,
     update: function update(dt) {
         Object.keys(this.$pendingReset).forEach(_utils.bind(this, function(i) {
-            var reset = this.$pendingReset[i];
-            if (reset.event.driveKey in this) {
-                this.setValue(reset.event, 0);
-            }
+            var event = this.$pendingReset[i].event;
+            (event.driveKey in this) && this.setValue(event, 0);
         }));
     },
     getValue: function(driveKey, defaultValue) {
         return driveKey in this ? this[driveKey] : defaultValue;
     },
+    _defaultFilter: function(from, event) {
+        return event.actionValue; 
+    },
     handleActionEvent: function(from, event) {
-        var value = event.actionValue;
-        if (this.$eventFilter) {
-            value = this.$eventFilter(from, event, function(from, event) {
-                return event.actionValue;
-            });
-        }
-        if (event.driveKeyName) {
-            return this.setValue(event, value);
-        }
-        return false;
+        var value = this.$eventFilter ? this.$eventFilter(from, event, this._defaultFilter) : event.actionValue;
+        return event.driveKeyName && this.setValue(event, value);
     },
     setValue: function(event, value) {
         var driveKeyName = event.driveKeyName,
@@ -256,8 +241,6 @@ VirtualDriveKeys.prototype = {
             id = event.id,
             previous = this[driveKey],
             autoReset = (driveKeyName === 'ZOOM');
-
-        if(0)debugPrint('setValue', 'id:'+id, 'driveKey:' + driveKey, 'driveKeyName:'+driveKeyName, 'actionName:'+event.actionName, 'previous:'+previous, 'value:'+value);
 
         this[driveKey] = value;
 
@@ -273,7 +256,6 @@ VirtualDriveKeys.prototype = {
     reset: function() {
         Object.keys(this).forEach(_utils.bind(this, function(p) {
             this[p] = 0.0;
-            if(0)debugPrint('actionStates.$pendingReset reset', enumMeta.DriveKeyNames[p]);
         }));
         Object.keys(this.$pendingReset).forEach(_utils.bind(this, function(p) {
             delete this.$pendingReset[p];
@@ -297,7 +279,7 @@ VirtualDriveKeys.prototype = {
                     y: this.getValue(DriveKeys.TRANSLATE_Y) || 0,
                     z: this.getValue(DriveKeys.TRANSLATE_Z) || 0
                 },
-                step_translation: {
+                step_translation: { // eslint-disable-line camelcase
                     x: 'STEP_TRANSLATE_X' in DriveKeys && this.getValue(DriveKeys.STEP_TRANSLATE_X) || 0,
                     y: 'STEP_TRANSLATE_Y' in DriveKeys && this.getValue(DriveKeys.STEP_TRANSLATE_Y) || 0,
                     z: 'STEP_TRANSLATE_Z' in DriveKeys && this.getValue(DriveKeys.STEP_TRANSLATE_Z) || 0
@@ -307,7 +289,7 @@ VirtualDriveKeys.prototype = {
                     y: this.getValue(DriveKeys.YAW) || 0,
                     z: 'ROLL' in DriveKeys && this.getValue(DriveKeys.ROLL) || 0
                 },
-                step_rotation: {
+                step_rotation: { // eslint-disable-line camelcase
                     x: 'STEP_PITCH' in DriveKeys && this.getValue(DriveKeys.STEP_PITCH) || 0,
                     y: 'STEP_YAW' in DriveKeys && this.getValue(DriveKeys.STEP_YAW) || 0,
                     z: 'STEP_ROLL' in DriveKeys && this.getValue(DriveKeys.STEP_ROLL) || 0
@@ -340,6 +322,7 @@ function MovementMapping(options) {
     this.virtualActionEvent = _utils.signal(function virtualActionEvent(from, event) {});
 }
 MovementMapping.prototype = {
+    constructor: MovementMapping,
     enable: function() {
         this.enabled = true;
         if (this.mapping) {
@@ -363,25 +346,10 @@ MovementMapping.prototype = {
         enabled && this.enable();
     },
     updateOptions: function(options) {
-        var changed = 0;
-        for (var p in this.options) {
-            if (p in options) {
-                log('MovementMapping updating options.'+p, this.options[p] + ' -> ' + options[p]);
-                this.options[p] = options[p];
-                changed++;
-            }
-        }
-        for (var p in options) {
-            if (!(p in this.options)) {
-                var value = options[p];
-                log('MovementMapping warning: ignoring option:', p, (value +'').substr(0, 40)+'...');
-            }
-        }
-        return changed;
+        return _updateOptions(this.options, options || {}, this.constructor.name);
     },
-    applyOptions: function(options) {
-        var changed = this.updateOptions(options || {});
-        if (changed && applyNow) {
+    applyOptions: function(options, applyNow) {
+        if (this.updateOptions(options) && applyNow) {
             this.reset();
         }
     },
@@ -426,7 +394,7 @@ MovementMapping.prototype = {
         this._mapping = this._getTemplate();
         var mappingJSON = JSON.stringify(this._mapping, 0, 2);
         var mapping = Controller.parseMapping(mappingJSON);
-        log(mappingJSON);
+        debugPrint(mappingJSON);
         mapping.name = mapping.name || this._mapping.name;
 
         mapping.from(Controller.Hardware.Keyboard.Shift).peek().to(_utils.bind(this, 'onShiftKey'));
@@ -460,7 +428,7 @@ MovementMapping.prototype = {
 
         template.channels = template.channels.filter(_utils.bind(this, function(item, i) {
             debugPrint('channel['+i+']', item.from && item.from.makeAxis, item.to, JSON.stringify(item.filters) || '');
-            //var hasFilters = Array.isArray(item.filters) && !item.filters[1];
+            // var hasFilters = Array.isArray(item.filters) && !item.filters[1];
             item.filters = Array.isArray(item.filters) ? item.filters :
                 typeof item.filters === 'string' ? [ { type: item.filters }] : [ item.filters ];
 
@@ -477,30 +445,28 @@ MovementMapping.prototype = {
                 return false;
             }
             var when = Array.isArray(item.when) ? item.when : [item.when];
-            when = when.filter(shouldInclude);
-            function shouldIncludeWhen(p, i) {
-                if (~exclude.indexOf(when)) {
-                    log('EXCLUDING item.when === ' + when);
+            for (var j=0; j < when.length; j++) {
+                if (~exclude.indexOf(when[j])) {
+                    log('EXCLUDING item.when contains ' + when[j]);
+                    return false;
+                }
+            }
+            function shouldInclude(p, i) {
+                if (~exclude.indexOf(p)) {
+                    log('EXCLUDING from.makeAxis[][' + i + '] === ' + p);
                     return false;
                 }
                 return true;
             }
-            item.when = when.length > 1 ? when : when[0];
 
             if (item.from && Array.isArray(item.from.makeAxis)) {
                 var makeAxis = item.from.makeAxis;
-                function shouldInclude(p, i) {
-                    if (~exclude.indexOf(p)) {
-                        log('EXCLUDING from.makeAxis[][' + i + '] === ' + p);
-                        return false;
-                    }
-                    return true;
-                }
                 item.from.makeAxis = makeAxis.map(function(axis) {
-                    if (Array.isArray(axis))
+                    if (Array.isArray(axis)) {
                         return axis.filter(shouldInclude);
-                    else
+                    } else {
                         return shouldInclude(axis, -1) && axis;
+                    }
                 }).filter(Boolean);
             }
             return true;
@@ -509,6 +475,26 @@ MovementMapping.prototype = {
         return template;
     }
 }; // MovementMapping.prototype
+
+// update target properties from source, but iff the property already exists in target
+function _updateOptions(target, source, debugName) {
+    debugName = debugName || '_updateOptions';
+    var changed = 0;
+    if (!source || typeof source !== 'object') {
+        return changed;
+    }
+    for (var p in target) {
+        if (p in source && target[p] !== source[p]) {
+            log(debugName, 'updating source.'+p, target[p] + ' -> ' + source[p]);
+            target[p] = source[p];
+            changed++;
+        }
+    }
+    for (p in source) {
+        (!(p in target)) && log(debugName, 'warning: ignoring unknown option:', p, (source[p] +'').substr(0, 40)+'...');
+    }
+    return changed;
+}
 
 // ----------------------------------------------------------------------------
 function calculateThrust(maxVelocity, targetVelocity, previousThrust) {
@@ -569,6 +555,7 @@ function VelocityTracker(defaultValues) {
     Object.defineProperty(this, 'defaultValues', { configurable: true, value: defaultValues });
 }
 VelocityTracker.prototype = {
+    constructor: VelocityTracker,
     reset: function() {
         Object.assign(this, this.defaultValues);
     },
@@ -605,10 +592,15 @@ Object.assign(CameraControls, {
 function CameraControls(options) {
     options = options || {};
     assert('update' in options && 'threadMode' in options);
-    this.update = options.update;
+    this.updateObject = typeof options.update === 'function' ? options : options.update;
+    assert(typeof this.updateObject.update === 'function',
+           'construction options expected either { update: function(){}... } object or a function(){}');
+    this.update = _utils.bind(this.updateObject, 'update');
     this.threadMode = options.threadMode;
     this.fps = options.fps || 60;
-    this.getRuntimeSeconds = options.getRuntimeSeconds || function() { return +new Date / 1000.0; };
+    this.getRuntimeSeconds = options.getRuntimeSeconds || function() {
+        return +new Date / 1000.0; 
+    };
     this.backupOptions = _utils.DeferredUpdater.createGroup({
         MyAvatar: MyAvatar,
         Camera: Camera,
@@ -620,18 +612,21 @@ function CameraControls(options) {
     this.modeChanged = _utils.signal(function modeChanged(mode, oldMode){});
 }
 CameraControls.prototype = {
+    constructor: CameraControls,
     $animate: null,
     $start: function() {
         if (this.$animate) {
             return;
         }
 
-        switch(this.threadMode) {
-
+        var lastTime;
+        switch (this.threadMode) {
             case CameraControls.SCRIPT_UPDATE: {
                 this.$animate = this.update;
                 Script.update.connect(this, '$animate');
-                this.$animate.disconnect = _utils.bind(this, function() { Script.update.disconnect(this, '$animate'); });
+                this.$animate.disconnect = _utils.bind(this, function() {
+                    Script.update.disconnect(this, '$animate'); 
+                });
             } break;
 
             case CameraControls.ANIMATION_FRAME: {
@@ -649,7 +644,7 @@ CameraControls.prototype = {
 
             case CameraControls.SET_IMMEDIATE: {
                 // emulate process.setImmediate (attempt to execute at start of next update frame, sans Script.update throttling)
-                var lastTime = this.getRuntimeSeconds();
+                lastTime = this.getRuntimeSeconds();
                 this.$animate = Script.setInterval(_utils.bind(this, function() {
                     this.update(this.getRuntimeSeconds(lastTime));
                     lastTime = this.getRuntimeSeconds();
@@ -661,7 +656,7 @@ CameraControls.prototype = {
 
             case CameraControls.NEXT_TICK: {
                 // emulate process.nextTick (attempt to queue at the very next opportunity beyond current scope)
-                var lastTime = this.getRuntimeSeconds();
+                lastTime = this.getRuntimeSeconds();
                 this.$animate = _utils.bind(this, function() {
                     this.$animate.timeout = 0;
                     if (this.$animate.quit) {
@@ -692,7 +687,7 @@ CameraControls.prototype = {
         }
         try {
             this.$animate.disconnect();
-        } catch(e) {
+        } catch (e) {
             log('$animate.disconnect error: ' + e, '(threadMode: ' + this.threadMode +')');
         }
         this.$animate = null;
@@ -784,10 +779,11 @@ function applyEasing(deltaTime, direction, settings, state, scaling) {
     for (var p in scaling) {
         var group = settings[p],
             easeConst = group[direction],
-            multiplier = group.speed,
+            // multiplier = group.speed,
             scale = scaling[p],
             stateVector = state[p];
-        var vec = obj[p] = Vec3.multiply(easeConst * scale * deltaTime, stateVector);
+        obj[p] = Vec3.multiply(easeConst * scale * deltaTime, stateVector);
+        // var vec = obj[p]
         // vec.x *= multiplier.x;
         // vec.y *= multiplier.y;
         // vec.z *= multiplier.z;

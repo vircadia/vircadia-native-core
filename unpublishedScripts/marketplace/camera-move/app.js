@@ -1,341 +1,38 @@
-// app.js -- jquery support functions
+// app.js -- support functions
 
-/* eslint-env commonjs, browser */
-
+/* eslint-env console, jquery, browser, shared-node-browser */
+/* eslint-disable comma-dangle */
+/* global Mousetrap, TooltipManager, SettingsJSON, PARAMS, signal, assert, log, debugPrint */
 // ----------------------------------------------------------------------------
-function defineCustomWidgets() {
-    $.widget('ui.hifiCheckboxRadio', $.ui.checkboxradio, {
-        _create: function() {
-            this._super();
-            this.element[0].value = this.element[0].id;
-            debugPrint('ui.hifiCheckboxRadio._create', this.element[0].type, this.element[0].id, this.element[0].value);
-        },
-    });//$.fn.hifiCheckboxRadio = $.fn.checkboxradio;
-    $.widget('ui.hifiControlGroup', $.ui.controlgroup, {
-        _create: function(x) {
-            debugPrint('ui.hifiControlGroup._create', this.element[0])
-            var tmp = this.options.items.checkboxradio;
-            delete this.options.items.checkboxradio;
-            this.options.items.hifiCheckboxRadio = tmp;
-            this._super();
 
-            Object.defineProperty(this.element[0], 'value', {
-                enumerable: true,
-                get: function() { assert(false, 'attempt to access hifiControlGroup.element[0].value...' +[this.id,this.name]); },
-                set: function(nv) { assert(false, 'attempt to set hifiControlGroup.element[0].value...' +[this.id,this.name]); },
-            });
-        },
-    });
-    $.widget('ui.hifiSpinner', $.ui.spinner, {
-        _create: function() {
-            debugPrint('ui.hifiSpinner._create', this.element[0])
-            this.previous = null;
-            this._super();
-        },
-        _spin: function( step, event ) {
-            if (event.type === 'mousewheel') {
-                if (!event.shiftKey) {
-                    step *= ('1e'+Math.max(1,this._precision()))/10;
-                }
-                if (event.ctrlKey) {
-                    step *= 10;
-                }
-            }
-            return this._super( step, event );
-        },
-        _stop: function( event, ui ) {
-            try {
-                return this._super(event, ui);
-            } finally {
-                if (/mouse/.test(event && event.type)) {
-                    var value = this.element.val();
-                    if (value != "" && !isNaN(value) && this.previous !== null && this.previous !== value) {
-                        debugPrint(this.element[0].id, 'spinner.changed', event.type, JSON.stringify({
-                            previous: isNaN(this.previous) ? this.previous+'' : this.previous,
-                            val: isNaN(value) ? value+'' : value,
-                        }));
-                        this.element.change();
-                    }
-                    this.previous = value;
-                }
-            }
-        },
-        _format: function(n) {
-            var precision = this._precision()
-            return parseFloat(n).toFixed(precision);
-        },
-        _events: {
-            mousewheel: function(event, delta) {
-                if (document.activeElement !== this.element[0])
-                    return;
-                // fix broken mousewheel on Chrome / webkit
-                delta = delta === undefined ? event.originalEvent.deltaY : delta;
-                $.ui.spinner.prototype._events.mousewheel.call(this, event, delta);
-            }
-        }
-    });
-    $.widget('ui.hifiSlider', $.ui.slider, {
-        _create: function() {
-            this._super();
-            // add the inner circle and border (per design specs) to jquery-ui's existing slider handle
-            this.element.find('.ui-slider-handle')
-                .html('<div class="inner-ui-slider-handle"></div>');
-        },
-    });
-}
-
-// JSON export / import helpers proto module
-JQuerySettings.$json = (function() {
-    return {
-        setPath: setPath,
-        rollupPaths: rollupPaths,
-        encodeNodes: encodeNodes,
-        exportAll: exportAll,
-        showSettings: showSettings,
-        applyJSON: applyJSON,
-        promptJSON: promptJSON,
-        popupJSON, popupJSON,
-    };
-
-    function encodeNodes(resolver, elements) {
-        return elements.toArray().reduce((function(out, input, i) {
-            log('input['+i+']', input.id);
-            var id = input.type === 'radio' ? $(input).closest(':ui-hifiControlGroup').prop('id') : input.id;
-            var key = resolver.getKey(id);
-            log('toJSON', id, key, input.id);
-            setPath(out, key.split('/'), resolver.getValue(key));
-            return out;
-        }).bind(this), {});
-    }
-
-    function setPath(obj, path, value) {
-        var key = path.pop();
-        obj = path.reduce(function(obj, subkey) {
-            return obj[subkey] = obj[subkey] || {};
-        }, obj);
-        debugPrint('setPath', key, Object.keys(obj));
-        obj[key] = value;
-    }
-
-    function rollupPaths(obj, output, path) {
-        path = path || [];
-        output = output || {};
-        log('rollupPaths', Object.keys(obj||{}), Object.keys(output), path);
-        for (var p in obj) {
-            path.push(p);
-            var value = obj[p];
-            if (value && typeof value === 'object') {
-                rollupPaths(obj[p], output, path);
-            } else {
-                output[path.join('/')] = value;
-            }
-            path.pop();
-        }
-        return output;
-    }
-
-    function exportAll(resolver, name) {
-        return {
-            version: VERSION,
-            name: name || undefined,
-            settings: encodeNodes(resolver, $('input')),
-            _metadata: { timestamp: new Date(), PARAMS: PARAMS, url: location.href, }
-        };
-    };
-
-    function showSettings(resolver, saveName) {
-        JQuerySettings.$json.popupJSON(saveName || '(current settings)', Object.assign(JQuerySettings.$json.exportAll(resolver, saveName), {
-            extraParams: bridgedSettings.extraParams,
-        }));
-    };
-
-    function popupJSON(title, tmp) {
-        var HTML = POPUP.innerHTML
-            .replace(/\bxx-script\b/g, 'script')
-            .replace('JSON', JSON.stringify(tmp, 0, 2).replace(/\n/g, '<br />'));
-        if (0) {
-            bridgedSettings.sendEvent({
-                method: 'overlayWebWindow',
-                options: {
-                    title: 'app-camera-move-export' + (title ? '::'+title : ''),
-                    content: HTML,
-                },
-            });
-        } else {
-            // make the browser address bar less ugly by putting spaces and friedly name as a "URL footer"
-            var footer = '<\!-- #' + HTML.substr(0,256).replace(/./g,' ') + (title || 'Camera Move Settings');
-            window.open("data:text/html;escape," + encodeURIComponent(HTML) + footer,"app-camera-move-export");
-        }
-    }
-
-    function applyJSON(resolver, name, tmp) {
-        assert('version' in tmp && 'settings' in tmp, 'invalid settings record: ' + JSON.stringify(tmp))
-        var settings = rollupPaths(tmp.settings);
-        for(var p in settings) {
-            var key = resolver.getId(p, true);
-            if (!key) {
-                log('$applySettings -- skipping unregistered Settings key: ', p);
-            } else {
-                resolver.setValue(p, settings[p], name+'.settings.'+p);
-            }
-        }
-    };
-
-    function promptJSON() {
-        var json = window.prompt('(paste JSON here)', '');
-        if (!json) return;
-        try {
-            json = JSON.parse(json);
-        } catch(e) {
-            throw new Error('Could not parse pasted JSON: ' + e + '\n\n' + (json||'').replace(/</g,'&lt;'));
-        }
-        return json;
-    }
-})(this);
-
-// ----------------------------------------------------------------------------
-// manage jquery-tooltipster hover tooltips
-TooltipManager = (function(global) {
-    function TooltipManager(options) {
-        this.options = options;
-        assert(options.elements, 'TooltipManager constructor expects options.elements');
-        assert(options.tooltips, 'TooltipManager constructor expects options.tooltips');
-        var TOOLTIPS = this.TOOLTIPS = {};
-        $(options.tooltips).find('[for]').each(function() {
-            var id = $(this).attr('for');
-            TOOLTIPS[id] = $(this).html();
-        });
-
-        var _self = this;
-        options.elements.each(function() {
-            var element = $($(this).closest('.tooltip-target').get(0) || this),
-                input = element.is('input, button') ? element : element.find('input, button'),
-                parent = element.is('.row, button') ? element : element.parent(),
-                id = element.attr('for') || input.prop('id'),
-                tip = TOOLTIPS[id] || element.prop('title');
-
-            var tooltipSide = element.data('tooltipSide');
-
-            log('binding tooltip', tooltipSide, element[0].nodeName, id || element[0], tip);
-            if(!tip)
-                return log('missing tooltip: ' + (id || this.id || this.name || this.nodeName));
-            if(element.is('.tooltipstered')) {
-                console.info('already tooltipstered!?', this.id, this.name, id);
-                return;
-            }
-            var instance = element.tooltipster({
-                theme: ['tooltipster-noir'],
-                side: tooltipSide || (
-                    input.is('button') ? 'top' :
-                        input.closest('.slider').get(0) || input.closest('.column').get(0) ? ['top','bottom'] :
-                        ['right','top','bottom', 'left']
-                ),
-                content: tip,
-                updateAnimation: 'scale',
-                trigger: !options.testmode ? 'hover' : 'click',
-                distance: element.is('.slider.row') ? -20 : undefined,//element
-                delay: [500, 1000],
-                contentAsHTML: true,
-                interactive: options.testmode,
-                minWidth: options.viewport && options.viewport.min.x,
-                maxWidth: options.viewport && options.viewport.max.w,
-            }).tooltipster('instance');
-
-            instance.on('close', function(event) {
-                if (options.keepopen === element) {
-                    debugPrint(event.type, 'canceling close keepopen === element', id);
-                    event.stop();
-                    options.keepopen = null;
-                }
-            });
-            instance.on('before', function(event) {
-                debugPrint(event.type, 'before', event);
-                !options.testmode && _self.closeAll();
-                !options.enabled && event.stop();
-                return;
-            });
-            parent.find(':focusable, input, [tabindex], button, .control')
-                .add(parent)
-                .add(input.closest(':focusable, input, [tabindex]'))
-                .on({
-                    click: function(evt) {
-                        if (input.is('button')) return setTimeout(instance.close.bind(instance,null),50);
-                        options.keepopen = element; 0&&instance.open();
-                    },
-                    focus: instance.open.bind(instance, null),
-                    blur: function(evt) { instance.close(); _self.openFocusedTooltip(); },
-                });
-        });
-        Object.assign(this, {
-            openFocusedTooltip: function() {
-                if (!this.options.enabled)
-                    return;
-                setTimeout(function() {
-                    if (!document.activeElement || document.activeElement === document.body ||
-                        !$(document.activeElement).closest('section')) {
-                        return;
-                    }
-                    var tip = $([])
-                        .add($(document.activeElement))
-                        .add($(document.activeElement).find('.tooltipstered'))
-                        .add($(document.activeElement).closest('.tooltipstered'))
-                        .filter('.tooltipstered');
-                    if (tip.is('.tooltipstered')) {
-                        log('opening focused tooltip', tip.length, tip[0].id);
-                        tip.tooltipster('open');
-                    }
-                },1);
-            },
-            rapidClose: function(instance, reopen) {
-                if (!instance.status().open) {
-                    return;
-                }
-                instance.elementTooltip() && $(instance.elementTooltip()).hide();
-                instance.close(function() { reopen && instance.open(); });
-            },
-            openAll: function() {
-                $('.tooltipstered').tooltipster('open');
-            },
-            closeAll: function() {
-                $.tooltipster.instances().forEach(function(instance) {
-                    this.rapidClose(instance);
-                }.bind(this));
-            },
-            updateViewport: function(viewport) {
-                var options = {
-                    minWidth: viewport.min.x,
-                    maxWidth: viewport.max.x,
-                };
-                $.tooltipster.setDefaults(options);
-                log('updating tooltipster options', JSON.stringify(options, 0, 2));
-                $.tooltipster.instances().forEach(function(instance) {
-                    instance.option('minWidth', options.minWidth);
-                    instance.option('maxWidth', options.maxWidth);
-                    this.rapidClose(instance, instance.status().open);
-                }.bind(this));
-            },
-            enable: function() {
-                this.options.enabled = true;
-                if (this.options.testmode)
-                    this.openAll();
-            },
-            disable: function() {
-                this.options.enabled = false;
-                this.closeAll();
-            },
-        });
-    }
-    return TooltipManager;
-})(this);
+var viewportUpdated, bridgedSettings, jquerySettings, tooltipManager, lessManager;
 
 function setupUI() {
+    viewportUpdated.connect(lessManager, 'onViewportUpdated');
+
+    tooltipManager = new TooltipManager({
+        enabled: false,
+        testmode: PARAMS.tooltiptest,
+        viewport: PARAMS.viewport,
+        tooltips: $('#tooltips'),
+        elements: $($.unique($('input.setting, button').map(function() {
+            var input = $(this),
+                button = input.is('button') && input,
+                row = input.closest('.row').is('.slider') && input.closest('.row'),
+                label = input.is('[type=checkbox],[type=radio]') && input.parent().find('label');
+
+            return (button || label || row || input).get(0);
+        }))),
+    });
+    viewportUpdated.connect(tooltipManager, 'updateViewport');
+
     $(window).trigger('resize'); // populate viewport
 
-    $('#debug-menu button, footer button').button();
+    $('#debug-menu button, footer button').hifiButton();
 
-    var $json = JQuerySettings.$json;
+    var $json = SettingsJSON;
 
-    var buttonHandlers = {
+    window.buttonHandlers = {
         'page-reload': function() {
             log('triggering location.reload');
             location.reload();
@@ -365,152 +62,102 @@ function setupUI() {
             );
         },
         'toggle-advanced-options': function(evt) {
-            var on = $('body').hasClass('ui-show-advanced-options');
-            bridgedSettings.setValue('ui-show-advanced-options', !on);
+            var checkbox = $(this).hifiButton('instance').checkbox;
+            var on = checkbox.value(!checkbox.value());
+            $('body').toggleClass('ui-show-advanced-options', on);
             evt.stopPropagation();
             evt.preventDefault();
-            $(this).tooltipster('instance').content((on ? 'show' : 'hide') + ' advanced options');
-            if (!on) {
+            if ($(this).is('.tooltipstered')) {
+                $(this).tooltipster('instance').content((on ? 'hide' : 'show') + ' advanced options');
+            }
+            if (checkbox.value()) {
                 $('.scrollable').delay(100).animate({
                     scrollTop: innerHeight - $('header').innerHeight() - 24
                 }, 1500);
             }
         },
-        'appVersion': function(evt) { evt.shiftKey && $json.showSettings(jquerySettings); },
+        'appVersion': function(evt) {
+            evt.shiftKey && $json.showSettings(jquerySettings);
+        },
         'errors': function() {
             $(this).find('.output').text('').end().hide();
         },
     };
-    Object.keys(buttonHandlers).forEach(function(p) {
-        $('#' + p).css('cursor', 'pointer').on('click', buttonHandlers[p]);
+    Object.keys(window.buttonHandlers).forEach(function(p) {
+        $('#' + p).on('click', window.buttonHandlers[p]);
     });
 
     // ----------------------------------------------------------------
-    tooltipManager = new TooltipManager({
-        enabled: false,
-        testmode: PARAMS.tooltiptest,
-        viewport: PARAMS.viewport,
-        tooltips: $('#tooltips'),
-        elements: $($.unique($('input.setting, button').map(function() {
-            var input = $(this),
-                button = input.is('button') && input,
-                row = input.closest('.row').is('.slider') && input.closest('.row'),
-                label = input.is('[type=checkbox],[type=radio]') && input.parent().find('label');
 
-            return (button || label || row || input).get(0);
-        }))),
-    });
-
-    $( "input[data-type=number]" ).each(function() {
+    $( "input[type=number],input[type=spinner],input[step]" ).each(function() {
         // set up default numeric precisions
-        var step = $(this).prop('step') || .01;
+        var step = $(this).prop('step') || 0.01;
         var precision = ((1 / step).toString().length - 1);
         $(this).prop('step', step || Math.pow(10, -precision));
     });
 
-    $('input.setting').each(function() {
+    var settingsNodes = $('[type=radio-group],input:not([type=radio]),button').filter('[id],[data-for],[for]');
+    settingsNodes.filter(':not(button)').each(function() {
         // set up the bidirectional mapping between DOM and Settings
         jquerySettings.registerNode(this);
-    }).on('change', function(evt) {
-        // set up change detection
-        var input = $(this),
-            key = assert(jquerySettings.getKey(this.id)),
-            type = this.dataset.type || input.prop('type'),
-            valid = (this.value !== '' && (type !== 'number' || isFinite(this.value)));
-
-        debugPrint('input.setting.change', key, evt, this);
-        $(this).closest('.row').toggleClass('invalid', !valid);
-
-        if (!valid) {
-            debugPrint('input.setting.change: ignoring invalid value ' + this.value + ' for ' + key);
-            return;
-        }
-
-        jquerySettings.resyncValue(key, 'input.setting.change');
-
-        // radio buttons are codependent (ie: TCOBO selected at a time)
-        //   so if under a control group, trigger a display refresh
-        $(evt.target).closest(':ui-hifiControlGroup').find(':ui-hifiCheckboxRadio').hifiCheckboxRadio('refresh');
     });
 
-    if (PARAMS.debug || true) {
-        // support hitting 'r' key to refresh during development
-        $(window).on('keypress.debug', function(evt) {
-            if (!$(evt.target).is('input')) {
-                var ch = String.fromCharCode(evt.keyCode);
-                if (evt.originalEvent.keyIdentifier === 'U+0057')
-                    ch = 'w';
-                switch(ch) {
-                    case 'r': {
-                        log('... "r" reloading', evt.keyCode);
-                        location.reload()
-                    } break;
-                    case 'w': {
-                        if (evt.ctrlKey) {
-                            log('ctrl-w detected; closing via client script');
-                            bridgedSettings.sendEvent({ method: 'window.close' });
-                        }
-                    } break;
-                }
-            }
-        });
-    }
+    var spinnerOptions = {
+        disabled: true,
+        create: function() {
+            var input = $(this),
+                key = assert(jquerySettings.getKey(this.id));
 
-    // numeric fields
+            var options = input.hifiSpinner('instance').options;
+            options.min = options.min || 0.0;
+
+            bridgedSettings.getValueAsync(key, function(err, result) {
+                options.autoenable !== false && input.hifiSpinner('enable');
+                jquerySettings.setValue(key, result);
+            });
+        },
+    };
+
+    // numeric settings
     $( ".number.row input.setting" )
-        .hifiSpinner({
-            disabled: true,
-            create: function() {
-                var input = $(this),
-                    id = assert(this.id, '.number input.setting without id attribute: ' + this),
-                    key = assert(jquerySettings.getKey(this.id));
+        .hifiSpinner(spinnerOptions);
 
-                var options = input.hifiSpinner('instance').options;
-                options.min = options.min || 0.0;
-
-                bridgedSettings.getValueAsync(key, function(err, result) {
-                    input.hifiSpinner('enable');
-                    jquerySettings.setValue(key, result);
-                });
-            },
-        });
-
-    // radio button groups
+    // radio groups settings
     $( ".radio.row" )
-        .hifiControlGroup({
+        .hifiRadioGroup({
             direction: 'horizontal',
             disabled: true,
             create: function() {
                 var group = $(this), id = this.id;
-                this.setAttribute('type', this.type = this.dataset.type = 'radio-group');
                 var key = assert(jquerySettings.getKey(id));
                 bridgedSettings.getValueAsync(key, function(err, result) {
                     debugPrint('> GOT RADIO', key, id, result);
-                    group.hifiControlGroup('enable');
+                    group.hifiRadioGroup('enable');
                     jquerySettings.setValue(key, result);
                     group.change();
                 });
             },
         });
 
-    // checkbox fields
+    // checkbox settings
     $( ".bool.row input.setting" )
-        .hifiCheckboxRadio({ disabled: true })
+        .hifiCheckbox({ disabled: true })
         .each(function() {
             var key = assert(jquerySettings.getKey(this.id)),
                 input = $(this);
 
             bridgedSettings.getValueAsync(key, function(err, result) {
-                input.hifiCheckboxRadio('enable');
+                input.hifiCheckbox('enable');
                 jquerySettings.setValue(key, result);
             });
         });
 
-    // slider + numeric field sets
+    // slider + numeric settings
     $( ".slider.row .control" ).each(function(ent) {
         var element = $(this),
-            input = element.parent().find('input'),
-            id = input.prop('id'),
+            phor = element.attr('data-for'),
+            input = $('input#' + phor),
+            id = input .prop('id'),
             key = assert(jquerySettings.getKey(id));
 
         var commonOptions = {
@@ -526,121 +173,84 @@ function setupUI() {
             orientation: "horizontal",
             range: "min",
             animate: 'fast',
-            value: 0.0,
-            start: function(event, ui) { this.$startValue = ui.value; },
-            slide: function(event, ui) { input.hifiSpinner('value', ui.value); },
-            stop: function(event, ui) {
-                if (ui.value != this.$startValue) {
-                    jquerySettings.setValue(key, ui.value, 'slider.stop');
-                }
-            },
-        }, commonOptions));
+            value: 0.0
+        }, commonOptions)).hifiSlider('instance');
 
-        // setup chrome up/down arrow steps and change event for propagating input field -> slider
-        input.on('change', function() {
-            element.hifiSlider("value", this.value);
-        }).hifiSpinner(Object.assign({}, commonOptions, { max: Infinity }));
+        // setup chrome up/down arrow steps and propagate input field -> slider
+        var spinner = input.on('change', function() {
+            var value = spinner.value();
+            if (isFinite(value) && slider.value() !== value) {
+                slider.value(value);
+            }
+        }).hifiSpinner(
+            Object.assign({}, commonOptions, { max: Infinity })
+        ).hifiSpinner('instance');
 
         bridgedSettings.getValueAsync(key, function(err, result) {
-            input.hifiSpinner('enable');
-            element.hifiSlider('enable');
-            jquerySettings.setValue(key, result);
+            slider.enable();
+            spinner.enable();
+            spinner.value(result);
         });
     });
 
-    // make all other numeric fields into custom jquery spinners
-    $('input[data-type=number]:not(:ui-hifiSpinner)').hifiSpinner({
-        disabled: true,
-        create: function() {
-            var input = $(this),
-                id = assert(this.id, '.number input.setting without id attribute: ' + this),
-                key = assert(jquerySettings.getKey(this.id));
+    // other numeric settings
+    $('input[data-type=number]:not(:ui-hifiSpinner)')
+        .hifiSpinner(Object.assign({
+            autoenable: false,
+        }, spinnerOptions));
 
-            log('======================================', id, key);
-
-            var options = input.hifiSpinner('instance').options;
-            options.min = options.min || 0.0;
-
-            bridgedSettings.getValueAsync(key, function(err, result) {
-                jquerySettings.setValue(key, result);
-            });
-        },
+    // set up DOM MutationObservers
+    settingsNodes.each(function tcobo() {
+        if (this.dataset.hifiType === 'hifiButton') {
+            return;
+        }
+        var id = assert(this.dataset['for'] || this.id, 'could not id for node: ' + this.outerHTML);
+        assert(!tcobo[id]); // detect dupes
+        tcobo[id] = true;
+        debugPrint('OBSERVING NODE', id, this.id || this.getAttribute('for'));
+        jquerySettings.observeNode(this);
     });
 
+    // detect invalid numbers entered into spinner fields
+    $(':ui-hifiSpinner').on('change.validation', function(evt) {
+        var spinner = $(this).hifiSpinner('instance');
+        $(this).closest('.row').toggleClass('invalid', !spinner.isValid());
+    });
 
     // ----------------------------------------------------------------------------
-    // allow spacebar to toggle checkbox / radiobutton fields
-    $('[type=checkbox]:ui-hifiCheckboxRadio').parent().prop('tabindex',0)
-        .on('keydown.toggle', function spaceToggle(evt) {
-            if (evt.keyCode === 32) {
-                var input = $(this).find(':ui-hifiCheckboxRadio'),
-                    id = input.prop('id'),
-                    key = assert(jquerySettings.getKey(id));
-                log('spaceToggle', evt.target+'', id, key);
-                if (!input.is('[type=radio]') || !input.prop('checked')) {
-                    input.prop('checked', !input.prop('checked'));
-                    input.change();
-                }
-                evt.preventDefault();
-                evt.stopPropagation();
-            }
-        });
+    // allow tabbing between checkboxes
+    $('[type=checkbox]:ui-hifiCheckbox').parent().prop('tabindex', 0);
 
-    // when user presses ENTER on a number field, blur it to provide visual feedback
-    $('input[data-type=number]').on('keydown.enter', function(evt) {
-        if (evt.keyCode === 13 && $(document.activeElement).is('input')) {
-            tooltipManager.closeAll();
-            document.activeElement.blur();
-            var nexts = $('[tabindex],input').not('[tabindex=-1],.ui-slider-handle').toArray();
-            if (~nexts.indexOf(this)) {
-                var nextActive = nexts[nexts.indexOf(this)+1];
-                $(nextActive).focus();
-            }
-        }
-    });
-
-    // by default webkit spacebar behaves like PageDown; this disables that to avoid confusion
-    window.onkeydown = function(evt) {
-        if (evt.keyCode === 32 && document.activeElement !== document.body) {
-            log('snarfing spacebar event', document.activeElement);
-            return evt.preventDefault(), evt.stopPropagation(), false;
-        }
-    };
-
-    // select-all text when an input field is first focused
-    $('input').not('input[type=radio],input[type=checkbox]').on('focus', function (e) {
+    // select the input field text when first focused
+    $('input').not('input[type=radio],input[type=checkbox]').on('focus', function () {
         var dt = (new Date - this.blurredAt);
         if (!(dt < 5)) { // debounce
             this.blurredAt = +new Date;
-            //log('FOCUS', dt, e.target === document.activeElement, this === document.activeElement);
-            $(this).one('mouseup.selectit', function () {
+            $(this).one('mouseup.selectit', function() {
                 $(this).select();
                 return false;
             }).select();
         }
     }).on('blur', function(e) {
         this.blurredAt = new Date;
-        //log('BLUR', e.target === document.activeElement, this === document.activeElement);
     });
 
-    // monitor specific settings for live changes
-    jquerySettings.registerSetting({ type: 'placeholder' }, '.extraParams');
-    jquerySettings.registerSetting({ type: 'placeholder' }, 'ui-show-advanced-options');
-    jquerySettings.registerSetting({ type: 'placeholder' }, 'Keyboard.RightMouseButton');
+    // monitor changes to specific settings that affect the UI
     monitorSettings({
         // advanced options toggle
-        'ui-show-advanced-options': function(value) {
+        'ui-show-advanced-options': function onChange(value) {
             function handle(err, result) {
-                log('***************************** ui-show-advanced-options updated', result+'');
+                log('** ui-show-advanced-options updated', result+'');
                 $('body').toggleClass('ui-show-advanced-options', !!result);
             }
-            if (value !== undefined) {
-                handle(null, value);
-            } else {
+            if (!onChange.fetched) {
                 bridgedSettings.getValueAsync('ui-show-advanced-options', handle);
+                return onChange.fetched = true;
             }
+            handle(null, value);
         },
-        // UI tooltips checkbox
+
+        // UI tooltips toggle
         'ui-enable-tooltips': function(value) {
             if (value) {
                 tooltipManager.enable();
@@ -650,117 +260,156 @@ function setupUI() {
             }
         },
 
-        // enable/disable fps field based on thread update mode
+        // enable/disable fps field (based on whether thread mode is requestAnimationFrame)
         'thread-update-mode': function(value) {
-            var enabled = value === 'requestAnimationFrame',
-                fps = $('#fps');
-
-            log('onThreadModeChanged', value, enabled);
+            var enabled = (value === 'requestAnimationFrame'), fps = $('#fps');
             fps.hifiSpinner(enabled ? 'enable' : 'disable');
             fps.closest('.tooltip-target').toggleClass('disabled', !enabled);
         },
 
-        // apply CSS to body based on whether camera move mode is currently enabled
+        // flag BODY with CSS class to indicate active camera move mode
         'camera-move-enabled': function(value) {
             $('body').toggleClass('camera-move-enabled', value);
         },
 
-        // update keybinding and appVersion whenever extraParams arrives
-        '.extraParams': function(value, other) {
+        // update the "keybinding" and #appVersion extraParams displays
+        '.extraParams': function extraParams(value, other) {
             value = bridgedSettings.extraParams;
-            //log('.extraParams', value, other, arguments);
             if (value.mode) {
-                $('body').toggleClass('tablet-mode', value.mode.tablet);
-                $('body').toggleClass('hmd-mode', value.mode.hmd);
-                $('body').toggleClass('desktop-mode', value.mode.desktop);
-                $('body').toggleClass('toolbar-mode', value.mode.toolbar);
-                //setupTabletModeScrolling(value.mode.tablet);
+                for (var p in value.mode) {
+                    $('body').toggleClass(p + '-mode', value.mode[p]);
+                }
             }
             var versionDisplay = [
                 value.appVersion || '(unknown appVersion)',
                 PARAMS.debug && '(debug)',
                 value.mode && value.mode.tablet ? '(tablet)' : '',
             ].filter(Boolean).join(' | ');
-            $('#appVersion').find('.output').text(versionDisplay).end().fadeIn();
+            $('#appVersion').find('.output').text(versionDisplay).end().show();
 
             if (value.toggleKey) {
-                function getKeysHTML(binding) {
-                    return [ 'Control', 'Meta', 'Alt', 'Super', 'Menu', 'Shifted' ]
-                        .map(function(flag) { return binding['is' + flag] && flag; })
-                        .concat(binding.text || ('(#' + binding.key + ')'))
-                        .filter(Boolean)
-                        .map(function(key) { return '<kbd>' + key.replace('Shifted','Shift') + '</kbd>'; })
-                        .join('-');
-                }
                 $('#toggleKey').find('.binding').empty()
-                    .append(getKeysHTML(value.toggleKey)).end().fadeIn();
+                    .append(getKeysHTML(value.toggleKey)).end().show();
             }
         },
 
         // gray out / ungray out page content if user is mouse looking around in Interface
         // (otherwise the cursor still interacts with web content...)
         'Keyboard.RightMouseButton': function(localValue, key, value) {
-            log('... Keyboard.RightMouseButton:' + value);
+            log(localValue, '... Keyboard.RightMouseButton:' + value);
             window.active = !value;
         },
     });
-    $('input').css('-webkit-user-select', 'none');
+    // disable selection
+    // $('input').css('-webkit-user-select', 'none');
+
+    // set up key bindings
+    setupMousetrapKeys();
+
+    function getKeysHTML(binding) {
+        var text = binding.text || ('(#' + binding.key + ')');
+        // translate hifi's proprietary key scheme into human-friendly KBDs
+        return [ 'Control', 'Meta', 'Alt', 'Super', 'Menu', 'Shifted' ]
+            .map(function(flag) {
+                return binding['is' + flag] && flag; 
+            })
+            .concat(text)
+            .filter(Boolean)
+            .map(function(key) {
+                return '<kbd>' + key.replace('Shifted','Shift') + '</kbd>';
+            })
+            .join('-');
+    }
 } // setupUI
 
 // helper for instrumenting local jquery onchange handlers
 function monitorSettings(options) {
     return Object.keys(options).reduce(function(out, id) {
-        var key = bridgedSettings.resolve(id);
-        assert(function assertion(){ return typeof key === 'string' }, 'monitorSettings -- received invalid key type')
-        function onChange(varargs) {
-            debugPrint('onChange', id, typeof varargs === 'string' ? varargs : typeof varargs);
-            var args = [].slice.call(arguments);
-            options[id].apply(this, [ jquerySettings.getValue(id) ].concat(args));
+        var key = bridgedSettings.resolve(id),
+            domId = jquerySettings.getId(key, true);
+
+        if (!domId) {
+            var placeholder = {
+                id: id,
+                type: 'placeholder',
+                toString: function() {
+                    return this.id; 
+                },
+                value: undefined,
+            };
+            jquerySettings.registerSetting(placeholder, key);
+            log('registered placeholder value for setting', id, key);
+            assert(jquerySettings.findNodeByKey(key) === placeholder);
         }
+
+        // if (domId === 'toggle-advanced-options') alert([key,id,domId, jquerySettings.findNodeByKey(key)])
+        assert(function assertion(){
+            return typeof key === 'string'; 
+        }, 'monitorSettings -- received invalid key type');
+
+        var context = {
+            id: id,
+            key: key,
+            domId: domId,
+            options: options,
+            lastValue: undefined,
+            initializer: function(hint) {
+                var key = this.key,
+                    lastValue = this.lastValue;
+                if (lastValue !== undefined) {
+                    return log('skipping repeat initializer', key, hint);
+                }
+                this.lastValue = lastValue = jquerySettings.getValue(key);
+                this._onChange.call(jquerySettings, key, lastValue, undefined, hint);
+            },
+            _onChange: function _onChange(key, value) {
+                var currentValue = this.getValue(context.id),
+                    jsonCurrentValue = JSON.stringify(currentValue);
+
+                if (jsonCurrentValue === context.jsonLastValue) {
+                    if (jsonCurrentValue !== undefined) {
+                        log([context.key, '_onChange', this, 'not triggering _onChange for duplicated value']);
+                    }
+                    return;
+                }
+                context.jsonLastValue = jsonCurrentValue;
+                var args = [].slice.call(arguments, 0);
+                log('monitorSetting._onChange', context.key, value, this+'', id, args);
+                context.options[context.id].apply(this, [ currentValue ].concat(args));
+            },
+
+            onValueReceived: function(key) {
+                if (key === this.key) {
+                    this._onChange.apply(bridgedSettings, arguments);
+                }
+            },
+            onMutationEvent: function(event) {
+                if (event.key === this.key) {
+                    context._onChange.call(jquerySettings, event.key, event.value, event.oldValue, event.hifiType+':mutation');
+                }
+            },
+            onPendingRequestsFinished: function onPendingRequestsFinished() {
+                bridgedSettings.pendingRequestsFinished.disconnect(this, 'onPendingRequestsFinished');
+                this.initializer('pendingRequestsFinished');
+            },
+        };
+
+        bridgedSettings.valueReceived.connect(context, 'onValueReceived');
+        jquerySettings.mutationEvent.connect(context, 'onMutationEvent');
+
         if (bridgedSettings.pendingRequestCount()) {
-            bridgedSettings.pendingRequestsFinished.connect(function once() {
-                bridgedSettings.pendingRequestsFinished.disconnect(once);
-                onChange('pendingRequestsFinished');
-            });
+            bridgedSettings.pendingRequestsFinished.connect(context, 'onPendingRequestsFinished');
         } else {
-            onChange('initialization');
+            window.setTimeout(context.initializer.bind(context, 'monitorSettings init'), 1);
         }
-        function _onValueUpdated(_key) {  _key === key && onChange.apply(this, arguments); }
-        bridgedSettings.valueUpdated.connect(bridgedSettings, _onValueUpdated);
-        jquerySettings.valueUpdated.connect(jquerySettings, _onValueUpdated);
-        return out;
+        return context;
     }, {});
 }
 
-function logValueUpdate(hint, key, value, oldValue, origin) {
-    if (0 === key.indexOf('.')) {
-        return;
-    }
-    oldValue = JSON.stringify(oldValue), value = JSON.stringify(value);
-    _debugPrint('[ ' + hint +' @ ' + origin + '] ' + key + ' = ' + value + ' (was: ' + oldValue + ')');
-}
-
 function initializeDOM() {
-    // DOM initialization
-    window.viewportUpdated = signal(function viewportUpdated(viewport) {});
-    function triggerViewportUpdate() {
-        var viewport = {
-            geometry: { x: innerWidth, y: innerHeight },
-            min: { x: window.innerWidth / 3, y: 32 },
-            max: { x: window.innerWidth * 7/8, y: window.innerHeight * 7/8 },
-        };
-        viewportUpdated(viewport, triggerViewportUpdate.lastViewport);
-        triggerViewportUpdate.lastViewport = viewport;
-    }
-    viewportUpdated.connect(PARAMS, function(viewport, oldViewport) {
-        log('viewportUpdated', viewport);
-        Object.assign(PARAMS, {
-            viewport: Object.assign(PARAMS.viewport||{}, viewport),
-        });
-        tooltipManager.updateViewport(viewport);
-    });
-    document.onselectstart = document.ondragstart =
-        document.body.ondragstart = document.body.onselectstart = function(){ return false; };
+
+    // document.onselectstart = document.ondragstart =
+    //     document.body.ondragstart = document.body.onselectstart = function(){ return false; };
 
     document.body.oncontextmenu = document.oncontextmenu = document.body.ontouchstart = function(evt) {
         evt.stopPropagation();
@@ -768,26 +417,10 @@ function initializeDOM() {
         return false;
     };
 
-    $('.scrollable').on('mousemove.unselect', function() {
-        if (!$(document.activeElement).is('input')) {
-            if (document.selection) {
-                log('snarfing mousemove.unselect.selection');
-                document.selection.empty()
-            } else {
-                window.getSelection().removeAllRanges()
-            }
-        }
-    }).on('selectstart.unselect', function(evt) {
-        if (!$(document.activeElement).is('input')) {
-            log('snarfing selectstart');
-            evt.stopPropagation();
-            evt.preventDefault();
-            return false;
-        }
-    });
-
     Object.defineProperty(window, 'active', {
-        get: function() { return window._active; },
+        get: function() {
+            return window._active; 
+        },
         set: function(nv) {
             nv = !!nv;
             window._active = nv;
@@ -795,10 +428,8 @@ function initializeDOM() {
             if (!nv) {
                 document.activeElement && document.activeElement.blur();
                 document.body.focus();
-                $('body').toggleClass('active', nv);
-            } else {
-                $('body').toggleClass('active', nv);
             }
+            $('body').toggleClass('active', nv);
         },
     });
     window.active = true;
@@ -811,85 +442,95 @@ function initializeDOM() {
             }
         }
     }
+    viewportUpdated = signal(function viewportUpdated(viewport) {});
+    function triggerViewportUpdate() {
+        var viewport = {
+            inner: { width: innerWidth, height: innerHeight },
+            client: {
+                width: document.body.clientWidth || window.innerWidth,
+                height: document.body.clientHeight || window.innerHeight,
+            },
+            min: { width: window.innerWidth / 3, height: 32 },
+            max: { width: window.innerWidth * 7/8, height: window.innerHeight * 7/8 },
+        };
+        log('viewportUpdated', viewport);
+        PARAMS.viewport = Object.assign(PARAMS.viewport||{}, viewport);
+        viewportUpdated(viewport, triggerViewportUpdate.lastViewport);
+        triggerViewportUpdate.lastViewport = viewport;
+    }
     $(window).on({
         resize: function resize() {
             window.clearTimeout(resize.to);
             resize.to = window.setTimeout(triggerViewportUpdate, 100);
         },
-        mousedown: checkAnim,
-        mouseup: checkAnim,
-        scroll: checkAnim,
-        wheel: checkAnim,
+        mousedown: checkAnim, mouseup: checkAnim, scroll: checkAnim, wheel: checkAnim,
         blur: function() {
             log('** BLUR ** ');
+            $('body').addClass('window-blurred');
             document.body.focus();
             document.activeElement && document.activeElement.blur();
             tooltipManager.disable();
-            //tooltipManager.closeAll();
+            // tooltipManager.closeAll();
         },
         focus: function() {
             log('** FOCUS **');
+            $('body').removeClass('window-blurred');
             bridgedSettings.getValue('ui-enable-tooltips') && tooltipManager.enable();
         },
     });
 }
 
-function preconfigureLESS() {
-    window.lessOriginalNodes = $('style[type="text/less"]').remove();
-    window.lessGlobalVars = Object.assign({
-        debug: !!PARAMS.debug,
-        localhost: 1||/^\b(?:localhost|127[.])/.test(location),
-        hash: '',
-    }, {
-        'header-height': 48,
-        'footer-height': 32,
-        'custom-font-family': 'Raleway-Regular',
-        'input-font-family': 'FiraSans-Regular',
-        'color-highlight': '#009bd5',
-        'color-text': '#afafaf',
-        'color-bg': '#393939',
-        'color-bg-darker': '#252525',
-        'color-bg-icon': '#545454',
-        'color-primary-button': 'darkblue',
-        'color-alt-button': 'green',
-        'color-caution-button': 'darkred',
+function setupMousetrapKeys() {
+    if (!window.Mousetrap) {
+        return log('WARNING: window.Mousetrap not found; not configurating keybindings');
+    }
+    mousetrapMultiBind({
+        'ctrl+a, option+a': function global(evt, combo) {
+            $(document.activeElement).filter('input').select();
+        },
+        'enter': function global(evt, combo) {
+            var node = document.activeElement;
+            if ($(node).is('input')) {
+                log('enter on input element');
+                tooltipManager.closeAll();
+                node.blur();
+                var nexts = $('[tabindex],input,:focusable').not('[tabindex=-1],.ui-slider-handle');
+                nexts.add(nexts.find('input'));
+                nexts = nexts.toArray();
+                if (~nexts.indexOf(node)) {
+                    var nextActive = nexts[nexts.indexOf(node)+1];
+                    log('setting focus to', nextActive);
+                    $(nextActive).focus();
+                } else {
+                    log('could not deduce next tabbable element', nexts.length, this);
+                }
+            }
+            return true;
+        },
+        'ctrl+w': bridgedSettings.sendEvent.bind(bridgedSettings, { method: 'window.close' }),
+        'r': location.reload.bind(location),
+        'space': function global(evt, combo) {
+            log('SPACE', evt.target, document.activeElement);
+            $(document.activeElement).filter('.bool.row').find(':ui-hifiCheckbox').click();
+            if (!$(document.activeElement).is('input,.ui-widget')) {
+                return false;
+            }
+            return true;
+        },
     });
-
-    window.less = {
-        //poll: 1000,
-        //watch: true,
-        globalVars: lessGlobalVars,
-    };
-
-    preconfigureLESS.onViewportUpdated = function onViewportUpdated(viewport) {
-        if (onViewportUpdated.to) {
-            clearTimeout(onViewportUpdated.to);
-        } else if (lessGlobalVars.hash) {
-            onViewportUpdated.to = setTimeout(onViewportUpdated, 500); // debounce
-            return;
-        }
-        delete lessGlobalVars.hash;
-        Object.assign(lessGlobalVars, {
-            'interface-mode': /highfidelity/i.test(navigator.userAgent),
-            'inner-width': window.innerWidth,
-            'inner-height': window.innerHeight,
-            'client-width': document.body.clientWidth || window.innerWidth,
-            'client-height': document.body.clientHeight || window.innerHeight,
-            'hash': '',
+    // $('input').addClass('mousetrap');
+    function mousetrapMultiBind(a, b) {
+        var obj = typeof a === 'object' ? a :
+            Object.defineProperty({}, a, {enumerable: true, value: b });
+        Object.keys(obj).forEach(function(key) {
+            var method = obj[key].name === 'global' ? 'bindGlobal' : 'bind';
+            key.split(/\s*,\s*/).forEach(function(combo) {
+                log('Mousetrap', method, combo, typeof obj[key]);
+                Mousetrap[method](combo, function(evt, combo) {
+                    log('Mousetrap', method, combo);
+                    return obj[key].apply(this, arguments);
+                });
+            });
         });
-        lessGlobalVars.hash = JSON.stringify(JSON.stringify(lessGlobalVars,0,2)).replace(/\\n/g , '\\000a');
-        var hash = JSON.stringify(lessGlobalVars, 0, 2);
-        log('onViewportUpdated', JSON.parse(onViewportUpdated.lastHash||'{}')['inner-width'], JSON.parse(hash)['inner-width']);
-        if (onViewportUpdated.lastHash !== hash) {
-            //log('updating lessVars', 'less.modifyVars:' + typeof less.modifyVars, JSON.stringify(lessGlobalVars, 0, 2));
-            PARAMS.debug && $('#errors').show().html("<pre>").children(0).text(hash);
-            // LESS needs some help to recompile inline styles, so a fresh copy of the source nodes is swapped-in
-            var newNodes = lessOriginalNodes.clone().appendTo(document.body);
-            less.modifyVars && less.modifyVars(true, lessGlobalVars);
-            var oldNodes = onViewportUpdated.lastNodes;
-            oldNodes && oldNodes.remove();
-            onViewportUpdated.lastNodes = newNodes;
-        }
-        onViewportUpdated.lastHash = hash;
-    };
+    }
 }

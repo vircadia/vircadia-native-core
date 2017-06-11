@@ -6,7 +6,7 @@
 
 "use strict";
 /* eslint-env commonjs */
-
+/* global log */
 module.exports = {
     version: '0.0.1a',
     ApplicationConfig: ApplicationConfig,
@@ -47,16 +47,12 @@ function ApplicationConfig(options) {
     this.register(options.config);
 }
 ApplicationConfig.prototype = {
-    resolve: function(key) {
+    resolve: function resolve(key) {
         assert(typeof key === 'string', 'ApplicationConfig.resolve error: key is not a string: ' + key);
         if (0 !== key.indexOf('.') && !~key.indexOf('/')) {
             key = [ this.namespace, key ].join('/');
         }
-        if (key in this.config) {
-            return key;
-        }
-        log('ApplicationConfig -- could not resolve key: ' + key);
-        return undefined;
+        return (key in this.config) ? key : (debugPrint('ApplicationConfig -- could not resolve key: ' + key),undefined);
     },
     registerItem: function(settingName, item) {
         item._settingName = settingName;
@@ -66,9 +62,7 @@ ApplicationConfig.prototype = {
     register: function(items) {
         for (var p in items) {
             var item = items[p];
-            if (item) {
-                this.registerItem(p, item)
-            }
+            item && this.registerItem(p, item);
         }
     },
     _getItem: function(key) {
@@ -116,7 +110,6 @@ function ApplicationConfigItem(item) {
         _menu: this._parseMenuConfig(this.menu),
         _object: this._parseObjectConfig(this.object)
     });
-    if(0)debugPrint('>>>>>' + this);
 }
 ApplicationConfigItem.prototype = {
     authority: 'object', // when values conflict, this determines which source is considered the truth
@@ -181,11 +174,11 @@ ApplicationConfigItem.prototype = {
             return {
                 object: object, property: getter,
                 get: function() {
-                    //log('======> get API, property', object, getter, this.object[this.property]);
+                    // log('======> get API, property', object, getter, this.object[this.property]);
                     return this.object[this.property];
                 },
                 set: function(nv) {
-                    //log('======> set API, property', object, getter, this.object[this.property], nv);
+                    // log('======> set API, property', object, getter, this.object[this.property], nv);
                     return this.object[this.property] = nv;
                 }
             };
@@ -234,11 +227,8 @@ function SettingsConfig(options) {
 SettingsConfig.prototype = {
     resolve: function(key) {
         assert(typeof key === 'string', 'SettingsConfig.resolve error: key is not a string: ' + key);
-        if (0 !== key.indexOf('.') && !~key.indexOf('/')) {
-            return [ this.namespace, key ].join('/');
-        } else {
-            return key;
-        }
+        return (0 !== key.indexOf('.') && !~key.indexOf('/')) ?
+            [ this.namespace, key ].join('/') : key;
     },
     getValue: function(key, defaultValue) {
         key = this.resolve(key);

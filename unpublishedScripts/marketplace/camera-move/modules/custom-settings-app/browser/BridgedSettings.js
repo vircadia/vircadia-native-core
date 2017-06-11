@@ -2,6 +2,8 @@
 // see ../CustomSettingsApp.js for the corresponding Interface script
 
 /* eslint-env commonjs, browser */
+/* eslint-disable comma-dangle, no-empty */
+
 (function(global) {
     "use strict";
 
@@ -13,13 +15,12 @@
         global.BridgedSettings = BridgedSettings;
     }
 
-    var _utils = global._utils || (global.require && global.require('../_utils.js'));
+    var _utils = global._utils || (typeof require === 'function' && require('../../_utils.js'));
 
     if (!_utils || !_utils.signal) {
         throw new Error('html.BridgedSettings.js -- expected _utils to be available on the global object (ie: window._utils)');
     }
-    var signal = _utils.signal,
-        assert = _utils.assert;
+    var signal = _utils.signal;
 
     function log() {
         console.info('bridgedSettings | ' + [].slice.call(arguments).join(' ')); // eslint-disable-line no-console
@@ -30,37 +31,36 @@
 
     function BridgedSettings(options) {
         options = options || {};
-        this.eventBridge = options.eventBridge || global.EventBridge;
-        this.namespace = options.namespace || 'BridgedSettings';
-        this.uuid = options.uuid || undefined;
-        this.valueUpdated = signal(function valueUpdated(key, newValue, oldValue, origin){});
-        this.callbackError = signal(function callbackError(error, message){});
-        this.pendingRequestsFinished = signal(function pendingRequestsFinished(){});
-        this.extraParams = {};
+        Object.assign(this, {
+            eventBridge: options.eventBridge || global.EventBridge,
+            namespace: options.namespace || 'BridgedSettings',
+            uuid: options.uuid || undefined,
+            valueReceived: signal(function valueReceived(key, newValue, oldValue, origin){}),
+            callbackError: signal(function callbackError(error, message){}),
+            pendingRequestsFinished: signal(function pendingRequestsFinished(){}),
+            extraParams: options.extraParams || {},
+            _hifiValues: {},
 
-        // keep track of accessed settings so they can be kept in sync when changed on this side
-        this._activeSettings = {
-            sent: {},
-            received: {},
-            remote: {},
-        };
-
-        this.debug = options.debug;
-        this.log = log.bind({}, this.namespace + ' |');
-        this.debugPrint = function() { return this.debug && this.log.apply(this, arguments); };
-
-        this.log('connecting to EventBridge.scriptEventReceived');
-        this._boundScriptEventReceived = this.onScriptEventReceived.bind(this);
-        this.eventBridge.scriptEventReceived.connect(this._boundScriptEventReceived);
-
-        this.callbacks = Object.defineProperties(options.callbacks || {}, {
-            extraParams: { value: this.handleExtraParams },
-            valueUpdated: { value: this.handleValueUpdated },
+            debug: options.debug,
+            log: log.bind({}, options.namespace + ' |'),
+            debugPrint: function() {
+                return this.debug && this.log.apply(this, arguments); 
+            },
+            _boundScriptEventReceived: this.onScriptEventReceived.bind(this),
+            callbacks: Object.defineProperties(options.callbacks || {}, {
+                extraParams: { value: this.handleExtraParams },
+                valueUpdated: { value: this.handleValueUpdated },
+            })
         });
+        this.log('connecting to EventBridge.scriptEventReceived');
+        this.eventBridge.scriptEventReceived.connect(this._boundScriptEventReceived);
     }
 
     BridgedSettings.prototype = {
         _callbackId: 1,
+        toString: function() {
+            return '[BridgedSettings namespace='+this.namespace+']'; 
+        },
         resolve: function(key) {
             if (0 !== key.indexOf('.') && !~key.indexOf('/')) {
                 return [ this.namespace, key ].join('/');
@@ -74,89 +74,84 @@
                 value = msg.params[1],
                 oldValue = msg.params[2],
                 origin = msg.params[3];
-                log('callbacks.valueUpdated', key, value, oldValue, origin);
-            this._activeSettings.received[key] = this._activeSettings.remote[key] = value;
-            this.valueUpdated(key, value, oldValue, (origin?origin+':':'') + 'callbacks.valueUpdated');
+            log('callbacks.valueUpdated', key, value, oldValue, origin);
+            this._hifiValues[key] = value;
+            this.valueReceived(key, value, oldValue, (origin?origin+':':'') + 'callbacks.valueUpdated');
         },
         handleExtraParams: function(msg) {
             // client script sent us extraParams
             var extraParams = msg.extraParams;
-            Object.assign(this.extraParams, extraParams);
+            var previousParams = JSON.parse(JSON.stringify(this.extraParams));
+
+            _utils.sortedAssign(this.extraParams, extraParams);
+
+            this._hifiValues['.extraParams'] = this.extraParams;
             this.debugPrint('received .extraParams', JSON.stringify(extraParams,0,2));
-            var key = '.extraParams';
-            this._activeSettings.received[key] = this._activeSettings.remote[key] = extraParams;
-            this.valueUpdated(key, this.extraParams, this.extraParams, 'html.bridgedSettings.handleExtraParams');
+            this.valueReceived('.extraParams', this.extraParams, previousParams, 'html.bridgedSettings.handleExtraParams');
         },
         cleanup: function() {
             try {
                 this.eventBridge.scriptEventReceived.disconnect(this._boundScriptEventReceived);
-            } catch(e) {
+            } catch (e) {
                 this.log('error disconnecting from scriptEventReceived:', e);
             }
         },
         pendingRequestCount: function() {
             return Object.keys(this.callbacks).length;
         },
-        onScriptEventReceived: function(_msg) {
-            var error;
-            this.debugPrint(this.namespace, '_onScriptEventReceived......' + _msg);
-            try {
-                var msg = JSON.parse(_msg);
-                if (msg.ns === this.namespace && msg.uuid === this.uuid) {
-                    this.debugPrint('_onScriptEventReceived', msg);
-                    var callback = this.callbacks[msg.id],
-                        handled = false,
-                        debug = this.debug;
-                    if (callback) {
-                        try {
-                            callback.call(this, msg);
-                            handled = true;
-                        } catch (e) {
-                            error = e;
-                            this.log('CALLBACK ERROR', this.namespace, msg.id, '_onScriptEventReceived', e);
-                            this.callbackError(error, msg);
-                            if (debug) {
-                                throw error;
-                            }
-                        }
-                    }
-                    if (!handled) {
-                        if (this.onUnhandledMessage) {
-                            return this.onUnhandledMessage(msg, _msg);
-                        } else {
-                            error = new Error('unhandled message: ' + _msg);
-                        }
+        _handleValidatedMessage: function(obj, msg) {
+            var callback = this.callbacks[obj.id];
+            if (callback) {
+                try {
+                    return callback.call(this, obj) || true;
+                } catch (e) {
+                    this.log('CALLBACK ERROR', this.namespace, obj.id, '_onScriptEventReceived', e);
+                    this.callbackError(e, obj);
+                    if (this.debug) {
+                        throw e;
                     }
                 }
-            } catch (e) { error = e; }
-            if (this.debug && error) {
-                throw error;
+            } else if (this.onUnhandledMessage) {
+                return this.onUnhandledMessage(obj, msg);
             }
-            return error;
+        },
+        onScriptEventReceived: function(msg) {
+            this.debugPrint(this.namespace, '_onScriptEventReceived......' + msg);
+            try {
+                var obj = JSON.parse(msg);
+                var validSender = obj.ns === this.namespace && obj.uuid === this.uuid;
+                if (validSender) {
+                    return this._handleValidatedMessage(obj, msg);
+                } else {
+                    debugPrint('xskipping', JSON.stringify([obj.ns, obj.uuid]), JSON.stringify(this), msg);
+                }
+            } catch (e) {
+                log('rpc error:', e, msg);
+                return e;
+            }
         },
         sendEvent: function(msg) {
             msg.ns = msg.ns || this.namespace;
             msg.uuid = msg.uuid || this.uuid;
+            debugPrint('sendEvent', JSON.stringify(msg));
             this.eventBridge.emitWebEvent(JSON.stringify(msg));
         },
         getValue: function(key, defaultValue) {
             key = this.resolve(key);
-            return key in this._activeSettings.remote ? this._activeSettings.remote[key] : defaultValue;
+            return key in this._hifiValues ? this._hifiValues[key] : defaultValue;
         },
         setValue: function(key, value) {
             key = this.resolve(key);
             var current = this.getValue(key);
             if (current !== value) {
+                log('SET VALUE : ' + JSON.stringify({ key: key, current: current, value: value }));
                 return this.syncValue(key, value, 'setValue');
             }
+            this._hifiValues[key] = value;
             return false;
         },
         syncValue: function(key, value, origin) {
-            key = this.resolve(key);
-            var oldValue = this._activeSettings.remote[key];
-            this.sendEvent({ method: 'valueUpdated', params: [key, value, oldValue, origin] });
-            this._activeSettings.sent[key] = this._activeSettings.remote[key] = value;
-            this.valueUpdated(key, value, oldValue, (origin ? origin+':' : '') + 'html.bridgedSettings.syncValue');
+            return this.sendEvent({ method: 'valueUpdated', params: [key, value, this.getValue(key), origin] });
         },
         getValueAsync: function(key, defaultValue, callback) {
             key = this.resolve(key);
@@ -174,34 +169,20 @@
                     try {
                         callback(obj.error, obj.result);
                         if (!obj.error) {
-                            this._activeSettings.received[key] = this._activeSettings.remote[key] = obj.result;
+                            this._hifiValues[key] = obj.result;
                         }
                     } finally {
                         delete this.callbacks[event.id];
                     }
-                    this.pendingRequestCount() === 0 && this.pendingRequestsFinished();
+                    if (this.pendingRequestCount() === 0) {
+                        setTimeout(function() {
+                            this.pendingRequestsFinished();
+                        }.bind(this), 1);
+                    }
                 };
             }
             this.sendEvent(event);
         },
-        setValueAsync: function(key, value, callback) {
-            key = this.resolve(key);
-            this.log('< setValueAsync', key, value);
-            var params = [ key, value ],
-                event = { method: 'Settings.setValue', params: params };
-            if (callback) {
-                event.id = this._callbackId++;
-                this.callbacks[event.id] = function(obj) {
-                    try {
-                        callback(obj.error, obj.result);
-                    } finally {
-                        delete this.callbacks[event.id];
-                    }
-                };
-            }
-            this._activeSettings.sent[key] = this._activeSettings.remote[key] = value;
-            this.sendEvent(event);
-        }
     };
 
 })(this);

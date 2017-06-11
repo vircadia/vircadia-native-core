@@ -10,13 +10,14 @@
       .content { display: none }
     </style>
 
-    <!-- bring in jQuery and jQuery UI -->
+    <!-- bring in jQuery (MIT) and jQuery UI (MIT) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/themes/base/jquery-ui.css" />
 
     <!--script src="https://d3js.org/d3-ease.v1.min.js"></script-->
 
+    <!-- bring in Tooltipster (MIT) for tooltip support -->
     <script src="https://cdn.jsdelivr.net/jquery.tooltipster/4.2.5/js/tooltipster.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/g/jquery.tooltipster@4.2.5(css/tooltipster.bundle.min.css+css/plugins/tooltipster/sideTip/themes/tooltipster-sideTip-noir.min.css)">
 
@@ -33,19 +34,24 @@
         browserUtils = new _utils.BrowserUtils(window);
     }</script>
     <script type='require' src='./app.js'></script>
+    <script type='require' src='./hifi-jquery-ui.js'></script>
+    <script type='require' src='./_json-persist.js'></script>
+    <script type='require' src='./_tooltips.js'></script>
+    <script type='require' src='./_less-utils.js'></script>
+    <script type='require' src='../app.fileOnErrors.js'></script>
 
     <script>
       _debug.loadScriptNodes('script[type=require]');
     </script>
 
     <script>;
-{
+try {
     // Qt web views only show the first parameter passed to console; patch if needed so all parameters show up
     console = browserUtils.makeConsoleWorkRight(console);
 
     // display unhandled exceptions in an error div
-    if (/debug/.test(location) || window.qt) {
-        window.onerror = _debug.handleUncaughtException;
+    if (/debug|localhost|file:/.test(location) || window.qt) {
+        window.onerror = window._debug ? _debug.handleUncaughtException : null;
     }
 
     // process querystring parameters from main client script
@@ -66,9 +72,7 @@
     var debugPrint = PARAMS.debug ? _debugPrint : function() {};
 
     $(document).ready(function() {
-        defineCustomWidgets();
         initializeDOM();
-        viewportUpdated.connect(preconfigureLESS.onViewportUpdated);
 
         // event bridge intialization
         log('document.ready...');
@@ -90,8 +94,10 @@
             namespace: PARAMS.namespace,
             uuid: PARAMS.uuid,
             debug: PARAMS.debug,
+            extraParams: { contentVersion: VERSION },
         });
         window.addEventListener('unload', bridgedSettings.cleanup.bind(bridgedSettings));
+
         bridgedSettings.callbackError.connect(function onCallbackError(err, msg)  {
             console.error(err.stack);
             throw err;
@@ -107,17 +113,41 @@
         // let Client script know we are ready
         EventBridge.emitWebEvent(location.href);
 
-        // keep Interface in sync when DOM changes
-        jquerySettings.valueUpdated.connect(function(key, value, oldValue, origin) {
-            logValueUpdate('jquerySettings.valueUpdated', key, value, oldValue, origin);
-            bridgedSettings.syncValue(key, value, origin);
-        });
-
+        function onValueReceived(key, value, oldValue, origin) {
+            onMutationEvent.paused++;
+            try {
+                jquerySettings.setValue(key, value, origin);
+            } finally {
+                setTimeout(function() { onMutationEvent.paused--; }, 1);
+            }
+        }
         // keep DOM in sync when Interface changes
-        bridgedSettings.valueUpdated.connect(function(key, value, oldValue, origin) {
-            logValueUpdate('bridgedSettings.valueUpdated', key, value, oldValue, origin);
-            jquerySettings.setValue(key, value);
+        bridgedSettings.valueReceived.connect(onValueReceived);
+
+        // Object.defineProperty(onMutationEvent, 'paused', {
+        //     enumerable: true,
+        //     get: function() { return this._paused || 0; },
+        //     set: function(nv) { this._paused = nv; log('paused = ' + nv); return nv; },
+        // });
+
+        onMutationEvent.paused = 1;
+        function onMutationEvent(event) {
+            assert(onMutationEvent.paused >= 0);
+            if (!onMutationEvent.paused) {
+                bridgedSettings.sendEvent({
+                    method: 'valueUpdated', params: [
+                        event.key, event.value, event.oldValue, event.hifiType
+                    ]
+                });
+            }
+        }
+
+        // unpause the mutation handler after the initial requests complete
+        bridgedSettings.pendingRequestsFinished.connect(function once() {
+            bridgedSettings.pendingRequestsFinished.disconnect(once);
+            onMutationEvent.paused--;
         });
+        jquerySettings.mutationEvent.connect(onMutationEvent);
 
         setupUI();
 
@@ -126,11 +156,10 @@
             $('section').show();
         }, 150);
     }
-}</script>
+} catch(e) { alert(e) }</script>
   </head>
 
   <body class="settings-app">
-    <div id="errors" style="display:none"><pre class='output'></pre><button onclick=location.reload()>adsfsadf</button></div>
     <div class="content">
       <header class="title">
         <div class="inner-title">
@@ -144,12 +173,6 @@
       </header>
 
       <div class='scrollable'>
-        <!-- generate debug line rows -->
-        <pre style='display:none;font-size:8px'>
-          <script id='delme'>for (var i=0; !(i >= 100); i++) document.write('<span class=content></span>'); </script>
-        </pre>
-        <script>with({ parent: '', node: document.getElementById('delme') }) node.parentNode.removeChild(node);</script>
-
         <section>
           <h2>Translation</h2>
           <div class="number row">
@@ -158,12 +181,12 @@
           </div>
           <div class="slider row">
             <label>Ease In Coefficient</label>
-            <div class="control"></div>
+            <div type="slider" class="control" data-for="translation-ease-in"></div>
             <input class="setting" data-type="number" id="translation-ease-in" />
           </div>
           <div class="slider row">
             <label>Ease Out Coefficient</label>
-            <div class="control"></div>
+            <div type="slider" class="control" data-for="translation-ease-out"></div>
             <input class="setting" data-type="number" id="translation-ease-out"  />
           </div>
         </section>
@@ -178,12 +201,12 @@
           </div>
           <div class="slider row">
             <label>Ease In Coefficient</label>
-            <div class="control"></div>
+            <div type="slider" class="control" data-for="rotation-ease-in"></div>
             <input class="setting" data-type="number" id="rotation-ease-in" />
           </div>
           <div class="slider row">
             <label>Ease Out Coefficient</label>
-            <div class="control"></div>
+            <div type="slider" class="control" data-for="rotation-ease-out"></div>
             <input class="setting" data-type="number" id="rotation-ease-out"  />
           </div>
         </section>
@@ -193,11 +216,11 @@
         <section>
           <h2>Options</h2>
           <div class="bool row">
-            <input class="setting" id="enable-lookat-snapping" name="Avatar/lookAtSnappingEnabled" type="checkbox" />
+            <input class="setting" id="enable-lookat-snapping" data-for="Avatar/lookAtSnappingEnabled" type="checkbox" />
             <label for="enable-lookat-snapping">Avatars snap look at camera</label>
           </div>
           <div class="bool row">
-            <input class="setting" id="use-snap-turn" name="Avatar/useSnapTurn" type="checkbox" />
+            <input class="setting" id="use-snap-turn" data-for="Avatar/useSnapTurn" type="checkbox" />
             <label for="use-snap-turn">Enable snap turn in HMD</label>
           </div>
           <div class="bool row">
@@ -220,11 +243,11 @@
               <div class="column">
                 <div class="number row">
                   <label for='rotation-x-speed'>Pitch speed<span class="unit">deg/s</span></label>
-                  <input class="setting" data-type="number" step="1" id="rotation-x-speed" />
+                  <input class="setting" data-type="number" min="-Infinity" step="1" id="rotation-x-speed" />
                 </div>
                 <div class="number row">
                   <label for='rotation-y-speed'>Yaw speed<span class="unit">deg/s</span></label>
-                  <input class="setting" data-type="number" step="1" id="rotation-y-speed" />
+                  <input class="setting" data-type="number" min="-Infinity" step="1" id="rotation-y-speed" />
                 </div>
               </div>
             </section>
@@ -235,12 +258,12 @@
               <h2>input scaling</h2>
               <div class="column">
                 <div class="number row">
-                  <label for='rotation-keyboard-multiplier'>Keyboard multiplier</label>
-                  <input class="setting" data-type="number" step=".1" id="rotation-keyboard-multiplier" />
+                  <label for='keyboard-multiplier'>Keyboard multiplier</label>
+                  <input class="setting" data-type="number" min="-Infinity" step=".1" id="keyboard-multiplier" />
                 </div>
                 <div class="number row">
-                  <label for='rotation-mouse-multiplier'>Mouse multiplier</label>
-                  <input class="setting" data-type="number" step=".1" id="rotation-mouse-multiplier" />
+                  <label for='mouse-multiplier'>Mouse multiplier</label>
+                  <input class="setting" data-type="number" min="-Infinity" step=".1" id="mouse-multiplier" />
                 </div>
               </div>
             </section>
@@ -270,11 +293,11 @@
                 <label for="normalize-inputs">Normalize mouse movement</label>
               </div>
               <div class="bool row">
-                <input class="setting" id="collisions-enabled" name="Avatar/Enable Avatar Collisions" type="checkbox" />
+                <input class="setting" id="collisions-enabled" data-for="Avatar/Enable Avatar Collisions" type="checkbox" />
                 <label for="collisions-enabled">Enable Avatar Collisions</label>
               </div>
               <div class="bool row">
-                <input class="setting" id="draw-mesh" name="Avatar/Draw Mesh" type="checkbox" />
+                <input class="setting" id="draw-mesh" data-for="Avatar/Draw Mesh" type="checkbox" />
                 <label for="draw-mesh">Draw My Avatar</label>
               </div>
               <div class="bool row">
@@ -289,21 +312,21 @@
             <section>
               <h2>Update Mode</h2>
               <div class='column'>
-                <div class="radio row" id="drive-mode" >
+                <div class="radio row" id="drive-mode" type='radio-group'>
                   <div>
-                    <input class="setting" name="drive-mode" id="motor" type="radio" />
+                    <input class="setting" data-for="drive-mode" id="motor" type="radio" />
                     <label for="motor">Scripted Motor Control</label>
                   </div>
                   <div>
-                    <input class="setting" name="drive-mode" id="position" type="radio" />
+                    <input class="setting" data-for="drive-mode" id="position" type="radio" />
                     <label for="position">Absolute Avatar position</label>
                   </div>
                   <div>
-                    <input class="setting" name="drive-mode" id="thrust" type="radio" />
+                    <input class="setting" data-for="drive-mode" id="thrust" type="radio" />
                     <label for="thrust">Thrust/force vectors</label>
                   </div>
                   <div>
-                    <input class="setting" name="drive-mode" id="jitter-test" type="radio" />
+                    <input class="setting" data-for="drive-mode" id="jitter-test" type="radio" />
                     <label for="jitter-test">Debug Jitter Testing</label>
                   </div>
                 </div>
@@ -311,22 +334,22 @@
                     <hr />
                     <section>
                       <h2>Script update mode:</h2-->
-                <div class="radio row" id="thread-update-mode" >
+                <div class="radio row" id="thread-update-mode" type='radio-group'>
                   <div>
-                    <input class="setting" name="thread-update-mode" id="update" type="radio" />
+                    <input class="setting" data-for="thread-update-mode" id="update" type="radio" />
                     <label for="update"><code>Script.update</code></label>
                   </div>
                   <div class='row tooltip-target' for="requestAnimationFrame" data-tooltip-side='left'>
                     <label for="requestAnimationFrame"><code>requestAnimationFrame</code></label>
-                    <input class="setting" name="thread-update-mode" id="requestAnimationFrame" type="radio" />
-                    <br />&nbsp; <small>fps:</small> <input class="setting" data-type="number" step="1" id="fps" />
+                    <input class="setting" data-for="thread-update-mode" id="requestAnimationFrame" type="radio" />
+                    <br />&nbsp; <small>fps:</small> <input class="setting" data-type="number" step="1" min="0" id="fps" />
                   </div>
                   <div>
-                    <input class="setting" name="thread-update-mode" id="setImmediate" type="radio" />
+                    <input class="setting" data-for="thread-update-mode" id="setImmediate" type="radio" />
                     <label for="setImmediate"><code>setImmediate</code></label>
                   </div>
                   <div>
-                    <input class="setting" name="thread-update-mode" id="nextTick" type="radio" />
+                    <input class="setting" data-for="thread-update-mode" id="nextTick" type="radio" />
                     <label for="nextTick"><code>nextTick</code></label>
                   </div>
                 </div>
@@ -337,11 +360,11 @@
 
             <section id='debug-menu'>
               <h2>debug menu</h2>
-              <div>
+              <div class='buttons'>
                 <div style='float:left'>
                   <button id='reset-sensors'>Reset Avatar</button>
-                  <button class='localhost-only' id='page-reload'>window.reload</button>
-                  <button class='localhost-only' id='script-reload'>script.reload</button>
+                  <button title='reload the tablet app web view' class='localhost-only' id='page-reload'>refresh page</button>
+                  <button title='reload the Client script' class='localhost-only' id='script-reload'>reload script</button>
                 </div>
                 <div style='float:right'>
                   <button id='copy-json'>Export JSON</button>
@@ -362,9 +385,37 @@
         </div>
         <center>
           <div id='toggleKey'>keybinding: &nbsp; <span class='binding'>&hellip;</span></div>
+
+          <code>
+            <!-- ** TEMPORARY EXPERIMENT -- checking how well capturing arbitrary keybindings from a tablet app could work -->
+
+            <!-- bring in Mousetrap (Apache 2.0) for easy keybinding support -->
+            <script src="https://cdn.jsdelivr.net/g/mousetrap@1.6.1(mousetrap.js+plugins/bind-dictionary/mousetrap-bind-dictionary.min.js+plugins/pause/mousetrap-pause.min.js+plugins/record/mousetrap-record.min.js+plugins/global-bind/mousetrap-global-bind.min.js)"></script>
+
+            <style type='text/less'>
+                #record {
+                    button { font-size: 8px; margin: 0px; padding: 2px; margin-right: 4px; line-height: 1em; }
+                    pre { position: absolute; left: 70%; top: 0; font-size: 10px; margin: 0; padding: 0; color: white; font-weight: normal; }
+                }
+            </style>
+
+            <!--"-->
+            <div id='record' onclick="{
+                $(this).find('button').css('background-color','red');
+                Mousetrap.record(function(sequence) {
+                    $(this).find('button').css('background-color','');
+                    log(sequence);
+                    // sequence is an array like ['ctrl+k', 'c']
+                    $(this).find('pre').text(sequence.shift());
+                }.bind(this));
+        }"><!--"-->
+              <button title='capture new keybinding'>&#x2707;</button>
+              <pre></pre>
+            </div>
+          </code>
         </center>
         <div style='float:right'>
-          <button id='toggle-advanced-options'>Advanced<span class='chevron'></span></button>
+          <button checked=false for='ui-show-advanced-options' id='toggle-advanced-options'>Advanced<span class='chevron'></span></button>
         </div>
         <br />
       </footer>
@@ -453,8 +504,8 @@
       <section>
         <div for="rotation-x-speed">degrees per up/down controller inputs</div>
         <div for="rotation-y-speed">degrees per left/right controller inputs</div>
-        <div for="rotation-keyboard-multiplier">prescale raw controller inputs by this amount</div>
-        <div for="rotation-mouse-multiplier">prescale raw controller inputs by this amount</div>
+        <div for="keyboard-multiplier">prescale raw controller inputs by this amount</div>
+        <div for="mouse-multiplier">prescale raw controller inputs by this amount</div>
       </section>
 
       <section>
@@ -495,14 +546,44 @@
           replace current settings with previously-exported JSON
         </div>
         <div for="reset-sensors">
-          trigger <b>MyAvatar &gt; Reset Sensors</b> and then reset <b>bodyPitch</b> and <b>bodyYaw</b>
+          trigger <b>MyAvatar &gt; Reset Sensors</b>;reset <b>bodyPitch</b> and <b>bodyYaw</b>
         </div>
-        <div for="toggle-advanced-options">
+        <div for="ui-show-advanced-options">
           show / hide advanced settings
         </div>
       </section>
     </div><!-- /tooltips -->
 
+    <div id="errors" style="display:none">
+      <div class='title'>PAGE ERROR:</div>
+      <pre class='output'></pre>
+      <pre class='debug-lines' style='display:none;'><span class='content'></span></pre>
+      <hr />
+      <div class='buttons'><button onclick='location.reload()'>reload page</button>&nbsp; | &nbsp;<button>dismiss</button></div>
+    </div>
+    <!-- generate debug line outputs -->
+    <script>(function(template) {
+        for (var i=0; i !== 25; i++) {
+            template.parentNode.appendChild(template.cloneNode());
+        }
+      })(document.querySelector('#errors .debug-lines .content'));
+    </script>
+    <script>
+    var LESS_GLOBALS = {
+        'header-height': 48,
+        'footer-height': 32,
+        'custom-font-family': 'Raleway-Regular',
+        'input-font-family': 'FiraSans-Regular',
+        'color-highlight': '#009bd5',
+        'color-text': '#afafaf',
+        'color-bg': '#393939',
+        'color-bg-darker': '#252525',
+        'color-bg-icon': '#545454',
+        'color-primary-button': 'darken(darkblue,10%)',
+        'color-alt-button': 'green',
+        'color-caution-button': 'darkred',
+    };
+    </script>
     <style id='tablet-ui-less' type="text/less">
 // Embedded LESS stylesheets are used as a structured way to manage page styling.
 // The template rules below get compiled at page load time by less.js.
@@ -513,21 +594,28 @@
     .mixins > .load-hifi-font(@custom-font-family);
     .mixins > .load-hifi-font(@input-font-family);
 
-    input, textarea {
-        font-family: '@{input-font-family}', sans-serif;
-    }
-
     .mixin-tablet-mode() {
         width: 100%;
-        margin-left: 0;
+        margin-left: -3px;
         margin-right: 0;
         overflow-x: hidden;
+        .content {
+            .slider {
+                .ui-spinner {
+                    width: 80px;
+                }
+            }
+        }
     }
     .tablet-mode { .mixin-tablet-mode() !important; }
 
     body {
         color: @color-text;
         background-color: @color-bg;
+
+        &.window-blurred header {
+            opacity: .5;
+        }
 
         font-family: '@{custom-font-family}';
         font-size: 15px;
@@ -544,6 +632,11 @@
         //margin-top: 6px;
         margin-left: -5px;
         overflow: hidden;
+        input, textarea {
+            font-family: '@{input-font-family}', sans-serif;
+            user-select: auto;
+            -webkit-user-select: auto;
+        }
     }
 
     p { margin: 2px 0; }
@@ -561,12 +654,13 @@
         //position: absolute;
     }
 
-    .title {
+    header.title {
         position: relative;
         padding: 6px 0 6px 10px;
         text-align: left;
         clear: both;
 
+        h1 { font-size: 18px; }
         h1, label {
             font-weight: normal;
             //margin: 16px 0;
@@ -574,18 +668,15 @@
         }
     }
 
-    #errors .content { padding: 1px 3px; background-color: black; color:blue; display:block; }
-    #errors span:nth-child(1).content:before { content: 'hash:@{hash}\000a'; }
+    section h1 { font-size: 18px; }
 
-    h1 { font-size: 18px; }
-
-    h2 {
+    section h2 {
         margin-left: -12px;
         font-size: 14px;
         color: #ddd;
     }
 
-    input[type=text], input[data-type=number], textarea {
+    input[type=text], input[type=number], input[data-type=number], textarea {
         margin: 0;
         padding: 0 0 0 12px;
         color: @color-text;
@@ -761,12 +852,16 @@
     @subtle-border: solid 1px rgba(158, 158, 158, 0.151);
 
     br { clear: both; }
-
+    a {
+        text-decoration: none;
+        color: #99f;
+        &:hover { color: darken(#99f, 10%); }
+    }
     .content { display: block; }
 
     #overlay {
-        opacity: .15;
-        background-color: white;
+        opacity: .35;
+        background-color: black;
         position: absolute;
         top: 0;
         left: 0;
@@ -774,7 +869,10 @@
         width: 100%;
         z-index: 9999999;
     }
-    &:not(.active) #overlay { display: block; }
+    &:not(.active) {
+        #overlay { display: block; }
+        .tooltipster-base { display: none; }
+    }
     &.active #overlay { display: none; }
 
     section {
@@ -790,8 +888,10 @@
         top: auto;
         text-align: center;
         height: @footer-height * 1px;
-        border-bottom: none;
-        box-shadow: none;
+        border-left: none;
+        border-right: none;
+        border-bottom: none !important;//solid -1px blue;
+        box-shadow: none !important;
         center {
             //line-height: @footer-height * 1px;
             vertical-align: middle;
@@ -981,14 +1081,28 @@
         border-color: transparent;
         margin: 2px;
         text-transform: uppercase;
-        &:hover { background-color: lighten(@color-primary-button,10%); }
         border: solid 1px transparent;
+        &:hover { background-color: lighten(@color-primary-button,10%); }
         &:focus { border: dotted 1px tint(@color-highlight) !important; }
     }
     .localhost-only {
         //display: none;
         &when (@debug), (@localhost) {
             display: inline-block;
+        }
+    }
+    #debug-menu {
+        .buttons {
+            margin: 0px -8px;
+            button {
+                padding: 4px;
+                margin: 1px;
+                font-size: 12px;
+                text-transform: none;
+                font-weight: normal;
+                border-radius: 6px;
+                &.localhost-only { background-color: #303; &:hover { background-color: lighten(#303,10%);} }
+            }
         }
     }
     #advanced-options {
@@ -1011,7 +1125,10 @@
 }
 .ui-show-advanced-options {
     #advanced-options { display: block !important; }
-    #toggle-advanced-options .chevron:after { content: ' \25BC' !important; }
+    #toggle-advanced-options {
+        background-color: mix(blue,@color-alt-button,20%) !important;
+        .chevron:after { content: ' \25B2' !important; }
+    }
 }
 
 #appVersion {
@@ -1029,14 +1146,43 @@
     left: 0;
     top: 0;
     height: auto;
-    width: 100%;
+    min-height: @header-height * 1px;
+    border-bottom: solid 1px gray;
+    box-shadow: 2px 2px 8px black;
+    right: 0;
     font-size: .8em;
     background-color: rgb(95,0,0);
     color: white;
     overflow: auto;
     margin: 0;
-    padding: 8px;
+    padding: 4px;
     z-index: 9999999;
+    pre {
+        white-space: pre-wrap;
+        margin: 0 6px;
+    }
+    .title {
+        background-color: red;
+        padding: 2px;
+        margin-bottom: 4px;
+    }
+    .buttons {
+        margin-top: 4px;
+        float: right;
+        button {
+            font-weight: normal;
+            margin: 4px 2px;
+        }
+    }
+    .debug-lines {
+        font-size: 8px;
+        background-color: black;
+        color: lightblue;
+        .content {
+            padding: 1px 3px;
+            &:nth-child(1):before { content: 'hash:@{hash}\000a'; }
+        }
+    }
 }
 
 footer center > div { display: none; }
@@ -1056,9 +1202,17 @@ footer center > div { display: none; }
     }
 }
 </style>
-<script> preconfigureLESS(); </script>
+<script>
+    lessManager = preconfigureLESS({
+        selector: 'style[type="text/less"]',
+        globalVars: Object.assign({
+            debug: !!PARAMS.debug,
+            localhost: /\b(?:file:\/\/|localhost|127[.])/.test(location),
+        }, LESS_GLOBALS)
+    });
+less = lessManager.options;
+</script>
 <script data-env-'development' xx-data-env='production' src="https://cdnjs.cloudflare.com/ajax/libs/less.js/2.7.2/less.js"></script>
-
 <!-- JSON DUMP TEMPLATE -->
 <script type='text/html' id='POPUP'>
   <html>

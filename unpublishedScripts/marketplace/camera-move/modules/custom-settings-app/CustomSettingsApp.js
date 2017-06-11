@@ -1,5 +1,5 @@
 // CustomSettingsApp.js -- manages Settings between a Client script and connected "settings" tablet WebView page
-// see html.bridgedSettings.js for the webView side
+// see browser/BridgedSettings.js for the webView side
 
 // example:
 //   var button = tablet.addButton({ text: 'My Settings' });
@@ -11,8 +11,8 @@
 //   });
 //
 //   // settings are automatically sync'd from the web page back to Interface; to be notified when that happens, use:
-//   myAppSettings.settingUpdated.connect(function(name, value, origin) {
-//      print('setting updated from web page', name, value, origin);
+//   myAppSettings.valueUpdated.connect(function(name, value, oldValue, origin) {
+//      print('setting updated from web page', name, value, oldValue, origin);
 //   });
 //
 //   // settings are also automatically sync'd from Interface back to the web page; to manually sync a value, use:
@@ -127,7 +127,7 @@ CustomSettingsApp.prototype = {
         this.sendEvent({ id: 'valueUpdated', params: [key, value, oldValue, origin] });
         this._activeSettings.sent[key] = value;
         this._activeSettings.remote[key] = value;
-        this.valueUpdated(key, value, oldValue,  (origin ? origin+':' : '') + 'CustomSettingsApp.syncValue');
+        this.valueUpdated(key, value, oldValue, (origin ? origin+':' : '') + 'CustomSettingsApp.syncValue');
     },
     onScreenChanged: function onScreenChanged(type, url) {
         this.settingsScreenVisible = (url === this.url);
@@ -172,8 +172,8 @@ CustomSettingsApp.prototype = {
                     this._activeSettings.remote[key] = obj.result;
                     break;
                 }
-            case 'setValue': {
-                obj.result = this._setValue(key, value, params[2], params[3]);
+                case 'setValue': {
+                    obj.result = this._setValue(key, value, params[2], params[3]);
                     break;
                 }
                 default: {
@@ -200,6 +200,8 @@ CustomSettingsApp.prototype = {
         }
     },
     onWebEventReceived: function onWebEventReceived(msg) {
+        // !/xSettings[.]getValue/.test(msg) &&
+        _debugPrint('onWebEventReceived', msg);
         var tablet = this.tablet;
         if (!tablet) {
             throw new Error('onWebEventReceived called when not connected to tablet...');
@@ -216,7 +218,7 @@ CustomSettingsApp.prototype = {
             if (validSender) {
                 this._handleValidatedMessage(obj, msg);
             } else {
-                debugPrint('skipping', JSON.stringify([obj.ns, obj.uuid]), JSON.stringify(this), msg);
+                debugPrint('xskipping', JSON.stringify([obj.ns, obj.uuid]), JSON.stringify(this), msg);
             }
         } catch (e) {
             _debugPrint('rpc error:', e, msg);
@@ -236,7 +238,7 @@ CustomSettingsApp.prototype = {
                 _debugPrint(
                     '[onAPIValueUpdated @ ' + origin + ']',
                     key + ' = ' + JSON.stringify(newValue), '(was: ' + JSON.stringify(oldValue) +')',
-                    JSON.stringify(this._activeSettings.get(key),0,2));
+                    JSON.stringify(this._activeSettings.get(key)));
                 this.syncValue(key, newValue, (origin ? origin+':' : '') + 'CustomSettingsApp.onAPIValueUpdated');
             }
         };

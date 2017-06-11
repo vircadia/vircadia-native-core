@@ -1,14 +1,14 @@
-// EnumMeta.js -- helper module that maps related enum values to names and ids
-//
-
+// // EnumMeta.js -- helper module that maps related enum values to names and ids
+// //
 /* eslint-env commonjs */
-/* global DriveKeys */
+/* global DriveKeys, console */
 
 var VERSION = '0.0.1';
 var WANT_DEBUG = false;
 
 function _debugPrint() {
-    print('EnumMeta | ' + [].slice.call(arguments).join(' '));
+    // eslint-disable-next-line no-console
+    (typeof Script === 'object' ? print : console.log)('EnumMeta | ' + [].slice.call(arguments).join(' '));
 }
 
 var debugPrint = WANT_DEBUG ? _debugPrint : function(){};
@@ -45,9 +45,8 @@ module.exports = {
     getActionNameFromDriveKeyName: getActionNameFromDriveKeyName,
     eventKeyText2KeyboardName: eventKeyText2KeyboardName,
     keyboardName2eventKeyText: keyboardName2eventKeyText,
-
     ACTION_TRANSLATE_CAMERA_Z: ACTION_TRANSLATE_CAMERA_Z,
-    INVALID_ACTION_ID: Controller.findAction('INVALID_ACTION_ID_FOO'),
+    INVALID_ACTION_ID: Controller.findAction('INVALID_ACTION_ID_FOO')
 };
 
 _debugPrint('///'+VERSION, Object.keys(module.exports));

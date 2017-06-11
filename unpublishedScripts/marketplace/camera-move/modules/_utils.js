@@ -2,8 +2,9 @@
 
 "use strict";
 /* eslint-env commonjs, hifi */
-
-//var HIRES_CLOCK = (typeof Window === 'object' && Window && Window.performance) && Window.performance.now;
+/* eslint-disable comma-dangle, no-empty */
+/* global HIRES_CLOCK, Desktop */
+// var HIRES_CLOCK = (typeof Window === 'object' && Window && Window.performance) && Window.performance.now;
 var USE_HIRES_CLOCK = typeof HIRES_CLOCK === 'function';
 
 var exports = {
@@ -11,6 +12,7 @@ var exports = {
     bind: bind,
     signal: signal,
     assign: assign,
+    sortedAssign: sortedAssign,
     sign: sign,
     assert: assert,
     getSystemMetadata: getSystemMetadata,
@@ -24,10 +26,11 @@ var exports = {
     normalizeStackTrace: normalizeStackTrace,
     BrowserUtils: BrowserUtils,
     BSOD: BSOD, // exception reporter
+    _overlayWebWindow: _overlayWebWindow,
 };
 try {
     module.exports = exports; // Interface / Node.js
-} catch(e) {
+} catch (e) {
     this._utils = assign(this._utils || {}, exports); // browser
 }
 
@@ -38,19 +41,31 @@ function makeDebugRequire(relativeTo) {
     };
 }
 function debugRequire(id, relativeTo) {
-    // hack-around for use during local development / testing that forces every require to re-fetch the script from the server
-    var modulePath = Script._requireResolve(id, relativeTo) + '?' + new Date().getTime().toString(36);
-    print('========== DEBUGREQUIRE:' + modulePath);
-    Script.require.cache[modulePath] = Script.require.cache[id] = undefined;
-    Script.require.__qt_data__[modulePath] = Script.require.__qt_data__[id] = true;
-    return Script.require(modulePath);
+    if (typeof Script === 'object') {
+        // hack-around for use during local development / testing that forces every require to re-fetch the script from the server
+        var modulePath = Script._requireResolve(id, relativeTo+'/') + '?' + new Date().getTime().toString(36);
+        print('========== DEBUGREQUIRE:' + modulePath);
+        Script.require.cache[modulePath] = Script.require.cache[id] = undefined;
+        Script.require.__qt_data__[modulePath] = Script.require.__qt_data__[id] = true;
+        return Script.require(modulePath);
+    } else {
+        return require(id);
+    }
 }
 
+// examples:
+//     assert(function assertion() { return (conditions === true) }, 'assertion failed!')
+//     var neededValue = assert(idString, 'idString not specified!');
+//     assert(false, 'unexpected state');
 function assert(truthy, message) {
     message = message || 'Assertion Failed:';
 
     if (typeof truthy === 'function' && truthy.name === 'assertion') {
-        message += ' ' + JSON.stringify((truthy+'').replace(/^[^{]+\{|\}$|^\s*|\s*$/g, ''));
+        // extract function body to display with the assertion message
+        var assertion = (truthy+'').replace(/[\r\n]/g, ' ')
+            .replace(/^[^{]+\{|\}$|^\s*|\s*$/g, '').trim()
+            .replace(/^return /,'').replace(/\s[\r\n\t\s]+/g, ' ');
+        message += ' ' + JSON.stringify(assertion);
         try {
             truthy = truthy();
         } catch (e) {
@@ -58,7 +73,7 @@ function assert(truthy, message) {
         }
     }
     if (!truthy) {
-        message += ' (! '+truthy+')';
+        message += ' ('+truthy+')';
         throw new Error(message);
     }
     return truthy;
@@ -99,6 +114,27 @@ function assign(target, varArgs) { // .length of function is 2
 }
 /* eslint-enable */
 // //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign#Polyfill
+
+// hack to sort keys in v8 for prettier JSON exports
+function sortedAssign(target, sources) {
+    var allParams = assign.apply(this, [{}].concat([].slice.call(arguments)));
+    for (var p in target) {
+        delete target[p];
+    }
+    Object.keys(allParams).sort(function(a,b) {
+        function swapCase(ch) {
+            return /[A-Z]/.test(ch) ? ch.toLowerCase() : ch.toUpperCase();
+        }
+        a = a.replace(/^./, swapCase);
+        b = b.replace(/^./, swapCase);
+        a = /Version/.test(a) ? 'AAAA'+a : a;
+        b = /Version/.test(b) ? 'AAAA'+b : b;
+        return a < b ? -1 : a > b ? 1 : 0;
+    }).forEach(function(key) {
+        target[key] = allParams[key];
+    });
+    return target;
+}
 
 // ----------------------------------------------------------------------------
 // @function - bind a function to a `this` context
@@ -204,13 +240,13 @@ function BrowserUtils(global) {
             this.log('openEventBridge |', 'typeof global.EventBridge == ' + typeof global.EventBridge);
             try {
                 global.EventBridge.scriptEventReceived.connect.exists;
-                //this.log('openEventBridge| EventBridge already exists... -- invoking callback', 'typeof EventBridge == ' + typeof global.EventBridge);
+                // this.log('openEventBridge| EventBridge already exists... -- invoking callback', 'typeof EventBridge == ' + typeof global.EventBridge);
                 return callback(global.EventBridge);
-            } catch(e) {
+            } catch (e) {
                 this.log('EventBridge does not yet exist -- attempting to instrument via qt.webChannelTransport');
                 var QWebChannel = assert(global.QWebChannel, 'expected global.QWebChannel to exist'),
-                    qt = assert(global.qt, 'expected global.qt to exist'),
-                    webChannelTransport = assert(qt.webChannelTransport, 'expected global.qt.webChannelTransport to exist');
+                    qt = assert(global.qt, 'expected global.qt to exist');
+                assert(qt.webChannelTransport, 'expected global.qt.webChannelTransport to exist');
                 new QWebChannel(qt.webChannelTransport, bind(this, function (channel) {
                     global.EventBridge = channel.objects.eventBridgeWrapper.eventBridge;
                     global.EventBridge.$WebChannel = channel;
@@ -245,35 +281,35 @@ DeferredUpdater.prototype = {
     submit: function() {
         var meta = this._meta,
             target = meta.target,
-            lastValue = meta.lastValue,
-            dedupe = meta.dedupe,
+            // lastValue = meta.lastValue,
+            // dedupe = meta.dedupe,
             self = this,
             submitted = {};
 
         self.submit = getRuntimeSeconds();
         Object.keys(self).forEach(function(property) {
             var newValue = self[property];
-            if (0 && dedupe) {
-                var stringified = JSON.stringify(newValue);
-                var last = lastValue[property];
-                if (stringified === last) {
-                    return;
-                }
-                lastValue[property] = stringified;
-            }
-            if (0) {
-                var tmp = lastValue['_'+property];
-                if (typeof tmp === 'object') {
-                    if ('w' in tmp) {
-                        newValue = Quat.normalize(Quat.slerp(tmp, newValue, 0.95));
-                    } else if ('z' in tmp) {
-                        newValue = Vec3.mix(tmp, newValue, 0.95);
-                    }
-                } else if (typeof tmp === 'number') {
-                    newValue = (newValue + tmp)/2.0;
-                }
-                lastValue['_'+property] = newValue;
-            }
+            // if (dedupe) {
+            //     var stringified = JSON.stringify(newValue);
+            //     var last = lastValue[property];
+            //     if (stringified === last) {
+            //         return;
+            //     }
+            //     lastValue[property] = stringified;
+            // }
+            // if (0) {
+            //     var tmp = lastValue['_'+property];
+            //     if (typeof tmp === 'object') {
+            //         if ('w' in tmp) {
+            //             newValue = Quat.normalize(Quat.slerp(tmp, newValue, 0.95));
+            //         } else if ('z' in tmp) {
+            //             newValue = Vec3.mix(tmp, newValue, 0.95);
+            //         }
+            //     } else if (typeof tmp === 'number') {
+            //         newValue = (newValue + tmp)/2.0;
+            //     }
+            //     lastValue['_'+property] = newValue;
+            // }
             submitted[property] = newValue;
             if (typeof target[property] === 'function') {
                 target[property](newValue);
@@ -315,7 +351,7 @@ DeferredUpdater.createGroup = function(items, options) {
 getRuntimeSeconds.EPOCH = getRuntimeSeconds(0);
 function getRuntimeSeconds(since) {
     since = since === undefined ? getRuntimeSeconds.EPOCH : since;
-    var now = USE_HIRES_CLOCK ? HIRES_CLOCK() : +new Date;
+    var now = USE_HIRES_CLOCK ? new HIRES_CLOCK() : +new Date;
     return ((now / 1000.0) - since);
 }
 
@@ -360,23 +396,26 @@ function KeyListener(options) {
     assign(this, {
         modifiers: this._getEventModifiers(options, true)
     }, options);
-    log('created KeyListener', JSON.stringify(this, 0, 2));
+    this.log = options.log || function log() {
+        print('KeyListener | ', [].slice.call(arguments).join(' '));
+    };
+    this.log('created KeyListener', JSON.stringify(this.text), this.modifiers);
     this.connect();
 }
 KeyListener.prototype = {
     _getEventModifiers: function(event, trueOnly) {
-        return [ 'Control', 'Meta', 'Alt', 'Super', 'Menu', 'Shifted' ].map(function(mod) {
+        return '(' + [ 'Control', 'Meta', 'Alt', 'Super', 'Menu', 'Shifted' ].map(function(mod) {
             var isMod = 'is' + mod,
                 value = event[isMod],
                 found = (trueOnly ? value : typeof value === 'boolean');
-            return found && isMod + ' = ' + value;
-        }).filter(Boolean).sort().join('|');
+            return found && isMod + ' == ' + value;
+        }).filter(Boolean).sort().join(' | ') + ')';
     },
     handleEvent: function(event, target) {
         if (event.text === this.text) {
             var modifiers = this._getEventModifiers(event, true);
             if (modifiers !== this.modifiers) {
-                return log('KeyListener -- different modifiers, disregarding keystroke', JSON.stringify({
+                return this.log('KeyListener -- different modifiers, disregarding keystroke', JSON.stringify({
                     expected: this.modifiers,
                     received: modifiers,
                 },0,2));
@@ -438,9 +477,9 @@ function BSOD(options, callback) {
     var HTML = [
         '<style>body { background:#0000aa; color:#ffffff; font-family:courier; font-size:8pt; margin:10px; }</style>',
         buttonHTML,
-        '<pre style=whitespace:pre-wrap>',
+        '<pre style="white-space:pre-wrap;">',
         '<strong>' + options.error + '</strong>',
-        _utils.normalizeStackTrace(options.error, {
+        normalizeStackTrace(options.error, {
             wrapLineNumbersWith: ['<b style=color:lime>','</b>'],
             wrapFilesWith: ['<b style=color:#f99>','</b>'],
         }),
@@ -454,7 +493,7 @@ function BSOD(options, callback) {
         content: HTML,
     });
     popup.webEventReceived.connect(function(message) {
-        log('popup.webEventReceived', message);
+        print('popup.webEventReceived', message);
         try {
             callback(null, message);
         } finally {
@@ -500,12 +539,15 @@ function getSystemMetadata() {
 }
 
 function reloadClientScript(filename) {
+    function log() {
+        print('reloadClientScript | ', [].slice.call(arguments).join(' '));
+    }
     log('reloading', filename);
     var result = ScriptDiscoveryService.stopScript(filename, true);
     log('...stopScript', filename, result);
     if (!result) {
         var matches = ScriptDiscoveryService.getRunning().filter(function(script) {
-            //log(script.path, script.url);
+            // log(script.path, script.url);
             return 0 === script.path.indexOf(filename);
         });
         log('...matches', JSON.stringify(matches,0,2));
