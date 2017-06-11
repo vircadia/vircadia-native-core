@@ -25,11 +25,12 @@ precision mediump int;
 uniform sampler2D colorTexture;
 uniform vec2 texcoordOffset;
 
-in vec2 varTexcoord;
+in vec2 varTexCoord0;
 out vec4 outFragColor;
 
 void main() {
-    // filter width limit for dependent "two-tap" texture samples
+    outFragColor = vec4(texture(colorTexture, varTexCoord0).xyz, 0.3);
+ /*   // filter width limit for dependent "two-tap" texture samples
     float FXAA_SPAN_MAX = 8.0;
 
     // local contrast multiplier for performing AA
@@ -90,5 +91,5 @@ void main() {
     } else {
         outFragColor.xyz=rgbB;
     }
-    outFragColor.a = 1.0;
+    outFragColor.a = 1.0;*/
 }
