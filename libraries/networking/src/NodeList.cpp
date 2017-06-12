@@ -713,8 +713,10 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
 
 void NodeList::startNodeHolePunch(const SharedNodePointer& node) {
 
-    // we don't hole punch to replicants, since it is assumed that we have a direct line to them
-    if (!NodeType::isDownstream(node->getType())) {
+    // we don't hole punch to downstream servers, since it is assumed that we have a direct line to them
+    // we also don't hole punch to relayed upstream nodes, since we do not communicate directly with them
+
+    if (!NodeType::isDownstream(node->getType()) && !node->isUpstream()) {
         // connect to the correct signal on this node so we know when to ping it
         connect(node.data(), &Node::pingTimerTimeout, this, &NodeList::handleNodePingTimeout);
 
