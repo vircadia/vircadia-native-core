@@ -78,7 +78,8 @@ private:
         void configureCalibrationSettings(const QJsonObject configurationSettings);
         QJsonObject configurationSettings();
         controller::Pose addOffsetToPuckPose(int joint) const;
-        glm::mat4 recalculateDefaultToReferenceForHeadPuck(const controller::InputCalibrationData& inputCalibration);
+        glm::mat4 calculateDefaultToReferenceForHeadPuck(const controller::InputCalibrationData& inputCalibration);
+        glm::mat4 calculateDefaultToReferenceForHmd(const controller::InputCalibrationData& inputCalibration);
         void updateCalibratedLimbs();
         bool checkForCalibrationEvent();
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
@@ -102,6 +103,8 @@ private:
         
         void calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
                                 int firstShoulderIndex, int secondShoulderIndex);
+        void calibrateHands(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
+                            int firstHandIndex, int secondHandIndex); 
         void calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateFromHandController(const controller::InputCalibrationData& inputCalibrationData);
         void calibrateFromUI(const controller::InputCalibrationData& inputCalibrationData);
@@ -133,7 +136,7 @@ private:
             glm::vec2 _stick { 0.0f, 0.0f };
         };
         enum class Config {
-            Auto,
+            None,
             Feet,
             FeetAndHips,
             FeetHipsAndChest,
@@ -152,8 +155,8 @@ private:
             Pucks
         };
             
-        Config _config { Config::Auto };
-        Config _preferedConfig { Config::Auto };
+        Config _config { Config::None };
+        Config _preferedConfig { Config::None };
         HeadConfig _headConfig { HeadConfig::HMD };
         HandConfig _handConfig { HandConfig::HandController };
         FilteredStick _filteredLeftStick;

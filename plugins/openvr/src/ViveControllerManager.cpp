@@ -222,7 +222,7 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
 
 ViveControllerManager::InputDevice::InputDevice(vr::IVRSystem*& system) : controller::InputDevice("Vive"), _system(system) {
 
-    _configStringMap[Config::Auto] =  QString("Auto");
+    _configStringMap[Config::None] =  QString("None");
     _configStringMap[Config::Feet] =  QString("Feet");
     _configStringMap[Config::FeetAndHips] =  QString("FeetAndHips");
     _configStringMap[Config::FeetHipsAndChest] =  QString("FeetHipsAndChest");
@@ -425,49 +425,17 @@ void ViveControllerManager::InputDevice::calibrateOrUncalibrate(const controller
 
 void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibrationData& inputCalibration) {
     qDebug() << "Puck Calibration: Starting...";
-    // convert the hmd head from sensor space to avatar space
-    glm::mat4 hmdSensorFlippedMat = inputCalibration.hmdSensorMat * Matrices::Y_180;
-    glm::mat4 sensorToAvatarMat = glm::inverse(inputCalibration.avatarMat) * inputCalibration.sensorToWorldMat;
-    glm::mat4 hmdAvatarMat = sensorToAvatarMat * hmdSensorFlippedMat;
 
-    // cancel the roll and pitch for the hmd head
-    glm::quat hmdRotation = cancelOutRollAndPitch(glmExtractRotation(hmdAvatarMat));
-    glm::vec3 hmdTranslation = extractTranslation(hmdAvatarMat);
-    glm::mat4 currentHmd = createMatFromQuatAndPos(hmdRotation, hmdTranslation);
-
-    // calculate the offset from the centerOfEye to defaultHeadMat
-    glm::mat4 defaultHeadOffset = glm::inverse(inputCalibration.defaultCenterEyeMat) * inputCalibration.defaultHeadMat;
-
-    glm::mat4 currentHead  = currentHmd * defaultHeadOffset;
-
-    // calculate the defaultToRefrenceXform
-    glm::mat4 defaultToReferenceMat = currentHead * glm::inverse(inputCalibration.defaultHeadMat);
+    glm::mat4 defaultToReferenceMat = glm::mat4();
+    if (_headConfig == HeadConfig::HMD) {
+        defaultToReferenceMat = calculateDefaultToReferenceForHmd(inputCalibration);
+    } else if (_headConfig == HeadConfig::Puck) { 
+        defaultToReferenceMat = calculateDefaultToReferenceForHeadPuck(inputCalibration);
+    }
 
     int puckCount = (int)_validTrackedObjects.size();
     qDebug() << "Puck Calibration: " << puckCount << " pucks found for calibration";
     _config = _preferedConfig;
-    if (_config != Config::Auto && puckCount < MIN_PUCK_COUNT) {
-        qDebug() << "Puck Calibration: Failed: Could not meet the minimal # of pucks";
-        uncalibrate();
-        emitCalibrationStatus(false);
-        return;
-    } else if (_config == Config::Auto){
-        if (puckCount == MIN_PUCK_COUNT) {
-            _config = Config::Feet;
-            qDebug() << "Puck Calibration: Auto Config: " << configToString(_config) << " configuration";
-        } else if (puckCount == MIN_FEET_AND_HIPS) {
-            _config = Config::FeetAndHips;
-            qDebug() << "Puck Calibration: Auto Config: " << configToString(_config) << " configuration";
-        } else if (puckCount >= MIN_FEET_HIPS_CHEST) {
-            _config = Config::FeetHipsAndChest;
-            qDebug() << "Puck Calibration: Auto Config: " << configToString(_config) << " configuration";
-        } else {
-            qDebug() << "Puck Calibration: Auto Config Failed: Could not meet the minimal # of pucks";
-            uncalibrate();
-            emitCalibrationStatus(false);
-            return;
-        }
-    }
 
     std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), sortPucksYPosition);
 
@@ -487,21 +455,19 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
         int secondShoulderIndex = 4;
         calibrateShoulders(defaultToReferenceMat, inputCalibration, firstShoulderIndex, secondShoulderIndex);
     } else if (_config == Config::FeetHipsAndHead && puckCount == MIN_FEET_HIPS_HEAD) {
-        glm::mat4 headPuckDefaultToReferenceMat = recalculateDefaultToReferenceForHeadPuck(inputCalibration);
-        glm::vec3 headXAxis = getReferenceHeadXAxis(headPuckDefaultToReferenceMat, inputCalibration.defaultHeadMat);
-        glm::vec3 headPosition = getReferenceHeadPosition(headPuckDefaultToReferenceMat, inputCalibration.defaultHeadMat);
-        calibrateFeet(headPuckDefaultToReferenceMat, inputCalibration, headXAxis, headPosition);
-        calibrateHips(headPuckDefaultToReferenceMat, inputCalibration);
-        calibrateHead(headPuckDefaultToReferenceMat, inputCalibration);
+        glm::vec3 headXAxis = getReferenceHeadXAxis(defaultToReferenceMat, inputCalibration.defaultHeadMat);
+        glm::vec3 headPosition = getReferenceHeadPosition(defaultToReferenceMat, inputCalibration.defaultHeadMat);
+        calibrateFeet(defaultToReferenceMat, inputCalibration, headXAxis, headPosition);
+        calibrateHips(defaultToReferenceMat, inputCalibration);
+        calibrateHead(defaultToReferenceMat, inputCalibration);
         _overrideHead = true;
     } else if (_config == Config::FeetHipsChestAndHead && puckCount == MIN_FEET_HIPS_CHEST_HEAD) {
-        glm::mat4 headPuckDefaultToReferenceMat = recalculateDefaultToReferenceForHeadPuck(inputCalibration);
-        glm::vec3 headXAxis = getReferenceHeadXAxis(headPuckDefaultToReferenceMat, inputCalibration.defaultHeadMat);
-        glm::vec3 headPosition = getReferenceHeadPosition(headPuckDefaultToReferenceMat, inputCalibration.defaultHeadMat);
-        calibrateFeet(headPuckDefaultToReferenceMat, inputCalibration, headXAxis, headPosition);
-        calibrateHips(headPuckDefaultToReferenceMat, inputCalibration);
-        calibrateChest(headPuckDefaultToReferenceMat, inputCalibration);
-        calibrateHead(headPuckDefaultToReferenceMat, inputCalibration);
+        glm::vec3 headXAxis = getReferenceHeadXAxis(defaultToReferenceMat, inputCalibration.defaultHeadMat);
+        glm::vec3 headPosition = getReferenceHeadPosition(defaultToReferenceMat, inputCalibration.defaultHeadMat);
+        calibrateFeet(defaultToReferenceMat, inputCalibration, headXAxis, headPosition);
+        calibrateHips(defaultToReferenceMat, inputCalibration);
+        calibrateChest(defaultToReferenceMat, inputCalibration);
+        calibrateHead(defaultToReferenceMat, inputCalibration);
         _overrideHead = true;
     } else {
         qDebug() << "Puck Calibration: " << configToString(_config) << " Config Failed: Could not meet the minimal # of pucks";
@@ -515,7 +481,7 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
 }
 
 void ViveControllerManager::InputDevice::uncalibrate() {
-    _config = Config::Auto;
+    _config = Config::None;
     _pucksOffset.clear();
     _jointToPuckMap.clear();
     _calibrated = false;
@@ -597,8 +563,29 @@ void ViveControllerManager::InputDevice::handleHandController(float deltaTime, u
          }
     }
 }
+glm::mat4 ViveControllerManager::InputDevice::calculateDefaultToReferenceForHmd(const controller::InputCalibrationData& inputCalibration) {
+    // convert the hmd head from sensor space to avatar space
+    glm::mat4 hmdSensorFlippedMat = inputCalibration.hmdSensorMat * Matrices::Y_180;
+    glm::mat4 sensorToAvatarMat = glm::inverse(inputCalibration.avatarMat) * inputCalibration.sensorToWorldMat;
+    glm::mat4 hmdAvatarMat = sensorToAvatarMat * hmdSensorFlippedMat;
 
-glm::mat4 ViveControllerManager::InputDevice::recalculateDefaultToReferenceForHeadPuck(const controller::InputCalibrationData& inputCalibration) {
+    // cancel the roll and pitch for the hmd head
+    glm::quat hmdRotation = cancelOutRollAndPitch(glmExtractRotation(hmdAvatarMat));
+    glm::vec3 hmdTranslation = extractTranslation(hmdAvatarMat);
+    glm::mat4 currentHmd = createMatFromQuatAndPos(hmdRotation, hmdTranslation);
+
+    // calculate the offset from the centerOfEye to defaultHeadMat
+    glm::mat4 defaultHeadOffset = glm::inverse(inputCalibration.defaultCenterEyeMat) * inputCalibration.defaultHeadMat;
+
+    glm::mat4 currentHead  = currentHmd * defaultHeadOffset;
+
+    // calculate the defaultToRefrenceXform
+    glm::mat4 defaultToReferenceMat = currentHead * glm::inverse(inputCalibration.defaultHeadMat);
+
+    return defaultToReferenceMat;
+}
+
+glm::mat4 ViveControllerManager::InputDevice::calculateDefaultToReferenceForHeadPuck(const controller::InputCalibrationData& inputCalibration) {
     glm::mat4 avatarToSensorMat = glm::inverse(inputCalibration.sensorToWorldMat) * inputCalibration.avatarMat;
     glm::mat4 sensorToAvatarMat = glm::inverse(inputCalibration.avatarMat) * inputCalibration.sensorToWorldMat;
     size_t headPuckIndex = _validTrackedObjects.size() - 1;
@@ -847,6 +834,10 @@ void ViveControllerManager::InputDevice::calibrateHips(glm::mat4& defaultToRefer
     _pucksOffset[_validTrackedObjects[HIP].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHips, _validTrackedObjects[HIP].second);
 }
 
+
+void ViveControllerManager::InputDevice::calibrateHands(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, int firstHandIndex, int secondHandIndex) {
+}
+
 void ViveControllerManager::InputDevice::calibrateChest(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
     _jointToPuckMap[controller::SPINE2] = _validTrackedObjects[CHEST].first;
     _pucksOffset[_validTrackedObjects[CHEST].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultSpine2, _validTrackedObjects[CHEST].second);
@@ -889,7 +880,7 @@ void ViveControllerManager::InputDevice::loadSettings() {
     Settings settings;
     settings.beginGroup("PUCK_CONFIG");
     {
-        _preferedConfig = (Config)settings.value("configuration", QVariant((int)Config::Auto)).toInt();
+        _preferedConfig = (Config)settings.value("configuration", QVariant((int)Config::None)).toInt();
     }
     settings.endGroup();
 }
@@ -908,8 +899,8 @@ QString ViveControllerManager::InputDevice::configToString(Config config) {
 }
 
 void ViveControllerManager::InputDevice::setConfigFromString(const QString& value) {
-    if (value ==  "Auto") {
-        _preferedConfig = Config::Auto;
+    if (value ==  "None") {
+        _preferedConfig = Config::None;
     } else if (value == "Feet") {
         _preferedConfig = Config::Feet;
     } else if (value == "FeetAndHips") {
