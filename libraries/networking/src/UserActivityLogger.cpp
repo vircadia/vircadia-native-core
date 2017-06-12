@@ -20,6 +20,10 @@
 #include <DependencyManager.h>
 #include "AddressManager.h"
 
+UserActivityLogger::UserActivityLogger() {
+    _timer.start();
+}
+
 UserActivityLogger& UserActivityLogger::getInstance() {
     static UserActivityLogger sharedInstance;
     return sharedInstance;
@@ -42,6 +46,12 @@ void UserActivityLogger::logAction(QString action, QJsonObject details, JSONCall
     actionPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"action_name\"");
     actionPart.setBody(QByteArray().append(action));
     multipart->append(actionPart);
+
+    // Log the local-time that this event was logged
+    QHttpPart elapsedPart;
+    elapsedPart.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"elapsed_ms\"");
+    elapsedPart.setBody(QString::number(_timer.elapsed()).toLocal8Bit());
+    multipart->append(elapsedPart);
     
     // If there are action details, add them to the multipart
     if (!details.isEmpty()) {
