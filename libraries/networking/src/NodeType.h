@@ -30,8 +30,10 @@ namespace NodeType {
     const NodeType_t Unassigned = 1;
 
     void init();
+
     const QString& getNodeTypeName(NodeType_t nodeType);
     bool isDownstream(NodeType_t nodeType);
+    NodeType_t downstreamType(NodeType_t primaryType);
 }
 
 typedef QSet<NodeType_t> NodeSet;

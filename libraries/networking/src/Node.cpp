@@ -56,6 +56,17 @@ bool NodeType::isDownstream(NodeType_t nodeType) {
     return nodeType ==  NodeType::DownstreamAudioMixer || nodeType == NodeType::DownstreamAvatarMixer;
 }
 
+NodeType_t NodeType::downstreamType(NodeType_t primaryType) {
+    switch (primaryType) {
+        case AudioMixer:
+            return DownstreamAudioMixer;
+        case AvatarMixer:
+            return DownstreamAvatarMixer;
+        default:
+            return Unassigned;
+    }
+}
+
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
            const HifiSockAddr& localSocket, const NodePermissions& permissions, bool isReplicated,
            const QUuid& connectionSecret, QObject* parent) :

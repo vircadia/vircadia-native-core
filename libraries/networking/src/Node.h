@@ -37,6 +37,7 @@
 class Node : public NetworkPeer {
     Q_OBJECT
 public:
+
     Node(const QUuid& uuid, NodeType_t type,
          const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
          const NodePermissions& permissions, bool isReplicated, const QUuid& connectionSecret = QUuid(),

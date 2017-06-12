@@ -120,13 +120,8 @@ void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> mess
     QUuid nodeID =  QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
     auto replicatedNode = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
-<<<<<<< HEAD
                                                     message->getSenderSockAddr(), message->getSenderSockAddr(),
                                                     DEFAULT_AGENT_PERMISSIONS, true);
-=======
-                                                    message->getSenderSockAddr(), message->getSenderSockAddr());
-
->>>>>>> remove invoked addOrUpdate and move node to node list thread
     replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
     replicatedNode->setIsUpstream(true);
 
@@ -536,7 +531,7 @@ void AudioMixer::clearDomainSettings() {
     _zoneReverbSettings.clear();
 }
 
-void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
+void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
     qDebug() << "AVX2 Support:" << (cpuSupportsAVX2() ? "enabled" : "disabled");
 
     if (settingsObject.contains(AUDIO_THREADING_GROUP_KEY)) {
@@ -754,6 +749,8 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
             }
         }
     }
+
+    parseDownstreamServers(settingsObject, NodeType::AudioMixer);
 }
 
 AudioMixer::Timer::Timing::Timing(uint64_t& sum) : _sum(sum) {

@@ -10,6 +10,7 @@
 //
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QJsonArray>
 #include <QtCore/QJsonObject>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
@@ -131,4 +132,38 @@ void ThreadedAssignment::checkInWithDomainServerOrExit() {
 void ThreadedAssignment::domainSettingsRequestFailed() {
     qCDebug(networking) << "Failed to retreive settings object from domain-server. Bailing on assignment.";
     setFinished(true);
+}
+
+void ThreadedAssignment::parseDownstreamServers(const QJsonObject& settingsObject, NodeType_t nodeType) {
+    static const QString REPLICATION_GROUP_KEY = "replication";
+    static const QString DOWNSTREAM_SERVERS_SETTING_KEY = "downstream_servers";
+    if (settingsObject.contains(REPLICATION_GROUP_KEY)) {
+        const QJsonObject replicationObject = settingsObject[REPLICATION_GROUP_KEY].toObject();
+
+        const QJsonArray downstreamServers = replicationObject[DOWNSTREAM_SERVERS_SETTING_KEY].toArray();
+
+        auto nodeList = DependencyManager::get<NodeList>();
+
+        foreach(const QJsonValue& downstreamServerValue, downstreamServers) {
+            const QJsonArray downstreamServer = downstreamServerValue.toArray();
+
+            // make sure we have the number of values we need
+            if (downstreamServer.size() >= 3) {
+                // make sure this is a downstream server that matches our type
+                if (downstreamServer[2].toString() == NodeType::getNodeTypeName(nodeType)) {
+                    // read the address and port and construct a HifiSockAddr from them
+                    HifiSockAddr downstreamServerAddr {
+                        downstreamServer[0].toString(),
+                        static_cast<quint16>(downstreamServer[1].toInt())
+                    };
+
+                    // manually add the downstream node to our node list
+                    nodeList->addOrUpdateNode(QUuid::createUuid(), NodeType::downstreamType(nodeType),
+                                              downstreamServerAddr, downstreamServerAddr);
+
+                }
+            }
+            
+        }
+    }
 }
