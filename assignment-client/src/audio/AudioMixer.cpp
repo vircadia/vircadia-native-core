@@ -122,6 +122,7 @@ void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> mess
 
     auto node = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
                                           message->getSenderSockAddr(), message->getSenderSockAddr());
+    node->setIsUpstream(true);
     node->setIsMirror(true);
     node->setLastHeardMicrostamp(usecTimestampNow());
 
