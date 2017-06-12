@@ -51,6 +51,9 @@ public:
     bool isReplicated() const { return _isReplicated; }
     void setIsReplicated(bool isReplicated) { _isReplicated = isReplicated; }
 
+    bool isUpstream() const { return _isUpstream; }
+    void setIsUpstream(bool isUpstream) { _isUpstream = isUpstream; }
+
     const QUuid& getConnectionSecret() const { return _connectionSecret; }
     void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; }
 
@@ -101,6 +104,7 @@ private:
     MovingPercentile _clockSkewMovingPercentile;
     NodePermissions _permissions;
     bool _isReplicated { false };
+    bool _isUpstream { false };
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDSet;
     mutable QReadWriteLock _ignoredNodeIDSetLock;
 
