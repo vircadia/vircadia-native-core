@@ -89,24 +89,24 @@ Rectangle {
             editable: true
             colorScheme: hifi.colorSchemes.dark
             model: inputPlugins()
-	    label: ""
-            
+            label: ""
+
             onCurrentIndexChanged: {
-		changeSource();
+                changeSource();
             }
         }
 
-	HifiControls.CheckBox {
-	    id: checkBox
-	    colorScheme: hifi.colorSchemes.dark
-	    text: "show all input plugins"
+        HifiControls.CheckBox {
+            id: checkBox
+            colorScheme: hifi.colorSchemes.dark
+            text: "show all input plugins"
 
-	    onClicked: {
-		console.log("clicked");
-		inputPlugins();
-		changeSource();
-	    }
-	}
+            onClicked: {
+                console.log("clicked");
+                inputPlugins();
+                changeSource();
+            }
+        }
     }
 
 
@@ -166,13 +166,13 @@ Rectangle {
             }
         }
     }
-    
+
     function inputPlugins() {
-	if (checkBox.checked) {
+        if (checkBox.checked) {
             return InputConfiguration.inputPlugins();
-	} else {
-	    return InputConfiguration.activeInputPlugins();
-	}
+        } else {
+            return InputConfiguration.activeInputPlugins();
+        }
     }
 
     function initialize() {
@@ -180,14 +180,14 @@ Rectangle {
     }
 
     function changeSource() {
-	loader.source = "";
-	var source = InputConfiguration.configurationLayout(box.currentText);
-	loader.source = source;
-	if (source === "") {
-	    box.label = "(not configurable)";
-	} else {
-	    box.label = "";
-	}
+        loader.source = "";
+        var source = InputConfiguration.configurationLayout(box.currentText);
+        loader.source = source;
+        if (source === "") {
+            box.label = "(not configurable)";
+        } else {
+            box.label = "";
+        }
     }
 
     Timer {

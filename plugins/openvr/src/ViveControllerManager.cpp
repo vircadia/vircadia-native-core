@@ -314,7 +314,6 @@ void ViveControllerManager::InputDevice::calibrateFromUI(const controller::Input
 
 void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJsonObject configurationSettings) {
     Locker locker(_lock);
-
     if (!configurationSettings.empty()) {
         auto iter = configurationSettings.begin();
         auto end = configurationSettings.end();
@@ -372,7 +371,7 @@ void ViveControllerManager::InputDevice::emitCalibrationStatus(const bool succes
         status["puckCount"] = (int)_validTrackedObjects.size();
     }
     
-    inputConfiguration->calibrated(status);
+    emit inputConfiguration->calibrationStatus(status); //inputConfiguration->calibrated(status);
 }
 
 void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData) {

@@ -84,13 +84,13 @@ Rectangle {
                 composeConfigurationSettings();
             }
         }
-            
+
         RalewayBold {
             size: 12
             text: "Vive HMD"
             color: hifi.colors.lightGrayText
         }
-        
+
         HifiControls.CheckBox {
             id: headPuckBox
             width: 15
@@ -116,10 +116,10 @@ Rectangle {
 
     RalewayBold {
         id: hands
-        
+
         text: "Hands:"
         size: 12
-        
+
         color: "white"
 
         anchors.top: headConfig.bottom
@@ -135,7 +135,7 @@ Rectangle {
         anchors.left: openVrConfiguration.left
         anchors.leftMargin: leftMargin + 20
         spacing: 10
-        
+
         HifiControls.CheckBox {
             id: handBox
             width: 15
@@ -151,13 +151,13 @@ Rectangle {
                 composeConfigurationSettings();
             }
         }
-        
+
         RalewayBold {
             size: 12
             text: "Controllers"
             color: hifi.colors.lightGrayText
         }
-        
+
         HifiControls.CheckBox {
             id: handPuckBox
             width: 12
@@ -173,7 +173,7 @@ Rectangle {
                 composeConfigurationSettings();
             }
         }
-        
+
         RalewayBold {
             size: 12
             text: "Trackers"
@@ -183,10 +183,10 @@ Rectangle {
 
     RalewayBold {
         id: additional
-        
+
         text: "Additional Trackers"
         size: 12
-        
+
         color: hifi.colors.white
 
         anchors.top: handConfig.bottom
@@ -202,7 +202,7 @@ Rectangle {
         anchors.left: openVrConfiguration.left
         anchors.leftMargin: leftMargin + 20
         spacing: 10
-        
+
         HifiControls.CheckBox {
             id: feetBox
             width: 15
@@ -216,7 +216,7 @@ Rectangle {
                 composeConfigurationSettings();
             }
         }
-        
+
         RalewayBold {
             size: 12
             text: "Feet"
@@ -231,7 +231,7 @@ Rectangle {
         anchors.left: openVrConfiguration.left
         anchors.leftMargin: leftMargin + 20
         spacing: 10
-        
+
         HifiControls.CheckBox {
             id: hipBox
             width: 15
@@ -249,7 +249,7 @@ Rectangle {
                 composeConfigurationSettings();
             }
         }
-        
+
         RalewayBold {
             size: 12
             text: "Hips"
@@ -271,7 +271,7 @@ Rectangle {
         anchors.left: openVrConfiguration.left
         anchors.leftMargin: leftMargin + 20
         spacing: 10
-        
+
         HifiControls.CheckBox {
             id: chestBox
             width: 15
@@ -286,7 +286,7 @@ Rectangle {
                 composeConfigurationSettings();
             }
         }
-        
+
         RalewayBold {
             size: 12
             text: "Chest"
@@ -308,7 +308,7 @@ Rectangle {
         anchors.left: openVrConfiguration.left
         anchors.leftMargin: leftMargin + 20
         spacing: 10
-        
+
         HifiControls.CheckBox {
             id: shoulderBox
             width: 15
@@ -323,7 +323,7 @@ Rectangle {
                 composeConfigurationSettings();
             }
         }
-        
+
         RalewayBold {
             size: 12
             text: "Shoulders"
@@ -336,7 +336,7 @@ Rectangle {
             color: hifi.colors.lightGray
         }
     }
-    
+
     Separator {
         id: bottomSeperator
         width: parent.width
@@ -367,9 +367,9 @@ Rectangle {
 
             anchors.left: parent.left
             anchors.leftMargin: 30
-            
+
         }
-        
+
         RalewayRegular {
             id: calibrate
             text: "CALIBRATE"
@@ -413,6 +413,7 @@ Rectangle {
             info.showCountDown = false;
             info.calibrationFailed = false
             info.calibrationSucceed = false;
+            info.calibrationSucceed = false;
             info.showCalibrationStatus = false;
             info.visible = false;
         }
@@ -439,7 +440,7 @@ Rectangle {
             numberAnimation.duration = calibrationTimer.interval;
         }
     }
-    
+
     NumberAnimation {
         id: numberAnimation
         target: openVrConfiguration
@@ -455,6 +456,9 @@ Rectangle {
         } else if (!status["calibrated"]) {
             var uncalibrated = status["success"];
             if (uncalibrated) {
+                info.visible = true;
+                info.showCalibrationStatus = true;
+                info.uncalibrationSucceed = true;
             } else {
                 info.visible = true;
                 info.showCalibrationStatus = true;
@@ -496,10 +500,10 @@ Rectangle {
         var configurationType = settings["trackerConfiguration"];
         displayTrackerConfiguration(configurationType);
 
-        
+
         var HmdHead = settings["HMDHead"];
         var viveController = settings["handController"];
-        
+
         if (HmdHead) {
             headBox.checked = true;
             headPuckBox.checked = false;
@@ -524,7 +528,8 @@ Rectangle {
         property bool showCalibrationStatus: false
         property bool calibrationFailed: false
         property bool calibrationSucceed: false
-        
+        property bool uncalibrationSucceed: false
+
         visible: false
         color: hifi.colors.baseGray
         anchors.top: openVrConfiguration.top
@@ -538,12 +543,12 @@ Rectangle {
             anchors.centerIn: parent
             RalewayBold {
                 id: countDownText
-                
+
                 text: openVrConfiguration.countDown
                 size: 92
-                
+
                 color: hifi.colors.blueHighlight
-                
+
                 anchors.centerIn: parent
             }
         }
@@ -576,11 +581,24 @@ Rectangle {
                     color: hifi.colors.redAccent
                     anchors.centerIn: parent
                 }
-            }      
+            }
+
+            Item {
+                id: uncalibrateInfo
+                visible: info.uncalibrationSucceed
+                anchors.centerIn: parent
+                RalewayBold {
+                    id: uncalibrateText
+                    text: "Uncalibration Successful"
+                    size: 42
+                    color: hifi.colors.greenHighlight
+                    anchors.centerIn: parent
+                }
+            }
         }
     }
-        
-        
+
+
     function displayTrackerConfiguration(type) {
         if (type === "Feet") {
             feetBox.checked = true;
@@ -631,8 +649,8 @@ Rectangle {
         } else if (handPuck) {
             overrideHandController = true;
         }
-            
-        
+
+
         var settingsObject = {
             "trackerConfiguration": trackerConfiguration,
             "overrideHead": overrideHead,
@@ -640,6 +658,6 @@ Rectangle {
         }
 
         InputConfiguration.setConfigurationSettings(settingsObject, pluginName);
-        
+
     }
 }

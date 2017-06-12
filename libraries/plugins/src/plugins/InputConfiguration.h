@@ -28,7 +28,6 @@ public:
     Q_INVOKABLE void setConfigurationSettings(QJsonObject configurationSettings, QString pluginName);
     Q_INVOKABLE void calibratePlugin(QString pluginName);
     Q_INVOKABLE QJsonObject configurationSettings(QString pluginName);
-    void calibrated(const QJsonObject& status);
 
 signals:
     void calibrationStatus(const QJsonObject& status);
