@@ -81,7 +81,9 @@ void AudioMixerClientData::processPackets() {
                 break;
             }
             case PacketType::NegotiateAudioFormat:
+            case PacketType::MirroredNegotiateAudioFormat:
                 negotiateAudioFormat(*packet, node);
+                potentiallyMirrorPacket(*packet);
                 break;
             case PacketType::RequestsDomainListData:
                 parseRequestsDomainListData(*packet);
@@ -117,6 +119,8 @@ void AudioMixerClientData::potentiallyMirrorPacket(ReceivedMessage& message) {
             mirroredType = PacketType::MirroredInjectAudio;
         } else if (message.getType() == PacketType::SilentAudioFrame) {
             mirroredType = PacketType::MirroredSilentAudioFrame;
+        } else if (message.getType() == PacketType::NegotiateAudioFormat) {
+            mirroredType = PacketType::MirroredNegotiateAudioFormat;
         } else {
             return;
         }
