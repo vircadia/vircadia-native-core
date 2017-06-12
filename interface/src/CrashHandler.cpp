@@ -122,7 +122,7 @@ void CrashHandler::handleCrash(CrashHandler::Action action) {
     QUrl fullAvatarURL;
     QString fullAvatarModelName;
     QUrl address;
-    bool tutorialComplete;
+    bool tutorialComplete = false;
 
     if (action == CrashHandler::RETAIN_IMPORTANT_INFO) {
         // Read avatar info
