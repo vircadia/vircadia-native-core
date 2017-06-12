@@ -681,7 +681,8 @@ void AudioMixerClientData::setupCodecForReplicatedAgent(QSharedPointer<ReceivedM
     // read the string for the codec
     auto codecString = message->readString();
 
-    qDebug() << "Manually setting codec for replicated agent" << codecString;
+    qDebug() << "Manually setting codec for replicated agent" << uuidStringWithoutCurlyBraces(getNodeID())
+        << "-" << codecString;
 
     const std::pair<QString, CodecPluginPointer> codec = AudioMixer::negotiateCodec({ codecString });
     setupCodec(codec.second, codec.first);
