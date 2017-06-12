@@ -51,12 +51,12 @@ const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
 }
 
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
-           const HifiSockAddr& localSocket, const NodePermissions& permissions, bool isReplicant,
+           const HifiSockAddr& localSocket, const NodePermissions& permissions, bool isReplicated,
            const QUuid& connectionSecret, QObject* parent) :
     NetworkPeer(uuid, publicSocket, localSocket, parent),
     _type(type),
     _connectionSecret(connectionSecret),
-    _isReplicant(isReplicant),
+    _isReplicated(isReplicated),
     _pingMs(-1),  // "Uninitialized"
     _clockSkewUsec(0),
     _mutex(),
@@ -136,7 +136,7 @@ QDataStream& operator<<(QDataStream& out, const Node& node) {
     out << node._publicSocket;
     out << node._localSocket;
     out << node._permissions;
-    out << node._isReplicant;
+    out << node._isReplicated;
     return out;
 }
 
@@ -146,7 +146,7 @@ QDataStream& operator>>(QDataStream& in, Node& node) {
     in >> node._publicSocket;
     in >> node._localSocket;
     in >> node._permissions;
-    in >> node._isReplicant;
+    in >> node._isReplicated;
     return in;
 }
 

@@ -2211,9 +2211,9 @@ void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer&
 }
 
 void DomainServer::nodeAdded(SharedNodePointer node) {
-    // TODO Check to see if node is in list of replicant nodes
+    // TODO Check to see if node is in list of replicated nodes
     if (node->getType() == NodeType::Agent) {
-        node->setIsReplicant(true);
+        node->setIsReplicated(true);
     }
 
     // we don't use updateNodeWithData, so add the DomainServerNodeData to the node here
