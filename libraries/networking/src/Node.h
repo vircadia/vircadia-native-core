@@ -48,6 +48,9 @@ public:
     char getType() const { return _type; }
     void setType(char type);
 
+    bool isReplicant() const { return _isReplicant; }
+    void setIsReplicant(bool isReplicant) { _isReplicant = isReplicant; }
+
     const QUuid& getConnectionSecret() const { return _connectionSecret; }
     void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; }
 
@@ -89,6 +92,7 @@ private:
     Node& operator=(Node otherNode);
 
     NodeType_t _type;
+    bool _isReplicant { false };
 
     QUuid _connectionSecret;
     std::unique_ptr<NodeData> _linkedData;

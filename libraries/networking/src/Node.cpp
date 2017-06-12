@@ -135,6 +135,7 @@ QDataStream& operator<<(QDataStream& out, const Node& node) {
     out << node._publicSocket;
     out << node._localSocket;
     out << node._permissions;
+    out << node._isReplicant;
     return out;
 }
 
@@ -144,6 +145,7 @@ QDataStream& operator>>(QDataStream& in, Node& node) {
     in >> node._publicSocket;
     in >> node._localSocket;
     in >> node._permissions;
+    in >> node._isReplicant;
     return in;
 }
 
