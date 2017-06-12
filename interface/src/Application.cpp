@@ -721,10 +721,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
-    auto audioScriptingInterface = DependencyManager::set<AudioScriptingInterface, scripting::Audio>();
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
     connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
     connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
+    audioThread->start();
+
+    auto audioScriptingInterface = DependencyManager::set<AudioScriptingInterface, scripting::Audio>();
     connect(audioIO.data(), &AudioClient::mutedByMixer, audioScriptingInterface.data(), &AudioScriptingInterface::mutedByMixer);
     connect(audioIO.data(), &AudioClient::receivedFirstPacket, audioScriptingInterface.data(), &AudioScriptingInterface::receivedFirstPacket);
     connect(audioIO.data(), &AudioClient::disconnected, audioScriptingInterface.data(), &AudioScriptingInterface::disconnected);
@@ -742,8 +744,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     connect(this, &Application::activeDisplayPluginChanged,
         reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onChangedContext);
-
-    audioThread->start();
 
     ResourceManager::init();
     // Make sure we don't time out during slow operations at startup
@@ -1932,6 +1932,7 @@ void Application::initializeUi() {
         auto audio = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
         connect(ai, &AvatarInputs::showAudioToolsChanged, audio, &scripting::Audio::onChangedMicMeter);
         connect(audio, &scripting::Audio::changedMicMeter, ai, &AvatarInputs::setShowAudioTools);
+        ai->setShowAudioTools(audio->micMeterShown());
     }
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {

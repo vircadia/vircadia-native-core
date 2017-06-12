@@ -20,14 +20,18 @@ using namespace scripting;
 static const QString DESKTOP_CONTEXT { "Desktop" };
 static const QString HMD_CONTEXT { "VR" };
 
+static const QString AUDIO { "Audio" };
+Setting::Handle<bool> enableNoiseReductionSetting { QStringList(AUDIO) << "NoiseReduction", true };
+Setting::Handle<bool> showMicMeterSetting { QStringList(AUDIO) << "MicMeter", false };
+
 Audio::Audio() {
     auto client = DependencyManager::get<AudioClient>();
     connect(client.data(), &AudioClient::muteToggled, this, &Audio::onChangedMuted);
 
     connect(&_devices._inputs, &AudioDeviceList::deviceChanged, this, &Audio::onInputChanged);
 
-    // TODO: make noise reduction sticky
-    // TODO: make mic meter sticky (need to reinitialize in AvatarInputs)
+    enableNoiseReduction(enableNoiseReductionSetting.get());
+    _showMicMeter = showMicMeterSetting.get();
 }
 
 void Audio::setReverb(bool enable) {
@@ -73,11 +77,14 @@ void Audio::setMuted(bool isMuted) {
 }
 
 void Audio::enableNoiseReduction(bool enable) {
-    auto client = DependencyManager::get<AudioClient>().data();
-    QMetaObject::invokeMethod(client, "setNoiseReduction", Qt::BlockingQueuedConnection, Q_ARG(bool, enable));
+    if (_enableNoiseReduction != enable) {
+        auto client = DependencyManager::get<AudioClient>().data();
+        QMetaObject::invokeMethod(client, "setNoiseReduction", Qt::BlockingQueuedConnection, Q_ARG(bool, enable));
 
-    _enableNoiseReduction = enable;
-    emit changedNoiseReduction(enable);
+        enableNoiseReductionSetting.set(enable);
+        _enableNoiseReduction = enable;
+        emit changedNoiseReduction(enable);
+    }
 }
 
 void Audio::onChangedMicMeter(bool show) {
@@ -86,6 +93,7 @@ void Audio::onChangedMicMeter(bool show) {
 
 void Audio::showMicMeter(bool show) {
     if (_showMicMeter != show) {
+        showMicMeterSetting.set(show);
         _showMicMeter = show;
         emit changedMicMeter(show);
     }

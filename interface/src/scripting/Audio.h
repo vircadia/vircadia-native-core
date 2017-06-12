@@ -15,6 +15,7 @@
 #include "AudioScriptingInterface.h"
 #include "AudioDevices.h"
 #include "AudioEffectOptions.h"
+#include "SettingHandle.h"
 
 namespace scripting {
 
@@ -31,6 +32,17 @@ class Audio : public AudioScriptingInterface {
 
 public:
     virtual ~Audio() {}
+
+    bool isMuted() const { return _isMuted; }
+    bool noiseReductionEnabled() const { return _enableNoiseReduction; }
+    bool micMeterShown()  const { return _showMicMeter; }
+    float getInputVolume() const { return _inputVolume; }
+    QString getContext() const;
+
+    void setMuted(bool muted);
+    void enableNoiseReduction(bool enable);
+    void showMicMeter(bool show);
+    void setInputVolume(float volume);
 
     Q_INVOKABLE void setReverb(bool enable);
     Q_INVOKABLE void setReverbOptions(const AudioEffectOptions* options);
@@ -53,21 +65,10 @@ protected:
     Audio();
 
 private:
-    bool isMuted() const { return _isMuted; }
-    bool noiseReductionEnabled() const { return _enableNoiseReduction; }
-    bool micMeterShown()  const { return _showMicMeter; }
-    float getInputVolume() const { return _inputVolume; }
-    QString getContext() const;
-
-    void setMuted(bool muted);
-    void enableNoiseReduction(bool enable);
-    void showMicMeter(bool show);
-    void setInputVolume(float volume);
-
     float _inputVolume { 1.0f };
     bool _isMuted { false };
-    bool _enableNoiseReduction { true };
-    bool _showMicMeter { false };
+    bool _enableNoiseReduction;
+    bool _showMicMeter;
     bool _contextIsHMD { false };
 
     AudioDevices* getDevices() { return &_devices; }
