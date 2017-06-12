@@ -105,6 +105,7 @@ private:
     bool _isUpstream { false };
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDSet;
     mutable QReadWriteLock _ignoredNodeIDSetLock;
+    std::vector<QString> _replicatedUsernames { };
 
     std::atomic_bool _ignoreRadiusEnabled;
 };

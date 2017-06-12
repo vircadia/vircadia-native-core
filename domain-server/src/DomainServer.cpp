@@ -117,6 +117,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // if permissions are updated, relay the changes to the Node datastructures
     connect(&_settingsManager, &DomainServerSettingsManager::updateNodePermissions,
             &_gatekeeper, &DomainGatekeeper::updateNodePermissions);
+    connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
+            this, &DomainServer::updateReplicatedNodes);
 
     setupGroupCacheRefresh();
 
@@ -2210,9 +2212,34 @@ void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer&
     _unfulfilledAssignments.enqueue(assignment);
 }
 
+void DomainServer::updateReplicatedNodes() {
+    static const QString REPLICATION_SETTINGS_KEY = "replication";
+    _replicatedUsernames.clear();
+    auto settings = _settingsManager.getSettingsMap();
+    if (settings.contains(REPLICATION_SETTINGS_KEY)) {
+        auto replicationSettings = settings.value(REPLICATION_SETTINGS_KEY).toJsonObject();
+        auto usersSettings = replicationSettings.value("users").toArray();
+        for (auto& username : usersSettings) {
+            _replicatedUsernames.push_back(username.toString());
+        }
+    }
+
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    nodeList->eachNode([&](const SharedNodePointer& otherNode) {
+        if (shouldReplicateNode(*otherNode)) {
+            otherNode->setIsReplicated(true);
+        }
+    });
+}
+
+bool DomainServer::shouldReplicateNode(const Node& node) {
+    QString verifiedUsername = node.getPermissions().getVerifiedUserName();
+    auto it = find(_replicatedUsernames.cbegin(), _replicatedUsernames.cend(), verifiedUsername);
+    return it != _replicatedUsernames.end() && node.getType() == NodeType::Agent;
+};
+
 void DomainServer::nodeAdded(SharedNodePointer node) {
-    // TODO Check to see if node is in list of replicated nodes
-    if (node->getType() == NodeType::Agent) {
+    if (shouldReplicateNode(*node)) {
         node->setIsReplicated(true);
     }
 
