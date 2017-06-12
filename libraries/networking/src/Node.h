@@ -92,7 +92,6 @@ private:
     Node& operator=(Node otherNode);
 
     NodeType_t _type;
-    bool _isReplicated { false };
 
     QUuid _connectionSecret;
     std::unique_ptr<NodeData> _linkedData;
@@ -101,6 +100,7 @@ private:
     QMutex _mutex;
     MovingPercentile _clockSkewMovingPercentile;
     NodePermissions _permissions;
+    bool _isReplicated { false };
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDSet;
     mutable QReadWriteLock _ignoredNodeIDSetLock;
 
