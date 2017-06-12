@@ -52,6 +52,10 @@ const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
     return matchedTypeName != TypeNameHash.end() ? matchedTypeName.value() : UNKNOWN_NodeType_t_NAME;
 }
 
+bool NodeType::isDownstream(NodeType_t nodeType) {
+    return nodeType ==  NodeType::DownstreamAudioMixer || nodeType == NodeType::DownstreamAvatarMixer;
+}
+
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
            const HifiSockAddr& localSocket, const NodePermissions& permissions, bool isReplicated,
            const QUuid& connectionSecret, QObject* parent) :
