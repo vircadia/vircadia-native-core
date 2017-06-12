@@ -17,12 +17,12 @@
 
 using namespace scripting;
 
-static const QString DESKTOP_CONTEXT { "Desktop" };
-static const QString HMD_CONTEXT { "VR" };
+QString Audio::AUDIO { "Audio" };
+QString Audio::DESKTOP { "Desktop" };
+QString Audio::HMD { "VR" };
 
-static const QString AUDIO { "Audio" };
-Setting::Handle<bool> enableNoiseReductionSetting { QStringList(AUDIO) << "NoiseReduction", true };
-Setting::Handle<bool> showMicMeterSetting { QStringList(AUDIO) << "MicMeter", false };
+Setting::Handle<bool> enableNoiseReductionSetting { QStringList { Audio::AUDIO, "NoiseReduction" }, true };
+Setting::Handle<bool> showMicMeterSetting { QStringList { Audio::AUDIO, "MicMeter" }, false };
 
 Audio::Audio() {
     auto client = DependencyManager::get<AudioClient>();
@@ -52,7 +52,7 @@ void Audio::onChangedContext() {
 }
 
 QString Audio::getContext() const {
-     return _contextIsHMD ? HMD_CONTEXT : DESKTOP_CONTEXT;
+     return _contextIsHMD ? Audio::HMD : Audio::DESKTOP;
 }
 
 void Audio::onChangedMuted() {

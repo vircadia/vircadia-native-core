@@ -13,8 +13,17 @@
 
 #include "Application.h"
 #include "AudioClient.h"
+#include "Audio.h"
 
 using namespace scripting;
+
+const QString INPUT { "INPUT" };
+const QString OUTPUT { "OUTPUT" };
+
+Setting::Handle<QAudioDeviceInfo> desktopInputDevice { QStringList { Audio::AUDIO, Audio::DESKTOP, INPUT }};
+Setting::Handle<QAudioDeviceInfo> desktopOutputDevice { QStringList { Audio::AUDIO, Audio::DESKTOP, OUTPUT }};
+Setting::Handle<QAudioDeviceInfo> HMDInputDevice { QStringList { Audio::AUDIO, Audio::HMD, INPUT }};
+Setting::Handle<QAudioDeviceInfo> HMDOutputDevice { QStringList { Audio::AUDIO, Audio::HMD, OUTPUT }};
 
 QHash<int, QByteArray> AudioDeviceList::_roles {
     { Qt::DisplayRole, "display" },

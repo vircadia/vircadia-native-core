@@ -31,6 +31,10 @@ class Audio : public AudioScriptingInterface {
     Q_PROPERTY(AudioDevices* devices READ getDevices NOTIFY nop)
 
 public:
+    static QString AUDIO;
+    static QString HMD;
+    static QString DESKTOP;
+
     virtual ~Audio() {}
 
     bool isMuted() const { return _isMuted; }
@@ -65,6 +69,7 @@ protected:
     Audio();
 
 private:
+
     float _inputVolume { 1.0f };
     bool _isMuted { false };
     bool _enableNoiseReduction;
