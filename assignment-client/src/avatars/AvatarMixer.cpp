@@ -69,7 +69,8 @@ void AvatarMixer::handleReplicatedPackets(QSharedPointer<ReceivedMessage> messag
     auto nodeID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
     auto replicatedNode = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
-                                                    message->getSenderSockAddr(), message->getSenderSockAddr())
+                                                    message->getSenderSockAddr(), message->getSenderSockAddr(),
+                                                    DEFAULT_AGENT_PERMISSIONS, true);
 
     replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
     replicatedNode->setIsUpstream(true);
@@ -115,7 +116,7 @@ void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node
 
         auto nodeList = DependencyManager::get<NodeList>();
         nodeList->eachMatchingNode([&](const SharedNodePointer& node) {
-            return node->getType() == NodeType::ReplicantAvatarMixer;
+            return node->getType() == NodeType::DownstreamAvatarMixer;
         }, [&](const SharedNodePointer& node) {
             if (!packet) {
                 // construct an NLPacket to send to the replicant that has the contents of the received packet
@@ -848,4 +849,6 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
     qCDebug(avatars) << "This domain requires a minimum avatar scale of" << _domainMinimumScale
                      << "and a maximum avatar scale of" << _domainMaximumScale;
 
+
+    parseDownstreamServers(domainSettings, NodeType::AvatarMixer);
 }
