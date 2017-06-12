@@ -768,8 +768,10 @@ void NodeList::stopKeepalivePingTimer() {
 }
 
 void NodeList::sendKeepAlivePings() {
+    // send keep-alive ping packets to nodes of types we care about that are not relayed to us from an upstream node
+
     eachMatchingNode([this](const SharedNodePointer& node)->bool {
-        return _nodeTypesOfInterest.contains(node->getType());
+        return !node->isUpstream() && _nodeTypesOfInterest.contains(node->getType());
     }, [&](const SharedNodePointer& node) {
         sendPacket(constructPingPacket(), *node);
     });
