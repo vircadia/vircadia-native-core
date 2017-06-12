@@ -1164,9 +1164,32 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
         bool bodySensorTrackingEnabled = params.isLeftFootEnabled || params.isRightFootEnabled;
 
         const float RELAX_DURATION = 0.6f;
+        const float CONTROL_DURATION = 0.4f;
 
         if (params.isLeftEnabled) {
+            if (!_isLeftHandControlled) {
+                _leftHandControlDuration = CONTROL_DURATION;
+                _isLeftHandControlled = true;
+            }
+
             glm::vec3 handPosition = params.leftPosition;
+            glm::quat handRotation = params.leftOrientation;
+
+            if (_leftHandControlDuration > 0.0f) {
+                // Move hand from non-controlled position to controlled position.
+                _leftHandControlDuration = std::max(_leftHandControlDuration - dt, 0.0f);
+                auto ikNode = getAnimInverseKinematicsNode();
+                if (ikNode) {
+                    AnimPose handPose(Vectors::ONE, handRotation, handPosition);
+                    float alpha = 1.0f - _leftHandControlDuration / CONTROL_DURATION;
+                    const AnimPose geometryToRigTransform(_geometryToRigTransform);
+                    AnimPose uncontrolledHandPose = geometryToRigTransform * ikNode->getUncontrolledLeftHandPose();
+                    ::blend(1, &uncontrolledHandPose, &handPose, alpha, &handPose);
+                    handPosition = handPose.trans();
+                    handRotation = handPose.rot();
+                }
+            }
+
             if (!bodySensorTrackingEnabled) {
                 // prevent the hand IK targets from intersecting the body capsule
                 glm::vec3 displacement;
@@ -1176,18 +1199,17 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
             }
 
             _animVars.set("leftHandPosition", handPosition);
-            _animVars.set("leftHandRotation", params.leftOrientation);
+            _animVars.set("leftHandRotation", handRotation);
             _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
 
-            _isLeftHandControlled = true;
-            _lastLeftHandControlledPose = AnimPose(glm::vec3(1.0f), params.leftOrientation, handPosition);
+            _lastLeftHandControlledPose = AnimPose(Vectors::ONE, handRotation, handPosition);
         } else {
             if (_isLeftHandControlled) {
                 _leftHandRelaxDuration = RELAX_DURATION;
                 _isLeftHandControlled = false;
             }
 
-            if (_leftHandRelaxDuration > 0) {
+            if (_leftHandRelaxDuration > 0.0f) {
                 // Move hand from controlled position to non-controlled position.
                 _leftHandRelaxDuration = std::max(_leftHandRelaxDuration - dt, 0.0f);
                 auto ikNode = getAnimInverseKinematicsNode();
@@ -1209,7 +1231,29 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
         }
 
         if (params.isRightEnabled) {
+            if (!_isRightHandControlled) {
+                _rightHandControlDuration = CONTROL_DURATION;
+                _isRightHandControlled = true;
+            }
+
             glm::vec3 handPosition = params.rightPosition;
+            glm::quat handRotation = params.rightOrientation;
+
+            if (_rightHandControlDuration > 0.0f) {
+                // Move hand from non-controlled position to controlled position.
+                _rightHandControlDuration = std::max(_rightHandControlDuration - dt, 0.0f);
+                auto ikNode = getAnimInverseKinematicsNode();
+                if (ikNode) {
+                    AnimPose handPose(Vectors::ONE, handRotation, handPosition);
+                    float alpha = 1.0f - _rightHandControlDuration / CONTROL_DURATION;
+                    const AnimPose geometryToRigTransform(_geometryToRigTransform);
+                    AnimPose uncontrolledHandPose = geometryToRigTransform * ikNode->getUncontrolledRightHandPose();
+                    ::blend(1, &uncontrolledHandPose, &handPose, alpha, &handPose);
+                    handPosition = handPose.trans();
+                    handRotation = handPose.rot();
+                }
+            }
+
             if (!bodySensorTrackingEnabled) {
                 // prevent the hand IK targets from intersecting the body capsule
                 glm::vec3 displacement;
@@ -1219,18 +1263,17 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
             }
 
             _animVars.set("rightHandPosition", handPosition);
-            _animVars.set("rightHandRotation", params.rightOrientation);
+            _animVars.set("rightHandRotation", handRotation);
             _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
 
-            _isRightHandControlled = true;
-            _lastRightHandControlledPose = AnimPose(glm::vec3(1.0f), params.rightOrientation, handPosition);
+            _lastRightHandControlledPose = AnimPose(Vectors::ONE, handRotation, handPosition);
         } else {
             if (_isRightHandControlled) {
                 _rightHandRelaxDuration = RELAX_DURATION;
                 _isRightHandControlled = false;
             }
 
-            if (_rightHandRelaxDuration > 0) {
+            if (_rightHandRelaxDuration > 0.0f) {
                 // Move hand from controlled position to non-controlled position.
                 _rightHandRelaxDuration = std::max(_rightHandRelaxDuration - dt, 0.0f);
                 auto ikNode = getAnimInverseKinematicsNode();
