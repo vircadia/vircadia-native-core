@@ -73,7 +73,7 @@ Windows.ScrollingWindow {
     }
 
     function toggleMicEnabled() {
-        ApplicationInterface.toggleMuteAudio();
+		Audio.mute = !Audio.mute;
     }
 
     function setUsername(newUsername) {

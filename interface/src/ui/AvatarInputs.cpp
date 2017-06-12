@@ -43,16 +43,6 @@ AvatarInputs::AvatarInputs(QQuickItem* parent) :  QQuickItem(parent) {
         } \
     }
 
-#define AI_UPDATE_WRITABLE(name, src) \
-    { \
-        auto val = src; \
-        if (_##name != val) { \
-            _##name = val; \
-            qDebug() << "AvatarInputs" << val; \
-            emit name##Changed(val); \
-        } \
-    }
-
 #define AI_UPDATE_FLOAT(name, src, epsilon) \
     { \
         float val = src; \
@@ -94,8 +84,6 @@ void AvatarInputs::update() {
     AI_UPDATE(cameraMuted, Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking));
     AI_UPDATE(isHMD, qApp->isHMDMode());
 
-    AI_UPDATE_WRITABLE(showAudioTools, Menu::getInstance()->isOptionChecked(MenuOption::AudioTools));
-
     auto audioIO = DependencyManager::get<AudioClient>();
 
     const float audioLevel = loudnessToAudioLevel(DependencyManager::get<AudioClient>()->getLastInputLoudness());
@@ -122,8 +110,8 @@ void AvatarInputs::setShowAudioTools(bool showAudioTools) {
     if (_showAudioTools == showAudioTools)
         return;
 
-    Menu::getInstance()->setIsOptionChecked(MenuOption::AudioTools, showAudioTools);
-    update();
+    _showAudioTools = showAudioTools;
+    emit showAudioToolsChanged(_showAudioTools);
 }
 
 void AvatarInputs::toggleCameraMute() {

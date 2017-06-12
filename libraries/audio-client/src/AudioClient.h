@@ -122,8 +122,6 @@ public:
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
 
-    bool isMuted() { return _muted; }
-
     const AudioIOStats& getStats() const { return _stats; }
 
     int getOutputBufferSize() { return _outputBufferSizeFrames.get(); }
@@ -172,11 +170,14 @@ public slots:
     void handleRecordedAudioInput(const QByteArray& audio);
     void reset();
     void audioMixerKilled();
+
     void toggleMute();
+    bool isMuted() { return _muted; }
+
 
     virtual void setIsStereoInput(bool stereo) override;
 
-    void toggleAudioNoiseReduction() { _isNoiseGateEnabled = !_isNoiseGateEnabled; }
+    void setNoiseReduction(bool isNoiseGateEnabled) { _isNoiseGateEnabled = isNoiseGateEnabled; }
 
     void toggleLocalEcho() { _shouldEchoLocally = !_shouldEchoLocally; }
     void toggleServerEcho() { _shouldEchoToServer = !_shouldEchoToServer; }

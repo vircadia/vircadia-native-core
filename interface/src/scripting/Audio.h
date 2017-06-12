@@ -21,11 +21,11 @@ class Audio : public AudioScriptingInterface {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
-    // TODO: Q_PROPERTY(bool mute)
-    // TODO: Q_PROPERTY(bool noiseReduction)
-    // TODO: Q_PROPERTY(bool reverb)
-    // TODO: Q_PROPERTY(float inputVolume)
-    // TODO: Q_PROPERTY(bool showMicLevel)
+    Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY changedMuted)
+    Q_PROPERTY(bool noiseReduction READ noiseReductionEnabled WRITE enableNoiseReduction NOTIFY changedNoiseReduction)
+    Q_PROPERTY(bool showMicMeter READ micMeterShown WRITE showMicMeter NOTIFY changedMicMeter)
+    // TODO: Q_PROPERTY(bool reverb READ getReverb WRITE setReverb NOTIFY changedReverb)
+    Q_PROPERTY(float inputVolume READ getInputVolume WRITE setInputVolume NOTIFY changedInputVolume)
     Q_PROPERTY(QString context READ getContext NOTIFY changedContext)
     Q_PROPERTY(AudioDevices* devices READ getDevices NOTIFY nop)
 
@@ -34,18 +34,41 @@ public:
 
 signals:
     void nop();
+    void changedMuted(bool);
+    void changedNoiseReduction(bool);
+    void changedMicMeter(bool);
+    void changedInputVolume(float);
     void changedContext(QString);
 
-protected:
-    Audio() {}
+public slots:
+    void onChangedMuted();
+    void onChangedMicMeter(bool);
+    void onChangedContext();
+    void onInputChanged();
 
-    QString getContext();
+protected:
+    Audio();
 
 private:
+    bool isMuted() const { return _isMuted; }
+    bool noiseReductionEnabled() const { return _enableNoiseReduction; }
+    bool micMeterShown()  const { return _showMicMeter; }
+    float getInputVolume() const { return _inputVolume; }
+    QString getContext() const;
+
+    void setMuted(bool muted);
+    void enableNoiseReduction(bool enable);
+    void showMicMeter(bool show);
+    void setInputVolume(float volume);
+
+    float _inputVolume { 1.0f };
+    bool _isMuted { false };
+    bool _enableNoiseReduction { true };
+    bool _showMicMeter { false };
+    bool _contextIsHMD { false };
+
     AudioDevices* getDevices() { return &_devices; }
     AudioDevices _devices;
-
-    bool _contextIsHMD { false };
 };
 
 };

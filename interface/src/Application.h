@@ -390,7 +390,6 @@ public slots:
 
     void addAssetToWorldMessageClose();
 
-    Q_INVOKABLE void toggleMuteAudio();
     void loadLODToolsDialog();
     void loadEntityStatisticsDialog();
     void loadDomainConnectionDialog();
@@ -404,7 +403,6 @@ private slots:
 
     void resettingDomain();
 
-    void audioMuteToggled() const;
     void faceTrackerMuteToggled();
 
     void activeChanged(Qt::ApplicationState state);

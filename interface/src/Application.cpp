@@ -725,7 +725,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
     connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
     connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
-    connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
     connect(audioIO.data(), &AudioClient::mutedByMixer, audioScriptingInterface.data(), &AudioScriptingInterface::mutedByMixer);
     connect(audioIO.data(), &AudioClient::receivedFirstPacket, audioScriptingInterface.data(), &AudioScriptingInterface::receivedFirstPacket);
     connect(audioIO.data(), &AudioClient::disconnected, audioScriptingInterface.data(), &AudioScriptingInterface::disconnected);
@@ -741,6 +740,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             audioScriptingInterface->environmentMuted();
         }
     });
+    connect(this, &Application::activeDisplayPluginChanged,
+        reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onChangedContext);
 
     audioThread->start();
 
@@ -824,6 +825,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateThreadPoolCount);
     connect(this, &Application::activeDisplayPluginChanged, this, [](){
+        bool isHMD = qApp->isHMDMode();
         qApp->setProperty(hifi::properties::HMD, qApp->isHMDMode());
     });
     connect(this, &Application::activeDisplayPluginChanged, this, &Application::updateSystemTabletMode);
@@ -1922,7 +1924,15 @@ void Application::initializeUi() {
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
-    rootContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
+    {
+        auto ai = AvatarInputs::getInstance();
+        rootContext->setContextProperty("AvatarInputs", ai);
+
+        // hook up audio 
+        auto audio = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
+        connect(ai, &AvatarInputs::showAudioToolsChanged, audio, &scripting::Audio::onChangedMicMeter);
+        connect(audio, &scripting::Audio::changedMicMeter, ai, &AvatarInputs::setShowAudioTools);
+    }
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         rootContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -2219,12 +2229,6 @@ void Application::paintGL() {
 void Application::runTests() {
     runTimingTests();
     runUnitTests();
-}
-
-void Application::audioMuteToggled() const {
-    QAction* muteAction = Menu::getInstance()->getActionForOption(MenuOption::MuteAudio);
-    Q_CHECK_PTR(muteAction);
-    muteAction->setChecked(DependencyManager::get<AudioClient>()->isMuted());
 }
 
 void Application::faceTrackerMuteToggled() {
@@ -2763,6 +2767,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_Asterisk:
                 Menu::getInstance()->triggerOption(MenuOption::DefaultSkybox);
+                break;
+
+            case Qt::Key_M:
+                if (isMeta) {
+                    DependencyManager::get<AudioClient>()->toggleMute();
+                }
                 break;
 
             case Qt::Key_N:
@@ -4336,10 +4346,11 @@ void Application::update(float deltaTime) {
             } else {
                 const quint64 MUTE_MICROPHONE_AFTER_USECS = 5000000;  //5 secs
                 Menu* menu = Menu::getInstance();
-                if (menu->isOptionChecked(MenuOption::AutoMuteAudio) && !menu->isOptionChecked(MenuOption::MuteAudio)) {
+                auto audioClient = DependencyManager::get<AudioClient>();
+                if (menu->isOptionChecked(MenuOption::AutoMuteAudio) && !audioClient->isMuted()) {
                     if (_lastFaceTrackerUpdate > 0
                         && ((usecTimestampNow() - _lastFaceTrackerUpdate) > MUTE_MICROPHONE_AFTER_USECS)) {
-                        menu->triggerOption(MenuOption::MuteAudio);
+                        audioClient->toggleMute();
                         _lastFaceTrackerUpdate = 0;
                     }
                 } else {
@@ -6983,11 +6994,6 @@ void Application::updateSystemTabletMode() {
     } else {
         DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getDesktopTabletBecomesToolbarSetting());
     }
-}
-
-void Application::toggleMuteAudio() {
-    auto menu = Menu::getInstance();
-    menu->setIsOptionChecked(MenuOption::MuteAudio, !menu->isOptionChecked(MenuOption::MuteAudio));
 }
 
 OverlayID Application::getTabletScreenID() const {

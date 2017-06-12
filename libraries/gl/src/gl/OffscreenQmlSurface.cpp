@@ -527,6 +527,7 @@ QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQm
     // Synchronous loading may take a while; restart the deadlock timer
     QMetaObject::invokeMethod(qApp, "updateHeartbeat", Qt::DirectConnection);
 
+    qDebug() << qmlSource;
     _qmlComponent->loadUrl(qmlSource, QQmlComponent::PreferSynchronous);
 
     if (_qmlComponent->isLoading()) {

@@ -151,7 +151,7 @@ Item {
     }
 
     function toggleMicEnabled() {
-        ApplicationInterface.toggleMuteAudio();
+		Audio.mute = !Audio.mute;
     }
 
     function setUsername(newUsername) {

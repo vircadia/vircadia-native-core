@@ -290,7 +290,7 @@ Menu::Menu() {
     action = addActionToQMenuAndActionHash(settingsMenu, "Audio...", Qt::CTRL | Qt::Key_Z);
     connect(action, &QAction::triggered, [] {
         static const QUrl widgetUrl("hifi/dialogs/Audio.qml");
-        static const QUrl tabletUrl("../../hifi/Audio.qml");
+        static const QUrl tabletUrl("../../hifi/audio/Audio.qml");
         static const QString name("AudioDialog");
         qApp->showDialog(widgetUrl, tabletUrl, name);
     });

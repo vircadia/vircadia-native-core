@@ -25,7 +25,6 @@ ScrollingWindow {
     height: 577
     property var sections: []
     property var showCategories: []
-    property bool showFooter: true
     minSize: Qt.vector2d(400, 500)
 
     HifiConstants { id: hifi }
@@ -95,8 +94,6 @@ ScrollingWindow {
     }
 
     footer: Row {
-        visible: root.showFooter
-
         anchors {
             top: parent.top
             right: parent.right

@@ -10,6 +10,8 @@
 //
 
 #include "AudioDevices.h"
+
+#include "Application.h"
 #include "AudioClient.h"
 
 using namespace scripting;
@@ -75,40 +77,46 @@ bool AudioDeviceList::setData(const QModelIndex& index, const QVariant &value, i
 
             if (success) {
                 device.selected = true;
-                emit dataChanged(index, index, { Qt::CheckStateRole });
+                emit deviceChanged();
             }
         }
     }
 
+    emit dataChanged(createIndex(0, 0), createIndex(rowCount() - 1, 0));
     return success;
 }
 
 void AudioDeviceList::setDevice(const QAudioDeviceInfo& device) {
     _selectedDevice = device;
+    QModelIndex index;
 
     for (auto i = 0; i < _devices.size(); ++i) {
         AudioDevice& device = _devices[i];
 
         if (device.selected && device.info != _selectedDevice) {
             device.selected = false;
-            auto index = createIndex(i , 0);
-            emit dataChanged(index, index, { Qt::CheckStateRole });
-        } else if (!device.selected && device.info == _selectedDevice) {
+        } else if (device.info == _selectedDevice) {
             device.selected = true;
-            auto index = createIndex(i , 0);
-            emit dataChanged(index, index, { Qt::CheckStateRole });
+            index = createIndex(i, 0);
         }
     }
+
+    emit deviceChanged();
+    emit dataChanged(createIndex(0, 0), createIndex(rowCount() - 1, 0));
 }
 
 void AudioDeviceList::populate(const QList<QAudioDeviceInfo>& devices) {
     beginResetModel();
 
     _devices.clear();
+    _selectedDeviceIndex = QModelIndex();
+
     foreach(const QAudioDeviceInfo& deviceInfo, devices) {
         AudioDevice device;
         device.info = deviceInfo;
-        device.name = device.info.deviceName();
+        device.name = device.info.deviceName()
+            .replace("High Definition", "HD")
+            .remove("Device");
         device.selected = (device.info == _selectedDevice);
         _devices.push_back(device);
     }
@@ -129,6 +137,10 @@ AudioDevices::AudioDevices() {
     _outputs.populate(client->getAudioDevices(QAudio::AudioOutput));
 }
 
+void AudioDevices::restoreDevices(bool isHMD) {
+    // TODO
+}
+
 void AudioDevices::onDeviceChanged(QAudio::Mode mode, const QAudioDeviceInfo& device) {
     if (mode == QAudio::AudioInput) {
         _inputs.setDevice(device);
@@ -138,9 +150,22 @@ void AudioDevices::onDeviceChanged(QAudio::Mode mode, const QAudioDeviceInfo& de
 }
 
 void AudioDevices::onDevicesChanged(QAudio::Mode mode, const QList<QAudioDeviceInfo>& devices) {
+    static bool initialized { false };
+    auto initialize = [&]{
+        if (initialized) {
+            restoreDevices(qApp->isHMDMode());
+        } else {
+            initialized = true;
+        }
+    };
+
     if (mode == QAudio::AudioInput) {
         _inputs.populate(devices);
+        static std::once_flag inputFlag;
+        std::call_once(inputFlag, initialize);
     } else { // if (mode == QAudio::AudioOutput)
         _outputs.populate(devices);
+        static std::once_flag outputFlag;
+        std::call_once(outputFlag, initialize);
     }
 }

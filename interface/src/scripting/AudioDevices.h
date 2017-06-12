@@ -31,7 +31,7 @@ class AudioDeviceList : public QAbstractListModel {
 public:
     AudioDeviceList(QAudio::Mode mode);
 
-    int rowCount(const QModelIndex& parent) const override;
+    int rowCount(const QModelIndex& parent = QModelIndex()) const override;
     QVariant data(const QModelIndex& index, int role) const override;
     QHash<int, QByteArray> roleNames() const override;
     Qt::ItemFlags flags(const QModelIndex& index) const override;
@@ -40,12 +40,16 @@ public:
     void setDevice(const QAudioDeviceInfo& device);
     void populate(const QList<QAudioDeviceInfo>& devices);
 
+signals:
+    void deviceChanged();
+
 private:
     static QHash<int, QByteArray> _roles;
     static Qt::ItemFlags _flags;
 
     QAudio::Mode _mode;
     QAudioDeviceInfo _selectedDevice;
+    QModelIndex _selectedDeviceIndex;
     QList<AudioDevice> _devices;
 };
 
@@ -56,6 +60,7 @@ class AudioDevices : public QObject {
 
 public:
     AudioDevices();
+    void restoreDevices(bool isHMD);
 
 signals:
     void nop();
@@ -65,6 +70,8 @@ private slots:
     void onDevicesChanged(QAudio::Mode mode, const QList<QAudioDeviceInfo>& devices);
 
 private:
+    friend class Audio;
+
     AudioDeviceList* getInputList() { return &_inputs; }
     AudioDeviceList* getOutputList() { return &_outputs; }
 

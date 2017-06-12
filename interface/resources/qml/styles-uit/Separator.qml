@@ -14,6 +14,8 @@ import "../styles-uit"
 Item {
     // Size
     height: 2;
+    width: parent.width;
+
     Rectangle {
         // Size
         width: parent.width;
@@ -25,6 +27,7 @@ Item {
         // Style
         color: hifi.colors.baseGrayShadow;
     }
+
     Rectangle {
         // Size
         width: parent.width;
