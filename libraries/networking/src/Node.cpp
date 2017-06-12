@@ -42,6 +42,8 @@ void NodeType::init() {
     TypeNameHash.insert(NodeType::MessagesMixer, "Messages Mixer");
     TypeNameHash.insert(NodeType::AssetServer, "Asset Server");
     TypeNameHash.insert(NodeType::EntityScriptServer, "Entity Script Server");
+    TypeNameHash.insert(NodeType::ReplicantAudioMixer, "Replicant Audio Mixer");
+    TypeNameHash.insert(NodeType::ReplicantAvatarMixer, "Replicant Avatar Mixer");
     TypeNameHash.insert(NodeType::Unassigned, "Unassigned");
 }
 

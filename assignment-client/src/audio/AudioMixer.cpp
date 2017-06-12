@@ -100,10 +100,11 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
         PacketType::ReplicatedSilentAudioFrame,
         PacketType::ReplicatedNegotiateAudioFormat
     },
-        this, "queueMirroredAudioPacket"
+        this, "queueReplicatedAudioPacket"
     );
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
+
 }
 
 void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {

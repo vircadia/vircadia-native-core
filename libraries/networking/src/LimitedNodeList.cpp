@@ -744,7 +744,8 @@ void LimitedNodeList::removeSilentNodes() {
         SharedNodePointer node = it->second;
         node->getMutex().lock();
 
-        if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > (NODE_SILENCE_THRESHOLD_MSECS * USECS_PER_MSEC)) {
+        if (node->getType() != NodeType::ReplicantAudioMixer && node->getType() != NodeType::ReplicantAvatarMixer
+            && (usecTimestampNow() - node->getLastHeardMicrostamp()) > (NODE_SILENCE_THRESHOLD_MSECS * USECS_PER_MSEC)) {
             // call the NodeHash erase to get rid of this node
             it = _nodeHash.unsafe_erase(it);
 
