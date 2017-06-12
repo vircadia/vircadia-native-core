@@ -1328,7 +1328,7 @@
           "label": "Replicated Users",
           "type": "table",
           "can_add_new_rows": true,
-          "help": "Users that are replicated",
+          "help": "Users that are replicated to downstream servers",
           "numbered": false,
           "columns": [
             {
@@ -1339,17 +1339,28 @@
           ]
         },
         {
-          "name": "replicants",
-          "label": "Replicants",
+          "name": "downstream_servers",
+          "label": "Downstream Servers",
+          "assignment-types": [0,1],
           "type": "table",
           "can_add_new_rows": true,
-          "help": "Nodes or mirrors that are to replicate the domain",
+          "help": "Downstream servers that are relayed data for replicated users",
           "numbered": false,
           "columns": [
             {
-              "address": "Address",
-              "port": "Port",
-              "mixer_type": "Mixer Type",
+              "name": "address",
+              "label": "Address",
+              "can_set": true
+            },
+            {
+              "name": "port",
+              "label": "Port",
+              "can_set": true
+            },
+            {
+              "name": "server_type",
+              "label": "Server Type",
+              "placeholder": "Audio Mixer",
               "can_set": true
             }
           ]
