@@ -14,6 +14,7 @@
 
 #include "AudioScriptingInterface.h"
 #include "AudioDevices.h"
+#include "AudioEffectOptions.h"
 
 namespace scripting {
 
@@ -24,13 +25,15 @@ class Audio : public AudioScriptingInterface {
     Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY changedMuted)
     Q_PROPERTY(bool noiseReduction READ noiseReductionEnabled WRITE enableNoiseReduction NOTIFY changedNoiseReduction)
     Q_PROPERTY(bool showMicMeter READ micMeterShown WRITE showMicMeter NOTIFY changedMicMeter)
-    // TODO: Q_PROPERTY(bool reverb READ getReverb WRITE setReverb NOTIFY changedReverb)
     Q_PROPERTY(float inputVolume READ getInputVolume WRITE setInputVolume NOTIFY changedInputVolume)
     Q_PROPERTY(QString context READ getContext NOTIFY changedContext)
     Q_PROPERTY(AudioDevices* devices READ getDevices NOTIFY nop)
 
 public:
     virtual ~Audio() {}
+
+    Q_INVOKABLE void setReverb(bool enable);
+    Q_INVOKABLE void setReverbOptions(const AudioEffectOptions* options);
 
 signals:
     void nop();

@@ -30,6 +30,14 @@ Audio::Audio() {
     // TODO: make mic meter sticky (need to reinitialize in AvatarInputs)
 }
 
+void Audio::setReverb(bool enable) {
+    DependencyManager::get<AudioClient>()->setReverb(enable);
+}
+
+void Audio::setReverbOptions(const AudioEffectOptions* options) {
+    DependencyManager::get<AudioClient>()->setReverbOptions(options);
+}
+
 void Audio::onChangedContext() {
     bool isHMD = qApp->isHMDMode();
     if (_contextIsHMD != isHMD) {
