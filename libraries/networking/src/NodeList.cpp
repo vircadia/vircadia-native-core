@@ -658,8 +658,6 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
 
     packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> permissions >> isReplicated;
 
-    qDebug() << "Node: " << nodeUUID << nodeType << isReplicated;
-
     // if the public socket address is 0 then it's reachable at the same IP
     // as the domain server
     if (nodePublicSocket.getAddress().isNull()) {
