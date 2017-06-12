@@ -98,12 +98,12 @@ private:
 
     QUuid _connectionSecret;
     std::unique_ptr<NodeData> _linkedData;
+    bool _isReplicated { false };
     int _pingMs;
     qint64 _clockSkewUsec;
     QMutex _mutex;
     MovingPercentile _clockSkewMovingPercentile;
     NodePermissions _permissions;
-    bool _isReplicated { false };
     bool _isUpstream { false };
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDSet;
     mutable QReadWriteLock _ignoredNodeIDSetLock;
