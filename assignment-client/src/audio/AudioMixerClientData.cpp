@@ -74,7 +74,7 @@ void AudioMixerClientData::processPackets() {
             case PacketType::ReplicatedInjectAudio:
             case PacketType::ReplicatedSilentAudioFrame: {
 
-                if (node->isUpstream() && !_codec) {
+                if (node->isUpstream() && !_hasSetupCodecForUpstreamNode) {
                     setupCodecForReplicatedAgent(packet);
                 }
 
@@ -261,7 +261,8 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
                 avatarAudioStream->setupCodec(_codec, _selectedCodecName, AudioConstants::MONO);
                 qDebug() << "creating new AvatarAudioStream... codec:" << _selectedCodecName;
 
-                connect(avatarAudioStream, &InboundAudioStream::mismatchedAudioCodec, this, &AudioMixerClientData::handleMismatchAudioFormat);
+                connect(avatarAudioStream, &InboundAudioStream::mismatchedAudioCodec,
+                        this, &AudioMixerClientData::handleMismatchAudioFormat);
 
                 auto emplaced = _audioStreams.emplace(
                     QUuid(),
@@ -684,4 +685,6 @@ void AudioMixerClientData::setupCodecForReplicatedAgent(QSharedPointer<ReceivedM
 
     const std::pair<QString, CodecPluginPointer> codec = AudioMixer::negotiateCodec({ codecString });
     setupCodec(codec.second, codec.first);
+
+    _hasSetupCodecForUpstreamNode = true;
 }
