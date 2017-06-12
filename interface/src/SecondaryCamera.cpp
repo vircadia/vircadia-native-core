@@ -62,13 +62,14 @@ public:
         gpu::FramebufferPointer destFramebuffer;
         destFramebuffer = textureCache->getSpectatorCameraFramebuffer(); // FIXME: Change the destination based on some unimplemented config var
         if (destFramebuffer) {
-            // Caching/restoring the old values doesn't seem to be needed. Is it because we happen to be last in the pipeline (which would be a bug waiting to happen)?
             _cachedArgsPointer->_blitFramebuffer = args->_blitFramebuffer;
             _cachedArgsPointer->_viewport = args->_viewport;
             _cachedArgsPointer->_displayMode = args->_displayMode;
+            _cachedArgsPointer->_renderMode = args->_renderMode;
             args->_blitFramebuffer = destFramebuffer;
             args->_viewport = glm::ivec4(0, 0, destFramebuffer->getWidth(), destFramebuffer->getHeight());
             args->_displayMode = RenderArgs::MONO;
+            args->_renderMode = RenderArgs::SECONDARY_CAMERA_RENDER_MODE;
 
             gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
                 batch.disableContextStereo();
@@ -77,6 +78,9 @@ public:
             auto srcViewFrustum = args->getViewFrustum();
             srcViewFrustum.setPosition(_position);
             srcViewFrustum.setOrientation(_orientation);
+            // Without calculating the bound planes, the secondary camera will use the same culling frustum as the main camera,
+            // which is not what we want here.
+            srcViewFrustum.calculate();
             args->pushViewFrustum(srcViewFrustum);
             cachedArgs = _cachedArgsPointer;
         }
@@ -97,6 +101,7 @@ public:
         args->_viewport = cachedArgs->_viewport;
         args->popViewFrustum();
         args->_displayMode = cachedArgs->_displayMode;
+        args->_renderMode = cachedArgs->_renderMode;
 
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             batch.restoreContextStereo();

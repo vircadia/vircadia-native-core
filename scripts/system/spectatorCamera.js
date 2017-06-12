@@ -22,7 +22,7 @@
 
 
     //
-    // Function Name: inFrontOf(), flip()
+    // Function Name: inFrontOf()
     // 
     // Description:
     // Spectator camera utility functions and variables.
@@ -31,8 +31,6 @@
         return Vec3.sum(position || MyAvatar.position,
                         Vec3.multiply(distance, Quat.getForward(orientation || MyAvatar.orientation)));
     }
-    var aroundY = Quat.fromPitchYawRollDegrees(0, 180, 0);
-    function flip(rotation) { return Quat.multiply(rotation, aroundY); }
 
     //
     // Function Name: updateRenderFromCamera()
@@ -73,10 +71,6 @@
             lastCameraPosition = cameraData.position;
             beginSpectatorFrameRenderConfig.position = Vec3.sum(inFrontOf(0.17, lastCameraPosition, lastCameraRotation), {x: 0, y: 0.02, z: 0});
         }
-        if (cameraIsDynamic) {
-            // BUG: image3d overlays don't retain their locations properly when parented to a dynamic object
-            Overlays.editOverlay(viewFinderOverlay, { orientation: flip(cameraData.rotation) });
-        }
     }
 
     //
@@ -85,6 +79,8 @@
     // Relevant Variables:
     // isUpdateRenderWired: Bool storing whether or not the camera's update
     //     function is wired.
+    // windowAspectRatio: The ratio of the Interface windows's sizeX/sizeY
+    // previewAspectRatio: The ratio of the camera preview's sizeX/sizeY
     // 
     // Arguments:
     // None
@@ -94,10 +90,15 @@
     //     spawn the camera entity.
     //
     var isUpdateRenderWired = false;
+    var windowAspectRatio;
+    var previewAspectRatio = 16/9;
     function spectatorCameraOn() {
         // Set the special texture size based on the window in which it will eventually be displayed.
         var size = Controller.getViewportDimensions(); // FIXME: Need a signal to hook into when the dimensions change.
-        spectatorFrameRenderConfig.resetSizeSpectatorCamera(size.x, size.y);
+        var sizeX = Window.innerWidth;
+        var sizeY = Window.innerHeight;
+        windowAspectRatio = sizeX/sizeY;
+        spectatorFrameRenderConfig.resetSizeSpectatorCamera(sizeX, sizeY);
         spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = true;
         var cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
         Script.update.connect(updateRenderFromCamera);
@@ -132,14 +133,14 @@
             parentID: camera,
             alpha: 1,
             position: { x: 0.007, y: 0.15, z: -0.005 },
-            scale: -0.16,
+            dimensions: { x: 0.16, y: -0.16 * windowAspectRatio / previewAspectRatio, z: 0 }
+            // FIXME: This stretches the preview.
+            // FIXME: We shouldn't need the negative dimension.
+            // e.g., This isn't necessary using an ordinary .jpg with lettering, above.
+            // Must be something about the view frustum projection matrix?
+            // But don't go changing that in (c++ code) without getting all the way to a desktop display!
         });
         Entities.editEntity(camera, { position: cameraPosition, rotation: cameraRotation });
-        // FIXME: We shouldn't need the flip and the negative scale.
-        // e.g., This isn't necessary using an ordinary .jpg with lettering, above.
-        // Must be something about the view frustum projection matrix?
-        // But don't go changing that in (c++ code) without getting all the way to a desktop display!
-        Overlays.editOverlay(viewFinderOverlay, { orientation: flip(cameraRotation) });
         setDisplay(monitorShowsCameraView);
     }
 
