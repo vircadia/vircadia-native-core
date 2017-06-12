@@ -115,12 +115,12 @@ public:
         AdjustAvatarSorting,
         OctreeFileReplacement,
         CollisionEventChanges,
-        MirroredNegotiateAudioFormat,
-        MirroredMicrophoneAudioNoEcho,
-        MirroredMicrophoneAudioWithEcho,
-        MirroredInjectAudio,
-        MirroredSilentAudioFrame,
-        LAST_PACKET_TYPE = MirroredSilentAudioFrame,
+        ReplicatedNegotiateAudioFormat,
+        ReplicatedMicrophoneAudioNoEcho,
+        ReplicatedMicrophoneAudioWithEcho,
+        ReplicatedInjectAudio,
+        ReplicatedSilentAudioFrame,
+        LAST_PACKET_TYPE = ReplicatedSilentAudioFrame,
 
     };
 };

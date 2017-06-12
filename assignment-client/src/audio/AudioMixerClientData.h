@@ -124,7 +124,7 @@ private:
     QReadWriteLock _streamsLock;
     AudioStreamMap _audioStreams; // microphone stream from avatar is stored under key of null UUID
 
-    void potentiallyMirrorPacket(ReceivedMessage& packet);
+    void replicatePacket(ReceivedMessage& packet);
 
     using IgnoreZone = AABox;
     class IgnoreZoneMemo {

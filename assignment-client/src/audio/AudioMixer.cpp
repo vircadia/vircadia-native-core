@@ -94,11 +94,11 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
 
     packetReceiver.registerListenerForTypes({
-        PacketType::MirroredMicrophoneAudioNoEcho,
-        PacketType::MirroredMicrophoneAudioWithEcho,
-        PacketType::MirroredInjectAudio,
-        PacketType::MirroredSilentAudioFrame,
-        PacketType::MirroredNegotiateAudioFormat
+        PacketType::ReplicatedMicrophoneAudioNoEcho,
+        PacketType::ReplicatedMicrophoneAudioWithEcho,
+        PacketType::ReplicatedInjectAudio,
+        PacketType::ReplicatedSilentAudioFrame,
+        PacketType::ReplicatedNegotiateAudioFormat
     },
         this, "queueMirroredAudioPacket"
     );
@@ -114,8 +114,8 @@ void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, Share
     getOrCreateClientData(node.data())->queuePacket(message, node);
 }
 
-void AudioMixer::queueMirroredAudioPacket(QSharedPointer<ReceivedMessage> message) {
-    // make sure we have a mirrored node for the original sender of the packet
+void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> message) {
+    // make sure we have a replicated node for the original sender of the packet
     auto nodeList = DependencyManager::get<NodeList>();
 
     QUuid nodeID =  QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));

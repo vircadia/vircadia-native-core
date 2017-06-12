@@ -281,9 +281,6 @@ public:
     void setMirrorSocket(const HifiSockAddr& mirrorSocket) { _mirrorSocket = mirrorSocket; }
     const HifiSockAddr& getMirrorSocket() { return _mirrorSocket; }
 
-    void setMasterSocket(const HifiSockAddr& masterSocket) { _masterSocket = masterSocket; }
-    const HifiSockAddr& getMasterSocket() { return _masterSocket; }
-
 public slots:
     void reset();
     void eraseAllNodes();
@@ -394,7 +391,6 @@ protected:
 
 
     HifiSockAddr _mirrorSocket;
-    HifiSockAddr _masterSocket;
 
 private slots:
     void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);

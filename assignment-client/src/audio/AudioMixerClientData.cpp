@@ -69,21 +69,21 @@ void AudioMixerClientData::processPackets() {
             case PacketType::InjectAudio:
             case PacketType::AudioStreamStats:
             case PacketType::SilentAudioFrame:
-            case PacketType::MirroredMicrophoneAudioNoEcho:
-            case PacketType::MirroredMicrophoneAudioWithEcho:
-            case PacketType::MirroredInjectAudio:
-            case PacketType::MirroredSilentAudioFrame: {
+            case PacketType::ReplicatedMicrophoneAudioNoEcho:
+            case PacketType::ReplicatedMicrophoneAudioWithEcho:
+            case PacketType::ReplicatedInjectAudio:
+            case PacketType::ReplicatedSilentAudioFrame: {
                 QMutexLocker lock(&getMutex());
                 parseData(*packet);
 
-                potentiallyMirrorPacket(*packet);
+                replicatePacket(*packet);
 
                 break;
             }
             case PacketType::NegotiateAudioFormat:
-            case PacketType::MirroredNegotiateAudioFormat:
+            case PacketType::ReplicatedNegotiateAudioFormat:
                 negotiateAudioFormat(*packet, node);
-                potentiallyMirrorPacket(*packet);
+                replicatePacket(*packet);
                 break;
             case PacketType::RequestsDomainListData:
                 parseRequestsDomainListData(*packet);
@@ -106,26 +106,26 @@ void AudioMixerClientData::processPackets() {
     assert(_packetQueue.empty());
 }
 
-void AudioMixerClientData::potentiallyMirrorPacket(ReceivedMessage& message) {
+void AudioMixerClientData::replicatePacket(ReceivedMessage& message) {
     auto nodeList = DependencyManager::get<NodeList>();
     if (!nodeList->getMirrorSocket().isNull()) {
         PacketType mirroredType;
 
         if (message.getType() == PacketType::MicrophoneAudioNoEcho) {
-            mirroredType = PacketType::MirroredMicrophoneAudioNoEcho;
+            mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
         } else if (message.getType() == PacketType::MicrophoneAudioWithEcho) {
-            mirroredType = PacketType::MirroredMicrophoneAudioNoEcho;
+            mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
         } else if (message.getType() == PacketType::InjectAudio) {
-            mirroredType = PacketType::MirroredInjectAudio;
+            mirroredType = PacketType::ReplicatedInjectAudio;
         } else if (message.getType() == PacketType::SilentAudioFrame) {
-            mirroredType = PacketType::MirroredSilentAudioFrame;
+            mirroredType = PacketType::ReplicatedSilentAudioFrame;
         } else if (message.getType() == PacketType::NegotiateAudioFormat) {
-            mirroredType = PacketType::MirroredNegotiateAudioFormat;
+            mirroredType = PacketType::ReplicatedNegotiateAudioFormat;
         } else {
             return;
         }
 
-        // construct an NLPacket to send to the mirror that has the contents of the received packet
+        // construct an NLPacket to send to the replicant that has the contents of the received packet
         auto packet = NLPacket::create(mirroredType, message.getSize() + NUM_BYTES_RFC4122_UUID);
         packet->write(message.getSourceID().toRfc4122());
         packet->write(message.getMessage());
@@ -225,11 +225,11 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
         bool isMicStream = false;
 
         if (packetType == PacketType::MicrophoneAudioWithEcho
-            || packetType == PacketType::MirroredMicrophoneAudioWithEcho
+            || packetType == PacketType::ReplicatedMicrophoneAudioWithEcho
             || packetType == PacketType::MicrophoneAudioNoEcho
-            || packetType == PacketType::MirroredMicrophoneAudioNoEcho
+            || packetType == PacketType::ReplicatedMicrophoneAudioNoEcho
             || packetType == PacketType::SilentAudioFrame
-            || packetType == PacketType::MirroredSilentAudioFrame) {
+            || packetType == PacketType::ReplicatedSilentAudioFrame) {
 
             QWriteLocker writeLocker { &_streamsLock };
 
@@ -265,7 +265,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
             isMicStream = true;
         } else if (packetType == PacketType::InjectAudio
-                   || packetType == PacketType::MirroredInjectAudio) {
+                   || packetType == PacketType::ReplicatedInjectAudio) {
             // this is injected audio
             // grab the stream identifier for this injected audio
             message.seek(sizeof(quint16));
@@ -303,10 +303,10 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
         // seek to the beginning of the packet so that the next reader is in the right spot
         message.seek(0);
 
-        if (packetType == PacketType::MirroredMicrophoneAudioWithEcho
-            || packetType == PacketType::MirroredMicrophoneAudioNoEcho
-            || packetType == PacketType::MirroredSilentAudioFrame
-            || packetType == PacketType::MirroredInjectAudio) {
+        if (packetType == PacketType::ReplicatedMicrophoneAudioWithEcho
+            || packetType == PacketType::ReplicatedMicrophoneAudioNoEcho
+            || packetType == PacketType::ReplicatedSilentAudioFrame
+            || packetType == PacketType::ReplicatedInjectAudio) {
             message.seek(NUM_BYTES_RFC4122_UUID);
         }
 
