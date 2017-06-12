@@ -108,6 +108,8 @@ public:
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
+    void setupCodecForReplicatedAgent(QSharedPointer<ReceivedMessage> message);
+
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
 

@@ -27,6 +27,7 @@ namespace NodeType {
     const NodeType_t EntityScriptServer = 'S';
     const NodeType_t ReplicantAudioMixer = 'a';
     const NodeType_t ReplicantAvatarMixer = 'w';
+    const NodeType_t ReplicatedAgent = 'z';
     const NodeType_t Unassigned = 1;
 
     void init();

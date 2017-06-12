@@ -86,9 +86,6 @@ public:
 
     bool isIgnoreRadiusEnabled() const { return _ignoreRadiusEnabled; }
 
-    bool isMirror() const { return _isMirror; }
-    void setIsMirror(bool isMirror) { _isMirror = isMirror; }
-
 private:
     // privatize copy and assignment operator to disallow Node copying
     Node(const Node &otherNode);
@@ -109,8 +106,6 @@ private:
     mutable QReadWriteLock _ignoredNodeIDSetLock;
 
     std::atomic_bool _ignoreRadiusEnabled;
-
-    bool _isMirror { false };
 };
 
 Q_DECLARE_METATYPE(Node*)

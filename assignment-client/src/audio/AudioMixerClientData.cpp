@@ -73,6 +73,11 @@ void AudioMixerClientData::processPackets() {
             case PacketType::ReplicatedMicrophoneAudioWithEcho:
             case PacketType::ReplicatedInjectAudio:
             case PacketType::ReplicatedSilentAudioFrame: {
+
+                if (node->getType() == NodeType::ReplicatedAgent && !_codec) {
+                    setupCodecForReplicatedAgent(packet);
+                }
+
                 QMutexLocker lock(&getMutex());
                 parseData(*packet);
 
@@ -81,9 +86,7 @@ void AudioMixerClientData::processPackets() {
                 break;
             }
             case PacketType::NegotiateAudioFormat:
-            case PacketType::ReplicatedNegotiateAudioFormat:
                 negotiateAudioFormat(*packet, node);
-                replicatePacket(*packet);
                 break;
             case PacketType::RequestsDomainListData:
                 parseRequestsDomainListData(*packet);
@@ -119,15 +122,20 @@ void AudioMixerClientData::replicatePacket(ReceivedMessage& message) {
         mirroredType = PacketType::ReplicatedInjectAudio;
     } else if (message.getType() == PacketType::SilentAudioFrame) {
         mirroredType = PacketType::ReplicatedSilentAudioFrame;
-    } else if (message.getType() == PacketType::NegotiateAudioFormat) {
-        mirroredType = PacketType::ReplicatedNegotiateAudioFormat;
     } else {
         return;
     }
 
     // construct an NLPacket to send to the replicant that has the contents of the received packet
     auto packet = NLPacket::create(mirroredType, message.getSize() + NUM_BYTES_RFC4122_UUID);
+
+    // since this packet will be non-sourced, we add the replicated node's ID here
     packet->write(message.getSourceID().toRfc4122());
+
+    // we won't negotiate an audio format with the replicant, because we aren't a listener
+    // so pack the codec string here so that it can statelessly setup a decoder for this string when it needs
+    packet->writeString(_selectedCodecName);
+
     packet->write(message.getMessage());
 
     // enumerate the replicant audio mixers and send them the replicated version of this packet
@@ -311,7 +319,12 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
             || packetType == PacketType::ReplicatedMicrophoneAudioNoEcho
             || packetType == PacketType::ReplicatedSilentAudioFrame
             || packetType == PacketType::ReplicatedInjectAudio) {
+
+            // skip past source ID for the replicated packet
             message.seek(NUM_BYTES_RFC4122_UUID);
+
+            // skip past the codec string
+            message.readString();
         }
 
         // check the overflow count before we parse data
@@ -659,4 +672,16 @@ bool AudioMixerClientData::shouldIgnore(const SharedNodePointer self, const Shar
     nodeData->_nodeSourcesIgnoreMap[self->getUUID()].cache(shouldIgnore);
 
     return shouldIgnore;
+}
+
+void AudioMixerClientData::setupCodecForReplicatedAgent(QSharedPointer<ReceivedMessage> message) {
+    // first pull the codec string from the packet
+
+    // read the string for the codec
+    auto codecString = message->readString();
+
+    qDebug() << "Manually setting codec for replicated agent" << codecString;
+
+    const std::pair<QString, CodecPluginPointer> codec = AudioMixer::negotiateCodec({ codecString });
+    setupCodec(codec.second, codec.first);
 }

@@ -44,6 +44,7 @@ void NodeType::init() {
     TypeNameHash.insert(NodeType::EntityScriptServer, "Entity Script Server");
     TypeNameHash.insert(NodeType::ReplicantAudioMixer, "Replicant Audio Mixer");
     TypeNameHash.insert(NodeType::ReplicantAvatarMixer, "Replicant Avatar Mixer");
+    TypeNameHash.insert(NodeType::ReplicatedAgent, "Replicated Agent");
     TypeNameHash.insert(NodeType::Unassigned, "Unassigned");
 }
 

@@ -115,7 +115,6 @@ public:
         AdjustAvatarSorting,
         OctreeFileReplacement,
         CollisionEventChanges,
-        ReplicatedNegotiateAudioFormat,
         ReplicatedMicrophoneAudioNoEcho,
         ReplicatedMicrophoneAudioWithEcho,
         ReplicatedInjectAudio,

@@ -97,8 +97,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
         PacketType::ReplicatedMicrophoneAudioNoEcho,
         PacketType::ReplicatedMicrophoneAudioWithEcho,
         PacketType::ReplicatedInjectAudio,
-        PacketType::ReplicatedSilentAudioFrame,
-        PacketType::ReplicatedNegotiateAudioFormat
+        PacketType::ReplicatedSilentAudioFrame
     },
         this, "queueReplicatedAudioPacket"
     );
@@ -121,10 +120,10 @@ void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> mess
 
     QUuid nodeID =  QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
-    auto node = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
-                                          message->getSenderSockAddr(), message->getSenderSockAddr());
+    auto node = nodeList->addOrUpdateNode(nodeID, NodeType::ReplicatedAgent,
+                                          message->getSenderSockAddr(), message->getSenderSockAddr(),
+                                          DEFAULT_AGENT_PERMISSIONS, true);
     node->setIsUpstream(true);
-    node->setIsMirror(true);
     node->setLastHeardMicrostamp(usecTimestampNow());
 
     getOrCreateClientData(node.data())->queuePacket(message, node);
