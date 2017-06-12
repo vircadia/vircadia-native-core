@@ -42,9 +42,8 @@ public slots:
     void clear();    
     void group(QString groupName);
     void groupCollapsed(QString groupName);    
-    void groupEnd();    
-    void consoleLog(QString message);
-    void showdata(QString currentGroup, QString groupName);
+    void groupEnd();        
+    void consoleGroupLog(QString currentGroup, QString groupName);
 public:
     QString secondsToString(qint64 seconds);
     bool isInteger(const std::string & s);
@@ -58,7 +57,7 @@ private:
     const QString GROUPEND = "groupEnd";
     bool _isSameLevel = false;
     QString _addSpace = "";
-    QList<QPair<QString, QString> > _listOfGroupData;
+    bool _isGroupEnd = true;    
 };
 
 #endif // hifi_ConsoleScriptingInterface_h

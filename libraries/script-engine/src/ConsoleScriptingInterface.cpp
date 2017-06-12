@@ -23,15 +23,12 @@ void ConsoleScriptingInterface::info(QString message) {
 }
 
 void ConsoleScriptingInterface::log(QString message) {
-    /*if (!listgrp.isEmpty()){
-    listgrp.append(qMakePair(currentGroupSelection, message));
-    }*/
-    /*_listOfGroupData.append(qMakePair(_selectedGroup, message));
-    if (!_listOfGroupData.isEmpty()) {
-        showdata(_selectedGroup, message);
-    }*/
-    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
-        scriptEngine->scriptPrintedMessage(message);
+    if (_isGroupEnd) {
+        if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
+            scriptEngine->scriptPrintedMessage(message);
+        }
+    } else {
+        consoleGroupLog(_selectedGroup, message);
     }
 }
 
@@ -142,62 +139,51 @@ void  ConsoleScriptingInterface::clear() {
 }
 
 void ConsoleScriptingInterface::group(QString groupName) {
-    _listOfGroupData.append(qMakePair(GROUP, groupName));
     _selectedGroup = groupName;
-    showdata(GROUP, groupName);
+    consoleGroupLog(GROUP, groupName);
 }
 
 void ConsoleScriptingInterface::groupCollapsed(QString  groupName) {
-    _listOfGroupData.append(qMakePair(GROUPCOLLAPSED, groupName));
     _selectedGroup = groupName;
-    showdata(GROUPCOLLAPSED, groupName);
-}
-
-void ConsoleScriptingInterface::consoleLog(QString  message) {
-    _listOfGroupData.append(qMakePair(_selectedGroup, message));
-    if (!_listOfGroupData.isEmpty()) {
-        showdata(_selectedGroup, message);
-    }
+    consoleGroupLog(GROUPCOLLAPSED, groupName);
 }
 
 void ConsoleScriptingInterface::groupEnd() {
-    _listOfGroupData.append(qMakePair(_selectedGroup, GROUPEND));
-    showdata(_selectedGroup, GROUPEND);
+    consoleGroupLog(_selectedGroup, GROUPEND);
 }
 
-void ConsoleScriptingInterface::showdata(QString currentGroup, QString groupName) {
+void ConsoleScriptingInterface::consoleGroupLog(QString currentGroup, QString groupName) {
     QPair<QString, QString> groupData;
-    QString firstGroupData;
+    QString groupKeyName;
 
-    for (int index = 0; index<_listOfGroupData.count(); index++) {
-        groupData = _listOfGroupData.at(index);
-        firstGroupData = groupData.first;
-        if (groupData.first == GROUP || groupData.first == GROUPCOLLAPSED) {
-            firstGroupData = groupData.second;
-            if (_isSameLevel) {
-                _addSpace = _addSpace.mid(0, _addSpace.length() - 3);
-            }
-            _addSpace += "   "; //add inner groupcollapsed
-
-            if (groupData.first == GROUPCOLLAPSED) {
-                QString space = _addSpace.mid(0, _addSpace.length() - 1);
-                debug(space + groupData.second);
-            } else {
-                debug(_addSpace + groupData.second);
-            }
-            _isSameLevel = false;
-        } else if (groupData.second == GROUPEND) {
+    groupData = qMakePair(currentGroup, groupName);
+    groupKeyName = groupData.first;
+    if (groupData.first == GROUP || groupData.first == GROUPCOLLAPSED) {
+        groupKeyName = groupData.second;
+        if (_isSameLevel) {
             _addSpace = _addSpace.mid(0, _addSpace.length() - 3);
+        }
+        if (_isGroupEnd) {
+            _addSpace = "";
+            _isGroupEnd = false;
         } else {
-            if (groupData.first == firstGroupData && groupData.first != GROUPCOLLAPSED && groupData.first != GROUP && groupData.second != GROUPEND) {
-                if (!_isSameLevel) {
-                    _addSpace += "   ";  //2 space inner element
-                    _isSameLevel = true; //same level log entry
-                }
-                debug(_addSpace + groupData.second);
+            _addSpace += "   ";
+        }                
+        debug(_addSpace.mid(0, _addSpace.length() - 1) + groupData.second);
+        _isSameLevel = false;
+    } else {
+        if (groupData.first == groupKeyName && groupData.first != GROUPCOLLAPSED && groupData.first != GROUP && groupData.second != GROUPEND) {
+            if (!_isSameLevel) {
+                _addSpace += "   ";  //space inner element
+                _isSameLevel = true; //same level log entry
             }
+            debug(_addSpace + groupData.second);
         }
     }
-    _listOfGroupData.removeOne(qMakePair(currentGroup, groupName));
-
+    if (groupData.second == GROUPEND) {
+        _addSpace = _addSpace.mid(0, _addSpace.length() - 3);
+        if (_addSpace.length() == 0) {
+            _isGroupEnd = true;
+        }
+    }
 }
