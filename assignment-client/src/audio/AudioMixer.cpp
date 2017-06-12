@@ -97,7 +97,9 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
         PacketType::MirroredMicrophoneAudioNoEcho,
         PacketType::MirroredMicrophoneAudioWithEcho,
         PacketType::MirroredInjectAudio,
-        PacketType::MirroredSilentAudioFrame },
+        PacketType::MirroredSilentAudioFrame,
+        PacketType::MirroredNegotiateAudioFormat
+    },
         this, "queueMirroredAudioPacket"
     );
 
