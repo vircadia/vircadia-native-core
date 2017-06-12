@@ -68,7 +68,11 @@ void AudioMixerClientData::processPackets() {
             case PacketType::MicrophoneAudioWithEcho:
             case PacketType::InjectAudio:
             case PacketType::AudioStreamStats:
-            case PacketType::SilentAudioFrame: {
+            case PacketType::SilentAudioFrame:
+            case PacketType::MirroredMicrophoneAudioNoEcho:
+            case PacketType::MirroredMicrophoneAudioWithEcho:
+            case PacketType::MirroredInjectAudio:
+            case PacketType::MirroredSilentAudioFrame: {
                 QMutexLocker lock(&getMutex());
                 parseData(*packet);
 
