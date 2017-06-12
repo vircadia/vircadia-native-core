@@ -119,7 +119,7 @@ void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> mess
 
     QUuid nodeID =  QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
-    auto node = nodeList->addOrUpdateNode(nodeID, NodeType::ReplicatedAgent,
+    auto node = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
                                           message->getSenderSockAddr(), message->getSenderSockAddr(),
                                           DEFAULT_AGENT_PERMISSIONS, true);
     node->setIsUpstream(true);

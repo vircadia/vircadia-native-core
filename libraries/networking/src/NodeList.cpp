@@ -714,7 +714,7 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
 void NodeList::startNodeHolePunch(const SharedNodePointer& node) {
 
     // we don't hole punch to replicants, since it is assumed that we have a direct line to them
-    if (node->getType() != NodeType::ReplicantAudioMixer && node->getType() != NodeType::ReplicantAvatarMixer) {
+    if (node->getType() != NodeType::DownstreamAudioMixer && node->getType() != NodeType::DownstreamAvatarMixer) {
         // connect to the correct signal on this node so we know when to ping it
         connect(node.data(), &Node::pingTimerTimeout, this, &NodeList::handleNodePingTimeout);
 

@@ -74,7 +74,7 @@ void AudioMixerClientData::processPackets() {
             case PacketType::ReplicatedInjectAudio:
             case PacketType::ReplicatedSilentAudioFrame: {
 
-                if (node->getType() == NodeType::ReplicatedAgent && !_codec) {
+                if (node->isUpstream() && !_codec) {
                     setupCodecForReplicatedAgent(packet);
                 }
 
@@ -140,7 +140,7 @@ void AudioMixerClientData::replicatePacket(ReceivedMessage& message) {
 
     // enumerate the replicant audio mixers and send them the replicated version of this packet
     nodeList->eachMatchingNode([&](const SharedNodePointer& node)->bool {
-        return node->getType() == NodeType::ReplicantAudioMixer;
+        return node->getType() == NodeType::DownstreamAudioMixer;
     }, [&](const SharedNodePointer& node) {
         nodeList->sendUnreliablePacket(*packet, node->getPublicSocket());
     });
