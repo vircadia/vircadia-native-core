@@ -51,11 +51,12 @@ const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
 }
 
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
-           const HifiSockAddr& localSocket, const NodePermissions& permissions, const QUuid& connectionSecret,
-           QObject* parent) :
+           const HifiSockAddr& localSocket, const NodePermissions& permissions, bool isReplicant,
+           const QUuid& connectionSecret, QObject* parent) :
     NetworkPeer(uuid, publicSocket, localSocket, parent),
     _type(type),
     _connectionSecret(connectionSecret),
+    _isReplicant(isReplicant),
     _pingMs(-1),  // "Uninitialized"
     _clockSkewUsec(0),
     _mutex(),
