@@ -108,30 +108,34 @@ void AudioMixerClientData::processPackets() {
 
 void AudioMixerClientData::replicatePacket(ReceivedMessage& message) {
     auto nodeList = DependencyManager::get<NodeList>();
-    if (!nodeList->getMirrorSocket().isNull()) {
-        PacketType mirroredType;
 
-        if (message.getType() == PacketType::MicrophoneAudioNoEcho) {
-            mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
-        } else if (message.getType() == PacketType::MicrophoneAudioWithEcho) {
-            mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
-        } else if (message.getType() == PacketType::InjectAudio) {
-            mirroredType = PacketType::ReplicatedInjectAudio;
-        } else if (message.getType() == PacketType::SilentAudioFrame) {
-            mirroredType = PacketType::ReplicatedSilentAudioFrame;
-        } else if (message.getType() == PacketType::NegotiateAudioFormat) {
-            mirroredType = PacketType::ReplicatedNegotiateAudioFormat;
-        } else {
-            return;
-        }
+    PacketType mirroredType;
 
-        // construct an NLPacket to send to the replicant that has the contents of the received packet
-        auto packet = NLPacket::create(mirroredType, message.getSize() + NUM_BYTES_RFC4122_UUID);
-        packet->write(message.getSourceID().toRfc4122());
-        packet->write(message.getMessage());
-
-        nodeList->sendPacket(std::move(packet), nodeList->getMirrorSocket());
+    if (message.getType() == PacketType::MicrophoneAudioNoEcho) {
+        mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
+    } else if (message.getType() == PacketType::MicrophoneAudioWithEcho) {
+        mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
+    } else if (message.getType() == PacketType::InjectAudio) {
+        mirroredType = PacketType::ReplicatedInjectAudio;
+    } else if (message.getType() == PacketType::SilentAudioFrame) {
+        mirroredType = PacketType::ReplicatedSilentAudioFrame;
+    } else if (message.getType() == PacketType::NegotiateAudioFormat) {
+        mirroredType = PacketType::ReplicatedNegotiateAudioFormat;
+    } else {
+        return;
     }
+
+    // construct an NLPacket to send to the replicant that has the contents of the received packet
+    auto packet = NLPacket::create(mirroredType, message.getSize() + NUM_BYTES_RFC4122_UUID);
+    packet->write(message.getSourceID().toRfc4122());
+    packet->write(message.getMessage());
+
+    // enumerate the replicant audio mixers and send them the replicated version of this packet
+    nodeList->eachMatchingNode([&](const SharedNodePointer& node)->bool {
+        return node->getType() == NodeType::ReplicantAudioMixer;
+    }, [&](const SharedNodePointer& node) {
+        nodeList->sendUnreliablePacket(*packet, node->getPublicSocket());
+    });
 }
 
 void AudioMixerClientData::negotiateAudioFormat(ReceivedMessage& message, const SharedNodePointer& node) {
