@@ -119,13 +119,13 @@ void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> mess
 
     QUuid nodeID =  QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
-    auto node = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
-                                          message->getSenderSockAddr(), message->getSenderSockAddr(),
-                                          DEFAULT_AGENT_PERMISSIONS, true);
-    node->setIsUpstream(true);
-    node->setLastHeardMicrostamp(usecTimestampNow());
+    auto replicatedNode = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
+                                                    message->getSenderSockAddr(), message->getSenderSockAddr(),
+                                                    DEFAULT_AGENT_PERMISSIONS, true);
+    replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
+    replicatedNode->setIsUpstream(true);
 
-    getOrCreateClientData(node.data())->queuePacket(message, node);
+    getOrCreateClientData(replicatedNode.data())->queuePacket(message, replicatedNode);
 }
 
 void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
