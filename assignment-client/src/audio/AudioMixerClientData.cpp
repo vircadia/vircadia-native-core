@@ -80,8 +80,8 @@ void AudioMixerClientData::processPackets() {
 
                 QMutexLocker lock(&getMutex());
                 parseData(*packet);
-
-                replicatePacket(*packet);
+                
+                optionallyReplicatePacket(*packet, *node);
 
                 break;
             }
@@ -109,41 +109,52 @@ void AudioMixerClientData::processPackets() {
     assert(_packetQueue.empty());
 }
 
-void AudioMixerClientData::replicatePacket(ReceivedMessage& message) {
-    auto nodeList = DependencyManager::get<NodeList>();
+void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, const Node& node) {
 
-    PacketType mirroredType;
+    // first, make sure that this is a packet from a node we are supposed to replicate
+    if (node.isReplicated()) {
+        auto nodeList = DependencyManager::get<NodeList>();
 
-    if (message.getType() == PacketType::MicrophoneAudioNoEcho) {
-        mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
-    } else if (message.getType() == PacketType::MicrophoneAudioWithEcho) {
-        mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
-    } else if (message.getType() == PacketType::InjectAudio) {
-        mirroredType = PacketType::ReplicatedInjectAudio;
-    } else if (message.getType() == PacketType::SilentAudioFrame) {
-        mirroredType = PacketType::ReplicatedSilentAudioFrame;
-    } else {
-        return;
+        // now make sure it's a packet type that we want to replicate
+        PacketType mirroredType;
+
+        if (message.getType() == PacketType::MicrophoneAudioNoEcho) {
+            mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
+        } else if (message.getType() == PacketType::MicrophoneAudioWithEcho) {
+            mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
+        } else if (message.getType() == PacketType::InjectAudio) {
+            mirroredType = PacketType::ReplicatedInjectAudio;
+        } else if (message.getType() == PacketType::SilentAudioFrame) {
+            mirroredType = PacketType::ReplicatedSilentAudioFrame;
+        } else {
+            return;
+        }
+
+        std::unique_ptr<NLPacket> packet;
+
+        // enumerate the replicant audio mixers and send them the replicated version of this packet
+        nodeList->eachMatchingNode([&](const SharedNodePointer& node)->bool {
+            return node->getType() == NodeType::DownstreamAudioMixer;
+        }, [&](const SharedNodePointer& node) {
+            // construct the packet only once, if we have any downstream audio mixers to send to
+            if (!packet) {
+                // construct an NLPacket to send to the replicant that has the contents of the received packet
+                packet = NLPacket::create(mirroredType);
+
+                // since this packet will be non-sourced, we add the replicated node's ID here
+                packet->write(message.getSourceID().toRfc4122());
+
+                // we won't negotiate an audio format with the replicant, because we aren't a listener
+                // so pack the codec string here so that it can statelessly setup a decoder for this string when it needs
+                packet->writeString(_selectedCodecName);
+                
+                packet->write(message.getMessage());
+            }
+
+            nodeList->sendUnreliablePacket(*packet, node->getPublicSocket());
+        });
     }
 
-    // construct an NLPacket to send to the replicant that has the contents of the received packet
-    auto packet = NLPacket::create(mirroredType);
-
-    // since this packet will be non-sourced, we add the replicated node's ID here
-    packet->write(message.getSourceID().toRfc4122());
-
-    // we won't negotiate an audio format with the replicant, because we aren't a listener
-    // so pack the codec string here so that it can statelessly setup a decoder for this string when it needs
-    packet->writeString(_selectedCodecName);
-
-    packet->write(message.getMessage());
-
-    // enumerate the replicant audio mixers and send them the replicated version of this packet
-    nodeList->eachMatchingNode([&](const SharedNodePointer& node)->bool {
-        return node->getType() == NodeType::DownstreamAudioMixer;
-    }, [&](const SharedNodePointer& node) {
-        nodeList->sendUnreliablePacket(*packet, node->getPublicSocket());
-    });
 }
 
 void AudioMixerClientData::negotiateAudioFormat(ReceivedMessage& message, const SharedNodePointer& node) {
