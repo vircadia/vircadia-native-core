@@ -528,10 +528,11 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
             int baseJointIndex = _skeleton->getParentIndex(midJointIndex);
             if (baseJointIndex != -1) {
                 int baseParentJointIndex = _skeleton->getParentIndex(baseJointIndex);
-                AnimPose topPose, midPose, basePose, baseParentPose;
+                AnimPose topPose, midPose, basePose;
                 int topChainIndex = -1, baseChainIndex = -1;
                 AnimPose postAbsPoses[MAX_CHAIN_DEPTH];
                 AnimPose accum = absolutePoses[_hipsIndex];
+                AnimPose baseParentPose = absolutePoses[_hipsIndex];
                 for (int i = (int)chainDepth - 1; i >= 0; i--) {
                     accum = accum * AnimPose(glm::vec3(1.0f), jointChainInfos[i].relRot, jointChainInfos[i].relTrans);
                     postAbsPoses[i] = accum;
@@ -1341,7 +1342,7 @@ void AnimInverseKinematics::initConstraints() {
             // we determine the max/min angles by rotating the swing limit lines from parent- to child-frame
             // then measure the angles to swing the yAxis into alignment
             const float MIN_KNEE_ANGLE = 0.097f;  // ~5 deg
-            const float MAX_KNEE_ANGLE = 7.0f * PI / 8.0f;
+            const float MAX_KNEE_ANGLE = 7.0f * PI / 8.0f; // 157.5 deg
             glm::quat invReferenceRotation = glm::inverse(referenceRotation);
             glm::vec3 minSwingAxis = invReferenceRotation * glm::angleAxis(MIN_KNEE_ANGLE, hingeAxis) * Vectors::UNIT_Y;
             glm::vec3 maxSwingAxis = invReferenceRotation * glm::angleAxis(MAX_KNEE_ANGLE, hingeAxis) * Vectors::UNIT_Y;
