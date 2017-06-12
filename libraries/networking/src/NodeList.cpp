@@ -654,8 +654,9 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     QUuid nodeUUID, connectionUUID;
     HifiSockAddr nodePublicSocket, nodeLocalSocket;
     NodePermissions permissions;
+    bool isReplicated;
 
-    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> permissions;
+    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> permissions >> isReplicated;
 
     // if the public socket address is 0 then it's reachable at the same IP
     // as the domain server
@@ -666,7 +667,7 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     packetStream >> connectionUUID;
 
     SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
-                                             nodeLocalSocket, permissions, connectionUUID);
+                                             nodeLocalSocket, permissions, isReplicated, connectionUUID);
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {

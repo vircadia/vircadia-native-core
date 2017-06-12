@@ -569,6 +569,7 @@ void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
 SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                                    const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
                                                    const NodePermissions& permissions,
+                                                   bool isReplicated,
                                                    const QUuid& connectionSecret) {
     QReadLocker readLocker(&_nodeMutex);
     NodeHash::const_iterator it = _nodeHash.find(uuid);
@@ -580,11 +581,12 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         matchingNode->setLocalSocket(localSocket);
         matchingNode->setPermissions(permissions);
         matchingNode->setConnectionSecret(connectionSecret);
+        matchingNode->setIsReplicated(isReplicated);
 
         return matchingNode;
     } else {
         // we didn't have this node, so add them
-        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, permissions, connectionSecret);
+        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, permissions, isReplicated, connectionSecret);
 
         if (nodeType == NodeType::AudioMixer) {
             LimitedNodeList::flagTimeForConnectionStep(LimitedNodeList::AddedAudioMixer);
