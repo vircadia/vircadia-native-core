@@ -102,7 +102,6 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     );
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
-
 }
 
 void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
@@ -122,6 +121,7 @@ void AudioMixer::queueMirroredAudioPacket(QSharedPointer<ReceivedMessage> messag
     auto node = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
                                           message->getSenderSockAddr(), message->getSenderSockAddr());
     node->setIsMirror(true);
+    node->setLastHeardMicrostamp(usecTimestampNow());
 
     getOrCreateClientData(node.data())->queuePacket(message, node);
 }
