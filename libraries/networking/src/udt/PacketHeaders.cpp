@@ -41,7 +41,8 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::ICEServerHeartbeatDenied << PacketType::AssignmentClientStatus << PacketType::StopNode
     << PacketType::DomainServerRemovedNode << PacketType::UsernameFromIDReply << PacketType::OctreeFileReplacement
     << PacketType::MirroredMicrophoneAudioNoEcho << PacketType::MirroredMicrophoneAudioWithEcho
-    << PacketType::MirroredInjectAudio << PacketType::MirroredSilentAudioFrame;
+    << PacketType::MirroredInjectAudio << PacketType::MirroredSilentAudioFrame
+    << PacketType::MirroredNegotiateAudioFormat;
 
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {

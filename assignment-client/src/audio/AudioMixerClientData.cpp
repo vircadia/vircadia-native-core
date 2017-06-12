@@ -303,6 +303,13 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
         // seek to the beginning of the packet so that the next reader is in the right spot
         message.seek(0);
 
+        if (packetType == PacketType::MirroredMicrophoneAudioWithEcho
+            || packetType == PacketType::MirroredMicrophoneAudioNoEcho
+            || packetType == PacketType::MirroredSilentAudioFrame
+            || packetType == PacketType::MirroredInjectAudio) {
+            message.seek(NUM_BYTES_RFC4122_UUID);
+        }
+
         // check the overflow count before we parse data
         auto overflowBefore = matchingStream->getOverflowCount();
         auto parseResult = matchingStream->parseData(message);
