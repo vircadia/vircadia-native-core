@@ -361,7 +361,7 @@ Rectangle {
 
         HiFiGlyphs {
             id: calibrationGlyph
-            text: hifi.glyphs.sliders
+            text: hifi.glyphs.avatar1
             size: 36
             color: hifi.colors.white
 
