@@ -1318,6 +1318,43 @@
           "advanced": true
         }
       ]
+    },
+    {
+      "name": "replication",
+      "label": "Replication",
+      "settings": [
+        {
+          "name": "users",
+          "label": "Replicated Users",
+          "type": "table",
+          "can_add_new_rows": true,
+          "help": "Users that are replicated",
+          "numbered": false,
+          "columns": [
+            {
+              "name": "user",
+              "label": "User",
+              "can_set": true
+            }
+          ]
+        },
+        {
+          "name": "replicants",
+          "label": "Replicants",
+          "type": "table",
+          "can_add_new_rows": true,
+          "help": "Nodes or mirrors that are to replicate the domain",
+          "numbered": false,
+          "columns": [
+            {
+              "address": "Address",
+              "port": "Port",
+              "mixer_type": "Mixer Type",
+              "can_set": true
+            }
+          ]
+        }
+      ]
     }
   ]
 }
