@@ -10,13 +10,9 @@
 
 import QtQuick 2.5
 import "."
-import FileTypeProfile 1.0
 
 WebView {
-    viewProfile: FileTypeProfile {
-        id: webviewProfile
-        storageName: "qmlWebEngine"
-    }
+    viewProfile: FileTypeProfile;
     
     urlTag: "noDownload=true";
 }

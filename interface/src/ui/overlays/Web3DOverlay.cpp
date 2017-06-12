@@ -136,7 +136,7 @@ Web3DOverlay::~Web3DOverlay() {
 void Web3DOverlay::update(float deltatime) {
     if (_webSurface) {
         // update globalPosition
-        _webSurface->getRootContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
+        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
     }
 }
 
@@ -164,26 +164,26 @@ void Web3DOverlay::loadSourceURL() {
         _webSurface->resume();
         _webSurface->getRootItem()->setProperty("url", _url);
         _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
-        _webSurface->getRootContext()->setContextProperty("ApplicationInterface", qApp);
 
     } else {
         _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath()));
         _webSurface->load(_url, [&](QQmlContext* context, QObject* obj) {});
         _webSurface->resume();
 
-        _webSurface->getRootContext()->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
-        _webSurface->getRootContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
-        _webSurface->getRootContext()->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
-        _webSurface->getRootContext()->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
-        _webSurface->getRootContext()->setContextProperty("Vec3", new Vec3());
-        _webSurface->getRootContext()->setContextProperty("Quat", new Quat());
-        _webSurface->getRootContext()->setContextProperty("MyAvatar", DependencyManager::get<AvatarManager>()->getMyAvatar().get());
-        _webSurface->getRootContext()->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
-        _webSurface->getRootContext()->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("Vec3", new Vec3());
+        _webSurface->getSurfaceContext()->setContextProperty("Quat", new Quat());
+        _webSurface->getSurfaceContext()->setContextProperty("MyAvatar", DependencyManager::get<AvatarManager>()->getMyAvatar().get());
+        _webSurface->getSurfaceContext()->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
 
         if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
             auto flags = tabletScriptingInterface->getFlags();
+            
             _webSurface->getRootContext()->setContextProperty("offscreenFlags", flags);
             _webSurface->getRootContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
             _webSurface->getRootContext()->setContextProperty("Account", AccountScriptingInterface::getInstance());
@@ -204,17 +204,18 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getRootContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
             _webSurface->getRootContext()->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
             _webSurface->getRootContext()->setContextProperty("pathToFonts", "../../");
+            
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
 
             // mark the TabletProxy object as cpp ownership.
             QObject* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
-            _webSurface->getRootContext()->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
+            _webSurface->getSurfaceContext()->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
 
             // Override min fps for tablet UI, for silky smooth scrolling
             setMaxFPS(90);
         }
     }
-    _webSurface->getRootContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
+    _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
 }
 
 void Web3DOverlay::setMaxFPS(uint8_t maxFPS) {

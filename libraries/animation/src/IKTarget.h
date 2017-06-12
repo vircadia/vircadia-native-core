@@ -21,6 +21,7 @@ public:
         RotationOnly,
         HmdHead,
         HipsRelativeRotationAndPosition,
+        Spline,
         Unknown
     };
 
