@@ -16,16 +16,15 @@
 
 #include "render/DrawTask.h"
 
-class AntiAliasingConfig : public render::Job::Config {
+class AntialiasingConfig : public render::Job::Config {
     Q_OBJECT
-    Q_PROPERTY(bool enabled MEMBER enabled)
 public:
-    AntiAliasingConfig() : render::Job::Config(true) {}
+    AntialiasingConfig() : render::Job::Config(true) {}
 };
 
 class Antialiasing {
 public:
-    using Config = AntiAliasingConfig;
+    using Config = AntialiasingConfig;
     using JobModel = render::Job::ModelI<Antialiasing, gpu::FramebufferPointer, Config>;
 
     Antialiasing();
@@ -102,11 +101,12 @@ class JitterSample {
 public:
  
     struct SampleSequence {
-        static const int SEQUENCE_LENGTH { 4 };
+    SampleSequence();
+        static const int SEQUENCE_LENGTH { 8 };
         int sequenceLength{ SEQUENCE_LENGTH };
         int currentIndex { 0 };
         
-        glm::vec2 offsets[SEQUENCE_LENGTH] { { 1.0f, 1.0f},{ -1.0f, -1.0f}, { 1.0f, -1.0f}, { -1.0f, 1.0f} };
+        glm::vec2 offsets[SEQUENCE_LENGTH];
     };
     
     using JitterBuffer = gpu::StructBuffer<SampleSequence>;

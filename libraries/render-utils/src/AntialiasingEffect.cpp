@@ -223,7 +223,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         
         PrepareStencil::testMask(*state);
         
-        state->setDepthTest(false, false, gpu::LESS_EQUAL);
+    //    state->setDepthTest(false, false, gpu::LESS_EQUAL);
         state->setBlendFunction(true, gpu::State::BlendArg::SRC_ALPHA, gpu::State::BlendOp::BLEND_OP_ADD, gpu::State::BlendArg::INV_SRC_ALPHA );
         
         // Good to go add the brand new pipeline
@@ -245,10 +245,8 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
         gpu::Shader::makeProgram(*program, slotBindings);
         
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        
-        state->setDepthTest(false, false, gpu::LESS_EQUAL);
         PrepareStencil::testMask(*state);
-        
+
         // Good to go add the brand new pipeline
         _blendPipeline = gpu::Pipeline::create(program, state);
     }
@@ -264,57 +262,37 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setViewportTransform(args->_viewport);
-        
-        // FIXME: NEED to simplify that code to avoid all the GeometryCahce call, this is purely pixel manipulation
-        auto framebufferCache = DependencyManager::get<FramebufferCache>();
-        QSize framebufferSize = framebufferCache->getFrameBufferSize();
-        float fbWidth = framebufferSize.width();
-        float fbHeight = framebufferSize.height();
 
-        
-        // FXAA step
+        // TAA step
         batch.setResourceTexture(0, sourceBuffer->getRenderBuffer(0));
         batch.setFramebuffer(_antialiasingBuffer);
         batch.setPipeline(getAntialiasingPipeline());
-        
-        batch.draw(gpu::TRIANGLES, 4, 0);
-        
-        // initialize the view-space unpacking uniforms using frustum data
-     /*   float left, right, bottom, top, nearVal, farVal;
-        glm::vec4 nearClipPlane, farClipPlane;
-        
-        args->getViewFrustum().computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
-        
-        // float depthScale = (farVal - nearVal) / farVal;
-        // float nearScale = -1.0f / nearVal;
-        // float depthTexCoordScaleS = (right - left) * nearScale / sWidth;
-        // float depthTexCoordScaleT = (top - bottom) * nearScale / tHeight;
-        // float depthTexCoordOffsetS = left * nearScale - sMin * depthTexCoordScaleS;
-        // float depthTexCoordOffsetT = bottom * nearScale - tMin * depthTexCoordScaleT;
-        
-        batch._glUniform2f(_texcoordOffsetLoc, 1.0f / fbWidth, 1.0f / fbHeight);
-        
-        glm::vec4 color(0.0f, 0.0f, 0.0f, 1.0f);
-        glm::vec2 bottomLeft(-1.0f, -1.0f);
-        glm::vec2 topRight(1.0f, 1.0f);
-        glm::vec2 texCoordTopLeft(0.0f, 0.0f);
-        glm::vec2 texCoordBottomRight(1.0f, 1.0f);
-        DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color, _geometryId);
-        
-       */
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
+
         // Blend step
-        getBlendPipeline();
         batch.setResourceTexture(0, _antialiasingTexture);
         batch.setFramebuffer(sourceBuffer);
         batch.setPipeline(getBlendPipeline());
-        
-       // DependencyManager::get<GeometryCache>()->renderQuad(batch, bottomLeft, topRight, texCoordTopLeft, texCoordBottomRight, color, _geometryId);
-        batch.draw(gpu::TRIANGLES, 4, 0);
+        batch.draw(gpu::TRIANGLE_STRIP, 4);
 
     });
 }
 
+JitterSample::SampleSequence::SampleSequence(){
+    // Halton sequence (2,3)
+    offsets[0] = {  1.0f / 2.0f,  1.0f / 3.0f };
+    offsets[1] = {  1.0f / 4.0f,  2.0f / 3.0f };
+    offsets[2] = {  3.0f / 4.0f,  1.0f / 9.0f };
+    offsets[3] = {  1.0f / 8.0f,  4.0f / 9.0f };
+    offsets[4] = {  5.0f / 8.0f,  7.0f / 9.0f };
+    offsets[5] = {  3.0f / 8.0f,  2.0f / 9.0f };
+    offsets[6] = {  7.0f / 8.0f,  5.0f / 9.0f };
+    offsets[7] = {  1.0f / 16.0f, 8.0f / 9.0f };
 
+    for (int i = 0; i < SEQUENCE_LENGTH; i++) {
+        offsets[i] = offsets[i] - vec2(0.5f);
+    }
+}
 
 void JitterSample::configure(const Config& config) {
     _freeze = config.freeze;
@@ -332,11 +310,7 @@ void JitterSample::run(const render::RenderContextPointer& renderContext, Jitter
     auto jit = _scale * jitterBuffer.get().offsets[current];
     auto width = (float) renderContext->args->_viewport.z;
     auto height = (float) renderContext->args->_viewport.w;
-    
-    auto oneOverRL = 0.5 * projMat[0][0] / theNear;
-    auto oneOverTB = 0.5 * projMat[1][1] / theNear;
-    
-    
+
     auto jx = -4.0 * jit.x / width;
     auto jy = -4.0 * jit.y / height;
     
