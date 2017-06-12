@@ -62,6 +62,10 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message) {
     // pull the sequence number from the data first
     uint16_t sequenceNumber;
 
+    if (message.getType() == PacketType::ReplicatedAvatarData) {
+        message.seek(NUM_BYTES_RFC4122_UUID);
+    }
+
     message.readPrimitive(&sequenceNumber);
     
     if (sequenceNumber < _lastReceivedSequenceNumber && _lastReceivedSequenceNumber != UINT16_MAX) {

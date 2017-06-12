@@ -119,8 +119,11 @@ public:
         ReplicatedMicrophoneAudioWithEcho,
         ReplicatedInjectAudio,
         ReplicatedSilentAudioFrame,
-        LAST_PACKET_TYPE = ReplicatedSilentAudioFrame,
+        ReplicatedAvatarIdentity,
+        ReplicatedAvatarData,
+        ReplicatedKillAvatar,
 
+        NUM_PACKET_TYPE
     };
 };
 

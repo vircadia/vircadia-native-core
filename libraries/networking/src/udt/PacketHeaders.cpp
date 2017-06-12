@@ -41,7 +41,8 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::ICEServerHeartbeatDenied << PacketType::AssignmentClientStatus << PacketType::StopNode
     << PacketType::DomainServerRemovedNode << PacketType::UsernameFromIDReply << PacketType::OctreeFileReplacement
     << PacketType::ReplicatedMicrophoneAudioNoEcho << PacketType::ReplicatedMicrophoneAudioWithEcho
-    << PacketType::ReplicatedInjectAudio << PacketType::ReplicatedSilentAudioFrame;
+    << PacketType::ReplicatedInjectAudio << PacketType::ReplicatedSilentAudioFrame
+    << PacketType::ReplicatedAvatarIdentity << PacketType::ReplicatedAvatarData << PacketType::ReplicatedKillAvatar;
 
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
@@ -121,7 +122,7 @@ static void ensureProtocolVersionsSignature() {
     std::call_once(once, [&] {
         QByteArray buffer;
         QDataStream stream(&buffer, QIODevice::WriteOnly);
-        uint8_t numberOfProtocols = static_cast<uint8_t>(PacketType::LAST_PACKET_TYPE) + 1;
+        uint8_t numberOfProtocols = static_cast<uint8_t>(PacketType::NUM_PACKET_TYPE);
         stream << numberOfProtocols;
         for (uint8_t packetType = 0; packetType < numberOfProtocols; packetType++) {
             uint8_t packetTypeVersion = static_cast<uint8_t>(versionForPacketType(static_cast<PacketType>(packetType)));
