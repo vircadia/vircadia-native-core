@@ -127,7 +127,7 @@ void AudioMixerClientData::replicatePacket(ReceivedMessage& message) {
     }
 
     // construct an NLPacket to send to the replicant that has the contents of the received packet
-    auto packet = NLPacket::create(mirroredType, message.getSize() + NUM_BYTES_RFC4122_UUID);
+    auto packet = NLPacket::create(mirroredType);
 
     // since this packet will be non-sourced, we add the replicated node's ID here
     packet->write(message.getSourceID().toRfc4122());

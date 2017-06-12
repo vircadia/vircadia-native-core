@@ -103,7 +103,6 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     );
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
-
 }
 
 void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
