@@ -20,6 +20,8 @@
 class ReceivedPacketProcessor : public GenericThread {
     Q_OBJECT
 public:
+    static const unsigned long MAX_WAIT_TIME { 100 };
+
     ReceivedPacketProcessor();
 
     /// Add packet from network receive thread to the processing queue.
@@ -63,8 +65,8 @@ protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process() override;
 
-    /// Determines the timeout of the wait when there are no packets to process. Default value means no timeout
-    virtual unsigned long getMaxWait() const { return ULONG_MAX; }
+    /// Determines the timeout of the wait when there are no packets to process. Default value is 100ms to allow for regular event processing.
+    virtual unsigned long getMaxWait() const { return MAX_WAIT_TIME; }
 
     /// Override to do work before the packets processing loop. Default does nothing.
     virtual void preProcess() { }
