@@ -118,12 +118,9 @@ void AudioMixerClientData::potentiallyMirrorPacket(ReceivedMessage& message) {
         }
 
         // construct an NLPacket to send to the mirror that has the contents of the received packet
-        std::unique_ptr<char[]> messageData { new char[message.getSize()] };
-        memcpy(messageData.get(), message.getMessage().data(), message.getSize());
-        auto packet = NLPacket::fromReceivedPacket(std::move(messageData), message.getSize(),
-                                                   message.getSenderSockAddr());
-
-        packet->setType(mirroredType);
+        auto packet = NLPacket::create(mirroredType, message.getSize() + NUM_BYTES_RFC4122_UUID);
+        packet->write(message.getSourceID().toRfc4122());
+        packet->write(message.getMessage());
 
         nodeList->sendPacket(std::move(packet), nodeList->getMirrorSocket());
     }
@@ -220,8 +217,11 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
         bool isMicStream = false;
 
         if (packetType == PacketType::MicrophoneAudioWithEcho
+            || packetType == PacketType::MirroredMicrophoneAudioWithEcho
             || packetType == PacketType::MicrophoneAudioNoEcho
-            || packetType == PacketType::SilentAudioFrame) {
+            || packetType == PacketType::MirroredMicrophoneAudioNoEcho
+            || packetType == PacketType::SilentAudioFrame
+            || packetType == PacketType::MirroredSilentAudioFrame) {
 
             QWriteLocker writeLocker { &_streamsLock };
 
@@ -256,7 +256,8 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
             writeLocker.unlock();
 
             isMicStream = true;
-        } else if (packetType == PacketType::InjectAudio) {
+        } else if (packetType == PacketType::InjectAudio
+                   || packetType == PacketType::MirroredInjectAudio) {
             // this is injected audio
             // grab the stream identifier for this injected audio
             message.seek(sizeof(quint16));

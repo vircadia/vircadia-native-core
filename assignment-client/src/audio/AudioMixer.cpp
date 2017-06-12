@@ -55,7 +55,8 @@ QVector<AudioMixer::ZoneSettings> AudioMixer::_zoneSettings;
 QVector<AudioMixer::ReverbSettings> AudioMixer::_zoneReverbSettings;
 
 AudioMixer::AudioMixer(ReceivedMessage& message) :
-    ThreadedAssignment(message) {
+    ThreadedAssignment(message)
+{
 
     // Always clear settings first
     // This prevents previous assignment settings from sticking around
@@ -101,6 +102,7 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     );
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
+
 }
 
 void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
@@ -115,7 +117,9 @@ void AudioMixer::queueMirroredAudioPacket(QSharedPointer<ReceivedMessage> messag
     // make sure we have a mirrored node for the original sender of the packet
     auto nodeList = DependencyManager::get<NodeList>();
 
-    auto node = nodeList->addOrUpdateNode(message->getSourceID(), NodeType::Agent,
+    QUuid nodeID =  QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+    auto node = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
                                           message->getSenderSockAddr(), message->getSenderSockAddr());
     node->setIsMirror(true);
 
