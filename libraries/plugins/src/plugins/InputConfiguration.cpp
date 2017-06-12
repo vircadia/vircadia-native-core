@@ -65,6 +65,7 @@ QJsonObject InputConfiguration::configurationSettings(QString pluginName) {
 void InputConfiguration::calibratePlugin(QString pluginName) {
     for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
         if (plugin->getName() == pluginName) {
+            qDebug() << "calibrating plauin " << pluginName;
             plugin->calibrate();
         }
     }

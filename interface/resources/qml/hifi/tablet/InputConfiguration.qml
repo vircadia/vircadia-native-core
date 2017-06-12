@@ -176,13 +176,13 @@ Rectangle {
     }
 
     function initialize() {
-        chanageSource();
+        changeSource();
     }
 
     function changeSource() {
 	loader.source = "";
 	var source = InputConfiguration.configurationLayout(box.currentText);
-	loader.source = "OpenVrConfiguration.qml";
+	loader.source = source;
 	if (source === "") {
 	    box.label = "(not configurable)";
 	} else {

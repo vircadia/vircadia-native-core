@@ -183,28 +183,28 @@ void Web3DOverlay::loadSourceURL() {
         if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
             auto flags = tabletScriptingInterface->getFlags();
-            
-            _webSurface->getRootContext()->setContextProperty("offscreenFlags", flags);
-            _webSurface->getRootContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
-            _webSurface->getRootContext()->setContextProperty("Account", AccountScriptingInterface::getInstance());
-            _webSurface->getRootContext()->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
-            _webSurface->getRootContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
-            _webSurface->getRootContext()->setContextProperty("fileDialogHelper", new FileDialogHelper());
-            _webSurface->getRootContext()->setContextProperty("MyAvatar", DependencyManager::get<AvatarManager>()->getMyAvatar().get());
-            _webSurface->getRootContext()->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
-            _webSurface->getRootContext()->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
-            _webSurface->getRootContext()->setContextProperty("Assets", DependencyManager::get<AssetMappingsScriptingInterface>().data());
-            _webSurface->getRootContext()->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
-            _webSurface->getRootContext()->setContextProperty("OctreeStats", DependencyManager::get<OctreeStatsProvider>().data());
-            _webSurface->getRootContext()->setContextProperty("DCModel", DependencyManager::get<DomainConnectionModel>().data());
-            _webSurface->getRootContext()->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
-            _webSurface->getRootContext()->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
-            _webSurface->getRootContext()->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
-            _webSurface->getRootContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
-            _webSurface->getRootContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
-            _webSurface->getRootContext()->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
-            _webSurface->getRootContext()->setContextProperty("pathToFonts", "../../");
-            
+
+            _webSurface->getSurfaceContext()->setContextProperty("offscreenFlags", flags);
+            _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("Account", AccountScriptingInterface::getInstance());
+            _webSurface->getSurfaceContext()->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
+            _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("fileDialogHelper", new FileDialogHelper());
+            _webSurface->getSurfaceContext()->setContextProperty("MyAvatar", DependencyManager::get<AvatarManager>()->getMyAvatar().get());
+            _webSurface->getSurfaceContext()->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("Assets", DependencyManager::get<AssetMappingsScriptingInterface>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("OctreeStats", DependencyManager::get<OctreeStatsProvider>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("DCModel", DependencyManager::get<DomainConnectionModel>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
+            _webSurface->getSurfaceContext()->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
+            _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
+            _webSurface->getSurfaceContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
+            _webSurface->getSurfaceContext()->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
+
+            _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
 
             // mark the TabletProxy object as cpp ownership.
