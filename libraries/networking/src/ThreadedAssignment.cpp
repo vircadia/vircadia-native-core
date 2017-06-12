@@ -145,25 +145,25 @@ void ThreadedAssignment::parseDownstreamServers(const QJsonObject& settingsObjec
         auto nodeList = DependencyManager::get<NodeList>();
 
         foreach(const QJsonValue& downstreamServerValue, downstreamServers) {
-            const QJsonArray downstreamServer = downstreamServerValue.toArray();
+            const QJsonObject downstreamServer = downstreamServerValue.toObject();
 
-            // make sure we have the number of values we need
-            if (downstreamServer.size() >= 3) {
-                // make sure this is a downstream server that matches our type
-                if (downstreamServer[2].toString() == NodeType::getNodeTypeName(nodeType)) {
-                    // read the address and port and construct a HifiSockAddr from them
-                    HifiSockAddr downstreamServerAddr {
-                        downstreamServer[0].toString(),
-                        static_cast<quint16>(downstreamServer[1].toInt())
-                    };
+            static const QString DOWNSTREAM_SERVER_ADDRESS = "address";
+            static const QString DOWNSTREAM_SERVER_PORT = "port";
+            static const QString DOWNSTREAM_SERVER_TYPE = "server_type";
 
-                    // manually add the downstream node to our node list
-                    nodeList->addOrUpdateNode(QUuid::createUuid(), NodeType::downstreamType(nodeType),
-                                              downstreamServerAddr, downstreamServerAddr);
+            // make sure we have the settings we need for this downstream server
+            if (downstreamServer.contains(DOWNSTREAM_SERVER_ADDRESS) && downstreamServer.contains(DOWNSTREAM_SERVER_PORT)
+                && downstreamServer[DOWNSTREAM_SERVER_TYPE].toString() == NodeType::getNodeTypeName(nodeType)) {
+                // read the address and port and construct a HifiSockAddr from them
+                HifiSockAddr downstreamServerAddr {
+                    downstreamServer[DOWNSTREAM_SERVER_ADDRESS].toString(),
+                    (quint16) downstreamServer[DOWNSTREAM_SERVER_PORT].toString().toInt()
+                };
 
-                }
+                // manually add the downstream node to our node list
+                nodeList->addOrUpdateNode(QUuid::createUuid(), NodeType::downstreamType(nodeType),
+                                          downstreamServerAddr, downstreamServerAddr);
             }
-            
         }
     }
 }
