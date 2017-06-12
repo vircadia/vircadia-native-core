@@ -586,7 +586,7 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         return matchingNode;
     } else {
         // we didn't have this node, so add them
-        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, permissions, isReplicated, connectionSecret, this);
+        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, permissions, isReplicated, connectionSecret);
 
         if (nodeType == NodeType::AudioMixer) {
             LimitedNodeList::flagTimeForConnectionStep(LimitedNodeList::AddedAudioMixer);
