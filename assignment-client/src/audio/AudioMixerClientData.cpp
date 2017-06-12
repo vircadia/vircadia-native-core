@@ -132,7 +132,7 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
 
         std::unique_ptr<NLPacket> packet;
 
-        // enumerate the replicant audio mixers and send them the replicated version of this packet
+        // enumerate the downstream audio mixers and send them the replicated version of this packet
         nodeList->eachMatchingNode([&](const SharedNodePointer& node)->bool {
             return node->getType() == NodeType::DownstreamAudioMixer;
         }, [&](const SharedNodePointer& node) {
