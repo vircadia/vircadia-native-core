@@ -88,36 +88,47 @@ void AvatarMixer::handleReplicatedPackets(QSharedPointer<ReceivedMessage> messag
             handleAvatarIdentityPacket(message, replicatedNode);
             break;
         case PacketType::KillAvatar:
-            handleKillAvatarPacket(message);
-            break
+            handleKillAvatarPacket(message, replicatedNode);
+            break;
+        default:
+            // Do nothing
+            break;
     }
 
 }
 
-void AvatarMixer::replicatePacket(ReceivedMessage& message) {
-    PacketType replicatedType;
-    if (message.getType() == PacketType::AvatarData) {
-        replicatedType = PacketType::ReplicatedAvatarData;
-    } else if (message.getType() == PacketType::AvatarIdentity) {
-        replicatedType = PacketType::ReplicatedAvatarIdentity;
-    } else if (message.getType() == PacketType::KillAvatar) {
-        replicatedType = PacketType::ReplicatedKillAvatar;
-    } else {
-        Q_UNREACHABLE();
-        return;
+void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node& node) {
+    // first, make sure that this is a packet from a node we are supposed to replicate
+    if (node.isReplicated()) {
+        // now make sure it's a packet type that we want to replicate
+        PacketType replicatedType;
+        switch (message.getType()) {
+            case PacketType::AvatarData:
+                replicatedType = PacketType::ReplicatedAvatarData;
+                break;
+            case PacketType::AvatarIdentity:
+                replicatedType = PacketType::ReplicatedAvatarIdentity;
+                break;
+            case PacketType::KillAvatar:
+                replicatedType = PacketType::ReplicatedKillAvatar;
+                break;
+            default:
+                Q_UNREACHABLE();
+                return;
+        }
+
+        auto nodeList = DependencyManager::get<NodeList>();
+        nodeList->eachMatchingNode([&](const SharedNodePointer& node) {
+            return node->getType() == NodeType::ReplicantAvatarMixer;
+        }, [&](const SharedNodePointer& node) {
+            // construct an NLPacket to send to the replicant that has the contents of the received packet
+            auto packet = NLPacket::create(replicatedType, message.getSize() + NUM_BYTES_RFC4122_UUID);
+            packet->write(message.getSourceID().toRfc4122());
+            packet->write(message.getMessage());
+
+            nodeList->sendPacket(std::move(packet), *node);
+        });
     }
-
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->eachMatchingNode([&](const SharedNodePointer& node) {
-        return node->getType() == NodeType::ReplicantAvatarMixer;
-    }, [&](const SharedNodePointer& node) {
-        // construct an NLPacket to send to the replicant that has the contents of the received packet
-        auto packet = NLPacket::create(replicatedType, message.getSize() + NUM_BYTES_RFC4122_UUID);
-        packet->write(message.getSourceID().toRfc4122());
-        packet->write(message.getMessage());
-
-        nodeList->sendPacket(std::move(packet), *node);
-    });
 }
 
 void AvatarMixer::queueIncomingPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
@@ -126,7 +137,7 @@ void AvatarMixer::queueIncomingPacket(QSharedPointer<ReceivedMessage> message, S
     auto end = usecTimestampNow();
     _queueIncomingPacketElapsedTime += (end - start);
 
-    replicatePacket(*message);
+    optionallyReplicatePacket(*message, *node);
 }
 
 
@@ -486,16 +497,16 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
     auto end = usecTimestampNow();
     _handleAvatarIdentityPacketElapsedTime += (end - start);
 
-    replicatePacket(*message);
+    optionallyReplicatePacket(*message, *senderNode);
 }
 
-void AvatarMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message) {
+void AvatarMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
     auto start = usecTimestampNow();
     DependencyManager::get<NodeList>()->processKillNode(*message);
     auto end = usecTimestampNow();
     _handleKillAvatarPacketElapsedTime += (end - start);
 
-    replicatePacket(*message);
+    optionallyReplicatePacket(*message, *node);
 }
 
 void AvatarMixer::handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
