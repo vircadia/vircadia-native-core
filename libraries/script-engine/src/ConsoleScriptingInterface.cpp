@@ -52,9 +52,45 @@ void ConsoleScriptingInterface::error(QString message) {
 
 void ConsoleScriptingInterface::exception(QString message) {
     if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
-        scriptEngine->scriptErrorMessage(message);
+        scriptEngine->logConsoleException(message);
     }
+    
 }
+
+bool ConsoleScriptingInterface:: hasCorrectSyntax(QScriptProgram& program) {
+    const auto syntaxCheck = QScriptEngine::checkSyntax(program.sourceCode());
+    if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
+        const auto error = syntaxCheck.errorMessage();
+        const auto line = QString::number(syntaxCheck.errorLineNumber());
+        const auto column = QString::number(syntaxCheck.errorColumnNumber());
+        const auto message = QString("[SyntaxError] %1 in %2:%3(%4)").arg(error, program.fileName(), line, column);
+        qCritical() << qPrintable(message);
+        return false;
+    }
+    return true;
+}
+
+QString ConsoleScriptingInterface::hadUncaughtExceptions(QScriptEngine& engine, QString& fileName) {
+    log("4");
+    //if (engine.hasUncaughtException()) {
+        const auto backtrace = engine.uncaughtExceptionBacktrace();
+        const auto exception = engine.uncaughtException().toString();
+        const auto line = QString::number(engine.uncaughtExceptionLineNumber());
+        engine.clearExceptions();
+        log("5");
+        static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 in %2:%3";
+        auto message = QString(SCRIPT_EXCEPTION_FORMAT).arg(exception, fileName, line);
+        if (!backtrace.empty()) {
+            static const auto lineSeparator = "\n    ";
+            message += QString("\n[Backtrace]%1%2").arg(lineSeparator, backtrace.join(lineSeparator));
+        }
+        // qCritical() << qPrintable(message);
+        log("6");
+        return message;
+    //}
+    //return false;
+}
+
 
 void  ConsoleScriptingInterface::time(QString labelName) {
     QDateTime _currentTime = QDateTime::currentDateTime().toUTC();
@@ -126,9 +162,9 @@ void  ConsoleScriptingInterface::asserts(bool condition, QString message) {
     }
 }
 
-void  ConsoleScriptingInterface::trace(QString labelName) {
+void  ConsoleScriptingInterface::trace() {    
     if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
-        scriptEngine->scriptErrorMessage(labelName);
+        scriptEngine->logTraceException();
     }
 }
 

@@ -148,7 +148,8 @@ public:
     /// to scripts. we may not need this to be invokable
     void loadURL(const QUrl& scriptURL, bool reload);
     bool hasValidScriptSuffix(const QString& scriptFileName);
-
+    void logConsoleException(QString message);
+    QString logTraceException();
     Q_INVOKABLE QString getContext() const;
     Q_INVOKABLE bool isClientScript() const { return _context == CLIENT_SCRIPT; }
     Q_INVOKABLE bool isEntityClientScript() const { return _context == ENTITY_CLIENT_SCRIPT; }

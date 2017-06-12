@@ -145,6 +145,17 @@ QString encodeEntityIdIntoEntityUrl(const QString& url, const QString& entityID)
     return url + " [EntityID:" + entityID + "]";
 }
 
+void ScriptEngine::logConsoleException(QString message) {
+    this->raiseConsoleException(this->makeError(message));
+}
+
+QString ScriptEngine::logTraceException() {
+    QScriptValue value = this->raiseConsoleTraceException(this->makeError(""));
+    auto trace = formatTrace(value, _enableExtendedJSExceptions.get());
+    scriptInfoMessage(trace);
+    return trace;
+}
+
 QString ScriptEngine::logException(const QScriptValue& exception) {
     auto message = formatException(exception, _enableExtendedJSExceptions.get());
     scriptErrorMessage(message);
@@ -187,6 +198,15 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
         }
         logException(output);
     });
+
+    // this is where all unhandled exceptions end up getting logged
+  /*  connect(this, &BaseScriptEngine::unhandledException, this, [this](const QScriptValue& err) {
+        auto output = err.engine() == this ? err : makeError(err);
+        if (!output.property("detail").isValid()) {
+            output.setProperty("detail", "UnhandledException");
+        }
+        logException(output);
+    });*/
 }
 
 QString ScriptEngine::getContext() const {

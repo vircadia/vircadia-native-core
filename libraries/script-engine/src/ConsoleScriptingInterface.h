@@ -22,6 +22,8 @@
 #include <QtCore/QString>
 #include <QtScript/QScriptable>
 #include <QHash>
+#include "EntityEditFilters.h"
+#include <QUrl>
 #include <QList>
 
 
@@ -38,15 +40,16 @@ public slots:
     void time(QString labelName);
     void timeEnd(QString labelName);    
     void asserts(bool condition, QString message = "");
-    void trace(QString labelName);
+    void trace();
     void clear();    
     void group(QString groupName);
     void groupCollapsed(QString groupName);    
     void groupEnd();        
     void consoleGroupLog(QString currentGroup, QString groupName);
 public:
-    QString secondsToString(qint64 seconds);
-    bool isInteger(const std::string & s);
+    QString secondsToString(qint64 seconds);    
+    bool hasCorrectSyntax(QScriptProgram& program);
+    QString hadUncaughtExceptions(QScriptEngine& engine, QString& fileName);
 private:
     QHash<QString, QDateTime> _listOfTimeValues;
     const qint64 DAY = 86400;
