@@ -68,14 +68,8 @@ void AvatarMixer::handleReplicatedPackets(QSharedPointer<ReceivedMessage> messag
     auto nodeList = DependencyManager::get<NodeList>();
     auto nodeID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
-    auto replicatedNode = nodeList->nodeWithUUID(nodeID);
-    if (!replicatedNode) {
-        QMetaObject::invokeMethod(nodeList.data(), "addOrUpdateNode", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(SharedNodePointer, replicatedNode),
-            Q_ARG(QUuid, nodeID), Q_ARG(NodeType_t, NodeType::Agent),
-            Q_ARG(HifiSockAddr, message->getSenderSockAddr()),
-            Q_ARG(HifiSockAddr, message->getSenderSockAddr()));
-    }
+    auto replicatedNode = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
+                                                    message->getSenderSockAddr(), message->getSenderSockAddr())
 
     replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
     replicatedNode->setIsUpstream(true);
@@ -117,16 +111,20 @@ void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node
                 return;
         }
 
+        std::unique_ptr<NLPacket> packet;
+
         auto nodeList = DependencyManager::get<NodeList>();
         nodeList->eachMatchingNode([&](const SharedNodePointer& node) {
             return node->getType() == NodeType::ReplicantAvatarMixer;
         }, [&](const SharedNodePointer& node) {
-            // construct an NLPacket to send to the replicant that has the contents of the received packet
-            auto packet = NLPacket::create(replicatedType, message.getSize() + NUM_BYTES_RFC4122_UUID);
-            packet->write(message.getSourceID().toRfc4122());
-            packet->write(message.getMessage());
+            if (!packet) {
+                // construct an NLPacket to send to the replicant that has the contents of the received packet
+                packet = NLPacket::create(replicatedType, message.getSize() + NUM_BYTES_RFC4122_UUID);
+                packet->write(message.getSourceID().toRfc4122());
+                packet->write(message.getMessage());
+            }
 
-            nodeList->sendPacket(std::move(packet), *node);
+            nodeList->sendUnreliablePacket(*packet, *node);
         });
     }
 }
