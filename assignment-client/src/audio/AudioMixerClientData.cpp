@@ -71,6 +71,9 @@ void AudioMixerClientData::processPackets() {
             case PacketType::SilentAudioFrame: {
                 QMutexLocker lock(&getMutex());
                 parseData(*packet);
+
+                potentiallyMirrorPacket(*packet);
+
                 break;
             }
             case PacketType::NegotiateAudioFormat:
@@ -95,6 +98,35 @@ void AudioMixerClientData::processPackets() {
         _packetQueue.pop();
     }
     assert(_packetQueue.empty());
+}
+
+void AudioMixerClientData::potentiallyMirrorPacket(ReceivedMessage& message) {
+    auto nodeList = DependencyManager::get<NodeList>();
+    if (!nodeList->getMirrorSocket().isNull()) {
+        PacketType mirroredType;
+
+        if (message.getType() == PacketType::MicrophoneAudioNoEcho) {
+            mirroredType = PacketType::MirroredMicrophoneAudioNoEcho;
+        } else if (message.getType() == PacketType::MicrophoneAudioWithEcho) {
+            mirroredType = PacketType::MirroredMicrophoneAudioNoEcho;
+        } else if (message.getType() == PacketType::InjectAudio) {
+            mirroredType = PacketType::MirroredInjectAudio;
+        } else if (message.getType() == PacketType::SilentAudioFrame) {
+            mirroredType = PacketType::MirroredSilentAudioFrame;
+        } else {
+            return;
+        }
+
+        // construct an NLPacket to send to the mirror that has the contents of the received packet
+        std::unique_ptr<char[]> messageData { new char[message.getSize()] };
+        memcpy(messageData.get(), message.getMessage().data(), message.getSize());
+        auto packet = NLPacket::fromReceivedPacket(std::move(messageData), message.getSize(),
+                                                   message.getSenderSockAddr());
+
+        packet->setType(mirroredType);
+
+        nodeList->sendPacket(std::move(packet), nodeList->getMirrorSocket());
+    }
 }
 
 void AudioMixerClientData::negotiateAudioFormat(ReceivedMessage& message, const SharedNodePointer& node) {

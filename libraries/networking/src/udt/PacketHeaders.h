@@ -115,7 +115,12 @@ public:
         AdjustAvatarSorting,
         OctreeFileReplacement,
         CollisionEventChanges,
-        LAST_PACKET_TYPE = CollisionEventChanges
+        MirroredMicrophoneAudioNoEcho,
+        MirroredMicrophoneAudioWithEcho,
+        MirroredInjectAudio,
+        MirroredSilentAudioFrame,
+        LAST_PACKET_TYPE = MirroredSilentAudioFrame,
+
     };
 };
 

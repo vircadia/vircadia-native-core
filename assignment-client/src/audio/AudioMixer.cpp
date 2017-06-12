@@ -92,6 +92,14 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::NodeMuteRequest, this, "handleNodeMuteRequestPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
 
+    packetReceiver.registerListenerForTypes({
+        PacketType::MirroredMicrophoneAudioNoEcho,
+        PacketType::MirroredMicrophoneAudioWithEcho,
+        PacketType::MirroredInjectAudio,
+        PacketType::MirroredSilentAudioFrame },
+        this, "queueMirroredAudioPacket"
+    );
+
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
 }
 
@@ -99,6 +107,17 @@ void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, Share
     if (message->getType() == PacketType::SilentAudioFrame) {
         _numSilentPackets++;
     }
+
+    getOrCreateClientData(node.data())->queuePacket(message, node);
+}
+
+void AudioMixer::queueMirroredAudioPacket(QSharedPointer<ReceivedMessage> message) {
+    // make sure we have a mirrored node for the original sender of the packet
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    auto node = nodeList->addOrUpdateNode(message->getSourceID(), NodeType::Agent,
+                                          message->getSenderSockAddr(), message->getSenderSockAddr());
+    node->setIsMirror(true);
 
     getOrCreateClientData(node.data())->queuePacket(message, node);
 }
