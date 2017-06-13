@@ -36,7 +36,7 @@ float FadeEffect::computeFadePercent(quint64 startTime) const {
     const double INV_FADE_PERIOD = 1.0 / (double)(3 * USECS_PER_SECOND);
     double fraction = (double)(usecTimestampNow() - startTime) * INV_FADE_PERIOD;
     if (fraction < 1.0) {
-        fadeAlpha = Interpolate::simpleNonLinearBlend(fraction);
+        fadeAlpha = Interpolate::easeInOutQuad(fraction);
     }
     return fadeAlpha;
 }
