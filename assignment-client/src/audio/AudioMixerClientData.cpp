@@ -119,6 +119,23 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
         // now make sure it's a packet type that we want to replicate
         PacketType mirroredType;
 
+        switch (message.getType()) {
+            case PacketType::MicrophoneAudioNoEcho:
+            case PacketType::ReplicatedMicrophoneAudioNoEcho:
+                mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
+            case PacketType::MicrophoneAudioWithEcho:
+            case PacketType::ReplicatedMicrophoneAudioWithEcho:
+                mirroredType =  PacketType::ReplicatedMicrophoneAudioWithEcho;
+            case PacketType::InjectAudio:
+            case PacketType::ReplicatedInjectAudio:
+                mirroredType = PacketType::ReplicatedInjectAudio;
+            case PacketType::SilentAudioFrame:
+            case PacketType::ReplicatedSilentAudioFrame:
+                mirroredType = PacketType::ReplicatedSilentAudioFrame;
+            default:
+                return;
+        }
+
         if (message.getType() == PacketType::MicrophoneAudioNoEcho) {
             mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
         } else if (message.getType() == PacketType::MicrophoneAudioWithEcho) {
@@ -142,7 +159,7 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
                     packet = NLPacket::create(mirroredType);
 
                     // since this packet will be non-sourced, we add the replicated node's ID here
-                    packet->write(message.getSourceID().toRfc4122());
+                    packet->write(node->getUUID().toRfc4122());
 
                     // we won't negotiate an audio format with the replicant, because we aren't a listener
                     // so pack the codec string here so that it can statelessly setup a decoder for this string when it needs
