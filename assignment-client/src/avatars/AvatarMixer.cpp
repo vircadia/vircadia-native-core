@@ -119,8 +119,18 @@ void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node
         }, [&](const SharedNodePointer& node) {
             if (!packet) {
                 // construct an NLPacket to send to the replicant that has the contents of the received packet
-                packet = NLPacket::create(replicatedType, message.getSize() + NUM_BYTES_RFC4122_UUID);
-                packet->write(message.getSourceID().toRfc4122());
+                auto packetSize = message.getSize();
+
+                if (replicatedType != PacketType::ReplicatedKillAvatar) {
+                    packetSize += NUM_BYTES_RFC4122_UUID;
+                }
+
+                packet = NLPacket::create(replicatedType, packetSize);
+
+                if (replicatedType != PacketType::ReplicatedKillAvatar) {
+                    packet->write(message.getSourceID().toRfc4122());
+                }
+
                 packet->write(message.getMessage());
             }
 
@@ -352,13 +362,38 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
            }
         }
 
+        std::unique_ptr<NLPacket> killPacket;
+        std::unique_ptr<NLPacket> replicatedKillPacket;
+
         // this was an avatar we were sending to other people
         // send a kill packet for it to our other nodes
-        auto killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason));
-        killPacket->write(killedNode->getUUID().toRfc4122());
-        killPacket->writePrimitive(KillAvatarReason::AvatarDisconnected);
+        nodeList->eachMatchingNode([&](const SharedNodePointer& node) {
+            // we relay avatar kill packets to agents that are not upstream
+            // and downstream avatar mixers, if the node that was just killed was being replicated
+            return (node->getType() == NodeType::Agent && !node->isUpstream())
+                || (killedNode->isReplicated() && node->getType() == NodeType::DownstreamAvatarMixer);
+        }, [&](const SharedNodePointer& node) {
+            if (node->getType() == NodeType::Agent) {
+                if (!killPacket) {
+                    killPacket = NLPacket::create(PacketType::KillAvatar, NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason));
+                    killPacket->write(killedNode->getUUID().toRfc4122());
+                    killPacket->writePrimitive(KillAvatarReason::AvatarDisconnected);
+                }
 
-        nodeList->broadcastToNodes(std::move(killPacket), NodeSet() << NodeType::Agent);
+                nodeList->sendUnreliablePacket(*killPacket, *node);
+            } else {
+                // send a replicated kill packet to the downstream avatar mixer
+                if (!replicatedKillPacket) {
+                    replicatedKillPacket = NLPacket::create(PacketType::ReplicatedKillAvatar,
+                                                  NUM_BYTES_RFC4122_UUID + sizeof(KillAvatarReason));
+                    replicatedKillPacket->write(killedNode->getUUID().toRfc4122());
+                    replicatedKillPacket->writePrimitive(KillAvatarReason::AvatarDisconnected);
+                }
+
+                nodeList->sendUnreliablePacket(*replicatedKillPacket, node->getPublicSocket());
+            }
+        });
+
 
         // we also want to remove sequence number data for this avatar on our other avatars
         // so invoke the appropriate method on the AvatarMixerClientData for other avatars
@@ -756,7 +791,6 @@ void AvatarMixer::run() {
     connect(&domainHandler, &DomainHandler::settingsReceiveFail, this, &AvatarMixer::domainSettingsRequestFailed);
 
     ThreadedAssignment::commonInit(AVATAR_MIXER_LOGGING_NAME, NodeType::AvatarMixer);
-
 }
 
 AvatarMixerClientData* AvatarMixer::getOrCreateClientData(SharedNodePointer node) {

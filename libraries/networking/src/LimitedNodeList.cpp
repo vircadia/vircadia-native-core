@@ -550,7 +550,7 @@ bool LimitedNodeList::killNodeWithUUID(const QUuid& nodeUUID) {
 
 void LimitedNodeList::processKillNode(ReceivedMessage& message) {
     if (message.getType() == PacketType::ReplicatedAvatarData) {
-        message.seek(NUM_BYTES_RFC4122_UUID);
+        message.seek(0);
     }
 
     // read the node id
