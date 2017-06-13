@@ -31,10 +31,26 @@ Rectangle {
 
     color: hifi.colors.baseGray;
 
+    // only show the title if loaded through a "loader"
+    function showTitle() {
+        return audio.parent.objectName == "loader";
+    }
+
     Column {
         y: 16 // padding does not work
         spacing: 16
         width: parent.width
+
+        RalewayRegular {
+            x: 16 // padding does not work
+            size: 16
+            color: "white"
+            text: audio.title
+
+            visible: audio.showTitle()
+        }
+
+        Separator { visible: audio.showTitle() }
 
         Grid {
             columns: 2
