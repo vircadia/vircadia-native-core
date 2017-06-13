@@ -287,7 +287,7 @@ Menu::Menu() {
             QString("../../hifi/tablet/TabletGeneralPreferences.qml"), "GeneralPreferencesDialog");
     });
 
-    action = addActionToQMenuAndActionHash(settingsMenu, "Audio...", Qt::CTRL | Qt::Key_Z);
+    action = addActionToQMenuAndActionHash(settingsMenu, "Audio...");
     connect(action, &QAction::triggered, [] {
         static const QUrl widgetUrl("hifi/dialogs/Audio.qml");
         static const QUrl tabletUrl("../../hifi/audio/Audio.qml");
