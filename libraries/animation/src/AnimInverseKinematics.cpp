@@ -161,9 +161,9 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
             IKTarget target;
             target.setType(animVars.lookup(targetVar.typeVar, (int)IKTarget::Type::RotationAndPosition));
             if (target.getType() != IKTarget::Type::Unknown) {
-                AnimPose defaultPose = _skeleton->getAbsolutePose(targetVar.jointIndex, underPoses);
-                glm::quat rotation = animVars.lookupRigToGeometry(targetVar.rotationVar, defaultPose.rot());
-                glm::vec3 translation = animVars.lookupRigToGeometry(targetVar.positionVar, defaultPose.trans());
+                AnimPose absPose = _skeleton->getAbsolutePose(targetVar.jointIndex, underPoses);
+                glm::quat rotation = animVars.lookupRigToGeometry(targetVar.rotationVar, absPose.rot());
+                glm::vec3 translation = animVars.lookupRigToGeometry(targetVar.positionVar, absPose.trans());
                 float weight = animVars.lookup(targetVar.weightVar, targetVar.weight);
 
                 target.setPose(rotation, translation);
@@ -207,13 +207,24 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
                 }
                 */
 
-                if (targetVar.jointName == "LeftFoot") {
-                    glm::vec3 footY = rotation * Vectors::UNIT_Y;
-                    target.setPoleVector(footY);
-                    target.setPoleIndex(_skeleton->nameToJointIndex(targetVar.jointName));
-                } else if (targetVar.jointName == "RightFoot") {
-                    glm::vec3 footY = rotation * Vectors::UNIT_Y;
-                    target.setPoleVector(footY);
+                if (targetVar.jointName == "LeftFoot" || targetVar.jointName == "RightFoot") {
+
+                    // compute the forward direction of the foot.
+                    AnimPose defaultPose = _skeleton->getAbsoluteDefaultPose(targetVar.jointIndex);
+                    glm::vec3 localForward = glm::inverse(defaultPose.rot()) * Vectors::UNIT_Z;
+                    glm::vec3 footForward = rotation * localForward;
+
+                    // compute the forward direction of the hips.
+                    glm::quat hipsRotation = _skeleton->getAbsolutePose(_hipsIndex, _relativePoses).rot();
+                    glm::vec3 hipsForward = hipsRotation * Vectors::UNIT_Z;
+
+                    // blend between the hips and the foot.
+                    const float FOOT_TO_HIPS_BLEND_FACTOR = 0.5f;
+                    glm::vec3 poleVector = glm::normalize(lerp(footForward, hipsForward, FOOT_TO_HIPS_BLEND_FACTOR));
+
+                    // TODO: smooth toward desired pole vector from previous pole vector...  to reduce jitter
+
+                    target.setPoleVector(poleVector);
                     target.setPoleIndex(_skeleton->nameToJointIndex(targetVar.jointName));
                 }
 
