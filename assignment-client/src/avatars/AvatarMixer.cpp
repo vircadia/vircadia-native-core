@@ -163,7 +163,7 @@ AvatarMixer::~AvatarMixer() {
 }
 
 void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
-    if (destinationNode->getType() == NodeType::DownstreamAvatarMixer || !destinationNode->isUpstream()) {
+    if (destinationNode->getType() == NodeType::Agent && !destinationNode->isUpstream()) {
         QByteArray individualData = nodeData->getAvatar().identityByteArray();
         individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122());
         auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
