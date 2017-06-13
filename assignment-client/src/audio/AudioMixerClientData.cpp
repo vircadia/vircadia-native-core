@@ -109,6 +109,13 @@ void AudioMixerClientData::processPackets() {
     assert(_packetQueue.empty());
 }
 
+bool isReplicatedPacket(PacketType packetType) {
+    return packetType == PacketType::ReplicatedMicrophoneAudioNoEcho
+        || packetType == PacketType::ReplicatedMicrophoneAudioWithEcho
+        || packetType == PacketType::ReplicatedInjectAudio
+        || packetType == PacketType::ReplicatedSilentAudioFrame;
+}
+
 void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, const Node& node) {
 
     // first, make sure that this is a packet from a node we are supposed to replicate
@@ -126,7 +133,7 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
                 break;
             case PacketType::MicrophoneAudioWithEcho:
             case PacketType::ReplicatedMicrophoneAudioWithEcho:
-                mirroredType =  PacketType::ReplicatedMicrophoneAudioWithEcho;
+                mirroredType = PacketType::ReplicatedMicrophoneAudioWithEcho;
                 break;
             case PacketType::InjectAudio:
             case PacketType::ReplicatedInjectAudio:
@@ -150,12 +157,14 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
                     // construct an NLPacket to send to the replicant that has the contents of the received packet
                     packet = NLPacket::create(mirroredType);
 
-                    // since this packet will be non-sourced, we add the replicated node's ID here
-                    packet->write(node.getUUID().toRfc4122());
+                    if (!isReplicatedPacket(message.getType())) {
+                        // since this packet will be non-sourced, we add the replicated node's ID here
+                        packet->write(node.getUUID().toRfc4122());
 
-                    // we won't negotiate an audio format with the replicant, because we aren't a listener
-                    // so pack the codec string here so that it can statelessly setup a decoder for this string when it needs
-                    packet->writeString(_selectedCodecName);
+                        // we won't negotiate an audio format with the replicant, because we aren't a listener
+                        // so pack the codec string here so that it can statelessly setup a decoder for this string when it needs
+                        packet->writeString(_selectedCodecName);
+                    }
 
                     packet->write(message.getMessage());
                 }
