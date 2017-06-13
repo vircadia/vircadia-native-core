@@ -425,8 +425,12 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
     _stats.packetSendingElapsedTime += (endPacketSending - startPacketSending);
 }
 
+uint64_t REBROADCAST_IDENTITY_TO_DOWNSTREAM_EVERY_US = 5 * 1000 * 1000;
+
 void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePointer& node) {
     _stats.nodesBroadcastedTo++;
+
+    AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
 
     // setup a PacketList for the replicated bulk avatar data
     auto avatarPacketList = NLPacketList::create(PacketType::ReplicatedBulkAvatarData);
@@ -437,6 +441,13 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
         // collect agents that we have avatar data for
         if (agentNode->getType() == NodeType::Agent && agentNode->getLinkedData()) {
             const AvatarMixerClientData* agentNodeData = reinterpret_cast<const AvatarMixerClientData*>(agentNode->getLinkedData());
+
+            auto now = usecTimestampNow();
+            auto lastBroadcastTime = nodeData->getLastBroadcastTime(agentNode->getUUID());
+            if (lastBroadcastTime <= agentNodeData->getIdentityChangeTimestamp()
+                || (now - lastBroadcastTime) >= REBROADCAST_IDENTITY_TO_DOWNSTREAM_EVERY_US) {
+                sendIdentityPacket(agentNodeData, node);
+            }
 
             AvatarSharedPointer otherAvatar = agentNodeData->getAvatarSharedPointer();
 
