@@ -134,7 +134,7 @@ void ThreadedAssignment::domainSettingsRequestFailed() {
     setFinished(true);
 }
 
-void ThreadedAssignment::parseDownstreamServers(const QJsonObject& settingsObject, NodeType_t nodeType) {
+void ThreadedAssignment::parseDownstreamServers(const QJsonObject& settingsObject, NodeType_t nodeType, DownstreamNodeFoundCallback callback) {
     static const QString REPLICATION_GROUP_KEY = "replication";
     static const QString DOWNSTREAM_SERVERS_SETTING_KEY = "downstream_servers";
     if (settingsObject.contains(REPLICATION_GROUP_KEY)) {
@@ -161,8 +161,9 @@ void ThreadedAssignment::parseDownstreamServers(const QJsonObject& settingsObjec
                 };
 
                 // manually add the downstream node to our node list
-                nodeList->addOrUpdateNode(QUuid::createUuid(), NodeType::downstreamType(nodeType),
-                                          downstreamServerAddr, downstreamServerAddr);
+                auto node = nodeList->addOrUpdateNode(QUuid::createUuid(), NodeType::downstreamType(nodeType),
+                                                      downstreamServerAddr, downstreamServerAddr);
+                callback(*node);
             }
         }
     }

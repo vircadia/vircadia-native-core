@@ -851,5 +851,9 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
                      << "and a maximum avatar scale of" << _domainMaximumScale;
 
 
-    parseDownstreamServers(domainSettings, NodeType::AvatarMixer);
+    parseDownstreamServers(domainSettings, NodeType::AvatarMixer, [](Node& node) {
+        if (!node.getLinkedData()) {
+            node.setLinkedData(std::unique_ptr<NodeData> { new AvatarMixerClientData(node.getUUID()) });
+        }
+    });
 }
