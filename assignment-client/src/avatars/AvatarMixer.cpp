@@ -146,7 +146,7 @@ void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node
                 packet->write(message.getMessage());
             }
 
-            nodeList->sendUnreliablePacket(*packet, node->getPublicSocket());
+            nodeList->sendUnreliablePacket(*packet, *node);
         });
     }
 }
@@ -402,7 +402,7 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
                     replicatedKillPacket->writePrimitive(KillAvatarReason::AvatarDisconnected);
                 }
 
-                nodeList->sendUnreliablePacket(*replicatedKillPacket, node->getPublicSocket());
+                nodeList->sendUnreliablePacket(*replicatedKillPacket, *node);
             }
         });
 

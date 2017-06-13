@@ -163,6 +163,10 @@ void ThreadedAssignment::parseDownstreamServers(const QJsonObject& settingsObjec
                 // manually add the downstream node to our node list
                 auto node = nodeList->addOrUpdateNode(QUuid::createUuid(), NodeType::downstreamType(nodeType),
                                                       downstreamServerAddr, downstreamServerAddr);
+
+                // manually activate the public socket for the downstream node
+                node->activatePublicSocket();
+
                 callback(*node);
             }
         }
