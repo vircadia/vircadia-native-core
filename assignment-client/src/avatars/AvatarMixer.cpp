@@ -59,6 +59,8 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
         PacketType::ReplicatedKillAvatar
     }, this, "handleReplicatedPackets");
 
+    packetReceiver.registerListener(PacketType::ReplicatedBulkAvatarData, this, "handleReplicatedBulkAvatarPacket");
+
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &AvatarMixer::handlePacketVersionMismatch);
 }
@@ -89,6 +91,41 @@ void AvatarMixer::handleReplicatedPackets(QSharedPointer<ReceivedMessage> messag
             break;
     }
 
+}
+
+void AvatarMixer::handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessage> message) {
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    while (message->getBytesLeftToRead()) {
+        // first, grab the node ID for this replicated avatar
+        auto nodeID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+        // make sure we have an upstream replicated node that matches
+        auto replicatedNode = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
+                                                        message->getSenderSockAddr(), message->getSenderSockAddr(),
+                                                        DEFAULT_AGENT_PERMISSIONS, true);
+
+        replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
+        replicatedNode->setIsUpstream(true);
+
+        // grab the size of the avatar byte array so we know how much to read
+        quint16 avatarByteArraySize;
+        message->readPrimitive(&avatarByteArraySize);
+
+        // read the avatar byte array
+        auto avatarByteArray = message->read(avatarByteArraySize);
+
+        // construct a "fake" avatar data received message from the byte array and packet list information
+        auto replicatedMessage = QSharedPointer<ReceivedMessage>::create(avatarByteArray, PacketType::AvatarData,
+                                                                         versionForPacketType(PacketType::AvatarData),
+                                                                         message->getSenderSockAddr(), nodeID);
+
+        // queue up the replicated avatar data with the client data for the replicated node
+        auto start = usecTimestampNow();
+        getOrCreateClientData(replicatedNode)->queuePacket(replicatedMessage, replicatedNode);
+        auto end = usecTimestampNow();
+        _queueIncomingPacketElapsedTime += (end - start);
+    }
 }
 
 void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node& node) {

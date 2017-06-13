@@ -452,9 +452,11 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
             // so we always send a full update for this avatar
             quint64 start = usecTimestampNow();
             AvatarDataPacket::HasFlags flagsOut;
-            QByteArray avatarByteArray = otherAvatar->toByteArray(AvatarData::SendAllData, 0, {},
-                                                                  flagsOut, false, false,
-                                                                  glm::vec3(0), nullptr);
+
+            QVector<JointData> emptyLastJointSendData { otherAvatar->getJointCount() };
+
+            QByteArray avatarByteArray = otherAvatar->toByteArray(AvatarData::SendAllData, 0, emptyLastJointSendData,
+                                                                  flagsOut, false, false, glm::vec3(0), nullptr);
             quint64 end = usecTimestampNow();
             _stats.toByteArrayElapsedTime += (end - start);
 
@@ -477,17 +479,15 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
                 qCWarning(avatars) << "Replicated avatar data too large for" << otherAvatar->getSessionUUID()
                     << "-" << avatarByteArray.size() << "bytes";
 
-                avatarByteArray = otherAvatar->toByteArray(AvatarData::SendAllData, 0, {},
-                                                           flagsOut, true, false,
-                                                           glm::vec3(0), nullptr);
+                avatarByteArray = otherAvatar->toByteArray(AvatarData::SendAllData, 0, emptyLastJointSendData,
+                                                           flagsOut, true, false, glm::vec3(0), nullptr);
 
                 if (avatarByteArray.size() > maxAvatarByteArraySize) {
                     qCWarning(avatars) << "Replicated avatar data without facial data still too large for"
                         << otherAvatar->getSessionUUID() << "-" << avatarByteArray.size() << "bytes";
 
-                    avatarByteArray = otherAvatar->toByteArray(AvatarData::MinimumData, 0, {},
-                                                               flagsOut, true, false,
-                                                               glm::vec3(0), nullptr);
+                    avatarByteArray = otherAvatar->toByteArray(AvatarData::MinimumData, 0, emptyLastJointSendData,
+                                                               flagsOut, true, false, glm::vec3(0), nullptr);
                 }
             }
 
