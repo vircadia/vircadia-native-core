@@ -44,12 +44,10 @@
                             insertZone.appendChild(textarea);
                             insertZone.parentNode.parentNode.style.maxHeight =
                                 insertZone.parentNode.clientHeight + "px";
-                            document.getElementById("export-properties-button")
-                                .removeAttribute("disabled");
+                            document.getElementById("export-properties-button").removeAttribute("disabled");
                             textarea.onchange = function (e) {
                                 if (e.target.value !== properties) {
-                                    document.getElementById("import-properties-button")
-                                        .removeAttribute("disabled");
+                                    document.getElementById("import-properties-button").removeAttribute("disabled");
                                 }
                             };
                             textarea.oninput = textarea.onchange;
@@ -60,10 +58,8 @@
                             textarea.remove();
                             insertZone.parentNode.parentNode.style.maxHeight =
                                 insertZone.parentNode.clientHeight + "px";
-                            document.getElementById("export-properties-button")
-                                .setAttribute("disabled", true);
-                            document.getElementById("import-properties-button")
-                                .setAttribute("disabled", true);
+                            document.getElementById("export-properties-button").setAttribute("disabled", true);
+                            document.getElementById("import-properties-button").setAttribute("disabled", true);
                         }
                     }
                 },
@@ -385,12 +381,9 @@
         };
         ui.setUI(menuStructure);
         ui.setOnSelect(function () {
-            document.getElementById("show-properties-button")
-                .removeAttribute("disabled");
-            document.getElementById("export-properties-button")
-                .setAttribute("disabled", true);
-            document.getElementById("import-properties-button")
-                .setAttribute("disabled", true);
+            document.getElementById("show-properties-button").removeAttribute("disabled");
+            document.getElementById("export-properties-button").setAttribute("disabled", true);
+            document.getElementById("import-properties-button").setAttribute("disabled", true);
         });
         ui.build();
         var overrideLoad = false;

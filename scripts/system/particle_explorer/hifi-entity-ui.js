@@ -168,7 +168,7 @@ HifiEntityUI.prototype = {
 
 
         for (var e in keys) {
-            if (keys.hasOwnProperty[e]) {
+            if (keys.hasOwnProperty(e)) {
                 var value = keys[e];
 
                 var property = currentProperties[value];
@@ -283,7 +283,8 @@ HifiEntityUI.prototype = {
         animationWrapper.className = "section-wrap";
 
         for (var property in properties) {
-            if (properties.hasOwnProperty[property]) {
+            console.log(properties, properties.hasOwnProperty(property));
+            if (properties.hasOwnProperty(property)) {
                 var builtRow = self.addElement(animationWrapper, properties[property]);
                 var id = properties[property].id;
                 if (id) {
