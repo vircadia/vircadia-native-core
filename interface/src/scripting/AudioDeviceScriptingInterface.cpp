@@ -9,7 +9,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "AudioClient.h"
+#include <AudioClient.h>
+#include <AudioClientLogging.h>
+
 #include "AudioDeviceScriptingInterface.h"
 #include "SettingsScriptingInterface.h"
 
@@ -44,17 +46,23 @@ AudioDeviceScriptingInterface::AudioDeviceScriptingInterface(): QAbstractListMod
     onDeviceChanged();
     //set up previously saved device
     SettingsScriptingInterface* settings = SettingsScriptingInterface::getInstance();
-    const QString inDevice = settings->getValue("audio_input_device").toString();
+    const QString inDevice = settings->getValue("audio_input_device", _currentInputDevice).toString();
     if (inDevice != _currentInputDevice) {
+        qCDebug(audioclient) << __FUNCTION__ << "about to call setInputDeviceAsync() device: [" << inDevice << "] _currentInputDevice:" << _currentInputDevice;
         setInputDeviceAsync(inDevice);
     }
-    const QString outDevice = settings->getValue("audio_output_device").toString();
+
+    // If the audio_output_device setting is not available, use the _currentOutputDevice
+    auto outDevice = settings->getValue("audio_output_device", _currentOutputDevice).toString();
     if (outDevice != _currentOutputDevice) {
+        qCDebug(audioclient) << __FUNCTION__ << "about to call setOutputDeviceAsync() outDevice: [" << outDevice << "] _currentOutputDevice:" << _currentOutputDevice;
         setOutputDeviceAsync(outDevice);
     }
 }
 
 bool AudioDeviceScriptingInterface::setInputDevice(const QString& deviceName) {
+    qCDebug(audioclient) << __FUNCTION__ << "deviceName:" << deviceName;
+
     bool result;
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "switchInputToAudioDevice",
                               Qt::BlockingQueuedConnection,
@@ -64,6 +72,9 @@ bool AudioDeviceScriptingInterface::setInputDevice(const QString& deviceName) {
 }
 
 bool AudioDeviceScriptingInterface::setOutputDevice(const QString& deviceName) {
+
+    qCDebug(audioclient) << __FUNCTION__ << "deviceName:" << deviceName;
+
     bool result;
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "switchOutputToAudioDevice",
                               Qt::BlockingQueuedConnection,
@@ -86,8 +97,10 @@ bool AudioDeviceScriptingInterface::setDeviceFromMenu(const QString& deviceMenuN
     for (ScriptingAudioDeviceInfo di: _devices) {
         if (mode == di.mode && deviceMenuName.contains(di.name)) {
             if (mode == QAudio::AudioOutput) {
+                qCDebug(audioclient) << __FUNCTION__ << "about to call setOutputDeviceAsync() device: [" << di.name << "]";
                 setOutputDeviceAsync(di.name);
             } else {
+                qCDebug(audioclient) << __FUNCTION__ << "about to call setInputDeviceAsync() device: [" << di.name << "]";
                 setInputDeviceAsync(di.name);
             }
             return true;
@@ -98,12 +111,26 @@ bool AudioDeviceScriptingInterface::setDeviceFromMenu(const QString& deviceMenuN
 }
 
 void AudioDeviceScriptingInterface::setInputDeviceAsync(const QString& deviceName) {
+    qCDebug(audioclient) << __FUNCTION__ << "deviceName:" << deviceName;
+
+    if (deviceName.isEmpty()) {
+        qCDebug(audioclient) << __FUNCTION__ << "attempt to set empty deviceName:" << deviceName << "... ignoring!";
+        return;
+    }
+
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "switchInputToAudioDevice",
                               Qt::QueuedConnection,
                               Q_ARG(const QString&, deviceName));
 }
 
 void AudioDeviceScriptingInterface::setOutputDeviceAsync(const QString& deviceName) {
+    qCDebug(audioclient) << __FUNCTION__ << "deviceName:" << deviceName;
+
+    if (deviceName.isEmpty()) {
+        qCDebug(audioclient) << __FUNCTION__ << "attempt to set empty deviceName:" << deviceName << "... ignoring!";
+        return;
+    }
+
     QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "switchOutputToAudioDevice",
                               Qt::QueuedConnection,
                               Q_ARG(const QString&, deviceName));
@@ -241,8 +268,11 @@ void AudioDeviceScriptingInterface::onCurrentInputDeviceChanged(const QString& n
 void AudioDeviceScriptingInterface::onCurrentOutputDeviceChanged(const QString& name)
 {
     currentDeviceUpdate(name, QAudio::AudioOutput);
+
+    // FIXME - this is kinda janky to set the setting on the result of a signal
     //we got a signal that device changed. Save it now
     SettingsScriptingInterface* settings = SettingsScriptingInterface::getInstance();
+    qCDebug(audioclient) << __FUNCTION__ << "about to call settings->setValue('audio_output_device', name); name:" << name;
     settings->setValue("audio_output_device", name);
     emit currentOutputDeviceChanged(name);
 }

@@ -69,7 +69,7 @@ std::vector<vec3> polygon() {
     std::vector<vec3> result;
     result.reserve(SIDES);
     double angleIncrement = 2.0 * M_PI / SIDES;
-    for (size_t i = 0; i < SIDES; ++i) {
+    for (size_t i = 0; i < SIDES; i++) {
         double angle = (double)i * angleIncrement;
         result.push_back(vec3{ cos(angle) * 0.5, 0.0, sin(angle) * 0.5 });
     }
@@ -172,20 +172,20 @@ void setupFlatShape(GeometryCache::ShapeData& shapeData, const geometry::Solid<N
     vertices.reserve(N * faceCount * 2);
     solidIndices.reserve(faceIndexCount * faceCount);
 
-    for (size_t f = 0; f < faceCount; ++f) {
+    for (size_t f = 0; f < faceCount; f++) {
         const Face<N>& face = shape.faces[f];
         // Compute the face normal
         vec3 faceNormal = shape.getFaceNormal(f);
 
         // Create the vertices for the face
-        for (Index i = 0; i < N; ++i) {
+        for (Index i = 0; i < N; i++) {
             Index originalIndex = face[i];
             vertices.push_back(shape.vertices[originalIndex]);
             vertices.push_back(faceNormal);
         }
 
         // Create the wire indices for unseen edges
-        for (Index i = 0; i < N; ++i) {
+        for (Index i = 0; i < N; i++) {
             Index a = i;
             Index b = (i + 1) % N;
             auto token = indexToken(face[a], face[b]);
@@ -197,7 +197,7 @@ void setupFlatShape(GeometryCache::ShapeData& shapeData, const geometry::Solid<N
         }
 
         // Create the solid face indices
-        for (Index i = 0; i < N - 2; ++i) {
+        for (Index i = 0; i < N - 2; i++) {
             solidIndices.push_back(0 + baseVertex);
             solidIndices.push_back(i + 1 + baseVertex);
             solidIndices.push_back(i + 2 + baseVertex);
@@ -229,10 +229,10 @@ void setupSmoothShape(GeometryCache::ShapeData& shapeData, const geometry::Solid
 
     solidIndices.reserve(faceIndexCount * faceCount);
 
-    for (size_t f = 0; f < faceCount; ++f) {
+    for (size_t f = 0; f < faceCount; f++) {
         const Face<N>& face = shape.faces[f];
         // Create the wire indices for unseen edges
-        for (Index i = 0; i < N; ++i) {
+        for (Index i = 0; i < N; i++) {
             Index a = face[i];
             Index b = face[(i + 1) % N];
             auto token = indexToken(a, b);
@@ -244,7 +244,7 @@ void setupSmoothShape(GeometryCache::ShapeData& shapeData, const geometry::Solid
         }
 
         // Create the solid face indices
-        for (Index i = 0; i < N - 2; ++i) {
+        for (Index i = 0; i < N - 2; i++) {
             solidIndices.push_back(face[i] + baseVertex);
             solidIndices.push_back(face[i + 1] + baseVertex);
             solidIndices.push_back(face[i + 2] + baseVertex);
@@ -256,23 +256,30 @@ void setupSmoothShape(GeometryCache::ShapeData& shapeData, const geometry::Solid
 }
 
 template <uint32_t N>
-void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer) {
+void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer, bool isConical = false) {
     using namespace geometry;
     Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
     VertexVector vertices;
     IndexVector solidIndices, wireIndices;
 
-    // Top and bottom faces
+    // Top (if not conical) and bottom faces
     std::vector<vec3> shape = polygon<N>();
-    for (const vec3& v : shape) {
-        vertices.push_back(vec3(v.x, 0.5f, v.z));
-        vertices.push_back(vec3(0, 1, 0));
+    if (isConical) {
+        for (uint32_t i = 0; i < N; i++) {
+            vertices.push_back(vec3(0.0f, 0.5f, 0.0f));
+            vertices.push_back(vec3(0.0f, 1.0f, 0.0f));
+        }
+    } else {
+        for (const vec3& v : shape) {
+            vertices.push_back(vec3(v.x, 0.5f, v.z));
+            vertices.push_back(vec3(0.0f, 1.0f, 0.0f));
+        }
     }
     for (const vec3& v : shape) {
         vertices.push_back(vec3(v.x, -0.5f, v.z));
-        vertices.push_back(vec3(0, -1, 0));
+        vertices.push_back(vec3(0.0f, -1.0f, 0.0f));
     }
-    for (uint32_t i = 2; i < N; ++i) {
+    for (uint32_t i = 2; i < N; i++) {
         solidIndices.push_back(baseVertex + 0);
         solidIndices.push_back(baseVertex + i);
         solidIndices.push_back(baseVertex + i - 1);
@@ -280,7 +287,7 @@ void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& ver
         solidIndices.push_back(baseVertex + i + N - 1);
         solidIndices.push_back(baseVertex + i + N);
     }
-    for (uint32_t i = 1; i <= N; ++i) {
+    for (uint32_t i = 1; i <= N; i++) {
         wireIndices.push_back(baseVertex + (i % N));
         wireIndices.push_back(baseVertex + i - 1);
         wireIndices.push_back(baseVertex + (i % N) + N);
@@ -290,12 +297,12 @@ void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& ver
     // Now do the sides
     baseVertex += 2 * N;
 
-    for (uint32_t i = 0; i < N; ++i) {
+    for (uint32_t i = 0; i < N; i++) {
         vec3 left = shape[i];
         vec3 right = shape[(i + 1) % N];
         vec3 normal = glm::normalize(left + right);
-        vec3 topLeft = vec3(left.x, 0.5f, left.z);
-        vec3 topRight = vec3(right.x, 0.5f, right.z);
+        vec3 topLeft = (isConical ? vec3(0.0f, 0.5f, 0.0f) : vec3(left.x, 0.5f, left.z));
+        vec3 topRight = (isConical ? vec3(0.0f, 0.5f, 0.0f) : vec3(right.x, 0.5f, right.z));
         vec3 bottomLeft = vec3(left.x, -0.5f, left.z);
         vec3 bottomRight = vec3(right.x, -0.5f, right.z);
 
@@ -319,6 +326,41 @@ void extrudePolygon(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& ver
         wireIndices.push_back(baseVertex + 3);
         wireIndices.push_back(baseVertex + 2);
         baseVertex += 4;
+    }
+
+    shapeData.setupVertices(vertexBuffer, vertices);
+    shapeData.setupIndices(indexBuffer, solidIndices, wireIndices);
+}
+
+void drawCircle(GeometryCache::ShapeData& shapeData, gpu::BufferPointer& vertexBuffer, gpu::BufferPointer& indexBuffer) {
+    // Draw a circle with radius 1/4th the size of the bounding box
+    using namespace geometry;
+
+    Index baseVertex = (Index)(vertexBuffer->getSize() / SHAPE_VERTEX_STRIDE);
+    VertexVector vertices;
+    IndexVector solidIndices, wireIndices;
+    const int NUM_CIRCLE_VERTICES = 64;
+
+    std::vector<vec3> shape = polygon<NUM_CIRCLE_VERTICES>();
+    for (const vec3& v : shape) {
+        vertices.push_back(vec3(v.x, 0.0f, v.z));
+        vertices.push_back(vec3(0.0f, 0.0f, 0.0f));
+    }
+
+    for (uint32_t i = 2; i < NUM_CIRCLE_VERTICES; i++) {
+        solidIndices.push_back(baseVertex + 0);
+        solidIndices.push_back(baseVertex + i);
+        solidIndices.push_back(baseVertex + i - 1);
+        solidIndices.push_back(baseVertex + NUM_CIRCLE_VERTICES);
+        solidIndices.push_back(baseVertex + i + NUM_CIRCLE_VERTICES - 1);
+        solidIndices.push_back(baseVertex + i + NUM_CIRCLE_VERTICES);
+    }
+
+    for (uint32_t i = 1; i <= NUM_CIRCLE_VERTICES; i++) {
+        wireIndices.push_back(baseVertex + (i % NUM_CIRCLE_VERTICES));
+        wireIndices.push_back(baseVertex + i - 1);
+        wireIndices.push_back(baseVertex + (i % NUM_CIRCLE_VERTICES) + NUM_CIRCLE_VERTICES);
+        wireIndices.push_back(baseVertex + (i - 1) + NUM_CIRCLE_VERTICES);
     }
 
     shapeData.setupVertices(vertexBuffer, vertices);
@@ -357,8 +399,8 @@ void GeometryCache::buildShapes() {
         Index baseVertex = (Index)(_shapeVertices->getSize() / SHAPE_VERTEX_STRIDE);
         ShapeData& shapeData = _shapes[Line];
         shapeData.setupVertices(_shapeVertices, VertexVector {
-            vec3(-0.5, 0, 0), vec3(-0.5f, 0, 0),
-            vec3(0.5f, 0, 0), vec3(0.5f, 0, 0)
+            vec3(-0.5f, 0.0f, 0.0f), vec3(-0.5f, 0.0f, 0.0f),
+            vec3(0.5f, 0.0f, 0.0f), vec3(0.5f, 0.0f, 0.0f)
         });
         IndexVector wireIndices;
         // Only two indices
@@ -367,20 +409,22 @@ void GeometryCache::buildShapes() {
         shapeData.setupIndices(_shapeIndices, IndexVector(), wireIndices);
     }
 
-    // Not implememented yet:
-
     //Triangle,
     extrudePolygon<3>(_shapes[Triangle], _shapeVertices, _shapeIndices);
     //Hexagon,
     extrudePolygon<6>(_shapes[Hexagon], _shapeVertices, _shapeIndices);
     //Octagon,
     extrudePolygon<8>(_shapes[Octagon], _shapeVertices, _shapeIndices);
-
-    //Quad,
-    //Circle,
-    //Torus,
-    //Cone,
     //Cylinder,
+    extrudePolygon<64>(_shapes[Cylinder], _shapeVertices, _shapeIndices);
+    //Cone,
+    extrudePolygon<64>(_shapes[Cone], _shapeVertices, _shapeIndices, true);
+    //Circle
+    drawCircle(_shapes[Circle], _shapeVertices, _shapeIndices);
+    // Not implememented yet:
+    //Quad,
+    //Torus, 
+ 
 }
 
 gpu::Stream::FormatPointer& getSolidStreamFormat() {
@@ -597,7 +641,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec2>& points, con
     auto pointCount = points.size();
     auto colorCount = colors.size();
     int compactColor = 0;
-    for (auto i = 0; i < pointCount; ++i) {
+    for (auto i = 0; i < pointCount; i++) {
         const auto& point = points[i];
         *(vertex++) = point.x;
         *(vertex++) = point.y;
@@ -674,7 +718,7 @@ void GeometryCache::updateVertices(int id, const QVector<glm::vec3>& points, con
     const glm::vec3 NORMAL(0.0f, 0.0f, 1.0f);
     auto pointCount = points.size();
     auto colorCount = colors.size();
-    for (auto i = 0; i < pointCount; ++i) {
+    for (auto i = 0; i < pointCount; i++) {
         const glm::vec3& point = points[i];
         if (i < colorCount) {
             const glm::vec4& color = colors[i];

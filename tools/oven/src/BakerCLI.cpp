@@ -48,7 +48,7 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString outputPath) {
         _baker->moveToThread(qApp->getNextWorkerThread());
     } else {
         qCDebug(model_baking) << "Failed to determine baker type for file" << inputUrl;
-        return;
+        QApplication::exit(1);
     }
 
     // invoke the bake method on the baker thread
@@ -60,5 +60,5 @@ void BakerCLI::bakeFile(QUrl inputUrl, const QString outputPath) {
 
 void BakerCLI::handleFinishedBaker() {
     qCDebug(model_baking) << "Finished baking file.";
-    QApplication::quit();
+    QApplication::exit(_baker.get()->hasErrors());
 }

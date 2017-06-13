@@ -20,7 +20,6 @@ Rectangle {
     // height: parent.height
     HifiConstants { id: hifi }
     color: hifi.colors.baseGray;
-    property var eventBridge;
     signal sendToScript(var message);
     property bool keyboardEnabled: false
     property bool punctuationMode: false
