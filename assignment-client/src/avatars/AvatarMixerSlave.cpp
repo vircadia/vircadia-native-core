@@ -69,7 +69,7 @@ int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, 
     if (destinationNode->getType() == NodeType::DownstreamAvatarMixer || !destinationNode->isUpstream()) {
         QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
         individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
-        auto identityPackets = NLPacketList::create(PacketType::ReplicatedAvatarIdentity, QByteArray(), true, true);
+        auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
         identityPackets->write(individualData);
         DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
         _stats.numIdentityPackets++;
@@ -83,9 +83,9 @@ int AvatarMixerSlave::sendReplicatedIdentityPacket(const AvatarMixerClientData* 
     if (destinationNode->getType() == NodeType::DownstreamAvatarMixer || !destinationNode->isUpstream()) {
         QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
         individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
-        auto identityPackets = NLPacketList::create(PacketType::ReplicatedAvatarIdentity, QByteArray(), true, true);
-        identityPackets->write(individualData);
-        DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
+        auto identityPacket = NLPacket::create(PacketType::ReplicatedAvatarIdentity);
+        identityPacket->write(individualData);
+        DependencyManager::get<NodeList>()->sendUnreliablePacket(*identityPacket, *destinationNode);
         _stats.numIdentityPackets++;
         return individualData.size();
     } else {
