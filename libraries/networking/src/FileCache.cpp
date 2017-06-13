@@ -21,8 +21,9 @@
 #include <QtCore/QSaveFile>
 #include <QtCore/QStorageInfo>
 
-#include <PathUtils.h>
 #include <NumericalConstants.h>
+#include <PathUtils.h>
+#include <Profile.h>
 
 #ifdef Q_OS_WIN
 #include <sys/utime.h>
@@ -87,6 +88,7 @@ FileCache::~FileCache() {
 }
 
 void FileCache::initialize() {
+    PROFILE_RANGE(app, __FUNCTION__)
     QDir dir(_dirpath.c_str());
 
     if (dir.exists()) {
@@ -127,6 +129,7 @@ FilePointer FileCache::addFile(Metadata&& metadata, const std::string& filepath)
 }
 
 FilePointer FileCache::writeFile(const char* data, File::Metadata&& metadata, bool overwrite) {
+    PROFILE_RANGE(app, __FUNCTION__)
     assert(_initialized);
 
     std::string filepath = getFilepath(metadata.key);
@@ -319,6 +322,7 @@ File::File(Metadata&& metadata, const std::string& filepath) :
 }
 
 File::~File() {
+    PROFILE_RANGE(app, __FUNCTION__)
     QFile file(getFilepath().c_str());
     if (file.exists() && !_shouldPersist) {
         qCInfo(file_cache, "Unlinked %s", getFilepath().c_str());
@@ -327,6 +331,7 @@ File::~File() {
 }
 
 void File::touch() {
+    PROFILE_RANGE(app, __FUNCTION__)
     utime(_filepath.c_str(), nullptr);
     _modified = std::max<int64_t>(QFileInfo(_filepath.c_str()).lastRead().toMSecsSinceEpoch(), _modified);
 }

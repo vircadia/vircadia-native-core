@@ -12,6 +12,8 @@
 #include <QtCore/QDebug>
 #include <QtCore/QLoggingCategory>
 
+#include "../Profile.h"
+
 Q_LOGGING_CATEGORY(storagelogging, "hifi.core.storage")
 
 using namespace storage;
@@ -48,6 +50,7 @@ MemoryStorage::MemoryStorage(size_t size, const uint8_t* data) {
 }
 
 StoragePointer FileStorage::create(const QString& filename, size_t size, const uint8_t* data) {
+    PROFILE_RANGE(app, "FileStorage::create()");
     QFile file(filename);
     if (!file.open(QFile::ReadWrite | QIODevice::Truncate)) {
         throw std::runtime_error("Unable to open file for writing");
@@ -70,6 +73,8 @@ StoragePointer FileStorage::create(const QString& filename, size_t size, const u
 }
 
 FileStorage::FileStorage(const QString& filename) : _file(filename) {
+    PROFILE_RANGE(app, "FileStorage()");
+
     bool opened = _file.open(QFile::ReadWrite);
     if (opened) {
         _hasWriteAccess = true;
@@ -79,6 +84,7 @@ FileStorage::FileStorage(const QString& filename) : _file(filename) {
     }
 
     if (opened) {
+        PROFILE_RANGE(app, "FileStorage() map");
         _mapped = _file.map(0, _file.size());
         if (_mapped) {
             _valid = true;
@@ -91,6 +97,7 @@ FileStorage::FileStorage(const QString& filename) : _file(filename) {
 }
 
 FileStorage::~FileStorage() {
+    PROFILE_RANGE(app, "~FileStorage()");
     if (_mapped) {
         if (!_file.unmap(_mapped)) {
             throw std::runtime_error("Unable to unmap file");

@@ -74,7 +74,7 @@ protected:
     virtual bool isCacheable() const override { return _loaded; }
 
     virtual void downloadFinished(const QByteArray& data) override;
-
+    
     Q_INVOKABLE void loadContent(const QByteArray& content);
     Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
 

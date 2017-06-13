@@ -15,6 +15,7 @@
 #include <QtCore/QByteArray>
 
 #include <ktx/KTX.h>
+#include <Profile.h>
 
 #include "GPULogging.h"
 
@@ -242,6 +243,7 @@ uint16 KtxStorage::minAvailableMipLevel() const {
 }
 
 void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& storage) {
+    PROFILE_RANGE(app, __FUNCTION__)
     if (level != _minMipLevelAvailable - 1) {
         qWarning() << "Invalid level to be stored, expected: " << (_minMipLevelAvailable - 1) << ", got: " << level << " " << _filename.c_str();
         return;
@@ -283,6 +285,7 @@ void KtxStorage::assignMipData(uint16 level, const storage::StoragePointer& stor
         }
 
         memcpy(imageData, storage->data(), storage->size());
+        
         _minMipLevelAvailable = level;
         if (_offsetToMinMipKV > 0) {
             auto minMipKeyData = fileData + ktx::KTX_HEADER_SIZE + _offsetToMinMipKV;
@@ -311,6 +314,7 @@ void Texture::setKtxBacking(const std::string& filename) {
 
 
 ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
+    PROFILE_RANGE(app, __FUNCTION__)
     ktx::Header header;
 
     // From texture format to ktx format description
@@ -453,6 +457,7 @@ TexturePointer Texture::unserialize(const std::string& ktxfile) {
 }
 
 TexturePointer Texture::unserialize(const std::string& ktxfile, const ktx::KTXDescriptor& descriptor) {
+    PROFILE_RANGE(app, __FUNCTION__)
     const auto& header = descriptor.header;
 
     Format mipFormat = Format::COLOR_BGRA_32;
