@@ -143,15 +143,15 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
         std::unique_ptr<NLPacket> packet;
 
         // enumerate the downstream audio mixers and send them the replicated version of this packet
-        nodeList->unsafeEachNode([&](const SharedNodePointer& node) {
-            if (node->getType() == NodeType::DownstreamAudioMixer) {
+        nodeList->unsafeEachNode([&](const SharedNodePointer& downstreamNode) {
+            if (downstreamNode->getType() == NodeType::DownstreamAudioMixer) {
                 // construct the packet only once, if we have any downstream audio mixers to send to
                 if (!packet) {
                     // construct an NLPacket to send to the replicant that has the contents of the received packet
                     packet = NLPacket::create(mirroredType);
 
                     // since this packet will be non-sourced, we add the replicated node's ID here
-                    packet->write(node->getUUID().toRfc4122());
+                    packet->write(node.getUUID().toRfc4122());
 
                     // we won't negotiate an audio format with the replicant, because we aren't a listener
                     // so pack the codec string here so that it can statelessly setup a decoder for this string when it needs
@@ -160,7 +160,7 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
                     packet->write(message.getMessage());
                 }
                 
-                nodeList->sendUnreliablePacket(*packet, node->getPublicSocket());
+                nodeList->sendUnreliablePacket(*packet, downstreamNode->getPublicSocket());
             }
         });
     }
