@@ -442,13 +442,6 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
         if (agentNode->getType() == NodeType::Agent && agentNode->getLinkedData()) {
             const AvatarMixerClientData* agentNodeData = reinterpret_cast<const AvatarMixerClientData*>(agentNode->getLinkedData());
 
-            auto now = usecTimestampNow();
-            auto lastBroadcastTime = nodeData->getLastBroadcastTime(agentNode->getUUID());
-            if (lastBroadcastTime <= agentNodeData->getIdentityChangeTimestamp()
-                || (now - lastBroadcastTime) >= REBROADCAST_IDENTITY_TO_DOWNSTREAM_EVERY_US) {
-                sendIdentityPacket(agentNodeData, node);
-            }
-
             AvatarSharedPointer otherAvatar = agentNodeData->getAvatarSharedPointer();
 
             quint64 startAvatarDataPacking = usecTimestampNow();
@@ -464,6 +457,14 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
                                                                   glm::vec3(0), nullptr);
             quint64 end = usecTimestampNow();
             _stats.toByteArrayElapsedTime += (end - start);
+
+            auto lastBroadcastTime = nodeData->getLastBroadcastTime(agentNode->getUUID());
+            if (lastBroadcastTime <= agentNodeData->getIdentityChangeTimestamp()
+                || (start - lastBroadcastTime) >= REBROADCAST_IDENTITY_TO_DOWNSTREAM_EVERY_US) {
+                qDebug() << "Sending identity packet for " << agentNode->getUUID() << " to " << node->getUUID();
+                sendIdentityPacket(agentNodeData, node);
+                nodeData->setLastBroadcastTime(agentNode->getUUID(), start);
+            }
 
             // figure out how large our avatar byte array can be to fit in the packet list
             // given that we need it and the avatar UUID and the size of the byte array (16 bit)
