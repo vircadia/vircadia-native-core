@@ -31,10 +31,10 @@ public:
         const glm::vec4* color, EffectType effectType,
         const glm::vec2& bound, bool layered = false);
 
-    static Pointer load(QIODevice& fontFile);
     static Pointer load(const QString& family);
 
 private:
+    static Pointer load(QIODevice& fontFile);
     QStringList tokenizeForWrapping(const QString& str) const;
     QStringList splitLines(const QString& str) const;
     glm::vec2 computeTokenExtent(const QString& str) const;

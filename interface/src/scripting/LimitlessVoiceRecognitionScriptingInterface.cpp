@@ -9,9 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <QtConcurrent/QtConcurrentRun>
+
+#include <ThreadHelpers.h>
 #include <src/InterfaceLogging.h>
 #include <src/ui/AvatarInputs.h>
-#include <QtConcurrent/QtConcurrentRun>
+
 #include "LimitlessVoiceRecognitionScriptingInterface.h"
 
 const float LimitlessVoiceRecognitionScriptingInterface::_audioLevelThreshold = 0.33f;
@@ -24,9 +27,7 @@ LimitlessVoiceRecognitionScriptingInterface::LimitlessVoiceRecognitionScriptingI
     connect(&_voiceTimer, &QTimer::timeout, this, &LimitlessVoiceRecognitionScriptingInterface::voiceTimeout);
     connect(&_connection, &LimitlessConnection::onReceivedTranscription, this, [this](QString transcription){emit onReceivedTranscription(transcription);});
     connect(&_connection, &LimitlessConnection::onFinishedSpeaking, this, [this](QString transcription){emit onFinishedSpeaking(transcription);});
-    _connection.moveToThread(&_connectionThread);
-    _connectionThread.setObjectName("Limitless Connection");
-    _connectionThread.start();
+    moveToNewNamedThread(&_connection, "Limitless Connection");
 }
 
 void LimitlessVoiceRecognitionScriptingInterface::update() {

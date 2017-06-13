@@ -439,7 +439,7 @@ private slots:
     void addAssetToWorldErrorTimeout();
 
     void handleSandboxStatus(QNetworkReply* reply);
-
+    void switchDisplayMode();
 private:
     static void initDisplay();
     void init();
@@ -456,8 +456,6 @@ private:
     void updateDialogs(float deltaTime) const;
 
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend = false);
-
-    glm::vec3 getSunDirection() const;
 
     void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed);
 
@@ -679,7 +677,11 @@ private:
     FileScriptingInterface* _fileDownload;
     AudioInjector* _snapshotSoundInjector { nullptr };
     SharedSoundPointer _snapshotSound;
+	
+    DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;
+    QString _autoSwitchDisplayModeSupportedHMDPluginName;
+    bool _previousHMDWornStatus;
+    void startHMDStandBySession();
+    void endHMDSession();
 };
-
-
 #endif // hifi_Application_h

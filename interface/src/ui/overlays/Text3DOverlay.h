@@ -12,14 +12,14 @@
 #define hifi_Text3DOverlay_h
 
 #include <QString>
-
+#include <QtCore/QMutex>
 #include "Billboard3DOverlay.h"
 
 class TextRenderer3D;
 
 class Text3DOverlay : public Billboard3DOverlay {
     Q_OBJECT
-    
+
 public:
     static QString const TYPE;
     virtual QString getType() const override { return TYPE; }
@@ -34,7 +34,7 @@ public:
     virtual const render::ShapeKey getShapeKey() override;
 
     // getters
-    const QString& getText() const { return _text; }
+    const QString getText() const;
     float getLineHeight() const { return _lineHeight; }
     float getLeftMargin() const { return _leftMargin; }
     float getTopMargin() const { return _topMargin; }
@@ -45,7 +45,7 @@ public:
     float getBackgroundAlpha() { return getAlpha(); }
 
     // setters
-    void setText(const QString& text) { _text = text; }
+    void setText(const QString& text);
     void setTextAlpha(float alpha) { _textAlpha = alpha; }
     void setLineHeight(float value) { _lineHeight = value; }
     void setLeftMargin(float margin) { _leftMargin = margin; }
@@ -58,15 +58,16 @@ public:
 
     QSizeF textSize(const QString& test) const;  // Meters
 
-    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, 
+    virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                         BoxFace& face, glm::vec3& surfaceNormal) override;
 
     virtual Text3DOverlay* createClone() const override;
 
 private:
     TextRenderer3D* _textRenderer = nullptr;
-    
+
     QString _text;
+    mutable QMutex _mutex; // used to make get/setText threadsafe, mutable so can be used in const functions
     xColor _backgroundColor = xColor { 0, 0, 0 };
     float _textAlpha { 1.0f };
     float _lineHeight { 1.0f };

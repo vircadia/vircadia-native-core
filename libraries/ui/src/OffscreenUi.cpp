@@ -91,14 +91,14 @@ QObject* OffscreenUi::getFlags() {
 
 void OffscreenUi::create(QOpenGLContext* context) {
     OffscreenQmlSurface::create(context);
-    auto rootContext = getRootContext();
+    auto myContext = getSurfaceContext();
 
-    rootContext->setContextProperty("OffscreenUi", this);
-    rootContext->setContextProperty("offscreenFlags", offscreenFlags = new OffscreenFlags());
-    rootContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
+    myContext->setContextProperty("OffscreenUi", this);
+    myContext->setContextProperty("offscreenFlags", offscreenFlags = new OffscreenFlags());
+    myContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     TabletProxy* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
-    rootContext->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
+    myContext->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
 }
 
 void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
@@ -547,14 +547,14 @@ void OffscreenUi::createDesktop(const QUrl& url) {
     }
 
 #ifdef DEBUG
-    getRootContext()->setContextProperty("DebugQML", QVariant(true));
+    getSurfaceContext()->setContextProperty("DebugQML", QVariant(true));
 #else 
-    getRootContext()->setContextProperty("DebugQML", QVariant(false));
+    getSurfaceContext()->setContextProperty("DebugQML", QVariant(false));
 #endif
 
     _desktop = dynamic_cast<QQuickItem*>(load(url));
     Q_ASSERT(_desktop);
-    getRootContext()->setContextProperty("desktop", _desktop);
+    getSurfaceContext()->setContextProperty("desktop", _desktop);
 
     _toolWindow = _desktop->findChild<QQuickItem*>("ToolWindow");
 

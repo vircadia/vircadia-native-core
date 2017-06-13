@@ -41,6 +41,8 @@ public:
     const QString getName() const override { return NAME; }
 
     bool isHandController() const override { return true; }
+    bool isHeadController() const override { return true; }
+    bool isHeadControllerMounted() const;
 
     bool activate() override;
     void deactivate() override;
@@ -54,6 +56,7 @@ private:
     class InputDevice : public controller::InputDevice {
     public:
         InputDevice(vr::IVRSystem*& system);
+        bool isHeadControllerMounted() const { return _overrideHead; }
     private:
         // Device functions
         controller::Input::NamedVector getAvailableInputs() const override;
@@ -67,6 +70,7 @@ private:
         void calibrate(const controller::InputCalibrationData& inputCalibration);
         void uncalibrate();
         controller::Pose addOffsetToPuckPose(int joint) const;
+        glm::mat4 recalculateDefaultToReferenceForHeadPuck(const controller::InputCalibrationData& inputCalibration);
         void updateCalibratedLimbs();
         bool checkForCalibrationEvent();
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
@@ -84,11 +88,14 @@ private:
         void loadSettings();
         void saveSettings() const;
         void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, glm::vec3 headXAxis, glm::vec3 headPosition);
         void calibrateHips(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateChest(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         
         void calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
                                 int firstShoulderIndex, int secondShoulderIndex);
+        void calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+
 
         class FilteredStick {
         public:
@@ -119,6 +126,8 @@ private:
             FeetAndHips,
             FeetHipsAndChest,
             FeetHipsAndShoulders,
+            FeetHipsChestAndHead,
+            FeetHipsAndHead
         };
         Config _config { Config::Auto };
         Config _preferedConfig { Config::Auto };
@@ -137,7 +146,7 @@ private:
 
         int _trackedControllers { 0 };
         vr::IVRSystem*& _system;
-        quint64 _timeTilCalibration { 0.0f };
+        quint64 _timeTilCalibration { 0 };
         float _leftHapticStrength { 0.0f };
         float _leftHapticDuration { 0.0f };
         float _rightHapticStrength { 0.0f };
@@ -145,6 +154,7 @@ private:
         bool _triggersPressedHandled { false };
         bool _calibrated { false };
         bool _timeTilCalibrationSet { false };
+        bool _overrideHead { false };
         mutable std::recursive_mutex _lock;
 
         QString configToString(Config config);

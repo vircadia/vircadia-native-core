@@ -48,6 +48,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext,
     RenderArgs* args = renderContext->args;
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
+        batch.enableStereo(false);
 
         glm::ivec4 viewport{0, 0, fbo->getWidth(), fbo->getHeight()};
         batch.setViewportTransform(viewport);
@@ -114,7 +115,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
             skinProgram, state);
     }
 
-    const auto cachedMode = task.addJob<RenderShadowSetup>("Setup");
+    const auto cachedMode = task.addJob<RenderShadowSetup>("ShadowSetup");
 
     // CPU jobs:
     // Fetch and cull the items from the scene
@@ -129,7 +130,7 @@ void RenderShadowTask::build(JobModel& task, const render::Varying& input, rende
     // GPU jobs: Render to shadow map
     task.addJob<RenderShadowMap>("RenderShadowMap", sortedShapes, shapePlumber);
 
-    task.addJob<RenderShadowTeardown>("Teardown", cachedMode);
+    task.addJob<RenderShadowTeardown>("ShadowTeardown", cachedMode);
 }
 
 void RenderShadowTask::configure(const Config& configuration) {

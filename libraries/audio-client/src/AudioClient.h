@@ -104,6 +104,7 @@ public:
         int _unfulfilledReads;
     };
 
+    void startThread();
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
 
@@ -386,8 +387,7 @@ private:
     RateCounter<> _silentInbound;
     RateCounter<> _audioInbound;
 
-    QThread* _checkDevicesThread { nullptr };
-    QThread* _localInjectorsThread { nullptr };
+    QTimer* _checkDevicesTimer { nullptr };
 };
 
 

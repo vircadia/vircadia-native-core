@@ -79,7 +79,7 @@ public:
     static ShapeManager* getShapeManager();
 
     ObjectMotionState(const btCollisionShape* shape);
-    ~ObjectMotionState();
+    virtual ~ObjectMotionState();
 
     virtual void handleEasyChanges(uint32_t& flags);
     virtual bool handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine);
@@ -146,6 +146,7 @@ public:
     void dirtyInternalKinematicChanges() { _hasInternalKinematicChanges = true; }
     void clearInternalKinematicChanges() { _hasInternalKinematicChanges = false; }
 
+    virtual bool isLocallyOwned() const { return false; }
     virtual bool shouldBeLocallyOwned() const { return false; }
 
     friend class PhysicsEngine;

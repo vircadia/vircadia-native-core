@@ -21,9 +21,9 @@ namespace controller {
         LowVelocityFilter(float rotationConstant, float translationConstant) :
             _translationConstant(translationConstant), _rotationConstant(rotationConstant) {}
 
-        virtual float apply(float value) const override { return value; }
-        virtual Pose apply(Pose newPose) const;
-        virtual bool parseParameters(const QJsonValue& parameters) override;
+        float apply(float value) const override { return value; }
+        Pose apply(Pose newPose) const override;
+        bool parseParameters(const QJsonValue& parameters) override;
 
     private:
         float _translationConstant { 0.1f };

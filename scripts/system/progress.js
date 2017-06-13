@@ -261,7 +261,7 @@
             }
         }
 
-        gpuTextures = Render.getConfig("Stats").textureGPUTransferCount;
+        gpuTextures = Render.getConfig("Stats").texturePendingGPUTransferCount;
 
         // Update state
         if (!visible) { // Not visible because no recent downloads
@@ -290,7 +290,7 @@
                     }, FADE_OUT_WAIT);
                 }
             } else {
-                if (displayProgress < 100 || gpuTextures > 0) { // Was finished and waiting to fade out but have resumed so 
+                if (displayProgress < 100 || gpuTextures > 0) { // Was finished and waiting to fade out but have resumed so
                                                                 // don't fade out
                     Script.clearInterval(fadeWaitTimer);
                     fadeWaitTimer = null;

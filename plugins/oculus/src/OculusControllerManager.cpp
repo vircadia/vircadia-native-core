@@ -19,6 +19,8 @@
 
 #include <PerfStat.h>
 #include <PathUtils.h>
+#include <NumericalConstants.h>
+#include <StreamUtils.h>
 
 #include <OVR_CAPI.h>
 
@@ -208,13 +210,18 @@ void OculusControllerManager::RemoteDevice::focusOutEvent() {
     _buttonPressedMap.clear();
 }
 
-void OculusControllerManager::TouchDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
-    _buttonPressedMap.clear();
+bool OculusControllerManager::isHeadControllerMounted() const {
     ovrSessionStatus status;
-    if (!OVR_SUCCESS(ovr_GetSessionStatus(_parent._session, &status)) || (ovrFalse == status.HmdMounted)) {
-        // if the HMD isn't on someone's head, don't take input from the controllers
-        return;
+    bool success = OVR_SUCCESS(ovr_GetSessionStatus(_session, &status));
+    if (!success) {
+        return false;
     }
+    return status.HmdMounted == ovrTrue;
+}
+
+void OculusControllerManager::TouchDevice::update(float deltaTime,
+                                                  const controller::InputCalibrationData& inputCalibrationData) {
+    _buttonPressedMap.clear();
 
     int numTrackedControllers = 0;
     quint64 currentTime = usecTimestampNow();
@@ -230,14 +237,14 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
             _lastControllerPose[controller] = tracking.HandPoses[hand];
             return;
         }
-        
+
         if (_lostTracking[controller]) {
             if (currentTime > _regainTrackingDeadline[controller]) {
                 _poseStateMap.erase(controller);
                 _poseStateMap[controller].valid = false;
                 return;
             }
-            
+
         } else {
             quint64 deadlineToRegainTracking = currentTime + LOST_TRACKING_DELAY;
             _regainTrackingDeadline[controller] = deadlineToRegainTracking;
@@ -245,6 +252,13 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
         }
         handleRotationForUntrackedHand(inputCalibrationData, hand, tracking.HandPoses[hand]);
     });
+
+    if (_parent.isHeadControllerMounted()) {
+        handleHeadPose(deltaTime, inputCalibrationData, tracking.HeadPose);
+    } else {
+        _poseStateMap[controller::HEAD].valid = false;
+    }
+
     using namespace controller;
     // Axes
     const auto& inputState = _parent._inputState;
@@ -269,7 +283,7 @@ void OculusControllerManager::TouchDevice::update(float deltaTime, const control
         if (inputState.Touches & pair.first) {
             _buttonPressedMap.insert(pair.second);
         }
-    } 
+    }
 
     // Haptics
     {
@@ -292,16 +306,38 @@ void OculusControllerManager::TouchDevice::focusOutEvent() {
     _buttonPressedMap.clear();
 };
 
-void OculusControllerManager::TouchDevice::handlePose(float deltaTime, 
-    const controller::InputCalibrationData& inputCalibrationData, ovrHandType hand, 
-    const ovrPoseStatef& handPose) {
+void OculusControllerManager::TouchDevice::handlePose(float deltaTime,
+                                                      const controller::InputCalibrationData& inputCalibrationData,
+                                                      ovrHandType hand, const ovrPoseStatef& handPose) {
     auto poseId = hand == ovrHand_Left ? controller::LEFT_HAND : controller::RIGHT_HAND;
     auto& pose = _poseStateMap[poseId];
     pose = ovrControllerPoseToHandPose(hand, handPose);
     // transform into avatar frame
     glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
     pose = pose.transform(controllerToAvatar);
+}
 
+void OculusControllerManager::TouchDevice::handleHeadPose(float deltaTime,
+                                                          const controller::InputCalibrationData& inputCalibrationData,
+                                                          const ovrPoseStatef& headPose) {
+    glm::mat4 mat = createMatFromQuatAndPos(toGlm(headPose.ThePose.Orientation),
+                                            toGlm(headPose.ThePose.Position));
+
+    //perform a 180 flip to make the HMD face the +z instead of -z, beacuse the head faces +z
+    glm::mat4 matYFlip = mat * Matrices::Y_180;
+    controller::Pose pose(extractTranslation(matYFlip),
+                          glmExtractRotation(matYFlip),
+                          toGlm(headPose.LinearVelocity), // XXX * matYFlip ?
+                          toGlm(headPose.AngularVelocity));
+
+    glm::mat4 sensorToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
+    glm::mat4 defaultHeadOffset = glm::inverse(inputCalibrationData.defaultCenterEyeMat) *
+        inputCalibrationData.defaultHeadMat;
+
+    controller::Pose hmdHeadPose = pose.transform(sensorToAvatar);
+
+    pose.valid = true;
+    _poseStateMap[controller::HEAD] = hmdHeadPose.postTransform(defaultHeadOffset);
 }
 
 void OculusControllerManager::TouchDevice::handleRotationForUntrackedHand(const controller::InputCalibrationData& inputCalibrationData,
@@ -382,6 +418,7 @@ controller::Input::NamedVector OculusControllerManager::TouchDevice::getAvailabl
 
         makePair(LEFT_HAND, "LeftHand"),
         makePair(RIGHT_HAND, "RightHand"),
+        makePair(HEAD, "Head"),
 
         makePair(LEFT_PRIMARY_THUMB_TOUCH, "LeftPrimaryThumbTouch"),
         makePair(LEFT_SECONDARY_THUMB_TOUCH, "LeftSecondaryThumbTouch"),
