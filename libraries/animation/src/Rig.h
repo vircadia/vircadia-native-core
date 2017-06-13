@@ -352,6 +352,9 @@ private:
     int _nextStateHandlerId { 0 };
     QMutex _stateMutex;
 
+    bool transitionHandPose(float deltaTime, float totalDuration, AnimPose& controlledHandPose, bool isLeftHand, 
+        bool isToControlled, AnimPose& returnHandPose);
+
     bool _isLeftHandControlled { false };
     bool _isRightHandControlled { false };
     float _leftHandControlTimeRemaining { 0.0f };
