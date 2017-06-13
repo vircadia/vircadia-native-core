@@ -29,7 +29,6 @@ StackView {
     initialItem: addressBarDialog
     width: parent !== null ? parent.width : undefined
     height: parent !== null ? parent.height : undefined
-    property var eventBridge;
     property int cardWidth: 212;
     property int cardHeight: 152;
     property string metaverseBase: addressBarDialog.metaverseServerUrl + "/api/v1/";
@@ -80,7 +79,6 @@ StackView {
             var card = tabletWebView.createObject();
             card.url = addressBarDialog.metaverseServerUrl + targetString;
             card.parentStackItem = root;
-            card.eventBridge = root.eventBridge;
             root.push(card);
             return;
         }

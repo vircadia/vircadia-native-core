@@ -25,7 +25,6 @@ Item {
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
-    property var eventBridge;
     signal sendToScript(var message);
 
     anchors.fill: parent
