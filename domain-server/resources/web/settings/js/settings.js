@@ -1163,8 +1163,6 @@ function makeTable(setting, keypath, setting_value) {
 
       var isNonDeletableRow = !setting.can_add_new_rows;
 
-     // console.log(setting);
-      
       _.each(setting.columns, function(col) {
 
         var colValue, colName;
@@ -1185,24 +1183,6 @@ function makeTable(setting, keypath, setting_value) {
               "<input type='checkbox' class='form-control table-checkbox' " +
                      "name='" + colName + "'" + (colValue ? " checked" : "") + "/>" +
             "</td>";
-        } else if (isArray && col.type === "select" ) {
-
-            //console.log("adding row");
-            //console.log(col);
-            //console.log(setting);
-        
-            html +=
-                "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>" +
-                "<select class='form-control' data-hidden-input='" + setting.key + "'>'";
-                
-            for(var i in col.options) {
-                var option = col.options[i];           
-                html += "<option value='" + option.value + "' " + (option.value == colValue ? 'selected' : '') + ">" + option.label + "</option>";
-            }   
-            html += "</select>";
-            html += "<input type='hidden' value='" + option.value + "'></td>";
-                
-        
         } else if (isArray && col.type === "time" && col.editable) {
           html +=
             "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>" +
@@ -1302,13 +1282,8 @@ function makeTableHiddenInputs(setting, initialValues, categoryValue) {
                  "name='" + col.name + "'" + (defaultValue ? " checked" : "") + "/>" +
         "</td>";
     } else if (col.type === "select") {
-        
-        console.log(col);
-        console.log(setting);
-        console.log(categoryValue);
-        
         html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
-        html += "<select class='form-control' data-hidden-input='" + col.name + "'>'"
+        html += "<select style='display: none;' class='form-control' data-hidden-input='" + col.name + "'>'"
         
         for(var i in col.options) {
             var option = col.options[i];           
@@ -1316,8 +1291,7 @@ function makeTableHiddenInputs(setting, initialValues, categoryValue) {
         }
         
         html += "</select>";    
-        html += "<input type='hidden' class='table-dropdown' name='" + col.name + "' value='" + option.value + "'></td>";
-        
+        html += "<input type='hidden' class='table-dropdown form-control trigger-change' name='" + col.name + "' value='" + option.value + "'></td>";      
     } else {
       html +=
         "<td " + (col.hidden ? "style='display: none;'" : "") + " class='" + Settings.DATA_COL_CLASS + "' " +
@@ -1455,11 +1429,11 @@ function addTableRow(row) {
         // with multiple we have an array of Objects, with one we have an array of whatever the value type is
         var num_columns = row.children('.' + Settings.DATA_COL_CLASS).length
         var newName = setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : "");
-        
+
         if (isCheckbox) {
           input.attr("name", newName)
         } else {
-          if(isDropdown) {
+          if(isDropdown) {             
             $(element).children("select").attr("data-hidden-input", newName);
           }
           input.attr("name", newName);
@@ -1467,7 +1441,6 @@ function addTableRow(row) {
       } else {
         // because the name of the setting in question requires the key
         // setup a hook to change the HTML name of the element whenever the key changes
-
         var colName = $(element).attr("name");
         keyInput.on('change', function(){
           input.attr("name", setting_name + "." +  $(this).val() + "." + colName);
@@ -1477,6 +1450,12 @@ function addTableRow(row) {
       if (!focusChanged) {
           input.focus();
           focusChanged = true;
+      }
+      
+      // if we are adding a dropdown, we should go ahead and make its select
+      // element is visible
+      if(isDropdown) {   
+          $(element).children("select").attr("style", "");
       }
 
       if (isCheckbox) {
