@@ -19,7 +19,6 @@ StackView {
     objectName: "stack"
     property string title: "General Settings"
     property alias gotoPreviousApp: root.gotoPreviousApp;
-    property var eventBridge;
     signal sendToScript(var message);
 
     function pushSource(path) {

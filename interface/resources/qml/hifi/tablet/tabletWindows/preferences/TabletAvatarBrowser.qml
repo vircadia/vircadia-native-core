@@ -27,8 +27,6 @@ Item {
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
-    property alias eventBridge: eventBridgeWrapper.eventBridge
-
     anchors.fill: parent
 
     BaseWebView {
@@ -42,14 +40,6 @@ Item {
             right: parent.right
             bottom: footer.top
         }
-
-        QtObject {
-            id: eventBridgeWrapper
-            WebChannel.id: "eventBridgeWrapper"
-            property var eventBridge;
-        }
-
-        webChannel.registeredObjects: [eventBridgeWrapper]
 
         // Create a global EventBridge object for raiseAndLowerKeyboard.
         WebEngineScript {
@@ -68,6 +58,11 @@ Item {
         }
 
         userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard ]
+
+        Component.onCompleted: {
+            webChannel.registerObject("eventBridge", eventBridge);
+            webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
+        }
     }
 
     Rectangle {

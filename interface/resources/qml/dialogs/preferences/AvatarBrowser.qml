@@ -24,8 +24,6 @@ Window {
     resizable: true
     modality: Qt.ApplicationModal
 
-    property alias eventBridge: eventBridgeWrapper.eventBridge
-
     Item {
         anchors.fill: parent
 
@@ -45,16 +43,6 @@ Window {
                 bottom: keyboard.top
             }
 
-            property alias eventBridgeWrapper: eventBridgeWrapper
-
-            QtObject {
-                id: eventBridgeWrapper
-                WebChannel.id: "eventBridgeWrapper"
-                property var eventBridge;
-            }
-
-            webChannel.registeredObjects: [eventBridgeWrapper]
-
             // Create a global EventBridge object for raiseAndLowerKeyboard.
             WebEngineScript {
                 id: createGlobalEventBridge
@@ -73,6 +61,10 @@ Window {
 
             userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard ]
 
+            Component.onCompleted: {
+                webChannel.registerObject("eventBridge", eventBridge);
+                webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
+            }
         }
 
         Keyboard {
