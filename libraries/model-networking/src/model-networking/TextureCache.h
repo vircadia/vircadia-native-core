@@ -62,10 +62,7 @@ signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
 
 public slots:
-    void ktxHeaderRequestProgress(uint64_t bytesReceived, uint64_t bytesTotal) { }
-    void ktxHeaderRequestFinished();
-
-    void ktxMipRequestProgress(uint64_t bytesReceived, uint64_t bytesTotal) { }
+    void ktxInitialDataRequestFinished();
     void ktxMipRequestFinished();
 
 protected:
@@ -81,7 +78,7 @@ protected:
     Q_INVOKABLE void startRequestForNextMipLevel();
 
     void startMipRangeRequest(uint16_t low, uint16_t high);
-    void maybeHandleFinishedInitialLoad();
+    void handleFinishedInitialLoad();
 
 private:
     friend class KTXReader;
