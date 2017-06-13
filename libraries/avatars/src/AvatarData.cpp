@@ -1504,7 +1504,7 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
     return _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
 }
 
-void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged) {
+void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, bool& skeletonModelUrlChanged) {
 
     if (identity.sequenceId < _identitySequenceId) {
         qCDebug(avatars) << "Ignoring older identity packet for avatar" << getSessionUUID()
@@ -1517,6 +1517,7 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
     if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
         setSkeletonModelURL(identity.skeletonModelURL);
         identityChanged = true;
+        skeletonModelUrlChanged = true;
         if (_firstSkeletonCheck) {
             displayNameChanged = true;
         }
