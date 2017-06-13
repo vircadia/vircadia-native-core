@@ -31,7 +31,6 @@ Rectangle {
     HifiConstants { id: hifi; }
     objectName: "AudioWindow"
 
-    property var eventBridge;
     property string title: "Audio Options"
     signal sendToScript(var message);
 
@@ -161,7 +160,12 @@ Rectangle {
                     text.text: devicename
                     onCheckBoxClicked: {
                         if (checked) {
-                            AudioDevice.setInputDeviceAsync(devicename)
+                            if (devicename.length > 0) {
+                                console.log("Audio.qml about to call AudioDevice.setInputDeviceAsync().devicename:" + devicename);
+                                AudioDevice.setInputDeviceAsync(devicename);
+                            } else {
+                                console.log("Audio.qml attempted to set input device to empty device name.");
+                            }
                         }
                     }
                 }
@@ -217,7 +221,13 @@ Rectangle {
                     text.text: devicename
                     onCheckBoxClicked: {
                         if (checked) {
-                            AudioDevice.setOutputDeviceAsync(devicename)
+                            if (devicename.length > 0) {
+                                console.log("Audio.qml about to call AudioDevice.setOutputDeviceAsync().devicename:" + devicename);
+                                AudioDevice.setOutputDeviceAsync(devicename);
+                            } else {
+                                console.log("Audio.qml attempted to set output device to empty device name.");
+                            }
+
                         }
                     }
                 }
