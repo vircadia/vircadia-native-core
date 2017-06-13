@@ -198,7 +198,7 @@ function hideMarketplace() {
 // }
 
 function adjustPositionPerBoundingBox(position, direction, registration, dimensions, orientation) {
-    // Adjust the position such that the bounding box (registration, dimenions, and orientation) lies behind the original 
+    // Adjust the position such that the bounding box (registration, dimenions, and orientation) lies behind the original
     // position in the given direction.
     var CORNERS = [
         { x: 0, y: 0, z: 0 },
@@ -1352,7 +1352,7 @@ function parentSelectedEntities() {
             }
         });
 
-        if(parentCheck) {
+        if (parentCheck) {
             Window.notify("Entities parented");
         }else {
             Window.notify("Entities are already parented to last");
@@ -1554,7 +1554,7 @@ function importSVO(importURL) {
                     var properties = Entities.getEntityProperties(pastedEntityIDs[0], ["position", "dimensions",
                         "registrationPoint"]);
                     var position = Vec3.sum(deltaPosition, properties.position);
-                    position = grid.snapToSurface(grid.snapToGrid(position, false, properties.dimensions, 
+                    position = grid.snapToSurface(grid.snapToGrid(position, false, properties.dimensions,
                             properties.registrationPoint), properties.dimensions, properties.registrationPoint);
                     deltaPosition = Vec3.subtract(position, properties.position);
                 }
@@ -1886,11 +1886,11 @@ var PropertiesTool = function (opts) {
             }
             pushCommandForSelections();
             selectionManager._update();
-        } else if(data.type === 'parent') {
+        } else if (data.type === 'parent') {
             parentSelectedEntities();
-        } else if(data.type === 'unparent') {
+        } else if (data.type === 'unparent') {
             unparentSelectedEntities();
-        } else if(data.type === 'saveUserData'){
+        } else if (data.type === 'saveUserData'){
             //the event bridge and json parsing handle our avatar id string differently.
             var actualID = data.id.split('"')[1];
             Entities.editEntity(actualID, data.properties);
@@ -2183,7 +2183,7 @@ var selectedParticleEntityID = null;
 function selectParticleEntity(entityID) {
     var properties = Entities.getEntityProperties(entityID);
 
-    if(properties.emitOrientation) {
+    if (properties.emitOrientation) {
         properties.emitOrientation = Quat.safeEulerAngles(properties.emitOrientation);
     }
     var particleData = {
@@ -2213,7 +2213,7 @@ entityListTool.webView.webEventReceived.connect(function (data) {
 
     if (data.type === 'parent') {
         parentSelectedEntities();
-    } else if(data.type === 'unparent') {
+    } else if (data.type === 'unparent') {
         unparentSelectedEntities();
     } else if (data.type === "selectionUpdate") {
         var ids = data.entityIds;
