@@ -19,7 +19,6 @@
 #include "AntialiasingEffect.h"
 #include "StencilMaskPass.h"
 #include "TextureCache.h"
-#include "FramebufferCache.h"
 #include "DependencyManager.h"
 #include "ViewFrustum.h"
 #include "GeometryCache.h"
@@ -51,7 +50,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline(RenderArgs* ar
     if (!_antialiasingBuffer) {
         // Link the antialiasing FBO to texture
         _antialiasingBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("antialiasing"));
-        auto format = gpu::Element::COLOR_SRGBA_32; // DependencyManager::get<FramebufferCache>()->getLightingTexture()->getTexelFormat();
+        auto format = gpu::Element::COLOR_SRGBA_32;
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
         _antialiasingTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, defaultSampler);
         _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
