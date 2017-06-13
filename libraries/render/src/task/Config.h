@@ -89,7 +89,7 @@ protected:
 class JobConfig : public QObject {
     Q_OBJECT
     Q_PROPERTY(double cpuRunTime READ getCPURunTime NOTIFY newStats()) //ms
-    Q_PROPERTY(bool enabled READ isEnabled WRITE setEnabled)
+    Q_PROPERTY(bool enabled READ isEnabled WRITE setEnabled NOTIFY dirtyEnabled())
 
     double _msCPURunTime{ 0.0 };
 public:
@@ -99,7 +99,7 @@ public:
     JobConfig(bool enabled) : alwaysEnabled{ false }, enabled{ enabled } {}
 
     bool isEnabled() { return alwaysEnabled || enabled; }
-    void setEnabled(bool enable) { enabled = alwaysEnabled || enable; }
+    void setEnabled(bool enable) { enabled = alwaysEnabled || enable; emit dirtyEnabled(); }
 
     bool alwaysEnabled{ true };
     bool enabled{ true };
@@ -121,6 +121,7 @@ public slots:
 signals:
     void loaded();
     void newStats();
+    void dirtyEnabled();
 };
 
 class TaskConfig : public JobConfig {

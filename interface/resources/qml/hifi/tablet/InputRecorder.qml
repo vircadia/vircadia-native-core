@@ -18,7 +18,6 @@ import "../../dialogs"
 
 Rectangle {
     id: inputRecorder
-    property var eventBridge;
     HifiConstants { id: hifi }
     signal sendToScript(var message);
     color: hifi.colors.baseGray;
