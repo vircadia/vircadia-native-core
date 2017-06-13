@@ -128,7 +128,7 @@ Rectangle {
         pal.sendToScript({method: 'refreshNearby', params: params});
     }
 
-    Item {
+    Rectangle {
         id: palTabContainer;
         // Anchors
         anchors {
@@ -137,6 +137,7 @@ Rectangle {
             left: parent.left;
             right: parent.right;
         }
+        color: "white";
         Rectangle {
             id: tabSelectorContainer;
             // Anchors
