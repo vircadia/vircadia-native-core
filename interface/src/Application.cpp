@@ -114,6 +114,7 @@
 #include <render/RenderFetchCullSortTask.h>
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
+#include <RenderViewTask.h>
 #include <SecondaryCamera.h>
 #include <ResourceCache.h>
 #include <ResourceRequest.h>
@@ -1866,27 +1867,11 @@ void Application::initializeGL() {
     qCDebug(interfaceapp, "Initialized Display.");
 
     // Set up the render engine
-   render::CullFunctor cullFunctor = LODManager::shouldRender;
-       static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
-    bool isDeferred = true;
-    if (QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD)) {
-        isDeferred = false;
-    }
-
-    _renderEngine->addJob<MainRenderTask>("MainFrame", cullFunctor, isDeferred);
-    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraFrame", cullFunctor);
-
-    
-/*    _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
-    const auto items = _renderEngine->addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
-    assert(items.canCast<RenderFetchCullSortTask::Output>());
+    render::CullFunctor cullFunctor = LODManager::shouldRender;
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
-    if (QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD)) {
-        _renderEngine->addJob<RenderForwardTask>("Forward", items);
-    } else {
-        _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", items);
-    }
-    */
+    bool isDeferred = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
+    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, isDeferred);
+    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraFrame", cullFunctor);
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
 
@@ -4138,10 +4123,10 @@ void Application::updateMyAvatarLookAtPosition() {
             }
         } else {
             //  I am not looking at anyone else, so just look forward
-            if (isHMD) {
-                glm::mat4 worldHeadMat = myAvatar->getSensorToWorldMatrix() *
-                    myAvatar->getHeadControllerPoseInSensorFrame().getMatrix();
-                lookAtSpot = transformPoint(worldHeadMat, glm::vec3(0.0f, 0.0f, -TREE_SCALE));
+            auto headPose = myAvatar->getHeadControllerPoseInSensorFrame();
+            if (headPose.isValid()) {
+                glm::mat4 worldHeadMat = myAvatar->getSensorToWorldMatrix() * headPose.getMatrix();
+                lookAtSpot = transformPoint(worldHeadMat, glm::vec3(0.0f, 0.0f, TREE_SCALE));
             } else {
                 lookAtSpot = myAvatar->getHead()->getEyePosition() +
                     (myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
@@ -5088,7 +5073,7 @@ namespace render {
     template <> const ItemKey payloadGetKey(const WorldBoxRenderData::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }
     template <> const Item::Bound payloadGetBound(const WorldBoxRenderData::Pointer& stuff) { return Item::Bound(); }
     template <> void payloadRender(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args) {
-        if (args->_renderMode != RenderArgs::MIRROR_RENDER_MODE && Menu::getInstance()->isOptionChecked(MenuOption::WorldAxes)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::WorldAxes)) {
             PerformanceTimer perfTimer("worldBox");
 
             auto& batch = *args->_batch;

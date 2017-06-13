@@ -29,6 +29,7 @@ public slots:
 
 protected:
     void addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) override;
+    void readFromFile();
 
 private:
     const QString AVATARBOOKMARKS_FILENAME = "avatarbookmarks.json";
