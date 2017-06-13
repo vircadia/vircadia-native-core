@@ -72,10 +72,6 @@ Windows.ScrollingWindow {
         }
     }
 
-    function toggleMicEnabled() {
-		Audio.mute = !Audio.mute;
-    }
-
     function setUsername(newUsername) {
         username = newUsername;
     }

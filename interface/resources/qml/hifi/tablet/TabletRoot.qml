@@ -150,10 +150,6 @@ Item {
         }
     }
 
-    function toggleMicEnabled() {
-		Audio.mute = !Audio.mute;
-    }
-
     function setUsername(newUsername) {
         username = newUsername;
     }
