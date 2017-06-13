@@ -45,7 +45,6 @@ int AvatarMixerClientData::processPackets() {
 
         switch (packet->getType()) {
             case PacketType::AvatarData:
-            case PacketType::ReplicatedAvatarData:
                 parseData(*packet);
                 break;
             default:
@@ -62,10 +61,6 @@ int AvatarMixerClientData::parseData(ReceivedMessage& message) {
 
     // pull the sequence number from the data first
     uint16_t sequenceNumber;
-
-    if (message.getType() == PacketType::ReplicatedAvatarData) {
-        message.seek(NUM_BYTES_RFC4122_UUID);
-    }
 
     message.readPrimitive(&sequenceNumber);
     
