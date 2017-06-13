@@ -41,10 +41,6 @@ ParticleExplorerTool = function() {
                 data.updatedSettings.emitOrientation = Quat.fromVec3Degrees(data.updatedSettings.emitOrientation);
             }
             Entities.editEntity(that.activeParticleEntity, data.updatedSettings);
-
-            if ( data.updatedSettings.emitOrientation ) {
-                print('-settings-udate- ' + that.activeParticleEntity + ' - ' + JSON.stringify(data.updatedSettings));
-            }
         }
     }
 
