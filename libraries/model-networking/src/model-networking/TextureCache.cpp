@@ -472,48 +472,65 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
 
 
 void NetworkTexture::ktxHeaderRequestFinished() {
-    PROFILE_RANGE(app, __FUNCTION__);
-
-    Q_ASSERT_X(_ktxHeaderRequest, "Resource::handleReplyFinished", "Request should not be null while in handleReplyFinished");
-    Q_ASSERT(_ktxResourceState == LOADING_INITIAL_DATA);
-
-    //PROFILE_ASYNC_END(resource, "Resource:" + getType(), QString::number(_requestID), {
-    //    { "from_cache", _ktxHeaderRequest->loadedFromCache() },
-    //    { "size_mb", _bytesTotal / 1000000.0 }
-    //});
-
-    setSize(_bytesTotal);
-
-    if (!_ktxHeaderRequest || _ktxHeaderRequest != sender()) {
-        // This can happen in the edge case that a request is timed out, but a `finished` signal is emitted before it is deleted.
-        qWarning(networking) << "Received signal NetworkTexture::ktxHeaderRequestFinished from ResourceRequest that is not the current"
-            << " request: " << sender() << ", " << _ktxHeaderRequest;
+    if (!_ktxHeaderRequest || _ktxHeaderRequest->getState() != ResourceRequest::Finished ||
+        !_ktxMipRequest ||  _ktxMipRequest->getState() != ResourceRequest::Finished) {
+        // Wait for both request to be finished
         return;
     }
+    PROFILE_RANGE(app, __FUNCTION__);
+
+    Q_ASSERT_X(_ktxHeaderRequest, __FUNCTION__, "Request should not be null while in handleReplyFinished");
+    Q_ASSERT_X(_ktxMipRequest, __FUNCTION__, "Request should not be null while in handleReplyFinished");
+    Q_ASSERT(_ktxResourceState == LOADING_INITIAL_DATA);
+
+    PROFILE_ASYNC_END(resource, "Resource:" + getType(), QString::number(_requestID), {
+        { "from_cache", _ktxHeaderRequest->loadedFromCache() },
+        { "size_mb", _bytesTotal / 1000000.0 }
+    });
+
+    setSize(_bytesTotal);
 
     TextureCache::requestCompleted(_self);
 
     auto result = _ktxHeaderRequest->getResult();
     if (result == ResourceRequest::Success) {
+        result = _ktxMipRequest->getResult();
+    }
+
+    if (result == ResourceRequest::Success) {
         auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
         qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
 
         _ktxHeaderData = _ktxHeaderRequest->getData();
+        _ktxHighMipData = _ktxMipRequest->getData();
         maybeHandleFinishedInitialLoad();
     } else {
-        handleFailedRequest(result);
+        if (handleFailedRequest(result)) {
+            _ktxResourceState = PENDING_INITIAL_LOAD;
+        } else {
+            _ktxResourceState = FAILED_TO_LOAD;
+        }
     }
 
     _ktxHeaderRequest->disconnect(this);
     _ktxHeaderRequest->deleteLater();
     _ktxHeaderRequest = nullptr;
+    _ktxMipRequest->disconnect(this);
+    _ktxMipRequest->deleteLater();
+    _ktxMipRequest = nullptr;
 }
 
 void NetworkTexture::ktxMipRequestFinished() {
+    // If this is the high mips request, redirect it to ktxHeaderRequestFinished
+    if (_ktxResourceState == LOADING_INITIAL_DATA) {
+        ktxHeaderRequestFinished();
+        return;
+    }
+
     PROFILE_RANGE(app, __FUNCTION__);
 
     Q_ASSERT_X(_ktxMipRequest, "Resource::handleReplyFinished", "Request should not be null while in handleReplyFinished");
-    Q_ASSERT(_ktxResourceState == LOADING_INITIAL_DATA || _ktxResourceState == REQUESTING_MIP);
+    Q_ASSERT(_ktxResourceState == REQUESTING_MIP);
 
     PROFILE_ASYNC_END(resource, "Resource:" + getType(), QString::number(_requestID), {
         { "from_cache", _ktxMipRequest->loadedFromCache() },
@@ -536,10 +553,7 @@ void NetworkTexture::ktxMipRequestFinished() {
         auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
         qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
 
-        if (_ktxResourceState == LOADING_INITIAL_DATA) {
-            _ktxHighMipData = _ktxMipRequest->getData();
-            maybeHandleFinishedInitialLoad();
-        } else if (_ktxResourceState == REQUESTING_MIP) {
+         if (_ktxResourceState == REQUESTING_MIP) {
             Q_ASSERT(_ktxMipLevelRangeInFlight.first != NULL_MIP_LEVEL);
             Q_ASSERT(_ktxMipLevelRangeInFlight.second - _ktxMipLevelRangeInFlight.first == 0);
 
@@ -576,7 +590,6 @@ void NetworkTexture::ktxMipRequestFinished() {
                         Q_ARG(int, 0));
                 }
             });
-
         } else {
             qWarning(networking) << "Mip request finished in an unexpected state: " << _ktxResourceState;
             finishedLoading(false);
