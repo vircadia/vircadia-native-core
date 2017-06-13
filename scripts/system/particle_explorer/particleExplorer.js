@@ -15,24 +15,27 @@
 /* global HifiEntityUI, openEventBridge, console, EventBridge, document, window */
 /* eslint no-console: 0, no-global-assign: 0 */
 
-(function(){
+(function () {
 
     var root = document.getElementById("particle-explorer");
 
-    window.onload = function(){
+    window.onload = function () {
         var ui = new HifiEntityUI(root);
         var textarea = document.createElement("textarea");
         var properties = "";
         var menuStructure = {
             General: [
-                { type: "Row", id: "export-import-field" },
+                {
+                    type: "Row",
+                    id: "export-import-field"
+                },
                 {
                     id: "show-properties-button",
                     name: "Show Properties",
                     type: "Button",
                     class: "blue",
                     disabled: true,
-                    callback: function(event){
+                    callback: function (event) {
                         var insertZone = document.getElementById("export-import-field");
                         var json = ui.getSettings();
                         properties = JSON.stringify(json);
@@ -41,22 +44,26 @@
                             insertZone.appendChild(textarea);
                             insertZone.parentNode.parentNode.style.maxHeight =
                                 insertZone.parentNode.clientHeight + "px";
-                            document.getElementById("export-properties-button").removeAttribute("disabled");
-                            textarea.onchange = function(e) {
-                                if (e.target.value !== properties){
-                                    document.getElementById("import-properties-button").removeAttribute("disabled");
+                            document.getElementById("export-properties-button")
+                                .removeAttribute("disabled");
+                            textarea.onchange = function (e) {
+                                if (e.target.value !== properties) {
+                                    document.getElementById("import-properties-button")
+                                        .removeAttribute("disabled");
                                 }
                             };
                             textarea.oninput = textarea.onchange;
                         } else {
-                            textarea.onchange = function(){};
+                            textarea.onchange = function () {};
                             textarea.oninput = textarea.onchange;
                             textarea.value = "";
                             textarea.remove();
                             insertZone.parentNode.parentNode.style.maxHeight =
-                            insertZone.parentNode.clientHeight + "px";
-                            document.getElementById("export-properties-button").setAttribute("disabled",true);
-                            document.getElementById("import-properties-button").setAttribute("disabled",true);
+                                insertZone.parentNode.clientHeight + "px";
+                            document.getElementById("export-properties-button")
+                                .setAttribute("disabled", true);
+                            document.getElementById("import-properties-button")
+                                .setAttribute("disabled", true);
                         }
                     }
                 },
@@ -66,7 +73,7 @@
                     type: "Button",
                     class: "blue",
                     disabled: true,
-                    callback: function(event){
+                    callback: function (event) {
                         ui.fillFields(JSON.parse(textarea.value));
                         ui.submitChanges(JSON.parse(textarea.value));
                     }
@@ -77,11 +84,11 @@
                     type: "Button",
                     class: "red",
                     disabled: true,
-                    callback:  function(event){
+                    callback: function (event) {
                         textarea.select();
                         try {
                             var success = document.execCommand('copy');
-                            if (!success ){
+                            if (!success) {
                                 throw "Not success :(";
                             }
                         } catch (e) {
@@ -89,13 +96,17 @@
                         }
                     }
                 },
-                { type: "Row"},
+                {
+                    type: "Row"
+                },
                 {
                     id: "isEmitting",
                     name: "Is Emitting",
                     type: "Boolean"
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "lifespan",
                     name: "Lifespan",
@@ -103,7 +114,9 @@
                     min: 0.01,
                     max: 10
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "maxParticles",
                     name: "Max Particles",
@@ -111,13 +124,17 @@
                     min: 1,
                     max: 10000
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "textures",
                     name: "Textures",
                     type: "Texture"
                 },
-                { type: "Row" }
+                {
+                    type: "Row"
+                }
             ],
             Emit: [
                 {
@@ -127,14 +144,18 @@
                     max: 1000,
                     min: 1
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "emitSpeed",
                     name: "Emit Speed",
                     type: "SliderFloat",
                     max: 5
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "emitDimensions",
                     name: "Emit Dimension",
@@ -144,7 +165,9 @@
                         step: 0.01
                     }
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "emitOrientation",
                     unit: "deg",
@@ -155,13 +178,17 @@
                         step: 0.01
                     }
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "emitShouldTrail",
                     name: "Emit Should Trail",
                     type: "Boolean"
                 },
-                { type: "Row" }
+                {
+                    type: "Row"
+                }
             ],
             Radius: [
                 {
@@ -170,28 +197,36 @@
                     type: "SliderFloat",
                     max: 4.0
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "radiusSpread",
                     name: "Radius Spread",
                     type: "SliderFloat",
                     max: 4.0
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "radiusStart",
                     name: "Radius Start",
                     type: "SliderFloat",
                     max: 4.0
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "radiusFinish",
                     name: "Radius Finish",
                     type: "SliderFloat",
                     max: 4.0
                 },
-                { type: "Row" }
+                {
+                    type: "Row"
+                }
             ],
             Color: [
                 {
@@ -204,7 +239,9 @@
                         blue: 255
                     }
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "colorSpread",
                     name: "Color Spread",
@@ -215,7 +252,9 @@
                         blue: 0
                     }
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "colorStart",
                     name: "Color Start",
@@ -226,7 +265,9 @@
                         blue: 255
                     }
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "colorFinish",
                     name: "Color Finish",
@@ -237,7 +278,9 @@
                         blue: 255
                     }
                 },
-                { type: "Row" }
+                {
+                    type: "Row"
+                }
             ],
             Acceleration: [
                 {
@@ -248,7 +291,9 @@
                         step: 0.01
                     }
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "accelerationSpread",
                     name: "Acceleration Spread",
@@ -257,7 +302,9 @@
                         step: 0.01
                     }
                 },
-                { type: "Row" }
+                {
+                    type: "Row"
+                }
             ],
             Alpha: [
                 {
@@ -265,25 +312,33 @@
                     name: "Alpha",
                     type: "SliderFloat"
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "alphaSpread",
                     name: "Alpha Spread",
                     type: "SliderFloat"
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "alphaStart",
                     name: "Alpha Start",
                     type: "SliderFloat"
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "alphaFinish",
                     name: "Alpha Finish",
                     type: "SliderFloat"
                 },
-                { type: "Row" }
+                {
+                    type: "Row"
+                }
             ],
             Polar: [
                 {
@@ -292,14 +347,18 @@
                     unit: "deg",
                     type: "SliderRadian"
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "polarFinish",
                     name: "Polar Finish",
                     unit: "deg",
                     type: "SliderRadian"
                 },
-                { type: "Row" }
+                {
+                    type: "Row"
+                }
             ],
             Azimuth: [
                 {
@@ -310,40 +369,46 @@
                     min: -180,
                     max: 0
                 },
-                { type: "Row" },
+                {
+                    type: "Row"
+                },
                 {
                     id: "azimuthFinish",
                     name: "Azimuth Finish",
                     unit: "deg",
                     type: "SliderRadian"
                 },
-                { type: "Row" }
+                {
+                    type: "Row"
+                }
             ]
         };
         ui.setUI(menuStructure);
-        ui.setOnSelect(function(){
-            document.getElementById("show-properties-button").removeAttribute("disabled");
-            document.getElementById("export-properties-button").setAttribute("disabled",true);
-            document.getElementById("import-properties-button").setAttribute("disabled",true);
+        ui.setOnSelect(function () {
+            document.getElementById("show-properties-button")
+                .removeAttribute("disabled");
+            document.getElementById("export-properties-button")
+                .setAttribute("disabled", true);
+            document.getElementById("import-properties-button")
+                .setAttribute("disabled", true);
         });
         ui.build();
         var overrideLoad = false;
         if (openEventBridge === undefined) {
             overrideLoad = true,
-            openEventBridge = function(callback) {
-                callback(
-                    {
-                        emitWebEvent: function(){},
-                        submitChanges: function(){},
+                openEventBridge = function (callback) {
+                    callback({
+                        emitWebEvent: function () {},
+                        submitChanges: function () {},
                         scriptEventReceived: {
-                            connect: function() {
+                            connect: function () {
 
                             }
                         }
                     });
-            };
+                };
         }
-        openEventBridge( function(EventBridge) {
+        openEventBridge(function (EventBridge) {
             ui.connect(EventBridge);
         });
         if (overrideLoad) {

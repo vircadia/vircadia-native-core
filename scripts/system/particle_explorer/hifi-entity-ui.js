@@ -43,18 +43,24 @@ and If there is any changes to either the Entities or properties of
 
 **/
 
-var RADIAN = Math.PI / 180;
+var RADIANS_PER_DEGREE = Math.PI / 180;
 
 var roundFloat = function (input, round) {
-    round = round ? round: 1000;
-    return Math.round(parseFloat(input) * round)/round;
+    round = round ? round : 1000;
+    var sanitizedInput;
+    if (typeof input === "string") {
+        sanitizedInput = parseFloat(input);
+    } else {
+        sanitizedInput = input;
+    }
+    return Math.round(sanitizedInput * round) / round;
 };
 
 function HifiEntityUI(parent) {
     this.parent = parent;
 
     var self = this;
-    this.webBridgeSync = _.debounce(function(id, val) {
+    this.webBridgeSync = _.debounce(function (id, val) {
         if (self.EventBridge) {
             var sendPackage = {};
             sendPackage[id] = val;
@@ -64,7 +70,7 @@ function HifiEntityUI(parent) {
 }
 
 HifiEntityUI.prototype = {
-    setOnSelect: function (callback){
+    setOnSelect: function (callback) {
         this.onSelect = callback;
     },
     submitChanges: function (structure) {
@@ -77,7 +83,7 @@ HifiEntityUI.prototype = {
     setUI: function (structure) {
         this.structure = structure;
     },
-    disableFields: function() {
+    disableFields: function () {
         var fields = document.getElementsByTagName("input");
         for (var i = 0; i < fields.length; i++) {
             if (fields[i].getAttribute("type") !== "button") {
@@ -93,7 +99,8 @@ HifiEntityUI.prototype = {
 
         textures = document.getElementsByClassName("with-texture");
         for (i = 0; i < textures.length; i++) {
-            textures[i].className = textures[i].className.replace("with-texture", "no-texture");
+            textures[i].classList.remove("with-textures");
+            textures[i].classList.add("no-texture");
         }
 
         var textareas = document.getElementsByTagName("textarea");
@@ -101,7 +108,7 @@ HifiEntityUI.prototype = {
             textareas[x].remove();
         }
     },
-    getSettings: function() {
+    getSettings: function () {
         var self = this;
         var json = {};
         var keys = Object.keys(self.builtRows);
@@ -110,7 +117,8 @@ HifiEntityUI.prototype = {
             var key = keys[i];
             var el = self.builtRows[key];
             if (el.className.indexOf("checkbox") !== -1) {
-                json[key] = document.getElementById(key).checked ? true: false;
+                json[key] = document.getElementById(key)
+                    .checked ? true : false;
             } else if (el.className.indexOf("vector-section") !== -1) {
                 var vector = {};
                 if (el.className.indexOf("rgb") !== -1) {
@@ -136,14 +144,15 @@ HifiEntityUI.prototype = {
                     vector.z = z.value;
                 }
                 json[key] = vector;
-            } else if (el.className.length > 0){
-                json[key] = document.getElementById(key).value;
+            } else if (el.className.length > 0) {
+                json[key] = document.getElementById(key)
+                    .value;
             }
         }
 
         return json;
     },
-    fillFields: function(currentProperties) {
+    fillFields: function (currentProperties) {
         var self = this;
         var fields = document.getElementsByTagName("input");
 
@@ -159,64 +168,66 @@ HifiEntityUI.prototype = {
 
 
         for (var e in keys) {
-            var value = keys[e];
+            if (keys.hasOwnProperty[e]) {
+                var value = keys[e];
 
-            var property = currentProperties[value];
-            var field = self.builtRows[value];
-            if (field) {
-                var el = document.getElementById(value);
+                var property = currentProperties[value];
+                var field = self.builtRows[value];
+                if (field) {
+                    var el = document.getElementById(value);
 
-                if (field.className.indexOf("radian") !== -1) {
-                    el.value = property / RADIAN;
-                    el.onchange({
-                        target: el
-                    });
-                } else if (field.className.indexOf("range") !== -1 || field.className.indexOf("texture") !== -1) {
-                    el.value = property;
-                    el.onchange({
-                        target: el
-                    });
-                } else if (field.className.indexOf("checkbox") !== -1) {
-                    if (property) {
-                        el.setAttribute("checked", property);
-                    } else {
-                        el.removeAttribute("checked");
-                    }
-                } else if (field.className.indexOf("vector-section") !== -1) {
-                    if (field.className.indexOf("rgb") !== -1) {
-                        var red = document.getElementById(value + "-red");
-                        var blue = document.getElementById(value + "-blue");
-                        var green = document.getElementById(value + "-green");
-                        red.value = parseInt(property.red);
-                        blue.value = parseInt(property.blue);
-                        green.value = parseInt(property.green);
-
-                        red.oninput({
-                            target: red
+                    if (field.className.indexOf("radian") !== -1) {
+                        el.value = property / RADIANS_PER_DEGREE;
+                        el.onchange({
+                            target: el
                         });
-                    } else if (field.className.indexOf("xyz") !== -1) {
-                        var x = document.getElementById(value + "-x");
-                        var y = document.getElementById(value + "-y");
-                        var z = document.getElementById(value + "-z");
+                    } else if (field.className.indexOf("range") !== -1 || field.className.indexOf("texture") !== -1) {
+                        el.value = property;
+                        el.onchange({
+                            target: el
+                        });
+                    } else if (field.className.indexOf("checkbox") !== -1) {
+                        if (property) {
+                            el.setAttribute("checked", property);
+                        } else {
+                            el.removeAttribute("checked");
+                        }
+                    } else if (field.className.indexOf("vector-section") !== -1) {
+                        if (field.className.indexOf("rgb") !== -1) {
+                            var red = document.getElementById(value + "-red");
+                            var blue = document.getElementById(value + "-blue");
+                            var green = document.getElementById(value + "-green");
+                            red.value = parseInt(property.red);
+                            blue.value = parseInt(property.blue);
+                            green.value = parseInt(property.green);
 
-                        x.value = roundFloat(property.x, 100);
-                        y.value = roundFloat(property.y, 100);
-                        z.value = roundFloat(property.z, 100);
-                    } else if (field.className.indexOf("pyr") !== -1) {
-                        var pitch = document.getElementById(value + "-Pitch");
-                        var yaw = document.getElementById(value + "-Yaw");
-                        var roll = document.getElementById(value + "-Roll");
+                            red.oninput({
+                                target: red
+                            });
+                        } else if (field.className.indexOf("xyz") !== -1) {
+                            var x = document.getElementById(value + "-x");
+                            var y = document.getElementById(value + "-y");
+                            var z = document.getElementById(value + "-z");
 
-                        pitch.value = roundFloat(property.x, 100);
-                        yaw.value = roundFloat(property.y, 100);
-                        roll.value = roundFloat(property.z, 100);
+                            x.value = roundFloat(property.x, 100);
+                            y.value = roundFloat(property.y, 100);
+                            z.value = roundFloat(property.z, 100);
+                        } else if (field.className.indexOf("pyr") !== -1) {
+                            var pitch = document.getElementById(value + "-Pitch");
+                            var yaw = document.getElementById(value + "-Yaw");
+                            var roll = document.getElementById(value + "-Roll");
 
+                            pitch.value = roundFloat(property.x, 100);
+                            yaw.value = roundFloat(property.y, 100);
+                            roll.value = roundFloat(property.z, 100);
+
+                        }
                     }
                 }
             }
         }
     },
-    connect: function(EventBridge) {
+    connect: function (EventBridge) {
         this.EventBridge = EventBridge;
 
         var self = this;
@@ -225,7 +236,7 @@ HifiEntityUI.prototype = {
             messageType: 'page_loaded'
         }));
 
-        EventBridge.scriptEventReceived.connect(function(data) {
+        EventBridge.scriptEventReceived.connect(function (data) {
             data = JSON.parse(data);
 
             if (data.messageType === 'particle_settings') {
@@ -238,16 +249,16 @@ HifiEntityUI.prototype = {
             }
         });
     },
-    build: function() {
+    build: function () {
         var self = this;
         var sections = Object.keys(this.structure);
         this.builtRows = {};
-        sections.forEach(function(section, index) {
+        sections.forEach(function (section, index) {
             var properties = self.structure[section];
             self.addSection(self.parent, section, properties, index);
         });
     },
-    addSection: function(parent, section, properties, index) {
+    addSection: function (parent, section, properties, index) {
         var self = this;
 
         var sectionDivHeader = document.createElement("div");
@@ -272,37 +283,33 @@ HifiEntityUI.prototype = {
         animationWrapper.className = "section-wrap";
 
         for (var property in properties) {
-
-            var builtRow = self.addElement(animationWrapper, properties[property]);
-            var id = properties[property].id;
-            if (id) {
-                self.builtRows[id] = builtRow;
+            if (properties.hasOwnProperty[property]) {
+                var builtRow = self.addElement(animationWrapper, properties[property]);
+                var id = properties[property].id;
+                if (id) {
+                    self.builtRows[id] = builtRow;
+                }
             }
         }
         sectionDivBody.appendChild(animationWrapper);
         parent.appendChild(sectionDivBody);
-        _.defer(function() {
+        _.defer(function () {
             var height = (animationWrapper.clientHeight) + "px";
             if (collapsed) {
-                sectionDivBody.className = sectionDivBody.className
-                    .replace("visible", "")
-                    .replace(/\s{2,}/g, " ");
-
+                sectionDivBody.classList.remove("visible");
                 sectionDivBody.style.maxHeight = "0px";
             } else {
-                sectionDivBody.className += " visible";
+                sectionDivBody.classList.add("visible");
                 sectionDivBody.style.maxHeight = height;
             }
 
-            sectionDivHeader.onclick = function() {
+            sectionDivHeader.onclick = function () {
                 collapsed = !collapsed;
                 if (collapsed) {
-                    sectionDivBody.className = sectionDivBody.className
-                        .replace("visible", "")
-                        .replace(/\s{2,}/g, " ");
+                    sectionDivBody.classList.remove("visible");
                     sectionDivBody.style.maxHeight = "0px";
                 } else {
-                    sectionDivBody.className += " visible";
+                    sectionDivBody.classList.add("visible");
                     sectionDivBody.style.maxHeight = (animationWrapper.clientHeight) + "px";
                 }
                 // sectionDivBody.style.display = collapsed ? "none": "block";
@@ -311,7 +318,7 @@ HifiEntityUI.prototype = {
             };
         });
     },
-    addLabel: function(parent, group) {
+    addLabel: function (parent, group) {
         var label = document.createElement("label");
         label.innerHTML = group.name;
         parent.appendChild(label);
@@ -323,10 +330,10 @@ HifiEntityUI.prototype = {
         }
         return label;
     },
-    addVector: function(parent, group, labels, domArray) {
+    addVector: function (parent, group, labels, domArray) {
         var self = this;
         var inputs = labels ? labels : ["x", "y", "z"];
-        domArray = domArray ? domArray: [];
+        domArray = domArray ? domArray : [];
         parent.id = group.id;
         for (var index in inputs) {
             var element = document.createElement("input");
@@ -349,7 +356,7 @@ HifiEntityUI.prototype = {
             if (group.oninput) {
                 element.oninput = group.oninput;
             } else {
-                element.oninput = function(event) {
+                element.oninput = function (event) {
                     self.webBridgeSync(group.id, {
                         x: domArray[0].value,
                         y: domArray[1].value,
@@ -364,7 +371,8 @@ HifiEntityUI.prototype = {
         this.addLabel(parent, group);
         var className = "";
         for (var i = 0; i < inputs.length; i++) {
-            className += inputs[i].charAt(0).toLowerCase();
+            className += inputs[i].charAt(0)
+                .toLowerCase();
         }
         parent.className += " property vector-section " + className;
 
@@ -383,16 +391,16 @@ HifiEntityUI.prototype = {
         }
         parent.appendChild(tupleContainer);
     },
-    addVectorQuaternion: function(parent, group) {
+    addVectorQuaternion: function (parent, group) {
         this.addVector(parent, group, ["Pitch", "Yaw", "Roll"]);
     },
-    addColorPicker: function(parent, group) {
+    addColorPicker: function (parent, group) {
         var self = this;
         var $colPickContainer = $('<div>', {
             id: group.id,
             class: "color-picker"
         });
-        var updateColors = function(red, green, blue) {
+        var updateColors = function (red, green, blue) {
             $colPickContainer.css('background-color', "rgb(" +
                 red + "," +
                 green + "," +
@@ -401,7 +409,7 @@ HifiEntityUI.prototype = {
 
         var inputs = ["red", "green", "blue"];
         var domArray = [];
-        group.oninput = function(event) {
+        group.oninput = function (event) {
             $colPickContainer.colpickSetColor(
                 {
                     r: domArray[0].value,
@@ -435,7 +443,7 @@ HifiEntityUI.prototype = {
                 g: domArray[1].value,
                 b: domArray[2].value
             },
-            onChange: function(hsb, hex, rgb, el) {
+            onChange: function (hsb, hex, rgb, el) {
                 updateColors(rgb.r, rgb.g, rgb.b);
 
                 domArray[0].value = rgb.r;
@@ -447,9 +455,11 @@ HifiEntityUI.prototype = {
                     blue: rgb.b
                 });
             },
-            onSubmit: function(hsb, hex, rgb, el) {
-                $(el).css('background-color', '#' + hex);
-                $(el).colpickHide();
+            onSubmit: function (hsb, hex, rgb, el) {
+                $(el)
+                    .css('background-color', '#' + hex);
+                $(el)
+                    .colpickHide();
                 domArray[0].value = rgb.r;
                 domArray[1].value = rgb.g;
                 domArray[2].value = rgb.b;
@@ -461,7 +471,7 @@ HifiEntityUI.prototype = {
             }
         });
     },
-    addTextureField: function(parent, group) {
+    addTextureField: function (parent, group) {
         var self = this;
         this.addLabel(parent, group);
         parent.className += " property texture";
@@ -471,20 +481,21 @@ HifiEntityUI.prototype = {
         textureUrl.id = group.id;
         textureImage.className = "texture-image no-texture";
         var image = document.createElement("img");
-        var imageLoad = _.debounce(function(url) {
+        var imageLoad = _.debounce(function (url) {
             if (url.length > 0) {
-                textureImage.className = textureImage.className.replace(' no-texture', ' with-texture');
+                textureImage.classList.remove("no-texture");
+                textureImage.classList.add("with-texture");
                 image.src = url;
                 image.style.display = "block";
             } else {
                 image.src = "";
                 image.style.display = "none";
-                textureImage.className += " no-texture";
+                textureImage.classList.add("no-texture");
             }
             self.webBridgeSync(group.id, url);
         }, 250);
 
-        textureUrl.oninput = function(event) {
+        textureUrl.oninput = function (event) {
             // Add throttle
             var url = event.target.value;
             imageLoad(url);
@@ -494,7 +505,7 @@ HifiEntityUI.prototype = {
         parent.appendChild(textureImage);
         parent.appendChild(textureUrl);
     },
-    addSlider: function(parent, group) {
+    addSlider: function (parent, group) {
         var self = this;
         this.addLabel(parent, group);
         parent.className += " property range";
@@ -518,7 +529,7 @@ HifiEntityUI.prototype = {
             slider.setAttribute("max", group.max !== undefined ? group.max : 10000);
             slider.setAttribute("step", 1);
 
-            inputField.oninput = function(event) {
+            inputField.oninput = function (event) {
 
                 if (parseInt(event.target.value) > parseInt(slider.getAttribute("max")) && group.max !== 1) {
                     slider.setAttribute("max", event.target.value);
@@ -528,7 +539,7 @@ HifiEntityUI.prototype = {
                 self.webBridgeSync(group.id, slider.value);
             };
             inputField.onchange = inputField.oninput;
-            slider.oninput = function(event) {
+            slider.oninput = function (event) {
                 inputField.value = event.target.value;
                 self.webBridgeSync(group.id, slider.value);
             };
@@ -542,20 +553,20 @@ HifiEntityUI.prototype = {
             inputField.setAttribute("min", (group.min !== undefined ? group.min : 0));
             inputField.setAttribute("max", (group.max !== undefined ? group.max : 180));
 
-            inputField.oninput = function(event) {
+            inputField.oninput = function (event) {
                 slider.value = event.target.value;
-                self.webBridgeSync(group.id, slider.value * RADIAN);
+                self.webBridgeSync(group.id, slider.value * RADIANS_PER_DEGREE);
             };
             inputField.onchange = inputField.oninput;
 
             inputField.id = group.id;
-            slider.oninput = function(event) {
+            slider.oninput = function (event) {
                 if (event.target.value > 0) {
                     inputField.value = Math.floor(event.target.value);
                 } else {
                     inputField.value = Math.ceil(event.target.value);
                 }
-                self.webBridgeSync(group.id, slider.value * RADIAN);
+                self.webBridgeSync(group.id, slider.value * RADIANS_PER_DEGREE);
             };
             var degrees = document.createElement("label");
             degrees.innerHTML = "&#176;";
@@ -574,7 +585,7 @@ HifiEntityUI.prototype = {
             slider.setAttribute("max", group.max !== undefined ? group.max : 1);
             slider.setAttribute("step", 0.01);
 
-            inputField.oninput = function(event) {
+            inputField.oninput = function (event) {
                 if (parseFloat(event.target.value) > parseFloat(slider.getAttribute("max")) && group.max !== 1) {
                     slider.setAttribute("max", event.target.value);
                 }
@@ -584,7 +595,7 @@ HifiEntityUI.prototype = {
                 // bind web sock update here.
             };
             inputField.onchange = inputField.oninput;
-            slider.oninput = function(event) {
+            slider.oninput = function (event) {
                 inputField.value = event.target.value;
                 self.webBridgeSync(group.id, inputField.value);
             };
@@ -594,11 +605,11 @@ HifiEntityUI.prototype = {
 
         // UpdateBinding
     },
-    addCheckBox: function(parent, group) {
+    addCheckBox: function (parent, group) {
         var checkBox = document.createElement("input");
         checkBox.setAttribute("type", "checkbox");
         var self = this;
-        checkBox.onchange = function(event) {
+        checkBox.onchange = function (event) {
             self.webBridgeSync(group.id, event.target.checked);
         };
         checkBox.id = group.id;
@@ -607,62 +618,62 @@ HifiEntityUI.prototype = {
         label.setAttribute("for", checkBox.id);
         parent.className += " property checkbox";
     },
-    addElement: function(parent, group) {
+    addElement: function (parent, group) {
         var self = this;
         var property = document.createElement("div");
         property.id = group.id;
 
         var row = document.createElement("div");
         switch (group.type) {
-            case "Button":
-                var button = document.createElement("input");
-                button.setAttribute("type", "button");
-                button.id = group.id;
-                if (group.disabled) {
-                    button.disabled = group.disabled;
-                }
-                button.className = group.class;
-                button.value = group.name;
+        case "Button":
+            var button = document.createElement("input");
+            button.setAttribute("type", "button");
+            button.id = group.id;
+            if (group.disabled) {
+                button.disabled = group.disabled;
+            }
+            button.className = group.class;
+            button.value = group.name;
 
-                button.onclick = group.callback;
-                parent.appendChild(button);
-                break;
-            case "Row":
-                var hr = document.createElement("hr");
-                hr.className = "splitter";
-                if (group.id) {
-                    hr.id = group.id;
-                }
-                parent.appendChild(hr);
-                break;
-            case "Boolean":
-                self.addCheckBox(row, group);
-                parent.appendChild(row);
-                break;
-            case "SliderFloat":
-            case "SliderInteger":
-            case "SliderRadian":
-                self.addSlider(row, group);
-                parent.appendChild(row);
-                break;
-            case "Texture":
-                self.addTextureField(row, group);
-                parent.appendChild(row);
-                break;
-            case "Color":
-                self.addColorPicker(row, group);
-                parent.appendChild(row);
-                break;
-            case "Vector":
-                self.addVector(row, group);
-                parent.appendChild(row);
-                break;
-            case "VectorQuaternion":
-                self.addVectorQuaternion(row, group);
-                parent.appendChild(row);
-                break;
-            default:
-                console.log("not defined");
+            button.onclick = group.callback;
+            parent.appendChild(button);
+            break;
+        case "Row":
+            var hr = document.createElement("hr");
+            hr.className = "splitter";
+            if (group.id) {
+                hr.id = group.id;
+            }
+            parent.appendChild(hr);
+            break;
+        case "Boolean":
+            self.addCheckBox(row, group);
+            parent.appendChild(row);
+            break;
+        case "SliderFloat":
+        case "SliderInteger":
+        case "SliderRadian":
+            self.addSlider(row, group);
+            parent.appendChild(row);
+            break;
+        case "Texture":
+            self.addTextureField(row, group);
+            parent.appendChild(row);
+            break;
+        case "Color":
+            self.addColorPicker(row, group);
+            parent.appendChild(row);
+            break;
+        case "Vector":
+            self.addVector(row, group);
+            parent.appendChild(row);
+            break;
+        case "VectorQuaternion":
+            self.addVectorQuaternion(row, group);
+            parent.appendChild(row);
+            break;
+        default:
+            console.log("not defined");
         }
         return row;
     }
