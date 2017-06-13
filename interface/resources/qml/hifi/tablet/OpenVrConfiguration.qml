@@ -636,6 +636,8 @@ Rectangle {
             trackerConfiguration = "FeetAndHips";
         } else if (feetChecked) {
             trackerConfiguration = "Feet";
+        } else {
+            trackerConfiguration = "None";
         }
 
         if (headPuck) {

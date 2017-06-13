@@ -96,11 +96,15 @@ private:
         void setConfigFromString(const QString& value);
         void loadSettings();
         void saveSettings() const;
+        bool configureHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        bool configureHands(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        bool configureBody(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateLeftHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair);
+        void calibrateRightHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair);
         void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, glm::vec3 headXAxis, glm::vec3 headPosition);
         void calibrateHips(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateChest(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
-        
         void calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
                                 int firstShoulderIndex, int secondShoulderIndex);
         void calibrateHands(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
@@ -141,8 +145,7 @@ private:
             FeetAndHips,
             FeetHipsAndChest,
             FeetHipsAndShoulders,
-            FeetHipsChestAndHead,
-            FeetHipsAndHead,
+            FeetHipsChestAndShoulders,
         };
 
         enum class HeadConfig {
