@@ -113,6 +113,7 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
 
     // first, make sure that this is a packet from a node we are supposed to replicate
     if (node.isReplicated()) {
+
         auto nodeList = DependencyManager::get<NodeList>();
 
         // now make sure it's a packet type that we want to replicate
@@ -133,25 +134,25 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
         std::unique_ptr<NLPacket> packet;
 
         // enumerate the downstream audio mixers and send them the replicated version of this packet
-        nodeList->eachMatchingNode([&](const SharedNodePointer& node)->bool {
-            return node->getType() == NodeType::DownstreamAudioMixer;
-        }, [&](const SharedNodePointer& node) {
-            // construct the packet only once, if we have any downstream audio mixers to send to
-            if (!packet) {
-                // construct an NLPacket to send to the replicant that has the contents of the received packet
-                packet = NLPacket::create(mirroredType);
+        nodeList->unsafeEachNode([&](const SharedNodePointer& node) {
+            if (node->getType() == NodeType::DownstreamAudioMixer) {
+                // construct the packet only once, if we have any downstream audio mixers to send to
+                if (!packet) {
+                    // construct an NLPacket to send to the replicant that has the contents of the received packet
+                    packet = NLPacket::create(mirroredType);
 
-                // since this packet will be non-sourced, we add the replicated node's ID here
-                packet->write(message.getSourceID().toRfc4122());
+                    // since this packet will be non-sourced, we add the replicated node's ID here
+                    packet->write(message.getSourceID().toRfc4122());
 
-                // we won't negotiate an audio format with the replicant, because we aren't a listener
-                // so pack the codec string here so that it can statelessly setup a decoder for this string when it needs
-                packet->writeString(_selectedCodecName);
+                    // we won't negotiate an audio format with the replicant, because we aren't a listener
+                    // so pack the codec string here so that it can statelessly setup a decoder for this string when it needs
+                    packet->writeString(_selectedCodecName);
+
+                    packet->write(message.getMessage());
+                }
                 
-                packet->write(message.getMessage());
+                nodeList->sendUnreliablePacket(*packet, node->getPublicSocket());
             }
-
-            nodeList->sendUnreliablePacket(*packet, node->getPublicSocket());
         });
     }
 

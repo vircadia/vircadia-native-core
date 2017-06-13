@@ -257,6 +257,16 @@ public:
         return SharedNodePointer();
     }
 
+    // This is unsafe because it does not take a lock
+    // Must only be called when you know that a read lock on the node mutex is held
+    // and will be held for the duration of your iteration
+    template<typename NodeLambda>
+    void unsafeEachNode(NodeLambda functor) {
+        for (NodeHash::const_iterator it = _nodeHash.cbegin(); it != _nodeHash.cend(); ++it) {
+            functor(it->second);
+        }
+    }
+
     void putLocalPortIntoSharedMemory(const QString key, QObject* parent, quint16 localPort);
     bool getLocalServerPortFromSharedMemory(const QString key, quint16& localPort);
 
