@@ -22,7 +22,6 @@ QString Audio::DESKTOP { "Desktop" };
 QString Audio::HMD { "VR" };
 
 Setting::Handle<bool> enableNoiseReductionSetting { QStringList { Audio::AUDIO, "NoiseReduction" }, true };
-Setting::Handle<bool> showMicMeterSetting { QStringList { Audio::AUDIO, "MicMeter" }, false };
 
 Audio::Audio() {
     auto client = DependencyManager::get<AudioClient>();
@@ -31,7 +30,6 @@ Audio::Audio() {
     connect(&_devices._inputs, &AudioDeviceList::deviceChanged, this, &Audio::onInputChanged);
 
     enableNoiseReduction(enableNoiseReductionSetting.get());
-    _showMicMeter = showMicMeterSetting.get();
 }
 
 void Audio::setReverb(bool enable) {
@@ -84,18 +82,6 @@ void Audio::enableNoiseReduction(bool enable) {
         enableNoiseReductionSetting.set(enable);
         _enableNoiseReduction = enable;
         emit changedNoiseReduction(enable);
-    }
-}
-
-void Audio::onChangedMicMeter(bool show) {
-    showMicMeter(show);
-}
-
-void Audio::showMicMeter(bool show) {
-    if (_showMicMeter != show) {
-        showMicMeterSetting.set(show);
-        _showMicMeter = show;
-        emit changedMicMeter(show);
     }
 }
 

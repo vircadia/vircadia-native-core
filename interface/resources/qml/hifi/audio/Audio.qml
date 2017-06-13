@@ -59,10 +59,10 @@ Rectangle {
             }
             Audio.CheckBox {
                 text: qsTr("Show audio level meter");
-                checked: Audio.showMicMeter
+                checked: AvatarInputs.showAudioTools
                 onClicked: {
-                    Audio.showMicMeter = checked;
-                    checked = Qt.binding(function() { return Audio.showMicMeter; }); // restore binding
+                    AvatarInputs.showAudioTools = checked;
+                    checked = Qt.binding(function() { return AvatarInputs.showAudioTools }); // restore binding
                 }
             }
         }

@@ -18,8 +18,9 @@
 
 HIFI_QML_DEF(AvatarInputs)
 
-
 static AvatarInputs* INSTANCE{ nullptr };
+
+Setting::Handle<bool> showAudioToolsSetting { QStringList { "AvatarInputs", "showAudioTools" }, false };
 
 AvatarInputs* AvatarInputs::getInstance() {
     if (!INSTANCE) {
@@ -32,6 +33,7 @@ AvatarInputs* AvatarInputs::getInstance() {
 
 AvatarInputs::AvatarInputs(QQuickItem* parent) :  QQuickItem(parent) {
     INSTANCE = this;
+    _showAudioTools = showAudioToolsSetting.get();
 }
 
 #define AI_UPDATE(name, src) \
@@ -111,6 +113,7 @@ void AvatarInputs::setShowAudioTools(bool showAudioTools) {
         return;
 
     _showAudioTools = showAudioTools;
+    showAudioToolsSetting.set(_showAudioTools);
     emit showAudioToolsChanged(_showAudioTools);
 }
 

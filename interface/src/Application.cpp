@@ -1924,16 +1924,7 @@ void Application::initializeUi() {
 
     rootContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
-    {
-        auto ai = AvatarInputs::getInstance();
-        rootContext->setContextProperty("AvatarInputs", ai);
-
-        // hook up audio 
-        auto audio = reinterpret_cast<scripting::Audio*>(DependencyManager::get<AudioScriptingInterface>().data());
-        connect(ai, &AvatarInputs::showAudioToolsChanged, audio, &scripting::Audio::onChangedMicMeter);
-        connect(audio, &scripting::Audio::changedMicMeter, ai, &AvatarInputs::setShowAudioTools);
-        ai->setShowAudioTools(audio->micMeterShown());
-    }
+    rootContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         rootContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
