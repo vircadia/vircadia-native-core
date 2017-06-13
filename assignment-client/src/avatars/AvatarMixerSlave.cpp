@@ -475,6 +475,9 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
             maxAvatarByteArraySize -= NUM_BYTES_RFC4122_UUID;
             maxAvatarByteArraySize -= sizeof(quint16);
 
+            auto sequenceNumberSize = sizeof(agentNodeData->getLastReceivedSequenceNumber());
+            maxAvatarByteArraySize -= sequenceNumberSize;
+
             if (avatarByteArray.size() > maxAvatarByteArraySize) {
                 qCWarning(avatars) << "Replicated avatar data too large for" << otherAvatar->getSessionUUID()
                     << "-" << avatarByteArray.size() << "bytes";
@@ -492,11 +495,21 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
             }
 
             if (avatarByteArray.size() <= maxAvatarByteArraySize) {
+                // increment the number of avatars sent to this reciever
+                nodeData->incrementNumAvatarsSentLastFrame();
+
+                // set the last sent sequence number for this sender on the receiver
+                nodeData->setLastBroadcastSequenceNumber(agentNode->getUUID(),
+                                                         agentNodeData->getLastReceivedSequenceNumber());
+
                 // start a new segment in the packet list for this avatar
                 avatarPacketList->startSegment();
 
+                // write the node's UUID, the size of the replicated avatar data,
+                // the sequence number of the replicated avatar data, and the replicated avatar data
                 numAvatarDataBytes += avatarPacketList->write(agentNode->getUUID().toRfc4122());
-                numAvatarDataBytes += avatarPacketList->writePrimitive((quint16) avatarByteArray.size());
+                numAvatarDataBytes += avatarPacketList->writePrimitive((quint16) (avatarByteArray.size() + sequenceNumberSize));
+                numAvatarDataBytes += avatarPacketList->writePrimitive(agentNodeData->getLastReceivedSequenceNumber());
                 numAvatarDataBytes += avatarPacketList->write(avatarByteArray);
 
                 avatarPacketList->endSegment();
