@@ -76,14 +76,14 @@ void AvatarMixer::handleReplicatedPackets(QSharedPointer<ReceivedMessage> messag
     replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
     replicatedNode->setIsUpstream(true);
 
+    // seek back in the message so the packet handler can start by reading the source ID
+    message->seek(0);
+
     switch (message->getType()) {
         case PacketType::ReplicatedAvatarIdentity:
             handleAvatarIdentityPacket(message, replicatedNode);
             break;
         case PacketType::ReplicatedKillAvatar:
-            // seek back in the message so the kill packet handler can start by reading the source ID
-            message->seek(0);
-
             handleKillAvatarPacket(message, replicatedNode);
             break;
         default:

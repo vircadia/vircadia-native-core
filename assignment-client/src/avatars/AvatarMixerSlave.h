@@ -92,6 +92,7 @@ public:
 
 private:
     int sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
+    int sendReplicatedIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
 
     void broadcastAvatarDataToAgent(const SharedNodePointer& node);
     void broadcastAvatarDataToDownstreamMixer(const SharedNodePointer& node);

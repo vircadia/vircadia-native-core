@@ -65,18 +65,31 @@ void AvatarMixerSlave::processIncomingPackets(const SharedNodePointer& node) {
     _stats.processIncomingPacketsElapsedTime += (end - start);
 }
 
-
 int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
     if (destinationNode->getType() == NodeType::DownstreamAvatarMixer || !destinationNode->isUpstream()) {
         QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
         individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
-        auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
+        auto identityPackets = NLPacketList::create(PacketType::ReplicatedAvatarIdentity, QByteArray(), true, true);
         identityPackets->write(individualData);
         DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
         _stats.numIdentityPackets++;
         return individualData.size();
     } else {
-        return -1;
+        return 0;
+    }
+}
+
+int AvatarMixerSlave::sendReplicatedIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
+    if (destinationNode->getType() == NodeType::DownstreamAvatarMixer || !destinationNode->isUpstream()) {
+        QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
+        individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
+        auto identityPackets = NLPacketList::create(PacketType::ReplicatedAvatarIdentity, QByteArray(), true, true);
+        identityPackets->write(individualData);
+        DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
+        _stats.numIdentityPackets++;
+        return individualData.size();
+    } else {
+        return 0;
     }
 }
 
@@ -464,7 +477,7 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
             if (lastBroadcastTime <= agentNodeData->getIdentityChangeTimestamp()
                 || (start - lastBroadcastTime) >= REBROADCAST_IDENTITY_TO_DOWNSTREAM_EVERY_US) {
                 qDebug() << "Sending identity packet for " << agentNode->getUUID() << " to " << node->getUUID();
-                sendIdentityPacket(agentNodeData, node);
+                sendReplicatedIdentityPacket(agentNodeData, node);
                 nodeData->setLastBroadcastTime(agentNode->getUUID(), start);
             }
 
