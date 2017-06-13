@@ -42,7 +42,7 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::DomainServerRemovedNode << PacketType::UsernameFromIDReply << PacketType::OctreeFileReplacement
     << PacketType::ReplicatedMicrophoneAudioNoEcho << PacketType::ReplicatedMicrophoneAudioWithEcho
     << PacketType::ReplicatedInjectAudio << PacketType::ReplicatedSilentAudioFrame
-    << PacketType::ReplicatedAvatarIdentity << PacketType::ReplicatedAvatarData << PacketType::ReplicatedKillAvatar;
+    << PacketType::ReplicatedAvatarIdentity << PacketType::ReplicatedKillAvatar;
 
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {

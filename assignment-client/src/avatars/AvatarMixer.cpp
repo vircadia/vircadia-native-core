@@ -56,7 +56,6 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
 
     packetReceiver.registerListenerForTypes({
         PacketType::ReplicatedAvatarIdentity,
-        PacketType::ReplicatedAvatarData,
         PacketType::ReplicatedKillAvatar
     }, this, "handleReplicatedPackets");
 
@@ -76,13 +75,13 @@ void AvatarMixer::handleReplicatedPackets(QSharedPointer<ReceivedMessage> messag
     replicatedNode->setIsUpstream(true);
 
     switch (message->getType()) {
-        case PacketType::ReplicatedAvatarData:
-            queueIncomingPacket(message, replicatedNode);
-            break;
         case PacketType::ReplicatedAvatarIdentity:
             handleAvatarIdentityPacket(message, replicatedNode);
             break;
         case PacketType::ReplicatedKillAvatar:
+            // seek back in the message so the kill packet handler can start by reading the source ID
+            message->seek(0);
+
             handleKillAvatarPacket(message, replicatedNode);
             break;
         default:
@@ -94,22 +93,9 @@ void AvatarMixer::handleReplicatedPackets(QSharedPointer<ReceivedMessage> messag
 
 void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node& node) {
     // first, make sure that this is a packet from a node we are supposed to replicate
-    if (node.isReplicated()) {
-        // now make sure it's a packet type that we want to replicate
-        PacketType replicatedType;
-        switch (message.getType()) {
-            case PacketType::AvatarData:
-                replicatedType = PacketType::ReplicatedAvatarData;
-                break;
-            case PacketType::AvatarIdentity:
-                replicatedType = PacketType::ReplicatedAvatarIdentity;
-                break;
-            case PacketType::KillAvatar:
-                replicatedType = PacketType::ReplicatedKillAvatar;
-                break;
-            default:
-                return;
-        }
+    if (node.isReplicated()
+        && (message.getType() == PacketType::KillAvatar || message.getType() == PacketType::ReplicatedKillAvatar)) {
+        PacketType replicatedType = PacketType::ReplicatedKillAvatar;
 
         std::unique_ptr<NLPacket> packet;
 
@@ -119,18 +105,7 @@ void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node
         }, [&](const SharedNodePointer& node) {
             if (!packet) {
                 // construct an NLPacket to send to the replicant that has the contents of the received packet
-                auto packetSize = message.getSize();
-
-                if (replicatedType != PacketType::ReplicatedKillAvatar) {
-                    packetSize += NUM_BYTES_RFC4122_UUID;
-                }
-
-                packet = NLPacket::create(replicatedType, packetSize);
-
-                if (replicatedType != PacketType::ReplicatedKillAvatar) {
-                    packet->write(message.getSourceID().toRfc4122());
-                }
-
+                packet = NLPacket::create(replicatedType, message.getSize());
                 packet->write(message.getMessage());
             }
 
@@ -144,8 +119,6 @@ void AvatarMixer::queueIncomingPacket(QSharedPointer<ReceivedMessage> message, S
     getOrCreateClientData(node)->queuePacket(message, node);
     auto end = usecTimestampNow();
     _queueIncomingPacketElapsedTime += (end - start);
-
-    optionallyReplicatePacket(*message, *node);
 }
 
 
@@ -504,13 +477,6 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
         AvatarMixerClientData* nodeData = dynamic_cast<AvatarMixerClientData*>(senderNode->getLinkedData());
         if (nodeData != nullptr) {
             AvatarData& avatar = nodeData->getAvatar();
-
-            auto data = message->getMessage();
-
-            if (message->getType() == PacketType::ReplicatedAvatarData) {
-                data = data.mid(NUM_BYTES_RFC4122_UUID);
-            }
-
 
             // parse the identity packet and update the change timestamp if appropriate
             AvatarData::Identity identity;

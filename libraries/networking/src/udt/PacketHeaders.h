@@ -120,7 +120,6 @@ public:
         ReplicatedInjectAudio,
         ReplicatedSilentAudioFrame,
         ReplicatedAvatarIdentity,
-        ReplicatedAvatarData,
         ReplicatedKillAvatar,
 
         NUM_PACKET_TYPE
