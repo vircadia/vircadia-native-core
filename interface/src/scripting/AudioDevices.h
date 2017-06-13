@@ -1,5 +1,5 @@
 //
-//  AudioDeviceScriptingInterface.h
+//  AudioDevices.h
 //  interface/src/scripting
 //
 //  Created by Zach Pomerantz on 28/5/2017.
