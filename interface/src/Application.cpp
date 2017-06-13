@@ -743,7 +743,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
     connect(this, &Application::activeDisplayPluginChanged,
-        reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onChangedContext);
+        reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
 
     ResourceManager::init();
     // Make sure we don't time out during slow operations at startup

@@ -23,45 +23,12 @@ QString Audio::HMD { "VR" };
 
 Setting::Handle<bool> enableNoiseReductionSetting { QStringList { Audio::AUDIO, "NoiseReduction" }, true };
 
-Audio::Audio() {
+Audio::Audio() : _devices(_contextIsHMD) {
     auto client = DependencyManager::get<AudioClient>();
-    connect(client.data(), &AudioClient::muteToggled, this, &Audio::onChangedMuted);
-
+    connect(client.data(), &AudioClient::muteToggled, this, &Audio::onMutedChanged);
+    connect(this, &Audio::contextChanged, &_devices, &AudioDevices::onContextChanged);
     connect(&_devices._inputs, &AudioDeviceList::deviceChanged, this, &Audio::onInputChanged);
-
     enableNoiseReduction(enableNoiseReductionSetting.get());
-}
-
-void Audio::setReverb(bool enable) {
-    DependencyManager::get<AudioClient>()->setReverb(enable);
-}
-
-void Audio::setReverbOptions(const AudioEffectOptions* options) {
-    DependencyManager::get<AudioClient>()->setReverbOptions(options);
-}
-
-void Audio::onChangedContext() {
-    bool isHMD = qApp->isHMDMode();
-    if (_contextIsHMD != isHMD) {
-        _contextIsHMD = isHMD;
-        _devices.restoreDevices(_contextIsHMD);
-        emit changedContext(getContext());
-    }
-}
-
-QString Audio::getContext() const {
-     return _contextIsHMD ? Audio::HMD : Audio::DESKTOP;
-}
-
-void Audio::onChangedMuted() {
-    auto client = DependencyManager::get<AudioClient>().data();
-    bool isMuted;
-    QMetaObject::invokeMethod(client, "isMuted", Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, isMuted));
-
-    if (_isMuted != isMuted) {
-        _isMuted = isMuted;
-        emit changedMuted(_isMuted);
-    }
 }
 
 void Audio::setMuted(bool isMuted) {
@@ -70,7 +37,18 @@ void Audio::setMuted(bool isMuted) {
         QMetaObject::invokeMethod(client, "toggleMute", Qt::BlockingQueuedConnection);
 
         _isMuted = isMuted;
-        emit changedMuted(_isMuted);
+        emit mutedChanged(_isMuted);
+    }
+}
+
+void Audio::onMutedChanged() {
+    auto client = DependencyManager::get<AudioClient>().data();
+    bool isMuted;
+    QMetaObject::invokeMethod(client, "isMuted", Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, isMuted));
+
+    if (_isMuted != isMuted) {
+        _isMuted = isMuted;
+        emit mutedChanged(_isMuted);
     }
 }
 
@@ -81,7 +59,7 @@ void Audio::enableNoiseReduction(bool enable) {
 
         enableNoiseReductionSetting.set(enable);
         _enableNoiseReduction = enable;
-        emit changedNoiseReduction(enable);
+        emit noiseReductionChanged(enable);
     }
 }
 
@@ -94,10 +72,11 @@ void Audio::setInputVolume(float volume) {
         QMetaObject::invokeMethod(client, "setInputVolume", Qt::BlockingQueuedConnection, Q_ARG(float, volume));
 
         _inputVolume = volume;
-        emit changedInputVolume(_inputVolume);
+        emit inputVolumeChanged(_inputVolume);
     }
 }
 
+// different audio input devices may have different volumes
 void Audio::onInputChanged() {
     auto client = DependencyManager::get<AudioClient>().data();
     float volume;
@@ -105,6 +84,26 @@ void Audio::onInputChanged() {
 
     if (_inputVolume != volume) {
         _inputVolume = volume;
-        emit changedInputVolume(_inputVolume);
+        emit inputVolumeChanged(_inputVolume);
     }
+}
+
+QString Audio::getContext() const {
+     return _contextIsHMD ? Audio::HMD : Audio::DESKTOP;
+}
+
+void Audio::onContextChanged() {
+    bool isHMD = qApp->isHMDMode();
+    if (_contextIsHMD != isHMD) {
+        _contextIsHMD = isHMD;
+        emit contextChanged(getContext());
+    }
+}
+
+void Audio::setReverb(bool enable) {
+    DependencyManager::get<AudioClient>()->setReverb(enable);
+}
+
+void Audio::setReverbOptions(const AudioEffectOptions* options) {
+    DependencyManager::get<AudioClient>()->setReverbOptions(options);
 }

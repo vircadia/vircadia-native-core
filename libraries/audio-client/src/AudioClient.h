@@ -189,7 +189,9 @@ public slots:
 
     bool shouldLoopbackInjectors() override { return _shouldEchoToServer; }
 
-    bool switchAudioDevice(QAudio::Mode mode, const QAudioDeviceInfo& deviceInfo);
+    // calling with a null QAudioDevice will use the system default
+    bool switchAudioDevice(QAudio::Mode mode, const QAudioDeviceInfo& deviceInfo = QAudioDeviceInfo());
+    bool switchAudioDevice(QAudio::Mode mode, const QString& deviceName);
 
     float getInputVolume() const { return (_audioInput) ? (float)_audioInput->volume() : 0.0f; }
     void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }

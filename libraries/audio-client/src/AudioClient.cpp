@@ -832,11 +832,21 @@ void AudioClient::selectAudioFormat(const QString& selectedCodecName) {
 }
    
 bool AudioClient::switchAudioDevice(QAudio::Mode mode, const QAudioDeviceInfo& deviceInfo) {
-    if (mode == QAudio::AudioInput) {
-        return switchInputToAudioDevice(deviceInfo);
-    } else { // if (mode == QAudio::AudioOutput)
-        return switchOutputToAudioDevice(deviceInfo);
+    auto device = deviceInfo;
+
+    if (device.isNull()) {
+        device = defaultAudioDeviceForMode(mode);
     }
+
+    if (mode == QAudio::AudioInput) {
+        return switchInputToAudioDevice(device);
+    } else { // if (mode == QAudio::AudioOutput)
+        return switchOutputToAudioDevice(device);
+    }
+}
+
+bool AudioClient::switchAudioDevice(QAudio::Mode mode, const QString& deviceName) {
+    return switchAudioDevice(mode, getNamedAudioDeviceForMode(mode, deviceName));
 }
 
 void AudioClient::configureReverb() {

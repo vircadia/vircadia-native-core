@@ -23,10 +23,10 @@ class Audio : public AudioScriptingInterface {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
-    Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY changedMuted)
-    Q_PROPERTY(bool noiseReduction READ noiseReductionEnabled WRITE enableNoiseReduction NOTIFY changedNoiseReduction)
-    Q_PROPERTY(float inputVolume READ getInputVolume WRITE setInputVolume NOTIFY changedInputVolume)
-    Q_PROPERTY(QString context READ getContext NOTIFY changedContext)
+    Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY mutedChanged)
+    Q_PROPERTY(bool noiseReduction READ noiseReductionEnabled WRITE enableNoiseReduction NOTIFY noiseReductionChanged)
+    Q_PROPERTY(float inputVolume READ getInputVolume WRITE setInputVolume NOTIFY inputVolumeChanged)
+    Q_PROPERTY(QString context READ getContext NOTIFY contextChanged)
     Q_PROPERTY(AudioDevices* devices READ getDevices NOTIFY nop)
 
 public:
@@ -51,17 +51,18 @@ public:
 
 signals:
     void nop();
-    void changedMuted(bool);
-    void changedNoiseReduction(bool);
-    void changedInputVolume(float);
-    void changedContext(QString);
+    void mutedChanged(bool isMuted);
+    void noiseReductionChanged(bool isEnabled);
+    void inputVolumeChanged(float volume);
+    void contextChanged(const QString& context);
 
 public slots:
-    void onChangedMuted();
-    void onChangedContext();
+    void onMutedChanged();
+    void onContextChanged();
     void onInputChanged();
 
 protected:
+    // Audio must live on a separate thread from AudioClient to avoid deadlocks
     Audio();
 
 private:
