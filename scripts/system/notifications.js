@@ -26,7 +26,7 @@
 //
 //  1. Set the Event Connector at the bottom of the script.
 //  example:
-//  AudioDevice.muteToggled.connect(onMuteStateChanged);
+//  Audio.mutedChanged.connect(onMuteStateChanged);
 //
 //  2. Create a new function to produce a text string, do not include new line returns.
 //  example:
@@ -34,7 +34,7 @@
 //     var muteState,
 //         muteString;
 //
-//     muteState = AudioDevice.getMuted() ? "muted" : "unmuted";
+//     muteState = Audio.muted ? "muted" : "unmuted";
 //     muteString = "Microphone is now " + muteState;
 //     createNotification(muteString, NotificationType.MUTE_TOGGLE);
 //  }
