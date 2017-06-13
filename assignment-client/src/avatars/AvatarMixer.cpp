@@ -126,12 +126,14 @@ AvatarMixer::~AvatarMixer() {
 }
 
 void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
-    QByteArray individualData = nodeData->getAvatar().identityByteArray();
-    individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122());
-    auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
-    identityPackets->write(individualData);
-    DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
-    ++_sumIdentityPackets;
+    if (destinationNode->getType() == NodeType::DownstreamAvatarMixer || !destinationNode->isUpstream()) {
+        QByteArray individualData = nodeData->getAvatar().identityByteArray();
+        individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122());
+        auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
+        identityPackets->write(individualData);
+        DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
+        ++_sumIdentityPackets;
+    }
 }
 
 std::chrono::microseconds AvatarMixer::timeFrame(p_high_resolution_clock::time_point& timestamp) {

@@ -67,13 +67,17 @@ void AvatarMixerSlave::processIncomingPackets(const SharedNodePointer& node) {
 
 
 int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
-    QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
-    individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
-    auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
-    identityPackets->write(individualData);
-    DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
-    _stats.numIdentityPackets++;
-    return individualData.size();
+    if (destinationNode->getType() == NodeType::DownstreamAvatarMixer || !destinationNode->isUpstream()) {
+        QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
+        individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
+        auto identityPackets = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
+        identityPackets->write(individualData);
+        DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPackets), *destinationNode);
+        _stats.numIdentityPackets++;
+        return individualData.size();
+    } else {
+        return -1;
+    }
 }
 
 static const int AVATAR_MIXER_BROADCAST_FRAMES_PER_SECOND = 45;
