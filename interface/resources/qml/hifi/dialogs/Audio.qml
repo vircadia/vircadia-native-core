@@ -18,9 +18,9 @@ ScrollingWindow {
     height: 577
     minSize: Qt.vector2d(400, 500)
 
+    Audio { id: audioDialog; width: audio.width }
+
     id: audio
     objectName: "AudioDialog"
-    title: "Audio Settings - " + Audio.context
-
-    Audio { width: audio.width }
+    title: audioDialog.title
 }
