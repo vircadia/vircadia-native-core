@@ -52,45 +52,9 @@ void ConsoleScriptingInterface::error(QString message) {
 
 void ConsoleScriptingInterface::exception(QString message) {
     if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
-        scriptEngine->logConsoleException(message);
+        scriptEngine->scriptErrorMessage(message);
     }
-    
 }
-
-bool ConsoleScriptingInterface:: hasCorrectSyntax(QScriptProgram& program) {
-    const auto syntaxCheck = QScriptEngine::checkSyntax(program.sourceCode());
-    if (syntaxCheck.state() != QScriptSyntaxCheckResult::Valid) {
-        const auto error = syntaxCheck.errorMessage();
-        const auto line = QString::number(syntaxCheck.errorLineNumber());
-        const auto column = QString::number(syntaxCheck.errorColumnNumber());
-        const auto message = QString("[SyntaxError] %1 in %2:%3(%4)").arg(error, program.fileName(), line, column);
-        qCritical() << qPrintable(message);
-        return false;
-    }
-    return true;
-}
-
-QString ConsoleScriptingInterface::hadUncaughtExceptions(QScriptEngine& engine, QString& fileName) {
-    log("4");
-    //if (engine.hasUncaughtException()) {
-        const auto backtrace = engine.uncaughtExceptionBacktrace();
-        const auto exception = engine.uncaughtException().toString();
-        const auto line = QString::number(engine.uncaughtExceptionLineNumber());
-        engine.clearExceptions();
-        log("5");
-        static const QString SCRIPT_EXCEPTION_FORMAT = "[UncaughtException] %1 in %2:%3";
-        auto message = QString(SCRIPT_EXCEPTION_FORMAT).arg(exception, fileName, line);
-        if (!backtrace.empty()) {
-            static const auto lineSeparator = "\n    ";
-            message += QString("\n[Backtrace]%1%2").arg(lineSeparator, backtrace.join(lineSeparator));
-        }
-        // qCritical() << qPrintable(message);
-        log("6");
-        return message;
-    //}
-    //return false;
-}
-
 
 void  ConsoleScriptingInterface::time(QString labelName) {
     QDateTime _currentTime = QDateTime::currentDateTime().toUTC();
@@ -106,10 +70,8 @@ void ConsoleScriptingInterface::timeEnd(QString labelName) {
 
     //Check if not exist items in list
     if (!_labelInList) {
-        if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
-            message = "No such label found " + labelName;
-            scriptEngine->scriptErrorMessage(message);
-        }
+        message = "No such label found " + labelName;
+        error(message);
         return;
     }
 
@@ -123,14 +85,10 @@ void ConsoleScriptingInterface::timeEnd(QString labelName) {
     if (_dateTimeOfLabel.toString(TIME_FORMAT) == _currentDateTimeValue.toString(TIME_FORMAT)) {
         millisecondsDiff = _dateTimeOfLabel.msecsTo(_currentDateTimeValue);
         message = QString::number(millisecondsDiff) + " ms";
-    }
-    else {
+    } else {
         message = secondsToString(_dateTimeOfLabel.secsTo(_currentDateTimeValue));
     }
-
-    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
-        scriptEngine->scriptPrintedMessage("Time : " + message);
-    }
+    log("Time : " + message);
 }
 
 QString ConsoleScriptingInterface::secondsToString(qint64 seconds)
@@ -147,24 +105,24 @@ void  ConsoleScriptingInterface::asserts(bool condition, QString message) {
         QString assertFailed = "Assertion failed";
         if (message.isEmpty()) {
             message = assertFailed;
-        }
-        else {
-            if (typeid(message) != typeid(QString)) {
+        } else {
+            QString inputType = typeid(message).name();
+            if (!inputType.compare("QString")) {
                 message = assertFailed;
-            }
-            else {
+            } else {
                 message = assertFailed + " " + message;
             }
         }
-        if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
-            scriptEngine->scriptErrorMessage(message);
-        }
+        error(message);
     }
 }
 
-void  ConsoleScriptingInterface::trace() {    
-    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
-        scriptEngine->logTraceException();
+void  ConsoleScriptingInterface::trace() {
+    const auto lineSeparator = "\n    ";
+    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {        
+        QStringList backtrace = scriptEngine->currentContext()->backtrace();                
+        auto message = QString("\n[Backtrace]%1%2").arg(lineSeparator, backtrace.join(lineSeparator));
+        scriptEngine->scriptPrintedMessage(message);
     }
 }
 

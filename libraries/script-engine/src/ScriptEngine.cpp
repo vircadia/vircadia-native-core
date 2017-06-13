@@ -145,17 +145,6 @@ QString encodeEntityIdIntoEntityUrl(const QString& url, const QString& entityID)
     return url + " [EntityID:" + entityID + "]";
 }
 
-void ScriptEngine::logConsoleException(QString message) {
-    this->raiseConsoleException(this->makeError(message));
-}
-
-QString ScriptEngine::logTraceException() {
-    QScriptValue value = this->raiseConsoleTraceException(this->makeError(""));
-    auto trace = formatTrace(value, _enableExtendedJSExceptions.get());
-    scriptInfoMessage(trace);
-    return trace;
-}
-
 QString ScriptEngine::logException(const QScriptValue& exception) {
     auto message = formatException(exception, _enableExtendedJSExceptions.get());
     scriptErrorMessage(message);

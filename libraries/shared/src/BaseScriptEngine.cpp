@@ -22,7 +22,6 @@
 #include "Profile.h"
 
 const QString BaseScriptEngine::SCRIPT_EXCEPTION_FORMAT { "[%0] %1 in %2:%3" };
-const QString BaseScriptEngine::SCRIPT_TRACE_FORMAT{ "[%0] %1" };
 const QString BaseScriptEngine::SCRIPT_BACKTRACE_SEP { "\n    " };
 
 bool BaseScriptEngine::IS_THREADSAFE_INVOCATION(const QThread *thread, const QString& method) {
@@ -160,7 +159,7 @@ QScriptValue BaseScriptEngine::cloneUncaughtException(const QString& extraDetail
 #endif
     return err;
 }
- 
+
 QString BaseScriptEngine::formatException(const QScriptValue& exception, bool includeExtendedDetails) {
     if (!IS_THREADSAFE_INVOCATION(thread(), __FUNCTION__)) {
         return QString();
@@ -193,27 +192,6 @@ QString BaseScriptEngine::formatException(const QScriptValue& exception, bool in
     return result;
 }
 
-QString BaseScriptEngine::formatTrace(const QScriptValue& value, bool includeExtendedDetails) {
-    if (!IS_THREADSAFE_INVOCATION(thread(), __FUNCTION__)) {
-        return QString();
-    }
-    QString note{ "TRACE" };
-    QString result;
-
-    if (!value.isObject()) {
-        return result;
-    }
-    const auto fileName = value.property("fileName").toString();
-    const auto lineNumber = value.property("lineNumber").toString();
-    const auto stacktrace = value.property("stack").toString();
-    
-    result = QString(SCRIPT_TRACE_FORMAT).arg(fileName, lineNumber);
-    if (!stacktrace.isEmpty()) {
-        result += QString("\n[Trace]%1%2").arg(SCRIPT_BACKTRACE_SEP).arg(stacktrace);
-    }
-    return result;
-}
-
 bool BaseScriptEngine::raiseException(const QScriptValue& exception) {
     if (!IS_THREADSAFE_INVOCATION(thread(), __FUNCTION__)) {
         return false;
@@ -228,18 +206,6 @@ bool BaseScriptEngine::raiseException(const QScriptValue& exception) {
         emit unhandledException(makeError(exception));
     }
     return false;
-}
-
-void BaseScriptEngine::raiseConsoleException(const QScriptValue& exception) {
-    if (currentContext()) {
-        currentContext()->throwValue(makeError(exception));
-    }
-}
-
-QScriptValue BaseScriptEngine::raiseConsoleTraceException(const QScriptValue& exception) {
-    if (currentContext()) {
-        return currentContext()->throwValue(makeError(exception));
-    }
 }
 
 bool BaseScriptEngine::maybeEmitUncaughtException(const QString& debugHint) {
