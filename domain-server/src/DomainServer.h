@@ -163,7 +163,7 @@ private:
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
 
-    bool DomainServer::shouldReplicateNode(const Node& node);
+    bool shouldReplicateNode(const Node& node);
 
     void setupGroupCacheRefresh();
 
