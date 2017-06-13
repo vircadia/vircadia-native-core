@@ -51,8 +51,16 @@ extern void initDeferredPipelines(render::ShapePlumber& plumber);
 
 void RenderDeferredTask::configure(const Config& config)
 {
-    DependencyManager::get<FadeEffect>()->setDebugEnabled(config.debugFade);
-    DependencyManager::get<FadeEffect>()->setDebugFadePercent(config.debugFadePercent);
+    const float SCALE_MIN = 0.01f;
+    const float SCALE_MAX = 5.f;
+
+    auto fadeEffect = DependencyManager::get<FadeEffect>();
+    float scale = SCALE_MIN + (SCALE_MAX - SCALE_MIN)*config.fadeScale*config.fadeScale*config.fadeScale;
+
+    fadeEffect->setScale(scale);
+    fadeEffect->setDuration(config.fadeDuration);
+    fadeEffect->setDebugEnabled(config.debugFade);
+    fadeEffect->setDebugFadePercent(config.debugFadePercent);
 }
 
 void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {

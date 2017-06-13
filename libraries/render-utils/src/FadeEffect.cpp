@@ -7,8 +7,10 @@
 #include <render/ShapePipeline.h>
 
 FadeEffect::FadeEffect() :
-	_isDebugEnabled{ false },
-	_debugFadePercent{ 0.f }
+    _invScale{ 1.f },
+    _duration{ 3.f },
+    _debugFadePercent{ 0.f },
+	_isDebugEnabled{ false }
 {
 	auto texturePath = PathUtils::resourcesPath() + "images/fadeMask.png";
 	_fadeMaskMap = DependencyManager::get<TextureCache>()->getImageTexture(texturePath, image::TextureUsage::STRICT_TEXTURE);
@@ -27,13 +29,14 @@ void FadeEffect::bindPerBatch(gpu::Batch& batch, int fadeMaskMapLocation) const 
 }
 
 void FadeEffect::bindPerBatch(gpu::Batch& batch, const gpu::PipelinePointer& pipeline) const {
-    auto slot = pipeline->getProgram()->getTextures().findLocation("fadeMaskMap");
-    batch.setResourceTexture(slot, _fadeMaskMap);
+    auto program = pipeline->getProgram();
+    auto maskMapLocation = program->getTextures().findLocation("fadeMaskMap");
+    bindPerBatch(batch, maskMapLocation);
 }
 
 float FadeEffect::computeFadePercent(quint64 startTime) const {
     float fadeAlpha = 1.0f;
-    const double INV_FADE_PERIOD = 1.0 / (double)(3 * USECS_PER_SECOND);
+    const double INV_FADE_PERIOD = 1.0 / (double)(_duration * USECS_PER_SECOND);
     double fraction = (double)(usecTimestampNow() - startTime) * INV_FADE_PERIOD;
     if (fraction < 1.0) {
         fadeAlpha = Interpolate::easeInOutQuad(fraction);
@@ -47,11 +50,12 @@ bool FadeEffect::bindPerItem(gpu::Batch& batch, RenderArgs* args, glm::vec3 offs
 
 bool FadeEffect::bindPerItem(gpu::Batch& batch, const gpu::Pipeline* pipeline, glm::vec3 offset, quint64 startTime, bool isFading) const {
     if (isFading || _isDebugEnabled) {
-        auto& program = pipeline->getProgram();
-        auto fadeOffsetLoc = program->getUniforms().findLocation("fadeOffset");
-        auto fadePercentLoc = program->getUniforms().findLocation("fadePercent");
+        auto& uniforms = pipeline->getProgram()->getUniforms();
+        auto fadeScaleLocation = uniforms.findLocation("fadeInvScale");
+        auto fadeOffsetLocation = uniforms.findLocation("fadeOffset");
+        auto fadePercentLocation = uniforms.findLocation("fadePercent");
 
-        if (fadeOffsetLoc >= 0 && fadePercentLoc >= 0) {
+        if (fadeScaleLocation >= 0 || fadeOffsetLocation >= 0 || fadePercentLocation>=0) {
             float percent;
 
             // A bit ugly to have the test at every bind...
@@ -61,8 +65,9 @@ bool FadeEffect::bindPerItem(gpu::Batch& batch, const gpu::Pipeline* pipeline, g
             else {
                 percent = _debugFadePercent;
             }
-            batch._glUniform1f(fadePercentLoc, percent);
-            batch._glUniform3f(fadeOffsetLoc, offset.x, offset.y, offset.z);
+            batch._glUniform1f(fadeScaleLocation, _invScale);
+            batch._glUniform1f(fadePercentLocation, percent);
+            batch._glUniform3f(fadeOffsetLocation, offset.x, offset.y, offset.z);
         }
         return true;
     }

@@ -164,9 +164,13 @@ public:
 
 class RenderDeferredTaskConfig : public render::Task::Config {
     Q_OBJECT
+        Q_PROPERTY(float fadeScale MEMBER fadeScale NOTIFY dirty)
+        Q_PROPERTY(float fadeDuration MEMBER fadeDuration NOTIFY dirty)
         Q_PROPERTY(bool debugFade MEMBER debugFade NOTIFY dirty)
         Q_PROPERTY(float debugFadePercent MEMBER debugFadePercent NOTIFY dirty)
 public:
+    float fadeScale{ 0.5f };
+    float fadeDuration{ 3.0f };
     float debugFadePercent{ 0.f };
     bool debugFade{ false };
 

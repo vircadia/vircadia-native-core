@@ -19,7 +19,7 @@ Row {
 		spacing: 8
 
 		CheckBox {
-			text: "Force Fade"
+			text: "Manual Fade"
 			checked: taskConfig["debugFade"]
 			onCheckedChanged: { taskConfig["debugFade"] = checked }
 		}
@@ -34,6 +34,24 @@ Row {
 			property: "debugFadePercent"
 			max: 1.0
 			min: 0.0
+			width: 250
+		}
+		ConfigSlider {
+			label: "Scale"
+			integral: false
+			config: taskConfig
+			property: "fadeScale"
+			max: 1.0
+			min: 0.0
+			width: 250
+		}
+		ConfigSlider {
+			label: "Duration"
+			integral: false
+			config: taskConfig
+			property: "fadeDuration"
+			max: 10.0
+			min: 0.1
 			width: 250
 		}
 	}

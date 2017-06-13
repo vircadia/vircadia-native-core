@@ -20,6 +20,7 @@
 
 uniform vec3 fadeOffset;
 uniform float fadePercent;
+uniform float fadeInvScale;
 uniform sampler2D fadeMaskMap;
 
 vec2 hash2D(vec3 position) {
@@ -28,20 +29,11 @@ vec2 hash2D(vec3 position) {
 
 float noise3D(vec3 position) {
     return textureLod(fadeMaskMap, hash2D(position), 0).r;
-    /*const float ONE_OVER_MAX_POSITIVE_INT = (1.f / 2147483648.f);
-    int3 iPosition = int3(position);
-    int position = iPosition.x + (iPosition.y*57) + (iPosition.z*3023);
-    int bits = (position << 13) ^ position;
-    int pseudoRandomPositiveInt = (bits * ((bits*bits*15731)+789221)+1376312589) & 0x7fffffff;
-    float pseudoRandomFloatZeroToOne = ONE_OVER_MAX_POSITIVE_INT * (float)pseudoRandomPositiveInt;
-    return pseudoRandomFloatZeroToOne;*/
 }
 
 float evalFadeMask(vec3 position) {
-    const float FADE_MASK_INV_SCALE = 1.0;
-
     // Do tri-linear interpolation
-    vec3    noisePosition = position * FADE_MASK_INV_SCALE + fadeOffset;
+    vec3    noisePosition = position * fadeInvScale + fadeOffset;
     vec3    noisePositionFloored = floor(noisePosition);
     vec3    noisePositionFraction = fract(noisePosition);
     float   noiseLowXLowYLowZ = noise3D(noisePositionFloored);

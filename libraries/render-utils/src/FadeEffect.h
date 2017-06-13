@@ -24,6 +24,12 @@ public:
 
 	const gpu::TexturePointer getFadeMaskMap() const { return _fadeMaskMap; }
 
+    void setScale(float value) { assert(value > 0.f); _invScale = 1.f / value; }
+    float getScale() const { return 1.f / _invScale; }
+
+    void setDuration(float seconds) { assert(seconds > 0.f); _duration = seconds; }
+    float getDuration() const { return 1.f / _duration; }
+
     void setDebugEnabled(bool isEnabled) { _isDebugEnabled = isEnabled; }
 	bool isDebugEnabled() const { return _isDebugEnabled; }
 
@@ -42,9 +48,10 @@ public:
 private:
 
 	gpu::TexturePointer _fadeMaskMap;
+    float _invScale;
+    float _duration;
 	float _debugFadePercent;
 	bool _isDebugEnabled;
-
 };
 
 #endif // hifi_FadeEffect_h
