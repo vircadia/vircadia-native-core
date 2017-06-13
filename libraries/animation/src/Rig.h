@@ -354,10 +354,10 @@ private:
 
     bool _isLeftHandControlled { false };
     bool _isRightHandControlled { false };
-    float _leftHandControlDuration{ 0.0f };
-    float _rightHandControlDuration{ 0.0f };
-    float _leftHandRelaxDuration{ 0.0f };
-    float _rightHandRelaxDuration { 0.0f };
+    float _leftHandControlTimeRemaining { 0.0f };
+    float _rightHandControlTimeRemaining { 0.0f };
+    float _leftHandRelaxTimeRemaining { 0.0f };
+    float _rightHandRelaxTimeRemaining { 0.0f };
     AnimPose _lastLeftHandControlledPose;
     AnimPose _lastRightHandControlledPose;
 };
