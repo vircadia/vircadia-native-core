@@ -78,7 +78,7 @@ protected:
     Q_INVOKABLE void loadContent(const QByteArray& content);
     Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
 
-    void startRequestForNextMipLevel();
+    Q_INVOKABLE void startRequestForNextMipLevel();
 
     void startMipRangeRequest(uint16_t low, uint16_t high);
     void maybeHandleFinishedInitialLoad();
@@ -110,8 +110,8 @@ private:
 
     ResourceRequest* _ktxHeaderRequest { nullptr };
     ResourceRequest* _ktxMipRequest { nullptr };
-    bool _ktxHeaderRequestFinished{ false };
-    bool _ktxHighMipRequestFinished{ false };
+    QByteArray _ktxHeaderData;
+    QByteArray _ktxHighMipData;
 
     uint16_t _lowestRequestedMipLevel { NULL_MIP_LEVEL };
     uint16_t _lowestKnownPopulatedMip { NULL_MIP_LEVEL };
