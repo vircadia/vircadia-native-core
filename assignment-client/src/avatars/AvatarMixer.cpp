@@ -76,13 +76,13 @@ void AvatarMixer::handleReplicatedPackets(QSharedPointer<ReceivedMessage> messag
     replicatedNode->setIsUpstream(true);
 
     switch (message->getType()) {
-        case PacketType::AvatarData:
+        case PacketType::ReplicatedAvatarData:
             queueIncomingPacket(message, replicatedNode);
             break;
-        case PacketType::AvatarIdentity:
+        case PacketType::ReplicatedAvatarIdentity:
             handleAvatarIdentityPacket(message, replicatedNode);
             break;
-        case PacketType::KillAvatar:
+        case PacketType::ReplicatedKillAvatar:
             handleKillAvatarPacket(message, replicatedNode);
             break;
         default:
@@ -108,7 +108,6 @@ void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node
                 replicatedType = PacketType::ReplicatedKillAvatar;
                 break;
             default:
-                Q_UNREACHABLE();
                 return;
         }
 
@@ -125,7 +124,7 @@ void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node
                 packet->write(message.getMessage());
             }
 
-            nodeList->sendUnreliablePacket(*packet, *node);
+            nodeList->sendUnreliablePacket(*packet, node->getPublicSocket());
         });
     }
 }

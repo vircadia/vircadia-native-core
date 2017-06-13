@@ -45,6 +45,7 @@ int AvatarMixerClientData::processPackets() {
 
         switch (packet->getType()) {
             case PacketType::AvatarData:
+            case PacketType::ReplicatedAvatarData:
                 parseData(*packet);
                 break;
             default:
