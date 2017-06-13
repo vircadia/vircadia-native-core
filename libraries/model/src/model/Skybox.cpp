@@ -97,7 +97,7 @@ void Skybox::render(gpu::Batch& batch, const ViewFrustum& viewFrustum, const Sky
             }
 
             auto skyState = std::make_shared<gpu::State>();
-            skyState->setStencilTest(true, 0xFF, gpu::State::StencilTest(0, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
+            skyState->setStencilTest(true, 0xFF, gpu::State::StencilTest(1, 0xFF, gpu::EQUAL, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP, gpu::State::STENCIL_OP_KEEP));
 
             thePipeline = gpu::Pipeline::create(skyShader, skyState);
         }
