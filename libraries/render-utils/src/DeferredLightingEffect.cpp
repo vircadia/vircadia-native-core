@@ -504,10 +504,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
     {
         // Framebuffer copy operations cannot function as multipass stereo operations.
         batch.enableStereo(false);
-        
-        // perform deferred lighting, rendering to free fbo
-        auto framebufferCache = DependencyManager::get<FramebufferCache>();
-            
+
         auto textureCache = DependencyManager::get<TextureCache>();
         auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
 

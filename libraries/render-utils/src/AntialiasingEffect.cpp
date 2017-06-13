@@ -110,10 +110,6 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 
     RenderArgs* args = renderContext->args;
 
-    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-        return;
-    }
-
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setViewportTransform(args->_viewport);
