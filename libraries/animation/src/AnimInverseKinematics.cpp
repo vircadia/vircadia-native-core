@@ -47,12 +47,15 @@ float easeOutExpo(float t) {
 }
 
 AnimInverseKinematics::IKTargetVar::IKTargetVar(const QString& jointNameIn, const QString& positionVarIn, const QString& rotationVarIn,
-                                                const QString& typeVarIn, const QString& weightVarIn, float weightIn, const std::vector<float>& flexCoefficientsIn) :
+                                                const QString& typeVarIn, const QString& weightVarIn, float weightIn, const std::vector<float>& flexCoefficientsIn,
+                                                const QString& poleJointNameVarIn, const QString& poleVectorVarIn) :
     jointName(jointNameIn),
     positionVar(positionVarIn),
     rotationVar(rotationVarIn),
     typeVar(typeVarIn),
     weightVar(weightVarIn),
+    poleJointNameVar(poleJointNameVarIn),
+    poleVectorVar(poleVectorVarIn),
     weight(weightIn),
     numFlexCoefficients(flexCoefficientsIn.size()),
     jointIndex(-1)
@@ -69,6 +72,8 @@ AnimInverseKinematics::IKTargetVar::IKTargetVar(const IKTargetVar& orig) :
     rotationVar(orig.rotationVar),
     typeVar(orig.typeVar),
     weightVar(orig.weightVar),
+    poleJointNameVar(orig.poleJointNameVar),
+    poleVectorVar(orig.poleVectorVar),
     weight(orig.weight),
     numFlexCoefficients(orig.numFlexCoefficients),
     jointIndex(orig.jointIndex)
@@ -122,8 +127,9 @@ void AnimInverseKinematics::computeAbsolutePoses(AnimPoseVec& absolutePoses) con
 }
 
 void AnimInverseKinematics::setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar,
-                                          const QString& typeVar, const QString& weightVar, float weight, const std::vector<float>& flexCoefficients) {
-    IKTargetVar targetVar(jointName, positionVar, rotationVar, typeVar, weightVar, weight, flexCoefficients);
+                                          const QString& typeVar, const QString& weightVar, float weight, const std::vector<float>& flexCoefficients,
+                                          const QString& poleJointNameVar, const QString& poleVectorVar) {
+    IKTargetVar targetVar(jointName, positionVar, rotationVar, typeVar, weightVar, weight, flexCoefficients, poleJointNameVar, poleVectorVar);
 
     // if there are dups, last one wins.
     bool found = false;
@@ -170,63 +176,14 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
                 target.setIndex(targetVar.jointIndex);
                 target.setWeight(weight);
                 target.setFlexCoefficients(targetVar.numFlexCoefficients, targetVar.flexCoefficients);
-                target.setPoleIndex(-1);
 
-                /*
-                // AJT: HACK REMOVE manually set pole vector.
-                if (targetVar.jointName == "RightHand") {
-                    int armJointIndex = _skeleton->nameToJointIndex("RightArm");
-                    glm::vec3 armPosition = _skeleton->getAbsolutePose(armJointIndex, _relativePoses).trans();
-                    glm::vec3 d = glm::normalize(translation - armPosition);
+                // AJT: TODO: cache the pole joint index.
+                QString poleJointName = animVars.lookup(targetVar.poleJointNameVar, QString(""));
+                int poleJointIndex = _skeleton->nameToJointIndex(poleJointName);
+                target.setPoleIndex(poleJointIndex);
 
-                    // project hand y-axis onto d.
-                    glm::vec3 handY = rotation * Vectors::UNIT_Y;
-                    glm::vec3 handYProj = handY - glm::dot(handY, d) * d;
-
-                    // project negative pole vector on to d.
-                    glm::vec3 p = glm::normalize(glm::vec3(-1, -3, -3));
-                    glm::vec3 pProj = p - glm::dot(p, d) * d;
-
-                    // compute a rotation around d that will bring the pProj to to yProj
-                    float theta = acosf(glm::dot(glm::normalize(-pProj), glm::normalize(handYProj)));
-                    glm::vec3 axis = glm::normalize(glm::cross(-pProj, handYProj));
-
-                    if (glm::dot(axis, d) < 0.0f) {
-                        // as eProjLen and pProjLen become orthognal to d, reduce the amount of rotation.
-                        float magnitude = easeOutExpo(glm::min(glm::length(handYProj), glm::length(pProj)));
-                        glm::quat poleAdjustRot = angleAxis(magnitude * (theta / 4.0f), axis);
-                        target.setPoleVector(poleAdjustRot * p);
-                    } else {
-                        target.setPoleVector(p);
-                    }
-                    target.setPoleIndex(_skeleton->nameToJointIndex(targetVar.jointName));
-                }
-                if (targetVar.jointName == "LeftHand") {
-                    target.setPoleVector(glm::normalize(glm::vec3(1, -3, -3)));
-                    target.setPoleIndex(_skeleton->nameToJointIndex(targetVar.jointName));
-                }
-                */
-
-                if (targetVar.jointName == "LeftFoot" || targetVar.jointName == "RightFoot") {
-
-                    // compute the forward direction of the foot.
-                    AnimPose defaultPose = _skeleton->getAbsoluteDefaultPose(targetVar.jointIndex);
-                    glm::vec3 localForward = glm::inverse(defaultPose.rot()) * Vectors::UNIT_Z;
-                    glm::vec3 footForward = rotation * localForward;
-
-                    // compute the forward direction of the hips.
-                    glm::quat hipsRotation = _skeleton->getAbsolutePose(_hipsIndex, _relativePoses).rot();
-                    glm::vec3 hipsForward = hipsRotation * Vectors::UNIT_Z;
-
-                    // blend between the hips and the foot.
-                    const float FOOT_TO_HIPS_BLEND_FACTOR = 0.5f;
-                    glm::vec3 poleVector = glm::normalize(lerp(footForward, hipsForward, FOOT_TO_HIPS_BLEND_FACTOR));
-
-                    // TODO: smooth toward desired pole vector from previous pole vector...  to reduce jitter
-
-                    target.setPoleVector(poleVector);
-                    target.setPoleIndex(_skeleton->nameToJointIndex(targetVar.jointName));
-                }
+                glm::vec3 poleVector = animVars.lookupRigToGeometryVector(targetVar.poleVectorVar, Vectors::UNIT_Z);
+                target.setPoleVector(glm::normalize(poleVector));
 
                 targets.push_back(target);
 

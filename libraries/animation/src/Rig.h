@@ -153,9 +153,6 @@ public:
     bool getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) const;
     bool getAbsoluteJointPoseInRigFrame(int jointIndex, AnimPose& returnPose) const;
 
-    // legacy
-    bool getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
-
     // rig space
     glm::mat4 getJointTransform(int jointIndex) const;
 
@@ -252,6 +249,8 @@ protected:
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::vec3& lookAt, const glm::vec3& saccade);
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
 
+    glm::vec3 Rig::calculateKneePoleVector(int footJointIndex, const glm::quat& footTargetOrientation, int hipsIndex) const;
+
     AnimPose _modelOffset;  // model to rig space
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)
     AnimPose _invGeometryOffset;
@@ -347,7 +346,6 @@ protected:
     bool _enableDebugDrawIKConstraints { false };
     bool _enableDebugDrawIKChains { false };
 
-private:
     QMap<int, StateHandler> _stateHandlers;
     int _nextStateHandlerId { 0 };
     QMutex _stateMutex;
@@ -358,6 +356,12 @@ private:
     float _rightHandRelaxDuration { 0.0f };
     AnimPose _lastLeftHandControlledPose;
     AnimPose _lastRightHandControlledPose;
+
+    glm::vec3 _prevRightFootPoleVector = { Vectors::UNIT_Z };
+    bool _prevRightFootPoleVectorValid = { false };
+
+    glm::vec3 _prevLeftFootPoleVector = { Vectors::UNIT_Z };
+    bool _prevLeftFootPoleVectorValid = { false };
 };
 
 #endif /* defined(__hifi__Rig__) */

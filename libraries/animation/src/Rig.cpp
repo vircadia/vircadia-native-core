@@ -479,12 +479,6 @@ bool Rig::getAbsoluteJointPoseInRigFrame(int jointIndex, AnimPose& returnPose) c
     }
 }
 
-bool Rig::getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const {
-    // AJT: TODO: used by attachments
-    ASSERT(false);
-    return false;
-}
-
 void Rig::calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const {
 
     ASSERT(referenceSpeeds.size() > 0);
@@ -950,6 +944,7 @@ void Rig::updateAnimations(float deltaTime, const glm::mat4& rootTransform, cons
 
         // evaluate the animation
         AnimNode::Triggers triggersOut;
+
         _internalPoseSet._relativePoses = _animNode->evaluate(_animVars, context, deltaTime, triggersOut);
         if ((int)_internalPoseSet._relativePoses.size() != _animSkeleton->getNumJoints()) {
             // animations haven't fully loaded yet.
@@ -1145,6 +1140,21 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
     }
 }
 
+glm::vec3 Rig::calculateKneePoleVector(int footJointIndex, const glm::quat& footTargetOrientation, int hipsIndex) const {
+
+    AnimPose defaultPose = _animSkeleton->getAbsoluteDefaultPose(footJointIndex);
+    glm::vec3 localForward = glm::inverse(defaultPose.rot()) * Vectors::UNIT_Z;
+    glm::vec3 footForward = footTargetOrientation * localForward;
+
+    // compute the forward direction of the hips.
+    glm::quat hipsRotation = _externalPoseSet._absolutePoses[hipsIndex].rot();
+    glm::vec3 hipsForward = hipsRotation * Vectors::UNIT_Z;
+
+    // blend between the hips and the foot.
+    const float FOOT_TO_HIPS_BLEND_FACTOR = 0.5f;
+    return glm::normalize(lerp(footForward, hipsForward, FOOT_TO_HIPS_BLEND_FACTOR));
+}
+
 void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, float dt) {
     if (_animSkeleton && _animNode) {
         const float HAND_RADIUS = 0.05f;
@@ -1255,16 +1265,46 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
             _animVars.set("leftFootPosition", params.leftFootPosition);
             _animVars.set("leftFootRotation", params.leftFootOrientation);
             _animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
+
+            int footJointIndex = _animSkeleton->nameToJointIndex("LeftFoot");
+            glm::vec3 poleVector = calculateKneePoleVector(footJointIndex, params.leftFootOrientation, hipsIndex);
+
+            // smooth toward desired pole vector from previous pole vector...  to reduce jitter
+            if (!_prevLeftFootPoleVectorValid) {
+                _prevLeftFootPoleVectorValid = true;
+                _prevLeftFootPoleVector = poleVector;
+            }
+            const float POLE_VECTOR_BLEND_FACTOR = 0.9f;
+            _prevLeftFootPoleVector = lerp(poleVector, _prevLeftFootPoleVector, POLE_VECTOR_BLEND_FACTOR);
+
+            _animVars.set("leftFootPoleVector", _prevLeftFootPoleVector);
+            _animVars.set("leftFootPoleJointName", QString("LeftFoot"));
+
         } else {
             _animVars.unset("leftFootPosition");
             _animVars.unset("leftFootRotation");
             _animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
+            _prevLeftFootPoleVectorValid = false;
         }
 
         if (params.isRightFootEnabled) {
             _animVars.set("rightFootPosition", params.rightFootPosition);
             _animVars.set("rightFootRotation", params.rightFootOrientation);
             _animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
+
+            int footJointIndex = _animSkeleton->nameToJointIndex("RightFoot");
+            glm::vec3 poleVector = calculateKneePoleVector(footJointIndex, params.rightFootOrientation, hipsIndex);
+
+            // smooth toward desired pole vector from previous pole vector...  to reduce jitter
+            if (!_prevRightFootPoleVectorValid) {
+                _prevRightFootPoleVectorValid = true;
+                _prevRightFootPoleVector = poleVector;
+            }
+            const float POLE_VECTOR_BLEND_FACTOR = 0.9f;
+            _prevRightFootPoleVector = lerp(poleVector, _prevRightFootPoleVector, POLE_VECTOR_BLEND_FACTOR);
+
+            _animVars.set("rightFootPoleVector", _prevRightFootPoleVector);
+            _animVars.set("rightFootPoleJointName", QString("RightFoot"));
         } else {
             _animVars.unset("rightFootPosition");
             _animVars.unset("rightFootRotation");
@@ -1455,22 +1495,18 @@ void Rig::computeAvatarBoundingCapsule(
     AnimInverseKinematics ikNode("boundingShape");
     ikNode.setSkeleton(_animSkeleton);
 
-    ikNode.setTargetVars("LeftHand",
-                         "leftHandPosition",
-                         "leftHandRotation",
-                         "leftHandType", "leftHandWeight", 1.0f, {});
-    ikNode.setTargetVars("RightHand",
-                         "rightHandPosition",
-                         "rightHandRotation",
-                         "rightHandType", "rightHandWeight", 1.0f, {});
-    ikNode.setTargetVars("LeftFoot",
-                         "leftFootPosition",
-                         "leftFootRotation",
-                         "leftFootType", "leftFootWeight", 1.0f, {});
-    ikNode.setTargetVars("RightFoot",
-                         "rightFootPosition",
-                         "rightFootRotation",
-                         "rightFootType", "rightFootWeight", 1.0f, {});
+    ikNode.setTargetVars("LeftHand", "leftHandPosition", "leftHandRotation",
+                         "leftHandType", "leftHandWeight", 1.0f, {},
+                         "leftHandPoleJointName", "leftHandPoleVector");
+    ikNode.setTargetVars("RightHand", "rightHandPosition", "rightHandRotation",
+                         "rightHandType", "rightHandWeight", 1.0f, {},
+                         "rightHandPoleJointName", "rightHandPoleVector");
+    ikNode.setTargetVars("LeftFoot", "leftFootPosition", "leftFootRotation",
+                         "leftFootType", "leftFootWeight", 1.0f, {},
+                         "leftFootPoleJointName", "leftFootPoleVector");
+    ikNode.setTargetVars("RightFoot", "rightFootPosition", "rightFootRotation",
+                         "rightFootType", "rightFootWeight", 1.0f, {},
+                         "rightFootPoleJointName", "rightFootPoleVector");
 
     AnimPose geometryToRig = _modelOffset * _geometryOffset;
 

@@ -86,7 +86,9 @@
                                     "typeVar": "rightFootType",
                                     "weightVar": "rightFootWeight",
                                     "weight": 1.0,
-                                    "flexCoefficients": [1, 0.45, 0.45]
+                                    "flexCoefficients": [1, 0.45, 0.45],
+                                    "poleJointNameVar": "rightFootPoleJointName",
+                                    "poleVectorVar": "rightFootPoleVector"
                                 },
                                 {
                                     "jointName": "LeftFoot",
@@ -95,7 +97,9 @@
                                     "typeVar": "leftFootType",
                                     "weightVar": "leftFootWeight",
                                     "weight": 1.0,
-                                    "flexCoefficients": [1, 0.45, 0.45]
+                                    "flexCoefficients": [1, 0.45, 0.45],
+                                    "poleJointNameVar": "leftFootPoleJointName",
+                                    "poleVectorVar": "leftFootPoleVector"
                                 },
                                 {
                                     "jointName": "Spine2",

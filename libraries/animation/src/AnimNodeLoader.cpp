@@ -479,6 +479,8 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
         READ_OPTIONAL_STRING(typeVar, targetObj);
         READ_OPTIONAL_STRING(weightVar, targetObj);
         READ_OPTIONAL_FLOAT(weight, targetObj, 1.0f);
+        READ_OPTIONAL_STRING(poleJointNameVar, targetObj);
+        READ_OPTIONAL_STRING(poleVectorVar, targetObj);
 
         auto flexCoefficientsValue = targetObj.value("flexCoefficients");
         if (!flexCoefficientsValue.isArray()) {
@@ -491,7 +493,7 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
             flexCoefficients.push_back((float)value.toDouble());
         }
 
-        node->setTargetVars(jointName, positionVar, rotationVar, typeVar, weightVar, weight, flexCoefficients);
+        node->setTargetVars(jointName, positionVar, rotationVar, typeVar, weightVar, weight, flexCoefficients, poleJointNameVar, poleVectorVar);
     };
 
     READ_OPTIONAL_STRING(solutionSource, jsonObj);
