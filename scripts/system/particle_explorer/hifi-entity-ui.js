@@ -283,7 +283,6 @@ HifiEntityUI.prototype = {
         animationWrapper.className = "section-wrap";
 
         for (var property in properties) {
-            console.log(properties, properties.hasOwnProperty(property));
             if (properties.hasOwnProperty(property)) {
                 var builtRow = self.addElement(animationWrapper, properties[property]);
                 var id = properties[property].id;
@@ -626,55 +625,55 @@ HifiEntityUI.prototype = {
 
         var row = document.createElement("div");
         switch (group.type) {
-        case "Button":
-            var button = document.createElement("input");
-            button.setAttribute("type", "button");
-            button.id = group.id;
-            if (group.disabled) {
-                button.disabled = group.disabled;
-            }
-            button.className = group.class;
-            button.value = group.name;
+            case "Button":
+                var button = document.createElement("input");
+                button.setAttribute("type", "button");
+                button.id = group.id;
+                if (group.disabled) {
+                    button.disabled = group.disabled;
+                }
+                button.className = group.class;
+                button.value = group.name;
 
-            button.onclick = group.callback;
-            parent.appendChild(button);
-            break;
-        case "Row":
-            var hr = document.createElement("hr");
-            hr.className = "splitter";
-            if (group.id) {
-                hr.id = group.id;
-            }
-            parent.appendChild(hr);
-            break;
-        case "Boolean":
-            self.addCheckBox(row, group);
-            parent.appendChild(row);
-            break;
-        case "SliderFloat":
-        case "SliderInteger":
-        case "SliderRadian":
-            self.addSlider(row, group);
-            parent.appendChild(row);
-            break;
-        case "Texture":
-            self.addTextureField(row, group);
-            parent.appendChild(row);
-            break;
-        case "Color":
-            self.addColorPicker(row, group);
-            parent.appendChild(row);
-            break;
-        case "Vector":
-            self.addVector(row, group);
-            parent.appendChild(row);
-            break;
-        case "VectorQuaternion":
-            self.addVectorQuaternion(row, group);
-            parent.appendChild(row);
-            break;
-        default:
-            console.log("not defined");
+                button.onclick = group.callback;
+                parent.appendChild(button);
+                break;
+            case "Row":
+                var hr = document.createElement("hr");
+                hr.className = "splitter";
+                if (group.id) {
+                    hr.id = group.id;
+                }
+                parent.appendChild(hr);
+                break;
+            case "Boolean":
+                self.addCheckBox(row, group);
+                parent.appendChild(row);
+                break;
+            case "SliderFloat":
+            case "SliderInteger":
+            case "SliderRadian":
+                self.addSlider(row, group);
+                parent.appendChild(row);
+                break;
+            case "Texture":
+                self.addTextureField(row, group);
+                parent.appendChild(row);
+                break;
+            case "Color":
+                self.addColorPicker(row, group);
+                parent.appendChild(row);
+                break;
+            case "Vector":
+                self.addVector(row, group);
+                parent.appendChild(row);
+                break;
+            case "VectorQuaternion":
+                self.addVectorQuaternion(row, group);
+                parent.appendChild(row);
+                break;
+            default:
+                console.log("not defined");
         }
         return row;
     }
