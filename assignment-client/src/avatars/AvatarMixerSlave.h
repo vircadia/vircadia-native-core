@@ -93,6 +93,9 @@ public:
 private:
     int sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
 
+    void broadcastAvatarDataToAgent(const SharedNodePointer& node);
+    void broadcastAvatarDataToDownstreamMixer(const SharedNodePointer& node);
+
     // frame state
     ConstIter _begin;
     ConstIter _end;
