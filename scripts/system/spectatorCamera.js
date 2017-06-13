@@ -133,8 +133,15 @@
             parentID: camera,
             alpha: 1,
             position: { x: 0.007, y: 0.15, z: -0.005 },
-            dimensions: { x: 0.16, y: 0.16 * windowAspectRatio / previewAspectRatio, z: 0 }
-            // FIXME: This stretches the preview.
+            dimensions: { x: 0.16, y: -0.16 * windowAspectRatio / previewAspectRatio, z: 0 }
+            // Negative dimension for viewfinder is necessary for now due to the way Image3DOverlay
+            // draws textures.
+            // See Image3DOverlay.cpp:91. If you change the two lines there to:
+            //     glm::vec2 topLeft(-x, -y);
+            //     glm::vec2 bottomRight(x, y);
+            // the viewfinder will appear rightside up without this negative y-dimension.
+            // However, other Image3DOverlay textures (like the PAUSED one) will appear upside-down. *Why?*
+            // FIXME: This code will stretch the preview as the window aspect ratio changes. Fix that!
         });
         Entities.editEntity(camera, { position: cameraPosition, rotation: cameraRotation });
         setDisplay(monitorShowsCameraView);
