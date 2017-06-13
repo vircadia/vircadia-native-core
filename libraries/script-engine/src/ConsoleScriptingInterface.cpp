@@ -2,12 +2,14 @@
 //  ConsoleScriptingInterface.cpp
 //  libraries/script-engine/src
 //
-//  Created by volansystech on 6/1/17.
+//  Created by NeetBhagat on 6/1/17.
 //  Copyright 2014 High Fidelity, Inc.
 //
-//  ConsoleScriptingInterface is responsible to print logs 
-//  using "console" object on debug Window and Logs/log file with proper tags.
-//  Used in Javascripts file.
+//  ConsoleScriptingInterface is responsible for following functionality
+//  Printing logs with various tags and grouping on debug Window and Logs/log file.
+//  Debugging functionalities like Timer start-end, assertion, trace.
+//  To use these functionalities, use "console" object in Javascript files.
+//  For examples please refer "scripts/developer/tests/consoleObjectTest.js"
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -16,6 +18,10 @@
 #include "ConsoleScriptingInterface.h"
 #include "ScriptEngine.h"
 
+#define INDENTATION 4
+const QString LINE_SEPARATOR = "\n    ";
+const QString STACK_TRACE_FORMAT = "\n[Stacktrace]%1%2";
+
 void ConsoleScriptingInterface::info(QString message) {
     if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
         scriptEngine->scriptInfoMessage(message);
@@ -23,12 +29,12 @@ void ConsoleScriptingInterface::info(QString message) {
 }
 
 void ConsoleScriptingInterface::log(QString message) {
-    if (_isGroupEnd) {
+    if (_groupDetails.count() == 0) {
         if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
             scriptEngine->scriptPrintedMessage(message);
         }
     } else {
-        consoleGroupLog(_selectedGroup, message);
+        this->logGroupMessage(message);
     }
 }
 
@@ -57,127 +63,79 @@ void ConsoleScriptingInterface::exception(QString message) {
 }
 
 void  ConsoleScriptingInterface::time(QString labelName) {
-    QDateTime _currentTime = QDateTime::currentDateTime().toUTC();
-    _listOfTimeValues.insert(labelName, _currentTime.toUTC());
+    _timerDetails.insert(labelName, QDateTime::currentDateTime().toUTC());
+    QString message = QString("%1: timer started").arg(labelName);
+    this->log(message);
 }
 
 void ConsoleScriptingInterface::timeEnd(QString labelName) {
-    QDateTime _dateTimeOfLabel;
-    QString message;
-    qint64 millisecondsDiff = 0;
-
-    bool _labelInList = _listOfTimeValues.contains(labelName);
-
-    //Check if not exist items in list
-    if (!_labelInList) {
-        message = "No such label found " + labelName;
-        error(message);
+    if (!_timerDetails.contains(labelName)) {
+        this->error("No such label found " + labelName);
         return;
     }
 
-    QDateTime _currentDateTimeValue = QDateTime::currentDateTime().toUTC();
-    _dateTimeOfLabel = _listOfTimeValues.value(labelName);
-
-    if (!_dateTimeOfLabel.isNull()) {
-        _listOfTimeValues.remove(labelName);
+    if (_timerDetails.value(labelName).isNull()) {
+        _timerDetails.remove(labelName);
+        this->error("Invalid start time for " + labelName);
+        return;
     }
+    
+    QDateTime _startTime = _timerDetails.value(labelName);
+    QDateTime _endTime = QDateTime::currentDateTime().toUTC();
+    qint64 diffInMS = _startTime.msecsTo(_endTime);
+    
+    QString message = QString("%1: %2ms").arg(labelName).arg(QString::number(diffInMS));
+    _timerDetails.remove(labelName);
 
-    if (_dateTimeOfLabel.toString(TIME_FORMAT) == _currentDateTimeValue.toString(TIME_FORMAT)) {
-        millisecondsDiff = _dateTimeOfLabel.msecsTo(_currentDateTimeValue);
-        message = QString::number(millisecondsDiff) + " ms";
-    } else {
-        message = secondsToString(_dateTimeOfLabel.secsTo(_currentDateTimeValue));
-    }
-    log("Time : " + message);
-}
-
-QString ConsoleScriptingInterface::secondsToString(qint64 seconds)
-{
-    qint64 days = seconds / DAY;
-    QTime timeDuration = QTime(0, 0).addSecs(seconds % DAY);
-
-    return QString("%1 days, %2 hours, %3 minutes, %4 seconds")
-        .arg(QString::number(days)).arg(QString::number(timeDuration.hour())).arg(QString::number(timeDuration.minute())).arg(QString::number(timeDuration.second()));
+    this->log(message);
 }
 
 void  ConsoleScriptingInterface::asserts(bool condition, QString message) {
     if (!condition) {
-        QString assertFailed = "Assertion failed";
+        QString assertionResult;
         if (message.isEmpty()) {
-            message = assertFailed;
+            assertionResult = "Assertion failed";
         } else {
-            QString inputType = typeid(message).name();
-            if (!inputType.compare("QString")) {
-                message = assertFailed;
-            } else {
-                message = assertFailed + " " + message;
-            }
+            assertionResult = QString("Assertion failed : %1").arg(message);
         }
-        error(message);
+        this->error(assertionResult);
     }
 }
 
 void  ConsoleScriptingInterface::trace() {
-    const auto lineSeparator = "\n    ";
     if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {        
-        QStringList backtrace = scriptEngine->currentContext()->backtrace();                
-        auto message = QString("\n[Backtrace]%1%2").arg(lineSeparator, backtrace.join(lineSeparator));
-        scriptEngine->scriptPrintedMessage(message);
+        scriptEngine->scriptPrintedMessage
+            (QString(STACK_TRACE_FORMAT).arg(LINE_SEPARATOR,
+            scriptEngine->currentContext()->backtrace().join(LINE_SEPARATOR)));
     }
 }
 
 void  ConsoleScriptingInterface::clear() {
     if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
-        scriptEngine->clearConsole();
+        scriptEngine->clearDebugLogWindow();
     }
 }
 
 void ConsoleScriptingInterface::group(QString groupName) {
-    _selectedGroup = groupName;
-    consoleGroupLog(GROUP, groupName);
+    this->logGroupMessage(groupName);
+    _groupDetails.push_back(groupName);
 }
 
 void ConsoleScriptingInterface::groupCollapsed(QString  groupName) {
-    _selectedGroup = groupName;
-    consoleGroupLog(GROUPCOLLAPSED, groupName);
+    this->logGroupMessage(groupName);
+    _groupDetails.push_back(groupName);
 }
 
 void ConsoleScriptingInterface::groupEnd() {
-    consoleGroupLog(_selectedGroup, GROUPEND);
+    _groupDetails.removeLast();
 }
 
-void ConsoleScriptingInterface::consoleGroupLog(QString currentGroup, QString groupName) {
-    QPair<QString, QString> groupData;
-    QString groupKeyName;
-
-    groupData = qMakePair(currentGroup, groupName);
-    groupKeyName = groupData.first;
-    if (groupData.first == GROUP || groupData.first == GROUPCOLLAPSED) {
-        groupKeyName = groupData.second;
-        if (_isSameLevel) {
-            _addSpace = _addSpace.mid(0, _addSpace.length() - 3);
-        }
-        if (_isGroupEnd) {
-            _addSpace = "";
-            _isGroupEnd = false;
-        } else {
-            _addSpace += "   ";
-        }                
-        debug(_addSpace.mid(0, _addSpace.length() - 1) + groupData.second);
-        _isSameLevel = false;
-    } else {
-        if (groupData.first == groupKeyName && groupData.first != GROUPCOLLAPSED && groupData.first != GROUP && groupData.second != GROUPEND) {
-            if (!_isSameLevel) {
-                _addSpace += "   ";  //space inner element
-                _isSameLevel = true; //same level log entry
-            }
-            debug(_addSpace + groupData.second);
-        }
+void ConsoleScriptingInterface::logGroupMessage(QString message) {
+    int _appendIndentation = _groupDetails.count() * INDENTATION;
+    QString logMessage;
+    for (int count = 0; count < _appendIndentation; count++) {
+        logMessage.append(" ");
     }
-    if (groupData.second == GROUPEND) {
-        _addSpace = _addSpace.mid(0, _addSpace.length() - 3);
-        if (_addSpace.length() == 0) {
-            _isGroupEnd = true;
-        }
-    }
+    logMessage.append(message);
+    this->debug(logMessage);
 }

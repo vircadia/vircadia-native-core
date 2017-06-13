@@ -54,7 +54,7 @@ void ScriptEngines::onInfoMessage(const QString& message, const QString& scriptN
     emit infoMessage(message, scriptName);
 }
 
-void ScriptEngines::OnClearConsole() {
+void ScriptEngines::onClearDebugWindow() {
     emit clearDebugWindow();
 }
 

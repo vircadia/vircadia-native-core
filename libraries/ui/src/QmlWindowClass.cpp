@@ -153,8 +153,8 @@ void QmlWindowClass::sendToQml(const QVariant& message) {
     QMetaObject::invokeMethod(asQuickItem(), "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
 }
 
-void QmlWindowClass::clearConsole() {
-    QMetaObject::invokeMethod(asQuickItem(), "fromConsole", Qt::QueuedConnection);
+void QmlWindowClass::clearDebugWindow() {
+    QMetaObject::invokeMethod(asQuickItem(), "clearDebugWindow", Qt::QueuedConnection);
 }
 
 void QmlWindowClass::emitScriptEvent(const QVariant& scriptMessage) {

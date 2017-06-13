@@ -40,10 +40,10 @@ Rectangle {
         }
         textArea.append(message);
     }
-		
-	function fromConsole(){
-		textArea.remove(0,textArea.length);
-	}
+
+    function clearWindow() {
+        textArea.remove(0,textArea.length);
+    }
 }
 
 

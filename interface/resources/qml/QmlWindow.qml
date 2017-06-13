@@ -66,9 +66,9 @@ Windows.Window {
         }
     }
 
-	function fromConsole() {
-        if (root.dynamicContent && root.dynamicContent.fromConsole) {
-		    root.dynamicContent.fromConsole();
+    function clearDebugWindow() {
+        if (root.dynamicContent && root.dynamicContent.clearWindow) {
+            root.dynamicContent.clearWindow();
         }
     }
     

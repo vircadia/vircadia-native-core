@@ -87,7 +87,7 @@ public slots:
     void onWarningMessage(const QString& message, const QString& scriptName);
     void onInfoMessage(const QString& message, const QString& scriptName);
     void onErrorLoadingScript(const QString& url);
-    void OnClearConsole();
+    void onClearDebugWindow();
 
 protected slots:
     void onScriptFinished(const QString& fileNameString, ScriptEngine* engine);

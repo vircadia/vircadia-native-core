@@ -36,10 +36,4 @@ function main() {
 
         Uuid.print('[Uuid.print]', Uuid.fromString(Uuid.toString(0)));
     }
-    console.info('[console.info] hello world');
-    console.log('[console.log]  hello world');
-    console.debug('[console.Debug] hello world');
-    console.warn('[console.Warn] hello world');  
-    console.error('[console.error] hello world');
-    console.exception('[console.exception] hello world');
 }

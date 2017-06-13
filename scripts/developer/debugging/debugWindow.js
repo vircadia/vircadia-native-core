@@ -49,8 +49,8 @@ ScriptDiscoveryService.infoMessage.connect(function(message, scriptFileName) {
     sendToLogWindow("INFO", message, scriptFileName);
 });
 
-ScriptDiscoveryService.clearDebugWindow.connect(function () {
-    window.clearConsole();
+ScriptDiscoveryService.clearDebugWindow.connect(function() {
+    window.clearDebugWindow();
 });
 
-}()); // END LOCAL_SCOPE
+}());

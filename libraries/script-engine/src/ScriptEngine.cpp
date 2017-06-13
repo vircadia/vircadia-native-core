@@ -187,15 +187,6 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
         }
         logException(output);
     });
-
-    // this is where all unhandled exceptions end up getting logged
-  /*  connect(this, &BaseScriptEngine::unhandledException, this, [this](const QScriptValue& err) {
-        auto output = err.engine() == this ? err : makeError(err);
-        if (!output.property("detail").isValid()) {
-            output.setProperty("detail", "UnhandledException");
-        }
-        logException(output);
-    });*/
 }
 
 QString ScriptEngine::getContext() const {
@@ -481,21 +472,21 @@ void ScriptEngine::scriptErrorMessage(const QString& message) {
 }
 
 void ScriptEngine::scriptWarningMessage(const QString& message) {
-    qCWarning(scriptengine) << message;
+    qCWarning(scriptengine) << qPrintable(message);
     emit warningMessage(message, getFilename());
 }
 
 void ScriptEngine::scriptInfoMessage(const QString& message) {
-    qCInfo(scriptengine) << message;
+    qCInfo(scriptengine) << qPrintable(message);
     emit infoMessage(message, getFilename());
 }
 
 void ScriptEngine::scriptPrintedMessage(const QString& message) {
-    qCDebug(scriptengine) << message;
+    qCDebug(scriptengine) << qPrintable(message);
     emit printedMessage(message, getFilename());
 }
 
-void ScriptEngine::clearConsole() {
+void ScriptEngine::clearDebugLogWindow() {
     emit clearDebugWindow();
 }
 
@@ -678,11 +669,10 @@ void ScriptEngine::init() {
     registerGlobalObject("Entities", entityScriptingInterface.data());
     registerGlobalObject("Quat", &_quatLibrary);
     registerGlobalObject("Vec3", &_vec3Library);
-    registerGlobalObject("console", &_consoleScriptingInterface);
     registerGlobalObject("Mat4", &_mat4Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
-
+    registerGlobalObject("console", &_consoleScriptingInterface);
     registerGlobalObject("File", new FileScriptingInterface(this));
 
     qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);

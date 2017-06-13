@@ -147,7 +147,8 @@ public:
     /// to run... NOTE - this is used by Application currently to load the url. We don't really want it to be exposed
     /// to scripts. we may not need this to be invokable
     void loadURL(const QUrl& scriptURL, bool reload);
-    bool hasValidScriptSuffix(const QString& scriptFileName);    
+    bool hasValidScriptSuffix(const QString& scriptFileName);
+
     Q_INVOKABLE QString getContext() const;
     Q_INVOKABLE bool isClientScript() const { return _context == CLIENT_SCRIPT; }
     Q_INVOKABLE bool isEntityClientScript() const { return _context == ENTITY_CLIENT_SCRIPT; }
@@ -225,8 +226,7 @@ public:
     void scriptWarningMessage(const QString& message);
     void scriptInfoMessage(const QString& message);
     void scriptPrintedMessage(const QString& message);
-
-    void clearConsole();
+    void clearDebugLogWindow();
     int getNumRunningEntityScripts() const;
     bool getEntityScriptDetails(const EntityItemID& entityID, EntityScriptDetails &details) const;
 
