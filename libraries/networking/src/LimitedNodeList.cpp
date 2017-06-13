@@ -588,6 +588,9 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         // we didn't have this node, so add them
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, permissions, isReplicated, connectionSecret);
 
+        // move the newly constructed node to the LNL thread
+        newNode->moveToThread(thread());
+
         if (nodeType == NodeType::AudioMixer) {
             LimitedNodeList::flagTimeForConnectionStep(LimitedNodeList::AddedAudioMixer);
         }
@@ -744,7 +747,8 @@ void LimitedNodeList::removeSilentNodes() {
         SharedNodePointer node = it->second;
         node->getMutex().lock();
 
-        if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > (NODE_SILENCE_THRESHOLD_MSECS * USECS_PER_MSEC)) {
+        if (!NodeType::isDownstream(node->getType())
+            && (usecTimestampNow() - node->getLastHeardMicrostamp()) > (NODE_SILENCE_THRESHOLD_MSECS * USECS_PER_MSEC)) {
             // call the NodeHash erase to get rid of this node
             it = _nodeHash.unsafe_erase(it);
 

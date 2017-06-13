@@ -42,12 +42,29 @@ void NodeType::init() {
     TypeNameHash.insert(NodeType::MessagesMixer, "Messages Mixer");
     TypeNameHash.insert(NodeType::AssetServer, "Asset Server");
     TypeNameHash.insert(NodeType::EntityScriptServer, "Entity Script Server");
+    TypeNameHash.insert(NodeType::DownstreamAudioMixer, "Downstream Audio Mixer");
+    TypeNameHash.insert(NodeType::DownstreamAvatarMixer, "Downstream Avatar Mixer");
     TypeNameHash.insert(NodeType::Unassigned, "Unassigned");
 }
 
 const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
     QHash<NodeType_t, QString>::iterator matchedTypeName = TypeNameHash.find(nodeType);
     return matchedTypeName != TypeNameHash.end() ? matchedTypeName.value() : UNKNOWN_NodeType_t_NAME;
+}
+
+bool NodeType::isDownstream(NodeType_t nodeType) {
+    return nodeType ==  NodeType::DownstreamAudioMixer || nodeType == NodeType::DownstreamAvatarMixer;
+}
+
+NodeType_t NodeType::downstreamType(NodeType_t primaryType) {
+    switch (primaryType) {
+        case AudioMixer:
+            return DownstreamAudioMixer;
+        case AvatarMixer:
+            return DownstreamAvatarMixer;
+        default:
+            return Unassigned;
+    }
 }
 
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,

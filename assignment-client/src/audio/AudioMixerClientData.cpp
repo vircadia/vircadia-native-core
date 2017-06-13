@@ -73,17 +73,20 @@ void AudioMixerClientData::processPackets() {
             case PacketType::ReplicatedMicrophoneAudioWithEcho:
             case PacketType::ReplicatedInjectAudio:
             case PacketType::ReplicatedSilentAudioFrame: {
+
+                if (node->isUpstream() && !_hasSetupCodecForUpstreamNode) {
+                    setupCodecForReplicatedAgent(packet);
+                }
+
                 QMutexLocker lock(&getMutex());
                 parseData(*packet);
-
-                replicatePacket(*packet);
+                
+                optionallyReplicatePacket(*packet, *node);
 
                 break;
             }
             case PacketType::NegotiateAudioFormat:
-            case PacketType::ReplicatedNegotiateAudioFormat:
                 negotiateAudioFormat(*packet, node);
-                replicatePacket(*packet);
                 break;
             case PacketType::RequestsDomainListData:
                 parseRequestsDomainListData(*packet);
@@ -106,32 +109,71 @@ void AudioMixerClientData::processPackets() {
     assert(_packetQueue.empty());
 }
 
-void AudioMixerClientData::replicatePacket(ReceivedMessage& message) {
-    auto nodeList = DependencyManager::get<NodeList>();
-    if (!nodeList->getMirrorSocket().isNull()) {
+bool isReplicatedPacket(PacketType packetType) {
+    return packetType == PacketType::ReplicatedMicrophoneAudioNoEcho
+        || packetType == PacketType::ReplicatedMicrophoneAudioWithEcho
+        || packetType == PacketType::ReplicatedInjectAudio
+        || packetType == PacketType::ReplicatedSilentAudioFrame;
+}
+
+void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, const Node& node) {
+
+    // first, make sure that this is a packet from a node we are supposed to replicate
+    if (node.isReplicated()) {
+
+        auto nodeList = DependencyManager::get<NodeList>();
+
+        // now make sure it's a packet type that we want to replicate
         PacketType mirroredType;
 
-        if (message.getType() == PacketType::MicrophoneAudioNoEcho) {
-            mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
-        } else if (message.getType() == PacketType::MicrophoneAudioWithEcho) {
-            mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
-        } else if (message.getType() == PacketType::InjectAudio) {
-            mirroredType = PacketType::ReplicatedInjectAudio;
-        } else if (message.getType() == PacketType::SilentAudioFrame) {
-            mirroredType = PacketType::ReplicatedSilentAudioFrame;
-        } else if (message.getType() == PacketType::NegotiateAudioFormat) {
-            mirroredType = PacketType::ReplicatedNegotiateAudioFormat;
-        } else {
-            return;
+        switch (message.getType()) {
+            case PacketType::MicrophoneAudioNoEcho:
+            case PacketType::ReplicatedMicrophoneAudioNoEcho:
+                mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
+                break;
+            case PacketType::MicrophoneAudioWithEcho:
+            case PacketType::ReplicatedMicrophoneAudioWithEcho:
+                mirroredType = PacketType::ReplicatedMicrophoneAudioWithEcho;
+                break;
+            case PacketType::InjectAudio:
+            case PacketType::ReplicatedInjectAudio:
+                mirroredType = PacketType::ReplicatedInjectAudio;
+                break;
+            case PacketType::SilentAudioFrame:
+            case PacketType::ReplicatedSilentAudioFrame:
+                mirroredType = PacketType::ReplicatedSilentAudioFrame;
+                break;
+            default:
+                return;
         }
 
-        // construct an NLPacket to send to the replicant that has the contents of the received packet
-        auto packet = NLPacket::create(mirroredType, message.getSize() + NUM_BYTES_RFC4122_UUID);
-        packet->write(message.getSourceID().toRfc4122());
-        packet->write(message.getMessage());
+        std::unique_ptr<NLPacket> packet;
 
-        nodeList->sendPacket(std::move(packet), nodeList->getMirrorSocket());
+        // enumerate the downstream audio mixers and send them the replicated version of this packet
+        nodeList->unsafeEachNode([&](const SharedNodePointer& downstreamNode) {
+            if (downstreamNode->getType() == NodeType::DownstreamAudioMixer) {
+                // construct the packet only once, if we have any downstream audio mixers to send to
+                if (!packet) {
+                    // construct an NLPacket to send to the replicant that has the contents of the received packet
+                    packet = NLPacket::create(mirroredType);
+
+                    if (!isReplicatedPacket(message.getType())) {
+                        // since this packet will be non-sourced, we add the replicated node's ID here
+                        packet->write(node.getUUID().toRfc4122());
+
+                        // we won't negotiate an audio format with the replicant, because we aren't a listener
+                        // so pack the codec string here so that it can statelessly setup a decoder for this string when it needs
+                        packet->writeString(_selectedCodecName);
+                    }
+
+                    packet->write(message.getMessage());
+                }
+                
+                nodeList->sendUnreliablePacket(*packet, downstreamNode->getPublicSocket());
+            }
+        });
     }
+
 }
 
 void AudioMixerClientData::negotiateAudioFormat(ReceivedMessage& message, const SharedNodePointer& node) {
@@ -249,7 +291,8 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
                 avatarAudioStream->setupCodec(_codec, _selectedCodecName, AudioConstants::MONO);
                 qDebug() << "creating new AvatarAudioStream... codec:" << _selectedCodecName;
 
-                connect(avatarAudioStream, &InboundAudioStream::mismatchedAudioCodec, this, &AudioMixerClientData::handleMismatchAudioFormat);
+                connect(avatarAudioStream, &InboundAudioStream::mismatchedAudioCodec,
+                        this, &AudioMixerClientData::handleMismatchAudioFormat);
 
                 auto emplaced = _audioStreams.emplace(
                     QUuid(),
@@ -307,7 +350,12 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
             || packetType == PacketType::ReplicatedMicrophoneAudioNoEcho
             || packetType == PacketType::ReplicatedSilentAudioFrame
             || packetType == PacketType::ReplicatedInjectAudio) {
+
+            // skip past source ID for the replicated packet
             message.seek(NUM_BYTES_RFC4122_UUID);
+
+            // skip past the codec string
+            message.readString();
         }
 
         // check the overflow count before we parse data
@@ -655,4 +703,19 @@ bool AudioMixerClientData::shouldIgnore(const SharedNodePointer self, const Shar
     nodeData->_nodeSourcesIgnoreMap[self->getUUID()].cache(shouldIgnore);
 
     return shouldIgnore;
+}
+
+void AudioMixerClientData::setupCodecForReplicatedAgent(QSharedPointer<ReceivedMessage> message) {
+    // first pull the codec string from the packet
+
+    // read the string for the codec
+    auto codecString = message->readString();
+
+    qDebug() << "Manually setting codec for replicated agent" << uuidStringWithoutCurlyBraces(getNodeID())
+        << "-" << codecString;
+
+    const std::pair<QString, CodecPluginPointer> codec = AudioMixer::negotiateCodec({ codecString });
+    setupCodec(codec.second, codec.first);
+
+    _hasSetupCodecForUpstreamNode = true;
 }

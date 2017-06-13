@@ -10,6 +10,7 @@
 //
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QJsonArray>
 #include <QtCore/QJsonObject>
 #include <QtCore/QThread>
 #include <QtCore/QTimer>
@@ -131,4 +132,38 @@ void ThreadedAssignment::checkInWithDomainServerOrExit() {
 void ThreadedAssignment::domainSettingsRequestFailed() {
     qCDebug(networking) << "Failed to retreive settings object from domain-server. Bailing on assignment.";
     setFinished(true);
+}
+
+void ThreadedAssignment::parseDownstreamServers(const QJsonObject& settingsObject, NodeType_t nodeType) {
+    static const QString REPLICATION_GROUP_KEY = "replication";
+    static const QString DOWNSTREAM_SERVERS_SETTING_KEY = "downstream_servers";
+    if (settingsObject.contains(REPLICATION_GROUP_KEY)) {
+        const QJsonObject replicationObject = settingsObject[REPLICATION_GROUP_KEY].toObject();
+
+        const QJsonArray downstreamServers = replicationObject[DOWNSTREAM_SERVERS_SETTING_KEY].toArray();
+
+        auto nodeList = DependencyManager::get<NodeList>();
+
+        foreach(const QJsonValue& downstreamServerValue, downstreamServers) {
+            const QJsonObject downstreamServer = downstreamServerValue.toObject();
+
+            static const QString DOWNSTREAM_SERVER_ADDRESS = "address";
+            static const QString DOWNSTREAM_SERVER_PORT = "port";
+            static const QString DOWNSTREAM_SERVER_TYPE = "server_type";
+
+            // make sure we have the settings we need for this downstream server
+            if (downstreamServer.contains(DOWNSTREAM_SERVER_ADDRESS) && downstreamServer.contains(DOWNSTREAM_SERVER_PORT)
+                && downstreamServer[DOWNSTREAM_SERVER_TYPE].toString() == NodeType::getNodeTypeName(nodeType)) {
+                // read the address and port and construct a HifiSockAddr from them
+                HifiSockAddr downstreamServerAddr {
+                    downstreamServer[DOWNSTREAM_SERVER_ADDRESS].toString(),
+                    (quint16) downstreamServer[DOWNSTREAM_SERVER_PORT].toString().toInt()
+                };
+
+                // manually add the downstream node to our node list
+                nodeList->addOrUpdateNode(QUuid::createUuid(), NodeType::downstreamType(nodeType),
+                                          downstreamServerAddr, downstreamServerAddr);
+            }
+        }
+    }
 }

@@ -97,10 +97,9 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
         PacketType::ReplicatedMicrophoneAudioNoEcho,
         PacketType::ReplicatedMicrophoneAudioWithEcho,
         PacketType::ReplicatedInjectAudio,
-        PacketType::ReplicatedSilentAudioFrame,
-        PacketType::ReplicatedNegotiateAudioFormat
+        PacketType::ReplicatedSilentAudioFrame
     },
-        this, "queueMirroredAudioPacket"
+        this, "queueReplicatedAudioPacket"
     );
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
@@ -120,13 +119,13 @@ void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> mess
 
     QUuid nodeID =  QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
-    auto node = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
-                                          message->getSenderSockAddr(), message->getSenderSockAddr());
-    node->setIsUpstream(true);
-    node->setIsMirror(true);
-    node->setLastHeardMicrostamp(usecTimestampNow());
+    auto replicatedNode = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
+                                                    message->getSenderSockAddr(), message->getSenderSockAddr(),
+                                                    DEFAULT_AGENT_PERMISSIONS, true);
+    replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
+    replicatedNode->setIsUpstream(true);
 
-    getOrCreateClientData(node.data())->queuePacket(message, node);
+    getOrCreateClientData(replicatedNode.data())->queuePacket(message, replicatedNode);
 }
 
 void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
@@ -532,7 +531,7 @@ void AudioMixer::clearDomainSettings() {
     _zoneReverbSettings.clear();
 }
 
-void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
+void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
     qDebug() << "AVX2 Support:" << (cpuSupportsAVX2() ? "enabled" : "disabled");
 
     if (settingsObject.contains(AUDIO_THREADING_GROUP_KEY)) {
@@ -750,6 +749,8 @@ void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
             }
         }
     }
+
+    parseDownstreamServers(settingsObject, NodeType::AudioMixer);
 }
 
 AudioMixer::Timer::Timing::Timing(uint64_t& sum) : _sum(sum) {

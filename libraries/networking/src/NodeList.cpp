@@ -712,14 +712,20 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
 }
 
 void NodeList::startNodeHolePunch(const SharedNodePointer& node) {
-    // connect to the correct signal on this node so we know when to ping it
-    connect(node.data(), &Node::pingTimerTimeout, this, &NodeList::handleNodePingTimeout);
 
-    // start the ping timer for this node
-    node->startPingTimer();
+    // we don't hole punch to downstream servers, since it is assumed that we have a direct line to them
+    // we also don't hole punch to relayed upstream nodes, since we do not communicate directly with them
 
-    // ping this node immediately
-    pingPunchForInactiveNode(node);
+    if (!NodeType::isDownstream(node->getType()) && !node->isUpstream()) {
+        // connect to the correct signal on this node so we know when to ping it
+        connect(node.data(), &Node::pingTimerTimeout, this, &NodeList::handleNodePingTimeout);
+
+        // start the ping timer for this node
+        node->startPingTimer();
+
+        // ping this node immediately
+        pingPunchForInactiveNode(node);
+    }
 }
 
 void NodeList::handleNodePingTimeout() {
@@ -762,8 +768,10 @@ void NodeList::stopKeepalivePingTimer() {
 }
 
 void NodeList::sendKeepAlivePings() {
+    // send keep-alive ping packets to nodes of types we care about that are not relayed to us from an upstream node
+
     eachMatchingNode([this](const SharedNodePointer& node)->bool {
-        return _nodeTypesOfInterest.contains(node->getType());
+        return !node->isUpstream() && _nodeTypesOfInterest.contains(node->getType());
     }, [&](const SharedNodePointer& node) {
         sendPacket(constructPingPacket(), *node);
     });

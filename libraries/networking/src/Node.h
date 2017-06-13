@@ -37,6 +37,7 @@
 class Node : public NetworkPeer {
     Q_OBJECT
 public:
+
     Node(const QUuid& uuid, NodeType_t type,
          const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
          const NodePermissions& permissions, bool isReplicated, const QUuid& connectionSecret = QUuid(),
@@ -86,9 +87,6 @@ public:
 
     bool isIgnoreRadiusEnabled() const { return _ignoreRadiusEnabled; }
 
-    bool isMirror() const { return _isMirror; }
-    void setIsMirror(bool isMirror) { _isMirror = isMirror; }
-
 private:
     // privatize copy and assignment operator to disallow Node copying
     Node(const Node &otherNode);
@@ -109,8 +107,6 @@ private:
     mutable QReadWriteLock _ignoredNodeIDSetLock;
 
     std::atomic_bool _ignoreRadiusEnabled;
-
-    bool _isMirror { false };
 };
 
 Q_DECLARE_METATYPE(Node*)

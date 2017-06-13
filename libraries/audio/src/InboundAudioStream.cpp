@@ -147,7 +147,8 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
         }
         case SequenceNumberStats::OnTime: {
             // Packet is on time; parse its data to the ringbuffer
-            if (message.getType() == PacketType::SilentAudioFrame) {
+            if (message.getType() == PacketType::SilentAudioFrame
+                || message.getType() == PacketType::ReplicatedSilentAudioFrame) {
                 // If we recieved a SilentAudioFrame from our sender, we might want to drop
                 // some of the samples in order to catch up to our desired jitter buffer size.
                 writeDroppableSilentFrames(networkFrames);
@@ -168,7 +169,10 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
 
                     // inform others of the mismatch
                     auto sendingNode = DependencyManager::get<NodeList>()->nodeWithUUID(message.getSourceID());
-                    emit mismatchedAudioCodec(sendingNode, _selectedCodecName, codecInPacket);
+                    if (sendingNode) {
+                        emit mismatchedAudioCodec(sendingNode, _selectedCodecName, codecInPacket);
+                    }
+
                 }
             }
             break;

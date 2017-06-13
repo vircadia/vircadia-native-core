@@ -108,6 +108,8 @@ public:
     bool getRequestsDomainListData() { return _requestsDomainListData; }
     void setRequestsDomainListData(bool requesting) { _requestsDomainListData = requesting; }
 
+    void setupCodecForReplicatedAgent(QSharedPointer<ReceivedMessage> message);
+
 signals:
     void injectorStreamFinished(const QUuid& streamIdentifier);
 
@@ -124,7 +126,7 @@ private:
     QReadWriteLock _streamsLock;
     AudioStreamMap _audioStreams; // microphone stream from avatar is stored under key of null UUID
 
-    void replicatePacket(ReceivedMessage& packet);
+    void optionallyReplicatePacket(ReceivedMessage& packet, const Node& node);
 
     using IgnoreZone = AABox;
     class IgnoreZoneMemo {
@@ -183,6 +185,8 @@ private:
 
     bool _shouldMuteClient { false };
     bool _requestsDomainListData { false };
+
+    bool _hasSetupCodecForUpstreamNode { false };
 };
 
 #endif // hifi_AudioMixerClientData_h
