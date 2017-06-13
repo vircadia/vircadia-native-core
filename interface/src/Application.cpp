@@ -1873,8 +1873,8 @@ void Application::initializeGL() {
         isDeferred = false;
     }
 
-    _renderEngine->addJob<MainRenderTask>("MainFrame", cullFunctor, isDeferred);
     _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraFrame", cullFunctor);
+    _renderEngine->addJob<MainRenderTask>("MainFrame", cullFunctor, isDeferred);
 
     
 /*    _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
