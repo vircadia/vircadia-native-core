@@ -121,7 +121,7 @@ public:
         ReplicatedSilentAudioFrame,
         ReplicatedAvatarIdentity,
         ReplicatedKillAvatar,
-
+        ReplicatedBulkAvatarData,
         NUM_PACKET_TYPE
     };
 };
