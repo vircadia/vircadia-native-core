@@ -123,29 +123,21 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
             case PacketType::MicrophoneAudioNoEcho:
             case PacketType::ReplicatedMicrophoneAudioNoEcho:
                 mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
+                break;
             case PacketType::MicrophoneAudioWithEcho:
             case PacketType::ReplicatedMicrophoneAudioWithEcho:
                 mirroredType =  PacketType::ReplicatedMicrophoneAudioWithEcho;
+                break;
             case PacketType::InjectAudio:
             case PacketType::ReplicatedInjectAudio:
                 mirroredType = PacketType::ReplicatedInjectAudio;
+                break;
             case PacketType::SilentAudioFrame:
             case PacketType::ReplicatedSilentAudioFrame:
                 mirroredType = PacketType::ReplicatedSilentAudioFrame;
+                break;
             default:
                 return;
-        }
-
-        if (message.getType() == PacketType::MicrophoneAudioNoEcho) {
-            mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
-        } else if (message.getType() == PacketType::MicrophoneAudioWithEcho) {
-            mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
-        } else if (message.getType() == PacketType::InjectAudio) {
-            mirroredType = PacketType::ReplicatedInjectAudio;
-        } else if (message.getType() == PacketType::SilentAudioFrame) {
-            mirroredType = PacketType::ReplicatedSilentAudioFrame;
-        } else {
-            return;
         }
 
         std::unique_ptr<NLPacket> packet;
