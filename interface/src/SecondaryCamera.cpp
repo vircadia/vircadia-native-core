@@ -78,6 +78,7 @@ public:
             auto srcViewFrustum = args->getViewFrustum();
             srcViewFrustum.setPosition(_position);
             srcViewFrustum.setOrientation(_orientation);
+            srcViewFrustum.setProjection(glm::perspective(45.0f, ((float)args->_viewport.z / (float)args->_viewport.w), 0.1f, 100.0f));
             // Without calculating the bound planes, the secondary camera will use the same culling frustum as the main camera,
             // which is not what we want here.
             srcViewFrustum.calculate();

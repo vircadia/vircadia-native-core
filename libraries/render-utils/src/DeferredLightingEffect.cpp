@@ -420,8 +420,7 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
 void PreparePrimaryFramebuffer::run(const RenderContextPointer& renderContext, gpu::FramebufferPointer& primaryFramebuffer) {
 
     auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    auto framebufferSize = framebufferCache->getFrameBufferSize();
-    glm::uvec2 frameSize(framebufferSize.width(), framebufferSize.height());
+    glm::uvec2 frameSize(renderContext->args->_viewport.z, renderContext->args->_viewport.w);
 
     // Resizing framebuffers instead of re-building them seems to cause issues with threaded 
     // rendering

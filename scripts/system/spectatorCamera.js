@@ -133,12 +133,8 @@
             parentID: camera,
             alpha: 1,
             position: { x: 0.007, y: 0.15, z: -0.005 },
-            dimensions: { x: 0.16, y: -0.16 * windowAspectRatio / previewAspectRatio, z: 0 }
+            dimensions: { x: 0.16, y: 0.16 * windowAspectRatio / previewAspectRatio, z: 0 }
             // FIXME: This stretches the preview.
-            // FIXME: We shouldn't need the negative dimension.
-            // e.g., This isn't necessary using an ordinary .jpg with lettering, above.
-            // Must be something about the view frustum projection matrix?
-            // But don't go changing that in (c++ code) without getting all the way to a desktop display!
         });
         Entities.editEntity(camera, { position: cameraPosition, rotation: cameraRotation });
         setDisplay(monitorShowsCameraView);
