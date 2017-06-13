@@ -40,9 +40,9 @@ Antialiasing::~Antialiasing() {
     }
 }
 
-const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
-    int width = DependencyManager::get<FramebufferCache>()->getFrameBufferSize().width();
-    int height = DependencyManager::get<FramebufferCache>()->getFrameBufferSize().height();
+const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline(RenderArgs* args) {
+    int width = args->_viewport.z;
+    int height = args->_viewport.w;
 
     if (_antialiasingBuffer && _antialiasingBuffer->getSize() != uvec2(width, height)) {
         _antialiasingBuffer.reset();
@@ -115,10 +115,8 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setViewportTransform(args->_viewport);
 
         // FIXME: NEED to simplify that code to avoid all the GeometryCahce call, this is purely pixel manipulation
-        auto framebufferCache = DependencyManager::get<FramebufferCache>();
-        QSize framebufferSize = framebufferCache->getFrameBufferSize();
-        float fbWidth = framebufferSize.width();
-        float fbHeight = framebufferSize.height();
+        float fbWidth = renderContext->args->_viewport.z;
+        float fbHeight = renderContext->args->_viewport.w;
         // float sMin = args->_viewport.x / fbWidth;
         // float sWidth = args->_viewport.z / fbWidth;
         // float tMin = args->_viewport.y / fbHeight;
@@ -133,10 +131,10 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setModelTransform(Transform());
 
         // FXAA step
-        getAntialiasingPipeline();
+        auto pipeline = getAntialiasingPipeline(renderContext->args);
         batch.setResourceTexture(0, sourceBuffer->getRenderBuffer(0));
         batch.setFramebuffer(_antialiasingBuffer);
-        batch.setPipeline(getAntialiasingPipeline());
+        batch.setPipeline(pipeline);
 
         // initialize the view-space unpacking uniforms using frustum data
         float left, right, bottom, top, nearVal, farVal;
