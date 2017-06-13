@@ -467,10 +467,12 @@ bool ViveControllerManager::InputDevice::configureHands(glm::mat4& defaultToRefe
             calibrateLeftHand(defaultToReferenceMat, inputCalibration, firstHand);
             calibrateRightHand(defaultToReferenceMat, inputCalibration, secondHand);
             _overrideHands = true;
+            return true;
         } else {
             calibrateLeftHand(defaultToReferenceMat, inputCalibration, secondHand);
             calibrateRightHand(defaultToReferenceMat, inputCalibration, firstHand);
             _overrideHands = true;
+            return true;
         }
     } else if (_handConfig == HandConfig::HandController) {
         _overrideHands = false;
@@ -879,7 +881,7 @@ void ViveControllerManager::InputDevice::calibrateLeftHand(glm::mat4& defaultToR
     glm::mat4 avatarToSensorMat = glm::inverse(inputCalibration.sensorToWorldMat) * inputCalibration.avatarMat;
     glm::mat4 sensorToAvatarMat = glm::inverse(inputCalibration.avatarMat) * inputCalibration.sensorToWorldMat;
     controller::Pose& handPose = handPair.second;
-    glm::mat4 handPoseAvatarMat = createMatFromQuatAndPos(handPose.getRotation(), handPose.getTranslation()) * Matrices::Y_180;
+    glm::mat4 handPoseAvatarMat = createMatFromQuatAndPos(handPose.getRotation(), handPose.getTranslation());
     glm::vec3 handPoseTranslation = extractTranslation(handPoseAvatarMat);
     glm::vec3 handPoseZAxis = glmExtractRotation(handPoseAvatarMat) * glm::vec3(0.0f, 0.0f, 1.0f);
     glm::vec3 avatarHandYAxis = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -888,7 +890,7 @@ void ViveControllerManager::InputDevice::calibrateLeftHand(glm::mat4& defaultToR
     if (fabsf(fabsf(glm::dot(glm::normalize(avatarHandYAxis), glm::normalize(handPoseZAxis))) - 1.0f) < EPSILON) {
         handPoseZAxis = glm::vec3(0.0f, 0.0f, 1.0f);
     }
-
+    
     glm::vec3 yPrime = avatarHandYAxis;
     glm::vec3 xPrime = glm::normalize(glm::cross(avatarHandYAxis, handPoseZAxis));
     glm::vec3 zPrime = glm::normalize(glm::cross(xPrime, yPrime));
@@ -911,7 +913,7 @@ void ViveControllerManager::InputDevice::calibrateRightHand(glm::mat4& defaultTo
     glm::mat4 avatarToSensorMat = glm::inverse(inputCalibration.sensorToWorldMat) * inputCalibration.avatarMat;
     glm::mat4 sensorToAvatarMat = glm::inverse(inputCalibration.avatarMat) * inputCalibration.sensorToWorldMat;
     controller::Pose& handPose = handPair.second;
-    glm::mat4 handPoseAvatarMat = createMatFromQuatAndPos(handPose.getRotation(), handPose.getTranslation()) * Matrices::Y_180;
+    glm::mat4 handPoseAvatarMat = createMatFromQuatAndPos(handPose.getRotation(), handPose.getTranslation());
     glm::vec3 handPoseTranslation = extractTranslation(handPoseAvatarMat);
     glm::vec3 handPoseZAxis = glmExtractRotation(handPoseAvatarMat) * glm::vec3(0.0f, 0.0f, 1.0f);
     glm::vec3 avatarHandYAxis = glm::vec3(-1.0f, 0.0f, 0.0f);
@@ -920,7 +922,7 @@ void ViveControllerManager::InputDevice::calibrateRightHand(glm::mat4& defaultTo
     if (fabsf(fabsf(glm::dot(glm::normalize(avatarHandYAxis), glm::normalize(handPoseZAxis))) - 1.0f) < EPSILON) {
         handPoseZAxis = glm::vec3(0.0f, 0.0f, 1.0f);
     }
-
+    
     glm::vec3 yPrime = avatarHandYAxis;
     glm::vec3 xPrime = glm::normalize(glm::cross(avatarHandYAxis, handPoseZAxis));
     glm::vec3 zPrime = glm::normalize(glm::cross(xPrime, yPrime));
@@ -929,14 +931,14 @@ void ViveControllerManager::InputDevice::calibrateRightHand(glm::mat4& defaultTo
                                      glm::vec4(zPrime, 0.0f), glm::vec4(handPoseTranslation, 1.0f));
     
     glm::mat4 handPoseOffset = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
-                                          glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+                                         glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, 0.0508f, 0.0f, 1.0f));
     
     glm::mat4 finalHandMat = newHandMat * handPoseOffset;
 
     controller::Pose finalPose(extractTranslation(finalHandMat), glmExtractRotation(finalHandMat));
 
     _jointToPuckMap[controller::RIGHT_HAND] = handPair.first;
-    _pucksOffset[handPair.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultLeftHand, finalPose);
+    _pucksOffset[handPair.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultRightHand, finalPose);
 }
 
 
