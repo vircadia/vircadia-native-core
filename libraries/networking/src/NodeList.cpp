@@ -20,6 +20,7 @@
 #include <QtNetwork/QHostInfo>
 #include <QtNetwork/QNetworkInterface>
 
+#include <ThreadHelpers.h>
 #include <LogHandler.h>
 #include <UUID.h>
 
@@ -1114,4 +1115,9 @@ void NodeList::setRequestsDomainListData(bool isRequesting) {
         sendPacket(std::move(packet), *destinationNode);
     });
     _requestsDomainListData = isRequesting;
+}
+
+
+void NodeList::startThread() {
+    moveToNewNamedThread(this, "NodeList Thread", QThread::TimeCriticalPriority);
 }

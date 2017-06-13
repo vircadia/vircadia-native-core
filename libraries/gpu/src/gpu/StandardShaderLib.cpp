@@ -16,6 +16,12 @@
 #include "DrawTransformUnitQuad_vert.h"
 #include "DrawTexcoordRectTransformUnitQuad_vert.h"
 #include "DrawViewportQuadTransformTexcoord_vert.h"
+#include "DrawVertexPosition_vert.h"
+#include "DrawTransformVertexPosition_vert.h"
+
+const char DrawNada_frag[] = "void main(void) {}"; // DrawNada is really simple...
+
+#include "DrawWhite_frag.h"
 #include "DrawTexture_frag.h"
 #include "DrawTextureOpaque_frag.h"
 #include "DrawColoredTexture_frag.h"
@@ -26,6 +32,10 @@ ShaderPointer StandardShaderLib::_drawUnitQuadTexcoordVS;
 ShaderPointer StandardShaderLib::_drawTransformUnitQuadVS;
 ShaderPointer StandardShaderLib::_drawTexcoordRectTransformUnitQuadVS;
 ShaderPointer StandardShaderLib::_drawViewportQuadTransformTexcoordVS;
+ShaderPointer StandardShaderLib::_drawVertexPositionVS;
+ShaderPointer StandardShaderLib::_drawTransformVertexPositionVS;
+ShaderPointer StandardShaderLib::_drawNadaPS;
+ShaderPointer StandardShaderLib::_drawWhitePS;
 ShaderPointer StandardShaderLib::_drawTexturePS;
 ShaderPointer StandardShaderLib::_drawTextureOpaquePS;
 ShaderPointer StandardShaderLib::_drawColoredTexturePS;
@@ -85,6 +95,34 @@ ShaderPointer StandardShaderLib::getDrawViewportQuadTransformTexcoordVS() {
     return _drawViewportQuadTransformTexcoordVS;
 }
 
+ShaderPointer StandardShaderLib::getDrawVertexPositionVS() {
+    if (!_drawVertexPositionVS) {
+        _drawVertexPositionVS = gpu::Shader::createVertex(std::string(DrawVertexPosition_vert));
+    }
+    return _drawVertexPositionVS;
+}
+
+ShaderPointer StandardShaderLib::getDrawTransformVertexPositionVS() {
+    if (!_drawTransformVertexPositionVS) {
+        _drawTransformVertexPositionVS = gpu::Shader::createVertex(std::string(DrawTransformVertexPosition_vert));
+    }
+    return _drawTransformVertexPositionVS;
+}
+
+ShaderPointer StandardShaderLib::getDrawNadaPS() {
+    if (!_drawNadaPS) {
+        _drawNadaPS = gpu::Shader::createPixel(std::string(DrawNada_frag));
+    }
+    return _drawNadaPS;
+}
+
+ShaderPointer StandardShaderLib::getDrawWhitePS() {
+    if (!_drawWhitePS) {
+        _drawWhitePS = gpu::Shader::createPixel(std::string(DrawWhite_frag));
+    }
+    return _drawWhitePS;
+}
+
 ShaderPointer StandardShaderLib::getDrawTexturePS() {
     if (!_drawTexturePS) {
         _drawTexturePS = gpu::Shader::createPixel(std::string(DrawTexture_frag));
@@ -98,8 +136,6 @@ ShaderPointer StandardShaderLib::getDrawTextureOpaquePS() {
     }
     return _drawTextureOpaquePS;
 }
-
-
 
 ShaderPointer StandardShaderLib::getDrawColoredTexturePS() {
     if (!_drawColoredTexturePS) {

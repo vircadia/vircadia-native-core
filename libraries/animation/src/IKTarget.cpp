@@ -44,6 +44,9 @@ void IKTarget::setType(int type) {
         case (int)Type::HipsRelativeRotationAndPosition:
             _type = Type::HipsRelativeRotationAndPosition;
             break;
+        case (int)Type::Spline:
+            _type = Type::Spline;
+            break;
         default:
             _type = Type::Unknown;
     }

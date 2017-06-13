@@ -286,6 +286,43 @@ input[type=button].naked:active {
 // END styling of snapshot controls (bottom panel) and its contents
 */
 
+
+/*
+// START polaroid styling
+*/
+
+#print-button {
+    width: 72px;
+    height: 72px;
+    margin-left: 30px;
+    margin-top: -10px;
+    box-sizing: content-box;
+    display: inline;
+    outline:none;
+}
+
+.print-icon {
+    margin: auto;
+}
+
+.print-icon-default {
+    background: url(../img/button-snap-print.svg) no-repeat;
+    margin-right: -1px;
+    width: 64px;
+    height: 64px;
+}
+
+.print-icon-loading {
+    background: url(../img/loader.gif) no-repeat;
+    width: 32px;
+    height: 32px;
+}
+
+/*
+// END polaroid styling
+*/
+
+
 /*
 // START misc styling
 */

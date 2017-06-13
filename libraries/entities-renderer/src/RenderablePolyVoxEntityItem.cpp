@@ -46,6 +46,9 @@
 #endif
 
 #include "model/Geometry.h"
+
+#include "StencilMaskPass.h"
+
 #include "EntityTreeRenderer.h"
 #include "polyvox_vert.h"
 #include "polyvox_fade_vert.h"
@@ -745,11 +748,13 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        PrepareStencil::testMaskDrawShape(*state);
 
         auto wireframeState = std::make_shared<gpu::State>();
         wireframeState->setCullMode(gpu::State::CULL_BACK);
         wireframeState->setDepthTest(true, true, gpu::LESS_EQUAL);
         wireframeState->setFillMode(gpu::State::FILL_LINE);
+        PrepareStencil::testMaskDrawShape(*wireframeState);
 
         // Two sets of pipelines: normal and fading
         for (auto i = 0; i < 2; i++) {

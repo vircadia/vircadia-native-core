@@ -3334,7 +3334,8 @@ function MyController(hand) {
             //  If both secondary triggers squeezed, and the non-holding hand is empty, start scaling
             if (this.secondarySqueezed() &&
                 this.getOtherHandController().secondarySqueezed() &&
-                this.getOtherHandController().state === STATE_OFF) {
+                this.grabbedThingID && this.getOtherHandController().grabbedThingID &&
+                this.grabbedThingID == this.getOtherHandController().grabbedThingID) {
                 this.scalingStartDistance = Vec3.length(Vec3.subtract(this.getHandPosition(),
                                                                       this.getOtherHandController().getHandPosition()));
                 this.scalingStartDimensions = props.dimensions;

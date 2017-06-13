@@ -8,6 +8,8 @@
 
 #include "StorageTests.h"
 
+#include <memory>
+
 QTEST_MAIN(StorageTests)
 
 using namespace storage;
@@ -32,8 +34,8 @@ void StorageTests::testConversion() {
         QFileInfo fileInfo(_testFile);
         QCOMPARE(fileInfo.exists(), false);
     }
-    StoragePointer storagePointer = std::make_unique<MemoryStorage>(_testData.size(), _testData.data());
-    QCOMPARE(storagePointer->size(), (quint64)_testData.size());
+    StoragePointer storagePointer = std::unique_ptr<MemoryStorage>(new MemoryStorage(_testData.size(), _testData.data()));
+    QCOMPARE(storagePointer->size(), _testData.size());
     QCOMPARE(memcmp(_testData.data(), storagePointer->data(), _testData.size()), 0);
     // Convert to a file
     storagePointer = storagePointer->toFileStorage(_testFile);
@@ -42,12 +44,12 @@ void StorageTests::testConversion() {
         QCOMPARE(fileInfo.exists(), true);
         QCOMPARE(fileInfo.size(), (qint64)_testData.size());
     }
-    QCOMPARE(storagePointer->size(), (quint64)_testData.size());
+    QCOMPARE(storagePointer->size(), _testData.size());
     QCOMPARE(memcmp(_testData.data(), storagePointer->data(), _testData.size()), 0);
 
     // Convert to memory
     storagePointer = storagePointer->toMemoryStorage();
-    QCOMPARE(storagePointer->size(), (quint64)_testData.size());
+    QCOMPARE(storagePointer->size(), _testData.size());
     QCOMPARE(memcmp(_testData.data(), storagePointer->data(), _testData.size()), 0);
     {
         // ensure the file is unaffected
@@ -58,13 +60,13 @@ void StorageTests::testConversion() {
 
     // truncate the data as a new memory object
     auto newSize = _testData.size() / 2;
-    storagePointer = std::make_unique<MemoryStorage>(newSize, storagePointer->data());
-    QCOMPARE(storagePointer->size(), (quint64)newSize);
+    storagePointer = std::unique_ptr<Storage>(new MemoryStorage(newSize, storagePointer->data()));
+    QCOMPARE(storagePointer->size(), newSize);
     QCOMPARE(memcmp(_testData.data(), storagePointer->data(), newSize), 0);
 
     // Convert back to file
     storagePointer = storagePointer->toFileStorage(_testFile);
-    QCOMPARE(storagePointer->size(), (quint64)newSize);
+    QCOMPARE(storagePointer->size(), newSize);
     QCOMPARE(memcmp(_testData.data(), storagePointer->data(), newSize), 0);
     {
         // ensure the file is truncated

@@ -19,6 +19,7 @@
 #include "IKTarget.h"
 
 #include "RotationAccumulator.h"
+#include "TranslationAccumulator.h"
 
 class RotationConstraint;
 
@@ -56,23 +57,39 @@ public:
     void setSolutionSource(SolutionSource solutionSource) { _solutionSource = solutionSource; }
     void setSolutionSourceVar(const QString& solutionSourceVar) { _solutionSourceVar = solutionSourceVar; }
 
+    const AnimPose& getUncontrolledLeftHandPose() { return _uncontrolledLeftHandPose; }
+    const AnimPose& getUncontrolledRightHandPose() { return _uncontrolledRightHandPose; }
+    const AnimPose& getUncontrolledHipPose() { return _uncontrolledHipsPose; }
+
 protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
-    void solveWithCyclicCoordinateDescent(const AnimContext& context, const std::vector<IKTarget>& targets);
+    void solve(const AnimContext& context, const std::vector<IKTarget>& targets);
     void solveTargetWithCCD(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug);
+    void solveTargetWithSpline(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug);
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
     struct DebugJoint {
         DebugJoint() : relRot(), constrained(false) {}
-        DebugJoint(const glm::quat& relRotIn, bool constrainedIn) : relRot(relRotIn), constrained(constrainedIn) {}
+        DebugJoint(const glm::quat& relRotIn, const glm::vec3& relTransIn, bool constrainedIn) : relRot(relRotIn), relTrans(relTransIn), constrained(constrainedIn) {}
         glm::quat relRot;
+        glm::vec3 relTrans;
         bool constrained;
     };
     void debugDrawIKChain(std::map<int, DebugJoint>& debugJointMap, const AnimContext& context) const;
     void debugDrawRelativePoses(const AnimContext& context) const;
     void debugDrawConstraints(const AnimContext& context) const;
+    void debugDrawSpineSplines(const AnimContext& context, const std::vector<IKTarget>& targets) const;
     void initRelativePosesFromSolutionSource(SolutionSource solutionSource, const AnimPoseVec& underPose);
     void blendToPoses(const AnimPoseVec& targetPoses, const AnimPoseVec& underPose, float blendFactor);
 
+    // used to pre-compute information about each joint influeced by a spline IK target.
+    struct SplineJointInfo {
+        int jointIndex;       // joint in the skeleton that this information pertains to.
+        float ratio;          // percentage (0..1) along the spline for this joint.
+        AnimPose offsetPose;  // local offset from the spline to the joint.
+    };
+
+    void computeSplineJointInfosForIKTarget(const AnimContext& context, const IKTarget& target);
+    const std::vector<SplineJointInfo>* findOrCreateSplineJointInfo(const AnimContext& context, const IKTarget& target);
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override { return _relativePoses; }
@@ -105,11 +122,14 @@ protected:
     };
 
     std::map<int, RotationConstraint*> _constraints;
-    std::vector<RotationAccumulator> _accumulators;
+    std::vector<RotationAccumulator> _rotationAccumulators;
+    std::vector<TranslationAccumulator> _translationAccumulators;
     std::vector<IKTargetVar> _targetVarVec;
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses
     AnimPoseVec _limitCenterPoses;  // relative
+
+    std::map<int, std::vector<SplineJointInfo>> _splineJointInfoMap;
 
     // experimental data for moving hips during IK
     glm::vec3 _hipsOffset { Vectors::ZERO };
@@ -118,6 +138,8 @@ protected:
     int _hipsIndex { -1 };
     int _hipsParentIndex { -1 };
     int _hipsTargetIndex { -1 };
+    int _leftHandIndex { -1 };
+    int _rightHandIndex { -1 };
 
     // _maxTargetIndex is tracked to help optimize the recalculation of absolute poses
     // during the the cyclic coordinate descent algorithm
@@ -127,6 +149,10 @@ protected:
     bool _previousEnableDebugIKTargets { false };
     SolutionSource _solutionSource { SolutionSource::RelaxToUnderPoses };
     QString _solutionSourceVar;
+
+    AnimPose _uncontrolledLeftHandPose { AnimPose() };
+    AnimPose _uncontrolledRightHandPose { AnimPose() };
+    AnimPose _uncontrolledHipsPose { AnimPose() };
 };
 
 #endif // hifi_AnimInverseKinematics_h

@@ -18,7 +18,6 @@ Windows.ScrollingWindow {
     id: tabletRoot
     objectName: "tabletRoot"
     property string username: "Unknown user"
-    property var eventBridge;
 
     property var rootMenu;
     property string subMenu: ""
@@ -93,7 +92,7 @@ Windows.ScrollingWindow {
         // Hook up callback for clara.io download from the marketplace.
         Connections {
             id: eventBridgeConnection
-            target: null
+            target: eventBridge
             onWebEventReceived: {
                 if (message.slice(0, 17) === "CLARA.IO DOWNLOAD") {
                     ApplicationInterface.addAssetToWorldFromURL(message.slice(18));
@@ -102,10 +101,6 @@ Windows.ScrollingWindow {
         }
 
         onLoaded: {
-            if (loader.item.hasOwnProperty("eventBridge")) {
-                loader.item.eventBridge = eventBridge;
-                eventBridgeConnection.target = eventBridge
-            }
             if (loader.item.hasOwnProperty("sendToScript")) {
                 loader.item.sendToScript.connect(tabletRoot.sendToScript);
             }

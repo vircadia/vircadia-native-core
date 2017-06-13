@@ -13,7 +13,7 @@
 
 #include <QtCore/QDebug>
 
-#include <AccountManager.h>
+#include "AccountManager.h"
 #include "RequestFilters.h"
 
 void HFWebEngineRequestInterceptor::interceptRequest(QWebEngineUrlRequestInfo& info) {

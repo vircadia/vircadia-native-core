@@ -123,15 +123,18 @@ bool ViveControllerManager::isSupported() const {
 bool ViveControllerManager::activate() {
     InputPlugin::activate();
 
-    _container->addMenu(MENU_PATH);
-    _container->addMenuItem(PluginType::INPUT_PLUGIN, MENU_PATH, RENDER_CONTROLLERS,
-        [this] (bool clicked) { this->setRenderControllers(clicked); },
-        true, true);
-
     if (!_system) {
         _system = acquireOpenVrSystem();
     }
-    Q_ASSERT(_system);
+
+    if (!_system) {
+        return false;
+    }
+
+    _container->addMenu(MENU_PATH);
+    _container->addMenuItem(PluginType::INPUT_PLUGIN, MENU_PATH, RENDER_CONTROLLERS,
+        [this](bool clicked) { this->setRenderControllers(clicked); },
+        true, true);
 
     enableOpenVrKeyboard(_container);
 
@@ -162,6 +165,14 @@ void ViveControllerManager::deactivate() {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->removeDevice(_inputDevice->_deviceID);
     _registeredWithInputMapper = false;
+}
+
+bool ViveControllerManager::isHeadControllerMounted() const {
+    if (_inputDevice && _inputDevice->isHeadControllerMounted()) {
+        return true;
+    }
+    vr::EDeviceActivityLevel activityLevel = _system->GetTrackedDeviceActivityLevel(vr::k_unTrackedDeviceIndex_Hmd);
+    return activityLevel == vr::k_EDeviceActivityLevel_UserInteraction;
 }
 
 void ViveControllerManager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
