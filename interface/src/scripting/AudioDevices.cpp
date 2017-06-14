@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include <map>
+
 #include "AudioDevices.h"
 
 #include "Application.h"
@@ -17,10 +19,24 @@
 
 using namespace scripting;
 
-Setting::Handle<QString> inputDeviceDesktop { QStringList { Audio::AUDIO, Audio::DESKTOP, "INPUT" }};
-Setting::Handle<QString> outputDeviceDesktop { QStringList { Audio::AUDIO, Audio::DESKTOP, "OUTPUT" }};
-Setting::Handle<QString> inputDeviceHMD { QStringList { Audio::AUDIO, Audio::HMD, "INPUT" }};
-Setting::Handle<QString> outputDeviceHMD { QStringList { Audio::AUDIO, Audio::HMD, "OUTPUT" }};
+static Setting::Handle<QString> desktopInputDeviceSetting { QStringList { Audio::AUDIO, Audio::DESKTOP, "INPUT" }};
+static Setting::Handle<QString> desktopOutputDeviceSetting { QStringList { Audio::AUDIO, Audio::DESKTOP, "OUTPUT" }};
+static Setting::Handle<QString> hmdInputDeviceSetting { QStringList { Audio::AUDIO, Audio::HMD, "INPUT" }};
+static Setting::Handle<QString> hmdOutputDeviceSetting { QStringList { Audio::AUDIO, Audio::HMD, "OUTPUT" }};
+
+const bool hmdSetting = true;
+const bool desktopSetting = false;
+
+std::map<bool, std::map<QAudio::Mode, QString>> deviceSettings {
+    { desktopSetting,
+        { QAudio::AudioInput, desktopInputDeviceSetting },
+        { QAudio::AudioOutput, desktopOutputDeviceSetting }
+    },
+    { hmdSetting,
+        { QAudio::AudioInput, hmdInputDeviceSetting },
+        { QAudio::AudioOutput, hmdOutputDeviceSetting }
+    }
+};
 
 QHash<int, QByteArray> AudioDeviceList::_roles {
     { Qt::DisplayRole, "display" },
@@ -167,48 +183,38 @@ AudioDevices::AudioDevices(bool& contextIsHMD) : _contextIsHMD(contextIsHMD) {
     _inputs.onDevicesChanged(client->getAudioDevices(QAudio::AudioInput));
     _outputs.onDevicesChanged(client->getAudioDevices(QAudio::AudioOutput));
 
-    connect(&_inputs, &AudioDeviceList::deviceSelected, this, &AudioDevices::onInputDeviceSelected);
-    connect(&_outputs, &AudioDeviceList::deviceSelected, this, &AudioDevices::onOutputDeviceSelected);
+    connect(&_inputs, &AudioDeviceList::deviceSelected, [&](const QAudioDeviceInfo& device) {
+        onDeviceSelected(QAudio::AudioInput, device);
+    });
+    connect(&_outputs, &AudioDeviceList::deviceSelected, [&](const QAudioDeviceInfo& device) {
+        onDeviceSelected(QAudio::AudioOutput, device);
+    });
 }
 
 void AudioDevices::onContextChanged(const QString& context) {
-    QString input;
-    QString output;
-    if (_contextIsHMD) {
-        input = inputDeviceHMD.get();
-        output = outputDeviceHMD.get();
-    } else {
-        input = inputDeviceDesktop.get();
-        output = outputDeviceDesktop.get();
-    }
+    auto input = deviceSettings[_contextIsHMD][QAudio::AudioInput].get();
+    auto output = deviceSettings[_contextIsHMD][QAudio::AudioOutput].get();
 
     _inputs.resetDevice(_contextIsHMD, input);
     _outputs.resetDevice(_contextIsHMD, output);
 }
 
-void AudioDevices::onInputDeviceSelected(const QAudioDeviceInfo& device) {
+void AudioDevices::onDeviceSelected(QAudio::Mode mode, const QAudioDeviceInfo& device) {
     QString deviceName;
     if (!device.isNull()) {
         deviceName = device.deviceName();
     }
 
-    if (_contextIsHMD) {
-        inputDeviceHMD.set(deviceName);
-    } else {
-        inputDeviceDesktop.set(deviceName);
-    }
-}
+    auto& setting = deviceSettings[_contextIsHMD][mode];
 
-void AudioDevices::onOutputDeviceSelected(const QAudioDeviceInfo& device) {
-    QString deviceName;
+    // retrieve the prior device
+    auto lastDeviceName = setting.get();
+
+    // store the selected device
+    setting.set(deviceName);
+
+    // TODO: log the selected device
     if (!device.isNull()) {
-        deviceName = device.deviceName();
-    }
-
-    if (_contextIsHMD) {
-        outputDeviceHMD.set(deviceName);
-    } else {
-        outputDeviceDesktop.set(deviceName);
     }
 }
 

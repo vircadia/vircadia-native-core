@@ -76,8 +76,7 @@ signals:
 
 private slots:
     void onContextChanged(const QString& context);
-    void onInputDeviceSelected(const QAudioDeviceInfo& device);
-    void onOutputDeviceSelected(const QAudioDeviceInfo& device);
+    void onDeviceSelected(QAudio::Mode mode, const QAudioDeviceInfo& device);
     void onDeviceChanged(QAudio::Mode mode, const QAudioDeviceInfo& device);
     void onDevicesChanged(QAudio::Mode mode, const QList<QAudioDeviceInfo>& devices);
 
