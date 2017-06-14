@@ -451,8 +451,8 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
     int numAvatarDataBytes = 0;
 
     std::for_each(_begin, _end, [&](const SharedNodePointer& agentNode) {
-        // collect agents that we have avatar data for
-        if (agentNode->getType() == NodeType::Agent && agentNode->getLinkedData()) {
+        // collect agents that we have avatar data for that we are supposed to replicate
+        if (agentNode->getType() == NodeType::Agent && agentNode->getLinkedData() && agentNode->isReplicated()) {
             const AvatarMixerClientData* agentNodeData = reinterpret_cast<const AvatarMixerClientData*>(agentNode->getLinkedData());
 
             AvatarSharedPointer otherAvatar = agentNodeData->getAvatarSharedPointer();
