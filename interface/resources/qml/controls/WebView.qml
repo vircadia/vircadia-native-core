@@ -6,7 +6,6 @@ import "../controls-uit" as HiFiControls
 Item {
     property alias url: root.url
     property alias scriptURL: root.userScriptUrl
-    property alias eventBridge: eventBridgeWrapper.eventBridge
     property alias canGoBack: root.canGoBack;
     property var goBack: root.goBack;
     property alias urlTag: root.urlTag
@@ -22,12 +21,6 @@ Item {
     }
     */
 
-    QtObject {
-        id: eventBridgeWrapper
-        WebChannel.id: "eventBridgeWrapper"
-        property var eventBridge;
-    }
-    
     property alias viewProfile: root.profile
 
     WebEngineView {
@@ -72,9 +65,9 @@ Item {
 
         property string newUrl: ""
 
-        webChannel.registeredObjects: [eventBridgeWrapper]
-
         Component.onCompleted: {
+            webChannel.registerObject("eventBridge", eventBridge);
+            webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
             // Ensure the JS from the web-engine makes it to our logging
             root.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
                 console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);

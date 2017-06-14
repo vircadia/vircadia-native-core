@@ -184,6 +184,8 @@ AudioClient::AudioClient() :
             checkDevices();
         });
     });
+    const unsigned long DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
+    _checkDevicesTimer->start(DEVICE_CHECK_INTERVAL_MSECS);
 
 
     configureReverb();
