@@ -76,15 +76,27 @@ void AvatarMixer::handleReplicatedPackets(QSharedPointer<ReceivedMessage> messag
     replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
     replicatedNode->setIsUpstream(true);
 
-    // seek back in the message so the packet handler can start by reading the source ID
-    message->seek(0);
+    // construct a "fake" avatar data received message from the byte array and packet list information
+    auto originalPacketData = message->getMessage().mid(NUM_BYTES_RFC4122_UUID);
 
-    switch (message->getType()) {
+    PacketType rewrittenType;
+
+    if (message->getType() == PacketType::ReplicatedAvatarIdentity) {
+        rewrittenType = PacketType::AvatarIdentity;
+    } else if (message->getType() == PacketType::ReplicatedKillAvatar) {
+        rewrittenType = PacketType::KillAvatar;
+    }
+
+    auto replicatedMessage = QSharedPointer<ReceivedMessage>::create(originalPacketData, rewrittenType,
+                                                                     versionForPacketType(rewrittenType),
+                                                                     message->getSenderSockAddr(), nodeID);
+
+    switch (rewrittenType) {
         case PacketType::ReplicatedAvatarIdentity:
-            handleAvatarIdentityPacket(message, replicatedNode);
+            handleAvatarIdentityPacket(replicatedMessage, replicatedNode);
             break;
         case PacketType::ReplicatedKillAvatar:
-            handleKillAvatarPacket(message, replicatedNode);
+            handleKillAvatarPacket(replicatedMessage, replicatedNode);
             break;
         default:
             // Do nothing

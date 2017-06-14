@@ -125,7 +125,7 @@ void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> mess
     replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
     replicatedNode->setIsUpstream(true);
 
-    // construct a "fake" avatar data received message from the byte array and packet list information
+    // construct a "fake" audio received message from the byte array and packet list information
     auto audioData = message->getMessage().mid(NUM_BYTES_RFC4122_UUID);
 
     PacketType rewrittenType;
