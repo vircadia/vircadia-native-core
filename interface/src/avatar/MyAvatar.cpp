@@ -2476,6 +2476,14 @@ void MyAvatar::setFlyingEnabled(bool enabled) {
     _enableFlying = enabled;
 }
 
+bool MyAvatar::isFlying() {
+    return _characterController.getState() == CharacterController::State::Hover;
+}
+
+bool MyAvatar::isInAir() {
+    return _characterController.getState() == CharacterController::State::InAir;
+}
+
 bool MyAvatar::getFlyingEnabled() {
     return _enableFlying;
 }

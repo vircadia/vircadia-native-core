@@ -491,6 +491,8 @@ public:
 
     bool hasDriveInput() const;
 
+    Q_INVOKABLE bool isFlying();
+    Q_INVOKABLE bool isInAir();
     Q_INVOKABLE void setFlyingEnabled(bool enabled);
     Q_INVOKABLE bool getFlyingEnabled();
 
