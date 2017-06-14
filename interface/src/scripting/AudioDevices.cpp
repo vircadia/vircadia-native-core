@@ -17,12 +17,17 @@
 #include "AudioClient.h"
 #include "Audio.h"
 
+#include "UserActivityLogger.h"
+
 using namespace scripting;
 
-static Setting::Handle<QString> desktopInputDeviceSetting { QStringList { Audio::AUDIO, Audio::DESKTOP, "INPUT" }};
-static Setting::Handle<QString> desktopOutputDeviceSetting { QStringList { Audio::AUDIO, Audio::DESKTOP, "OUTPUT" }};
-static Setting::Handle<QString> hmdInputDeviceSetting { QStringList { Audio::AUDIO, Audio::HMD, "INPUT" }};
-static Setting::Handle<QString> hmdOutputDeviceSetting { QStringList { Audio::AUDIO, Audio::HMD, "OUTPUT" }};
+static const INPUT = "INPUT";
+static const OUTPUT= "OUTPUT";
+
+static Setting::Handle<QString> desktopInputDeviceSetting { QStringList { Audio::AUDIO, Audio::DESKTOP, INPUT }};
+static Setting::Handle<QString> desktopOutputDeviceSetting { QStringList { Audio::AUDIO, Audio::DESKTOP, OUTPUT }};
+static Setting::Handle<QString> hmdInputDeviceSetting { QStringList { Audio::AUDIO, Audio::HMD, INPUT }};
+static Setting::Handle<QString> hmdOutputDeviceSetting { QStringList { Audio::AUDIO, Audio::HMD, OUTPUT }};
 
 const bool hmdSetting = true;
 const bool desktopSetting = false;
@@ -82,7 +87,7 @@ bool AudioDeviceList::setData(const QModelIndex& index, const QVariant& value, i
 
             if (success) {
                 device.selected = true;
-                emit deviceSelected(device.info);
+                emit deviceSelected(device.info, _selectedDevice);
                 emit deviceChanged(device.info);
             }
         }
@@ -109,7 +114,7 @@ void AudioDeviceList::resetDevice(bool contextIsHMD, const QString& device) {
 
         // the selection failed - reset it
         if (!success) {
-            emit deviceSelected(QAudioDeviceInfo());
+            emit deviceSelected();
         }
     }
 
@@ -183,11 +188,11 @@ AudioDevices::AudioDevices(bool& contextIsHMD) : _contextIsHMD(contextIsHMD) {
     _inputs.onDevicesChanged(client->getAudioDevices(QAudio::AudioInput));
     _outputs.onDevicesChanged(client->getAudioDevices(QAudio::AudioOutput));
 
-    connect(&_inputs, &AudioDeviceList::deviceSelected, [&](const QAudioDeviceInfo& device) {
-        onDeviceSelected(QAudio::AudioInput, device);
+    connect(&_inputs, &AudioDeviceList::deviceSelected, [&](const QAudioDeviceInfo& device, const QAudioDeviceInfo& previousDevice) {
+        onDeviceSelected(QAudio::AudioInput, device, previousDevice);
     });
-    connect(&_outputs, &AudioDeviceList::deviceSelected, [&](const QAudioDeviceInfo& device) {
-        onDeviceSelected(QAudio::AudioOutput, device);
+    connect(&_outputs, &AudioDeviceList::deviceSelected, [&](const QAudioDeviceInfo& device, const QAudioDeviceInfo& previousDevice) {
+        onDeviceSelected(QAudio::AudioOutput, device, previousDevice);
     });
 }
 
@@ -199,7 +204,7 @@ void AudioDevices::onContextChanged(const QString& context) {
     _outputs.resetDevice(_contextIsHMD, output);
 }
 
-void AudioDevices::onDeviceSelected(QAudio::Mode mode, const QAudioDeviceInfo& device) {
+void AudioDevices::onDeviceSelected(QAudio::Mode mode, const QAudioDeviceInfo& device, const QAudioDeviceInfo& previousDevice) {
     QString deviceName;
     if (!device.isNull()) {
         deviceName = device.deviceName();
@@ -207,14 +212,33 @@ void AudioDevices::onDeviceSelected(QAudio::Mode mode, const QAudioDeviceInfo& d
 
     auto& setting = deviceSettings[_contextIsHMD][mode];
 
-    // retrieve the prior device
-    auto lastDeviceName = setting.get();
+    // check for a previous device
+    auto wasDefault = setting.get().isNull();
 
     // store the selected device
     setting.set(deviceName);
 
-    // TODO: log the selected device
+    // log the selected device
     if (!device.isNull()) {
+        QJsonObject data;
+
+        const QString MODE = "audio_mode";
+        data[MODE] = mode == QAudio::AudioInput ? INPUT : OUTPUT;
+
+        const QString CONTEXT = "display_mode";
+        data[CONTEXT] = _contextIsHMD ? Audio::HMD : Audio::DESKTOP;
+
+        const QString DISPLAY = "display_device";
+        data[DISPLAY] = qApp->getActiveDisplayPlugin()->getName();
+
+        const QString DEVICE = "device";
+        const QString PREVIOUS_DEVICE = "previous_device";
+        const QString WAS_DEFAULT = "was_default";
+        data[DEVICE] = deviceName;
+        data[PREVIOUS_DEVICE] = previousDevice.deviceName();
+        data[WAS_DEFAULT] = wasDefault;
+
+        UserActivityLogger::getInstance()->logAction("selected_audio_device", data);
     }
 }
 
