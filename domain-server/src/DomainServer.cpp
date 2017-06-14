@@ -2252,7 +2252,7 @@ void DomainServer::updateReplicatedNodes() {
 
 bool DomainServer::shouldReplicateNode(const Node& node) {
     QString verifiedUsername = node.getPermissions().getVerifiedUserName();
-    // Both he verified username and usernames in _replicatedUsernames are lowercase, so
+    // Both the verified username and usernames in _replicatedUsernames are lowercase, so
     // comparisons here are case-insensitive.
     auto it = find(_replicatedUsernames.cbegin(), _replicatedUsernames.cend(), verifiedUsername);
     return it != _replicatedUsernames.end() && node.getType() == NodeType::Agent;
