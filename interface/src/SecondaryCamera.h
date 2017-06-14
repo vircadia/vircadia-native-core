@@ -39,9 +39,9 @@ class BeginSecondaryCameraFrameConfig : public render::Task::Config { // Exposes
 public:
     glm::vec3 position{};
     glm::quat orientation{};
-    float vFoV{};
-    float nearClipPlaneDistance{};
-    float farClipPlaneDistance{};
+    float vFoV{ 45.0f };
+    float nearClipPlaneDistance{ 0.1f };
+    float farClipPlaneDistance{ 100.0f };
     BeginSecondaryCameraFrameConfig() : render::Task::Config(false) {}
 signals:
     void dirty();
