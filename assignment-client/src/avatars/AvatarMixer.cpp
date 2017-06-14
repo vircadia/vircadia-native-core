@@ -83,25 +83,10 @@ void AvatarMixer::handleReplicatedPackets(QSharedPointer<ReceivedMessage> messag
 
     auto replicatedNode = addOrUpdateReplicatedNode(nodeID, message->getSenderSockAddr());
 
-    // construct a "fake" avatar data received message from the byte array and packet list information
-    auto originalPacketData = message->getMessage().mid(NUM_BYTES_RFC4122_UUID);
-
-    PacketType rewrittenType;
-
     if (message->getType() == PacketType::ReplicatedAvatarIdentity) {
-        rewrittenType = PacketType::AvatarIdentity;
+        handleAvatarIdentityPacket(message, replicatedNode);
     } else if (message->getType() == PacketType::ReplicatedKillAvatar) {
-        rewrittenType = PacketType::KillAvatar;
-    }
-
-    auto replicatedMessage = QSharedPointer<ReceivedMessage>::create(originalPacketData, rewrittenType,
-                                                                     versionForPacketType(rewrittenType),
-                                                                     message->getSenderSockAddr(), nodeID);
-
-    if (rewrittenType == PacketType::AvatarIdentity) {
-        handleAvatarIdentityPacket(replicatedMessage, replicatedNode);
-    } else if (rewrittenType == PacketType::KillAvatar) {
-        handleKillAvatarPacket(replicatedMessage, replicatedNode);
+        handleKillAvatarPacket(message, replicatedNode);
     }
 }
 
@@ -527,6 +512,7 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
             // parse the identity packet and update the change timestamp if appropriate
             AvatarData::Identity identity;
             AvatarData::parseAvatarIdentityPacket(message->getMessage(), identity);
+
             bool identityChanged = false;
             bool displayNameChanged = false;
             avatar.processAvatarIdentity(identity, identityChanged, displayNameChanged);
