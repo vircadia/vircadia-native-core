@@ -128,16 +128,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     int prePropertyPosition = message.getPosition();
     int propertyBytes = parseStreamProperties(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()), networkFrames);
 
-    if (message.getType() == PacketType::ReplicatedMicrophoneAudioNoEcho
-        || message.getType() == PacketType::ReplicatedMicrophoneAudioWithEcho
-        || message.getType() == PacketType::ReplicatedInjectAudio
-        || message.getType() == PacketType::ReplicatedSilentAudioFrame) {
-        message.seek(NUM_BYTES_RFC4122_UUID);
-        message.readString();
-        message.read(sizeof(quint16) + prePropertyPosition + propertyBytes);
-    } else {
-        message.seek(prePropertyPosition + propertyBytes);
-    }
+    message.seek(prePropertyPosition + propertyBytes);
 
     // handle this packet based on its arrival status.
     switch (arrivalInfo._status) {
