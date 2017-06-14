@@ -1504,9 +1504,6 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
     if (incomingSequenceNumber > _lastIncomingSequenceNumber) {
         Identity identity;
 
-        qCDebug(avatars) << "Processing an identity packet from" << avatarSessionID
-            << "-" << (udt::SequenceNumber::Type) incomingSequenceNumber;
-
         packetStream >> identity.skeletonModelURL
             >> identity.attachmentData
             >> identity.displayName
@@ -1558,7 +1555,7 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
     } else {
         qCDebug(avatars) << "Refusing to process identity for" << uuidStringWithoutCurlyBraces(avatarSessionID) << "since"
             << (udt::SequenceNumber::Type) _lastIncomingSequenceNumber
-            << "is later than" << (udt::SequenceNumber::Type) incomingSequenceNumber;
+            << "is >=" << (udt::SequenceNumber::Type) incomingSequenceNumber;
     }
 }
 
