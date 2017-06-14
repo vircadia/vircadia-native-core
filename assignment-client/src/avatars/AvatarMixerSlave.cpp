@@ -441,7 +441,7 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
 uint64_t REBROADCAST_IDENTITY_TO_DOWNSTREAM_EVERY_US = 5 * 1000 * 1000;
 
 void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePointer& node) {
-    _stats.nodesBroadcastedTo++;
+    _stats.downstreamMixersBroadcastedTo++;
 
     AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
 
@@ -449,6 +449,9 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
     auto avatarPacketList = NLPacketList::create(PacketType::ReplicatedBulkAvatarData);
 
     int numAvatarDataBytes = 0;
+
+    // reset the number of sent avatars
+    nodeData->resetNumAvatarsSentLastFrame();
 
     std::for_each(_begin, _end, [&](const SharedNodePointer& agentNode) {
         // collect agents that we have avatar data for that we are supposed to replicate
@@ -463,6 +466,7 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
             // since we have no idea if they're online and receiving our packets
 
             // so we always send a full update for this avatar
+            
             quint64 start = usecTimestampNow();
             AvatarDataPacket::HasFlags flagsOut;
 
@@ -515,6 +519,9 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
                 nodeData->setLastBroadcastSequenceNumber(agentNode->getUUID(),
                                                          agentNodeData->getLastReceivedSequenceNumber());
 
+                // increment the number of avatars sent to this reciever
+                nodeData->incrementNumAvatarsSentLastFrame();
+
                 // start a new segment in the packet list for this avatar
                 avatarPacketList->startSegment();
 
@@ -548,6 +555,9 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
     // send the replicated bulk avatar data
     auto nodeList = DependencyManager::get<NodeList>();
     nodeList->sendPacketList(std::move(avatarPacketList), node->getPublicSocket());
+
+    // record the bytes sent for other avatar data in the AvatarMixerClientData
+    nodeData->recordSentAvatarData(numAvatarDataBytes);
 
     quint64 endPacketSending = usecTimestampNow();
     _stats.packetSendingElapsedTime += (endPacketSending - startPacketSending);
