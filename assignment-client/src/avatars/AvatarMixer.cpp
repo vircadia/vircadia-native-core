@@ -79,7 +79,7 @@ SharedNodePointer addOrUpdateReplicatedNode(const QUuid& nodeID, const HifiSockA
 
 void AvatarMixer::handleReplicatedPackets(QSharedPointer<ReceivedMessage> message) {
     auto nodeList = DependencyManager::get<NodeList>();
-    auto nodeID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+    auto nodeID = QUuid::fromRfc4122(message->peek(NUM_BYTES_RFC4122_UUID));
 
     auto replicatedNode = addOrUpdateReplicatedNode(nodeID, message->getSenderSockAddr());
 
