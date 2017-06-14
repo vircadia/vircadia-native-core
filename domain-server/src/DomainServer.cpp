@@ -2239,11 +2239,12 @@ void DomainServer::updateReplicatedNodes() {
         }, [this](const SharedNodePointer& otherNode) {
             auto shouldReplicate = shouldReplicateNode(*otherNode);
             auto isReplicated = otherNode->isReplicated();
-            qDebug() << "Checking " << otherNode->getPermissions().getVerifiedUserName();
             if (isReplicated && !shouldReplicate) {
-                qDebug() << "Setting node to NOT be replicated: " << otherNode->getUUID();
+                qDebug() << "Setting node to NOT be replicated:"
+                    << otherNode->getPermissions().getVerifiedUserName() << otherNode->getUUID();
             } else if (!isReplicated && shouldReplicate) {
-                qDebug() << "Setting node to replicated: " << otherNode->getUUID();
+                qDebug() << "Setting node to replicated:"
+                    << otherNode->getPermissions().getVerifiedUserName() << otherNode->getUUID();
             }
             otherNode->setIsReplicated(shouldReplicate);
         }
