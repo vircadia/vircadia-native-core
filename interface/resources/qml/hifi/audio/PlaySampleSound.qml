@@ -27,7 +27,9 @@ RowLayout {
         sample = null;
     }
     function playSound() {
-        sample = Audio.playSound(sound, { position: MyAvatar.position, loop: false, localOnly: true });
+        // FIXME: MyAvatar is not properly exposed to QML; MyAvatar.qmlPosition is a stopgap
+        // FIXME: Audio.playSystemSound should not require position
+        sample = Audio.playSystemSound(sound, MyAvatar.qmlPosition);
         isPlaying = true;
         sample.finished.connect(function() { isPlaying = false; sample = null; });
     }
