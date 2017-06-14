@@ -81,6 +81,9 @@
     //     function is wired.
     // windowAspectRatio: The ratio of the Interface windows's sizeX/sizeY
     // previewAspectRatio: The ratio of the camera preview's sizeX/sizeY
+    // vFoV: The vertical field of view of the spectator camera
+    // nearClipPlaneDistance: The near clip plane distance of the spectator camera
+    // farClipPlaneDistance: The far clip plane distance of the spectator camera
     // 
     // Arguments:
     // None
@@ -91,7 +94,10 @@
     //
     var isUpdateRenderWired = false;
     var windowAspectRatio;
-    var previewAspectRatio = 16/9;
+    var previewAspectRatio = 16 / 9;
+    var vFoV = 45.0;
+    var nearClipPlaneDistance = 0.1;
+    var farClipPlaneDistance = 100.0;
     function spectatorCameraOn() {
         // Set the special texture size based on the window in which it will eventually be displayed.
         var size = Controller.getViewportDimensions(); // FIXME: Need a signal to hook into when the dimensions change.
@@ -100,6 +106,9 @@
         windowAspectRatio = sizeX/sizeY;
         spectatorFrameRenderConfig.resetSizeSpectatorCamera(sizeX, sizeY);
         spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = true;
+        beginSpectatorFrameRenderConfig.vFoV = vFoV;
+        beginSpectatorFrameRenderConfig.nearClipPlaneDistance = nearClipPlaneDistance;
+        beginSpectatorFrameRenderConfig.farClipPlaneDistance = farClipPlaneDistance;
         var cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
         Script.update.connect(updateRenderFromCamera);
         isUpdateRenderWired = true;
