@@ -231,6 +231,9 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
 }
 
 bool AvatarMixer::isAvatarInWhitelist(const QUrl& url) {
+    // The avatar is in the whitelist if:
+    // 1. The avatar's URL's host matches one of the hosts of the URLs in the whitelist AND
+    // 2. The avatar's URL's path starts with the path of that same URL in the whitelist
     for (const auto& whiteListedPrefix : _avatarWhitelist) {
         auto whiteListURL = QUrl::fromUserInput(whiteListedPrefix);
         // check if this script URL matches the whitelist domain and, optionally, is beneath the path
