@@ -1281,6 +1281,17 @@ function makeTableHiddenInputs(setting, initialValues, categoryValue) {
           "<input type='checkbox' style='display: none;' class='form-control table-checkbox' " +
                  "name='" + col.name + "'" + (defaultValue ? " checked" : "") + "/>" +
         "</td>";
+    } else if (col.type === "select") {
+        html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
+        html += "<select style='display: none;' class='form-control' data-hidden-input='" + col.name + "'>'"
+        
+        for (var i in col.options) {
+            var option = col.options[i];           
+            html += "<option value='" + option.value + "' " + (option.value == defaultValue ? 'selected' : '') + ">" + option.label + "</option>";
+        }
+        
+        html += "</select>";    
+        html += "<input type='hidden' class='table-dropdown form-control trigger-change' name='" + col.name + "' value='" + option.value + "'></td>";      
     } else {
       html +=
         "<td " + (col.hidden ? "style='display: none;'" : "") + " class='" + Settings.DATA_COL_CLASS + "' " +
@@ -1408,6 +1419,7 @@ function addTableRow(row) {
       input.show();
 
       var isCheckbox = input.hasClass("table-checkbox");
+      var isDropdown = input.hasClass("table-dropdown");
 
       if (isArray) {
         var row_index = row.siblings('.' + Settings.DATA_ROW_CLASS).length
@@ -1416,11 +1428,15 @@ function addTableRow(row) {
         // are there multiple columns or just one?
         // with multiple we have an array of Objects, with one we have an array of whatever the value type is
         var num_columns = row.children('.' + Settings.DATA_COL_CLASS).length
+        var newName = setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : "");
 
         if (isCheckbox) {
-          input.attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))
+          input.attr("name", newName)
         } else {
-          input.attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))
+          if (isDropdown) {             
+            $(element).children("select").attr("data-hidden-input", newName);
+          }
+          input.attr("name", newName);
         }
       } else {
         // because the name of the setting in question requires the key
@@ -1434,6 +1450,12 @@ function addTableRow(row) {
       if (!focusChanged) {
           input.focus();
           focusChanged = true;
+      }
+      
+      // if we are adding a dropdown, we should go ahead and make its select
+      // element is visible
+      if (isDropdown) {   
+          $(element).children("select").attr("style", "");
       }
 
       if (isCheckbox) {

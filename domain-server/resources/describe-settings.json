@@ -1360,8 +1360,19 @@
             {
               "name": "server_type",
               "label": "Server Type",
+              "type": "select",
               "placeholder": "Audio Mixer",
-              "can_set": true
+              "can_set": true,
+              "options": [               
+                {
+                  "value": "Audio Mixer",
+                  "label": "Audio Mixer"
+                },
+                {
+                  "value": "Avatar Mixer",
+                  "label": "Avatar Mixer"
+                }
+              ]
             }
           ]
         }
