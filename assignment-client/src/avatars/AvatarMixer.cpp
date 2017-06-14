@@ -150,6 +150,13 @@ void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node
             if (!packet) {
                 // construct an NLPacket to send to the replicant that has the contents of the received packet
                 packet = NLPacket::create(replicatedType, message.getSize());
+
+                if (message.getType() == PacketType::KillAvatar) {
+                    // this was not a replicated packet originally, we need to prepend the session ID
+                    // for the killed node
+                    packet->write(node->getUUID().toRfc4122());
+                }
+
                 packet->write(message.getMessage());
             }
 
@@ -541,8 +548,6 @@ void AvatarMixer::handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> mes
     }
     auto end = usecTimestampNow();
     _handleAvatarIdentityPacketElapsedTime += (end - start);
-
-    optionallyReplicatePacket(*message, *senderNode);
 }
 
 void AvatarMixer::handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
