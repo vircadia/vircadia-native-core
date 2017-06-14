@@ -2234,17 +2234,24 @@ void DomainServer::updateReplicatedNodes() {
     }
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
-    nodeList->eachNode([&](const SharedNodePointer& otherNode) {
-        if (shouldReplicateNode(*otherNode)) {
-            qDebug() << "Setting node to replicated: " << otherNode->getUUID();
-            otherNode->setIsReplicated(true);
+    nodeList->eachMatchingNode([this](const SharedNodePointer& otherNode) -> bool {
+            return otherNode->getType() == NodeType::Agent;
+        }, [this](const SharedNodePointer& otherNode) {
+            auto shouldReplicate = shouldReplicateNode(*otherNode);
+            auto isReplicated = otherNode->isReplicated();
+            qDebug() << "Checking " << otherNode->getPermissions().getVerifiedUserName();
+            if (isReplicated && !shouldReplicate) {
+                qDebug() << "Setting node to NOT be replicated: " << otherNode->getUUID();
+            } else if (!isReplicated && shouldReplicate) {
+                qDebug() << "Setting node to replicated: " << otherNode->getUUID();
+            }
+            otherNode->setIsReplicated(shouldReplicate);
         }
-    });
+    );
 }
 
 bool DomainServer::shouldReplicateNode(const Node& node) {
     QString verifiedUsername = node.getPermissions().getVerifiedUserName();
-    qDebug() << "Verified username: " << verifiedUsername;
     auto it = find(_replicatedUsernames.cbegin(), _replicatedUsernames.cend(), verifiedUsername);
     return it != _replicatedUsernames.end() && node.getType() == NodeType::Agent;
 };
