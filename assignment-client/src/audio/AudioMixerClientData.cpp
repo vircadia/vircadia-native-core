@@ -691,9 +691,10 @@ bool AudioMixerClientData::shouldIgnore(const SharedNodePointer self, const Shar
 }
 
 void AudioMixerClientData::setupCodecForReplicatedAgent(QSharedPointer<ReceivedMessage> message) {
-    // pull the codec string from the packet
+    // hop past the sequence number that leads the packet
     message->seek(sizeof(quint16));
 
+    // pull the codec string from the packet
     auto codecString = message->readString();
 
     qDebug() << "Manually setting codec for replicated agent" << uuidStringWithoutCurlyBraces(getNodeID())
