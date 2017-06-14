@@ -87,7 +87,8 @@
                                     "weightVar": "rightFootWeight",
                                     "weight": 1.0,
                                     "flexCoefficients": [1, 0.45, 0.45],
-                                    "poleJointNameVar": "rightFootPoleJointName",
+                                    "poleVectorEnabledVar": "rightFootPoleVectorEnabled",
+                                    "poleReferenceVectorVar": "rightFootPoleReferenceVector",
                                     "poleVectorVar": "rightFootPoleVector"
                                 },
                                 {
@@ -98,7 +99,8 @@
                                     "weightVar": "leftFootWeight",
                                     "weight": 1.0,
                                     "flexCoefficients": [1, 0.45, 0.45],
-                                    "poleJointNameVar": "leftFootPoleJointName",
+                                    "poleVectorEnabledVar": "leftFootPoleVectorEnabled",
+                                    "poleReferenceVectorVar": "leftFootPoleReferenceVector",
                                     "poleVectorVar": "leftFootPoleVector"
                                 },
                                 {

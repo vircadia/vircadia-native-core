@@ -31,13 +31,15 @@ public:
     const glm::quat& getRotation() const { return _pose.rot(); }
     const AnimPose& getPose() const { return _pose; }
     glm::vec3 getPoleVector() const { return _poleVector; }
-    int getPoleIndex() const { return _poleIndex; }
+    glm::vec3 getPoleReferenceVector() const { return _poleReferenceVector; }
+    bool getPoleVectorEnabled() const { return _poleVectorEnabled; }
     int getIndex() const { return _index; }
     Type getType() const { return _type; }
 
     void setPose(const glm::quat& rotation, const glm::vec3& translation);
     void setPoleVector(const glm::vec3& poleVector) { _poleVector = poleVector; }
-    void setPoleIndex(int poleIndex) { _poleIndex = poleIndex; }
+    void setPoleReferenceVector(const glm::vec3& poleReferenceVector) { _poleReferenceVector = poleReferenceVector; }
+    void setPoleVectorEnabled(bool poleVectorEnabled) { _poleVectorEnabled = poleVectorEnabled; }
     void setIndex(int index) { _index = index; }
     void setType(int);
     void setFlexCoefficients(size_t numFlexCoefficientsIn, const float* flexCoefficientsIn);
@@ -51,7 +53,8 @@ public:
 private:
     AnimPose _pose;
     glm::vec3 _poleVector;
-    int _poleIndex { -1 };
+    glm::vec3 _poleReferenceVector;
+    bool _poleVectorEnabled { false };
     int _index { -1 };
     Type _type { Type::RotationAndPosition };
     float _weight;

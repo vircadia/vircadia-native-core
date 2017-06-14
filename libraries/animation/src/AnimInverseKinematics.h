@@ -43,7 +43,7 @@ public:
 
     void setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar,
                        const QString& typeVar, const QString& weightVar, float weight, const std::vector<float>& flexCoefficients,
-                       const QString& poleJointNameVar, const QString& poleVectorVar);
+                       const QString& poleVectorEnabledVar, const QString& poleReferenceVectorVar, const QString& poleVectorVar);
 
     virtual const AnimPoseVec& evaluate(const AnimVariantMap& animVars, const AnimContext& context, float dt, AnimNode::Triggers& triggersOut) override;
     virtual const AnimPoseVec& overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) override;
@@ -110,7 +110,7 @@ protected:
     struct IKTargetVar {
         IKTargetVar(const QString& jointNameIn, const QString& positionVarIn, const QString& rotationVarIn,
                     const QString& typeVarIn, const QString& weightVarIn, float weightIn, const std::vector<float>& flexCoefficientsIn,
-                    const QString& poleJointNameVar, const QString& poleVectorVar);
+                    const QString& poleVectorEnabledVar, const QString& poleReferenceVectorVar, const QString& poleVectorVar);
         IKTargetVar(const IKTargetVar& orig);
 
         QString jointName;
@@ -118,7 +118,8 @@ protected:
         QString rotationVar;
         QString typeVar;
         QString weightVar;
-        QString poleJointNameVar;
+        QString poleVectorEnabledVar;
+        QString poleReferenceVectorVar;
         QString poleVectorVar;
         float weight;
         float flexCoefficients[MAX_FLEX_COEFFICIENTS];

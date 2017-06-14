@@ -1261,6 +1261,8 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
             }
         }
 
+        const float POLE_VECTOR_BLEND_FACTOR = 0.9f;
+
         if (params.isLeftFootEnabled) {
             _animVars.set("leftFootPosition", params.leftFootPosition);
             _animVars.set("leftFootRotation", params.leftFootOrientation);
@@ -1274,16 +1276,16 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
                 _prevLeftFootPoleVectorValid = true;
                 _prevLeftFootPoleVector = poleVector;
             }
-            const float POLE_VECTOR_BLEND_FACTOR = 0.9f;
             _prevLeftFootPoleVector = lerp(poleVector, _prevLeftFootPoleVector, POLE_VECTOR_BLEND_FACTOR);
 
+            _animVars.set("leftFootPoleVectorEnabled", true);
+            _animVars.set("leftFootPoleReferenceVector", Vectors::UNIT_Z);
             _animVars.set("leftFootPoleVector", _prevLeftFootPoleVector);
-            _animVars.set("leftFootPoleJointName", QString("LeftFoot"));
-
         } else {
             _animVars.unset("leftFootPosition");
             _animVars.unset("leftFootRotation");
             _animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
+            _animVars.set("leftFootPoleVectorEnabled", false);
             _prevLeftFootPoleVectorValid = false;
         }
 
@@ -1300,14 +1302,15 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
                 _prevRightFootPoleVectorValid = true;
                 _prevRightFootPoleVector = poleVector;
             }
-            const float POLE_VECTOR_BLEND_FACTOR = 0.9f;
             _prevRightFootPoleVector = lerp(poleVector, _prevRightFootPoleVector, POLE_VECTOR_BLEND_FACTOR);
 
+            _animVars.set("rightFootPoleVectorEnabled", true);
+            _animVars.set("rightFootPoleReferenceVector", Vectors::UNIT_Z);
             _animVars.set("rightFootPoleVector", _prevRightFootPoleVector);
-            _animVars.set("rightFootPoleJointName", QString("RightFoot"));
         } else {
             _animVars.unset("rightFootPosition");
             _animVars.unset("rightFootRotation");
+            _animVars.set("rightFootPoleVectorEnabled", false);
             _animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
         }
     }
@@ -1497,16 +1500,16 @@ void Rig::computeAvatarBoundingCapsule(
 
     ikNode.setTargetVars("LeftHand", "leftHandPosition", "leftHandRotation",
                          "leftHandType", "leftHandWeight", 1.0f, {},
-                         "leftHandPoleJointName", "leftHandPoleVector");
+                         QString(), QString(), QString());
     ikNode.setTargetVars("RightHand", "rightHandPosition", "rightHandRotation",
                          "rightHandType", "rightHandWeight", 1.0f, {},
-                         "rightHandPoleJointName", "rightHandPoleVector");
+                         QString(), QString(), QString());
     ikNode.setTargetVars("LeftFoot", "leftFootPosition", "leftFootRotation",
                          "leftFootType", "leftFootWeight", 1.0f, {},
-                         "leftFootPoleJointName", "leftFootPoleVector");
+                         QString(), QString(), QString());
     ikNode.setTargetVars("RightFoot", "rightFootPosition", "rightFootRotation",
                          "rightFootType", "rightFootWeight", 1.0f, {},
-                         "rightFootPoleJointName", "rightFootPoleVector");
+                         QString(), QString(), QString());
 
     AnimPose geometryToRig = _modelOffset * _geometryOffset;
 

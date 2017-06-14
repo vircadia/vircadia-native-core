@@ -48,13 +48,14 @@ float easeOutExpo(float t) {
 
 AnimInverseKinematics::IKTargetVar::IKTargetVar(const QString& jointNameIn, const QString& positionVarIn, const QString& rotationVarIn,
                                                 const QString& typeVarIn, const QString& weightVarIn, float weightIn, const std::vector<float>& flexCoefficientsIn,
-                                                const QString& poleJointNameVarIn, const QString& poleVectorVarIn) :
+                                                const QString& poleVectorEnabledVarIn, const QString& poleReferenceVectorVarIn, const QString& poleVectorVarIn) :
     jointName(jointNameIn),
     positionVar(positionVarIn),
     rotationVar(rotationVarIn),
     typeVar(typeVarIn),
     weightVar(weightVarIn),
-    poleJointNameVar(poleJointNameVarIn),
+    poleVectorEnabledVar(poleVectorEnabledVarIn),
+    poleReferenceVectorVar(poleReferenceVectorVarIn),
     poleVectorVar(poleVectorVarIn),
     weight(weightIn),
     numFlexCoefficients(flexCoefficientsIn.size()),
@@ -72,7 +73,8 @@ AnimInverseKinematics::IKTargetVar::IKTargetVar(const IKTargetVar& orig) :
     rotationVar(orig.rotationVar),
     typeVar(orig.typeVar),
     weightVar(orig.weightVar),
-    poleJointNameVar(orig.poleJointNameVar),
+    poleVectorEnabledVar(orig.poleVectorEnabledVar),
+    poleReferenceVectorVar(orig.poleReferenceVectorVar),
     poleVectorVar(orig.poleVectorVar),
     weight(orig.weight),
     numFlexCoefficients(orig.numFlexCoefficients),
@@ -128,8 +130,8 @@ void AnimInverseKinematics::computeAbsolutePoses(AnimPoseVec& absolutePoses) con
 
 void AnimInverseKinematics::setTargetVars(const QString& jointName, const QString& positionVar, const QString& rotationVar,
                                           const QString& typeVar, const QString& weightVar, float weight, const std::vector<float>& flexCoefficients,
-                                          const QString& poleJointNameVar, const QString& poleVectorVar) {
-    IKTargetVar targetVar(jointName, positionVar, rotationVar, typeVar, weightVar, weight, flexCoefficients, poleJointNameVar, poleVectorVar);
+                                          const QString& poleVectorEnabledVar, const QString& poleReferenceVectorVar, const QString& poleVectorVar) {
+    IKTargetVar targetVar(jointName, positionVar, rotationVar, typeVar, weightVar, weight, flexCoefficients, poleVectorEnabledVar, poleReferenceVectorVar, poleVectorVar);
 
     // if there are dups, last one wins.
     bool found = false;
@@ -177,13 +179,14 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
                 target.setWeight(weight);
                 target.setFlexCoefficients(targetVar.numFlexCoefficients, targetVar.flexCoefficients);
 
-                // AJT: TODO: cache the pole joint index.
-                QString poleJointName = animVars.lookup(targetVar.poleJointNameVar, QString(""));
-                int poleJointIndex = _skeleton->nameToJointIndex(poleJointName);
-                target.setPoleIndex(poleJointIndex);
+                bool poleVectorEnabled = animVars.lookup(targetVar.poleVectorEnabledVar, false);
+                target.setPoleVectorEnabled(poleVectorEnabled);
 
                 glm::vec3 poleVector = animVars.lookupRigToGeometryVector(targetVar.poleVectorVar, Vectors::UNIT_Z);
                 target.setPoleVector(glm::normalize(poleVector));
+
+                glm::vec3 poleReferenceVector = animVars.lookupRigToGeometryVector(targetVar.poleReferenceVectorVar, Vectors::UNIT_Z);
+                target.setPoleReferenceVector(glm::normalize(poleReferenceVector));
 
                 targets.push_back(target);
 
@@ -488,9 +491,8 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
         chainDepth++;
     }
 
-    if (target.getPoleIndex() != -1) {
-
-        int topJointIndex = target.getPoleIndex();
+    if (target.getPoleVectorEnabled()) {
+        int topJointIndex = target.getIndex();
         int midJointIndex = _skeleton->getParentIndex(topJointIndex);
         if (midJointIndex != -1) {
             int baseJointIndex = _skeleton->getParentIndex(midJointIndex);
@@ -525,17 +527,16 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                 float dLen = glm::length(d);
                 if (dLen > EPSILON) {
                     glm::vec3 dUnit = d / dLen;
-                    glm::vec3 e = midPose.trans() - basePose.trans();
+                    glm::vec3 e = midPose.xformVector(target.getPoleReferenceVector());
                     glm::vec3 p = target.getPoleVector();
                     glm::vec3 eProj = e - glm::dot(e, dUnit) * dUnit;
                     glm::vec3 pProj = p - glm::dot(p, dUnit) * dUnit;
                     float eProjLen = glm::length(eProj);
                     float pProjLen = glm::length(pProj);
-                    const float MIN_E_PROJ_LEN = 0.2f;  // cm
-                    if (eProjLen > MIN_E_PROJ_LEN && pProjLen > EPSILON) {
+                    if (eProjLen > EPSILON && pProjLen > EPSILON) {
 
-                        // as eProjLen and pProjLen become orthognal to d, reduce the amount of rotation.
-                        float magnitude = easeOutExpo(glm::min(eProjLen, pProjLen));
+                        // as pProjLen become orthognal to d, reduce the amount of rotation.
+                        float magnitude = easeOutExpo(pProjLen);
 
                         float dot = glm::clamp(glm::dot(eProj / eProjLen, pProj / pProjLen), 0.0f, 1.0f);
                         float theta = acosf(dot);
@@ -558,7 +559,7 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                     AnimPose geomToWorldPose = AnimPose(context.getRigToWorldMatrix() * context.getGeometryToRigMatrix());
 
                     glm::vec3 dUnit = d / dLen;
-                    glm::vec3 e = midPose.trans() - basePose.trans();
+                    glm::vec3 e = midPose.xformVector(target.getPoleReferenceVector());
                     glm::vec3 p = target.getPoleVector();
                     glm::vec3 eProj = e - glm::dot(e, dUnit) * dUnit;
                     glm::vec3 pProj = p - glm::dot(p, dUnit) * dUnit;
