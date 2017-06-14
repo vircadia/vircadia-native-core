@@ -12,7 +12,7 @@ var hmdRollControlEnabled = true;
 var hmdRollControlDeadZone = 8.0;  // deg
 var hmdRollControlSpeed = 2.5;  // deg/sec/deg
 
-print("HMD roll control: " + hmdRollControlEnabled + ", " + hmdRollControlDeadZone + ", " + hmdRollControlSpeed);
+//print("HMD roll control: " + hmdRollControlEnabled + ", " + hmdRollControlDeadZone + ", " + hmdRollControlSpeed);
 
 MyAvatar.hmdRollControlEnabled = hmdRollControlEnabled;
 MyAvatar.hmdRollControlDeadZone = hmdRollControlDeadZone;

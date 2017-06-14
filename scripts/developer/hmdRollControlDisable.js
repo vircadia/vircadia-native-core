@@ -10,7 +10,7 @@
 
 var hmdRollControlEnabled = false;
 
-print("HMD roll control: " + hmdRollControlEnabled);
+//print("HMD roll control: " + hmdRollControlEnabled);
 
 MyAvatar.hmdRollControlEnabled = hmdRollControlEnabled;
 
