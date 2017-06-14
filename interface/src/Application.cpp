@@ -1721,6 +1721,10 @@ void Application::cleanupBeforeQuit() {
 
     // Cleanup all overlays after the scripts, as scripts might add more
     _overlays.cleanupAllOverlays();
+    // The cleanup process enqueues the transactions but does not process them.  Calling this here will force the actual 
+    // removal of the items.  
+    // See https://highfidelity.fogbugz.com/f/cases/5328
+    _main3DScene->processTransactionQueue();
 
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
