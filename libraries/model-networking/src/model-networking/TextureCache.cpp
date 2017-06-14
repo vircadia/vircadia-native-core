@@ -550,14 +550,6 @@ void NetworkTexture::ktxMipRequestFinished() {
             Q_ASSERT(_ktxMipLevelRangeInFlight.first != NULL_MIP_LEVEL);
             Q_ASSERT(_ktxMipLevelRangeInFlight.second - _ktxMipLevelRangeInFlight.first == 0);
 
-            _lowestKnownPopulatedMip = _ktxMipLevelRangeInFlight.first;
-            _ktxResourceState = WAITING_FOR_MIP_REQUEST;
-
-            if (_lowestRequestedMipLevel < _lowestKnownPopulatedMip) {
-                startRequestForNextMipLevel();
-            }
-
-
             auto self = _self;
             auto data = _ktxMipRequest->getData();
             auto mipLevel = _ktxMipLevelRangeInFlight.first;
@@ -572,10 +564,17 @@ void NetworkTexture::ktxMipRequestFinished() {
                 if (texture) {
                     texture->assignStoredMip(mipLevel, data.size(), reinterpret_cast<const uint8_t*>(data.data()));
 
+                    _lowestKnownPopulatedMip = texture->minAvailableMipLevel();
+                    _ktxResourceState = WAITING_FOR_MIP_REQUEST;
+
                     QMetaObject::invokeMethod(this, "setImage",
                         Q_ARG(gpu::TexturePointer, texture),
                         Q_ARG(int, texture->getWidth()),
                         Q_ARG(int, texture->getHeight()));
+
+                    if (_lowestRequestedMipLevel < _lowestKnownPopulatedMip) {
+                        QMetaObject::invokeMethod(this, "startRequestForNextMipLevel");
+                    }
                 } else {
                     QMetaObject::invokeMethod(this, "setImage",
                         Q_ARG(gpu::TexturePointer, nullptr),
@@ -746,13 +745,17 @@ void NetworkTexture::handleFinishedInitialLoad() {
         }
 
         _lowestKnownPopulatedMip = texture->minAvailableMipLevel();
+        _ktxResourceState = WAITING_FOR_MIP_REQUEST;
 
 
         QMetaObject::invokeMethod(this, "setImage",
             Q_ARG(gpu::TexturePointer, texture),
             Q_ARG(int, texture->getWidth()),
             Q_ARG(int, texture->getHeight()));
-        QMetaObject::invokeMethod(this, "startRequestForNextMipLevel");
+
+        if (_lowestRequestedMipLevel < _lowestKnownPopulatedMip) {
+            QMetaObject::invokeMethod(this, "startRequestForNextMipLevel");
+        }
     });
 }
 
