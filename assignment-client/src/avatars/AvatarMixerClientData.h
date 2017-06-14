@@ -148,7 +148,7 @@ private:
 
     uint64_t _identityChangeTimestamp;
     bool _avatarSessionDisplayNameMustChange{ true };
-    bool _avatarSkeletonModelUrlMustChange{ true };
+    bool _avatarSkeletonModelUrlMustChange{ false };
 
     int _numAvatarsSentLastFrame = 0;
     int _numFramesSinceAdjustment = 0;
