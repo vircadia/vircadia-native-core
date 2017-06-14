@@ -1562,14 +1562,23 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
     }
 }
 
-QByteArray AvatarData::identityByteArray() const {
+QByteArray AvatarData::identityByteArray(bool shouldForwardIncomingSequenceNumber) const {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
     const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL); // depends on _skeletonModelURL
 
+    // we use the boolean flag to determine if this is an identity byte array for a mixer to send to an agent
+    // or an agent to send to a mixer
+
+    // when mixers send identity packets to agents, they simply forward along the last incoming sequence number they received
+    // whereas agents send a fresh outgoing sequence number when identity data has changed
+
+    udt::SequenceNumber identitySequenceNumber =
+        shouldForwardIncomingSequenceNumber ? _lastIncomingSequenceNumber : _lastOutgoingSequenceNumber;
+
     _avatarEntitiesLock.withReadLock([&] {
         identityStream << getSessionUUID()
-            << (udt::SequenceNumber::Type) _lastOutgoingSequenceNumber
+            << (udt::SequenceNumber::Type) identitySequenceNumber
             << urlToSend
             << _attachmentData
             << _displayName

@@ -537,7 +537,7 @@ public:
     // displayNameChanged returns true if displayName has changed, false otherwise.
     void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged);
 
-    QByteArray identityByteArray() const;
+    QByteArray identityByteArray(bool shouldForwardIncomingSequenceNumber = false) const;
 
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
