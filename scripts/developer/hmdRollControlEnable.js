@@ -10,7 +10,7 @@
 
 var hmdRollControlEnabled = true;
 var hmdRollControlDeadZone = 8.0;  // deg
-var hmdRollControlSpeed = 1.0;  // deg/sec/deg
+var hmdRollControlSpeed = 2.5;  // deg/sec/deg
 
 print("HMD roll control: " + hmdRollControlEnabled + ", " + hmdRollControlDeadZone + ", " + hmdRollControlSpeed);
 
