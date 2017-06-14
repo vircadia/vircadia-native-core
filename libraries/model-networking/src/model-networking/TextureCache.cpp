@@ -553,7 +553,19 @@ void NetworkTexture::ktxMipRequestFinished() {
             auto self = _self;
             auto data = _ktxMipRequest->getData();
             auto mipLevel = _ktxMipLevelRangeInFlight.first;
+            DependencyManager::get<StatTracker>()->incrementStat("PendingProcessing");
             QtConcurrent::run(QThreadPool::globalInstance(), [this, self, data, mipLevel] {
+                PROFILE_RANGE_EX(resource_parse_image, "NetworkTexture - Processing Mip Data", 0xffff0000, 0, { { "url", _url.toString() } });
+                DependencyManager::get<StatTracker>()->decrementStat("PendingProcessing");
+                CounterStat counter("Processing");
+
+                auto originalPriority = QThread::currentThread()->priority();
+                if (originalPriority == QThread::InheritPriority) {
+                    originalPriority = QThread::NormalPriority;
+                }
+                QThread::currentThread()->setPriority(QThread::LowPriority);
+                Finally restorePriority([originalPriority] { QThread::currentThread()->setPriority(originalPriority); });
+
                 auto that = self.lock();
                 if (!that) {
                     // Resource no longer exists, bail
@@ -613,7 +625,19 @@ void NetworkTexture::handleFinishedInitialLoad() {
     _ktxHighMipData.clear();
 
     auto self = _self;
-    QtConcurrent::run(QThreadPool::globalInstance(), [=] {
+    DependencyManager::get<StatTracker>()->incrementStat("PendingProcessing");
+    QtConcurrent::run(QThreadPool::globalInstance(), [this, self, ktxHeaderData, ktxHighMipData] {
+        PROFILE_RANGE_EX(resource_parse_image, "NetworkTexture - Processing Initial Data", 0xffff0000, 0, { { "url", _url.toString() } });
+        DependencyManager::get<StatTracker>()->decrementStat("PendingProcessing");
+        CounterStat counter("Processing");
+
+        auto originalPriority = QThread::currentThread()->priority();
+        if (originalPriority == QThread::InheritPriority) {
+            originalPriority = QThread::NormalPriority;
+        }
+        QThread::currentThread()->setPriority(QThread::LowPriority);
+        Finally restorePriority([originalPriority] { QThread::currentThread()->setPriority(originalPriority); });
+
         auto that = self.lock();
         if (!that) {
             // Resource no longer exists, bail
