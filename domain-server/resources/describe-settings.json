@@ -878,7 +878,7 @@
         {
           "name": "replacement_avatar",
           "label": "Replacement Avatar for disallowed avatars",
-          "help": "A URL for an avatar .fst to be used when someone tries to use an avatar that is not allowed. If left blank, the generic defalt avatar is used.",
+          "help": "A URL for an avatar .fst to be used when someone tries to use an avatar that is not allowed. If left blank, the generic default avatar is used.",
           "placeholder": "",
           "default": "",
           "advanced": true
