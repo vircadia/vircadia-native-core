@@ -2370,8 +2370,6 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
             _avatarEntityData = avatarEntityData;
             setAvatarEntityDataChanged(true);
 
-            qDebug() << "Current avatar entity data is" << _avatarEntityData.keys();
-
             foreach (auto entityID, previousAvatarEntityIDs) {
                 if (!_avatarEntityData.contains(entityID)) {
                     _avatarEntityDetached.insert(entityID);
