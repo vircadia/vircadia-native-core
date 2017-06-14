@@ -12,15 +12,16 @@ import "../../windows"
 import "../audio"
 
 ScrollingWindow {
-    resizable: true
-    destroyOnHidden: true
-    width: 400
-    height: 577
-    minSize: Qt.vector2d(400, 500)
+    id: root;
 
-    Audio { id: audioDialog; width: audio.width }
+    resizable: true;
+    destroyOnHidden: true;
+    width: 400;
+    height: 577;
+    minSize: Qt.vector2d(400, 500);
 
-    id: audio
-    objectName: "AudioDialog"
-    title: audioDialog.title
+    Audio { id: audio; width: root.width }
+
+    objectName: "AudioDialog";
+    title: audio.title;
 }

@@ -21,65 +21,56 @@ import "../../windows"
 import "./" as Audio
 
 Rectangle {
-    id: audio;
+    id: root;
 
     HifiConstants { id: hifi; }
 
     property var eventBridge;
-    property string title: "Audio Settings - " + Audio.context
+    property string title: "Audio Settings - " + Audio.context;
     signal sendToScript(var message);
 
     color: hifi.colors.baseGray;
 
     // only show the title if loaded through a "loader"
     function showTitle() {
-        return audio.parent.objectName == "loader";
+        return root.parent.objectName == "loader";
     }
 
     Column {
-        y: 16 // padding does not work
-        spacing: 16
-        width: parent.width
+        y: 16; // padding does not work
+        spacing: 16;
+        width: parent.width;
 
         RalewayRegular {
-            x: 16 // padding does not work
-            size: 16
-            color: "white"
-            text: audio.title
+            x: 16; // padding does not work
+            size: 16;
+            color: "white";
+            text: root.title;
 
-            visible: audio.showTitle()
+            visible: root.showTitle();
         }
 
-        Separator { visible: audio.showTitle() }
+        Separator { visible: root.showTitle() }
 
         Grid {
-            columns: 2
-            x: 16 // padding does not work
-            spacing: 16
+            columns: 2;
+            x: 16; // padding does not work
+            spacing: 16;
 
             Audio.CheckBox {
                 text: qsTr("Mute microphone");
-                checked: Audio.muted
-                onClicked: {
-                    Audio.muted = checked;
-                    checked = Qt.binding(function() { return Audio.muted; }); // restore binding
-                }
+                checked: Audio.muted;
+                onCheckedChanged: { Audio.muted = checked; }
             }
             Audio.CheckBox {
                 text: qsTr("Enable noise reduction");
-                checked: Audio.noiseReduction
-                onClicked: {
-                    Audio.noiseReduction = checked;
-                    checked = Qt.binding(function() { return Audio.noiseReduction; }); // restore binding
-                }
+                checked: Audio.noiseReduction;
+                onCheckedChanged: { Audio.noiseReduction = checked; }
             }
             Audio.CheckBox {
                 text: qsTr("Show audio level meter");
-                checked: AvatarInputs.showAudioTools
-                onClicked: {
-                    AvatarInputs.showAudioTools = checked;
-                    checked = Qt.binding(function() { return AvatarInputs.showAudioTools }); // restore binding
-                }
+                checked: AvatarInputs.showAudioTools;
+                onCheckedChanged: { AvatarInputs.showAudioTools = checked; }
             }
         }
 
@@ -87,32 +78,32 @@ Rectangle {
 
         RowLayout {
             HiFiGlyphs {
-                text: hifi.glyphs.mic
-                color: hifi.colors.primaryHighlight
-                anchors.verticalCenter: parent.verticalCenter
-                size: 28
+                text: hifi.glyphs.mic;
+                color: hifi.colors.primaryHighlight;
+                anchors.verticalCenter: parent.verticalCenter;
+                size: 28;
             }
             RalewayRegular {
-                anchors.verticalCenter: parent.verticalCenter
-                size: 16
-                color: "#AFAFAF"
-                text: qsTr("CHOOSE INPUT DEVICE")
+                anchors.verticalCenter: parent.verticalCenter;
+                size: 16;
+                color: hifi.colors.lightGrayText;
+                text: qsTr("CHOOSE INPUT DEVICE");
             }
         }
 
         ListView {
             anchors { left: parent.left; right: parent.right; leftMargin: 70 }
-            height: 125
-            spacing: 0
-            snapMode: ListView.SnapToItem
-            clip: true
-            model: Audio.devices.input
+            height: 125;
+            spacing: 0;
+            snapMode: ListView.SnapToItem;
+            clip: true;
+            model: Audio.devices.input;
             delegate: Item {
-                width: parent.width
-                height: 36
+                width: parent.width;
+                height: 36;
                 Audio.CheckBox {
                     text: display;
-                    checked: selected
+                    checked: selected;
                     onClicked: {
                         selected = checked;
                         checked = Qt.binding(function() { return selected; }); // restore binding
@@ -125,32 +116,32 @@ Rectangle {
 
         RowLayout {
             HiFiGlyphs {
-                text: hifi.glyphs.unmuted
-                color: hifi.colors.primaryHighlight
-                anchors.verticalCenter: parent.verticalCenter
-                size: 36
+                text: hifi.glyphs.unmuted;
+                color: hifi.colors.primaryHighlight;
+                anchors.verticalCenter: parent.verticalCenter;
+                size: 36;
             }
             RalewayRegular {
-                anchors.verticalCenter: parent.verticalCenter
-                size: 16
-                color: "#AFAFAF"
-                text: qsTr("CHOOSE OUTPUT DEVICE")
+                anchors.verticalCenter: parent.verticalCenter;
+                size: 16;
+                color: hifi.colors.lightGrayText;
+                text: qsTr("CHOOSE OUTPUT DEVICE");
             }
         }
 
         ListView {
             anchors { left: parent.left; right: parent.right; leftMargin: 70 }
-            height: 125
-            spacing: 0
-            snapMode: ListView.SnapToItem
-            clip: true
-            model: Audio.devices.output
+            height: 125;
+            spacing: 0;
+            snapMode: ListView.SnapToItem;
+            clip: true;
+            model: Audio.devices.output;
             delegate: Item {
-                width: parent.width
-                height: 36
+                width: parent.width;
+                height: 36;
                 Audio.CheckBox {
                     text: display;
-                    checked: selected
+                    checked: selected;
                     onClicked: {
                         selected = checked;
                         checked = Qt.binding(function() { return selected; }); // restore binding
