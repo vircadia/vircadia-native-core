@@ -146,7 +146,8 @@ void AudioDeviceList::onDevicesChanged(const QList<QAudioDeviceInfo>& devices) {
         device.info = deviceInfo;
         device.display = device.info.deviceName()
             .replace("High Definition", "HD")
-            .remove("Device");
+            .remove("Device")
+            .replace(" )", ")");
         device.selected = (device.info == _selectedDevice);
         _devices.push_back(device);
     }
