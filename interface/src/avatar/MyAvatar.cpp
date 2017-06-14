@@ -2475,6 +2475,11 @@ void MyAvatar::setFlyingEnabled(bool enabled) {
 
     _enableFlying = enabled;
 }
+
+bool MyAvatar::getFlyingEnabled() {
+    return _enableFlying;
+}
+
 void MyAvatar::setCollisionsEnabled(bool enabled) {
 
     if (QThread::currentThread() != thread()) {
