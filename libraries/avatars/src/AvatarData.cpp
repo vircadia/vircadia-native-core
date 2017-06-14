@@ -1553,9 +1553,11 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
 #endif
 
     } else {
+#ifdef WANT_DEBUG
         qCDebug(avatars) << "Refusing to process identity for" << uuidStringWithoutCurlyBraces(avatarSessionID) << "since"
             << (udt::SequenceNumber::Type) _lastIncomingSequenceNumber
             << "is >=" << (udt::SequenceNumber::Type) incomingSequenceNumber;
+#endif
     }
 }
 
