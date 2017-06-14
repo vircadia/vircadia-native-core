@@ -2228,7 +2228,7 @@ void DomainServer::updateReplicatedNodes() {
         if (replicationSettings.contains("users")) {
             auto usersSettings = replicationSettings.value("users").toList();
             for (auto& username : usersSettings) {
-                _replicatedUsernames.push_back(username.toString());
+                _replicatedUsernames.push_back(username.toString().toLower());
             }
         }
     }
@@ -2252,6 +2252,8 @@ void DomainServer::updateReplicatedNodes() {
 
 bool DomainServer::shouldReplicateNode(const Node& node) {
     QString verifiedUsername = node.getPermissions().getVerifiedUserName();
+    // Both he verified username and usernames in _replicatedUsernames are lowercase, so
+    // comparisons here are case-insensitive.
     auto it = find(_replicatedUsernames.cbegin(), _replicatedUsernames.cend(), verifiedUsername);
     return it != _replicatedUsernames.end() && node.getType() == NodeType::Agent;
 };
