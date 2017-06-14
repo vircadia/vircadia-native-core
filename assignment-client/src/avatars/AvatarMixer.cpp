@@ -65,16 +65,23 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &AvatarMixer::handlePacketVersionMismatch);
 }
 
+SharedNodePointer addOrUpdateReplicatedNode(const QUuid& nodeID, const HifiSockAddr& senderSockAddr) {
+    auto replicatedNode = DependencyManager::get<NodeList>()->addOrUpdateNode(nodeID, NodeType::Agent,
+                                                                              senderSockAddr,
+                                                                              senderSockAddr,
+                                                                              DEFAULT_AGENT_PERMISSIONS, true);
+
+    replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
+    replicatedNode->setIsUpstream(true);
+
+    return replicatedNode;
+}
+
 void AvatarMixer::handleReplicatedPackets(QSharedPointer<ReceivedMessage> message) {
     auto nodeList = DependencyManager::get<NodeList>();
     auto nodeID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
-    auto replicatedNode = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
-                                                    message->getSenderSockAddr(), message->getSenderSockAddr(),
-                                                    DEFAULT_AGENT_PERMISSIONS, true);
-
-    replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
-    replicatedNode->setIsUpstream(true);
+    auto replicatedNode = addOrUpdateReplicatedNode(nodeID, message->getSenderSockAddr());
 
     // construct a "fake" avatar data received message from the byte array and packet list information
     auto originalPacketData = message->getMessage().mid(NUM_BYTES_RFC4122_UUID);
@@ -106,12 +113,7 @@ void AvatarMixer::handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessag
         auto nodeID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
         // make sure we have an upstream replicated node that matches
-        auto replicatedNode = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
-                                                        message->getSenderSockAddr(), message->getSenderSockAddr(),
-                                                        DEFAULT_AGENT_PERMISSIONS, true);
-
-        replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
-        replicatedNode->setIsUpstream(true);
+        auto replicatedNode = addOrUpdateReplicatedNode(nodeID, message->getSenderSockAddr());
 
         // grab the size of the avatar byte array so we know how much to read
         quint16 avatarByteArraySize;
