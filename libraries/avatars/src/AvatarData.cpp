@@ -1495,14 +1495,17 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
     udt::SequenceNumber incomingSequenceNumber(incomingSequenceNumberType);
 
     if (!_hasProcessedFirstIdentity) {
-        _identitySequenceNumber = incomingSequenceNumber - 1;
+        _lastIncomingSequenceNumber = incomingSequenceNumber - 1;
         _hasProcessedFirstIdentity = true;
         qCDebug(avatars) << "Processing first identity packet for" << avatarSessionID << "-"
             << (udt::SequenceNumber::Type) incomingSequenceNumber;
     }
 
-    if (incomingSequenceNumber > _identitySequenceNumber) {
+    if (incomingSequenceNumber > _lastIncomingSequenceNumber) {
         Identity identity;
+
+        qCDebug(avatars) << "Processing an identity packet from" << avatarSessionID
+            << "-" << (udt::SequenceNumber::Type) incomingSequenceNumber;
 
         packetStream >> identity.skeletonModelURL
             >> identity.attachmentData
@@ -1511,7 +1514,7 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
             >> identity.avatarEntityData;
 
         // set the store identity sequence number to match the incoming identity
-        _identitySequenceNumber = incomingSequenceNumber;
+        _lastIncomingSequenceNumber = incomingSequenceNumber;
 
         if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
             setSkeletonModelURL(identity.skeletonModelURL);
@@ -1554,7 +1557,7 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
 
     } else {
         qCDebug(avatars) << "Refusing to process identity for" << uuidStringWithoutCurlyBraces(avatarSessionID) << "since"
-            << (udt::SequenceNumber::Type) _identitySequenceNumber
+            << (udt::SequenceNumber::Type) _lastIncomingSequenceNumber
             << "is later than" << (udt::SequenceNumber::Type) incomingSequenceNumber;
     }
 }
@@ -1566,7 +1569,7 @@ QByteArray AvatarData::identityByteArray() const {
 
     _avatarEntitiesLock.withReadLock([&] {
         identityStream << getSessionUUID()
-            << (udt::SequenceNumber::Type) _identitySequenceNumber
+            << (udt::SequenceNumber::Type) _lastOutgoingSequenceNumber
             << urlToSend
             << _attachmentData
             << _displayName
@@ -1747,6 +1750,12 @@ void AvatarData::sendAvatarDataPacket() {
 
 void AvatarData::sendIdentityPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
+
+    if (_identityDataChanged) {
+        // if the identity data has changed, push the sequence number forwards
+        ++_lastOutgoingSequenceNumber;
+    }
+
     QByteArray identityData = identityByteArray();
 
     auto packetList = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
@@ -1757,7 +1766,7 @@ void AvatarData::sendIdentityPacket() {
         },
         [&](const SharedNodePointer& node) {
             nodeList->sendPacketList(std::move(packetList), *node);
-        });
+    });
 
     _avatarEntityDataLocallyEdited = false;
     _identityDataChanged = false;
