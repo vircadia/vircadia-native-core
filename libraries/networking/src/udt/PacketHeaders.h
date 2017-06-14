@@ -119,8 +119,10 @@ public:
         ReplicatedMicrophoneAudioWithEcho,
         ReplicatedInjectAudio,
         ReplicatedSilentAudioFrame,
-        LAST_PACKET_TYPE = ReplicatedSilentAudioFrame,
-
+        ReplicatedAvatarIdentity,
+        ReplicatedKillAvatar,
+        ReplicatedBulkAvatarData,
+        NUM_PACKET_TYPE
     };
 };
 
@@ -242,7 +244,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     StickAndBallDefaultAvatar,
     IdentityPacketsIncludeUpdateTime,
     AvatarIdentitySequenceId,
-    MannequinDefaultAvatar
+    MannequinDefaultAvatar,
+    AvatarIdentitySequenceFront
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

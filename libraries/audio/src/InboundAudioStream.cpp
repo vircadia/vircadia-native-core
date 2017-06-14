@@ -127,6 +127,7 @@ int InboundAudioStream::parseData(ReceivedMessage& message) {
     // parse the info after the seq number and before the audio data (the stream properties)
     int prePropertyPosition = message.getPosition();
     int propertyBytes = parseStreamProperties(message.getType(), message.readWithoutCopy(message.getBytesLeftToRead()), networkFrames);
+
     message.seek(prePropertyPosition + propertyBytes);
 
     // handle this packet based on its arrival status.

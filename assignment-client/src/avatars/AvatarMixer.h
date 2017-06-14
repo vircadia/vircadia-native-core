@@ -42,10 +42,12 @@ private slots:
     void handleAdjustAvatarSorting(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleViewFrustumPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleAvatarIdentityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
-    void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message);
+    void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
+    void handleReplicatedPackets(QSharedPointer<ReceivedMessage> message);
+    void handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessage> message);
     void domainSettingsRequestComplete();
     void handlePacketVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);
     void start();
@@ -60,6 +62,8 @@ private:
     void sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
 
     void manageDisplayName(const SharedNodePointer& node);
+
+    void optionallyReplicatePacket(ReceivedMessage& message, const Node& node);
 
     p_high_resolution_clock::time_point _lastFrameTimestamp;
 

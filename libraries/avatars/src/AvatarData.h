@@ -52,15 +52,16 @@ typedef unsigned long long quint64;
 #include <JointData.h>
 #include <NLPacket.h>
 #include <Node.h>
-#include <RegisteredMetaTypes.h>
-#include <SimpleMovingAverage.h>
-#include <SpatiallyNestable.h>
 #include <NumericalConstants.h>
 #include <Packed.h>
-#include <ThreadSafeValueCache.h>
+#include <RegisteredMetaTypes.h>
 #include <SharedUtil.h>
-#include <shared/RateCounter.h>
+#include <SimpleMovingAverage.h>
+#include <SpatiallyNestable.h>
+#include <ThreadSafeValueCache.h>
 #include <ViewFrustum.h>
+#include <shared/RateCounter.h>
+#include <udt/SequenceNumber.h>
 
 #include "AABox.h"
 #include "HeadData.h"
@@ -525,22 +526,18 @@ public:
     const HeadData* getHeadData() const { return _headData; }
 
     struct Identity {
-        QUuid uuid;
         QUrl skeletonModelURL;
         QVector<AttachmentData> attachmentData;
         QString displayName;
         QString sessionDisplayName;
         AvatarEntityMap avatarEntityData;
-        quint64 sequenceId;
     };
-
-    static void parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut);
 
     // identityChanged returns true if identity has changed, false otherwise.
     // displayNameChanged returns true if displayName has changed, false otherwise.
-    void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged);
+    void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged);
 
-    QByteArray identityByteArray() const;
+    QByteArray identityByteArray(bool shouldForwardIncomingSequenceNumber = false) const;
 
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
@@ -624,10 +621,7 @@ public:
     static float _avatarSortCoefficientAge;
 
     bool getIdentityDataChanged() const { return _identityDataChanged; } // has the identity data changed since the last time sendIdentityPacket() was called
-    void markIdentityDataChanged() {
-        _identityDataChanged = true;
-        _identitySequenceId++;
-    }
+    void markIdentityDataChanged() { _identityDataChanged = true; }
 
     float getDensity() const { return _density; }
 
@@ -786,7 +780,9 @@ protected:
     float _audioAverageLoudness { 0.0f };
 
     bool _identityDataChanged { false };
-    quint64 _identitySequenceId { 0 };
+    udt::SequenceNumber _lastIncomingSequenceNumber { 0 };
+    udt::SequenceNumber _lastOutgoingSequenceNumber { 0 };
+    bool _hasProcessedFirstIdentity { false };
     float _density;
 
 private:

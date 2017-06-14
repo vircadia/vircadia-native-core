@@ -160,16 +160,12 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
                     if (!isReplicatedPacket(message.getType())) {
                         // since this packet will be non-sourced, we add the replicated node's ID here
                         packet->write(node.getUUID().toRfc4122());
-
-                        // we won't negotiate an audio format with the replicant, because we aren't a listener
-                        // so pack the codec string here so that it can statelessly setup a decoder for this string when it needs
-                        packet->writeString(_selectedCodecName);
                     }
 
                     packet->write(message.getMessage());
                 }
                 
-                nodeList->sendUnreliablePacket(*packet, downstreamNode->getPublicSocket());
+                nodeList->sendUnreliablePacket(*packet, *downstreamNode);
             }
         });
     }
@@ -312,6 +308,7 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
             // this is injected audio
             // grab the stream identifier for this injected audio
             message.seek(sizeof(quint16));
+
             QUuid streamIdentifier = QUuid::fromRfc4122(message.readWithoutCopy(NUM_BYTES_RFC4122_UUID));
 
             bool isStereo;
@@ -345,18 +342,6 @@ int AudioMixerClientData::parseData(ReceivedMessage& message) {
 
         // seek to the beginning of the packet so that the next reader is in the right spot
         message.seek(0);
-
-        if (packetType == PacketType::ReplicatedMicrophoneAudioWithEcho
-            || packetType == PacketType::ReplicatedMicrophoneAudioNoEcho
-            || packetType == PacketType::ReplicatedSilentAudioFrame
-            || packetType == PacketType::ReplicatedInjectAudio) {
-
-            // skip past source ID for the replicated packet
-            message.seek(NUM_BYTES_RFC4122_UUID);
-
-            // skip past the codec string
-            message.readString();
-        }
 
         // check the overflow count before we parse data
         auto overflowBefore = matchingStream->getOverflowCount();
@@ -706,9 +691,10 @@ bool AudioMixerClientData::shouldIgnore(const SharedNodePointer self, const Shar
 }
 
 void AudioMixerClientData::setupCodecForReplicatedAgent(QSharedPointer<ReceivedMessage> message) {
-    // first pull the codec string from the packet
+    // hop past the sequence number that leads the packet
+    message->seek(sizeof(quint16));
 
-    // read the string for the codec
+    // pull the codec string from the packet
     auto codecString = message->readString();
 
     qDebug() << "Manually setting codec for replicated agent" << uuidStringWithoutCurlyBraces(getNodeID())
@@ -718,4 +704,7 @@ void AudioMixerClientData::setupCodecForReplicatedAgent(QSharedPointer<ReceivedM
     setupCodec(codec.second, codec.first);
 
     _hasSetupCodecForUpstreamNode = true;
+
+    // seek back to the beginning of the message so other readers are in the right place
+    message->seek(0);
 }

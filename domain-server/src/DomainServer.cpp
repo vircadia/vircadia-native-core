@@ -2228,23 +2228,33 @@ void DomainServer::updateReplicatedNodes() {
         if (replicationSettings.contains("users")) {
             auto usersSettings = replicationSettings.value("users").toList();
             for (auto& username : usersSettings) {
-                _replicatedUsernames.push_back(username.toString());
+                _replicatedUsernames.push_back(username.toString().toLower());
             }
         }
     }
 
     auto nodeList = DependencyManager::get<LimitedNodeList>();
-    nodeList->eachNode([&](const SharedNodePointer& otherNode) {
-        if (shouldReplicateNode(*otherNode)) {
-            qDebug() << "Setting node to replicated: " << otherNode->getUUID();
-            otherNode->setIsReplicated(true);
+    nodeList->eachMatchingNode([this](const SharedNodePointer& otherNode) -> bool {
+            return otherNode->getType() == NodeType::Agent;
+        }, [this](const SharedNodePointer& otherNode) {
+            auto shouldReplicate = shouldReplicateNode(*otherNode);
+            auto isReplicated = otherNode->isReplicated();
+            if (isReplicated && !shouldReplicate) {
+                qDebug() << "Setting node to NOT be replicated:"
+                    << otherNode->getPermissions().getVerifiedUserName() << otherNode->getUUID();
+            } else if (!isReplicated && shouldReplicate) {
+                qDebug() << "Setting node to replicated:"
+                    << otherNode->getPermissions().getVerifiedUserName() << otherNode->getUUID();
+            }
+            otherNode->setIsReplicated(shouldReplicate);
         }
-    });
+    );
 }
 
 bool DomainServer::shouldReplicateNode(const Node& node) {
     QString verifiedUsername = node.getPermissions().getVerifiedUserName();
-    qDebug() << "Verified username: " << verifiedUsername;
+    // Both the verified username and usernames in _replicatedUsernames are lowercase, so
+    // comparisons here are case-insensitive.
     auto it = find(_replicatedUsernames.cbegin(), _replicatedUsernames.cend(), verifiedUsername);
     return it != _replicatedUsernames.end() && node.getType() == NodeType::Agent;
 };

@@ -18,6 +18,8 @@
 
 #include "Assignment.h"
 
+using DownstreamNodeFoundCallback = std::function<void(Node& downstreamNode)>;
+
 class ThreadedAssignment : public Assignment {
     Q_OBJECT
 public:
@@ -40,7 +42,8 @@ signals:
 
 protected:
     void commonInit(const QString& targetName, NodeType_t nodeType);
-    void parseDownstreamServers(const QJsonObject& settingsObject, NodeType_t nodeType);
+    void parseDownstreamServers(const QJsonObject& settingsObject, NodeType_t nodeType,
+                                DownstreamNodeFoundCallback callback = [](Node& downstreamNode) {});
 
     bool _isFinished;
     QTimer _domainServerTimer;

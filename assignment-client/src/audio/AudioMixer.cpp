@@ -125,7 +125,28 @@ void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> mess
     replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
     replicatedNode->setIsUpstream(true);
 
-    getOrCreateClientData(replicatedNode.data())->queuePacket(message, replicatedNode);
+    // construct a "fake" audio received message from the byte array and packet list information
+    auto audioData = message->getMessage().mid(NUM_BYTES_RFC4122_UUID);
+
+    PacketType rewrittenType;
+
+    if (message->getType() == PacketType::ReplicatedMicrophoneAudioNoEcho) {
+        rewrittenType = PacketType::MicrophoneAudioNoEcho;
+    } else if (message->getType() == PacketType::ReplicatedMicrophoneAudioWithEcho) {
+        rewrittenType = PacketType::MicrophoneAudioWithEcho;
+    } else if (message->getType() == PacketType::ReplicatedInjectAudio) {
+        rewrittenType = PacketType::InjectAudio;
+    } else if (message->getType() == PacketType::ReplicatedSilentAudioFrame) {
+        rewrittenType = PacketType::SilentAudioFrame;
+    } else {
+        return;
+    }
+
+    auto replicatedMessage = QSharedPointer<ReceivedMessage>::create(audioData, rewrittenType,
+                                                                     versionForPacketType(rewrittenType),
+                                                                     message->getSenderSockAddr(), nodeID);
+
+    getOrCreateClientData(replicatedNode.data())->queuePacket(replicatedMessage, replicatedNode);
 }
 
 void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
