@@ -1473,27 +1473,6 @@ QStringList AvatarData::getJointNames() const {
     return _jointNames;
 }
 
-void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut) {
-    QDataStream packetStream(data);
-
-    packetStream >> identityOut.uuid
-                 >> identityOut.skeletonModelURL
-                 >> identityOut.attachmentData
-                 >> identityOut.displayName
-                 >> identityOut.sessionDisplayName
-                 >> identityOut.avatarEntityData
-                 >> identityOut.sequenceId;
-
-#ifdef WANT_DEBUG
-    qCDebug(avatars) << __FUNCTION__
-        << "identityOut.uuid:" << identityOut.uuid
-        << "identityOut.skeletonModelURL:" << identityOut.skeletonModelURL
-        << "identityOut.displayName:" << identityOut.displayName
-        << "identityOut.sessionDisplayName:" << identityOut.sessionDisplayName;
-#endif
-
-}
-
 glm::quat AvatarData::getOrientationOutbound() const {
     return (getLocalOrientation());
 }
@@ -1504,46 +1483,80 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
     return _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
 }
 
-void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged) {
+void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged) {
 
-    if (identity.sequenceId < _identitySequenceId) {
-        qCDebug(avatars) << "Ignoring older identity packet for avatar" << getSessionUUID()
-            << "_identitySequenceId (" << _identitySequenceId << ") is greater than" << identity.sequenceId;
-        return;
+    QDataStream packetStream(identityData);
+
+    QUuid avatarSessionID;
+
+    // peek the sequence number, this will tell us if we should be processing this identity packet at all
+    udt::SequenceNumber::Type incomingSequenceNumberType;
+    packetStream >> avatarSessionID >> incomingSequenceNumberType;
+    udt::SequenceNumber incomingSequenceNumber(incomingSequenceNumberType);
+
+    if (!_hasProcessedFirstIdentity) {
+        _identitySequenceNumber = incomingSequenceNumber - 1;
+        _hasProcessedFirstIdentity = true;
+        qCDebug(avatars) << "Processing first identity packet for" << avatarSessionID << "-"
+            << (udt::SequenceNumber::Type) incomingSequenceNumber;
     }
-    // otherwise, set the identitySequenceId to match the incoming identity
-    _identitySequenceId = identity.sequenceId;
 
-    if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
-        setSkeletonModelURL(identity.skeletonModelURL);
-        identityChanged = true;
-        if (_firstSkeletonCheck) {
+    if (incomingSequenceNumber > _identitySequenceNumber) {
+        Identity identity;
+
+        packetStream >> identity.skeletonModelURL
+            >> identity.attachmentData
+            >> identity.displayName
+            >> identity.sessionDisplayName
+            >> identity.avatarEntityData;
+
+        // set the store identity sequence number to match the incoming identity
+        _identitySequenceNumber = incomingSequenceNumber;
+
+        if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
+            setSkeletonModelURL(identity.skeletonModelURL);
+            identityChanged = true;
+            if (_firstSkeletonCheck) {
+                displayNameChanged = true;
+            }
+            _firstSkeletonCheck = false;
+        }
+
+        if (identity.displayName != _displayName) {
+            _displayName = identity.displayName;
+            identityChanged = true;
             displayNameChanged = true;
         }
-        _firstSkeletonCheck = false;
-    }
+        maybeUpdateSessionDisplayNameFromTransport(identity.sessionDisplayName);
 
-    if (identity.displayName != _displayName) {
-        _displayName = identity.displayName;
-        identityChanged = true;
-        displayNameChanged = true;
-    }
-    maybeUpdateSessionDisplayNameFromTransport(identity.sessionDisplayName);
+        if (identity.attachmentData != _attachmentData) {
+            setAttachmentData(identity.attachmentData);
+            identityChanged = true;
+        }
 
-    if (identity.attachmentData != _attachmentData) {
-        setAttachmentData(identity.attachmentData);
-        identityChanged = true;
-    }
+        bool avatarEntityDataChanged = false;
+        _avatarEntitiesLock.withReadLock([&] {
+            avatarEntityDataChanged = (identity.avatarEntityData != _avatarEntityData);
+        });
+        
+        if (avatarEntityDataChanged) {
+            setAvatarEntityData(identity.avatarEntityData);
+            identityChanged = true;
+        }
 
-    bool avatarEntityDataChanged = false;
-    _avatarEntitiesLock.withReadLock([&] {
-        avatarEntityDataChanged = (identity.avatarEntityData != _avatarEntityData);
-    });
-    if (avatarEntityDataChanged) {
-        setAvatarEntityData(identity.avatarEntityData);
-        identityChanged = true;
-    }
+#ifdef WANT_DEBUG
+        qCDebug(avatars) << __FUNCTION__
+            << "identity.uuid:" << identity.uuid
+            << "identity.skeletonModelURL:" << identity.skeletonModelURL
+            << "identity.displayName:" << identity.displayName
+            << "identity.sessionDisplayName:" << identity.sessionDisplayName;
+#endif
 
+    } else {
+        qCDebug(avatars) << "Refusing to process identity for" << uuidStringWithoutCurlyBraces(avatarSessionID) << "since"
+            << (udt::SequenceNumber::Type) _identitySequenceNumber
+            << "is later than" << (udt::SequenceNumber::Type) incomingSequenceNumber;
+    }
 }
 
 QByteArray AvatarData::identityByteArray() const {
@@ -1553,12 +1566,12 @@ QByteArray AvatarData::identityByteArray() const {
 
     _avatarEntitiesLock.withReadLock([&] {
         identityStream << getSessionUUID()
-                       << urlToSend
-                       << _attachmentData
-                       << _displayName
-                       << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
-                       << _avatarEntityData
-                       << _identitySequenceId;
+            << (udt::SequenceNumber::Type) _identitySequenceNumber
+            << urlToSend
+            << _attachmentData
+            << _displayName
+            << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
+            << _avatarEntityData;
     });
 
     return identityData;
@@ -2339,6 +2352,8 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
 
             _avatarEntityData = avatarEntityData;
             setAvatarEntityDataChanged(true);
+
+            qDebug() << "Current avatar entity data is" << _avatarEntityData.keys();
 
             foreach (auto entityID, previousAvatarEntityIDs) {
                 if (!_avatarEntityData.contains(entityID)) {
