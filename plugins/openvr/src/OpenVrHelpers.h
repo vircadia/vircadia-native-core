@@ -25,6 +25,7 @@ bool openVrQuitRequested();
 void enableOpenVrKeyboard(PluginContainer* container);
 void disableOpenVrKeyboard();
 bool isOpenVrKeyboardShown();
+QString getVrSettingString(const char* section, const char* setting);
 
 
 template<typename F>

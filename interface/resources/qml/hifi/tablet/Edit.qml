@@ -7,14 +7,12 @@ StackView {
     objectName: "stack"
     initialItem: Qt.resolvedUrl('EditTabView.qml')
 
-    property var eventBridge;
     signal sendToScript(var message);
 
     HifiConstants { id: hifi }
 
     function pushSource(path) {
         editRoot.push(Qt.resolvedUrl(path));
-        editRoot.currentItem.eventBridge = editRoot.eventBridge;
         editRoot.currentItem.sendToScript.connect(editRoot.sendToScript);
     }
 

@@ -31,7 +31,6 @@ Rectangle {
     HifiConstants { id: hifi; }
     objectName: "AudioWindow"
 
-    property var eventBridge;
     property string title: "Audio Options"
     signal sendToScript(var message);
 

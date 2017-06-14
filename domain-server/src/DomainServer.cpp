@@ -2322,6 +2322,11 @@ void DomainServer::updateReplicatedNodes() {
                 qDebug() << "Setting node to NOT be replicated:" << otherNode->getUUID();
             } else if (!isReplicated && shouldReplicate) {
                 qDebug() << "Setting node to replicated:" << otherNode->getUUID();
+                qDebug() << "Setting node to NOT be replicated:"
+                    << otherNode->getPermissions().getVerifiedUserName() << otherNode->getUUID();
+            } else if (!isReplicated && shouldReplicate) {
+                qDebug() << "Setting node to replicated:"
+                    << otherNode->getPermissions().getVerifiedUserName() << otherNode->getUUID();
             }
             otherNode->setIsReplicated(shouldReplicate);
         }
@@ -2330,7 +2335,7 @@ void DomainServer::updateReplicatedNodes() {
 
 bool DomainServer::shouldReplicateNode(const Node& node) {
     QString verifiedUsername = node.getPermissions().getVerifiedUserName();
-    // Both he verified username and usernames in _replicatedUsernames are lowercase, so
+    // Both the verified username and usernames in _replicatedUsernames are lowercase, so
     // comparisons here are case-insensitive.
     auto it = find(_replicatedUsernames.cbegin(), _replicatedUsernames.cend(), verifiedUsername);
     return it != _replicatedUsernames.end() && node.getType() == NodeType::Agent;

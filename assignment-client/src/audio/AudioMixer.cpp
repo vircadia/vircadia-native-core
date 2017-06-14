@@ -143,6 +143,8 @@ void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> mess
         rewrittenType = PacketType::InjectAudio;
     } else if (message->getType() == PacketType::ReplicatedSilentAudioFrame) {
         rewrittenType = PacketType::SilentAudioFrame;
+    } else {
+        return;
     }
 
     auto replicatedMessage = QSharedPointer<ReceivedMessage>::create(audioData, rewrittenType,
