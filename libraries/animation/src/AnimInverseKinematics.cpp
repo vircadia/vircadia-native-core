@@ -1137,7 +1137,7 @@ void AnimInverseKinematics::initConstraints() {
         } else if (0 == baseName.compare("UpLeg", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot());
-            stConstraint->setTwistLimits(-PI / 4.0f, PI / 4.0f);
+            stConstraint->setTwistLimits(-PI / 2.0f, PI / 2.0f);
 
             std::vector<glm::vec3> swungDirections;
             float deltaTheta = PI / 4.0f;
