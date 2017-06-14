@@ -20,7 +20,6 @@ TabletModalWindow {
     id: loginDialogRoot
     objectName: "LoginDialog"
 
-    property var eventBridge;
     signal sendToScript(var message);
     property bool isHMD: false
     property bool gotoPreviousApp: false;

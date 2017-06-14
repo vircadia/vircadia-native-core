@@ -244,6 +244,7 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     StickAndBallDefaultAvatar,
     IdentityPacketsIncludeUpdateTime,
     AvatarIdentitySequenceId,
+    MannequinDefaultAvatar,
     AvatarIdentitySequenceFront
 };
 

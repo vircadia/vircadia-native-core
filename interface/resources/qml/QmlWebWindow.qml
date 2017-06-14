@@ -26,14 +26,7 @@ Windows.ScrollingWindow {
     // Don't destroy on close... otherwise the JS/C++ will have a dangling pointer
     destroyOnCloseButton: false
     property alias source: webview.url
-    property alias eventBridge: eventBridgeWrapper.eventBridge;
     property alias scriptUrl: webview.userScriptUrl
-
-    QtObject {
-        id: eventBridgeWrapper
-        WebChannel.id: "eventBridgeWrapper"
-        property var eventBridge;
-    }
 
     // This is for JS/QML communication, which is unused in a WebWindow,
     // but not having this here results in spurious warnings about a 
@@ -70,7 +63,6 @@ Windows.ScrollingWindow {
             url: "about:blank"
             anchors.fill: parent
             focus: true
-            webChannel.registeredObjects: [eventBridgeWrapper]
 
             property string userScriptUrl: ""
 
@@ -107,6 +99,8 @@ Windows.ScrollingWindow {
             }
 
             Component.onCompleted: {
+                webChannel.registerObject("eventBridge", eventBridge);
+                webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
                 eventBridge.webEventReceived.connect(onWebEventReceived);
             }
         }

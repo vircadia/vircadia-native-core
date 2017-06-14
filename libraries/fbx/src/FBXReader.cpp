@@ -460,17 +460,11 @@ FBXLight extractLight(const FBXNode& object) {
 }
 
 QByteArray fileOnUrl(const QByteArray& filepath, const QString& url) {
-    QString path = QFileInfo(url).path();
-    QByteArray filename = filepath;
-    QFileInfo checkFile(path + "/" + filepath);
+    // in order to match the behaviour when loading models from remote URLs
+    // we assume that all external textures are right beside the loaded model
+    // ignoring any relative paths or absolute paths inside of models
 
-    // check if the file exists at the RelativeFilename
-    if (!(checkFile.exists() && checkFile.isFile())) {
-        // if not, assume it is in the fbx directory
-        filename = filename.mid(filename.lastIndexOf('/') + 1);
-    }
-
-    return filename;
+    return filepath.mid(filepath.lastIndexOf('/') + 1);
 }
 
 FBXGeometry* FBXReader::extractFBXGeometry(const QVariantHash& mapping, const QString& url) {

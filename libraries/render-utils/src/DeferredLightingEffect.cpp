@@ -418,10 +418,7 @@ model::MeshPointer DeferredLightingEffect::getSpotLightMesh() {
 }
 
 void PreparePrimaryFramebuffer::run(const RenderContextPointer& renderContext, gpu::FramebufferPointer& primaryFramebuffer) {
-
-    auto framebufferCache = DependencyManager::get<FramebufferCache>();
-    auto framebufferSize = framebufferCache->getFrameBufferSize();
-    glm::uvec2 frameSize(framebufferSize.width(), framebufferSize.height());
+    glm::uvec2 frameSize(renderContext->args->_viewport.z, renderContext->args->_viewport.w);
 
     // Resizing framebuffers instead of re-building them seems to cause issues with threaded 
     // rendering
@@ -504,10 +501,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
     {
         // Framebuffer copy operations cannot function as multipass stereo operations.
         batch.enableStereo(false);
-        
-        // perform deferred lighting, rendering to free fbo
-        auto framebufferCache = DependencyManager::get<FramebufferCache>();
-            
+
         auto textureCache = DependencyManager::get<TextureCache>();
         auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
 
