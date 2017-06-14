@@ -24,6 +24,7 @@ public:
     // Some input plugins are comprised of multiple subdevices (SDL2, for instance).
     // If an input plugin is only a single device, it will only return it's primary name.
     virtual QStringList getSubdeviceNames() { return { getName() }; };
-    virtual bool isHandController() const = 0;
+    virtual bool isHandController() const { return false; }
+    virtual bool isHeadController() const { return false; }
 };
 

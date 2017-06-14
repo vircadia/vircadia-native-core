@@ -56,7 +56,7 @@ void UserActivityLoggerScriptingInterface::palAction(QString action, QString tar
 }
 
 void UserActivityLoggerScriptingInterface::palOpened(float secondsOpened) {
-    doLogAction("pal_opened", { 
+    doLogAction("pal_opened", {
         { "seconds_opened", secondsOpened }
     });
 }
@@ -69,6 +69,14 @@ void UserActivityLoggerScriptingInterface::makeUserConnection(QString otherID, b
         payload["details"] = detailsString;
     }
     doLogAction("makeUserConnection", payload);
+}
+
+void UserActivityLoggerScriptingInterface::bubbleToggled(bool newValue) {
+    doLogAction(newValue ? "bubbleOn" : "bubbleOff");
+}
+
+void UserActivityLoggerScriptingInterface::bubbleActivated() {
+    doLogAction("bubbleActivated");
 }
 
 void UserActivityLoggerScriptingInterface::logAction(QString action, QVariantMap details) {

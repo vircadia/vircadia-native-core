@@ -329,6 +329,16 @@ QString UserInputMapper::getActionName(Action action) const {
     return QString();
 }
 
+QString UserInputMapper::getStandardPoseName(uint16_t pose) {
+    Locker locker(_lock);
+    for (auto posePair : getStandardInputs()) {
+        if (posePair.first.channel == pose && posePair.first.getType() == ChannelType::POSE) {
+            return posePair.second;
+        }
+    }
+    return QString();
+}    
+
 QVector<QString> UserInputMapper::getActionNames() const {
     Locker locker(_lock);
     QVector<QString> result;

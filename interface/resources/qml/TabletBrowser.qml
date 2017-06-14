@@ -8,7 +8,6 @@ import "controls-uit" as HifiControls
 import "styles" as HifiStyles
 import "styles-uit"
 import "windows"
-import HFTabletWebEngineProfile 1.0
 
 Item {
     id: root
@@ -47,10 +46,7 @@ Item {
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
 
-        profile: HFTabletWebEngineProfile {
-            id: webviewTabletProfile
-            storageName: "qmlTabletWebEngine"
-        }
+        profile: HFTabletWebEngineProfile;
 
         property string userScriptUrl: ""
 

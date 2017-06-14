@@ -200,6 +200,13 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
     }
 }
 
+void AccountManager::setSessionID(const QUuid& sessionID) {
+    if (_sessionID != sessionID) {
+        qCDebug(networking) << "Metaverse session ID changed to" << uuidStringWithoutCurlyBraces(sessionID);
+        _sessionID = sessionID;
+    }
+}
+
 void AccountManager::sendRequest(const QString& path,
                                  AccountManagerAuth::Type authType,
                                  QNetworkAccessManager::Operation operation,

@@ -17,6 +17,7 @@
 #include <render/FilterTask.h>
 #include <render/DrawTask.h>
 
+#include "StencilMaskPass.h"
 #include "DeferredLightingEffect.h"
 
 #include "zone_drawKeyLight_frag.h"
@@ -74,6 +75,7 @@ const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
+        PrepareStencil::testMask(*state);
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
         _keyLightPipeline = gpu::Pipeline::create(program, state);
     }
@@ -95,6 +97,7 @@ const gpu::PipelinePointer& DebugZoneLighting::getAmbientPipeline() {
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
+        PrepareStencil::testMask(*state);
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
         _ambientPipeline = gpu::Pipeline::create(program, state);
     }
@@ -115,6 +118,7 @@ const gpu::PipelinePointer& DebugZoneLighting::getBackgroundPipeline() {
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
 
+        PrepareStencil::testMask(*state);
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
         _backgroundPipeline = gpu::Pipeline::create(program, state);
     }

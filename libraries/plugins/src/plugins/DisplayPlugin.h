@@ -200,6 +200,7 @@ public:
     virtual float newFramePresentRate() const { return -1.0f; }
     // Rate at which rendered frames are being skipped
     virtual float droppedFrameRate() const { return -1.0f; }
+    virtual bool getSupportsAutoSwitch() { return false; }
     
     // Hardware specific stats
     virtual QJsonObject getHardwareStats() const { return QJsonObject(); }

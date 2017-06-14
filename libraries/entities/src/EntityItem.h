@@ -321,6 +321,7 @@ public:
     void updateSimulationOwner(const SimulationOwner& owner);
     void clearSimulationOwnership();
     void setPendingOwnershipPriority(quint8 priority, const quint64& timestamp);
+    uint8_t getPendingOwnershipPriority() const { return _simulationOwner.getPendingPriority(); }
     void rememberHasSimulationOwnershipBid() const;
 
     QString getMarketplaceID() const;
@@ -394,8 +395,7 @@ public:
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
-    void pokeSimulationOwnership();
-    void grabSimulationOwnership();
+    void flagForOwnershipBid(uint8_t priority);
     void flagForMotionStateChange() { _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; }
 
     QString actionsToDebugString();

@@ -1,7 +1,6 @@
 import QtQuick 2.0
 import Hifi 1.0
 import QtQuick.Controls 1.4
-import HFTabletWebEngineProfile 1.0
 import "../../dialogs"
 import "../../controls"
 
@@ -170,20 +169,24 @@ Item {
         objectName: "loader"
         asynchronous: false
 
-        
         width: parent.width
         height: parent.height
+
+        // Hook up callback for clara.io download from the marketplace.
+        Connections {
+            id: eventBridgeConnection
+            target: null
+            onWebEventReceived: {
+                if (message.slice(0, 17) === "CLARA.IO DOWNLOAD") {
+                    ApplicationInterface.addAssetToWorldFromURL(message.slice(18));
+                }
+            }
+        }
 
         onLoaded: {
             if (loader.item.hasOwnProperty("eventBridge")) {
                 loader.item.eventBridge = eventBridge;
-
-                // Hook up callback for clara.io download from the marketplace.
-                eventBridge.webEventReceived.connect(function (event) {
-                    if (event.slice(0, 17) === "CLARA.IO DOWNLOAD") {
-                        ApplicationInterface.addAssetToWorldFromURL(event.slice(18));
-                    }
-                });
+                eventBridgeConnection.target = eventBridge
             }
             if (loader.item.hasOwnProperty("sendToScript")) {
                 loader.item.sendToScript.connect(tabletRoot.sendToScript);
