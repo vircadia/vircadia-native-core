@@ -510,6 +510,11 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
             batch.setInputStream(0, _drawMesh->getVertexStream());
         }
     }
+
+    // TODO: Get rid of that extra call
+    if (!_hasColorAttrib) {
+        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    }
 }
 
 void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {
