@@ -1285,7 +1285,7 @@ function makeTableHiddenInputs(setting, initialValues, categoryValue) {
         html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
         html += "<select style='display: none;' class='form-control' data-hidden-input='" + col.name + "'>'"
         
-        for(var i in col.options) {
+        for (var i in col.options) {
             var option = col.options[i];           
             html += "<option value='" + option.value + "' " + (option.value == defaultValue ? 'selected' : '') + ">" + option.label + "</option>";
         }
@@ -1433,7 +1433,7 @@ function addTableRow(row) {
         if (isCheckbox) {
           input.attr("name", newName)
         } else {
-          if(isDropdown) {             
+          if (isDropdown) {             
             $(element).children("select").attr("data-hidden-input", newName);
           }
           input.attr("name", newName);
@@ -1454,7 +1454,7 @@ function addTableRow(row) {
       
       // if we are adding a dropdown, we should go ahead and make its select
       // element is visible
-      if(isDropdown) {   
+      if (isDropdown) {   
           $(element).children("select").attr("style", "");
       }
 
