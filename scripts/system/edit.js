@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager, Overlays, OverlayWebWindow, UserActivityLogger, 
+/* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager, Overlays, OverlayWebWindow, UserActivityLogger,
    Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -80,27 +80,7 @@ selectionManager.addEventListener(function () {
         }
         var type = Entities.getEntityProperties(selectedEntityID, "type").type;
         if (type === "ParticleEffect") {
-            // Destroy the old particles web view first
-            particleExplorerTool.destroyWebView();
-            particleExplorerTool.createWebView();
-            var properties = Entities.getEntityProperties(selectedEntityID);
-            var particleData = {
-                messageType: "particle_settings",
-                currentProperties: properties
-            };
-            selectedParticleEntityID = selectedEntityID;
-            particleExplorerTool.setActiveParticleEntity(selectedParticleEntityID);
-
-            particleExplorerTool.webView.webEventReceived.connect(function (data) {
-                data = JSON.parse(data);
-                if (data.messageType === "page_loaded") {
-                    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
-                }
-            });
-
-            // Switch to particle explorer
-            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            tablet.sendToQml({method: 'selectTab', params: {id: 'particle'}});
+            selectParticleEntity(selectedEntityID);
         } else {
             needToDestroyParticleExplorer = true;
         }
@@ -218,7 +198,7 @@ function hideMarketplace() {
 // }
 
 function adjustPositionPerBoundingBox(position, direction, registration, dimensions, orientation) {
-    // Adjust the position such that the bounding box (registration, dimenions, and orientation) lies behind the original 
+    // Adjust the position such that the bounding box (registration, dimenions, and orientation) lies behind the original
     // position in the given direction.
     var CORNERS = [
         { x: 0, y: 0, z: 0 },
@@ -1373,7 +1353,7 @@ function parentSelectedEntities() {
             }
         });
 
-        if(parentCheck) {
+        if (parentCheck) {
             Window.notify("Entities parented");
         }else {
             Window.notify("Entities are already parented to last");
@@ -1575,7 +1555,7 @@ function importSVO(importURL) {
                     var properties = Entities.getEntityProperties(pastedEntityIDs[0], ["position", "dimensions",
                         "registrationPoint"]);
                     var position = Vec3.sum(deltaPosition, properties.position);
-                    position = grid.snapToSurface(grid.snapToGrid(position, false, properties.dimensions, 
+                    position = grid.snapToSurface(grid.snapToGrid(position, false, properties.dimensions,
                             properties.registrationPoint), properties.dimensions, properties.registrationPoint);
                     deltaPosition = Vec3.subtract(position, properties.position);
                 }
@@ -1907,11 +1887,11 @@ var PropertiesTool = function (opts) {
             }
             pushCommandForSelections();
             selectionManager._update();
-        } else if(data.type === 'parent') {
+        } else if (data.type === 'parent') {
             parentSelectedEntities();
-        } else if(data.type === 'unparent') {
+        } else if (data.type === 'unparent') {
             unparentSelectedEntities();
-        } else if(data.type === 'saveUserData'){
+        } else if (data.type === 'saveUserData'){
             //the event bridge and json parsing handle our avatar id string differently.
             var actualID = data.id.split('"')[1];
             Entities.editEntity(actualID, data.properties);
@@ -2203,6 +2183,10 @@ var selectedParticleEntityID = null;
 
 function selectParticleEntity(entityID) {
     var properties = Entities.getEntityProperties(entityID);
+
+    if (properties.emitOrientation) {
+        properties.emitOrientation = Quat.safeEulerAngles(properties.emitOrientation);
+    }
     var particleData = {
         messageType: "particle_settings",
         currentProperties: properties
@@ -2212,6 +2196,7 @@ function selectParticleEntity(entityID) {
 
     selectedParticleEntity = entityID;
     particleExplorerTool.setActiveParticleEntity(entityID);
+
     particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
 
     // Switch to particle explorer
@@ -2229,7 +2214,7 @@ entityListTool.webView.webEventReceived.connect(function (data) {
 
     if (data.type === 'parent') {
         parentSelectedEntities();
-    } else if(data.type === 'unparent') {
+    } else if (data.type === 'unparent') {
         unparentSelectedEntities();
     } else if (data.type === "selectionUpdate") {
         var ids = data.entityIds;
@@ -2250,4 +2235,3 @@ entityListTool.webView.webEventReceived.connect(function (data) {
 });
 
 }()); // END LOCAL_SCOPE
-
