@@ -63,6 +63,12 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
 
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &AvatarMixer::handlePacketVersionMismatch);
+    connect(nodeList.data(), &NodeList::nodeAdded, this, [this](SharedNodePointer node) {
+        if (node->getType() == NodeType::DownstreamAvatarMixer) {
+            getOrCreateClientData(node);
+            node->activatePublicSocket();
+        }
+    });
 }
 
 SharedNodePointer addOrUpdateReplicatedNode(const QUuid& nodeID, const HifiSockAddr& senderSockAddr) {
@@ -805,7 +811,7 @@ AvatarMixerClientData* AvatarMixer::getOrCreateClientData(SharedNodePointer node
 
 void AvatarMixer::domainSettingsRequestComplete() {
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
+    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::DownstreamAvatarMixer, NodeType::EntityScriptServer });
 
     // parse the settings to pull out the values we need
     parseDomainServerSettings(nodeList->getDomainHandler().getSettingsObject());
@@ -877,11 +883,4 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
 
     qCDebug(avatars) << "This domain requires a minimum avatar scale of" << _domainMinimumScale
                      << "and a maximum avatar scale of" << _domainMaximumScale;
-
-
-    parseDownstreamServers(domainSettings, NodeType::AvatarMixer, [](Node& node) {
-        if (!node.getLinkedData()) {
-            node.setLinkedData(std::unique_ptr<NodeData> { new AvatarMixerClientData(node.getUUID()) });
-        }
-    });
 }

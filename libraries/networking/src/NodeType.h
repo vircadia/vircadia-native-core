@@ -34,6 +34,8 @@ namespace NodeType {
     const QString& getNodeTypeName(NodeType_t nodeType);
     bool isDownstream(NodeType_t nodeType);
     NodeType_t downstreamType(NodeType_t primaryType);
+
+    NodeType_t fromString(QString type);
 }
 
 typedef QSet<NodeType_t> NodeSet;

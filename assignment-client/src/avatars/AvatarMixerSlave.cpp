@@ -444,6 +444,10 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
     _stats.downstreamMixersBroadcastedTo++;
 
     AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
+    if (!nodeData) {
+        qDebug() << "No node data";
+        return;
+    }
 
     // setup a PacketList for the replicated bulk avatar data
     auto avatarPacketList = NLPacketList::create(PacketType::ReplicatedBulkAvatarData);

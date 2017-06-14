@@ -771,7 +771,8 @@ void NodeList::sendKeepAlivePings() {
     // send keep-alive ping packets to nodes of types we care about that are not relayed to us from an upstream node
 
     eachMatchingNode([this](const SharedNodePointer& node)->bool {
-        return !node->isUpstream() && _nodeTypesOfInterest.contains(node->getType());
+        auto type = node->getType();
+        return !node->isUpstream() && _nodeTypesOfInterest.contains(type) && !NodeType::isDownstream(type);
     }, [&](const SharedNodePointer& node) {
         sendPacket(constructPingPacket(), *node);
     });
