@@ -1983,7 +1983,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
             rollAngle = fabsf(rollAngle);
             rollAngle = rollAngle > _hmdRollControlDeadZone ? rollSign * (rollAngle - _hmdRollControlDeadZone) : 0.0f;
 
-            totalBodyYaw += speedFactor * direction * rollAngle * deltaTime * _hmdRollControlSpeed;
+            totalBodyYaw += speedFactor * direction * rollAngle * deltaTime * _hmdRollControlRate;
         }
     }
 
