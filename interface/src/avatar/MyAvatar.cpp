@@ -590,7 +590,7 @@ void MyAvatar::simulate(float deltaTime) {
     auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     if (entityTree) {
-        bool flyingAllowed = true;
+        bool flyingAllowed = true && _enableFlying;
         bool collisionlessAllowed = true;
         entityTree->withWriteLock([&] {
             std::shared_ptr<ZoneEntityItem> zone = entityTreeRenderer->myAvatarZone();
@@ -2467,6 +2467,14 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
     setCollisionsEnabled(menu->isOptionChecked(MenuOption::EnableAvatarCollisions));
 }
 
+void MyAvatar::setFlyingEnabled(bool enabled) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setFlyingEnabled", Q_ARG(bool, enabled));
+        return;
+    }
+
+    _enableFlying = enabled;
+}
 void MyAvatar::setCollisionsEnabled(bool enabled) {
 
     if (QThread::currentThread() != thread()) {

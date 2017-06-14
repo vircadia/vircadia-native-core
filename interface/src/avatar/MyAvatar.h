@@ -491,6 +491,8 @@ public:
 
     bool hasDriveInput() const;
 
+    Q_INVOKABLE void setFlyingEnabled(bool enabled);
+
     Q_INVOKABLE void setCollisionsEnabled(bool enabled);
     Q_INVOKABLE bool getCollisionsEnabled();
     Q_INVOKABLE void setCharacterControllerEnabled(bool enabled); // deprecated
@@ -552,7 +554,8 @@ public slots:
     void setEnableDebugDrawSensorToWorldMatrix(bool isEnabled);
     void setEnableDebugDrawIKTargets(bool isEnabled);
     void setEnableDebugDrawIKConstraints(bool isEnabled);
-    void setEnableDebugDrawIKChains(bool isEnabled);
+    void setEnableDebugDrawIKChains(bool isEnabled);    
+
     bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
     void setUseAnimPreAndPostRotations(bool isEnabled);
@@ -625,6 +628,7 @@ private:
     std::array<float, MAX_DRIVE_KEYS> _driveKeys;
     std::bitset<MAX_DRIVE_KEYS> _disabledDriveKeys;
 
+    bool _enableFlying { true };
     bool _wasPushing { false };
     bool _isPushing { false };
     bool _isBeingPushed { false };
@@ -767,7 +771,6 @@ private:
     ThreadSafeValueCache<controller::Pose> _rightArmControllerPoseInSensorFrameCache{ controller::Pose() };
 
     bool _hmdLeanRecenterEnabled = true;
-
     AnimPose _prePhysicsRoomPose;
     std::mutex _holdActionsMutex;
     std::vector<AvatarActionHold*> _holdActions;
