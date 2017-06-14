@@ -91,18 +91,11 @@ void AvatarMixer::handleReplicatedPackets(QSharedPointer<ReceivedMessage> messag
                                                                      versionForPacketType(rewrittenType),
                                                                      message->getSenderSockAddr(), nodeID);
 
-    switch (rewrittenType) {
-        case PacketType::ReplicatedAvatarIdentity:
-            handleAvatarIdentityPacket(replicatedMessage, replicatedNode);
-            break;
-        case PacketType::ReplicatedKillAvatar:
-            handleKillAvatarPacket(replicatedMessage, replicatedNode);
-            break;
-        default:
-            // Do nothing
-            break;
+    if (rewrittenType == PacketType::AvatarIdentity) {
+        handleAvatarIdentityPacket(replicatedMessage, replicatedNode);
+    } else if (rewrittenType == PacketType::KillAvatar) {
+        handleKillAvatarPacket(replicatedMessage, replicatedNode);
     }
-
 }
 
 void AvatarMixer::handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessage> message) {
