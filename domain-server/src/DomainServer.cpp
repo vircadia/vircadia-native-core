@@ -117,6 +117,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // if permissions are updated, relay the changes to the Node datastructures
     connect(&_settingsManager, &DomainServerSettingsManager::updateNodePermissions,
             &_gatekeeper, &DomainGatekeeper::updateNodePermissions);
+    connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
+            this, &DomainServer::updateReplicatedNodes);
 
     setupGroupCacheRefresh();
 
@@ -128,6 +130,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _settingsManager.apiRefreshGroupInformation();
 
     setupNodeListAndAssignments();
+
+    updateReplicatedNodes();
 
     if (_type != NonMetaverse) {
         // if we have a metaverse domain, we'll use an access token for API calls
@@ -956,6 +960,11 @@ void DomainServer::handleConnectedNode(SharedNodePointer newNode) {
     // if this node is a user (unassigned Agent), signal
     if (newNode->getType() == NodeType::Agent && !nodeData->wasAssigned()) {
         emit userConnected();
+    }
+
+    if (shouldReplicateNode(*newNode)) {
+        qDebug() << "Setting node to replicated: " << newNode->getUUID();
+        newNode->setIsReplicated(true);
     }
 
     // send out this node to our other connected nodes
@@ -2210,12 +2219,37 @@ void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer&
     _unfulfilledAssignments.enqueue(assignment);
 }
 
-void DomainServer::nodeAdded(SharedNodePointer node) {
-    // TODO Check to see if node is in list of replicated nodes
-    if (node->getType() == NodeType::Agent) {
-        node->setIsReplicated(true);
+void DomainServer::updateReplicatedNodes() {
+    static const QString REPLICATION_SETTINGS_KEY = "replication";
+    _replicatedUsernames.clear();
+    auto settings = _settingsManager.getSettingsMap();
+    if (settings.contains(REPLICATION_SETTINGS_KEY)) {
+        auto replicationSettings = settings.value(REPLICATION_SETTINGS_KEY).toMap();
+        if (replicationSettings.contains("users")) {
+            auto usersSettings = replicationSettings.value("users").toList();
+            for (auto& username : usersSettings) {
+                _replicatedUsernames.push_back(username.toString());
+            }
+        }
     }
 
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    nodeList->eachNode([&](const SharedNodePointer& otherNode) {
+        if (shouldReplicateNode(*otherNode)) {
+            qDebug() << "Setting node to replicated: " << otherNode->getUUID();
+            otherNode->setIsReplicated(true);
+        }
+    });
+}
+
+bool DomainServer::shouldReplicateNode(const Node& node) {
+    QString verifiedUsername = node.getPermissions().getVerifiedUserName();
+    qDebug() << "Verified username: " << verifiedUsername;
+    auto it = find(_replicatedUsernames.cbegin(), _replicatedUsernames.cend(), verifiedUsername);
+    return it != _replicatedUsernames.end() && node.getType() == NodeType::Agent;
+};
+
+void DomainServer::nodeAdded(SharedNodePointer node) {
     // we don't use updateNodeWithData, so add the DomainServerNodeData to the node here
     node->setLinkedData(std::unique_ptr<DomainServerNodeData> { new DomainServerNodeData() });
 }
