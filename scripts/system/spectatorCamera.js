@@ -17,7 +17,8 @@
     //
     // FUNCTION VAR DECLARATIONS
     //
-    var sendToQml, onTabletScreenChanged, fromQml, onTabletButtonClicked, wireEventBridge, startup, shutdown;
+    var sendToQml, addOrRemoveButton, onTabletScreenChanged, fromQml,
+        onTabletButtonClicked, wireEventBridge, startup, shutdown;
 
 
 
@@ -189,15 +190,51 @@
     function onHMDChanged(isHMDMode) {
         // Will also eventually enable disable app, camera, etc.
         setDisplay(monitorShowsCameraView);
+        addOrRemoveButton(false, isHMDMode);
+    }
+
+    //
+    // Function Names: addOrRemoveButton()
+    //
+    // Relevant Variables:
+    // button: The tablet button.
+    // buttonName: The name of the button.
+    // tablet: The tablet instance to be modified.
+    // showInDesktop: Set to "true" to show the "SPECTATOR" app in desktop mode
+    // 
+    // Arguments:
+    // forceRemove: Set to "true" to force removal of the button, i.e. upon shutdown
+    // isHMDMode: "true" if user is in HMD; false otherwise
+    // 
+    // Description:
+    // Used to add or remove the "SPECTATOR" app button from the HUD/tablet
+    //
+    var button = false;
+    var buttonName = "SPECTATOR";
+    var tablet = null;
+    var showSpectatorInDesktop = false;
+    function addOrRemoveButton(forceRemove, isHMDMode) {
+        if (!button) {
+            if ((isHMDMode || showSpectatorInDesktop) && !forceRemove) {
+                button = tablet.addButton({
+                    text: buttonName
+                });
+                button.clicked.connect(onTabletButtonClicked);
+            }
+        } else if (button) {
+            button.clicked.disconnect(onTabletButtonClicked);
+            tablet.removeButton(button);
+            button = false;
+        } else {
+            print("ERROR adding/removing Spectator button!")
+        }
     }
 
     //
     // Function Name: startup()
     //
     // Relevant Variables:
-    // button: The tablet button.
-    // buttonName: The name of the button.
-    // tablet: The tablet instance to be modified.
+    // None
     // 
     // Arguments:
     // None
@@ -205,15 +242,9 @@
     // Description:
     // startup() will be called when the script is loaded.
     //
-    var button;
-    var buttonName = "SPECTATOR";
-    var tablet = null;
     function startup() {
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        button = tablet.addButton({
-            text: buttonName
-        });
-        button.clicked.connect(onTabletButtonClicked);
+        addOrRemoveButton(false, HMD.active);
         tablet.screenChanged.connect(onTabletScreenChanged);
         Window.domainChanged.connect(spectatorCameraOff);
         Controller.keyPressEvent.connect(keyPressEvent);
@@ -320,7 +351,9 @@
     function onTabletScreenChanged(type, url) {
         wireEventBridge(shouldActivateButton);
         // for toolbar mode: change button to active when window is first openend, false otherwise.
-        button.editProperties({ isActive: shouldActivateButton });
+        if (button) {
+            button.editProperties({ isActive: shouldActivateButton });
+        }
         shouldActivateButton = false;
         onSpectatorCameraScreen = false;
     }
@@ -389,8 +422,7 @@
     function shutdown() {
         spectatorCameraOff();
         Window.domainChanged.disconnect(spectatorCameraOff);
-        tablet.removeButton(button);
-        button.clicked.disconnect(onTabletButtonClicked);
+        addOrRemoveButton(true, HMD.active);
         tablet.screenChanged.disconnect(onTabletScreenChanged);
         HMD.displayModeChanged.disconnect(onHMDChanged);
         Controller.keyPressEvent.disconnect(keyPressEvent);
