@@ -361,7 +361,7 @@
             });
         }
         setControllerMappingStatus(switchViewFromController);
-        sendToQml({ method: 'updateControllerMappingCheckbox', params: switchViewFromController });
+        sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
     }
 
     //
@@ -389,8 +389,8 @@
             tablet.loadQMLSource("../SpectatorCamera.qml");
             onSpectatorCameraScreen = true;
             sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
-            sendToQml({ method: 'updateMonitorShowsSwitch', params: !!Settings.getValue('spectatorCamera/monitorShowsCameraView', false) });
-            setMonitorShowsCameraViewAndSendToQml(monitorShowsCameraView);
+            sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
+            sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
         }
     }
 
