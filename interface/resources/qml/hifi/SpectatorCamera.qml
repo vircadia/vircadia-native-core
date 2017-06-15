@@ -288,6 +288,9 @@ Rectangle {
         case 'updateMonitorShowsSwitch':
             monitorShowsSwitch.checked = message.params;
         break;
+        case 'updateControllerMappingCheckbox':
+            switchViewFromControllerCheckBox.checked = message.params;
+        break;
         default:
             console.log('Unrecognized message from spectatorCamera.js:', JSON.stringify(message));
         }

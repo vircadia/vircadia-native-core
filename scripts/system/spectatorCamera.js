@@ -18,9 +18,7 @@
     // FUNCTION VAR DECLARATIONS
     //
     var sendToQml, addOrRemoveButton, onTabletScreenChanged, fromQml,
-        onTabletButtonClicked, wireEventBridge, startup, shutdown;
-
-
+        onTabletButtonClicked, wireEventBridge, startup, shutdown, registerButtonMappings;
 
     //
     // Function Name: inFrontOf()
@@ -247,6 +245,7 @@
         HMD.displayModeChanged.connect(onHMDChanged);
         viewFinderOverlay = false;
         camera = false;
+        registerButtonMappings();
     }
 
     //
@@ -299,6 +298,52 @@
         if ((event.text === "0") && !event.isAutoRepeat && !event.isShifted && !event.isMeta && event.isControl && !event.isAlt) {
             setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
         }
+    }
+
+    const SWITCH_VIEW_FROM_CONTROLLER_DEFAULT = false;
+    var switchViewFromController = !!Settings.getValue('spectatorCamera/switchViewFromController', SWITCH_VIEW_FROM_CONTROLLER_DEFAULT);
+    function setControllerMappingStatus(status) {
+        if (status === true) {
+            controllerMapping.enable();
+        } else {
+            controllerMapping.disable();
+        }
+    }
+    function setSwitchViewFromController(setting) {
+        if (setting === switchViewFromController) {
+            return;
+        }
+        switchViewFromController = setting;
+        setControllerMappingStatus(switchViewFromController);
+        Settings.setValue('spectatorCamera/switchViewFromController', setting);
+    }
+
+    //
+    // Function Name: registerButtonMappings()
+    //
+    // Relevant Variables:
+    // controllerMappingName: The name of the controller mapping
+    // controllerMapping: The controller mapping itself
+    // 
+    // Arguments:
+    // None
+    // 
+    // Description:
+    // Updates controller button mappings for Spectator Camera.
+    //
+    var controllerMappingName;
+    var controllerMapping;
+    function registerButtonMappings() {
+        controllerMappingName = 'Hifi-SpectatorCamera-Mapping-' + Math.random();
+        controllerMapping = Controller.newMapping(controllerMappingName);
+        controllerMapping.from(Controller.Standard.LS).to(function (value) {
+            if (value === 1.0) {
+                setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
+            }
+            return;
+        });
+        setControllerMappingStatus(switchViewFromController);
+        sendToQml({ method: 'updateControllerMappingCheckbox', params: switchViewFromController });
     }
 
     //
@@ -396,7 +441,7 @@
                 setMonitorShowsCameraView(message.params);
                 break;
             case 'changeSwitchViewFromControllerPreference':
-                print('FIXME: Preference is now: ' + message.params);
+                setSwitchViewFromController(message.params);
                 break;
             default:
                 print('Unrecognized message from SpectatorCamera.qml:', JSON.stringify(message));
@@ -442,6 +487,7 @@
         tablet.screenChanged.disconnect(onTabletScreenChanged);
         HMD.displayModeChanged.disconnect(onHMDChanged);
         Controller.keyPressEvent.disconnect(keyPressEvent);
+        controllerMapping.disable();
     }
 
     //
