@@ -71,9 +71,11 @@ public:
             _cachedArgsPointer->_blitFramebuffer = args->_blitFramebuffer;
             _cachedArgsPointer->_viewport = args->_viewport;
             _cachedArgsPointer->_displayMode = args->_displayMode;
+            _cachedArgsPointer->_renderMode = args->_renderMode;
             args->_blitFramebuffer = destFramebuffer;
             args->_viewport = glm::ivec4(0, 0, destFramebuffer->getWidth(), destFramebuffer->getHeight());
             args->_displayMode = RenderArgs::MONO;
+            args->_renderMode = RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE;
 
             gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
                 batch.disableContextStereo();
@@ -106,6 +108,7 @@ public:
         args->_viewport = cachedArgs->_viewport;
         args->popViewFrustum();
         args->_displayMode = cachedArgs->_displayMode;
+        args->_renderMode = cachedArgs->_renderMode;
 
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             batch.restoreContextStereo();
