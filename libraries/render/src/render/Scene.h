@@ -128,7 +128,6 @@ protected:
     void removeItems(const ItemIDs& ids);
     void updateItems(const ItemIDs& ids, UpdateFunctors& functors);
 
-
     // The Selection map
     mutable std::mutex _selectionsMutex; // mutable so it can be used in the thread safe getSelection const method
     SelectionMap _selections;
@@ -138,6 +137,11 @@ protected:
   //  void removeFromSelection(const Selection& selection);
   //  void appendToSelection(const Selection& selection);
   //  void mergeWithSelection(const Selection& selection);
+
+    // The Stages
+    StageMap _stages;
+
+
 
     friend class Engine;
 };

@@ -5140,10 +5140,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     }
 
     {
-        PerformanceTimer perfTimer("SceneProcessTransaction");
         _main3DScene->enqueueTransaction(transaction);
-
-        _main3DScene->processTransactionQueue();
     }
 
     // For now every frame pass the renderContext
