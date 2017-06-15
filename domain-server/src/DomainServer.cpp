@@ -2222,14 +2222,14 @@ void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer&
     _unfulfilledAssignments.enqueue(assignment);
 }
 
-static const QString REPLICATION_SETTINGS_KEY = "replication";
+static const QString BROADCASTING_SETTINGS_KEY = "broadcasting";
 
 void DomainServer::updateDownstreamNodes() {
     auto settings = _settingsManager.getSettingsMap();
-    if (settings.contains(REPLICATION_SETTINGS_KEY)) {
+    if (settings.contains(BROADCASTING_SETTINGS_KEY)) {
         auto nodeList = DependencyManager::get<LimitedNodeList>();
         std::vector<HifiSockAddr> downstreamNodesInSettings;
-        auto replicationSettings = settings.value(REPLICATION_SETTINGS_KEY).toMap();
+        auto replicationSettings = settings.value(BROADCASTING_SETTINGS_KEY).toMap();
         if (replicationSettings.contains("downstream_servers")) {
             auto serversSettings = replicationSettings.value("downstream_servers").toList();
 
@@ -2302,8 +2302,8 @@ void DomainServer::updateReplicatedNodes() {
 
     static const QString REPLICATED_USERS_KEY = "users";
     _replicatedUsernames.clear();
-    if (settings.contains(REPLICATION_SETTINGS_KEY)) {
-        auto replicationSettings = settings.value(REPLICATION_SETTINGS_KEY).toMap();
+    if (settings.contains(BROADCASTING_SETTINGS_KEY)) {
+        auto replicationSettings = settings.value(BROADCASTING_SETTINGS_KEY).toMap();
         if (replicationSettings.contains(REPLICATED_USERS_KEY)) {
             auto usersSettings = replicationSettings.value(REPLICATED_USERS_KEY).toList();
             for (auto& username : usersSettings) {
