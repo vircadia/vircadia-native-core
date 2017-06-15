@@ -101,9 +101,6 @@ private:
     bool _sourceIsKTX { false };
     KTXResourceState _ktxResourceState { PENDING_INITIAL_LOAD };
 
-    // TODO Can this be removed?
-    KTXFilePointer _file;
-
     // The current mips that are currently being requested w/ _ktxMipRequest
     std::pair<uint16_t, uint16_t> _ktxMipLevelRangeInFlight{ NULL_MIP_LEVEL, NULL_MIP_LEVEL };
 

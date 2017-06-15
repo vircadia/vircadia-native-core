@@ -732,13 +732,11 @@ void NetworkTexture::handleFinishedInitialLoad() {
                     Q_ARG(int, 0),
                     Q_ARG(int, 0));
                 return;
-            } else {
-                _file = file;
             }
 
             auto newKtxDescriptor = memKtx->toDescriptor();
 
-            texture = gpu::Texture::unserialize(_file->getFilepath(), newKtxDescriptor);
+            texture = gpu::Texture::unserialize(file->getFilepath(), newKtxDescriptor);
             texture->setKtxBacking(file->getFilepath());
             texture->setSource(filename);
 
@@ -933,11 +931,11 @@ void ImageReader::read() {
             const char* data = reinterpret_cast<const char*>(memKtx->_storage->data());
             size_t length = memKtx->_storage->size();
             auto& ktxCache = textureCache->_ktxCache;
-            networkTexture->_file = ktxCache.writeFile(data, KTXCache::Metadata(hash, length)); // 
-            if (!networkTexture->_file) {
+            auto file = ktxCache.writeFile(data, KTXCache::Metadata(hash, length));
+            if (!file) {
                 qCWarning(modelnetworking) << _url << "file cache failed";
             } else {
-                texture->setKtxBacking(networkTexture->_file->getFilepath());
+                texture->setKtxBacking(file->getFilepath());
             }
         } else {
             qCWarning(modelnetworking) << "Unable to serialize texture to KTX " << _url;
