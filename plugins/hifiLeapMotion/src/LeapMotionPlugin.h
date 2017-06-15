@@ -18,13 +18,17 @@ class LeapMotionPlugin : public InputPlugin {
     Q_OBJECT
 
 public:
-    virtual const QString getName() const override { return NAME; }
-
+    // InputPlugin methods
     virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
     virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
+    // Plugin methods
+    virtual const QString getName() const override { return NAME; }
+    const QString getID() const override { return LEAPMOTION_ID_STRING; }
+
 protected:
     static const char* NAME;
+    static const char* LEAPMOTION_ID_STRING;
 
     class InputDevice : public controller::InputDevice {
     public:
