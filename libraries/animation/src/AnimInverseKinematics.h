@@ -82,6 +82,7 @@ protected:
     void debugDrawSpineSplines(const AnimContext& context, const std::vector<IKTarget>& targets) const;
     void initRelativePosesFromSolutionSource(SolutionSource solutionSource, const AnimPoseVec& underPose);
     void blendToPoses(const AnimPoseVec& targetPoses, const AnimPoseVec& underPose, float blendFactor);
+    void preconditionRelativePosesToAvoidLimbLock(const AnimContext& context, const std::vector<IKTarget>& targets);
 
     // used to pre-compute information about each joint influeced by a spline IK target.
     struct SplineJointInfo {

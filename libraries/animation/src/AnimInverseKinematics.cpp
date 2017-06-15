@@ -394,6 +394,7 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
             const float MIN_AXIS_LENGTH = 1.0e-4f;
             RotationConstraint* constraint = getConstraint(pivotIndex);
 
+
             // only allow swing on lowerSpine if there is a hips IK target.
             if (_hipsTargetIndex < 0 && constraint && constraint->isLowerSpine() && tipIndex != _headIndex) {
                 // for these types of targets we only allow twist at the lower-spine
@@ -419,6 +420,7 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                 float cosAngle = glm::clamp(glm::dot(leverArm, targetLine) / (glm::length(leverArm) * glm::length(targetLine)), -1.0f, 1.0f);
                 float angle = acosf(cosAngle);
                 const float MIN_ADJUSTMENT_ANGLE = 1.0e-4f;
+
                 if (angle > MIN_ADJUSTMENT_ANGLE) {
                     // reduce angle by a flexCoefficient
                     angle *= target.getFlexCoefficient(chainDepth);
@@ -791,6 +793,7 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
     return _relativePoses;
 }
 
+
 //virtual
 const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
     // allows solutionSource to be overridden by an animVar
@@ -904,6 +907,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
 
             {
                 PROFILE_RANGE_EX(simulation_animation, "ik/ccd", 0xffff00ff, 0);
+                preconditionRelativePosesToAvoidLimbLock(context, targets);
                 solve(context, targets);
             }
 
@@ -1279,7 +1283,7 @@ void AnimInverseKinematics::initConstraints() {
             // we determine the max/min angles by rotating the swing limit lines from parent- to child-frame
             // then measure the angles to swing the yAxis into alignment
             glm::vec3 hingeAxis = - mirror * Vectors::UNIT_Z;
-            const float MIN_ELBOW_ANGLE = 0.05f; // ~2.8 deg (ajt-rad-to-deg 0.05)
+            const float MIN_ELBOW_ANGLE = 0.0f;
             const float MAX_ELBOW_ANGLE = 11.0f * PI / 12.0f;
             glm::quat invReferenceRotation = glm::inverse(referenceRotation);
             glm::vec3 minSwingAxis = invReferenceRotation * glm::angleAxis(MIN_ELBOW_ANGLE, hingeAxis) * Vectors::UNIT_Y;
@@ -1310,7 +1314,7 @@ void AnimInverseKinematics::initConstraints() {
 
             // we determine the max/min angles by rotating the swing limit lines from parent- to child-frame
             // then measure the angles to swing the yAxis into alignment
-            const float MIN_KNEE_ANGLE = 0.097f;  // ~5 deg
+            const float MIN_KNEE_ANGLE = 0.0f;
             const float MAX_KNEE_ANGLE = 7.0f * PI / 8.0f; // 157.5 deg
             glm::quat invReferenceRotation = glm::inverse(referenceRotation);
             glm::vec3 minSwingAxis = invReferenceRotation * glm::angleAxis(MIN_KNEE_ANGLE, hingeAxis) * Vectors::UNIT_Y;
@@ -1659,6 +1663,50 @@ void AnimInverseKinematics::blendToPoses(const AnimPoseVec& targetPoses, const A
     }
 }
 
+void AnimInverseKinematics::preconditionRelativePosesToAvoidLimbLock(const AnimContext& context, const std::vector<IKTarget>& targets) {
+    const int NUM_LIMBS = 4;
+    std::pair<int, int> limbs[NUM_LIMBS] = {
+        {_skeleton->nameToJointIndex("LeftHand"), _skeleton->nameToJointIndex("LeftArm")},
+        {_skeleton->nameToJointIndex("RightHand"), _skeleton->nameToJointIndex("RightArm")},
+        {_skeleton->nameToJointIndex("LeftFoot"), _skeleton->nameToJointIndex("LeftUpLeg")},
+        {_skeleton->nameToJointIndex("RightFoot"), _skeleton->nameToJointIndex("RightUpLeg")}
+    };
+    const float MIN_AXIS_LENGTH = 1.0e-4f;
+
+    for (auto& target : targets) {
+        if (target.getIndex() != -1) {
+            for (int i = 0; i < NUM_LIMBS; i++) {
+                if (limbs[i].first == target.getIndex()) {
+                    int tipIndex = limbs[i].first;
+                    int baseIndex = limbs[i].second;
+
+                    // TODO: as an optimization, these poses can be computed in one pass down the chain, instead of three.
+                    AnimPose tipPose = _skeleton->getAbsolutePose(tipIndex, _relativePoses);
+                    AnimPose basePose = _skeleton->getAbsolutePose(baseIndex, _relativePoses);
+                    AnimPose baseParentPose = _skeleton->getAbsolutePose(_skeleton->getParentIndex(baseIndex), _relativePoses);
+
+                    // to help reduce limb locking, and to help the CCD solver converge faster
+                    // rotate the limbs leverArm over the targetLine.
+                    glm::vec3 targetLine = target.getTranslation() - basePose.trans();
+                    glm::vec3 leverArm = tipPose.trans() - basePose.trans();
+                    glm::vec3 axis = glm::cross(leverArm, targetLine);
+                    float axisLength = glm::length(axis);
+                    if (axisLength > MIN_AXIS_LENGTH) {
+                        // compute angle of rotation that brings tip to target
+                        axis /= axisLength;
+                        float cosAngle = glm::clamp(glm::dot(leverArm, targetLine) / (glm::length(leverArm) * glm::length(targetLine)), -1.0f, 1.0f);
+                        float angle = acosf(cosAngle);
+                        glm::quat newBaseRotation = glm::angleAxis(angle, axis) * basePose.rot();
+
+                        // convert base rotation into relative space of base.
+                        _relativePoses[baseIndex].rot() = glm::inverse(baseParentPose.rot()) * newBaseRotation;
+                    }
+                }
+            }
+        }
+    }
+}
+
 void AnimInverseKinematics::initRelativePosesFromSolutionSource(SolutionSource solutionSource, const AnimPoseVec& underPoses) {
     const float RELAX_BLEND_FACTOR = (1.0f / 16.0f);
     const float COPY_BLEND_FACTOR = 1.0f;
@@ -1678,7 +1726,7 @@ void AnimInverseKinematics::initRelativePosesFromSolutionSource(SolutionSource s
         break;
     case SolutionSource::LimitCenterPoses:
         // essentially copy limitCenterPoses over to _relativePoses.
-        blendToPoses(_limitCenterPoses, underPoses, COPY_BLEND_FACTOR);
+        blendToPoses(underPoses, _limitCenterPoses, COPY_BLEND_FACTOR);
         break;
     }
 }
