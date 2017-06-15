@@ -197,7 +197,7 @@
     // showInDesktop: Set to "true" to show the "SPECTATOR" app in desktop mode
     // 
     // Arguments:
-    // shouldntAdd: Set to "true" if you don't want to add the button, i.e. upon shutdown
+    // isShuttingDown: Set to "true" if you're calling this function upon script shutdown
     // isHMDMode: "true" if user is in HMD; false otherwise
     // 
     // Description:
@@ -207,18 +207,20 @@
     var buttonName = "SPECTATOR";
     var tablet = null;
     var showSpectatorInDesktop = true;
-    function addOrRemoveButton(shouldntAdd, isHMDMode) {
+    function addOrRemoveButton(isShuttingDown, isHMDMode) {
         if (!button) {
-            if ((isHMDMode || showSpectatorInDesktop) && !shouldntAdd) {
+            if ((isHMDMode || showSpectatorInDesktop) && !isShuttingDown) {
                 button = tablet.addButton({
                     text: buttonName
                 });
                 button.clicked.connect(onTabletButtonClicked);
             }
         } else if (button) {
-            button.clicked.disconnect(onTabletButtonClicked);
-            tablet.removeButton(button);
-            button = false;
+            if ((!showSpectatorInDesktop || isShuttingDown) && !isHMDMode) {
+                button.clicked.disconnect(onTabletButtonClicked);
+                tablet.removeButton(button);
+                button = false;
+            }
         } else {
             print("ERROR adding/removing Spectator button!");
         }
