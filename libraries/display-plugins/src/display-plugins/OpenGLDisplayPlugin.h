@@ -38,7 +38,7 @@ protected:
     using Condition = std::condition_variable;
 public:
     ~OpenGLDisplayPlugin();
-    // These must be final to ensure proper ordering of operations 
+    // These must be final to ensure proper ordering of operations
     // between the main thread and the presentation thread
     bool activate() override final;
     void deactivate() override final;
@@ -78,6 +78,8 @@ public:
     // Three threads, one for rendering, one for texture transfers, one reserved for the GL driver
     int getRequiredThreadCount() const override { return 3; }
 
+    void copyTextureToQuickFramebuffer(gpu::TexturePointer source, QOpenGLFramebufferObject* target);
+
 protected:
     friend class PresentThread;
 
@@ -102,7 +104,7 @@ protected:
     // Returns true on successful activation
     virtual bool internalActivate() { return true; }
     virtual void internalDeactivate() {}
-	
+
     // Returns true on successful activation of standby session
     virtual bool activateStandBySession() { return true; }
     virtual void deactivateSession() {}

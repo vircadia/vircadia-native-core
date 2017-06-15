@@ -16,6 +16,7 @@
 
 #include <QtOpenGL/QGLWidget>
 #include <QtGui/QImage>
+#include <QOpenGLFramebufferObject>
 #if defined(Q_OS_MAC)
 #include <OpenGL/CGLCurrent.h>
 #endif
@@ -55,7 +56,7 @@ out vec4 outFragColor;
 
 float sRGBFloatToLinear(float value) {
     const float SRGB_ELBOW = 0.04045;
-    
+
     return (value <= SRGB_ELBOW) ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4);
 }
 
@@ -121,10 +122,10 @@ public:
         PROFILE_SET_THREAD_NAME("Present Thread");
 
         // FIXME determine the best priority balance between this and the main thread...
-        // It may be dependent on the display plugin being used, since VR plugins should 
+        // It may be dependent on the display plugin being used, since VR plugins should
         // have higher priority on rendering (although we could say that the Oculus plugin
         // doesn't need that since it has async timewarp).
-        // A higher priority here 
+        // A higher priority here
         setPriority(QThread::HighPriority);
         OpenGLDisplayPlugin* currentPlugin{ nullptr };
         Q_ASSERT(_context);
@@ -233,7 +234,7 @@ public:
         // Move the context back to the presentation thread
         _context->moveToThread(this);
 
-        // restore control of the context to the presentation thread and signal 
+        // restore control of the context to the presentation thread and signal
         // the end of the operation
         _finishedMainThreadOperation = true;
         lock.unlock();
@@ -291,7 +292,7 @@ bool OpenGLDisplayPlugin::activate() {
     if (!RENDER_THREAD) {
         RENDER_THREAD = _presentThread;
     }
-    
+
     // Child classes may override this in order to do things like initialize
     // libraries, etc
     if (!internalActivate()) {
@@ -411,7 +412,7 @@ void OpenGLDisplayPlugin::customizeContext() {
             gpu::Shader::makeProgram(*program);
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
             state->setDepthTest(gpu::State::DepthTest(false));
-            state->setBlendFunction(true, 
+            state->setBlendFunction(true,
                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
             _overlayPipeline = gpu::Pipeline::create(program, state);
@@ -686,7 +687,7 @@ void OpenGLDisplayPlugin::resetPresentRate() {
     // _presentRate = RateCounter<100>();
 }
 
-float OpenGLDisplayPlugin::renderRate() const { 
+float OpenGLDisplayPlugin::renderRate() const {
     return _renderRate.rate();
 }
 
@@ -820,3 +821,20 @@ void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
         _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
     }
 }
+
+void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(gpu::TexturePointer source, QOpenGLFramebufferObject* target) {
+    auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
+    withMainThreadContext([&] {
+        GLuint sourceTexture = glBackend->getTextureID(source);
+        GLuint targetTexture = target->texture();
+        GLuint fbo { 0 };
+        glCreateFramebuffers(1, &fbo);
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+        glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sourceTexture, 0);
+        glCopyTextureSubImage2D(targetTexture, 0, 0, 0, 0, 0, target->width(), target->height());
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+        glDeleteFramebuffers(1, &fbo);
+        glDeleteTextures(1, &fbo);
+    });
+}
+

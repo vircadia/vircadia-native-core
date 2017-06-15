@@ -13,15 +13,37 @@
 #define hifi_ResourceImageItem_h
 
 #include <QQuickFramebufferObject>
-#include <QOpenGLFunctions>
+#include <QQuickWindow>
+#include <QTimer>
 
-class ResourceImageItemRenderer : public QQuickFramebufferObject::Renderer, protected QOpenGLFunctions {
+class ResourceImageItemRenderer : public QQuickFramebufferObject::Renderer {
+public:
     QOpenGLFramebufferObject* createFramebufferObject(const QSize& size);
+    void synchronize(QQuickFramebufferObject* item);
     void render();
+private:
+    bool _ready;
+    QString _url;
+    NetworkTexturePointer _networkTexture;
+    QQuickWindow* _window;
 };
 
 class ResourceImageItem : public QQuickFramebufferObject {
+    Q_OBJECT
+    Q_PROPERTY(QString url READ getUrl WRITE setUrl)
+    Q_PROPERTY(bool ready READ getReady WRITE setReady)
+
+public:
+    ResourceImageItem(QQuickItem* parent = Q_NULLPTR);
+    QString getUrl() const { return m_url; }
+    void setUrl(const QString& url);
+    bool getReady() const { return m_ready; }
+    void setReady(bool ready);
     QQuickFramebufferObject::Renderer* createRenderer() const { return new ResourceImageItemRenderer; }
+private:
+    QString m_url;
+    bool m_ready { false };
+    QTimer m_updateTimer; // TODO: something more clever
 };
 
 #endif // hifi_ResourceImageItem_h

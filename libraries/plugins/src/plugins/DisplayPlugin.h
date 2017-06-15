@@ -25,6 +25,8 @@
 
 #include "Plugin.h"
 
+class QOpenGLFramebufferObject;
+
 class QImage;
 
 enum Eye {
@@ -61,7 +63,7 @@ namespace gpu {
 }
 
 // Stereo display functionality
-// TODO move out of this file don't derive DisplayPlugin from this.  Instead use dynamic casting when 
+// TODO move out of this file don't derive DisplayPlugin from this.  Instead use dynamic casting when
 // displayPlugin->isStereo returns true
 class StereoDisplay {
 public:
@@ -78,7 +80,7 @@ public:
 };
 
 // HMD display functionality
-// TODO move out of this file don't derive DisplayPlugin from this.  Instead use dynamic casting when 
+// TODO move out of this file don't derive DisplayPlugin from this.  Instead use dynamic casting when
 // displayPlugin->isHmd returns true
 class HmdDisplay : public StereoDisplay {
 public:
@@ -142,7 +144,7 @@ public:
     virtual float getTargetFrameRate() const { return 1.0f; }
     virtual bool hasAsyncReprojection() const { return false; }
 
-    /// Returns a boolean value indicating whether the display is currently visible 
+    /// Returns a boolean value indicating whether the display is currently visible
     /// to the user.  For monitor displays, false might indicate that a screensaver,
     /// or power-save mode is active.  For HMDs it may reflect a sensor indicating
     /// whether the HMD is being worn
@@ -204,9 +206,11 @@ public:
     // Rate at which rendered frames are being skipped
     virtual float droppedFrameRate() const { return -1.0f; }
     virtual bool getSupportsAutoSwitch() { return false; }
-    
+
     // Hardware specific stats
     virtual QJsonObject getHardwareStats() const { return QJsonObject(); }
+
+    virtual void copyTextureToQuickFramebuffer(gpu::TexturePointer source, QOpenGLFramebufferObject* target) = 0;
 
     uint32_t presentCount() const { return _presentedFrameIndex; }
     // Time since last call to incrementPresentCount (only valid if DEBUG_PAINT_DELAY is defined)

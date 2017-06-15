@@ -190,6 +190,7 @@ Rectangle {
             boxSize: 24;
             onClicked: {
                 sendToScript({method: (checked ? 'spectatorCameraOn' : 'spectatorCameraOff')});
+                spectatorCameraPreviewItem.ready = checked;
             }
         }
 
@@ -202,7 +203,10 @@ Rectangle {
             anchors.topMargin: 20;
             anchors.right: parent.right;
             Hifi.ResourceImageItem {
+                id: spectatorCameraPreviewItem;
                 anchors.fill: parent;
+                url: "resource://spectatorCameraFrame";
+                ready: false;
             }
         }
 
