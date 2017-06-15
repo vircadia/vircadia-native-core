@@ -150,6 +150,8 @@ public:
 
     static const float CALLBACK_ACCELERATOR_RATIO;
 
+    bool getNamedAudioDeviceForModeExists(QAudio::Mode mode, const QString& deviceName);
+
 #ifdef Q_OS_WIN
     static QString getWinDeviceName(wchar_t* guid);
 #endif
