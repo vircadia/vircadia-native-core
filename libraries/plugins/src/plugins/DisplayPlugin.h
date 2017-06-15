@@ -186,6 +186,7 @@ public:
 
     // Set the texture to display on the monitor and return true, if allowed. Empty string resets.
     virtual bool setDisplayTexture(const QString& name) { return false; }
+    virtual bool clearPreviewFlag() { return false; };
 
     virtual float devicePixelRatio() { return 1.0f; }
     // Rate at which we render frames

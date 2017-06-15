@@ -743,19 +743,3 @@ HmdDisplayPlugin::~HmdDisplayPlugin() {
 float HmdDisplayPlugin::stutterRate() const {
     return _stutterRate.rate();
 }
-
-bool HmdDisplayPlugin::setDisplayTexture(const QString& name) {
-    // Note: it is the caller's responsibility to keep the network texture in cache.
-    if (name.isEmpty()) {
-        _displayTexture.reset();
-        _clearPreviewFlag = true;
-        return true;
-    }
-    auto textureCache = DependencyManager::get<TextureCache>();
-    auto displayNetworkTexture = textureCache->getTexture(name);
-    if (!displayNetworkTexture) {
-        return false;
-    }
-    _displayTexture = displayNetworkTexture->getGPUTexture();
-    return !!_displayTexture;
-}

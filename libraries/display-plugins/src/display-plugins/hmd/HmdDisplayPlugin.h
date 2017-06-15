@@ -46,7 +46,7 @@ public:
 
     float stutterRate() const override;
 
-    virtual bool setDisplayTexture(const QString& name) override;
+    virtual bool clearPreviewFlag() override { _clearPreviewFlag = true; return true; };
 
 protected:
     virtual void hmdPresent() = 0;
