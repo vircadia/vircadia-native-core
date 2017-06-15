@@ -479,7 +479,6 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
             auto lastBroadcastTime = nodeData->getLastBroadcastTime(agentNode->getUUID());
             if (lastBroadcastTime <= agentNodeData->getIdentityChangeTimestamp()
                 || (start - lastBroadcastTime) >= REBROADCAST_IDENTITY_TO_DOWNSTREAM_EVERY_US) {
-                qDebug() << "Sending identity packet for " << agentNode->getUUID() << " to " << node->getUUID();
                 sendReplicatedIdentityPacket(agentNodeData, node);
                 nodeData->setLastBroadcastTime(agentNode->getUUID(), start);
             }
