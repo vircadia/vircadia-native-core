@@ -130,6 +130,11 @@ void AvatarHashMap::processAvatarIdentityPacket(QSharedPointer<ReceivedMessage> 
     // peek the avatar UUID from the incoming packet
     QUuid identityUUID = QUuid::fromRfc4122(message->peek(NUM_BYTES_RFC4122_UUID));
 
+    if (identityUUID.isNull()) {
+        qCDebug(avatars) << "Refusing to process identity packet for null avatar ID";
+        return;
+    }
+
     // make sure this isn't for an ignored avatar
     auto nodeList = DependencyManager::get<NodeList>();
     static auto EMPTY = QUuid();
