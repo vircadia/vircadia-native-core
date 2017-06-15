@@ -48,15 +48,31 @@ AudioDeviceScriptingInterface::AudioDeviceScriptingInterface(): QAbstractListMod
     SettingsScriptingInterface* settings = SettingsScriptingInterface::getInstance();
     const QString inDevice = settings->getValue("audio_input_device", _currentInputDevice).toString();
     if (inDevice != _currentInputDevice) {
-        qCDebug(audioclient) << __FUNCTION__ << "about to call setInputDeviceAsync() device: [" << inDevice << "] _currentInputDevice:" << _currentInputDevice;
-        setInputDeviceAsync(inDevice);
+        // before using the old setting, check to make sure the device still exists....
+        bool inDeviceExists = DependencyManager::get<AudioClient>()->getNamedAudioDeviceForModeExists(QAudio::AudioInput, inDevice);
+
+        if (inDeviceExists) {
+            qCDebug(audioclient) << __FUNCTION__ << "about to call setInputDeviceAsync() device: [" << inDevice << "] _currentInputDevice:" << _currentInputDevice;
+            setInputDeviceAsync(inDevice);
+        } else {
+            qCDebug(audioclient) << __FUNCTION__ << "previously selected device no longer exists inDevice: [" << inDevice << "] keeping device _currentInputDevice:" << _currentInputDevice;
+        }
     }
 
     // If the audio_output_device setting is not available, use the _currentOutputDevice
     auto outDevice = settings->getValue("audio_output_device", _currentOutputDevice).toString();
+
     if (outDevice != _currentOutputDevice) {
-        qCDebug(audioclient) << __FUNCTION__ << "about to call setOutputDeviceAsync() outDevice: [" << outDevice << "] _currentOutputDevice:" << _currentOutputDevice;
-        setOutputDeviceAsync(outDevice);
+        // before using the old setting, check to make sure the device still exists....
+        bool outDeviceExists = DependencyManager::get<AudioClient>()->getNamedAudioDeviceForModeExists(QAudio::AudioOutput, outDevice);
+
+        if (outDeviceExists) {
+            qCDebug(audioclient) << __FUNCTION__ << "about to call setOutputDeviceAsync() outDevice: [" << outDevice << "] _currentOutputDevice:" << _currentOutputDevice;
+            setOutputDeviceAsync(outDevice);
+        } else {
+            qCDebug(audioclient) << __FUNCTION__ << "previously selected device no longer exists outDevice: [" << outDevice << "] keeping device _currentOutputDevice:" << _currentOutputDevice;
+        }
+
     }
 }
 
