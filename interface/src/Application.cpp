@@ -143,7 +143,6 @@
 #include "avatar/MyHead.h"
 #include "CrashHandler.h"
 #include "devices/DdeFaceTracker.h"
-#include "devices/Leapmotion.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
 #include "InterfaceDynamicFactory.h"
@@ -1808,8 +1807,6 @@ Application::~Application() {
 
     // remove the NodeList from the DependencyManager
     DependencyManager::destroy<NodeList>();
-
-    Leapmotion::destroy();
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->shutdown();
@@ -3977,8 +3974,6 @@ void Application::init() {
 
     qCDebug(interfaceapp) << "Loaded settings";
 
-    Leapmotion::init();
-
     // fire off an immediate domain-server check in now that settings are loaded
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 
@@ -4451,7 +4446,6 @@ void Application::update(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("devices");
-        DeviceTracker::updateAll();
 
         FaceTracker* tracker = getSelectedFaceTracker();
         if (tracker && Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking) != tracker->isMuted()) {
@@ -4518,8 +4512,6 @@ void Application::update(float deltaTime) {
     if (keyboardMousePlugin && keyboardMousePlugin->isActive()) {
         keyboardMousePlugin->pluginUpdate(deltaTime, calibrationData);
     }
-
-    _controllerScriptingInterface->updateInputControllers();
 
     // Transfer the user inputs to the driveKeys
     // FIXME can we drop drive keys and just have the avatar read the action states directly?
