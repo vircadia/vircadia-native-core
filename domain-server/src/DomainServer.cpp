@@ -2267,7 +2267,7 @@ void DomainServer::updateDownstreamNodes() {
                         // manually add the downstream node to our node list
                         auto node = nodeList->addOrUpdateNode(QUuid::createUuid(), downstreamNodeType,
                                                               downstreamServerAddr, downstreamServerAddr);
-                        node->setIsForcedAlive(true);
+                        node->setIsForcedNeverSilent(true);
 
                         qDebug() << "Adding downstream node:" << node->getUUID() << downstreamServerAddr;
 

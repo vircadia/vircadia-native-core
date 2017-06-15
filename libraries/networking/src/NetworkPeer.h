@@ -76,8 +76,8 @@ public:
     float getOutboundBandwidth() const; // in kbps
     float getInboundBandwidth() const; // in kbps
 
-    bool isForcedAlive() const { return _isForcedAlive; }
-    void setIsForcedAlive(bool isForcedAlive) { _isForcedAlive = isForcedAlive; }
+    bool isForcedNeverSilent() const { return _isForcedNeverSilent; }
+    void setIsForcedNeverSilent(bool isForcedNeverSilent) { _isForcedNeverSilent = isForcedNeverSilent; }
 
     friend QDataStream& operator<<(QDataStream& out, const NetworkPeer& peer);
     friend QDataStream& operator>>(QDataStream& in, NetworkPeer& peer);
@@ -107,7 +107,7 @@ protected:
 
     int _connectionAttempts;
 
-    bool _isForcedAlive { false };
+    bool _isForcedNeverSilent { false };
 };
 
 QDebug operator<<(QDebug debug, const NetworkPeer &peer);
