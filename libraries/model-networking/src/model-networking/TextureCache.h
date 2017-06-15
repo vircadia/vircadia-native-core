@@ -58,6 +58,8 @@ public:
 
     void refresh() override;
 
+    Q_INVOKABLE void setOriginalDescriptor(ktx::KTXDescriptor* descriptor) { _originalKtxDescriptor.reset(descriptor); }
+
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
 
