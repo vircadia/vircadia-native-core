@@ -2227,19 +2227,18 @@ static const QString REPLICATION_SETTINGS_KEY = "replication";
 void DomainServer::updateDownstreamNodes() {
     auto settings = _settingsManager.getSettingsMap();
     if (settings.contains(REPLICATION_SETTINGS_KEY)) {
+        auto nodeList = DependencyManager::get<LimitedNodeList>();
+        std::vector<HifiSockAddr> downstreamNodesInSettings;
         auto replicationSettings = settings.value(REPLICATION_SETTINGS_KEY).toMap();
         if (replicationSettings.contains("downstream_servers")) {
             auto serversSettings = replicationSettings.value("downstream_servers").toList();
 
-            auto nodeList = DependencyManager::get<LimitedNodeList>();
             std::vector<HifiSockAddr> knownDownstreamNodes;
             nodeList->eachNode([&](const SharedNodePointer& otherNode) {
                 if (NodeType::isDownstream(otherNode->getType())) {
                     knownDownstreamNodes.push_back(otherNode->getPublicSocket());
                 }
             });
-
-            std::vector<HifiSockAddr> downstreamNodesInSettings;
 
             for (auto& server : serversSettings) {
                 auto downstreamServer = server.toMap();
@@ -2277,20 +2276,20 @@ void DomainServer::updateDownstreamNodes() {
                 }
 
             }
-            std::vector<SharedNodePointer> nodesToKill;
-            nodeList->eachNode([&](const SharedNodePointer& otherNode) {
-                if (NodeType::isDownstream(otherNode->getType())) {
-                    bool nodeInSettings = find(downstreamNodesInSettings.cbegin(), downstreamNodesInSettings.cend(),
-                                               otherNode->getPublicSocket()) != downstreamNodesInSettings.cend();
-                    if (!nodeInSettings) {
-                        qDebug() << "Removing downstream node:" << otherNode->getUUID() << otherNode->getPublicSocket();
-                        nodesToKill.push_back(otherNode);
-                    }
+        }
+        std::vector<SharedNodePointer> nodesToKill;
+        nodeList->eachNode([&](const SharedNodePointer& otherNode) {
+            if (NodeType::isDownstream(otherNode->getType())) {
+                bool nodeInSettings = find(downstreamNodesInSettings.cbegin(), downstreamNodesInSettings.cend(),
+                                           otherNode->getPublicSocket()) != downstreamNodesInSettings.cend();
+                if (!nodeInSettings) {
+                    qDebug() << "Removing downstream node:" << otherNode->getUUID() << otherNode->getPublicSocket();
+                    nodesToKill.push_back(otherNode);
                 }
-            });
-            for (auto& node : nodesToKill) {
-                handleKillNode(node);
             }
+        });
+        for (auto& node : nodesToKill) {
+            handleKillNode(node);
         }
     }
 }
