@@ -35,7 +35,20 @@ Rectangle {
     readonly property bool handController: handBox.checked
     readonly property bool handPuck: handPuckBox.checked
 
+    property int state: buttonState.disabled
+    property var lastConfiguration: null
+
     HifiConstants { id: hifi }
+
+    QtObject {
+        id: buttonState
+        readonly property int disabled: 0
+        readonly property int apply: 1
+        readonly property int applyAndCalibrate: 2
+        readonly property int calibrate: 3
+        
+    }
+        
 
     MouseArea {
         id: mouseArea
@@ -66,7 +79,7 @@ Rectangle {
         anchors.top: head.bottom
         anchors.topMargin: 5
         anchors.left: openVrConfiguration.left
-        anchors.leftMargin: leftMargin + 20
+        anchors.leftMargin: leftMargin + 10
         spacing: 10
 
         HifiControls.CheckBox {
@@ -81,7 +94,7 @@ Rectangle {
                 } else {
                     checked = true;
                 }
-                composeConfigurationSettings();
+                sendConfigurationSettings();
             }
         }
 
@@ -103,7 +116,7 @@ Rectangle {
                 } else {
                     checked = true;
                 }
-                composeConfigurationSettings();
+                sendConfigurationSettings();
             }
         }
 
@@ -112,8 +125,35 @@ Rectangle {
             text: "Tracker"
             color: hifi.colors.lightGrayText
         }
-    }
 
+        HifiControls.SpinBox {
+            id: headYOffset
+            decimals: 4
+            width: 110
+            label: "Y: offset"
+            value:  -0.0254
+            stepSize: 0.0254
+            colorScheme: hifi.colorSchemes.dark
+
+            onEditingFinished: {
+            }
+        }
+
+
+        HifiControls.SpinBox {
+            id: headZOffset
+            width: 105
+            label: "Z: offset"
+            value: -0.152
+            stepSize: 0.0254
+            decimals: 4
+            colorScheme: hifi.colorSchemes.dark
+            
+            onEditingFinished: {
+            }
+        }
+    }
+    
     RalewayBold {
         id: hands
 
@@ -133,7 +173,7 @@ Rectangle {
         anchors.top: hands.bottom
         anchors.topMargin: 5
         anchors.left: openVrConfiguration.left
-        anchors.leftMargin: leftMargin + 20
+        anchors.leftMargin: leftMargin + 10
         spacing: 10
 
         HifiControls.CheckBox {
@@ -148,7 +188,7 @@ Rectangle {
                 } else {
                     checked = true;
                 }
-                composeConfigurationSettings();
+                sendConfigurationSettings();
             }
         }
 
@@ -170,7 +210,7 @@ Rectangle {
                 } else {
                     checked = true;
                 }
-                composeConfigurationSettings();
+                sendConfigurationSettings();
             }
         }
 
@@ -178,6 +218,33 @@ Rectangle {
             size: 12
             text: "Trackers"
             color: hifi.colors.lightGrayText
+        }
+
+        HifiControls.SpinBox {
+            id: handYOffset
+            decimals: 4
+            width: 105
+            label: "Y: offset"
+            value: -0.0508
+            stepSize: 0.0254
+            colorScheme: hifi.colorSchemes.dark
+
+            onEditingFinished: {
+            }
+        }
+
+
+        HifiControls.SpinBox {
+            id: handZOffset
+            width: 105
+            label: "Z: offset"
+            value: -0.0254
+            stepSize: 0.0254
+            decimals: 4
+            colorScheme: hifi.colorSchemes.dark
+            
+            onEditingFinished: {
+            }
         }
     }
 
@@ -200,7 +267,7 @@ Rectangle {
         anchors.top: additional.bottom
         anchors.topMargin: 15
         anchors.left: openVrConfiguration.left
-        anchors.leftMargin: leftMargin + 20
+        anchors.leftMargin: leftMargin + 10
         spacing: 10
 
         HifiControls.CheckBox {
@@ -213,7 +280,7 @@ Rectangle {
                 if (hipsChecked) {
                     checked = true;
                 }
-                composeConfigurationSettings();
+                sendConfigurationSettings();
             }
         }
 
@@ -229,7 +296,7 @@ Rectangle {
         anchors.top: feetConfig.bottom
         anchors.topMargin: 15
         anchors.left: openVrConfiguration.left
-        anchors.leftMargin: leftMargin + 20
+        anchors.leftMargin: leftMargin + 10
         spacing: 10
 
         HifiControls.CheckBox {
@@ -246,7 +313,7 @@ Rectangle {
                 if (chestChecked) {
                     checked = true;
                 }
-                composeConfigurationSettings();
+                sendConfigurationSettings();
             }
         }
 
@@ -269,7 +336,7 @@ Rectangle {
         anchors.top: hipConfig.bottom
         anchors.topMargin: 15
         anchors.left: openVrConfiguration.left
-        anchors.leftMargin: leftMargin + 20
+        anchors.leftMargin: leftMargin + 10
         spacing: 10
 
         HifiControls.CheckBox {
@@ -283,7 +350,7 @@ Rectangle {
                     hipBox.checked = true;
                     feetBox.checked = true;
                 }
-                composeConfigurationSettings();
+                sendConfigurationSettings();
             }
         }
 
@@ -306,7 +373,7 @@ Rectangle {
         anchors.top: chestConfig.bottom
         anchors.topMargin: 15
         anchors.left: openVrConfiguration.left
-        anchors.leftMargin: leftMargin + 20
+        anchors.leftMargin: leftMargin + 10
         spacing: 10
 
         HifiControls.CheckBox {
@@ -320,7 +387,7 @@ Rectangle {
                     hipBox.checked = true;
                     feetBox.checked = true;
                 }
-                composeConfigurationSettings();
+                sendConfigurationSettings();
             }
         }
 
@@ -345,52 +412,23 @@ Rectangle {
     }
 
 
-    Rectangle {
+    HifiControls.Button {
+        
         id: calibrationButton
-        width: 200
-        height: 35
-        radius: 6
-
-        color: hifi.colors.blueHighlight
-
+        color: hifi.buttons.blue
+        text: "Calibrate"
+        //glyph: hifi.glyphs.avatar1
         anchors.top: bottomSeperator.bottom
         anchors.topMargin: 10
         anchors.left: parent.left
         anchors.leftMargin: leftMargin
-
-
-        HiFiGlyphs {
-            id: calibrationGlyph
-            text: hifi.glyphs.avatar1
-            size: 36
-            color: hifi.colors.white
-
-            anchors.left: parent.left
-            anchors.leftMargin: 30
-
-        }
-
-        RalewayRegular {
-            id: calibrate
-            text: "CALIBRATE"
-            size: 17
-            color: hifi.colors.white
-
-            anchors.left: calibrationGlyph.right
-            anchors.top: parent.top
-            anchors.topMargin: 8
-        }
-
-        MouseArea {
-            anchors.fill: parent
-
-            onClicked: {
-                openVrConfiguration.countDown = timeToCalibrate.value;
-                numberAnimation.start();
-                calibrationTimer.start();
-                info.visible = true;
-                info.showCountDown = true;
-            }
+        
+        onClicked: {
+            openVrConfiguration.countDown = timeToCalibrate.value;
+            numberAnimation.start();
+            calibrationTimer.start();
+            info.visible = true;
+            info.showCountDown = true;
         }
     }
 
@@ -421,16 +459,18 @@ Rectangle {
 
     Component.onCompleted: {
         InputConfiguration.calibrationStatus.connect(calibrationStatusInfo);
+        lastConfiguration = composeConfigurationSettings();
     }
 
     HifiControls.SpinBox {
         id: timeToCalibrate
-
+        width: 70
         anchors.top: calibrationButton.bottom
         anchors.topMargin: 40
         anchors.left: parent.left
         anchors.leftMargin: leftMargin
 
+        minimumValue: 3
         label: "Time til calibration ( in seconds )"
         colorScheme: hifi.colorSchemes.dark
 
@@ -590,7 +630,7 @@ Rectangle {
                 RalewayBold {
                     id: uncalibrateText
                     text: "Uncalibration Successful"
-                    size: 42
+                    size: 37
                     color: hifi.colors.greenHighlight
                     anchors.centerIn: parent
                 }
@@ -621,6 +661,58 @@ Rectangle {
         }
     }
 
+    function updateButtonState() {
+        var settings = composeConfigurationSettings();
+        var bodySetting = settings["bodyConfiguration"];
+        var headSetting = settings["headConfiguration"];
+        var headOverride = headSetting["override"];
+        var handSetting = settings["handConfiguration"];
+        var handOverride = settings["override"];
+
+        var settingsChanged = false;
+
+        if (lastConfiguration["bodyConfiguration"]["override"] !== bodySetting["override"]) {
+            settingsChanged = true;
+        }
+        
+        var lastHead = lastConfiguration["headConfiguration"];
+        if (lastHead["override"] !== headOverride) {
+            settingsChanged = true;
+        }
+
+        var lastHand = lastConfiguration["handConfiguration"];
+        if (lastHand["override"] !== handOverride) {
+            settingsChanged = true;
+        }
+        
+        if (settingsChanged) {
+            if ((!handOverride) && (!headOverride) && (bodySetting === "Auto")) {
+                state = buttonState.apply;
+            } else {
+                state = buttonState.applyAndCalibrate;
+            }   
+        } else {
+            if (state == buttonState.apply) {
+                state = buttonState.disabled;
+            }
+        }
+        
+        lastConfiguration = settings;
+    }
+
+    function updateCalibrationText() {
+        updateButtonState();
+        if (buttonState.disabled == state) {
+            calibrationButton.text = "Apply";
+        } else if (buttonState.apply == state) {
+            calibrationButton.text = "Apply";
+        } else if (buttonState.applyAndCalibrate == state) {
+            calibrationButton.text =  "Apply And Calibrate";
+        } else if (buttonState.calibrate == state) {
+            calibrationButton.text = "Calibrate";
+        }
+    }
+
     function composeConfigurationSettings() {
         var trackerConfiguration = "";
         var overrideHead = false;
@@ -631,7 +723,7 @@ Rectangle {
         } else if (shouldersChecked) {
             trackerConfiguration = "FeetHipsAndShoulders";
         } else if (chestChecked) {
-            trackerConfiguration = "FeetHipsChest";
+            trackerConfiguration = "FeetHipsAndChest";
         } else if (hipsChecked) {
             trackerConfiguration = "FeetAndHips";
         } else if (feetChecked) {
@@ -652,14 +744,30 @@ Rectangle {
             overrideHandController = true;
         }
 
-
-        var settingsObject = {
-            "trackerConfiguration": trackerConfiguration,
-            "overrideHead": overrideHead,
-            "overrideHandController": overrideHandController
+        var headObject = {
+            "override": overrideHead,
+            "Y": headYOffset.value,
+            "Z": headZOffset.value
         }
 
-        InputConfiguration.setConfigurationSettings(settingsObject, pluginName);
+        var handObject = {
+            "override": overrideHandController,
+            "Y": handYOffset.value,
+            "Z": handZOffset.value
+        }
+        
+        var settingsObject = {
+            "bodyConfiguration": trackerConfiguration,
+            "headConfiguration": headObject,
+            "handConfiguration": handObject 
+        }
 
+        return settingsObject;
+    }
+
+    function sendConfigurationSettings() {
+        var settings = composeConfigurationSettings();
+        InputConfiguration.setConfigurationSettings(settings, pluginName);
+        updateCalibrationText();
     }
 }

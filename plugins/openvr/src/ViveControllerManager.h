@@ -46,7 +46,7 @@ public:
     QString configurationLayout() override;
     void setConfigurationSettings(const QJsonObject configurationSettings) override;
     QJsonObject configurationSettings() override;
-    void calibrate() override { _inputDevice->calibrateNextFrame(); }
+    void calibrate() override;
     bool isHeadController() const override { return true; }
     bool isHeadControllerMounted() const;
 
@@ -69,7 +69,6 @@ private:
         QString getDefaultMappingConfig() const override;
         void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         void focusOutEvent() override;
-        void createPreferences();
         bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
         void hapticsHelper(float deltaTime, bool leftHand);
         void calibrateOrUncalibrate(const controller::InputCalibrationData& inputCalibration);
@@ -102,7 +101,6 @@ private:
         void calibrateLeftHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair);
         void calibrateRightHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair);
         void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
-        void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, glm::vec3 headXAxis, glm::vec3 headPosition);
         void calibrateHips(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateChest(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,

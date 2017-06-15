@@ -47,19 +47,23 @@ static const char* MENU_PARENT = "Avatar";
 static const char* MENU_NAME = "Vive Controllers";
 static const char* MENU_PATH = "Avatar" ">" "Vive Controllers";
 static const char* RENDER_CONTROLLERS = "Render Hand Controllers";
+
 static const int MIN_HEAD = 1;
 static const int MIN_PUCK_COUNT = 2;
 static const int MIN_FEET_AND_HIPS = 3;
 static const int MIN_FEET_HIPS_CHEST = 4;
-static const int MIN_FEET_HIPS_HEAD = 4;
 static const int MIN_FEET_HIPS_SHOULDERS = 5;
-static const int MIN_FEET_HIPS_CHEST_HEAD = 5;
+static const int MIN_FEET_HIPS_CHEST_SHOULDERS = 6;
+
 static const int FIRST_FOOT = 0;
 static const int SECOND_FOOT = 1;
 static const int HIP = 2;
 static const int CHEST = 3;
+
 static float HEAD_PUCK_Y_OFFSET = -0.0254f;
 static float HEAD_PUCK_Z_OFFSET = -0.152f;
+static float HAND_PUCK_Y_OFFSET = -0.0508f;
+static float HAND_PUCK_Z_OFFSET = 0.0254f;
 
 const char* ViveControllerManager::NAME { "OpenVR" };
 
@@ -115,6 +119,12 @@ static QString deviceTrackingResultToString(vr::ETrackingResult trackingResult) 
         return iterator->second;
     }
     return result;
+}
+
+void ViveControllerManager::calibrate() {
+    if (isSupported()) {
+        _inputDevice->calibrateNextFrame();
+    }
 }
 
 bool ViveControllerManager::isSupported() const {
@@ -233,7 +243,7 @@ ViveControllerManager::InputDevice::InputDevice(vr::IVRSystem*& system) : contro
     _configStringMap[Config::FeetHipsAndShoulders] = QString("FeetHipsAndShoulders");
 
     if (openVrSupported()) {
-        createPreferences();
+        loadSettings();
     }
 }
 
@@ -340,6 +350,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
             iter++;
         }
     }
+
+    saveSettings();
 }
 
 void ViveControllerManager::InputDevice::calibrateNextFrame() {
@@ -469,11 +481,15 @@ bool ViveControllerManager::InputDevice::configureHands(glm::mat4& defaultToRefe
         if (determineLimbOrdering(firstHandPose, secondHandPose, headXAxis, headPosition)) {
             calibrateLeftHand(defaultToReferenceMat, inputCalibration, firstHand);
             calibrateRightHand(defaultToReferenceMat, inputCalibration, secondHand);
+            _validTrackedObjects.erase(_validTrackedObjects.begin());
+            _validTrackedObjects.erase(_validTrackedObjects.end() - 1);
             _overrideHands = true;
             return true;
         } else {
             calibrateLeftHand(defaultToReferenceMat, inputCalibration, secondHand);
             calibrateRightHand(defaultToReferenceMat, inputCalibration, firstHand);
+            _validTrackedObjects.erase(_validTrackedObjects.begin());
+            _validTrackedObjects.erase(_validTrackedObjects.end() - 1);
             _overrideHands = true;
             return true;
         }
@@ -489,7 +505,7 @@ bool ViveControllerManager::InputDevice::configureHead(glm::mat4& defaultToRefer
     int puckCount = (int)_validTrackedObjects.size();
     if (_headConfig == HeadConfig::Puck && puckCount >= MIN_HEAD) {
          calibrateHead(defaultToReferenceMat, inputCalibration);
-        _validTrackedObjects.erase(_validTrackedObjects.end());
+        _validTrackedObjects.erase(_validTrackedObjects.end() - 1);
         _overrideHead = true;
         return true;
     } else if (_headConfig == HeadConfig::HMD) {
@@ -499,7 +515,10 @@ bool ViveControllerManager::InputDevice::configureHead(glm::mat4& defaultToRefer
 }
 
 bool ViveControllerManager::InputDevice::configureBody(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
+    std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), sortPucksYPosition);
     int puckCount = (int)_validTrackedObjects.size();
+    glm::vec3 headXAxis = getReferenceHeadXAxis(defaultToReferenceMat, inputCalibration.defaultHeadMat);
+    glm::vec3 headPosition = getReferenceHeadPosition(defaultToReferenceMat, inputCalibration.defaultHeadMat);
     if (_config == Config::None) {
         return true;
     } else if (_config == Config::Feet && puckCount >= MIN_PUCK_COUNT) {
@@ -521,24 +540,15 @@ bool ViveControllerManager::InputDevice::configureBody(glm::mat4& defaultToRefer
         int secondShoulderIndex = 4;
         calibrateShoulders(defaultToReferenceMat, inputCalibration, firstShoulderIndex, secondShoulderIndex);
         return true;
-    } /*else if (_config == Config::FeetHipsAndHead && puckCount == MIN_FEET_HIPS_HEAD) {
-        glm::vec3 headXAxis = getReferenceHeadXAxis(defaultToReferenceMat, inputCalibration.defaultHeadMat);
-        glm::vec3 headPosition = getReferenceHeadPosition(defaultToReferenceMat, inputCalibration.defaultHeadMat);
-        calibrateFeet(defaultToReferenceMat, inputCalibration, headXAxis, headPosition);
-        calibrateHips(defaultToReferenceMat, inputCalibration);
-        calibrateHead(defaultToReferenceMat, inputCalibration);
-        _overrideHead = true;
-        return true;
-    } else if (_config == Config::FeetHipsChestAndHead && puckCount == MIN_FEET_HIPS_CHEST_HEAD) {
-        glm::vec3 headXAxis = getReferenceHeadXAxis(defaultToReferenceMat, inputCalibration.defaultHeadMat);
-        glm::vec3 headPosition = getReferenceHeadPosition(defaultToReferenceMat, inputCalibration.defaultHeadMat);
-        calibrateFeet(defaultToReferenceMat, inputCalibration, headXAxis, headPosition);
+    } else if (_config == Config::FeetHipsChestAndShoulders && puckCount >= MIN_FEET_HIPS_CHEST_SHOULDERS) {
+        calibrateFeet(defaultToReferenceMat, inputCalibration);
         calibrateHips(defaultToReferenceMat, inputCalibration);
         calibrateChest(defaultToReferenceMat, inputCalibration);
-        calibrateHead(defaultToReferenceMat, inputCalibration);
-        _overrideHead = true;
+        int firstShoulderIndex = 4;
+        int secondShoulderIndex = 5;
+        calibrateShoulders(defaultToReferenceMat, inputCalibration, firstShoulderIndex, secondShoulderIndex);
         return true;
-        }*/
+    }
     qDebug() << "Puck Calibration: " << configToString(_config) << " Config Failed: Could not meet the minimal # of pucks";
     uncalibrate();
     emitCalibrationStatus(false);
@@ -861,25 +871,6 @@ void ViveControllerManager::InputDevice::hapticsHelper(float deltaTime, bool lef
     }
 }
 
-void ViveControllerManager::InputDevice::calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
-    auto& firstFoot = _validTrackedObjects[FIRST_FOOT];
-    auto& secondFoot = _validTrackedObjects[SECOND_FOOT];
-    controller::Pose& firstFootPose = firstFoot.second;
-    controller::Pose& secondFootPose = secondFoot.second;
-    
-    if (firstFootPose.translation.x < secondFootPose.translation.x) {
-        _jointToPuckMap[controller::LEFT_FOOT] = firstFoot.first;
-        _pucksOffset[firstFoot.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultLeftFoot, firstFootPose);
-        _jointToPuckMap[controller::RIGHT_FOOT] = secondFoot.first;
-        _pucksOffset[secondFoot.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultRightFoot, secondFootPose);   
-    } else {
-        _jointToPuckMap[controller::LEFT_FOOT] = secondFoot.first;
-        _pucksOffset[secondFoot.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultLeftFoot, secondFootPose);
-        _jointToPuckMap[controller::RIGHT_FOOT] = firstFoot.first;
-        _pucksOffset[firstFoot.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultRightFoot, firstFootPose);
-    }
-}
-
 void ViveControllerManager::InputDevice::calibrateLeftHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair) {
     controller::Pose& handPose = handPair.second;
     glm::mat4 handPoseAvatarMat = createMatFromQuatAndPos(handPose.getRotation(), handPose.getTranslation());
@@ -897,19 +888,19 @@ void ViveControllerManager::InputDevice::calibrateLeftHand(glm::mat4& defaultToR
     glm::vec3 yPrime = glm::normalize(glm::cross(zPrime, xPrime));
 
     glm::mat4 newHandMat = glm::mat4(glm::vec4(xPrime, 0.0f), glm::vec4(yPrime, 0.0f),
-                                     glm::vec4(zPrime, 0.0f), glm::vec4(handPoseTranslation, 1.0f));
+                                     glm::vec4(zPrime, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     
 
-    glm::vec3 translationOffset = glm::vec3(0.0f, -0.0508f, 0.0254f);
+    glm::vec3 translationOffset = glm::vec3(0.0f, HAND_PUCK_Y_OFFSET, HAND_PUCK_Z_OFFSET);
     glm::quat initialRotation = glmExtractRotation(handPoseAvatarMat);
     glm::quat finalRotation = glmExtractRotation(newHandMat);
     
     glm::quat rotationOffset = glm::inverse(initialRotation) * finalRotation;
 
-    glm::mat4 offset = createMatFromQuatAndPos(rotationOffset, translationOffset);
+    glm::mat4 offsetMat = createMatFromQuatAndPos(rotationOffset, translationOffset);
 
     _jointToPuckMap[controller::LEFT_HAND] = handPair.first;
-    _pucksOffset[handPair.first] = offset;
+    _pucksOffset[handPair.first] = offsetMat;
 }
 
 void ViveControllerManager::InputDevice::calibrateRightHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair) {
@@ -929,24 +920,26 @@ void ViveControllerManager::InputDevice::calibrateRightHand(glm::mat4& defaultTo
     glm::vec3 yPrime = glm::normalize(glm::cross(zPrime, xPrime));
 
     glm::mat4 newHandMat = glm::mat4(glm::vec4(xPrime, 0.0f), glm::vec4(yPrime, 0.0f),
-                                     glm::vec4(zPrime, 0.0f), glm::vec4(handPoseTranslation, 1.0f));
+                                     glm::vec4(zPrime, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     
 
 
-    glm::vec3 translationOffset = glm::vec3(0.0f, -0.0508f, 0.0254f);
+    glm::vec3 translationOffset = glm::vec3(0.0f, HAND_PUCK_Y_OFFSET, HAND_PUCK_Z_OFFSET);
     glm::quat initialRotation = glmExtractRotation(handPoseAvatarMat);
     glm::quat finalRotation = glmExtractRotation(newHandMat);
     
     glm::quat rotationOffset = glm::inverse(initialRotation) * finalRotation;
 
-    glm::mat4 offset = createMatFromQuatAndPos(rotationOffset, translationOffset);
+    glm::mat4 offsetMat = createMatFromQuatAndPos(rotationOffset, translationOffset);
 
     _jointToPuckMap[controller::RIGHT_HAND] = handPair.first;
-    _pucksOffset[handPair.first] = offset;
+    _pucksOffset[handPair.first] = offsetMat;
 }
 
 
-void ViveControllerManager::InputDevice::calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, glm::vec3 headXAxis, glm::vec3 headPosition) {
+void ViveControllerManager::InputDevice::calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
+    glm::vec3 headXAxis = getReferenceHeadXAxis(defaultToReferenceMat, inputCalibration.defaultHeadMat);
+    glm::vec3 headPosition = getReferenceHeadPosition(defaultToReferenceMat, inputCalibration.defaultHeadMat);
     auto& firstFoot = _validTrackedObjects[FIRST_FOOT];
     auto& secondFoot = _validTrackedObjects[SECOND_FOOT];
     controller::Pose& firstFootPose = firstFoot.second;
@@ -1016,7 +1009,9 @@ void ViveControllerManager::InputDevice::loadSettings() {
     Settings settings;
     settings.beginGroup("PUCK_CONFIG");
     {
-        _preferedConfig = (Config)settings.value("configuration", QVariant((int)Config::None)).toInt();
+        _preferedConfig = (Config)settings.value("body configuration", QVariant((int)Config::None)).toInt();
+        _headConfig = (HeadConfig)settings.value("head configuration", QVariant((int)HeadConfig::HMD)).toInt();
+        _handConfig = (HandConfig)settings.value("hand configuration", QVariant((int)HandConfig::HandController)).toInt();
     }
     settings.endGroup();
 }
@@ -1025,7 +1020,9 @@ void ViveControllerManager::InputDevice::saveSettings() const {
     Settings settings;
     settings.beginGroup("PUCK_CONFIG");
     {
-        settings.setValue(QString("configuration"), (int)_preferedConfig);
+        settings.setValue(QString("body configuration"), (int)_preferedConfig);
+        settings.setValue(QString("head configuration"), (int)_headConfig);
+        settings.setValue(QString("hand configuration"), (int)_handConfig);
     }
     settings.endGroup();
 }
@@ -1045,54 +1042,8 @@ void ViveControllerManager::InputDevice::setConfigFromString(const QString& valu
         _preferedConfig = Config::FeetHipsAndChest;
     } else if (value == "FeetHipsAndShoulders") {
         _preferedConfig = Config::FeetHipsAndShoulders;
-    }
-}
-
-void ViveControllerManager::InputDevice::createPreferences() {
-    loadSettings();
-    auto preferences = DependencyManager::get<Preferences>();
-    static const QString VIVE_PUCKS_CONFIG = "Vive Pucks Configuration";
-
-    {
-        static const float MIN_VALUE = -3.0f;
-        static const float MAX_VALUE = 3.0f;
-        static const float STEP = 0.01f;
-
-        auto getter = [this]()->float { return HEAD_PUCK_Y_OFFSET; };
-        auto setter = [this](const float& value) { HEAD_PUCK_Y_OFFSET = value; };
-
-        auto preference = new SpinnerPreference(VIVE_PUCKS_CONFIG, "HeadPuckYOffset", getter, setter);
-        preference->setMin(MIN_VALUE);
-        preference->setMax(MAX_VALUE);
-        preference->setDecimals(3);
-        preference->setStep(STEP);
-        preferences->addPreference(preference);
-    }
-
-    {
-        static const float MIN_VALUE = -3.0f;
-        static const float MAX_VALUE = 3.0f;
-        static const float STEP = 0.01f;
-
-        auto getter = [this]()->float { return HEAD_PUCK_Z_OFFSET; };
-        auto setter = [this](const float& value) { HEAD_PUCK_Z_OFFSET = value; };
-
-        auto preference = new SpinnerPreference(VIVE_PUCKS_CONFIG, "HeadPuckXOffset", getter, setter);
-        preference->setMin(MIN_VALUE);
-        preference->setMax(MAX_VALUE);
-        preference->setStep(STEP);
-        preference->setDecimals(3);
-        preferences->addPreference(preference);
-    }
-        
-    {
-        auto getter = [this]()->QString { return _configStringMap[_preferedConfig]; };
-        auto setter = [this](const QString& value) { setConfigFromString(value); saveSettings(); };
-        auto preference = new ComboBoxPreference(VIVE_PUCKS_CONFIG, "Configuration", getter, setter);
-        QStringList list = {"Auto", "Feet", "FeetAndHips", "FeetHipsAndChest", "FeetHipsAndShoulders", "FeetHipsAndHead"};
-        preference->setItems(list);
-        preferences->addPreference(preference);
-
+    } else if (value == "FeetHipsChestAndShoulders") {
+        _preferedConfig = Config::FeetHipsChestAndShoulders;
     }
 }
 
