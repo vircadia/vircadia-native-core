@@ -1197,7 +1197,7 @@ QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJson
 bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject) {
     static const QString SECURITY_ROOT_KEY = "security";
     static const QString AC_SUBNET_WHITELIST_KEY = "ac_subnet_whitelist";
-    static const QString REPLICATION_KEY = "replication";
+    static const QString BROADCASTING_KEY = "broadcasting";
 
     auto& settingsVariant = _configMap.getConfig();
     bool needRestart = false;
@@ -1249,7 +1249,7 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
             if (!matchingDescriptionObject.isEmpty()) {
                 updateSetting(rootKey, rootValue, *thisMap, matchingDescriptionObject);
-                if (rootKey != SECURITY_ROOT_KEY && rootKey != REPLICATION_KEY) {
+                if (rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY) {
                     needRestart = true;
                 }
             } else {
@@ -1265,7 +1265,8 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
                 if (!matchingDescriptionObject.isEmpty()) {
                     const QJsonValue& settingValue = rootValue.toObject()[settingKey];
                     updateSetting(settingKey, settingValue, *thisMap, matchingDescriptionObject);
-                    if ((rootKey != SECURITY_ROOT_KEY && rootKey != REPLICATION_KEY) || settingKey == AC_SUBNET_WHITELIST_KEY) {
+                    if ((rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY)
+                        || settingKey == AC_SUBNET_WHITELIST_KEY) {
                         needRestart = true;
                     }
                 } else {

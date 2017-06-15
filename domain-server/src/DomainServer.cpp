@@ -2220,11 +2220,11 @@ void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer&
 }
 
 void DomainServer::updateReplicatedNodes() {
-    static const QString REPLICATION_SETTINGS_KEY = "replication";
+    static const QString BROADCASTING_SETTINGS_KEY = "broadcasting";
     _replicatedUsernames.clear();
     auto settings = _settingsManager.getSettingsMap();
-    if (settings.contains(REPLICATION_SETTINGS_KEY)) {
-        auto replicationSettings = settings.value(REPLICATION_SETTINGS_KEY).toMap();
+    if (settings.contains(BROADCASTING_SETTINGS_KEY)) {
+        auto replicationSettings = settings.value(BROADCASTING_SETTINGS_KEY).toMap();
         if (replicationSettings.contains("users")) {
             auto usersSettings = replicationSettings.value("users").toList();
             for (auto& username : usersSettings) {

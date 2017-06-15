@@ -1320,15 +1320,15 @@
       ]
     },
     {
-      "name": "replication",
-      "label": "Replication",
+      "name": "broadcasting",
+      "label": "Broadcasting",
       "settings": [
         {
           "name": "users",
-          "label": "Replicated Users",
+          "label": "Broadcasted Users",
           "type": "table",
           "can_add_new_rows": true,
-          "help": "Users that are replicated to downstream servers",
+          "help": "Users that are broadcasted to downstream servers",
           "numbered": false,
           "columns": [
             {
@@ -1340,11 +1340,11 @@
         },
         {
           "name": "downstream_servers",
-          "label": "Downstream Servers",
+          "label": "Receiving Servers",
           "assignment-types": [0,1],
           "type": "table",
           "can_add_new_rows": true,
-          "help": "Downstream servers that are relayed data for replicated users",
+          "help": "Servers that receive data for broadcasted users",
           "numbered": false,
           "columns": [
             {
@@ -1364,7 +1364,7 @@
               "placeholder": "Audio Mixer",
               "default": "Audio Mixer",
               "can_set": true,
-              "options": [               
+              "options": [
                 {
                   "value": "Audio Mixer",
                   "label": "Audio Mixer"
