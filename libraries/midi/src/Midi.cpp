@@ -20,6 +20,13 @@
 #endif
 
 
+const int MIDI_STATUS_MASK = 0x0F0;
+const int MIDI_NOTE_OFF = 0x080;
+const int MIDI_NOTE_ON = 0x090;
+const int MIDI_CONTROL_CHANGE = 0x0b0;
+const int MIDI_CHANNEL_MODE_ALL_NOTES_OFF = 0x07b;
+
+
 static Midi* instance = NULL;			// communicate this to non-class callbacks
 
 std::vector<QString> Midi::midiinexclude;
@@ -35,22 +42,14 @@ std::vector<HMIDIIN> midihin;
 std::vector<HMIDIOUT> midihout;
 
 
-void CALLBACK MidiInProc(
-	HMIDIIN   hMidiIn,
-	UINT      wMsg,
-	DWORD_PTR dwInstance,
-	DWORD_PTR dwParam1,
-	DWORD_PTR dwParam2
-) {
+void CALLBACK MidiInProc(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
 	if (wMsg == MIM_OPEN) {
-	}
-	else if (wMsg == MIM_CLOSE) {
+	} else if (wMsg == MIM_CLOSE) {
 		for (int i = 0; i < midihin.size(); i++) if (midihin[i] == hMidiIn) {
 			midihin[i] = NULL;
-			instance->sendNote(0xb0, 0x7b, 0);		// all notes off
+			instance->allNotesOff();
 		}
-	}
-	else if (wMsg == MIM_DATA) {
+	} else if (wMsg == MIM_DATA) {
 		int status = 0x0ff & dwParam1;
 		int note = 0x0ff & (dwParam1 >> 8);
 		int vel = 0x0ff & (dwParam1 >> 16);
@@ -60,17 +59,11 @@ void CALLBACK MidiInProc(
 }
 
 
-void CALLBACK MidiOutProc(
-	HMIDIOUT  hmo,
-	UINT      wMsg,
-	DWORD_PTR dwInstance,
-	DWORD_PTR dwParam1,
-	DWORD_PTR dwParam2
-	) {
+void CALLBACK MidiOutProc(HMIDIOUT hmo, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
 	if (wMsg == MOM_CLOSE) {
 		for (int i = 0; i < midihout.size(); i++) if (midihout[i] == hmo) {
 			midihout[i] = NULL;
-			instance->sendNote(0xb0, 0x7b, 0);		// all notes off
+			instance->allNotesOff();
 		}
 	}
 }
@@ -83,7 +76,8 @@ void Midi::sendNote(int status, int note, int vel) {
 }
 
 void Midi::noteReceived(int status, int note, int velocity) {
-	if (status >= 0x0a0) return;			// NOTE: only sending note-on and note-off to Javascript
+	if (((status & MIDI_STATUS_MASK) != MIDI_NOTE_OFF) &&
+		((status & MIDI_STATUS_MASK) != MIDI_NOTE_ON)) return;			// NOTE: only sending note-on and note-off to Javascript
 
 	QVariantMap eventData;
 	eventData["status"] = status;
@@ -103,7 +97,7 @@ void Midi::MidiSetup() {
 
 		bool found = false;
 		for (int j = 0; j < midiinexclude.size(); j++) {
-			if (lstrcmp(midiinexclude[j].toStdString().c_str(), incaps.szPname) == 0) found = true;
+			if (midiinexclude[j].toStdString().compare(incaps.szPname) == 0) found = true;
 		}
 		if (!found)			// EXCLUDE AN INPUT BY NAME
 		{
@@ -121,7 +115,7 @@ void Midi::MidiSetup() {
 
 		bool found = false;
 		for (int j = 0; j < midioutexclude.size(); j++) {
-			if (lstrcmp(midioutexclude[j].toStdString().c_str(), outcaps.szPname) == 0) found = true;
+			if (midioutexclude[j].toStdString().compare(outcaps.szPname) == 0) found = true;
 		}
 		if (!found)			// EXCLUDE AN OUTPUT BY NAME
 		{
@@ -131,11 +125,11 @@ void Midi::MidiSetup() {
 		}
 	}
 
-	sendNote(0xb0, 0x7b, 0);		// all notes off
+	allNotesOff();
 }
 
 void Midi::MidiCleanup() {
-	sendNote(0xb0, 0x7b, 0);		// all notes off
+	allNotesOff();
 
 	for (int i = 0; i < midihin.size(); i++) if (midihin[i] != NULL) {
 		midiInStop(midihin[i]);
@@ -152,11 +146,11 @@ void Midi::sendNote(int status, int note, int vel) {
 }
 
 void Midi::MidiSetup() {
-	sendNote(0xb0, 0x7b, 0);		// all notes off
+	allNotesOff();
 }
 
 void Midi::MidiCleanup() {
-	sendNote(0xb0, 0x7b, 0);		// all notes off
+	allNotesOff();
 }
 #endif
 
@@ -173,7 +167,7 @@ void Midi::playMidiNote(int status, int note, int velocity) {
 }
 
 void Midi::allNotesOff() {
-	sendNote(0xb0, 0x7b, 0);		// all notes off
+	sendNote(MIDI_CONTROL_CHANGE, MIDI_CHANNEL_MODE_ALL_NOTES_OFF, 0);		// all notes off
 }
 
 void Midi::resetDevices() {

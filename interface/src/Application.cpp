@@ -646,7 +646,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _entityClipboard->createRootElement();
 
 #ifdef Q_OS_WIN
-	installNativeEventFilter(&MyNativeEventFilter::getInstance());
+    installNativeEventFilter(&MyNativeEventFilter::getInstance());
 #endif
 
     _logger = new FileLogger(this);  // After setting organization name in order to get correct directory
