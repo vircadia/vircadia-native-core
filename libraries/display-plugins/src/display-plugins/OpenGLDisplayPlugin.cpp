@@ -706,7 +706,7 @@ bool OpenGLDisplayPlugin::setDisplayTexture(const QString& name) {
     // Note: it is the caller's responsibility to keep the network texture in cache.
     if (name.isEmpty()) {
         _displayTexture.reset();
-        clearPreviewFlag();
+        onDisplayTextureReset();
         return true;
     }
     auto textureCache = DependencyManager::get<TextureCache>();

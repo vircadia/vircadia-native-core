@@ -58,7 +58,7 @@ public:
     }
 
     virtual bool setDisplayTexture(const QString& name) override;
-    virtual bool clearPreviewFlag() override { return false; };
+    virtual bool onDisplayTextureReset() { return false; };
     QImage getScreenshot(float aspectRatio = 0.0f) const override;
 
     float presentRate() const override;
