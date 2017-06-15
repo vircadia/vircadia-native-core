@@ -369,6 +369,7 @@ public:
     virtual ~AvatarData();
 
     static const QUrl& defaultFullAvatarModelUrl();
+    QUrl cannonicalSkeletonModelURL(const QUrl& empty) const;
 
     virtual bool isMyAvatar() const { return false; }
 
@@ -534,8 +535,9 @@ public:
     };
 
     // identityChanged returns true if identity has changed, false otherwise.
-    // displayNameChanged returns true if displayName has changed, false otherwise.
-    void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged);
+    // identityChanged returns true if identity has changed, false otherwise. Similarly for displayNameChanged and skeletonModelUrlChange.
+    void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged,
+                               bool& displayNameChanged, bool& skeletonModelUrlChanged);
 
     QByteArray identityByteArray(bool shouldForwardIncomingSequenceNumber = false) const;
 
@@ -691,7 +693,6 @@ protected:
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
     QString _sessionDisplayName { };
-    QUrl cannonicalSkeletonModelURL(const QUrl& empty) const;
 
     QHash<QString, int> _jointIndices; ///< 1-based, since zero is returned for missing keys
     QStringList _jointNames; ///< in order of depth-first traversal

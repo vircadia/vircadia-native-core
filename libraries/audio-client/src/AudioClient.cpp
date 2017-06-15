@@ -395,6 +395,11 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
     return (mode == QAudio::AudioInput) ? QAudioDeviceInfo::defaultInputDevice() : QAudioDeviceInfo::defaultOutputDevice();
 }
 
+bool AudioClient::getNamedAudioDeviceForModeExists(QAudio::Mode mode, const QString& deviceName) {
+    return (getNamedAudioDeviceForMode(mode, deviceName).deviceName() == deviceName);
+}
+
+
 // attempt to use the native sample rate and channel count
 bool nativeFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,
                                 QAudioFormat& audioFormat) {
