@@ -60,17 +60,26 @@ Rectangle {
             Audio.CheckBox {
                 text: qsTr("Mute microphone");
                 checked: Audio.muted;
-                onCheckedChanged: { Audio.muted = checked; }
+                onClicked: {
+                    Audio.muted = checked;
+                    checked = Qt.binding(function() { return Audio.muted; }); // restore binding
+                }
             }
             Audio.CheckBox {
                 text: qsTr("Enable noise reduction");
                 checked: Audio.noiseReduction;
-                onCheckedChanged: { Audio.noiseReduction = checked; }
+                onClicked: {
+                    Audio.noiseReduction = checked;
+                    checked = Qt.binding(function() { return Audio.noiseReduction; }); // restore binding
+                }
             }
             Audio.CheckBox {
                 text: qsTr("Show audio level meter");
                 checked: AvatarInputs.showAudioTools;
-                onCheckedChanged: { AvatarInputs.showAudioTools = checked; }
+                onClicked: {
+                    AvatarInputs.showAudioTools = checked;
+                    checked = Qt.binding(function() { return AvatarInputs.showAudioTools; }); // restore binding
+                }
             }
         }
 
