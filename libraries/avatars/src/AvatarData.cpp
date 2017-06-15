@@ -1483,7 +1483,8 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
     return _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
 }
 
-void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& identityChanged, bool& displayNameChanged) {
+void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& identityChanged,
+                                       bool& displayNameChanged, bool& skeletonModelUrlChanged) {
 
     QDataStream packetStream(identityData);
 
@@ -1516,6 +1517,7 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
         if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
             setSkeletonModelURL(identity.skeletonModelURL);
             identityChanged = true;
+            skeletonModelUrlChanged = true;
             if (_firstSkeletonCheck) {
                 displayNameChanged = true;
             }
