@@ -47,7 +47,7 @@ void OctreeInboundPacketProcessor::resetStats() {
     _singleSenderStats.clear();
 }
 
-unsigned long OctreeInboundPacketProcessor::getMaxWait() const {
+uint32_t OctreeInboundPacketProcessor::getMaxWait() const {
     // calculate time until next sendNackPackets()
     quint64 nextNackTime = _lastNackTime + TOO_LONG_SINCE_LAST_NACK;
     quint64 now = usecTimestampNow();
