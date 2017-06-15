@@ -135,10 +135,10 @@ void ThreadedAssignment::domainSettingsRequestFailed() {
 }
 
 void ThreadedAssignment::parseDownstreamServers(const QJsonObject& settingsObject, NodeType_t nodeType, DownstreamNodeFoundCallback callback) {
-    static const QString REPLICATION_GROUP_KEY = "replication";
+    static const QString BROADCASTING_GROUP_KEY = "broadcasting";
     static const QString DOWNSTREAM_SERVERS_SETTING_KEY = "downstream_servers";
-    if (settingsObject.contains(REPLICATION_GROUP_KEY)) {
-        const QJsonObject replicationObject = settingsObject[REPLICATION_GROUP_KEY].toObject();
+    if (settingsObject.contains(BROADCASTING_GROUP_KEY)) {
+        const QJsonObject replicationObject = settingsObject[BROADCASTING_GROUP_KEY].toObject();
 
         const QJsonArray downstreamServers = replicationObject[DOWNSTREAM_SERVERS_SETTING_KEY].toArray();
 
