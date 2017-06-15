@@ -1294,12 +1294,12 @@ function makeTableHiddenInputs(setting, initialValues, categoryValue) {
         html += "<select style='display: none;' class='form-control' data-hidden-input='" + col.name + "'>'"
         
         for (var i in col.options) {
-            var option = col.options[i];           
+            var option = col.options[i];
             html += "<option value='" + option.value + "' " + (option.value == defaultValue ? 'selected' : '') + ">" + option.label + "</option>";
         }
         
-        html += "</select>";    
-        html += "<input type='hidden' class='table-dropdown form-control trigger-change' name='" + col.name + "' value='" + option.value + "'></td>";      
+        html += "</select>";
+        html += "<input type='hidden' class='table-dropdown form-control trigger-change' name='" + col.name + "' value='" +  defaultValue + "'></td>";
     } else {
       html +=
         "<td " + (col.hidden ? "style='display: none;'" : "") + " class='" + Settings.DATA_COL_CLASS + "' " +
@@ -1441,8 +1441,11 @@ function addTableRow(row) {
         if (isCheckbox) {
           input.attr("name", newName)
         } else {
-          if (isDropdown) {             
-            $(element).children("select").attr("data-hidden-input", newName);
+          if (isDropdown) {
+            // default values for hidden inputs inside child selects gets cleared so we need to remind it
+            var selectElement = $(element).children("select");
+            selectElement.attr("data-hidden-input", newName);
+            $(element).children("input").val(selectElement.val());
           }
           input.attr("name", newName);
         }
