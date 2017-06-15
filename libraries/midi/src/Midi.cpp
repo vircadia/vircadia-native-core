@@ -99,8 +99,7 @@ void Midi::MidiSetup() {
 		for (int j = 0; j < midiinexclude.size(); j++) {
 			if (midiinexclude[j].toStdString().compare(incaps.szPname) == 0) found = true;
 		}
-		if (!found)			// EXCLUDE AN INPUT BY NAME
-		{
+		if (!found)	{		// EXCLUDE AN INPUT BY NAME
 			HMIDIIN tmphin;
 			midiInOpen(&tmphin, i, (DWORD_PTR)MidiInProc, NULL, CALLBACK_FUNCTION);
 			midiInStart(tmphin);
@@ -117,8 +116,7 @@ void Midi::MidiSetup() {
 		for (int j = 0; j < midioutexclude.size(); j++) {
 			if (midioutexclude[j].toStdString().compare(outcaps.szPname) == 0) found = true;
 		}
-		if (!found)			// EXCLUDE AN OUTPUT BY NAME
-		{
+		if (!found) {		// EXCLUDE AN OUTPUT BY NAME
 			HMIDIOUT tmphout;
 			midiOutOpen(&tmphout, i, (DWORD_PTR)MidiOutProc, NULL, CALLBACK_FUNCTION);
 			midihout.push_back(tmphout);
