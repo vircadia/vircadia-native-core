@@ -1395,6 +1395,45 @@
               ]
             }
           ]
+        },
+        {
+          "name": "upstream_servers",
+          "label": "Upstream Servers",
+          "assignment-types": [0,1],
+          "type": "table",
+          "can_add_new_rows": true,
+          "help": "Upstream servers that relay data for replicated users to this server",
+          "numbered": false,
+          "columns": [
+            {
+              "name": "address",
+              "label": "Address",
+              "can_set": true
+            },
+            {
+              "name": "port",
+              "label": "Port",
+              "can_set": true
+            },
+            {
+              "name": "server_type",
+              "label": "Server Type",
+              "type": "select",
+              "placeholder": "Audio Mixer",
+              "default": "Audio Mixer",
+              "can_set": true,
+              "options": [
+                {
+                  "value": "Audio Mixer",
+                  "label": "Audio Mixer"
+                },
+                {
+                  "value": "Avatar Mixer",
+                  "label": "Avatar Mixer"
+                }
+              ]
+            }
+          ]
         }
       ]
     }
