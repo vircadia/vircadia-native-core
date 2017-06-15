@@ -523,9 +523,9 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<DiscoverabilityManager>();
     DependencyManager::set<SceneScriptingInterface>();
     DependencyManager::set<OffscreenUi>();
-	DependencyManager::set<AutoUpdater>();
-	DependencyManager::set<Midi>();
-	DependencyManager::set<PathUtils>();
+    DependencyManager::set<AutoUpdater>();
+    DependencyManager::set<Midi>();
+    DependencyManager::set<PathUtils>();
     DependencyManager::set<InterfaceDynamicFactory>();
     DependencyManager::set<AudioInjectorManager>();
     DependencyManager::set<MessagesClient>();
