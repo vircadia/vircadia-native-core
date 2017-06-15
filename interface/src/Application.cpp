@@ -5296,6 +5296,11 @@ void Application::nodeActivated(SharedNodePointer node) {
 
     if (node->getType() == NodeType::AvatarMixer) {
         // new avatar mixer, send off our identity packet on next update loop
+        // Reset skeletonModelUrl if the last server modified our choice.
+        static const QUrl empty{};
+        if (getMyAvatar()->getFullAvatarURLFromPreferences() != getMyAvatar()->cannonicalSkeletonModelURL(empty)) {
+            getMyAvatar()->resetFullAvatarURL();
+        }
         getMyAvatar()->markIdentityDataChanged();
         getMyAvatar()->resetLastSent();
     }
