@@ -46,6 +46,8 @@ public:
 
     float stutterRate() const override;
 
+    virtual bool setDisplayTexture(const QString& name) override;
+
 protected:
     virtual void hmdPresent() = 0;
     virtual bool isHmdMounted() const = 0;
