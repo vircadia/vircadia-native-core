@@ -253,7 +253,7 @@ Rectangle {
             anchors.left: parent.left;
             anchors.top: monitorShowsSwitch.bottom;
             anchors.topMargin: 25;
-            text: "Pressing Ctrl+0 Switches Monitor View";
+            text: "";
             boxSize: 24;
             onClicked: {
                 sendToScript({method: 'changeSwitchViewFromControllerPreference', params: checked});
