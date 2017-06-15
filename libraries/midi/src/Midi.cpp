@@ -1,0 +1,223 @@
+//
+//  Midi.cpp
+//  libraries/midi/src
+//
+//  Created by Burt Sloane
+//  Copyright 2015 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+#include "Midi.h"
+
+
+#include <QtCore/QLoggingCategory>
+
+
+#if defined Q_OS_WIN32
+#include "Windows.h"
+#endif
+
+
+static Midi* instance = NULL;			// communicate this to non-class callbacks
+
+
+#if defined Q_OS_WIN32
+
+#pragma comment(lib, "Winmm.lib")
+
+//
+std::vector<HMIDIIN> midihin;
+std::vector<HMIDIOUT> midihout;
+
+std::vector<QString> Midi::midiinexclude;
+std::vector<QString> Midi::midioutexclude;
+
+
+void CALLBACK MidiInProc(
+	HMIDIIN   hMidiIn,
+	UINT      wMsg,
+	DWORD_PTR dwInstance,
+	DWORD_PTR dwParam1,
+	DWORD_PTR dwParam2
+) {
+	if (wMsg == MIM_OPEN) {
+	}
+	else if (wMsg == MIM_CLOSE) {
+		for (int i = 0; i < midihin.size(); i++) if (midihin[i] == hMidiIn) {
+			midihin[i] = NULL;
+			instance->sendNote(0xb0, 0x7b, 0);		// all notes off
+		}
+	}
+	else if (wMsg == MIM_DATA) {
+		int status = 0x0ff & dwParam1;
+		int note = 0x0ff & (dwParam1 >> 8);
+		int vel = 0x0ff & (dwParam1 >> 16);
+//sendNote(status, note, vel);		// NOTE: relay the note on to all other midi devices
+		instance->Midi::noteReceived(status, note, vel);
+	}
+}
+
+
+void CALLBACK MidiOutProc(
+	HMIDIOUT  hmo,
+	UINT      wMsg,
+	DWORD_PTR dwInstance,
+	DWORD_PTR dwParam1,
+	DWORD_PTR dwParam2
+	) {
+	if (wMsg == MOM_CLOSE) {
+		for (int i = 0; i < midihout.size(); i++) if (midihout[i] == hmo) {
+			midihout[i] = NULL;
+			instance->sendNote(0xb0, 0x7b, 0);		// all notes off
+		}
+	}
+}
+
+
+void Midi::sendNote(int status, int note, int vel) {
+	for (int i = 0; i < midihout.size(); i++) if (midihout[i] != NULL) {
+		midiOutShortMsg(midihout[i], status + (note << 8) + (vel << 16));
+	}
+}
+
+void Midi::noteReceived(int status, int note, int velocity) {
+	if (status >= 0x0a0) return;			// NOTE: only sending note-on and note-off to Javascript
+
+	QVariantMap eventData;
+	eventData["status"] = status;
+	eventData["note"] = note;
+	eventData["velocity"] = velocity;
+	emit midiNote(eventData);
+}
+
+
+void Midi::MidiSetup() {
+	midihin.clear();
+	midihout.clear();
+
+	MIDIINCAPS incaps;
+	for (unsigned int i = 0; i < midiInGetNumDevs(); i++) {
+		midiInGetDevCaps(i, &incaps, sizeof(MIDIINCAPS));
+
+		bool found = false;
+		for (int j = 0; j < midiinexclude.size(); j++) {
+			if (lstrcmp(midiinexclude[j].toStdString().c_str(), incaps.szPname) == 0) found = true;
+		}
+		if (!found)			// EXCLUDE AN INPUT BY NAME
+		{
+			HMIDIIN tmphin;
+			midiInOpen(&tmphin, i, (DWORD_PTR)MidiInProc, NULL, CALLBACK_FUNCTION);
+			midiInStart(tmphin);
+			midihin.push_back(tmphin);
+		}
+
+	}
+
+	MIDIOUTCAPS outcaps;
+	for (unsigned int i = 0; i < midiOutGetNumDevs(); i++) {
+		midiOutGetDevCaps(i, &outcaps, sizeof(MIDIINCAPS));
+
+		bool found = false;
+		for (int j = 0; j < midioutexclude.size(); j++) {
+			if (lstrcmp(midioutexclude[j].toStdString().c_str(), outcaps.szPname) == 0) found = true;
+		}
+		if (!found)			// EXCLUDE AN OUTPUT BY NAME
+		{
+			HMIDIOUT tmphout;
+			midiOutOpen(&tmphout, i, (DWORD_PTR)MidiOutProc, NULL, CALLBACK_FUNCTION);
+			midihout.push_back(tmphout);
+		}
+	}
+
+	sendNote(0xb0, 0x7b, 0);		// all notes off
+}
+
+void Midi::MidiCleanup() {
+	sendNote(0xb0, 0x7b, 0);		// all notes off
+
+	for (int i = 0; i < midihin.size(); i++) if (midihin[i] != NULL) {
+		midiInStop(midihin[i]);
+		midiInClose(midihin[i]);
+	}
+	for (int i = 0; i < midihout.size(); i++) if (midihout[i] != NULL) {
+		midiOutClose(midihout[i]);
+	}
+	midihin.clear();
+	midihout.clear();
+}
+#endif
+
+//
+
+Midi::Midi() {
+	instance = this;
+	midioutexclude.push_back("Microsoft GS Wavetable Synth");		// we don't want to hear this thing
+	MidiSetup();
+}
+
+void Midi::playMidiNote(int status, int note, int velocity) {
+	sendNote(status, note, velocity);
+}
+
+void Midi::allNotesOff() {
+	sendNote(0xb0, 0x7b, 0);		// all notes off
+}
+
+void Midi::resetDevices() {
+	MidiCleanup();
+	MidiSetup();
+}
+
+void Midi::USBchanged() {
+	instance->MidiCleanup();
+	instance->MidiSetup();
+}
+
+//
+
+QStringList Midi::listMidiDevices(bool output) {
+	QStringList rv;
+	if (output) {
+		MIDIOUTCAPS outcaps;
+		for (unsigned int i = 0; i < midiOutGetNumDevs(); i++) {
+			midiOutGetDevCaps(i, &outcaps, sizeof(MIDIINCAPS));
+			rv.append(outcaps.szPname);
+		}
+	}
+	else {
+		MIDIINCAPS incaps;
+		for (unsigned int i = 0; i < midiInGetNumDevs(); i++) {
+			midiInGetDevCaps(i, &incaps, sizeof(MIDIINCAPS));
+			rv.append(incaps.szPname);
+		}
+	}
+	return rv;
+}
+
+void Midi::unblockMidiDevice(QString name, bool output) {
+	if (output) {
+		for (int i = 0; i < midioutexclude.size(); i++) if (midioutexclude[i].toStdString().compare(name.toStdString()) == 0) {
+			midioutexclude.erase(midioutexclude.begin() + i);
+			break;
+		}
+	}
+	else {
+		for (int i = 0; i < midiinexclude.size(); i++) if (midiinexclude[i].toStdString().compare(name.toStdString()) == 0) {
+			midiinexclude.erase(midiinexclude.begin() + i);
+			break;
+		}
+	}
+}
+
+void Midi::blockMidiDevice(QString name, bool output) {
+	unblockMidiDevice(name, output);		// make sure it's only in there once
+	if (output) {
+		midioutexclude.push_back(name);
+	}
+	else {
+		midiinexclude.push_back(name);
+	}
+}
+
