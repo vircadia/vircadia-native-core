@@ -59,7 +59,12 @@ private:
     void parseDomainServerSettings(const QJsonObject& domainSettings);
     void sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
 
-    void manageDisplayName(const SharedNodePointer& node);
+    void manageIdentityData(const SharedNodePointer& node);
+    bool isAvatarInWhitelist(const QUrl& url);
+
+    const QString REPLACEMENT_AVATAR_DEFAULT{ "" };
+    QStringList _avatarWhitelist { };
+    QString _replacementAvatar { REPLACEMENT_AVATAR_DEFAULT };
 
     p_high_resolution_clock::time_point _lastFrameTimestamp;
 
