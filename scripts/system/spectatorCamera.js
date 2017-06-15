@@ -324,6 +324,7 @@
     // Relevant Variables:
     // controllerMappingName: The name of the controller mapping
     // controllerMapping: The controller mapping itself
+    // controllerType: "OculusTouch", "Vive", "Other"
     // 
     // Arguments:
     // None
@@ -333,15 +334,32 @@
     //
     var controllerMappingName;
     var controllerMapping;
+    var controllerType = "Other";
     function registerButtonMappings() {
+        var controllersDeviceNames = Controller.getDeviceNames();
+        if (controllersDeviceNames.indexOf("OculusTouch") !== -1) {
+            controllerType = "OculusTouch";
+        } else if (controllerDeviceNames.indexOf("Vive") !== -1) {
+            controllerType = "Vive";
+        }
+
         controllerMappingName = 'Hifi-SpectatorCamera-Mapping-' + Math.random();
         controllerMapping = Controller.newMapping(controllerMappingName);
-        controllerMapping.from(Controller.Standard.LS).to(function (value) {
-            if (value === 1.0) {
-                setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
-            }
-            return;
-        });
+        if (controllerType === "OculusTouch") {
+            controllerMapping.from(Controller.Standard.LS).to(function (value) {
+                if (value === 1.0) {
+                    setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
+                }
+                return;
+            });
+        } else if (controllerType === "Vive") {
+            controllerMapping.from(Controller.Standard.LeftPrimaryThumb).to(function (value) {
+                if (value === 1.0) {
+                    setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
+                }
+                return;
+            });
+        }
         setControllerMappingStatus(switchViewFromController);
         sendToQml({ method: 'updateControllerMappingCheckbox', params: switchViewFromController });
     }
