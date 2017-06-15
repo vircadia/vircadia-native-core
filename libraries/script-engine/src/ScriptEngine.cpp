@@ -663,7 +663,7 @@ void ScriptEngine::init() {
 
     registerGlobalObject("Audio", DependencyManager::get<AudioScriptingInterface>().data());
 
-	registerGlobalObject("Midi", DependencyManager::get<Midi>().data());
+    registerGlobalObject("Midi", DependencyManager::get<Midi>().data());
 
     registerGlobalObject("Entities", entityScriptingInterface.data());
     registerGlobalObject("Quat", &_quatLibrary);
