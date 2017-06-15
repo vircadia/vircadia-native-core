@@ -668,6 +668,11 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
 
     SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
                                              nodeLocalSocket, permissions, isReplicated, connectionUUID);
+
+    // nodes that are downstream of our own type are kept alive when we hear about them from the domain server
+    if (node->getType() == NodeType::downstreamType(_ownerType)) {
+        node->setLastHeardMicrostamp(usecTimestampNow());
+    }
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {
@@ -771,7 +776,8 @@ void NodeList::sendKeepAlivePings() {
     // send keep-alive ping packets to nodes of types we care about that are not relayed to us from an upstream node
 
     eachMatchingNode([this](const SharedNodePointer& node)->bool {
-        return !node->isUpstream() && _nodeTypesOfInterest.contains(node->getType());
+        auto type = node->getType();
+        return !node->isUpstream() && _nodeTypesOfInterest.contains(type) && !NodeType::isDownstream(type);
     }, [&](const SharedNodePointer& node) {
         sendPacket(constructPingPacket(), *node);
     });

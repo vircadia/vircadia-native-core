@@ -103,6 +103,11 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     );
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
+    connect(nodeList.data(), &NodeList::nodeAdded, this, [this](const SharedNodePointer& node) {
+        if (node->getType() == NodeType::DownstreamAudioMixer) {
+            node->activatePublicSocket();
+        }
+    });
 }
 
 void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
@@ -393,7 +398,7 @@ void AudioMixer::start() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // prepare the NodeList
-    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
+    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::DownstreamAudioMixer, NodeType::EntityScriptServer });
     nodeList->linkedDataCreateCallback = [&](Node* node) { getOrCreateClientData(node); };
 
     // parse out any AudioMixer settings
@@ -770,8 +775,6 @@ void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
             }
         }
     }
-
-    parseDownstreamServers(settingsObject, NodeType::AudioMixer);
 }
 
 AudioMixer::Timer::Timing::Timing(uint64_t& sum) : _sum(sum) {

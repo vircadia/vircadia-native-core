@@ -63,6 +63,12 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
 
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &AvatarMixer::handlePacketVersionMismatch);
+    connect(nodeList.data(), &NodeList::nodeAdded, this, [this](const SharedNodePointer& node) {
+        if (node->getType() == NodeType::DownstreamAvatarMixer) {
+            getOrCreateClientData(node);
+            node->activatePublicSocket();
+        }
+    });
 }
 
 SharedNodePointer addOrUpdateReplicatedNode(const QUuid& nodeID, const HifiSockAddr& senderSockAddr) {
@@ -219,7 +225,9 @@ void AvatarMixer::start() {
             auto start = usecTimestampNow();
             nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
                 std::for_each(cbegin, cend, [&](const SharedNodePointer& node) {
-                    manageDisplayName(node);
+                    if (node->getType() == NodeType::Agent && !node->isUpstream()) {
+                        manageDisplayName(node);
+                    }
                     ++_sumListeners;
                 });
             }, &lockWait, &nodeTransform, &functor);
@@ -802,7 +810,7 @@ AvatarMixerClientData* AvatarMixer::getOrCreateClientData(SharedNodePointer node
 
 void AvatarMixer::domainSettingsRequestComplete() {
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
+    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::DownstreamAvatarMixer, NodeType::EntityScriptServer });
 
     // parse the settings to pull out the values we need
     parseDomainServerSettings(nodeList->getDomainHandler().getSettingsObject());
@@ -874,11 +882,4 @@ void AvatarMixer::parseDomainServerSettings(const QJsonObject& domainSettings) {
 
     qCDebug(avatars) << "This domain requires a minimum avatar scale of" << _domainMinimumScale
                      << "and a maximum avatar scale of" << _domainMaximumScale;
-
-
-    parseDownstreamServers(domainSettings, NodeType::AvatarMixer, [](Node& node) {
-        if (!node.getLinkedData()) {
-            node.setLinkedData(std::unique_ptr<NodeData> { new AvatarMixerClientData(node.getUUID()) });
-        }
-    });
 }

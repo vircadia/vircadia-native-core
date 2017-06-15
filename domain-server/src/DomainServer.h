@@ -103,6 +103,7 @@ private slots:
     void handleOctreeFileReplacement(QByteArray octreeFile);
 
     void updateReplicatedNodes();
+    void updateDownstreamNodes();
 
 signals:
     void iceServerChanged();

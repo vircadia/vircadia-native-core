@@ -67,6 +67,11 @@ NodeType_t NodeType::downstreamType(NodeType_t primaryType) {
     }
 }
 
+NodeType_t NodeType::fromString(QString type) {
+    return TypeNameHash.key(type, NodeType::Unassigned);
+}
+
+
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
            const HifiSockAddr& localSocket, const NodePermissions& permissions, bool isReplicated,
            const QUuid& connectionSecret, QObject* parent) :

@@ -42,8 +42,6 @@ signals:
 
 protected:
     void commonInit(const QString& targetName, NodeType_t nodeType);
-    void parseDownstreamServers(const QJsonObject& settingsObject, NodeType_t nodeType,
-                                DownstreamNodeFoundCallback callback = [](Node& downstreamNode) {});
 
     bool _isFinished;
     QTimer _domainServerTimer;
