@@ -26,9 +26,17 @@ public:
     virtual const QString getName() const override { return NAME; }
     const QString getID() const override { return LEAPMOTION_ID_STRING; }
 
+    virtual void init() override;
+
+    virtual void saveSettings() const override;
+    virtual void loadSettings() override;
+
 protected:
     static const char* NAME;
     static const char* LEAPMOTION_ID_STRING;
+
+    bool _enabled { false };
+    QString _sensorLocation;
 
     class InputDevice : public controller::InputDevice {
     public:
@@ -38,6 +46,8 @@ protected:
 
         // Device functions
         virtual controller::Input::NamedVector getAvailableInputs() const override;
+
+        void clearState();
     };
 
     std::shared_ptr<InputDevice> _inputDevice{ std::make_shared<InputDevice>() };

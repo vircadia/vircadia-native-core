@@ -12,11 +12,20 @@
 
 #include <QLoggingCategory>
 
+#include <controllers/UserInputMapper.h>
+#include <Preferences.h>
+#include <SettingHandle.h>
+
 Q_DECLARE_LOGGING_CATEGORY(inputplugins)
 Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
 
 const char* LeapMotionPlugin::NAME = "Leap Motion";
 const char* LeapMotionPlugin::LEAPMOTION_ID_STRING = "Leap Motion";
+
+const bool DEFAULT_ENABLED = false;
+const char* SENSOR_ON_DESKTOP = "Desktop";
+const char* SENSOR_ON_HMD = "HMD";
+const char* DEFAULT_SENSOR_LOCATION = SENSOR_ON_DESKTOP;
 
 void LeapMotionPlugin::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     // TODO
@@ -28,4 +37,67 @@ controller::Input::NamedVector LeapMotionPlugin::InputDevice::getAvailableInputs
     // TODO
 
     return availableInputs;
+}
+
+void LeapMotionPlugin::init() {
+    loadSettings();
+
+    auto preferences = DependencyManager::get<Preferences>();
+    static const QString LEAPMOTION_PLUGIN { "Leap Motion" };
+    {
+        auto getter = [this]()->bool { return _enabled; };
+        auto setter = [this](bool value) {
+            _enabled = value;
+            saveSettings();
+            if (!_enabled) {
+                auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+                userInputMapper->withLock([&, this]() {
+                    _inputDevice->clearState();
+                });
+            }
+        };
+        auto preference = new CheckPreference(LEAPMOTION_PLUGIN, "Enabled", getter, setter);
+        preferences->addPreference(preference);
+    }
+    {
+        auto getter = [this]()->QString { return _sensorLocation; };
+        auto setter = [this](QString value) {
+            _sensorLocation = value;
+            saveSettings();
+            // TODO: Apply setting value.
+        };
+        auto preference = new ComboBoxPreference(LEAPMOTION_PLUGIN, "Sensor location", getter, setter);
+        QStringList list = { SENSOR_ON_DESKTOP, SENSOR_ON_HMD };
+        preference->setItems(list);
+        preferences->addPreference(preference);
+    }
+}
+
+const char* SETTINGS_ENABLED_KEY = "enabled";
+const char* SETTINGS_SENSOR_LOCATION_KEY = "sensorLocation";
+
+void LeapMotionPlugin::saveSettings() const {
+    Settings settings;
+    QString idString = getID();
+    settings.beginGroup(idString);
+    {
+        settings.setValue(QString(SETTINGS_ENABLED_KEY), _enabled);
+        settings.setValue(QString(SETTINGS_SENSOR_LOCATION_KEY), _sensorLocation);
+    }
+    settings.endGroup();
+}
+
+void LeapMotionPlugin::loadSettings() {
+    Settings settings;
+    QString idString = getID();
+    settings.beginGroup(idString);
+    {
+        _enabled = settings.value(SETTINGS_ENABLED_KEY, QVariant(DEFAULT_ENABLED)).toBool();
+        _sensorLocation = settings.value(SETTINGS_SENSOR_LOCATION_KEY, QVariant(DEFAULT_SENSOR_LOCATION)).toString();
+    }
+    settings.endGroup();
+}
+
+void LeapMotionPlugin::InputDevice::clearState() {
+    // TODO
 }
