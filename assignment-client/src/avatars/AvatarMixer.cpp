@@ -63,7 +63,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
 
     auto nodeList = DependencyManager::get<NodeList>();
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &AvatarMixer::handlePacketVersionMismatch);
-    connect(nodeList.data(), &NodeList::nodeAdded, this, [this](SharedNodePointer node) {
+    connect(nodeList.data(), &NodeList::nodeAdded, this, [this](const SharedNodePointer& node) {
         if (node->getType() == NodeType::DownstreamAvatarMixer) {
             getOrCreateClientData(node);
             node->activatePublicSocket();
