@@ -10,6 +10,11 @@
 
 #include "LeapMotionPlugin.h"
 
+#include <QLoggingCategory>
+
+Q_DECLARE_LOGGING_CATEGORY(inputplugins)
+Q_LOGGING_CATEGORY(inputplugins, "hifi.inputplugins")
+
 const char* LeapMotionPlugin::NAME = "Leap Motion";
 
 void LeapMotionPlugin::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
