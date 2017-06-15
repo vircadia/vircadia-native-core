@@ -22,6 +22,9 @@
 
 static Midi* instance = NULL;			// communicate this to non-class callbacks
 
+std::vector<QString> Midi::midiinexclude;
+std::vector<QString> Midi::midioutexclude;
+
 
 #if defined Q_OS_WIN32
 
@@ -30,9 +33,6 @@ static Midi* instance = NULL;			// communicate this to non-class callbacks
 //
 std::vector<HMIDIIN> midihin;
 std::vector<HMIDIOUT> midihout;
-
-std::vector<QString> Midi::midiinexclude;
-std::vector<QString> Midi::midioutexclude;
 
 
 void CALLBACK MidiInProc(
@@ -147,6 +147,17 @@ void Midi::MidiCleanup() {
 	midihin.clear();
 	midihout.clear();
 }
+#else
+void Midi::sendNote(int status, int note, int vel) {
+}
+
+void Midi::MidiSetup() {
+	sendNote(0xb0, 0x7b, 0);		// all notes off
+}
+
+void Midi::MidiCleanup() {
+	sendNote(0xb0, 0x7b, 0);		// all notes off
+}
 #endif
 
 //
@@ -179,6 +190,7 @@ void Midi::USBchanged() {
 
 QStringList Midi::listMidiDevices(bool output) {
 	QStringList rv;
+#if defined Q_OS_WIN32
 	if (output) {
 		MIDIOUTCAPS outcaps;
 		for (unsigned int i = 0; i < midiOutGetNumDevs(); i++) {
@@ -193,6 +205,7 @@ QStringList Midi::listMidiDevices(bool output) {
 			rv.append(incaps.szPname);
 		}
 	}
+#endif
 	return rv;
 }
 
