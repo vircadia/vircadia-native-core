@@ -441,7 +441,6 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
 
     AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
     if (!nodeData) {
-        qDebug() << "No node data";
         return;
     }
 
@@ -544,22 +543,24 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
         }
     });
 
-    quint64 startPacketSending = usecTimestampNow();
+    if (avatarPacketList->getNumPackets() > 0) {
+        quint64 startPacketSending = usecTimestampNow();
 
-    // close the current packet so that we're always sending something
-    avatarPacketList->closeCurrentPacket(true);
+        // close the current packet so that we're always sending something
+        avatarPacketList->closeCurrentPacket(true);
 
-    _stats.numPacketsSent += (int)avatarPacketList->getNumPackets();
-    _stats.numBytesSent += numAvatarDataBytes;
+        _stats.numPacketsSent += (int)avatarPacketList->getNumPackets();
+        _stats.numBytesSent += numAvatarDataBytes;
 
-    // send the replicated bulk avatar data
-    auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->sendPacketList(std::move(avatarPacketList), node->getPublicSocket());
+        // send the replicated bulk avatar data
+        auto nodeList = DependencyManager::get<NodeList>();
+        nodeList->sendPacketList(std::move(avatarPacketList), node->getPublicSocket());
 
-    // record the bytes sent for other avatar data in the AvatarMixerClientData
-    nodeData->recordSentAvatarData(numAvatarDataBytes);
+        // record the bytes sent for other avatar data in the AvatarMixerClientData
+        nodeData->recordSentAvatarData(numAvatarDataBytes);
 
-    quint64 endPacketSending = usecTimestampNow();
-    _stats.packetSendingElapsedTime += (endPacketSending - startPacketSending);
+        quint64 endPacketSending = usecTimestampNow();
+        _stats.packetSendingElapsedTime += (endPacketSending - startPacketSending);
+    }
 }
 

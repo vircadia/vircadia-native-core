@@ -225,7 +225,9 @@ void AvatarMixer::start() {
             auto start = usecTimestampNow();
             nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
                 std::for_each(cbegin, cend, [&](const SharedNodePointer& node) {
-                    manageDisplayName(node);
+                    if (node->getType() == NodeType::Agent && !node->isUpstream()) {
+                        manageDisplayName(node);
+                    }
                     ++_sumListeners;
                 });
             }, &lockWait, &nodeTransform, &functor);
