@@ -194,7 +194,7 @@
     }
 
     //
-    // Function Names: addOrRemoveButton()
+    // Function Name: addOrRemoveButton()
     //
     // Relevant Variables:
     // button: The tablet button.
@@ -203,7 +203,7 @@
     // showInDesktop: Set to "true" to show the "SPECTATOR" app in desktop mode
     // 
     // Arguments:
-    // forceRemove: Set to "true" to force removal of the button, i.e. upon shutdown
+    // shouldntAdd: Set to "true" if you don't want to add the button, i.e. upon shutdown
     // isHMDMode: "true" if user is in HMD; false otherwise
     // 
     // Description:
@@ -212,10 +212,10 @@
     var button = false;
     var buttonName = "SPECTATOR";
     var tablet = null;
-    var showSpectatorInDesktop = false;
-    function addOrRemoveButton(forceRemove, isHMDMode) {
+    var showSpectatorInDesktop = true;
+    function addOrRemoveButton(shouldntAdd, isHMDMode) {
         if (!button) {
-            if ((isHMDMode || showSpectatorInDesktop) && !forceRemove) {
+            if ((isHMDMode || showSpectatorInDesktop) && !shouldntAdd) {
                 button = tablet.addButton({
                     text: buttonName
                 });
@@ -226,7 +226,7 @@
             tablet.removeButton(button);
             button = false;
         } else {
-            print("ERROR adding/removing Spectator button!")
+            print("ERROR adding/removing Spectator button!");
         }
     }
 
