@@ -14,6 +14,7 @@
 
 #include "Item.h"
 #include "SpatialTree.h"
+#include "Stage.h"
 #include "Selection.h"
 
 namespace render {
