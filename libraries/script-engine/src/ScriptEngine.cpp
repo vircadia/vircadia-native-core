@@ -76,7 +76,7 @@
 
 #include <Profile.h>
 
-#include "../../midi/src/Midi.h"		// FIXME why won't a simpler include work?
+#include "../../midi/src/Midi.h"        // FIXME why won't a simpler include work?
 #include "MIDIEvent.h"
 
 const QString ScriptEngine::_SETTINGS_ENABLE_EXTENDED_EXCEPTIONS {

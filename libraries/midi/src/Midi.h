@@ -24,23 +24,23 @@ class Midi : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
     
 public:
-	Midi();
+    Midi();
 
 public:
-	void noteReceived(int status, int note, int velocity);	// relay a note to Javascript
-	void sendNote(int status, int note, int vel);			// relay a note to MIDI outputs
-	static void USBchanged();
+    void noteReceived(int status, int note, int velocity);    // relay a note to Javascript
+    void sendNote(int status, int note, int vel);            // relay a note to MIDI outputs
+    static void USBchanged();
 
 private:
-	static std::vector<QString> midiinexclude;
-	static std::vector<QString> midioutexclude;
+    static std::vector<QString> midiinexclude;
+    static std::vector<QString> midioutexclude;
 
 private:
-	void MidiSetup();
-	void MidiCleanup();
+    void MidiSetup();
+    void MidiCleanup();
 
 signals:
-	void midiNote(QVariantMap eventData);
+    void midiNote(QVariantMap eventData);
 
 public slots:
 /// play a note on all connected devices

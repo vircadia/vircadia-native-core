@@ -397,10 +397,10 @@ public:
                 }
             }
 
-			if (message->message == WM_DEVICECHANGE) {
-				Midi::USBchanged();				// re-scan the MIDI bus
-			}
-		}
+            if (message->message == WM_DEVICECHANGE) {
+                Midi::USBchanged();                // re-scan the MIDI bus
+            }
+        }
         return false;
     }
 };

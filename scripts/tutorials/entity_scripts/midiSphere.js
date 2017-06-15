@@ -15,35 +15,35 @@
 
     function MidiSphere() {
         _this = this;
-		this.clicked = false;
-		return;
+        this.clicked = false;
+        return;
     }
-	
+    
     MidiSphere.prototype = {
         preload: function(entityID) {
             this.entityID = entityID;
-			Midi.midiNote.connect(function(eventData) {
-				print("MidiSphere.noteReceived: "+JSON.stringify(eventData));
-	            Entities.editEntity(entityID, { color: { red: 2*eventData.note, green: 2*eventData.note, blue: 2*eventData.note} });
-			});
-			print("MidiSphere.preload");
+            Midi.midiNote.connect(function(eventData) {
+                print("MidiSphere.noteReceived: "+JSON.stringify(eventData));
+                Entities.editEntity(entityID, { color: { red: 2*eventData.note, green: 2*eventData.note, blue: 2*eventData.note} });
+            });
+            print("MidiSphere.preload");
         },
         unload: function(entityID) {
-			print("MidiSphere.unload");
+            print("MidiSphere.unload");
         },
 
-	    clickDownOnEntity: function(entityID, mouseEvent) { 
-			print("MidiSphere.clickDownOnEntity");
-	        if (this.clicked) {
-	            Entities.editEntity(entityID, { color: { red: 0, green: 255, blue: 255} });
-	            this.clicked = false;
-				Midi.playMidiNote(144, 64, 0);
-	        } else {
-	            Entities.editEntity(entityID, { color: { red: 255, green: 255, blue: 0} });
-	            this.clicked = true;
-				Midi.playMidiNote(144, 64, 100);
-	        }
-	    }
+        clickDownOnEntity: function(entityID, mouseEvent) { 
+            print("MidiSphere.clickDownOnEntity");
+            if (this.clicked) {
+                Entities.editEntity(entityID, { color: { red: 0, green: 255, blue: 255} });
+                this.clicked = false;
+                Midi.playMidiNote(144, 64, 0);
+            } else {
+                Entities.editEntity(entityID, { color: { red: 255, green: 255, blue: 0} });
+                this.clicked = true;
+                Midi.playMidiNote(144, 64, 100);
+            }
+        }
 
     };
 

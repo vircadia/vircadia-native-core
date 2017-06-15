@@ -16,7 +16,7 @@ var BALL_GRAVITY = {
     y: 0,
     z: 0
 };
-
+    
 var BALL_DIMENSIONS = {
     x: 0.4,
     y: 0.4,
@@ -34,14 +34,14 @@ var midiSphereProperties = {
     name: 'MIDI Sphere',
     shapeType: 'sphere',
     type: 'Sphere',
-	script: SCRIPT_URL,
+    script: SCRIPT_URL,
     color: BALL_COLOR,
     dimensions: BALL_DIMENSIONS,
     gravity: BALL_GRAVITY,
     dynamic: false,
     position: center,
-	collisionless: false,
-	ignoreForCollisions: true
+    collisionless: false,
+    ignoreForCollisions: true
 };
 
 var midiSphere = Entities.addEntity(midiSphereProperties);

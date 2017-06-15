@@ -27,7 +27,7 @@ const int MIDI_CONTROL_CHANGE = 0x0b0;
 const int MIDI_CHANNEL_MODE_ALL_NOTES_OFF = 0x07b;
 
 
-static Midi* instance = NULL;			// communicate this to non-class callbacks
+static Midi* instance = NULL;            // communicate this to non-class callbacks
 
 std::vector<QString> Midi::midiinexclude;
 std::vector<QString> Midi::midioutexclude;
@@ -43,186 +43,199 @@ std::vector<HMIDIOUT> midihout;
 
 
 void CALLBACK MidiInProc(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
-	if (wMsg == MIM_OPEN) {
-	} else if (wMsg == MIM_CLOSE) {
-		for (int i = 0; i < midihin.size(); i++) if (midihin[i] == hMidiIn) {
-			midihin[i] = NULL;
-			instance->allNotesOff();
-		}
-	} else if (wMsg == MIM_DATA) {
-		int status = 0x0ff & dwParam1;
-		int note = 0x0ff & (dwParam1 >> 8);
-		int vel = 0x0ff & (dwParam1 >> 16);
-//sendNote(status, note, vel);		// NOTE: relay the note on to all other midi devices
-		instance->Midi::noteReceived(status, note, vel);
-	}
+    if (wMsg == MIM_OPEN) {
+    } else if (wMsg == MIM_CLOSE) {
+        for (int i = 0; i < midihin.size(); i++) {
+            if (midihin[i] == hMidiIn) {
+                midihin[i] = NULL;
+                instance->allNotesOff();
+            }
+        }
+    } else if (wMsg == MIM_DATA) {
+        int status = 0x0ff & dwParam1;
+        int note = 0x0ff & (dwParam1 >> 8);
+        int vel = 0x0ff & (dwParam1 >> 16);
+//sendNote(status, note, vel);        // NOTE: relay the note on to all other midi devices
+        instance->Midi::noteReceived(status, note, vel);
+    }
 }
 
 
 void CALLBACK MidiOutProc(HMIDIOUT hmo, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
-	if (wMsg == MOM_CLOSE) {
-		for (int i = 0; i < midihout.size(); i++) if (midihout[i] == hmo) {
-			midihout[i] = NULL;
-			instance->allNotesOff();
-		}
-	}
+    if (wMsg == MOM_CLOSE) {
+        for (int i = 0; i < midihout.size(); i++) {
+            if (midihout[i] == hmo) {
+                midihout[i] = NULL;
+                instance->allNotesOff();
+            }
+        }
+    }
 }
 
 
 void Midi::sendNote(int status, int note, int vel) {
-	for (int i = 0; i < midihout.size(); i++) if (midihout[i] != NULL) {
-		midiOutShortMsg(midihout[i], status + (note << 8) + (vel << 16));
-	}
+    for (int i = 0; i < midihout.size(); i++) if (midihout[i] != NULL) {
+        midiOutShortMsg(midihout[i], status + (note << 8) + (vel << 16));
+    }
 }
 
 void Midi::noteReceived(int status, int note, int velocity) {
-	if (((status & MIDI_STATUS_MASK) != MIDI_NOTE_OFF) &&
-		((status & MIDI_STATUS_MASK) != MIDI_NOTE_ON)) return;			// NOTE: only sending note-on and note-off to Javascript
+    if (((status & MIDI_STATUS_MASK) != MIDI_NOTE_OFF) &&
+        ((status & MIDI_STATUS_MASK) != MIDI_NOTE_ON)) return;            // NOTE: only sending note-on and note-off to Javascript
 
-	QVariantMap eventData;
-	eventData["status"] = status;
-	eventData["note"] = note;
-	eventData["velocity"] = velocity;
-	emit midiNote(eventData);
+    QVariantMap eventData;
+    eventData["status"] = status;
+    eventData["note"] = note;
+    eventData["velocity"] = velocity;
+    emit midiNote(eventData);
 }
 
 
 void Midi::MidiSetup() {
-	midihin.clear();
-	midihout.clear();
+    midihin.clear();
+    midihout.clear();
 
-	MIDIINCAPS incaps;
-	for (unsigned int i = 0; i < midiInGetNumDevs(); i++) {
-		midiInGetDevCaps(i, &incaps, sizeof(MIDIINCAPS));
+    MIDIINCAPS incaps;
+    for (unsigned int i = 0; i < midiInGetNumDevs(); i++) {
+        midiInGetDevCaps(i, &incaps, sizeof(MIDIINCAPS));
 
-		bool found = false;
-		for (int j = 0; j < midiinexclude.size(); j++) {
-			if (midiinexclude[j].toStdString().compare(incaps.szPname) == 0) found = true;
-		}
-		if (!found)	{		// EXCLUDE AN INPUT BY NAME
-			HMIDIIN tmphin;
-			midiInOpen(&tmphin, i, (DWORD_PTR)MidiInProc, NULL, CALLBACK_FUNCTION);
-			midiInStart(tmphin);
-			midihin.push_back(tmphin);
-		}
+        bool found = false;
+        for (int j = 0; j < midiinexclude.size(); j++) {
+            if (midiinexclude[j].toStdString().compare(incaps.szPname) == 0) {
+                found = true;
+            }
+        }
+        if (!found)    {        // EXCLUDE AN INPUT BY NAME
+            HMIDIIN tmphin;
+            midiInOpen(&tmphin, i, (DWORD_PTR)MidiInProc, NULL, CALLBACK_FUNCTION);
+            midiInStart(tmphin);
+            midihin.push_back(tmphin);
+        }
 
-	}
+    }
 
-	MIDIOUTCAPS outcaps;
-	for (unsigned int i = 0; i < midiOutGetNumDevs(); i++) {
-		midiOutGetDevCaps(i, &outcaps, sizeof(MIDIINCAPS));
+    MIDIOUTCAPS outcaps;
+    for (unsigned int i = 0; i < midiOutGetNumDevs(); i++) {
+        midiOutGetDevCaps(i, &outcaps, sizeof(MIDIINCAPS));
 
-		bool found = false;
-		for (int j = 0; j < midioutexclude.size(); j++) {
-			if (midioutexclude[j].toStdString().compare(outcaps.szPname) == 0) found = true;
-		}
-		if (!found) {		// EXCLUDE AN OUTPUT BY NAME
-			HMIDIOUT tmphout;
-			midiOutOpen(&tmphout, i, (DWORD_PTR)MidiOutProc, NULL, CALLBACK_FUNCTION);
-			midihout.push_back(tmphout);
-		}
-	}
+        bool found = false;
+        for (int j = 0; j < midioutexclude.size(); j++) {
+            if (midioutexclude[j].toStdString().compare(outcaps.szPname) == 0) {
+                found = true;
+            }
+        }
+        if (!found) {        // EXCLUDE AN OUTPUT BY NAME
+            HMIDIOUT tmphout;
+            midiOutOpen(&tmphout, i, (DWORD_PTR)MidiOutProc, NULL, CALLBACK_FUNCTION);
+            midihout.push_back(tmphout);
+        }
+    }
 
-	allNotesOff();
+    allNotesOff();
 }
 
 void Midi::MidiCleanup() {
-	allNotesOff();
+    allNotesOff();
 
-	for (int i = 0; i < midihin.size(); i++) if (midihin[i] != NULL) {
-		midiInStop(midihin[i]);
-		midiInClose(midihin[i]);
-	}
-	for (int i = 0; i < midihout.size(); i++) if (midihout[i] != NULL) {
-		midiOutClose(midihout[i]);
-	}
-	midihin.clear();
-	midihout.clear();
+    for (int i = 0; i < midihin.size(); i++) {
+        if (midihin[i] != NULL) {
+            midiInStop(midihin[i]);
+            midiInClose(midihin[i]);
+        }
+    }
+    for (int i = 0; i < midihout.size(); i++) {
+        if (midihout[i] != NULL) {
+            midiOutClose(midihout[i]);
+        }
+    }
+    midihin.clear();
+    midihout.clear();
 }
 #else
 void Midi::sendNote(int status, int note, int vel) {
 }
 
 void Midi::MidiSetup() {
-	allNotesOff();
+    allNotesOff();
 }
 
 void Midi::MidiCleanup() {
-	allNotesOff();
+    allNotesOff();
 }
 #endif
 
 //
 
 Midi::Midi() {
-	instance = this;
-	midioutexclude.push_back("Microsoft GS Wavetable Synth");		// we don't want to hear this thing
-	MidiSetup();
+    instance = this;
+    midioutexclude.push_back("Microsoft GS Wavetable Synth");        // we don't want to hear this thing
+    MidiSetup();
 }
 
 void Midi::playMidiNote(int status, int note, int velocity) {
-	sendNote(status, note, velocity);
+    sendNote(status, note, velocity);
 }
 
 void Midi::allNotesOff() {
-	sendNote(MIDI_CONTROL_CHANGE, MIDI_CHANNEL_MODE_ALL_NOTES_OFF, 0);		// all notes off
+    sendNote(MIDI_CONTROL_CHANGE, MIDI_CHANNEL_MODE_ALL_NOTES_OFF, 0);        // all notes off
 }
 
 void Midi::resetDevices() {
-	MidiCleanup();
-	MidiSetup();
+    MidiCleanup();
+    MidiSetup();
 }
 
 void Midi::USBchanged() {
-	instance->MidiCleanup();
-	instance->MidiSetup();
+    instance->MidiCleanup();
+    instance->MidiSetup();
 }
 
 //
 
 QStringList Midi::listMidiDevices(bool output) {
-	QStringList rv;
+    QStringList rv;
 #if defined Q_OS_WIN32
-	if (output) {
-		MIDIOUTCAPS outcaps;
-		for (unsigned int i = 0; i < midiOutGetNumDevs(); i++) {
-			midiOutGetDevCaps(i, &outcaps, sizeof(MIDIINCAPS));
-			rv.append(outcaps.szPname);
-		}
-	}
-	else {
-		MIDIINCAPS incaps;
-		for (unsigned int i = 0; i < midiInGetNumDevs(); i++) {
-			midiInGetDevCaps(i, &incaps, sizeof(MIDIINCAPS));
-			rv.append(incaps.szPname);
-		}
-	}
+    if (output) {
+        MIDIOUTCAPS outcaps;
+        for (unsigned int i = 0; i < midiOutGetNumDevs(); i++) {
+            midiOutGetDevCaps(i, &outcaps, sizeof(MIDIINCAPS));
+            rv.append(outcaps.szPname);
+        }
+    } else {
+        MIDIINCAPS incaps;
+        for (unsigned int i = 0; i < midiInGetNumDevs(); i++) {
+            midiInGetDevCaps(i, &incaps, sizeof(MIDIINCAPS));
+            rv.append(incaps.szPname);
+        }
+    }
 #endif
-	return rv;
+    return rv;
 }
 
 void Midi::unblockMidiDevice(QString name, bool output) {
-	if (output) {
-		for (int i = 0; i < midioutexclude.size(); i++) if (midioutexclude[i].toStdString().compare(name.toStdString()) == 0) {
-			midioutexclude.erase(midioutexclude.begin() + i);
-			break;
-		}
-	}
-	else {
-		for (int i = 0; i < midiinexclude.size(); i++) if (midiinexclude[i].toStdString().compare(name.toStdString()) == 0) {
-			midiinexclude.erase(midiinexclude.begin() + i);
-			break;
-		}
-	}
+    if (output) {
+        for (int i = 0; i < midioutexclude.size(); i++) {
+            if (midioutexclude[i].toStdString().compare(name.toStdString()) == 0) {
+                midioutexclude.erase(midioutexclude.begin() + i);
+                break;
+            }
+        }
+    } else {
+        for (int i = 0; i < midiinexclude.size(); i++) {
+            if (midiinexclude[i].toStdString().compare(name.toStdString()) == 0) {
+                midiinexclude.erase(midiinexclude.begin() + i);
+                break;
+            }
+        }
+    }
 }
 
 void Midi::blockMidiDevice(QString name, bool output) {
-	unblockMidiDevice(name, output);		// make sure it's only in there once
-	if (output) {
-		midioutexclude.push_back(name);
-	}
-	else {
-		midiinexclude.push_back(name);
-	}
+    unblockMidiDevice(name, output);        // make sure it's only in there once
+    if (output) {
+        midioutexclude.push_back(name);
+    } else {
+        midiinexclude.push_back(name);
+    }
 }
 
