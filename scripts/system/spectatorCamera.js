@@ -187,12 +187,6 @@
         setDisplay(monitorShowsCameraView);
     }
 
-    function onHMDChanged(isHMDMode) {
-        // Will also eventually enable disable app, camera, etc.
-        setDisplay(monitorShowsCameraView);
-        addOrRemoveButton(false, isHMDMode);
-    }
-
     //
     // Function Name: addOrRemoveButton()
     //
@@ -404,6 +398,26 @@
                 break;
             default:
                 print('Unrecognized message from SpectatorCamera.qml:', JSON.stringify(message));
+        }
+    }
+
+    //
+    // Function Name: onHMDChanged()
+    //
+    // Relevant Variables:
+    // None
+    // 
+    // Arguments:
+    // isHMDMode: "true" if HMD is on; "false" otherwise
+    // 
+    // Description:
+    // Called from C++ when HMD mode is changed
+    //
+    function onHMDChanged(isHMDMode) {
+        setDisplay(monitorShowsCameraView);
+        addOrRemoveButton(false, isHMDMode);
+        if (!isHMDMode && !showSpectatorInDesktop) {
+            spectatorCameraOff();
         }
     }
 
