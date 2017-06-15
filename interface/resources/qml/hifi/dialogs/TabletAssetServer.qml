@@ -24,7 +24,6 @@ Rectangle {
     property string title: "Asset Browser"
     property bool keyboardRaised: false
 
-    property var eventBridge;
     signal sendToScript(var message);
     property bool isHMD: false
 

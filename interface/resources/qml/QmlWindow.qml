@@ -30,15 +30,6 @@ Windows.Window {
     property bool keyboardRaised: false
     property bool punctuationMode: false
 
-    // JavaScript event bridge object in case QML content includes Web content.
-    property alias eventBridge: eventBridgeWrapper.eventBridge;
-
-    QtObject {
-        id: eventBridgeWrapper
-        WebChannel.id: "eventBridgeWrapper"
-        property var eventBridge;
-    }
-
     onSourceChanged: {
         if (dynamicContent) {
             dynamicContent.destroy();

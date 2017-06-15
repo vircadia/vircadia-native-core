@@ -181,7 +181,6 @@ TabView {
         WebView {
             id: entityListToolWebView
             url: "../../../../../scripts/system/html/entityList.html"
-            eventBridge: editRoot.eventBridge
             anchors.fill: parent
             enabled: true
         }
@@ -196,7 +195,6 @@ TabView {
         WebView {
             id: entityPropertiesWebView
             url: "../../../../../scripts/system/html/entityProperties.html"
-            eventBridge: editRoot.eventBridge
             anchors.fill: parent
             enabled: true
         }
@@ -211,7 +209,6 @@ TabView {
         WebView {
             id: gridControlsWebView
             url: "../../../../../scripts/system/html/gridControls.html"
-            eventBridge: editRoot.eventBridge
             anchors.fill: parent
             enabled: true
         }
@@ -226,7 +223,6 @@ TabView {
         WebView {
             id: particleExplorerWebView
             url: "../../../../../scripts/system/particle_explorer/particleExplorer.html"
-            eventBridge: editRoot.eventBridge
             anchors.fill: parent
             enabled: true
         }
@@ -289,7 +285,7 @@ TabView {
                 editTabView.currentIndex = id;
             } else {
                 console.warn('Attempt to switch to invalid tab:', id);
-            }			
+            }
         } else if (typeof id === 'string'){
             switch (id.toLowerCase()) {
                 case 'create':

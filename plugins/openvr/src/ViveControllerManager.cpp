@@ -141,15 +141,18 @@ QString ViveControllerManager::configurationLayout() {
 bool ViveControllerManager::activate() {
     InputPlugin::activate();
 
-    _container->addMenu(MENU_PATH);
-    _container->addMenuItem(PluginType::INPUT_PLUGIN, MENU_PATH, RENDER_CONTROLLERS,
-        [this] (bool clicked) { this->setRenderControllers(clicked); },
-        true, true);
-
     if (!_system) {
         _system = acquireOpenVrSystem();
     }
-    Q_ASSERT(_system);
+
+    if (!_system) {
+        return false;
+    }
+
+    _container->addMenu(MENU_PATH);
+    _container->addMenuItem(PluginType::INPUT_PLUGIN, MENU_PATH, RENDER_CONTROLLERS,
+        [this](bool clicked) { this->setRenderControllers(clicked); },
+        true, true);
 
     enableOpenVrKeyboard(_container);
 

@@ -41,8 +41,6 @@ bool JurisdictionSender::process() {
 
     // call our ReceivedPacketProcessor base class process so we'll get any pending packets
     if (continueProcessing && (continueProcessing = ReceivedPacketProcessor::process())) {
-        auto packet = (_jurisdictionMap) ? _jurisdictionMap->packIntoPacket()
-                                         : JurisdictionMap::packEmptyJurisdictionIntoMessage(getNodeType());
         int nodeCount = 0;
 
         lockRequestingNodes();
@@ -53,6 +51,8 @@ bool JurisdictionSender::process() {
             SharedNodePointer node = DependencyManager::get<NodeList>()->nodeWithUUID(nodeUUID);
 
             if (node && node->getActiveSocket()) {
+                auto packet = (_jurisdictionMap) ? _jurisdictionMap->packIntoPacket()
+                                                 : JurisdictionMap::packEmptyJurisdictionIntoMessage(getNodeType());
                 _packetSender.queuePacketForSending(node, std::move(packet));
                 nodeCount++;
             }
