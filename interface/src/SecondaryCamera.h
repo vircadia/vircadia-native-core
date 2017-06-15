@@ -29,13 +29,19 @@ public:
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred = true);
 };
 
-class BeginSecondaryCameraFrameConfig : public render::Task::Config { // Exposes view frustum position/orientation to javascript.
+class BeginSecondaryCameraFrameConfig : public render::Task::Config { // Exposes secondary camera parameters to JavaScript.
     Q_OBJECT
     Q_PROPERTY(glm::vec3 position MEMBER position NOTIFY dirty)  // of viewpoint to render from
     Q_PROPERTY(glm::quat orientation MEMBER orientation NOTIFY dirty)  // of viewpoint to render from
+    Q_PROPERTY(float vFoV MEMBER vFoV NOTIFY dirty)  // Secondary camera's vertical field of view. In degrees.
+    Q_PROPERTY(float nearClipPlaneDistance MEMBER nearClipPlaneDistance NOTIFY dirty)  // Secondary camera's near clip plane distance. In meters.
+    Q_PROPERTY(float farClipPlaneDistance MEMBER farClipPlaneDistance NOTIFY dirty)  // Secondary camera's far clip plane distance. In meters.
 public:
     glm::vec3 position{};
     glm::quat orientation{};
+    float vFoV{ 45.0f };
+    float nearClipPlaneDistance{ 0.1f };
+    float farClipPlaneDistance{ 100.0f };
     BeginSecondaryCameraFrameConfig() : render::Task::Config(false) {}
 signals:
     void dirty();

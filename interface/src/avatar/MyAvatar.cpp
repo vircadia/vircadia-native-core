@@ -1881,15 +1881,14 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
 
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.3f;
 
-bool MyAvatar::cameraInsideHead() const {
-    const glm::vec3 cameraPosition = qApp->getCamera().getPosition();
+bool MyAvatar::cameraInsideHead(const glm::vec3& cameraPosition) const {
     return glm::length(cameraPosition - getHeadPosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getUniformScale());
 }
 
 bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
     bool defaultMode = renderArgs->_renderMode == RenderArgs::DEFAULT_RENDER_MODE;
     bool firstPerson = qApp->getCamera().getMode() == CAMERA_MODE_FIRST_PERSON;
-    bool insideHead = cameraInsideHead();
+    bool insideHead = cameraInsideHead(renderArgs->getViewFrustum().getPosition());
     return !defaultMode || !firstPerson || !insideHead;
 }
 
@@ -1959,6 +1958,32 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
         // apply our delta, but scale it by the speed factor, so we turn faster when we are flying faster.
         totalBodyYaw += (speedFactor * deltaAngle * (180.0f / PI));
+    }
+
+    // Use head/HMD roll to turn while walking or flying.
+    if (qApp->isHMDMode() && _hmdRollControlEnabled) {
+        // Turn with head roll.
+        const float MIN_CONTROL_SPEED = 0.01f;
+        float speed = glm::length(getVelocity());
+        if (speed >= MIN_CONTROL_SPEED) {
+            // Feather turn when stopping moving.
+            float speedFactor;
+            if (getDriveKey(TRANSLATE_Z) != 0.0f || _lastDrivenSpeed == 0.0f) {
+                _lastDrivenSpeed = speed;
+                speedFactor = 1.0f;
+            } else {
+                speedFactor = glm::min(speed / _lastDrivenSpeed, 1.0f);
+            }
+
+            float direction = glm::dot(getVelocity(), getRotation() * Vectors::UNIT_NEG_Z) > 0.0f ? 1.0f : -1.0f;
+
+            float rollAngle = glm::degrees(asinf(glm::dot(IDENTITY_UP, _hmdSensorOrientation * IDENTITY_RIGHT)));
+            float rollSign = rollAngle < 0.0f ? -1.0f : 1.0f;
+            rollAngle = fabsf(rollAngle);
+            rollAngle = rollAngle > _hmdRollControlDeadZone ? rollSign * (rollAngle - _hmdRollControlDeadZone) : 0.0f;
+
+            totalBodyYaw += speedFactor * direction * rollAngle * deltaTime * _hmdRollControlRate;
+        }
     }
 
     // update body orientation by movement inputs

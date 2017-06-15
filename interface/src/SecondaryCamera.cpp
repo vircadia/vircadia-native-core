@@ -42,6 +42,9 @@ void SecondaryCameraRenderTaskConfig::resetSizeSpectatorCamera(int width, int he
 class BeginSecondaryCameraFrame {  // Changes renderContext for our framebuffer and and view.
     glm::vec3 _position{};
     glm::quat _orientation{};
+    float _vFoV{};
+    float _nearClipPlaneDistance{};
+    float _farClipPlaneDistance{};
 public:
     using Config = BeginSecondaryCameraFrameConfig;
     using JobModel = render::Job::ModelO<BeginSecondaryCameraFrame, RenderArgsPointer, Config>;
@@ -53,6 +56,9 @@ public:
         if (config.enabled || config.alwaysEnabled) {
             _position = config.position;
             _orientation = config.orientation;
+            _vFoV = config.vFoV;
+            _nearClipPlaneDistance = config.nearClipPlaneDistance;
+            _farClipPlaneDistance = config.farClipPlaneDistance;
         }
     }
 
@@ -62,13 +68,14 @@ public:
         gpu::FramebufferPointer destFramebuffer;
         destFramebuffer = textureCache->getSpectatorCameraFramebuffer(); // FIXME: Change the destination based on some unimplemented config var
         if (destFramebuffer) {
-            // Caching/restoring the old values doesn't seem to be needed. Is it because we happen to be last in the pipeline (which would be a bug waiting to happen)?
             _cachedArgsPointer->_blitFramebuffer = args->_blitFramebuffer;
             _cachedArgsPointer->_viewport = args->_viewport;
             _cachedArgsPointer->_displayMode = args->_displayMode;
+            _cachedArgsPointer->_renderMode = args->_renderMode;
             args->_blitFramebuffer = destFramebuffer;
             args->_viewport = glm::ivec4(0, 0, destFramebuffer->getWidth(), destFramebuffer->getHeight());
             args->_displayMode = RenderArgs::MONO;
+            args->_renderMode = RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE;
 
             gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
                 batch.disableContextStereo();
@@ -77,6 +84,10 @@ public:
             auto srcViewFrustum = args->getViewFrustum();
             srcViewFrustum.setPosition(_position);
             srcViewFrustum.setOrientation(_orientation);
+            srcViewFrustum.setProjection(glm::perspective(glm::radians(_vFoV), ((float)args->_viewport.z / (float)args->_viewport.w), _nearClipPlaneDistance, _farClipPlaneDistance));
+            // Without calculating the bound planes, the secondary camera will use the same culling frustum as the main camera,
+            // which is not what we want here.
+            srcViewFrustum.calculate();
             args->pushViewFrustum(srcViewFrustum);
             cachedArgs = _cachedArgsPointer;
         }
@@ -97,6 +108,7 @@ public:
         args->_viewport = cachedArgs->_viewport;
         args->popViewFrustum();
         args->_displayMode = cachedArgs->_displayMode;
+        args->_renderMode = cachedArgs->_renderMode;
 
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             batch.restoreContextStereo();

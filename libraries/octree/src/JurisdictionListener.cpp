@@ -35,14 +35,13 @@ void JurisdictionListener::nodeKilled(SharedNodePointer node) {
 }
 
 bool JurisdictionListener::queueJurisdictionRequest() {
-    auto packet = NLPacket::create(PacketType::JurisdictionRequest, 0);
-    
     auto nodeList = DependencyManager::get<NodeList>();
 
     int nodeCount = 0;
 
     nodeList->eachNode([&](const SharedNodePointer& node) {
         if (node->getType() == getNodeType() && node->getActiveSocket()) {
+            auto packet = NLPacket::create(PacketType::JurisdictionRequest, 0);
             _packetSender.queuePacketForSending(node, std::move(packet));
             nodeCount++;
         }

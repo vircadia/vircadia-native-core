@@ -119,7 +119,7 @@ void GLBackend::TransformStageState::preUpdate(size_t commandIndex, const Stereo
         size_t offset = _cameraUboSize * _cameras.size();
         _cameraOffsets.push_back(TransformStageState::Pair(commandIndex, offset));
 
-        if (stereo._enable) {
+        if (stereo.isStereo()) {
 #ifdef GPU_STEREO_CAMERA_BUFFER
         _cameras.push_back(CameraBufferElement(_camera.getEyeCamera(0, stereo, _view), _camera.getEyeCamera(1, stereo, _view)));
 #else
@@ -151,7 +151,7 @@ void GLBackend::TransformStageState::update(size_t commandIndex, const StereoSta
 #ifdef GPU_STEREO_CAMERA_BUFFER
         bindCurrentCamera(0);
 #else 
-        if (!stereo._enable) {
+        if (!stereo.isStereo()) {
             bindCurrentCamera(0);
         }
 #endif

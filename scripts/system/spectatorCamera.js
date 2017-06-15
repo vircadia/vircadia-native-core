@@ -17,12 +17,13 @@
     //
     // FUNCTION VAR DECLARATIONS
     //
-    var sendToQml, onTabletScreenChanged, fromQml, onTabletButtonClicked, wireEventBridge, startup, shutdown;
+    var sendToQml, addOrRemoveButton, onTabletScreenChanged, fromQml,
+        onTabletButtonClicked, wireEventBridge, startup, shutdown;
 
 
 
     //
-    // Function Name: inFrontOf(), flip()
+    // Function Name: inFrontOf()
     // 
     // Description:
     // Spectator camera utility functions and variables.
@@ -31,8 +32,6 @@
         return Vec3.sum(position || MyAvatar.position,
                         Vec3.multiply(distance, Quat.getForward(orientation || MyAvatar.orientation)));
     }
-    var aroundY = Quat.fromPitchYawRollDegrees(0, 180, 0);
-    function flip(rotation) { return Quat.multiply(rotation, aroundY); }
 
     //
     // Function Name: updateRenderFromCamera()
@@ -73,10 +72,6 @@
             lastCameraPosition = cameraData.position;
             beginSpectatorFrameRenderConfig.position = Vec3.sum(inFrontOf(0.17, lastCameraPosition, lastCameraRotation), {x: 0, y: 0.02, z: 0});
         }
-        if (cameraIsDynamic) {
-            // BUG: image3d overlays don't retain their locations properly when parented to a dynamic object
-            Overlays.editOverlay(viewFinderOverlay, { orientation: flip(cameraData.rotation) });
-        }
     }
 
     //
@@ -85,6 +80,11 @@
     // Relevant Variables:
     // isUpdateRenderWired: Bool storing whether or not the camera's update
     //     function is wired.
+    // windowAspectRatio: The ratio of the Interface windows's sizeX/sizeY
+    // previewAspectRatio: The ratio of the camera preview's sizeX/sizeY
+    // vFoV: The vertical field of view of the spectator camera
+    // nearClipPlaneDistance: The near clip plane distance of the spectator camera
+    // farClipPlaneDistance: The far clip plane distance of the spectator camera
     // 
     // Arguments:
     // None
@@ -94,11 +94,22 @@
     //     spawn the camera entity.
     //
     var isUpdateRenderWired = false;
+    var windowAspectRatio;
+    var previewAspectRatio = 16 / 9;
+    var vFoV = 45.0;
+    var nearClipPlaneDistance = 0.1;
+    var farClipPlaneDistance = 100.0;
     function spectatorCameraOn() {
         // Set the special texture size based on the window in which it will eventually be displayed.
         var size = Controller.getViewportDimensions(); // FIXME: Need a signal to hook into when the dimensions change.
-        spectatorFrameRenderConfig.resetSizeSpectatorCamera(size.x, size.y);
+        var sizeX = Window.innerWidth;
+        var sizeY = Window.innerHeight;
+        windowAspectRatio = sizeX/sizeY;
+        spectatorFrameRenderConfig.resetSizeSpectatorCamera(sizeX, sizeY);
         spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = true;
+        beginSpectatorFrameRenderConfig.vFoV = vFoV;
+        beginSpectatorFrameRenderConfig.nearClipPlaneDistance = nearClipPlaneDistance;
+        beginSpectatorFrameRenderConfig.farClipPlaneDistance = farClipPlaneDistance;
         var cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
         Script.update.connect(updateRenderFromCamera);
         isUpdateRenderWired = true;
@@ -132,14 +143,17 @@
             parentID: camera,
             alpha: 1,
             position: { x: 0.007, y: 0.15, z: -0.005 },
-            scale: -0.16,
+            dimensions: { x: 0.16, y: -0.16 * windowAspectRatio / previewAspectRatio, z: 0 }
+            // Negative dimension for viewfinder is necessary for now due to the way Image3DOverlay
+            // draws textures.
+            // See Image3DOverlay.cpp:91. If you change the two lines there to:
+            //     glm::vec2 topLeft(-x, -y);
+            //     glm::vec2 bottomRight(x, y);
+            // the viewfinder will appear rightside up without this negative y-dimension.
+            // However, other Image3DOverlay textures (like the PAUSED one) will appear upside-down. *Why?*
+            // FIXME: This code will stretch the preview as the window aspect ratio changes. Fix that!
         });
         Entities.editEntity(camera, { position: cameraPosition, rotation: cameraRotation });
-        // FIXME: We shouldn't need the flip and the negative scale.
-        // e.g., This isn't necessary using an ordinary .jpg with lettering, above.
-        // Must be something about the view frustum projection matrix?
-        // But don't go changing that in (c++ code) without getting all the way to a desktop display!
-        Overlays.editOverlay(viewFinderOverlay, { orientation: flip(cameraRotation) });
         setDisplay(monitorShowsCameraView);
     }
 
@@ -173,18 +187,50 @@
         setDisplay(monitorShowsCameraView);
     }
 
-    function onHMDChanged(isHMDMode) {
-        // Will also eventually enable disable app, camera, etc.
-        setDisplay(monitorShowsCameraView);
+    //
+    // Function Name: addOrRemoveButton()
+    //
+    // Relevant Variables:
+    // button: The tablet button.
+    // buttonName: The name of the button.
+    // tablet: The tablet instance to be modified.
+    // showInDesktop: Set to "true" to show the "SPECTATOR" app in desktop mode
+    // 
+    // Arguments:
+    // isShuttingDown: Set to "true" if you're calling this function upon script shutdown
+    // isHMDMode: "true" if user is in HMD; false otherwise
+    // 
+    // Description:
+    // Used to add or remove the "SPECTATOR" app button from the HUD/tablet
+    //
+    var button = false;
+    var buttonName = "SPECTATOR";
+    var tablet = null;
+    var showSpectatorInDesktop = true;
+    function addOrRemoveButton(isShuttingDown, isHMDMode) {
+        if (!button) {
+            if ((isHMDMode || showSpectatorInDesktop) && !isShuttingDown) {
+                button = tablet.addButton({
+                    text: buttonName
+                });
+                button.clicked.connect(onTabletButtonClicked);
+            }
+        } else if (button) {
+            if ((!showSpectatorInDesktop || isShuttingDown) && !isHMDMode) {
+                button.clicked.disconnect(onTabletButtonClicked);
+                tablet.removeButton(button);
+                button = false;
+            }
+        } else {
+            print("ERROR adding/removing Spectator button!");
+        }
     }
 
     //
     // Function Name: startup()
     //
     // Relevant Variables:
-    // button: The tablet button.
-    // buttonName: The name of the button.
-    // tablet: The tablet instance to be modified.
+    // None
     // 
     // Arguments:
     // None
@@ -192,15 +238,9 @@
     // Description:
     // startup() will be called when the script is loaded.
     //
-    var button;
-    var buttonName = "SPECTATOR";
-    var tablet = null;
     function startup() {
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        button = tablet.addButton({
-            text: buttonName
-        });
-        button.clicked.connect(onTabletButtonClicked);
+        addOrRemoveButton(false, HMD.active);
         tablet.screenChanged.connect(onTabletScreenChanged);
         Window.domainChanged.connect(spectatorCameraOff);
         Controller.keyPressEvent.connect(keyPressEvent);
@@ -307,7 +347,9 @@
     function onTabletScreenChanged(type, url) {
         wireEventBridge(shouldActivateButton);
         // for toolbar mode: change button to active when window is first openend, false otherwise.
-        button.editProperties({ isActive: shouldActivateButton });
+        if (button) {
+            button.editProperties({ isActive: shouldActivateButton });
+        }
         shouldActivateButton = false;
         onSpectatorCameraScreen = false;
     }
@@ -362,6 +404,26 @@
     }
 
     //
+    // Function Name: onHMDChanged()
+    //
+    // Relevant Variables:
+    // None
+    // 
+    // Arguments:
+    // isHMDMode: "true" if HMD is on; "false" otherwise
+    // 
+    // Description:
+    // Called from C++ when HMD mode is changed
+    //
+    function onHMDChanged(isHMDMode) {
+        setDisplay(monitorShowsCameraView);
+        addOrRemoveButton(false, isHMDMode);
+        if (!isHMDMode && !showSpectatorInDesktop) {
+            spectatorCameraOff();
+        }
+    }
+
+    //
     // Function Name: shutdown()
     //
     // Relevant Variables:
@@ -376,8 +438,7 @@
     function shutdown() {
         spectatorCameraOff();
         Window.domainChanged.disconnect(spectatorCameraOff);
-        tablet.removeButton(button);
-        button.clicked.disconnect(onTabletButtonClicked);
+        addOrRemoveButton(true, HMD.active);
         tablet.screenChanged.disconnect(onTabletScreenChanged);
         HMD.displayModeChanged.disconnect(onHMDChanged);
         Controller.keyPressEvent.disconnect(keyPressEvent);
