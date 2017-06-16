@@ -28,25 +28,29 @@
 // Scriptable interface of "console" object. Used exclusively in the JavaScript API
 class ConsoleScriptingInterface : public QObject, protected QScriptable {
     Q_OBJECT
+public:
+    static QScriptValue info(QScriptContext* context, QScriptEngine* engine);
+    static QScriptValue log(QScriptContext* context, QScriptEngine* engine);
+    static QScriptValue debug(QScriptContext* context, QScriptEngine* engine);
+    static QScriptValue warn(QScriptContext* context, QScriptEngine* engine);
+    static QScriptValue error(QScriptContext* context, QScriptEngine* engine);
+    static QScriptValue exception(QScriptContext* context, QScriptEngine* engine);
+    static QScriptValue assertion(QScriptContext* context, QScriptEngine* engine);
+    static QScriptValue group(QScriptContext* context, QScriptEngine* engine);
+    static QScriptValue groupCollapsed(QScriptContext* context, QScriptEngine* engine);
+    static QScriptValue groupEnd(QScriptContext* context, QScriptEngine* engine);
+
 public slots:
-    void info(QString message);
-    void log(QString message);
-    void debug(QString message);
-    void warn(QString message);
-    void error(QString message);
-    void exception(QString message);
     void time(QString labelName);
     void timeEnd(QString labelName);
-    void asserts(bool condition, QString message = "");
     void trace();
     void clear();
-    void group(QString groupName);
-    void groupCollapsed(QString groupName);
-    void groupEnd();
-private:
+
+private:    
     QHash<QString, QDateTime> _timerDetails;
-    QList<QString> _groupDetails;
-    void logGroupMessage(QString msg);
+    static QList<QString> _groupDetails;
+    static void logGroupMessage(QString message, QScriptEngine* engine);
+    static QString appendArguments(QScriptContext* context);
 };
 
 #endif // hifi_ConsoleScriptingInterface_h

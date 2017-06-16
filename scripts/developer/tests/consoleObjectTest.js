@@ -17,6 +17,7 @@ function main() {
     console.info(a = 2 * 6);
     console.info(someValue);
     console.info('someObject id ' + someObject.id);
+    console.info('Hello World ', 'someObject.id = ', someObject.id, "a = 2 * 6 = ", a = 2 * 6);
 
     // console.log examples
     console.log("[console.log] Hello World");
@@ -25,6 +26,7 @@ function main() {
     console.log(a = 2 * 6);
     console.log(someValue);
     console.log('someObject id ' + someObject.id);
+    console.log('Hello World ', 'someObject.id = ', someObject.id, "a = 2 * 6 = ", a = 2 * 6);
 
     // console.debug examples
     console.debug("[console.debug] Hello World.");
@@ -33,6 +35,7 @@ function main() {
     console.debug(a = 2 * 6);
     console.debug(someValue);
     console.debug('someObject id ' + someObject.id);
+    console.debug('Hello World ', 'someObject.id = ', someObject.id, "a = 2 * 6 = ", a = 2 * 6);
 
     // console.warn examples
     console.warn("[console.warn] This is warning message.");
@@ -41,6 +44,7 @@ function main() {
     console.warn(a = 2 * 6);
     console.warn(someValue);
     console.warn('someObject id ' + someObject.id);
+    console.warn('Hello World ', 'someObject.id = ', someObject.id, "a = 2 * 6 = ", a = 2 * 6);
 
     // console.error examples
     console.error('An error occurred!');
@@ -64,15 +68,16 @@ function main() {
     }
     fooA();
 
-   //console.asserts() examples
+   // console.assert() examples
     var valA = 1, valB = "1";
-    console.asserts(valA === valB, "Value A doesn't equal to B");
-    console.asserts(valA === valB);
-    console.asserts(5 === 5, "5 equals to 5");
-    console.asserts(5 === 5);
-    console.asserts(5 > 6, "5 is not greater than 6");
+    console.assert(valA === valB, "Value A doesn't equal to B");
+    console.assert(valA === valB);
+    console.assert(5 === 5, "5 equals to 5");
+    console.assert(5 === 5);
+    console.assert(5 > 6, "5 is not greater than 6");
+    console.assert(5 > 6, "5 is not greater than 6", "This assertion will fail");
    
-    //console.group() examples.
+    // console.group() examples.
     console.group("Group 1");   
     console.log("Sentence 1");
     console.log("Sentence 2");
@@ -89,11 +94,11 @@ function main() {
     console.groupEnd();
     console.log("Sentence 9");
 
-    //console.time(),console.timeEnd() examples
-    console.time('Timer1');
+    // console.time(),console.timeEnd() examples
+    console.time('MyTimer');
     // Do some process
     sleep(1000);
-    console.timeEnd('Timer1');
+    console.timeEnd('MyTimer');
     
     // use console.clear() to clean Debug Window logs
     // console.clear();

@@ -18,124 +18,165 @@
 #include "ConsoleScriptingInterface.h"
 #include "ScriptEngine.h"
 
-#define INDENTATION 4
+#define INDENTATION 4 // 1 Tab - 4 spaces
 const QString LINE_SEPARATOR = "\n    ";
+const QString SPACE_SEPARATOR = " ";
 const QString STACK_TRACE_FORMAT = "\n[Stacktrace]%1%2";
+QList<QString> ConsoleScriptingInterface::_groupDetails = QList<QString>();
 
-void ConsoleScriptingInterface::info(QString message) {
-    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
-        scriptEngine->scriptInfoMessage(message);
+QScriptValue ConsoleScriptingInterface::info(QScriptContext* context, QScriptEngine* engine) {
+    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
+        scriptEngine->scriptInfoMessage(appendArguments(context));
     }
+    return QScriptValue::NullValue;
 }
 
-void ConsoleScriptingInterface::log(QString message) {
+QScriptValue ConsoleScriptingInterface::log(QScriptContext* context, QScriptEngine* engine) {
+    QString message = appendArguments(context);
     if (_groupDetails.count() == 0) {
-        if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
+        if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
             scriptEngine->scriptPrintedMessage(message);
         }
     } else {
-        this->logGroupMessage(message);
+        logGroupMessage(message, engine);
     }
+    return QScriptValue::NullValue;
 }
 
-void ConsoleScriptingInterface::debug(QString message) {
+QScriptValue ConsoleScriptingInterface::debug(QScriptContext* context, QScriptEngine* engine) {
+    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
+        scriptEngine->scriptPrintedMessage(appendArguments(context));
+    }
+    return QScriptValue::NullValue;
+}
+
+QScriptValue ConsoleScriptingInterface::warn(QScriptContext* context, QScriptEngine* engine) {
+    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
+        scriptEngine->scriptWarningMessage(appendArguments(context));
+    }
+    return QScriptValue::NullValue;
+}
+
+QScriptValue ConsoleScriptingInterface::error(QScriptContext* context, QScriptEngine* engine) {
+    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
+        scriptEngine->scriptErrorMessage(appendArguments(context));
+    }
+    return QScriptValue::NullValue;
+}
+
+QScriptValue ConsoleScriptingInterface::exception(QScriptContext* context, QScriptEngine* engine) {
+    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
+        scriptEngine->scriptErrorMessage(appendArguments(context));
+    }
+    return QScriptValue::NullValue;
+}
+
+void ConsoleScriptingInterface::time(QString labelName) {
+    _timerDetails.insert(labelName, QDateTime::currentDateTime().toUTC());
+    QString message = QString("%1: Timer started").arg(labelName);
     if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
         scriptEngine->scriptPrintedMessage(message);
     }
 }
 
-void ConsoleScriptingInterface::warn(QString message) {
-    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
-        scriptEngine->scriptWarningMessage(message);
-    }
-}
-
-void ConsoleScriptingInterface::error(QString message) {
-    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
-        scriptEngine->scriptErrorMessage(message);
-    }
-}
-
-void ConsoleScriptingInterface::exception(QString message) {
-    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
-        scriptEngine->scriptErrorMessage(message);
-    }
-}
-
-void  ConsoleScriptingInterface::time(QString labelName) {
-    _timerDetails.insert(labelName, QDateTime::currentDateTime().toUTC());
-    QString message = QString("%1: timer started").arg(labelName);
-    this->log(message);
-}
-
 void ConsoleScriptingInterface::timeEnd(QString labelName) {
-    if (!_timerDetails.contains(labelName)) {
-        this->error("No such label found " + labelName);
-        return;
-    }
+    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
+        if (!_timerDetails.contains(labelName)) {
+            scriptEngine->scriptErrorMessage("No such label found " + labelName);
+            return;
+        }
 
-    if (_timerDetails.value(labelName).isNull()) {
+        if (_timerDetails.value(labelName).isNull()) {
+            _timerDetails.remove(labelName);
+            scriptEngine->scriptErrorMessage("Invalid start time for " + labelName);
+            return;
+        }
+        QDateTime _startTime = _timerDetails.value(labelName);
+        QDateTime _endTime = QDateTime::currentDateTime().toUTC();
+        qint64 diffInMS = _startTime.msecsTo(_endTime);
+
+        QString message = QString("%1: %2ms").arg(labelName).arg(QString::number(diffInMS));
         _timerDetails.remove(labelName);
-        this->error("Invalid start time for " + labelName);
-        return;
-    }
-    
-    QDateTime _startTime = _timerDetails.value(labelName);
-    QDateTime _endTime = QDateTime::currentDateTime().toUTC();
-    qint64 diffInMS = _startTime.msecsTo(_endTime);
-    
-    QString message = QString("%1: %2ms").arg(labelName).arg(QString::number(diffInMS));
-    _timerDetails.remove(labelName);
 
-    this->log(message);
+        scriptEngine->scriptPrintedMessage(message);
+    }
 }
 
-void  ConsoleScriptingInterface::asserts(bool condition, QString message) {
+QScriptValue ConsoleScriptingInterface::assertion(QScriptContext* context, QScriptEngine* engine) {
+    QString message;
+    bool condition = false;
+    for (int i = 0; i < context->argumentCount(); i++) {
+        if (i == 0) {
+            condition = context->argument(i).toBool(); // accept first value as condition
+        } else {
+            message += SPACE_SEPARATOR + context->argument(i).toString(); // accept other parameters as message
+        }
+    }
+
+    QString assertionResult;
     if (!condition) {
-        QString assertionResult;
         if (message.isEmpty()) {
             assertionResult = "Assertion failed";
         } else {
             assertionResult = QString("Assertion failed : %1").arg(message);
         }
-        this->error(assertionResult);
+        if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
+            scriptEngine->scriptErrorMessage(assertionResult);
+        }
     }
+    return QScriptValue::NullValue;
 }
 
-void  ConsoleScriptingInterface::trace() {
-    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {        
+void ConsoleScriptingInterface::trace() {
+    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
         scriptEngine->scriptPrintedMessage
             (QString(STACK_TRACE_FORMAT).arg(LINE_SEPARATOR,
             scriptEngine->currentContext()->backtrace().join(LINE_SEPARATOR)));
     }
 }
 
-void  ConsoleScriptingInterface::clear() {
+void ConsoleScriptingInterface::clear() {
     if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine())) {
         scriptEngine->clearDebugLogWindow();
     }
 }
 
-void ConsoleScriptingInterface::group(QString groupName) {
-    this->logGroupMessage(groupName);
-    _groupDetails.push_back(groupName);
+QScriptValue ConsoleScriptingInterface::group(QScriptContext* context, QScriptEngine* engine) {
+    logGroupMessage(context->argument(0).toString(), engine); // accept first parameter as label
+    _groupDetails.push_back(context->argument(0).toString());
+    return QScriptValue::NullValue;
 }
 
-void ConsoleScriptingInterface::groupCollapsed(QString  groupName) {
-    this->logGroupMessage(groupName);
-    _groupDetails.push_back(groupName);
+QScriptValue ConsoleScriptingInterface::groupCollapsed(QScriptContext* context, QScriptEngine* engine) {
+    logGroupMessage(context->argument(0).toString(), engine); // accept first parameter as label
+    _groupDetails.push_back(context->argument(0).toString());
+    return QScriptValue::NullValue;
 }
 
-void ConsoleScriptingInterface::groupEnd() {
-    _groupDetails.removeLast();
+QScriptValue ConsoleScriptingInterface::groupEnd(QScriptContext* context, QScriptEngine* engine) {
+    ConsoleScriptingInterface::_groupDetails.removeLast();
+    return QScriptValue::NullValue;
 }
 
-void ConsoleScriptingInterface::logGroupMessage(QString message) {
-    int _appendIndentation = _groupDetails.count() * INDENTATION;
+QString ConsoleScriptingInterface::appendArguments(QScriptContext* context) {
+    QString message;
+    for (int i = 0; i < context->argumentCount(); i++) {
+        if (i > 0) {
+            message += SPACE_SEPARATOR;
+        }
+        message += context->argument(i).toString();
+    }
+    return message;
+}
+
+void ConsoleScriptingInterface::logGroupMessage(QString message, QScriptEngine* engine) {
+    int _addSpaces = _groupDetails.count() * INDENTATION;
     QString logMessage;
-    for (int count = 0; count < _appendIndentation; count++) {
-        logMessage.append(" ");
+    for (int i = 0; i < _addSpaces; i++) {
+        logMessage.append(SPACE_SEPARATOR);
     }
     logMessage.append(message);
-    this->debug(logMessage);
+    if (ScriptEngine* scriptEngine = qobject_cast<ScriptEngine*>(engine)) {
+        scriptEngine->scriptPrintedMessage(logMessage);
+    }
 }
