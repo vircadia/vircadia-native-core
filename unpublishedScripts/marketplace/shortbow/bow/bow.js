@@ -387,8 +387,14 @@ function getControllerLocation(controllerHand) {
                 Script.removeEventHandler(arrow, "collisionWithEntity", makeArrowStick);
             };
 
+			var makeBallGoPoof = function(entityA, entityB, collision) {
+				print("Entity hit: " + entityB);
+				Script.removeEventHandler(arrow, "collisionWithEntity", makeBallGoPoof);
+			});
+			
             Script.addEventHandler(arrow, "collisionWithEntity", makeArrowStick);
-
+			Script.addEventHandler(arrow, "collisionWithEntity", makeBallGoPoof);
+			
             return arrow;
         },
 
