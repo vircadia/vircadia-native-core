@@ -1404,8 +1404,14 @@ function addTableRow(row) {
   // as a data attribute to the row
   var row_index = 0;
   if (isArray) {
-    var previous_row_index = parseInt(row.siblings('.' + Settings.DATA_ROW_CLASS + ':last').attr(Settings.DATA_ROW_INDEX), 10);
-    row_index = previous_row_index + 1;
+    var previous_row = row.siblings('.' + Settings.DATA_ROW_CLASS + ':last');
+
+    if (previous_row.length > 0) {
+      row_index = parseInt(previous_row.attr(Settings.DATA_ROW_INDEX), 10) + 1;
+    } else {
+      row_index = 0;
+    }
+
     row.attr(Settings.DATA_ROW_INDEX, row_index);
   }
 
