@@ -391,6 +391,7 @@
             sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
             sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
             sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
+            Menu.setIsOptionChecked("Disable Preview", false);
         }
     }
 

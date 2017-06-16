@@ -315,7 +315,7 @@ Rectangle {
             switchViewFromControllerCheckBox.checked = message.setting;
             switchViewFromControllerCheckBox.enabled = true;
             if (message.controller === "OculusTouch") {
-                switchViewFromControllerCheckBox.text = "Clicking Left Touch's Thumbstick Switches Monitor View";
+                switchViewFromControllerCheckBox.text = "Clicking Touch's Left Thumbstick Switches Monitor View";
             } else if (message.controller === "Vive") {
                 switchViewFromControllerCheckBox.text = "Clicking Left Thumb Pad Switches Monitor View";
             } else {
