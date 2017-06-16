@@ -667,7 +667,7 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     packetStream >> connectionUUID;
 
     SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
-                                             nodeLocalSocket, permissions, isReplicated, connectionUUID);
+                                             nodeLocalSocket, isReplicated, false, connectionUUID, permissions);
 
     // nodes that are downstream of our own type are kept alive when we hear about them from the domain server
     if (node->getType() == NodeType::downstreamType(_ownerType)) {

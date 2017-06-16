@@ -570,9 +570,8 @@ void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
 
 SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                                    const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                                   const NodePermissions& permissions,
-                                                   bool isReplicated,
-                                                   const QUuid& connectionSecret) {
+                                                   bool isReplicated, bool isUpstream,
+                                                   const QUuid& connectionSecret, const NodePermissions& permissions) {
     QReadLocker readLocker(&_nodeMutex);
     NodeHash::const_iterator it = _nodeHash.find(uuid);
 
@@ -584,11 +583,16 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         matchingNode->setPermissions(permissions);
         matchingNode->setConnectionSecret(connectionSecret);
         matchingNode->setIsReplicated(isReplicated);
+        matchingNode->setIsUpstream(isUpstream);
 
         return matchingNode;
     } else {
         // we didn't have this node, so add them
-        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, permissions, isReplicated, connectionSecret);
+        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
+        newNode->setIsReplicated(isReplicated);
+        newNode->setIsUpstream(isUpstream);
+        newNode->setConnectionSecret(connectionSecret);
+        newNode->setPermissions(permissions);
 
         // move the newly constructed node to the LNL thread
         newNode->moveToThread(thread());

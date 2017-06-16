@@ -145,8 +145,9 @@ public:
 
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                      const NodePermissions& permissions = DEFAULT_AGENT_PERMISSIONS,
-                                      bool isReplicated = false, const QUuid& connectionSecret = QUuid());
+                                      bool isReplicated = false, bool isUpstream = false,
+                                      const QUuid& connectionSecret = QUuid(),
+                                      const NodePermissions& permissions = DEFAULT_AGENT_PERMISSIONS);
 
     static bool parseSTUNResponse(udt::BasePacket* packet, QHostAddress& newPublicAddress, uint16_t& newPublicPort);
     bool hasCompletedInitialSTUN() const { return _hasCompletedInitialSTUN; }
