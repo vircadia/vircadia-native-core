@@ -768,6 +768,6 @@ Rectangle {
     function sendConfigurationSettings() {
         var settings = composeConfigurationSettings();
         InputConfiguration.setConfigurationSettings(settings, pluginName);
-        updateCalibrationText();
+        //updateCalibrationText();
     }
 }
