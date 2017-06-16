@@ -24,8 +24,11 @@ public:
 private:
     bool _ready;
     QString _url;
+
     NetworkTexturePointer _networkTexture;
     QQuickWindow* _window;
+    QOpenGLFramebufferObject* _copyFbo;
+    QMutex _fboMutex;
 };
 
 class ResourceImageItem : public QQuickFramebufferObject {

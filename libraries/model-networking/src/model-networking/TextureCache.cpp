@@ -221,7 +221,7 @@ gpu::TexturePointer TextureCache::cacheTextureByHash(const std::string& hash, co
 gpu::TexturePointer getFallbackTextureForType(image::TextureUsage::Type type) {
     gpu::TexturePointer result;
     auto textureCache = DependencyManager::get<TextureCache>();
-    // Since this can be called on a background thread, there's a chance that the cache 
+    // Since this can be called on a background thread, there's a chance that the cache
     // will be destroyed by the time we request it
     if (!textureCache) {
         return result;
@@ -373,7 +373,7 @@ void NetworkTexture::makeRequest() {
     if (!_sourceIsKTX) {
         Resource::makeRequest();
         return;
-    } 
+    }
 
     // We special-handle ktx requests to run 2 concurrent requests right off the bat
     PROFILE_ASYNC_BEGIN(resource, "Resource:" + getType(), QString::number(_requestID), { { "url", _url.toString() }, { "activeURL", _activeUrl.toString() } });
@@ -682,7 +682,7 @@ void NetworkTexture::maybeHandleFinishedInitialLoad() {
                     imageSizeRemaining -= (image._imageSize + ktx::IMAGE_SIZE_WIDTH);
                 }
 
-                // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different 
+                // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different
                 // images with the same hash being loaded concurrently.  Only one of them will make it into the cache by hash first and will
                 // be the winner
                 texture = textureCache->cacheTextureByHash(filename, texture);
@@ -823,7 +823,7 @@ void ImageReader::read() {
             }
         }
 
-        // If we found the texture either because it's in use or via KTX deserialization, 
+        // If we found the texture either because it's in use or via KTX deserialization,
         // set the image and return immediately.
         if (texture) {
             QMetaObject::invokeMethod(resource.data(), "setImage",
@@ -862,7 +862,7 @@ void ImageReader::read() {
             const char* data = reinterpret_cast<const char*>(memKtx->_storage->data());
             size_t length = memKtx->_storage->size();
             auto& ktxCache = textureCache->_ktxCache;
-            networkTexture->_file = ktxCache.writeFile(data, KTXCache::Metadata(hash, length)); // 
+            networkTexture->_file = ktxCache.writeFile(data, KTXCache::Metadata(hash, length)); //
             if (!networkTexture->_file) {
                 qCWarning(modelnetworking) << _url << "file cache failed";
             } else {
@@ -872,7 +872,7 @@ void ImageReader::read() {
             qCWarning(modelnetworking) << "Unable to serialize texture to KTX " << _url;
         }
 
-        // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different 
+        // We replace the texture with the one stored in the cache.  This deals with the possible race condition of two different
         // images with the same hash being loaded concurrently.  Only one of them will make it into the cache by hash first and will
         // be the winner
         texture = textureCache->cacheTextureByHash(hash, texture);
@@ -891,10 +891,12 @@ NetworkTexturePointer TextureCache::getResourceTexture(QUrl resourceTextureUrl) 
         if (!_spectatorCameraNetworkTexture) {
             _spectatorCameraNetworkTexture.reset(new NetworkTexture(resourceTextureUrl));
         }
-        texture = _spectatorCameraFramebuffer->getRenderBuffer(0);
-        if (texture) {
-            _spectatorCameraNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
-            return _spectatorCameraNetworkTexture;
+        if (_spectatorCameraFramebuffer) {
+            texture = _spectatorCameraFramebuffer->getRenderBuffer(0);
+            if (texture) {
+                _spectatorCameraNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
+                return _spectatorCameraNetworkTexture;
+            }
         }
     }
 

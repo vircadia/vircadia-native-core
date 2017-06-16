@@ -30,7 +30,7 @@ void ResourceImageItem::setReady(bool ready) {
     if (ready != m_ready) {
         m_ready = ready;
         if (m_ready) {
-            m_updateTimer.start(1000);
+            m_updateTimer.start(100);
         } else {
             m_updateTimer.stop();
         }
@@ -40,6 +40,7 @@ void ResourceImageItem::setReady(bool ready) {
 
 void ResourceImageItemRenderer::synchronize(QQuickFramebufferObject* item) {
     ResourceImageItem* resourceImageItem = static_cast<ResourceImageItem*>(item);
+
     bool urlChanged = false;
     if( _url != resourceImageItem->getUrl()) {
         _url = resourceImageItem->getUrl();
@@ -50,10 +51,26 @@ void ResourceImageItemRenderer::synchronize(QQuickFramebufferObject* item) {
         _ready = resourceImageItem->getReady();
         readyChanged = true;
     }
+
+    if (!_ready && readyChanged) {
+        qDebug() << "clearing network texture!!!!!!!!!!!!!!!!!";
+        _networkTexture.clear();
+    }
+
     _window = resourceImageItem->window();
-    qDebug() << "synchronize called!!!!!!!";
-    if (_ready && !_url.isNull() && !_url.isEmpty() && (readyChanged || urlChanged)) {
+    if (_ready && !_url.isNull() && !_url.isEmpty() && (urlChanged || readyChanged || !_networkTexture)) {
         _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_url);
+    }
+
+    if (_networkTexture) {
+        qDebug() << "copying texture";
+        auto texture = _networkTexture->getGPUTexture();
+        if (texture) {
+            if (_fboMutex.tryLock()) {
+                qApp->getActiveDisplayPlugin()->copyTextureToQuickFramebuffer(texture, framebufferObject());
+                _fboMutex.unlock();
+            }
+        }
     }
 }
 
@@ -64,12 +81,7 @@ QOpenGLFramebufferObject* ResourceImageItemRenderer::createFramebufferObject(con
 }
 
 void ResourceImageItemRenderer::render() {
-    qDebug() << "render called!!!!!!!!!!!!!!";
-    if (_networkTexture && _ready) {
-        auto texture = _networkTexture->getGPUTexture();
-        if (texture) {
-            qApp->getActiveDisplayPlugin()->copyTextureToQuickFramebuffer(texture, framebufferObject());
-            _window->resetOpenGLState();
-        }
-    }
+    _fboMutex.lock();
+    _window->resetOpenGLState();
+    _fboMutex.unlock();
 }
