@@ -16,7 +16,6 @@
     }
 
     var _utils = global._utils || (typeof require === 'function' && require('../../_utils.js'));
-
     if (!_utils || !_utils.signal) {
         throw new Error('html.BridgedSettings.js -- expected _utils to be available on the global object (ie: window._utils)');
     }
@@ -44,7 +43,7 @@
             debug: options.debug,
             log: log.bind({}, options.namespace + ' |'),
             debugPrint: function() {
-                return this.debug && this.log.apply(this, arguments); 
+                return this.debug && this.log.apply(this, arguments);
             },
             _boundScriptEventReceived: this.onScriptEventReceived.bind(this),
             callbacks: Object.defineProperties(options.callbacks || {}, {
@@ -59,7 +58,7 @@
     BridgedSettings.prototype = {
         _callbackId: 1,
         toString: function() {
-            return '[BridgedSettings namespace='+this.namespace+']'; 
+            return '[BridgedSettings namespace='+this.namespace+']';
         },
         resolve: function(key) {
             if (0 !== key.indexOf('.') && !~key.indexOf('/')) {
@@ -144,7 +143,7 @@
             key = this.resolve(key);
             var current = this.getValue(key);
             if (current !== value) {
-                log('SET VALUE : ' + JSON.stringify({ key: key, current: current, value: value }));
+                debugPrint('SET VALUE : ' + JSON.stringify({ key: key, current: current, value: value }));
                 return this.syncValue(key, value, 'setValue');
             }
             this._hifiValues[key] = value;
@@ -184,5 +183,4 @@
             this.sendEvent(event);
         },
     };
-
 })(this);

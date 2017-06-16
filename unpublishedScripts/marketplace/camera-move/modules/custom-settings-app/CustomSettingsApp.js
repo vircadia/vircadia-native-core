@@ -73,19 +73,8 @@ function CustomSettingsApp(options) {
 
     this.settingsAPI = options.settingsAPI || Settings;
 
-    // keep track of accessed settings so they can be kept in sync when changed on this side
-    this._activeSettings = {
-        sent: {},
-        received: {},
-        remote: {},
-        get: function(key) {
-            return {
-                sent: this.sent[key],
-                received: this.received[key],
-                remote: this.remote[key]
-            };
-        }
-    };
+    // keep track of accessed settings so they can be kept in sync if changed externally
+    this._activeSettings = { sent: {}, received: {}, remote: {} };
 
     if (options.tablet) {
         this._initialize(options.tablet);
@@ -137,8 +126,17 @@ CustomSettingsApp.prototype = {
         }
     },
 
+    _apiGetValue: function(key, defaultValue) {
+        // trim rooted keys like "/desktopTabletBecomesToolbar" => "desktopTabletBecomesToolbar"
+        key = key.replace(/^\//,'');
+        return this.settingsAPI.getValue(key, defaultValue);
+    },
+    _apiSetValue: function(key, value) {
+        key = key.replace(/^\//,'');
+        return this.settingsAPI.setValue(key, value);
+    },
     _setValue: function(key, value, oldValue, origin) {
-        var current = this.settingsAPI.getValue(key),
+        var current = this._apiGetValue(key),
             lastRemoteValue = this._activeSettings.remote[key];
         debugPrint('.setValue(' + JSON.stringify({key: key, value: value, current: current, lastRemoteValue: lastRemoteValue })+')');
         this._activeSettings.received[key] = value;
@@ -148,7 +146,7 @@ CustomSettingsApp.prototype = {
             this.valueUpdated(key, value, lastRemoteValue, 'CustomSettingsApp.tablet');
         }
         if (current !== value) {
-            result = this.settingsAPI.setValue(key, value);
+            result = this._apiSetValue(key, value);
         }
         return result;
     },
@@ -160,29 +158,28 @@ CustomSettingsApp.prototype = {
         }
         var params = Array.isArray(obj.params) ? obj.params : [obj.params];
         var parts = (obj.method||'').split('.'), api = parts[0], method = parts[1];
-        if (api === 'valueUpdated') {
-            obj.result = this._setValue.apply(this, params);
-        } else if (api === 'Settings' && method && params[0]) {
-            var key = this.resolve(params[0]), value = params[1];
-            debugPrint('>>>>', method, key, value);
-            switch (method) {
-                case 'getValue': {
-                    obj.result = this.settingsAPI.getValue(key, value);
-                    this._activeSettings.sent[key] = obj.result;
-                    this._activeSettings.remote[key] = obj.result;
+        switch(api) {
+            case 'valueUpdated': obj.result = this._setValue.apply(this, params); break;
+            case 'Settings':
+                if (method && params[0]) {
+                    var key = this.resolve(params[0]), value = params[1];
+                    debugPrint('>>>>', method, key, value);
+                    switch (method) {
+                        case 'getValue':
+                            obj.result = this._apiGetValue(key, value);
+                            this._activeSettings.sent[key] = obj.result;
+                            this._activeSettings.remote[key] = obj.result;
+                            break;
+                        case 'setValue':
+                            obj.result = this._setValue(key, value, params[2], params[3]);
+                            break;
+                        default:
+                            obj.error = 'unmapped Settings method: ' + method;
+                            throw new Error(obj.error);
+                    }
                     break;
                 }
-                case 'setValue': {
-                    obj.result = this._setValue(key, value, params[2], params[3]);
-                    break;
-                }
-                default: {
-                    obj.error = 'unmapped Settings method: ' + method;
-                    throw new Error(obj.error);
-                }
-            }
-        } else {
-            if (this.onUnhandledMessage) {
+            default: if (this.onUnhandledMessage) {
                 this.onUnhandledMessage(obj, msg);
             } else {
                 obj.error = 'unmapped method call: ' + msg;
@@ -192,7 +189,6 @@ CustomSettingsApp.prototype = {
             // if message has an id, reply with the same message obj which now has a .result or .error field
             // note: a small delay is needed because of an apparent race condition between ScriptEngine and Tablet WebViews
             Script.setTimeout(_utils.bind(this, function() {
-                debugPrint(obj.id, '########', JSON.stringify(obj));
                 this.sendEvent(obj);
             }), 100);
         } else if (obj.error) {
@@ -200,28 +196,29 @@ CustomSettingsApp.prototype = {
         }
     },
     onWebEventReceived: function onWebEventReceived(msg) {
-        // !/xSettings[.]getValue/.test(msg) &&
-        _debugPrint('onWebEventReceived', msg);
+        debugPrint('onWebEventReceived', msg);
         var tablet = this.tablet;
         if (!tablet) {
             throw new Error('onWebEventReceived called when not connected to tablet...');
         }
         if (msg === this.url) {
+            if (this.isActive) {
+                // user (or page) refreshed the web view; trigger !isActive so client script can perform cleanup
+                this.isActiveChanged(this.isActive = false);
+            }
             this.isActiveChanged(this.isActive = true);
             // reply to initial HTML page ACK with any extraParams that were specified
             this.sendEvent({ id: 'extraParams', extraParams: this.extraParams });
             return;
         }
         try {
-            var obj = JSON.parse(msg);
-            var validSender = obj.ns === this.namespace && obj.uuid === this.uuid;
-            if (validSender) {
-                this._handleValidatedMessage(obj, msg);
-            } else {
-                debugPrint('xskipping', JSON.stringify([obj.ns, obj.uuid]), JSON.stringify(this), msg);
-            }
+            var obj = assert(JSON.parse(msg));
         } catch (e) {
-            _debugPrint('rpc error:', e, msg);
+            return;
+        }
+        if (obj.ns === this.namespace && obj.uuid === this.uuid) {
+            debugPrint('valid onWebEventReceived', msg);
+            this._handleValidatedMessage(obj, msg);
         }
     },
 
@@ -235,45 +232,31 @@ CustomSettingsApp.prototype = {
 
         this.onAPIValueUpdated = function(key, newValue, oldValue, origin) {
             if (this._activeSettings.remote[key] !== newValue) {
-                _debugPrint(
-                    '[onAPIValueUpdated @ ' + origin + ']',
-                    key + ' = ' + JSON.stringify(newValue), '(was: ' + JSON.stringify(oldValue) +')',
-                    JSON.stringify(this._activeSettings.get(key)));
+                _debugPrint('onAPIValueUpdated: ' + key + ' = ' + JSON.stringify(newValue),
+                            '(was: ' + JSON.stringify(oldValue) +')');
                 this.syncValue(key, newValue, (origin ? origin+':' : '') + 'CustomSettingsApp.onAPIValueUpdated');
             }
         };
         this.isActiveChanged.connect(this, function(isActive) {
-            debugPrint('============= CustomSettingsApp... isActiveChanged', JSON.stringify({
-                isActive: isActive,
-                interval: this.interval || 0,
-                recheckInterval: this.recheckInterval
-            },0,2));
             this._activeSettings.remote = {}; // reset assumptions about remote values
             isActive ? this.$startMonitor() : this.$stopMonitor();
         });
-
         debugPrint('CustomSettingsApp...initialized', this.namespace);
     },
 
     $syncSettings: function() {
         for (var p in this._activeSettings.sent) {
-            var value = this.settingsAPI.getValue(p),
+            var value = this._apiGetValue(p),
                 lastValue = this._activeSettings.remote[p];
             if (value !== undefined && value !== null && value !== '' && value !== lastValue) {
-                _debugPrint('CustomSettingsApp... detected external settings change', JSON.stringify({
-                    key: p,
-                    lastValueSent: (this._activeSettings.sent[p]+''),
-                    lastValueAssumed: (this._activeSettings.remote[p]+''),
-                    lastValueReceived: (this._activeSettings.received[p]+''),
-                    newValue: (value+'')
-                }));
+                _debugPrint('CustomSettingsApp... detected external settings change', p, value);
                 this.syncValue(p, value, 'Settings');
                 this.valueUpdated(p, value, lastValue, 'CustomSettingsApp.$syncSettings');
             }
         }
     },
     $startMonitor: function() {
-        if (!(this.recheckInterval > 0)) { // expressed this way handles -1, NaN, null, undefined etc.
+        if (!(this.recheckInterval > 0)) {
             _debugPrint('$startMonitor -- recheckInterval <= 0; not starting settings monitor thread');
             return false;
         }

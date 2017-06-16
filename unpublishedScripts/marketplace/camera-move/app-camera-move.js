@@ -12,7 +12,7 @@
 /* eslint-disable comma-dangle, no-empty */
 "use strict";
 
-var VERSION = '0.0.0d',
+var VERSION = '0.0.1',
     NAMESPACE = 'app-camera-move',
     APP_HTML_URL = Script.resolvePath('app.html'),
     BUTTON_CONFIG = {
@@ -23,10 +23,7 @@ var VERSION = '0.0.0d',
 
 var MINIMAL_CURSOR_SCALE = 0.5,
     FILENAME = Script.resolvePath(''),
-    WANT_DEBUG = (
-        false || (FILENAME.match(/[&#?]debug[=](\w+)/)||[])[1] ||
-            Settings.getValue(NAMESPACE + '/debug')
-    ),
+    WANT_DEBUG = Settings.getValue(NAMESPACE + '/debug', false)
     EPSILON = 1e-6;
 
 function log() {
@@ -39,8 +36,8 @@ var require = Script.require,
     overlayDebugOutput = function(){};
 
 if (WANT_DEBUG) {
-    log('WANT_DEBUG is true; instrumenting debug rigging', WANT_DEBUG);
-    _instrumentDebugValues();
+    log('WANT_DEBUG is true; instrumenting debug support', WANT_DEBUG);
+    _instrumentDebug();
 }
 
 var _utils = require('./modules/_utils.js'),
@@ -58,6 +55,7 @@ var cameraControls, eventMapper, cameraConfig, applicationConfig;
 var DEFAULTS = {
     'namespace': NAMESPACE,
     'debug': WANT_DEBUG,
+    'jitter-test': false,
     'camera-move-enabled': false,
     'thread-update-mode': movementUtils.CameraControls.SCRIPT_UPDATE,
     'fps': 90,
@@ -83,30 +81,21 @@ var DEFAULTS = {
 
     'ui-enable-tooltips': true,
     'ui-show-advanced-options': false,
-
-    // 'toggle-key': DEFAULT_TOGGLE_KEY,
 };
 
 // map setting names to/from corresponding Menu and API properties
 var APPLICATION_SETTINGS = {
-    'Avatar/pitchSpeed': 'pitchSpeed' in MyAvatar && {
-        object: [ MyAvatar, 'pitchSpeed' ]
-    },
-    'Avatar/yawSpeed': 'yawSpeed' in MyAvatar && {
-        object: [ MyAvatar, 'yawSpeed' ]
-    },
     'Avatar/Enable Avatar Collisions': {
         menu: 'Avatar > Enable Avatar Collisions',
         object: [ MyAvatar, 'collisionsEnabled' ],
     },
     'Avatar/Draw Mesh': {
         menu: 'Developer > Draw Mesh',
-        // object: [ MyAvatar, 'shouldRenderLocally' ], // shouldRenderLocally seems to be broken...
         object: [ MyAvatar, 'getEnableMeshVisible', 'setEnableMeshVisible' ],
     },
-    'Avatar/useSnapTurn': {
-        object: [ MyAvatar, 'getSnapTurn', 'setSnapTurn' ],
-    },
+    'Avatar/Show My Eye Vectors': { menu: 'Developer > Show My Eye Vectors' },
+    'Avatar/Show Other Eye Vectors': { menu: 'Developer > Show Other Eye Vectors' },
+    'Avatar/useSnapTurn': { object: [ MyAvatar, 'getSnapTurn', 'setSnapTurn' ] },
     'Avatar/lookAtSnappingEnabled': 'lookAtSnappingEnabled' in MyAvatar && {
         menu: 'Developer > Enable LookAt Snapping',
         object: [ MyAvatar, 'lookAtSnappingEnabled' ]
@@ -119,17 +108,6 @@ var APPLICATION_SETTINGS = {
             cameraControls.setEnabled(!!nv);
         },
     },
-    // 'toggle-key': {
-    //     get: function() { try {
-    //         return JSON.parse(cameraConfig.getValue('toggle-key'));
-    //     } catch (e) {
-    //         return DEFAULT_TOGGLE_KEY;
-    //     } },
-    //     set: function(nv) {
-    //         assert(typeof nv === 'object', 'new toggle-key is not an object: ' + nv);
-    //         cameraConfig.setValue('toggle-key', JSON.parse(JSON.stringify(nv)));
-    //     },
-    // },
 };
 
 var DEBUG_INFO = {
@@ -143,7 +121,6 @@ var DEBUG_INFO = {
         supportsPitchSpeed: 'pitchSpeed' in MyAvatar,
         supportsYawSpeed: 'yawSpeed' in MyAvatar,
         supportsLookAtSnappingEnabled: 'lookAtSnappingEnabled' in MyAvatar,
-        supportsDensity: 'density' in MyAvatar,
     },
     Reticle: {
         supportsScale: 'scale' in Reticle,
@@ -160,7 +137,7 @@ var globalState = {
         },
     },
 
-    // batch updates to MyAvatar/Camera properties (submitting together seems to help reduce timeslice jitter)
+    // batch updates to MyAvatar/Camera properties (submitting together seems to help reduce jitter)
     pendingChanges: _utils.DeferredUpdater.createGroup({
         Camera: Camera,
         MyAvatar: MyAvatar,
@@ -169,9 +146,7 @@ var globalState = {
     // current input controls' effective velocities
     currentVelocities: new movementUtils.VelocityTracker({
         translation: Vec3.ZERO,
-        step_translation: Vec3.ZERO, // eslint-disable-line camelcase
         rotation: Vec3.ZERO,
-        step_rotation: Vec3.ZERO,    // eslint-disable-line camelcase
         zoom: Vec3.ZERO,
     }),
 };
@@ -187,8 +162,7 @@ function main() {
         button = null;
     });
 
-    // track both runtime state (applicationConfig) and settings state (cameraConfig)
-    // (this is necessary because Interface does not yet consistently keep config Menus, APIs and Settings in sync)
+    // track runtime state (applicationConfig) and Settings state (cameraConfig)
     applicationConfig = new configUtils.ApplicationConfig({
         namespace: DEFAULTS.namespace,
         config: APPLICATION_SETTINGS,
@@ -204,12 +178,12 @@ function main() {
             toggleKey = JSON.parse(cameraConfig.getValue('toggle-key'));
         } catch (e) {}
     }
-    // set up a monitor to observe configuration changes between the two sources
+    // monitor configuration changes / keep tablet app up-to-date
     var MONITOR_INTERVAL_MS = 1000;
     _startConfigationMonitor(applicationConfig, cameraConfig, MONITOR_INTERVAL_MS);
 
     // ----------------------------------------------------------------------------
-    // set up the tablet webview app
+    // set up the tablet app
     log('APP_HTML_URL', APP_HTML_URL);
     var settingsApp = new CustomSettingsApp({
         namespace: cameraConfig.namespace,
@@ -219,19 +193,20 @@ function main() {
         tablet: tablet,
         extraParams: Object.assign({
             toggleKey: toggleKey,
-        }, _utils.getSystemMetadata(), DEBUG_INFO),
+        }, getSystemMetadata(), DEBUG_INFO),
         debug: WANT_DEBUG > 1,
     });
     Script.scriptEnding.connect(settingsApp, 'cleanup');
     settingsApp.valueUpdated.connect(function(key, value, oldValue, origin) {
-        log('[settingsApp.valueUpdated @ ' + origin + ']', key + ' = ' + JSON.stringify(value) + ' (was: ' + JSON.stringify(oldValue) + ')');
+        log('settingsApp.valueUpdated: '+ key + ' = ' + JSON.stringify(value) + ' (was: ' + JSON.stringify(oldValue) + ')');
         if (/tablet/i.test(origin)) {
-            log('cameraConfig applying immediate setting', key, value);
-            // apply relevant settings immediately when changed from the app UI
+            // apply relevant settings immediately if changed from the tablet UI
+            log('applying immediate setting', key, value);
             applicationConfig.applyValue(key, value, origin);
         }
     });
 
+    // process custom eventbridge messages
     settingsApp.onUnhandledMessage = function(msg) {
         switch (msg.method) {
             case 'window.close': {
@@ -250,9 +225,6 @@ function main() {
                 }, 500);
             } break;
             case 'reset': {
-                // if (!Window.confirm('Reset all camera move settings to system defaults?')) {
-                //    return;
-                // }
                 var resetValues = {};
                 Object.keys(DEFAULTS).reduce(function(out, key) {
                     var resolved = cameraConfig.resolve(key);
@@ -264,15 +236,12 @@ function main() {
                     out[resolved] = resolved in out ? out[resolved] : applicationConfig.getValue(key);
                     return out;
                 }, resetValues);
-                log('resetValues', JSON.stringify(resetValues, 0, 2));
+                log('restting to system defaults:', JSON.stringify(resetValues, 0, 2));
                 for (var p in resetValues) {
                     var value = resetValues[p];
                     applicationConfig.applyValue(p, value, 'reset');
                     cameraConfig.setValue(p, value);
                 }
-            } break;
-            case 'overlayWebWindow': {
-                _utils._overlayWebWindow(msg.options);
             } break;
             default: {
                 log('onUnhandledMessage', JSON.stringify(msg,0,2));
@@ -281,11 +250,10 @@ function main() {
     };
 
     // ----------------------------------------------------------------------------
-    // set up the keyboard/mouse/controller/meta input state manager
+    // set up the keyboard/mouse/controller input state manager
     eventMapper = new movementUtils.MovementEventMapper({
         namespace: DEFAULTS.namespace,
         mouseSmooth: cameraConfig.getValue('enable-mouse-smooth'),
-        xexcludeNames: [ 'Keyboard.C', 'Keyboard.E', 'Actions.TranslateY' ],
         mouseMultiplier: cameraConfig.getValue('mouse-multiplier'),
         keyboardMultiplier: cameraConfig.getValue('keyboard-multiplier'),
         eventFilter: function eventFilter(from, event, defaultFilter) {
@@ -293,6 +261,7 @@ function main() {
                 driveKeyName = event.driveKeyName;
             if (!result || !driveKeyName) {
                 if (from === 'Keyboard.RightMouseButton') {
+                    // let the app know when the user is mouse looking
                     settingsApp.syncValue('Keyboard.RightMouseButton', event.actionValue, 'eventFilter');
                 }
                 return 0;
@@ -302,14 +271,14 @@ function main() {
             }
             if (from === 'Actions.Pitch') {
                 result *= cameraConfig.getFloat('rotation-x-speed');
-            }
-            if (from === 'Actions.Yaw') {
+            } else if (from === 'Actions.Yaw') {
                 result *= cameraConfig.getFloat('rotation-y-speed');
             }
             return result;
         },
     });
     Script.scriptEnding.connect(eventMapper, 'disable');
+    // keep track of these changes live so the controller mapping can be kept in sync
     applicationConfig.register({
         'enable-mouse-smooth': { object: [ eventMapper.options, 'mouseSmooth' ] },
         'keyboard-multiplier': { object: [ eventMapper.options, 'keyboardMultiplier' ] },
@@ -347,33 +316,41 @@ function main() {
     Script.scriptEnding.connect(spacebar, 'disconnect');
 
     // ----------------------------------------------------------------------------
-    // set up ESC for reset drive key states
+    // set up ESC for resetting all drive key states
     Script.scriptEnding.connect(new _utils.KeyListener({
         text: 'ESC',
         onKeyPressEvent: function(event) {
             if (cameraControls.enabled) {
-                log('ESC pressed -- resetting drive keys values:', JSON.stringify({
+                log('ESC pressed -- resetting drive keys:', JSON.stringify({
                     virtualDriveKeys: eventMapper.states,
                     movementState: eventMapper.getState(),
                 }, 0, 2));
                 eventMapper.states.reset();
+                MyAvatar.velocity = Vec3.ZERO;
+                MyAvatar.angularVelocity = Vec3.ZERO;
             }
         },
     }), 'disconnect');
 
-    // set up the tablet button to toggle the app UI display
+    // set up the tablet button to toggle the UI display
     button.clicked.connect(settingsApp, function(enable) {
-        Object.assign(this.extraParams, _utils.getSystemMetadata());
+        Object.assign(this.extraParams, getSystemMetadata());
+        button.editProperties({ text: '(opening)' + BUTTON_CONFIG.text, isActive: true });
         this.toggle(enable);
     });
 
     settingsApp.isActiveChanged.connect(function(isActive) {
         updateButtonText();
+        if (Overlays.getOverlayType(HMD.tabletScreenID)) {
+            var fromMode = Overlays.getProperty(HMD.tabletScreenID, 'inputMode'),
+                inputMode = isActive ? "Mouse" : "Touch";
+            log('switching HMD.tabletScreenID from inputMode', fromMode, 'to', inputMode);
+            Overlays.editOverlay(HMD.tabletScreenID, { inputMode: inputMode });
+        }
     });
 
     cameraControls.modeChanged.connect(onCameraModeChanged);
 
-    var fpsTimeout = 0;
     function updateButtonText() {
         var lines = [
             settingsApp.isActive ? '(app open)' : '',
@@ -382,6 +359,7 @@ function main() {
         button && button.editProperties({ text: lines.join('\n') });
     }
 
+    var fpsTimeout = 0;
     cameraControls.enabledChanged.connect(function(enabled) {
         log('enabledChanged', enabled);
         button && button.editProperties({ isActive: enabled });
@@ -396,10 +374,14 @@ function main() {
             eventMapper.disable();
             avatarUpdater._resetMyAvatarMotor({ MyAvatar: MyAvatar });
             updateButtonText();
+            if (settingsApp.isActive) {
+                settingsApp.syncValue('Keyboard.RightMouseButton', false, 'cameraControls.disabled');
+            }
         }
         overlayDebugOutput.overlayID && Overlays.editOverlay(overlayDebugOutput.overlayID, { visible: enabled });
     });
 
+    // when certain settings change we need to reset the drive systems
     var resetIfChanged = [
         'minimal-cursor', 'drive-mode', 'fps', 'thread-update-mode',
         'mouse-multiplier', 'keyboard-multiplier',
@@ -408,28 +390,14 @@ function main() {
 
     cameraConfig.valueUpdated.connect(function(key, value, oldValue, origin) {
         var triggerReset = !!~resetIfChanged.indexOf(key);
-        log('[cameraConfig.valueUpdated @ ' + origin + ']',
-            key + ' = ' + JSON.stringify(value), '(was:' + JSON.stringify(oldValue) + ')',
+        log('cameraConfig.valueUpdated: ' + key + ' = ' + JSON.stringify(value), '(was:' + JSON.stringify(oldValue) + ')',
             'triggerReset: ' + triggerReset);
 
         if (/tablet/i.test(origin)) {
-            log('cameraConfig applying immediate setting', key, value);
-            // apply relevant settings immediately when changed from the app UI
+            log('applying immediate setting', key, value);
             applicationConfig.applyValue(key, value, origin);
-            log(JSON.stringify(cameraConfig.getValue(key)));
         }
-        0&&debugPrint('//cameraConfig.valueUpdated', JSON.stringify({
-            key: key,
-            cameraConfig: cameraConfig.getValue(key),
-            applicationConfig: applicationConfig.getValue(key),
-            value: value,
-            triggerReset: triggerReset,
-        },0,2));
-
-        if (triggerReset) {
-            log('KEYBOARD multiplier', eventMapper.options.keyboardMultiplier);
-            cameraControls.reset();
-        }
+        triggerReset && cameraControls.reset();
     });
 
     if (cameraConfig.getValue('camera-move-enabled')) {
@@ -440,7 +408,7 @@ function main() {
 } // main()
 
 function onCameraControlsEnabled() {
-    log('onCameraControlsEnabled!!!! ----------------------------------------------');
+    log('onCameraControlsEnabled');
     globalState.previousValues.reset();
     globalState.currentVelocities.reset();
     globalState.pendingChanges.reset();
@@ -450,11 +418,10 @@ function onCameraControlsEnabled() {
     }
     log('cameraConfig', JSON.stringify({
         cameraConfig: getCameraMovementSettings(),
-        //DEFAULTS: DEFAULTS
     }));
 }
 
-// reset values based on the selected Camera.mode (to help keep the visual display/orientation more reasonable)
+// reset orientation-related values when the Camera.mode changes
 function onCameraModeChanged(mode, oldMode) {
     globalState.pendingChanges.reset();
     globalState.previousValues.reset();
@@ -486,6 +453,7 @@ function getCameraMovementSettings() {
     return {
         epsilon: EPSILON,
         debug: cameraConfig.getValue('debug'),
+        jitterTest: cameraConfig.getValue('jitter-test'),
         driveMode: cameraConfig.getValue('drive-mode'),
         threadMode: cameraConfig.getValue('thread-update-mode'),
         fps: cameraConfig.getValue('fps'),
@@ -504,7 +472,7 @@ function getCameraMovementSettings() {
         zoom: _getEasingGroup(cameraConfig, 'zoom'),
     };
 
-    // extract an easing group (translation, rotation, or zoom) from cameraConfig
+    // extract a single easing group (translation, rotation, or zoom) from cameraConfig
     function _getEasingGroup(cameraConfig, group) {
         var multiplier = 1.0;
         if (group === 'zoom') {
@@ -525,11 +493,8 @@ function getCameraMovementSettings() {
     }
 }
 
-// ----------------------------------------------------------------------------
-
-// ----------------------------------------------------------------------------
+// monitor and sync Application state -> Settings values
 function _startConfigationMonitor(applicationConfig, cameraConfig, interval) {
-    // monitor and sync Application state -> Settings values
     return Script.setInterval(function monitor() {
         var settingNames = Object.keys(applicationConfig.config);
         settingNames.forEach(function(key) {
@@ -546,6 +511,23 @@ function _startConfigationMonitor(applicationConfig, cameraConfig, interval) {
 }
 
 // ----------------------------------------------------------------------------
+// DEBUG overlay support (enable by setting app-camera-move/debug = true in settings
+// ----------------------------------------------------------------------------
+function _instrumentDebug() {
+    debugPrint = log;
+    var cacheBuster = '?' + new Date().getTime().toString(36);
+    require = Script.require(Script.resolvePath('./modules/_utils.js') + cacheBuster).makeDebugRequire(Script.resolvePath('.'));
+    APP_HTML_URL += cacheBuster;
+    overlayDebugOutput = _createOverlayDebugOutput({
+        lineHeight: 12,
+        font: { size: 12 },
+        width: 250, height: 800 });
+    // auto-disable camera move mode when debugging
+    Script.scriptEnding.connect(function() {
+        cameraConfig && cameraConfig.setValue('camera-move-enabled', false);
+    });
+}
+
 function _fixedPrecisionStringifiyFilter(key, value, object) {
     if (typeof value === 'object' && value && 'w' in value) {
         return Quat.safeEulerAngles(value);
@@ -554,6 +536,7 @@ function _fixedPrecisionStringifiyFilter(key, value, object) {
     }
     return value;
 }
+
 function _createOverlayDebugOutput(options) {
     options = require('./modules/_utils.js').assign({
         x: 0, y: 0, width: 500, height: 800, visible: false
@@ -578,21 +561,18 @@ function _createOverlayDebugOutput(options) {
         }
     }
     function onMessageReceived(channel, message, ssend, local) {
-        if (!local || channel !== _debugChannel) {
-            return;
+        if (local && channel === _debugChannel) {
+            overlayDebugOutput(JSON.parse(message));
         }
-        overlayDebugOutput(JSON.parse(message));
     }
-
     return overlayDebugOutput;
 }
-
 
 // ----------------------------------------------------------------------------
 _patchCameraModeSetting();
 function _patchCameraModeSetting() {
-    // FIXME: looks like the Camera API suffered a regression where setting Camera.mode = 'first person' or 'third person'
-    //  no longer works; the only reliable way to set it now seems to be jury-rigging the Menu items...
+    // FIXME: looks like the Camera API suffered a regression where Camera.mode = 'first person' or 'third person'
+    //  no longer works from the API; setting via Menu items still seems to work though.
     Camera.$setModeString = Camera.$setModeString || function(mode) {
         // 'independent' => "Independent Mode", 'first person' => 'First Person', etc.
         var cameraMenuItem = (mode+'')
@@ -605,50 +585,46 @@ function _patchCameraModeSetting() {
         Menu.setIsOptionChecked(cameraMenuItem, true);
     };
 }
-// ----------------------------------------------------------------------------
 
-function _instrumentDebugValues() {
-    debugPrint = log;
-    var cacheBuster = '?' + new Date().getTime().toString(36);
-    require = Script.require(Script.resolvePath('./modules/_utils.js') + cacheBuster).makeDebugRequire(Script.resolvePath('.'));
-    APP_HTML_URL += cacheBuster;
-    overlayDebugOutput = _createOverlayDebugOutput({
-        lineHeight: 12,
-        font: { size: 12 },
-        width: 250, height: 800 });
-    // auto-disable camera move mode when debugging
-    Script.scriptEnding.connect(function() {
-        cameraConfig && cameraConfig.setValue('camera-move-enabled', false);
-    });
+function getSystemMetadata() {
+    var tablet = Tablet.getTablet('com.highfidelity.interface.tablet.system');
+    return {
+        mode: {
+            hmd: HMD.active,
+            desktop: !HMD.active,
+            toolbar: Uuid.isNull(HMD.tabletID),
+            tablet: !Uuid.isNull(HMD.tabletID),
+        },
+        tablet: {
+            toolbarMode: tablet.toolbarMode,
+            desktopScale: Settings.getValue('desktopTabletScale'),
+            hmdScale: Settings.getValue('hmdTabletScale'),
+        },
+        window: {
+            width: Window.innerWidth,
+            height: Window.innerHeight,
+        },
+        desktop: {
+            width: Desktop.width,
+            height: Desktop.height,
+        },
+    };
 }
 
-// Show fatal (unhandled) exceptions in a BSOD popup
-Script.unhandledException.connect(function onUnhandledException(error) {
-    log('UNHANDLED EXCEPTION!!', error, error && error.stack);
-    try {
-        cameraControls.disable();
-    } catch (e) {}
-    Script.unhandledException.disconnect(onUnhandledException);
-    if (WANT_DEBUG) {
-        // show blue screen of death with the error details
-        new _utils.BSOD({
-            error: error,
-            buttons: [ 'Abort', 'Retry', 'Fail' ],
-            debugInfo: DEBUG_INFO,
-        }, function(error, button) {
-            log('BSOD.result', error, button);
-            if (button === 'Abort') {
-                Script.stop();
-            } else if (button === 'Retry') {
-                _utils.reloadClientScript(FILENAME);
-            }
-        });
-    } else {
-        // use a simple alert to display just the error message
-        Window.alert('app-camera-move error: ' + error.message);
-        Script.stop();
-    }
-});
 // ----------------------------------------------------------------------------
-
 main();
+
+if (typeof module !== 'object') {
+    // if uncaught exceptions occur, show the first in an alert with option to stop the script
+    Script.unhandledException.connect(function onUnhandledException(error) {
+        Script.unhandledException.disconnect(onUnhandledException);
+        log('UNHANDLED EXCEPTION', error, error && error.stack);
+        try {
+            cameraControls.disable();
+        } catch (e) {}
+        //  show the error message and first two stack entries
+        var trace = _utils.normalizeStackTrace(error);
+        var message = [ error ].concat(trace.split('\n').slice(0,2)).concat('stop script?').join('\n');
+        Window.confirm('app-camera-move error: ' + message.substr(0,256)) && Script.stop();
+    });
+}

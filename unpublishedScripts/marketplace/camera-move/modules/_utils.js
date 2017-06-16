@@ -3,19 +3,18 @@
 "use strict";
 /* eslint-env commonjs, hifi */
 /* eslint-disable comma-dangle, no-empty */
-/* global HIRES_CLOCK, Desktop */
+/* global HIRES_CLOCK, Desktop, OverlayWebWindow */
 // var HIRES_CLOCK = (typeof Window === 'object' && Window && Window.performance) && Window.performance.now;
 var USE_HIRES_CLOCK = typeof HIRES_CLOCK === 'function';
 
 var exports = {
-    version: '0.0.1b' + (USE_HIRES_CLOCK ? '-hires' : ''),
+    version: '0.0.1c' + (USE_HIRES_CLOCK ? '-hires' : ''),
     bind: bind,
     signal: signal,
     assign: assign,
     sortedAssign: sortedAssign,
     sign: sign,
     assert: assert,
-    getSystemMetadata: getSystemMetadata,
     makeDebugRequire: makeDebugRequire,
     DeferredUpdater: DeferredUpdater,
     KeyListener: KeyListener,
@@ -25,8 +24,6 @@ var exports = {
 
     normalizeStackTrace: normalizeStackTrace,
     BrowserUtils: BrowserUtils,
-    BSOD: BSOD, // exception reporter
-    _overlayWebWindow: _overlayWebWindow,
 };
 try {
     module.exports = exports; // Interface / Node.js
@@ -42,6 +39,7 @@ function makeDebugRequire(relativeTo) {
 }
 function debugRequire(id, relativeTo) {
     if (typeof Script === 'object') {
+        relativeTo = (relativeTo||Script.resolvePath('.')).replace(/\/+$/, '');
         // hack-around for use during local development / testing that forces every require to re-fetch the script from the server
         var modulePath = Script._requireResolve(id, relativeTo+'/') + '?' + new Date().getTime().toString(36);
         print('========== DEBUGREQUIRE:' + modulePath);
@@ -203,9 +201,7 @@ function BrowserUtils(global) {
     return {
         global: global,
         console: global.console,
-        log: function(msg) {
-            this.console.log.apply(this.console, ['browserUtils | ' + msg].concat([].slice.call(arguments, 1)));
-        },
+        log: function(msg) { return this.console.log('browserUtils | ' + [].slice.call(arguments).join(' ')); },
         makeConsoleWorkRight: function(console, forcePatching) {
             if (console.$patched || !(forcePatching || global.qt)) {
                 return console;
@@ -258,13 +254,11 @@ function BrowserUtils(global) {
     };
 }
 // ----------------------------------------------------------------------------
-// queue pending updates so the exact order of application can be varied
-// (currently Interface exists sporadic jitter that seems to depend on whether
-//  Camera or MyAvatar gets updated first)
+// queue property/method updates to target so that they can be applied all-at-once
 function DeferredUpdater(target, options) {
     options = options || {};
-    // define _meta as a non-enumerable instance property (so it doesn't show up in for(var p in ...) loops)
-    Object.defineProperty(this, '_meta', { value: {
+    // define _meta as a non-enumerable (so it doesn't show up in for (var p in ...) loops)
+    Object.defineProperty(this, '_meta', { enumerable: false, value: {
         target: target,
         lastValue: {},
         dedupe: options.dedupe,
@@ -281,35 +275,11 @@ DeferredUpdater.prototype = {
     submit: function() {
         var meta = this._meta,
             target = meta.target,
-            // lastValue = meta.lastValue,
-            // dedupe = meta.dedupe,
             self = this,
             submitted = {};
-
         self.submit = getRuntimeSeconds();
         Object.keys(self).forEach(function(property) {
             var newValue = self[property];
-            // if (dedupe) {
-            //     var stringified = JSON.stringify(newValue);
-            //     var last = lastValue[property];
-            //     if (stringified === last) {
-            //         return;
-            //     }
-            //     lastValue[property] = stringified;
-            // }
-            // if (0) {
-            //     var tmp = lastValue['_'+property];
-            //     if (typeof tmp === 'object') {
-            //         if ('w' in tmp) {
-            //             newValue = Quat.normalize(Quat.slerp(tmp, newValue, 0.95));
-            //         } else if ('z' in tmp) {
-            //             newValue = Vec3.mix(tmp, newValue, 0.95);
-            //         }
-            //     } else if (typeof tmp === 'number') {
-            //         newValue = (newValue + tmp)/2.0;
-            //     }
-            //     lastValue['_'+property] = newValue;
-            // }
             submitted[property] = newValue;
             if (typeof target[property] === 'function') {
                 target[property](newValue);
@@ -347,7 +317,7 @@ DeferredUpdater.createGroup = function(items, options) {
 
 // ----------------------------------------------------------------------------
 
-// monotonic session runtime (in seconds)
+// session runtime in seconds
 getRuntimeSeconds.EPOCH = getRuntimeSeconds(0);
 function getRuntimeSeconds(since) {
     since = since === undefined ? getRuntimeSeconds.EPOCH : since;
@@ -355,7 +325,7 @@ function getRuntimeSeconds(since) {
     return ((now / 1000.0) - since);
 }
 
-
+// requestAnimationFrame emulation
 function createAnimationStepper(options) {
     options = options || {};
     var fps = options.fps || 30,
@@ -385,10 +355,10 @@ function createAnimationStepper(options) {
 }
 
 // ----------------------------------------------------------------------------
-// KeyListener provides a scoped wrapper where options.onKeyPressEvent only gets
-//   called when the specified event.text matches the input options
+// KeyListener provides a scoped wrapper where options.onKeyPressEvent gets
+//   called when a key event matches the specified event.text / key spec
 // example: var listener = new KeyListener({ text: 'SPACE', isShifted: false, onKeyPressEvent: function(event) { ... } });
-//          Script.scriptEnding.connect(listener, 'disconnect');
+//    Script.scriptEnding.connect(listener, 'disconnect');
 function KeyListener(options) {
     assert(typeof options === 'object' && 'text' in options && 'onKeyPressEvent' in options);
 
@@ -415,10 +385,7 @@ KeyListener.prototype = {
         if (event.text === this.text) {
             var modifiers = this._getEventModifiers(event, true);
             if (modifiers !== this.modifiers) {
-                return this.log('KeyListener -- different modifiers, disregarding keystroke', JSON.stringify({
-                    expected: this.modifiers,
-                    received: modifiers,
-                },0,2));
+                return;
             }
             return this[target](event);
         }
@@ -446,117 +413,26 @@ KeyListener.prototype = {
     }
 };
 
-
-// helper to show a verbose exception report in a BSOD-like poup window, in some cases enabling users to
-// report specfic feedback without having to manually scan through their local debug logs
-
-// creates an OverlayWebWindow using inline HTML content
-function _overlayWebWindow(options) {
-    options = Object.assign({
-        title: '_overlayWebWindow',
-        width: Overlays.width() * 2 / 3,
-        height: Overlays.height() * 2 / 3,
-        content: '(empty)',
-    }, options||{}, {
-        source: 'about:blank',
+// helper to reload a client script
+reloadClientScript._findRunning = function(filename) {
+    return ScriptDiscoveryService.getRunning().filter(function(script) {
+        return 0 === script.path.indexOf(filename);
     });
-    var window = new OverlayWebWindow(options);
-    window.options = options;
-    options.content && window.setURL('data:text/html;text,' + encodeURIComponent(options.content));
-    return window;
-}
-
-function BSOD(options, callback) {
-    var buttonHTML = Array.isArray(options.buttons) && [
-        '<div onclick="EventBridge.emitWebEvent(arguments[0].target.innerText)">',
-        options.buttons.map(function(innerText) {
-            return '<button>' + innerText + '</button>';
-        }).join(',&nbsp;'),
-        '</div>'].join('\n');
-
-    var HTML = [
-        '<style>body { background:#0000aa; color:#ffffff; font-family:courier; font-size:8pt; margin:10px; }</style>',
-        buttonHTML,
-        '<pre style="white-space:pre-wrap;">',
-        '<strong>' + options.error + '</strong>',
-        normalizeStackTrace(options.error, {
-            wrapLineNumbersWith: ['<b style=color:lime>','</b>'],
-            wrapFilesWith: ['<b style=color:#f99>','</b>'],
-        }),
-        '</pre>',
-        '<hr />DEBUG INFO:<br />',
-        '<pre>' + JSON.stringify(Object.assign({ date: new Date }, options.debugInfo), 0, 2) + '</pre>',
-    ].filter(Boolean).join('\n');
-
-    var popup = _overlayWebWindow({
-        title: options.title || 'PC LOAD LETTER',
-        content: HTML,
-    });
-    popup.webEventReceived.connect(function(message) {
-        print('popup.webEventReceived', message);
-        try {
-            callback(null, message);
-        } finally {
-            popup.close();
-        }
-    });
-    return popup;
-}
-
-function getSystemMetadata() {
-    var tablet = Tablet.getTablet('com.highfidelity.interface.tablet.system');
-    return {
-        mode: {
-            hmd: HMD.active,
-            desktop: !HMD.active,
-            toolbar: Uuid.isNull(HMD.tabletID),
-            tablet: !Uuid.isNull(HMD.tabletID),
-        },
-        tablet: {
-            toolbarMode: tablet.toolbarMode,
-            desktopScale: Settings.getValue('desktopTabletScale'),
-            hmdScale: Settings.getValue('hmdTabletScale'),
-        },
-        avatar: {
-            pitchSpeed: MyAvatar.pitchSpeed,
-            yawSpeed: MyAvatar.yawSpeed,
-            density: MyAvatar.density,
-            scale: MyAvatar.scale,
-        },
-        overlays: {
-            width: Overlays.width(),
-            height: Overlays.height(),
-        },
-        window: {
-            width: Window.innerWidth,
-            height: Window.innerHeight,
-        },
-        desktop: {
-            width: Desktop.width,
-            height: Desktop.height,
-        },
-    };
-}
-
+};
 function reloadClientScript(filename) {
     function log() {
         print('reloadClientScript | ', [].slice.call(arguments).join(' '));
     }
-    log('reloading', filename);
+    log('attempting to reload using stopScript(..., true):', filename);
     var result = ScriptDiscoveryService.stopScript(filename, true);
-    log('...stopScript', filename, result);
     if (!result) {
-        var matches = ScriptDiscoveryService.getRunning().filter(function(script) {
-            // log(script.path, script.url);
-            return 0 === script.path.indexOf(filename);
-        });
-        log('...matches', JSON.stringify(matches,0,2));
-        var path = matches[0] && matches[0].path;
+        var matches = reloadClientScript._findRunning(filename),
+            path = matches[0] && matches[0].path;
         if (path) {
-            log('...stopScript', path);
+            log('attempting to reload using matched getRunning path: ' + path);
             result = ScriptDiscoveryService.stopScript(path, true);
-            log('///stopScript', result);
         }
     }
+    log('///result:' + result);
     return result;
 }

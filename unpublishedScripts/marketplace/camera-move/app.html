@@ -3,6 +3,8 @@
   <head>
     <title>Camera Move</title>
     <script> VERSION = '0.0.1'; </script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
 
     <!-- hide the page content until fully loaded -->
     <style>
@@ -15,7 +17,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/themes/base/jquery-ui.css" />
 
-    <!--script src="https://d3js.org/d3-ease.v1.min.js"></script-->
+    <!-- bring in Mousetrap (Apache 2.0) for keybinding support -->
+    <script src="https://cdn.jsdelivr.net/g/mousetrap@1.6.1(mousetrap.js+plugins/bind-dictionary/mousetrap-bind-dictionary.min.js+plugins/global-bind/mousetrap-global-bind.min.js)"></script>
 
     <!-- bring in Tooltipster (MIT) for tooltip support -->
     <script src="https://cdn.jsdelivr.net/jquery.tooltipster/4.2.5/js/tooltipster.bundle.min.js"></script>
@@ -75,7 +78,7 @@ try {
         initializeDOM();
 
         // event bridge intialization
-        log('document.ready...');
+        debugPrint('document.ready...');
         if (typeof QWebChannel === 'function') {
             // Qt/Interface within an embedded web view
             browserUtils.openEventBridge(onEventBridgeOpened);
@@ -111,7 +114,7 @@ try {
 
         debugPrint('>>> SENDING ACK');
         // let Client script know we are ready
-        EventBridge.emitWebEvent(location.href);
+        eventBridge.emitWebEvent(location.href);
 
         function onValueReceived(key, value, oldValue, origin) {
             onMutationEvent.paused++;
@@ -130,11 +133,21 @@ try {
         //     set: function(nv) { this._paused = nv; log('paused = ' + nv); return nv; },
         // });
 
+        var THROTTLE_DELAY_MS = 500;
+        function throttledSend(update) {
+            var hash = [update.key, update.method].join('-');
+            window.clearTimeout(throttledSend[hash]);
+            throttledSend[hash] = window.setTimeout(function() {
+                delete throttledSend[hash];
+                bridgedSettings.sendEvent(update);
+            }, THROTTLE_DELAY_MS);
+        }
+
         onMutationEvent.paused = 1;
         function onMutationEvent(event) {
             assert(onMutationEvent.paused >= 0);
             if (!onMutationEvent.paused) {
-                bridgedSettings.sendEvent({
+                throttledSend({
                     method: 'valueUpdated', params: [
                         event.key, event.value, event.oldValue, event.hifiType
                     ]
@@ -146,12 +159,16 @@ try {
         bridgedSettings.pendingRequestsFinished.connect(function once() {
             bridgedSettings.pendingRequestsFinished.disconnect(once);
             onMutationEvent.paused--;
+            // jump to a particular page element if any match with the URL hash fragment
+            window.setTimeout(function() {
+                window.jumpToAnchor(location.hash.split(/[#?&]/g).pop());
+            }, 250);
         });
         jquerySettings.mutationEvent.connect(onMutationEvent);
 
         setupUI();
 
-        setTimeout(function() {
+        window.setTimeout(function() {
             // wait a tic before showing so initial async settings have time to queue/arrive
             $('section').show();
         }, 150);
@@ -164,10 +181,7 @@ try {
       <header class="title">
         <div class="inner-title">
           <h1>Camera Move</h1>
-          <div class="bool row">
-            <input class="setting" type="checkbox" id="camera-move-enabled" />
-            <label for="camera-move-enabled">Enabled</label>
-          </div>
+          <label><input type="checkbox" id="camera-move-enabled" /> Enabled </label>
           <div id="appVersion"><span class='output'>...</span></div>
         </div>
       </header>
@@ -176,18 +190,29 @@ try {
         <section>
           <h2>Translation</h2>
           <div class="number row">
-            <label>Max Linear Velocity<span class="unit">m/s</span></label>
-            <input class="setting" data-type="number" step=".1" id="translation-max-velocity" />
+            <label>Max Linear Velocity <span class="unit">m/s</span></label>
+            <input id="translation-max-velocity" data-type="number" step=".1"  />
+            <span class="tooltip">
+              avatar walking/flying speed limit (ie: the value eased-into)
+            </span>
           </div>
           <div class="slider row">
             <label>Ease In Coefficient</label>
             <div type="slider" class="control" data-for="translation-ease-in"></div>
-            <input class="setting" data-type="number" id="translation-ease-in" />
+            <input data-type="number" id="translation-ease-in" data-step=".1" />
+            <span class="tooltip"><ul>
+                <li>lower values gently ramp-into moving</li>
+                <li>higher values rapidly accelerate to top speed</li>
+            </ul></span>
           </div>
           <div class="slider row">
             <label>Ease Out Coefficient</label>
             <div type="slider" class="control" data-for="translation-ease-out"></div>
-            <input class="setting" data-type="number" id="translation-ease-out"  />
+            <input id="translation-ease-out" data-type="number" data-step=".1" />
+            <span class="tooltip"><ul>
+                <li>lower values bring movement to a rolling stop</li>
+                <li>higher values stop movements more immediately</li>
+            </ul></span>
           </div>
         </section>
 
@@ -197,17 +222,26 @@ try {
           <h2>Rotation</h2>
           <div class="number row">
             <label>Max Angular Velocity<span class="unit">deg/s</span></label>
-            <input class="setting" data-type="number" step=".1" id="rotation-max-velocity" />
+            <input id="rotation-max-velocity" data-type="number" step=".1" />
+            <span class="tooltip">look up/down (pitch) and turn left/right (yaw) speed limit</span>
           </div>
           <div class="slider row">
             <label>Ease In Coefficient</label>
             <div type="slider" class="control" data-for="rotation-ease-in"></div>
-            <input class="setting" data-type="number" id="rotation-ease-in" />
+            <input id="rotation-ease-in" data-type="number" />
+            <ul class="tooltip">
+              <li>lower values gently start turning or looking up/down</li>
+              <li>higher values quickly turn and look around</li>
+            </ul>
           </div>
           <div class="slider row">
             <label>Ease Out Coefficient</label>
             <div type="slider" class="control" data-for="rotation-ease-out"></div>
-            <input class="setting" data-type="number" id="rotation-ease-out"  />
+            <input id="rotation-ease-out" data-type="number"  />
+            <ul class="tooltip">
+              <li>lower values bring turning/looking to a rolling stop</li>
+              <li>higher values stop turning/looking more immediately</li>
+            </ul>
           </div>
         </section>
 
@@ -215,39 +249,94 @@ try {
 
         <section>
           <h2>Options</h2>
-          <div class="bool row">
-            <input class="setting" id="enable-lookat-snapping" data-for="Avatar/lookAtSnappingEnabled" type="checkbox" />
-            <label for="enable-lookat-snapping">Avatars snap look at camera</label>
-          </div>
-          <div class="bool row">
-            <input class="setting" id="use-snap-turn" data-for="Avatar/useSnapTurn" type="checkbox" />
-            <label for="use-snap-turn">Enable snap turn in HMD</label>
-          </div>
-          <div class="bool row">
-            <input class="setting" id="enable-mouse-smooth" type="checkbox"  />
-            <label for="enable-mouse-smooth">Enable smooth mouselook</label>
-          </div>
-          <div class="bool row">
-            <input class="setting" id="minimal-cursor" type="checkbox" />
-            <label for="minimal-cursor">Enable minimal cursor</label>
+          <div class="checkbox rows">
+            <label><input data-for="Avatar/lookAtSnappingEnabled" data-autoenable="false" type="checkbox" />
+              Avatars snap look at camera
+              <span class="tooltip">
+                uncheck this to prevent avatars from making automatic eye contact with the camera
+              </span>
+            </label>
+            <label><input data-for="Avatar/useSnapTurn" id="use-snap-turn" type="checkbox" />
+              Enable snap turn in HMD
+              <span class="tooltip">
+                toggles <b>Settings &gt; Avatar &gt; Snap turn while in HMD</b>
+              </span>
+            </label>
+            <label><input id="enable-mouse-smooth" type="checkbox"  />
+              Enable smooth mouselook
+              <span class="tooltip">
+                uncheck this to bypass smoothing for right-mouse-button drag controls</span>
+            </label>
+            <label><input id="minimal-cursor" data-autoenable="false" type="checkbox" />
+              Enable minimal cursor
+              <span class="tooltip">
+                use half-sized mouse cursor</span>
+            </label>
           </div>
         </section>
 
         <!-- advanced-options -->
         <div style='display: none' id='advanced-options'>
           <br />
+          <br />
           <div class='content'>
             <hr />
             <section>
+              <h2>Additional Options</h2>
+              <div class="checkbox rows">
+                <label><input id="collisions-enabled" data-for="Avatar/Enable Avatar Collisions" type="checkbox" />
+                  Enable Avatar Collisions
+                  <span class="tooltip">
+                    toggles <b>Avatar &gt; Enable Avatar Collisions</b>
+                  </span>
+                </label>
+                <label><input data-for="Avatar/Draw Mesh" id="draw-mesh" type="checkbox" />
+                  Render Avatar
+                  <span class="tooltip">
+                    toggles <b>Developer &gt; Avatar &gt; Draw Mesh</b>
+                  </span>
+                </label>
+                <label><input id="stay-grounded" type="checkbox" />
+                  Stay on ground
+                  <span class="tooltip">
+                    prevent Y-axis translation when <b>Application.isGrounded</b> reports true.<br /><i>(can be temporarily overridden by looking up or down &gt;= 45&deg; )</i>
+                  </span>
+                </label>
+                <label><input id="prevent-roll" type="checkbox" />
+                  Prevent Roll
+                  <span class="tooltip">
+                    keep upright by applying <b>Quat.cancelOutRoll</b> to resulting rotations
+
+                  </span>
+                </label>
+                <label><input id="ui-enable-tooltips" type="checkbox" />
+                  Enable UI tooltips
+                  <span class="tooltip">
+                    toggle display of tooltips like this one
+                  </span>
+                </label>
+                <br />
+              </div>
+            </section>
+
+            <hr />
+            <section>
               <h2>Rotation Speeds</h2>
-              <div class="column">
+              <div class="column" data-tooltipster='{"distance":{"top":24,"bottom":10},"side":["top","bottom"]}'>
                 <div class="number row">
-                  <label for='rotation-x-speed'>Pitch speed<span class="unit">deg/s</span></label>
-                  <input class="setting" data-type="number" min="-Infinity" step="1" id="rotation-x-speed" />
+                  <label>Pitch speed <span class="unit">deg/unit</span></label>
+                  <input id="rotation-x-speed" data-type="number" min="-1000" step="1" />
+                  <ul class="tooltip">
+                    <li>look up/down amount applied per unit controller input</li>
+                    <li>use a negative value for inverted mouselook behavior (eg: <b>&minus;1</b>)</li>
+                  </ul>
                 </div>
                 <div class="number row">
-                  <label for='rotation-y-speed'>Yaw speed<span class="unit">deg/s</span></label>
-                  <input class="setting" data-type="number" min="-Infinity" step="1" id="rotation-y-speed" />
+                  <label>Yaw speed<span class="unit">deg/unit</span></label>
+                  <input id="rotation-y-speed" data-type="number" min="-1000" step="1" />
+                  <span class="tooltip">
+                    turn left/right amount applied per unit controller input
+                  </span>
                 </div>
               </div>
             </section>
@@ -256,14 +345,20 @@ try {
 
             <section>
               <h2>input scaling</h2>
-              <div class="column">
+              <div class="column" data-tooltipster='{"distance":{"top":24,"bottom":10},"side":["top","bottom"]}'>
                 <div class="number row">
-                  <label for='keyboard-multiplier'>Keyboard multiplier</label>
-                  <input class="setting" data-type="number" min="-Infinity" step=".1" id="keyboard-multiplier" />
+                  <label>Keyboard multiplier</label>
+                  <input id="keyboard-multiplier" data-type="number" min="-1000" step=".01" data-step=".1"  />
+                  <span class="tooltip">
+                    prescaled keyboard inputs by this amount
+                  </span>
                 </div>
                 <div class="number row">
-                  <label for='mouse-multiplier'>Mouse multiplier</label>
-                  <input class="setting" data-type="number" min="-Infinity" step=".1" id="mouse-multiplier" />
+                  <label>Mouse multiplier</label>
+                  <input id="mouse-multiplier" data-type="number" min="-1000" step=".01" data-step=".1" />
+                  <span class="tooltip">
+                    prescale mouse inputs by this amount
+                  </span>
                 </div>
               </div>
             </section>
@@ -271,38 +366,60 @@ try {
             <hr />
 
             <section>
-              <h2>Advanced Options</h2>
-              <div class="bool row">
-                <input class="setting" id="stay-grounded" type="checkbox" />
-                <label for="stay-grounded">Stay on ground</label>
-              </div>
-              <div class="bool row">
-                <input class="setting" id="use-head" type="checkbox" />
-                <label for="use-head">Apply rotations to Avatar Head</label>
-              </div>
-              <div class="bool row">
-                <input class="setting" id="prevent-roll" type="checkbox" />
-                <label for="prevent-roll">Prevent Roll</label>
-              </div>
-              <div class="bool row">
-                <input class="setting" id="constant-delta-time" type="checkbox" />
-                <label for="constant-delta-time">Use constant &Delta; time for frame updates</label>
-              </div>
-              <div class="bool row">
-                <input class="setting" id="normalize-inputs" type="checkbox" />
-                <label for="normalize-inputs">Normalize mouse movement</label>
-              </div>
-              <div class="bool row">
-                <input class="setting" id="collisions-enabled" data-for="Avatar/Enable Avatar Collisions" type="checkbox" />
-                <label for="collisions-enabled">Enable Avatar Collisions</label>
-              </div>
-              <div class="bool row">
-                <input class="setting" id="draw-mesh" data-for="Avatar/Draw Mesh" type="checkbox" />
-                <label for="draw-mesh">Draw My Avatar</label>
-              </div>
-              <div class="bool row">
-                <input class="setting" id="ui-enable-tooltips" type="checkbox" />
-                <label for="ui-enable-tooltips">Enable UI tooltips</label>
+              <h2>Update Modes</h2>
+              <div class='column'>
+                <fieldset id="drive-mode" class="radio rows" data-tooltipster='{"side":["right","top"]}'>
+                  <legend>Avatar Movement</legend>
+                  <label><input value="motor" type="radio" />
+                    Scripted Motor Control
+                    <span class="tooltip">
+                      apply movements using <b>MyAvatar.motorVelocity</b>
+                    </span>
+                  </label>
+                  <label><input value="position" type="radio" />
+                    Avatar position
+                    <span class="tooltip">
+                      apply movements as changes to <b>MyAvatar.position</b>
+                    </span>
+                  </label>
+                  <label><input value="thrust" type="radio" />
+                    Thrust/force vectors
+                    <span class="tooltip">
+                      apply movements using <b>MyAvatar.setThrust()</b>
+                    </span>
+                  </label>
+                </fieldset>
+
+                <fieldset id="thread-update-mode" class="radio rows" data-tooltipster='{"side":["left","top"]}'>
+                  <legend>Timing</legend>
+                  <label><input value="update" type="radio" />
+                    Use Script.update
+                    <span class="tooltip">
+                      apply movement updates ~60 times per second
+                    </span>
+                  </label>
+                  <label><input value="setImmediate" type="radio" />
+                    Update every 5ms
+                    <span class="tooltip">
+                      schedule movement updates every 5ms
+                    </span>
+                  </label>
+                  <label><input value="nextTick" type="radio" />
+                    Update continuously
+                    <span class="tooltip">
+                      schedule movement updates continuously
+                    </span>
+                  </label>
+                  <div class="radio row extended">
+                    <label><input value="requestAnimationFrame" type="radio" />
+                      Update @ FPS:
+                      <span class="tooltip">
+                        schedule movement updates at the specified rate per second
+                      </span>
+                    </label>
+                    <input id="fps" data-type="number" data-autoenable="false" step="1" min="0" />
+                  </div>
+                </fieldset>
               </div>
               <br />
             </section>
@@ -310,255 +427,118 @@ try {
             <hr />
 
             <section>
-              <h2>Update Mode</h2>
-              <div class='column'>
-                <div class="radio row" id="drive-mode" type='radio-group'>
-                  <div>
-                    <input class="setting" data-for="drive-mode" id="motor" type="radio" />
-                    <label for="motor">Scripted Motor Control</label>
-                  </div>
-                  <div>
-                    <input class="setting" data-for="drive-mode" id="position" type="radio" />
-                    <label for="position">Absolute Avatar position</label>
-                  </div>
-                  <div>
-                    <input class="setting" data-for="drive-mode" id="thrust" type="radio" />
-                    <label for="thrust">Thrust/force vectors</label>
-                  </div>
-                  <div>
-                    <input class="setting" data-for="drive-mode" id="jitter-test" type="radio" />
-                    <label for="jitter-test">Debug Jitter Testing</label>
-                  </div>
-                </div>
-                <!--/section>
-                    <hr />
-                    <section>
-                      <h2>Script update mode:</h2-->
-                <div class="radio row" id="thread-update-mode" type='radio-group'>
-                  <div>
-                    <input class="setting" data-for="thread-update-mode" id="update" type="radio" />
-                    <label for="update"><code>Script.update</code></label>
-                  </div>
-                  <div class='row tooltip-target' for="requestAnimationFrame" data-tooltip-side='left'>
-                    <label for="requestAnimationFrame"><code>requestAnimationFrame</code></label>
-                    <input class="setting" data-for="thread-update-mode" id="requestAnimationFrame" type="radio" />
-                    <br />&nbsp; <small>fps:</small> <input class="setting" data-type="number" step="1" min="0" id="fps" />
-                  </div>
-                  <div>
-                    <input class="setting" data-for="thread-update-mode" id="setImmediate" type="radio" />
-                    <label for="setImmediate"><code>setImmediate</code></label>
-                  </div>
-                  <div>
-                    <input class="setting" data-for="thread-update-mode" id="nextTick" type="radio" />
-                    <label for="nextTick"><code>nextTick</code></label>
-                  </div>
-                </div>
+              <h2>Advanced Options</h2>
+              <div class="checkbox rows">
+                <label><input id="use-head" type="checkbox" />
+                  Apply rotations to Avatar Head
+                  <span class="tooltip">
+                    update <b>MyAvatar.headOrientation</b> (instead of body orientation)
+                  </span>
+                </label>
+                <label><input id="constant-delta-time" type="checkbox" />
+                  Use constant &Delta; time for frame updates
+                  <span class="tooltip">
+                    ignore actual time between frames and instead calculate using <b>(1s / requestAnimationFrame.fps)</b> or <b>(1s / 90fps)</b>
+                  </span>
+                </label>
+                <label><input id="normalize-inputs" type="checkbox" />
+                  Normalize mouse movement
+                  <span class="tooltip">
+                    convert variable mouse movements into unit values <b>&plus;1, 0, &minus;1</b>
+                  </span>
+                </label>
+                <label><input data-for="Avatar/Show My Eye Vectors" type="checkbox" />
+                  Show My Eye Vectors
+                  <span class="tooltip">
+                    toggles <b>Developer &gt; Avatar &gt; Show My Eye Vectors</b>
+                  </span>
+                </label>
+                <label><input data-for="Avatar/Show Other Eye Vectors" type="checkbox" />
+                  Show Other Eye Vectors
+                  <span class="tooltip">
+                    toggles <b>Developer &gt; Avatar &gt; Show Other Eye Vectors</b>
+                  </span>
+                </label>
+                <label class="off-red"><input data-for="Scene/shouldRenderEntities" type="checkbox" />
+                  Render Entities (debug)
+                  <span class="tooltip">
+                    toggles <b>Scene.shouldRenderEntities</b>
+                  </span>
+                </label>
+                <label class="on-red"><input id="jitter-test" type="checkbox" />
+                  Jitter Rotation Test (debug)
+                  <span class="tooltip">
+                    Applies a constant avatar rotation to help reveal system-level jitter and update interference
+                  </span>
+                </label>
               </div>
+              <br />
             </section>
 
             <hr />
-
             <section id='debug-menu'>
               <h2>debug menu</h2>
               <div class='buttons'>
                 <div style='float:left'>
-                  <button id='reset-sensors'>Reset Avatar</button>
+                  <button id='reset-sensors'>
+                    Reset Avatar
+                    <span class="tooltip">
+                      trigger <b>MyAvatar &gt; Reset Sensors</b>;reset <b>bodyPitch</b> and <b>bodyYaw</b>
+                    </span>
+                  </button>
                   <button title='reload the tablet app web view' class='localhost-only' id='page-reload'>refresh page</button>
                   <button title='reload the Client script' class='localhost-only' id='script-reload'>reload script</button>
                 </div>
                 <div style='float:right'>
-                  <button id='copy-json'>Export JSON</button>
-                  <button id='paste-json'>Import JSON</button>
+                  <button id='copy-json'>
+                    Export JSON
+                    <span class="tooltip">exports current settings as JSON
+                    </span>
+                  </button>
+                  <button id='paste-json'>
+                    Import JSON
+                    <span class="tooltip">replace current settings with previously-exported JSON
+                    </span>
+                  </button>
                 </div>
               </div>
             </section>
 
             <hr />
-            <div style='height: 32px'>&nbsp;</div>
+            <div class='footer-stop'>&nbsp;</div>
           </div>
         </div><!-- /advanced-options -->
       </div><!-- /scrollable -->
 
       <footer>
         <div style='float:left'>
-          <button id='reset-to-defaults' title='Replace applicable settings with System Defaults'>Reset</button>
+          <button id='reset-to-defaults' data-tooltipster='{"side":["top"]}'>
+            Reset
+            <span class="tooltip">
+              <span style="font-size:1.5em;color:red;padding:.3em;">&#x26a0;
+              </span>
+              Reset to System Defaults
+            </span>
+          </button>
         </div>
         <center>
           <div id='toggleKey'>keybinding: &nbsp; <span class='binding'>&hellip;</span></div>
-
-          <code>
-            <!-- ** TEMPORARY EXPERIMENT -- checking how well capturing arbitrary keybindings from a tablet app could work -->
-
-            <!-- bring in Mousetrap (Apache 2.0) for easy keybinding support -->
-            <script src="https://cdn.jsdelivr.net/g/mousetrap@1.6.1(mousetrap.js+plugins/bind-dictionary/mousetrap-bind-dictionary.min.js+plugins/pause/mousetrap-pause.min.js+plugins/record/mousetrap-record.min.js+plugins/global-bind/mousetrap-global-bind.min.js)"></script>
-
-            <style type='text/less'>
-                #record {
-                    button { font-size: 8px; margin: 0px; padding: 2px; margin-right: 4px; line-height: 1em; }
-                    pre { position: absolute; left: 70%; top: 0; font-size: 10px; margin: 0; padding: 0; color: white; font-weight: normal; }
-                }
-            </style>
-
-            <!--"-->
-            <div id='record' onclick="{
-                $(this).find('button').css('background-color','red');
-                Mousetrap.record(function(sequence) {
-                    $(this).find('button').css('background-color','');
-                    log(sequence);
-                    // sequence is an array like ['ctrl+k', 'c']
-                    $(this).find('pre').text(sequence.shift());
-                }.bind(this));
-        }"><!--"-->
-              <button title='capture new keybinding'>&#x2707;</button>
-              <pre></pre>
-            </div>
-          </code>
         </center>
         <div style='float:right'>
-          <button checked=false for='ui-show-advanced-options' id='toggle-advanced-options'>Advanced<span class='chevron'></span></button>
+          <button checked=false data-for='ui-show-advanced-options' class='toggle-advanced-options' id='toggle-advanced-options'>Advanced<span class='chevron'>
+            </span>
+            <span class="tooltip">show / hide advanced settings
+            </span>
+          </button>
         </div>
         <br />
       </footer>
-    </div>
-
-    <!-- tooltips -->
-    <div id="tooltips" style="display:none">
-      <section>
-        <div for="translation-max-velocity">
-          avatar walking/flying speed limit (ie: the value eased-into)
-        </div>
-        <div for="translation-ease-in">
-          <ul>
-            <li>lower values gently ramp-into moving</li>
-            <li>higher values rapidly accelerate to top speed</li>
-          </ul>
-        </div>
-        <div for="translation-ease-out">
-          <ul>
-            <li>lower values bring movement to a rolling stop</li>
-            <li>higher values stop movements more immediately</li>
-          </ul>
-        </div>
-        <div for="rotation-max-velocity">
-          look up/down (pitch) and turn left/right (yaw) speed limit
-        </div>
-      </section>
-
-      <section>
-        <div for="rotation-ease-in">
-          <ul>
-            <li>lower values gently start turning or looking up/down</li>
-            <li>higher values quickly turn and look around</li>
-          </ul>
-        </div>
-        <div for="rotation-ease-out">
-          <ul>
-            <li>lower values bring turning/looking to a rolling stop</li>
-            <li>higher values stop turning/looking more immediately</li>
-          </ul>
-        </div>
-      </section>
-
-      <section>
-        <div for="enable-lookat-snapping">
-          uncheck this to prevent avatars from automatically making eye contact with the camera
-        </div>
-        <div for="enable-mouse-smooth">
-          uncheck this to bypass smoothing for right-mouse-button drag controls
-        </div>
-        <div for="use-snap-turn">
-          toggles <b>Settings &gt; Avatar &gt; Snap turn while in HMD</b>
-        </div>
-        <div for="minimal-cursor">
-          use half-sized mouse cursor
-        </div>
-      </section>
-
-      <section>
-        <div for="stay-grounded">
-          prevents your Avatar from gaining altitude when looking up/down and moving
-        </div>
-        <div for="use-head">
-          update <b>MyAvatar.headOrientation</b> (instead of body orientation)
-        </div>
-        <div for="prevent-roll">
-          keep upright by applying <b>Quat.cancelOutRoll</b> to resulting rotations
-        </div>
-        <div for="constant-delta-time">
-          ignore actual time between frames and instead calculate using <b>(1s / requestAnimationFrame.fps)</b> or <b>(1s / 90fps)</b>
-        </div>
-        <div for="normalize-inputs">
-          convert variable mouse movements into unit values <b>&plus;1, 0, &minus;1</b>
-        </div>
-        <div for="collisions-enabled">
-          toggles <b>Avatar &gt; Enable Avatar Collisions</b>
-        </div>
-        <div for="draw-mesh">
-          toggles <b>Developer &gt; Avatar &gt; Draw Mesh</b>
-        </div>
-        <div for="ui-enable-tooltips">
-          toggle display of tooltips like this one
-        </div>
-      </section>
-
-      <section>
-        <div for="rotation-x-speed">degrees per up/down controller inputs</div>
-        <div for="rotation-y-speed">degrees per left/right controller inputs</div>
-        <div for="keyboard-multiplier">prescale raw controller inputs by this amount</div>
-        <div for="mouse-multiplier">prescale raw controller inputs by this amount</div>
-      </section>
-
-      <section>
-        <div for="motor">
-          ~ <b>MyAvatar.motorVelocity</b>
-        </div>
-        <div for="position">
-          ~ <b>MyAvatar.position</b>
-        </div>
-        <div for="thrust">
-          ~ <b>MyAvatar.setThrust</b>
-        </div>
-        <div for="jitter-test">
-          <b>Diagnostic test:</b> Applies a constant rotation to reveal system-level jitter and update interference
-        </div>
-      </section>
-
-      <section>
-        <div for="update">
-          Script.update events fire at rightly ~60 times per second
-        </div>
-        <div for="requestAnimationFrame">
-          <b>requestAnimationFrame</b> emulation attempts to schedule frame updates in a way that maintains the given frame rate
-        </div>
-        <div for="setImmediate">
-          <b>setImmediate</b> emulation schedules frame updates "next in line" (ie: after pending tasks)
-        </div>
-        <div for="nextTick">
-          <b>nextTick</b> emulation queues frame updates "first in line" (ie: before other tasks)
-        </div>
-      </section>
-
-      <section>
-        <div for="copy-json">
-          exports current settings as JSON
-        </div>
-        <div for="paste-json">
-          replace current settings with previously-exported JSON
-        </div>
-        <div for="reset-sensors">
-          trigger <b>MyAvatar &gt; Reset Sensors</b>;reset <b>bodyPitch</b> and <b>bodyYaw</b>
-        </div>
-        <div for="ui-show-advanced-options">
-          show / hide advanced settings
-        </div>
-      </section>
-    </div><!-- /tooltips -->
+    </div><!-- /content -->
 
     <div id="errors" style="display:none">
       <div class='title'>PAGE ERROR:</div>
       <pre class='output'></pre>
       <pre class='debug-lines' style='display:none;'><span class='content'></span></pre>
-      <hr />
       <div class='buttons'><button onclick='location.reload()'>reload page</button>&nbsp; | &nbsp;<button>dismiss</button></div>
     </div>
     <!-- generate debug line outputs -->
@@ -570,10 +550,12 @@ try {
     </script>
     <script>
     var LESS_GLOBALS = {
+        'interface-mode': /highfidelity/i.test(navigator.userAgent),
         'header-height': 48,
         'footer-height': 32,
-        'custom-font-family': 'Raleway-Regular',
-        'input-font-family': 'FiraSans-Regular',
+        'font-source': /unpublishedScripts/.test(location.pathname) ? 'unpublishedScripts' : 'google',
+        'hifi-custom-font-family': 'Raleway-Regular',
+        'hifi-input-font-family': 'FiraSans-Regular',
         'color-highlight': '#009bd5',
         'color-text': '#afafaf',
         'color-bg': '#393939',
@@ -585,20 +567,20 @@ try {
     };
     </script>
     <style id='tablet-ui-less' type="text/less">
+// #line 613 "app.html"
 // Embedded LESS stylesheets are used as a structured way to manage page styling.
 // The template rules below get compiled at page load time by less.js.
 //   see: app.js:preconfigureLESS() and http://lesscss.org/usage/ for more info
 // ----------------------------------------------------------------------------
 // tablet-ui.less
+.load-fonts();
 .tablet-ui {
-    .mixins > .load-hifi-font(@custom-font-family);
-    .mixins > .load-hifi-font(@input-font-family);
-
     .mixin-tablet-mode() {
         width: 100%;
         margin-left: -3px;
         margin-right: 0;
         overflow-x: hidden;
+        .column { margin-left: -8px; }
         .content {
             .slider {
                 .ui-spinner {
@@ -690,19 +672,6 @@ try {
     }
 }
 
-.mixins() {
-    .load-hifi-font(@font-family) {
-        @font-face {
-            font-family: '@{font-family}';
-            src: url('../../../../resources/fonts/@{font-family}.ttf'),  /* Windows production */
-            url('../../../../fonts/@{font-family}.ttf'),  /* OSX production */
-            url('../../../../interface/resources/fonts/@{font-family}.ttf'),  /* Development, running script in /HiFi/examples */
-            url('https://cdn.rawgit.com/highfidelity/hifi/9fa900ba/interface/resources/fonts/@{font-family}.ttf'); /* fallback to rawgit/github */
-        }
-        //@import (css) url("https://fonts.googleapis.com/css?family=@{custom-font-family}");
-    }
-}
-
 .scrollable {
     top: @header-height * 1px + 1;
     padding-top: 0;
@@ -724,14 +693,61 @@ try {
     &::-webkit-scrollbar-track:active { xborder: 2px dotted #666; background: #555;}
     &::-webkit-scrollbar-corner { background: transparent;}
 }
-</style>
-<style id='jquery-ui-overrides-less' type='text/less'>
+//<!--/style><style id='hifi-mixins-less' type='text/less'-->
+// ----------------------------------------------------------------------------
+// hifi-mixins.less
+.mixins() {
+    .load-google-font(@font-family) {
+        @import (css) url("https://fonts.googleapis.com/css?family=@{font-family}:300,400,600,700");
+    }
+    .load-hifi-font(@font-family) {
+        @font-face {
+            font-family: '@{font-family}';
+            src: url('../../../../resources/fonts/@{font-family}.ttf'),  /* Windows production */
+            url('../../../../fonts/@{font-family}.ttf'),  /* OSX production */
+            url('../../../../interface/resources/fonts/@{font-family}.ttf'),  /* Development, running script in /HiFi/examples */
+            url('https://cdn.rawgit.com/highfidelity/hifi/9fa900ba/interface/resources/fonts/@{font-family}.ttf'); /* fallback to rawgit/github */
+        }
+    }
+    // when accessed from /HiFi/unpublishedScripts/*/*/something.html
+    .load-unpublishedScripts-font(@font-family) {
+        @font-face {
+            font-family: '@{font-family}';
+            src: url('../../../interface/resources/fonts/@{font-family}.ttf');
+        }
+    }
+}
+
+.load-fonts() when(@font-source=google) {
+    // adapt font family names from 'HifiStyle-Regular' to 'Google Style'
+    @input-font-family: replace(replace(@hifi-input-font-family, '-Regular', ''), '([a-z])([A-Z])', '$1 $2', 'g');
+    @custom-font-family: replace(replace(@hifi-custom-font-family, '-Regular', ''), '([a-z])([A-Z])', '$1 $2', 'g');
+    .mixins > .load-google-font(@custom-font-family);
+    .mixins > .load-google-font(@input-font-family);
+}
+.load-fonts() when(@font-source=hifi) {
+    @input-font-family: @hifi-input-font-family;
+    @custom-font-family: @hifi-custom-font-family;
+    .mixins > .load-hifi-font(@custom-font-family);
+    .mixins > .load-hifi-font(@input-font-family);
+}
+.load-fonts() when(@font-source=unpublishedScripts) {
+    @input-font-family: @hifi-input-font-family;
+    @custom-font-family: @hifi-custom-font-family;
+    .mixins > .load-unpublishedScripts-font(@custom-font-family);
+    .mixins > .load-unpublishedScripts-font(@input-font-family);
+}
+
+//<!--/style><style id='jquery-ui-overrides-less' type='text/less'-->
 // ----------------------------------------------------------------------------
 // jquery-ui-overrides.less
+@color-subtle-border: rgba(158, 158, 158, 0.151);
+@tooltip-bg-color: darken(#624888, 5%);
+@tooltip-text-color: contrast(@tooltip-bg-color);
+
 .tablet-ui {
+    .content .tooltip { display: none; }
     .tooltipster-base {
-        @tooltip-bg-color: darken(#624888, 5%);
-        @tooltip-text-color: contrast(@tooltip-bg-color);
         .tooltipster-box {
             background-color: @tooltip-bg-color;
             .tooltipster-content {
@@ -763,15 +779,29 @@ try {
         .arrow-border(left);
         .arrow-border(bottom);
     }
-    .radio {
-        label.ui-state-active { color: white !important; }
-        .ui-checkboxradio-label .ui-icon { border-radius: .5em; }
-    }
 
     .ui-checkboxradio-label {
+        .outlined(@color) {
+            width: 8px;
+            height: 8px;
+            padding: 2px;
+            border: solid 2px @color;
+        }
+
+        &.ui-button {
+            text-align: left;
+            background: inherit;
+            border: none;
+            color: inherit;
+            .ui-icon { background-image: none; }
+        }
+
         padding: 3px 0;
+        pointer-events: all !important;
         &:hover {
-            .ui-icon-background { background-color: white; }
+            .ui-icon-background {
+                .outlined(gray);
+            }
             &.ui-state-active .ui-icon-background {
                 border-color: white;
                 background-color: @color-highlight;
@@ -790,10 +820,7 @@ try {
         &.ui-state-active {
             .ui-icon-background {
                 background-color: @color-highlight;
-                padding: 2px;
-                border: solid 2px @color-bg-icon;
-                width: 8px;
-                height: 8px;
+                .outlined(@color-bg-icon);
             }
         }
     }
@@ -801,12 +828,17 @@ try {
 
     .ui-spinner {
         border: none;
+        outline: none;
         background-color: transparent;
         margin: 4px 2px;
         padding: 0;
         .ui-button {
-            border-left: solid 1px rgba(158, 158, 158, 0.151);
+            border-left: solid 1px @color-subtle-border;
             background-color: inherit;
+            &:active span {
+                border-color-left: @color-subtle-border;
+                border-color: transparent;
+            }
         }
         input.ui-spinner-input {
             margin: 0 !important;
@@ -844,15 +876,18 @@ try {
         }
     }
 }
-</style>
-<style id='CustomSettingsApp-less' type='text/less'>
+//<!--/style><style id='CustomSettingsApp-less' type='text/less'-->
 // ----------------------------------------------------------------------------
 // CustomSettingsApp.less
 .tablet-ui .settings-app {
-    @subtle-border: solid 1px rgba(158, 158, 158, 0.151);
+    .ui-spinner-up { border-top-style: none; }
+    .radio {
+        label.ui-state-active { color: white !important; }
+        .ui-checkboxradio-label .ui-icon { border-radius: .5em; }
+    }
 
     br { clear: both; }
-    a {
+    a:not(.ui-widget) {
         text-decoration: none;
         color: #99f;
         &:hover { color: darken(#99f, 10%); }
@@ -879,7 +914,7 @@ try {
         clear: both;
         h2 {
             text-transform: uppercase;
-            margin-bottom: 10px;
+            margin-bottom: 8px;
         }
     }
 
@@ -930,13 +965,14 @@ try {
                 .ui-icon { border-color: lighten(@color-bg-icon, 10%); }
                 &:hover .ui-icon { border-color: inherit; }
             }
+            margin-left: 2em;
         }
-        .row {
+        x.row {
             margin-top: 2px;
             margin-left: 10px;
             font-size: .9em;
             display: inline-block !important;
-            &.bool {
+            &.checkbox {
                 margin-top: inherit !important;
                 margin-bottom: inherit !important;
             }
@@ -945,26 +981,56 @@ try {
 
     // row styles in two column mode
     .column {
-        margin-left: -16px;
+        fieldset {
+            margin: 0;
+            padding: 0;
+            -webkit-touch-callout: none;
+            outline: none;
+        }
         margin-right: -16px;
-        .row {
-            width: 40%;
-            &:nth-child(1) { margin-right: 5%; }
-            display: inline-block;
-            &.radio {
-                padding-top: .5em;
-                padding-bottom: .5em;
+        margin-left: -8px;
+        //white-space: nowrap;
+        .rows {
+            width: 35%;
+            &:nth-child(1) { margin-right: 1%; }
+            .radio {
+                height: 1.5em;
+                vertical-align: top;
+                display: block;
+                label { vertical-align: top; }
+                &:nth-child(1) { margin-right: 2.5%; }
+                //padding: .2em .7em .7em .7em;
             }
+        }
+        .row {
+            display: inline-block;
+            &.number {
+                label { display: block; clear: both; }
+                width: 45%;
+            }
+
         }
     }
 
-    .focused() { outline: dotted 1px @color-highlight; }
+    .focused() { outline: dotted 1px darken(@color-highlight,20%); }
+
+    .rows {
+        &.radio {
+            vertical-align: top;
+            border: solid 1px @color-subtle-border;
+            border-right: solid 1px @color-subtle-border;
+            border-radius: .5em;
+            padding-left: 12px;
+            padding-bottom: 12px;
+            padding-right: 4px;
+        }
+    }
 
     // general row styles
     .row {
         white-space: nowrap;
-        margin-top: .3em;
-        margin-bottom: .3em;
+        margin-top: .25em;
+        margin-bottom: .25em;
 
         &:focus, div:focus { .focused }
         &.disabled input.setting { color: #000; }
@@ -982,6 +1048,7 @@ try {
             .ui-spinner {
                 position: relative;
                 width: 100px;
+                max-width: 20%;
                 input { width: 80% }
             }
             .control  {
@@ -993,33 +1060,32 @@ try {
                 height: 6px;
             }
         }
-        &.bool {
+        &.checkbox {
             input[type=checkbox] { display: none; }
-            label.ui-widget { padding-left: 0px; }
-            display: table-row;
-            margin-top: .6em;
-            margin-bottom: .6em;
-        }
-
-        &.radio {
-            vertical-align: top;
-            input[type=radio] { display: inline-block; }
-            label.ui-visual-focus { .focused; }
-            border: @subtle-border;
-            border-right: @subtle-border;
-            border-radius: .5em;
-            padding-left: 12px;
-            padding-right: 12px;
-        }
-
-        &.radio, &.bool {
-            label.ui-button {
-                text-align: left;
-                background: inherit;
-                border: inherit;
-                color: inherit;
-                .ui-icon { background-image: none; }
+            label.ui-widget {
+                padding-left: 0px; display: inline-block;
             }
+            //display: table-row;
+            margin-top: .25em;
+            margin-bottom: .25em;
+        }
+
+         &.radio {
+            input[type=radio] { display: inline-block; }
+            //label.ui-visual-focus { .focused; }
+        }
+
+        &.radio, &.checkbox {
+            .ui-checkboxradio-label {
+                &.ui-button {
+                    text-align: left;
+                    background: inherit;
+                    border: none;
+                    color: inherit;
+                    .ui-icon { background-image: none; }
+                }
+            }
+            //&:hover { background-color: darken(@color-bg, 3%); }
             //.ui-checkboxradio-checked { color: white }
         }
         &.number {
@@ -1027,6 +1093,7 @@ try {
                 display: block;
                 width: 100%;
                 margin-right: 26px;
+                //padding-bottom: 2px;
             }
             input { width: 10em; }
         }
@@ -1060,8 +1127,7 @@ try {
         white-space: nowrap;
     }
 }
-</style>
-<style id='app-less' type='text/less'>
+//<!--/style><style id='app-less' type='text/less'-->
 // ----------------------------------------------------------------------------
 // app.less
 .tablet-ui .settings-app {
@@ -1070,6 +1136,12 @@ try {
         label { color: white !important; font-weight: bold; }
     }
 
+    label sup {
+        margin: 4px;
+        text-transform: uppercase;
+        font-style: italic;
+        color: black;
+    }
     button {
         font-weight: bold;
         font-family: arial;
@@ -1109,7 +1181,7 @@ try {
         .content { background-color: #333; }
         display: none;
     }
-    #toggle-advanced-options {
+    .toggle-advanced-options {
         background-color: darken(@color-alt-button, 5%);
         .chevron {
             width: 2em;
@@ -1125,7 +1197,7 @@ try {
 }
 .ui-show-advanced-options {
     #advanced-options { display: block !important; }
-    #toggle-advanced-options {
+    .toggle-advanced-options {
         background-color: mix(blue,@color-alt-button,20%) !important;
         .chevron:after { content: ' \25B2' !important; }
     }
@@ -1142,6 +1214,7 @@ try {
 // }
 
 #errors {
+    user-select: initial;
     position: fixed;
     left: 0;
     top: 0;
@@ -1167,6 +1240,7 @@ try {
         margin-bottom: 4px;
     }
     .buttons {
+        user-select: none;
         margin-top: 4px;
         float: right;
         button {
@@ -1186,24 +1260,45 @@ try {
 }
 
 footer center > div { display: none; }
+.footer-stop {
+    height: 32px;
+    background-color: darken(@color-bg,5%);
+}
+
 #tooltips { display: none }
 
-.tablet-ui .settings-app .row[for=requestAnimationFrame] {
-    display: inherit !important;
-    margin-top: 0;
-    margin-bottom: 0;
-    .ui-spinner { margin: 0; }
-    .ui-checkboxradio-label { margin: 0; padding: 0;}
-    #fps {
-        padding: 3px;
-        height: .7em;
-        font-size: .9em;
-        width: 50px;
+.tablet-ui .checkbox.row .ui-checkboxradio-label {
+    &.on-red {
+        &.ui-state-active {
+            //.ui-icon-background { background-color: #c33; }
+            color: #c33;
+        }
+    }
+    &.off-red {
+        &:not(.ui-state-active) { color: #c33; }
+        //&.ui-state-active { color: inherit; }
+    }
+}
+
+.tablet-ui .settings-app {
+    // special case for requestAnimationFrame radio / fps inline spinner
+    .radio.row.extended {
+        pointer-events: all;
+        .ui-spinner {
+            transform: scale(.8);
+            transform-origin: left top;
+            margin-top: 0;
+        }
+        .ui-spinner-input  {
+            width: 3em;
+            padding: 4px 8px;
+        }
     }
 }
 </style>
 <script>
     lessManager = preconfigureLESS({
+        env: PARAMS.debug ? 'development' : 'production',
         selector: 'style[type="text/less"]',
         globalVars: Object.assign({
             debug: !!PARAMS.debug,
@@ -1212,7 +1307,7 @@ footer center > div { display: none; }
     });
 less = lessManager.options;
 </script>
-<script data-env-'development' xx-data-env='production' src="https://cdnjs.cloudflare.com/ajax/libs/less.js/2.7.2/less.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/less.js/2.7.2/less.js"></script>
 <!-- JSON DUMP TEMPLATE -->
 <script type='text/html' id='POPUP'>
   <html>

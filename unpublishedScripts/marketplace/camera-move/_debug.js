@@ -2,6 +2,8 @@
 /* eslint-disable comma-dangle, no-empty */
 /* global EventBridge: true, PARAMS, signal, assert, log, debugPrint,
    bridgedSettings, _utils, jquerySettings,  */
+
+// helper functions for debugging and testing the UI in an external web brower
 var _debug = {
     handleUncaughtException: function onerror(message, fileName, lineNumber, colNumber, err) {
         if (message === onerror.lastMessage) {
@@ -25,7 +27,7 @@ var _debug = {
         }
     },
     loadScriptNodes: function loadScriptNodes(selector) {
-        // scripts are loaded this way to ensure refreshing the client script refreshes dependencies too
+        // scripts are loaded this way to ensure that when the client script refreshes, so are the app's dependencies
         [].forEach.call(document.querySelectorAll(selector), function(script) {
             script.parentNode.removeChild(script);
             if (script.src) {
@@ -35,7 +37,8 @@ var _debug = {
             document.write(script.outerHTML);
         });
     },
-    // TESTING MOCK (allows the UI to be tested using a normal web browser, outside of Interface
+
+    // TESTING MOCKs
     openEventBridgeMock: function openEventBridgeMock(onEventBridgeOpened) {
         var updatedValues = openEventBridgeMock.updatedValues = {};
         // emulate EventBridge's API
@@ -47,12 +50,10 @@ var _debug = {
         onEventBridgeOpened(EventBridge);
         assert(!bridgedSettings.onUnhandledMessage);
         bridgedSettings.onUnhandledMessage = function(msg) {
-            if (1||!msg || msg.method !== 'valueUpdated') {
-                log('bridgedSettings.onUnhandledMessage', msg);
-            }
+            log('bridgedSettings.onUnhandledMessage', msg);
             return true;
         };
-        // manually trigger bootstrapping responses
+        // manually trigger initial bootstrapping responses (that the client script would normally send)
         bridgedSettings.handleExtraParams({uuid: PARAMS.uuid, ns: PARAMS.ns, extraParams: {
             mock: true,
             appVersion: 'browsermock',
@@ -61,8 +62,8 @@ var _debug = {
                 toolbar: true,
                 browser: true,
                 desktop: true,
-                tablet: false,
-                hmd: false,
+                tablet: /tablet/.test(location) || /android|ipad|iphone/i.test(navigator.userAgent),
+                hmd: /hmd/.test(location),
             },
         } });
         bridgedSettings.setValue('ui-show-advanced-options', true);
@@ -72,13 +73,13 @@ var _debug = {
             console.log.apply(console, ['[mock] ' + msg].concat([].slice.call(arguments,1)));
         }
 
-        // generate mock data in response to outgoing web events
+        // generate mock data in response to outgoing web page events
         function onEmitWebEvent(message) {
             try {
-                var obj = JSON.parse(message); 
+                var obj = JSON.parse(message);
             } catch (e) {}
             if (!obj) {
-                // message isn't JSON or doesn't expect a reply so just log it and bail early
+                // message isn't JSON so just log it and bail early
                 log('consuming non-callback web event', message);
                 return;
             }
@@ -92,20 +93,21 @@ var _debug = {
                     var key = obj.params[0];
                     var node = jquerySettings.findNodeByKey(key, true);
                     // log('Settings.getValue.findNodeByKey', key, node);
-                    var type = node && (node.dataset.type || node.type || node.attributes['type']);
+                    var type = node && (node.dataset.hifiType || node.dataset.type || node.type);
                     switch (type) {
-                        case 'checkbox': {
-                            obj.result = /tooltip/i.test(key) || PARAMS.tooltiptest ? true : Math.random() > 0.5;
+                        case 'hifiButton':
+                        case 'hifiCheckbox': {
+                            obj.result = /tooltip|advanced-options/i.test(key) || PARAMS.tooltiptest ? true : Math.random() > 0.5;
                         } break;
-                        case 'radio-group': {
+                        case 'hifiRadioGroup': {
                             var radios = $(node).find('input[type=radio]').toArray();
                             while (Math.random() < 0.9) {
-                                radios.push(radios.shift()); 
+                                radios.push(radios.shift());
                             }
                             obj.result = radios[0].value;
                         } break;
-                        case 'spinner':
-                        case 'number': {
+                        case 'hifiSpinner':
+                        case 'hifiSlider': {
                             var step = node.step || 1, precision = (1/step).toString().length - 1;
                             var magnitude = node.max || (precision >=1 ? Math.pow(10, precision-1) : 10);
                             obj.result = parseFloat((Math.random() * magnitude).toFixed(precision||1));

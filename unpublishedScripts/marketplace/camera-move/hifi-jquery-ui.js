@@ -5,28 +5,46 @@
 /* global assert, log, debugPrint */
 // ----------------------------------------------------------------------------
 
-
 // WIDGET BASE
 Object.assign($.Widget.prototype, {
-    initHifiControl: function(hifiType) {
+    // common bootstrapping across widget types
+    initHifiControl: function initHifiControl(hifiType) {
+        initHifiControl.widgetCount = (initHifiControl.widgetCount || 0) + 1;
         hifiType = hifiType || this.widgetName;
-        var type = this.element.attr('data-type') || this.element.attr('type') || type,
-            id = this.element.prop('id') || hifiType + '-' + ~~(Math.random()*1e20).toString(36),
-            fer = this.element.attr('for'),
-            value = this.element.attr('data-value') || this.element.attr('value');
 
-        this.element.prop('id', id);
-        this.element.attr('data-type', type);
-        this.element.attr('data-hifi-type', hifiType || 'wtf');
-        value && this.element.attr('value', value);
-        fer && this.element.attr('data-for', fer);
-        return id;
+        var element = this.element, options = this.options, node = element.get(0), dataset = node.dataset;
+        assert(!this.element.is('.initialized'));
+        this.element.addClass('initialized');
+        var attributes = [].reduce.call(node.attributes, function(out, attribute) {
+            out[attribute.name] = attribute.value;
+            return out;
+        }, {});
+
+        var searchOrder = [ options, dataset, attributes, node ];
+        function setData(key, fallback) {
+            var value = searchOrder.map(function(obj) {
+                return obj[key];
+            }).concat(fallback).filter(function(value) {
+                return value !== undefined;
+            })[0];
+            return value === undefined ? null : (dataset[key] = value);
+        }
+        options.hifiWidgetId = hifiType + '-' + initHifiControl.widgetCount;
+        node.id = node.id || options.hifiWidgetId;
+        dataset.hifiType = hifiType;
+        setData('type');
+        setData('for', node.id);
+        setData('checked');
+        if (setData('value', null) !== null) {
+            element.attr('value', dataset.value);
+        }
+
+        return node.id;
     },
     hifiFindWidget: function(hifiType, quiet) {
         var selector = ':ui-'+hifiType;
-        // first try based on for property (eg: "[id=translation-ease-in]:ui-hifiSpinner")
-        var fer = this.element.attr('data-for'),
-            element = fer && $('[id='+fer+']').filter(selector);
+        var _for = JSON.stringify(this.element.data('for')||undefined),
+            element = _for && $('[id='+_for+']').filter(selector);
         if (!element.is(selector)) {
             element = this.element.closest(selector);
         }
@@ -36,8 +54,8 @@ Object.assign($.Widget.prototype, {
             // eslint-disable-next-line no-console
             console.error([
                 instance, 'could not find target instance ' + selector +
-                    ' for ' + this.element.attr('data-hifi-type') +
-                    ' #' + this.element.prop('id') + ' for=' + this.element.attr('data-for')
+                    ' for ' + this.element.data('hifi-type') +
+                    ' #' + this.element.prop('id') + ' for=' + this.element.data('for')
             ]);
         }
         return instance;
@@ -52,27 +70,23 @@ $.widget('ui.hifiCheckbox', $.ui.checkboxradio, {
             if (nv !== currentValue){
                 this.element.prop('checked', nv);
                 this.element.change();
-                // this.refresh();
             }
         }
         return this.element.prop('checked');
     },
     _create: function() {
         var id = this.initHifiControl();
-
         this.element.attr('value', id);
         // add an implicit label if missing
-        var forId = 'for=' + id;
-        var label = $('label[' + forId + ']');
+        var forId = 'for=' + JSON.stringify(id);
+        var label = $(this.element.get(0)).closest('label').add($('label[' + forId + ']'));
         if (!label.get(0)) {
             $('<label ' + forId + '>' + forId + '</label>').appendTo(this.element);
         }
         this._super();
-
         this.element.on('change._hifiCheckbox, click._hifiCheckbox', function() {
             var checked = this.value(),
                 attr = this.element.attr('checked');
-
             if (checked && !attr) {
                 this.element.attr('checked', 'checked');
             } else if (!checked && attr) {
@@ -86,7 +100,6 @@ $.widget('ui.hifiCheckbox', $.ui.checkboxradio, {
 // BUTTON
 $.widget('ui.hifiButton', $.ui.button, {
     value: function(nv) {
-        // log('ui.hifiButton.value', this.element[0].id, nv);
         var dataset = this.element[0].dataset;
         if (arguments.length) {
             var checked = (dataset.checked === 'true');
@@ -102,21 +115,23 @@ $.widget('ui.hifiButton', $.ui.button, {
         return dataset.checked === 'true';
     },
     _create: function() {
-        this.element[0].dataset.type = 'checkbox';
+        this.element.data('type', 'checkbox');
         this.initHifiControl();
         this._super();
-
         this.element[0].dataset.checked = !!this.element.attr('checked');
-        var fer = this.element.attr('data-for');
-        if (fer) {
+        var _for = this.element.data('for') || undefined;
+        if (_for && _for !== this.element[0].id) {
+            _for = JSON.stringify(_for);
             var checkbox = this.hifiFindWidget('hifiCheckbox', true);
             if (!checkbox) {
-                var input = $('<label><input type=checkbox id=' + fer + ' value=' + fer +' /></label>').hide();
-                input.appendTo(this.element.parent());
+                var input = $('<label><input type=checkbox id=' + _for + ' value=' + _for +' /></label>').hide();
+                input.appendTo(this.element);
                 checkbox = input.find('input')
                     .hifiCheckbox()
                     .hifiCheckbox('instance');
             }
+            this.element.find('.tooltip-target').removeClass('tooltip-target');
+            this.element.prop('id', 'button-'+this.element.prop('id'));
             checkbox.element.on('change._hifiButton', function() {
                 log('checkbox -> button');
                 this.value(checkbox.value());
@@ -130,21 +145,20 @@ $.widget('ui.hifiButton', $.ui.button, {
     },
 });
 
+// RADIO BUTTON
 $.widget('ui.hifiRadioButton', $.ui.checkboxradio, {
     value: function value(nv) {
         if (arguments.length) {
-            log('RADIOBUTTON VALUE', nv);
             this.element.prop('checked', !!nv);
             this.element.change();
-            // this.refresh();
         }
         return this.element.prop('checked');
     },
     _create: function() {
         var id = this.initHifiControl();
-        this.element.attr('value', id);
+        this.element.attr('value', this.element.data('value') || id);
         // console.log(this.element[0]);
-        assert(this.element.attr('data-for'));
+        assert(this.element.data('for'));
         this._super();
 
         this.element.on('change._hifiRadioButton, click._hifiRadioButton', function() {
@@ -163,7 +177,7 @@ $.widget('ui.hifiRadioButton', $.ui.checkboxradio, {
     },
 });
 
-// RADIO-GROUP
+// RADIO GROUP
 $.widget('ui.hifiRadioGroup', $.ui.controlgroup, {
     radio: function(selector) {
         return this.element.find(':ui-hifiRadioButton' + selector).hifiRadioButton('instance');
@@ -179,7 +193,7 @@ $.widget('ui.hifiRadioGroup', $.ui.controlgroup, {
         if (arguments.length) {
             var id = this.element[0].id,
                 previous = this.value();
-            log('RADIOBUTTON GROUP value', id + ' = ' + nv + '(was: ' + previous + ')');
+            debugPrint('RADIOBUTTON GROUP value', id + ' = ' + nv + '(was: ' + previous + ')');
             this.element.attr('value', nv);
             this.refresh();
         }
@@ -188,12 +202,11 @@ $.widget('ui.hifiRadioGroup', $.ui.controlgroup, {
     _create: function(x) {
         debugPrint('ui.hifiRadioGroup._create', this.element[0]);
         this.initHifiControl();
-
-        var tmp = this.options.items.checkboxradio;
-        delete this.options.items.checkboxradio;
-        this.options.items.hifiRadioButton = tmp;
-
+        this.options.items = {
+            hifiRadioButton: 'input[type=radio]',
+        };
         this._super();
+        // allow setting correct radio button by assign to .value property (or $.fn.val() etc.)
         Object.defineProperty(this.element[0], 'value', {
             set: function(nv) {
                 try {
@@ -208,12 +221,12 @@ $.widget('ui.hifiRadioGroup', $.ui.controlgroup, {
     },
 });
 
-// SPINNER (numeric input w/ up/down arrows)
+// SPINNER (numeric input + up/down buttons)
 $.widget('ui.hifiSpinner', $.ui.spinner, {
     value: function value(nv) {
         if (arguments.length) {
             var num = parseFloat(nv);
-            debugPrint('ui.hifiSpinner.value set', num, '(was: ' + this.value() + ')', 'raw:'+nv);
+            debugPrint('ui.hifiSpinner.value set', this.element[0].id, num, '(was: ' + this.value() + ')', 'raw:'+nv);
             this._value(num);
             this.element.change();
         }
@@ -223,15 +236,11 @@ $.widget('ui.hifiSpinner', $.ui.spinner, {
         debugPrint('ui.hifiSpinner._value', value, allowAny);
         return this._super(value, allowAny);
     },
-
     _create: function() {
         this.initHifiControl();
-        if (this.options.min === '-Infinity') {
-            this.options.min = -1e10;
-        }
-        if (this.options.max === '-Infinity') {
-            this.options.max = 1e10;
-        }
+        var step = this.options.step = this.options.step || 1.0;
+        // allow step=".01" for precision and data-step=".1" for default increment amount
+        this.options.prescale = parseFloat(this.element.data('step') || step) / (step);
         this._super();
         this.previous = null;
         this.element.on('change._hifiSpinner', function() {
@@ -242,14 +251,9 @@ $.widget('ui.hifiSpinner', $.ui.spinner, {
         }.bind(this));
     },
     _spin: function( step, event ) {
-        if (event.type === 'mousewheel') {
-            if (!event.shiftKey) {
-                step *= ('1e'+Math.max(1,this._precision()))/10;
-            }
-            if (event.ctrlKey) {
-                step *= 10;
-            }
-        }
+        step = step * this.options.prescale * (
+            event.shiftKey ? 0.1 : event.ctrlKey ? 10 : 1
+        );
         return this._super( step, event );
     },
     _stop: function( event, ui ) {
@@ -259,10 +263,6 @@ $.widget('ui.hifiSpinner', $.ui.spinner, {
             if (/mouse/.test(event && event.type)) {
                 var value = this.value();
                 if ((value || value === 0) && !isNaN(value) && this.previous !== null && this.previous !== value) {
-                    debugPrint(this.element[0].id, 'spinner.changed', event.type, JSON.stringify({
-                        previous: isNaN(this.previous) ? this.previous+'' : this.previous,
-                        val: isNaN(value) ? value+'' : value,
-                    }));
                     this.value(this.value());
                 }
                 this.previous = value;
@@ -275,12 +275,11 @@ $.widget('ui.hifiSpinner', $.ui.spinner, {
     },
     _events: {
         mousewheel: function(event, delta) {
-            if (document.activeElement !== this.element[0]) {
-                return;
+            if (document.activeElement === this.element[0]) {
+                // fix broken mousewheel on Chrome / embedded webkit
+                delta = delta === undefined ? -(event.originalEvent.deltaY+event.originalEvent.deltaX) : delta;
+                $.ui.spinner.prototype._events.mousewheel.call(this, event, delta);
             }
-            // fix broken mousewheel on Chrome / webkit
-            delta = delta === undefined ? event.originalEvent.deltaY : delta;
-            $.ui.spinner.prototype._events.mousewheel.call(this, event, delta);
         }
     }
 });
@@ -300,7 +299,6 @@ $.widget('ui.hifiSlider', $.ui.slider, {
     },
     _create: function() {
         this.initHifiControl();
-        assert(this.element.attr('data-for'));
         this._super();
         this.element
             .attr('type', this.element.attr('type') || 'slider')

@@ -21,10 +21,10 @@ var SettingsJSON = (function() {
 
     function encodeNodes(resolver) {
         return resolver.getAllNodes().reduce((function(out, input, i) {
-            debugPrint('input['+i+']', input.id);
+            //debugPrint('input['+i+']', input.id);
             var id = input.id,
                 key = resolver.getKey(id);
-            debugPrint('toJSON', id, key, input.id);
+            //debugPrint('toJSON', id, key, input.id);
             setPath(out, key.split('/'), resolver.getValue(key));
             return out;
         }).bind(this), {});
@@ -35,7 +35,7 @@ var SettingsJSON = (function() {
         obj = path.reduce(function(obj, subkey) {
             return obj[subkey] = obj[subkey] || {};
         }, obj);
-        debugPrint('setPath', key, Object.keys(obj));
+        //debugPrint('setPath', key, Object.keys(obj));
         obj[key] = value;
     }
 
@@ -81,23 +81,24 @@ var SettingsJSON = (function() {
         var HTML = document.getElementById('POPUP').innerHTML
             .replace(/\bxx-script\b/g, 'script')
             .replace('JSON', JSON.stringify(tmp, 0, 2).replace(/\n/g, '<br />'));
-        if (arguments[3] === '_overlayWebWindow') {
+        if (/WebWindowEx/.test(navigator.userAgent) ) {
             bridgedSettings.sendEvent({
                 method: 'overlayWebWindow',
+                userAgent: navigator.userAgent,
                 options: {
                     title: 'app-camera-move-export' + (title ? '::'+title : ''),
                     content: HTML,
                 },
             });
         } else {
-            // make the browser address bar less ugly by putting spaces and friedly name as a "URL footer"
+            // append a footer to the data URI so it displays cleaner in the built-in browser window that opens
             var footer = '<\!-- #' + HTML.substr(0,256).replace(/./g,' ') + (title || 'Camera Move Settings');
             window.open("data:text/html;escape," + encodeURIComponent(HTML) + footer,"app-camera-move-export");
         }
     }
 
     function applyJSON(resolver, name, tmp) {
-        assert('version' in tmp && 'settings' in tmp, 'invalid settings record: ' + JSON.stringify(tmp));
+        assert(tmp && 'version' in tmp && 'settings' in tmp, 'invalid settings record: ' + JSON.stringify(tmp));
         var settings = rollupPaths(tmp.settings);
         for (var p in settings) {
             if (/^[.]/.test(p)) {
@@ -118,6 +119,7 @@ var SettingsJSON = (function() {
             return;
         }
         try {
+            log('parsing json', json);
             json = JSON.parse(json);
         } catch (e) {
             throw new Error('Could not parse pasted JSON: ' + e + '\n\n' + (json||'').replace(/</g,'&lt;'));

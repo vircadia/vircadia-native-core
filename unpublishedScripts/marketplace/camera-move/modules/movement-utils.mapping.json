@@ -58,7 +58,7 @@
             "to": "Actions.StepYaw",
             "filters":
             [
-                { "type": "invert" },
+                "invert",
                 { "type": "pulse", "interval": 0.5, "resetOnZero": true },
                 { "type": "scale", "scale": 22.5 }
             ]

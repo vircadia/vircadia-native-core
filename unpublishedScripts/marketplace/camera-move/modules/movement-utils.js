@@ -1,4 +1,4 @@
-// movement-utils.js -- helper classes that help manage related Controller.*Event and input API bindings for movement controls
+// movement-utils.js -- helper classes for managing related Controller.*Event and input API bindings
 
 /* eslint-disable comma-dangle, no-empty */
 /* global require: true, DriveKeys, console, __filename, __dirname */
@@ -6,7 +6,7 @@
 "use strict";
 
 module.exports = {
-    version: '0.0.2c-0104',
+    version: '0.0.2c',
 
     CameraControls: CameraControls,
     MovementEventMapper: MovementEventMapper,
@@ -20,15 +20,13 @@ module.exports = {
     vec3eclamp: vec3eclamp,
 
     DriveModes: {
-        JITTER_TEST: 'jitter-test',
         POSITION: 'position', // ~ MyAvatar.position
         MOTOR: 'motor',       // ~ MyAvatar.motorVelocity
         THRUST: 'thrust',     // ~ MyAvatar.setThrust
     },
 };
 
-var MAPPING_TEMPLATE = require('./movement-utils.mapping.json' + (__filename.match(/[?#].*$/)||[''])[0]);
-
+var MAPPING_TEMPLATE = require('./movement-utils.mapping.json');
 var WANT_DEBUG = false;
 
 function log() {
@@ -43,12 +41,10 @@ log(module.exports.version);
 var _utils = require('./_utils.js'),
     assert = _utils.assert;
 
-if (1||WANT_DEBUG) {
+if (WANT_DEBUG) {
     require = _utils.makeDebugRequire(__dirname);
     _utils = require('./_utils.js'); // re-require in debug mode
-    if (WANT_DEBUG) {
-        debugPrint = log;
-    }
+    debugPrint = log;
 }
 
 Object.assign = Object.assign || _utils.assign;
@@ -56,9 +52,10 @@ Object.assign = Object.assign || _utils.assign;
 var enumMeta = require('./EnumMeta.js');
 assert(enumMeta.version >= '0.0.1', 'enumMeta >= 0.0.1 expected but got: ' + enumMeta.version);
 
-MovementEventMapper.CAPTURE_DRIVE_KEYS = 'drive-keys';
-MovementEventMapper.CAPTURE_ACTION_EVENTS = 'action-events';
-// MovementEventMapper.CAPTURE_KEYBOARD_EVENTS = 'key-events';
+Object.assign(MovementEventMapper, {
+    CAPTURE_DRIVE_KEYS: 'drive-keys',
+    CAPTURE_ACTION_EVENTS: 'action-events',
+});
 
 function MovementEventMapper(options) {
     assert('namespace' in options, '.namespace expected ' + Object.keys(options) );
@@ -90,7 +87,7 @@ MovementEventMapper.prototype = {
         return event.actionValue;
     },
     getState: function(options) {
-        var state = this.states ? this.states.getDriveKeys(options) : { };
+        var state = this.states ? this.states.getDriveKeys(options) : {};
 
         state.enabled = this.enabled;
 
@@ -115,10 +112,10 @@ MovementEventMapper.prototype = {
         }
     },
     reset: function() {
-        log(this.constructor.name, 'reset', JSON.stringify(Object.assign({}, this.options, { controllerMapping: undefined }),0,2));
-        var enabled = this.enabled;
-        enabled && this.disable();
-        enabled && this.enable();
+        if (this.enabled) {
+            this.disable();
+            this.enable();
+        }
     },
     disable: function() {
         this.inputMapping.disable();
@@ -229,7 +226,7 @@ VirtualDriveKeys.prototype = {
         return driveKey in this ? this[driveKey] : defaultValue;
     },
     _defaultFilter: function(from, event) {
-        return event.actionValue; 
+        return event.actionValue;
     },
     handleActionEvent: function(from, event) {
         var value = this.$eventFilter ? this.$eventFilter(from, event, this._defaultFilter) : event.actionValue;
@@ -279,20 +276,10 @@ VirtualDriveKeys.prototype = {
                     y: this.getValue(DriveKeys.TRANSLATE_Y) || 0,
                     z: this.getValue(DriveKeys.TRANSLATE_Z) || 0
                 },
-                step_translation: { // eslint-disable-line camelcase
-                    x: 'STEP_TRANSLATE_X' in DriveKeys && this.getValue(DriveKeys.STEP_TRANSLATE_X) || 0,
-                    y: 'STEP_TRANSLATE_Y' in DriveKeys && this.getValue(DriveKeys.STEP_TRANSLATE_Y) || 0,
-                    z: 'STEP_TRANSLATE_Z' in DriveKeys && this.getValue(DriveKeys.STEP_TRANSLATE_Z) || 0
-                },
                 rotation: {
                     x: this.getValue(DriveKeys.PITCH) || 0,
                     y: this.getValue(DriveKeys.YAW) || 0,
                     z: 'ROLL' in DriveKeys && this.getValue(DriveKeys.ROLL) || 0
-                },
-                step_rotation: { // eslint-disable-line camelcase
-                    x: 'STEP_PITCH' in DriveKeys && this.getValue(DriveKeys.STEP_PITCH) || 0,
-                    y: 'STEP_YAW' in DriveKeys && this.getValue(DriveKeys.STEP_YAW) || 0,
-                    z: 'STEP_ROLL' in DriveKeys && this.getValue(DriveKeys.STEP_ROLL) || 0
                 },
                 zoom: Vec3.multiply(this.getValue(DriveKeys.ZOOM) || 0, Vec3.ONE)
             };
@@ -539,16 +526,15 @@ function vec3eclamp(velocity, epsilon, maxVelocity) {
     return velocity;
 }
 
-function vec3damp(targetVelocity, velocity, drag) {
-    // If force isn't being applied in a direction, incorporate drag;
-    var dragEffect = {
-        x: targetVelocity.x ? 0 : drag.x,
-        y: targetVelocity.y ? 0 : drag.y,
-        z: targetVelocity.z ? 0 : drag.z,
+function vec3damp(active, positiveEffect, negativeEffect) {
+    // If force isn't being applied in a direction, incorporate negative effect (drag);
+    negativeEffect = {
+        x: active.x ? 0 : negativeEffect.x,
+        y: active.y ? 0 : negativeEffect.y,
+        z: active.z ? 0 : negativeEffect.z,
     };
-    return Vec3.subtract(Vec3.sum(velocity, targetVelocity), dragEffect);
+    return Vec3.subtract(Vec3.sum(active, positiveEffect), negativeEffect);
 }
-
 
 // ----------------------------------------------------------------------------
 function VelocityTracker(defaultValues) {
@@ -569,14 +555,14 @@ VelocityTracker.prototype = {
         return this._integrate.apply(this, [component].concat(args));
     },
     _integrate: function(component, targetState, currentVelocities, drag, settings) {
+        assert(targetState[component], component + ' not found in targetState (which has: ' + Object.keys(targetState) + ')');
         var result = vec3damp(
             targetState[component],
             currentVelocities[component],
             drag[component]
         );
-        var maxVelocity = settings[component].maxVelocity,
-            epsilon = settings[component].epsilon;
-        return this[component] = vec3eclamp(result, epsilon, maxVelocity);
+        var maxVelocity = settings[component].maxVelocity;
+        return this[component] = vec3eclamp(result, settings.epsilon, maxVelocity);
     },
 };
 
@@ -587,6 +573,7 @@ Object.assign(CameraControls, {
     ANIMATION_FRAME: 'requestAnimationFrame', // emulated
     NEXT_TICK: 'nextTick', // emulated
     SET_IMMEDIATE: 'setImmediate', // emulated
+    //WORKER_THREAD: 'workerThread',
 });
 
 function CameraControls(options) {
@@ -599,7 +586,7 @@ function CameraControls(options) {
     this.threadMode = options.threadMode;
     this.fps = options.fps || 60;
     this.getRuntimeSeconds = options.getRuntimeSeconds || function() {
-        return +new Date / 1000.0; 
+        return +new Date / 1000.0;
     };
     this.backupOptions = _utils.DeferredUpdater.createGroup({
         MyAvatar: MyAvatar,
@@ -625,7 +612,7 @@ CameraControls.prototype = {
                 this.$animate = this.update;
                 Script.update.connect(this, '$animate');
                 this.$animate.disconnect = _utils.bind(this, function() {
-                    Script.update.disconnect(this, '$animate'); 
+                    Script.update.disconnect(this, '$animate');
                 });
             } break;
 
@@ -664,7 +651,7 @@ CameraControls.prototype = {
                     }
                     this.update(this.getRuntimeSeconds(lastTime));
                     lastTime = this.getRuntimeSeconds();
-                    this.$animate.timeout = Script.setTimeout(this.$animate, 1);
+                    this.$animate.timeout = Script.setTimeout(this.$animate, 0);
                 });
                 this.$animate.quit = false;
                 this.$animate.disconnect = function() {
@@ -674,6 +661,7 @@ CameraControls.prototype = {
                 };
                 this.$animate();
             } break;
+
             default: throw new Error('unknown threadMode: ' + this.threadMode);
         }
         log(
@@ -731,10 +719,7 @@ CameraControls.prototype = {
 
         this.$start();
 
-        if (this.enabled !== true) {
-            this.enabled = true;
-            this.enabledChanged(this.enabled);
-        }
+        this.enabledChanged(this.enabled = true);
     },
     disable: function disable() {
         log("DISABLE CameraControls");
@@ -748,8 +733,7 @@ CameraControls.prototype = {
         this._restore();
 
         if (this.enabled !== false) {
-            this.enabled = false;
-            this.enabledChanged(this.enabled);
+            this.enabledChanged(this.enabled = false);
         }
     },
     _restore: function() {
@@ -769,6 +753,8 @@ CameraControls.prototype = {
             motorTimescale: MyAvatar.motorTimescale,
             motorReferenceFrame: MyAvatar.motorReferenceFrame,
             motorVelocity: Vec3.ZERO,
+            velocity: Vec3.ZERO,
+            angularVelocity: Vec3.ZERO,
         });
     },
 }; // CameraControls
@@ -777,61 +763,11 @@ CameraControls.prototype = {
 function applyEasing(deltaTime, direction, settings, state, scaling) {
     var obj = {};
     for (var p in scaling) {
-        var group = settings[p],
-            easeConst = group[direction],
-            // multiplier = group.speed,
+        var group = settings[p],          // translation | rotation | zoom
+            easeConst = group[direction], // easeIn | easeOut
             scale = scaling[p],
             stateVector = state[p];
         obj[p] = Vec3.multiply(easeConst * scale * deltaTime, stateVector);
-        // var vec = obj[p]
-        // vec.x *= multiplier.x;
-        // vec.y *= multiplier.y;
-        // vec.z *= multiplier.z;
     }
     return obj;
 }
-
-// ----------------------------------------------------------------------------
-// currently unused
-/*
-function normalizeDegrees(x) {
-    while (x > 360) {
-        x -= 360;
-    }
-    while (x < 0) {
-        x += 360;
-    }
-    return x;
-}
-function getEffectiveVelocities(deltaTime, collisionsEnabled, previousValues) {
-    // use native values if available, otherwise compute a derivative over deltaTime
-    var effectiveVelocity = collisionsEnabled ? MyAvatar.velocity : Vec3.multiply(Vec3.subtract(
-        MyAvatar.position, previousValues.position
-    ), 1/deltaTime);
-    var effectiveAngularVelocity = // collisionsEnabled ? MyAvatar.angularVelocity :
-        Vec3.multiply(
-            Quat.safeEulerAngles(Quat.multiply(
-                MyAvatar.orientation,
-                Quat.inverse(previousValues.orientation)
-            )), 1/deltaTime);
-
-    effectiveVelocity = Vec3.multiplyQbyV(Quat.inverse(previousValues.orientation), effectiveVelocity);
-
-    effectiveAngularVelocity = {
-        x: normalizeDegrees(effectiveAngularVelocity.x),
-        y: normalizeDegrees(effectiveAngularVelocity.y),
-        z: normalizeDegrees(effectiveAngularVelocity.z),
-    };
-
-    return {
-        velocity: effectiveVelocity,
-        angularVelocity: effectiveAngularVelocity,
-    };
-}
-function _isAvatarNearlyUpright(maxDegrees) {
-    maxDegrees = maxDegrees || 5;
-    return Math.abs(MyAvatar.headRoll) < maxDegrees && Math.abs(MyAvatar.bodyPitch) < maxDegrees;
-}
-
-
-*/

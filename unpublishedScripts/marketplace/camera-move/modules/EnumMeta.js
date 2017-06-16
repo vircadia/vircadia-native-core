@@ -1,5 +1,5 @@
-// // EnumMeta.js -- helper module that maps related enum values to names and ids
-// //
+// EnumMeta.js -- helper module that maps related enum values to printable names and ids
+
 /* eslint-env commonjs */
 /* global DriveKeys, console */
 

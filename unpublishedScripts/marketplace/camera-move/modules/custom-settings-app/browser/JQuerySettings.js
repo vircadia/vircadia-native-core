@@ -41,16 +41,15 @@
             boundOnDOMMutation: this._onDOMMutation.bind(this),
         }, options);
     }
+    JQuerySettings.idCounter = 0;
     JQuerySettings.prototype = {
         toString: function() {
-            return '[JQuerySettings namespace='+this.namespace+']'; 
+            return '[JQuerySettings namespace='+this.namespace+']';
         },
         mutationConfig: {
             attributes: true,
             attributeOldValue: true,
             attributeFilter: [ 'value', 'checked', 'data-checked', 'data-value' ]
-            // 'id', 'checked', 'min', 'max', 'step', 'focused', 'focus', 'active', 'data', 'for' ].reduce(function(out, key, index, arr) {
-            //     arr.push('data-'+key); return arr; }),
         },
         _onDOMMutation: function(mutations, observer) {
             mutations.forEach(function(mutation, index) {
@@ -61,7 +60,6 @@
                     hifiType = target.dataset.hifiType,
                     value = hifiType ? $(target)[hifiType]('instance').value() : attrValue,
                     oldValue = mutation.oldValue;
-
                 var event = {
                     key:       this.getKey(targetId, true) || this.getKey(domId),
                     value:     value,
@@ -110,6 +108,7 @@
             }
         },
         registerSetting: function(id, key) {
+            assert(id, 'registerSetting -- invalid id: ' + id + ' for key:' + key);
             this.id2Setting[id] = key;
             if (!(key in this.Setting2id)) {
                 this.Setting2id[key] = id;
@@ -119,19 +118,23 @@
             debugPrint('JQuerySettings.registerSetting -- registered: ' + JSON.stringify({ id: id, key: key }));
         },
         registerNode: function(node) {
-            // node.id = node.id || 'node-' + Math.round(Math.random()*1e20).toString(36);
-            var id = node.id,
-                key = this.resolve(node.dataset['for'] || node.id);
-            this.registerSetting(id, key);
+            var element = $(node),
+                target = element.data('for') || element.attr('for') || element.prop('id');
+            assert(target, 'registerNode could determine settings target: ' + node.outerHTML);
+            if (!node.id) {
+                node.id = ['id', target.replace(/[^-\w]/g,'-'), JQuerySettings.idCounter++ ].join('-');
+            }
+            var key = node.dataset['key'] = this.resolve(target);
+            this.registerSetting(node.id, key);
 
-            debugPrint('registerNode', id, key);
+            debugPrint('registerNode', node.id, target, key);
             // return this.observeNode(node);
         },
         // lookup the DOM id for a given Settings key
         getId: function(key, missingOk) {
             key = this.resolve(key);
             assert(missingOk || function assertion(){
-                return typeof key === 'string'; 
+                return typeof key === 'string';
             });
             if (key in this.Setting2id || missingOk) {
                 return this.Setting2id[key];
@@ -141,7 +144,7 @@
         getAllNodes: function() {
             return Object.keys(this.Setting2id)
                 .map(function(key) {
-                    return this.findNodeByKey(key); 
+                    return this.findNodeByKey(key);
                 }.bind(this))
                 .filter(function(node) {
                     return node.type !== 'placeholder';

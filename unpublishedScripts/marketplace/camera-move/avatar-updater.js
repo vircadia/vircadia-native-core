@@ -1,5 +1,8 @@
 /* eslint-env commonjs */
 // ----------------------------------------------------------------------------
+
+// helper module that performs the avatar movement update calculations
+
 module.exports = AvatarUpdater;
 
 var _utils = require('./modules/_utils.js'),
@@ -11,7 +14,7 @@ function AvatarUpdater(options) {
     options = options || {};
     assert(function assertion() {
         return typeof options.getCameraMovementSettings === 'function' &&
-            typeof options.getMovementState === 'function' && 
+            typeof options.getMovementState === 'function' &&
             options.globalState;
     });
 
@@ -23,7 +26,8 @@ function AvatarUpdater(options) {
     var MIN_DELTA_TIME = 0.0001; // to avoid math overflow, never consider dt less than this value
     var DEG_TO_RAD = Math.PI / 180.0;
     update.frameCount = 0;
-    update.endTime = _utils.getRuntimeSeconds();
+    update.endTime = update.windowStartTime = _utils.getRuntimeSeconds();
+    update.windowFrame = update.windowStartFrame= 0;
 
     this.update = update;
     this.options = options;
@@ -43,7 +47,8 @@ function AvatarUpdater(options) {
         var independentCamera = Camera.mode === 'independent',
             headPitch = MyAvatar.headPitch;
 
-        var actualDeltaTime = Math.max(MIN_DELTA_TIME, (startTime - update.endTime)),
+        var actualDeltaTime = startTime - update.endTime,
+            practicalDeltaTime = Math.max(MIN_DELTA_TIME, actualDeltaTime),
             deltaTime;
 
         if (settings.useConstantDeltaTime) {
@@ -52,7 +57,7 @@ function AvatarUpdater(options) {
         } else if (settings.threadMode === movementUtils.CameraControls.SCRIPT_UPDATE) {
             deltaTime = dt;
         } else {
-            deltaTime = actualDeltaTime;
+            deltaTime = practicalDeltaTime;
         }
 
         var orientationProperty = settings.useHead ? 'headOrientation' : 'orientation',
@@ -124,7 +129,6 @@ function AvatarUpdater(options) {
                     previousValues.thrust = pendingChanges.MyAvatar.setThrust = thrust;
                     break;
                 }
-                case DriveModes.JITTER_TEST:
                 case DriveModes.POSITION: {
                     pendingChanges.MyAvatar.position = Vec3.sum(currentPosition, deltaPosition);
                     break;
@@ -155,7 +159,7 @@ function AvatarUpdater(options) {
                 break;
         }
 
-        if (settings.driveMode === movementUtils.DriveModes.JITTER_TEST) {
+        if (settings.jitterTest) {
             finalOrientation = Quat.multiply(MyAvatar[orientationProperty], Quat.fromPitchYawRollDegrees(0, 60 * deltaTime, 0));
             // Quat.fromPitchYawRollDegrees(0, _utils.getRuntimeSeconds() * 60, 0)
         }
@@ -178,10 +182,17 @@ function AvatarUpdater(options) {
 
         pendingChanges.submit();
 
-        update.momentaryFPS = 1 / actualDeltaTime;
+        if ((endTime - update.windowStartTime) > 3) {
+            update.momentaryFPS = (update.frameCount - update.windowStartFrame) /
+                (endTime - update.windowStartTime);
+            update.windowStartFrame = update.frameCount;
+            update.windowStartTime = endTime;
+        }
 
-        if (_debugChannel && update.frameCount % 120 === 0) {
+        if (_debugChannel && update.windowStartFrame === update.frameCount) {
             Messages.sendLocalMessage(_debugChannel, JSON.stringify({
+                threadFrames: update.threadFrames,
+                frame: update.frameCount,
                 threadMode: settings.threadMode,
                 driveMode: settings.driveMode,
                 orientationProperty: orientationProperty,

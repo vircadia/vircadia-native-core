@@ -1,8 +1,7 @@
 // config-utils.js -- helpers for coordinating Application runtime vs. Settings configuration
 //
-//   * ApplicationConfig -- provides a way to configure and monitor Menu items and API values.
-//   * SettingsConfig -- provides a similar way to configure and monitor scoped Settings values.
-//   * ... together they provide a way to manage overlapping values and keep them in sync.
+//   * ApplicationConfig -- Menu items and API values.
+//   * SettingsConfig -- scoped Settings values.
 
 "use strict";
 /* eslint-env commonjs */
@@ -24,13 +23,14 @@ function _debugPrint() {
 var debugPrint = function() {};
 
 // ----------------------------------------------------------------------------
-// grouped Application-specific configuration values using runtime state / API props
+// Application-specific configuration values using runtime state / API props
 //
 // options.config[] supports the following item formats:
 //   'settingsName': { menu: 'Menu > MenuItem'}, // assumes MenuItem is a checkbox / checkable value
 //   'settingsName': { object: [ MyAvatar, 'property' ] },
 //   'settingsName': { object: [ MyAvatar, 'getterMethod', 'setterMethod' ] },
 //   'settingsName': { menu: 'Menu > MenuItem', object: [ MyAvatar, 'property' ] },
+//   'settingsName': { get: function getter() { ...}, set: function(nv) { ... } },
 
 function ApplicationConfig(options) {
     options = options || {};
@@ -42,7 +42,6 @@ function ApplicationConfig(options) {
     this.namespace = options.namespace;
     this.valueUpdated = _utils.signal(function valueUpdated(key, newValue, oldValue, origin){});
 
-    // process shorthand notations into fully-qualfied ApplicationConfigItem instances
     this.config = {};
     this.register(options.config);
 }
@@ -59,6 +58,7 @@ ApplicationConfig.prototype = {
         item.settingName = ~settingName.indexOf('/') ? settingName : [ this.namespace, settingName ].join('/');
         return this.config[item.settingName] = this.config[settingName] = new ApplicationConfigItem(item);
     },
+    // process items into fully-qualfied ApplicationConfigItem instances
     register: function(items) {
         for (var p in items) {
             var item = items[p];
@@ -105,17 +105,20 @@ ApplicationConfig.prototype = {
 
 // ApplicationConfigItem represents a single API/Menu item accessor
 function ApplicationConfigItem(item) {
-    Object.assign(this, item, { _item: item });
+    Object.assign(this, item);
     Object.assign(this, {
-        _menu: this._parseMenuConfig(this.menu),
-        _object: this._parseObjectConfig(this.object)
+        _item: item.get && item,
+        _object: this._parseObjectConfig(this.object),
+        _menu: this._parseMenuConfig(this.menu)
     });
+    this.authority = this._item ? 'item' : this._object ? 'object' : this._menu ? 'menu' : null;
+    this._authority = this['_'+this.authority];
+    debugPrint('_authority', this.authority, this._authority, Object.keys(this._authority));
+    assert(this._authority, 'expected item.get, .object or .menu definition; ' + this.settingName);
 }
 ApplicationConfigItem.prototype = {
-    authority: 'object', // when values conflict, this determines which source is considered the truth
     resync: function resync() {
-        var authoritativeValue = this.get();
-
+        var authoritativeValue = this._authority.get();
         if (this._menu && this._menu.get() !== authoritativeValue) {
             _debugPrint(this.settingName, this._menu.menuItem,
                         '... menu value ('+this._menu.get()+') out of sync;',
@@ -132,14 +135,13 @@ ApplicationConfigItem.prototype = {
     toString: function() {
         return '[ApplicationConfigItem ' + [
             'setting:' + JSON.stringify(this.settingName),
-            this.authority !== ApplicationConfigItem.prototype.authority && 'authority:' + JSON.stringify(this.authority),
+            'authority:' + JSON.stringify(this.authority),
             this._object && 'object:' + JSON.stringify(this._object.property || this._object.getter),
             this._menu && 'menu:' + JSON.stringify(this._menu.menu)
-            // 'value:' + this.get(),
         ].filter(Boolean).join(' ') + ']';
     },
     get: function get() {
-        return this.authority === 'menu' ? this._menu.get() : this._object.get();
+        return this._authority.get();
     },
     set: function set(nv) {
         this._object && this._object.set(nv);
@@ -174,16 +176,13 @@ ApplicationConfigItem.prototype = {
             return {
                 object: object, property: getter,
                 get: function() {
-                    // log('======> get API, property', object, getter, this.object[this.property]);
                     return this.object[this.property];
                 },
                 set: function(nv) {
-                    // log('======> set API, property', object, getter, this.object[this.property], nv);
                     return this.object[this.property] = nv;
                 }
             };
         }
-
         this._raiseError('{ object: [ Object, getterOrPropertyName, setterName ] } -- invalid params or does not exist: ' +
                          [ this.settingName, this.object, getter, setter ].join(' | '));
     },
@@ -209,7 +208,7 @@ ApplicationConfigItem.prototype = {
 }; // ApplicationConfigItem.prototype
 
 // ----------------------------------------------------------------------------
-// grouped configuration using the Settings.* API  abstraction
+// grouped configuration using the Settings.* API
 function SettingsConfig(options) {
     options = options || {};
     assert('namespace' in options);
@@ -251,5 +250,3 @@ SettingsConfig.prototype = {
         return isFinite(value) ? value : isFinite(defaultValue) ? defaultValue : 0.0;
     }
 };
-
-// ----------------------------------------------------------------------------
