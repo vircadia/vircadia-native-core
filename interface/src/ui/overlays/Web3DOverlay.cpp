@@ -319,7 +319,7 @@ void Web3DOverlay::render(RenderArgs* args) {
         geometryCache->bindOpaqueWebBrowserProgram(batch, _isAA);
     }
     geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color, _geometryId);
-    batch.setResourceTexture(0, args->_whiteTexture); // restore default white color after me
+    batch.setResourceTexture(0, nullptr); // restore default white color after me
 }
 
 const render::ShapeKey Web3DOverlay::getShapeKey() {
