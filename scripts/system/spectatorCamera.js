@@ -18,9 +18,7 @@
     // FUNCTION VAR DECLARATIONS
     //
     var sendToQml, addOrRemoveButton, onTabletScreenChanged, fromQml,
-        onTabletButtonClicked, wireEventBridge, startup, shutdown;
-
-
+        onTabletButtonClicked, wireEventBridge, startup, shutdown, registerButtonMappings;
 
     //
     // Function Name: inFrontOf()
@@ -247,6 +245,7 @@
         HMD.displayModeChanged.connect(onHMDChanged);
         viewFinderOverlay = false;
         camera = false;
+        registerButtonMappings();
     }
 
     //
@@ -301,6 +300,70 @@
         }
     }
 
+    const SWITCH_VIEW_FROM_CONTROLLER_DEFAULT = false;
+    var switchViewFromController = !!Settings.getValue('spectatorCamera/switchViewFromController', SWITCH_VIEW_FROM_CONTROLLER_DEFAULT);
+    function setControllerMappingStatus(status) {
+        if (status) {
+            controllerMapping.enable();
+        } else {
+            controllerMapping.disable();
+        }
+    }
+    function setSwitchViewFromController(setting) {
+        if (setting === switchViewFromController) {
+            return;
+        }
+        switchViewFromController = setting;
+        setControllerMappingStatus(switchViewFromController);
+        Settings.setValue('spectatorCamera/switchViewFromController', setting);
+    }
+
+    //
+    // Function Name: registerButtonMappings()
+    //
+    // Relevant Variables:
+    // controllerMappingName: The name of the controller mapping
+    // controllerMapping: The controller mapping itself
+    // controllerType: "OculusTouch", "Vive", "Other"
+    // 
+    // Arguments:
+    // None
+    // 
+    // Description:
+    // Updates controller button mappings for Spectator Camera.
+    //
+    var controllerMappingName;
+    var controllerMapping;
+    var controllerType = "Other";
+    function registerButtonMappings() {
+        var VRDevices = Controller.getDeviceNames().toString();
+        if (VRDevices.includes("Vive")) {
+            controllerType = "Vive";
+        } else if (VRDevices.includes("OculusTouch")) {
+            controllerType = "OculusTouch";
+        }
+
+        controllerMappingName = 'Hifi-SpectatorCamera-Mapping';
+        controllerMapping = Controller.newMapping(controllerMappingName);
+        if (controllerType === "OculusTouch") {
+            controllerMapping.from(Controller.Standard.LS).to(function (value) {
+                if (value === 1.0) {
+                    setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
+                }
+                return;
+            });
+        } else if (controllerType === "Vive") {
+            controllerMapping.from(Controller.Standard.LeftPrimaryThumb).to(function (value) {
+                if (value === 1.0) {
+                    setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
+                }
+                return;
+            });
+        }
+        setControllerMappingStatus(switchViewFromController);
+        sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
+    }
+
     //
     // Function Name: onTabletButtonClicked()
     //
@@ -326,8 +389,8 @@
             tablet.loadQMLSource("../SpectatorCamera.qml");
             onSpectatorCameraScreen = true;
             sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
-            sendToQml({ method: 'updateMonitorShowsSwitch', params: !!Settings.getValue('spectatorCamera/monitorShowsCameraView', false) });
-            setMonitorShowsCameraViewAndSendToQml(monitorShowsCameraView);
+            sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
+            sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
         }
     }
 
@@ -396,7 +459,7 @@
                 setMonitorShowsCameraView(message.params);
                 break;
             case 'changeSwitchViewFromControllerPreference':
-                print('FIXME: Preference is now: ' + message.params);
+                setSwitchViewFromController(message.params);
                 break;
             default:
                 print('Unrecognized message from SpectatorCamera.qml:', JSON.stringify(message));
@@ -442,6 +505,7 @@
         tablet.screenChanged.disconnect(onTabletScreenChanged);
         HMD.displayModeChanged.disconnect(onHMDChanged);
         Controller.keyPressEvent.disconnect(keyPressEvent);
+        controllerMapping.disable();
     }
 
     //

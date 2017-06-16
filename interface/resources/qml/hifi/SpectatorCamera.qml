@@ -258,7 +258,7 @@ Rectangle {
             anchors.left: parent.left;
             anchors.top: monitorShowsSwitch.bottom;
             anchors.topMargin: 25;
-            text: "Pressing Vive's Left Thumbpad Switches Monitor View";
+            text: "";
             boxSize: 24;
             onClicked: {
                 sendToScript({method: 'changeSwitchViewFromControllerPreference', params: checked});
@@ -292,6 +292,19 @@ Rectangle {
         break;
         case 'updateMonitorShowsSwitch':
             monitorShowsSwitch.checked = message.params;
+        break;
+        case 'updateControllerMappingCheckbox':
+            switchViewFromControllerCheckBox.checked = message.setting;
+            switchViewFromControllerCheckBox.enabled = true;
+            if (message.controller === "OculusTouch") {
+                switchViewFromControllerCheckBox.text = "Clicking Left Touch's Thumbstick Switches Monitor View";
+            } else if (message.controller === "Vive") {
+                switchViewFromControllerCheckBox.text = "Clicking Left Thumb Pad Switches Monitor View";
+            } else {
+                switchViewFromControllerCheckBox.text = "Pressing Ctrl+0 Switches Monitor View";
+                switchViewFromControllerCheckBox.checked = true;
+                switchViewFromControllerCheckBox.enabled = false;
+            }
         break;
         default:
             console.log('Unrecognized message from spectatorCamera.js:', JSON.stringify(message));
