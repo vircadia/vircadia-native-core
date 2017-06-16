@@ -25,7 +25,6 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/tablet-goto.js",
     "system/marketplaces/marketplaces.js",
     "system/edit.js",
-    "system/selectAudioDevice.js",
     "system/notifications.js",
     "system/dialTone.js",
     "system/firstPersonHMD.js",
