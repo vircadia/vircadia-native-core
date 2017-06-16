@@ -22,7 +22,6 @@ ResourceImageItem::ResourceImageItem(QQuickItem* parent) : QQuickFramebufferObje
 void ResourceImageItem::setUrl(const QString& url) {
     if (url != m_url) {
         m_url = url;
-        update();
     }
 }
 
@@ -30,11 +29,14 @@ void ResourceImageItem::setReady(bool ready) {
     if (ready != m_ready) {
         m_ready = ready;
         if (m_ready) {
+            // 10 HZ for now.  Also this serves as a small
+            // delay before getting the network texture, which
+            // helps a lot.  TODO: find better way.
             m_updateTimer.start(100);
         } else {
             m_updateTimer.stop();
+            update();
         }
-        update();
     }
 }
 
@@ -62,7 +64,7 @@ void ResourceImageItemRenderer::synchronize(QQuickFramebufferObject* item) {
         _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_url);
     }
 
-    if (_networkTexture) {
+    if (_networkTexture && _networkTexture->isLoaded()) {
         qDebug() << "copying texture";
         auto texture = _networkTexture->getGPUTexture();
         if (texture) {
