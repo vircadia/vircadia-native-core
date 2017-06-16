@@ -303,7 +303,7 @@
     const SWITCH_VIEW_FROM_CONTROLLER_DEFAULT = false;
     var switchViewFromController = !!Settings.getValue('spectatorCamera/switchViewFromController', SWITCH_VIEW_FROM_CONTROLLER_DEFAULT);
     function setControllerMappingStatus(status) {
-        if (status === true) {
+        if (status) {
             controllerMapping.enable();
         } else {
             controllerMapping.disable();
@@ -343,7 +343,7 @@
             controllerType = "OculusTouch";
         }
 
-        controllerMappingName = 'Hifi-SpectatorCamera-Mapping-' + Math.random();
+        controllerMappingName = 'Hifi-SpectatorCamera-Mapping';
         controllerMapping = Controller.newMapping(controllerMappingName);
         if (controllerType === "OculusTouch") {
             controllerMapping.from(Controller.Standard.LS).to(function (value) {
