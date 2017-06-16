@@ -73,17 +73,13 @@ NodeType_t NodeType::fromString(QString type) {
 
 
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
-           const HifiSockAddr& localSocket, const NodePermissions& permissions, bool isReplicated,
-           const QUuid& connectionSecret, QObject* parent) :
+           const HifiSockAddr& localSocket, QObject* parent) :
     NetworkPeer(uuid, publicSocket, localSocket, parent),
     _type(type),
-    _connectionSecret(connectionSecret),
-    _isReplicated(isReplicated),
     _pingMs(-1),  // "Uninitialized"
     _clockSkewUsec(0),
     _mutex(),
-    _clockSkewMovingPercentile(30, 0.8f),   // moving 80th percentile of 30 samples
-    _permissions(permissions)
+    _clockSkewMovingPercentile(30, 0.8f)   // moving 80th percentile of 30 samples
 {
     // Update socket's object name
     setType(_type);

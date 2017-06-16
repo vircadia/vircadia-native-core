@@ -75,10 +75,9 @@ SharedNodePointer addOrUpdateReplicatedNode(const QUuid& nodeID, const HifiSockA
     auto replicatedNode = DependencyManager::get<NodeList>()->addOrUpdateNode(nodeID, NodeType::Agent,
                                                                               senderSockAddr,
                                                                               senderSockAddr,
-                                                                              DEFAULT_AGENT_PERMISSIONS, true);
+                                                                              true, true);
 
     replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
-    replicatedNode->setIsUpstream(true);
 
     return replicatedNode;
 }
