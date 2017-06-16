@@ -27,12 +27,12 @@
 #include <render/BlurTask.h>
 
 #include "LightingModel.h"
+#include "StencilMaskPass.h"
 #include "DebugDeferredBuffer.h"
 #include "DeferredFramebuffer.h"
 #include "DeferredLightingEffect.h"
 #include "SurfaceGeometryPass.h"
 #include "FramebufferCache.h"
-#include "HitEffect.h"
 #include "TextureCache.h"
 #include "ZoneRenderer.h"
 
@@ -42,8 +42,6 @@
 #include "SubsurfaceScattering.h"
 
 #include <gpu/StandardShaderLib.h>
-
-#include "drawOpaqueStencil_frag.h"
 
 
 using namespace render;
@@ -75,7 +73,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
     const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
 
-
     // GPU jobs: Start preparing the primary, deferred and lighting buffer
     const auto primaryFramebuffer = task.addJob<PreparePrimaryFramebuffer>("PreparePrimaryBuffer");
 
@@ -86,12 +83,12 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto deferredFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(0);
     const auto lightingFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(1);
 
+    // draw a stencil mask in hidden regions of the framebuffer.
+    task.addJob<PrepareStencil>("PrepareStencil", primaryFramebuffer);
+
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).hasVarying();
     task.addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaqueInputs, shapePlumber);
-
-    // Once opaque is all rendered create stencil background
-    task.addJob<DrawStencilDeferred>("DrawOpaqueStencil", deferredFramebuffer);
 
     task.addJob<EndGPURangeTimer>("OpaqueRangeTimer", opaqueRangeTimer);
 
@@ -124,6 +121,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     task.addJob<DrawLight>("DrawLight", lights);
 
+    // Filter zones from the general metas bucket
+    const auto zones = task.addJob<ZoneRendererTask>("ZoneRenderer", metas);
+
     // Light Clustering
     // Create the cluster grid of lights, cpu job for now
     const auto lightClusteringPassInputs = LightClusteringPass::Inputs(deferredFrameTransform, lightingModel, linearDepthTarget).hasVarying();
@@ -136,11 +136,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     
     task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
 
-    // Use Stencil and draw background in Lighting buffer to complete filling in the opaque
-    const auto backgroundInputs = DrawBackgroundDeferred::Inputs(background, lightingModel).hasVarying();
-    task.addJob<DrawBackgroundDeferred>("DrawBackgroundDeferred", backgroundInputs);
-   
-    
+    // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
+    task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", lightingModel);
+
     // Render transparent objects forward in LightingBuffer
     const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).hasVarying();
     task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
@@ -162,7 +160,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         task.addJob<DrawBounds>("DrawOpaqueBounds", opaques);
         task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
     
-        task.addJob<ZoneRendererTask>("ZoneRenderer", opaques);
+        task.addJob<DrawBounds>("DrawLightBounds", lights);
+        task.addJob<DrawBounds>("DrawZones", zones);
     }
 
     // Overlays
@@ -202,6 +201,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
             auto statusIconMap = DependencyManager::get<TextureCache>()->getImageTexture(iconMapPath, image::TextureUsage::STRICT_TEXTURE);
             task.addJob<DrawStatus>("DrawStatus", opaques, DrawStatus(statusIconMap));
         }
+
+        task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
     }
 
 
@@ -384,88 +385,6 @@ void DrawOverlay3D::run(const RenderContextPointer& renderContext, const Inputs&
     }
 }
 
-
-gpu::PipelinePointer DrawStencilDeferred::getOpaquePipeline() {
-    if (!_opaquePipeline) {
-        const gpu::int8 STENCIL_OPAQUE = 1;
-        auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(drawOpaqueStencil_frag));
-        auto program = gpu::Shader::createProgram(vs, ps);
-        gpu::Shader::makeProgram((*program));
-
-        auto state = std::make_shared<gpu::State>();
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setStencilTest(true, 0xFF, gpu::State::StencilTest(STENCIL_OPAQUE, 0xFF, gpu::ALWAYS, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_REPLACE, gpu::State::STENCIL_OP_KEEP));
-        state->setColorWriteMask(0);
-
-        _opaquePipeline = gpu::Pipeline::create(program, state);
-    }
-    return _opaquePipeline;
-}
-
-void DrawStencilDeferred::run(const RenderContextPointer& renderContext, const DeferredFramebufferPointer& deferredFramebuffer) {
-    assert(renderContext->args);
-    assert(renderContext->args->hasViewFrustum());
-
-    // from the touched pixel generate the stencil buffer 
-    RenderArgs* args = renderContext->args;
-    doInBatch(args->_context, [&](gpu::Batch& batch) {
-        args->_batch = &batch;
-
-        auto deferredFboColorDepthStencil = deferredFramebuffer->getDeferredFramebufferDepthColor();
-        
-
-        batch.enableStereo(false);
-
-        batch.setFramebuffer(deferredFboColorDepthStencil);
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        batch.setPipeline(getOpaquePipeline());
-
-        batch.draw(gpu::TRIANGLE_STRIP, 4);
-        batch.setResourceTexture(0, nullptr);
-
-    });
-    args->_batch = nullptr;
-}
-
-void DrawBackgroundDeferred::run(const RenderContextPointer& renderContext, const Inputs& inputs) {
-    assert(renderContext->args);
-    assert(renderContext->args->hasViewFrustum());
-
-    const auto& inItems = inputs.get0();
-    const auto& lightingModel = inputs.get1();
-    if (!lightingModel->isBackgroundEnabled()) {
-        return;
-    }
-
-    RenderArgs* args = renderContext->args;
-    doInBatch(args->_context, [&](gpu::Batch& batch) {
-        args->_batch = &batch;
-    //    _gpuTimer.begin(batch);
-
-        batch.enableSkybox(true);
-        
-        batch.setViewportTransform(args->_viewport);
-        batch.setStateScissorRect(args->_viewport);
-
-        glm::mat4 projMat;
-        Transform viewMat;
-        args->getViewFrustum().evalProjectionMatrix(projMat);
-        args->getViewFrustum().evalViewTransform(viewMat);
-
-        batch.setProjectionTransform(projMat);
-        batch.setViewTransform(viewMat);
-
-        renderItems(renderContext, inItems);
-     //   _gpuTimer.end(batch);
-    });
-    args->_batch = nullptr;
-
-   // std::static_pointer_cast<Config>(renderContext->jobConfig)->gpuTime = _gpuTimer.getAverage();
-}
-
 void Blit::run(const RenderContextPointer& renderContext, const gpu::FramebufferPointer& srcFramebuffer) {
     assert(renderContext->args);
     assert(renderContext->args->_context);
@@ -535,3 +454,4 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
         }
     });
 }
+

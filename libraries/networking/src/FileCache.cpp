@@ -11,50 +11,79 @@
 
 #include "FileCache.h"
 
-#include <cstdio>
-#include <cassert>
-#include <fstream>
-#include <unordered_set>
 
-#include <QDir>
-#include <QSaveFile>
+#include <unordered_set>
+#include <queue>
+#include <cassert>
+
+#include <QtCore/QDateTime>
+#include <QtCore/QDir>
+#include <QtCore/QSaveFile>
+#include <QtCore/QStorageInfo>
 
 #include <PathUtils.h>
+#include <NumericalConstants.h>
 
+#ifdef Q_OS_WIN
+#include <sys/utime.h>
+#else
+#include <utime.h>
+#endif
+
+#ifdef NDEBUG
 Q_LOGGING_CATEGORY(file_cache, "hifi.file_cache", QtWarningMsg)
-
+#else
+Q_LOGGING_CATEGORY(file_cache, "hifi.file_cache")
+#endif
 using namespace cache;
 
-static const std::string MANIFEST_NAME = "manifest";
+static const char DIR_SEP = '/';
+static const char EXT_SEP = '.';
 
-static const size_t BYTES_PER_MEGABYTES = 1024 * 1024;
-static const size_t BYTES_PER_GIGABYTES = 1024 * BYTES_PER_MEGABYTES;
-const size_t FileCache::DEFAULT_UNUSED_MAX_SIZE = 5 * BYTES_PER_GIGABYTES; // 5GB
-const size_t FileCache::MAX_UNUSED_MAX_SIZE = 100 * BYTES_PER_GIGABYTES; // 100GB
-const size_t FileCache::DEFAULT_OFFLINE_MAX_SIZE = 2 * BYTES_PER_GIGABYTES; // 2GB
+const size_t FileCache::DEFAULT_MAX_SIZE { GB_TO_BYTES(5) };
+const size_t FileCache::MAX_MAX_SIZE { GB_TO_BYTES(100) };
+const size_t FileCache::DEFAULT_MIN_FREE_STORAGE_SPACE { GB_TO_BYTES(1) };
 
-void FileCache::setUnusedFileCacheSize(size_t unusedFilesMaxSize) {
-    _unusedFilesMaxSize = std::min(unusedFilesMaxSize, MAX_UNUSED_MAX_SIZE);
-    reserve(0);
+
+std::string getCacheName(const std::string& dirname_str) {
+    QString dirname { dirname_str.c_str() };
+    QDir dir(dirname);
+    if (!dir.isAbsolute()) {
+        return dirname_str;
+    }
+    return dir.dirName().toStdString();
+}
+
+std::string getCachePath(const std::string& dirname_str) {
+    QString dirname { dirname_str.c_str() };
+    QDir dir(dirname);
+    if (dir.isAbsolute()) {
+        return dirname_str;
+    }
+    return PathUtils::getAppLocalDataFilePath(dirname).toStdString();
+}
+
+void FileCache::setMinFreeSize(size_t size) {
+    _minFreeSpaceSize = size;
+    clean();
     emit dirty();
 }
 
-void FileCache::setOfflineFileCacheSize(size_t offlineFilesMaxSize) {
-    _offlineFilesMaxSize = std::min(offlineFilesMaxSize, MAX_UNUSED_MAX_SIZE);
+void FileCache::setMaxSize(size_t maxSize) {
+    _maxSize = std::min(maxSize, MAX_MAX_SIZE);
+    clean();
+    emit dirty();
 }
 
 FileCache::FileCache(const std::string& dirname, const std::string& ext, QObject* parent) :
     QObject(parent),
     _ext(ext),
-    _dirname(dirname),
-    _dirpath(PathUtils::getAppLocalDataFilePath(dirname.c_str()).toStdString()) {}
+    _dirname(getCacheName(dirname)),
+    _dirpath(getCachePath(dirname)) {
+}
 
 FileCache::~FileCache() {
     clear();
-}
-
-void fileDeleter(File* file) {
-    file->deleter();
 }
 
 void FileCache::initialize() {
@@ -84,7 +113,7 @@ void FileCache::initialize() {
 }
 
 FilePointer FileCache::addFile(Metadata&& metadata, const std::string& filepath) {
-    FilePointer file(createFile(std::move(metadata), filepath).release(), &fileDeleter);
+    FilePointer file(createFile(std::move(metadata), filepath).release(), std::mem_fn(&File::deleter));
     if (file) {
         _numTotalFiles += 1;
         _totalFilesSize += file->getLength();
@@ -141,6 +170,7 @@ FilePointer FileCache::getFile(const Key& key) {
     if (it != _files.cend()) {
         file = it->second.lock();
         if (file) {
+            file->touch();
             // if it exists, it is active - remove it from the cache
             removeUnusedFile(file);
             qCDebug(file_cache, "[%s] Found %s", _dirname.c_str(), key.c_str());
@@ -155,82 +185,127 @@ FilePointer FileCache::getFile(const Key& key) {
 }
 
 std::string FileCache::getFilepath(const Key& key) {
-    return _dirpath + '/' + key + '.' + _ext;
+    return _dirpath + DIR_SEP + key + EXT_SEP + _ext;
 }
 
-void FileCache::addUnusedFile(const FilePointer file) {
+void FileCache::addUnusedFile(const FilePointer& file) {
     {
         Lock lock(_filesMutex);
         _files[file->getKey()] = file;
     }
 
-    reserve(file->getLength());
-    file->_LRUKey = ++_lastLRUKey;
-
     {
         Lock lock(_unusedFilesMutex);
-        _unusedFiles.insert({ file->_LRUKey, file });
+        _unusedFiles.insert(file);
         _numUnusedFiles += 1;
         _unusedFilesSize += file->getLength();
     }
+    clean();
 
     emit dirty();
 }
 
-void FileCache::removeUnusedFile(const FilePointer file) {
+void FileCache::removeUnusedFile(const FilePointer& file) {
     Lock lock(_unusedFilesMutex);
-    const auto it = _unusedFiles.find(file->_LRUKey);
-    if (it != _unusedFiles.cend()) {
-        _unusedFiles.erase(it);
+    if (_unusedFiles.erase(file)) {
         _numUnusedFiles -= 1;
         _unusedFilesSize -= file->getLength();
     }
 }
 
-void FileCache::reserve(size_t length) {
-    Lock unusedLock(_unusedFilesMutex);
-    while (!_unusedFiles.empty() &&
-            _unusedFilesSize + length > _unusedFilesMaxSize) {
-        auto it = _unusedFiles.begin();
-        auto file = it->second;
-        auto length = file->getLength();
+size_t FileCache::getOverbudgetAmount() const {
+    size_t result = 0;
 
-        unusedLock.unlock();
-        {
-            file->_cache = nullptr;
-            Lock lock(_filesMutex);
-            _files.erase(file->getKey());
+    size_t currentFreeSpace = QStorageInfo(_dirpath.c_str()).bytesFree();
+    if (_minFreeSpaceSize > currentFreeSpace) {
+        result = _minFreeSpaceSize - currentFreeSpace;
+    }
+
+    if (_totalFilesSize > _maxSize) {
+        result = std::max(_totalFilesSize - _maxSize, result);
+    }
+
+    return result;
+}
+
+namespace cache {
+    struct FilePointerComparator {
+        bool operator()(const FilePointer& a, const FilePointer& b) {
+            return a->_modified > b->_modified;
         }
-        unusedLock.lock();
+    };
+}
 
-        _unusedFiles.erase(it);
-        _numTotalFiles -= 1;
-        _numUnusedFiles -= 1;
-        _totalFilesSize -= length;
-        _unusedFilesSize -= length;
+void FileCache::eject(const FilePointer& file) {
+    file->_cache = nullptr;
+    const auto& length = file->getLength();
+    const auto& key = file->getKey();
+
+    {
+        Lock lock(_filesMutex);
+        if (0 != _files.erase(key)) {
+            _numTotalFiles -= 1;
+            _totalFilesSize -= length;
+        }
+    }
+
+    {
+        Lock unusedLock(_unusedFilesMutex);
+        if (0 != _unusedFiles.erase(file)) {
+            _numUnusedFiles -= 1;
+            _unusedFilesSize -= length;
+        }
+    }
+}
+
+void FileCache::clean() {
+    size_t overbudgetAmount = getOverbudgetAmount();
+
+    // Avoid sorting the unused files by LRU if we're not over budget / under free space
+    if (0 == overbudgetAmount) {
+        return;
+    }
+
+    Lock unusedLock(_unusedFilesMutex);
+    using Queue = std::priority_queue<FilePointer, std::vector<FilePointer>, FilePointerComparator>;
+    Queue queue;
+    for (const auto& file : _unusedFiles) {
+        queue.push(file);
+    }
+
+    while (!queue.empty() && overbudgetAmount > 0) {
+        auto file = queue.top();
+        queue.pop();
+        eject(file);
+        auto length = file->getLength();
+        overbudgetAmount -= std::min(length, overbudgetAmount);
+    }
+}
+
+void FileCache::wipe() {
+    Lock unusedFilesLock(_unusedFilesMutex);
+    while (!_unusedFiles.empty()) {
+        eject(*_unusedFiles.begin());
     }
 }
 
 void FileCache::clear() {
-    Lock unusedFilesLock(_unusedFilesMutex);
-    for (const auto& pair : _unusedFiles) {
-        auto& file = pair.second;
-        file->_cache = nullptr;
+    // Eliminate any overbudget files
+    clean();
 
-        if (_totalFilesSize > _offlineFilesMaxSize) {
-            _totalFilesSize -= file->getLength();
-        } else {
-            file->_shouldPersist = true;
-            qCDebug(file_cache, "[%s] Persisting %s", _dirname.c_str(), file->getKey().c_str());
-        }
+    // Mark everything remaining as persisted
+    Lock unusedFilesLock(_unusedFilesMutex);
+    for (auto& file : _unusedFiles) {
+        file->_shouldPersist = true;
+        file->_cache = nullptr;
+        qCDebug(file_cache, "[%s] Persisting %s", _dirname.c_str(), file->getKey().c_str());
     }
     _unusedFiles.clear();
 }
 
 void File::deleter() {
     if (_cache) {
-        FilePointer self(this, &fileDeleter);
-        _cache->addUnusedFile(self);
+        _cache->addUnusedFile(FilePointer(this, std::mem_fn(&File::deleter)));
     } else {
         deleteLater();
     }
@@ -239,7 +314,9 @@ void File::deleter() {
 File::File(Metadata&& metadata, const std::string& filepath) :
     _key(std::move(metadata.key)),
     _length(metadata.length),
-    _filepath(filepath) {}
+    _filepath(filepath),
+    _modified(QFileInfo(_filepath.c_str()).lastRead().toMSecsSinceEpoch()) {
+}
 
 File::~File() {
     QFile file(getFilepath().c_str());
@@ -247,4 +324,9 @@ File::~File() {
         qCInfo(file_cache, "Unlinked %s", getFilepath().c_str());
         file.remove();
     }
+}
+
+void File::touch() {
+    utime(_filepath.c_str(), nullptr);
+    _modified = std::max<int64_t>(QFileInfo(_filepath.c_str()).lastRead().toMSecsSinceEpoch(), _modified);
 }

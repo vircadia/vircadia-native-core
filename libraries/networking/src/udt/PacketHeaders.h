@@ -114,7 +114,8 @@ public:
         EntityServerScriptLog,
         AdjustAvatarSorting,
         OctreeFileReplacement,
-        LAST_PACKET_TYPE = OctreeFileReplacement
+        CollisionEventChanges,
+        LAST_PACKET_TYPE = CollisionEventChanges
     };
 };
 
@@ -235,7 +236,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     AvatarAsChildFixes,
     StickAndBallDefaultAvatar,
     IdentityPacketsIncludeUpdateTime,
-    AvatarIdentitySequenceId
+    AvatarIdentitySequenceId,
+    MannequinDefaultAvatar
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

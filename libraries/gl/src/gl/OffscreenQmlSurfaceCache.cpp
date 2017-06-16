@@ -49,7 +49,6 @@ QSharedPointer<OffscreenQmlSurface> OffscreenQmlSurfaceCache::buildSurface(const
     surface->create(currentContext);
     surface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
     surface->load(rootSource);
-    surface->getRootContext()->setContextProperty("ApplicationInterface", qApp);
     surface->resize(QSize(100, 100));
     currentContext->makeCurrent(currentSurface);
     return surface;

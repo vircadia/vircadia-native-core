@@ -370,6 +370,7 @@ public:
     virtual ~AvatarData();
 
     static const QUrl& defaultFullAvatarModelUrl();
+    QUrl cannonicalSkeletonModelURL(const QUrl& empty) const;
 
     virtual bool isMyAvatar() const { return false; }
 
@@ -539,9 +540,8 @@ public:
 
     static void parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut);
 
-    // identityChanged returns true if identity has changed, false otherwise.
-    // displayNameChanged returns true if displayName has changed, false otherwise.
-    void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged);
+    // identityChanged returns true if identity has changed, false otherwise. Similarly for displayNameChanged and skeletonModelUrlChange.
+    void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, bool& skeletonModelUrlChanged);
 
     QByteArray identityByteArray() const;
 

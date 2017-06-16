@@ -12,6 +12,7 @@
 #ifndef hifi_Sound_h
 #define hifi_Sound_h
 
+#include <QRunnable>
 #include <QtCore/QObject>
 #include <QtNetwork/QNetworkReply>
 #include <QtScript/qscriptengine.h>
@@ -28,12 +29,15 @@ public:
     bool isAmbisonic() const { return _isAmbisonic; }    
     bool isReady() const { return _isReady; }
     float getDuration() const { return _duration; }
-
  
     const QByteArray& getByteArray() const { return _byteArray; }
 
 signals:
     void ready();
+
+protected slots:
+    void soundProcessSuccess(QByteArray data, bool stereo, bool ambisonic, float duration);
+    void soundProcessError(int error, QString str);
     
 private:
     QByteArray _byteArray;
@@ -42,10 +46,33 @@ private:
     bool _isReady;
     float _duration; // In seconds
     
+    virtual void downloadFinished(const QByteArray& data) override;
+};
+
+class SoundProcessor : public QObject, public QRunnable {
+    Q_OBJECT
+
+public:
+    SoundProcessor(const QUrl& url, const QByteArray& data, bool stereo, bool ambisonic)
+        : _url(url), _data(data), _isStereo(stereo), _isAmbisonic(ambisonic)
+    {
+    }
+
+    virtual void run() override;
+
     void downSample(const QByteArray& rawAudioByteArray, int sampleRate);
     int interpretAsWav(const QByteArray& inputAudioByteArray, QByteArray& outputAudioByteArray);
-    
-    virtual void downloadFinished(const QByteArray& data) override;
+
+signals:
+    void onSuccess(QByteArray data, bool stereo, bool ambisonic, float duration);
+    void onError(int error, QString str);
+
+private:
+    QUrl _url;
+    QByteArray _data;
+    bool _isStereo;
+    bool _isAmbisonic;
+    float _duration;
 };
 
 typedef QSharedPointer<Sound> SharedSoundPointer;

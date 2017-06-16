@@ -10,6 +10,7 @@
 //
 
 #include <QDebug>
+#include <QtCore/QCoreApplication>
 
 #include "GenericThread.h"
 
@@ -73,6 +74,7 @@ void GenericThread::threadRoutine() {
     }
 
     while (!_stopThread) {
+        QCoreApplication::processEvents();
 
         // override this function to do whatever your class actually does, return false to exit thread early
         if (!process()) {

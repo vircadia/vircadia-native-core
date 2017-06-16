@@ -45,7 +45,6 @@ Q_DECLARE_METATYPE(QNetworkAccessManager::Operation)
 Q_DECLARE_METATYPE(JSONCallbackParameters)
 
 const QString ACCOUNTS_GROUP = "accounts";
-static const auto METAVERSE_SESSION_ID_HEADER = QString("HFM-SessionID").toLocal8Bit();
 
 JSONCallbackParameters::JSONCallbackParameters(QObject* jsonCallbackReceiver, const QString& jsonCallbackMethod,
                                                QObject* errorCallbackReceiver, const QString& errorCallbackMethod,
@@ -193,12 +192,18 @@ void AccountManager::setAuthURL(const QUrl& authURL) {
 
         // prepare to refresh our token if it is about to expire
         if (needsToRefreshToken()) {
-            qCDebug(networking) << "Refreshing access token since it will be expiring soon.";
             refreshAccessToken();
         }
 
         // tell listeners that the auth endpoint has changed
         emit authEndpointChanged();
+    }
+}
+
+void AccountManager::setSessionID(const QUuid& sessionID) {
+    if (_sessionID != sessionID) {
+        qCDebug(networking) << "Metaverse session ID changed to" << uuidStringWithoutCurlyBraces(sessionID);
+        _sessionID = sessionID;
     }
 }
 
@@ -457,7 +462,6 @@ bool AccountManager::hasValidAccessToken() {
     } else {
 
         if (!_isWaitingForTokenRefresh && needsToRefreshToken()) {
-            qCDebug(networking) << "Refreshing access token since it will be expiring soon.";
             refreshAccessToken();
         }
 
@@ -477,7 +481,7 @@ bool AccountManager::checkAndSignalForAccessToken() {
 }
 
 bool AccountManager::needsToRefreshToken() {
-    if (!_accountInfo.getAccessToken().token.isEmpty()) {
+    if (!_accountInfo.getAccessToken().token.isEmpty() && _accountInfo.getAccessToken().expiryTimestamp > 0) {
         qlonglong expireThreshold = QDateTime::currentDateTime().addSecs(1 * 60 * 60).toMSecsSinceEpoch();
         return _accountInfo.getAccessToken().expiryTimestamp < expireThreshold;
     } else {
@@ -555,28 +559,36 @@ void AccountManager::requestAccessTokenWithSteam(QByteArray authSessionTicket) {
 
 void AccountManager::refreshAccessToken() {
 
-    _isWaitingForTokenRefresh = true;
+    // we can't refresh our access token if we don't have a refresh token, so check for that first
+    if (!_accountInfo.getAccessToken().refreshToken.isEmpty()) {
+        qCDebug(networking) << "Refreshing access token since it will be expiring soon.";
 
-    QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+        _isWaitingForTokenRefresh = true;
 
-    QNetworkRequest request;
-    request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
-    request.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
+        QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
 
-    QUrl grantURL = _authURL;
-    grantURL.setPath("/oauth/token");
+        QNetworkRequest request;
+        request.setAttribute(QNetworkRequest::FollowRedirectsAttribute, true);
+        request.setHeader(QNetworkRequest::UserAgentHeader, _userAgentGetter());
 
-    QByteArray postData;
-    postData.append("grant_type=refresh_token&");
-    postData.append("refresh_token=" + QUrl::toPercentEncoding(_accountInfo.getAccessToken().refreshToken) + "&");
-    postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
+        QUrl grantURL = _authURL;
+        grantURL.setPath("/oauth/token");
 
-    request.setUrl(grantURL);
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+        QByteArray postData;
+        postData.append("grant_type=refresh_token&");
+        postData.append("refresh_token=" + QUrl::toPercentEncoding(_accountInfo.getAccessToken().refreshToken) + "&");
+        postData.append("scope=" + ACCOUNT_MANAGER_REQUESTED_SCOPE);
 
-    QNetworkReply* requestReply = networkAccessManager.post(request, postData);
-    connect(requestReply, &QNetworkReply::finished, this, &AccountManager::refreshAccessTokenFinished);
-    connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(refreshAccessTokenError(QNetworkReply::NetworkError)));
+        request.setUrl(grantURL);
+        request.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
+
+        QNetworkReply* requestReply = networkAccessManager.post(request, postData);
+        connect(requestReply, &QNetworkReply::finished, this, &AccountManager::refreshAccessTokenFinished);
+        connect(requestReply, SIGNAL(error(QNetworkReply::NetworkError)), this, SLOT(refreshAccessTokenError(QNetworkReply::NetworkError)));
+    } else {
+        qCWarning(networking) << "Cannot refresh access token without refresh token."
+            << "Access token will need to be manually refreshed.";
+    }
 }
 
 void AccountManager::requestAccessTokenFinished() {

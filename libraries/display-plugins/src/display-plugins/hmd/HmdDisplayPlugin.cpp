@@ -221,6 +221,12 @@ void HmdDisplayPlugin::internalPresent() {
         float shiftLeftBy = getLeftCenterPixel() - (sourceSize.x / 2);
         float newWidth = sourceSize.x - shiftLeftBy;
 
+        // Experimentally adjusted the region presented in preview to avoid seeing the masked pixels and recenter the center...
+        static float SCALE_WIDTH = 0.9f;
+        static float SCALE_OFFSET = 2.0f;
+        newWidth *= SCALE_WIDTH;
+        shiftLeftBy *= SCALE_OFFSET;
+
         const unsigned int RATIO_Y = 9;
         const unsigned int RATIO_X = 16;
         glm::uvec2 originalClippedSize { newWidth, newWidth * RATIO_Y / RATIO_X };

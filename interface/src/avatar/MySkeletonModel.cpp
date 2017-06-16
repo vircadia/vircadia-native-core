@@ -52,26 +52,18 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     // input action is the highest priority source for head orientation.
     auto avatarHeadPose = myAvatar->getHeadControllerPoseInAvatarFrame();
     if (avatarHeadPose.isValid()) {
-        glm::mat4 rigHeadMat = Matrices::Y_180 * createMatFromQuatAndPos(avatarHeadPose.getRotation(), avatarHeadPose.getTranslation());
+        glm::mat4 rigHeadMat = Matrices::Y_180 *
+            createMatFromQuatAndPos(avatarHeadPose.getRotation(), avatarHeadPose.getTranslation());
         headParams.rigHeadPosition = extractTranslation(rigHeadMat);
         headParams.rigHeadOrientation = glmExtractRotation(rigHeadMat);
         headParams.headEnabled = true;
     } else {
-        if (qApp->isHMDMode()) {
-            // get HMD position from sensor space into world space, and back into rig space
-            glm::mat4 worldHMDMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-            glm::mat4 rigToWorld = createMatFromQuatAndPos(getRotation(), getTranslation());
-            glm::mat4 worldToRig = glm::inverse(rigToWorld);
-            glm::mat4 rigHMDMat = worldToRig * worldHMDMat;
-            _rig.computeHeadFromHMD(AnimPose(rigHMDMat), headParams.rigHeadPosition, headParams.rigHeadOrientation);
-            headParams.headEnabled = true;
-        } else {
-            // even though full head IK is disabled, the rig still needs the head orientation to rotate the head up and down in desktop mode.
-            // preMult 180 is necessary to convert from avatar to rig coordinates.
-            // postMult 180 is necessary to convert head from -z forward to z forward.
-            headParams.rigHeadOrientation = Quaternions::Y_180 * head->getFinalOrientationInLocalFrame() * Quaternions::Y_180;
-            headParams.headEnabled = false;
-        }
+        // even though full head IK is disabled, the rig still needs the head orientation to rotate the head up and
+        // down in desktop mode.
+        // preMult 180 is necessary to convert from avatar to rig coordinates.
+        // postMult 180 is necessary to convert head from -z forward to z forward.
+        headParams.rigHeadOrientation = Quaternions::Y_180 * head->getFinalOrientationInLocalFrame() * Quaternions::Y_180;
+        headParams.headEnabled = false;
     }
 
     auto avatarHipsPose = myAvatar->getHipsControllerPoseInAvatarFrame();
@@ -90,6 +82,26 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
         headParams.spine2Enabled = true;
     } else {
         headParams.spine2Enabled = false;
+    }
+
+    auto avatarRightArmPose = myAvatar->getRightArmControllerPoseInAvatarFrame();
+    if (avatarRightArmPose.isValid()) {
+        glm::mat4 rightArmMat = Matrices::Y_180 * createMatFromQuatAndPos(avatarRightArmPose.getRotation(), avatarRightArmPose.getTranslation());
+        headParams.rightArmPosition = extractTranslation(rightArmMat);
+        headParams.rightArmRotation = glmExtractRotation(rightArmMat);
+        headParams.rightArmEnabled = true;
+    } else {
+        headParams.rightArmEnabled = false;
+    }
+    
+    auto avatarLeftArmPose = myAvatar->getLeftArmControllerPoseInAvatarFrame();
+    if (avatarLeftArmPose.isValid()) {
+        glm::mat4 leftArmMat = Matrices::Y_180 * createMatFromQuatAndPos(avatarLeftArmPose.getRotation(), avatarLeftArmPose.getTranslation());
+        headParams.leftArmPosition = extractTranslation(leftArmMat);
+        headParams.leftArmRotation = glmExtractRotation(leftArmMat);
+        headParams.leftArmEnabled = true;
+    } else {
+        headParams.leftArmEnabled = false;
     }
 
     headParams.isTalking = head->getTimeWithoutTalking() <= 1.5f;

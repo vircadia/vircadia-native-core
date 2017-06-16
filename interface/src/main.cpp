@@ -24,7 +24,6 @@
 #include <SandboxUtils.h>
 #include <SharedUtil.h>
 
-
 #include "AddressManager.h"
 #include "Application.h"
 #include "InterfaceLogging.h"
@@ -191,7 +190,7 @@ int main(int argc, const char* argv[]) {
 
     int exitCode;
     {
-        RunningMarker runningMarker(nullptr, RUNNING_MARKER_FILENAME);
+        RunningMarker runningMarker(RUNNING_MARKER_FILENAME);
         bool runningMarkerExisted = runningMarker.fileExists();
         runningMarker.writeRunningMarkerFile();
 
@@ -200,13 +199,10 @@ int main(int argc, const char* argv[]) {
         bool serverContentPathOptionIsSet = parser.isSet(serverContentPathOption);
         QString serverContentPath = serverContentPathOptionIsSet ? parser.value(serverContentPathOption) : QString();
         if (runServer) {
-            SandboxUtils::runLocalSandbox(serverContentPath, true, RUNNING_MARKER_FILENAME, noUpdater);
+            SandboxUtils::runLocalSandbox(serverContentPath, true, noUpdater);
         }
 
         Application app(argc, const_cast<char**>(argv), startupTime, runningMarkerExisted);
-
-        // Now that the main event loop is setup, launch running marker thread
-        runningMarker.startRunningMarker();
 
         // If we failed the OpenGLVersion check, log it.
         if (override) {

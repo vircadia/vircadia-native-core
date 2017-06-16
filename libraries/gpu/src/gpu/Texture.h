@@ -304,7 +304,7 @@ public:
         bool isMipAvailable(uint16 level, uint8 face = 0) const override;
 
     protected:
-        bool allocateMip(uint16 level);
+        void allocateMip(uint16 level);
         std::vector<std::vector<PixelsPointer>> _mips; // an array of mips, each mip is an array of faces
     };
 

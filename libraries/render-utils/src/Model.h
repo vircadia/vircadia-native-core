@@ -156,7 +156,7 @@ public:
 
     bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                              BoxFace& face, glm::vec3& surfaceNormal, 
-                                             QString& extraInfo, bool pickAgainstTriangles = false);
+                                             QString& extraInfo, bool pickAgainstTriangles = false, bool allowBackface = false);
 
     void setOffset(const glm::vec3& offset);
     const glm::vec3& getOffset() const { return _offset; }

@@ -14,7 +14,7 @@
 
 #include <QtWidgets/QApplication>
 
-#include <tbb/concurrent_vector.h>
+#include <TBBHelpers.h>
 
 #include <atomic>
 

@@ -36,7 +36,6 @@ namespace MenuOption {
     const QString AssetMigration = "ATP Asset Migration";
     const QString AssetServer = "Asset Browser";
     const QString Attachments = "Attachments...";
-    const QString AudioNoiseReduction = "Noise Reduction";
     const QString AudioScope = "Show Scope";
     const QString AudioScopeFiftyFrames = "Fifty";
     const QString AudioScopeFiveFrames = "Five";
@@ -44,7 +43,6 @@ namespace MenuOption {
     const QString AudioScopePause = "Pause Scope";
     const QString AudioScopeTwentyFrames = "Twenty";
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
-    const QString AudioTools = "Show Level Meter";
     const QString AutoMuteAudio = "Auto Mute Microphone";
     const QString AvatarReceiveStats = "Show Receive Stats";
     const QString AvatarBookmarks = "Avatar Bookmarks";
@@ -124,7 +122,6 @@ namespace MenuOption {
     const QString LogExtraTimings = "Log Extra Timing Details";
     const QString LowVelocityFilter = "Low Velocity Filter";
     const QString MeshVisible = "Draw Mesh";
-    const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
     const QString MuteFaceTracking = "Mute Face Tracking";
     const QString NamesAboveHeads = "Names Above Heads";
@@ -145,6 +142,7 @@ namespace MenuOption {
     const QString Quit =  "Quit";
     const QString ReloadAllScripts = "Reload All Scripts";
     const QString ReloadContent = "Reload Content (Clears all caches)";
+    const QString RenderClearKtxCache = "Clear KTX Cache (requires restart)";
     const QString RenderMaxTextureMemory = "Maximum Texture Memory";
     const QString RenderMaxTextureAutomatic = "Automatic Texture Memory";
     const QString RenderMaxTexture4MB = "4 MB";

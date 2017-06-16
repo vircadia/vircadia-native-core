@@ -46,9 +46,15 @@ public:
         glm::mat4 spine2Matrix = glm::mat4();         // rig space
         glm::quat rigHeadOrientation = glm::quat();   // rig space (-z forward)
         glm::vec3 rigHeadPosition = glm::vec3();      // rig space
+        glm::vec3 rightArmPosition = glm::vec3();     // rig space
+        glm::quat rightArmRotation = glm::quat();     // rig space
+        glm::vec3 leftArmPosition = glm::vec3();      // rig space
+        glm::quat leftArmRotation = glm::quat();      // rig space
         bool hipsEnabled = false;
         bool headEnabled = false;
         bool spine2Enabled = false;
+        bool leftArmEnabled = false;
+        bool rightArmEnabled = false;
         bool isTalking = false;
     };
 
@@ -127,10 +133,6 @@ public:
     // geometry space
     void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority);
     void setJointRotation(int index, bool valid, const glm::quat& rotation, float priority);
-
-    // legacy
-    void restoreJointRotation(int index, float fraction, float priority);
-    void restoreJointTranslation(int index, float fraction, float priority);
 
     // if translation and rotation is identity, position will be in rig space
     bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position,
@@ -349,6 +351,18 @@ private:
     QMap<int, StateHandler> _stateHandlers;
     int _nextStateHandlerId { 0 };
     QMutex _stateMutex;
+
+    bool transitionHandPose(float deltaTime, float totalDuration, AnimPose& controlledHandPose, bool isLeftHand, 
+        bool isToControlled, AnimPose& returnHandPose);
+
+    bool _isLeftHandControlled { false };
+    bool _isRightHandControlled { false };
+    float _leftHandControlTimeRemaining { 0.0f };
+    float _rightHandControlTimeRemaining { 0.0f };
+    float _leftHandRelaxTimeRemaining { 0.0f };
+    float _rightHandRelaxTimeRemaining { 0.0f };
+    AnimPose _lastLeftHandControlledPose;
+    AnimPose _lastRightHandControlledPose;
 };
 
 #endif /* defined(__hifi__Rig__) */

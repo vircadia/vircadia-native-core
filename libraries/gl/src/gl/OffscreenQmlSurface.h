@@ -48,6 +48,8 @@ public:
     void resize(const QSize& size, bool forceResize = false);
     QSize size() const;
 
+    Q_INVOKABLE QObject* load(const QUrl& qmlSource, bool createNewContext, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
+    Q_INVOKABLE QObject* loadInNewContext(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     Q_INVOKABLE QObject* load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {});
     Q_INVOKABLE QObject* load(const QString& qmlSourceFile, std::function<void(QQmlContext*, QObject*)> f = [](QQmlContext*, QObject*) {}) {
         return load(QUrl(qmlSourceFile), f);
@@ -73,7 +75,7 @@ public:
     QQuickItem* getRootItem();
     QQuickWindow* getWindow();
     QObject* getEventHandler();
-    QQmlContext* getRootContext();
+    QQmlContext* getSurfaceContext();
 
     QPointF mapToVirtualScreen(const QPointF& originalPoint, QObject* originalWidget);
     bool eventFilter(QObject* originalDestination, QEvent* event) override;
@@ -118,7 +120,7 @@ protected:
     void setFocusText(bool newFocusText);
 
 private:
-    QObject* finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f);
+    QObject* finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, std::function<void(QQmlContext*, QObject*)> f);
     QPointF mapWindowToUi(const QPointF& sourcePosition, QObject* sourceObject);
     void setupFbo();
     bool allowNewFrame(uint8_t fps);
@@ -133,11 +135,9 @@ private slots:
 private:
     QQuickWindow* _quickWindow { nullptr };
     QMyQuickRenderControl* _renderControl{ nullptr };
-    QQmlEngine* _qmlEngine { nullptr };
-    QQmlComponent* _qmlComponent { nullptr };
+    QQmlContext* _qmlContext { nullptr };
     QQuickItem* _rootItem { nullptr };
     OffscreenGLCanvas* _canvas { nullptr };
-    QJsonObject _glData;
 
     QTimer _updateTimer;
     uint32_t _fbo { 0 };

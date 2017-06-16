@@ -170,6 +170,7 @@ protected:
     std::string _name = "";
 };
 
+
 // A task is a specialized job to run a collection of other jobs
 // It can be created on any type T by aliasing the type JobModel in the class T
 // using JobModel = Task::Model<T>

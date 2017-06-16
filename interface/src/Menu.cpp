@@ -94,8 +94,13 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(editMenu, redoAction);
 
     // Edit > Running Scripts
-    addActionToQMenuAndActionHash(editMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J,
-        qApp, SLOT(toggleRunningScriptsWidget()));
+    auto action = addActionToQMenuAndActionHash(editMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J);
+    connect(action, &QAction::triggered, [] {
+        static const QUrl widgetUrl("hifi/dialogs/RunningScripts.qml");
+        static const QUrl tabletUrl("../../hifi/dialogs/TabletRunningScripts.qml");
+        static const QString name("RunningScripts");
+        qApp->showDialog(widgetUrl, tabletUrl, name);
+    });
 
     // Edit > Open and Run Script from File... [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::LoadScript, Qt::CTRL | Qt::Key_O,
@@ -143,28 +148,13 @@ Menu::Menu() {
     addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadContent, 0, qApp, SLOT(reloadResourceCaches()),
                                   QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
-
-    // Audio menu ----------------------------------
-    MenuWrapper* audioMenu = addMenu("Audio");
-    auto audioIO = DependencyManager::get<AudioClient>();
-
-    // Audio > Mute
-    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::MuteAudio, Qt::CTRL | Qt::Key_M, false,
-        audioIO.data(), SLOT(toggleMute()));
-
-    // Audio > Show Level Meter
-    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::AudioTools, 0, false);
-
-    addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::AudioNoiseReduction, 0, true,
-        audioIO.data(), SLOT(toggleAudioNoiseReduction()));
-
     // Avatar menu ----------------------------------
     MenuWrapper* avatarMenu = addMenu("Avatar");
     auto avatarManager = DependencyManager::get<AvatarManager>();
     auto avatar = avatarManager->getMyAvatar();
 
     // Avatar > Attachments...
-    auto action = addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments);
+    action = addActionToQMenuAndActionHash(avatarMenu, MenuOption::Attachments);
     connect(action, &QAction::triggered, [] {
         qApp->showDialog(QString("hifi/dialogs/AttachmentsDialog.qml"),
             QString("../../hifi/tablet/TabletAttachmentsDialog.qml"), "AttachmentsDialog");
@@ -297,6 +287,14 @@ Menu::Menu() {
             QString("../../hifi/tablet/TabletGeneralPreferences.qml"), "GeneralPreferencesDialog");
     });
 
+    action = addActionToQMenuAndActionHash(settingsMenu, "Audio...");
+    connect(action, &QAction::triggered, [] {
+        static const QUrl widgetUrl("hifi/dialogs/Audio.qml");
+        static const QUrl tabletUrl("../../hifi/audio/Audio.qml");
+        static const QString name("AudioDialog");
+        qApp->showDialog(widgetUrl, tabletUrl, name);
+    });
+
     // Settings > Avatar...
     action = addActionToQMenuAndActionHash(settingsMenu, "Avatar...");
     connect(action, &QAction::triggered, [] {
@@ -407,6 +405,12 @@ Menu::Menu() {
 #endif
 
 
+    {
+        auto action = addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::RenderClearKtxCache);
+        connect(action, &QAction::triggered, []{
+            Setting::Handle<int>(KTXCache::SETTING_VERSION_NAME, KTXCache::INVALID_VERSION).set(KTXCache::INVALID_VERSION);
+        });
+    }
 
     // Developer > Render > LOD Tools
     addActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::LodTools, 0,
@@ -621,10 +625,11 @@ Menu::Menu() {
 
     action = addActionToQMenuAndActionHash(audioDebugMenu, "Buffers...");
     connect(action, &QAction::triggered, [] {
-        qApp->showDialog(QString("hifi/dialogs/AudioPreferencesDialog.qml"),
-            QString("../../hifi/tablet/TabletAudioPreferences.qml"), "AudioPreferencesDialog");
+        qApp->showDialog(QString("hifi/dialogs/AudioBuffers.qml"),
+            QString("../../hifi/tablet/TabletAudioBuffers.qml"), "AudioBuffersDialog");
     });
 
+    auto audioIO = DependencyManager::get<AudioClient>();
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoServerAudio, 0, false,
         audioIO.data(), SLOT(toggleServerEcho()));
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoLocalAudio, 0, false,

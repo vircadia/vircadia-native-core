@@ -119,7 +119,9 @@ public:
     Q_INVOKABLE void gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl);
 
     Q_INVOKABLE void loadQMLSource(const QVariant& path);
-    Q_INVOKABLE void pushOntoStack(const QVariant& path);
+    // FIXME: This currently relies on a script initializing the tablet (hence the bool denoting success);
+    //        it should be initialized internally so it cannot fail
+    Q_INVOKABLE bool pushOntoStack(const QVariant& path);
     Q_INVOKABLE void popFromStack();
 
     Q_INVOKABLE void loadQMLOnTop(const QVariant& path);
@@ -149,13 +151,6 @@ public:
      * @param tabletButtonProxy {TabletButtonProxy} button to be removed
      */
     Q_INVOKABLE void removeButton(QObject* tabletButtonProxy);
-
-    /**jsdoc
-     * Updates the tablet's mic enabled state
-     * @function TabletProxy#updateMicEnabled
-     * @param micEnabled {bool} mic enabled state
-     */
-    Q_INVOKABLE void updateMicEnabled(const bool micEnabled);
 
     /**jsdoc
      * Updates the audio bar in tablet to reflect latest mic level

@@ -22,13 +22,12 @@
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
-#include <tbb/parallel_for.h>
-
 #include <LogHandler.h>
 #include <shared/NetworkUtils.h>
 #include <NumericalConstants.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
+#include <StatTracker.h>
 #include <UUID.h>
 
 #include "AccountManager.h"
@@ -37,7 +36,6 @@
 #include "HifiSockAddr.h"
 #include "NetworkLogging.h"
 #include "udt/Packet.h"
-#include <Trace.h>
 
 static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.LocalPort", 0);
 
@@ -586,7 +584,7 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         return matchingNode;
     } else {
         // we didn't have this node, so add them
-        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, permissions, connectionSecret, this);
+        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, permissions, connectionSecret);
 
         if (nodeType == NodeType::AudioMixer) {
             LimitedNodeList::flagTimeForConnectionStep(LimitedNodeList::AddedAudioMixer);
@@ -619,24 +617,28 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         }
 
         // insert the new node and release our read lock
-        _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodePointer));
+        _nodeHash.emplace(newNode->getUUID(), newNodePointer);
         readLocker.unlock();
 
         qCDebug(networking) << "Added" << *newNode;
+
+        auto weakPtr = newNodePointer.toWeakRef(); // We don't want the lambdas to hold a strong ref
 
         emit nodeAdded(newNodePointer);
         if (newNodePointer->getActiveSocket()) {
             emit nodeActivated(newNodePointer);
         } else {
-            connect(newNodePointer.data(), &NetworkPeer::socketActivated, this, [=] {
-                emit nodeActivated(newNodePointer);
-                disconnect(newNodePointer.data(), &NetworkPeer::socketActivated, this, 0);
+            connect(newNodePointer.data(), &NetworkPeer::socketActivated, this, [this, weakPtr] {
+                auto sharedPtr = weakPtr.lock();
+                if (sharedPtr) {
+                    emit nodeActivated(sharedPtr);
+                    disconnect(sharedPtr.data(), &NetworkPeer::socketActivated, this, 0);
+                }
             });
         }
 
         // Signal when a socket changes, so we can start the hole punch over.
-        auto weakPtr = newNodePointer.toWeakRef(); // We don't want the lambda to hold a strong ref
-        connect(newNodePointer.data(), &NetworkPeer::socketUpdated, this, [=] {
+        connect(newNodePointer.data(), &NetworkPeer::socketUpdated, this, [this, weakPtr] {
             emit nodeSocketUpdated(weakPtr);
         });
 
@@ -1044,10 +1046,10 @@ void LimitedNodeList::setLocalSocket(const HifiSockAddr& sockAddr) {
             qCInfo(networking) << "Local socket is" << sockAddr;
         } else {
             qCInfo(networking) << "Local socket has changed from" << _localSockAddr << "to" << sockAddr;
+            DependencyManager::get<StatTracker>()->incrementStat(LOCAL_SOCKET_CHANGE_STAT);
         }
 
         _localSockAddr = sockAddr;
-
         emit localSockAddrChanged(_localSockAddr);
     }
 }

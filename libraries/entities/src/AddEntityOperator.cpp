@@ -27,10 +27,6 @@ AddEntityOperator::AddEntityOperator(EntityTreePointer tree, EntityItemPointer n
 
     bool success;
     auto queryCube = _newEntity->getQueryAACube(success);
-    if (!success) {
-        _newEntity->markAncestorMissing(true);
-    }
-
     _newEntityBox = queryCube.clamp((float)(-HALF_TREE_SCALE), (float)HALF_TREE_SCALE);
 }
 

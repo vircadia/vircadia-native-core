@@ -681,7 +681,9 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 // and pretend that we own it (we assume we'll recover it soon)
 
                 // However, for now, when the server uses a newer time than what we sent, listen to what we're told.
-                if (overwriteLocalData) weOwnSimulation = false;
+                if (overwriteLocalData) {
+                    weOwnSimulation = false;
+                }
             } else if (_simulationOwner.set(newSimOwner)) {
                 markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
                 somethingChanged = true;
@@ -1293,27 +1295,15 @@ void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) c
     properties._accelerationChanged = true;
 }
 
-void EntityItem::pokeSimulationOwnership() {
-    markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_POKE);
+void EntityItem::flagForOwnershipBid(uint8_t priority) {
+    markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY);
     auto nodeList = DependencyManager::get<NodeList>();
     if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
         // we already own it
-        _simulationOwner.promotePriority(SCRIPT_POKE_SIMULATION_PRIORITY);
+        _simulationOwner.promotePriority(priority);
     } else {
         // we don't own it yet
-        _simulationOwner.setPendingPriority(SCRIPT_POKE_SIMULATION_PRIORITY, usecTimestampNow());
-    }
-}
-
-void EntityItem::grabSimulationOwnership() {
-    markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_GRAB);
-    auto nodeList = DependencyManager::get<NodeList>();
-    if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
-        // we already own it
-        _simulationOwner.promotePriority(SCRIPT_GRAB_SIMULATION_PRIORITY);
-    } else {
-        // we don't own it yet
-        _simulationOwner.setPendingPriority(SCRIPT_GRAB_SIMULATION_PRIORITY, usecTimestampNow());
+        _simulationOwner.setPendingPriority(priority, usecTimestampNow());
     }
 }
 
@@ -1374,7 +1364,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
         somethingChanged = true;
     }
 
-    // Now check the sub classes 
+    // Now check the sub classes
     somethingChanged |= setSubClassProperties(properties);
 
     // Finally notify if change detected
@@ -1606,11 +1596,19 @@ void EntityItem::updateRegistrationPoint(const glm::vec3& value) {
 void EntityItem::updatePosition(const glm::vec3& value) {
     if (getLocalPosition() != value) {
         setLocalPosition(value);
+
+        EntityTreePointer tree = getTree();
         markDirtyFlags(Simulation::DIRTY_POSITION);
+        if (tree) {
+            tree->entityChanged(getThisPointer());
+        }
         forEachDescendant([&](SpatiallyNestablePointer object) {
             if (object->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                 entity->markDirtyFlags(Simulation::DIRTY_POSITION);
+                if (tree) {
+                    tree->entityChanged(entity);
+                }
             }
         });
     }
@@ -1622,6 +1620,11 @@ void EntityItem::updateParentID(const QUuid& value) {
         // children are forced to be kinematic
         // may need to not collide with own avatar
         markDirtyFlags(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP);
+
+        EntityTreePointer tree = getTree();
+        if (tree) {
+            tree->addToNeedsParentFixupList(getThisPointer());
+        }
     }
 }
 

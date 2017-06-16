@@ -852,7 +852,10 @@ int AvatarData::parseDataFromBuffer(const QByteArray& buffer) {
         glm::quat sensorToWorldQuat;
         unpackOrientationQuatFromSixBytes(data->sensorToWorldQuat, sensorToWorldQuat);
         float sensorToWorldScale;
-        unpackFloatScalarFromSignedTwoByteFixed((int16_t*)&data->sensorToWorldScale, &sensorToWorldScale, SENSOR_TO_WORLD_SCALE_RADIX);
+        // Grab a local copy of sensorToWorldScale to be able to use the unpack function with a pointer on it,
+        // a direct pointer on the struct attribute triggers warnings because of potential misalignement.
+        auto srcSensorToWorldScale = data->sensorToWorldScale;
+        unpackFloatScalarFromSignedTwoByteFixed((int16_t*)&srcSensorToWorldScale, &sensorToWorldScale, SENSOR_TO_WORLD_SCALE_RADIX);
         glm::vec3 sensorToWorldTrans(data->sensorToWorldTrans[0], data->sensorToWorldTrans[1], data->sensorToWorldTrans[2]);
         glm::mat4 sensorToWorldMatrix = createMatFromScaleQuatAndPos(glm::vec3(sensorToWorldScale), sensorToWorldQuat, sensorToWorldTrans);
         if (_sensorToWorldMatrixCache.get() != sensorToWorldMatrix) {
@@ -1507,7 +1510,7 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
     return _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
 }
 
-void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged) {
+void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, bool& skeletonModelUrlChanged) {
 
     if (identity.sequenceId < _identitySequenceId) {
         qCDebug(avatars) << "Ignoring older identity packet for avatar" << getSessionUUID()
@@ -1520,6 +1523,7 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
     if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
         setSkeletonModelURL(identity.skeletonModelURL);
         identityChanged = true;
+        skeletonModelUrlChanged = true;
         if (_firstSkeletonCheck) {
             displayNameChanged = true;
         }

@@ -236,11 +236,7 @@ void EntityScriptServer::run() {
 
     // Setup MessagesClient
     auto messagesClient = DependencyManager::set<MessagesClient>();
-    QThread* messagesThread = new QThread;
-    messagesThread->setObjectName("Messages Client Thread");
-    messagesClient->moveToThread(messagesThread);
-    connect(messagesThread, &QThread::started, messagesClient.data(), &MessagesClient::init);
-    messagesThread->start();
+    messagesClient->startThread();
 
     DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
     connect(&domainHandler, &DomainHandler::settingsReceived, this, &EntityScriptServer::handleSettings);
