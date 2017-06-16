@@ -25,6 +25,19 @@ Rectangle {
     id: spectatorCamera;
     // Style
     color: hifi.colors.baseGray;
+
+    // The letterbox used for popup messages
+    LetterboxMessage {
+        id: letterboxMessage;
+        z: 999; // Force the popup on top of everything else
+    }
+    function letterbox(headerGlyph, headerText, message) {
+        letterboxMessage.headerGlyph = headerGlyph;
+        letterboxMessage.headerText = headerText;
+        letterboxMessage.text = message;
+        letterboxMessage.visible = true;
+        letterboxMessage.popupRadius = 0;
+    }
     
     //
     // TITLE BAR START
@@ -144,7 +157,17 @@ Rectangle {
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
-                    console.log("FIXME! Add popup pointing to 'Learn More' page");
+                    letterbox(hifi.glyphs.question,
+                        "Spectator Camera",
+                        "By default, your monitor shows a preview of what you're seeing in VR. " +
+                        "Using the Spectator Camera app, your monitor can display the view " +
+                        "from a virtual hand-held camera - perfect for taking selfies or filming " +
+                        "your friends!<br>" +
+                        "<h3>Streaming and Recording</h3>" +
+                        "We recommend OBS for streaming and recording the contents of your monitor to services like " +
+                        "Twitch, YouTube Live, and Facebook Live.<br><br>" +
+                        "To get started using OBS, click this link now. The page will open in an external browser:<br>" +
+                        '<font size="4"><a href="https://obsproject.com/forum/threads/official-overview-guide.402/">OBS Official Overview Guide</a></font>');
                 }
                 onEntered: parent.color = hifi.colors.blueHighlight;
                 onExited: parent.color = hifi.colors.blueAccent;
