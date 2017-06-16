@@ -74,8 +74,10 @@ void CALLBACK MidiOutProc(HMIDIOUT hmo, UINT wMsg, DWORD_PTR dwInstance, DWORD_P
 
 
 void Midi::sendNote(int status, int note, int vel) {
-    for (int i = 0; i < midihout.size(); i++) if (midihout[i] != NULL) {
-        midiOutShortMsg(midihout[i], status + (note << 8) + (vel << 16));
+    for (int i = 0; i < midihout.size(); i++) {
+        if (midihout[i] != NULL) {
+            midiOutShortMsg(midihout[i], status + (note << 8) + (vel << 16));
+        }
     }
 }
 
