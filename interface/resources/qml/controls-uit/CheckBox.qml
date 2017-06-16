@@ -18,6 +18,7 @@ Original.CheckBox {
     id: checkBox
 
     property int colorScheme: hifi.colorSchemes.light
+    property string color: hifi.colors.lightGray
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property bool isRedCheck: false
     property int boxSize: 14
@@ -89,7 +90,7 @@ Original.CheckBox {
 
         label: Label {
             text: control.text
-            colorScheme: checkBox.colorScheme
+            color: control.color
             x: 2
             wrapMode: Text.Wrap
             enabled: checkBox.enabled

@@ -1,5 +1,6 @@
+//  Separator.qml
 //
-//  Created by Dante Ruiz on 6/1/17.
+//  Created by Zach Fox on 2017-06-06
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -7,20 +8,33 @@
 //
 
 import QtQuick 2.5
-import QtGraphicalEffects 1.0
+import "../styles-uit"
 
 Item {
+    // Size
+    height: 2;
+    width: parent.width;
+
     Rectangle {
-        id: shadows 
-        width: parent.width
-        height: 2
-        color: hifi.colors.baseGrayShadow
+        // Size
+        width: parent.width;
+        height: 1;
+        // Anchors
+        anchors.left: parent.left;
+        anchors.bottom: parent.bottom;
+        anchors.bottomMargin: height;
+        // Style
+        color: hifi.colors.baseGrayShadow;
     }
-    
+
     Rectangle {
-        width: parent.width
-        height: 1
-        anchors.top: shadows.bottom
-        color: hifi.colors.baseGrayHighlight
+        // Size
+        width: parent.width;
+        height: 1;
+        // Anchors
+        anchors.left: parent.left;
+        anchors.bottom: parent.bottom;
+        // Style
+        color: hifi.colors.baseGrayHighlight;
     }
 }
