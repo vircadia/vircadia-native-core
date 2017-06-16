@@ -207,6 +207,7 @@ Rectangle {
                 anchors.fill: parent;
                 url: "resource://spectatorCameraFrame";
                 ready: false;
+                mirrorVertically: true;
             }
         }
 
