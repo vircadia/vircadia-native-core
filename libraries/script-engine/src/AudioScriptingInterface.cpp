@@ -19,12 +19,6 @@ void registerAudioMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, soundSharedPointerToScriptValue, soundSharedPointerFromScriptValue);
 }
 
-AudioScriptingInterface::AudioScriptingInterface() :
-    _localAudioInterface(NULL)
-{
-
-}
-
 ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound, const AudioInjectorOptions& injectorOptions) {
     if (QThread::currentThread() != thread()) {
         ScriptAudioInjector* injector = NULL;

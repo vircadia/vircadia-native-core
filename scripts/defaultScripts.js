@@ -26,7 +26,6 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/marketplaces/marketplaces.js",
     "system/edit.js",
     "system/spectatorCamera.js",
-    "system/selectAudioDevice.js",
     "system/notifications.js",
     "system/dialTone.js",
     "system/firstPersonHMD.js",

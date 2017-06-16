@@ -185,10 +185,7 @@
 
         //TODO: move to tablet qml?
         if (tabletShown) {
-            var currentMicEnabled = !Menu.isOptionChecked(MUTE_MICROPHONE_MENU_ITEM);
-            var currentMicLevel = getMicLevel();
-            gTablet.updateMicEnabled(currentMicEnabled);
-            gTablet.updateAudioBar(currentMicLevel);
+            gTablet.updateAudioBar(getMicLevel());
         }
 
         if (now - validCheckTime > MSECS_PER_SEC) {
