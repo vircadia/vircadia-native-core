@@ -336,11 +336,11 @@
     var controllerMapping;
     var controllerType = "Other";
     function registerButtonMappings() {
-        var controllersDeviceNames = Controller.getDeviceNames();
-        if (controllersDeviceNames.indexOf("OculusTouch") !== -1) {
-            controllerType = "OculusTouch";
-        } else if (controllerDeviceNames.indexOf("Vive") !== -1) {
+        var VRDevices = Controller.getDeviceNames().toString();
+        if (VRDevices.includes("Vive")) {
             controllerType = "Vive";
+        } else if (VRDevices.includes("OculusTouch")) {
+            controllerType = "OculusTouch";
         }
 
         controllerMappingName = 'Hifi-SpectatorCamera-Mapping-' + Math.random();
