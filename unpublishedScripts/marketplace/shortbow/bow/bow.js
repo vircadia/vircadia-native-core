@@ -620,6 +620,7 @@ function getControllerLocation(controllerHand) {
             Audio.playSound(this.arrowNotchSound, audioProperties);
         },
 
+		// This function isn't used anymore.
         changeStringPullSoundVolume: function(pullBackDistance) {
             var audioProperties = {
                 volume: this.scaleSoundVolume(pullBackDistance),
