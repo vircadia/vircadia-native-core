@@ -5071,7 +5071,6 @@ namespace render {
 
 void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool selfAvatarOnly) {
 
-#if 1
     // FIXME: This preDisplayRender call is temporary until we create a separate render::scene for the mirror rendering.
     // Then we can move this logic into the Avatar::simulate call.
     auto myAvatar = getMyAvatar();
@@ -5149,8 +5148,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         // Before the deferred pass, let's try to use the render engine
         _renderEngine->run();
     }
-#endif
-
 }
 
 void Application::resetSensors(bool andReload) {

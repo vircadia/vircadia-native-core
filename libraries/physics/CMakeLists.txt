@@ -1,5 +1,11 @@
 set(TARGET_NAME physics)
 setup_hifi_library()
 link_hifi_libraries(shared fbx entities model)
+include_hifi_library_headers(networking)
+include_hifi_library_headers(gpu)
+include_hifi_library_headers(avatars)
+include_hifi_library_headers(audio)
+include_hifi_library_headers(octree)
+include_hifi_library_headers(animation)
 
 target_bullet()

@@ -71,7 +71,7 @@ namespace render {
         Args() {}
 
         Args(const gpu::ContextPointer& context,
-            QSharedPointer<QObject> renderData = QSharedPointer<OctreeRenderer>(nullptr),
+            QSharedPointer<QObject> renderData = QSharedPointer<QObject>(nullptr),
             float sizeScale = 1.0f,
             int boundaryLevelAdjust = 0,
             RenderMode renderMode = DEFAULT_RENDER_MODE,

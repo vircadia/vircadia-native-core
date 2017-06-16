@@ -19,7 +19,6 @@ namespace render {
     class Args;
 }
 
-class OctreeRenderer;
 using RenderArgs = render::Args;
 
 
