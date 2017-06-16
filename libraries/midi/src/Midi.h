@@ -63,6 +63,9 @@ Q_INVOKABLE void blockMidiDevice(QString name, bool output);
 
 /// unblock an input/output by name
 Q_INVOKABLE void unblockMidiDevice(QString name, bool output);
+
+/// repeat all incoming notes to all outputs (default disabled)
+Q_INVOKABLE void thruModeEnable(bool enable);
 };
 
 #endif // hifi_Midi_h

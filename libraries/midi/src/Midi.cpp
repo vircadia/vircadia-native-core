@@ -20,6 +20,9 @@
 #endif
 
 
+const int MIDI_BYTE_MASK = 0x0FF;
+const int MIDI_SHIFT_NOTE = 8;
+const int MIDI_SHIFT_VELOCITY = 16;
 const int MIDI_STATUS_MASK = 0x0F0;
 const int MIDI_NOTE_OFF = 0x080;
 const int MIDI_NOTE_ON = 0x090;
@@ -28,6 +31,7 @@ const int MIDI_CHANNEL_MODE_ALL_NOTES_OFF = 0x07b;
 
 
 static Midi* instance = NULL;            // communicate this to non-class callbacks
+static bool thruModeEnabled = false;
 
 std::vector<QString> Midi::midiinexclude;
 std::vector<QString> Midi::midioutexclude;
@@ -43,32 +47,45 @@ std::vector<HMIDIOUT> midihout;
 
 
 void CALLBACK MidiInProc(HMIDIIN hMidiIn, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
-    if (wMsg == MIM_OPEN) {
-    } else if (wMsg == MIM_CLOSE) {
-        for (int i = 0; i < midihin.size(); i++) {
-            if (midihin[i] == hMidiIn) {
-                midihin[i] = NULL;
-                instance->allNotesOff();
+    switch (wMsg) {
+        case MIM_OPEN:
+            // message not used
+            break;
+        case MIM_CLOSE:
+            for (int i = 0; i < midihin.size(); i++) {
+                if (midihin[i] == hMidiIn) {
+                    midihin[i] = NULL;
+                    instance->allNotesOff();
+                }
             }
+            break;
+        case MIM_DATA: {
+            int status = MIDI_BYTE_MASK & dwParam1;
+            int note = MIDI_BYTE_MASK & (dwParam1 >> MIDI_SHIFT_NOTE);
+            int vel = MIDI_BYTE_MASK & (dwParam1 >> MIDI_SHIFT_VELOCITY);
+            if (thruModeEnabled) {
+                instance->sendNote(status, note, vel);          // relay the note on to all other midi devices
+            }
+            instance->noteReceived(status, note, vel);          // notify the javascript
+            break;
         }
-    } else if (wMsg == MIM_DATA) {
-        int status = 0x0ff & dwParam1;
-        int note = 0x0ff & (dwParam1 >> 8);
-        int vel = 0x0ff & (dwParam1 >> 16);
-//sendNote(status, note, vel);        // NOTE: relay the note on to all other midi devices
-        instance->Midi::noteReceived(status, note, vel);
     }
 }
 
 
 void CALLBACK MidiOutProc(HMIDIOUT hmo, UINT wMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2) {
-    if (wMsg == MOM_CLOSE) {
-        for (int i = 0; i < midihout.size(); i++) {
-            if (midihout[i] == hmo) {
-                midihout[i] = NULL;
-                instance->allNotesOff();
+    switch (wMsg) {
+        case MOM_OPEN:
+            // message not used
+            break;
+        case MOM_CLOSE:
+            for (int i = 0; i < midihout.size(); i++) {
+                if (midihout[i] == hmo) {
+                    midihout[i] = NULL;
+                    instance->allNotesOff();
+                }
             }
-        }
+            break;
     }
 }
 
@@ -76,14 +93,16 @@ void CALLBACK MidiOutProc(HMIDIOUT hmo, UINT wMsg, DWORD_PTR dwInstance, DWORD_P
 void Midi::sendNote(int status, int note, int vel) {
     for (int i = 0; i < midihout.size(); i++) {
         if (midihout[i] != NULL) {
-            midiOutShortMsg(midihout[i], status + (note << 8) + (vel << 16));
+            midiOutShortMsg(midihout[i], status + (note << MIDI_SHIFT_NOTE) + (vel << MIDI_SHIFT_VELOCITY));
         }
     }
 }
 
 void Midi::noteReceived(int status, int note, int velocity) {
     if (((status & MIDI_STATUS_MASK) != MIDI_NOTE_OFF) &&
-        ((status & MIDI_STATUS_MASK) != MIDI_NOTE_ON)) return;            // NOTE: only sending note-on and note-off to Javascript
+        ((status & MIDI_STATUS_MASK) != MIDI_NOTE_ON)) {
+        return;            // NOTE: only sending note-on and note-off to Javascript
+    }
 
     QVariantMap eventData;
     eventData["status"] = status;
@@ -105,9 +124,10 @@ void Midi::MidiSetup() {
         for (int j = 0; j < midiinexclude.size(); j++) {
             if (midiinexclude[j].toStdString().compare(incaps.szPname) == 0) {
                 found = true;
+                break;
             }
         }
-        if (!found)    {        // EXCLUDE AN INPUT BY NAME
+        if (!found) {        // EXCLUDE AN INPUT BY NAME
             HMIDIIN tmphin;
             midiInOpen(&tmphin, i, (DWORD_PTR)MidiInProc, NULL, CALLBACK_FUNCTION);
             midiInStart(tmphin);
@@ -124,6 +144,7 @@ void Midi::MidiSetup() {
         for (int j = 0; j < midioutexclude.size(); j++) {
             if (midioutexclude[j].toStdString().compare(outcaps.szPname) == 0) {
                 found = true;
+                break;
             }
         }
         if (!found) {        // EXCLUDE AN OUTPUT BY NAME
@@ -239,5 +260,9 @@ void Midi::blockMidiDevice(QString name, bool output) {
     } else {
         midiinexclude.push_back(name);
     }
+}
+
+void Midi::thruModeEnable(bool enable) {
+    thruModeEnabled = enable;
 }
 
