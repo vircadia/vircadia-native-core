@@ -33,8 +33,8 @@ Audio.disconnected.connect(function(){
     Audio.playSound(disconnectSound, soundOptions);
 });
 
-AudioDevice.muteToggled.connect(function () {
-    if (AudioDevice.getMuted()) {
+Audio.mutedChanged.connect(function () {
+    if (Audio.muted) {
         Audio.playSound(micMutedSound, soundOptions);
     }
 });

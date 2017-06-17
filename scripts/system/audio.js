@@ -27,7 +27,7 @@ var UNMUTE_ICONS = {
 };
 
 function onMuteToggled() {
-    if (AudioDevice.getMuted()) {
+    if (Audio.muted) {
         button.editProperties(MUTE_ICONS);
     } else {
         button.editProperties(UNMUTE_ICONS);
@@ -46,7 +46,7 @@ function onClicked() {
         Entities.editEntity(entity, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
         shouldActivateButton = true;
         shouldActivateButton = true;
-        tablet.loadQMLSource("../Audio.qml");
+        tablet.loadQMLSource("../audio/Audio.qml");
         onAudioScreen = true;
     }
 }
@@ -60,8 +60,8 @@ function onScreenChanged(type, url) {
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var button = tablet.addButton({
-    icon: AudioDevice.getMuted() ? MUTE_ICONS.icon : UNMUTE_ICONS.icon,
-    activeIcon: AudioDevice.getMuted() ? MUTE_ICONS.activeIcon : UNMUTE_ICONS.activeIcon,
+    icon: Audio.muted ? MUTE_ICONS.icon : UNMUTE_ICONS.icon,
+    activeIcon: Audio.muted ? MUTE_ICONS.activeIcon : UNMUTE_ICONS.activeIcon,
     text: TABLET_BUTTON_NAME,
     sortOrder: 1
 });
@@ -70,7 +70,7 @@ onMuteToggled();
 
 button.clicked.connect(onClicked);
 tablet.screenChanged.connect(onScreenChanged);
-AudioDevice.muteToggled.connect(onMuteToggled);
+Audio.mutedChanged.connect(onMuteToggled);
 
 Script.scriptEnding.connect(function () {
     if (onAudioScreen) {
@@ -78,7 +78,7 @@ Script.scriptEnding.connect(function () {
     }
     button.clicked.disconnect(onClicked);
     tablet.screenChanged.disconnect(onScreenChanged);
-    AudioDevice.muteToggled.disconnect(onMuteToggled);
+    Audio.mutedChanged.disconnect(onMuteToggled);
     tablet.removeButton(button);
 });
 
