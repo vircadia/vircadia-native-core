@@ -285,10 +285,12 @@ void FileCache::wipe() {
 }
 
 void FileCache::clear() {
+    Lock lock(_mutex);
+
     // Eliminate any overbudget files
     clean();
 
-    // Mark everything remaining as persisted
+    // Mark everything remaining as persisted while effectively ejecting from the cache
     for (auto& file : _unusedFiles) {
         file->_shouldPersist = true;
         file->_cache = nullptr;
