@@ -444,15 +444,14 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     // FIXME: Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times).
     // This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".
     //
-    // In Qt 5.9 mouse events must be sent before touch events to make sure some QtQuick components will receive mouse events
-    QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
-    QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
+    // In Qt 5.9 mouse events must be sent before touch events to make sure some QtQuick components will
+    // receive mouse events
+    if (!(this->_pressed && event.getType() == PointerEvent::Move)) {
+        QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+        QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
+    }
 
     QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
-
-    if (this->_pressed && event.getType() == PointerEvent::Move) {	
-        return;
-    }
 }
 
 void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
