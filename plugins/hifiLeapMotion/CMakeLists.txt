@@ -6,11 +6,10 @@
 #  See the accompanying file LICENSE or http:#www.apache.org/licenses/LICENSE-2.0.html
 #
 
-if (WIN32)
-    find_package(LEAPMOTION)
-    if (LEAPMOTION_FOUND) 
-        set(TARGET_NAME hifiLeapMotion)
-        setup_hifi_plugin(Script Qml Widgets)
-        link_hifi_libraries(shared controllers ui plugins input-plugins)
-    endif()
+find_package(LEAPMOTION)
+if (LEAPMOTION_FOUND) 
+    set(TARGET_NAME hifiLeapMotion)
+    setup_hifi_plugin(Script Qml Widgets)
+    link_hifi_libraries(shared controllers ui plugins input-plugins)
+    target_leapmotion()
 endif()

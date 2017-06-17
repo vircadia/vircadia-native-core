@@ -14,6 +14,9 @@
 #include <controllers/InputDevice.h>
 #include <plugins/InputPlugin.h>
 
+// LeapMotion SDK
+#include <Leap.h>
+
 class LeapMotionPlugin : public InputPlugin {
     Q_OBJECT
 
