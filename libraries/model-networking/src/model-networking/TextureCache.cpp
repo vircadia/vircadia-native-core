@@ -546,7 +546,7 @@ void NetworkTexture::ktxMipRequestFinished() {
         auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
         qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
 
-         if (_ktxResourceState == REQUESTING_MIP) {
+        if (_ktxResourceState == REQUESTING_MIP) {
             Q_ASSERT(_ktxMipLevelRangeInFlight.first != NULL_MIP_LEVEL);
             Q_ASSERT(_ktxMipLevelRangeInFlight.second - _ktxMipLevelRangeInFlight.first == 0);
 
