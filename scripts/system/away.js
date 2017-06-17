@@ -196,9 +196,9 @@ MyAvatar.wentActive.connect(setActiveProperties)
 
 function setAwayProperties() {
     isAway = true;
-    wasMuted = AudioDevice.getMuted();
+    wasMuted = Audio.muted;
     if (!wasMuted) {
-        AudioDevice.toggleMute();
+        Audio.muted = !Audio.muted;
     }
     MyAvatar.setEnableMeshVisible(false);  // just for our own display, without changing point of view
     playAwayAnimation(); // animation is still seen by others
@@ -221,7 +221,7 @@ function setAwayProperties() {
 function setActiveProperties() {
     isAway = false;
     if (!wasMuted) {
-        AudioDevice.toggleMute();
+        Audio.muted = !Audio.muted;
     }
     MyAvatar.setEnableMeshVisible(true); // IWBNI we respected Developer->Avatar->Draw Mesh setting.
     stopAwayAnimation();

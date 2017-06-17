@@ -725,7 +725,7 @@ QString OpenVrDisplayPlugin::getPreferredAudioInDevice() const {
         std::vector<WCHAR> deviceW;
         deviceW.assign(size, INIT);
         device.toWCharArray(deviceW.data());
-        device = AudioClient::friendlyNameForAudioDevice(deviceW.data());
+        device = AudioClient::getWinDeviceName(deviceW.data());
     }
     return device;
 }
@@ -738,7 +738,7 @@ QString OpenVrDisplayPlugin::getPreferredAudioOutDevice() const {
         std::vector<WCHAR> deviceW;
         deviceW.assign(size, INIT);
         device.toWCharArray(deviceW.data());
-        device = AudioClient::friendlyNameForAudioDevice(deviceW.data());
+        device = AudioClient::getWinDeviceName(deviceW.data());
     }
     return device;
 }
