@@ -31,6 +31,9 @@ public:
 
     virtual void init() override;
 
+    virtual bool activate() override;
+    virtual void deactivate() override;
+
     virtual void saveSettings() const override;
     virtual void loadSettings() override;
 
@@ -54,6 +57,10 @@ protected:
     };
 
     std::shared_ptr<InputDevice> _inputDevice{ std::make_shared<InputDevice>() };
+
+private:
+    Leap::Controller _controller;
+
 };
 
 #endif // hifi_LeapMotionPlugin_h

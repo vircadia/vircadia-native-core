@@ -28,6 +28,10 @@ const char* SENSOR_ON_HMD = "HMD";
 const char* DEFAULT_SENSOR_LOCATION = SENSOR_ON_DESKTOP;
 
 void LeapMotionPlugin::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
+    if (!_enabled) {
+        return;
+    }
+
     // TODO
 }
 
@@ -71,6 +75,21 @@ void LeapMotionPlugin::init() {
         preference->setItems(list);
         preferences->addPreference(preference);
     }
+}
+
+bool LeapMotionPlugin::activate() {
+    InputPlugin::activate();
+
+    if (_enabled) {
+        // Nothing required to be done to start up Leap Motion.
+        return true;
+    }
+
+    return false;
+}
+
+void LeapMotionPlugin::deactivate() {
+    InputPlugin::deactivate();
 }
 
 const char* SETTINGS_ENABLED_KEY = "enabled";
