@@ -249,7 +249,8 @@ protected:
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::vec3& lookAt, const glm::vec3& saccade);
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
 
-    glm::vec3 Rig::calculateKneePoleVector(int footJointIndex, const glm::quat& footTargetOrientation, int hipsIndex) const;
+    glm::vec3 calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, int hipsIndex, bool isLeft) const;
+    glm::vec3 calculateKneePoleVector(int footJointIndex, const glm::quat& footTargetOrientation, int hipsIndex) const;
 
     AnimPose _modelOffset;  // model to rig space
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)
@@ -362,6 +363,12 @@ protected:
 
     glm::vec3 _prevLeftFootPoleVector = { Vectors::UNIT_Z };
     bool _prevLeftFootPoleVectorValid = { false };
+
+    glm::vec3 _prevRightHandPoleVector = { -Vectors::UNIT_Z };
+    bool _prevRightHandPoleVectorValid = { false };
+
+    glm::vec3 _prevLeftHandPoleVector = { -Vectors::UNIT_Z };
+    bool _prevLeftHandPoleVectorValid = { false };
 };
 
 #endif /* defined(__hifi__Rig__) */

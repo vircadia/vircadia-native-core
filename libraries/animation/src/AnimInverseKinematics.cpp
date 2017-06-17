@@ -42,7 +42,7 @@ static void lookupJointChainInfo(AnimInverseKinematics::JointChainInfo* jointCha
     }
 }
 
-float easeOutExpo(float t) {
+static float easeOutExpo(float t) {
     return 1.0f - powf(2, -10.0f * t);
 }
 

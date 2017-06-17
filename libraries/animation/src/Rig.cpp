@@ -1140,6 +1140,47 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
     }
 }
 
+static float easeOutExpo(float t) {
+    return 1.0f - powf(2, -10.0f * t);
+}
+
+static glm::quat quatLerp(const glm::quat& q1, const glm::quat& q2, float alpha) {
+    float dot = glm::dot(q1, q2);
+    glm::quat temp;
+    if (dot < 0.0f) {
+        temp = -q2;
+    } else {
+        temp = q2;
+    }
+    return glm::normalize(glm::lerp(q1, temp, alpha));
+}
+
+glm::vec3 Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, int hipsIndex, bool isLeft) const {
+    AnimPose hipsPose = _externalPoseSet._absolutePoses[hipsIndex];
+    AnimPose handPose = _externalPoseSet._absolutePoses[handIndex];
+    AnimPose elbowPose = _externalPoseSet._absolutePoses[elbowIndex];
+    AnimPose armPose = _externalPoseSet._absolutePoses[armIndex];
+    glm::vec3 d = glm::normalize(handPose.trans() - armPose.trans());
+
+    glm::quat elbowToHandDelta = handPose.rot() * glm::inverse(elbowPose.rot());
+    const float WRIST_POLE_ADJUST_FACTOR = 0.5f;
+    glm::quat poleAdjust = quatLerp(Quaternions::IDENTITY, elbowToHandDelta, WRIST_POLE_ADJUST_FACTOR);
+
+    glm::vec3 n;
+    if (isLeft) {
+        n = hipsPose.rot() * glm::normalize(glm::vec3(1.0f, 1.5f, -0.1f));
+    } else {
+        n = hipsPose.rot() * -glm::normalize(glm::vec3(-1.0f, 1.5f, -0.1f));
+    }
+
+    // project d onto n.
+    glm::vec3 dProj = d - glm::dot(d, n) * n;
+    glm::vec3 dProjRot = glm::angleAxis(PI / 2.0f, n) * dProj;
+    glm::vec3 pole = glm::normalize(dProjRot);
+
+    return glm::normalize(poleAdjust * pole);
+}
+
 glm::vec3 Rig::calculateKneePoleVector(int footJointIndex, const glm::quat& footTargetOrientation, int hipsIndex) const {
 
     AnimPose defaultPose = _animSkeleton->getAbsoluteDefaultPose(footJointIndex);
@@ -1175,6 +1216,8 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
 
         const float RELAX_DURATION = 0.6f;
 
+        const float POLE_VECTOR_BLEND_FACTOR = 0.9f;
+
         if (params.isLeftEnabled) {
             glm::vec3 handPosition = params.leftPosition;
             if (!bodySensorTrackingEnabled) {
@@ -1191,7 +1234,32 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
 
             _isLeftHandControlled = true;
             _lastLeftHandControlledPose = AnimPose(glm::vec3(1.0f), params.leftOrientation, handPosition);
+
+            // compute pole vector
+            int handJointIndex = _animSkeleton->nameToJointIndex("LeftHand");
+            int armJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
+            int elbowJointIndex = _animSkeleton->nameToJointIndex("LeftForeArm");
+            if (elbowJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
+                glm::vec3 poleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, hipsIndex, true);
+
+                // smooth toward desired pole vector from previous pole vector...  to reduce jitter
+                if (!_prevLeftHandPoleVectorValid) {
+                    _prevLeftHandPoleVectorValid = true;
+                    _prevLeftHandPoleVector = poleVector;
+                }
+                _prevLeftHandPoleVector = lerp(poleVector, _prevLeftHandPoleVector, POLE_VECTOR_BLEND_FACTOR);
+
+                _animVars.set("leftHandPoleVectorEnabled", true);
+                _animVars.set("leftHandPoleReferenceVector", Vectors::UNIT_X);
+                _animVars.set("leftHandPoleVector", _prevLeftHandPoleVector);
+            } else {
+                _prevLeftHandPoleVectorValid = false;
+                _animVars.set("leftHandPoleVectorEnabled", false);
+            }
         } else {
+            _prevLeftHandPoleVectorValid = false;
+            _animVars.set("leftHandPoleVectorEnabled", false);
+
             if (_isLeftHandControlled) {
                 _leftHandRelaxDuration = RELAX_DURATION;
                 _isLeftHandControlled = false;
@@ -1234,7 +1302,32 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
 
             _isRightHandControlled = true;
             _lastRightHandControlledPose = AnimPose(glm::vec3(1.0f), params.rightOrientation, handPosition);
+
+            // compute pole vector
+            int handJointIndex = _animSkeleton->nameToJointIndex("RightHand");
+            int armJointIndex = _animSkeleton->nameToJointIndex("RightArm");
+            int elbowJointIndex = _animSkeleton->nameToJointIndex("RightForeArm");
+            if (elbowJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
+                glm::vec3 poleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, hipsIndex, false);
+
+                // smooth toward desired pole vector from previous pole vector...  to reduce jitter
+                if (!_prevRightHandPoleVectorValid) {
+                    _prevRightHandPoleVectorValid = true;
+                    _prevRightHandPoleVector = poleVector;
+                }
+                _prevRightHandPoleVector = lerp(poleVector, _prevRightHandPoleVector, POLE_VECTOR_BLEND_FACTOR);
+
+                _animVars.set("rightHandPoleVectorEnabled", true);
+                _animVars.set("rightHandPoleReferenceVector", -Vectors::UNIT_X);
+                _animVars.set("rightHandPoleVector", _prevRightHandPoleVector);
+            } else {
+                _prevRightHandPoleVectorValid = false;
+                _animVars.set("rightHandPoleVectorEnabled", false);
+            }
         } else {
+            _prevRightHandPoleVectorValid = false;
+            _animVars.set("rightHandPoleVectorEnabled", false);
+
             if (_isRightHandControlled) {
                 _rightHandRelaxDuration = RELAX_DURATION;
                 _isRightHandControlled = false;
@@ -1260,8 +1353,6 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
                 _animVars.set("rightHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
             }
         }
-
-        const float POLE_VECTOR_BLEND_FACTOR = 0.9f;
 
         if (params.isLeftFootEnabled) {
             _animVars.set("leftFootPosition", params.leftFootPosition);
