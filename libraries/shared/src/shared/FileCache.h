@@ -143,7 +143,7 @@ public:
 
     const Key& getKey() const { return _key; }
     const size_t& getLength() const { return _length; }
-    std::string getFilepath() const { return _filepath; }
+    const std::string& getFilepath() const { return _filepath; }
 
     virtual ~File();
     /// overrides should call File::deleter to maintain caching behavior
