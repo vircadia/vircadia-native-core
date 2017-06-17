@@ -59,6 +59,8 @@ protected:
     std::shared_ptr<InputDevice> _inputDevice{ std::make_shared<InputDevice>() };
 
 private:
+    void applySensorLocation();
+
     Leap::Controller _controller;
 
 };

@@ -68,7 +68,7 @@ void LeapMotionPlugin::init() {
         auto setter = [this](QString value) {
             _sensorLocation = value;
             saveSettings();
-            // TODO: Apply setting value.
+            applySensorLocation();
         };
         auto preference = new ComboBoxPreference(LEAPMOTION_PLUGIN, "Sensor location", getter, setter);
         QStringList list = { SENSOR_ON_DESKTOP, SENSOR_ON_HMD };
@@ -113,10 +113,19 @@ void LeapMotionPlugin::loadSettings() {
     {
         _enabled = settings.value(SETTINGS_ENABLED_KEY, QVariant(DEFAULT_ENABLED)).toBool();
         _sensorLocation = settings.value(SETTINGS_SENSOR_LOCATION_KEY, QVariant(DEFAULT_SENSOR_LOCATION)).toString();
+        applySensorLocation();
     }
     settings.endGroup();
 }
 
 void LeapMotionPlugin::InputDevice::clearState() {
     // TODO
+}
+
+void LeapMotionPlugin::applySensorLocation() {
+    if (_sensorLocation == SENSOR_ON_HMD) {
+        _controller.setPolicyFlags(Leap::Controller::POLICY_OPTIMIZE_HMD);
+    } else {
+        _controller.setPolicyFlags(Leap::Controller::POLICY_DEFAULT);
+    }
 }
