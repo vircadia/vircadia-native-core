@@ -32,7 +32,21 @@ void LeapMotionPlugin::pluginUpdate(float deltaTime, const controller::InputCali
         return;
     }
 
+    const auto frame = _controller.frame();
+    const auto frameID = frame.id();
+    if (_lastFrameID >= frameID) {
+        // Leap Motion not connected or duplicate frame.
+        return;
+    }
+
+    if (!_hasLeapMotionBeenConnected) {
+        emit deviceConnected(getName());
+        _hasLeapMotionBeenConnected = true;
+    }
+
     // TODO
+
+    _lastFrameID = frameID;
 }
 
 controller::Input::NamedVector LeapMotionPlugin::InputDevice::getAvailableInputs() const {

@@ -63,6 +63,8 @@ private:
 
     Leap::Controller _controller;
 
+    bool _hasLeapMotionBeenConnected { false };
+    int64_t _lastFrameID { -1 };
 };
 
 #endif // hifi_LeapMotionPlugin_h
