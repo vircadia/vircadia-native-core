@@ -1140,10 +1140,6 @@ void Rig::updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm
     }
 }
 
-static float easeOutExpo(float t) {
-    return 1.0f - powf(2, -10.0f * t);
-}
-
 static glm::quat quatLerp(const glm::quat& q1, const glm::quat& q2, float alpha) {
     float dot = glm::dot(q1, q2);
     glm::quat temp;
