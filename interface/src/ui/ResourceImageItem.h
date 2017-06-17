@@ -18,9 +18,9 @@
 
 class ResourceImageItemRenderer : public QQuickFramebufferObject::Renderer {
 public:
-    QOpenGLFramebufferObject* createFramebufferObject(const QSize& size);
-    void synchronize(QQuickFramebufferObject* item);
-    void render();
+    QOpenGLFramebufferObject* createFramebufferObject(const QSize& size) override;
+    void synchronize(QQuickFramebufferObject* item) override;
+    void render() override;
 private:
     bool _ready;
     QString _url;
@@ -42,7 +42,7 @@ public:
     void setUrl(const QString& url);
     bool getReady() const { return m_ready; }
     void setReady(bool ready);
-    QQuickFramebufferObject::Renderer* createRenderer() const { return new ResourceImageItemRenderer; }
+    QQuickFramebufferObject::Renderer* createRenderer() const override { return new ResourceImageItemRenderer; }
 private:
     QString m_url;
     bool m_ready { false };
