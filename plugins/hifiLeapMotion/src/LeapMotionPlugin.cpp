@@ -13,6 +13,8 @@
 #include <QLoggingCategory>
 
 #include <controllers/UserInputMapper.h>
+#include <NumericalConstants.h>
+#include <PathUtils.h>
 #include <Preferences.h>
 #include <SettingHandle.h>
 
@@ -26,6 +28,100 @@ const bool DEFAULT_ENABLED = false;
 const char* SENSOR_ON_DESKTOP = "Desktop";
 const char* SENSOR_ON_HMD = "HMD";
 const char* DEFAULT_SENSOR_LOCATION = SENSOR_ON_DESKTOP;
+
+enum LeapMotionJointIndex {
+    LeftHand = 0,
+    RightHand,
+    Size
+};
+
+static controller::StandardPoseChannel LeapMotionJointIndexToPoseIndexMap[LeapMotionJointIndex::Size] = {
+    controller::LEFT_HAND,
+    controller::RIGHT_HAND
+};
+
+#define UNKNOWN_JOINT (controller::StandardPoseChannel)0 
+
+static controller::StandardPoseChannel LeapMotionJointIndexToPoseIndex(LeapMotionJointIndex i) {
+    assert(i >= 0 && i < LeapMotionJointIndex::Size);
+    if (i >= 0 && i < LeapMotionJointIndex::Size) {
+        return LeapMotionJointIndexToPoseIndexMap[i];
+    } else {
+        return UNKNOWN_JOINT;
+    }
+}
+
+QStringList controllerJointNames = {
+    "Hips",
+    "RightUpLeg",
+    "RightLeg",
+    "RightFoot",
+    "LeftUpLeg",
+    "LeftLeg",
+    "LeftFoot",
+    "Spine",
+    "Spine1",
+    "Spine2",
+    "Spine3",
+    "Neck",
+    "Head",
+    "RightShoulder",
+    "RightArm",
+    "RightForeArm",
+    "RightHand",
+    "RightHandThumb1",
+    "RightHandThumb2",
+    "RightHandThumb3",
+    "RightHandThumb4",
+    "RightHandIndex1",
+    "RightHandIndex2",
+    "RightHandIndex3",
+    "RightHandIndex4",
+    "RightHandMiddle1",
+    "RightHandMiddle2",
+    "RightHandMiddle3",
+    "RightHandMiddle4",
+    "RightHandRing1",
+    "RightHandRing2",
+    "RightHandRing3",
+    "RightHandRing4",
+    "RightHandPinky1",
+    "RightHandPinky2",
+    "RightHandPinky3",
+    "RightHandPinky4",
+    "LeftShoulder",
+    "LeftArm",
+    "LeftForeArm",
+    "LeftHand",
+    "LeftHandThumb1",
+    "LeftHandThumb2",
+    "LeftHandThumb3",
+    "LeftHandThumb4",
+    "LeftHandIndex1",
+    "LeftHandIndex2",
+    "LeftHandIndex3",
+    "LeftHandIndex4",
+    "LeftHandMiddle1",
+    "LeftHandMiddle2",
+    "LeftHandMiddle3",
+    "LeftHandMiddle4",
+    "LeftHandRing1",
+    "LeftHandRing2",
+    "LeftHandRing3",
+    "LeftHandRing4",
+    "LeftHandPinky1",
+    "LeftHandPinky2",
+    "LeftHandPinky3",
+    "LeftHandPinky4"
+};
+
+static const char* getControllerJointName(controller::StandardPoseChannel i) {
+    if (i >= 0 && i < controller::NUM_STANDARD_POSES) {
+        return qPrintable(controllerJointNames[i]);
+    }
+    return "unknown";
+}
+
 
 void LeapMotionPlugin::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
     if (!_enabled) {
@@ -44,17 +140,66 @@ void LeapMotionPlugin::pluginUpdate(float deltaTime, const controller::InputCali
         _hasLeapMotionBeenConnected = true;
     }
 
-    // TODO
+    processFrame(frame);  // Updates _joints.
+
+    auto joints = _joints;
+
+    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+    userInputMapper->withLock([&, this]() {
+        _inputDevice->update(deltaTime, inputCalibrationData, joints, _prevJoints);
+    });
+
+    _prevJoints = joints;
 
     _lastFrameID = frameID;
 }
 
 controller::Input::NamedVector LeapMotionPlugin::InputDevice::getAvailableInputs() const {
     static controller::Input::NamedVector availableInputs;
-
-    // TODO
-
+    if (availableInputs.size() == 0) {
+        for (int i = 0; i < LeapMotionJointIndex::Size; i++) {
+            auto channel = LeapMotionJointIndexToPoseIndex(static_cast<LeapMotionJointIndex>(i));
+            availableInputs.push_back(makePair(channel, getControllerJointName(channel)));
+        }
+    };
     return availableInputs;
+}
+
+QString LeapMotionPlugin::InputDevice::getDefaultMappingConfig() const {
+    static const QString MAPPING_JSON = PathUtils::resourcesPath() + "/controllers/leapmotion.json";
+    return MAPPING_JSON;
+}
+
+void LeapMotionPlugin::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData,
+        const std::vector<LeapMotionPlugin::LeapMotionJoint>& joints,
+        const std::vector<LeapMotionPlugin::LeapMotionJoint>& prevJoints) {
+
+    glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
+    glm::quat controllerToAvatarRotation = glmExtractRotation(controllerToAvatar);
+
+    for (size_t i = 0; i < joints.size(); i++) {
+        int poseIndex = LeapMotionJointIndexToPoseIndex((LeapMotionJointIndex)i);
+        glm::vec3 linearVelocity, angularVelocity;
+
+        // TODO: Adjust the position to be avatar relative for desktop or HMD-relative, and rotated to match avatar rotation.
+        const glm::vec3& pos = controllerToAvatarRotation * joints[i].position;
+
+        if (pos == Vectors::ZERO) {
+            _poseStateMap[poseIndex] = controller::Pose();
+            continue;
+        }
+
+        glm::quat rot = controllerToAvatarRotation * joints[i].orientation;
+
+        if (i < prevJoints.size()) {
+            linearVelocity = (pos - (prevJoints[i].position * METERS_PER_CENTIMETER)) / deltaTime;  // m/s
+            // quat log imaginary part points along the axis of rotation, with length of one half the angle of rotation.
+            glm::quat d = glm::log(rot * glm::inverse(prevJoints[i].orientation));
+            angularVelocity = glm::vec3(d.x, d.y, d.z) / (0.5f * deltaTime); // radians/s
+        }
+
+        _poseStateMap[poseIndex] = controller::Pose(pos, rot, linearVelocity, angularVelocity);
+    }
 }
 
 void LeapMotionPlugin::init() {
@@ -96,6 +241,14 @@ bool LeapMotionPlugin::activate() {
 
     if (_enabled) {
         // Nothing required to be done to start up Leap Motion.
+
+        auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+        userInputMapper->registerDevice(_inputDevice);
+
+        if (_joints.size() != LeapMotionJointIndex::Size) {
+            _joints.resize(LeapMotionJointIndex::Size, { glm::vec3(), glm::quat() });
+        }
+
         return true;
     }
 
@@ -103,6 +256,11 @@ bool LeapMotionPlugin::activate() {
 }
 
 void LeapMotionPlugin::deactivate() {
+    if (_inputDevice->_deviceID != controller::Input::INVALID_DEVICE) {
+        auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+        userInputMapper->removeDevice(_inputDevice->_deviceID);
+    }
+
     InputPlugin::deactivate();
 }
 
@@ -133,7 +291,10 @@ void LeapMotionPlugin::loadSettings() {
 }
 
 void LeapMotionPlugin::InputDevice::clearState() {
-    // TODO
+    for (size_t i = 0; i < LeapMotionJointIndex::Size; i++) {
+        int poseIndex = LeapMotionJointIndexToPoseIndex((LeapMotionJointIndex)i);
+        _poseStateMap[poseIndex] = controller::Pose();
+    }
 }
 
 void LeapMotionPlugin::applySensorLocation() {
@@ -143,3 +304,48 @@ void LeapMotionPlugin::applySensorLocation() {
         _controller.setPolicyFlags(Leap::Controller::POLICY_DEFAULT);
     }
 }
+
+glm::quat LeapBasisToQuat(float sideSign, const Leap::Matrix& basis) {
+    glm::vec3 xAxis = glm::normalize(sideSign * glm::vec3(basis.xBasis.x, basis.xBasis.y, basis.xBasis.z));
+    glm::vec3 yAxis = glm::normalize(glm::vec3(basis.yBasis.x, basis.yBasis.y, basis.yBasis.z));
+    glm::vec3 zAxis = glm::normalize(glm::vec3(basis.zBasis.x, basis.zBasis.y, basis.zBasis.z));
+    xAxis = glm::normalize(glm::cross(yAxis, zAxis));
+    glm::quat orientation = (glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
+    return orientation;
+}
+
+glm::vec3 LeapVectorToVec3(const Leap::Vector& vec) {
+    return glm::vec3(vec.x * METERS_PER_MILLIMETER, vec.y * METERS_PER_MILLIMETER, vec.z * METERS_PER_MILLIMETER);
+}
+
+void LeapMotionPlugin::processFrame(const Leap::Frame& frame) {
+
+    // TODO
+
+    auto hands = frame.hands();
+    if (hands.count() == 2) {
+        auto hand = hands[0];
+        auto arm = hand.arm();
+        /*
+        _joints[LeapMotionJointIndex::LeftElbow].position = LeapVectorToVec3(arm.elbowPosition());
+        _joints[LeapMotionJointIndex::LeftElbow].orientation = LeapBasisToQuat(-1.f, arm.basis());
+        _joints[LeapMotionJointIndex::LeftWrist].position = LeapVectorToVec3(arm.wristPosition());
+        _joints[LeapMotionJointIndex::LeftWrist].orientation = LeapBasisToQuat(-1.f, arm.basis());
+        */
+        _joints[LeapMotionJointIndex::LeftHand].position = LeapVectorToVec3(hand.palmPosition());
+        _joints[LeapMotionJointIndex::LeftHand].orientation = LeapBasisToQuat(-1.0f, hand.basis());
+
+        hand = hands[1];
+        arm = hand.arm();
+        /*
+        _joints[LeapMotionJointIndex::RightElbow].position = LeapVectorToVec3(arm.elbowPosition());
+        _joints[LeapMotionJointIndex::RightElbow].orientation = LeapBasisToQuat(1.f, arm.basis());
+        _joints[LeapMotionJointIndex::RightWrist].position = LeapVectorToVec3(arm.wristPosition());
+        _joints[LeapMotionJointIndex::RightWrist].orientation = LeapBasisToQuat(1.f, arm.basis());
+        */
+        _joints[LeapMotionJointIndex::RightHand].position = LeapVectorToVec3(hand.palmPosition());
+        _joints[LeapMotionJointIndex::RightHand].orientation = LeapBasisToQuat(1.0f, hand.basis());
+    }
+
+}
+

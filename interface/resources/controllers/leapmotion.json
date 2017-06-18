@@ -1,0 +1,7 @@
+{
+    "name": "Leap Motion to Standard",
+    "channels": [
+        { "from": "LeapMotion.LeftHand", "to": "Standard.LeftHand" },
+        { "from": "LeapMotion.RightHand", "to": "Standard.RightHand" }
+    ]
+}

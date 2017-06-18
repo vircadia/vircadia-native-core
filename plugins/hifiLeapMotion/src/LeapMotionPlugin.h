@@ -25,6 +25,8 @@ public:
     virtual void pluginFocusOutEvent() override { _inputDevice->focusOutEvent(); }
     virtual void pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
 
+    bool isHandController() const override { return true; }
+
     // Plugin methods
     virtual const QString getName() const override { return NAME; }
     const QString getID() const override { return LEAPMOTION_ID_STRING; }
@@ -44,22 +46,39 @@ protected:
     bool _enabled { false };
     QString _sensorLocation;
 
+    struct LeapMotionJoint {
+        glm::vec3 position;
+        glm::quat orientation;
+    };
+
+    std::vector<LeapMotionJoint> _joints;
+    std::vector<LeapMotionJoint> _prevJoints;
+
     class InputDevice : public controller::InputDevice {
     public:
         friend class LeapMotionPlugin;
 
-        InputDevice() : controller::InputDevice("Leap Motion") {}
+        InputDevice() : controller::InputDevice("LeapMotion") {}
 
         // Device functions
         virtual controller::Input::NamedVector getAvailableInputs() const override;
+        virtual QString getDefaultMappingConfig() const override;
+        virtual void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override {};
+        virtual void focusOutEvent() override {};
+
+        void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData,
+            const std::vector<LeapMotionPlugin::LeapMotionJoint>& joints, 
+            const std::vector<LeapMotionPlugin::LeapMotionJoint>& prevJoints);
 
         void clearState();
     };
 
-    std::shared_ptr<InputDevice> _inputDevice{ std::make_shared<InputDevice>() };
+    std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
 
 private:
     void applySensorLocation();
+
+    void processFrame(const Leap::Frame& frame);
 
     Leap::Controller _controller;
 
