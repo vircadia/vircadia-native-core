@@ -1240,7 +1240,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
     });
 
-    QObject::connect(this, &Application::aboutToQuit, [=]() {
+    connect(this, &Application::aboutToQuit, [=]() {
         setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });
