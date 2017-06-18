@@ -177,20 +177,25 @@ void LeapMotionPlugin::InputDevice::update(float deltaTime, const controller::In
     glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
     glm::quat controllerToAvatarRotation = glmExtractRotation(controllerToAvatar);
 
+    // Desktop "zero" position is some distance above the Leap Motion sensor and half the avatar's shoulder-to-hand length in 
+    // front of avatar.
+    float halfShouldToHandLength = fabsf(extractTranslation(inputCalibrationData.defaultLeftHand).x 
+        - extractTranslation(inputCalibrationData.defaultLeftArm).x) / 2.0f;
+    const float ZERO_HEIGHT_OFFSET = 0.2f;
+    glm::vec3 leapMotionOffset = glm::vec3(0.0f, ZERO_HEIGHT_OFFSET, halfShouldToHandLength);
+
     for (size_t i = 0; i < joints.size(); i++) {
         int poseIndex = LeapMotionJointIndexToPoseIndex((LeapMotionJointIndex)i);
-        glm::vec3 linearVelocity, angularVelocity;
 
-        // TODO: Adjust the position to be avatar relative for desktop or HMD-relative, and rotated to match avatar rotation.
-        const glm::vec3& pos = controllerToAvatarRotation * joints[i].position;
-
-        if (pos == Vectors::ZERO) {
+        if (joints[i].position == Vectors::ZERO) {
             _poseStateMap[poseIndex] = controller::Pose();
             continue;
         }
 
+        const glm::vec3& pos = controllerToAvatarRotation * (joints[i].position - leapMotionOffset);
         glm::quat rot = controllerToAvatarRotation * joints[i].orientation;
 
+        glm::vec3 linearVelocity, angularVelocity;
         if (i < prevJoints.size()) {
             linearVelocity = (pos - (prevJoints[i].position * METERS_PER_CENTIMETER)) / deltaTime;  // m/s
             // quat log imaginary part points along the axis of rotation, with length of one half the angle of rotation.
@@ -305,13 +310,16 @@ void LeapMotionPlugin::applySensorLocation() {
     }
 }
 
+const float LEFT_SIDE_SIGN = -1.0f;
+const float RIGHT_SIDE_SIGN = 1.0f;
+
 glm::quat LeapBasisToQuat(float sideSign, const Leap::Matrix& basis) {
-    glm::vec3 xAxis = glm::normalize(sideSign * glm::vec3(basis.xBasis.x, basis.xBasis.y, basis.xBasis.z));
-    glm::vec3 yAxis = glm::normalize(glm::vec3(basis.yBasis.x, basis.yBasis.y, basis.yBasis.z));
-    glm::vec3 zAxis = glm::normalize(glm::vec3(basis.zBasis.x, basis.zBasis.y, basis.zBasis.z));
-    xAxis = glm::normalize(glm::cross(yAxis, zAxis));
+    glm::vec3 xAxis = sideSign * glm::vec3(basis.xBasis.x, basis.xBasis.y, basis.xBasis.z);
+    glm::vec3 yAxis = glm::vec3(basis.yBasis.x, basis.yBasis.y, basis.yBasis.z);
+    glm::vec3 zAxis = glm::vec3(basis.zBasis.x, basis.zBasis.y, basis.zBasis.z);
     glm::quat orientation = (glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
-    return orientation;
+    const glm::quat ZERO_HAND_ORIENTATION = glm::quat(glm::vec3(PI_OVER_TWO, PI, 0.0f));
+    return orientation * ZERO_HAND_ORIENTATION;
 }
 
 glm::vec3 LeapVectorToVec3(const Leap::Vector& vec) {
@@ -319,33 +327,23 @@ glm::vec3 LeapVectorToVec3(const Leap::Vector& vec) {
 }
 
 void LeapMotionPlugin::processFrame(const Leap::Frame& frame) {
-
-    // TODO
+    // Default to uncontrolled.
+    _joints[LeapMotionJointIndex::LeftHand].position = glm::vec3();
+    _joints[LeapMotionJointIndex::RightHand].position = glm::vec3();
 
     auto hands = frame.hands();
-    if (hands.count() == 2) {
-        auto hand = hands[0];
+
+    for (int i = 0; i < hands.count() && i < 2; i++) {
+        auto hand = hands[i];
         auto arm = hand.arm();
-        /*
-        _joints[LeapMotionJointIndex::LeftElbow].position = LeapVectorToVec3(arm.elbowPosition());
-        _joints[LeapMotionJointIndex::LeftElbow].orientation = LeapBasisToQuat(-1.f, arm.basis());
-        _joints[LeapMotionJointIndex::LeftWrist].position = LeapVectorToVec3(arm.wristPosition());
-        _joints[LeapMotionJointIndex::LeftWrist].orientation = LeapBasisToQuat(-1.f, arm.basis());
-        */
-        _joints[LeapMotionJointIndex::LeftHand].position = LeapVectorToVec3(hand.palmPosition());
-        _joints[LeapMotionJointIndex::LeftHand].orientation = LeapBasisToQuat(-1.0f, hand.basis());
 
-        hand = hands[1];
-        arm = hand.arm();
-        /*
-        _joints[LeapMotionJointIndex::RightElbow].position = LeapVectorToVec3(arm.elbowPosition());
-        _joints[LeapMotionJointIndex::RightElbow].orientation = LeapBasisToQuat(1.f, arm.basis());
-        _joints[LeapMotionJointIndex::RightWrist].position = LeapVectorToVec3(arm.wristPosition());
-        _joints[LeapMotionJointIndex::RightWrist].orientation = LeapBasisToQuat(1.f, arm.basis());
-        */
-        _joints[LeapMotionJointIndex::RightHand].position = LeapVectorToVec3(hand.palmPosition());
-        _joints[LeapMotionJointIndex::RightHand].orientation = LeapBasisToQuat(1.0f, hand.basis());
+        if (hands[i].isLeft()) {
+            _joints[LeapMotionJointIndex::LeftHand].position = LeapVectorToVec3(hand.palmPosition());
+            _joints[LeapMotionJointIndex::LeftHand].orientation = LeapBasisToQuat(LEFT_SIDE_SIGN, hand.basis());
+        } else {
+            _joints[LeapMotionJointIndex::RightHand].position = LeapVectorToVec3(hand.palmPosition());
+            _joints[LeapMotionJointIndex::RightHand].orientation = LeapBasisToQuat(RIGHT_SIDE_SIGN, hand.basis());
+        }
     }
-
 }
 
