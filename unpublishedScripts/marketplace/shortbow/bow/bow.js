@@ -102,8 +102,7 @@ function getControllerLocation(controllerHand) {
     const SHOOT_ARROW_SOUND_URL = Script.resolvePath('String_release2.L.wav');
     const STRING_PULL_SOUND_URL = Script.resolvePath('Bow_draw.1.L.wav');
     const ARROW_HIT_SOUND_URL = Script.resolvePath('Arrow_impact1.L.wav');
-	const SMOKE_URL = Script.resolvePath('smoke.png');
-	
+
     const ARROW_MODEL_URL = Script.resolvePath('arrow.fbx');
     const ARROW_DIMENSIONS = {
         x: 0.20,
@@ -387,14 +386,8 @@ function getControllerLocation(controllerHand) {
                 Script.removeEventHandler(arrow, "collisionWithEntity", makeArrowStick);
             };
 
-			var makeBallGoPoof = function(entityA, entityB, collision) {
-				print("Entity hit: " + entityB);
-				Script.removeEventHandler(arrow, "collisionWithEntity", makeBallGoPoof);
-			});
-			
             Script.addEventHandler(arrow, "collisionWithEntity", makeArrowStick);
-			Script.addEventHandler(arrow, "collisionWithEntity", makeBallGoPoof);
-			
+
             return arrow;
         },
 
@@ -627,7 +620,6 @@ function getControllerLocation(controllerHand) {
             Audio.playSound(this.arrowNotchSound, audioProperties);
         },
 
-		// This function isn't used anymore.
         changeStringPullSoundVolume: function(pullBackDistance) {
             var audioProperties = {
                 volume: this.scaleSoundVolume(pullBackDistance),

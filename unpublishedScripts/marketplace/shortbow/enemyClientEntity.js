@@ -38,13 +38,50 @@
             this.entityIDsThatHaveCollidedWithMe.push(entityB);
 
             var colliderName = Entities.getEntityProperties(entityB, 'name').name;
-
             if (colliderName.indexOf("projectile") > -1) {
+				var smokeImage = {
+                    accelerationSpread: { x: 0, y: 0, z: 0 },
+                    alpha: 1,
+                    alphaFinish: 0,
+                    alphaSpread: 0,
+                    alphaStart: 0.3,
+                    azimuthFinish: 3.1,
+                    azimuthStart: -3.14159,
+                    color: { red: 255, green: 255, blue: 255 },
+                    colorFinish: { red: 255, green: 255, blue: 255 },
+                    colorSpread: { red: 0, green: 0, blue: 0 },
+                    colorStart: { red: 255, green: 255, blue: 255 },
+                    emitAcceleration: { x: 0, y: 0, z: 0 },
+                    emitDimensions: { x: 0, y: 0, z: 0 },
+                    emitOrientation: { x: -0.7, y: 0.0, z: 0.0, w: 0.7 },
+                    emitRate: 0.01,
+                    emitSpeed: 0,
+                    emitterShouldTrail: 0,
+                    isEmitting: 1,
+                    lifespan: 0.5,
+                    lifetime: 0.5,
+                    maxParticles: 1000,
+                    name: 'ball-hit-smoke',
+                    position: Entities.getEntityProperties(entityA, 'position').position,
+                    particleRadius: 0.132,
+                    polarFinish: 0,
+                    polarStart: 0,
+                    radiusFinish: 0.35,
+                    radiusSpread: 0,
+                    radiusStart: 0.132,
+                    speedSpread: 0,
+                    textures: Script.resolvePath('bow/smoke.png'),
+                    type: 'ParticleEffect'
+                };
+
+                Entities.addEntity(smokeImage);
+				
                 Messages.sendMessage(this.gameChannel, JSON.stringify({
                     type: "enemy-killed",
                     entityID: this.entityID,
                     position: Entities.getEntityProperties(this.entityID, 'position').position
                 }));
+				
                 Entities.deleteEntity(this.entityID);
             } else if (colliderName.indexOf("GateCollider") > -1) {
                 Messages.sendMessage(this.gameChannel, JSON.stringify({

@@ -468,6 +468,7 @@ ShortbowGameManager.prototype = {
                     volume: 1.0,
                     position: this.rootPosition
                 });
+				print("CAINK - BALL KILLED");
                 this.setScore(this.score + POINTS_PER_KILL);
                 enemiesEscaped = true;
             }
@@ -561,10 +562,11 @@ ShortbowGameManager.prototype = {
         }
     },
     onEnemyKilled: function(entityID, position) {
-        if (this.gameState !== GAME_STATES.PLAYING) {
+		
+		if (this.gameState !== GAME_STATES.PLAYING) {
             return;
         }
-
+		
         for (var i = this.remainingEnemies.length - 1; i >= 0; --i) {
             var enemy = this.remainingEnemies[i];
             if (enemy.id === entityID) {
@@ -573,7 +575,6 @@ ShortbowGameManager.prototype = {
                     volume: 1.0,
                     position: this.rootPosition
                 });
-
                 // Update score
                 this.setScore(this.score + POINTS_PER_KILL);
                 print("SCORE: ", this.score);
@@ -592,6 +593,7 @@ ShortbowGameManager.prototype = {
         for (var i = this.remainingEnemies.length - 1; i >= 0; --i) {
             var enemy = this.remainingEnemies[i];
             if (enemy.id === entityID) {
+				
                 Entities.deleteEntity(enemy.id);
                 this.remainingEnemies.splice(i, 1);
                 this.setLivesLeft(this.livesLeft - 1);
