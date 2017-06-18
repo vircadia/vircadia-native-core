@@ -11,6 +11,8 @@
 (function() {
     Script.include('utils.js');
 
+	var BOOF_SOUND = SoundCache.getSound(Script.resolvePath("sounds/boof.wav"));
+	
     function Enemy() {
     }
     Enemy.prototype = {
@@ -74,6 +76,11 @@
                     type: 'ParticleEffect'
                 };
 
+				Audio.playSound(BOOF_SOUND, {
+                    volume: 1.0,
+                    position: Entities.getEntityProperties(entityA, 'position').position
+                });
+				
                 Entities.addEntity(smokeImage);
 				
                 Messages.sendMessage(this.gameChannel, JSON.stringify({
