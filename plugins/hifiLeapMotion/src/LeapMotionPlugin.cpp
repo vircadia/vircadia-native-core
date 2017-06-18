@@ -181,8 +181,7 @@ void LeapMotionPlugin::InputDevice::update(float deltaTime, const controller::In
     // front of avatar.
     float halfShouldToHandLength = fabsf(extractTranslation(inputCalibrationData.defaultLeftHand).x 
         - extractTranslation(inputCalibrationData.defaultLeftArm).x) / 2.0f;
-    const float ZERO_HEIGHT_OFFSET = 0.2f;
-    glm::vec3 leapMotionOffset = glm::vec3(0.0f, ZERO_HEIGHT_OFFSET, halfShouldToHandLength);
+    glm::vec3 leapMotionOffset = glm::vec3(0.0f, _desktopHeightOffset, halfShouldToHandLength);
 
     for (size_t i = 0; i < joints.size(); i++) {
         int poseIndex = LeapMotionJointIndexToPoseIndex((LeapMotionJointIndex)i);
@@ -239,6 +238,24 @@ void LeapMotionPlugin::init() {
         preference->setItems(list);
         preferences->addPreference(preference);
     }
+    {
+        auto getter = [this]()->float { return _desktopHeightOffset; };
+        auto setter = [this](float value) {
+            _desktopHeightOffset = value;
+            saveSettings();
+            applyDesktopHeightOffset();
+        };
+        auto preference = new SpinnerPreference(LEAPMOTION_PLUGIN, "Desktop height offset", getter, setter);
+        float MIN_VALUE = 0.0f;
+        float MAX_VALUE = 1.0f;
+        float DECIMALS = 2.0f;
+        float STEP = 0.01f;
+        preference->setMin(MIN_VALUE);
+        preference->setMax(MAX_VALUE);
+        preference->setDecimals(DECIMALS);
+        preference->setStep(STEP);
+        preferences->addPreference(preference);
+    }
 }
 
 bool LeapMotionPlugin::activate() {
@@ -271,6 +288,7 @@ void LeapMotionPlugin::deactivate() {
 
 const char* SETTINGS_ENABLED_KEY = "enabled";
 const char* SETTINGS_SENSOR_LOCATION_KEY = "sensorLocation";
+const char* SETTINGS_DESKTOP_HEIGHT_OFFSET_KEY = "desktopHeightOffset";
 
 void LeapMotionPlugin::saveSettings() const {
     Settings settings;
@@ -279,6 +297,7 @@ void LeapMotionPlugin::saveSettings() const {
     {
         settings.setValue(QString(SETTINGS_ENABLED_KEY), _enabled);
         settings.setValue(QString(SETTINGS_SENSOR_LOCATION_KEY), _sensorLocation);
+        settings.setValue(QString(SETTINGS_DESKTOP_HEIGHT_OFFSET_KEY), _desktopHeightOffset);
     }
     settings.endGroup();
 }
@@ -290,7 +309,10 @@ void LeapMotionPlugin::loadSettings() {
     {
         _enabled = settings.value(SETTINGS_ENABLED_KEY, QVariant(DEFAULT_ENABLED)).toBool();
         _sensorLocation = settings.value(SETTINGS_SENSOR_LOCATION_KEY, QVariant(DEFAULT_SENSOR_LOCATION)).toString();
+        _desktopHeightOffset = 
+            settings.value(SETTINGS_DESKTOP_HEIGHT_OFFSET_KEY, QVariant(DEFAULT_DESKTOP_HEIGHT_OFFSET)).toFloat();
         applySensorLocation();
+        applyDesktopHeightOffset();
     }
     settings.endGroup();
 }
@@ -308,6 +330,10 @@ void LeapMotionPlugin::applySensorLocation() {
     } else {
         _controller.setPolicyFlags(Leap::Controller::POLICY_DEFAULT);
     }
+}
+
+void LeapMotionPlugin::applyDesktopHeightOffset() {
+    _inputDevice->setDektopHeightOffset(_desktopHeightOffset);
 }
 
 const float LEFT_SIDE_SIGN = -1.0f;

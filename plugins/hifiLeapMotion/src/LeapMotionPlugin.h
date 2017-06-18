@@ -42,9 +42,11 @@ public:
 protected:
     static const char* NAME;
     static const char* LEAPMOTION_ID_STRING;
+    const float DEFAULT_DESKTOP_HEIGHT_OFFSET = 0.2f;
 
     bool _enabled { false };
     QString _sensorLocation;
+    float _desktopHeightOffset { DEFAULT_DESKTOP_HEIGHT_OFFSET };
 
     struct LeapMotionJoint {
         glm::vec3 position;
@@ -71,12 +73,18 @@ protected:
             const std::vector<LeapMotionPlugin::LeapMotionJoint>& prevJoints);
 
         void clearState();
+
+        void setDektopHeightOffset(float desktopHeightOffset) { _desktopHeightOffset = desktopHeightOffset; };
+
+    private:
+        float _desktopHeightOffset { 0.0f };
     };
 
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
 
 private:
     void applySensorLocation();
+    void applyDesktopHeightOffset();
 
     void processFrame(const Leap::Frame& frame);
 
