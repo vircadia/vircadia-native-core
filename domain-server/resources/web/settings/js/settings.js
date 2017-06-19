@@ -1329,11 +1329,11 @@ function makeTableCategoryInput(setting, numVisibleColumns) {
 }
 
 function getDescriptionForKey(key) {
-    for(var i in Settings.data.descriptions) {
-        if(Settings.data.descriptions[i].name === key) {
-            return Settings.data.descriptions[i];
-        }
+  for(var i in Settings.data.descriptions) {
+    if(Settings.data.descriptions[i].name === key) {
+      return Settings.data.descriptions[i];
     }
+  }
 }
 
 var SAVE_BUTTON_LABEL_SAVE = "Save";
