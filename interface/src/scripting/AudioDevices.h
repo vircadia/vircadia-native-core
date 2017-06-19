@@ -54,6 +54,8 @@ private slots:
 private:
     friend class AudioDevices;
 
+	bool setDevice(int index, bool fromUser);
+
     static QHash<int, QByteArray> _roles;
     static Qt::ItemFlags _flags;
 

@@ -21,27 +21,21 @@
 
 using namespace scripting;
 
-static const INPUT = "INPUT";
-static const OUTPUT= "OUTPUT";
-
-static Setting::Handle<QString> desktopInputDeviceSetting { QStringList { Audio::AUDIO, Audio::DESKTOP, INPUT }};
-static Setting::Handle<QString> desktopOutputDeviceSetting { QStringList { Audio::AUDIO, Audio::DESKTOP, OUTPUT }};
-static Setting::Handle<QString> hmdInputDeviceSetting { QStringList { Audio::AUDIO, Audio::HMD, INPUT }};
-static Setting::Handle<QString> hmdOutputDeviceSetting { QStringList { Audio::AUDIO, Audio::HMD, OUTPUT }};
+static Setting::Handle<QString> desktopInputDeviceSetting { QStringList { Audio::AUDIO, Audio::DESKTOP, "INPUT" }};
+static Setting::Handle<QString> desktopOutputDeviceSetting { QStringList { Audio::AUDIO, Audio::DESKTOP, "OUTPUT" }};
+static Setting::Handle<QString> hmdInputDeviceSetting { QStringList { Audio::AUDIO, Audio::HMD, "INPUT" }};
+static Setting::Handle<QString> hmdOutputDeviceSetting { QStringList { Audio::AUDIO, Audio::HMD, "OUTPUT" }};
 
 const bool hmdSetting = true;
 const bool desktopSetting = false;
 
-std::map<bool, std::map<QAudio::Mode, QString>> deviceSettings {
-    { desktopSetting,
-        { QAudio::AudioInput, desktopInputDeviceSetting },
-        { QAudio::AudioOutput, desktopOutputDeviceSetting }
-    },
-    { hmdSetting,
-        { QAudio::AudioInput, hmdInputDeviceSetting },
-        { QAudio::AudioOutput, hmdOutputDeviceSetting }
-    }
-};
+Setting::Handle<QString>& getSetting(bool contextIsHMD, QAudio::Mode mode) {
+	if (mode == QAudio::AudioInput) {
+		return contextIsHMD ? hmdInputDeviceSetting : desktopInputDeviceSetting;
+	} else { // if (mode == QAudio::AudioOutput)
+		return contextIsHMD ? hmdOutputDeviceSetting : desktopOutputDeviceSetting;
+	}
+}
 
 QHash<int, QByteArray> AudioDeviceList::_roles {
     { Qt::DisplayRole, "display" },
@@ -64,33 +58,38 @@ QVariant AudioDeviceList::data(const QModelIndex& index, int role) const {
 }
 
 bool AudioDeviceList::setData(const QModelIndex& index, const QVariant& value, int role) {
-    if (!index.isValid() || index.row() >= _devices.size()) {
-        return false;
-    }
+	if (!index.isValid() || index.row() >= _devices.size() || role != Qt::CheckStateRole) {
+		return false;
+	}
 
+	// only allow switching to a new device, not deactivating an in-use device
+	auto selected = value.toBool();
+	if (!selected) {
+		return false;
+	}
+
+	return setDevice(index.row(), true);
+}
+
+bool AudioDeviceList::setDevice(int row, bool fromUser) {
     bool success = false;
+	auto& device = _devices[row];
 
-    if (role == Qt::CheckStateRole) {
-        auto selected = value.toBool();
-        auto& device = _devices[index.row()];
+	// skip if already selected
+	if (!device.selected) {
+		auto client = DependencyManager::get<AudioClient>();
+		QMetaObject::invokeMethod(client.data(), "switchAudioDevice", Qt::BlockingQueuedConnection,
+			Q_RETURN_ARG(bool, success),
+			Q_ARG(QAudio::Mode, _mode),
+			Q_ARG(const QAudioDeviceInfo&, device.info));
 
-            // only allow switching to a new device, not deactivating an in-use device
-        if (selected
-            // skip if already selected
-            && selected != device.selected) {
-
-            auto client = DependencyManager::get<AudioClient>();
-            QMetaObject::invokeMethod(client.data(), "switchAudioDevice", Qt::BlockingQueuedConnection,
-                Q_RETURN_ARG(bool, success),
-                Q_ARG(QAudio::Mode, _mode),
-                Q_ARG(const QAudioDeviceInfo&, device.info));
-
-            if (success) {
-                device.selected = true;
-                emit deviceSelected(device.info, _selectedDevice);
-                emit deviceChanged(device.info);
-            }
-        }
+		if (success) {
+			device.selected = true;
+			if (fromUser) {
+				emit deviceSelected(device.info, _selectedDevice);
+			}
+			emit deviceChanged(device.info);
+		}
     }
 
     emit dataChanged(createIndex(0, 0), createIndex(rowCount() - 1, 0));
@@ -109,7 +108,7 @@ void AudioDeviceList::resetDevice(bool contextIsHMD, const QString& device) {
             }
         }
         if (i < rowCount()) {
-            success = setData(createIndex(i, 0), true, Qt::CheckStateRole);
+			success = setDevice(i, false);
         }
 
         // the selection failed - reset it
@@ -197,20 +196,17 @@ AudioDevices::AudioDevices(bool& contextIsHMD) : _contextIsHMD(contextIsHMD) {
 }
 
 void AudioDevices::onContextChanged(const QString& context) {
-    auto input = deviceSettings[_contextIsHMD][QAudio::AudioInput].get();
-    auto output = deviceSettings[_contextIsHMD][QAudio::AudioOutput].get();
+	auto input = getSetting(_contextIsHMD, QAudio::AudioInput).get();
+	auto output = getSetting(_contextIsHMD, QAudio::AudioOutput).get();
 
     _inputs.resetDevice(_contextIsHMD, input);
     _outputs.resetDevice(_contextIsHMD, output);
 }
 
 void AudioDevices::onDeviceSelected(QAudio::Mode mode, const QAudioDeviceInfo& device, const QAudioDeviceInfo& previousDevice) {
-    QString deviceName;
-    if (!device.isNull()) {
-        deviceName = device.deviceName();
-    }
+    QString deviceName = device.isNull() ? QString() : device.deviceName();
 
-    auto& setting = deviceSettings[_contextIsHMD][mode];
+	auto& setting = getSetting(_contextIsHMD, mode);
 
     // check for a previous device
     auto wasDefault = setting.get().isNull();
@@ -223,7 +219,8 @@ void AudioDevices::onDeviceSelected(QAudio::Mode mode, const QAudioDeviceInfo& d
         QJsonObject data;
 
         const QString MODE = "audio_mode";
-        data[MODE] = mode == QAudio::AudioInput ? INPUT : OUTPUT;
+		const QString INPUT = "INPUT";
+		const QString OUTPUT = "OUTPUT"; data[MODE] = mode == QAudio::AudioInput ? INPUT : OUTPUT;
 
         const QString CONTEXT = "display_mode";
         data[CONTEXT] = _contextIsHMD ? Audio::HMD : Audio::DESKTOP;
@@ -238,7 +235,7 @@ void AudioDevices::onDeviceSelected(QAudio::Mode mode, const QAudioDeviceInfo& d
         data[PREVIOUS_DEVICE] = previousDevice.deviceName();
         data[WAS_DEFAULT] = wasDefault;
 
-        UserActivityLogger::getInstance()->logAction("selected_audio_device", data);
+        UserActivityLogger::getInstance().logAction("selected_audio_device", data);
     }
 }
 
