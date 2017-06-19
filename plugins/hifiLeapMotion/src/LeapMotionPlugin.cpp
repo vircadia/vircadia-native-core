@@ -384,10 +384,10 @@ void LeapMotionPlugin::processFrame(const Leap::Frame& frame) {
         auto arm = hand.arm();
 
         if (hands[i].isLeft()) {
-            _joints[LeapMotionJointIndex::LeftHand].position = LeapVectorToVec3(hand.palmPosition());
+            _joints[LeapMotionJointIndex::LeftHand].position = LeapVectorToVec3(hand.wristPosition());
             _joints[LeapMotionJointIndex::LeftHand].orientation = LeapBasisToQuat(LEFT_SIDE_SIGN, hand.basis());
         } else {
-            _joints[LeapMotionJointIndex::RightHand].position = LeapVectorToVec3(hand.palmPosition());
+            _joints[LeapMotionJointIndex::RightHand].position = LeapVectorToVec3(hand.wristPosition());
             _joints[LeapMotionJointIndex::RightHand].orientation = LeapBasisToQuat(RIGHT_SIDE_SIGN, hand.basis());
         }
     }
