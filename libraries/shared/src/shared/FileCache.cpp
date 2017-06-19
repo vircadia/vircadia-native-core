@@ -21,8 +21,8 @@
 #include <QtCore/QSaveFile>
 #include <QtCore/QStorageInfo>
 
-#include <PathUtils.h>
-#include <NumericalConstants.h>
+#include "../PathUtils.h"
+#include "../NumericalConstants.h"
 
 #ifdef Q_OS_WIN
 #include <sys/utime.h>
@@ -87,6 +87,12 @@ FileCache::~FileCache() {
 }
 
 void FileCache::initialize() {
+    Lock lock(_mutex);
+    if (_initialized) {
+        qCWarning(file_cache) << "File cache already initialized";
+        return;
+    }
+
     QDir dir(_dirpath.c_str());
 
     if (dir.exists()) {
@@ -120,21 +126,31 @@ FilePointer FileCache::addFile(Metadata&& metadata, const std::string& filepath)
         file->_cache = this;
         emit dirty();
 
-        Lock lock(_filesMutex);
         _files[file->getKey()] = file;
     }
     return file;
 }
 
 FilePointer FileCache::writeFile(const char* data, File::Metadata&& metadata, bool overwrite) {
-    assert(_initialized);
+    FilePointer file;
+
+    if (0 == metadata.length) {
+        qCWarning(file_cache) << "Cannot store empty files in the cache";
+        return file;
+    }
+
+
+    Lock lock(_mutex);
+
+    if (!_initialized) {
+        qCWarning(file_cache) << "File cache used before initialization";
+        return file;
+    }
 
     std::string filepath = getFilepath(metadata.key);
 
-    Lock lock(_filesMutex);
-
     // if file already exists, return it
-    FilePointer file = getFile(metadata.key);
+    file = getFile(metadata.key);
     if (file) {
         if (!overwrite) {
             qCWarning(file_cache, "[%s] Attempted to overwrite %s", _dirname.c_str(), metadata.key.c_str());
@@ -158,12 +174,15 @@ FilePointer FileCache::writeFile(const char* data, File::Metadata&& metadata, bo
     return file;
 }
 
+
 FilePointer FileCache::getFile(const Key& key) {
-    assert(_initialized);
+    Lock lock(_mutex);
 
     FilePointer file;
-
-    Lock lock(_filesMutex);
+    if (!_initialized) {
+        qCWarning(file_cache) << "File cache used before initialization";
+        return file;
+    }
 
     // check if file exists
     const auto it = _files.find(key);
@@ -172,7 +191,10 @@ FilePointer FileCache::getFile(const Key& key) {
         if (file) {
             file->touch();
             // if it exists, it is active - remove it from the cache
-            removeUnusedFile(file);
+            if (_unusedFiles.erase(file)) {
+                _numUnusedFiles -= 1;
+                _unusedFilesSize -= file->getLength();
+            }
             qCDebug(file_cache, "[%s] Found %s", _dirname.c_str(), key.c_str());
             emit dirty();
         } else {
@@ -188,29 +210,17 @@ std::string FileCache::getFilepath(const Key& key) {
     return _dirpath + DIR_SEP + key + EXT_SEP + _ext;
 }
 
+// This is a non-public function that uses the mutex because it's 
+// essentially a public function specifically to a File object
 void FileCache::addUnusedFile(const FilePointer& file) {
-    {
-        Lock lock(_filesMutex);
-        _files[file->getKey()] = file;
-    }
-
-    {
-        Lock lock(_unusedFilesMutex);
-        _unusedFiles.insert(file);
-        _numUnusedFiles += 1;
-        _unusedFilesSize += file->getLength();
-    }
+    Lock lock(_mutex);
+    _files[file->getKey()] = file;
+    _unusedFiles.insert(file);
+    _numUnusedFiles += 1;
+    _unusedFilesSize += file->getLength();
     clean();
 
     emit dirty();
-}
-
-void FileCache::removeUnusedFile(const FilePointer& file) {
-    Lock lock(_unusedFilesMutex);
-    if (_unusedFiles.erase(file)) {
-        _numUnusedFiles -= 1;
-        _unusedFilesSize -= file->getLength();
-    }
 }
 
 size_t FileCache::getOverbudgetAmount() const {
@@ -241,20 +251,13 @@ void FileCache::eject(const FilePointer& file) {
     const auto& length = file->getLength();
     const auto& key = file->getKey();
 
-    {
-        Lock lock(_filesMutex);
-        if (0 != _files.erase(key)) {
-            _numTotalFiles -= 1;
-            _totalFilesSize -= length;
-        }
+    if (0 != _files.erase(key)) {
+        _numTotalFiles -= 1;
+        _totalFilesSize -= length;
     }
-
-    {
-        Lock unusedLock(_unusedFilesMutex);
-        if (0 != _unusedFiles.erase(file)) {
-            _numUnusedFiles -= 1;
-            _unusedFilesSize -= length;
-        }
+    if (0 != _unusedFiles.erase(file)) {
+        _numUnusedFiles -= 1;
+        _unusedFilesSize -= length;
     }
 }
 
@@ -266,7 +269,6 @@ void FileCache::clean() {
         return;
     }
 
-    Lock unusedLock(_unusedFilesMutex);
     using Queue = std::priority_queue<FilePointer, std::vector<FilePointer>, FilePointerComparator>;
     Queue queue;
     for (const auto& file : _unusedFiles) {
@@ -283,18 +285,19 @@ void FileCache::clean() {
 }
 
 void FileCache::wipe() {
-    Lock unusedFilesLock(_unusedFilesMutex);
+    Lock lock(_mutex);
     while (!_unusedFiles.empty()) {
         eject(*_unusedFiles.begin());
     }
 }
 
 void FileCache::clear() {
+    Lock lock(_mutex);
+
     // Eliminate any overbudget files
     clean();
 
-    // Mark everything remaining as persisted
-    Lock unusedFilesLock(_unusedFilesMutex);
+    // Mark everything remaining as persisted while effectively ejecting from the cache
     for (auto& file : _unusedFiles) {
         file->_shouldPersist = true;
         file->_cache = nullptr;

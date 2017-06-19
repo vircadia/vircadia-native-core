@@ -144,7 +144,9 @@ function onMessage(message) {
             isDomainOpen(Settings.getValue("previousSnapshotDomainID"), function (canShare) {
                 var isGif = fileExtensionMatches(message.data, "gif");      
                 isLoggedIn = Account.isLoggedIn();                        
-                isUploadingPrintableStill = canShare && Account.isLoggedIn() && !isGif;               
+                if (!isGif) {
+                    isUploadingPrintableStill = canShare && Account.isLoggedIn();
+                }
                 if (canShare) {                  
                     if (isLoggedIn) {
                         print('Sharing snapshot with audience "for_url":', message.data);

@@ -702,7 +702,7 @@ void NetworkTexture::handleFinishedInitialLoad() {
         if (!texture) {
             KTXFilePointer ktxFile = textureCache->_ktxCache.getFile(hash);
             if (ktxFile) {
-                texture = gpu::Texture::unserialize(ktxFile->getFilepath());
+                texture = gpu::Texture::unserialize(ktxFile);
                 if (texture) {
                     texture = textureCache->cacheTextureByHash(hash, texture);
                 }
@@ -737,8 +737,8 @@ void NetworkTexture::handleFinishedInitialLoad() {
 
             auto newKtxDescriptor = memKtx->toDescriptor();
 
-            texture = gpu::Texture::unserialize(file->getFilepath(), newKtxDescriptor);
-            texture->setKtxBacking(file->getFilepath());
+            texture = gpu::Texture::build(newKtxDescriptor);
+            texture->setKtxBacking(file);
             texture->setSource(filename);
 
             auto& images = originalKtxDescriptor->images;
@@ -884,7 +884,7 @@ void ImageReader::read() {
         if (!texture) {
             KTXFilePointer ktxFile = textureCache->_ktxCache.getFile(hash);
             if (ktxFile) {
-                texture = gpu::Texture::unserialize(ktxFile->getFilepath());
+                texture = gpu::Texture::unserialize(ktxFile);
                 if (texture) {
                     texture = textureCache->cacheTextureByHash(hash, texture);
                 } else {
@@ -936,7 +936,7 @@ void ImageReader::read() {
             if (!file) {
                 qCWarning(modelnetworking) << _url << "file cache failed";
             } else {
-                texture->setKtxBacking(file->getFilepath());
+                texture->setKtxBacking(file);
             }
         } else {
             qCWarning(modelnetworking) << "Unable to serialize texture to KTX " << _url;
