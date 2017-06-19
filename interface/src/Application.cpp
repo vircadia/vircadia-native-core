@@ -439,6 +439,32 @@ static const QString STATE_NAV_FOCUSED = "NavigationFocused";
 
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
+
+    // HRS: I could not figure out how to move these any earlier in startup, so when using this option, be sure to also supply
+    // --allowMultipleInstances
+    auto reportAndQuit = [&](const char* commandSwitch, std::function<void(FILE* fp)> report) {
+        const char* reportfile = getCmdOption(argc, constArgv, commandSwitch);
+        // Reports to the specified file, because stdout is set up to be captured for logging.
+        if (reportfile) {
+            FILE* fp = fopen(reportfile, "w");
+            if (fp) {
+                report(fp);
+                fclose(fp);
+                _exit(0);
+            }
+        }
+    };
+    reportAndQuit("--protocolVersion", [&](FILE* fp) {
+        DependencyManager::set<AddressManager>();
+        auto version = DependencyManager::get<AddressManager>()->protocolVersion();
+        fputs(version.toLatin1().data(), fp);
+    });
+    reportAndQuit("--installationPortal", [&](FILE* fp) {
+        auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
+        bool isSteam = steamClient && steamClient->init();
+        fputs(isSteam ? "steam" : "download", fp);
+    });
+
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
     const int listenPort = portStr ? atoi(portStr) : INVALID_PORT;
 
