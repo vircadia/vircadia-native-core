@@ -10,9 +10,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var require = function DEBUG_REQUIRE(id) {
+/*var require = function DEBUG_REQUIRE(id) {
     return Script.require(id + '?'+new Date().getTime().toString(36));
-};
+};*/
+
+var require = Script.require;
 
 var DopplegangerClass = require('./doppleganger.js'),
     DopplegangerAttachments = require('./doppleganger-attachments.js'),

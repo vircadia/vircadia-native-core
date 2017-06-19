@@ -18,9 +18,9 @@ function log() {
     print('model-helper | ' + [].slice.call(arguments).join(' '));
 }
 
-var require = function DEBUG_REQUIRE(id) {
+/*var require = function DEBUG_REQUIRE(id) {
     return Script.require(id + '?'+new Date().getTime().toString(36));
-};
+};*/
 
 var utils = require('./utils.js'),
     assert = utils.assert;

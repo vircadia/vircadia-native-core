@@ -24,9 +24,9 @@
 
 module.exports = Doppleganger;
 
-var require = function DEBUG_REQUIRE(id) {
+/*var require = function DEBUG_REQUIRE(id) {
     return Script.require(id + '?'+new Date().getTime().toString(36));
-};
+};*/
 
 var _modelHelper = require('./model-helper.js'),
     modelHelper = _modelHelper.modelHelper,
@@ -36,7 +36,7 @@ var _modelHelper = require('./model-helper.js'),
 Doppleganger.USE_SCRIPT_UPDATE = false;
 
 // @property {int} - the frame rate to target when using setInterval for joint updates
-Doppleganger.TARGET_FPS = 24;/// 60;
+Doppleganger.TARGET_FPS = 60;
 
 // @property {int} - the maximum time in seconds to wait for the model overlay to finish loading
 Doppleganger.MAX_WAIT_SECS = 10;

@@ -6,9 +6,9 @@ module.exports = DopplegangerAttachments;
 
 DopplegangerAttachments.version = '0.0.0';
 
-var require = function DEBUG_REQUIRE(id) {
+/*var require = function DEBUG_REQUIRE(id) {
     return Script.require(id + '?'+new Date().getTime().toString(36));
-};
+};*/
 
 var _modelHelper = require('./model-helper.js'),
     modelHelper = _modelHelper.modelHelper,
