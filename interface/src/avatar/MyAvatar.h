@@ -56,7 +56,7 @@ class MyAvatar : public Avatar {
      *
      * @namespace MyAvatar
      * @augments Avatar
-     * @property qmlPosition {Vec3} Used as a polyfill for position access by QML
+     * @property qmlPosition {Vec3} Used as a stopgap for position access by QML, as glm::vec3 is unavailable outside of scripts
      * @property shouldRenderLocally {bool} Set it to true if you would like to see MyAvatar in your local interface,
      *   and false if you would not like to see MyAvatar in your local interface.
      * @property motorVelocity {Vec3} Can be used to move the avatar with this velocity.
