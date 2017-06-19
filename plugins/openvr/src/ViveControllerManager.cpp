@@ -345,7 +345,6 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 bool overrideHands = handsObject["override"].toBool();
                 if (overrideHands) {
                     _handConfig = HandConfig::Pucks;
-                    qDebug() << "--------> configure hands <---------";
                 } else {
                     _handConfig = HandConfig::HandController;
                 }
@@ -353,6 +352,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
             iter++;
         }
     }
+
+    qDebug() << configToString(_preferedConfig);
 
     saveSettings();
 }

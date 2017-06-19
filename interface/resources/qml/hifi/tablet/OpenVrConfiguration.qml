@@ -9,6 +9,8 @@
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtGraphicalEffects 1.0
+import QtQuick.Controls 1.4 as Original
+import QtQuick.Controls.Styles 1.4
 import "../../styles-uit"
 import "../../controls"
 import "../../controls-uit" as HifiControls
@@ -125,11 +127,20 @@ Rectangle {
             text: "Tracker"
             color: hifi.colors.lightGrayText
         }
+    }
 
+    Row {
+        id: headOffsets
+        anchors.top: headConfig.bottom
+        anchors.topMargin: 5
+        anchors.left: openVrConfiguration.left
+        anchors.leftMargin: leftMargin + 10
+        spacing: 10
+        visible: headPuckBox.checked
         HifiControls.SpinBox {
             id: headYOffset
             decimals: 4
-            width: 110
+            width: 112
             label: "Y: offset"
             value:  -0.0254
             stepSize: 0.0254
@@ -142,7 +153,7 @@ Rectangle {
 
         HifiControls.SpinBox {
             id: headZOffset
-            width: 105
+            width: 112
             label: "Z: offset"
             value: -0.152
             stepSize: 0.0254
@@ -153,6 +164,7 @@ Rectangle {
             }
         }
     }
+        
     
     RalewayBold {
         id: hands
@@ -162,8 +174,8 @@ Rectangle {
 
         color: "white"
 
-        anchors.top: headConfig.bottom
-        anchors.topMargin: 10
+        anchors.top: (headOffsets.visible ? headOffsets.bottom : headConfig.bottom)
+        anchors.topMargin: (headOffsets.visible ? 22 : 10)
         anchors.left: parent.left
         anchors.leftMargin: leftMargin
     }
@@ -219,11 +231,21 @@ Rectangle {
             text: "Trackers"
             color: hifi.colors.lightGrayText
         }
+    }
 
+    Row {
+        id: handOffset
+        visible: handPuckBox.checked
+        anchors.top: handConfig.bottom
+        anchors.topMargin: 5
+        anchors.left: openVrConfiguration.left
+        anchors.leftMargin: leftMargin + 10
+        spacing: 10
+        
         HifiControls.SpinBox {
             id: handYOffset
             decimals: 4
-            width: 105
+            width: 112
             label: "Y: offset"
             value: -0.0508
             stepSize: 0.0254
@@ -236,7 +258,7 @@ Rectangle {
 
         HifiControls.SpinBox {
             id: handZOffset
-            width: 105
+            width: 112
             label: "Z: offset"
             value: -0.0254
             stepSize: 0.0254
@@ -256,8 +278,8 @@ Rectangle {
 
         color: hifi.colors.white
 
-        anchors.top: handConfig.bottom
-        anchors.topMargin: 10
+        anchors.top: (handOffset.visible ? handOffset.bottom : handConfig.bottom)
+        anchors.topMargin: (handOffset.visible ? 22 : 10)
         anchors.left: parent.left
         anchors.leftMargin: leftMargin
     }
@@ -412,23 +434,120 @@ Rectangle {
     }
 
 
-    HifiControls.Button {
-        
+
+    Rectangle {
         id: calibrationButton
-        color: hifi.buttons.blue
-        text: "Calibrate"
-        //glyph: hifi.glyphs.avatar1
+        property int color: hifi.buttons.blue
+        property int colorScheme: hifi.colorSchemes.light
+        property string glyph: hifi.glyphs.avatar1
+        property bool enabled: true
+        property bool pressed: false
+        property bool hovered: false
+        property int size: 32
+        property string text: "calibrate"
+        property int padding: 12
+
+        width: glyphButton.width + calibrationText.width + padding
+        height: hifi.dimensions.controlLineHeight
         anchors.top: bottomSeperator.bottom
         anchors.topMargin: 10
         anchors.left: parent.left
         anchors.leftMargin: leftMargin
+
+        radius: hifi.buttons.radius
         
-        onClicked: {
-            openVrConfiguration.countDown = timeToCalibrate.value;
-            numberAnimation.start();
-            calibrationTimer.start();
-            info.visible = true;
-            info.showCountDown = true;
+        gradient: Gradient {
+            GradientStop {
+                position: 0.2
+                color: {
+                    if (!calibrationButton.enabled) {
+                        hifi.buttons.disabledColorStart[calibrationButton.colorScheme]
+                    } else if (calibrationButton.pressed) {
+                        hifi.buttons.pressedColor[calibrationButton.color]
+                    } else if (calibrationButton.hovered) {
+                        hifi.buttons.hoveredColor[calibrationButton.color]
+                    } else {
+                        hifi.buttons.colorStart[calibrationButton.color]
+                    }
+                }
+            }
+            
+            GradientStop {
+                position: 1.0
+                color: {
+                    if (!calibrationButton.enabled) {
+                        hifi.buttons.disabledColorFinish[calibrationButton.colorScheme]
+                    } else if (calibrationButton.pressed) {
+                        hifi.buttons.pressedColor[calibrationButton.color]
+                    } else if (calibrationButton.hovered) {
+                        hifi.buttons.hoveredColor[calibrationButton.color]
+                    } else {
+                        hifi.buttons.colorFinish[calibrationButton.color]
+                    }
+                }
+            }
+        }
+    
+
+
+       
+        HiFiGlyphs {
+            id: glyphButton
+            color: enabled ? hifi.buttons.textColor[calibrationButton.color]
+                : hifi.buttons.disabledTextColor[calibrationButton.colorScheme]
+            text: calibrationButton.glyph
+            size: calibrationButton.size
+
+            anchors {
+                top: parent.top
+                bottom: parent.bottom
+                bottomMargin: 1
+                verticalCenter: parent.horizontalCenter
+            }
+        }
+            
+        RalewayBold {
+            id: calibrationText
+            font.capitalization: Font.AllUppercase
+            color: enabled ? hifi.buttons.textColor[calibrationButton.color]
+                : hifi.buttons.disabledTextColor[calibrationButton.colorScheme]
+            size: hifi.fontSizes.buttonLabel
+            text: calibrationButton.text
+
+            anchors {
+                left: glyphButton.right
+                top: parent.top
+                topMargin: 7
+            }
+        }
+    
+
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            onClicked: {
+                openVrConfiguration.countDown = timeToCalibrate.value;
+                numberAnimation.start();
+                calibrationTimer.start();
+                info.visible = true;
+                info.showCountDown = true;
+            }
+            
+            onPressed: {
+                calibrationButton.pressed = true;
+            }
+            
+            onReleased: {
+            calibrationButton.pressed = false;
+            }
+            
+            onEntered: {
+                calibrationButton.hovered = true;
+            }
+            
+            onExited: {
+                calibrationButton.hovered = false;
+            }
         }
     }
 
@@ -667,11 +786,11 @@ Rectangle {
         var headSetting = settings["headConfiguration"];
         var headOverride = headSetting["override"];
         var handSetting = settings["handConfiguration"];
-        var handOverride = settings["override"];
+        var handOverride = handSetting["override"];
 
         var settingsChanged = false;
-
-        if (lastConfiguration["bodyConfiguration"]["override"] !== bodySetting["override"]) {
+        
+        if (lastConfiguration["bodyConfiguration"] !== bodySetting) {
             settingsChanged = true;
         }
         
@@ -686,14 +805,17 @@ Rectangle {
         }
         
         if (settingsChanged) {
-            if ((!handOverride) && (!headOverride) && (bodySetting === "Auto")) {
+            if ((!handOverride) && (!headOverride) && (bodySetting === "None")) {
                 state = buttonState.apply;
+                console.log("apply");
             } else {
                 state = buttonState.applyAndCalibrate;
+                console.log("apply and calibrate");
             }   
         } else {
             if (state == buttonState.apply) {
                 state = buttonState.disabled;
+                console.log("disable");
             }
         }
         
@@ -768,6 +890,6 @@ Rectangle {
     function sendConfigurationSettings() {
         var settings = composeConfigurationSettings();
         InputConfiguration.setConfigurationSettings(settings, pluginName);
-        //updateCalibrationText();
+        updateCalibrationText();
     }
 }
