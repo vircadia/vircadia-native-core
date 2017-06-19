@@ -572,7 +572,10 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     bindMaterial(batch, locations, args->_enableTexturing);
 
     // Apply fade effect
-    DependencyManager::get<FadeEffect>()->bindPerItem(batch, args, _transform.getTranslation(), _fadeStartTime, _fadeState!=STATE_COMPLETE);
+    if (!DependencyManager::get<FadeEffect>()->bindPerItem(batch, args, _transform.getTranslation(), _fadeStartTime, _fadeState != STATE_COMPLETE)) {
+        // TODO : very ugly way to update the fade state. Need to improve this with global fade manager.
+        _fadeState = STATE_COMPLETE;
+    }
 
     args->_details._materialSwitches++;
 

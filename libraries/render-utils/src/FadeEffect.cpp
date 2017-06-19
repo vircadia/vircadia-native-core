@@ -68,8 +68,9 @@ bool FadeEffect::bindPerItem(gpu::Batch& batch, const gpu::Pipeline* pipeline, g
             batch._glUniform1f(fadeScaleLocation, _invScale);
             batch._glUniform1f(fadePercentLocation, percent);
             batch._glUniform3f(fadeOffsetLocation, offset.x, offset.y, offset.z);
+
+            return percent < 1.f;
         }
-        return true;
     }
     return false;
 }
