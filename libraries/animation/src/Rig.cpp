@@ -1065,7 +1065,7 @@ void Rig::updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headPos
     }
 }
 
-void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, float dt,
+void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool leftArmEnabled, bool rightArmEnabled, float dt,
                       const AnimPose& leftHandPose, const AnimPose& rightHandPose,
                       float bodyCapsuleRadius, float bodyCapsuleHalfHeight, const glm::vec3& bodyCapsuleLocalOffset) {
 
@@ -1130,7 +1130,7 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         int handJointIndex = _animSkeleton->nameToJointIndex("LeftHand");
         int armJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
         int elbowJointIndex = _animSkeleton->nameToJointIndex("LeftForeArm");
-        if (elbowJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
+        if (!leftArmEnabled && elbowJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
             glm::vec3 poleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, hipsIndex, true);
 
             // smooth toward desired pole vector from previous pole vector...  to reduce jitter
@@ -1213,7 +1213,7 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         int handJointIndex = _animSkeleton->nameToJointIndex("RightHand");
         int armJointIndex = _animSkeleton->nameToJointIndex("RightArm");
         int elbowJointIndex = _animSkeleton->nameToJointIndex("RightForeArm");
-        if (elbowJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
+        if (!rightArmEnabled && elbowJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
             glm::vec3 poleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, hipsIndex, false);
 
             // smooth toward desired pole vector from previous pole vector...  to reduce jitter
@@ -1435,7 +1435,7 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
 
     updateHead(headEnabled, hipsEnabled, params.controllerPoses[ControllerType_Head]);
 
-    updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, dt,
+    updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, leftArmEnabled, rightArmEnabled, dt,
                 params.controllerPoses[ControllerType_LeftHand], params.controllerPoses[ControllerType_RightHand],
                 params.bodyCapsuleRadius, params.bodyCapsuleHalfHeight, params.bodyCapsuleLocalOffset);
 

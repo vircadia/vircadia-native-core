@@ -230,7 +230,7 @@ protected:
     void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut);
 
     void updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headMatrix);
-    void updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, float dt,
+    void updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool leftArmEnabled, bool rightArmEnabled, float dt,
                      const AnimPose& leftHandPose, const AnimPose& rightHandPose,
                      float bodyCapsuleRadius, float bodyCapsuleHalfHeight, const glm::vec3& bodyCapsuleLocalOffset);
     void updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose& leftFootPose, const AnimPose& rightFootPose);
