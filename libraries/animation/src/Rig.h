@@ -41,21 +41,26 @@ public:
         bool useNames;
     };
 
-    struct HeadParameters {
-        glm::mat4 hipsMatrix = glm::mat4();           // rig space
-        glm::mat4 spine2Matrix = glm::mat4();         // rig space
-        glm::quat rigHeadOrientation = glm::quat();   // rig space (-z forward)
-        glm::vec3 rigHeadPosition = glm::vec3();      // rig space
-        glm::vec3 rightArmPosition = glm::vec3();     // rig space
-        glm::quat rightArmRotation = glm::quat();     // rig space
-        glm::vec3 leftArmPosition = glm::vec3();      // rig space
-        glm::quat leftArmRotation = glm::quat();      // rig space
-        bool hipsEnabled = false;
-        bool headEnabled = false;
-        bool spine2Enabled = false;
-        bool leftArmEnabled = false;
-        bool rightArmEnabled = false;
-        bool isTalking = false;
+    enum ControllerType {
+        ControllerType_Head = 0,
+        ControllerType_LeftHand,
+        ControllerType_RightHand,
+        ControllerType_Hips,
+        ControllerType_LeftFoot,
+        ControllerType_RightFoot,
+        ControllerType_LeftArm,
+        ControllerType_RightArm,
+        ControllerType_Spine2,
+        NumControllerTypes
+    };
+
+    struct ControllerParameters {
+        AnimPose controllerPoses[NumControllerTypes];  // rig space
+        bool controllerActiveFlags[NumControllerTypes];
+        bool isTalking;
+        float bodyCapsuleRadius;
+        float bodyCapsuleHalfHeight;
+        glm::vec3 bodyCapsuleLocalOffset;
     };
 
     struct EyeParameters {
@@ -65,25 +70,6 @@ public:
         glm::quat modelRotation = glm::quat();
         int leftEyeJointIndex = -1;
         int rightEyeJointIndex = -1;
-    };
-
-    struct HandAndFeetParameters {
-        bool isLeftEnabled;
-        bool isRightEnabled;
-        float bodyCapsuleRadius;
-        float bodyCapsuleHalfHeight;
-        glm::vec3 bodyCapsuleLocalOffset;
-        glm::vec3 leftPosition = glm::vec3();     // rig space
-        glm::quat leftOrientation = glm::quat();  // rig space (z forward)
-        glm::vec3 rightPosition = glm::vec3();    // rig space
-        glm::quat rightOrientation = glm::quat(); // rig space (z forward)
-
-        bool isLeftFootEnabled;
-        bool isRightFootEnabled;
-        glm::vec3 leftFootPosition = glm::vec3();     // rig space
-        glm::quat leftFootOrientation = glm::quat();  // rig space (z forward)
-        glm::vec3 rightFootPosition = glm::vec3();    // rig space
-        glm::quat rightFootOrientation = glm::quat(); // rig space (z forward)
     };
 
     enum class CharacterControllerState {
@@ -192,9 +178,8 @@ public:
     // legacy
     void clearJointStatePriorities();
 
-    void updateFromHeadParameters(const HeadParameters& params, float dt);
+    void updateFromControllerParameters(const ControllerParameters& params, float dt);
     void updateFromEyeParameters(const EyeParameters& params);
-    void updateFromHandAndFeetParameters(const HandAndFeetParameters& params, float dt);
 
     void initAnimGraph(const QUrl& url);
 
@@ -244,7 +229,11 @@ protected:
     void applyOverridePoses();
     void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut);
 
-    void updateHeadAnimVars(const HeadParameters& params);
+    void updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headMatrix);
+    void updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, float dt,
+                     const AnimPose& leftHandPose, const AnimPose& rightHandPose,
+                     float bodyCapsuleRadius, float bodyCapsuleHalfHeight, const glm::vec3& bodyCapsuleLocalOffset);
+    void updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose& leftFootPose, const AnimPose& rightFootPose);
 
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::vec3& lookAt, const glm::vec3& saccade);
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;

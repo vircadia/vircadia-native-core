@@ -1010,46 +1010,6 @@ glm::quat Rig::getJointDefaultRotationInParentFrame(int jointIndex) {
     return glm::quat();
 }
 
-void Rig::updateFromHeadParameters(const HeadParameters& params, float dt) {
-    updateHeadAnimVars(params);
-
-    _animVars.set("isTalking", params.isTalking);
-    _animVars.set("notIsTalking", !params.isTalking);
-
-    if (params.hipsEnabled) {
-        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToLimitCenterPoses);
-        _animVars.set("hipsType", (int)IKTarget::Type::RotationAndPosition);
-        _animVars.set("hipsPosition", extractTranslation(params.hipsMatrix));
-        _animVars.set("hipsRotation", glmExtractRotation(params.hipsMatrix));
-    } else {
-        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToUnderPoses);
-        _animVars.set("hipsType", (int)IKTarget::Type::Unknown);
-    }
-
-    if (params.hipsEnabled && params.spine2Enabled) {
-        _animVars.set("spine2Type", (int)IKTarget::Type::Spline);
-        _animVars.set("spine2Position", extractTranslation(params.spine2Matrix));
-        _animVars.set("spine2Rotation", glmExtractRotation(params.spine2Matrix));
-    } else {
-        _animVars.set("spine2Type", (int)IKTarget::Type::Unknown);
-    }
-
-    if (params.leftArmEnabled) {
-        _animVars.set("leftArmType", (int)IKTarget::Type::RotationAndPosition);
-        _animVars.set("leftArmPosition", params.leftArmPosition);
-        _animVars.set("leftArmRotation", params.leftArmRotation);
-    } else {
-        _animVars.set("leftArmType", (int)IKTarget::Type::Unknown);
-    }
-
-    if (params.rightArmEnabled) {
-        _animVars.set("rightArmType", (int)IKTarget::Type::RotationAndPosition);
-        _animVars.set("rightArmPosition", params.rightArmPosition);
-        _animVars.set("rightArmRotation", params.rightArmRotation);
-    } else {
-        _animVars.set("rightArmType", (int)IKTarget::Type::Unknown);
-    }
-}
 
 void Rig::updateFromEyeParameters(const EyeParameters& params) {
     updateEyeJoint(params.leftEyeJointIndex, params.modelTranslation, params.modelRotation, params.eyeLookAt, params.eyeSaccade);
@@ -1081,12 +1041,12 @@ void Rig::computeHeadFromHMD(const AnimPose& hmdPose, glm::vec3& headPositionOut
     headOrientationOut = hmdOrientation;
 }
 
-void Rig::updateHeadAnimVars(const HeadParameters& params) {
+void Rig::updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headPose) {
     if (_animSkeleton) {
-        if (params.headEnabled) {
-            _animVars.set("headPosition", params.rigHeadPosition);
-            _animVars.set("headRotation", params.rigHeadOrientation);
-            if (params.hipsEnabled) {
+        if (headEnabled) {
+            _animVars.set("headPosition", headPose.trans());
+            _animVars.set("headRotation", headPose.rot());
+            if (hipsEnabled) {
                 // Since there is an explicit hips ik target, switch the head to use the more flexible Spline IK chain type.
                 // this will allow the spine to compress/expand and bend more natrually, ensuring that it can reach the head target position.
                 _animVars.set("headType", (int)IKTarget::Type::Spline);
@@ -1099,9 +1059,268 @@ void Rig::updateHeadAnimVars(const HeadParameters& params) {
             }
         } else {
             _animVars.unset("headPosition");
-            _animVars.set("headRotation", params.rigHeadOrientation);
+            _animVars.set("headRotation", headPose.rot());
             _animVars.set("headType", (int)IKTarget::Type::RotationOnly);
         }
+    }
+}
+
+void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, float dt,
+                      const AnimPose& leftHandPose, const AnimPose& rightHandPose,
+                      float bodyCapsuleRadius, float bodyCapsuleHalfHeight, const glm::vec3& bodyCapsuleLocalOffset) {
+
+    // Use this capsule to represent the avatar body.
+    int hipsIndex = indexOfJoint("Hips");
+    glm::vec3 hipsTrans;
+    if (hipsIndex >= 0) {
+        hipsTrans = _internalPoseSet._absolutePoses[hipsIndex].trans();
+    }
+
+    const glm::vec3 bodyCapsuleCenter = hipsTrans - bodyCapsuleLocalOffset;
+    const glm::vec3 bodyCapsuleStart = bodyCapsuleCenter - glm::vec3(0, bodyCapsuleHalfHeight, 0);
+    const glm::vec3 bodyCapsuleEnd = bodyCapsuleCenter + glm::vec3(0, bodyCapsuleHalfHeight, 0);
+
+    const float HAND_RADIUS = 0.05f;
+
+    const float RELAX_DURATION = 0.6f;
+    const float CONTROL_DURATION = 0.4f;
+    const bool TO_CONTROLLED = true;
+    const bool FROM_CONTROLLED = false;
+    const bool LEFT_HAND = true;
+    const bool RIGHT_HAND = false;
+
+    const float ELBOW_POLE_VECTOR_BLEND_FACTOR = 0.9f;
+
+    if (leftHandEnabled) {
+        if (!_isLeftHandControlled) {
+            _leftHandControlTimeRemaining = CONTROL_DURATION;
+            _isLeftHandControlled = true;
+        }
+
+        glm::vec3 handPosition = leftHandPose.trans();
+        glm::quat handRotation = leftHandPose.rot();
+
+        if (_leftHandControlTimeRemaining > 0.0f) {
+            // Move hand from non-controlled position to controlled position.
+            _leftHandControlTimeRemaining = std::max(_leftHandControlTimeRemaining - dt, 0.0f);
+            AnimPose handPose(Vectors::ONE, handRotation, handPosition);
+            if (transitionHandPose(_leftHandControlTimeRemaining, CONTROL_DURATION, handPose,
+                                   LEFT_HAND, TO_CONTROLLED, handPose)) {
+                handPosition = handPose.trans();
+                handRotation = handPose.rot();
+            }
+        }
+
+        if (!hipsEnabled) {
+            // prevent the hand IK targets from intersecting the body capsule
+            glm::vec3 displacement;
+            if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
+                handPosition -= displacement;
+            }
+        }
+
+        _animVars.set("leftHandPosition", handPosition);
+        _animVars.set("leftHandRotation", handRotation);
+        _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
+
+        _lastLeftHandControlledPose = AnimPose(Vectors::ONE, handRotation, handPosition);
+        _isLeftHandControlled = true;
+
+        // compute pole vector
+        int handJointIndex = _animSkeleton->nameToJointIndex("LeftHand");
+        int armJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
+        int elbowJointIndex = _animSkeleton->nameToJointIndex("LeftForeArm");
+        if (elbowJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
+            glm::vec3 poleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, hipsIndex, true);
+
+            // smooth toward desired pole vector from previous pole vector...  to reduce jitter
+            if (!_prevLeftHandPoleVectorValid) {
+                _prevLeftHandPoleVectorValid = true;
+                _prevLeftHandPoleVector = poleVector;
+            }
+            glm::quat deltaRot = rotationBetween(_prevLeftHandPoleVector, poleVector);
+            glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
+            _prevLeftHandPoleVector = smoothDeltaRot * _prevLeftHandPoleVector;
+
+            _animVars.set("leftHandPoleVectorEnabled", true);
+            _animVars.set("leftHandPoleReferenceVector", Vectors::UNIT_X);
+            _animVars.set("leftHandPoleVector", _prevLeftHandPoleVector);
+        } else {
+            _prevLeftHandPoleVectorValid = false;
+            _animVars.set("leftHandPoleVectorEnabled", false);
+        }
+    } else {
+        _prevLeftHandPoleVectorValid = false;
+        _animVars.set("leftHandPoleVectorEnabled", false);
+
+        if (_isLeftHandControlled) {
+            _leftHandRelaxTimeRemaining = RELAX_DURATION;
+            _isLeftHandControlled = false;
+        }
+
+        if (_leftHandRelaxTimeRemaining > 0.0f) {
+            // Move hand from controlled position to non-controlled position.
+            _leftHandRelaxTimeRemaining = std::max(_leftHandRelaxTimeRemaining - dt, 0.0f);
+            AnimPose handPose;
+            if (transitionHandPose(_leftHandRelaxTimeRemaining, RELAX_DURATION, _lastLeftHandControlledPose,
+                                   LEFT_HAND, FROM_CONTROLLED, handPose)) {
+                _animVars.set("leftHandPosition", handPose.trans());
+                _animVars.set("leftHandRotation", handPose.rot());
+                _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
+            }
+        } else {
+            _animVars.unset("leftHandPosition");
+            _animVars.unset("leftHandRotation");
+            _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
+        }
+    }
+
+    if (rightHandEnabled) {
+        if (!_isRightHandControlled) {
+            _rightHandControlTimeRemaining = CONTROL_DURATION;
+            _isRightHandControlled = true;
+        }
+
+        glm::vec3 handPosition = rightHandPose.trans();
+        glm::quat handRotation = rightHandPose.rot();
+
+        if (_rightHandControlTimeRemaining > 0.0f) {
+            // Move hand from non-controlled position to controlled position.
+            _rightHandControlTimeRemaining = std::max(_rightHandControlTimeRemaining - dt, 0.0f);
+            AnimPose handPose(Vectors::ONE, handRotation, handPosition);
+            if (transitionHandPose(_rightHandControlTimeRemaining, CONTROL_DURATION, handPose, RIGHT_HAND, TO_CONTROLLED, handPose)) {
+                handPosition = handPose.trans();
+                handRotation = handPose.rot();
+            }
+        }
+
+        if (!hipsEnabled) {
+            // prevent the hand IK targets from intersecting the body capsule
+            glm::vec3 displacement;
+            if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
+                handPosition -= displacement;
+            }
+        }
+
+        _animVars.set("rightHandPosition", handPosition);
+        _animVars.set("rightHandRotation", handRotation);
+        _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
+
+        _lastRightHandControlledPose = AnimPose(Vectors::ONE, handRotation, handPosition);
+        _isRightHandControlled = true;
+
+        // compute pole vector
+        int handJointIndex = _animSkeleton->nameToJointIndex("RightHand");
+        int armJointIndex = _animSkeleton->nameToJointIndex("RightArm");
+        int elbowJointIndex = _animSkeleton->nameToJointIndex("RightForeArm");
+        if (elbowJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
+            glm::vec3 poleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, hipsIndex, false);
+
+            // smooth toward desired pole vector from previous pole vector...  to reduce jitter
+            if (!_prevRightHandPoleVectorValid) {
+                _prevRightHandPoleVectorValid = true;
+                _prevRightHandPoleVector = poleVector;
+            }
+            glm::quat deltaRot = rotationBetween(_prevRightHandPoleVector, poleVector);
+            glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
+            _prevRightHandPoleVector = smoothDeltaRot * _prevRightHandPoleVector;
+
+            _animVars.set("rightHandPoleVectorEnabled", true);
+            _animVars.set("rightHandPoleReferenceVector", -Vectors::UNIT_X);
+            _animVars.set("rightHandPoleVector", _prevRightHandPoleVector);
+        } else {
+            _prevRightHandPoleVectorValid = false;
+            _animVars.set("rightHandPoleVectorEnabled", false);
+        }
+    } else {
+        _prevRightHandPoleVectorValid = false;
+        _animVars.set("rightHandPoleVectorEnabled", false);
+
+        if (_isRightHandControlled) {
+            _rightHandRelaxTimeRemaining = RELAX_DURATION;
+            _isRightHandControlled = false;
+        }
+
+        if (_rightHandRelaxTimeRemaining > 0.0f) {
+            // Move hand from controlled position to non-controlled position.
+            _rightHandRelaxTimeRemaining = std::max(_rightHandRelaxTimeRemaining - dt, 0.0f);
+            AnimPose handPose;
+            if (transitionHandPose(_rightHandRelaxTimeRemaining, RELAX_DURATION, _lastRightHandControlledPose, RIGHT_HAND, FROM_CONTROLLED, handPose)) {
+                _animVars.set("rightHandPosition", handPose.trans());
+                _animVars.set("rightHandRotation", handPose.rot());
+                _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
+            }
+        } else {
+            _animVars.unset("rightHandPosition");
+            _animVars.unset("rightHandRotation");
+            _animVars.set("rightHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
+        }
+    }
+}
+
+void Rig::updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose& leftFootPose, const AnimPose& rightFootPose) {
+
+    const float KNEE_POLE_VECTOR_BLEND_FACTOR = 0.9f;
+
+    int hipsIndex = indexOfJoint("Hips");
+
+    if (leftFootEnabled) {
+        glm::vec3 footPosition = leftFootPose.trans();
+        glm::quat footRotation = leftFootPose.rot();
+        _animVars.set("leftFootPosition", footPosition);
+        _animVars.set("leftFootRotation", footRotation);
+        _animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
+
+        int footJointIndex = _animSkeleton->nameToJointIndex("LeftFoot");
+        glm::vec3 poleVector = calculateKneePoleVector(footJointIndex, footRotation, hipsIndex);
+
+        // smooth toward desired pole vector from previous pole vector...  to reduce jitter
+        if (!_prevLeftFootPoleVectorValid) {
+            _prevLeftFootPoleVectorValid = true;
+            _prevLeftFootPoleVector = poleVector;
+        }
+        glm::quat deltaRot = rotationBetween(_prevLeftFootPoleVector, poleVector);
+        glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, KNEE_POLE_VECTOR_BLEND_FACTOR);
+        _prevLeftFootPoleVector = smoothDeltaRot * _prevLeftFootPoleVector;
+
+        _animVars.set("leftFootPoleVectorEnabled", true);
+        _animVars.set("leftFootPoleReferenceVector", Vectors::UNIT_Z);
+        _animVars.set("leftFootPoleVector", _prevLeftFootPoleVector);
+    } else {
+        _animVars.unset("leftFootPosition");
+        _animVars.unset("leftFootRotation");
+        _animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
+        _animVars.set("leftFootPoleVectorEnabled", false);
+        _prevLeftFootPoleVectorValid = false;
+    }
+
+    if (rightFootEnabled) {
+        glm::vec3 footPosition = rightFootPose.trans();
+        glm::quat footRotation = rightFootPose.rot();
+        _animVars.set("rightFootPosition", footPosition);
+        _animVars.set("rightFootRotation", footRotation);
+        _animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
+
+        int footJointIndex = _animSkeleton->nameToJointIndex("RightFoot");
+        glm::vec3 poleVector = calculateKneePoleVector(footJointIndex, footRotation, hipsIndex);
+
+        // smooth toward desired pole vector from previous pole vector...  to reduce jitter
+        if (!_prevRightFootPoleVectorValid) {
+            _prevRightFootPoleVectorValid = true;
+            _prevRightFootPoleVector = poleVector;
+        }
+        glm::quat deltaRot = rotationBetween(_prevRightFootPoleVector, poleVector);
+        glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, KNEE_POLE_VECTOR_BLEND_FACTOR);
+        _prevRightFootPoleVector = smoothDeltaRot * _prevRightFootPoleVector;
+
+        _animVars.set("rightFootPoleVectorEnabled", true);
+        _animVars.set("rightFootPoleReferenceVector", Vectors::UNIT_Z);
+        _animVars.set("rightFootPoleVector", _prevRightFootPoleVector);
+    } else {
+        _animVars.unset("rightFootPosition");
+        _animVars.unset("rightFootRotation");
+        _animVars.set("rightFootPoleVectorEnabled", false);
+        _animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
     }
 }
 
@@ -1196,261 +1415,65 @@ glm::vec3 Rig::calculateKneePoleVector(int footJointIndex, const glm::quat& foot
     return glm::normalize(lerp(footForward, hipsForward, FOOT_TO_HIPS_BLEND_FACTOR));
 }
 
-void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, float dt) {
-    if (_animSkeleton && _animNode) {
-        const float HAND_RADIUS = 0.05f;
-        int hipsIndex = indexOfJoint("Hips");
-        glm::vec3 hipsTrans;
-        if (hipsIndex >= 0) {
-            hipsTrans = _internalPoseSet._absolutePoses[hipsIndex].trans();
-        }
+void Rig::updateFromControllerParameters(const ControllerParameters& params, float dt) {
+    if (!_animSkeleton || !_animNode) {
+        return;
+    }
 
-        // Use this capsule to represent the avatar body.
-        const float bodyCapsuleRadius = params.bodyCapsuleRadius;
-        const glm::vec3 bodyCapsuleCenter = hipsTrans - params.bodyCapsuleLocalOffset;
-        const glm::vec3 bodyCapsuleStart = bodyCapsuleCenter - glm::vec3(0, params.bodyCapsuleHalfHeight, 0);
-        const glm::vec3 bodyCapsuleEnd = bodyCapsuleCenter + glm::vec3(0, params.bodyCapsuleHalfHeight, 0);
+    _animVars.set("isTalking", params.isTalking);
+    _animVars.set("notIsTalking", !params.isTalking);
 
-        // TODO: add isHipsEnabled
-        bool bodySensorTrackingEnabled = params.isLeftFootEnabled || params.isRightFootEnabled;
+    bool headEnabled = params.controllerActiveFlags[ControllerType_Head];
+    bool leftHandEnabled = params.controllerActiveFlags[ControllerType_LeftHand];
+    bool rightHandEnabled = params.controllerActiveFlags[ControllerType_RightHand];
+    bool hipsEnabled = params.controllerActiveFlags[ControllerType_Hips];
+    bool leftFootEnabled = params.controllerActiveFlags[ControllerType_LeftFoot];
+    bool rightFootEnabled = params.controllerActiveFlags[ControllerType_RightFoot];
+    bool leftArmEnabled = params.controllerActiveFlags[ControllerType_LeftArm];
+    bool rightArmEnabled = params.controllerActiveFlags[ControllerType_RightArm];
+    bool spine2Enabled = params.controllerActiveFlags[ControllerType_Spine2];
 
-        const float RELAX_DURATION = 0.6f;
-        const float CONTROL_DURATION = 0.4f;
-        const bool TO_CONTROLLED = true;
-        const bool FROM_CONTROLLED = false;
-        const bool LEFT_HAND = true;
-        const bool RIGHT_HAND = false;
+    updateHead(headEnabled, hipsEnabled, params.controllerPoses[ControllerType_Head]);
 
-        const float KNEE_POLE_VECTOR_BLEND_FACTOR = 0.9f;
-        const float ELBOW_POLE_VECTOR_BLEND_FACTOR = 0.9f;
+    updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, dt,
+                params.controllerPoses[ControllerType_LeftHand], params.controllerPoses[ControllerType_RightHand],
+                params.bodyCapsuleRadius, params.bodyCapsuleHalfHeight, params.bodyCapsuleLocalOffset);
 
-        if (params.isLeftEnabled) {
-            if (!_isLeftHandControlled) {
-                _leftHandControlTimeRemaining = CONTROL_DURATION;
-                _isLeftHandControlled = true;
-            }
+    updateFeet(leftFootEnabled, rightFootEnabled,
+               params.controllerPoses[ControllerType_LeftFoot], params.controllerPoses[ControllerType_RightFoot]);
 
-            glm::vec3 handPosition = params.leftPosition;
-            glm::quat handRotation = params.leftOrientation;
+    if (hipsEnabled) {
+        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToLimitCenterPoses);
+        _animVars.set("hipsType", (int)IKTarget::Type::RotationAndPosition);
+        _animVars.set("hipsPosition", params.controllerPoses[ControllerType_Hips].trans());
+        _animVars.set("hipsRotation", params.controllerPoses[ControllerType_Hips].rot());
+    } else {
+        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToUnderPoses);
+        _animVars.set("hipsType", (int)IKTarget::Type::Unknown);
+    }
 
-            if (_leftHandControlTimeRemaining > 0.0f) {
-                // Move hand from non-controlled position to controlled position.
-                _leftHandControlTimeRemaining = std::max(_leftHandControlTimeRemaining - dt, 0.0f);
-                AnimPose handPose(Vectors::ONE, handRotation, handPosition);
-                if (transitionHandPose(_leftHandControlTimeRemaining, CONTROL_DURATION, handPose,
-                                       LEFT_HAND, TO_CONTROLLED, handPose)) {
-                    handPosition = handPose.trans();
-                    handRotation = handPose.rot();
-                }
-            }
+    if (hipsEnabled && spine2Enabled) {
+        _animVars.set("spine2Type", (int)IKTarget::Type::Spline);
+        _animVars.set("spine2Position", params.controllerPoses[ControllerType_Spine2].trans());
+        _animVars.set("spine2Rotation", params.controllerPoses[ControllerType_Spine2].rot());
+    } else {
+        _animVars.set("spine2Type", (int)IKTarget::Type::Unknown);
+    }
 
-            if (!bodySensorTrackingEnabled) {
-                // prevent the hand IK targets from intersecting the body capsule
-                glm::vec3 displacement;
-                if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
-                    handPosition -= displacement;
-                }
-            }
+    if (leftArmEnabled) {
+        _animVars.set("leftArmType", (int)IKTarget::Type::RotationAndPosition);
+        _animVars.set("leftArmPosition", params.controllerPoses[ControllerType_LeftArm].trans());
+        _animVars.set("leftArmRotation", params.controllerPoses[ControllerType_LeftArm].rot());
+    } else {
+        _animVars.set("leftArmType", (int)IKTarget::Type::Unknown);
+    }
 
-            _animVars.set("leftHandPosition", handPosition);
-            _animVars.set("leftHandRotation", handRotation);
-            _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
-
-            _lastLeftHandControlledPose = AnimPose(Vectors::ONE, handRotation, handPosition);
-
-            _isLeftHandControlled = true;
-            _lastLeftHandControlledPose = AnimPose(glm::vec3(1.0f), params.leftOrientation, handPosition);
-
-            // compute pole vector
-            int handJointIndex = _animSkeleton->nameToJointIndex("LeftHand");
-            int armJointIndex = _animSkeleton->nameToJointIndex("LeftArm");
-            int elbowJointIndex = _animSkeleton->nameToJointIndex("LeftForeArm");
-            if (elbowJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
-                glm::vec3 poleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, hipsIndex, true);
-
-                // smooth toward desired pole vector from previous pole vector...  to reduce jitter
-                if (!_prevLeftHandPoleVectorValid) {
-                    _prevLeftHandPoleVectorValid = true;
-                    _prevLeftHandPoleVector = poleVector;
-                }
-                glm::quat deltaRot = rotationBetween(_prevLeftHandPoleVector, poleVector);
-                glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
-                _prevLeftHandPoleVector = smoothDeltaRot * _prevLeftHandPoleVector;
-
-                _animVars.set("leftHandPoleVectorEnabled", true);
-                _animVars.set("leftHandPoleReferenceVector", Vectors::UNIT_X);
-                _animVars.set("leftHandPoleVector", _prevLeftHandPoleVector);
-            } else {
-                _prevLeftHandPoleVectorValid = false;
-                _animVars.set("leftHandPoleVectorEnabled", false);
-            }
-        } else {
-            _prevLeftHandPoleVectorValid = false;
-            _animVars.set("leftHandPoleVectorEnabled", false);
-
-            if (_isLeftHandControlled) {
-                _leftHandRelaxTimeRemaining = RELAX_DURATION;
-                _isLeftHandControlled = false;
-            }
-
-            if (_leftHandRelaxTimeRemaining > 0.0f) {
-                // Move hand from controlled position to non-controlled position.
-                _leftHandRelaxTimeRemaining = std::max(_leftHandRelaxTimeRemaining - dt, 0.0f);
-                AnimPose handPose;
-                if (transitionHandPose(_leftHandRelaxTimeRemaining, RELAX_DURATION, _lastLeftHandControlledPose,
-                                       LEFT_HAND, FROM_CONTROLLED, handPose)) {
-                    _animVars.set("leftHandPosition", handPose.trans());
-                    _animVars.set("leftHandRotation", handPose.rot());
-                    _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
-                }
-            } else {
-                _animVars.unset("leftHandPosition");
-                _animVars.unset("leftHandRotation");
-                _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
-            }
-        }
-
-        if (params.isRightEnabled) {
-            if (!_isRightHandControlled) {
-                _rightHandControlTimeRemaining = CONTROL_DURATION;
-                _isRightHandControlled = true;
-            }
-
-            glm::vec3 handPosition = params.rightPosition;
-            glm::quat handRotation = params.rightOrientation;
-
-            if (_rightHandControlTimeRemaining > 0.0f) {
-                // Move hand from non-controlled position to controlled position.
-                _rightHandControlTimeRemaining = std::max(_rightHandControlTimeRemaining - dt, 0.0f);
-                AnimPose handPose(Vectors::ONE, handRotation, handPosition);
-                if (transitionHandPose(_rightHandControlTimeRemaining, CONTROL_DURATION, handPose, RIGHT_HAND, TO_CONTROLLED, 
-                        handPose)) {
-                    handPosition = handPose.trans();
-                    handRotation = handPose.rot();
-                }
-            }
-
-            if (!bodySensorTrackingEnabled) {
-                // prevent the hand IK targets from intersecting the body capsule
-                glm::vec3 displacement;
-                if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
-                    handPosition -= displacement;
-                }
-            }
-
-            _animVars.set("rightHandPosition", handPosition);
-            _animVars.set("rightHandRotation", handRotation);
-            _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
-
-            _lastRightHandControlledPose = AnimPose(Vectors::ONE, handRotation, handPosition);
-
-            _isRightHandControlled = true;
-            _lastRightHandControlledPose = AnimPose(glm::vec3(1.0f), params.rightOrientation, handPosition);
-
-            // compute pole vector
-            int handJointIndex = _animSkeleton->nameToJointIndex("RightHand");
-            int armJointIndex = _animSkeleton->nameToJointIndex("RightArm");
-            int elbowJointIndex = _animSkeleton->nameToJointIndex("RightForeArm");
-            if (elbowJointIndex >= 0 && armJointIndex >= 0 && elbowJointIndex >= 0) {
-                glm::vec3 poleVector = calculateElbowPoleVector(handJointIndex, elbowJointIndex, armJointIndex, hipsIndex, false);
-
-                // smooth toward desired pole vector from previous pole vector...  to reduce jitter
-                if (!_prevRightHandPoleVectorValid) {
-                    _prevRightHandPoleVectorValid = true;
-                    _prevRightHandPoleVector = poleVector;
-                }
-                glm::quat deltaRot = rotationBetween(_prevRightHandPoleVector, poleVector);
-                glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
-                _prevRightHandPoleVector = smoothDeltaRot * _prevRightHandPoleVector;
-
-                _animVars.set("rightHandPoleVectorEnabled", true);
-                _animVars.set("rightHandPoleReferenceVector", -Vectors::UNIT_X);
-                _animVars.set("rightHandPoleVector", _prevRightHandPoleVector);
-            } else {
-                _prevRightHandPoleVectorValid = false;
-                _animVars.set("rightHandPoleVectorEnabled", false);
-            }
-
-        } else {
-            _prevRightHandPoleVectorValid = false;
-            _animVars.set("rightHandPoleVectorEnabled", false);
-
-            if (_isRightHandControlled) {
-                _rightHandRelaxTimeRemaining = RELAX_DURATION;
-                _isRightHandControlled = false;
-            }
-
-            if (_rightHandRelaxTimeRemaining > 0.0f) {
-                // Move hand from controlled position to non-controlled position.
-                _rightHandRelaxTimeRemaining = std::max(_rightHandRelaxTimeRemaining - dt, 0.0f);
-                AnimPose handPose;
-                if (transitionHandPose(_rightHandRelaxTimeRemaining, RELAX_DURATION, _lastRightHandControlledPose, RIGHT_HAND, 
-                        FROM_CONTROLLED, handPose)) {
-                    _animVars.set("rightHandPosition", handPose.trans());
-                    _animVars.set("rightHandRotation", handPose.rot());
-                    _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
-                }
-            } else {
-                _animVars.unset("rightHandPosition");
-                _animVars.unset("rightHandRotation");
-                _animVars.set("rightHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
-            }
-        }
-
-        if (params.isLeftFootEnabled) {
-            _animVars.set("leftFootPosition", params.leftFootPosition);
-            _animVars.set("leftFootRotation", params.leftFootOrientation);
-            _animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
-
-            int footJointIndex = _animSkeleton->nameToJointIndex("LeftFoot");
-            glm::vec3 poleVector = calculateKneePoleVector(footJointIndex, params.leftFootOrientation, hipsIndex);
-
-            // smooth toward desired pole vector from previous pole vector...  to reduce jitter
-            if (!_prevLeftFootPoleVectorValid) {
-                _prevLeftFootPoleVectorValid = true;
-                _prevLeftFootPoleVector = poleVector;
-            }
-            glm::quat deltaRot = rotationBetween(_prevLeftFootPoleVector, poleVector);
-            glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, KNEE_POLE_VECTOR_BLEND_FACTOR);
-            _prevLeftFootPoleVector = smoothDeltaRot * _prevLeftFootPoleVector;
-
-            _animVars.set("leftFootPoleVectorEnabled", true);
-            _animVars.set("leftFootPoleReferenceVector", Vectors::UNIT_Z);
-            _animVars.set("leftFootPoleVector", _prevLeftFootPoleVector);
-        } else {
-            _animVars.unset("leftFootPosition");
-            _animVars.unset("leftFootRotation");
-            _animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
-            _animVars.set("leftFootPoleVectorEnabled", false);
-            _prevLeftFootPoleVectorValid = false;
-        }
-
-        if (params.isRightFootEnabled) {
-            _animVars.set("rightFootPosition", params.rightFootPosition);
-            _animVars.set("rightFootRotation", params.rightFootOrientation);
-            _animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
-
-            int footJointIndex = _animSkeleton->nameToJointIndex("RightFoot");
-            glm::vec3 poleVector = calculateKneePoleVector(footJointIndex, params.rightFootOrientation, hipsIndex);
-
-            // smooth toward desired pole vector from previous pole vector...  to reduce jitter
-            if (!_prevRightFootPoleVectorValid) {
-                _prevRightFootPoleVectorValid = true;
-                _prevRightFootPoleVector = poleVector;
-            }
-            glm::quat deltaRot = rotationBetween(_prevRightFootPoleVector, poleVector);
-            glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, KNEE_POLE_VECTOR_BLEND_FACTOR);
-            _prevRightFootPoleVector = smoothDeltaRot * _prevRightFootPoleVector;
-
-            _animVars.set("rightFootPoleVectorEnabled", true);
-            _animVars.set("rightFootPoleReferenceVector", Vectors::UNIT_Z);
-            _animVars.set("rightFootPoleVector", _prevRightFootPoleVector);
-        } else {
-            _animVars.unset("rightFootPosition");
-            _animVars.unset("rightFootRotation");
-            _animVars.set("rightFootPoleVectorEnabled", false);
-            _animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
-        }
+    if (rightArmEnabled) {
+        _animVars.set("rightArmType", (int)IKTarget::Type::RotationAndPosition);
+        _animVars.set("rightArmPosition", params.controllerPoses[ControllerType_RightArm].trans());
+        _animVars.set("rightArmRotation", params.controllerPoses[ControllerType_RightArm].rot());
+    } else {
+        _animVars.set("rightArmType", (int)IKTarget::Type::Unknown);
     }
 }
 
