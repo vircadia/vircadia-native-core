@@ -17,7 +17,6 @@ Item {
     property int headerHeight: 70
     property string url
     property string scriptURL
-    property alias eventBridge: eventBridgeWrapper.eventBridge
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
@@ -135,12 +134,6 @@ Item {
         loadUrl(url);
     }
 
-    QtObject {
-        id: eventBridgeWrapper
-        WebChannel.id: "eventBridgeWrapper"
-        property var eventBridge;
-    }
-    
     WebEngineView {
         id: webview
         objectName: "webEngineView"
@@ -182,9 +175,9 @@ Item {
 
         property string newUrl: ""
 
-        webChannel.registeredObjects: [eventBridgeWrapper]
-
         Component.onCompleted: {
+            webChannel.registerObject("eventBridge", eventBridge);
+            webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
             // Ensure the JS from the web-engine makes it to our logging
             webview.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
                 console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);

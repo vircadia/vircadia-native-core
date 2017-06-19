@@ -14,6 +14,8 @@
 #include "../RenderUtilsLogging.h"
 #include "FontFamilies.h"
 
+static std::mutex fontMutex;
+
 struct TextureVertex {
     glm::vec2 pos;
     glm::vec2 tex;
@@ -56,6 +58,7 @@ Font::Pointer Font::load(QIODevice& fontFile) {
 }
 
 Font::Pointer Font::load(const QString& family) {
+    std::lock_guard<std::mutex> lock(fontMutex);
     if (!LOADED_FONTS.contains(family)) {
 
         static const QString SDFF_COURIER_PRIME_FILENAME{ ":/CourierPrime.sdff" };

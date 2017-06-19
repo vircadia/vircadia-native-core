@@ -16,6 +16,8 @@
 #include <QtCore/QBuffer>
 #include <QtCore/QThread>
 
+#include <ThreadHelpers.h>
+
 #include "NetworkLogging.h"
 #include "NodeList.h"
 #include "PacketReceiver.h"
@@ -28,12 +30,6 @@ MessagesClient::MessagesClient() {
     auto& packetReceiver = nodeList->getPacketReceiver();
     packetReceiver.registerListener(PacketType::MessagesData, this, "handleMessagesPacket");
     connect(nodeList.data(), &LimitedNodeList::nodeActivated, this, &MessagesClient::handleNodeActivated);
-}
-
-void MessagesClient::init() {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "init", Qt::BlockingQueuedConnection);
-    }
 }
 
 void MessagesClient::decodeMessagesPacket(QSharedPointer<ReceivedMessage> receivedMessage, QString& channel, 
@@ -184,4 +180,8 @@ void MessagesClient::handleNodeActivated(SharedNodePointer node) {
             subscribe(channel);
         }
     }
+}
+
+void MessagesClient::startThread() {
+    moveToNewNamedThread(this, "Messages Client Thread");
 }

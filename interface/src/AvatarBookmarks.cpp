@@ -21,13 +21,33 @@
 
 #include "MainWindow.h"
 #include "Menu.h"
-
 #include "AvatarBookmarks.h"
+#include "InterfaceLogging.h"
+
 #include <QtQuick/QQuickWindow>
 
 AvatarBookmarks::AvatarBookmarks() {
-    _bookmarksFilename = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/" + AVATARBOOKMARKS_FILENAME;
+    _bookmarksFilename = PathUtils::getAppDataPath() + "/" + AVATARBOOKMARKS_FILENAME;
     readFromFile();
+}
+
+void AvatarBookmarks::readFromFile() {
+    // migrate old avatarbookmarks.json, used to be in 'local' folder on windows
+    QString oldConfigPath = QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/" + AVATARBOOKMARKS_FILENAME;
+    QFile oldConfig(oldConfigPath);
+    
+    // I imagine that in a year from now, this code for migrating (as well as the two lines above)
+    // may be removed since all bookmarks should have been migrated by then
+    // - Robbie Uvanni (6.8.2017)
+    if (oldConfig.exists()) {
+        if (QDir().rename(oldConfigPath, _bookmarksFilename)) {
+            qCDebug(interfaceapp) << "Successfully migrated" << AVATARBOOKMARKS_FILENAME;
+        } else {
+            qCDebug(interfaceapp) << "Failed to migrate" << AVATARBOOKMARKS_FILENAME;
+        }
+    } 
+    
+    Bookmarks::readFromFile();     
 }
 
 void AvatarBookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {

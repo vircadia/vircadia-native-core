@@ -104,6 +104,7 @@ public:
         int _unfulfilledReads;
     };
 
+    void startThread();
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
 
@@ -147,6 +148,8 @@ public:
     bool outputLocalInjector(AudioInjector* injector) override;
 
     static const float CALLBACK_ACCELERATOR_RATIO;
+
+    bool getNamedAudioDeviceForModeExists(QAudio::Mode mode, const QString& deviceName);
 
 #ifdef Q_OS_WIN
     static QString friendlyNameForAudioDevice(wchar_t* guid);
@@ -386,8 +389,7 @@ private:
     RateCounter<> _silentInbound;
     RateCounter<> _audioInbound;
 
-    QThread* _checkDevicesThread { nullptr };
-    QThread* _localInjectorsThread { nullptr };
+    QTimer* _checkDevicesTimer { nullptr };
 };
 
 

@@ -114,6 +114,7 @@
 #include <render/RenderFetchCullSortTask.h>
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
+#include <RenderViewTask.h>
 #include <ResourceCache.h>
 #include <ResourceRequest.h>
 #include <SandboxUtils.h>
@@ -653,6 +654,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
 
     auto nodeList = DependencyManager::get<NodeList>();
+    nodeList->startThread();
 
     // Set up a watchdog thread to intentionally crash the application on deadlocks
     _deadlockWatchdogThread = new DeadlockWatchdogThread();
@@ -678,25 +680,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     updateHeartbeat();
 
-    // start the nodeThread so its event loop is running
-    QThread* nodeThread = new QThread(this);
-    nodeThread->setObjectName("NodeList Thread");
-    nodeThread->start();
-
-    // make sure the node thread is given highest priority
-    nodeThread->setPriority(QThread::TimeCriticalPriority);
-
     // setup a timer for domain-server check ins
     QTimer* domainCheckInTimer = new QTimer(nodeList.data());
     connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
     domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
 
-    // put the NodeList and datagram processing on the node thread
-    nodeList->moveToThread(nodeThread);
-
-    // put the audio processing on a separate thread
-    QThread* audioThread = new QThread();
-    audioThread->setObjectName("Audio Thread");
 
     auto audioIO = DependencyManager::get<AudioClient>();
     audioIO->setPositionGetter([]{
@@ -712,7 +700,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         return myAvatar ? myAvatar->getOrientationForAudio() : Quaternions::IDENTITY;
     });
 
-    audioIO->moveToThread(audioThread);
     recording::Frame::registerFrameHandler(AudioConstants::getAudioFrameName(), [=](recording::Frame::ConstPointer frame) {
         audioIO->handleRecordedAudioInput(frame->data);
     });
@@ -726,9 +713,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
     auto audioScriptingInterface = DependencyManager::set<AudioScriptingInterface>();
-    connect(audioThread, &QThread::started, audioIO.data(), &AudioClient::start);
-    connect(audioIO.data(), &AudioClient::destroyed, audioThread, &QThread::quit);
-    connect(audioThread, &QThread::finished, audioThread, &QThread::deleteLater);
     connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
     connect(audioIO.data(), &AudioClient::mutedByMixer, audioScriptingInterface.data(), &AudioScriptingInterface::mutedByMixer);
     connect(audioIO.data(), &AudioClient::receivedFirstPacket, audioScriptingInterface.data(), &AudioScriptingInterface::receivedFirstPacket);
@@ -746,19 +730,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         }
     });
 
-    audioThread->start();
+    audioIO->startThread();
 
     ResourceManager::init();
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
     // Setup MessagesClient
-    auto messagesClient = DependencyManager::get<MessagesClient>();
-    QThread* messagesThread = new QThread;
-    messagesThread->setObjectName("Messages Client Thread");
-    messagesClient->moveToThread(messagesThread);
-    connect(messagesThread, &QThread::started, messagesClient.data(), &MessagesClient::init);
-    messagesThread->start();
+    DependencyManager::get<MessagesClient>()->startThread();
 
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
@@ -1678,12 +1657,7 @@ void Application::aboutToQuit() {
         _autoSwitchDisplayModeSupportedHMDPlugin->endSession();
     }
     // use the CloseEventSender via a QThread to send an event that says the user asked for the app to close
-    auto closeEventSender = DependencyManager::get<CloseEventSender>();
-    QThread* closureEventThread = new QThread(this);
-    closeEventSender->moveToThread(closureEventThread);
-    // sendQuitEventAsync will bail immediately if the UserActivityLogger is not enabled
-    connect(closureEventThread, &QThread::started, closeEventSender.data(), &CloseEventSender::sendQuitEventAsync);
-    closureEventThread->start();
+    DependencyManager::get<CloseEventSender>()->startThread();
 
     // Hide Running Scripts dialog so that it gets destroyed in an orderly manner; prevents warnings at shutdown.
     DependencyManager::get<OffscreenUi>()->hide("RunningScripts");
@@ -1747,6 +1721,10 @@ void Application::cleanupBeforeQuit() {
 
     // Cleanup all overlays after the scripts, as scripts might add more
     _overlays.cleanupAllOverlays();
+    // The cleanup process enqueues the transactions but does not process them.  Calling this here will force the actual 
+    // removal of the items.  
+    // See https://highfidelity.fogbugz.com/f/cases/5328
+    _main3DScene->processTransactionQueue();
 
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
@@ -1770,6 +1748,8 @@ void Application::cleanupBeforeQuit() {
 
     // stop QML
     DependencyManager::destroy<OffscreenUi>();
+
+    DependencyManager::destroy<OffscreenQmlSurfaceCache>();
 
     if (_snapshotSoundInjector != nullptr) {
         _snapshotSoundInjector->stop();
@@ -1830,14 +1810,8 @@ Application::~Application() {
 
     ResourceManager::cleanup();
 
-    QThread* nodeThread = DependencyManager::get<NodeList>()->thread();
-
     // remove the NodeList from the DependencyManager
     DependencyManager::destroy<NodeList>();
-
-    // ask the node thread to quit and wait until it is done
-    nodeThread->quit();
-    nodeThread->wait();
 
     Leapmotion::destroy();
 
@@ -1897,15 +1871,9 @@ void Application::initializeGL() {
 
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
-    _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
-    const auto items = _renderEngine->addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
-    assert(items.canCast<RenderFetchCullSortTask::Output>());
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
-    if (QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD)) {
-        _renderEngine->addJob<RenderForwardTask>("Forward", items);
-    } else {
-        _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", items);
-    }
+    bool isDeferred = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
+    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, isDeferred);
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
 
@@ -5107,7 +5075,7 @@ namespace render {
     template <> const ItemKey payloadGetKey(const WorldBoxRenderData::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }
     template <> const Item::Bound payloadGetBound(const WorldBoxRenderData::Pointer& stuff) { return Item::Bound(); }
     template <> void payloadRender(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args) {
-        if (args->_renderMode != RenderArgs::MIRROR_RENDER_MODE && Menu::getInstance()->isOptionChecked(MenuOption::WorldAxes)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::WorldAxes)) {
             PerformanceTimer perfTimer("worldBox");
 
             auto& batch = *args->_batch;
@@ -5328,6 +5296,11 @@ void Application::nodeActivated(SharedNodePointer node) {
 
     if (node->getType() == NodeType::AvatarMixer) {
         // new avatar mixer, send off our identity packet on next update loop
+        // Reset skeletonModelUrl if the last server modified our choice.
+        static const QUrl empty{};
+        if (getMyAvatar()->getFullAvatarURLFromPreferences() != getMyAvatar()->cannonicalSkeletonModelURL(empty)) {
+            getMyAvatar()->resetFullAvatarURL();
+        }
         getMyAvatar()->markIdentityDataChanged();
         getMyAvatar()->resetLastSent();
     }

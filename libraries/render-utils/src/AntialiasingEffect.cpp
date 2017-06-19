@@ -19,7 +19,6 @@
 #include "AntialiasingEffect.h"
 #include "StencilMaskPass.h"
 #include "TextureCache.h"
-#include "FramebufferCache.h"
 #include "DependencyManager.h"
 #include "ViewFrustum.h"
 #include "GeometryCache.h"
@@ -40,9 +39,9 @@ Antialiasing::~Antialiasing() {
     }
 }
 
-const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
-    int width = DependencyManager::get<FramebufferCache>()->getFrameBufferSize().width();
-    int height = DependencyManager::get<FramebufferCache>()->getFrameBufferSize().height();
+const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline(RenderArgs* args) {
+    int width = args->_viewport.z;
+    int height = args->_viewport.w;
 
     if (_antialiasingBuffer && _antialiasingBuffer->getSize() != uvec2(width, height)) {
         _antialiasingBuffer.reset();
@@ -51,7 +50,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
     if (!_antialiasingBuffer) {
         // Link the antialiasing FBO to texture
         _antialiasingBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("antialiasing"));
-        auto format = gpu::Element::COLOR_SRGBA_32; // DependencyManager::get<FramebufferCache>()->getLightingTexture()->getTexelFormat();
+        auto format = gpu::Element::COLOR_SRGBA_32;
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
         _antialiasingTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, defaultSampler);
         _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
@@ -110,19 +109,13 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 
     RenderArgs* args = renderContext->args;
 
-    if (args->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-        return;
-    }
-
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setViewportTransform(args->_viewport);
 
         // FIXME: NEED to simplify that code to avoid all the GeometryCahce call, this is purely pixel manipulation
-        auto framebufferCache = DependencyManager::get<FramebufferCache>();
-        QSize framebufferSize = framebufferCache->getFrameBufferSize();
-        float fbWidth = framebufferSize.width();
-        float fbHeight = framebufferSize.height();
+        float fbWidth = renderContext->args->_viewport.z;
+        float fbHeight = renderContext->args->_viewport.w;
         // float sMin = args->_viewport.x / fbWidth;
         // float sWidth = args->_viewport.z / fbWidth;
         // float tMin = args->_viewport.y / fbHeight;
@@ -137,10 +130,10 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setModelTransform(Transform());
 
         // FXAA step
-        getAntialiasingPipeline();
+        auto pipeline = getAntialiasingPipeline(renderContext->args);
         batch.setResourceTexture(0, sourceBuffer->getRenderBuffer(0));
         batch.setFramebuffer(_antialiasingBuffer);
-        batch.setPipeline(getAntialiasingPipeline());
+        batch.setPipeline(pipeline);
 
         // initialize the view-space unpacking uniforms using frustum data
         float left, right, bottom, top, nearVal, farVal;
