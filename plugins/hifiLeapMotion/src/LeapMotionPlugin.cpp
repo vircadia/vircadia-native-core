@@ -177,11 +177,19 @@ void LeapMotionPlugin::InputDevice::update(float deltaTime, const controller::In
     glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
     glm::quat controllerToAvatarRotation = glmExtractRotation(controllerToAvatar);
 
-    // Desktop "zero" position is some distance above the Leap Motion sensor and half the avatar's shoulder-to-hand length in 
-    // front of avatar.
-    float halfShouldToHandLength = fabsf(extractTranslation(inputCalibrationData.defaultLeftHand).x 
-        - extractTranslation(inputCalibrationData.defaultLeftArm).x) / 2.0f;
-    glm::vec3 leapMotionOffset = glm::vec3(0.0f, _desktopHeightOffset, halfShouldToHandLength);
+    glm::vec3 hmdSensorPosition;    // HMD
+    glm::quat hmdSensorOrientation; // HMD
+    glm::vec3 leapMotionOffset;     // Desktop
+    if (_isLeapOnHMD) {
+        hmdSensorPosition = extractTranslation(inputCalibrationData.hmdSensorMat);
+        hmdSensorOrientation = extractRotation(inputCalibrationData.hmdSensorMat);
+    } else {
+        // Desktop "zero" position is some distance above the Leap Motion sensor and half the avatar's shoulder-to-hand length 
+        // in front of avatar.
+        float halfShouldToHandLength = fabsf(extractTranslation(inputCalibrationData.defaultLeftHand).x
+            - extractTranslation(inputCalibrationData.defaultLeftArm).x) / 2.0f;
+        leapMotionOffset = glm::vec3(0.0f, _desktopHeightOffset, halfShouldToHandLength);
+    }
 
     for (size_t i = 0; i < joints.size(); i++) {
         int poseIndex = LeapMotionJointIndexToPoseIndex((LeapMotionJointIndex)i);
@@ -191,8 +199,23 @@ void LeapMotionPlugin::InputDevice::update(float deltaTime, const controller::In
             continue;
         }
 
-        const glm::vec3& pos = controllerToAvatarRotation * (joints[i].position - leapMotionOffset);
-        glm::quat rot = controllerToAvatarRotation * joints[i].orientation;
+        glm::vec3 pos;
+        glm::quat rot;
+        if (_isLeapOnHMD) {
+            auto jointPosition = joints[i].position;
+            const glm::vec3 HMD_EYE_TO_LEAP_OFFSET = glm::vec3(0.0f, 0.0f, -0.09f);  // Eyes to surface of Leap Motion.
+            jointPosition = glm::vec3(-jointPosition.x, -jointPosition.z, -jointPosition.y) + HMD_EYE_TO_LEAP_OFFSET;
+            jointPosition = hmdSensorPosition + hmdSensorOrientation * jointPosition;
+            pos = transformPoint(controllerToAvatar, jointPosition);
+
+            glm::quat jointOrientation = joints[i].orientation;
+            jointOrientation = glm::quat(jointOrientation.w, -jointOrientation.x, -jointOrientation.z, -jointOrientation.y);
+            rot = controllerToAvatarRotation * hmdSensorOrientation * jointOrientation;
+        } else {
+            pos = controllerToAvatarRotation * (joints[i].position - leapMotionOffset);
+            const glm::quat ZERO_HAND_ORIENTATION = glm::quat(glm::vec3(PI_OVER_TWO, PI, 0.0f));
+            rot = controllerToAvatarRotation * joints[i].orientation * ZERO_HAND_ORIENTATION;
+        }
 
         glm::vec3 linearVelocity, angularVelocity;
         if (i < prevJoints.size()) {
@@ -325,11 +348,9 @@ void LeapMotionPlugin::InputDevice::clearState() {
 }
 
 void LeapMotionPlugin::applySensorLocation() {
-    if (_sensorLocation == SENSOR_ON_HMD) {
-        _controller.setPolicyFlags(Leap::Controller::POLICY_OPTIMIZE_HMD);
-    } else {
-        _controller.setPolicyFlags(Leap::Controller::POLICY_DEFAULT);
-    }
+    bool isLeapOnHMD = _sensorLocation == SENSOR_ON_HMD;
+    _controller.setPolicyFlags(isLeapOnHMD ? Leap::Controller::POLICY_OPTIMIZE_HMD : Leap::Controller::POLICY_DEFAULT);
+    _inputDevice->setIsLeapOnHMD(isLeapOnHMD);
 }
 
 void LeapMotionPlugin::applyDesktopHeightOffset() {
@@ -344,8 +365,7 @@ glm::quat LeapBasisToQuat(float sideSign, const Leap::Matrix& basis) {
     glm::vec3 yAxis = glm::vec3(basis.yBasis.x, basis.yBasis.y, basis.yBasis.z);
     glm::vec3 zAxis = glm::vec3(basis.zBasis.x, basis.zBasis.y, basis.zBasis.z);
     glm::quat orientation = (glm::quat_cast(glm::mat3(xAxis, yAxis, zAxis)));
-    const glm::quat ZERO_HAND_ORIENTATION = glm::quat(glm::vec3(PI_OVER_TWO, PI, 0.0f));
-    return orientation * ZERO_HAND_ORIENTATION;
+    return orientation;
 }
 
 glm::vec3 LeapVectorToVec3(const Leap::Vector& vec) {

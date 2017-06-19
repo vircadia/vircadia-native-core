@@ -75,9 +75,11 @@ protected:
         void clearState();
 
         void setDektopHeightOffset(float desktopHeightOffset) { _desktopHeightOffset = desktopHeightOffset; };
+        void setIsLeapOnHMD(bool isLeapOnHMD) { _isLeapOnHMD = isLeapOnHMD; };
 
     private:
         float _desktopHeightOffset { 0.0f };
+        bool _isLeapOnHMD { false };
     };
 
     std::shared_ptr<InputDevice> _inputDevice { std::make_shared<InputDevice>() };
