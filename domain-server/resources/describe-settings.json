@@ -1397,12 +1397,12 @@
           ]
         },
         {
-          "name": "upstream_servers",
-          "label": "Upstream Servers",
+          "name": "broadcasting_servers",
+          "label": "Broadcasting Servers",
           "assignment-types": [0,1],
           "type": "table",
           "can_add_new_rows": true,
-          "help": "Upstream servers that relay data for replicated users to this server",
+          "help": "Servers that broadcast data to this domain",
           "numbered": false,
           "columns": [
             {
