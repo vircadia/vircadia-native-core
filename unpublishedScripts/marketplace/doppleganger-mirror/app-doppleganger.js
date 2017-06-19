@@ -14,8 +14,8 @@ var DopplegangerClass = Script.require('./doppleganger.js');
 
 var tablet = Tablet.getTablet('com.highfidelity.interface.tablet.system'),
     button = tablet.addButton({
-        icon: "icons/tablet-icons/doppleganger-i.svg",
-        activeIcon: "icons/tablet-icons/doppleganger-a.svg",
+        icon: Script.resolvePath('./doppleganger-i.svg'),
+        activeIcon: Script.resolvePath('./doppleganger-a.svg'),
         text: 'MIRROR'
     });
 
