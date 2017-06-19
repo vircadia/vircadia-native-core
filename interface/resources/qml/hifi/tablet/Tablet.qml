@@ -6,15 +6,9 @@ Item {
     id: tablet
     objectName: "tablet"
     property double micLevel: 0.8
-    property bool micEnabled: true
     property int rowIndex: 0
     property int columnIndex: 0
     property int count: (flowMain.children.length - 1)
-
-    // called by C++ code to keep mic state updated
-    function setMicEnabled(newMicEnabled) {
-        tablet.micEnabled = newMicEnabled;
-    }
 
     // called by C++ code to keep audio bar updated
     function setMicLevel(newMicLevel) {
@@ -121,8 +115,8 @@ Item {
             }
 
             Item {
-                visible: (!tablet.micEnabled && !toggleMuteMouseArea.containsMouse)
-                         || (tablet.micEnabled && toggleMuteMouseArea.containsMouse)
+                visible: (Audio.muted && !toggleMuteMouseArea.containsMouse)
+                         || (!Audio.muted && toggleMuteMouseArea.containsMouse)
 
                 Image {
                     id: muteIcon
@@ -201,7 +195,7 @@ Item {
             preventStealing: true
             propagateComposedEvents: false
             scrollGestureEnabled: false
-            onClicked: tabletRoot.toggleMicEnabled()
+            onClicked: { Audio.muted = !Audio.muted }
         }
 
         RalewaySemiBold {
@@ -271,7 +265,7 @@ Item {
 
             PropertyChanges {
                 target: muteIcon
-                visible: micEnabled
+                visible: !Audio.muted
             }
 
             PropertyChanges {

@@ -40,7 +40,7 @@ public:
     Node(const QUuid& uuid, NodeType_t type,
          const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
          const NodePermissions& permissions, const QUuid& connectionSecret = QUuid(),
-         QObject* parent = 0);
+         QObject* parent = nullptr);
 
     bool operator==(const Node& otherNode) const { return _uuid == otherNode._uuid; }
     bool operator!=(const Node& otherNode) const { return !(*this == otherNode); }
