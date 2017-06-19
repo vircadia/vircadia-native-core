@@ -147,6 +147,7 @@
     {
       "name": "security",
       "label": "Security",
+      "restart": true,
       "settings": [
         {
           "name": "http_username",
