@@ -1339,6 +1339,7 @@
     {
       "name": "broadcasting",
       "label": "Broadcasting",
+      "restart": false,
       "settings": [
         {
           "name": "users",
@@ -1397,7 +1398,7 @@
           ]
         },
         {
-          "name": "broadcasting_servers",
+          "name": "upstream_servers",
           "label": "Broadcasting Servers",
           "assignment-types": [0,1],
           "type": "table",
