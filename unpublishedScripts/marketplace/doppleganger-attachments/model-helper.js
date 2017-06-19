@@ -7,20 +7,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global module */
+/* eslint-env commonjs */
 // @module model-helper
 //
 // This module provides ModelReadyWatcher (a helper class for knowing when a model becomes usable inworld) and
 // also initial plumbing helpers to eliminate unnecessary API differences when working with Model Overlays and
 // Model Entities at a high-level from scripting.
-
-function log() {
-    print('model-helper | ' + [].slice.call(arguments).join(' '));
-}
-
-/*var require = function DEBUG_REQUIRE(id) {
-    return Script.require(id + '?'+new Date().getTime().toString(36));
-};*/
 
 var utils = require('./utils.js'),
     assert = utils.assert;

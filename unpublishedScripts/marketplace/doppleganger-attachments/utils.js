@@ -1,11 +1,10 @@
 /* eslint-env commonjs */
-/* eslint-disable comma-dangle, no-empty */
 
 module.exports = {
     bind: bind,
     signal: signal,
     assign: assign,
-    assert: assert,
+    assert: assert
 };
 
 // @function - bind a function to a `this` context

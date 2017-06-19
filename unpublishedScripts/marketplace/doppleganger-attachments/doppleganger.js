@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global module */
+/* eslint-env commonjs */
 // @module doppleganger
 //
 // This module contains the `Doppleganger` class implementation for creating an inspectable replica of
@@ -23,10 +23,6 @@
 // highest possible update rate when keeping joint data in sync.
 
 module.exports = Doppleganger;
-
-/*var require = function DEBUG_REQUIRE(id) {
-    return Script.require(id + '?'+new Date().getTime().toString(36));
-};*/
 
 var _modelHelper = require('./model-helper.js'),
     modelHelper = _modelHelper.modelHelper,

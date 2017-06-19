@@ -1,14 +1,10 @@
-/* eslint-env commonjs */
-/* eslint-disable comma-dangle, no-empty */
-
 "use strict";
+/* eslint-env commonjs */
+/* eslint-disable comma-dangle */
+
 module.exports = DopplegangerAttachments;
 
 DopplegangerAttachments.version = '0.0.0';
-
-/*var require = function DEBUG_REQUIRE(id) {
-    return Script.require(id + '?'+new Date().getTime().toString(36));
-};*/
 
 var _modelHelper = require('./model-helper.js'),
     modelHelper = _modelHelper.modelHelper,
