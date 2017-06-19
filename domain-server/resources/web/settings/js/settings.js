@@ -1329,8 +1329,8 @@ function makeTableCategoryInput(setting, numVisibleColumns) {
 }
 
 function getDescriptionForKey(key) {
-  for(var i in Settings.data.descriptions) {
-    if(Settings.data.descriptions[i].name === key) {
+  for (var i in Settings.data.descriptions) {
+    if (Settings.data.descriptions[i].name === key) {
       return Settings.data.descriptions[i];
     }
   }
@@ -1372,12 +1372,12 @@ function badgeSidebarForDifferences(changedElement) {
       badgeValue += 1;
 
       // add a reason to restart
-      if(description && description.restart != false) {
+      if (description && description.restart != false) {
         reasonsForRestart.push(setting);
       }
     } else {
         // remove a reason to restart
-        if(description && description.restart != false) {
+        if (description && description.restart != false) {
           reasonsForRestart = $.grep(reasonsForRestart, function(v) { return v != setting; });
       }
     }
