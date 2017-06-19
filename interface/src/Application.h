@@ -400,7 +400,7 @@ private slots:
     void showDesktop();
     void clearDomainOctreeDetails();
     void clearDomainAvatars();
-    void aboutToQuit();
+    void onAboutToQuit();
 
     void resettingDomain();
 
