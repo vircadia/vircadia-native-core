@@ -351,8 +351,8 @@ protected:
     int _nextStateHandlerId { 0 };
     QMutex _stateMutex;
 
-    bool transitionHandPose(float deltaTime, float totalDuration, AnimPose& controlledHandPose, bool isLeftHand, 
-        bool isToControlled, AnimPose& returnHandPose);
+    bool transitionHandPose(float deltaTime, float totalDuration, AnimPose& controlledHandPose, bool isLeftHand,
+                            bool isToControlled, AnimPose& returnHandPose);
 
     bool _isLeftHandControlled { false };
     bool _isRightHandControlled { false };
@@ -363,17 +363,17 @@ protected:
     AnimPose _lastLeftHandControlledPose;
     AnimPose _lastRightHandControlledPose;
 
-    glm::vec3 _prevRightFootPoleVector = { Vectors::UNIT_Z };
-    bool _prevRightFootPoleVectorValid = { false };
+    glm::vec3 _prevRightFootPoleVector { Vectors::UNIT_Z };
+    bool _prevRightFootPoleVectorValid { false };
 
-    glm::vec3 _prevLeftFootPoleVector = { Vectors::UNIT_Z };
-    bool _prevLeftFootPoleVectorValid = { false };
+    glm::vec3 _prevLeftFootPoleVector { Vectors::UNIT_Z };
+    bool _prevLeftFootPoleVectorValid { false };
 
-    glm::vec3 _prevRightHandPoleVector = { -Vectors::UNIT_Z };
-    bool _prevRightHandPoleVectorValid = { false };
+    glm::vec3 _prevRightHandPoleVector { -Vectors::UNIT_Z };
+    bool _prevRightHandPoleVectorValid { false };
 
-    glm::vec3 _prevLeftHandPoleVector = { -Vectors::UNIT_Z };
-    bool _prevLeftHandPoleVectorValid = { false };
+    glm::vec3 _prevLeftHandPoleVector { -Vectors::UNIT_Z };
+    bool _prevLeftHandPoleVectorValid { false };
 };
 
 #endif /* defined(__hifi__Rig__) */
