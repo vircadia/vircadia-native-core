@@ -1,5 +1,5 @@
 //
-//  OctreeRenderer.cpp
+//  OctreeProcessor.cpp
 //  libraries/octree/src
 //
 //  Created by Brad Hefta-Gaub on 12/6/13.
@@ -14,49 +14,48 @@
 
 #include <NumericalConstants.h>
 #include <PerfStat.h>
-#include <RenderArgs.h>
 #include <SharedUtil.h>
 
 #include "OctreeLogging.h"
-#include "OctreeRenderer.h"
+#include "OctreeProcessor.h"
 
-OctreeRenderer::OctreeRenderer() :
+OctreeProcessor::OctreeProcessor() :
     _tree(NULL),
     _managedTree(false)
 {
 }
 
-void OctreeRenderer::init() {
+void OctreeProcessor::init() {
     if (!_tree) {
         _tree = createTree();
         _managedTree = true;
     }
 }
 
-OctreeRenderer::~OctreeRenderer() {
+OctreeProcessor::~OctreeProcessor() {
 }
 
-void OctreeRenderer::setTree(OctreePointer newTree) {
+void OctreeProcessor::setTree(OctreePointer newTree) {
     _tree = newTree;
 }
 
-void OctreeRenderer::processDatagram(ReceivedMessage& message, SharedNodePointer sourceNode) {
+void OctreeProcessor::processDatagram(ReceivedMessage& message, SharedNodePointer sourceNode) {
     bool extraDebugging = false;
 
     if (extraDebugging) {
-        qCDebug(octree) << "OctreeRenderer::processDatagram()";
+        qCDebug(octree) << "OctreeProcessor::processDatagram()";
     }
 
     if (!_tree) {
-        qCDebug(octree) << "OctreeRenderer::processDatagram() called before init, calling init()...";
+        qCDebug(octree) << "OctreeProcessor::processDatagram() called before init, calling init()...";
         this->init();
     }
 
     bool showTimingDetails = false; // Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram()", showTimingDetails);
+    PerformanceWarning warn(showTimingDetails, "OctreeProcessor::processDatagram()", showTimingDetails);
     
     if (message.getType() == getExpectedPacketType()) {
-        PerformanceWarning warn(showTimingDetails, "OctreeRenderer::processDatagram expected PacketType", showTimingDetails);
+        PerformanceWarning warn(showTimingDetails, "OctreeProcessor::processDatagram expected PacketType", showTimingDetails);
         // if we are getting inbound packets, then our tree is also viewing, and we should remember that fact.
         _tree->setIsViewing(true);
         
@@ -79,7 +78,7 @@ void OctreeRenderer::processDatagram(ReceivedMessage& message, SharedNodePointer
         OCTREE_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
 
         if (extraDebugging) {
-            qCDebug(octree) << "OctreeRenderer::processDatagram() ... "
+            qCDebug(octree) << "OctreeProcessor::processDatagram() ... "
                                "Got Packet Section color:" << packetIsColored <<
                                "compressed:" << packetIsCompressed <<
                                "sequence: " <<  sequence << 
@@ -130,7 +129,7 @@ void OctreeRenderer::processDatagram(ReceivedMessage& message, SharedNodePointer
                     packetData.loadFinalizedContent(reinterpret_cast<const unsigned char*>(message.getRawMessage() + message.getPosition()),
                         sectionLength);
                     if (extraDebugging) {
-                        qCDebug(octree) << "OctreeRenderer::processDatagram() ... "
+                        qCDebug(octree) << "OctreeProcessor::processDatagram() ... "
                             "Got Packet Section color:" << packetIsColored <<
                             "compressed:" << packetIsCompressed <<
                             "sequence: " << sequence <<
@@ -143,13 +142,13 @@ void OctreeRenderer::processDatagram(ReceivedMessage& message, SharedNodePointer
                     }
 
                     if (extraDebugging) {
-                        qCDebug(octree) << "OctreeRenderer::processDatagram() ******* START _tree->readBitstreamToTree()...";
+                        qCDebug(octree) << "OctreeProcessor::processDatagram() ******* START _tree->readBitstreamToTree()...";
                     }
                     startReadBitsteam = usecTimestampNow();
                     _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
                     endReadBitsteam = usecTimestampNow();
                     if (extraDebugging) {
-                        qCDebug(octree) << "OctreeRenderer::processDatagram() ******* END _tree->readBitstreamToTree()...";
+                        qCDebug(octree) << "OctreeProcessor::processDatagram() ******* END _tree->readBitstreamToTree()...";
                     }
                 });
                 
@@ -198,32 +197,7 @@ void OctreeRenderer::processDatagram(ReceivedMessage& message, SharedNodePointer
     }
 }
 
-bool OctreeRenderer::renderOperation(OctreeElementPointer element, void* extraData) {
-    RenderArgs* args = static_cast<RenderArgs*>(extraData);
-    if (element->isInView(args->getViewFrustum())) {
-        if (element->hasContent()) {
-            if (element->calculateShouldRender(args->getViewFrustum(), args->_sizeScale, args->_boundaryLevelAdjust)) {
-                args->_renderer->renderElement(element, args);
-            } else {
-                return false; // if we shouldn't render, then we also should stop recursing.
-            }
-        }
-        return true; // continue recursing
-    }
-    // if not in view stop recursing
-    return false;
-}
-
-void OctreeRenderer::render(RenderArgs* renderArgs) {
-    if (_tree) {
-        renderArgs->_renderer = sharedFromThis();
-        _tree->withReadLock([&] {
-            _tree->recurseTreeWithOperation(renderOperation, renderArgs);
-        });
-    }
-}
-
-void OctreeRenderer::clear() {
+void OctreeProcessor::clear() {
     if (_tree) {
         _tree->withWriteLock([&] {
             _tree->eraseAllOctreeElements();

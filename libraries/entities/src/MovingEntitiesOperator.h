@@ -38,9 +38,9 @@ public:
     ~MovingEntitiesOperator();
 
     void addEntityToMoveList(EntityItemPointer entity, const AACube& newCube);
-    virtual bool preRecursion(OctreeElementPointer element) override;
-    virtual bool postRecursion(OctreeElementPointer element) override;
-    virtual OctreeElementPointer possiblyCreateChildAt(OctreeElementPointer element, int childIndex) override;
+    virtual bool preRecursion(const OctreeElementPointer& element) override;
+    virtual bool postRecursion(const OctreeElementPointer& element) override;
+    virtual OctreeElementPointer possiblyCreateChildAt(const OctreeElementPointer& element, int childIndex) override;
     bool hasMovingEntities() const { return _entitiesToMove.size() > 0; }
 private:
     EntityTreePointer _tree;
@@ -49,7 +49,7 @@ private:
     int _foundOldCount;
     int _foundNewCount;
     int _lookingCount;
-    bool shouldRecurseSubTree(OctreeElementPointer element);
+    bool shouldRecurseSubTree(const OctreeElementPointer& element);
     
     bool _wantDebug;
 };

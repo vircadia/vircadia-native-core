@@ -582,7 +582,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _undoStackScriptingInterface(&_undoStack),
     _entitySimulation(new PhysicalEntitySimulation()),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
-    _entityClipboardRenderer(false, this, this),
     _entityClipboard(new EntityTree()),
     _lastQueriedTime(usecTimestampNow()),
     _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
@@ -957,7 +956,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
-    connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
+    connect(this, SIGNAL(aboutToQuit()), this, SLOT(onAboutToQuit()));
 
     // hook up bandwidth estimator
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
@@ -1451,7 +1450,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     sendStatsTimer->start();
 
-
     // Periodically check for count of nearby avatars
     static int lastCountOfNearbyAvatars = -1;
     QTimer* checkNearbyAvatarsTimer = new QTimer(this);
@@ -1646,7 +1644,7 @@ void Application::updateHeartbeat() const {
     static_cast<DeadlockWatchdogThread*>(_deadlockWatchdogThread)->updateHeartbeat();
 }
 
-void Application::aboutToQuit() {
+void Application::onAboutToQuit() {
     emit beforeAboutToQuit();
 
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
@@ -3990,11 +3988,6 @@ void Application::init() {
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 
     getEntities()->init();
-    {
-        QMutexLocker viewLocker(&_viewMutex);
-        getEntities()->setViewFrustum(_viewFrustum);
-    }
-
     getEntities()->setEntityLoadingPriorityFunction([this](const EntityItem& item) {
         auto dims = item.getDimensions();
         auto maxSize = glm::compMax(dims);
@@ -4023,13 +4016,6 @@ void Application::init() {
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
     // of events related clicking, hovering over, and entering entities
     getEntities()->connectSignalsToSlots(entityScriptingInterface.data());
-
-    _entityClipboardRenderer.init();
-    {
-        QMutexLocker viewLocker(&_viewMutex);
-        _entityClipboardRenderer.setViewFrustum(_viewFrustum);
-    }
-    _entityClipboardRenderer.setTree(_entityClipboard);
 
     // Make sure any new sounds are loaded as soon as know about them.
     connect(tree.get(), &EntityTree::newCollisionSoundURL, this, [this](QUrl newURL, EntityItemID id) {
@@ -5023,9 +5009,6 @@ QRect Application::getDesirableApplicationGeometry() const {
     return applicationGeometry;
 }
 
-// FIXME, preprocessor guard this check to occur only in DEBUG builds
-static QThread * activeRenderingThread = nullptr;
-
 PickRay Application::computePickRay(float x, float y) const {
     vec2 pickPoint { x, y };
     PickRay result;
@@ -5096,7 +5079,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     auto myAvatar = getMyAvatar();
     myAvatar->preDisplaySide(renderArgs);
 
-    activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(render, __FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
@@ -5169,8 +5151,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         // Before the deferred pass, let's try to use the render engine
         _renderEngine->run();
     }
-
-    activeRenderingThread = nullptr;
 }
 
 void Application::resetSensors(bool andReload) {

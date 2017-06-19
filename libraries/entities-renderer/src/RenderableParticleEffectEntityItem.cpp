@@ -161,7 +161,7 @@ RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const Ent
     }
 }
 
-bool RenderableParticleEffectEntityItem::addToScene(EntityItemPointer self,
+bool RenderableParticleEffectEntityItem::addToScene(const EntityItemPointer& self,
                                                     const render::ScenePointer& scene,
                                                     render::Transaction& transaction) {
     _scene = scene;
@@ -176,7 +176,7 @@ bool RenderableParticleEffectEntityItem::addToScene(EntityItemPointer self,
     return true;
 }
 
-void RenderableParticleEffectEntityItem::removeFromScene(EntityItemPointer self,
+void RenderableParticleEffectEntityItem::removeFromScene(const EntityItemPointer& self,
                                                          const render::ScenePointer& scene,
                                                          render::Transaction& transaction) {
     transaction.removeItem(_renderItemId);

@@ -23,8 +23,6 @@
 #include <gpu/Texture.h>
 #include <controllers/InputDevice.h>
 #include <plugins/InputPlugin.h>
-#include <RenderArgs.h>
-#include <render/Scene.h>
 #include "OpenVrHelpers.h"
 
 using PuckPosePair = std::pair<uint32_t, controller::Pose>;

@@ -37,7 +37,6 @@
 #include "AmbientOcclusionEffect.h"
 
 
-class RenderArgs;
 struct LightLocations;
 using LightLocationsPtr = std::shared_ptr<LightLocations>;
 
