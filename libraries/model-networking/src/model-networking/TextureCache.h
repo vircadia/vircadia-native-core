@@ -43,6 +43,7 @@ class NetworkTexture : public Resource, public Texture {
     Q_OBJECT
 
 public:
+    NetworkTexture(const QUrl& url);
     NetworkTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels);
     ~NetworkTexture() override;
 
@@ -124,6 +125,8 @@ private:
     int _width { 0 };
     int _height { 0 };
     int _maxNumPixels { ABSOLUTE_MAX_TEXTURE_NUM_PIXELS };
+
+    friend class TextureCache;
 };
 
 using NetworkTexturePointer = QSharedPointer<NetworkTexture>;
@@ -162,6 +165,12 @@ public:
     gpu::TexturePointer getTextureByHash(const std::string& hash);
     gpu::TexturePointer cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture);
 
+
+    /// SpectatorCamera rendering targets.
+    NetworkTexturePointer getResourceTexture(QUrl resourceTextureUrl);
+    const gpu::FramebufferPointer& getSpectatorCameraFramebuffer();
+    void resetSpectatorCameraFramebuffer(int width, int height);
+
 protected:
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
@@ -179,6 +188,7 @@ private:
 
     static const std::string KTX_DIRNAME;
     static const std::string KTX_EXT;
+
     KTXCache _ktxCache;
     // Map from image hashes to texture weak pointers
     std::unordered_map<std::string, std::weak_ptr<gpu::Texture>> _texturesByHashes;
@@ -189,6 +199,9 @@ private:
     gpu::TexturePointer _grayTexture;
     gpu::TexturePointer _blueTexture;
     gpu::TexturePointer _blackTexture;
+
+    NetworkTexturePointer _spectatorCameraNetworkTexture;
+    gpu::FramebufferPointer _spectatorCameraFramebuffer;
 };
 
 #endif // hifi_TextureCache_h
