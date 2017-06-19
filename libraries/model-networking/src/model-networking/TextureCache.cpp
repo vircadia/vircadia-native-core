@@ -469,6 +469,7 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
 }
 
 
+// This is called when the header or top mips have been loaded
 void NetworkTexture::ktxInitialDataRequestFinished() {
     if (!_ktxHeaderRequest || _ktxHeaderRequest->getState() != ResourceRequest::Finished ||
         !_ktxMipRequest ||  _ktxMipRequest->getState() != ResourceRequest::Finished) {
@@ -604,7 +605,7 @@ void NetworkTexture::ktxMipRequestFinished() {
     _ktxMipRequest = nullptr;
 }
 
-// This is called when the header or top mips have been loaded
+// This is called when the header and top mips have been loaded
 void NetworkTexture::handleFinishedInitialLoad() {
     Q_ASSERT(_ktxResourceState == LOADING_INITIAL_DATA);
     Q_ASSERT(!_ktxHeaderData.isEmpty() && !_ktxHighMipData.isEmpty());
