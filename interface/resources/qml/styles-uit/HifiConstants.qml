@@ -50,7 +50,7 @@ Item {
         id: colors
 
         // Base colors
-        readonly property color baseGray: "#393939"
+        readonly property color baseGray: "#404040"
         readonly property color darkGray: "#121212"
         readonly property color baseGrayShadow: "#252525"
         readonly property color baseGrayHighlight: "#575757"
