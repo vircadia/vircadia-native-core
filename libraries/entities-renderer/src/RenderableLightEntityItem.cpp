@@ -27,7 +27,7 @@ RenderableLightEntityItem::RenderableLightEntityItem(const EntityItemID& entityI
 {
 }
 
-bool RenderableLightEntityItem::addToScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
+bool RenderableLightEntityItem::addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) {
     _myItem = scene->allocateID();
 
     auto renderItem = std::make_shared<LightPayload>();
@@ -51,7 +51,7 @@ void RenderableLightEntityItem::somethingChangedNotification() {
     LightEntityItem::somethingChangedNotification();
 }
 
-void RenderableLightEntityItem::removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
+void RenderableLightEntityItem::removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) {
     transaction.removeItem(_myItem);
     render::Item::clearID(_myItem);
 }

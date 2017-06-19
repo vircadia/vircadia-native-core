@@ -14,7 +14,7 @@
 
 #include <QUrl>
 
-#include <FileCache.h>
+#include <shared/FileCache.h>
 
 namespace ktx {
     class KTX;

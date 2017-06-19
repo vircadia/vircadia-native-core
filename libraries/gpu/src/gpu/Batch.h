@@ -217,6 +217,9 @@ public:
     // Reset the stage caches and states
     void resetStages();
 
+    void disableContextStereo();
+    void restoreContextStereo();
+
     // Debugging
     void pushProfileRange(const char* name);
     void popProfileRange();
@@ -300,6 +303,9 @@ public:
         COMMAND_getQuery,
 
         COMMAND_resetStages,
+
+        COMMAND_disableContextStereo,
+        COMMAND_restoreContextStereo,
 
         COMMAND_runLambda,
 
@@ -467,7 +473,7 @@ public:
     NamedBatchDataMap _namedData;
 
     bool _enableStereo{ true };
-    bool _enableSkybox{ false };
+    bool _enableSkybox { false };
 
 protected:
     friend class Context;

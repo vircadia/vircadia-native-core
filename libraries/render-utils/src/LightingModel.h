@@ -12,10 +12,10 @@
 #ifndef hifi_LightingModel_h
 #define hifi_LightingModel_h
 
-#include "gpu/Resource.h"
-#include "render/DrawTask.h"
+#include <gpu/Resource.h>
 
-class RenderArgs;
+#include <render/Forward.h>
+#include <render/DrawTask.h>
 
 // LightingModel is  a helper class gathering in one place the flags to enable the lighting contributions
 class LightingModel {

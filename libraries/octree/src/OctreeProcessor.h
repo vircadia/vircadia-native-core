@@ -1,5 +1,5 @@
 //
-//  OctreeRenderer.h
+//  OctreeProcessor.h
 //  libraries/octree/src
 //
 //  Created by Brad Hefta-Gaub on 12/6/13.
@@ -9,8 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_OctreeRenderer_h
-#define hifi_OctreeRenderer_h
+#ifndef hifi_OctreeProcessor_h
+#define hifi_OctreeProcessor_h
 
 #include <glm/glm.hpp>
 #include <stdint.h>
@@ -18,27 +18,22 @@
 #include <QObject>
 
 #include <udt/PacketHeaders.h>
-#include <RenderArgs.h>
 #include <SharedUtil.h>
-#include <ViewFrustum.h>
 
 #include "Octree.h"
 #include "OctreePacketData.h"
 
-class OctreeRenderer;
-
 
 // Generic client side Octree renderer class.
-class OctreeRenderer : public QObject, public QEnableSharedFromThis<OctreeRenderer> {
+class OctreeProcessor : public QObject, public QEnableSharedFromThis<OctreeProcessor> {
     Q_OBJECT
 public:
-    OctreeRenderer();
-    virtual ~OctreeRenderer();
+    OctreeProcessor();
+    virtual ~OctreeProcessor();
 
     virtual char getMyNodeType() const = 0;
     virtual PacketType getMyQueryMessageType() const = 0;
     virtual PacketType getExpectedPacketType() const = 0;
-    virtual void renderElement(OctreeElementPointer element, RenderArgs* args) { }
 
     virtual void setTree(OctreePointer newTree);
 
@@ -47,14 +42,6 @@ public:
 
     /// initialize and GPU/rendering related resources
     virtual void init();
-
-    /// render the content of the octree
-    virtual void render(RenderArgs* renderArgs);
-
-    const ViewFrustum& getViewFrustum() const { return _viewFrustum; }
-    void setViewFrustum(const ViewFrustum& viewFrustum) { _viewFrustum = viewFrustum; }
-
-    static bool renderOperation(OctreeElementPointer element, void* extraData);
 
     /// clears the tree
     virtual void clear();
@@ -75,7 +62,6 @@ protected:
 
     OctreePointer _tree;
     bool _managedTree;
-    ViewFrustum _viewFrustum;
 
     SimpleMovingAverage _elementsPerPacket;
     SimpleMovingAverage _entitiesPerPacket;
@@ -95,4 +81,4 @@ protected:
 
 };
 
-#endif // hifi_OctreeRenderer_h
+#endif // hifi_OctreeProcessor_h
