@@ -108,7 +108,6 @@ private:
 
     FilePointer addFile(Metadata&& metadata, const std::string& filepath);
     void addUnusedFile(const FilePointer& file);
-    void removeUnusedFile(const FilePointer& file);
     void clean();
     void clear();
     // Remove a file from the cache
@@ -125,16 +124,14 @@ private:
     std::atomic<size_t> _totalFilesSize { 0 };
     std::atomic<size_t> _unusedFilesSize { 0 };
 
-    std::string _ext;
-    std::string _dirname;
-    std::string _dirpath;
+    const std::string _ext;
+    const std::string _dirname;
+    const std::string _dirpath;
     bool _initialized { false };
 
+    Mutex _mutex;
     Map _files;
-    Mutex _filesMutex;
-
     Set _unusedFiles;
-    Mutex _unusedFilesMutex;
 };
 
 class File : public QObject {
