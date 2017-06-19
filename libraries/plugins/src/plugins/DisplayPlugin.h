@@ -22,7 +22,6 @@
 #include <RegisteredMetaTypes.h>
 #include <shared/Bilateral.h>
 #include <gpu/Forward.h>
-
 #include "Plugin.h"
 
 class QOpenGLFramebufferObject;
@@ -61,6 +60,9 @@ namespace gpu {
     class Texture;
     using TexturePointer = std::shared_ptr<Texture>;
 }
+
+class NetworkTexture;
+using NetworkTexturePointer = QSharedPointer<NetworkTexture>;
 
 // Stereo display functionality
 // TODO move out of this file don't derive DisplayPlugin from this.  Instead use dynamic casting when
@@ -210,7 +212,7 @@ public:
     // Hardware specific stats
     virtual QJsonObject getHardwareStats() const { return QJsonObject(); }
 
-    virtual void copyTextureToQuickFramebuffer(gpu::TexturePointer source, QOpenGLFramebufferObject* target) = 0;
+    virtual void copyTextureToQuickFramebuffer(NetworkTexturePointer source, QOpenGLFramebufferObject* target) = 0;
 
     uint32_t presentCount() const { return _presentedFrameIndex; }
     // Time since last call to incrementPresentCount (only valid if DEBUG_PAINT_DELAY is defined)

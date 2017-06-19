@@ -79,7 +79,7 @@ public:
     // Three threads, one for rendering, one for texture transfers, one reserved for the GL driver
     int getRequiredThreadCount() const override { return 3; }
 
-    void copyTextureToQuickFramebuffer(gpu::TexturePointer source, QOpenGLFramebufferObject* target) override;
+    void copyTextureToQuickFramebuffer(NetworkTexturePointer source, QOpenGLFramebufferObject* target);
 
 protected:
     friend class PresentThread;

@@ -54,24 +54,15 @@ void ResourceImageItemRenderer::synchronize(QQuickFramebufferObject* item) {
         readyChanged = true;
     }
 
-    if (!_ready && readyChanged) {
-        qDebug() << "clearing network texture!!!!!!!!!!!!!!!!!";
-        _networkTexture.clear();
-    }
-
     _window = resourceImageItem->window();
     if (_ready && !_url.isNull() && !_url.isEmpty() && (urlChanged || readyChanged || !_networkTexture)) {
         _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_url);
     }
 
-    if (_networkTexture && _networkTexture->isLoaded()) {
-        qDebug() << "copying texture";
-        auto texture = _networkTexture->getGPUTexture();
-        if (texture) {
-            if (_fboMutex.tryLock()) {
-                qApp->getActiveDisplayPlugin()->copyTextureToQuickFramebuffer(texture, framebufferObject());
-                _fboMutex.unlock();
-            }
+    if (_ready && _networkTexture && _networkTexture->isLoaded()) {
+        if(_fboMutex.tryLock()) {
+            qApp->getActiveDisplayPlugin()->copyTextureToQuickFramebuffer(_networkTexture, framebufferObject());
+            _fboMutex.unlock();
         }
     }
 }

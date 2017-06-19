@@ -42,7 +42,7 @@
 #include <ui-plugins/PluginContainer.h>
 #include <ui/Menu.h>
 #include <CursorManager.h>
-
+#include <TextureCache.h>
 #include "CompositorHelper.h"
 #include "Logging.h"
 
@@ -823,33 +823,31 @@ void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
     }
 }
 
-void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(gpu::TexturePointer source, QOpenGLFramebufferObject* target) {
+void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer networkTexture, QOpenGLFramebufferObject* target) {
     auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
     withMainThreadContext([&] {
-        qDebug() << "initial gl error:" << glGetError();
-        GLuint sourceTexture = glBackend->getTextureID(source);
+        GLuint sourceTexture = glBackend->getTextureID(networkTexture->getGPUTexture());
         GLuint targetTexture = target->texture();
         GLuint fbo[2] {0, 0};
 
+        // need mipmaps for blitting texture
         glGenerateTextureMipmap(sourceTexture);
-        qDebug() << "errors: " << glGetError();
 
+        // create 2 fbos (one for initial texture, second for scaled one)
         glCreateFramebuffers(2, fbo);
+
+        // setup source fbo
         glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
-        qDebug() << "errors: " << glGetError();
-
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sourceTexture, 0);
-        qDebug() << "errors: " << glGetError();
 
+        // setup destination fbo
         glBindFramebuffer(GL_FRAMEBUFFER, fbo[1]);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, targetTexture, 0);
-        qDebug() << "errors: " << glGetError();
 
-        glBlitNamedFramebuffer(fbo[0], fbo[1], 0, 0, source->getWidth(), source->getHeight(), 0, 0, target->width(), target->height(), GL_COLOR_BUFFER_BIT, GL_NEAREST);
-        qDebug() << "errors: " << glGetError() << "bound?" << target->isBound();
+        glBlitNamedFramebuffer(fbo[0], fbo[1], 0, 0, networkTexture->getWidth(), networkTexture->getHeight(), 0, 0, target->width(), target->height(), GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
+        // don't delete the textures!
         glDeleteFramebuffers(2, fbo);
-        glDeleteTextures(1, fbo);
         glFinish();
     });
 }

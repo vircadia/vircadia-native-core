@@ -190,25 +190,21 @@ Rectangle {
             boxSize: 24;
             onClicked: {
                 sendToScript({method: (checked ? 'spectatorCameraOn' : 'spectatorCameraOff')});
-                spectatorCameraPreviewItem.ready = checked;
+                spectatorCameraPreview.ready = checked;
             }
         }
 
         // Spectator Camera Preview
-        Rectangle {
+        Hifi.ResourceImageItem {
             id: spectatorCameraPreview;
+            url: "resource://spectatorCameraFrame";
+            ready: false;
+            mirrorVertically: true;
             height: 250;
             anchors.left: parent.left;
             anchors.top: cameraToggleCheckBox.bottom;
             anchors.topMargin: 20;
             anchors.right: parent.right;
-            Hifi.ResourceImageItem {
-                id: spectatorCameraPreviewItem;
-                anchors.fill: parent;
-                url: "resource://spectatorCameraFrame";
-                ready: false;
-                mirrorVertically: true;
-            }
         }
 
         // "Monitor Shows" Switch Label Glyph
