@@ -58,14 +58,13 @@ public:
 
     void refresh() override;
 
+    Q_INVOKABLE void setOriginalDescriptor(ktx::KTXDescriptor* descriptor) { _originalKtxDescriptor.reset(descriptor); }
+
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
 
 public slots:
-    void ktxHeaderRequestProgress(uint64_t bytesReceived, uint64_t bytesTotal) { }
-    void ktxHeaderRequestFinished();
-
-    void ktxMipRequestProgress(uint64_t bytesReceived, uint64_t bytesTotal) { }
+    void ktxInitialDataRequestFinished();
     void ktxMipRequestFinished();
 
 protected:
@@ -74,14 +73,14 @@ protected:
     virtual bool isCacheable() const override { return _loaded; }
 
     virtual void downloadFinished(const QByteArray& data) override;
-
+    
     Q_INVOKABLE void loadContent(const QByteArray& content);
     Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
 
-    void startRequestForNextMipLevel();
+    Q_INVOKABLE void startRequestForNextMipLevel();
 
     void startMipRangeRequest(uint16_t low, uint16_t high);
-    void maybeHandleFinishedInitialLoad();
+    void handleFinishedInitialLoad();
 
 private:
     friend class KTXReader;
@@ -102,16 +101,13 @@ private:
     bool _sourceIsKTX { false };
     KTXResourceState _ktxResourceState { PENDING_INITIAL_LOAD };
 
-    // TODO Can this be removed?
-    KTXFilePointer _file;
-
     // The current mips that are currently being requested w/ _ktxMipRequest
     std::pair<uint16_t, uint16_t> _ktxMipLevelRangeInFlight{ NULL_MIP_LEVEL, NULL_MIP_LEVEL };
 
     ResourceRequest* _ktxHeaderRequest { nullptr };
     ResourceRequest* _ktxMipRequest { nullptr };
-    bool _ktxHeaderRequestFinished{ false };
-    bool _ktxHighMipRequestFinished{ false };
+    QByteArray _ktxHeaderData;
+    QByteArray _ktxHighMipData;
 
     uint16_t _lowestRequestedMipLevel { NULL_MIP_LEVEL };
     uint16_t _lowestKnownPopulatedMip { NULL_MIP_LEVEL };
