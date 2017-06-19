@@ -1158,23 +1158,27 @@ glm::vec3 Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIn
     AnimPose armPose = _externalPoseSet._absolutePoses[armIndex];
     glm::vec3 d = glm::normalize(handPose.trans() - armPose.trans());
 
+    float sign = isLeft ? 1.0f : -1.0f;
+
+    glm::vec3 n = hipsPose.rot() * Vectors::UNIT_X;
+    glm::vec3 y = hipsPose.rot() * Vectors::UNIT_Y;
+    // project d onto n.
+    glm::vec3 dProj = d - glm::dot(d, n) * n;
+    const float LATERAL_OFFSET = 0.333f;
+    const float VERTICAL_OFFSET = -0.333f;
+
+    // give dProj a bit of offset away from the body.
+    glm::vec3 dProjWithOffset = dProj + sign * LATERAL_OFFSET * n + y * VERTICAL_OFFSET;
+
+    // rotate dProj by 90 degrees to get the poleVector.
+    glm::vec3 poleVector = glm::angleAxis(PI / 2.0f, n) * dProjWithOffset;
+
+    // blend the wrist oreintation into the pole vector to reduce the painfully bent wrist problem.
     glm::quat elbowToHandDelta = handPose.rot() * glm::inverse(elbowPose.rot());
     const float WRIST_POLE_ADJUST_FACTOR = 0.5f;
     glm::quat poleAdjust = quatLerp(Quaternions::IDENTITY, elbowToHandDelta, WRIST_POLE_ADJUST_FACTOR);
 
-    glm::vec3 n;
-    if (isLeft) {
-        n = hipsPose.rot() * glm::normalize(glm::vec3(1.0f, 1.5f, -0.1f));
-    } else {
-        n = hipsPose.rot() * -glm::normalize(glm::vec3(-1.0f, 1.5f, -0.1f));
-    }
-
-    // project d onto n.
-    glm::vec3 dProj = d - glm::dot(d, n) * n;
-    glm::vec3 dProjRot = glm::angleAxis(PI / 2.0f, n) * dProj;
-    glm::vec3 pole = glm::normalize(dProjRot);
-
-    return glm::normalize(poleAdjust * pole);
+    return glm::normalize(poleAdjust * poleVector);
 }
 
 glm::vec3 Rig::calculateKneePoleVector(int footJointIndex, const glm::quat& footTargetOrientation, int hipsIndex) const {
@@ -1217,7 +1221,8 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
         const bool LEFT_HAND = true;
         const bool RIGHT_HAND = false;
 
-        const float POLE_VECTOR_BLEND_FACTOR = 0.9f;
+        const float KNEE_POLE_VECTOR_BLEND_FACTOR = 0.9f;
+        const float ELBOW_POLE_VECTOR_BLEND_FACTOR = 0.9f;
 
         if (params.isLeftEnabled) {
             if (!_isLeftHandControlled) {
@@ -1232,8 +1237,8 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
                 // Move hand from non-controlled position to controlled position.
                 _leftHandControlTimeRemaining = std::max(_leftHandControlTimeRemaining - dt, 0.0f);
                 AnimPose handPose(Vectors::ONE, handRotation, handPosition);
-                if (transitionHandPose(_leftHandControlTimeRemaining, CONTROL_DURATION, handPose, LEFT_HAND, TO_CONTROLLED, 
-                        handPose)) {
+                if (transitionHandPose(_leftHandControlTimeRemaining, CONTROL_DURATION, handPose,
+                                       LEFT_HAND, TO_CONTROLLED, handPose)) {
                     handPosition = handPose.trans();
                     handRotation = handPose.rot();
                 }
@@ -1268,7 +1273,9 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
                     _prevLeftHandPoleVectorValid = true;
                     _prevLeftHandPoleVector = poleVector;
                 }
-                _prevLeftHandPoleVector = lerp(poleVector, _prevLeftHandPoleVector, POLE_VECTOR_BLEND_FACTOR);
+                glm::quat deltaRot = rotationBetween(_prevLeftHandPoleVector, poleVector);
+                glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
+                _prevLeftHandPoleVector = smoothDeltaRot * _prevLeftHandPoleVector;
 
                 _animVars.set("leftHandPoleVectorEnabled", true);
                 _animVars.set("leftHandPoleReferenceVector", Vectors::UNIT_X);
@@ -1290,8 +1297,8 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
                 // Move hand from controlled position to non-controlled position.
                 _leftHandRelaxTimeRemaining = std::max(_leftHandRelaxTimeRemaining - dt, 0.0f);
                 AnimPose handPose;
-                if (transitionHandPose(_leftHandRelaxTimeRemaining, RELAX_DURATION, _lastLeftHandControlledPose, LEFT_HAND, 
-                        FROM_CONTROLLED, handPose)) {
+                if (transitionHandPose(_leftHandRelaxTimeRemaining, RELAX_DURATION, _lastLeftHandControlledPose,
+                                       LEFT_HAND, FROM_CONTROLLED, handPose)) {
                     _animVars.set("leftHandPosition", handPose.trans());
                     _animVars.set("leftHandRotation", handPose.rot());
                     _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
@@ -1352,7 +1359,9 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
                     _prevRightHandPoleVectorValid = true;
                     _prevRightHandPoleVector = poleVector;
                 }
-                _prevRightHandPoleVector = lerp(poleVector, _prevRightHandPoleVector, POLE_VECTOR_BLEND_FACTOR);
+                glm::quat deltaRot = rotationBetween(_prevRightHandPoleVector, poleVector);
+                glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, ELBOW_POLE_VECTOR_BLEND_FACTOR);
+                _prevRightHandPoleVector = smoothDeltaRot * _prevRightHandPoleVector;
 
                 _animVars.set("rightHandPoleVectorEnabled", true);
                 _animVars.set("rightHandPoleReferenceVector", -Vectors::UNIT_X);
@@ -1401,7 +1410,9 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
                 _prevLeftFootPoleVectorValid = true;
                 _prevLeftFootPoleVector = poleVector;
             }
-            _prevLeftFootPoleVector = lerp(poleVector, _prevLeftFootPoleVector, POLE_VECTOR_BLEND_FACTOR);
+            glm::quat deltaRot = rotationBetween(_prevLeftFootPoleVector, poleVector);
+            glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, KNEE_POLE_VECTOR_BLEND_FACTOR);
+            _prevLeftFootPoleVector = smoothDeltaRot * _prevLeftFootPoleVector;
 
             _animVars.set("leftFootPoleVectorEnabled", true);
             _animVars.set("leftFootPoleReferenceVector", Vectors::UNIT_Z);
@@ -1427,7 +1438,9 @@ void Rig::updateFromHandAndFeetParameters(const HandAndFeetParameters& params, f
                 _prevRightFootPoleVectorValid = true;
                 _prevRightFootPoleVector = poleVector;
             }
-            _prevRightFootPoleVector = lerp(poleVector, _prevRightFootPoleVector, POLE_VECTOR_BLEND_FACTOR);
+            glm::quat deltaRot = rotationBetween(_prevRightFootPoleVector, poleVector);
+            glm::quat smoothDeltaRot = safeMix(deltaRot, Quaternions::IDENTITY, KNEE_POLE_VECTOR_BLEND_FACTOR);
+            _prevRightFootPoleVector = smoothDeltaRot * _prevRightFootPoleVector;
 
             _animVars.set("rightFootPoleVectorEnabled", true);
             _animVars.set("rightFootPoleReferenceVector", Vectors::UNIT_Z);
