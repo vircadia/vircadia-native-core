@@ -1372,12 +1372,12 @@ function badgeSidebarForDifferences(changedElement) {
       badgeValue += 1;
 
       // add a reason to restart
-      if(description && description.restart) {
+      if(description && description.restart != false) {
         reasonsForRestart.push(setting);
       }
     } else {
         // remove a reason to restart
-        if(description && description.restart) {
+        if(description && description.restart != false) {
           reasonsForRestart = $.grep(reasonsForRestart, function(v) { return v != setting; });
       }
     }
