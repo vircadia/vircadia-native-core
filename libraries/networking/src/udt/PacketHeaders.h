@@ -128,6 +128,8 @@ public:
 
 using PacketType = PacketTypeEnum::Value;
 
+extern const QHash<PacketType, PacketType> REPLICATED_PACKET_MAPPING;
+
 const int NUM_BYTES_MD5_HASH = 16;
 
 typedef char PacketVersion;

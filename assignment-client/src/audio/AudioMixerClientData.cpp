@@ -124,27 +124,18 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
         auto nodeList = DependencyManager::get<NodeList>();
 
         // now make sure it's a packet type that we want to replicate
-        PacketType mirroredType;
 
-        switch (message.getType()) {
-            case PacketType::MicrophoneAudioNoEcho:
-            case PacketType::ReplicatedMicrophoneAudioNoEcho:
-                mirroredType = PacketType::ReplicatedMicrophoneAudioNoEcho;
-                break;
-            case PacketType::MicrophoneAudioWithEcho:
-            case PacketType::ReplicatedMicrophoneAudioWithEcho:
-                mirroredType = PacketType::ReplicatedMicrophoneAudioWithEcho;
-                break;
-            case PacketType::InjectAudio:
-            case PacketType::ReplicatedInjectAudio:
-                mirroredType = PacketType::ReplicatedInjectAudio;
-                break;
-            case PacketType::SilentAudioFrame:
-            case PacketType::ReplicatedSilentAudioFrame:
-                mirroredType = PacketType::ReplicatedSilentAudioFrame;
-                break;
-            default:
+        // first check if it is an original type that we should replicate
+        PacketType mirroredType = REPLICATED_PACKET_MAPPING.value(message.getType());
+
+        if (mirroredType == PacketType::Unknown) {
+            // if it wasn't check if it is a replicated type that we should re-replicate
+            if (REPLICATED_PACKET_MAPPING.key(message.getType()) != PacketType::Unknown) {
+                mirroredType = message.getType();
+            } else {
+                qDebug() << "Packet passed to optionallyReplicatePacket was not a replicatable type - returning";
                 return;
+            }
         }
 
         std::unique_ptr<NLPacket> packet;

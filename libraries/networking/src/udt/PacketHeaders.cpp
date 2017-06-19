@@ -44,6 +44,15 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::ReplicatedInjectAudio << PacketType::ReplicatedSilentAudioFrame
     << PacketType::ReplicatedAvatarIdentity << PacketType::ReplicatedKillAvatar << PacketType::ReplicatedBulkAvatarData;
 
+const QHash<PacketType, PacketType> REPLICATED_PACKET_MAPPING {
+    { PacketType::MicrophoneAudioNoEcho, PacketType::ReplicatedMicrophoneAudioNoEcho },
+    { PacketType::MicrophoneAudioWithEcho, PacketType::ReplicatedMicrophoneAudioWithEcho },
+    { PacketType::InjectAudio, PacketType::ReplicatedInjectAudio },
+    { PacketType::SilentAudioFrame, PacketType::ReplicatedSilentAudioFrame },
+    { PacketType::AvatarIdentity, PacketType::ReplicatedAvatarIdentity },
+    { PacketType::KillAvatar, PacketType::ReplicatedKillAvatar },
+};
+
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
         case PacketType::DomainList:

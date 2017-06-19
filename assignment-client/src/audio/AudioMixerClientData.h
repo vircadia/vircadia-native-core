@@ -26,7 +26,6 @@
 #include "PositionalAudioStream.h"
 #include "AvatarAudioStream.h"
 
-
 class AudioMixerClientData : public NodeData {
     Q_OBJECT
 public:

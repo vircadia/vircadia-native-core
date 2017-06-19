@@ -127,9 +127,21 @@ void AvatarMixer::handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessag
 
 void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node& node) {
     // first, make sure that this is a packet from a node we are supposed to replicate
-    if (node.isReplicated()
-        && (message.getType() == PacketType::KillAvatar || message.getType() == PacketType::ReplicatedKillAvatar)) {
-        PacketType replicatedType = PacketType::ReplicatedKillAvatar;
+    if (node.isReplicated()) {
+
+        // check if this is a packet type we replicate
+        // which means it must be a packet type present in REPLICATED_PACKET_MAPPING or must be the
+        // replicated version of one of those packet types
+        PacketType replicatedType = REPLICATED_PACKET_MAPPING.value(message.getType());
+
+        if (replicatedType == PacketType::Unknown) {
+            if (REPLICATED_PACKET_MAPPING.key(message.getType()) != PacketType::Unknown) {
+                replicatedType = message.getType();
+            } else {
+                qDebug() << __FUNCTION__ << "called without replicatable packet type - returning";
+                return;
+            }
+        }
 
         std::unique_ptr<NLPacket> packet;
 
