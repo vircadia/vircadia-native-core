@@ -13,10 +13,10 @@
 
 #include <glm/glm.hpp>
 
-#include "AABox.h"
+#include <AABox.h>
 
-#include "gpu/Resource.h"
-#include "gpu/Stream.h"
+#include <gpu/Resource.h>
+#include <gpu/Stream.h>
 
 namespace model {
 typedef gpu::BufferView::Index Index;

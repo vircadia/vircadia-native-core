@@ -16,9 +16,9 @@
 #include <SharedUtil.h>
 #include <Octree.h>
 #include <OctreePacketData.h>
-#include <OctreeHeadlessViewer.h>
 #include <ViewFrustum.h>
 
+#include "../octree/OctreeHeadlessViewer.h"
 #include "EntityTree.h"
 
 class EntitySimulation;

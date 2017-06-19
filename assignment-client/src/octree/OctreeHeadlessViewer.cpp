@@ -9,17 +9,14 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <NodeList.h>
-
-#include "OctreeLogging.h"
 #include "OctreeHeadlessViewer.h"
 
-OctreeHeadlessViewer::OctreeHeadlessViewer() : OctreeRenderer() {
-    _viewFrustum.setProjection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), DEFAULT_ASPECT_RATIO, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
-}
+#include <NodeList.h>
+#include <OctreeLogging.h>
 
-void OctreeHeadlessViewer::init() {
-    OctreeRenderer::init();
+
+OctreeHeadlessViewer::OctreeHeadlessViewer() {
+    _viewFrustum.setProjection(glm::perspective(glm::radians(DEFAULT_FIELD_OF_VIEW_DEGREES), DEFAULT_ASPECT_RATIO, DEFAULT_NEAR_CLIP, DEFAULT_FAR_CLIP));
 }
 
 void OctreeHeadlessViewer::queryOctree() {

@@ -529,7 +529,11 @@ void ScriptEngines::launchScriptEngine(ScriptEngine* scriptEngine) {
         initializer(scriptEngine);
     }
 
-    auto const wantDebug = scriptEngine->isDebuggable() || (qApp->queryKeyboardModifiers() & Qt::ShiftModifier);
+    // FIXME disabling 'shift key' debugging for now.  If you start up the application with 
+    // the shift key held down, it triggers a deadlock because of script interfaces running 
+    // on the main thread
+    auto const wantDebug = scriptEngine->isDebuggable(); //  || (qApp->queryKeyboardModifiers() & Qt::ShiftModifier);
+    
     if (HIFI_SCRIPT_DEBUGGABLES && wantDebug) {
         scriptEngine->runDebuggable();
     } else {

@@ -14,13 +14,14 @@
 
 #include <Model.h>
 #include <ZoneEntityItem.h>
+#include "RenderableEntityItem.h"
 
 class NetworkGeometry;
 class KeyLightPayload;
 
 class RenderableZoneEntityItemMeta;
 
-class RenderableZoneEntityItem : public ZoneEntityItem  {
+class RenderableZoneEntityItem : public ZoneEntityItem, public RenderableEntityInterface  {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     
@@ -30,6 +31,8 @@ public:
         _needsInitialSimulation(true)
     { }
     
+    RenderableEntityInterface* getRenderableInterface() override { return this; }
+
     virtual bool setProperties(const EntityItemProperties& properties) override;
     virtual void somethingChangedNotification() override;
 
@@ -41,8 +44,8 @@ public:
     virtual void render(RenderArgs* args) override;
     virtual bool contains(const glm::vec3& point) const override;
     
-    virtual bool addToScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
-    virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    virtual bool addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    virtual void removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
     
     render::ItemID getRenderItemID() const { return _myMetaItem; }
     

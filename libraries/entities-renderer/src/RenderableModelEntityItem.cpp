@@ -213,7 +213,7 @@ namespace render {
         if (args) {
             if (payload && payload->entity) {
                 PROFILE_RANGE(render_detail, "MetaModelRender");
-                payload->entity->render(args);
+                payload->entity->getRenderableInterface()->render(args);
             }
         }
     }
@@ -228,7 +228,7 @@ namespace render {
     }
 }
 
-bool RenderableModelEntityItem::addToScene(EntityItemPointer self, const render::ScenePointer& scene,
+bool RenderableModelEntityItem::addToScene(const EntityItemPointer& self, const render::ScenePointer& scene,
                                             render::Transaction& transaction) {
     _myMetaItem = scene->allocateID();
 
@@ -249,7 +249,7 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, const render:
     return true;
 }
 
-void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, const render::ScenePointer& scene,
+void RenderableModelEntityItem::removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene,
                                                 render::Transaction& transaction) {
     transaction.removeItem(_myMetaItem);
     render::Item::clearID(_myMetaItem);
@@ -390,7 +390,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         if (!_model || _needsModelReload) {
             // TODO: this getModel() appears to be about 3% of model render time. We should optimize
             PerformanceTimer perfTimer("getModel");
-            auto renderer = qSharedPointerCast<EntityTreeRenderer>(args->_renderer);
+            auto renderer = qSharedPointerCast<EntityTreeRenderer>(args->_renderData);
             getModel(renderer);
 
             // Remap textures immediately after loading to avoid flicker

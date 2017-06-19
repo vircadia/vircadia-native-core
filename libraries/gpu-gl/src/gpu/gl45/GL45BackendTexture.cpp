@@ -123,7 +123,7 @@ GLuint GL45Texture::allocate(const Texture& texture) {
     glCreateTextures(getGLTextureType(texture), 1, &result);
 #ifdef DEBUG
     auto source = texture.source();
-    glObjectLabel(GL_TEXTURE, result, source.length(), source.data());
+    glObjectLabel(GL_TEXTURE, result, (GLsizei)source.length(), source.data());
 #endif
     return result;
 }

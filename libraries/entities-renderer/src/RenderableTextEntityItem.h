@@ -19,7 +19,7 @@
 
 const int FIXED_FONT_POINT_SIZE = 40;
 
-class RenderableTextEntityItem : public TextEntityItem  {
+class RenderableTextEntityItem : public TextEntityItem, public SimplerRenderableEntitySupport {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderableTextEntityItem(const EntityItemID& entityItemID) : TextEntityItem(entityItemID) { }

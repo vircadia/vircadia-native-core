@@ -12,28 +12,17 @@
 #ifndef hifi_OctreeHeadlessViewer_h
 #define hifi_OctreeHeadlessViewer_h
 
-#include <udt/PacketHeaders.h>
-#include <SharedUtil.h>
-#include <ViewFrustum.h>
+#include <OctreeProcessor.h>
+#include <JurisdictionListener.h>
+#include <OctreeQuery.h>
 
-#include "JurisdictionListener.h"
-#include "Octree.h"
-#include "OctreeConstants.h"
-#include "OctreeQuery.h"
-#include "OctreeRenderer.h"
-#include "OctreeSceneStats.h"
-#include "Octree.h"
 
 // Generic client side Octree renderer class.
-class OctreeHeadlessViewer : public OctreeRenderer {
+class OctreeHeadlessViewer : public OctreeProcessor {
     Q_OBJECT
 public:
     OctreeHeadlessViewer();
     virtual ~OctreeHeadlessViewer() {};
-    virtual void renderElement(OctreeElementPointer element, RenderArgs* args) override { /* swallow these */ }
-
-    virtual void init() override ;
-    virtual void render(RenderArgs* renderArgs) override { /* swallow these */ }
 
     void setJurisdictionListener(JurisdictionListener* jurisdictionListener) { _jurisdictionListener = jurisdictionListener; }
     
@@ -71,6 +60,7 @@ private:
     JurisdictionListener* _jurisdictionListener = nullptr;
     OctreeQuery _octreeQuery;
 
+    ViewFrustum _viewFrustum;
     float _voxelSizeScale { DEFAULT_OCTREE_SIZE_SCALE };
     int _boundaryLevelAdjust { 0 };
     int _maxPacketsPerSecond { DEFAULT_MAX_OCTREE_PPS };
