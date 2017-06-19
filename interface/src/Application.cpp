@@ -1503,7 +1503,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     EntityItem::setEntitiesShouldFadeFunction([this]() {
         SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
-        return entityServerNode && !isPhysicsEnabled();
+        return entityServerNode; /*&& !isPhysicsEnabled()*/ // Why shouldn't we fade when physics is enabled??;
     });
 
     QFileInfo inf = QFileInfo(PathUtils::resourcesPath() + "sounds/snap.wav");
