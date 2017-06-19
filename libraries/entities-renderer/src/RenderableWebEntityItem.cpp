@@ -198,7 +198,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     #endif
 
     if (!_webSurface) {
-        auto renderer = qSharedPointerCast<EntityTreeRenderer>(args->_renderer);
+        auto renderer = qSharedPointerCast<EntityTreeRenderer>(args->_renderData);
         if (!buildWebSurface(renderer)) {
             return;
         }

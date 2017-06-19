@@ -20,13 +20,15 @@
 class Model;
 class EntityTreeRenderer;
 
-class RenderableModelEntityItem : public ModelEntityItem {
+class RenderableModelEntityItem : public ModelEntityItem, RenderableEntityInterface {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     RenderableModelEntityItem(const EntityItemID& entityItemID, bool dimensionsInitialized);
 
     virtual ~RenderableModelEntityItem();
+
+    RenderableEntityInterface* getRenderableInterface() override { return this; }
 
     virtual void setDimensions(const glm::vec3& value) override;
     virtual void setModelURL(const QString& url) override;
@@ -40,8 +42,8 @@ public:
 
     void doInitialModelSimulation();
 
-    virtual bool addToScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
-    virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    virtual bool addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    virtual void removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
 
 
     void updateModelBounds();

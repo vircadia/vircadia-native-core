@@ -23,7 +23,7 @@ bool OctreeElementBag::isEmpty() {
     return _bagElements.empty();
 }
 
-void OctreeElementBag::insert(OctreeElementPointer element) {
+void OctreeElementBag::insert(const OctreeElementPointer& element) {
     _bagElements[element.get()] = element;
 }
 
