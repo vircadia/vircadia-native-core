@@ -80,7 +80,7 @@ protected:
 
     virtual void processPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) override;
 
-    virtual unsigned long getMaxWait() const override;
+    virtual uint32_t getMaxWait() const override;
     virtual void preProcess() override;
     virtual void midProcess() override;
 

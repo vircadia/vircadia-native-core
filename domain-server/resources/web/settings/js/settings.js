@@ -223,6 +223,14 @@ $(document).ready(function(){
             // set focus to the first input in the new row
             $target.closest('table').find('tr.inputs input:first').focus();
           }
+          
+          var tableRows = sibling.parent();
+          var tableBody = tableRows.parent();
+          
+          // if theres no more siblings, we should jump to a new row
+          if (sibling.next().length == 0 && tableRows.nextAll().length == 1) {
+              tableBody.find("." + Settings.ADD_ROW_BUTTON_CLASS).click();
+          }
         }
 
       } else if ($target.is('input')) {
@@ -1320,6 +1328,18 @@ function makeTableCategoryInput(setting, numVisibleColumns) {
   return html;
 }
 
+function getDescriptionForKey(key) {
+  for (var i in Settings.data.descriptions) {
+    if (Settings.data.descriptions[i].name === key) {
+      return Settings.data.descriptions[i];
+    }
+  }
+}
+
+var SAVE_BUTTON_LABEL_SAVE = "Save";
+var SAVE_BUTTON_LABEL_RESTART = "Save and restart";
+var reasonsForRestart = [];
+
 function badgeSidebarForDifferences(changedElement) {
   // figure out which group this input is in
   var panelParentID = changedElement.closest('.panel').attr('id');
@@ -1342,13 +1362,24 @@ function badgeSidebarForDifferences(changedElement) {
   }
 
   var badgeValue = 0
+  var description = getDescriptionForKey(panelParentID);
 
   // badge for any settings we have that are not the same or are not present in initialValues
   for (var setting in panelJSON) {
     if ((!_.has(initialPanelJSON, setting) && panelJSON[setting] !== "") ||
       (!_.isEqual(panelJSON[setting], initialPanelJSON[setting])
       && (panelJSON[setting] !== "" || _.has(initialPanelJSON, setting)))) {
-      badgeValue += 1
+      badgeValue += 1;
+
+      // add a reason to restart
+      if (description && description.restart != false) {
+        reasonsForRestart.push(setting);
+      }
+    } else {
+        // remove a reason to restart
+        if (description && description.restart != false) {
+          reasonsForRestart = $.grep(reasonsForRestart, function(v) { return v != setting; });
+      }
     }
   }
 
@@ -1357,6 +1388,7 @@ function badgeSidebarForDifferences(changedElement) {
     badgeValue = ""
   }
 
+  $(".save-button").html(reasonsForRestart.length > 0 ? SAVE_BUTTON_LABEL_RESTART : SAVE_BUTTON_LABEL_SAVE);
   $("a[href='#" + panelParentID + "'] .badge").html(badgeValue);
 }
 

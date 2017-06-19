@@ -49,7 +49,7 @@ signals:
     void audioClippingChanged();
     void audioLevelChanged();
     void isHMDChanged();
-    void showAudioToolsChanged(bool showAudioTools);
+    void showAudioToolsChanged(bool show);
 
 protected:
     Q_INVOKABLE void resetSensors();

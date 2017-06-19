@@ -147,6 +147,7 @@
     {
       "name": "security",
       "label": "Security",
+      "restart": false,
       "settings": [
         {
           "name": "http_username",
@@ -866,6 +867,22 @@
           "help": "Limits the scale of avatars in your domain. Cannot be greater than 1000.",
           "placeholder": 3.0,
           "default": 3.0
+        },
+        {
+          "name": "avatar_whitelist",
+          "label": "Avatars Allowed from:",
+          "help": "Comma separated list of URLs (with optional paths) that avatar .fst files are allowed from. If someone attempts to use an avatar with a different domain, it will be rejected and the replacement avatar will be used. If left blank, any domain is allowed.",
+          "placeholder": "",
+          "default": "",
+          "advanced": true
+        },
+        {
+          "name": "replacement_avatar",
+          "label": "Replacement Avatar for disallowed avatars",
+          "help": "A URL for an avatar .fst to be used when someone tries to use an avatar that is not allowed. If left blank, the generic default avatar is used.",
+          "placeholder": "",
+          "default": "",
+          "advanced": true
         }
       ]
     },

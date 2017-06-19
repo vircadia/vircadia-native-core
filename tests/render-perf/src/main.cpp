@@ -507,7 +507,6 @@ public:
         REGISTER_ENTITY_TYPE_WITH_FACTORY(Web, WebEntityItem::factory);
 
         DependencyManager::set<ParentFinder>(_octree->getTree());
-        getEntities()->setViewFrustum(_viewFrustum);
         auto nodeList = DependencyManager::get<LimitedNodeList>();
         NodePermissions permissions;
         permissions.setAll(true);
@@ -735,8 +734,8 @@ private:
     class EntityUpdateOperator : public RecurseOctreeOperator {
     public:
         EntityUpdateOperator(const qint64& now) : now(now) {}
-        bool preRecursion(OctreeElementPointer element) override { return true; }
-        bool postRecursion(OctreeElementPointer element) override {
+        bool preRecursion(const OctreeElementPointer& element) override { return true; }
+        bool postRecursion(const OctreeElementPointer& element) override {
             EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
             entityTreeElement->forEachEntity([&](EntityItemPointer entityItem) {
                 if (!entityItem->isParentIDValid()) {
@@ -865,7 +864,6 @@ private:
             }
         }
 
-        getEntities()->setViewFrustum(_viewFrustum);
         EntityUpdateOperator updateOperator(now);
         //getEntities()->getTree()->recurseTreeWithOperator(&updateOperator);
         {

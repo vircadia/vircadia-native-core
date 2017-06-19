@@ -439,7 +439,7 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
     }
 }
 
-void TabletProxy::pushOntoStack(const QVariant& path) {
+bool TabletProxy::pushOntoStack(const QVariant& path) {
     QObject* root = nullptr;
     if (!_toolbarMode && _qmlTabletRoot) {
         root = _qmlTabletRoot;
@@ -457,6 +457,8 @@ void TabletProxy::pushOntoStack(const QVariant& path) {
     } else {
         qCDebug(scriptengine) << "tablet cannot push QML because _qmlTabletRoot or _desktopWindow is null";
     }
+
+    return root;
 }
 
 void TabletProxy::popFromStack() {
@@ -609,15 +611,6 @@ void TabletProxy::removeButton(QObject* tabletButtonProxy) {
         guard.unlock();
         QMetaObject::invokeMethod(toolbarProxy, "removeButton", Qt::AutoConnection, Q_ARG(QVariant, buttonProxy->getUuid().toString()));
         buttonProxy->setToolbarButtonProxy(nullptr);
-    }
-}
-
-void TabletProxy::updateMicEnabled(const bool micOn) {
-    auto tablet = getQmlTablet();
-    if (!tablet) {
-        //qCCritical(scriptengine) << "Could not find tablet in TabletRoot.qml";
-    } else {
-        QMetaObject::invokeMethod(tablet, "setMicEnabled", Qt::AutoConnection, Q_ARG(QVariant, QVariant(micOn)));
     }
 }
 

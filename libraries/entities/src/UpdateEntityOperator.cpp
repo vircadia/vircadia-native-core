@@ -77,7 +77,7 @@ UpdateEntityOperator::~UpdateEntityOperator() {
 
 
 // does this entity tree element contain the old entity
-bool UpdateEntityOperator::subTreeContainsOldEntity(OctreeElementPointer element) {
+bool UpdateEntityOperator::subTreeContainsOldEntity(const OctreeElementPointer& element) {
 
     // We've found cases where the old entity might be placed in an element that is not actually the best fit
     // so when we're searching the tree for the old element, we use the known cube for the known containing element
@@ -95,7 +95,7 @@ bool UpdateEntityOperator::subTreeContainsOldEntity(OctreeElementPointer element
     return elementContainsOldBox;
 }
 
-bool UpdateEntityOperator::subTreeContainsNewEntity(OctreeElementPointer element) {
+bool UpdateEntityOperator::subTreeContainsNewEntity(const OctreeElementPointer& element) {
     bool elementContainsNewBox = element->getAACube().contains(_newEntityBox);
 
     if (_wantDebug) {
@@ -112,7 +112,7 @@ bool UpdateEntityOperator::subTreeContainsNewEntity(OctreeElementPointer element
 }
 
 
-bool UpdateEntityOperator::preRecursion(OctreeElementPointer element) {
+bool UpdateEntityOperator::preRecursion(const OctreeElementPointer& element) {
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
 
     // In Pre-recursion, we're generally deciding whether or not we want to recurse this
@@ -238,7 +238,7 @@ bool UpdateEntityOperator::preRecursion(OctreeElementPointer element) {
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-bool UpdateEntityOperator::postRecursion(OctreeElementPointer element) {
+bool UpdateEntityOperator::postRecursion(const OctreeElementPointer& element) {
     // Post-recursion is the unwinding process. For this operation, while we
     // unwind we want to mark the path as being dirty if we changed it below.
     // We might have two paths, one for the old entity and one for the new entity.
@@ -270,7 +270,7 @@ bool UpdateEntityOperator::postRecursion(OctreeElementPointer element) {
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-OctreeElementPointer UpdateEntityOperator::possiblyCreateChildAt(OctreeElementPointer element, int childIndex) {
+OctreeElementPointer UpdateEntityOperator::possiblyCreateChildAt(const OctreeElementPointer& element, int childIndex) {
     // If we're getting called, it's because there was no child element at this index while recursing.
     // We only care if this happens while still searching for the new entity location.
     // Check to see if
