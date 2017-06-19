@@ -21,8 +21,8 @@
 #include <QtCore/QSaveFile>
 #include <QtCore/QStorageInfo>
 
-#include <PathUtils.h>
-#include <NumericalConstants.h>
+#include "../PathUtils.h"
+#include "../NumericalConstants.h"
 
 #ifdef Q_OS_WIN
 #include <sys/utime.h>
@@ -132,9 +132,16 @@ FilePointer FileCache::addFile(Metadata&& metadata, const std::string& filepath)
 }
 
 FilePointer FileCache::writeFile(const char* data, File::Metadata&& metadata, bool overwrite) {
+    FilePointer file;
+
+    if (0 == metadata.length) {
+        qCWarning(file_cache) << "Cannot store empty files in the cache";
+        return file;
+    }
+
+
     Lock lock(_mutex);
 
-    FilePointer file;
     if (!_initialized) {
         qCWarning(file_cache) << "File cache used before initialization";
         return file;
