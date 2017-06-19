@@ -18,8 +18,8 @@ var DopplegangerClass = require('./doppleganger.js'),
 
 var tablet = Tablet.getTablet('com.highfidelity.interface.tablet.system'),
     button = tablet.addButton({
-        icon: Script.resolvePath("./Hat4.svg"),
-        // activeIcon: Script.resolvePath("./app-a.svg"),
+        icon: Script.resolvePath('./Pullover-lineart-normal.svg'),
+        activeIcon: Script.resolvePath('./Pullover-lineart-inverted.svg'),
         text: 'Mannequin'
     });
 
