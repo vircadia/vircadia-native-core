@@ -10,10 +10,14 @@
 
 #include "Application.h"
 #include "ResourceImageItem.h"
+
 #include <QOpenGLFramebufferObjectFormat>
+#include <QOpenGLFunctions>
+#include <QOpenGLExtraFunctions>
+#include <QOpenGLContext>
+
 #include <DependencyManager.h>
 #include <TextureCache.h>
-
 
 ResourceImageItem::ResourceImageItem(QQuickItem* parent) : QQuickFramebufferObject(parent) {
     connect(&m_updateTimer, SIGNAL(timeout()), this, SLOT(update()));
@@ -55,26 +59,49 @@ void ResourceImageItemRenderer::synchronize(QQuickFramebufferObject* item) {
     }
 
     _window = resourceImageItem->window();
+    _window->setClearBeforeRendering(true);
     if (_ready && !_url.isNull() && !_url.isEmpty() && (urlChanged || readyChanged || !_networkTexture)) {
         _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_url);
     }
 
     if (_ready && _networkTexture && _networkTexture->isLoaded()) {
         if(_fboMutex.tryLock()) {
-            qApp->getActiveDisplayPlugin()->copyTextureToQuickFramebuffer(_networkTexture, framebufferObject());
+            qApp->getActiveDisplayPlugin()->copyTextureToQuickFramebuffer(_networkTexture, _copyFbo, &_fenceSync);
             _fboMutex.unlock();
         }
     }
+    glFlush();
+
 }
 
 QOpenGLFramebufferObject* ResourceImageItemRenderer::createFramebufferObject(const QSize& size) {
     QOpenGLFramebufferObjectFormat format;
     format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
+    _copyFbo = new QOpenGLFramebufferObject(size, format);
     return new QOpenGLFramebufferObject(size, format);
 }
 
 void ResourceImageItemRenderer::render() {
+    qDebug() << "initial error" << glGetError();
+    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
+    QOpenGLExtraFunctions* extras = QOpenGLContext::currentContext()->extraFunctions();
     _fboMutex.lock();
-    _window->resetOpenGLState();
+    if (_fenceSync) {
+        extras->glWaitSync(_fenceSync, 0, GL_TIMEOUT_IGNORED);
+        qDebug() << "wait error" << glGetError();
+        qDebug() << "waited on fence";
+    }
+    if (_ready) {
+        QOpenGLFramebufferObject::blitFramebuffer(framebufferObject(), _copyFbo, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        /*f->glBindTexture(GL_TEXTURE_2D, _copyFbo->texture());
+        qDebug() << "bind tex error" << f->glGetError() << "texture" << _copyFbo->texture();
+        f->glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, _copyFbo->width(), _copyFbo->height());*/
+        qDebug() << "copy error" << f->glGetError();
+    } else {
+        framebufferObject()->release();
+    }
     _fboMutex.unlock();
+    update();
 }

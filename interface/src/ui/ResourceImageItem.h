@@ -27,8 +27,9 @@ private:
 
     NetworkTexturePointer _networkTexture;
     QQuickWindow* _window;
-    QOpenGLFramebufferObject* _copyFbo;
     QMutex _fboMutex;
+    QOpenGLFramebufferObject* _copyFbo;
+    GLsync _fenceSync { 0 };
 };
 
 class ResourceImageItem : public QQuickFramebufferObject {

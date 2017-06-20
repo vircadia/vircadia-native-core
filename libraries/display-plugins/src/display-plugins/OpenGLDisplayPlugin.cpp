@@ -823,32 +823,37 @@ void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
     }
 }
 
-void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer networkTexture, QOpenGLFramebufferObject* target) {
+void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer networkTexture, QOpenGLFramebufferObject* target, GLsync* fenceSync) {
     auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
     withMainThreadContext([&] {
         GLuint sourceTexture = glBackend->getTextureID(networkTexture->getGPUTexture());
         GLuint targetTexture = target->texture();
         GLuint fbo[2] {0, 0};
-
+        qDebug() << "initial" << glGetError();
         // need mipmaps for blitting texture
         glGenerateTextureMipmap(sourceTexture);
 
         // create 2 fbos (one for initial texture, second for scaled one)
         glCreateFramebuffers(2, fbo);
+        qDebug() << "error" << glGetError();
 
         // setup source fbo
         glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sourceTexture, 0);
+        qDebug() << "error" << glGetError();
 
         // setup destination fbo
         glBindFramebuffer(GL_FRAMEBUFFER, fbo[1]);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, targetTexture, 0);
+        qDebug() << "error" << glGetError();
 
         glBlitNamedFramebuffer(fbo[0], fbo[1], 0, 0, networkTexture->getWidth(), networkTexture->getHeight(), 0, 0, target->width(), target->height(), GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        qDebug() << "error" << glGetError();
 
         // don't delete the textures!
         glDeleteFramebuffers(2, fbo);
-        glFinish();
+        qDebug() << "error" << glGetError();
+        *fenceSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     });
 }
 
