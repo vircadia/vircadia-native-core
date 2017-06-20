@@ -1011,9 +1011,6 @@ void ViveControllerManager::InputDevice::loadSettings() {
     Settings settings;
     settings.beginGroup("PUCK_CONFIG");
     {
-        _preferedConfig = (Config)settings.value("body configuration", QVariant((int)Config::None)).toInt();
-        _headConfig = (HeadConfig)settings.value("head configuration", QVariant((int)HeadConfig::HMD)).toInt();
-        _handConfig = (HandConfig)settings.value("hand configuration", QVariant((int)HandConfig::HandController)).toInt();
     }
     settings.endGroup();
 }
@@ -1022,9 +1019,7 @@ void ViveControllerManager::InputDevice::saveSettings() const {
     Settings settings;
     settings.beginGroup("PUCK_CONFIG");
     {
-        settings.setValue(QString("body configuration"), (int)_preferedConfig);
-        settings.setValue(QString("head configuration"), (int)_headConfig);
-        settings.setValue(QString("hand configuration"), (int)_handConfig);
+
     }
     settings.endGroup();
 }

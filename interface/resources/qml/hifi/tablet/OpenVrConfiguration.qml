@@ -14,6 +14,7 @@ import QtQuick.Controls.Styles 1.4
 import "../../styles-uit"
 import "../../controls"
 import "../../controls-uit" as HifiControls
+import "."
 
 
 Rectangle {
@@ -42,6 +43,7 @@ Rectangle {
 
     HifiConstants { id: hifi }
 
+    Component {  id: screen; CalibratingScreen {} }
     QtObject {
         id: buttonState
         readonly property int disabled: 0
@@ -440,11 +442,11 @@ Rectangle {
         property int color: hifi.buttons.blue
         property int colorScheme: hifi.colorSchemes.light
         property string glyph: hifi.glyphs.avatar1
-        property bool enabled: true
+        property bool enabled: false
         property bool pressed: false
         property bool hovered: false
         property int size: 32
-        property string text: "calibrate"
+        property string text: "apply"
         property int padding: 12
 
         width: glyphButton.width + calibrationText.width + padding
@@ -502,7 +504,6 @@ Rectangle {
                 top: parent.top
                 bottom: parent.bottom
                 bottomMargin: 1
-                verticalCenter: parent.horizontalCenter
             }
         }
             
@@ -526,11 +527,19 @@ Rectangle {
             anchors.fill: parent
             hoverEnabled: true
             onClicked: {
-                openVrConfiguration.countDown = timeToCalibrate.value;
-                numberAnimation.start();
-                calibrationTimer.start();
-                info.visible = true;
-                info.showCountDown = true;
+                if (calibrationButton.enabled) {
+                    calibrationTimer.interval = timeToCalibrate.value * 1000
+                    openVrConfiguration.countDown = timeToCalibrate.value;
+                    numberAnimation.duration = calibrationTimer.interval
+                    numberAnimation.start();
+                    calibrationTimer.start();
+                    var calibratingScreen = screen.createObject();
+                    stack.push(calibratingScreen);
+
+                    calibratingScreen.callingFunction();
+                    calibratingScreen.canceled.connect(cancelCalibration);
+                    calibratingScreen.restart.connect(restartCalibration);
+                }
             }
             
             onPressed: {
@@ -557,8 +566,6 @@ Rectangle {
         interval: 20
         onTriggered: {
             InputConfiguration.calibratePlugin(pluginName)
-            info.visible = false;
-            info.showCountDown = false;
         }
     }
 
@@ -567,12 +574,6 @@ Rectangle {
         repeat: false
         interval: 3000
         onTriggered: {
-            info.showCountDown = false;
-            info.calibrationFailed = false
-            info.calibrationSucceed = false;
-            info.calibrationSucceed = false;
-            info.showCalibrationStatus = false;
-            info.visible = false;
         }
     }
 
@@ -590,6 +591,7 @@ Rectangle {
         anchors.leftMargin: leftMargin
 
         minimumValue: 3
+        value: 3
         label: "Time til calibration ( in seconds )"
         colorScheme: hifi.colorSchemes.dark
 
@@ -609,19 +611,12 @@ Rectangle {
 
     function calibrationStatusInfo(status) {
         if (status["calibrated"]) {
-            info.visible = true;
-            info.showCalibrationStatus = true;
-            info.calibrationSucceed = true;
         } else if (!status["calibrated"]) {
             var uncalibrated = status["success"];
             if (uncalibrated) {
-                info.visible = true;
-                info.showCalibrationStatus = true;
-                info.uncalibrationSucceed = true;
+                
             } else {
-                info.visible = true;
-                info.showCalibrationStatus = true;
-                info.calibrationFailed = true;
+                
             }
         }
         displayTimer.start();
@@ -654,6 +649,14 @@ Rectangle {
         return pucksNeeded;
     }
 
+    function cancelCalibration() {
+        console.log("canceling calibration");
+    }
+
+    function restartCalibration() {
+        console.log("restating calibration");
+    }
+
     function displayConfiguration() {
         var settings = InputConfiguration.configurationSettings(pluginName);
         var configurationType = settings["trackerConfiguration"];
@@ -679,84 +682,6 @@ Rectangle {
             handBox.checked = false;
         }
     }
-
-
-    Rectangle {
-        id: info
-        property bool showCountDown: false
-        property bool showCalibrationStatus: false
-        property bool calibrationFailed: false
-        property bool calibrationSucceed: false
-        property bool uncalibrationSucceed: false
-
-        visible: false
-        color: hifi.colors.baseGray
-        anchors.top: openVrConfiguration.top
-        anchors.bottom: bottomSeperator.bottom
-        anchors.left: openVrConfiguration.left
-        anchors.right: openVrConfiguration.right
-
-        Item {
-            id: countDownContainer
-            visible: info.showCountDown
-            anchors.centerIn: parent
-            RalewayBold {
-                id: countDownText
-
-                text: openVrConfiguration.countDown
-                size: 92
-
-                color: hifi.colors.blueHighlight
-
-                anchors.centerIn: parent
-            }
-        }
-
-        Item {
-            id: calibrationStatus
-            visible: info.showCalibrationStatus
-            anchors.centerIn: parent
-            Item {
-                id: successInfo
-                visible: info.calibrationSucceed
-                anchors.centerIn: parent
-                RalewayBold {
-                    id: successText
-                    text: "Calibration Successful"
-                    size: 42
-                    color: hifi.colors.greenHighlight
-                    anchors.centerIn: parent
-                }
-            }
-
-            Item {
-                id: failedInfo
-                visible: info.calibrationFailed
-                anchors.fill: parent
-                RalewayBold {
-                    id: failedText
-                    text: "Calibration Failed"
-                    size: 42
-                    color: hifi.colors.redAccent
-                    anchors.centerIn: parent
-                }
-            }
-
-            Item {
-                id: uncalibrateInfo
-                visible: info.uncalibrationSucceed
-                anchors.centerIn: parent
-                RalewayBold {
-                    id: uncalibrateText
-                    text: "Uncalibration Successful"
-                    size: 37
-                    color: hifi.colors.greenHighlight
-                    anchors.centerIn: parent
-                }
-            }
-        }
-    }
-
 
     function displayTrackerConfiguration(type) {
         if (type === "Feet") {
@@ -825,12 +750,15 @@ Rectangle {
     function updateCalibrationText() {
         updateButtonState();
         if (buttonState.disabled == state) {
-            calibrationButton.text = "Apply";
+            calibrationButton.enabled = false;
         } else if (buttonState.apply == state) {
+            calibrationButton.enabled = true;
             calibrationButton.text = "Apply";
         } else if (buttonState.applyAndCalibrate == state) {
+            calibrationButton.enabled = true;
             calibrationButton.text =  "Apply And Calibrate";
         } else if (buttonState.calibrate == state) {
+            calibrationButton.enabled = true;
             calibrationButton.text = "Calibrate";
         }
     }

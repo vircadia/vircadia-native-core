@@ -313,7 +313,7 @@ Menu::Menu() {
     action = addActionToQMenuAndActionHash(settingsMenu, "InputConfiguration");
     connect(action, &QAction::triggered, [] {
             auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
-            tablet->loadQMLSource("InputConfiguration.qml");
+            tablet->loadQMLSource("ControllerSettings.qml");
         });
 
     // Settings > Control with Speech [advanced]
