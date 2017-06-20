@@ -14,8 +14,9 @@ import "configSlider"
 Column {
     id: root
     spacing: 8
-    property var sceneOctree: Render.getConfig("DrawSceneOctree");
-    property var itemSelection: Render.getConfig("DrawItemSelection");
+    property var mainViewTask: Render.getConfig("RenderMainView");
+    property var sceneOctree: mainViewTask.getConfig("DrawSceneOctree");
+    property var itemSelection: mainViewTask.getConfig("DrawItemSelection");
 
      Component.onCompleted: {
         sceneOctree.enabled = true;
@@ -30,8 +31,8 @@ Column {
     Component.onDestruction: {
         sceneOctree.enabled = false;
         itemSelection.enabled = false;  
-        Render.getConfig("FetchSceneSelection").freezeFrustum = false;
-        Render.getConfig("CullSceneSelection").freezeFrustum = false;                     
+        mainViewTask.getConfig("FetchSceneSelection").freezeFrustum = false;
+        mainViewTask.getConfig("CullSceneSelection").freezeFrustum = false;                     
     }
 
     GroupBox {
@@ -45,8 +46,8 @@ Column {
                     text: "Freeze Culling Frustum"
                     checked: false
                     onCheckedChanged: { 
-                        Render.getConfig("FetchSceneSelection").freezeFrustum = checked;
-                        Render.getConfig("CullSceneSelection").freezeFrustum = checked;
+                        mainViewTask.getConfig("FetchSceneSelection").freezeFrustum = checked;
+                        mainViewTask.getConfig("CullSceneSelection").freezeFrustum = checked;
                     }
                 }
                 Label {
@@ -103,7 +104,7 @@ Column {
                 ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
                     integral: true
-                    config: Render.getConfig(modelData.split(":")[1])
+                    config: mainViewTask.getConfig(modelData.split(":")[1])
                     property: "maxDrawn"
                     max: config.numDrawn
                     min: -1

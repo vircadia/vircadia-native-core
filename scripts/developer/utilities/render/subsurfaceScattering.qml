@@ -16,28 +16,29 @@ Column {
     Column {
         id: scattering
         spacing: 10
+        property var mainViewTask: Render.getConfig("RenderMainView");
 
        Column{
             CheckBox {
                 text: "Scattering"
-                checked: Render.getConfig("Scattering").enableScattering
-                onCheckedChanged: { Render.getConfig("Scattering").enableScattering = checked }
+                checked: mainViewTask.getConfig("Scattering").enableScattering
+                onCheckedChanged: { mainViewTask.getConfig("Scattering").enableScattering = checked }
             }
 
             CheckBox {
                 text: "Show Scattering BRDF"
-                checked: Render.getConfig("Scattering").showScatteringBRDF
-                onCheckedChanged: { Render.getConfig("Scattering").showScatteringBRDF = checked }
+                checked: mainViewTask.getConfig("Scattering").showScatteringBRDF
+                onCheckedChanged: { mainViewTask.getConfig("Scattering").showScatteringBRDF = checked }
             }
             CheckBox {
                 text: "Show Curvature"
-                checked: Render.getConfig("Scattering").showCurvature
-                onCheckedChanged: { Render.getConfig("Scattering").showCurvature = checked }
+                checked: mainViewTask.getConfig("Scattering").showCurvature
+                onCheckedChanged: { mainViewTask.getConfig("Scattering").showCurvature = checked }
             }
             CheckBox {
                 text: "Show Diffused Normal"
-                checked: Render.getConfig("Scattering").showDiffusedNormal
-                onCheckedChanged: { Render.getConfig("Scattering").showDiffusedNormal = checked }
+                checked: mainViewTask.getConfig("Scattering").showDiffusedNormal
+                onCheckedChanged: { mainViewTask.getConfig("Scattering").showDiffusedNormal = checked }
             }
             Repeater {
                 model: [ "Scattering Bent Red:Scattering:bentRed:2.0",
@@ -50,7 +51,7 @@ Column {
                 ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
                     integral: false
-                    config: Render.getConfig(modelData.split(":")[1])
+                    config: mainViewTask.getConfig(modelData.split(":")[1])
                     property: modelData.split(":")[2]
                     max: modelData.split(":")[3]
                     min: 0.0
@@ -58,23 +59,23 @@ Column {
             }
             CheckBox {
                 text: "Scattering Profile"
-                checked: Render.getConfig("DebugScattering").showProfile
-                onCheckedChanged: { Render.getConfig("DebugScattering").showProfile = checked }
+                checked: mainViewTask.getConfig("DebugScattering").showProfile
+                onCheckedChanged: { mainViewTask.getConfig("DebugScattering").showProfile = checked }
             }
             CheckBox {
                 text: "Scattering Table"
-                checked: Render.getConfig("DebugScattering").showLUT
-                onCheckedChanged: { Render.getConfig("DebugScattering").showLUT = checked }
+                checked: mainViewTask.getConfig("DebugScattering").showLUT
+                onCheckedChanged: { mainViewTask.getConfig("DebugScattering").showLUT = checked }
             }
             CheckBox {
                 text: "Cursor Pixel"
-                checked: Render.getConfig("DebugScattering").showCursorPixel
-                onCheckedChanged: { Render.getConfig("DebugScattering").showCursorPixel = checked }
+                checked: mainViewTask.getConfig("DebugScattering").showCursorPixel
+                onCheckedChanged: { mainViewTask.getConfig("DebugScattering").showCursorPixel = checked }
             }
             CheckBox {
                 text: "Skin Specular Beckmann"
-                checked: Render.getConfig("DebugScattering").showSpecularTable
-                onCheckedChanged: { Render.getConfig("DebugScattering").showSpecularTable = checked }
+                checked: mainViewTask.getConfig("DebugScattering").showSpecularTable
+                onCheckedChanged: { mainViewTask.getConfig("DebugScattering").showSpecularTable = checked }
             }
         }
     }
