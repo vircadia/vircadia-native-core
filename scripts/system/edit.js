@@ -622,7 +622,7 @@ var toolBar = (function () {
         }));
         isActive = active;
         activeButton.editProperties({isActive: isActive});
-	
+
         var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
         if (!isActive) {
@@ -1519,6 +1519,8 @@ function importSVO(importURL) {
                 // entities after they're imported so that they're all the correct distance in front of and with geometric mean
                 // centered on the avatar/camera direction.
                 var deltaPosition = Vec3.ZERO;
+                var entityPositions = [];
+                var entityParentIDs = [];
 
                 var properties = Entities.getEntityProperties(pastedEntityIDs[0], ["type"]);
                 var NO_ADJUST_ENTITY_TYPES = ["Zone", "Light", "ParticleEffect"];
@@ -1534,10 +1536,9 @@ function importSVO(importURL) {
                     var targetPosition = getPositionToCreateEntity();
                     var deltaParallel = HALF_TREE_SCALE;  // Distance to move entities parallel to targetDirection.
                     var deltaPerpendicular = Vec3.ZERO;  // Distance to move entities perpendicular to targetDirection.
-                    var entityPositions = [];
                     for (var i = 0, length = pastedEntityIDs.length; i < length; i++) {
                         var properties = Entities.getEntityProperties(pastedEntityIDs[i], ["position", "dimensions",
-                            "registrationPoint", "rotation"]);
+                            "registrationPoint", "rotation", "parentID"]);
                         var adjustedPosition = adjustPositionPerBoundingBox(targetPosition, targetDirection,
                             properties.registrationPoint, properties.dimensions, properties.rotation);
                         var delta = Vec3.subtract(adjustedPosition, properties.position);
@@ -1546,6 +1547,7 @@ function importSVO(importURL) {
                         deltaPerpendicular = Vec3.sum(Vec3.subtract(delta, Vec3.multiply(distance, targetDirection)),
                             deltaPerpendicular);
                         entityPositions[i] = properties.position;
+                        entityParentIDs[i] = properties.parentID;
                     }
                     deltaPerpendicular = Vec3.multiply(1 / pastedEntityIDs.length, deltaPerpendicular);
                     deltaPosition = Vec3.sum(Vec3.multiply(deltaParallel, targetDirection), deltaPerpendicular);
@@ -1562,9 +1564,11 @@ function importSVO(importURL) {
 
                 if (!Vec3.equal(deltaPosition, Vec3.ZERO)) {
                     for (var i = 0, length = pastedEntityIDs.length; i < length; i++) {
-                        Entities.editEntity(pastedEntityIDs[i], {
-                            position: Vec3.sum(deltaPosition, entityPositions[i])
-                        });
+                        if (Uuid.isNull(entityParentIDs[i])) {
+                            Entities.editEntity(pastedEntityIDs[i], {
+                                position: Vec3.sum(deltaPosition, entityPositions[i])
+                            });
+                        }
                     }
                 }
             }
