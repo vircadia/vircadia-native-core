@@ -59,6 +59,7 @@ Rectangle {
 
             AudioControls.CheckBox {
                 text: qsTr("Mute microphone");
+                isRedCheck: true;
                 checked: Audio.muted;
                 onClicked: {
                     Audio.muted = checked;
