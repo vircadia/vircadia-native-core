@@ -42,38 +42,74 @@
             var colliderName = Entities.getEntityProperties(entityB, 'name').name;
             if (colliderName.indexOf("projectile") > -1) {
 				var smokeImage = {
-                    accelerationSpread: { x: 0, y: 0, z: 0 },
-                    alpha: 1,
-                    alphaFinish: 0,
-                    alphaSpread: 0,
-                    alphaStart: 0.3,
-                    azimuthFinish: 3.1,
-                    azimuthStart: -3.14159,
-                    color: { red: 255, green: 255, blue: 255 },
-                    colorFinish: { red: 255, green: 255, blue: 255 },
-                    colorSpread: { red: 0, green: 0, blue: 0 },
-                    colorStart: { red: 255, green: 255, blue: 255 },
-                    emitAcceleration: { x: 0, y: 0, z: 0 },
-                    emitDimensions: { x: 0, y: 0, z: 0 },
-                    emitOrientation: { x: -0.7, y: 0.0, z: 0.0, w: 0.7 },
-                    emitRate: 0.01,
-                    emitSpeed: 0,
-                    emitterShouldTrail: 0,
-                    isEmitting: 1,
-                    lifespan: 0.5,
-                    lifetime: 0.5,
-                    maxParticles: 1000,
-                    name: 'ball-hit-smoke',
-                    position: Entities.getEntityProperties(entityA, 'position').position,
-                    particleRadius: 0.132,
-                    polarFinish: 0,
-                    polarStart: 0,
-                    radiusFinish: 0.35,
-                    radiusSpread: 0,
-                    radiusStart: 0.132,
-                    speedSpread: 0,
-                    textures: Script.resolvePath('bow/smoke.png'),
-                    type: 'ParticleEffect'
+					"alpha": 0.89999997615814209,
+					"alphaFinish": 0.89999997615814209,
+					"alphaStart": 0.89999997615814209,
+					"azimuthFinish": 0.40000000596046448,
+					"clientOnly": 0,
+					"color": {
+						"blue": 57,
+						"green": 254,
+						"red": 255
+					},
+					"colorFinish": {
+						"blue": 57,
+						"green": 254,
+						"red": 255
+					},
+					"colorSpread": {
+						"blue": 130,
+						"green": 130,
+						"red": 130
+					},
+					"colorStart": {
+						"blue": 57,
+						"green": 254,
+						"red": 255
+					},
+					"created": "2017-01-10T19:17:07Z",
+					"dimensions": {
+						"x": 1.7600001096725464,
+						"y": 1.7600001096725464,
+						"z": 1.7600001096725464
+					},
+					"emitAcceleration": {
+						"x": 0,
+						"y": 0,
+						"z": 0
+					},
+					"emitOrientation": {
+						"w": 0.7070610523223877,
+						"x": -0.70715254545211792,
+						"y": -1.5258869098033756e-05,
+						"z": -1.5258869098033756e-05
+					},
+					"emitRate": 25.200000762939453,
+					"emitSpeed": 0,
+					"id": "{0273087c-a676-4ac2-93ff-f2440517dfb7}",
+					"lastEdited": 1485295831550663,
+					"lastEditedBy": "{dfe734a0-8289-47f6-a1a6-cf3f6d57adac}",
+					"lifespan": 0.80000001192092896,
+					"locked": 1,
+					"owningAvatarID": "{00000000-0000-0000-0000-000000000000}",
+					"particleRadius": 0.30099999904632568,
+					"polarFinish": 3,
+					"queryAACube": {
+						"scale": 3.0484094619750977,
+						"x": -1.5242047309875488,
+						"y": -1.5242047309875488,
+						"z": -1.5242047309875488
+					},
+					"radiusFinish": 0.30099999904632568,
+					"radiusStart": 0.30099999904632568,
+					"rotation": {
+						"w": 0.086696967482566833,
+						"x": -0.53287714719772339,
+						"y": 0.80860012769699097,
+						"z": -0.23394235968589783
+					},
+					"textures": "https://hifi-public.s3.amazonaws.com/alan/Particles/Particle-Sprite-Smoke-1.png",
+					"type": "ParticleEffect"
                 };
 
 				Audio.playSound(BOOF_SOUND, {
