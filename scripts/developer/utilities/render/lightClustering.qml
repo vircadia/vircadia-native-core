@@ -17,18 +17,19 @@ Column {
     Column {
         id: lightClustering
         spacing: 10
+        property var mainViewTask: Render.getConfig("RenderMainView");
 
         Column{
             PlotPerf {
                 title: "Light CLustering Timing"
                 height: 50
-                object: Render.getConfig("LightClustering")
+                object: mainViewTask.getConfig("LightClustering")
                 valueUnit: "ms"
                 valueScale: 1
                 valueNumDigits: "4"
                 plots: [
                     {
-                       object: Render.getConfig("LightClustering"),
+                       object: mainViewTask.getConfig("LightClustering"),
                        prop: "cpuRunTime",
                        label: "time",
                        scale: 1,
@@ -40,19 +41,19 @@ Column {
             PlotPerf {
                 title: "Lights"
                 height: 50
-                object: Render.getConfig("LightClustering")
+                object: mainViewTask.getConfig("LightClustering")
                 valueUnit: ""
                 valueScale: 1
                 valueNumDigits: "0"
                 plots: [
                     {
-                       object: Render.getConfig("LightClustering"),
+                       object: mainViewTask.getConfig("LightClustering"),
                        prop: "numClusteredLights",
                        label: "visible",
                        color: "#D959FE"
                    },
                    {
-                        object: Render.getConfig("LightClustering"),
+                        object: mainViewTask.getConfig("LightClustering"),
                         prop: "numInputLights",
                         label: "input",
                         color: "#FED959"
@@ -63,25 +64,25 @@ Column {
              PlotPerf {
                 title: "Scene Lights"
                 height: 80
-                object: Render.getConfig("LightClustering")
+                object: mainViewTask.getConfig("LightClustering")
                 valueUnit: ""
                 valueScale: 1
                 valueNumDigits: "0"
                 plots: [
                     {
-                       object: Render.getConfig("LightClustering"),
+                       object: mainViewTask.getConfig("LightClustering"),
                        prop: "numSceneLights",
                        label: "current",
                        color: "#00B4EF"
                    },
                    {
-                        object: Render.getConfig("LightClustering"),
+                        object: mainViewTask.getConfig("LightClustering"),
                         prop: "numFreeSceneLights",
                         label: "free",
                         color: "#1AC567"
                     },
                    {
-                        object: Render.getConfig("LightClustering"),
+                        object: mainViewTask.getConfig("LightClustering"),
                         prop: "numAllocatedSceneLights",
                         label: "allocated",
                         color: "#9495FF"
@@ -92,7 +93,7 @@ Column {
             ConfigSlider {
                 label: qsTr("Range Near [m]")
                 integral: false
-                config: Render.getConfig("LightClustering")
+                config: mainViewTask.getConfig("LightClustering")
                 property: "rangeNear"
                 max: 20.0
                 min: 0.1
@@ -100,7 +101,7 @@ Column {
             ConfigSlider {
                 label: qsTr("Range Far [m]")
                 integral: false
-                config: Render.getConfig("LightClustering")
+                config: mainViewTask.getConfig("LightClustering")
                 property: "rangeFar"
                 max: 500.0
                 min: 100.0
@@ -108,7 +109,7 @@ Column {
             ConfigSlider {
                 label: qsTr("Grid X")
                 integral: true
-                config: Render.getConfig("LightClustering")
+                config: mainViewTask.getConfig("LightClustering")
                 property: "dimX"
                 max: 32
                 min: 1
@@ -116,7 +117,7 @@ Column {
             ConfigSlider {
                 label: qsTr("Grid Y")
                 integral: true
-                config: Render.getConfig("LightClustering")
+                config: mainViewTask.getConfig("LightClustering")
                 property: "dimY"
                 max: 32
                 min: 1
@@ -124,33 +125,33 @@ Column {
             ConfigSlider {
                 label: qsTr("Grid Z")
                 integral: true
-                config: Render.getConfig("LightClustering")
+                config: mainViewTask.getConfig("LightClustering")
                 property: "dimZ"
                 max: 31
                 min: 1
             }
             CheckBox {
                     text: "Freeze"
-                    checked: Render.getConfig("LightClustering")["freeze"]
-                    onCheckedChanged: { Render.getConfig("LightClustering")["freeze"] = checked }
+                    checked: mainViewTask.getConfig("LightClustering")["freeze"]
+                    onCheckedChanged: { mainViewTask.getConfig("LightClustering")["freeze"] = checked }
             }
             CheckBox {
                     text: "Draw Grid"
-                    checked: Render.getConfig("DebugLightClusters")["doDrawGrid"]
-                    onCheckedChanged: { Render.getConfig("DebugLightClusters")["doDrawGrid"] = checked }
+                    checked: mainViewTask.getConfig("DebugLightClusters")["doDrawGrid"]
+                    onCheckedChanged: { mainViewTask.getConfig("DebugLightClusters")["doDrawGrid"] = checked }
             }
             CheckBox {
                     text: "Draw Cluster From Depth"
-                    checked: Render.getConfig("DebugLightClusters")["doDrawClusterFromDepth"]
-                    onCheckedChanged: { Render.getConfig("DebugLightClusters")["doDrawClusterFromDepth"] = checked }
+                    checked: mainViewTask.getConfig("DebugLightClusters")["doDrawClusterFromDepth"]
+                    onCheckedChanged: { mainViewTask.getConfig("DebugLightClusters")["doDrawClusterFromDepth"] = checked }
             }
             CheckBox {
                     text: "Draw Content"
-                    checked: Render.getConfig("DebugLightClusters")["doDrawContent"]
-                    onCheckedChanged: { Render.getConfig("DebugLightClusters")["doDrawContent"] = checked }
+                    checked: mainViewTask.getConfig("DebugLightClusters")["doDrawContent"]
+                    onCheckedChanged: { mainViewTask.getConfig("DebugLightClusters")["doDrawContent"] = checked }
             }
             Label {
-                text:  "Num Cluster Items = " + Render.getConfig("LightClustering")["numClusteredLightReferences"].toFixed(0)
+                text:  "Num Cluster Items = " + mainViewTask.getConfig("LightClustering")["numClusteredLightReferences"].toFixed(0)
             }
             
         }
