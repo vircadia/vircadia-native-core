@@ -2,7 +2,7 @@ import QtQuick 2.5
 import QtGraphicalEffects 1.0
 
 import "../../styles-uit"
-import "../audio" as Audio
+import "../audio" as HifiAudio
 
 Item {
     id: tablet
@@ -101,7 +101,7 @@ Item {
             }
         }
 
-        Audio.MicBar {
+        HifiAudio.MicBar {
             anchors {
                 left: parent.left
                 leftMargin: 30
