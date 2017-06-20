@@ -1023,6 +1023,8 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
         emit inputReceived(audioBuffer);
     }
 
+    emit inputLoudnessChanged(_lastInputLoudness);
+
     // state machine to detect gate opening and closing
     bool audioGateOpen = (_lastInputLoudness != 0.0f);
     bool openedInLastBlock = !_audioGateOpen && audioGateOpen;  // the gate just opened
