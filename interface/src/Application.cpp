@@ -462,10 +462,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
         auto version = DependencyManager::get<AddressManager>()->protocolVersion();
         fputs(version.toLatin1().data(), fp);
     });
-    reportAndQuit("--installationPortal", [&](FILE* fp) {
-        auto steamClient = PluginManager::getInstance()->getSteamClientPlugin();
-        bool isSteam = steamClient && steamClient->init();
-        fputs(isSteam ? "steam" : "download", fp);
+    reportAndQuit("--version", [&](FILE* fp) {
+        fputs(BuildInfo::VERSION.toLatin1().data(), fp);
     });
 
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
