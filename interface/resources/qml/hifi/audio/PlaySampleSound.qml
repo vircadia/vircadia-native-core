@@ -22,7 +22,7 @@ RowLayout {
     property var sample: null;
     property bool isPlaying: false;
     function createSampleSound() {
-    var SOUND = Qt.resolvedUrl("../../../sounds/sample.wav");
+        var SOUND = Qt.resolvedUrl("../../../sounds/sample.wav");
         sound = SoundCache.getSound(SOUND);
         sample = null;
     }
@@ -60,7 +60,7 @@ RowLayout {
                     }
                 }
             }
-            label: RalewayRegular {
+            label: HiFiGlyphs {
                 // absolutely position due to asymmetry in glyph
                 x: isPlaying ? 0 : 1;
                 y: 1;
