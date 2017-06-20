@@ -391,7 +391,7 @@ void AudioMixer::start() {
     // prepare the NodeList
     nodeList->addSetOfNodeTypesToNodeInterestSet({
         NodeType::Agent, NodeType::EntityScriptServer,
-        NodeType::UpstreamAudioMixer, NodeType::UpstreamAvatarMixer
+        NodeType::UpstreamAudioMixer, NodeType::DownstreamAudioMixer
     });
     nodeList->linkedDataCreateCallback = [&](Node* node) { getOrCreateClientData(node); };
 

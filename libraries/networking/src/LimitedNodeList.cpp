@@ -264,8 +264,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
             NodeType_t sendingNodeType { NodeType::Unassigned };
 
             eachNodeBreakable([&packet, &sendingNodeType](const SharedNodePointer& node){
-                if (node->getType() == NodeType::upstreamType(node->getType())
-                    && node->getPublicSocket() == packet.getSenderSockAddr()) {
+                if (NodeType::isUpstream(node->getType()) && node->getPublicSocket() == packet.getSenderSockAddr()) {
                     sendingNodeType = node->getType();
                     return false;
                 } else {
