@@ -557,7 +557,7 @@ public slots:
     void setEnableDebugDrawSensorToWorldMatrix(bool isEnabled);
     void setEnableDebugDrawIKTargets(bool isEnabled);
     void setEnableDebugDrawIKConstraints(bool isEnabled);
-    void setEnableDebugDrawIKChains(bool isEnabled);    
+    void setEnableDebugDrawIKChains(bool isEnabled);
 
     bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
