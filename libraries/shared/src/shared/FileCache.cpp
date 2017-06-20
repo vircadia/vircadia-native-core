@@ -118,12 +118,18 @@ void FileCache::initialize() {
     _initialized = true;
 }
 
+std::unique_ptr<File> FileCache::createFile(Metadata&& metadata, const std::string& filepath) {
+    return std::unique_ptr<File>(new cache::File(std::move(metadata), filepath));
+}
+
 FilePointer FileCache::addFile(Metadata&& metadata, const std::string& filepath) {
-    FilePointer file(createFile(std::move(metadata), filepath).release(), std::mem_fn(&File::deleter));
+    File* rawFile = createFile(std::move(metadata), filepath).release();
+    FilePointer file(rawFile, std::bind(&File::deleter, rawFile));
     if (file) {
         _numTotalFiles += 1;
         _totalFilesSize += file->getLength();
-        file->_cache = this;
+        file->_parent = shared_from_this();
+        file->_locked = true;
         emit dirty();
 
         _files[file->getKey()] = file;
@@ -170,7 +176,7 @@ FilePointer FileCache::writeFile(const char* data, File::Metadata&& metadata, bo
     } else {
         qCWarning(file_cache, "[%s] Failed to write %s", _dirname.c_str(), metadata.key.c_str());
     }
-
+    assert(!file || (file->_locked && file->_parent.lock()));
     return file;
 }
 
@@ -192,8 +198,12 @@ FilePointer FileCache::getFile(const Key& key) {
             file->touch();
             // if it exists, it is active - remove it from the cache
             if (_unusedFiles.erase(file)) {
+                assert(!file->_locked);
+                file->_locked = true;
                 _numUnusedFiles -= 1;
                 _unusedFilesSize -= file->getLength();
+            } else {
+                assert(file->_locked);
             }
             qCDebug(file_cache, "[%s] Found %s", _dirname.c_str(), key.c_str());
             emit dirty();
@@ -203,6 +213,7 @@ FilePointer FileCache::getFile(const Key& key) {
         }
     }
 
+    assert(!file || (file->_locked && file->_parent.lock()));
     return file;
 }
 
@@ -213,7 +224,8 @@ std::string FileCache::getFilepath(const Key& key) {
 // This is a non-public function that uses the mutex because it's 
 // essentially a public function specifically to a File object
 void FileCache::addUnusedFile(const FilePointer& file) {
-    Lock lock(_mutex);
+    assert(file->_locked);
+    file->_locked = false;
     _files[file->getKey()] = file;
     _unusedFiles.insert(file);
     _numUnusedFiles += 1;
@@ -247,7 +259,7 @@ namespace cache {
 }
 
 void FileCache::eject(const FilePointer& file) {
-    file->_cache = nullptr;
+    file->_locked = false;
     const auto& length = file->getLength();
     const auto& key = file->getKey();
 
@@ -300,18 +312,32 @@ void FileCache::clear() {
     // Mark everything remaining as persisted while effectively ejecting from the cache
     for (auto& file : _unusedFiles) {
         file->_shouldPersist = true;
-        file->_cache = nullptr;
+        file->_parent.reset();
         qCDebug(file_cache, "[%s] Persisting %s", _dirname.c_str(), file->getKey().c_str());
     }
     _unusedFiles.clear();
 }
 
-void File::deleter() {
-    if (_cache) {
-        _cache->addUnusedFile(FilePointer(this, std::mem_fn(&File::deleter)));
+void FileCache::releaseFile(File* file) {
+    Lock lock(_mutex);
+    if (file->_locked) {
+        addUnusedFile(FilePointer(file, std::bind(&File::deleter, file)));
     } else {
-        deleteLater();
+        delete file;
     }
+}
+
+void File::deleter(File* file) {
+    // If the cache shut down before the file was destroyed, then we should leave the file alone (prevents crash on shutdown)
+    FileCachePointer cache = file->_parent.lock();
+    if (!cache) {
+        file->_shouldPersist = true;
+        delete file;
+        return;
+    }
+
+    // Any other operations we might do should be done inside a locked section, so we need to delegate to a FileCache member function
+    cache->releaseFile(file);
 }
 
 File::File(Metadata&& metadata, const std::string& filepath) :
@@ -333,3 +359,4 @@ void File::touch() {
     utime(_filepath.c_str(), nullptr);
     _modified = std::max<int64_t>(QFileInfo(_filepath.c_str()).lastRead().toMSecsSinceEpoch(), _modified);
 }
+
