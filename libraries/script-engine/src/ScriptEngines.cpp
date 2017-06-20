@@ -352,6 +352,13 @@ QStringList ScriptEngines::getRunningScripts() {
 void ScriptEngines::stopAllScripts(bool restart) {
     QVector<QString> toReload;
     QReadLocker lock(&_scriptEnginesHashLock);
+
+    if (_isReloading) {
+        return;
+    } else {
+        _isReloading = true;
+    }
+
     for (QHash<QUrl, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
         it != _scriptEnginesHash.constEnd(); it++) {
         ScriptEngine *scriptEngine = it.value();
@@ -371,7 +378,7 @@ void ScriptEngines::stopAllScripts(bool restart) {
     }
     // wait for engines to stop (ie: providing time for .scriptEnding cleanup handlers to run) before
     // triggering reload of any Client scripts / Entity scripts
-    QTimer::singleShot(500, this, [=]() {
+    QTimer::singleShot(1000, this, [=]() {
         for(const auto &scriptName : toReload) {
             auto scriptEngine = getScriptEngine(scriptName);
             if (scriptEngine && !scriptEngine->isFinished()) {
@@ -386,6 +393,7 @@ void ScriptEngines::stopAllScripts(bool restart) {
             qCDebug(scriptengine) << "stopAllScripts -- emitting scriptsReloading";
             emit scriptsReloading();
         }
+        _isReloading = false;
     });
 }
 
