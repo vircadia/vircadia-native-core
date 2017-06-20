@@ -35,13 +35,16 @@ Rectangle {
     Text {
         id: status;
 
-        anchors { verticalCenter: parent.verticalCenter }
+        anchors {
+            horizontalCenter: parent.horizontalCenter;
+            verticalCenter: parent.verticalCenter;
+        }
 
         visible: Audio.muted;
         color: colors.muted;
 
         text: "MUTED";
-        font.pointSize: 12;
+        font.pointSize: 10;
     }
 
     Item {
