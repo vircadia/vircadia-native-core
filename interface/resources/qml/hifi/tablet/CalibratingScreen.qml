@@ -24,6 +24,8 @@ Rectangle {
 
     signal canceled()
     signal restart()
+
+    property int count: 3 
     
     HifiConstants { id: hifi }
     visible: true
@@ -42,6 +44,47 @@ Rectangle {
         running: true
     }
 
+
+    HiFiGlyphs {
+        id: image
+        text: hifi.glyphs.avatar1
+        size: 190
+        color: hifi.colors.white
+
+        anchors {
+            top: busyIndicator.top
+            topMargin: 40
+            horizontalCenter: busyIndicator.horizontalCenter
+        }
+    }
+
+    RalewayBold {
+        id: statusText
+        text: "CALIBRATION STARTING IN"
+        size: 16
+        color: hifi.colors.blueHighlight
+
+        anchors {
+            top: image.bottom
+            topMargin: 15
+            horizontalCenter: image.horizontalCenter
+        }
+    }
+
+
+    RalewayBold {
+        id: countDown
+        text: info.count
+        color: hifi.colors.blueHighlight
+
+        anchors {
+            top: statusText.bottom
+            topMargin: 12
+            horizontalCenter: statusText.horizontalCenter
+        }
+    }
+    
+
     RalewayBold {
         id: directions
 
@@ -54,6 +97,13 @@ Rectangle {
         color: hifi.colors.white
         size: hifi.fontSizes.rootMenuDisclosure
         text: "please stand in a T-Pose during calibration"
+    }
+
+    NumberAnimation {
+        id: numberAnimation
+        target: info
+        property: count
+        to: 0
     }
 
     Row {
@@ -89,10 +139,9 @@ Rectangle {
             }
         }
     }
-
     
-    
+    function start() {
+    }
     function callingFunction() {
-        console.log("---------> calling function from parent <----------------");
     }
 }
