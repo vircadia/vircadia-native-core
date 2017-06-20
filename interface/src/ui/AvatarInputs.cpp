@@ -45,15 +45,6 @@ AvatarInputs::AvatarInputs(QQuickItem* parent) :  QQuickItem(parent) {
         } \
     }
 
-#define AI_UPDATE_FLOAT(name, src, epsilon) \
-    { \
-        float val = src; \
-        if (fabsf(_##name - val) >= epsilon) { \
-            _##name = val; \
-            emit name##Changed(); \
-        } \
-    }
-
 float AvatarInputs::loudnessToAudioLevel(float loudness) {
     const float AUDIO_METER_AVERAGING = 0.5;
     const float LOG2 = log(2.0f);
@@ -85,27 +76,6 @@ void AvatarInputs::update() {
     AI_UPDATE(cameraEnabled, !Menu::getInstance()->isOptionChecked(MenuOption::NoFaceTracking));
     AI_UPDATE(cameraMuted, Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking));
     AI_UPDATE(isHMD, qApp->isHMDMode());
-
-    auto audioIO = DependencyManager::get<AudioClient>();
-
-    const float audioLevel = loudnessToAudioLevel(DependencyManager::get<AudioClient>()->getLastInputLoudness());
-
-    AI_UPDATE_FLOAT(audioLevel, audioLevel, 0.01f);
-    AI_UPDATE(audioClipping, ((audioIO->getTimeSinceLastClip() > 0.0f) && (audioIO->getTimeSinceLastClip() < 1.0f)));
-    AI_UPDATE(audioMuted, audioIO->isMuted());
-
-    //// Make muted icon pulsate
-    //static const float PULSE_MIN = 0.4f;
-    //static const float PULSE_MAX = 1.0f;
-    //static const float PULSE_FREQUENCY = 1.0f; // in Hz
-    //qint64 now = usecTimestampNow();
-    //if (now - _iconPulseTimeReference > (qint64)USECS_PER_SECOND) {
-    //    // Prevents t from getting too big, which would diminish glm::cos precision
-    //    _iconPulseTimeReference = now - ((now - _iconPulseTimeReference) % USECS_PER_SECOND);
-    //}
-    //float t = (float)(now - _iconPulseTimeReference) / (float)USECS_PER_SECOND;
-    //float pulseFactor = (glm::cos(t * PULSE_FREQUENCY * 2.0f * PI) + 1.0f) / 2.0f;
-    //iconColor = PULSE_MIN + (PULSE_MAX - PULSE_MIN) * pulseFactor;
 }
 
 void AvatarInputs::setShowAudioTools(bool showAudioTools) {
@@ -122,10 +92,6 @@ void AvatarInputs::toggleCameraMute() {
     if (faceTracker) {
         faceTracker->toggleMute();
     }
-}
-
-void AvatarInputs::toggleAudioMute() {
-    DependencyManager::get<AudioClient>()->toggleMute();
 }
 
 void AvatarInputs::resetSensors() {
