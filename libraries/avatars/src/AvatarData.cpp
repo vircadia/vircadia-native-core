@@ -1552,9 +1552,6 @@ void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityC
     }
 
     if (_lookAtSnappingEnabled != identity.lookAtSnappingEnabled) {
-#ifdef DEBUG_LOOKAT_SNAPPING
-        qCDebug(avatars) << __FUNCTION__ << identity.sessionDisplayName << "_lookAtSnappingEnabled" << _lookAtSnappingEnabled << "->" << identity.lookAtSnappingEnabled;
-#endif
         setProperty("lookAtSnappingEnabled", identity.lookAtSnappingEnabled);
         identityChanged = true;
     }
