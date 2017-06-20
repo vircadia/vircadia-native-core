@@ -51,6 +51,7 @@ const QHash<PacketType, PacketType> REPLICATED_PACKET_MAPPING {
     { PacketType::SilentAudioFrame, PacketType::ReplicatedSilentAudioFrame },
     { PacketType::AvatarIdentity, PacketType::ReplicatedAvatarIdentity },
     { PacketType::KillAvatar, PacketType::ReplicatedKillAvatar },
+    { PacketType::BulkAvatarData, PacketType::ReplicatedBulkAvatarData }
 };
 
 PacketVersion versionForPacketType(PacketType packetType) {
