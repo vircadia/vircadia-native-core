@@ -2764,7 +2764,7 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
                                               const glm::mat4& currentBodyMatrix, bool hasDriveInput) {
 
     if (myAvatar.getHMDLeanRecenterEnabled()) {
-        if (!isActive(Rotation) && shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix)) {
+        if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Rotation);
         }
         if (!isActive(Horizontal) && shouldActivateHorizontal(myAvatar, desiredBodyMatrix, currentBodyMatrix)) {
