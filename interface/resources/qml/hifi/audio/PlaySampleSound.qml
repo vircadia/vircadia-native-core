@@ -39,7 +39,11 @@ RowLayout {
 
     Component.onCompleted: createSampleSound();
     Component.onDestruction: stopSound();
-    onVisibleChanged: { if (!visible) stopSound(); }
+    onVisibleChanged: {
+        if (!visible) {
+            stopSound();
+        }
+    }
 
     HifiConstants { id: hifi; }
 
