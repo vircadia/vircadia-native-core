@@ -13,6 +13,7 @@ import "configSlider"
 
 Column {
     spacing: 8
+    property var mainViewTask: Render.getConfig("RenderMainView")
     
     Row {
         spacing: 8
@@ -29,8 +30,8 @@ Column {
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]
-                    checked: Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]]
-                    onCheckedChanged: { Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
+                    checked: mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]]
+                    onCheckedChanged: { mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
                 }
             }
         }
@@ -49,8 +50,8 @@ Column {
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]
-                    checked: Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]]
-                    onCheckedChanged: { Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
+                    checked: mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]]
+                    onCheckedChanged: { mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
                 }
             }
         }
@@ -69,8 +70,8 @@ Column {
                 ]
                 CheckBox {
                     text: modelData.split(":")[0]
-                    checked: Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]]
-                    onCheckedChanged: { Render.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
+                    checked: mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]]
+                    onCheckedChanged: { mainViewTask.getConfig(modelData.split(":")[1])[modelData.split(":")[2]] = checked }
                 }
             }
         }
@@ -83,7 +84,7 @@ Column {
             ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
                     integral: false
-                    config: Render.getConfig(modelData.split(":")[1])
+                    config: mainViewTask.getConfig(modelData.split(":")[1])
                     property: modelData.split(":")[2]
                     max: modelData.split(":")[3]
                     min: modelData.split(":")[4]
@@ -107,7 +108,7 @@ Column {
                     ListElement { text: "Filmic"; color: "White" }
                 }
                 width: 200
-                onCurrentIndexChanged: { Render.getConfig("ToneMapping")["curve"] = currentIndex }
+                onCurrentIndexChanged: { mainViewTask.getConfig("ToneMapping")["curve"] = currentIndex }
             }
         }
     }
@@ -120,7 +121,7 @@ Column {
             anchors.left: root.left           
         }
         
-        property var config: Render.getConfig("DebugDeferredBuffer")
+        property var config: mainViewTask.getConfig("DebugDeferredBuffer")
 
         function setDebugMode(mode) {
             framebuffer.config.enabled = (mode != 0);
@@ -168,40 +169,40 @@ Column {
 
         CheckBox {
             text: "Opaques"
-            checked: Render.getConfig("DrawOpaqueBounds")["enabled"]
-            onCheckedChanged: { Render.getConfig("DrawOpaqueBounds")["enabled"] = checked }
+            checked: mainViewTask.getConfig("DrawOpaqueBounds")["enabled"]
+            onCheckedChanged: { mainViewTask.getConfig("DrawOpaqueBounds")["enabled"] = checked }
         }
         CheckBox {
             text: "Transparents"
-            checked: Render.getConfig("DrawTransparentBounds")["enabled"]
-            onCheckedChanged: { Render.getConfig("DrawTransparentBounds")["enabled"] = checked }
+            checked: mainViewTask.getConfig("DrawTransparentBounds")["enabled"]
+            onCheckedChanged: { mainViewTask.getConfig("DrawTransparentBounds")["enabled"] = checked }
         }
         CheckBox {
             text: "Overlay Opaques"
-            checked: Render.getConfig("DrawOverlayOpaqueBounds")["enabled"]
-            onCheckedChanged: { Render.getConfig("DrawOverlayOpaqueBounds")["enabled"] = checked }
+            checked: mainViewTask.getConfig("DrawOverlayOpaqueBounds")["enabled"]
+            onCheckedChanged: { mainViewTask.getConfig("DrawOverlayOpaqueBounds")["enabled"] = checked }
         }
         CheckBox {
             text: "Overlay Transparents"
-            checked: Render.getConfig("DrawOverlayTransparentBounds")["enabled"]
-            onCheckedChanged: { Render.getConfig("DrawOverlayTransparentBounds")["enabled"] = checked }
+            checked: mainViewTask.getConfig("DrawOverlayTransparentBounds")["enabled"]
+            onCheckedChanged: { mainViewTask.getConfig("DrawOverlayTransparentBounds")["enabled"] = checked }
         }
     }
     Column {
         CheckBox {
             text: "Metas"
-            checked: Render.getConfig("DrawMetaBounds")["enabled"]
-            onCheckedChanged: { Render.getConfig("DrawMetaBounds")["enabled"] = checked }
+            checked: mainViewTask.getConfig("DrawMetaBounds")["enabled"]
+            onCheckedChanged: { mainViewTask.getConfig("DrawMetaBounds")["enabled"] = checked }
         }   
         CheckBox {
             text: "Lights"
-            checked: Render.getConfig("DrawLightBounds")["enabled"]
-            onCheckedChanged: { Render.getConfig("DrawLightBounds")["enabled"] = checked; }
+            checked: mainViewTask.getConfig("DrawLightBounds")["enabled"]
+            onCheckedChanged: { mainViewTask.getConfig("DrawLightBounds")["enabled"] = checked; }
         }
         CheckBox {
             text: "Zones"
-            checked: Render.getConfig("DrawZones")["enabled"]
-            onCheckedChanged: { Render.getConfig("ZoneRenderer")["enabled"] = checked; Render.getConfig("DrawZones")["enabled"] = checked; }
+            checked: mainViewTask.getConfig("DrawZones")["enabled"]
+            onCheckedChanged: { mainViewTask.getConfig("ZoneRenderer")["enabled"] = checked; mainViewTask.getConfig("DrawZones")["enabled"] = checked; }
         }
     }
     }
