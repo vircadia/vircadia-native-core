@@ -13,6 +13,7 @@ import "configSlider"
 import "../lib/plotperf"
 
 Column {
+    property var mainViewTask: Render.getConfig("RenderMainView")
     spacing: 8
     Column {
         id: surfaceGeometry
@@ -32,7 +33,7 @@ Column {
                 ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
                     integral: (modelData.split(":")[3] == 'true')
-                    config: Render.getConfig("AmbientOcclusion")
+                    config: mainViewTask.getConfig("AmbientOcclusion")
                     property: modelData.split(":")[1]
                     max: modelData.split(":")[2]
                     min: 0.0
@@ -50,8 +51,8 @@ Column {
                     ]
                     CheckBox {
                         text: qsTr(modelData.split(":")[0])
-                        checked: Render.getConfig("AmbientOcclusion")[modelData.split(":")[1]]
-                        onCheckedChanged: { Render.getConfig("AmbientOcclusion")[modelData.split(":")[1]] = checked }
+                        checked: mainViewTask.getConfig("AmbientOcclusion")[modelData.split(":")[1]]
+                        onCheckedChanged: { mainViewTask.getConfig("AmbientOcclusion")[modelData.split(":")[1]] = checked }
                     } 
                 }
             }
@@ -62,8 +63,8 @@ Column {
                     ]
                     CheckBox {
                         text: qsTr(modelData.split(":")[0])
-                        checked: Render.getConfig("DebugAmbientOcclusion")[modelData.split(":")[1]]
-                        onCheckedChanged: { Render.getConfig("DebugAmbientOcclusion")[modelData.split(":")[1]] = checked }
+                        checked: mainViewTask.getConfig("DebugAmbientOcclusion")[modelData.split(":")[1]]
+                        onCheckedChanged: { mainViewTask.getConfig("DebugAmbientOcclusion")[modelData.split(":")[1]] = checked }
                     } 
                 }
             }    
@@ -72,7 +73,7 @@ Column {
         PlotPerf {
             title: "Timing"
             height: 50
-            object: Render.getConfig("AmbientOcclusion")
+            object: mainViewTask.getConfig("AmbientOcclusion")
             valueUnit: "ms"
             valueScale: 1
             valueNumDigits: "3"
