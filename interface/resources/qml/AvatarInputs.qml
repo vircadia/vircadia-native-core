@@ -12,7 +12,7 @@ import QtQuick.Controls 1.3
 import QtGraphicalEffects 1.0
 import Qt.labs.settings 1.0
 
-import "./hifi/audio" as Audio
+import "./hifi/audio" as Hifi
 
 Hifi.AvatarInputs {
     id: root;
@@ -23,7 +23,7 @@ Hifi.AvatarInputs {
 
     readonly property bool shouldReposition: true;
 
-    Audio.MicBar {
+    HifiAudio.MicBar {
         id: audio;
         visible: root.showAudioTools;
         standalone: true;
