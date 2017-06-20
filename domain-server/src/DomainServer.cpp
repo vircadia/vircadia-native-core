@@ -2302,7 +2302,8 @@ void DomainServer::updateReplicationNodes(ReplicationServerDirection direction) 
                     if (!knownNode) {
                         // manually add the replication node to our node list
                         auto node = nodeList->addOrUpdateNode(QUuid::createUuid(), replicationServer.nodeType,
-                                                              replicationServer.sockAddr, replicationServer.sockAddr);
+                                                              replicationServer.sockAddr, replicationServer.sockAddr,
+                                                              false, direction == Upstream);
                         node->setIsForcedNeverSilent(true);
 
                         qDebug() << "Adding" << (direction == Upstream ? "upstream" : "downstream")

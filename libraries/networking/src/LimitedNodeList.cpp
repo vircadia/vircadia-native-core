@@ -583,14 +583,14 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         matchingNode->setPermissions(permissions);
         matchingNode->setConnectionSecret(connectionSecret);
         matchingNode->setIsReplicated(isReplicated);
-        matchingNode->setIsUpstream(isUpstream);
+        matchingNode->setIsUpstream(isUpstream || NodeType::isUpstream(nodeType));
 
         return matchingNode;
     } else {
         // we didn't have this node, so add them
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
         newNode->setIsReplicated(isReplicated);
-        newNode->setIsUpstream(isUpstream);
+        newNode->setIsUpstream(isUpstream || NodeType::isUpstream(nodeType));
         newNode->setConnectionSecret(connectionSecret);
         newNode->setPermissions(permissions);
 
