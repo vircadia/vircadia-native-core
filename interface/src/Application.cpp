@@ -2503,8 +2503,11 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     Setting::Handle<bool> tutorialComplete{ "tutorialComplete", false };
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
 
+    const QString HIFI_SKIP_TUTORIAL_COMMAND_LINE_KEY = "--skipTutorial";
+    // Skips tutorial/help behavior, and does NOT clear firstRun setting.
+    bool skipTutorial = arguments().contains(HIFI_SKIP_TUTORIAL_COMMAND_LINE_KEY);
     bool isTutorialComplete = tutorialComplete.get();
-    bool shouldGoToTutorial = isUsingHMDAndHandControllers && hasTutorialContent && !isTutorialComplete;
+    bool shouldGoToTutorial = isUsingHMDAndHandControllers && hasTutorialContent && !isTutorialComplete && !skipTutorial;
 
     qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMDAndHandControllers;
     qCDebug(interfaceapp) << "Tutorial version:" << contentVersion << ", sufficient:" << hasTutorialContent <<
@@ -2547,14 +2550,9 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
         }
     } else {
 
-        bool isFirstRun = firstRun.get();
-
-        if (isFirstRun) {
-            showHelp();
-        }
-
         // If this is a first run we short-circuit the address passed in
-        if (isFirstRun) {
+        if (firstRun.get() && !skipTutorial) {
+            showHelp();
             if (isUsingHMDAndHandControllers) {
                 if (sandboxIsRunning) {
                     qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
@@ -2592,7 +2590,9 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     _connectionMonitor.init();
 
     // After all of the constructor is completed, then set firstRun to false.
-    firstRun.set(false);
+    if (!skipTutorial) {
+        firstRun.set(false);
+    }
 }
 
 bool Application::importJSONFromURL(const QString& urlString) {
