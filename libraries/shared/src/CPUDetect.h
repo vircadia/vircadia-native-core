@@ -13,7 +13,7 @@
 #define hifi_CPUDetect_h
 
 //
-// Lightweight functions to detect SSE/AVX/AVX2 support
+// Lightweight functions to detect SSE/AVX/AVX2/AVX512 support
 //
 
 #define MASK_SSE3       (1 << 0)                // SSE3
@@ -24,7 +24,10 @@
 #define MASK_AVX        ((1 << 27) | (1 << 28)) // OSXSAVE and AVX
 #define MASK_AVX2       (1 << 5)                // AVX2
 
-#define MASK_XCR0_YMM   ((1 << 1) | (1 << 2))   // XMM,YMM
+#define MASK_AVX512     ((1 << 16) | (1 << 17) | (1 << 28) | (1 << 30) | (1 << 31)) // AVX512 F,DQ,CD,BW,VL (SKX)
+
+#define MASK_XCR0_YMM   ((1 << 1) | (1 << 2))               // XMM,YMM
+#define MASK_XCR0_ZMM   ((1 << 1) | (1 << 2) | (7 << 5))    // XMM,YMM,ZMM
 
 #if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__x86_64__)
 #define ARCH_X86
@@ -126,6 +129,27 @@ static inline bool cpuSupportsAVX2() {
 
         if ((info[1] & MASK_AVX2) == MASK_AVX2) {
             result = true;
+        }
+    }
+    return result;
+}
+
+static inline bool cpuSupportsAVX512() {
+    int info[4];
+
+    cpuidex(info, 0x1, 0);
+
+    bool result = false;
+    if ((info[2] & MASK_OSXSAVE) == MASK_OSXSAVE) {
+
+        // verify OS support for ZMM state
+        if ((xgetbv(0) & MASK_XCR0_ZMM) == MASK_XCR0_ZMM) {
+
+            cpuidex(info, 0x7, 0);
+
+            if ((info[1] & MASK_AVX512) == MASK_AVX512) {
+                result = true;
+            }
         }
     }
     return result;
