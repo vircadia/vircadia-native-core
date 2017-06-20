@@ -18,6 +18,7 @@ Rectangle {
     readonly property var level: Audio.inputLevel;
 
     property bool standalone: false;
+    property var dragTarget: null;
 
     width: 240;
     height: 50;
@@ -55,10 +56,9 @@ Rectangle {
         }
 
         hoverEnabled: true;
-        preventStealing: true;
-        propagateComposedEvents: false;
         scrollGestureEnabled: false;
         onClicked: { Audio.muted = !Audio.muted; }
+        drag.target: dragTarget;
     }
 
     Item {
