@@ -26,9 +26,6 @@ static Setting::Handle<QString> desktopOutputDeviceSetting { QStringList { Audio
 static Setting::Handle<QString> hmdInputDeviceSetting { QStringList { Audio::AUDIO, Audio::HMD, "INPUT" }};
 static Setting::Handle<QString> hmdOutputDeviceSetting { QStringList { Audio::AUDIO, Audio::HMD, "OUTPUT" }};
 
-const bool hmdSetting = true;
-const bool desktopSetting = false;
-
 Setting::Handle<QString>& getSetting(bool contextIsHMD, QAudio::Mode mode) {
 	if (mode == QAudio::AudioInput) {
 		return contextIsHMD ? hmdInputDeviceSetting : desktopInputDeviceSetting;
