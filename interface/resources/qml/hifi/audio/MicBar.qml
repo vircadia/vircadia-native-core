@@ -19,15 +19,30 @@ Rectangle {
 
     property bool standalone: false;
 
+    width: 240;
+    height: 50;
+
     radius: 5;
-    color: standalone ? colors.fill : "#00000000";
+
+    color: "#00000000";
     border {
         width: (standalone || Audio.muted || mouseArea.containsMouse) ? 2 : 0;
         color: colors.border;
     }
 
-    width: 240;
-    height: 50;
+    // borders are painted over fill, so reduce the fill to fit inside the border
+    Rectangle {
+        color: standalone ? colors.fill : "#00000000";
+        width: 236;
+        height: 46;
+
+        radius: 5;
+
+        anchors {
+            verticalCenter: parent.verticalCenter;
+            horizontalCenter: parent.horizontalCenter;
+        }
+    }
 
     MouseArea {
         id: mouseArea;
@@ -39,10 +54,10 @@ Rectangle {
             bottom: icon.bottom;
         }
 
-        hoverEnabled: true
-        preventStealing: true
-        propagateComposedEvents: false
-        scrollGestureEnabled: false
+        hoverEnabled: true;
+        preventStealing: true;
+        propagateComposedEvents: false;
+        scrollGestureEnabled: false;
         onClicked: { Audio.muted = !Audio.muted; }
     }
 
@@ -55,8 +70,8 @@ Rectangle {
         readonly property string greenStart: "#39A38F";
         readonly property string greenEnd: "#1FC6A6";
         readonly property string red: colors.muted;
-        readonly property string fill: "#4D000000";
-        readonly property string border: "#4DFFFFFF";
+        readonly property string fill: "#55000000";
+        readonly property string border: standalone ? "#80FFFFFF" : "#55FFFFFF";
         readonly property string icon: (Audio.muted && !mouseArea.containsMouse) ? muted : unmuted;
     }
 
