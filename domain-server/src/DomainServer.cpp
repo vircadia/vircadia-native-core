@@ -1650,6 +1650,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_NODES = "/nodes";
     const QString URI_SETTINGS = "/settings";
     const QString URI_ENTITY_FILE_UPLOAD = "/content/upload";
+    const QString URI_RESTART = "/restart";
 
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
@@ -1804,6 +1805,10 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             // send the response
             connection->respond(HTTPConnection::StatusCode200, nodesDocument.toJson(), qPrintable(JSON_MIME_TYPE));
 
+            return true;
+        } else if (url.path() == URI_RESTART) {
+            connection->respond(HTTPConnection::StatusCode200);
+            restart();
             return true;
         } else {
             // check if this is for json stats for a node

@@ -22,7 +22,8 @@ Item {
         spacing: 8
         anchors.fill:parent
  
-        property var config: Render.getConfig("Stats")
+        property var mainViewTask: Render.getConfig("RenderMainView");
+        property var config: mainViewTask.getConfig("Stats")
 
         function evalEvenHeight() {
             // Why do we have to do that manually ? cannot seem to find a qml / anchor / layout mode that does that ?

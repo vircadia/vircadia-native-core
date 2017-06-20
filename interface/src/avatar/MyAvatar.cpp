@@ -1881,15 +1881,14 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
 
 const float RENDER_HEAD_CUTOFF_DISTANCE = 0.3f;
 
-bool MyAvatar::cameraInsideHead() const {
-    const glm::vec3 cameraPosition = qApp->getCamera().getPosition();
+bool MyAvatar::cameraInsideHead(const glm::vec3& cameraPosition) const {
     return glm::length(cameraPosition - getHeadPosition()) < (RENDER_HEAD_CUTOFF_DISTANCE * getUniformScale());
 }
 
 bool MyAvatar::shouldRenderHead(const RenderArgs* renderArgs) const {
     bool defaultMode = renderArgs->_renderMode == RenderArgs::DEFAULT_RENDER_MODE;
     bool firstPerson = qApp->getCamera().getMode() == CAMERA_MODE_FIRST_PERSON;
-    bool insideHead = cameraInsideHead();
+    bool insideHead = cameraInsideHead(renderArgs->getViewFrustum().getPosition());
     return !defaultMode || !firstPerson || !insideHead;
 }
 

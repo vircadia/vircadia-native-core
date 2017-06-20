@@ -93,7 +93,11 @@ namespace gpu {
     using TextureViews = std::vector<TextureView>;
 
     struct StereoState {
+        bool isStereo() const {
+            return _enable && !_contextDisable;
+        }
         bool _enable{ false };
+        bool _contextDisable { false };
         bool _skybox{ false };
         // 0 for left eye, 1 for right eye
         uint8 _pass{ 0 };

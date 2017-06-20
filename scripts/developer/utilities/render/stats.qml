@@ -21,7 +21,8 @@ Item {
         spacing: 8
         anchors.fill:parent
 
-        property var config: Render.getConfig("Stats")
+        property var mainViewTask: Render.getConfig("RenderMainView");
+        property var config: mainViewTask.getConfig("Stats")
 
         function evalEvenHeight() {
             // Why do we have to do that manually ? cannot seem to find a qml / anchor / layout mode that does that ?
@@ -182,9 +183,9 @@ Item {
             ]
         }
 
-        property var drawOpaqueConfig: Render.getConfig("DrawOpaqueDeferred")
-        property var drawTransparentConfig: Render.getConfig("DrawTransparentDeferred")
-        property var drawLightConfig: Render.getConfig("DrawLight")
+        property var drawOpaqueConfig: mainViewTask.getConfig("DrawOpaqueDeferred")
+        property var drawTransparentConfig: mainViewTask.getConfig("DrawTransparentDeferred")
+        property var drawLightConfig: mainViewTask.getConfig("DrawLight")
 
         PlotPerf {
             title: "Items"
@@ -199,13 +200,13 @@ Item {
                     color: "#1AC567"
                 },
                 {
-                    object: Render.getConfig("DrawTransparentDeferred"),
+                    object: mainViewTask.getConfig("DrawTransparentDeferred"),
                     prop: "numDrawn",
                     label: "Translucents",
                     color: "#00B4EF"
                 },
                 {
-                    object: Render.getConfig("DrawLight"),
+                    object: mainViewTask.getConfig("DrawLight"),
                     prop: "numDrawn",
                     label: "Lights",
                     color: "#FED959"
@@ -222,25 +223,25 @@ Item {
            valueNumDigits: "2"
            plots: [
                {
-                   object: Render.getConfig("DrawOpaqueDeferred"),
+                   object: mainViewTask.getConfig("DrawOpaqueDeferred"),
                    prop: "cpuRunTime",
                    label: "Opaques",
                    color: "#1AC567"
                },
                {
-                   object: Render.getConfig("DrawTransparentDeferred"),
+                   object: mainViewTask.getConfig("DrawTransparentDeferred"),
                    prop: "cpuRunTime",
                    label: "Translucents",
                    color: "#00B4EF"
                },
                {
-                   object: Render.getConfig("RenderDeferred"),
+                   object: mainViewTask.getConfig("RenderDeferred"),
                    prop: "cpuRunTime",
                    label: "Lighting",
                    color: "#FED959"
                },
                {
-                   object: Render.getConfig("RenderDeferredTask"),
+                   object: mainViewTask.getConfig("RenderDeferredTask"),
                    prop: "cpuRunTime",
                    label: "RenderFrame",
                    color: "#E2334D"

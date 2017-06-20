@@ -184,6 +184,9 @@ public:
     // will query the underlying hmd api to compute the most recent head pose
     virtual bool beginFrameRender(uint32_t frameIndex) { return true; }
 
+    // Set the texture to display on the monitor and return true, if allowed. Empty string resets.
+    virtual bool setDisplayTexture(const QString& name) { return false; }
+
     virtual float devicePixelRatio() { return 1.0f; }
     // Rate at which we render frames
     virtual float renderRate() const { return -1.0f; }
