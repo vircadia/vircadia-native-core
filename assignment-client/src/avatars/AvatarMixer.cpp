@@ -57,7 +57,7 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     packetReceiver.registerListenerForTypes({
         PacketType::ReplicatedAvatarIdentity,
         PacketType::ReplicatedKillAvatar
-    }, this, "handleReplicatedPackets");
+    }, this, "handleReplicatedPacket");
 
     packetReceiver.registerListener(PacketType::ReplicatedBulkAvatarData, this, "handleReplicatedBulkAvatarPacket");
 
@@ -82,7 +82,7 @@ SharedNodePointer addOrUpdateReplicatedNode(const QUuid& nodeID, const HifiSockA
     return replicatedNode;
 }
 
-void AvatarMixer::handleReplicatedPackets(QSharedPointer<ReceivedMessage> message) {
+void AvatarMixer::handleReplicatedPacket(QSharedPointer<ReceivedMessage> message) {
     auto nodeList = DependencyManager::get<NodeList>();
     auto nodeID = QUuid::fromRfc4122(message->peek(NUM_BYTES_RFC4122_UUID));
 
@@ -96,8 +96,6 @@ void AvatarMixer::handleReplicatedPackets(QSharedPointer<ReceivedMessage> messag
 }
 
 void AvatarMixer::handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessage> message) {
-    auto nodeList = DependencyManager::get<NodeList>();
-
     while (message->getBytesLeftToRead()) {
         // first, grab the node ID for this replicated avatar
         auto nodeID = QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));

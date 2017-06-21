@@ -2277,6 +2277,10 @@ void DomainServer::updateDownstreamNodes() {
 
             }
         }
+
+        // enumerate the nodes to determine which are no longer downstream for this domain
+        // collect them in a vector to separately remove them with handleKillNode (since eachNode has a read lock and
+        // we cannot recursively take the write lock required by handleKillNode)
         std::vector<SharedNodePointer> nodesToKill;
         nodeList->eachNode([&](const SharedNodePointer& otherNode) {
             if (NodeType::isDownstream(otherNode->getType())) {
@@ -2288,6 +2292,7 @@ void DomainServer::updateDownstreamNodes() {
                 }
             }
         });
+
         for (auto& node : nodesToKill) {
             handleKillNode(node);
         }
@@ -2296,12 +2301,11 @@ void DomainServer::updateDownstreamNodes() {
 
 void DomainServer::updateReplicatedNodes() {
     // Make sure we have downstream nodes in our list
-    // TODO Move this to a different function
-    _replicatedUsernames.clear();
     auto settings = _settingsManager.getSettingsMap();
 
     static const QString REPLICATED_USERS_KEY = "users";
     _replicatedUsernames.clear();
+    
     if (settings.contains(BROADCASTING_SETTINGS_KEY)) {
         auto replicationSettings = settings.value(BROADCASTING_SETTINGS_KEY).toMap();
         if (replicationSettings.contains(REPLICATED_USERS_KEY)) {
@@ -2319,9 +2323,6 @@ void DomainServer::updateReplicatedNodes() {
             auto shouldReplicate = shouldReplicateNode(*otherNode);
             auto isReplicated = otherNode->isReplicated();
             if (isReplicated && !shouldReplicate) {
-                qDebug() << "Setting node to NOT be replicated:" << otherNode->getUUID();
-            } else if (!isReplicated && shouldReplicate) {
-                qDebug() << "Setting node to replicated:" << otherNode->getUUID();
                 qDebug() << "Setting node to NOT be replicated:"
                     << otherNode->getPermissions().getVerifiedUserName() << otherNode->getUUID();
             } else if (!isReplicated && shouldReplicate) {
@@ -2334,11 +2335,16 @@ void DomainServer::updateReplicatedNodes() {
 }
 
 bool DomainServer::shouldReplicateNode(const Node& node) {
-    QString verifiedUsername = node.getPermissions().getVerifiedUserName();
-    // Both the verified username and usernames in _replicatedUsernames are lowercase, so
-    // comparisons here are case-insensitive.
-    auto it = find(_replicatedUsernames.cbegin(), _replicatedUsernames.cend(), verifiedUsername);
-    return it != _replicatedUsernames.end() && node.getType() == NodeType::Agent;
+    if (node.getType() == NodeType::Agent) {
+        QString verifiedUsername = node.getPermissions().getVerifiedUserName();
+
+        // Both the verified username and usernames in _replicatedUsernames are lowercase, so
+        // comparisons here are case-insensitive.
+        auto it = find(_replicatedUsernames.cbegin(), _replicatedUsernames.cend(), verifiedUsername);
+        return it != _replicatedUsernames.end();
+    } else {
+        return false;
+    }
 };
 
 void DomainServer::nodeAdded(SharedNodePointer node) {

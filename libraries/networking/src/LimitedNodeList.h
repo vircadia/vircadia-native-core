@@ -289,9 +289,6 @@ public:
     void sendFakedHandshakeRequestToNode(SharedNodePointer node);
 #endif
 
-    void setMirrorSocket(const HifiSockAddr& mirrorSocket) { _mirrorSocket = mirrorSocket; }
-    const HifiSockAddr& getMirrorSocket() { return _mirrorSocket; }
-
 public slots:
     void reset();
     void eraseAllNodes();
@@ -400,8 +397,6 @@ protected:
         }
     }
 
-
-    HifiSockAddr _mirrorSocket;
 
 private slots:
     void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);
