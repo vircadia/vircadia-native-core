@@ -121,8 +121,6 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
     // first, make sure that this is a packet from a node we are supposed to replicate
     if (node.isReplicated()) {
 
-        auto nodeList = DependencyManager::get<NodeList>();
-
         // now make sure it's a packet type that we want to replicate
 
         // first check if it is an original type that we should replicate
@@ -139,6 +137,7 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
         }
 
         std::unique_ptr<NLPacket> packet;
+        auto nodeList = DependencyManager::get<NodeList>();
 
         // enumerate the downstream audio mixers and send them the replicated version of this packet
         nodeList->unsafeEachNode([&](const SharedNodePointer& downstreamNode) {

@@ -539,7 +539,7 @@ public:
     void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged,
                                bool& displayNameChanged, bool& skeletonModelUrlChanged);
 
-    QByteArray identityByteArray(bool shouldForwardIncomingSequenceNumber = false) const;
+    QByteArray identityByteArray() const;
 
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
@@ -781,8 +781,7 @@ protected:
     float _audioAverageLoudness { 0.0f };
 
     bool _identityDataChanged { false };
-    udt::SequenceNumber _lastIncomingSequenceNumber { 0 };
-    udt::SequenceNumber _lastOutgoingSequenceNumber { 0 };
+    udt::SequenceNumber _lastSequenceNumber { 0 };
     bool _hasProcessedFirstIdentity { false };
     float _density;
 
