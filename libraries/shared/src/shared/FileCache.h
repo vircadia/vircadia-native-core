@@ -24,12 +24,17 @@
 
 Q_DECLARE_LOGGING_CATEGORY(file_cache)
 
+class FileCacheTests;
+
 namespace cache {
 
 class File;
 using FilePointer = std::shared_ptr<File>;
+class FileCache;
+using FileCachePointer = std::shared_ptr<FileCache>;
+using FileCacheWeakPointer = std::weak_ptr<FileCache>;
 
-class FileCache : public QObject {
+class FileCache : public QObject, public std::enable_shared_from_this<FileCache> {
     Q_OBJECT
     Q_PROPERTY(size_t numTotal READ getNumTotalFiles NOTIFY dirty)
     Q_PROPERTY(size_t numCached READ getNumCachedFiles NOTIFY dirty)
@@ -39,6 +44,8 @@ class FileCache : public QObject {
     static const size_t DEFAULT_MAX_SIZE;
     static const size_t MAX_MAX_SIZE;
     static const size_t DEFAULT_MIN_FREE_STORAGE_SPACE;
+
+    friend class ::FileCacheTests;
 
 public:
     // You can initialize the FileCache with a directory name (ex.: "temp_jpgs") that will be relative to the application local data, OR with a full path
@@ -86,14 +93,14 @@ signals:
 
 public:
     /// must be called after construction to create the cache on the fs and restore persisted files
-    void initialize();
+    virtual void initialize();
 
     // Add file to the cache and return the cache entry.  
     FilePointer writeFile(const char* data, Metadata&& metadata, bool overwrite = false);
     FilePointer getFile(const Key& key);
 
     /// create a file
-    virtual std::unique_ptr<File> createFile(Metadata&& metadata, const std::string& filepath) = 0;
+    virtual std::unique_ptr<File> createFile(Metadata&& metadata, const std::string& filepath);
 
 private:
     using Mutex = std::recursive_mutex;
@@ -108,6 +115,7 @@ private:
 
     FilePointer addFile(Metadata&& metadata, const std::string& filepath);
     void addUnusedFile(const FilePointer& file);
+    void releaseFile(File* file);
     void clean();
     void clear();
     // Remove a file from the cache
@@ -134,9 +142,7 @@ private:
     Set _unusedFiles;
 };
 
-class File : public QObject {
-    Q_OBJECT
-
+class File {
 public:
     using Key = FileCache::Key;
     using Metadata = FileCache::Metadata;
@@ -147,7 +153,7 @@ public:
 
     virtual ~File();
     /// overrides should call File::deleter to maintain caching behavior
-    virtual void deleter();
+    static void deleter(File* file);
 
 protected:
     /// when constructed, the file has already been created/written
@@ -156,14 +162,16 @@ protected:
 private:
     friend class FileCache;
     friend struct FilePointerComparator;
+    friend class ::FileCacheTests;
 
     const Key _key;
     const size_t _length;
     const std::string _filepath;
 
     void touch();
-    FileCache* _cache { nullptr };
+    FileCacheWeakPointer _parent;
     int64_t _modified { 0 };
+    bool _locked { false };
 
     bool _shouldPersist { false };
 };
