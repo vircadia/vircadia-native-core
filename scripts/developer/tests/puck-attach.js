@@ -67,7 +67,7 @@ function attach(obj) {
     var key = "TrackedObject" + pad(attachedObj.puckno, 2);
     attachedObj.key = key;
 
-    print("AJT: attachedObj = " + JSON.stringify(attachedObj));
+    print("PUCK-ATTACH: attachedObj = " + JSON.stringify(attachedObj));
 
     Script.update.connect(update);
     update(0.001);
@@ -100,9 +100,9 @@ function update(dt) {
             });
         } else {
             if (pose) {
-                print("AJT: WARNING: invalid pose for " + attachedObj.key);
+                print("PUCK-ATTACH: WARNING: invalid pose for " + attachedObj.key);
             } else {
-                print("AJT: WARNING: could not find key " + attachedObj.key);
+                print("PUCK-ATTACH: WARNING: could not find key " + attachedObj.key);
             }
         }
     }
