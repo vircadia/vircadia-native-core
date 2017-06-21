@@ -78,30 +78,28 @@ QOpenGLFramebufferObject* ResourceImageItemRenderer::createFramebufferObject(con
     QOpenGLFramebufferObjectFormat format;
     format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
     _copyFbo = new QOpenGLFramebufferObject(size, format);
+    _copyFbo->bind();
     return new QOpenGLFramebufferObject(size, format);
 }
 
 void ResourceImageItemRenderer::render() {
     qDebug() << "initial error" << glGetError();
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
-    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
-    QOpenGLExtraFunctions* extras = QOpenGLContext::currentContext()->extraFunctions();
+    /*glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glClear(GL_COLOR_BUFFER_BIT);*/
+    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
     _fboMutex.lock();
     if (_fenceSync) {
-        extras->glWaitSync(_fenceSync, 0, GL_TIMEOUT_IGNORED);
-        qDebug() << "wait error" << glGetError();
-        qDebug() << "waited on fence";
+        f->glWaitSync(_fenceSync, 0, GL_TIMEOUT_IGNORED);
+        qDebug() << "wait error" << f->glGetError();
     }
     if (_ready) {
-        QOpenGLFramebufferObject::blitFramebuffer(framebufferObject(), _copyFbo, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-        /*f->glBindTexture(GL_TEXTURE_2D, _copyFbo->texture());
+        f->glBindTexture(GL_TEXTURE_2D, _copyFbo->texture());
         qDebug() << "bind tex error" << f->glGetError() << "texture" << _copyFbo->texture();
-        f->glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, _copyFbo->width(), _copyFbo->height());*/
+        GLint internalFormat { 0 };
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_INTERNAL_FORMAT, &internalFormat);
+        qDebug() << "getTexLevelParameteriv error" << f->glGetError() << internalFormat;
+        f->glCopyTexImage2D(GL_TEXTURE_2D, 0, (GLenum)internalFormat, 0, 0, _copyFbo->width(), _copyFbo->height(), 0);
         qDebug() << "copy error" << f->glGetError();
-    } else {
-        framebufferObject()->release();
     }
     _fboMutex.unlock();
-    update();
 }
