@@ -16,13 +16,12 @@ Column {
     Column {
         id: surfaceGeometry
         spacing: 10
-        property var mainViewTask: Render.getConfig("RenderMainView");
 
         Column{
                 ConfigSlider {
                     label: qsTr("Depth Threshold [cm]")
                     integral: false
-                    config: mainViewTask.getConfig("SurfaceGeometry")
+                    config: Render.getConfig("RenderMainView.SurfaceGeometry")
                     property: "depthThreshold"
                     max: 5.0
                     min: 0.0
@@ -35,7 +34,7 @@ Column {
                 ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
                     integral: (modelData.split(":")[3] == 'true')
-                    config: mainViewTask.getConfig("SurfaceGeometry")
+                    config: Render.getConfig("RenderMainView.SurfaceGeometry")
                     property: modelData.split(":")[1]
                     max: modelData.split(":")[2]
                     min: 0.0
@@ -43,18 +42,18 @@ Column {
             }
             CheckBox {
                     text: "Half Resolution"
-                    checked: mainViewTask.getConfig("SurfaceGeometry")["resolutionLevel"]
-                    onCheckedChanged: { mainViewTask.getConfig("SurfaceGeometry")["resolutionLevel"] = checked }
+                    checked: Render.getConfig("RenderMainView.SurfaceGeometry")["resolutionLevel"]
+                    onCheckedChanged: { Render.getConfig("RenderMainView.SurfaceGeometry")["resolutionLevel"] = checked }
             }
     
             Repeater {
-                model: [ "Diffusion Scale:SurfaceGeometry:diffuseFilterScale:2.0",
-                         "Diffusion Depth Threshold:SurfaceGeometry:diffuseDepthThreshold:1.0"
+                model: [ "Diffusion Scale:RenderMainView.SurfaceGeometry:diffuseFilterScale:2.0",
+                         "Diffusion Depth Threshold:RenderMainView.SurfaceGeometry:diffuseDepthThreshold:1.0"
                 ]
                 ConfigSlider {
                     label: qsTr(modelData.split(":")[0])
                     integral: false
-                    config: mainViewTask.getConfig(modelData.split(":")[1])
+                    config: Render.getConfig(modelData.split(":")[1])
                     property: modelData.split(":")[2]
                     max: modelData.split(":")[3]
                     min: 0.0
