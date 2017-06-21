@@ -1020,6 +1020,7 @@ void ScriptEngine::run() {
     emit runningStateChanged();
 
     {
+        PROFILE_RANGE(script, _fileNameString);
         evaluate(_scriptContents, _fileNameString);
         maybeEmitUncaughtException(__FUNCTION__);
     }
@@ -1283,6 +1284,7 @@ void ScriptEngine::timerFired() {
 
     // call the associated JS function, if it exists
     if (timerData.function.isValid()) {
+        PROFILE_RANGE(script, __FUNCTION__);
         auto preTimer = p_high_resolution_clock::now();
         callWithEnvironment(timerData.definingEntityIdentifier, timerData.definingSandboxURL, timerData.function, timerData.function, QScriptValueList());
         auto postTimer = p_high_resolution_clock::now();
