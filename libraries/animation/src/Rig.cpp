@@ -1383,8 +1383,10 @@ glm::vec3 Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIn
     glm::vec3 y = hipsPose.rot() * Vectors::UNIT_Y;
     // project d onto n.
     glm::vec3 dProj = d - glm::dot(d, n) * n;
-    const float LATERAL_OFFSET = 0.333f;
-    const float VERTICAL_OFFSET = -0.333f;
+
+    float avatarScale = extractUniformScale(_modelOffset);
+    const float LATERAL_OFFSET = 0.333f * avatarScale;
+    const float VERTICAL_OFFSET = -0.333f * avatarScale;
 
     // give dProj a bit of offset away from the body.
     glm::vec3 dProjWithOffset = dProj + sign * LATERAL_OFFSET * n + y * VERTICAL_OFFSET;
