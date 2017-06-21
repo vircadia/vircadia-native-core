@@ -342,8 +342,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 bool overrideHead = headObject["override"].toBool();
                 if (overrideHead) {
                     _headConfig = HeadConfig::Puck;
-                    HEAD_PUCK_Y_OFFSET = (float)headObject["Y"].toDouble();
-                    HEAD_PUCK_Z_OFFSET = (float)headObject["Z"].toDouble();
+                    HEAD_PUCK_Y_OFFSET = headObject["Y"].toDouble();
+                    HEAD_PUCK_Z_OFFSET = headObject["Z"].toDouble();
                 } else {
                     _headConfig = HeadConfig::HMD;
                 }
@@ -352,8 +352,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 bool overrideHands = handsObject["override"].toBool();
                 if (overrideHands) {
                     _handConfig = HandConfig::Pucks;
-                    HAND_PUCK_Y_OFFSET = (float)handsObject["Y"].toDouble();
-                    HAND_PUCK_Z_OFFSET = (float)handsObject["Z"].toDouble();
+                    HAND_PUCK_Y_OFFSET = handsObject["Y"].toDouble();
+                    HAND_PUCK_Z_OFFSET = handsObject["Z"].toDouble();
                 } else {
                     _handConfig = HandConfig::HandController;
                 }
@@ -906,7 +906,7 @@ void ViveControllerManager::InputDevice::calibrateLeftHand(glm::mat4& defaultToR
                                      glm::vec4(zPrime, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     
 
-    glm::vec3 translationOffset = glm::vec3(0.0f, -HAND_PUCK_Y_OFFSET, 0.0f);
+    glm::vec3 translationOffset = glm::vec3(0.0f, HAND_PUCK_Y_OFFSET, HAND_PUCK_Z_OFFSET);
     glm::quat initialRotation = glmExtractRotation(handPoseAvatarMat);
     glm::quat finalRotation = glmExtractRotation(newHandMat);
     
@@ -932,13 +932,12 @@ void ViveControllerManager::InputDevice::calibrateRightHand(glm::mat4& defaultTo
     glm::vec3 zPrime = handPoseZAxis;
     glm::vec3 xPrime = glm::normalize(glm::cross(avatarHandYAxis, handPoseZAxis));
     glm::vec3 yPrime = glm::normalize(glm::cross(zPrime, xPrime));
-
     glm::mat4 newHandMat = glm::mat4(glm::vec4(xPrime, 0.0f), glm::vec4(yPrime, 0.0f),
                                      glm::vec4(zPrime, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     
 
 
-    glm::vec3 translationOffset = glm::vec3(0.0f, 0.0f, 0.0f);
+    glm::vec3 translationOffset = glm::vec3(0.0f, HAND_PUCK_Y_OFFSET, HAND_PUCK_Z_OFFSET);
     glm::quat initialRotation = glmExtractRotation(handPoseAvatarMat);
     glm::quat finalRotation = glmExtractRotation(newHandMat);
     
@@ -975,10 +974,6 @@ void ViveControllerManager::InputDevice::calibrateFeet(glm::mat4& defaultToRefer
 void ViveControllerManager::InputDevice::calibrateHips(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
     _jointToPuckMap[controller::HIPS] = _validTrackedObjects[HIP].first;
     _pucksOffset[_validTrackedObjects[HIP].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHips, _validTrackedObjects[HIP].second);
-}
-
-
-void ViveControllerManager::InputDevice::calibrateHands(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, int firstHandIndex, int secondHandIndex) {
 }
 
 void ViveControllerManager::InputDevice::calibrateChest(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {

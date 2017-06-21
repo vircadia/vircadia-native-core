@@ -113,7 +113,7 @@ Rectangle {
 
         color: hifi.colors.white
         size: hifi.fontSizes.rootMenuDisclosure
-        text: "please stand in a T-Pose during calibration"
+        text: "Please stand in a T-Pose during calibration"
     }
 
     NumberAnimation {

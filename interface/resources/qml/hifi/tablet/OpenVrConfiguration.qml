@@ -149,6 +149,7 @@ Rectangle {
             colorScheme: hifi.colorSchemes.dark
 
             onEditingFinished: {
+                sendConfigurationSettings();
             }
         }
 
@@ -163,6 +164,7 @@ Rectangle {
             colorScheme: hifi.colorSchemes.dark
             
             onEditingFinished: {
+                sendConfigurationSettings();
             }
         }
     }
@@ -254,6 +256,7 @@ Rectangle {
             colorScheme: hifi.colorSchemes.dark
 
             onEditingFinished: {
+                sendConfigurationSettings();
             }
         }
 
@@ -268,6 +271,7 @@ Rectangle {
             colorScheme: hifi.colorSchemes.dark
             
             onEditingFinished: {
+                sendConfigurationSettings();
             }
         }
     }
