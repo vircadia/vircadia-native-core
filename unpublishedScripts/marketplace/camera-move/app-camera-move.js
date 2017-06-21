@@ -100,6 +100,8 @@ var APPLICATION_SETTINGS = {
         menu: 'Developer > Enable LookAt Snapping',
         object: [ MyAvatar, 'lookAtSnappingEnabled' ]
     },
+    'Scene/shouldRenderEntities': { object: [ Scene, 'shouldRenderEntities' ] },
+    'Scene/shouldRenderAvatars': { object: [ Scene, 'shouldRenderAvatars' ] },
     'camera-move-enabled': {
         get: function() {
             return cameraControls && cameraControls.enabled;
