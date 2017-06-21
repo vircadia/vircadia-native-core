@@ -25,23 +25,40 @@ Rectangle {
     signal canceled()
     signal restart()
 
-    property int count: 3 
+    property int count: 3
+    property string calibratingText: "CALIBRATING..."
+    property string calibratingCountText: "CALIBRATION STARTING IN"
+    property string calibrationSuccess: "CALIBRATION COMPLETED"
+    property string calibrationFailed: "CALIBRATION FAILED"
     
     HifiConstants { id: hifi }
     visible: true
     color: hifi.colors.baseGray
 
-    BusyIndicator {
+    property string whiteIndicator: "../../../images/loader-calibrate-white.png"
+    property string blueIndicator: "../../../images/loader-calibrate-blue.png"
+    
+    Image {
         id: busyIndicator
         width: 350
         height: 350
+
+        property bool running: true
 
         anchors {
             horizontalCenter: parent.horizontalCenter
             top: parent.top
             topMargin: 60
         }
-        running: true
+        visible: busyIndicator.running
+        source: blueIndicator
+        NumberAnimation on rotation {
+            id: busyRotation
+            running: busyIndicator.running
+            loops: Animation.Infinite
+            duration: 1000
+            from: 0 ; to: 360
+        }
     }
 
 
@@ -60,7 +77,7 @@ Rectangle {
 
     RalewayBold {
         id: statusText
-        text: "CALIBRATION STARTING IN"
+        text: info.calibratingCountText
         size: 16
         color: hifi.colors.blueHighlight
 
@@ -102,8 +119,25 @@ Rectangle {
     NumberAnimation {
         id: numberAnimation
         target: info
-        property: count
+        property: "count"
         to: 0
+    }
+
+    Timer {
+        id: timer
+
+        repeat: false
+        interval: 3000
+        onTriggered: {
+            info.calibrating();
+        }
+    }
+
+    Timer {
+        id: closeWindow
+        repeat: false
+        interval: 3000
+        onTriggered: stack.pop();
     }
 
     Row {
@@ -124,6 +158,10 @@ Rectangle {
 
             onClicked: {
                 restart();
+                numberAnimation.stop();
+                info.count = (timer.interval / 1000);
+                numberAnimation.start();
+                timer.restart();
             }
         }
 
@@ -134,14 +172,42 @@ Rectangle {
             text: "CANCEL"
 
             onClicked: {
-                stack.pop();
                 canceled();
+                stack.pop()
             }
         }
     }
     
-    function start() {
+    function start(interval, countNumber) {
+        countDown.visible = true;
+        statusText.color = hifi.colors.blueHighlight;
+        numberAnimation.duration = interval
+        info.count = countNumber;
+        timer.interval = interval;
+        numberAnimation.start();
+        timer.start();
     }
-    function callingFunction() {
+
+    function calibrating() {
+        countDown.visible = false;
+        busyIndicator.source = whiteIndicator;
+        busyRotation.from = 360
+        busyRotation.to = 0
+        statusText.text = info.calibratingText;
+        statusText.color = hifi.colors.white
+    }
+
+    function success() {
+        busyIndicator.running = false;
+        statusText.text = info.calibrationSuccess
+        statusText.color = hifi.colors.greenHighlight
+        closeWindow.start();
+    }
+
+    function failure() {
+        busyIndicator.running = false;
+        statusText.text = info.calibrationFailed
+        statusText.color = hifi.colors.redHighlight
+        closeWindow.start();
     }
 }

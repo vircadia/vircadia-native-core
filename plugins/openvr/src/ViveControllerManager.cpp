@@ -127,6 +127,14 @@ void ViveControllerManager::calibrate() {
     }
 }
 
+bool ViveControllerManager::uncalibrate() {
+    if (isSupported()) {
+        _inputDevice->uncalibrate();
+        return true;
+    }
+    return false;
+}
+
 bool ViveControllerManager::isSupported() const {
     return openVrSupported();
 }
@@ -241,10 +249,6 @@ ViveControllerManager::InputDevice::InputDevice(vr::IVRSystem*& system) : contro
     _configStringMap[Config::FeetAndHips] = QString("FeetAndHips");
     _configStringMap[Config::FeetHipsAndChest] = QString("FeetHipsAndChest");
     _configStringMap[Config::FeetHipsAndShoulders] = QString("FeetHipsAndShoulders");
-
-    if (openVrSupported()) {
-        loadSettings();
-    }
 }
 
 void ViveControllerManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
@@ -319,7 +323,8 @@ void ViveControllerManager::InputDevice::calibrateFromHandController(const contr
 
 void ViveControllerManager::InputDevice::calibrateFromUI(const controller::InputCalibrationData& inputCalibrationData) {
     if (_calibrate) {
-        calibrateOrUncalibrate(inputCalibrationData);
+        uncalibrate();
+        calibrate(inputCalibrationData);
         _calibrate = false;
     }
 }
@@ -337,6 +342,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 bool overrideHead = headObject["override"].toBool();
                 if (overrideHead) {
                     _headConfig = HeadConfig::Puck;
+                    HEAD_PUCK_Y_OFFSET = (float)headObject["Y"].toDouble();
+                    HEAD_PUCK_Z_OFFSET = (float)headObject["Z"].toDouble();
                 } else {
                     _headConfig = HeadConfig::HMD;
                 }
@@ -345,6 +352,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 bool overrideHands = handsObject["override"].toBool();
                 if (overrideHands) {
                     _handConfig = HandConfig::Pucks;
+                    HAND_PUCK_Y_OFFSET = (float)handsObject["Y"].toDouble();
+                    HAND_PUCK_Z_OFFSET = (float)handsObject["Z"].toDouble();
                 } else {
                     _handConfig = HandConfig::HandController;
                 }
@@ -352,10 +361,6 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
             iter++;
         }
     }
-
-    qDebug() << configToString(_preferedConfig);
-
-    saveSettings();
 }
 
 void ViveControllerManager::InputDevice::calibrateNextFrame() {
@@ -444,15 +449,22 @@ void ViveControllerManager::InputDevice::calibrateOrUncalibrate(const controller
 void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibrationData& inputCalibration) {
     qDebug() << "Puck Calibration: Starting...";
 
+    int puckCount = (int)_validTrackedObjects.size();
+    qDebug() << "Puck Calibration: " << puckCount << " pucks found for calibration";
+
+    if (puckCount == 0) {
+        uncalibrate();
+        emitCalibrationStatus(false);
+        return;
+    }
+
     glm::mat4 defaultToReferenceMat = glm::mat4();
     if (_headConfig == HeadConfig::HMD) {
         defaultToReferenceMat = calculateDefaultToReferenceForHmd(inputCalibration);
     } else if (_headConfig == HeadConfig::Puck) { 
         defaultToReferenceMat = calculateDefaultToReferenceForHeadPuck(inputCalibration);
     }
-
-    int puckCount = (int)_validTrackedObjects.size();
-    qDebug() << "Puck Calibration: " << puckCount << " pucks found for calibration";
+    
     _config = _preferedConfig;
     
     bool headConfigured = configureHead(defaultToReferenceMat, inputCalibration);
@@ -1004,24 +1016,6 @@ void ViveControllerManager::InputDevice::calibrateHead(glm::mat4& defaultToRefer
 
     _jointToPuckMap[controller::HEAD] = head.first;
     _pucksOffset[head.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHeadMat, newHead);
-}
-
-
-void ViveControllerManager::InputDevice::loadSettings() {
-    Settings settings;
-    settings.beginGroup("PUCK_CONFIG");
-    {
-    }
-    settings.endGroup();
-}
-
-void ViveControllerManager::InputDevice::saveSettings() const {
-    Settings settings;
-    settings.beginGroup("PUCK_CONFIG");
-    {
-
-    }
-    settings.endGroup();
 }
 
 QString ViveControllerManager::InputDevice::configToString(Config config) {

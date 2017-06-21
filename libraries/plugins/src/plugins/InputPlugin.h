@@ -29,6 +29,7 @@ public:
     virtual QJsonObject configurationSettings() { return QJsonObject(); } 
     virtual QString configurationLayout() { return QString(); }
     virtual void calibrate() {}
+    virtual bool uncalibrate() { return false; } 
     virtual bool configurable() { return false; }
     virtual bool isHandController() const { return false; }
     virtual bool isHeadController() const { return false; }

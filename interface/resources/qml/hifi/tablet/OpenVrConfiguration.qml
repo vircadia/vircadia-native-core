@@ -27,7 +27,7 @@ Rectangle {
     property int leftMargin: 75
     property int countDown: 0
     property string pluginName: ""
-    property var displayInformation: openVrConfiguration.displayConfiguration()
+    property var displayInformation: null
 
     readonly property bool feetChecked: feetBox.checked
     readonly property bool hipsChecked: hipBox.checked
@@ -144,7 +144,7 @@ Rectangle {
             decimals: 4
             width: 112
             label: "Y: offset"
-            value:  -0.0254
+            minimumValue: -10
             stepSize: 0.0254
             colorScheme: hifi.colorSchemes.dark
 
@@ -157,7 +157,7 @@ Rectangle {
             id: headZOffset
             width: 112
             label: "Z: offset"
-            value: -0.152
+            minimumValue: -10
             stepSize: 0.0254
             decimals: 4
             colorScheme: hifi.colorSchemes.dark
@@ -249,7 +249,7 @@ Rectangle {
             decimals: 4
             width: 112
             label: "Y: offset"
-            value: -0.0508
+            minimumValue: -10
             stepSize: 0.0254
             colorScheme: hifi.colorSchemes.dark
 
@@ -262,7 +262,7 @@ Rectangle {
             id: handZOffset
             width: 112
             label: "Z: offset"
-            value: -0.0254
+            minimumValue: -10
             stepSize: 0.0254
             decimals: 4
             colorScheme: hifi.colorSchemes.dark
@@ -528,17 +528,19 @@ Rectangle {
             hoverEnabled: true
             onClicked: {
                 if (calibrationButton.enabled) {
-                    calibrationTimer.interval = timeToCalibrate.value * 1000
-                    openVrConfiguration.countDown = timeToCalibrate.value;
-                    numberAnimation.duration = calibrationTimer.interval
-                    numberAnimation.start();
-                    calibrationTimer.start();
-                    var calibratingScreen = screen.createObject();
-                    stack.push(calibratingScreen);
-
-                    calibratingScreen.callingFunction();
-                    calibratingScreen.canceled.connect(cancelCalibration);
-                    calibratingScreen.restart.connect(restartCalibration);
+                    if (openVrConfiguration.state === buttonState.apply) {
+                        InputConfiguration.uncalibratePlugin(pluginName);
+                        updateCalibrationButton();
+                    } else {
+                        calibrationTimer.interval = timeToCalibrate.value * 1000
+                        openVrConfiguration.countDown = timeToCalibrate.value;
+                        var calibratingScreen = screen.createObject();
+                        stack.push(calibratingScreen);
+                        calibratingScreen.canceled.connect(cancelCalibration);
+                        calibratingScreen.restart.connect(restartCalibration);
+                        calibratingScreen.start(calibrationTimer.interval, timeToCalibrate.value);
+                        calibrationTimer.start();
+                    }
                 }
             }
             
@@ -547,7 +549,7 @@ Rectangle {
             }
             
             onReleased: {
-            calibrationButton.pressed = false;
+                calibrationButton.pressed = false;
             }
             
             onEntered: {
@@ -592,13 +594,37 @@ Rectangle {
 
         minimumValue: 3
         value: 3
-        label: "Time til calibration ( in seconds )"
         colorScheme: hifi.colorSchemes.dark
 
         onEditingFinished: {
             calibrationTimer.interval = value * 1000;
             openVrConfiguration.countDown = value;
             numberAnimation.duration = calibrationTimer.interval;
+        }
+    }
+
+    RalewayBold {
+        id: delayTextInfo
+        size: 10
+        text: "Delay Before Calibration Starts"
+        color: hifi.colors.white
+
+        anchors {
+            left: timeToCalibrate.right
+            leftMargin: 20
+            verticalCenter: timeToCalibrate.verticalCenter
+        }
+    }
+
+    RalewayRegular {
+        size: 12
+        text: "sec"
+        color: hifi.colors.lightGray
+
+        anchors {
+            left: delayTextInfo.right
+            leftMargin: 10
+            verticalCenter: delayTextInfo.verticalCenter
         }
     }
 
@@ -610,16 +636,17 @@ Rectangle {
     }
 
     function calibrationStatusInfo(status) {
+        var calibrationScreen = stack.currentItem;
         if (status["calibrated"]) {
+            calibrationScreen.success();
         } else if (!status["calibrated"]) {
             var uncalibrated = status["success"];
-            if (uncalibrated) {
-                
-            } else {
-                
+            if (!uncalibrated) {
+                calibrationScreen.failure();
             }
         }
-        displayTimer.start();
+
+        updateCalibrationButton();
     }
 
 
@@ -650,11 +677,11 @@ Rectangle {
     }
 
     function cancelCalibration() {
-        console.log("canceling calibration");
+        calibrationTimer.stop();
     }
 
     function restartCalibration() {
-        console.log("restating calibration");
+        calibrationTimer.restart();
     }
 
     function displayConfiguration() {
@@ -681,6 +708,9 @@ Rectangle {
             handPuckBox.checked = true;
             handBox.checked = false;
         }
+
+        initializeButtonState();
+        updateCalibrationText();
     }
 
     function displayTrackerConfiguration(type) {
@@ -732,25 +762,45 @@ Rectangle {
         if (settingsChanged) {
             if ((!handOverride) && (!headOverride) && (bodySetting === "None")) {
                 state = buttonState.apply;
-                console.log("apply");
             } else {
                 state = buttonState.applyAndCalibrate;
-                console.log("apply and calibrate");
             }   
         } else {
             if (state == buttonState.apply) {
                 state = buttonState.disabled;
-                console.log("disable");
+            } else if (state == buttonState.applyAndCalibrate) {
+                state = buttonState.calibrate;
             }
         }
         
         lastConfiguration = settings;
     }
 
-    function updateCalibrationText() {
+    function initializeButtonState() {
+        var settings = composeConfigurationSettings();
+        var bodySetting = settings["bodyConfiguration"];
+        var headSetting = settings["headConfiguration"];
+        var headOverride = headSetting["override"];
+        var handSetting = settings["handConfiguration"];
+        var handOverride = handSetting["override"];
+
+
+        if ((!handOverride) && (!headOverride) && (bodySetting === "None")) {
+            state = buttonState.disabled;
+        } else {
+            state = buttonState.calibrate;
+        }   
+    }
+
+    function updateCalibrationButton() {
         updateButtonState();
+        updateCalibrationText();
+    }
+
+    function updateCalibrationText() {
         if (buttonState.disabled == state) {
             calibrationButton.enabled = false;
+            calibrationButton.text = "Apply";
         } else if (buttonState.apply == state) {
             calibrationButton.enabled = true;
             calibrationButton.text = "Apply";
@@ -818,6 +868,6 @@ Rectangle {
     function sendConfigurationSettings() {
         var settings = composeConfigurationSettings();
         InputConfiguration.setConfigurationSettings(settings, pluginName);
-        updateCalibrationText();
+        updateCalibrationButton();
     }
 }

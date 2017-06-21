@@ -45,6 +45,7 @@ public:
     void setConfigurationSettings(const QJsonObject configurationSettings) override;
     QJsonObject configurationSettings() override;
     void calibrate() override;
+    bool uncalibrate() override;
     bool isHeadController() const override { return true; }
     bool isHeadControllerMounted() const;
 
@@ -91,8 +92,6 @@ private:
         void partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPsuedoButton, int xPseudoButton, int yPseudoButton);
         void printDeviceTrackingResultChange(uint32_t deviceIndex);
         void setConfigFromString(const QString& value);
-        void loadSettings();
-        void saveSettings() const;
         bool configureHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         bool configureHands(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         bool configureBody(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);

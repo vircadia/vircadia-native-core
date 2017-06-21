@@ -28,7 +28,12 @@ QStringList InputConfiguration::inputPlugins() {
 
     QStringList inputPlugins;
     for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
-        inputPlugins << QString(plugin->getName());
+        QString pluginName = plugin->getName();
+        if (pluginName == QString("OpenVR")) {
+            inputPlugins << QString("Vive");
+        } else {
+            inputPlugins << pluginName;
+        }
     }
     return inputPlugins;
 }
@@ -45,7 +50,12 @@ QStringList InputConfiguration::activeInputPlugins() {
     QStringList activePlugins;
     for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
         if (plugin->configurable()) {
-            activePlugins << QString(plugin->getName());
+            QString pluginName = plugin->getName();
+            if (pluginName == QString("OpenVR")) {
+                activePlugins << QString("Vive");
+            } else {
+                activePlugins << pluginName;
+            }
         }
     }
     return activePlugins;
@@ -110,6 +120,22 @@ void InputConfiguration::calibratePlugin(QString pluginName) {
     for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
         if (plugin->getName() == pluginName) {
             plugin->calibrate();
+        }
+    }
+}
+
+
+bool InputConfiguration::uncalibratePlugin(QString pluginName) {
+    if (QThread::currentThread() != thread()) {
+        bool result;
+        QMetaObject::invokeMethod(this, "uncalibratePlugin", Qt::BlockingQueuedConnection,
+                                  Q_ARG(bool, result));
+        return result;
+    }
+
+    for (auto plugin : PluginManager::getInstance()->getInputPlugins()) {
+        if (plugin->getName() == pluginName) {
+            return plugin->uncalibrate();
         }
     }
 }

@@ -103,10 +103,9 @@ StackView {
             HifiControls.CheckBox {
                 id: checkBox
                 colorScheme: hifi.colorSchemes.dark
-                text: "show all input plugins"
+                text: "show all input devices"
 
                 onClicked: {
-                    console.log("clicked");
                     inputPlugins();
                     changeSource();
                 }
@@ -162,11 +161,15 @@ StackView {
             source: InputConfiguration.configurationLayout(box.currentText);
             onLoaded: {
                 if (loader.item.hasOwnProperty("pluginName")) {
-                    loader.item.pluginName = box.currentText
-
-                    if (loader.item.hasOwnProperty("displayInformation")) {
-                        loader.item.displayInformation();
+                    if (box.currentText === "Vive") {
+                        loader.item.pluginName = "OpenVR";
+                    } else {
+                        loader.item.pluginName = box.currentText;
                     }
+                }
+                
+                if (loader.item.hasOwnProperty("displayInformation")) {
+                    loader.item.displayConfiguration();
                 }
             }
         }
@@ -187,7 +190,13 @@ StackView {
     
     function changeSource() {
         loader.source = "";
-        var source = InputConfiguration.configurationLayout(box.currentText);
+        var source = "";
+        if (box.currentText == "Vive") {
+            source = InputConfiguration.configurationLayout("OpenVR");
+        } else { 
+            source = InputConfiguration.configurationLayout(box.currentText);
+        }
+        
         loader.source = source;
         if (source === "") {
             box.label = "(not configurable)";
