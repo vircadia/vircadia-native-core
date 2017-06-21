@@ -453,6 +453,10 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
             if (fp) {
                 report(fp);
                 fclose(fp);
+                if (!runningMarkerExisted) { // don't leave ours around
+                    RunningMarker runingMarker(RUNNING_MARKER_FILENAME);
+                    runingMarker.deleteRunningMarkerFile(); // happens in deleter, but making the side-effect explicit.
+                }
                 _exit(0);
             }
         }
