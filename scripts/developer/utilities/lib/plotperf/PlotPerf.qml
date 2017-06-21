@@ -84,7 +84,6 @@ Item {
 
     Component.onCompleted: {
         createValues();   
-        console.log("PlotPerf plot values is", JSON.stringify(_values)); 
     }
     function resetMax() {
         for (var i = 0; i < _values.length; i++) {
