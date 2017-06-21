@@ -301,8 +301,10 @@ Rectangle {
             boxRadius: 7
 
             onClicked: {
-                if (hipsChecked) {
-                    checked = true;
+                if (!checked) {
+                    shoulderBox.checked = false;
+                    chestBox.checked = false;
+                    hipBox.checked = false;
                 }
                 sendConfigurationSettings();
             }
