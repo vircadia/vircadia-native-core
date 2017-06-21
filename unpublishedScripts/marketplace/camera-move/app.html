@@ -119,6 +119,7 @@ try {
         function onValueReceived(key, value, oldValue, origin) {
             onMutationEvent.paused++;
             try {
+                //debugPrint('>>> onValueReceived', key, value, origin);
                 jquerySettings.setValue(key, value, origin);
             } finally {
                 setTimeout(function() { onMutationEvent.paused--; }, 1);
@@ -135,10 +136,11 @@ try {
 
         var THROTTLE_DELAY_MS = 500;
         function throttledSend(update) {
-            var hash = [update.key, update.method].join('-');
-            window.clearTimeout(throttledSend[hash]);
-            throttledSend[hash] = window.setTimeout(function() {
-                delete throttledSend[hash];
+            var $hash = [update.params[0], update.method].join('-'); // key-method
+            window.clearTimeout(throttledSend[$hash]);
+            throttledSend[$hash] = window.setTimeout(function() {
+                delete throttledSend[$hash];
+                //debugPrint('>>> throttled mutation event:', $hash, update.method, update.params);
                 bridgedSettings.sendEvent(update);
             }, THROTTLE_DELAY_MS);
         }
@@ -147,11 +149,14 @@ try {
         function onMutationEvent(event) {
             assert(onMutationEvent.paused >= 0);
             if (!onMutationEvent.paused) {
+                //debugPrint('>>> mutation event:', event.key, event.value);
                 throttledSend({
                     method: 'valueUpdated', params: [
                         event.key, event.value, event.oldValue, event.hifiType
                     ]
                 });
+            } else {
+                //debugPrint('>> (paused) mutation event:', event.key, event.value);
             }
         }
 
@@ -492,6 +497,7 @@ try {
                       trigger <b>MyAvatar &gt; Reset Sensors</b>;reset <b>bodyPitch</b> and <b>bodyYaw</b>
                     </span>
                   </button>
+                  <button title='test EventBridge.emitWebEvent' class='localhost-only' id='test-event-bridge'>EventBridge test</button>
                   <button title='reload the tablet app web view' class='localhost-only' id='page-reload'>refresh page</button>
                   <button title='reload the Client script' class='localhost-only' id='script-reload'>reload script</button>
                 </div>

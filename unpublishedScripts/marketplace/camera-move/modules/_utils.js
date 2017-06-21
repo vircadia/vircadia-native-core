@@ -244,7 +244,9 @@ function BrowserUtils(global) {
                     qt = assert(global.qt, 'expected global.qt to exist');
                 assert(qt.webChannelTransport, 'expected global.qt.webChannelTransport to exist');
                 new QWebChannel(qt.webChannelTransport, bind(this, function (channel) {
-                    global.EventBridge = channel.objects.eventBridgeWrapper.eventBridge;
+                    var objects = channel.objects;
+                    global.EventBridge = objects.eventBridge || (objects.eventBridgeWrapper && objects.eventBridgeWrapper.eventBridge);
+                    assert(global.EventBridge, '!global.EventBridge');
                     global.EventBridge.$WebChannel = channel;
                     this.log('openEventBridge opened -- invoking callback', 'typeof EventBridge === ' + typeof global.EventBridge);
                     callback(global.EventBridge);

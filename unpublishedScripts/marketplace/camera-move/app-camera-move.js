@@ -81,6 +81,12 @@ var DEFAULTS = {
 
     'ui-enable-tooltips': true,
     'ui-show-advanced-options': false,
+
+    'Avatar/Draw Mesh': true,
+    'Scene/shouldRenderEntities': true,
+    'Scene/shouldRenderAvatars': true,
+    'Avatar/Show My Eye Vectors': false,
+    'Avatar/Show Other Eye Vectors': false,
 };
 
 // map setting names to/from corresponding Menu and API properties
@@ -203,8 +209,9 @@ function main() {
         log('settingsApp.valueUpdated: '+ key + ' = ' + JSON.stringify(value) + ' (was: ' + JSON.stringify(oldValue) + ')');
         if (/tablet/i.test(origin)) {
             // apply relevant settings immediately if changed from the tablet UI
-            log('applying immediate setting', key, value);
-            applicationConfig.applyValue(key, value, origin);
+            if (applicationConfig.applyValue(key, value, origin)) {
+                log('settingsApp applied immediate setting', key, value);
+            }
         }
     });
 
@@ -228,6 +235,9 @@ function main() {
             } break;
             case 'reset': {
                 var resetValues = {};
+                // maintain current value of 'show advanced' so user can observe any advanced settings being reset
+                var showAdvancedKey = cameraConfig.resolve('ui-show-advanced-options');
+                resetValues[showAdvancedKey] = cameraConfig.getValue(showAdvancedKey);
                 Object.keys(DEFAULTS).reduce(function(out, key) {
                     var resolved = cameraConfig.resolve(key);
                     out[resolved] = resolved in out ? out[resolved] : DEFAULTS[key];
@@ -396,8 +406,10 @@ function main() {
             'triggerReset: ' + triggerReset);
 
         if (/tablet/i.test(origin)) {
-            log('applying immediate setting', key, value);
-            applicationConfig.applyValue(key, value, origin);
+            if (applicationConfig.applyValue(key, value, origin)) {
+                log('cameraConfig applied immediate setting', key, value);
+            }
+
         }
         triggerReset && cameraControls.reset();
     });

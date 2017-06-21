@@ -19,6 +19,11 @@ function setupUI() {
     var $json = SettingsJSON;
 
     window.buttonHandlers = {
+        'test-event-bridge': function() {
+            log('bridgedSettings.eventBridge === Window.EventBridge', bridgedSettings.eventBridge === window.EventBridge);
+            bridgedSettings.sendEvent({ method: 'test-event-bridge' });
+            EventBridge.emitWebEvent('EventBridge.emitWebEvent: testing 1..2..3..');
+        },
         'page-reload': function() {
             log('triggering location.reload');
             location.reload();

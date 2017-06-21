@@ -105,11 +105,11 @@ $.widget('ui.hifiButton', $.ui.button, {
             var checked = (dataset.checked === 'true');
             nv = (nv === 'true' || !!nv);
             if (nv !== checked) {
-                log('hifibutton checked changed', nv, checked);
+                debugPrint('hifibutton checked changed', nv, checked);
                 dataset.checked = nv;
                 this.element.change();
             } else {
-                log('hifibutton value same', nv, checked);
+                debugPrint('hifibutton value same', nv, checked);
             }
         }
         return dataset.checked === 'true';
@@ -133,11 +133,11 @@ $.widget('ui.hifiButton', $.ui.button, {
             this.element.find('.tooltip-target').removeClass('tooltip-target');
             this.element.prop('id', 'button-'+this.element.prop('id'));
             checkbox.element.on('change._hifiButton', function() {
-                log('checkbox -> button');
+                debugPrint('checkbox -> button');
                 this.value(checkbox.value());
             }.bind(this));
             this.element.on('change', function() {
-                log('button -> checkbox');
+                debugPrint('button -> checkbox');
                 checkbox.value(this.value());
             }.bind(this));
             this.checkbox = checkbox;

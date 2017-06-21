@@ -93,12 +93,12 @@ ApplicationConfig.prototype = {
     applyValue: function applyValue(key, value, origin) {
         if (this.resolve(key)) {
             var appValue = this.getValue(key, value);
-            log('applyValue', key, value, origin ? '['+origin+']' : '', appValue);
+            debugPrint('applyValue', key, value, origin ? '['+origin+']' : '', appValue);
             if (appValue !== value) {
                 this.setValue(key, value);
-                log('applied new setting', key, value, '(was:'+appValue+')');
+                debugPrint('applied new setting', key, value, '(was:'+appValue+')');
+                return true;
             }
-            return true;
         }
     }
 };
