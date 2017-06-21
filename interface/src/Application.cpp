@@ -863,10 +863,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // no need to do so here.  If someone specifies both --avatarURL
     // and --replaceAvatarURL, the replaceAvatarURL wins.
     QString avatarURL = getCmdOption(argc, constArgv, "--avatarURL");
-    qDebug() << "XXXXXXXXXXXXXXXXXXXXX" << avatarURL;
     _avatarOverrideUrl = QUrl::fromUserInput(avatarURL);
     QString replaceURL = getCmdOption(argc, constArgv, "--replaceAvatarURL");
-    qDebug() << "YYYYYYYYYYYYYYYYYYYYYY" << replaceURL;
     if (!replaceURL.isEmpty()) {
         _avatarOverrideUrl = QUrl::fromUserInput(replaceURL);
         _saveAvatarOverrideUrl = true;
