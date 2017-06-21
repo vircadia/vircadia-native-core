@@ -99,11 +99,16 @@
     var farClipPlaneDistance = 100.0;
     function spectatorCameraOn() {
         // Set the special texture size based on the window in which it will eventually be displayed.
-        var size = Controller.getViewportDimensions(); // FIXME: Need a signal to hook into when the dimensions change.
-        var sizeX = Window.innerWidth;
-        var sizeY = Window.innerHeight;
-        windowAspectRatio = sizeX/sizeY;
-        spectatorFrameRenderConfig.resetSizeSpectatorCamera(sizeX, sizeY);
+        var previewWidth = Window.innerWidth / Window.innerHeight / previewAspectRatio * 0.16;
+        var previewHeight = Window.innerWidth / Window.innerHeight / previewAspectRatio * -0.16;
+        spectatorFrameRenderConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
+        //-----------------------
+        /*if (windowAspectRatio < previewAspectRatio) { //vertical
+            Overlays.editOverlay(viewFinderOverlay, { dimensions: { x: 0.16 * windowAspectRatio / previewAspectRatio, y: -0.16, z: 0 } });
+        } else { //horizontal
+            Overlays.editOverlay(viewFinderOverlay, { dimensions: { x: 0.16, y: -0.16 * previewAspectRatio / windowAspectRatio, z: 0 } });
+        }*/
+        //-----------------------
         spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = true;
         beginSpectatorFrameRenderConfig.vFoV = vFoV;
         beginSpectatorFrameRenderConfig.nearClipPlaneDistance = nearClipPlaneDistance;
@@ -141,7 +146,7 @@
             parentID: camera,
             alpha: 1,
             position: { x: 0.007, y: 0.15, z: -0.005 },
-            dimensions: { x: 0.16, y: -0.16 * windowAspectRatio / previewAspectRatio, z: 0 }
+            dimensions: { x: 0.16, y: -0.16, z: 0 }
             // Negative dimension for viewfinder is necessary for now due to the way Image3DOverlay
             // draws textures.
             // See Image3DOverlay.cpp:91. If you change the two lines there to:
@@ -149,7 +154,6 @@
             //     glm::vec2 bottomRight(x, y);
             // the viewfinder will appear rightside up without this negative y-dimension.
             // However, other Image3DOverlay textures (like the PAUSED one) will appear upside-down. *Why?*
-            // FIXME: This code will stretch the preview as the window aspect ratio changes. Fix that!
         });
         Entities.editEntity(camera, { position: cameraPosition, rotation: cameraRotation });
         setDisplay(monitorShowsCameraView);
@@ -241,6 +245,7 @@
         addOrRemoveButton(false, HMD.active);
         tablet.screenChanged.connect(onTabletScreenChanged);
         Window.domainChanged.connect(spectatorCameraOff);
+        Window.geometryChanged.connect(resizePreview);
         Controller.keyPressEvent.connect(keyPressEvent);
         HMD.displayModeChanged.connect(onHMDChanged);
         viewFinderOverlay = false;
@@ -298,6 +303,27 @@
         if ((event.text === "0") && !event.isAutoRepeat && !event.isShifted && !event.isMeta && event.isControl && !event.isAlt) {
             setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
         }
+    }
+    function resizePreview(geometryChanged) {
+        var previewWidth = 0.16;
+        var previewHeight = -0.16;
+        if (geometryChanged.width / geometryChanged.height < previewAspectRatio) { //vertical is less than 1.71
+            previewWidth *= ((geometryChanged.width / geometryChanged.height) / previewAspectRatio) * 1.6;
+            if (previewWidth > 0.16) {
+                previewWidth = 0.16;
+            }
+            print("vert " + previewWidth);
+        } else { //horizontal is greater than 1.71
+            previewHeight *= (previewAspectRatio / (geometryChanged.width / geometryChanged.height)) * 1.6;
+            if (previewHeight < -0.16) {
+                previewHeight = -0.16;
+            }
+            print("hori " + previewHeight);
+        }
+        Overlays.editOverlay(viewFinderOverlay, { dimensions: { x: previewWidth, y: previewHeight, z: 0 } });
+
+        spectatorFrameRenderConfig.resetSizeSpectatorCamera(geometryChanged.width, geometryChanged.height);
+        setDisplay(monitorShowsCameraView);
     }
 
     const SWITCH_VIEW_FROM_CONTROLLER_DEFAULT = false;
@@ -502,6 +528,7 @@
     function shutdown() {
         spectatorCameraOff();
         Window.domainChanged.disconnect(spectatorCameraOff);
+        Window.geometryChanged.disconnect(resizePreview);
         addOrRemoveButton(true, HMD.active);
         tablet.screenChanged.disconnect(onTabletScreenChanged);
         HMD.displayModeChanged.disconnect(onHMDChanged);
