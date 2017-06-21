@@ -1509,6 +1509,7 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
             >> identity.attachmentData
             >> identity.displayName
             >> identity.sessionDisplayName
+            >> identity.isReplicated
             >> identity.avatarEntityData;
 
         // set the store identity sequence number to match the incoming identity
@@ -1530,6 +1531,11 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
             displayNameChanged = true;
         }
         maybeUpdateSessionDisplayNameFromTransport(identity.sessionDisplayName);
+
+        if (identity.isReplicated != _isReplicated) {
+            _isReplicated = identity.isReplicated;
+            identityChanged = true;
+        }
 
         if (identity.attachmentData != _attachmentData) {
             setAttachmentData(identity.attachmentData);
@@ -1563,7 +1569,7 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
     }
 }
 
-QByteArray AvatarData::identityByteArray(bool shouldForwardIncomingSequenceNumber) const {
+QByteArray AvatarData::identityByteArray(bool shouldForwardIncomingSequenceNumber, bool setIsReplicated) const {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
     const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL); // depends on _skeletonModelURL
@@ -1584,6 +1590,7 @@ QByteArray AvatarData::identityByteArray(bool shouldForwardIncomingSequenceNumbe
             << _attachmentData
             << _displayName
             << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
+            << (_isReplicated || setIsReplicated)
             << _avatarEntityData;
     });
 
