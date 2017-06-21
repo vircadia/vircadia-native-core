@@ -140,6 +140,14 @@ public:
     TaskConfig(bool enabled) : JobConfig(enabled) {}
 
 
+    
+    // Get a sub job config through task.getConfig(path)
+    // where path can be:
+    // - <job_name> the name of the job and then the first one found will be returned traversing the Render engine graph
+    // - <parent_name>.[<sub_parent_names>.]<job_name>
+    //    Allowing to first look for the parent_name job (from the Render root) and then search from there for the 
+    //    optional sub_parent_names and finally from there looking for the job_name (assuming every job in the path were found)
+    //
     // getter for qml integration, prefer the templated getter
     Q_INVOKABLE QObject* getConfig(const QString& name) { return getConfig<TConfigProxy>(name.toStdString()); }
     // getter for cpp (strictly typed), prefer this getter
