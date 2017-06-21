@@ -1,13 +1,18 @@
 //
-//  debugatar.js
+//  Created by Anthony J. Thibault on 2017/06/20
+//  Copyright 2017 High Fidelity, Inc.
 //
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 /* global Xform */
 Script.include("/~/system/libraries/Xform.js");
 
 (function() { // BEGIN LOCAL_SCOPE
 
-var TABLET_BUTTON_NAME = "PUCKATTACH";
+var TABLET_BUTTON_NAME = "PUCKTACH";
 var HTML_URL = "https://s3.amazonaws.com/hifi-public/tony/html/puck-attach.html";
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
