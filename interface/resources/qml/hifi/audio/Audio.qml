@@ -52,34 +52,40 @@ Rectangle {
 
         Separator { visible: root.showTitle() }
 
-        Grid {
-            columns: 2;
+        ColumnLayout {
             x: 16; // padding does not work
             spacing: 16;
 
-            AudioControls.CheckBox {
-                text: qsTr("Mute microphone");
-                isRedCheck: true;
-                checked: Audio.muted;
-                onClicked: {
-                    Audio.muted = checked;
-                    checked = Qt.binding(function() { return Audio.muted; }); // restore binding
+            // mute is in its own row
+            RowLayout {
+                AudioControls.CheckBox {
+                    text: qsTr("Mute microphone");
+                    isRedCheck: true;
+                    checked: Audio.muted;
+                    onClicked: {
+                        Audio.muted = checked;
+                        checked = Qt.binding(function() { return Audio.muted; }); // restore binding
+                    }
                 }
             }
-            AudioControls.CheckBox {
-                text: qsTr("Enable noise reduction");
-                checked: Audio.noiseReduction;
-                onClicked: {
-                    Audio.noiseReduction = checked;
-                    checked = Qt.binding(function() { return Audio.noiseReduction; }); // restore binding
+
+            RowLayout {
+                spacing: 16;
+                AudioControls.CheckBox {
+                    text: qsTr("Enable noise reduction");
+                    checked: Audio.noiseReduction;
+                    onClicked: {
+                        Audio.noiseReduction = checked;
+                        checked = Qt.binding(function() { return Audio.noiseReduction; }); // restore binding
+                    }
                 }
-            }
-            AudioControls.CheckBox {
-                text: qsTr("Show audio level meter");
-                checked: AvatarInputs.showAudioTools;
-                onClicked: {
-                    AvatarInputs.showAudioTools = checked;
-                    checked = Qt.binding(function() { return AvatarInputs.showAudioTools; }); // restore binding
+                AudioControls.CheckBox {
+                    text: qsTr("Show audio level meter");
+                    checked: AvatarInputs.showAudioTools;
+                    onClicked: {
+                        AvatarInputs.showAudioTools = checked;
+                        checked = Qt.binding(function() { return AvatarInputs.showAudioTools; }); // restore binding
+                    }
                 }
             }
         }
