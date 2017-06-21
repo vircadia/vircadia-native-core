@@ -56,6 +56,7 @@ class MyAvatar : public Avatar {
      *
      * @namespace MyAvatar
      * @augments Avatar
+     * @property qmlPosition {Vec3} Used as a stopgap for position access by QML, as glm::vec3 is unavailable outside of scripts
      * @property shouldRenderLocally {bool} Set it to true if you would like to see MyAvatar in your local interface,
      *   and false if you would not like to see MyAvatar in your local interface.
      * @property motorVelocity {Vec3} Can be used to move the avatar with this velocity.
@@ -100,6 +101,10 @@ class MyAvatar : public Avatar {
      * @property useAdvancedMovementControls {bool} Stores the user preference only, does not change user mappings, this is done in the defaultScript
      *   "scripts/system/controllers/toggleAdvancedMovementForHandControllers.js".
      */
+
+    // FIXME: `glm::vec3 position` is not accessible from QML, so this exposes position in a QML-native type
+    Q_PROPERTY(QVector3D qmlPosition READ getQmlPosition)
+    QVector3D getQmlPosition() { auto p = getPosition(); return QVector3D(p.x, p.y, p.z); }
 
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
     Q_PROPERTY(glm::vec3 motorVelocity READ getScriptedMotorVelocity WRITE setScriptedMotorVelocity)

@@ -26,6 +26,7 @@ class Audio : public AudioScriptingInterface {
     Q_PROPERTY(bool muted READ isMuted WRITE setMuted NOTIFY mutedChanged)
     Q_PROPERTY(bool noiseReduction READ noiseReductionEnabled WRITE enableNoiseReduction NOTIFY noiseReductionChanged)
     Q_PROPERTY(float inputVolume READ getInputVolume WRITE setInputVolume NOTIFY inputVolumeChanged)
+    Q_PROPERTY(float inputLevel READ getInputLevel NOTIFY inputLevelChanged)
     Q_PROPERTY(QString context READ getContext NOTIFY contextChanged)
     Q_PROPERTY(AudioDevices* devices READ getDevices NOTIFY nop)
 
@@ -34,11 +35,14 @@ public:
     static QString HMD;
     static QString DESKTOP;
 
+    static float loudnessToLevel(float loudness);
+
     virtual ~Audio() {}
 
     bool isMuted() const { return _isMuted; }
     bool noiseReductionEnabled() const { return _enableNoiseReduction; }
     float getInputVolume() const { return _inputVolume; }
+    float getInputLevel() const { return _inputLevel; }
     QString getContext() const;
 
     void setMuted(bool muted);
@@ -54,12 +58,14 @@ signals:
     void mutedChanged(bool isMuted);
     void noiseReductionChanged(bool isEnabled);
     void inputVolumeChanged(float volume);
+    void inputLevelChanged(float level);
     void contextChanged(const QString& context);
 
 public slots:
     void onMutedChanged();
     void onContextChanged();
     void onInputChanged();
+    void onInputLoudnessChanged(float loudness);
 
 protected:
     // Audio must live on a separate thread from AudioClient to avoid deadlocks
@@ -68,6 +74,7 @@ protected:
 private:
 
     float _inputVolume { 1.0f };
+    float _inputLevel { 0.0f };
     bool _isMuted { false };
     bool _enableNoiseReduction;
     bool _contextIsHMD { false };
