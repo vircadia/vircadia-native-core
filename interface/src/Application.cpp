@@ -442,6 +442,34 @@ static const QString STATE_NAV_FOCUSED = "NavigationFocused";
 
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
+
+    // HRS: I could not figure out how to move these any earlier in startup, so when using this option, be sure to also supply
+    // --allowMultipleInstances
+    auto reportAndQuit = [&](const char* commandSwitch, std::function<void(FILE* fp)> report) {
+        const char* reportfile = getCmdOption(argc, constArgv, commandSwitch);
+        // Reports to the specified file, because stdout is set up to be captured for logging.
+        if (reportfile) {
+            FILE* fp = fopen(reportfile, "w");
+            if (fp) {
+                report(fp);
+                fclose(fp);
+                if (!runningMarkerExisted) { // don't leave ours around
+                    RunningMarker runingMarker(RUNNING_MARKER_FILENAME);
+                    runingMarker.deleteRunningMarkerFile(); // happens in deleter, but making the side-effect explicit.
+                }
+                _exit(0);
+            }
+        }
+    };
+    reportAndQuit("--protocolVersion", [&](FILE* fp) {
+        DependencyManager::set<AddressManager>();
+        auto version = DependencyManager::get<AddressManager>()->protocolVersion();
+        fputs(version.toLatin1().data(), fp);
+    });
+    reportAndQuit("--version", [&](FILE* fp) {
+        fputs(BuildInfo::VERSION.toLatin1().data(), fp);
+    });
+
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
     const int listenPort = portStr ? atoi(portStr) : INVALID_PORT;
 
@@ -2479,8 +2507,11 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     Setting::Handle<bool> tutorialComplete{ "tutorialComplete", false };
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
 
+    const QString HIFI_SKIP_TUTORIAL_COMMAND_LINE_KEY = "--skipTutorial";
+    // Skips tutorial/help behavior, and does NOT clear firstRun setting.
+    bool skipTutorial = arguments().contains(HIFI_SKIP_TUTORIAL_COMMAND_LINE_KEY);
     bool isTutorialComplete = tutorialComplete.get();
-    bool shouldGoToTutorial = isUsingHMDAndHandControllers && hasTutorialContent && !isTutorialComplete;
+    bool shouldGoToTutorial = isUsingHMDAndHandControllers && hasTutorialContent && !isTutorialComplete && !skipTutorial;
 
     qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMDAndHandControllers;
     qCDebug(interfaceapp) << "Tutorial version:" << contentVersion << ", sufficient:" << hasTutorialContent <<
@@ -2523,14 +2554,9 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
         }
     } else {
 
-        bool isFirstRun = firstRun.get();
-
-        if (isFirstRun) {
-            showHelp();
-        }
-
         // If this is a first run we short-circuit the address passed in
-        if (isFirstRun) {
+        if (firstRun.get() && !skipTutorial) {
+            showHelp();
             if (isUsingHMDAndHandControllers) {
                 if (sandboxIsRunning) {
                     qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
@@ -2568,7 +2594,9 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     _connectionMonitor.init();
 
     // After all of the constructor is completed, then set firstRun to false.
-    firstRun.set(false);
+    if (!skipTutorial) {
+        firstRun.set(false);
+    }
 }
 
 bool Application::importJSONFromURL(const QString& urlString) {
