@@ -9,16 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__x86_64__)
+#ifdef __AVX2__
 
 #include <assert.h>
-#include <immintrin.h>  // AVX2
+#include <immintrin.h>
 
 #include "../AudioHRTF.h"
-
-#ifndef __AVX2__
-#error Must be compiled with /arch:AVX2 or -mavx2 -mfma.
-#endif
 
 #if defined(__GNUC__) && !defined(__clang__)
 // for some reason, GCC -O2 results in poorly optimized code
