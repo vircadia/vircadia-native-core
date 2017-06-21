@@ -30,8 +30,19 @@
 
     function BridgedSettings(options) {
         options = options || {};
+        // Note: Interface changed how window.EventBridge behaves again; it now arbitrarily replaces the global value
+        // sometime after the initial page load, invaliding any held references to it.
+        // As a workaround this proxies the local property to the current global value.
+        var _lastEventBridge = global.EventBridge;
+        Object.defineProperty(this, 'eventBridge', { enumerable: true, get: function() {
+            if (_lastEventBridge !== global.EventBridge) {
+                log('>>> EventBridge changed in-flight', '(was: ' + _lastEventBridge + ' | is: ' + global.EventBridge + ')');
+                _lastEventBridge = global.EventBridge;
+            }
+            return global.EventBridge;
+        }});
         Object.assign(this, {
-            eventBridge: options.eventBridge || global.EventBridge,
+            //eventBridge: options.eventBridge || global.EventBridge,
             namespace: options.namespace || 'BridgedSettings',
             uuid: options.uuid || undefined,
             valueReceived: signal(function valueReceived(key, newValue, oldValue, origin){}),

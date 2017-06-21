@@ -233,27 +233,41 @@ function BrowserUtils(global) {
         },
         // openEventBridge handles the cluster of scenarios Interface has imposed on webviews for making EventBridge connections
         openEventBridge: function openEventBridge(callback) {
-            this.log('openEventBridge |', 'typeof global.EventBridge == ' + typeof global.EventBridge);
+            this.log('openEventBridge |', 'typeof global.EventBridge == ' + [typeof global.EventBridge, global.EventBridge ]);
+            var error;
             try {
+                global.EventBridge.toString = function() { return '[global.EventBridge at startup]'; };
                 global.EventBridge.scriptEventReceived.connect.exists;
                 // this.log('openEventBridge| EventBridge already exists... -- invoking callback', 'typeof EventBridge == ' + typeof global.EventBridge);
-                return callback(global.EventBridge);
+                try {
+                    return callback(global.EventBridge);
+                } catch(e) {
+                    error = e;
+                }
             } catch (e) {
-                this.log('EventBridge does not yet exist in a usable state -- attempting to instrument via qt.webChannelTransport',
-                         Object.keys(global.EventBridge));
+                this.log('EventBridge not found in a usable state -- attempting to instrument via qt.webChannelTransport',
+                         Object.keys(global.EventBridge||{}));
                 var QWebChannel = assert(global.QWebChannel, 'expected global.QWebChannel to exist'),
                     qt = assert(global.qt, 'expected global.qt to exist');
                 assert(qt.webChannelTransport, 'expected global.qt.webChannelTransport to exist');
                 new QWebChannel(qt.webChannelTransport, bind(this, function (channel) {
                     var objects = channel.objects;
-                    assert(!global.EventBridge, '... global.EventBridge was unavailable at page load, but has unexpectedly materialized; ' +
-                           Object.keys(global.EventBridge));
-                    global.EventBridge = objects.eventBridge || (objects.eventBridgeWrapper && objects.eventBridgeWrapper.eventBridge);
-                    assert(global.EventBridge, '!global.EventBridge');
+                    if (global.EventBridge) {
+                        log('>>> global.EventBridge was unavailable at page load, but has spontaneously  materialized; ' +
+                            [ typeof global.EventBridge, global.EventBridge ]);
+                    }
+                    var eventBridge = objects.eventBridge || (objects.eventBridgeWrapper && objects.eventBridgeWrapper.eventBridge);
+                    eventBridge.toString = function() { return '[window.EventBridge per QWebChannel]'; };
+                    assert(!global.EventBridge || global.EventBridge === eventBridge, 'global.EventBridge !== QWebChannel eventBridge\n' +
+                           [global.EventBridge, eventBridge]);
+                    global.EventBridge = eventBridge;
                     global.EventBridge.$WebChannel = channel;
                     this.log('openEventBridge opened -- invoking callback', 'typeof EventBridge === ' + typeof global.EventBridge);
                     callback(global.EventBridge);
                 }));
+            }
+            if (error) {
+                throw error;
             }
         },
     };
