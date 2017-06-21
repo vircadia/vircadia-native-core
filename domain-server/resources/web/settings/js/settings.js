@@ -1680,31 +1680,6 @@ function updateDataChangedForSiblingRows(row, forceTrue) {
   })
 }
 
-function showRestartModal() {
-  $('#restart-modal').modal({
-    backdrop: 'static',
-    keyboard: false
-  });
-
-  var secondsElapsed = 0;
-  var numberOfSecondsToWait = 3;
-
-  var refreshSpan = $('span#refresh-time')
-  refreshSpan.html(numberOfSecondsToWait +  " seconds");
-
-  // call ourselves every 1 second to countdown
-  var refreshCountdown = setInterval(function(){
-    secondsElapsed++;
-    secondsLeft = numberOfSecondsToWait - secondsElapsed
-    refreshSpan.html(secondsLeft + (secondsLeft == 1 ? " second" : " seconds"))
-
-    if (secondsElapsed == numberOfSecondsToWait) {
-      location.reload(true);
-      clearInterval(refreshCountdown);
-    }
-  }, 1000);
-}
-
 function cleanupFormValues(node) {
   if (node.type && node.type === 'checkbox') {
     return { name: node.name, value: node.checked ? true : false };

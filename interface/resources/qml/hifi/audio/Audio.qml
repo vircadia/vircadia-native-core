@@ -18,7 +18,7 @@ import QtQuick.Layouts 1.3
 import "../../styles-uit"
 import "../../controls-uit" as HifiControls
 import "../../windows"
-import "./" as Audio
+import "./" as AudioControls
 
 Rectangle {
     id: root;
@@ -57,15 +57,16 @@ Rectangle {
             x: 16; // padding does not work
             spacing: 16;
 
-            Audio.CheckBox {
+            AudioControls.CheckBox {
                 text: qsTr("Mute microphone");
+                isRedCheck: true;
                 checked: Audio.muted;
                 onClicked: {
                     Audio.muted = checked;
                     checked = Qt.binding(function() { return Audio.muted; }); // restore binding
                 }
             }
-            Audio.CheckBox {
+            AudioControls.CheckBox {
                 text: qsTr("Enable noise reduction");
                 checked: Audio.noiseReduction;
                 onClicked: {
@@ -73,7 +74,7 @@ Rectangle {
                     checked = Qt.binding(function() { return Audio.noiseReduction; }); // restore binding
                 }
             }
-            Audio.CheckBox {
+            AudioControls.CheckBox {
                 text: qsTr("Show audio level meter");
                 checked: AvatarInputs.showAudioTools;
                 onClicked: {
@@ -110,7 +111,7 @@ Rectangle {
             delegate: Item {
                 width: parent.width;
                 height: 36;
-                Audio.CheckBox {
+                AudioControls.CheckBox {
                     text: display;
                     checked: selected;
                     onClicked: {
@@ -124,17 +125,23 @@ Rectangle {
         Separator {}
 
         RowLayout {
-            HiFiGlyphs {
-                text: hifi.glyphs.unmuted;
-                color: hifi.colors.primaryHighlight;
-                anchors.verticalCenter: parent.verticalCenter;
-                size: 36;
-            }
-            RalewayRegular {
-                anchors.verticalCenter: parent.verticalCenter;
-                size: 16;
-                color: hifi.colors.lightGrayText;
-                text: qsTr("CHOOSE OUTPUT DEVICE");
+            Column {
+                RowLayout {
+                    HiFiGlyphs {
+                        text: hifi.glyphs.unmuted;
+                        color: hifi.colors.primaryHighlight;
+                        anchors.verticalCenter: parent.verticalCenter;
+                        size: 36;
+                    }
+                    RalewayRegular {
+                        anchors.verticalCenter: parent.verticalCenter;
+                        size: 16;
+                        color: hifi.colors.lightGrayText;
+                        text: qsTr("CHOOSE OUTPUT DEVICE");
+                    }
+                }
+
+                PlaySampleSound { anchors { left: parent.left; leftMargin: 60 }}
             }
         }
 
@@ -148,7 +155,7 @@ Rectangle {
             delegate: Item {
                 width: parent.width;
                 height: 36;
-                Audio.CheckBox {
+                AudioControls.CheckBox {
                     text: display;
                     checked: selected;
                     onClicked: {
