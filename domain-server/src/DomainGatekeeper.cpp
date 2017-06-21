@@ -439,7 +439,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
 
     // in case this is a node that's failing to connect
     // double check we don't have the same node whose sockets match exactly already in the list
-    limitedNodeList->eachNodeBreakable([&nodeConnection, &hintNodeID, &username](const SharedNodePointer& node){
+    limitedNodeList->eachNodeBreakable([&](const SharedNodePointer& node){
         if (node->getPublicSocket() == nodeConnection.publicSockAddr && node->getLocalSocket() == nodeConnection.localSockAddr) {
             // we have a node that already has these exact sockets - this can occur if a node
             // is failing to connect to the domain
