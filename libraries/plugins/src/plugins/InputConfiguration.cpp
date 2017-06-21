@@ -138,4 +138,6 @@ bool InputConfiguration::uncalibratePlugin(QString pluginName) {
             return plugin->uncalibrate();
         }
     }
+    
+    return false;
 }
