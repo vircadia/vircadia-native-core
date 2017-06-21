@@ -1,6 +1,6 @@
 //
 //  LocationScriptingInterface.h
-//  interface/src/scripting
+//  libraries/networking/src
 //
 //  Created by Ryan Huffman on 4/29/14.
 //  Copyright 2014 High Fidelity, Inc.
