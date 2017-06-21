@@ -83,7 +83,6 @@
 #include <input-plugins/InputPlugin.h>
 #include <controllers/UserInputMapper.h>
 #include <controllers/InputRecorder.h>
-#include <plugins/InputConfiguration.h>
 #include <controllers/ScriptingInterface.h>
 #include <controllers/StateController.h>
 #include <UserActivityLoggerScriptingInterface.h>
