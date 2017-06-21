@@ -165,10 +165,6 @@ void AvatarMixer::queueIncomingPacket(QSharedPointer<ReceivedMessage> message, S
     _queueIncomingPacketElapsedTime += (end - start);
 }
 
-
-AvatarMixer::~AvatarMixer() {
-}
-
 void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
     if (destinationNode->getType() == NodeType::Agent && !destinationNode->isUpstream()) {
         QByteArray individualData = nodeData->getAvatar().identityByteArray();
