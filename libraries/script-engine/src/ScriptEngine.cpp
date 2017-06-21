@@ -472,18 +472,22 @@ void ScriptEngine::scriptErrorMessage(const QString& message) {
 }
 
 void ScriptEngine::scriptWarningMessage(const QString& message) {
-    qCWarning(scriptengine) << message;
+    qCWarning(scriptengine) << qPrintable(message);
     emit warningMessage(message, getFilename());
 }
 
 void ScriptEngine::scriptInfoMessage(const QString& message) {
-    qCInfo(scriptengine) << message;
+    qCInfo(scriptengine) << qPrintable(message);
     emit infoMessage(message, getFilename());
 }
 
 void ScriptEngine::scriptPrintedMessage(const QString& message) {
-    qCDebug(scriptengine) << message;
+    qCDebug(scriptengine) << qPrintable(message);
     emit printedMessage(message, getFilename());
+}
+
+void ScriptEngine::clearDebugLogWindow() {
+    emit clearDebugWindow();
 }
 
 // Even though we never pass AnimVariantMap directly to and from javascript, the queued invokeMethod of
@@ -668,8 +672,18 @@ void ScriptEngine::init() {
     registerGlobalObject("Mat4", &_mat4Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
-
     registerGlobalObject("File", new FileScriptingInterface(this));
+    registerGlobalObject("console", &_consoleScriptingInterface);
+    registerFunction("console", "info", ConsoleScriptingInterface::info, currentContext()->argumentCount());
+    registerFunction("console", "log", ConsoleScriptingInterface::log, currentContext()->argumentCount());
+    registerFunction("console", "debug", ConsoleScriptingInterface::debug, currentContext()->argumentCount());
+    registerFunction("console", "warn", ConsoleScriptingInterface::warn, currentContext()->argumentCount());
+    registerFunction("console", "error", ConsoleScriptingInterface::error, currentContext()->argumentCount());
+    registerFunction("console", "exception", ConsoleScriptingInterface::exception, currentContext()->argumentCount());
+    registerFunction("console", "assert", ConsoleScriptingInterface::assertion, currentContext()->argumentCount());
+    registerFunction("console", "group", ConsoleScriptingInterface::group, 1);
+    registerFunction("console", "groupCollapsed", ConsoleScriptingInterface::groupCollapsed, 1);
+    registerFunction("console", "groupEnd", ConsoleScriptingInterface::groupEnd, 0);
 
     qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);
     qScriptRegisterMetaType(this, resultHandlerToScriptValue, resultHandlerFromScriptValue);
@@ -1006,6 +1020,7 @@ void ScriptEngine::run() {
     emit runningStateChanged();
 
     {
+        PROFILE_RANGE(script, _fileNameString);
         evaluate(_scriptContents, _fileNameString);
         maybeEmitUncaughtException(__FUNCTION__);
     }
@@ -1269,6 +1284,7 @@ void ScriptEngine::timerFired() {
 
     // call the associated JS function, if it exists
     if (timerData.function.isValid()) {
+        PROFILE_RANGE(script, __FUNCTION__);
         auto preTimer = p_high_resolution_clock::now();
         callWithEnvironment(timerData.definingEntityIdentifier, timerData.definingSandboxURL, timerData.function, timerData.function, QScriptValueList());
         auto postTimer = p_high_resolution_clock::now();
