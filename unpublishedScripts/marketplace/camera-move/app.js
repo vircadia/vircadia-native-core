@@ -491,11 +491,11 @@ function initializeDOM() {
                 document.activeElement && document.activeElement.blur();
                 document.body.focus();
                 tooltipManager && tooltipManager.disable();
-                log('TOOLTIPS DISABLED');
+                debugPrint('TOOLTIPS DISABLED');
             } else if (tooltipManager && bridgedSettings) {
                 if (bridgedSettings.getValue('ui-enable-tooltips')){
                     tooltipManager.enable();
-                    log('TOOLTIPS RE-ENABLED');
+                    debugPrint('TOOLTIPS RE-ENABLED');
                 }
             }
             $('body').toggleClass('active', window._active);
