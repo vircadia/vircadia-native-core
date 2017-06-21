@@ -143,9 +143,9 @@ public:
     
     // Get a sub job config through task.getConfig(path)
     // where path can be:
-    // - <job_name> the name of the job and then the first one found will be returned traversing the Render engine graph
+    // - <job_name> search for the first job named job_name traversing the the sub graph of task and jobs (from this task as root)
     // - <parent_name>.[<sub_parent_names>.]<job_name>
-    //    Allowing to first look for the parent_name job (from the Render root) and then search from there for the 
+    //    Allowing to first look for the parent_name job (from this task as root) and then search from there for the 
     //    optional sub_parent_names and finally from there looking for the job_name (assuming every job in the path were found)
     //
     // getter for qml integration, prefer the templated getter
