@@ -438,14 +438,20 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
     QUuid hintNodeID;
 
     // in case this is a node that's failing to connect
-    // double check we don't have a node whose sockets match exactly already in the list
-    limitedNodeList->eachNodeBreakable([&nodeConnection, &hintNodeID](const SharedNodePointer& node){
-        if (node->getPublicSocket() == nodeConnection.publicSockAddr
-            && node->getLocalSocket() == nodeConnection.localSockAddr) {
-            // we have a node that already has these exact sockets - this occurs if a node
-            // is unable to connect to the domain
-            hintNodeID = node->getUUID();
-            return false;
+    // double check we don't have the same node whose sockets match exactly already in the list
+    limitedNodeList->eachNodeBreakable([&nodeConnection, &hintNodeID, &username](const SharedNodePointer& node){
+        if (node->getPublicSocket() == nodeConnection.publicSockAddr && node->getLocalSocket() == nodeConnection.localSockAddr) {
+            // we have a node that already has these exact sockets - this can occur if a node
+            // is failing to connect to the domain
+
+            // we'll re-use the existing node ID
+            // as long as the user hasn't changed their username (by logging in or logging out)
+            auto existingNodeData = static_cast<DomainServerNodeData*>(node->getLinkedData());
+
+            if (existingNodeData->getUsername() == username) {
+                hintNodeID = node->getUUID();
+                return false;
+            }
         }
         return true;
     });
