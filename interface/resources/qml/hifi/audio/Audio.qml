@@ -117,12 +117,25 @@ Rectangle {
             delegate: Item {
                 width: parent.width;
                 height: 36;
-                AudioControls.CheckBox {
-                    text: display;
-                    checked: selected;
-                    onClicked: {
-                        selected = checked;
-                        checked = Qt.binding(function() { return selected; }); // restore binding
+
+                RowLayout {
+                    width: parent.width;
+
+                    AudioControls.CheckBox {
+                        Layout.maximumWidth: parent.width - level.width - 40;
+                        text: display;
+                        wrap: false;
+                        checked: selected;
+                        onClicked: {
+                            selected = checked;
+                            checked = Qt.binding(function() { return selected; }); // restore binding
+                        }
+                    }
+                    InputLevel {
+                        id: level;
+                        Layout.alignment: Qt.AlignRight;
+                        Layout.rightMargin: 30;
+                        visible: selected;
                     }
                 }
             }

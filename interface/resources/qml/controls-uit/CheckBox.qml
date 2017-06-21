@@ -22,6 +22,7 @@ Original.CheckBox {
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property bool isRedCheck: false
     property int boxSize: 14
+    property bool wrap: true;
     readonly property int boxRadius: 3
     readonly property int checkSize: Math.max(boxSize - 8, 10)
     readonly property int checkRadius: 2
@@ -92,7 +93,8 @@ Original.CheckBox {
             text: control.text
             color: control.color
             x: 2
-            wrapMode: Text.Wrap
+            wrapMode: checkBox.wrap ? Text.Wrap : Text.NoWrap
+            elide: checkBox.wrap ? Text.ElideNone : Text.ElideRight
             enabled: checkBox.enabled
         }
     }
