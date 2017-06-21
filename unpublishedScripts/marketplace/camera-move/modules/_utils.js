@@ -239,12 +239,15 @@ function BrowserUtils(global) {
                 // this.log('openEventBridge| EventBridge already exists... -- invoking callback', 'typeof EventBridge == ' + typeof global.EventBridge);
                 return callback(global.EventBridge);
             } catch (e) {
-                this.log('EventBridge does not yet exist -- attempting to instrument via qt.webChannelTransport');
+                this.log('EventBridge does not yet exist in a usable state -- attempting to instrument via qt.webChannelTransport',
+                         Object.keys(global.EventBridge));
                 var QWebChannel = assert(global.QWebChannel, 'expected global.QWebChannel to exist'),
                     qt = assert(global.qt, 'expected global.qt to exist');
                 assert(qt.webChannelTransport, 'expected global.qt.webChannelTransport to exist');
                 new QWebChannel(qt.webChannelTransport, bind(this, function (channel) {
                     var objects = channel.objects;
+                    assert(!global.EventBridge, '... global.EventBridge was unavailable at page load, but has unexpectedly materialized; ' +
+                           Object.keys(global.EventBridge));
                     global.EventBridge = objects.eventBridge || (objects.eventBridgeWrapper && objects.eventBridgeWrapper.eventBridge);
                     assert(global.EventBridge, '!global.EventBridge');
                     global.EventBridge.$WebChannel = channel;

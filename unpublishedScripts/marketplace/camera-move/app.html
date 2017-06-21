@@ -88,12 +88,16 @@ try {
         }
     });
 
-    function onEventBridgeOpened(eventBridge) {
-        EventBridge = eventBridge;
-        log('openEventBridge.opened', EventBridge);
+    function onEventBridgeOpened(_eventBridge) {
+        if (!window.EventBridge) {
+            window.EventBridge = _eventBridge;
+        }
+        assert(_eventBridge === window.EventBridge,
+               'ERROR: window.EventBridge materialized spontaneously and differently from the QWebChannel-derived value');
+        log('openEventBridge.opened', window.EventBridge);
 
         bridgedSettings = new BridgedSettings({
-            eventBridge: EventBridge,
+            eventBridge: window.EventBridge,
             namespace: PARAMS.namespace,
             uuid: PARAMS.uuid,
             debug: PARAMS.debug,
@@ -114,7 +118,7 @@ try {
 
         debugPrint('>>> SENDING ACK');
         // let Client script know we are ready
-        eventBridge.emitWebEvent(location.href);
+        bridgedSettings.eventBridge.emitWebEvent(location.href);
 
         function onValueReceived(key, value, oldValue, origin) {
             onMutationEvent.paused++;
