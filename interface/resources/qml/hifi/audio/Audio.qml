@@ -125,17 +125,23 @@ Rectangle {
         Separator {}
 
         RowLayout {
-            HiFiGlyphs {
-                text: hifi.glyphs.unmuted;
-                color: hifi.colors.primaryHighlight;
-                anchors.verticalCenter: parent.verticalCenter;
-                size: 36;
-            }
-            RalewayRegular {
-                anchors.verticalCenter: parent.verticalCenter;
-                size: 16;
-                color: hifi.colors.lightGrayText;
-                text: qsTr("CHOOSE OUTPUT DEVICE");
+            Column {
+                RowLayout {
+                    HiFiGlyphs {
+                        text: hifi.glyphs.unmuted;
+                        color: hifi.colors.primaryHighlight;
+                        anchors.verticalCenter: parent.verticalCenter;
+                        size: 36;
+                    }
+                    RalewayRegular {
+                        anchors.verticalCenter: parent.verticalCenter;
+                        size: 16;
+                        color: hifi.colors.lightGrayText;
+                        text: qsTr("CHOOSE OUTPUT DEVICE");
+                    }
+                }
+
+                PlaySampleSound { anchors { left: parent.left; leftMargin: 60 }}
             }
         }
 
