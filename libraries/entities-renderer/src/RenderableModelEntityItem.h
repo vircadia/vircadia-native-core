@@ -16,6 +16,7 @@
 #include <QStringList>
 
 #include <ModelEntityItem.h>
+#include <AnimationCache.h>
 
 class Model;
 class EntityTreeRenderer;
@@ -53,7 +54,7 @@ public:
                         bool& keepSearching, OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
                         void** intersectedObject, bool precisionPicking) const override;
-    ModelPointer getModel(QSharedPointer<EntityTreeRenderer> renderer);
+    ModelPointer getModel();
     ModelPointer getModelNotSafe();
 
     virtual bool needsToCallUpdate() const override;
@@ -106,6 +107,15 @@ public:
     // Transparency is handled in ModelMeshPartPayload
     bool isTransparent() override { return false; }
 
+    void mapJoints(const QStringList& modelJointNames);
+    bool jointsMapped() const {
+        return _jointMappingURL == getAnimationURL() && _jointMappingCompleted;
+    }
+
+    AnimationPointer getAnimation() const {
+        return _animation;
+    }
+
 private:
     QVariantMap parseTexturesToMap(QString textures);
     void remapTextures();
@@ -131,6 +141,12 @@ private:
     bool _needsJointSimulation { false };
     bool _showCollisionGeometry { false };
     const void* _collisionMeshKey { nullptr };
+
+    // used on client side
+    bool _jointMappingCompleted { false };
+    QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
+    QString _jointMappingURL;
+    AnimationPointer _animation;
 };
 
 #endif // hifi_RenderableModelEntityItem_h

@@ -9,12 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "AnimationPropertyGroup.h"
+
 #include <QJsonDocument>
 #include <OctreePacketData.h>
 
-#include <AnimationLoop.h>
 
-#include "AnimationPropertyGroup.h"
 #include "EntityItemProperties.h"
 #include "EntityItemPropertiesMacros.h"
 
