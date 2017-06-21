@@ -1006,6 +1006,7 @@ void ScriptEngine::run() {
     emit runningStateChanged();
 
     {
+        PROFILE_RANGE(script, _fileNameString);
         evaluate(_scriptContents, _fileNameString);
         maybeEmitUncaughtException(__FUNCTION__);
     }
