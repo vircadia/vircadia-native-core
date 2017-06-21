@@ -51,6 +51,7 @@
 #include "avatar/AvatarManager.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
 #include "ui/Snapshot.h"
+#include "SoundCache.h"
 
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
@@ -199,6 +200,7 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
             _webSurface->getSurfaceContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
             _webSurface->getSurfaceContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
+            _webSurface->getSurfaceContext()->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
 
             _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
@@ -318,7 +320,7 @@ void Web3DOverlay::render(RenderArgs* args) {
         geometryCache->bindOpaqueWebBrowserProgram(batch, _isAA);
     }
     geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color, _geometryId);
-    batch.setResourceTexture(0, args->_whiteTexture); // restore default white color after me
+    batch.setResourceTexture(0, nullptr); // restore default white color after me
 }
 
 const render::ShapeKey Web3DOverlay::getShapeKey() {
@@ -440,17 +442,27 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     touchEvent->setTouchPoints(touchPoints);
     touchEvent->setTouchPointStates(touchPointState);
 
+    // Send mouse events to the Web surface so that HTML dialog elements work with mouse press and hover.
+    // FIXME: Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times).
+    // This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".
+    //
+    // In Qt 5.9 mouse events must be sent before touch events to make sure some QtQuick components will
+    // receive mouse events
+#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
+    if (!(this->_pressed && event.getType() == PointerEvent::Move)) {
+        QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+        QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
+    }
+#endif
     QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
 
-    if (this->_pressed && event.getType() == PointerEvent::Move) {	
+#if QT_VERSION < QT_VERSION_CHECK(5, 9, 0)
+    if (this->_pressed && event.getType() == PointerEvent::Move) {
         return;
     }
-    // Send mouse events to the Web surface so that HTML dialog elements work with mouse press and hover.
-    // FIXME: Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times). 
-    // This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".
-
     QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
     QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
+#endif
 }
 
 void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {

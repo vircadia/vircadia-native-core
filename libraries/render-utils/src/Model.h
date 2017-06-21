@@ -25,6 +25,7 @@
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <gpu/Batch.h>
+#include <render/Forward.h>
 #include <render/Scene.h>
 #include <Transform.h>
 #include <SpatiallyNestable.h>
@@ -34,10 +35,10 @@
 #include "TextureCache.h"
 #include "Rig.h"
 
+
 class AbstractViewStateInterface;
 class QScriptEngine;
 
-#include "RenderArgs.h"
 class ViewFrustum;
 
 namespace render {

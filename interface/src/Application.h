@@ -181,7 +181,6 @@ public:
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() const { return _window; }
     EntityTreePointer getEntityClipboard() const { return _entityClipboard; }
-    EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
 
     ivec2 getMouse() const;
@@ -399,7 +398,7 @@ private slots:
     void showDesktop();
     void clearDomainOctreeDetails();
     void clearDomainAvatars();
-    void aboutToQuit();
+    void onAboutToQuit();
 
     void resettingDomain();
 
@@ -532,7 +531,6 @@ private:
     PhysicalEntitySimulationPointer _entitySimulation;
     PhysicsEnginePointer _physicsEngine;
 
-    EntityTreeRenderer _entityClipboardRenderer;
     EntityTreePointer _entityClipboard;
 
     mutable QMutex _viewMutex { QMutex::Recursive };

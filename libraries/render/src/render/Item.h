@@ -22,7 +22,8 @@
 #include <vector>
 
 #include <AABox.h>
-#include <RenderArgs.h>
+
+#include "Args.h"
 
 #include "model/Material.h"
 #include "ShapePipeline.h"

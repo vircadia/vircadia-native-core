@@ -36,6 +36,7 @@ protected:
 
     glm::vec3 _positionalTarget;
     glm::vec3 _desiredPositionalTarget;
+    glm::vec3 _lastPositionTarget;
     float _linearTimeScale;
     bool _positionalTargetSet;
 
