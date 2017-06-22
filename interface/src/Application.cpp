@@ -88,6 +88,7 @@
 #include <UserActivityLoggerScriptingInterface.h>
 #include <LogHandler.h>
 #include "LocationBookmarks.h"
+#include <LocationScriptingInterface.h>
 #include <MainWindow.h>
 #include <MappingRequest.h>
 #include <MessagesClient.h>
@@ -160,7 +161,6 @@
 #include "scripting/DesktopScriptingInterface.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
-#include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
@@ -442,6 +442,34 @@ static const QString STATE_NAV_FOCUSED = "NavigationFocused";
 
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
+
+    // HRS: I could not figure out how to move these any earlier in startup, so when using this option, be sure to also supply
+    // --allowMultipleInstances
+    auto reportAndQuit = [&](const char* commandSwitch, std::function<void(FILE* fp)> report) {
+        const char* reportfile = getCmdOption(argc, constArgv, commandSwitch);
+        // Reports to the specified file, because stdout is set up to be captured for logging.
+        if (reportfile) {
+            FILE* fp = fopen(reportfile, "w");
+            if (fp) {
+                report(fp);
+                fclose(fp);
+                if (!runningMarkerExisted) { // don't leave ours around
+                    RunningMarker runingMarker(RUNNING_MARKER_FILENAME);
+                    runingMarker.deleteRunningMarkerFile(); // happens in deleter, but making the side-effect explicit.
+                }
+                _exit(0);
+            }
+        }
+    };
+    reportAndQuit("--protocolVersion", [&](FILE* fp) {
+        DependencyManager::set<AddressManager>();
+        auto version = DependencyManager::get<AddressManager>()->protocolVersion();
+        fputs(version.toLatin1().data(), fp);
+    });
+    reportAndQuit("--version", [&](FILE* fp) {
+        fputs(BuildInfo::VERSION.toLatin1().data(), fp);
+    });
+
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
     const int listenPort = portStr ? atoi(portStr) : INVALID_PORT;
 
@@ -581,7 +609,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _undoStackScriptingInterface(&_undoStack),
     _entitySimulation(new PhysicalEntitySimulation()),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
-    _entityClipboardRenderer(false, this, this),
     _entityClipboard(new EntityTree()),
     _lastQueriedTime(usecTimestampNow()),
     _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
@@ -2480,8 +2507,11 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     Setting::Handle<bool> tutorialComplete{ "tutorialComplete", false };
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
 
+    const QString HIFI_SKIP_TUTORIAL_COMMAND_LINE_KEY = "--skipTutorial";
+    // Skips tutorial/help behavior, and does NOT clear firstRun setting.
+    bool skipTutorial = arguments().contains(HIFI_SKIP_TUTORIAL_COMMAND_LINE_KEY);
     bool isTutorialComplete = tutorialComplete.get();
-    bool shouldGoToTutorial = isUsingHMDAndHandControllers && hasTutorialContent && !isTutorialComplete;
+    bool shouldGoToTutorial = isUsingHMDAndHandControllers && hasTutorialContent && !isTutorialComplete && !skipTutorial;
 
     qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMDAndHandControllers;
     qCDebug(interfaceapp) << "Tutorial version:" << contentVersion << ", sufficient:" << hasTutorialContent <<
@@ -2524,14 +2554,9 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
         }
     } else {
 
-        bool isFirstRun = firstRun.get();
-
-        if (isFirstRun) {
-            showHelp();
-        }
-
         // If this is a first run we short-circuit the address passed in
-        if (isFirstRun) {
+        if (firstRun.get() && !skipTutorial) {
+            showHelp();
             if (isUsingHMDAndHandControllers) {
                 if (sandboxIsRunning) {
                     qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
@@ -2569,7 +2594,9 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     _connectionMonitor.init();
 
     // After all of the constructor is completed, then set firstRun to false.
-    firstRun.set(false);
+    if (!skipTutorial) {
+        firstRun.set(false);
+    }
 }
 
 bool Application::importJSONFromURL(const QString& urlString) {
@@ -3989,11 +4016,6 @@ void Application::init() {
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 
     getEntities()->init();
-    {
-        QMutexLocker viewLocker(&_viewMutex);
-        getEntities()->setViewFrustum(_viewFrustum);
-    }
-
     getEntities()->setEntityLoadingPriorityFunction([this](const EntityItem& item) {
         auto dims = item.getDimensions();
         auto maxSize = glm::compMax(dims);
@@ -4022,13 +4044,6 @@ void Application::init() {
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
     // of events related clicking, hovering over, and entering entities
     getEntities()->connectSignalsToSlots(entityScriptingInterface.data());
-
-    _entityClipboardRenderer.init();
-    {
-        QMutexLocker viewLocker(&_viewMutex);
-        _entityClipboardRenderer.setViewFrustum(_viewFrustum);
-    }
-    _entityClipboardRenderer.setTree(_entityClipboard);
 
     // Make sure any new sounds are loaded as soon as know about them.
     connect(tree.get(), &EntityTree::newCollisionSoundURL, this, [this](QUrl newURL, EntityItemID id) {
@@ -4133,7 +4148,7 @@ void Application::updateMyAvatarLookAtPosition() {
                 lookAtSpot = transformPoint(worldHeadMat, glm::vec3(0.0f, 0.0f, TREE_SCALE));
             } else {
                 lookAtSpot = myAvatar->getHead()->getEyePosition() +
-                    (myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
+                    (myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, TREE_SCALE));
             }
         }
 
@@ -5022,9 +5037,6 @@ QRect Application::getDesirableApplicationGeometry() const {
     return applicationGeometry;
 }
 
-// FIXME, preprocessor guard this check to occur only in DEBUG builds
-static QThread * activeRenderingThread = nullptr;
-
 PickRay Application::computePickRay(float x, float y) const {
     vec2 pickPoint { x, y };
     PickRay result;
@@ -5095,7 +5107,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     auto myAvatar = getMyAvatar();
     myAvatar->preDisplaySide(renderArgs);
 
-    activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(render, __FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
@@ -5168,8 +5179,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         // Before the deferred pass, let's try to use the render engine
         _renderEngine->run();
     }
-
-    activeRenderingThread = nullptr;
 }
 
 void Application::resetSensors(bool andReload) {
@@ -5588,6 +5597,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     connect(scriptEngine, &ScriptEngine::errorMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onErrorMessage);
     connect(scriptEngine, &ScriptEngine::warningMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onWarningMessage);
     connect(scriptEngine, &ScriptEngine::infoMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onInfoMessage);
+    connect(scriptEngine, &ScriptEngine::clearDebugWindow, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onClearDebugWindow);
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {

@@ -15,7 +15,6 @@
 #include "gpu/Resource.h"
 #include "gpu/Framebuffer.h"
 
-class RenderArgs;
 
 // DeferredFramebuffer is  a helper class gathering in one place the GBuffer (Framebuffer) and lighting framebuffer
 class DeferredFramebuffer {

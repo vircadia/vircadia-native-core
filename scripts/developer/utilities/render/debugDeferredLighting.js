@@ -13,7 +13,7 @@ var qml = Script.resolvePath('deferredLighting.qml');
 var window = new OverlayWindow({
     title: 'Lighting',
     source: qml,
-    width: 400, height:350,
+    width: 400, height:400,
 });
 window.setPosition(Window.innerWidth - 420, 50);
 window.closed.connect(function() { Script.stop(); });

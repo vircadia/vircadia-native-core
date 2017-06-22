@@ -210,6 +210,7 @@ signals:
     bool muteToggled();
     void mutedByMixer();
     void inputReceived(const QByteArray& inputSamples);
+    void inputLoudnessChanged(float loudness);
     void outputBytesToNetwork(int numBytes);
     void inputBytesFromNetwork(int numBytes);
     void noiseGateOpened();

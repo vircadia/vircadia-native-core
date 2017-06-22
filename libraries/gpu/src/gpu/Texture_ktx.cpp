@@ -154,6 +154,10 @@ struct IrradianceKTXPayload {
 };
 const std::string IrradianceKTXPayload::KEY{ "hifi.irradianceSH" };
 
+KtxStorage::KtxStorage(const cache::FilePointer& cacheEntry) : KtxStorage(cacheEntry->getFilepath())  {
+    _cacheEntry = cacheEntry;
+}
+
 KtxStorage::KtxStorage(const std::string& filename) : _filename(filename) {
     {
         // We are doing a lot of work here just to get descriptor data
@@ -295,17 +299,32 @@ void KtxStorage::assignMipFaceData(uint16 level, uint8 face, const storage::Stor
     throw std::runtime_error("Invalid call");
 }
 
+bool validKtx(const std::string& filename) {
+    ktx::StoragePointer storage { new storage::FileStorage(filename.c_str()) };
+    auto ktxPointer = ktx::KTX::create(storage);
+    if (!ktxPointer) {
+        return false;
+    }
+    return true;
+}
+
 void Texture::setKtxBacking(const std::string& filename) {
     // Check the KTX file for validity before using it as backing storage
-    {
-        ktx::StoragePointer storage { new storage::FileStorage(filename.c_str()) };
-        auto ktxPointer = ktx::KTX::create(storage);
-        if (!ktxPointer) {
-            return;
-        }
+    if (!validKtx(filename)) {
+        return;
     }
 
     auto newBacking = std::unique_ptr<Storage>(new KtxStorage(filename));
+    setStorage(newBacking);
+}
+
+void Texture::setKtxBacking(const cache::FilePointer& cacheEntry) {
+    // Check the KTX file for validity before using it as backing storage
+    if (!validKtx(cacheEntry->getFilepath())) {
+        return;
+    }
+
+    auto newBacking = std::unique_ptr<Storage>(new KtxStorage(cacheEntry));
     setStorage(newBacking);
 }
 
@@ -442,21 +461,10 @@ ktx::KTXUniquePointer Texture::serialize(const Texture& texture) {
     return ktxBuffer;
 }
 
-TexturePointer Texture::unserialize(const std::string& ktxfile) {
-    std::unique_ptr<ktx::KTX> ktxPointer = ktx::KTX::create(std::make_shared<storage::FileStorage>(ktxfile.c_str()));
-    if (!ktxPointer) {
-        return nullptr;
-    }
-
-    ktx::KTXDescriptor descriptor { ktxPointer->toDescriptor() };
-    return unserialize(ktxfile, ktxPointer->toDescriptor());
-}
-
-TexturePointer Texture::unserialize(const std::string& ktxfile, const ktx::KTXDescriptor& descriptor) {
-    const auto& header = descriptor.header;
-
+TexturePointer Texture::build(const ktx::KTXDescriptor& descriptor) {
     Format mipFormat = Format::COLOR_BGRA_32;
     Format texelFormat = Format::COLOR_SRGBA_32;
+    const auto& header = descriptor.header;
 
     if (!Texture::evalTextureFormat(header, mipFormat, texelFormat)) {
         return nullptr;
@@ -485,24 +493,53 @@ TexturePointer Texture::unserialize(const std::string& ktxfile, const ktx::KTXDe
     }
 
     auto texture = create(gpuktxKeyValue._usageType,
-                          type,
-                          texelFormat,
-                          header.getPixelWidth(),
-                          header.getPixelHeight(),
-                          header.getPixelDepth(),
-                          1, // num Samples
-                          header.getNumberOfSlices(),
-                          header.getNumberOfLevels(),
-                          gpuktxKeyValue._samplerDesc);
+        type,
+        texelFormat,
+        header.getPixelWidth(),
+        header.getPixelHeight(),
+        header.getPixelDepth(),
+        1, // num Samples
+        header.getNumberOfSlices(),
+        header.getNumberOfLevels(),
+        gpuktxKeyValue._samplerDesc);
     texture->setUsage(gpuktxKeyValue._usage);
 
     // Assing the mips availables
     texture->setStoredMipFormat(mipFormat);
-    texture->setKtxBacking(ktxfile);
 
     IrradianceKTXPayload irradianceKtxKeyValue;
     if (IrradianceKTXPayload::findInKeyValues(descriptor.keyValues, irradianceKtxKeyValue)) {
         texture->overrideIrradiance(std::make_shared<SphericalHarmonics>(irradianceKtxKeyValue._irradianceSH));
+    }
+
+    return texture;
+}
+
+
+
+TexturePointer Texture::unserialize(const cache::FilePointer& cacheEntry) {
+    std::unique_ptr<ktx::KTX> ktxPointer = ktx::KTX::create(std::make_shared<storage::FileStorage>(cacheEntry->getFilepath().c_str()));
+    if (!ktxPointer) {
+        return nullptr;
+    }
+
+    auto texture = build(ktxPointer->toDescriptor());
+    if (texture) {
+        texture->setKtxBacking(cacheEntry);
+    }
+
+    return texture;
+}
+
+TexturePointer Texture::unserialize(const std::string& ktxfile) {
+    std::unique_ptr<ktx::KTX> ktxPointer = ktx::KTX::create(std::make_shared<storage::FileStorage>(ktxfile.c_str()));
+    if (!ktxPointer) {
+        return nullptr;
+    }
+    
+    auto texture = build(ktxPointer->toDescriptor());
+    if (texture) {
+        texture->setKtxBacking(ktxfile);
     }
 
     return texture;

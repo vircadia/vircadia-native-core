@@ -112,7 +112,7 @@ void Image3DOverlay::render(RenderArgs* args) {
         _geometryId
     );
 
-    batch->setResourceTexture(0, args->_whiteTexture); // restore default white color after me
+    batch->setResourceTexture(0, nullptr); // restore default white color after me
 }
 
 const render::ShapeKey Image3DOverlay::getShapeKey() {

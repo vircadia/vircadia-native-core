@@ -27,7 +27,7 @@ class EntityTreeRenderer;
 class RenderableWebEntityItem;
 
 
-class RenderableWebEntityItem : public WebEntityItem  {
+class RenderableWebEntityItem : public WebEntityItem, SimplerRenderableEntitySupport {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderableWebEntityItem(const EntityItemID& entityItemID);
