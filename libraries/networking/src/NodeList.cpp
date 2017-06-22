@@ -654,8 +654,9 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     QUuid nodeUUID, connectionUUID;
     HifiSockAddr nodePublicSocket, nodeLocalSocket;
     NodePermissions permissions;
+    bool isReplicated;
 
-    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> permissions;
+    packetStream >> nodeType >> nodeUUID >> nodePublicSocket >> nodeLocalSocket >> permissions >> isReplicated;
 
     // if the public socket address is 0 then it's reachable at the same IP
     // as the domain server
@@ -666,7 +667,12 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
     packetStream >> connectionUUID;
 
     SharedNodePointer node = addOrUpdateNode(nodeUUID, nodeType, nodePublicSocket,
-                                             nodeLocalSocket, permissions, connectionUUID);
+                                             nodeLocalSocket, isReplicated, false, connectionUUID, permissions);
+
+    // nodes that are downstream of our own type are kept alive when we hear about them from the domain server
+    if (node->getType() == NodeType::downstreamType(_ownerType)) {
+        node->setLastHeardMicrostamp(usecTimestampNow());
+    }
 }
 
 void NodeList::sendAssignment(Assignment& assignment) {
@@ -711,14 +717,20 @@ void NodeList::pingPunchForInactiveNode(const SharedNodePointer& node) {
 }
 
 void NodeList::startNodeHolePunch(const SharedNodePointer& node) {
-    // connect to the correct signal on this node so we know when to ping it
-    connect(node.data(), &Node::pingTimerTimeout, this, &NodeList::handleNodePingTimeout);
 
-    // start the ping timer for this node
-    node->startPingTimer();
+    // we don't hole punch to downstream servers, since it is assumed that we have a direct line to them
+    // we also don't hole punch to relayed upstream nodes, since we do not communicate directly with them
 
-    // ping this node immediately
-    pingPunchForInactiveNode(node);
+    if (!NodeType::isDownstream(node->getType()) && !node->isUpstream()) {
+        // connect to the correct signal on this node so we know when to ping it
+        connect(node.data(), &Node::pingTimerTimeout, this, &NodeList::handleNodePingTimeout);
+
+        // start the ping timer for this node
+        node->startPingTimer();
+
+        // ping this node immediately
+        pingPunchForInactiveNode(node);
+    }
 }
 
 void NodeList::handleNodePingTimeout() {
@@ -761,8 +773,11 @@ void NodeList::stopKeepalivePingTimer() {
 }
 
 void NodeList::sendKeepAlivePings() {
+    // send keep-alive ping packets to nodes of types we care about that are not relayed to us from an upstream node
+
     eachMatchingNode([this](const SharedNodePointer& node)->bool {
-        return _nodeTypesOfInterest.contains(node->getType());
+        auto type = node->getType();
+        return !node->isUpstream() && _nodeTypesOfInterest.contains(type) && !NodeType::isDownstream(type);
     }, [&](const SharedNodePointer& node) {
         sendPacket(constructPingPacket(), *node);
     });

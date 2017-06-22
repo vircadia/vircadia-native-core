@@ -39,7 +39,8 @@ var Settings = {
   ACCESS_TOKEN_SELECTOR: '[name="metaverse.access_token"]',
   PLACES_TABLE_ID: 'places-table',
   FORM_ID: 'settings-form',
-  INVALID_ROW_CLASS: 'invalid-input'
+  INVALID_ROW_CLASS: 'invalid-input',
+  DATA_ROW_INDEX: 'data-row-index'
 };
 
 var viewHelpers = {
@@ -223,10 +224,10 @@ $(document).ready(function(){
             // set focus to the first input in the new row
             $target.closest('table').find('tr.inputs input:first').focus();
           }
-          
+
           var tableRows = sibling.parent();
           var tableBody = tableRows.parent();
-          
+
           // if theres no more siblings, we should jump to a new row
           if (sibling.next().length == 0 && tableRows.nextAll().length == 1) {
               tableBody.find("." + Settings.ADD_ROW_BUTTON_CLASS).click();
@@ -1005,7 +1006,7 @@ function saveSettings() {
       var password = formJSON["security"]["http_password"];
       var verify_password = formJSON["security"]["verify_http_password"];
 
-      // if they've only emptied out the default password field, we should go ahead and acknowledge 
+      // if they've only emptied out the default password field, we should go ahead and acknowledge
       // the verify password field
       if (password != undefined && verify_password == undefined) {
         verify_password = "";
@@ -1158,8 +1159,9 @@ function makeTable(setting, keypath, setting_value) {
       }
 
       html += "<tr class='" + Settings.DATA_ROW_CLASS + "' " +
-                   (isCategorized ? ("data-category='" + categoryValue + "'") : "") + " " +
-                   (isArray ? "" : "name='" + keypath + "." + rowIndexOrName + "'") + ">";
+        (isCategorized ? ("data-category='" + categoryValue + "'") : "") + " " +
+        (isArray ? "" : "name='" + keypath + "." + rowIndexOrName + "'") +
+        (isArray ? Settings.DATA_ROW_INDEX + "='" + (row_num - 1) + "'" : "" ) + ">";
 
       if (setting.numbered === true) {
         html += "<td class='numbered'>" + row_num + "</td>"
@@ -1289,6 +1291,17 @@ function makeTableHiddenInputs(setting, initialValues, categoryValue) {
           "<input type='checkbox' style='display: none;' class='form-control table-checkbox' " +
                  "name='" + col.name + "'" + (defaultValue ? " checked" : "") + "/>" +
         "</td>";
+    } else if (col.type === "select") {
+        html += "<td class='" + Settings.DATA_COL_CLASS + "'name='" + col.name + "'>"
+        html += "<select style='display: none;' class='form-control' data-hidden-input='" + col.name + "'>'"
+
+        for (var i in col.options) {
+            var option = col.options[i];
+            html += "<option value='" + option.value + "' " + (option.value == defaultValue ? 'selected' : '') + ">" + option.label + "</option>";
+        }
+
+        html += "</select>";
+        html += "<input type='hidden' class='table-dropdown form-control trigger-change' name='" + col.name + "' value='" +  defaultValue + "'></td>";
     } else {
       html +=
         "<td " + (col.hidden ? "style='display: none;'" : "") + " class='" + Settings.DATA_COL_CLASS + "' " +
@@ -1411,6 +1424,21 @@ function addTableRow(row) {
   var setting_name = table.attr("name");
   row.addClass(Settings.DATA_ROW_CLASS + " " + Settings.NEW_ROW_CLASS);
 
+  // if this is an array, add the row index (which is the index of the last row + 1)
+  // as a data attribute to the row
+  var row_index = 0;
+  if (isArray) {
+    var previous_row = row.siblings('.' + Settings.DATA_ROW_CLASS + ':last');
+
+    if (previous_row.length > 0) {
+      row_index = parseInt(previous_row.attr(Settings.DATA_ROW_INDEX), 10) + 1;
+    } else {
+      row_index = 0;
+    }
+
+    row.attr(Settings.DATA_ROW_INDEX, row_index);
+  }
+
   var focusChanged = false;
 
   _.each(row.children(), function(element) {
@@ -1440,19 +1468,23 @@ function addTableRow(row) {
       input.show();
 
       var isCheckbox = input.hasClass("table-checkbox");
+      var isDropdown = input.hasClass("table-dropdown");
 
       if (isArray) {
-        var row_index = row.siblings('.' + Settings.DATA_ROW_CLASS).length
         var key = $(element).attr('name');
 
         // are there multiple columns or just one?
         // with multiple we have an array of Objects, with one we have an array of whatever the value type is
         var num_columns = row.children('.' + Settings.DATA_COL_CLASS).length
+        var newName = setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : "");
 
-        if (isCheckbox) {
-          input.attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))
-        } else {
-          input.attr("name", setting_name + "[" + row_index + "]" + (num_columns > 1 ? "." + key : ""))
+        input.attr("name", newName);
+
+        if (isDropdown) {
+          // default values for hidden inputs inside child selects gets cleared so we need to remind it
+          var selectElement = $(element).children("select");
+          selectElement.attr("data-hidden-input", newName);
+          $(element).children("input").val(selectElement.val());
         }
       } else {
         // because the name of the setting in question requires the key
@@ -1466,6 +1498,12 @@ function addTableRow(row) {
       if (!focusChanged) {
           input.focus();
           focusChanged = true;
+      }
+
+      // if we are adding a dropdown, we should go ahead and make its select
+      // element is visible
+      if (isDropdown) {
+          $(element).children("select").attr("style", "");
       }
 
       if (isCheckbox) {
