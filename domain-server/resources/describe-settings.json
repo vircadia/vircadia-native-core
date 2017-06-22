@@ -1335,6 +1335,68 @@
           "advanced": true
         }
       ]
+    },
+    {
+      "name": "broadcasting",
+      "label": "Broadcasting",
+      "settings": [
+        {
+          "name": "users",
+          "label": "Broadcasted Users",
+          "type": "table",
+          "advanced": true,
+          "can_add_new_rows": true,
+          "help": "Users that are broadcasted to downstream servers",
+          "numbered": false,
+          "columns": [
+            {
+              "name": "user",
+              "label": "User",
+              "can_set": true
+            }
+          ]
+        },
+        {
+          "name": "downstream_servers",
+          "label": "Receiving Servers",
+          "assignment-types": [0,1],
+          "type": "table",
+          "advanced": true,
+          "can_add_new_rows": true,
+          "help": "Servers that receive data for broadcasted users",
+          "numbered": false,
+          "columns": [
+            {
+              "name": "address",
+              "label": "Address",
+              "can_set": true
+            },
+            {
+              "name": "port",
+              "label": "Port",
+              "can_set": true
+            },
+            {
+              "name": "server_type",
+              "label": "Server Type",
+              "type": "select",
+              "placeholder": "Audio Mixer",
+              "default": "Audio Mixer",
+              "can_set": true,
+              "options": [
+                {
+                  "value": "Audio Mixer",
+                  "label": "Audio Mixer"
+                },
+                {
+                  "value": "Avatar Mixer",
+                  "label": "Avatar Mixer"
+                }
+              ]
+            }
+          ]
+        }
+      ]
     }
   ]
 }

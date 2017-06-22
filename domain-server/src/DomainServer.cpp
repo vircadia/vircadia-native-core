@@ -117,6 +117,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // if permissions are updated, relay the changes to the Node datastructures
     connect(&_settingsManager, &DomainServerSettingsManager::updateNodePermissions,
             &_gatekeeper, &DomainGatekeeper::updateNodePermissions);
+    connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
+            this, &DomainServer::updateReplicatedNodes);
+    connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
+            this, &DomainServer::updateDownstreamNodes);
 
     setupGroupCacheRefresh();
 
@@ -128,6 +132,9 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _settingsManager.apiRefreshGroupInformation();
 
     setupNodeListAndAssignments();
+
+    updateReplicatedNodes();
+    updateDownstreamNodes();
 
     if (_type != NonMetaverse) {
         // if we have a metaverse domain, we'll use an access token for API calls
@@ -956,6 +963,11 @@ void DomainServer::handleConnectedNode(SharedNodePointer newNode) {
     // if this node is a user (unassigned Agent), signal
     if (newNode->getType() == NodeType::Agent && !nodeData->wasAssigned()) {
         emit userConnected();
+    }
+
+    if (shouldReplicateNode(*newNode)) {
+        qDebug() << "Setting node to replicated: " << newNode->getUUID();
+        newNode->setIsReplicated(true);
     }
 
     // send out this node to our other connected nodes
@@ -2214,6 +2226,131 @@ void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer&
     _allAssignments.insert(assignment->getUUID(), assignment);
     _unfulfilledAssignments.enqueue(assignment);
 }
+
+static const QString BROADCASTING_SETTINGS_KEY = "broadcasting";
+
+void DomainServer::updateDownstreamNodes() {
+    auto settings = _settingsManager.getSettingsMap();
+    if (settings.contains(BROADCASTING_SETTINGS_KEY)) {
+        auto nodeList = DependencyManager::get<LimitedNodeList>();
+        std::vector<HifiSockAddr> downstreamNodesInSettings;
+        auto replicationSettings = settings.value(BROADCASTING_SETTINGS_KEY).toMap();
+        if (replicationSettings.contains("downstream_servers")) {
+            auto serversSettings = replicationSettings.value("downstream_servers").toList();
+
+            std::vector<HifiSockAddr> knownDownstreamNodes;
+            nodeList->eachNode([&](const SharedNodePointer& otherNode) {
+                if (NodeType::isDownstream(otherNode->getType())) {
+                    knownDownstreamNodes.push_back(otherNode->getPublicSocket());
+                }
+            });
+
+            for (auto& server : serversSettings) {
+                auto downstreamServer = server.toMap();
+
+                static const QString DOWNSTREAM_SERVER_ADDRESS = "address";
+                static const QString DOWNSTREAM_SERVER_PORT = "port";
+                static const QString DOWNSTREAM_SERVER_TYPE = "server_type";
+
+                // make sure we have the settings we need for this downstream server
+                if (downstreamServer.contains(DOWNSTREAM_SERVER_ADDRESS) && downstreamServer.contains(DOWNSTREAM_SERVER_PORT)) {
+
+                    auto nodeType = NodeType::fromString(downstreamServer[DOWNSTREAM_SERVER_TYPE].toString());
+                    auto downstreamNodeType = NodeType::downstreamType(nodeType);
+
+                    // read the address and port and construct a HifiSockAddr from them
+                    HifiSockAddr downstreamServerAddr {
+                        downstreamServer[DOWNSTREAM_SERVER_ADDRESS].toString(),
+                        (quint16) downstreamServer[DOWNSTREAM_SERVER_PORT].toString().toInt()
+                    };
+                    downstreamNodesInSettings.push_back(downstreamServerAddr);
+
+                    bool knownNode = find(knownDownstreamNodes.cbegin(), knownDownstreamNodes.cend(),
+                                          downstreamServerAddr) != knownDownstreamNodes.cend();
+                    if (!knownNode) {
+                        // manually add the downstream node to our node list
+                        auto node = nodeList->addOrUpdateNode(QUuid::createUuid(), downstreamNodeType,
+                                                              downstreamServerAddr, downstreamServerAddr);
+                        node->setIsForcedNeverSilent(true);
+
+                        qDebug() << "Adding downstream node:" << node->getUUID() << downstreamServerAddr;
+
+                        // manually activate the public socket for the downstream node
+                        node->activatePublicSocket();
+                    }
+                }
+
+            }
+        }
+
+        // enumerate the nodes to determine which are no longer downstream for this domain
+        // collect them in a vector to separately remove them with handleKillNode (since eachNode has a read lock and
+        // we cannot recursively take the write lock required by handleKillNode)
+        std::vector<SharedNodePointer> nodesToKill;
+        nodeList->eachNode([&](const SharedNodePointer& otherNode) {
+            if (NodeType::isDownstream(otherNode->getType())) {
+                bool nodeInSettings = find(downstreamNodesInSettings.cbegin(), downstreamNodesInSettings.cend(),
+                                           otherNode->getPublicSocket()) != downstreamNodesInSettings.cend();
+                if (!nodeInSettings) {
+                    qDebug() << "Removing downstream node:" << otherNode->getUUID() << otherNode->getPublicSocket();
+                    nodesToKill.push_back(otherNode);
+                }
+            }
+        });
+
+        for (auto& node : nodesToKill) {
+            handleKillNode(node);
+        }
+    }
+}
+
+void DomainServer::updateReplicatedNodes() {
+    // Make sure we have downstream nodes in our list
+    auto settings = _settingsManager.getSettingsMap();
+
+    static const QString REPLICATED_USERS_KEY = "users";
+    _replicatedUsernames.clear();
+    
+    if (settings.contains(BROADCASTING_SETTINGS_KEY)) {
+        auto replicationSettings = settings.value(BROADCASTING_SETTINGS_KEY).toMap();
+        if (replicationSettings.contains(REPLICATED_USERS_KEY)) {
+            auto usersSettings = replicationSettings.value(REPLICATED_USERS_KEY).toList();
+            for (auto& username : usersSettings) {
+                _replicatedUsernames.push_back(username.toString().toLower());
+            }
+        }
+    }
+
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    nodeList->eachMatchingNode([this](const SharedNodePointer& otherNode) -> bool {
+            return otherNode->getType() == NodeType::Agent;
+        }, [this](const SharedNodePointer& otherNode) {
+            auto shouldReplicate = shouldReplicateNode(*otherNode);
+            auto isReplicated = otherNode->isReplicated();
+            if (isReplicated && !shouldReplicate) {
+                qDebug() << "Setting node to NOT be replicated:"
+                    << otherNode->getPermissions().getVerifiedUserName() << otherNode->getUUID();
+            } else if (!isReplicated && shouldReplicate) {
+                qDebug() << "Setting node to replicated:"
+                    << otherNode->getPermissions().getVerifiedUserName() << otherNode->getUUID();
+            }
+            otherNode->setIsReplicated(shouldReplicate);
+        }
+    );
+}
+
+bool DomainServer::shouldReplicateNode(const Node& node) {
+    if (node.getType() == NodeType::Agent) {
+        QString verifiedUsername = node.getPermissions().getVerifiedUserName();
+
+        // Both the verified username and usernames in _replicatedUsernames are lowercase, so
+        // comparisons here are case-insensitive.
+        auto it = find(_replicatedUsernames.cbegin(), _replicatedUsernames.cend(), verifiedUsername);
+        return it != _replicatedUsernames.end();
+    } else {
+        return false;
+    }
+};
 
 void DomainServer::nodeAdded(SharedNodePointer node) {
     // we don't use updateNodeWithData, so add the DomainServerNodeData to the node here
