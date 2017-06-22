@@ -13,8 +13,7 @@ Script.include("/~/system/libraries/Xform.js");
 (function() { // BEGIN LOCAL_SCOPE
 
 var TABLET_BUTTON_NAME = "PUCKTACH";
-// var HTML_URL = "https://s3.amazonaws.com/hifi-public/tony/html/puck-attach.html";
-var HTML_URL = "file:///C:/msys64/home/anthony/code/hifi/examples/html/puck-attach.html";
+var HTML_URL = "https://s3.amazonaws.com/hifi-public/tony/html/puck-attach.html";
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var tabletButton = tablet.addButton({
