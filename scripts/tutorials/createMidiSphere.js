@@ -8,7 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var SCRIPT_URL =  "file:///e:/hifi/scripts/tutorials/entity_scripts/midiSphere.js";
+//var SCRIPT_URL =  "file:///e:/hifi/scripts/tutorials/entity_scripts/midiSphere.js";
+var SCRIPT_URL =  "http://hifi-files.s3-website-us-west-2.amazonaws.com/midiSphere.js";"
 var center = Vec3.sum(MyAvatar.position, Vec3.multiply(0.5, Quat.getForward(Camera.getOrientation())));
 
 var BALL_GRAVITY = {
