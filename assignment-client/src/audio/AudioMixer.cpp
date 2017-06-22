@@ -103,11 +103,6 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     );
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
-    connect(nodeList.data(), &NodeList::nodeAdded, this, [this](const SharedNodePointer& node) {
-        if (node->getType() == NodeType::DownstreamAudioMixer) {
-            node->activatePublicSocket();
-        }
-    });
 }
 
 void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {

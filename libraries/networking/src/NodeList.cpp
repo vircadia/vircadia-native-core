@@ -670,8 +670,10 @@ void NodeList::parseNodeFromPacketStream(QDataStream& packetStream) {
                                              nodeLocalSocket, isReplicated, false, connectionUUID, permissions);
 
     // nodes that are downstream or upstream of our own type are kept alive when we hear about them from the domain server
+    // and always have their public socket as their active socket
     if (node->getType() == NodeType::downstreamType(_ownerType) || node->getType() == NodeType::upstreamType(_ownerType)) {
         node->setLastHeardMicrostamp(usecTimestampNow());
+        node->activatePublicSocket();
     }
 }
 
