@@ -110,20 +110,20 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
     Rig::HandAndFeetParameters handAndFeetParams;
 
-    auto leftPose = myAvatar->getLeftHandControllerPoseInAvatarFrame();
-    if (leftPose.isValid()) {
+    auto leftHandPose = myAvatar->getLeftHandControllerPoseInAvatarFrame();
+    if (leftHandPose.isValid()) {
         handAndFeetParams.isLeftEnabled = true;
-        handAndFeetParams.leftPosition = Quaternions::Y_180 * leftPose.getTranslation();
-        handAndFeetParams.leftOrientation = Quaternions::Y_180 * leftPose.getRotation();
+        handAndFeetParams.leftPosition = Quaternions::Y_180 * leftHandPose.getTranslation();
+        handAndFeetParams.leftOrientation = Quaternions::Y_180 * leftHandPose.getRotation();
     } else {
         handAndFeetParams.isLeftEnabled = false;
     }
 
-    auto rightPose = myAvatar->getRightHandControllerPoseInAvatarFrame();
-    if (rightPose.isValid()) {
+    auto rightHandPose = myAvatar->getRightHandControllerPoseInAvatarFrame();
+    if (rightHandPose.isValid()) {
         handAndFeetParams.isRightEnabled = true;
-        handAndFeetParams.rightPosition = Quaternions::Y_180 * rightPose.getTranslation();
-        handAndFeetParams.rightOrientation = Quaternions::Y_180 * rightPose.getRotation();
+        handAndFeetParams.rightPosition = Quaternions::Y_180 * rightHandPose.getTranslation();
+        handAndFeetParams.rightOrientation = Quaternions::Y_180 * rightHandPose.getRotation();
     } else {
         handAndFeetParams.isRightEnabled = false;
     }
