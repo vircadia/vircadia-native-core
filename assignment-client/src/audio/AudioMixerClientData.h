@@ -184,8 +184,6 @@ private:
 
     bool _shouldMuteClient { false };
     bool _requestsDomainListData { false };
-
-    bool _hasSetupCodecForUpstreamNode { false };
 };
 
 #endif // hifi_AudioMixerClientData_h
