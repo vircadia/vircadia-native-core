@@ -501,7 +501,7 @@ Doppleganger.addDebugControls = function(doppleganger) {
         if (hit.jointIndex < 0) {
             return;
         }
-        hit.mirroredJointName = Doppleganger.getMirroredJointNames([hit.jointName])[0];
+        hit.mirroredJointName = modelHelper.deriveMirroredJointNames([hit.jointName])[0];
         log('selected joint:', JSON.stringify(hit, 0, 2));
     });
 

@@ -21,6 +21,7 @@ function DopplegangerAttachments(doppleganger, options) {
         doppleganger: doppleganger,
         attachments: undefined,
         manualJointSync: true,
+        attachmentsUpdated: utils.signal(function attachmentsUpdated(currentAttachments, previousAttachments){}),
     });
     this._initialize();
     log('DopplegangerAttachments...', JSON.stringify(options));
@@ -77,6 +78,7 @@ DopplegangerAttachments.prototype = {
         });
         this.attachments = after;
         this._createAttachmentObjects();
+        this.attachmentsUpdated(after, before);
     },
     _createAttachmentObjects: function() {
         try {
@@ -176,9 +178,7 @@ DopplegangerAttachments.prototype = {
             manualJointSync = this.manualJointSync;
 
         if (!this.attachments) {
-            this.attachments = this._getResolvedAttachments();
-            this._createAttachmentObjects();
-            log('created attachment objects #' + this.attachments.length);
+            this.refreshAttachments();
         }
         var updatedObjects = this.attachments.reduce(function(updates, attachment, i) {
             if (!attachment.properties || !attachment._loaded) {

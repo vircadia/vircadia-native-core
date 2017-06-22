@@ -18,9 +18,9 @@ var DopplegangerClass = require('./doppleganger.js'),
 
 var tablet = Tablet.getTablet('com.highfidelity.interface.tablet.system'),
     button = tablet.addButton({
-        icon: Script.resolvePath('./Pullover-lineart-normal.svg'),
-        activeIcon: Script.resolvePath('./Pullover-lineart-inverted.svg'),
-        text: 'Mannequin'
+        icon: Script.resolvePath('./doppleganger-i.svg'),
+        activeIcon: Script.resolvePath('./doppleganger-a.svg'),
+        text: 'MIRROR'
     });
 
 Script.scriptEnding.connect(function() {
@@ -97,10 +97,14 @@ doppleganger.modelLoaded.connect(function(error, result) {
     }
 });
 
+// ----------------------------------------------------------------------------
+
 // add debug indicators, but only if the user has configured the settings value
 if (Settings.getValue('debug.doppleganger', false)) {
     DopplegangerClass.addDebugControls(doppleganger);
 }
+
+// ----------------------------------------------------------------------------
 
 UserActivityLogger.logAction('doppleganger_app_load');
 doppleganger.activeChanged.connect(function(active, reason) {
@@ -116,3 +120,7 @@ doppleganger.activeChanged.connect(function(active, reason) {
         }
     }
 });
+dopplegangerAttachments.attachmentsUpdated.connect(function(attachments) {
+    UserActivityLogger.logAction('doppleganger_attachments', { count: attachments.length });
+});
+
