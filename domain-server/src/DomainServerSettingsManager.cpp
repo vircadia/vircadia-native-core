@@ -991,6 +991,7 @@ bool DomainServerSettingsManager::handleAuthenticatedHTTPRequest(HTTPConnection 
             unpackPermissions();
             apiRefreshGroupInformation();
             emit updateNodePermissions();
+            emit settingsUpdated();
         }
 
         return true;
@@ -1196,13 +1197,14 @@ QJsonObject DomainServerSettingsManager::settingDescriptionFromGroup(const QJson
 bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJsonObject& postedObject) {
     static const QString SECURITY_ROOT_KEY = "security";
     static const QString AC_SUBNET_WHITELIST_KEY = "ac_subnet_whitelist";
+    static const QString BROADCASTING_KEY = "broadcasting";
 
     auto& settingsVariant = _configMap.getConfig();
     bool needRestart = false;
 
     // Iterate on the setting groups
     foreach(const QString& rootKey, postedObject.keys()) {
-        QJsonValue rootValue = postedObject[rootKey];
+        const QJsonValue& rootValue = postedObject[rootKey];
 
         if (!settingsVariant.contains(rootKey)) {
             // we don't have a map below this key yet, so set it up now
@@ -1247,7 +1249,7 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
             if (!matchingDescriptionObject.isEmpty()) {
                 updateSetting(rootKey, rootValue, *thisMap, matchingDescriptionObject);
-                if (rootKey != SECURITY_ROOT_KEY) {
+                if (rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY) {
                     needRestart = true;
                 }
             } else {
@@ -1261,9 +1263,10 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
                 // if we matched the setting then update the value
                 if (!matchingDescriptionObject.isEmpty()) {
-                    QJsonValue settingValue = rootValue.toObject()[settingKey];
+                    const QJsonValue& settingValue = rootValue.toObject()[settingKey];
                     updateSetting(settingKey, settingValue, *thisMap, matchingDescriptionObject);
-                    if (rootKey != SECURITY_ROOT_KEY || settingKey == AC_SUBNET_WHITELIST_KEY) {
+                    if ((rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY)
+                        || settingKey == AC_SUBNET_WHITELIST_KEY) {
                         needRestart = true;
                     }
                 } else {

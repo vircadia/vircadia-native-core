@@ -333,6 +333,7 @@ Item {
         readonly property string vol_x_2: "\ue015"
         readonly property string vol_x_3: "\ue016"
         readonly property string vol_x_4: "\ue017"
+        readonly property string source: "\ue01c"
         readonly property string playback_play: "\ue01d"
         readonly property string stop_square: "\ue01e"
     }
