@@ -424,7 +424,11 @@ function postSettings(jsonSettings) {
     type: 'POST'
   }).done(function(data){
     if (data.status == "success") {
-      showRestartModal();
+      if ($(".save-button").html() === SAVE_BUTTON_LABEL_RESTART) {
+        showRestartModal();
+      } else {
+        location.reload(true);
+      }
     } else {
       showErrorMessage("Error", SETTINGS_ERROR_MESSAGE)
       reloadSettings();
