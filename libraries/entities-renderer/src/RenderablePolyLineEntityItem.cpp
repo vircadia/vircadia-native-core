@@ -163,7 +163,16 @@ void RenderablePolyLineEntityItem::updateGeometry() {
 
         _numVertices += 2;
         uCoord += uCoordInc;
-    }
+
+		if (_isUVModeStretch) {
+			if (i % 2 == 0) {
+				uCoord = 1.0f;
+			}
+			else {
+				uCoord = 0.0f;
+			}
+		}
+    } 
     _pointsChanged = false;
     _normalsChanged = false;
     _strokeWidthsChanged = false;

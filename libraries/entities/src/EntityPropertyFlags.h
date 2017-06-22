@@ -110,6 +110,7 @@ enum EntityPropertyList {
     // Used by PolyLine entity
     PROP_NORMALS,
     PROP_STROKE_WIDTHS,
+	PROP_IS_UV_MODE_STRETCH,
 
     // used by particles
     PROP_SPEED_SPREAD,

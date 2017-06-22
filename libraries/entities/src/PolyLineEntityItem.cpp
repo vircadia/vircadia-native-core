@@ -40,7 +40,8 @@ _strokeWidthsChanged(true),
 _points(QVector<glm::vec3>(0.0f)),
 _normals(QVector<glm::vec3>(0.0f)),
 _strokeWidths(QVector<float>(0.0f)),
-_textures("")
+_textures(""),
+_isUVModeStretch(true)
 {
     _type = EntityTypes::PolyLine;
 }
@@ -52,12 +53,14 @@ EntityItemProperties PolyLineEntityItem::getProperties(EntityPropertyFlags desir
 
     properties._color = getXColor();
     properties._colorChanged = false;
+	
 
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(lineWidth, getLineWidth);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(linePoints, getLinePoints);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(normals, getNormals);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(strokeWidths, getStrokeWidths);
     COPY_ENTITY_PROPERTY_TO_PROPERTIES(textures, getTextures);
+	COPY_ENTITY_PROPERTY_TO_PROPERTIES(isUVModeStretch, getIsUVModeStretch);
     return properties;
 }
 
@@ -72,6 +75,7 @@ bool PolyLineEntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(normals, setNormals);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(strokeWidths, setStrokeWidths);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(textures, setTextures);
+	SET_ENTITY_PROPERTY_FROM_PROPERTIES(isUVModeStretch, setIsUVModeStretch);
 
     if (somethingChanged) {
         bool wantDebug = false;
@@ -173,6 +177,7 @@ int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* da
     READ_ENTITY_PROPERTY(PROP_NORMALS, QVector<glm::vec3>, setNormals);
     READ_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, QVector<float>, setStrokeWidths);
     READ_ENTITY_PROPERTY(PROP_TEXTURES, QString, setTextures);
+	READ_ENTITY_PROPERTY(PROP_IS_UV_MODE_STRETCH, bool, setIsUVModeStretch);
 
     return bytesRead;
 }
@@ -187,6 +192,7 @@ EntityPropertyFlags PolyLineEntityItem::getEntityProperties(EncodeBitstreamParam
     requestedProperties += PROP_NORMALS;
     requestedProperties += PROP_STROKE_WIDTHS;
     requestedProperties += PROP_TEXTURES;
+	requestedProperties += PROP_IS_UV_MODE_STRETCH;
     return requestedProperties;
 }
 
@@ -207,6 +213,7 @@ void PolyLineEntityItem::appendSubclassData(OctreePacketData* packetData, Encode
     APPEND_ENTITY_PROPERTY(PROP_NORMALS, getNormals());
     APPEND_ENTITY_PROPERTY(PROP_STROKE_WIDTHS, getStrokeWidths());
     APPEND_ENTITY_PROPERTY(PROP_TEXTURES, getTextures());
+	APPEND_ENTITY_PROPERTY(PROP_IS_UV_MODE_STRETCH, getIsUVModeStretch());
 }
 
 void PolyLineEntityItem::debugDump() const {
