@@ -2259,7 +2259,6 @@ ReplicationServerInfo serverInformationFromSettings(QVariantMap serverMap, Repli
         serverInfo.sockAddr = {
             serverMap[REPLICATION_SERVER_ADDRESS].toString(),
             (quint16) serverMap[REPLICATION_SERVER_PORT].toString().toInt()
-
         };
 
         return serverInfo;
