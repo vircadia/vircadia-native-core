@@ -39,6 +39,13 @@ public:
     const QString getName() const override { return NAME; }
 
     bool isHandController() const override { return true; }
+    bool configurable() override { return true; }
+
+    QString configurationLayout() override;
+    void setConfigurationSettings(const QJsonObject configurationSettings) override;
+    QJsonObject configurationSettings() override;
+    void calibrate() override;
+    bool uncalibrate() override;
     bool isHeadController() const override { return true; }
     bool isHeadControllerMounted() const;
 
@@ -61,14 +68,16 @@ private:
         QString getDefaultMappingConfig() const override;
         void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         void focusOutEvent() override;
-        void createPreferences();
         bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
         void hapticsHelper(float deltaTime, bool leftHand);
         void calibrateOrUncalibrate(const controller::InputCalibrationData& inputCalibration);
         void calibrate(const controller::InputCalibrationData& inputCalibration);
         void uncalibrate();
+        void configureCalibrationSettings(const QJsonObject configurationSettings);
+        QJsonObject configurationSettings();
         controller::Pose addOffsetToPuckPose(int joint) const;
-        glm::mat4 recalculateDefaultToReferenceForHeadPuck(const controller::InputCalibrationData& inputCalibration);
+        glm::mat4 calculateDefaultToReferenceForHeadPuck(const controller::InputCalibrationData& inputCalibration);
+        glm::mat4 calculateDefaultToReferenceForHmd(const controller::InputCalibrationData& inputCalibration);
         void updateCalibratedLimbs();
         bool checkForCalibrationEvent();
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
@@ -83,16 +92,21 @@ private:
         void partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPsuedoButton, int xPseudoButton, int yPseudoButton);
         void printDeviceTrackingResultChange(uint32_t deviceIndex);
         void setConfigFromString(const QString& value);
-        void loadSettings();
-        void saveSettings() const;
+        bool configureHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        bool configureHands(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        bool configureBody(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateLeftHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair);
+        void calibrateRightHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair);
         void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
-        void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, glm::vec3 headXAxis, glm::vec3 headPosition);
         void calibrateHips(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateChest(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
-        
         void calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
                                 int firstShoulderIndex, int secondShoulderIndex);
         void calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateFromHandController(const controller::InputCalibrationData& inputCalibrationData);
+        void calibrateFromUI(const controller::InputCalibrationData& inputCalibrationData);
+        void emitCalibrationStatus(const bool success);
+        void calibrateNextFrame();
 
 
         class FilteredStick {
@@ -119,16 +133,28 @@ private:
             glm::vec2 _stick { 0.0f, 0.0f };
         };
         enum class Config {
-            Auto,
+            None,
             Feet,
             FeetAndHips,
             FeetHipsAndChest,
             FeetHipsAndShoulders,
-            FeetHipsChestAndHead,
-            FeetHipsAndHead
+            FeetHipsChestAndShoulders,
         };
-        Config _config { Config::Auto };
-        Config _preferedConfig { Config::Auto };
+
+        enum class HeadConfig {
+            HMD,
+            Puck
+        };
+
+        enum class HandConfig {
+            HandController,
+            Pucks
+        };
+            
+        Config _config { Config::None };
+        Config _preferedConfig { Config::None };
+        HeadConfig _headConfig { HeadConfig::HMD };
+        HandConfig _handConfig { HandConfig::HandController };
         FilteredStick _filteredLeftStick;
         FilteredStick _filteredRightStick;
 
@@ -152,7 +178,9 @@ private:
         bool _triggersPressedHandled { false };
         bool _calibrated { false };
         bool _timeTilCalibrationSet { false };
+        bool _calibrate { false };
         bool _overrideHead { false };
+        bool _overrideHands { false };
         mutable std::recursive_mutex _lock;
 
         QString configToString(Config config);

@@ -109,6 +109,7 @@
 #include <plugins/PluginManager.h>
 #include <plugins/PluginUtils.h>
 #include <plugins/SteamClientPlugin.h>
+#include <plugins/InputConfiguration.h>
 #include <RecordingScriptingInterface.h>
 #include <RenderableWebEntityItem.h>
 #include <RenderShadowTask.h>
@@ -539,6 +540,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<HMDScriptingInterface>();
     DependencyManager::set<ResourceScriptingInterface>();
     DependencyManager::set<TabletScriptingInterface>();
+    DependencyManager::set<InputConfiguration>();
     DependencyManager::set<ToolbarScriptingInterface>();
     DependencyManager::set<UserActivityLoggerScriptingInterface>();
     DependencyManager::set<AssetMappingsScriptingInterface>();
@@ -2025,6 +2027,7 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("TextureCache", DependencyManager::get<TextureCache>().data());
     surfaceContext->setContextProperty("ModelCache", DependencyManager::get<ModelCache>().data());
     surfaceContext->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
+    surfaceContext->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
 
     surfaceContext->setContextProperty("Account", AccountScriptingInterface::getInstance());
     surfaceContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
