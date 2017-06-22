@@ -67,7 +67,6 @@ void AudioMixerClientData::processPackets() {
             case PacketType::MicrophoneAudioNoEcho:
             case PacketType::MicrophoneAudioWithEcho:
             case PacketType::InjectAudio:
-            case PacketType::AudioStreamStats:
             case PacketType::SilentAudioFrame:
             case PacketType::ReplicatedMicrophoneAudioNoEcho:
             case PacketType::ReplicatedMicrophoneAudioWithEcho:
@@ -80,8 +79,14 @@ void AudioMixerClientData::processPackets() {
 
                 QMutexLocker lock(&getMutex());
                 parseData(*packet);
-                
+
                 optionallyReplicatePacket(*packet, *node);
+
+                break;
+            }
+            case PacketType::AudioStreamStats: {
+                QMutexLocker lock(&getMutex());
+                parseData(*packet);
 
                 break;
             }

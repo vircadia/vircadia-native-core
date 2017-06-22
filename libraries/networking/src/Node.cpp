@@ -42,6 +42,8 @@ void NodeType::init() {
     TypeNameHash.insert(NodeType::MessagesMixer, "Messages Mixer");
     TypeNameHash.insert(NodeType::AssetServer, "Asset Server");
     TypeNameHash.insert(NodeType::EntityScriptServer, "Entity Script Server");
+    TypeNameHash.insert(NodeType::UpstreamAudioMixer, "Upstream Audio Mixer");
+    TypeNameHash.insert(NodeType::UpstreamAvatarMixer, "Upstream Avatar Mixer");
     TypeNameHash.insert(NodeType::DownstreamAudioMixer, "Downstream Audio Mixer");
     TypeNameHash.insert(NodeType::DownstreamAvatarMixer, "Downstream Avatar Mixer");
     TypeNameHash.insert(NodeType::Unassigned, "Unassigned");
@@ -52,8 +54,23 @@ const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
     return matchedTypeName != TypeNameHash.end() ? matchedTypeName.value() : UNKNOWN_NodeType_t_NAME;
 }
 
+bool NodeType::isUpstream(NodeType_t nodeType) {
+    return nodeType == NodeType::UpstreamAudioMixer || nodeType == NodeType::UpstreamAvatarMixer;
+}
+
 bool NodeType::isDownstream(NodeType_t nodeType) {
-    return nodeType ==  NodeType::DownstreamAudioMixer || nodeType == NodeType::DownstreamAvatarMixer;
+    return nodeType == NodeType::DownstreamAudioMixer || nodeType == NodeType::DownstreamAvatarMixer;
+}
+
+NodeType_t NodeType::upstreamType(NodeType_t primaryType) {
+    switch (primaryType) {
+        case AudioMixer:
+            return UpstreamAudioMixer;
+        case AvatarMixer:
+            return UpstreamAvatarMixer;
+        default:
+            return Unassigned;
+    }
 }
 
 NodeType_t NodeType::downstreamType(NodeType_t primaryType) {

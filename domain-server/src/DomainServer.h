@@ -39,6 +39,11 @@ typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;
 using Subnet = QPair<QHostAddress, int>;
 using SubnetList = std::vector<Subnet>;
 
+enum ReplicationServerDirection {
+    Upstream,
+    Downstream
+};
+
 class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
 public:
@@ -104,6 +109,7 @@ private slots:
 
     void updateReplicatedNodes();
     void updateDownstreamNodes();
+    void updateUpstreamNodes();
 
 signals:
     void iceServerChanged();
@@ -169,6 +175,8 @@ private:
     void setupGroupCacheRefresh();
 
     QString pathForRedirect(QString path = QString()) const;
+
+    void updateReplicationNodes(ReplicationServerDirection direction);
 
     SubnetList _acSubnetWhitelist;
 

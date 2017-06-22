@@ -112,6 +112,7 @@ protected:
     ScriptsModel _scriptsModel;
     ScriptsModelFilter _scriptsModelFilter;
     std::atomic<bool> _isStopped { false };
+    std::atomic<bool> _isReloading { false };
 };
 
 QUrl normalizeScriptURL(const QUrl& rawScriptURL);
