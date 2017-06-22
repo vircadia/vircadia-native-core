@@ -474,7 +474,7 @@ public:
     controller::Pose getLeftHandControllerPoseInAvatarFrame() const;
     controller::Pose getRightHandControllerPoseInAvatarFrame() const;
 
-    typedef std::map<int, controller::Pose> FingerPosesMap;
+    typedef std::map<int, std::pair<controller::Pose, QString>> FingerPosesMap;
     void setFingerControllerPosesInSensorFrame(const FingerPosesMap& left, const FingerPosesMap& right);
     FingerPosesMap getLeftHandFingerControllerPosesInSensorFrame() const;
     FingerPosesMap getRightHandFingerControllerPosesInSensorFrame() const;

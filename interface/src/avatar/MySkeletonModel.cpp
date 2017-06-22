@@ -172,197 +172,52 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
     _rig.updateFromEyeParameters(eyeParams);
 
-    auto fingerPoses = myAvatar->getLeftHandFingerControllerPosesInSensorFrame();
-    if (leftHandPose.isValid() && fingerPoses.size() > 0) {
-        // Can just check the first finger pose because either all finger poses will be valid or none of them will.
-        if (fingerPoses[(int)controller::Action::LEFT_HAND_INDEX1].isValid()) {
-            glm::quat handJointRotation = myAvatar->getLeftHandControllerPoseInSensorFrame().getRotation();
 
-            glm::quat previousJointRotation;
-            glm::quat thisJointRotation;
+    if (leftHandPose.isValid()) {
+        updateFingers(myAvatar->getLeftHandFingerControllerPosesInSensorFrame());
+    }
+    if (rightHandPose.isValid()) {
+        updateFingers(myAvatar->getRightHandFingerControllerPosesInSensorFrame());
+    }
+}
 
-            previousJointRotation = handJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_THUMB1].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandThumb1"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_THUMB2].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandThumb2"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_THUMB3].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandThumb3"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_THUMB4].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandThumb4"), glm::inverse(previousJointRotation) * thisJointRotation);
 
-            previousJointRotation = handJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_INDEX1].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandIndex1"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_INDEX2].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandIndex2"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_INDEX3].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandIndex3"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_INDEX4].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandIndex4"), glm::inverse(previousJointRotation) * thisJointRotation);
+void MySkeletonModel::updateFingers(const MyAvatar::FingerPosesMap& fingerPoses) {
+    // Assumes that finger poses are kept in the poses map in order.
 
-            previousJointRotation = handJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_MIDDLE1].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandMiddle1"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_MIDDLE2].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandMiddle2"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_MIDDLE3].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandMiddle3"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_MIDDLE4].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandMiddle4"), glm::inverse(previousJointRotation) * thisJointRotation);
-
-            previousJointRotation = handJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_RING1].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandRing1"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_RING2].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandRing2"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_RING3].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandRing3"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_RING4].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandRing4"), glm::inverse(previousJointRotation) * thisJointRotation);
-
-            previousJointRotation = handJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_PINKY1].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandPinky1"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_PINKY2].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandPinky2"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_PINKY3].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandPinky3"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::LEFT_HAND_PINKY4].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("LeftHandPinky4"), glm::inverse(previousJointRotation) * thisJointRotation);
-        } else {
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandThumb1"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandThumb2"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandThumb3"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandThumb4"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandIndex1"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandIndex2"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandIndex3"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandIndex4"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandMiddle1"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandMiddle2"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandMiddle3"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandMiddle4"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandRing1"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandRing2"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandRing3"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandRing4"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandPinky1"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandPinky2"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandPinky3"));
-            myAvatar->clearJointData(_rig.indexOfJoint("LeftHandPinky4"));
-        }
+    if (fingerPoses.size() == 0) {
+        return;
     }
 
-    fingerPoses = myAvatar->getRightHandFingerControllerPosesInSensorFrame();
-    if (rightHandPose.isValid() && fingerPoses.size() > 0) {
-        // Can just check the first finger pose because either all finger poses will be valid or none of them will.
-        if (fingerPoses[(int)controller::Action::RIGHT_HAND_INDEX1].isValid()) {
-            glm::quat handJointRotation = myAvatar->getRightHandControllerPoseInSensorFrame().getRotation();
+    auto posesMapItr = fingerPoses.begin();
 
-            glm::quat previousJointRotation;
-            glm::quat thisJointRotation;
+    bool isLeftHand = posesMapItr->first < (int)controller::Action::RIGHT_HAND_THUMB1;
 
+    MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
+    glm::quat handJointRotation = isLeftHand
+        ? myAvatar->getLeftHandControllerPoseInSensorFrame().getRotation()
+        : myAvatar->getRightHandControllerPoseInSensorFrame().getRotation();
+
+    bool isFingerValid = false;
+    glm::quat previousJointRotation;
+
+    while (posesMapItr != fingerPoses.end()) {
+        auto jointName = posesMapItr->second.second;
+        if (jointName.right(1) == "1") {
+            isFingerValid = posesMapItr->second.first.isValid();
             previousJointRotation = handJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_THUMB1].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandThumb1"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_THUMB2].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandThumb2"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_THUMB3].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandThumb3"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_THUMB4].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandThumb4"), glm::inverse(previousJointRotation) * thisJointRotation);
-
-            previousJointRotation = handJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_INDEX1].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandIndex1"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_INDEX2].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandIndex2"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_INDEX3].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandIndex3"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_INDEX4].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandIndex4"), glm::inverse(previousJointRotation) * thisJointRotation);
-
-            previousJointRotation = handJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_MIDDLE1].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandMiddle1"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_MIDDLE2].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandMiddle2"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_MIDDLE3].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandMiddle3"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_MIDDLE4].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandMiddle4"), glm::inverse(previousJointRotation) * thisJointRotation);
-
-            previousJointRotation = handJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_RING1].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandRing1"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_RING2].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandRing2"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_RING3].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandRing3"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_RING4].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandRing4"), glm::inverse(previousJointRotation) * thisJointRotation);
-
-            previousJointRotation = handJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_PINKY1].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandPinky1"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_PINKY2].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandPinky2"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_PINKY3].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandPinky3"), glm::inverse(previousJointRotation) * thisJointRotation);
-            previousJointRotation = thisJointRotation;
-            thisJointRotation = fingerPoses[(int)controller::Action::RIGHT_HAND_PINKY4].getRotation();
-            myAvatar->setJointRotation(_rig.indexOfJoint("RightHandPinky4"), glm::inverse(previousJointRotation) * thisJointRotation);
-        } else {
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandThumb1"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandThumb2"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandThumb3"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandThumb4"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandIndex1"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandIndex2"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandIndex3"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandIndex4"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandMiddle1"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandMiddle2"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandMiddle3"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandMiddle4"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandRing1"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandRing2"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandRing3"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandRing4"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandPinky1"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandPinky2"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandPinky3"));
-            myAvatar->clearJointData(_rig.indexOfJoint("RightHandPinky4"));
         }
+
+        if (isFingerValid) {
+            auto thisJointRotation = posesMapItr->second.first.getRotation();
+            const float CONTROLLER_PRIORITY = 2.0f;
+            _rig.setJointRotation(_rig.indexOfJoint(jointName), true, glm::inverse(previousJointRotation) * thisJointRotation, 
+                CONTROLLER_PRIORITY);
+            previousJointRotation = thisJointRotation;
+        } else {
+            _rig.clearJointAnimationPriority(_rig.indexOfJoint(jointName));
+        }
+
+        posesMapItr++;
     }
 }
