@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#if defined(zz__AVX512F__)
+#if defined(__AVX512F__)
 
 #include <assert.h>
 #include <immintrin.h>
