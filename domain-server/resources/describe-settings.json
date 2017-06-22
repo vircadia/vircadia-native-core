@@ -1402,6 +1402,7 @@
           "label": "Broadcasting Servers",
           "assignment-types": [0,1],
           "type": "table",
+          "advanced": true,
           "can_add_new_rows": true,
           "help": "Servers that broadcast data to this domain",
           "numbered": false,
