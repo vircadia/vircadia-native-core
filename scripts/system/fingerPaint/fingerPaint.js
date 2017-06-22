@@ -32,7 +32,11 @@
     var window = null;
     
     var inkSource = null;
-        
+	// Set path for finger paint hand animations 
+	var RIGHT_ANIM_URL = Script.resourcesPath() + 'avatar/animations/touch_point_closed_right.fbx';
+    var LEFT_ANIM_URL = Script.resourcesPath() + 'avatar/animations/touch_point_closed_left.fbx';
+	var RIGHT_ANIM_URL_OPEN = Script.resourcesPath() + 'avatar/animations/touch_point_open_right.fbx';
+    var LEFT_ANIM_URL_OPEN = Script.resourcesPath() + 'avatar/animations/touch_point_open_left.fbx'; 
         
 
     function paintBrush(name) {
@@ -345,7 +349,7 @@
                     } else {
                         triggerReleasedCallback(fingerTipPosition, lineWidth);
                         
-                        // define condition to switch dominant hands
+                        /* // define condition to switch dominant hands
                         if (Vec3.length(Vec3.subtract(fingerTipPosition, opositeHandPosition)) < 0.1){
                             isLeftHandDominant = !isLeftHandDominant;
                             
@@ -358,7 +362,7 @@
                                 // rightBrush.changeTexture('https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Caris_Tessellation.svg/1024px-Caris_Tessellation.svg.png');
                             // }
                             
-                        }
+                        } */
                         
                     }
                     
@@ -440,6 +444,7 @@
             //Entities
             if (inkSource){
                 Entities.deleteEntity(inkSource);
+				inkSource = null;
             }
         }
 
@@ -478,11 +483,75 @@
             pointIndex: !enabled
         }), true);
     }
+	
+	function updateHandAnimations(){
+		var ANIM_URL = (isLeftHandDominant? LEFT_ANIM_URL: RIGHT_ANIM_URL );
+		var ANIM_OPEN = (isLeftHandDominant? LEFT_ANIM_URL_OPEN: RIGHT_ANIM_URL_OPEN );
+		var handLiteral = (isLeftHandDominant? "left": "right" );
 
+		//Clear previous hand animation override
+		restoreAllHandAnimations();
+		
+		//"rightHandGraspOpen","rightHandGraspClosed",
+		MyAvatar.overrideRoleAnimation(handLiteral + "HandGraspOpen", ANIM_OPEN, 30, false, 19, 20);
+		MyAvatar.overrideRoleAnimation(handLiteral + "HandGraspClosed", ANIM_URL, 30, false, 19, 20);
+
+		//"rightIndexPointOpen","rightIndexPointClosed",
+		MyAvatar.overrideRoleAnimation(handLiteral + "IndexPointOpen", ANIM_OPEN, 30, false, 19, 20);
+		MyAvatar.overrideRoleAnimation(handLiteral + "IndexPointClosed", ANIM_URL, 30, false, 19, 20);
+
+		//"rightThumbRaiseOpen","rightThumbRaiseClosed",
+		MyAvatar.overrideRoleAnimation(handLiteral + "ThumbRaiseOpen", ANIM_OPEN, 30, false, 19, 20);
+		MyAvatar.overrideRoleAnimation(handLiteral + "ThumbRaiseClosed", ANIM_URL, 30, false, 19, 20);
+
+		//"rightIndexPointAndThumbRaiseOpen","rightIndexPointAndThumbRaiseClosed", 
+		MyAvatar.overrideRoleAnimation(handLiteral + "IndexPointAndThumbRaiseOpen", ANIM_OPEN, 30, false, 19, 20);
+		MyAvatar.overrideRoleAnimation(handLiteral + "IndexPointAndThumbRaiseClosed", ANIM_URL, 30, false, 19, 20);
+
+	}
+	
+	function restoreAllHandAnimations(){
+		//"rightHandGraspOpen","rightHandGraspClosed",
+		MyAvatar.restoreRoleAnimation("rightHandGraspOpen");
+		MyAvatar.restoreRoleAnimation("rightHandGraspClosed");
+
+		//"rightIndexPointOpen","rightIndexPointClosed",
+		MyAvatar.restoreRoleAnimation("rightIndexPointOpen");
+		MyAvatar.restoreRoleAnimation("rightIndexPointClosed");
+
+		//"rightThumbRaiseOpen","rightThumbRaiseClosed",
+		MyAvatar.restoreRoleAnimation("rightThumbRaiseOpen");
+		MyAvatar.restoreRoleAnimation("rightThumbRaiseClosed");
+
+		//"rightIndexPointAndThumbRaiseOpen","rightIndexPointAndThumbRaiseClosed", 
+		MyAvatar.restoreRoleAnimation("rightIndexPointAndThumbRaiseOpen");
+		MyAvatar.restoreRoleAnimation("rightIndexPointAndThumbRaiseClosed");
+		
+		//"leftHandGraspOpen","leftHandGraspClosed",
+		MyAvatar.restoreRoleAnimation("leftHandGraspOpen");
+		MyAvatar.restoreRoleAnimation("leftHandGraspClosed");
+
+		//"leftIndexPointOpen","leftIndexPointClosed",
+		MyAvatar.restoreRoleAnimation("leftIndexPointOpen");
+		MyAvatar.restoreRoleAnimation("leftIndexPointClosed");
+
+		//"leftThumbRaiseOpen","leftThumbRaiseClosed",
+		MyAvatar.restoreRoleAnimation("leftThumbRaiseOpen");
+		MyAvatar.restoreRoleAnimation("leftThumbRaiseClosed");
+
+		//"leftIndexPointAndThumbRaiseOpen","leftIndexPointAndThumbRaiseClosed", 
+		MyAvatar.restoreRoleAnimation("leftIndexPointAndThumbRaiseOpen");
+		MyAvatar.restoreRoleAnimation("leftIndexPointAndThumbRaiseClosed");
+	}
+	
     function enableProcessing() {
         // Connect controller API to handController objects.
         leftHand = handController("left");
         rightHand = handController("right");
+		
+		//Change to finger paint hand animation
+		updateHandAnimations();
+		
         var controllerMapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
         controllerMapping.from(Controller.Standard.LT).to(leftHand.onTriggerPress);
         controllerMapping.from(Controller.Standard.LeftGrip).to(leftHand.onGripPress);
@@ -505,6 +574,7 @@
         Script.update.connect(leftHand.onUpdate);
         Script.update.connect(rightHand.onUpdate);
         
+		
         // enable window palette
         window = new OverlayWindow({
             title: 'Paint Window',
@@ -546,6 +616,7 @@
             }
             if (message[0] === "hand"){
                 isLeftHandDominant = !isLeftHandDominant;
+				updateHandAnimations();
                 return;
             }
         });
@@ -573,6 +644,10 @@
         Messages.unsubscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
         Messages.unsubscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
         
+		
+		//Restores and clears hand animations
+		restoreAllHandAnimations();
+		
         // disable window palette
         window.close();
     }
