@@ -67,6 +67,9 @@ class PolyLineEntityItem : public EntityItem {
     bool setStrokeWidths(const QVector<float>& strokeWidths);
     QVector<float> getStrokeWidths() const;
 
+	void setIsUVModeStretch(bool isUVModeStretch){ _isUVModeStretch = isUVModeStretch; }
+	bool getIsUVModeStretch() const{ return _isUVModeStretch; }
+
     QString getTextures() const;
     void setTextures(const QString& textures);
 
@@ -95,6 +98,7 @@ class PolyLineEntityItem : public EntityItem {
     QVector<glm::vec3> _normals;
     QVector<float> _strokeWidths;
     QString _textures;
+	bool _isUVModeStretch;
     bool _texturesChangedFlag { false };
     mutable QReadWriteLock _quadReadWriteLock;
 };
