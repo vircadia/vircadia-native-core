@@ -76,7 +76,8 @@ private:
     SharedNodePointer processAgentConnectRequest(const NodeConnectionData& nodeConnection,
                                                  const QString& username,
                                                  const QByteArray& usernameSignature);
-    SharedNodePointer addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection);
+    SharedNodePointer addVerifiedNodeFromConnectRequest(const NodeConnectionData& nodeConnection,
+                                                        QUuid nodeID = QUuid());
     
     bool verifyUserSignature(const QString& username, const QByteArray& usernameSignature,
                              const HifiSockAddr& senderSockAddr);
