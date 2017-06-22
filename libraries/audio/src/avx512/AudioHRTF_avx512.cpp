@@ -95,7 +95,7 @@ void FIR_1x4_AVX512(float* src, float* dst0, float* dst1, float* dst2, float* ds
 void FIR_1x4_AVX2(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
 
 void FIR_1x4_AVX512(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames) {
-        FIR_1x4_AVX2(src, dst0, dst1, dst2, dst3, coef, numFrames);
+    FIR_1x4_AVX2(src, dst0, dst1, dst2, dst3, coef, numFrames);
 }
 
 #endif
