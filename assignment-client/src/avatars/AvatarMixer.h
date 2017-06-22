@@ -28,6 +28,13 @@ class AvatarMixer : public ThreadedAssignment {
     Q_OBJECT
 public:
     AvatarMixer(ReceivedMessage& message);
+
+    static bool shouldReplicateTo(const Node& from, const Node& to) {
+        return to.getType() == NodeType::DownstreamAvatarMixer &&
+               to.getPublicSocket() != from.getPublicSocket() &&
+               to.getLocalSocket() != from.getLocalSocket();
+    }
+
 public slots:
     /// runs the avatar mixer
     void run() override;

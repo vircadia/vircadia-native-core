@@ -143,8 +143,8 @@ void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node
         std::unique_ptr<NLPacket> packet;
 
         auto nodeList = DependencyManager::get<NodeList>();
-        nodeList->eachMatchingNode([&](const SharedNodePointer& node) {
-            return node->getType() == NodeType::DownstreamAvatarMixer;
+        nodeList->eachMatchingNode([&](const SharedNodePointer& downstreamNode) {
+            return shouldReplicateTo(node, *downstreamNode);
         }, [&](const SharedNodePointer& node) {
             if (!packet) {
                 // construct an NLPacket to send to the replicant that has the contents of the received packet
@@ -424,8 +424,8 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
         nodeList->eachMatchingNode([&](const SharedNodePointer& node) {
             // we relay avatar kill packets to agents that are not upstream
             // and downstream avatar mixers, if the node that was just killed was being replicated
-            return (node->getType() == NodeType::Agent && !node->isUpstream())
-                || (killedNode->isReplicated() && node->getType() == NodeType::DownstreamAvatarMixer);
+            return (node->getType() == NodeType::Agent && !node->isUpstream()) ||
+                   (killedNode->isReplicated() && shouldReplicateTo(*killedNode, *node));
         }, [&](const SharedNodePointer& node) {
             if (node->getType() == NodeType::Agent) {
                 if (!killPacket) {

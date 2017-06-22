@@ -146,7 +146,7 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
 
         // enumerate the downstream audio mixers and send them the replicated version of this packet
         nodeList->unsafeEachNode([&](const SharedNodePointer& downstreamNode) {
-            if (downstreamNode->getType() == NodeType::DownstreamAudioMixer) {
+            if (AudioMixer::shouldReplicateTo(node, *downstreamNode)) {
                 // construct the packet only once, if we have any downstream audio mixers to send to
                 if (!packet) {
                     // construct an NLPacket to send to the replicant that has the contents of the received packet
