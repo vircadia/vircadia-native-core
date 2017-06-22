@@ -63,6 +63,7 @@ private slots:
     void handleKillAvatarPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
 
     void queueAudioPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
+    void queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> packet);
     void removeHRTFsForFinishedInjector(const QUuid& streamID);
     void start();
 
