@@ -20,7 +20,8 @@
 #include <AbstractUriHandler.h>
 #include <AccountManager.h>
 #include <DependencyManager.h>
-#include <TabletScriptingInterface.h>
+
+#include "ui/TabletScriptingInterface.h"
 #include "FileDialogHelper.h"
 #include "VrMenu.h"
 
