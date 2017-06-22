@@ -51,7 +51,20 @@ ScrollingWindow {
     }
 
     function updateRunningScripts() {
+        function simplify(path) {
+            // trim URI querystring/fragment
+            path = (path+'').replace(/[#?].*$/,'');
+            // normalize separators and grab last path segment (ie: just the filename)
+            path = path.replace(/\\/g, '/').split('/').pop();
+            // return lowercased because we want to sort mnemonically
+            return path.toLowerCase();
+        }
         var runningScripts = ScriptDiscoveryService.getRunning();
+        runningScripts.sort(function(a,b) {
+            a = simplify(a.path);
+            b = simplify(b.path);
+            return a < b ? -1 : a > b ? 1 : 0;
+        });
         runningScriptsModel.clear()
         for (var i = 0; i < runningScripts.length; ++i) {
             runningScriptsModel.append(runningScripts[i]);

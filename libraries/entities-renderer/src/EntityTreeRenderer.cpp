@@ -246,8 +246,13 @@ bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityIt
 
                     // if this entity is a zone and visible, determine if it is the bestZone
                     if (isZone && entity->getVisible()) {
-                        auto zone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
-                        _layeredZones.insert(zone);
+                        auto renderID = std::dynamic_pointer_cast<RenderableZoneEntityItem>(entity)->getRenderItemID();
+                        bool isValidRenderID = (renderID != render::Item::INVALID_ITEM_ID);
+
+                        if (isValidRenderID) {
+                            auto zone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
+                            _layeredZones.insert(zone);
+                        }
                     }
                 }
             }
@@ -354,6 +359,7 @@ bool EntityTreeRenderer::applyLayeredZones() {
 
         for (auto& zone : _layeredZones) {
             auto id = std::dynamic_pointer_cast<RenderableZoneEntityItem>(zone.zone)->getRenderItemID();
+            Q_ASSERT(id != render::Item::INVALID_ITEM_ID);
             list.push_back(id);
         }
         render::Selection selection("RankedZones", list);
