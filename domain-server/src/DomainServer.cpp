@@ -2242,7 +2242,8 @@ ReplicationServerInfo serverInformationFromSettings(QVariantMap serverMap, Repli
     static const QString REPLICATION_SERVER_PORT = "port";
     static const QString REPLICATION_SERVER_TYPE = "server_type";
 
-    if (serverMap.contains(REPLICATION_SERVER_ADDRESS) && serverMap.contains(REPLICATION_SERVER_PORT)) {
+    if (serverMap.contains(REPLICATION_SERVER_ADDRESS) && serverMap.contains(REPLICATION_SERVER_PORT)
+        && serverMap.contains(REPLICATION_SERVER_TYPE)) {
 
         auto nodeType = NodeType::fromString(serverMap[REPLICATION_SERVER_TYPE].toString());
 
