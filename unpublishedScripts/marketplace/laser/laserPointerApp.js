@@ -41,6 +41,7 @@
     function laser(hand) {
 
         var PICK_MAX_DISTANCE = 500;
+        var FORWARD_OFFSET = 0.05;
 
         var isNewEntityNeeded = (laserEntities[hand].beam === null);
 
@@ -91,7 +92,7 @@
                 color: {red: 0, green: 255, blue: 0},
                 parentID: MyAvatar.sessionUUID,
                 parentJointIndex: MyAvatar.getJointIndex(jointName),
-                localPosition: {x: 0, y: .05, z: 0},
+                localPosition: {x: 0, y: FORWARD_OFFSET, z: 0},
                 localRotation: Quat.normalize({}),
                 dimensions: Vec3.multiply(PICK_MAX_DISTANCE * 2, Vec3.ONE),
                 linePoints: [Vec3.ZERO, {x: 0, y: dist, z: 0}]
@@ -115,26 +116,25 @@
                 Entities.editEntity(laserEntities[hand].beam, {
                     parentID: MyAvatar.sessionUUID,
                     parentJointIndex: MyAvatar.getJointIndex(jointName),
-                    localPosition: {x: 0, y: .05, z: 0},
+                    localPosition: {x: 0, y: FORWARD_OFFSET, z: 0},
                     localRotation: Quat.normalize({}),
                     dimensions: Vec3.multiply(PICK_MAX_DISTANCE * 2, Vec3.ONE),
-                    linePoints: [Vec3.ZERO, {x: 0, y: dist, z: 0}]
+                    linePoints: [Vec3.ZERO, {x: 0, y: dist - FORWARD_OFFSET, z: 0}]
                 });
 
                 Entities.editEntity(laserEntities[hand].sphere, {
                     dimensions: {x: sphereSize, y: sphereSize, z: sphereSize},
                     position: intersection,
                     visible: true
-
                 });
             } else {
                 Entities.editEntity(laserEntities[hand].beam, {
                     parentID: MyAvatar.sessionUUID,
                     parentJointIndex: MyAvatar.getJointIndex(jointName),
-                    localPosition: {x: 0, y: .05, z: 0},
+                    localPosition: {x: 0, y: FORWARD_OFFSET, z: 0},
                     localRotation: Quat.normalize({}),
                     dimensions: Vec3.multiply(PICK_MAX_DISTANCE * 2, Vec3.ONE),
-                    linePoints: [Vec3.ZERO, {x: 0, y: dist, z: 0}]
+                    linePoints: [Vec3.ZERO, {x: 0, y: dist - FORWARD_OFFSET, z: 0}]
                 });
                 Entities.editEntity(laserEntities[hand].sphere, {
                     visible: false
