@@ -36,7 +36,7 @@ $(document).ready(function(){
   $('body').on('click', '#restart-server', function(e) {    
     swal( {
       title: "Are you sure?",
-      text: "This will restart your domain server, causing your domain server to be briefly offline.",
+      text: "This will restart your domain server, causing your domain to be briefly offline.",
       type: "warning",
       html: true,
       showCancelButton: true
