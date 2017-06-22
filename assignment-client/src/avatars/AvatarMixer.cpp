@@ -331,7 +331,13 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
         }
     }
     if (sendIdentity) {
-        sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name or avatar.
+
+        // since this packet includes a change to either the skeleton model URL or the display name
+        // it needs a new sequence number
+        nodeData->getAvatar().pushIdentitySequenceNumber();
+
+        // tell node whose name changed about its new session display name or avatar.
+        sendIdentityPacket(nodeData, node);
     }
 }
 
