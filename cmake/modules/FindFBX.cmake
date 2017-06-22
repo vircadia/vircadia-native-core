@@ -29,6 +29,7 @@ string(REGEX REPLACE "^[0-9]+\\.([0-9]+).*$" "\\1" FBX_VERSION_MINOR  "${FBX_VER
 string(REGEX REPLACE "^[0-9]+\\.[0-9]+\\.([0-9]+).*$" "\\1" FBX_VERSION_PATCH "${FBX_VERSION}")
 
 set(FBX_MAC_LOCATIONS "/Applications/Autodesk/FBX\ SDK/${FBX_VERSION}")
+set(FBX_LINUX_LOCATIONS "/usr/local/lib/gcc4/x64/debug/")
 
 if (WIN32)
   string(REGEX REPLACE "\\\\" "/" WIN_PROGRAM_FILES_X64_DIRECTORY $ENV{ProgramW6432})
@@ -36,7 +37,7 @@ endif()
 
 set(FBX_WIN_LOCATIONS "${WIN_PROGRAM_FILES_X64_DIRECTORY}/Autodesk/FBX/FBX SDK/${FBX_VERSION}")
 
-set(FBX_SEARCH_LOCATIONS $ENV{FBX_ROOT} ${FBX_ROOT} ${FBX_MAC_LOCATIONS} ${FBX_WIN_LOCATIONS})
+set(FBX_SEARCH_LOCATIONS $ENV{FBX_ROOT} ${FBX_ROOT} ${FBX_MAC_LOCATIONS} ${FBX_WIN_LOCATIONS} ${FBX_LINUX_LOCATIONS})
 
 function(_fbx_append_debugs _endvar _library)
   if (${_library} AND ${_library}_DEBUG)
@@ -94,6 +95,8 @@ elseif (APPLE)
   find_library(SYSTEM_CONFIGURATION NAMES SystemConfiguration)
   _fbx_find_library(FBX_LIBRARY libfbxsdk.a release)
   _fbx_find_library(FBX_LIBRARY_DEBUG libfbxsdk.a debug)
+else ()
+  _fbx_find_library(FBX_LIBRARY libfbxsdk.a release)
 endif()
 
 include(FindPackageHandleStandardArgs)

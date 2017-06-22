@@ -42,6 +42,8 @@ void NodeType::init() {
     TypeNameHash.insert(NodeType::MessagesMixer, "Messages Mixer");
     TypeNameHash.insert(NodeType::AssetServer, "Asset Server");
     TypeNameHash.insert(NodeType::EntityScriptServer, "Entity Script Server");
+    TypeNameHash.insert(NodeType::DownstreamAudioMixer, "Downstream Audio Mixer");
+    TypeNameHash.insert(NodeType::DownstreamAvatarMixer, "Downstream Avatar Mixer");
     TypeNameHash.insert(NodeType::Unassigned, "Unassigned");
 }
 
@@ -50,17 +52,34 @@ const QString& NodeType::getNodeTypeName(NodeType_t nodeType) {
     return matchedTypeName != TypeNameHash.end() ? matchedTypeName.value() : UNKNOWN_NodeType_t_NAME;
 }
 
+bool NodeType::isDownstream(NodeType_t nodeType) {
+    return nodeType ==  NodeType::DownstreamAudioMixer || nodeType == NodeType::DownstreamAvatarMixer;
+}
+
+NodeType_t NodeType::downstreamType(NodeType_t primaryType) {
+    switch (primaryType) {
+        case AudioMixer:
+            return DownstreamAudioMixer;
+        case AvatarMixer:
+            return DownstreamAvatarMixer;
+        default:
+            return Unassigned;
+    }
+}
+
+NodeType_t NodeType::fromString(QString type) {
+    return TypeNameHash.key(type, NodeType::Unassigned);
+}
+
+
 Node::Node(const QUuid& uuid, NodeType_t type, const HifiSockAddr& publicSocket,
-           const HifiSockAddr& localSocket, const NodePermissions& permissions, const QUuid& connectionSecret,
-           QObject* parent) :
+           const HifiSockAddr& localSocket, QObject* parent) :
     NetworkPeer(uuid, publicSocket, localSocket, parent),
     _type(type),
-    _connectionSecret(connectionSecret),
     _pingMs(-1),  // "Uninitialized"
     _clockSkewUsec(0),
     _mutex(),
-    _clockSkewMovingPercentile(30, 0.8f),   // moving 80th percentile of 30 samples
-    _permissions(permissions)
+    _clockSkewMovingPercentile(30, 0.8f)   // moving 80th percentile of 30 samples
 {
     // Update socket's object name
     setType(_type);
@@ -135,6 +154,7 @@ QDataStream& operator<<(QDataStream& out, const Node& node) {
     out << node._publicSocket;
     out << node._localSocket;
     out << node._permissions;
+    out << node._isReplicated;
     return out;
 }
 
@@ -144,6 +164,7 @@ QDataStream& operator>>(QDataStream& in, Node& node) {
     in >> node._publicSocket;
     in >> node._localSocket;
     in >> node._permissions;
+    in >> node._isReplicated;
     return in;
 }
 

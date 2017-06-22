@@ -36,8 +36,8 @@ std::unique_ptr<PacketList> PacketList::fromReceivedPackets(std::list<std::uniqu
 
 PacketList::PacketList(PacketType packetType, QByteArray extendedHeader, bool isReliable, bool isOrdered) :
     _packetType(packetType),
-    _isReliable(isReliable),
     _isOrdered(isOrdered),
+    _isReliable(isReliable),
     _extendedHeader(extendedHeader)
 {
     Q_ASSERT_X(!(!_isReliable && _isOrdered), "PacketList", "Unreliable ordered PacketLists are not currently supported");
@@ -46,8 +46,8 @@ PacketList::PacketList(PacketType packetType, QByteArray extendedHeader, bool is
 PacketList::PacketList(PacketList&& other) :
     _packetType(other._packetType),
     _packets(std::move(other._packets)),
-    _isReliable(other._isReliable),
     _isOrdered(other._isOrdered),
+    _isReliable(other._isReliable),
     _extendedHeader(std::move(other._extendedHeader))
 {
 }
