@@ -929,8 +929,9 @@ void MyAvatar::saveData() {
 
     settings.setValue("scale", _targetScale);
 
-    // only save the fullAvatarURL if it has not been overwritten on command line, or it
-    // has but we want it saved
+    // only save the fullAvatarURL if it has not been overwritten on command line
+    // (so the overrideURL is not valid), or it was overridden _and_ we specified
+    // --replaceAvatarURL (so _saveAvatarOverrideUrl is true)
     if (qApp->getSaveAvatarOverrideUrl() || !qApp->getAvatarOverrideUrl().isValid() ) {
         settings.setValue("fullAvatarURL",
                       _fullAvatarURLFromPreferences == AvatarData::defaultFullAvatarModelUrl() ?

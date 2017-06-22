@@ -859,11 +859,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }
     ResourceCache::setRequestLimit(concurrentDownloads);
 
-    // perhaps override the avatar url.  We test later for validity, so
-    // no need to do so here.  If someone specifies both --avatarURL
-    // and --replaceAvatarURL, the replaceAvatarURL wins.
+    // perhaps override the avatar url.  Since we will test later for validity
+    // we don't need to do so here.
     QString avatarURL = getCmdOption(argc, constArgv, "--avatarURL");
     _avatarOverrideUrl = QUrl::fromUserInput(avatarURL);
+
+    // If someone specifies both --avatarURL and --replaceAvatarURL,
+    // the replaceAvatarURL wins.  So only set the _overrideUrl if this
+    // does have a non-empty string.
     QString replaceURL = getCmdOption(argc, constArgv, "--replaceAvatarURL");
     if (!replaceURL.isEmpty()) {
         _avatarOverrideUrl = QUrl::fromUserInput(replaceURL);
