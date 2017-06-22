@@ -43,6 +43,7 @@ public:
     Q_INVOKABLE QString preferredAudioOutput() const;
 
     Q_INVOKABLE bool isHMDAvailable(const QString& name = "");
+    Q_INVOKABLE bool isHeadControllerAvailable(const QString& name = "");
     Q_INVOKABLE bool isHandControllerAvailable(const QString& name = "");
     Q_INVOKABLE bool isSubdeviceContainingNameAvailable(const QString& name);
 

@@ -115,6 +115,9 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
 
     (&::gpu::gl::GLBackend::do_resetStages),
 
+    (&::gpu::gl::GLBackend::do_disableContextStereo),
+    (&::gpu::gl::GLBackend::do_restoreContextStereo),
+
     (&::gpu::gl::GLBackend::do_runLambda),
 
     (&::gpu::gl::GLBackend::do_startNamedCall),
@@ -224,6 +227,14 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                     _transform.preUpdate(_commandIndex, _stereo);
                     break;
 
+                case Batch::COMMAND_disableContextStereo:
+                    _stereo._contextDisable = true;
+                    break;
+
+                case Batch::COMMAND_restoreContextStereo:
+                    _stereo._contextDisable = false;
+                    break;
+
                 case Batch::COMMAND_setViewportTransform:
                 case Batch::COMMAND_setViewTransform:
                 case Batch::COMMAND_setProjectionTransform: {
@@ -308,16 +319,16 @@ void GLBackend::render(const Batch& batch) {
     }
 
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
-    if (_stereo._enable) {
+    if (_stereo.isStereo()) {
         glEnable(GL_CLIP_DISTANCE0);
     }
 #endif
     {
-        PROFILE_RANGE(render_gpu_gl_detail, _stereo._enable ? "Render Stereo" : "Render");
+        PROFILE_RANGE(render_gpu_gl_detail, _stereo.isStereo() ? "Render Stereo" : "Render");
         renderPassDraw(batch);
     }
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
-    if (_stereo._enable) {
+    if (_stereo.isStereo()) {
         glDisable(GL_CLIP_DISTANCE0);
     }
 #endif
@@ -356,6 +367,15 @@ void GLBackend::setupStereoSide(int side) {
 
 void GLBackend::do_resetStages(const Batch& batch, size_t paramOffset) {
     resetStages();
+}
+
+
+void GLBackend::do_disableContextStereo(const Batch& batch, size_t paramOffset) {
+
+}
+
+void GLBackend::do_restoreContextStereo(const Batch& batch, size_t paramOffset) {
+
 }
 
 void GLBackend::do_runLambda(const Batch& batch, size_t paramOffset) {

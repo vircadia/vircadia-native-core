@@ -21,6 +21,7 @@ public:
     quint64 processIncomingPacketsElapsedTime { 0 };
 
     int nodesBroadcastedTo { 0 };
+    int downstreamMixersBroadcastedTo { 0 };
     int numPacketsSent { 0 };
     int numBytesSent { 0 };
     int numIdentityPackets { 0 };
@@ -41,6 +42,7 @@ public:
 
         // sending job stats
         nodesBroadcastedTo = 0;
+        downstreamMixersBroadcastedTo = 0;
         numPacketsSent = 0;
         numBytesSent = 0;
         numIdentityPackets = 0;
@@ -60,6 +62,7 @@ public:
         processIncomingPacketsElapsedTime += rhs.processIncomingPacketsElapsedTime;
 
         nodesBroadcastedTo += rhs.nodesBroadcastedTo;
+        downstreamMixersBroadcastedTo += rhs.downstreamMixersBroadcastedTo;
         numPacketsSent += rhs.numPacketsSent;
         numBytesSent += rhs.numBytesSent;
         numIdentityPackets += rhs.numIdentityPackets;
@@ -92,6 +95,10 @@ public:
 
 private:
     int sendIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
+    int sendReplicatedIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode);
+
+    void broadcastAvatarDataToAgent(const SharedNodePointer& node);
+    void broadcastAvatarDataToDownstreamMixer(const SharedNodePointer& node);
 
     // frame state
     ConstIter _begin;

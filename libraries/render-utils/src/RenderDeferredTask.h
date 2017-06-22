@@ -120,35 +120,6 @@ protected:
     bool _stateSort;
 };
 
-class DeferredFramebuffer;
-class DrawStencilDeferred {
-public:
-    using JobModel = render::Job::ModelI<DrawStencilDeferred, std::shared_ptr<DeferredFramebuffer>>;
-
-    void run(const render::RenderContextPointer& renderContext, const std::shared_ptr<DeferredFramebuffer>& deferredFramebuffer);
-
-protected:
-    gpu::PipelinePointer _opaquePipeline;
-
-    gpu::PipelinePointer getOpaquePipeline();
-};
-
-using DrawBackgroundDeferredConfig = render::GPUJobConfig;
-
-class DrawBackgroundDeferred {
-public:
-    using Inputs = render::VaryingSet2 <render::ItemBounds, LightingModelPointer>;
-
-    using Config = DrawBackgroundDeferredConfig;
-    using JobModel = render::Job::ModelI<DrawBackgroundDeferred, Inputs, Config>;
-
-    void configure(const Config& config) {}
-    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
-
-protected:
-    gpu::RangeTimerPointer _gpuTimer;
-};
-
 class DrawOverlay3DConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(int numDrawn READ getNumDrawn NOTIFY numDrawnChanged)

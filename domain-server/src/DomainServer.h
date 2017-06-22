@@ -102,6 +102,9 @@ private slots:
 
     void handleOctreeFileReplacement(QByteArray octreeFile);
 
+    void updateReplicatedNodes();
+    void updateDownstreamNodes();
+
 signals:
     void iceServerChanged();
     void userConnected();
@@ -161,11 +164,15 @@ private:
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
 
+    bool shouldReplicateNode(const Node& node);
+
     void setupGroupCacheRefresh();
 
     QString pathForRedirect(QString path = QString()) const;
 
     SubnetList _acSubnetWhitelist;
+
+    std::vector<QString> _replicatedUsernames;
 
     DomainGatekeeper _gatekeeper;
 

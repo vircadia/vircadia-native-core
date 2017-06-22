@@ -387,4 +387,6 @@ namespace ktx {
 
 }
 
+Q_DECLARE_METATYPE(ktx::KTXDescriptor*);
+
 #endif // hifi_ktx_KTX_h

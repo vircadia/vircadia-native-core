@@ -21,7 +21,7 @@
             </p>
             <p>
               If your domain has any content that you would like to re-use at a later date, save a manual backup of your models.json.gz file, which is usually stored at the following paths:<br>
-              <pre>C:\Users\[username]\AppData\Roaming\High Fidelity\assignment-client/entities/models.json.gz</pre>
+              <pre>C:/Users/[username]/AppData/Roaming/High Fidelity/assignment-client/entities/models.json.gz</pre>
               <pre>/Users/[username]/Library/Application Support/High Fidelity/assignment-client/entities/models.json.gz</pre>
               <pre>/home/[username]/.local/share/High Fidelity/assignment-client/entities/models.json.gz</pre>
             </p>

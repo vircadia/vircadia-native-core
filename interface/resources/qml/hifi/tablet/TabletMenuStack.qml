@@ -49,7 +49,6 @@ Item {
 
         function pushSource(path) {
             d.push(Qt.resolvedUrl(path));
-            d.currentItem.eventBridge = tabletMenu.eventBridge
             d.currentItem.sendToScript.connect(tabletMenu.sendToScript);
             d.currentItem.focus = true;
             d.currentItem.forceActiveFocus();

@@ -23,6 +23,7 @@
 #include <AvatarHashMap.h>
 #include <AudioInjectorManager.h>
 #include <AssetClient.h>
+#include <LocationScriptingInterface.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
@@ -166,11 +167,7 @@ void Agent::run() {
 
     // Setup MessagesClient
     auto messagesClient = DependencyManager::set<MessagesClient>();
-    QThread* messagesThread = new QThread;
-    messagesThread->setObjectName("Messages Client Thread");
-    messagesClient->moveToThread(messagesThread);
-    connect(messagesThread, &QThread::started, messagesClient.data(), &MessagesClient::init);
-    messagesThread->start();
+    messagesClient->startThread();
 
     // make sure we hear about connected nodes so we can grab an ATP script if a request is pending
     connect(nodeList.data(), &LimitedNodeList::nodeActivated, this, &Agent::nodeActivated);
@@ -410,6 +407,7 @@ void Agent::executeScript() {
         bool openedInLastBlock = !_audioGateOpen && audioGateOpen;  // the gate just opened
         bool closedInLastBlock = _audioGateOpen && !audioGateOpen;  // the gate just closed
         _audioGateOpen = audioGateOpen;
+        Q_UNUSED(openedInLastBlock);
 
         // the codec must be flushed to silence before sending silent packets,
         // so delay the transition to silent packets by one packet after becoming silent.
@@ -455,6 +453,9 @@ void Agent::executeScript() {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
     _scriptEngine->registerGlobalObject("EntityViewer", &_entityViewer);
+
+    _scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
+        LocationScriptingInterface::locationSetter);
 
     auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
     _scriptEngine->registerGlobalObject("Recording", recordingInterface.data());

@@ -25,6 +25,7 @@
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <gpu/Batch.h>
+#include <render/Forward.h>
 #include <render/Scene.h>
 #include <Transform.h>
 #include <SpatiallyNestable.h>
@@ -34,10 +35,10 @@
 #include "TextureCache.h"
 #include "Rig.h"
 
+
 class AbstractViewStateInterface;
 class QScriptEngine;
 
-#include "RenderArgs.h"
 class ViewFrustum;
 
 namespace render {
@@ -156,7 +157,7 @@ public:
 
     bool findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                              BoxFace& face, glm::vec3& surfaceNormal, 
-                                             QString& extraInfo, bool pickAgainstTriangles = false);
+                                             QString& extraInfo, bool pickAgainstTriangles = false, bool allowBackface = false);
 
     void setOffset(const glm::vec3& offset);
     const glm::vec3& getOffset() const { return _offset; }

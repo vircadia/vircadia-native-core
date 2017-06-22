@@ -8,7 +8,6 @@ import "controls-uit" as HifiControls
 import "styles" as HifiStyles
 import "styles-uit"
 import "windows"
-import HFTabletWebEngineProfile 1.0
 
 Item {
     id: root
@@ -19,7 +18,6 @@ Item {
     property variant permissionsBar: {'securityOrigin':'none','feature':'none'}
     property alias url: webview.url
     property WebEngineView webView: webview
-    property alias eventBridge: eventBridgeWrapper.eventBridge
     property bool canGoBack: webview.canGoBack
     property bool canGoForward: webview.canGoForward
 
@@ -33,12 +31,6 @@ Item {
         webview.profile = profile;
     }
 
-    QtObject {
-        id: eventBridgeWrapper
-        WebChannel.id: "eventBridgeWrapper"
-        property var eventBridge;
-    }
-
     WebEngineView {
         id: webview
         objectName: "webEngineView"
@@ -47,10 +39,7 @@ Item {
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
 
-        profile: HFTabletWebEngineProfile {
-            id: webviewTabletProfile
-            storageName: "qmlTabletWebEngine"
-        }
+        profile: HFTabletWebEngineProfile;
 
         property string userScriptUrl: ""
 
@@ -82,9 +71,10 @@ Item {
 
         property string newUrl: ""
 
-        webChannel.registeredObjects: [eventBridgeWrapper]
-
         Component.onCompleted: {
+            webChannel.registerObject("eventBridge", eventBridge);
+            webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
+
             // Ensure the JS from the web-engine makes it to our logging
             webview.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
                 console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);

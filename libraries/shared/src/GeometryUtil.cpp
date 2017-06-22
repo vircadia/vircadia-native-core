@@ -290,12 +290,12 @@ glm::vec3 Triangle::getNormal() const {
 }
 
 bool findRayTriangleIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance) {
+        const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& distance, bool allowBackface) {
     glm::vec3 firstSide = v0 - v1;
     glm::vec3 secondSide = v2 - v1;
     glm::vec3 normal = glm::cross(secondSide, firstSide);
     float dividend = glm::dot(normal, v1) - glm::dot(origin, normal);
-    if (dividend > 0.0f) {
+    if (!allowBackface && dividend > 0.0f) {
         return false; // origin below plane
     }
     float divisor = glm::dot(normal, direction);

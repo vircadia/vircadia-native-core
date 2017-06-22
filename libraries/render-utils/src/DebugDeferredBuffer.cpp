@@ -19,7 +19,6 @@
 #include <ViewFrustum.h>
 
 #include "GeometryCache.h"
-#include "FramebufferCache.h"
 #include "TextureCache.h"
 #include "DeferredLightingEffect.h"
 
@@ -410,7 +409,6 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
         batch.setViewportTransform(args->_viewport);
 
         const auto geometryBuffer = DependencyManager::get<GeometryCache>();
-        const auto framebufferCache = DependencyManager::get<FramebufferCache>();
         const auto textureCache = DependencyManager::get<TextureCache>();
 
         glm::mat4 projMat;

@@ -32,7 +32,7 @@ var EventBridge;
     var webChannel = new QWebChannel(qt.webChannelTransport, function (channel) {
         // replace the TempEventBridge with the real one.
         var tempEventBridge = EventBridge;
-        EventBridge = channel.objects.eventBridgeWrapper.eventBridge;
+        EventBridge = channel.objects.eventBridge;
         tempEventBridge._callbacks.forEach(function (callback) {
             EventBridge.scriptEventReceived.connect(callback);
         });

@@ -366,45 +366,25 @@ function Teleporter() {
 }
 
 // related to repositioning the avatar after you teleport
+var FOOT_JOINT_NAMES = ["RightToe_End", "RightToeBase", "RightFoot"];
+var DEFAULT_ROOT_TO_FOOT_OFFSET = 0.5;
 function getAvatarFootOffset() {
-    var data = getJointData();
-    var upperLeg, lowerLeg, foot, toe, toeTop;
-    data.forEach(function(d) {
 
-        var jointName = d.joint;
-        if (jointName === "RightUpLeg") {
-            upperLeg = d.translation.y;
-        } else if (jointName === "RightLeg") {
-            lowerLeg = d.translation.y;
-        } else if (jointName === "RightFoot") {
-            foot = d.translation.y;
-        } else if (jointName === "RightToeBase") {
-            toe = d.translation.y;
-        } else if (jointName === "RightToe_End") {
-            toeTop = d.translation.y;
+    // find a valid foot jointIndex
+    var footJointIndex = -1;
+    var i, l = FOOT_JOINT_NAMES.length;
+    for (i = 0; i < l; i++) {
+        footJointIndex = MyAvatar.getJointIndex(FOOT_JOINT_NAMES[i]);
+        if (footJointIndex != -1) {
+            break;
         }
-    });
-
-    var offset = upperLeg + lowerLeg + foot + toe + toeTop;
-    offset = offset / 100;
-    return offset;
-}
-
-function getJointData() {
-    var allJointData = [];
-    var jointNames = MyAvatar.jointNames;
-    jointNames.forEach(function(joint, index) {
-        var translation = MyAvatar.getJointTranslation(index);
-        var rotation = MyAvatar.getJointRotation(index);
-        allJointData.push({
-            joint: joint,
-            index: index,
-            translation: translation,
-            rotation: rotation
-        });
-    });
-
-    return allJointData;
+    }
+    if (footJointIndex != -1) {
+        // default vertical offset from foot to avatar root.
+        return -MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(footJointIndex).y;
+    } else {
+        return DEFAULT_ROOT_TO_FOOT_OFFSET * MyAvatar.scale;
+    }
 }
 
 var leftPad = new ThumbPad('left');

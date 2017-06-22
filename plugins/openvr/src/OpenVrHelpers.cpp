@@ -72,6 +72,21 @@ bool openVrSupported() {
     return (enableDebugOpenVR || !isOculusPresent()) && vr::VR_IsHmdPresent();
 }
 
+QString getVrSettingString(const char* section, const char* setting) {
+    QString result;
+    static const uint32_t BUFFER_SIZE = 1024;
+    static char BUFFER[BUFFER_SIZE];
+    vr::IVRSettings * vrSettings = vr::VRSettings();
+    if (vrSettings) {
+        vr::EVRSettingsError error = vr::VRSettingsError_None;
+        vrSettings->GetString(vr::k_pch_audio_Section, vr::k_pch_audio_OnPlaybackDevice_String, BUFFER, BUFFER_SIZE, &error);
+        if (error == vr::VRSettingsError_None) {
+            result = BUFFER;
+        }
+    }
+    return result;
+}
+
 vr::IVRSystem* acquireOpenVrSystem() {
     bool hmdPresent = vr::VR_IsHmdPresent();
     if (hmdPresent) {
@@ -82,6 +97,7 @@ vr::IVRSystem* acquireOpenVrSystem() {
             #endif
             vr::EVRInitError eError = vr::VRInitError_None;
             activeHmd = vr::VR_Init(&eError, vr::VRApplication_Scene);
+
             #if DEV_BUILD
                 qCDebug(displayplugins) << "OpenVR display: HMD is " << activeHmd << " error is " << eError;
             #endif
