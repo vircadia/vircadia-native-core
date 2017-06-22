@@ -149,6 +149,7 @@
 ; inter-component dependencies.
 Var AR_SecFlags
 Var AR_RegFlags
+Var substringResult
 @CPACK_NSIS_SECTION_SELECTED_VARS@
 
 ; Loads the "selected" flag for the section named SecName into the
@@ -199,9 +200,9 @@ Var AR_RegFlags
  Goto "end_initSection_${SecName}"
 
  "checkBeforeDefault_${SecName}:"
- ${StrContains} $AR_RegFlags "/nSandboxIfNew" $CMDLINE
+ ${StrContains} $substringResult "/nSandboxIfNew" $CMDLINE
  ${If} "${SecName}" == "server"
- ${AndIfNot} $AR_RegFlags == ""
+ ${AndIfNot} $substringResult == ""
    StrCpy $AR_RegFlags 0
    Goto "set_initSection_${SecName}"
  ${Else}
