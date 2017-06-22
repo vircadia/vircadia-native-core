@@ -19,6 +19,7 @@
 #include <AudioClient.h>
 #include <CrashHelpers.h>
 #include <DependencyManager.h>
+#include <TabletScriptingInterface.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <PathUtils.h>
 #include <SettingHandle.h>
@@ -37,6 +38,7 @@
 #include "MainWindow.h"
 #include "render/DrawStatus.h"
 #include "scripting/MenuScriptingInterface.h"
+#include "scripting/HMDScriptingInterface.h"
 #include "ui/DialogsManager.h"
 #include "ui/StandAloneJSConsole.h"
 #include "InterfaceLogging.h"
@@ -308,6 +310,17 @@ Menu::Menu() {
         qApp->showDialog(QString("hifi/dialogs/LodPreferencesDialog.qml"),
             QString("../../hifi/tablet/TabletLodPreferences.qml"), "LodPreferencesDialog");
     });
+
+    action = addActionToQMenuAndActionHash(settingsMenu, "Controller Settings");
+    connect(action, &QAction::triggered, [] {
+            auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
+            auto hmd = DependencyManager::get<HMDScriptingInterface>();
+            tablet->loadQMLSource("ControllerSettings.qml");
+
+            if (!hmd->getShouldShowTablet()) {
+                hmd->toggleShouldShowTablet();
+            }
+        });
 
     // Settings > Control with Speech [advanced]
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)

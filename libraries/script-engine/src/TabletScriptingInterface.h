@@ -153,13 +153,6 @@ public:
     Q_INVOKABLE void removeButton(QObject* tabletButtonProxy);
 
     /**jsdoc
-     * Updates the audio bar in tablet to reflect latest mic level
-     * @function TabletProxy#updateAudioBar
-     * @param micLevel {double} mic level value between 0 and 1
-     */
-    Q_INVOKABLE void updateAudioBar(const double micLevel);
-
-    /**jsdoc
      * Used to send an event to the html/js embedded in the tablet
      * @function TabletProxy#emitScriptEvent
      * @param msg {object|string}

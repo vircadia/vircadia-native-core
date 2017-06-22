@@ -58,8 +58,8 @@ static const QUrl SPECTATOR_CAMERA_FRAME_URL("resource://spectatorCameraFrame");
 static const float SKYBOX_LOAD_PRIORITY { 10.0f }; // Make sure skybox loads first
 static const float HIGH_MIPS_LOAD_PRIORITY { 9.0f }; // Make sure high mips loads after skybox but before models
 
-TextureCache::TextureCache() :
-    _ktxCache(KTX_DIRNAME, KTX_EXT) {
+TextureCache::TextureCache() {
+    _ktxCache->initialize();
     setUnusedResourceCacheSize(0);
     setObjectName("TextureCache");
 }
@@ -718,7 +718,7 @@ void NetworkTexture::handleFinishedInitialLoad() {
         gpu::TexturePointer texture = textureCache->getTextureByHash(hash);
 
         if (!texture) {
-            KTXFilePointer ktxFile = textureCache->_ktxCache.getFile(hash);
+            auto ktxFile = textureCache->_ktxCache->getFile(hash);
             if (ktxFile) {
                 texture = gpu::Texture::unserialize(ktxFile);
                 if (texture) {
@@ -742,9 +742,9 @@ void NetworkTexture::handleFinishedInitialLoad() {
             // Move ktx to file
             const char* data = reinterpret_cast<const char*>(memKtx->_storage->data());
             size_t length = memKtx->_storage->size();
-            KTXFilePointer file;
+            cache::FilePointer file;
             auto& ktxCache = textureCache->_ktxCache;
-            if (!memKtx || !(file = ktxCache.writeFile(data, KTXCache::Metadata(filename, length)))) {
+            if (!memKtx || !(file = ktxCache->writeFile(data, KTXCache::Metadata(filename, length)))) {
                 qCWarning(modelnetworking) << url << " failed to write cache file";
                 QMetaObject::invokeMethod(resource.data(), "setImage",
                     Q_ARG(gpu::TexturePointer, nullptr),
@@ -900,7 +900,7 @@ void ImageReader::read() {
 
         // If there is no live texture, check if there's an existing KTX file
         if (!texture) {
-            KTXFilePointer ktxFile = textureCache->_ktxCache.getFile(hash);
+            auto ktxFile = textureCache->_ktxCache->getFile(hash);
             if (ktxFile) {
                 texture = gpu::Texture::unserialize(ktxFile);
                 if (texture) {
@@ -950,7 +950,7 @@ void ImageReader::read() {
             const char* data = reinterpret_cast<const char*>(memKtx->_storage->data());
             size_t length = memKtx->_storage->size();
             auto& ktxCache = textureCache->_ktxCache;
-            auto file = ktxCache.writeFile(data, KTXCache::Metadata(hash, length));
+            auto file = ktxCache->writeFile(data, KTXCache::Metadata(hash, length));
             if (!file) {
                 qCWarning(modelnetworking) << _url << "file cache failed";
             } else {

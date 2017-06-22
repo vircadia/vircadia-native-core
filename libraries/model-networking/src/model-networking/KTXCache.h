@@ -35,20 +35,10 @@ public:
 
     KTXCache(const std::string& dir, const std::string& ext);
 
-    KTXFilePointer writeFile(const char* data, Metadata&& metadata);
-    KTXFilePointer getFile(const Key& key);
+    void initialize() override;
 
 protected:
     std::unique_ptr<cache::File> createFile(Metadata&& metadata, const std::string& filepath) override final;
-};
-
-class KTXFile : public cache::File {
-    Q_OBJECT
-
-protected:
-    friend class KTXCache;
-
-    KTXFile(Metadata&& metadata, const std::string& filepath);
 };
 
 #endif // hifi_KTXCache_h

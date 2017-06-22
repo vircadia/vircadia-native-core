@@ -50,7 +50,9 @@
 #include "ui/AvatarInputs.h"
 #include "avatar/AvatarManager.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
+#include <plugins/InputConfiguration.h>
 #include "ui/Snapshot.h"
+#include "SoundCache.h"
 
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
@@ -181,6 +183,7 @@ void Web3DOverlay::loadSourceURL() {
         if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
             auto flags = tabletScriptingInterface->getFlags();
+
             _webSurface->getSurfaceContext()->setContextProperty("offscreenFlags", flags);
             _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
             _webSurface->getSurfaceContext()->setContextProperty("Account", AccountScriptingInterface::getInstance());
@@ -199,6 +202,8 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
             _webSurface->getSurfaceContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
             _webSurface->getSurfaceContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
+            _webSurface->getSurfaceContext()->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
 
             _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());

@@ -1,19 +1,15 @@
 import QtQuick 2.5
 import QtGraphicalEffects 1.0
+
 import "../../styles-uit"
+import "../audio" as HifiAudio
 
 Item {
     id: tablet
     objectName: "tablet"
-    property double micLevel: 0.8
     property int rowIndex: 0
     property int columnIndex: 0
     property int count: (flowMain.children.length - 1)
-
-    // called by C++ code to keep audio bar updated
-    function setMicLevel(newMicLevel) {
-        tablet.micLevel = newMicLevel;
-    }
 
     // used to look up a button by its uuid
     function findButtonIndex(uuid) {
@@ -83,6 +79,16 @@ Item {
     Rectangle {
         id: bgTopBar
         height: 90
+
+        anchors {
+            top: parent.top
+            topMargin: 0
+            left: parent.left
+            leftMargin: 0
+            right: parent.right
+            rightMargin: 0
+        }
+
         gradient: Gradient {
             GradientStop {
                 position: 0
@@ -94,108 +100,13 @@ Item {
                 color: "#1e1e1e"
             }
         }
-        anchors.right: parent.right
-        anchors.rightMargin: 0
-        anchors.left: parent.left
-        anchors.leftMargin: 0
-        anchors.topMargin: 0
-        anchors.top: parent.top
 
-        Item {
-            id: audioIcon
-            anchors.verticalCenter: parent.verticalCenter
-            width: 40
-            height: 40
-            anchors.left: parent.left
-            anchors.leftMargin: 5
-
-            Image {
-                id: micIcon
-                source: "../../../icons/tablet-icons/mic.svg"
-            }
-
-            Item {
-                visible: (Audio.muted && !toggleMuteMouseArea.containsMouse)
-                         || (!Audio.muted && toggleMuteMouseArea.containsMouse)
-
-                Image {
-                    id: muteIcon
-                    source: "../../../icons/tablet-icons/mic-mute.svg"
-                }
-
-                ColorOverlay {
-                    anchors.fill: muteIcon
-                    source: muteIcon
-                    color: toggleMuteMouseArea.containsMouse ? "#a0a0a0" : "#ff0000"
-                }
-            }
-        }
-
-        Item {
-            id: audioBar
-            width: 170
-            height: 10
-            anchors.left: parent.left
-            anchors.leftMargin: 50
-            anchors.verticalCenter: parent.verticalCenter
-            Rectangle {
-                id: audioBarBase
-                color: "#333333"
-                radius: 5
-                anchors.fill: parent
-            }
-            Rectangle {
-                id: audioBarMask
-                width: parent.width * tablet.micLevel
-                color: "#333333"
-                radius: 5
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: 0
-                anchors.top: parent.top
-                anchors.topMargin: 0
-                anchors.left: parent.left
-                anchors.leftMargin: 0
-            }
-            LinearGradient {
-                anchors.fill: audioBarMask
-                source: audioBarMask
-                start: Qt.point(0, 0)
-                end: Qt.point(170, 0)
-                gradient: Gradient {
-                    GradientStop {
-                        position: 0
-                        color: "#2c8e72"
-                    }
-                    GradientStop {
-                        position: 0.8
-                        color: "#1fc6a6"
-                    }
-                    GradientStop {
-                        position: 0.81
-                        color: "#ea4c5f"
-                    }
-                    GradientStop {
-                        position: 1
-                        color: "#ea4c5f"
-                    }
-                }
-            }
-        }
-
-        MouseArea {
-            id: toggleMuteMouseArea
+        HifiAudio.MicBar {
             anchors {
-                left: audioIcon.left
-                right: audioBar.right
-                top: audioIcon.top
-                bottom: audioIcon.bottom
+                left: parent.left
+                leftMargin: 30
+                verticalCenter: parent.verticalCenter
             }
-
-            hoverEnabled: true
-            preventStealing: true
-            propagateComposedEvents: false
-            scrollGestureEnabled: false
-            onClicked: { Audio.muted = !Audio.muted }
         }
 
         RalewaySemiBold {
@@ -253,27 +164,6 @@ Item {
             }
         }
     }
-
-    states: [
-        State {
-            name: "muted state"
-
-            PropertyChanges {
-                target: muteText
-                text: "UNMUTE"
-            }
-
-            PropertyChanges {
-                target: muteIcon
-                visible: !Audio.muted
-            }
-
-            PropertyChanges {
-                target: tablet
-                micLevel: 0
-            }
-        }
-    ]
 
     function setCurrentItemState(state) {
         var index = rowIndex + columnIndex;

@@ -1,6 +1,6 @@
 //
 //  LocationScriptingInterface.cpp
-//  interface/src/scripting
+//  libraries/networking/src
 //
 //  Created by Ryan Huffman on 4/29/14.
 //  Copyright 2014 High Fidelity, Inc.
@@ -9,7 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <AddressManager.h>
+#include "AddressManager.h"
 
 #include "LocationScriptingInterface.h"
 

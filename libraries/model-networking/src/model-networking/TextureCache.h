@@ -189,7 +189,7 @@ private:
     static const std::string KTX_DIRNAME;
     static const std::string KTX_EXT;
 
-    KTXCache _ktxCache;
+    std::shared_ptr<cache::FileCache> _ktxCache { std::make_shared<KTXCache>(KTX_DIRNAME, KTX_EXT) };
     // Map from image hashes to texture weak pointers
     std::unordered_map<std::string, std::weak_ptr<gpu::Texture>> _texturesByHashes;
     std::mutex _texturesByHashesMutex;

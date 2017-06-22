@@ -55,7 +55,8 @@ QVector<AudioMixer::ZoneSettings> AudioMixer::_zoneSettings;
 QVector<AudioMixer::ReverbSettings> AudioMixer::_zoneReverbSettings;
 
 AudioMixer::AudioMixer(ReceivedMessage& message) :
-    ThreadedAssignment(message) {
+    ThreadedAssignment(message)
+{
 
     // Always clear settings first
     // This prevents previous assignment settings from sticking around
@@ -92,7 +93,21 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     packetReceiver.registerListener(PacketType::NodeMuteRequest, this, "handleNodeMuteRequestPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "handleKillAvatarPacket");
 
+    packetReceiver.registerListenerForTypes({
+        PacketType::ReplicatedMicrophoneAudioNoEcho,
+        PacketType::ReplicatedMicrophoneAudioWithEcho,
+        PacketType::ReplicatedInjectAudio,
+        PacketType::ReplicatedSilentAudioFrame
+    },
+        this, "queueReplicatedAudioPacket"
+    );
+
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
+    connect(nodeList.data(), &NodeList::nodeAdded, this, [this](const SharedNodePointer& node) {
+        if (node->getType() == NodeType::DownstreamAudioMixer) {
+            node->activatePublicSocket();
+        }
+    });
 }
 
 void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
@@ -101,6 +116,33 @@ void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, Share
     }
 
     getOrCreateClientData(node.data())->queuePacket(message, node);
+}
+
+void AudioMixer::queueReplicatedAudioPacket(QSharedPointer<ReceivedMessage> message) {
+    // make sure we have a replicated node for the original sender of the packet
+    auto nodeList = DependencyManager::get<NodeList>();
+
+    QUuid nodeID =  QUuid::fromRfc4122(message->readWithoutCopy(NUM_BYTES_RFC4122_UUID));
+
+    auto replicatedNode = nodeList->addOrUpdateNode(nodeID, NodeType::Agent,
+                                                    message->getSenderSockAddr(), message->getSenderSockAddr(),
+                                                    true, true);
+    replicatedNode->setLastHeardMicrostamp(usecTimestampNow());
+
+    // construct a "fake" audio received message from the byte array and packet list information
+    auto audioData = message->getMessage().mid(NUM_BYTES_RFC4122_UUID);
+
+    PacketType rewrittenType = REPLICATED_PACKET_MAPPING.key(message->getType());
+
+    if (rewrittenType == PacketType::Unknown) {
+        qDebug() << "Cannot unwrap replicated packet type not present in REPLICATED_PACKET_WRAPPING";
+    }
+
+    auto replicatedMessage = QSharedPointer<ReceivedMessage>::create(audioData, rewrittenType,
+                                                                     versionForPacketType(rewrittenType),
+                                                                     message->getSenderSockAddr(), nodeID);
+
+    getOrCreateClientData(replicatedNode.data())->queuePacket(replicatedMessage, replicatedNode);
 }
 
 void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer sendingNode) {
@@ -347,7 +389,7 @@ void AudioMixer::start() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // prepare the NodeList
-    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::EntityScriptServer });
+    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::DownstreamAudioMixer, NodeType::EntityScriptServer });
     nodeList->linkedDataCreateCallback = [&](Node* node) { getOrCreateClientData(node); };
 
     // parse out any AudioMixer settings
@@ -506,7 +548,7 @@ void AudioMixer::clearDomainSettings() {
     _zoneReverbSettings.clear();
 }
 
-void AudioMixer::parseSettingsObject(const QJsonObject &settingsObject) {
+void AudioMixer::parseSettingsObject(const QJsonObject& settingsObject) {
     qDebug() << "AVX2 Support:" << (cpuSupportsAVX2() ? "enabled" : "disabled");
 
     if (settingsObject.contains(AUDIO_THREADING_GROUP_KEY)) {
