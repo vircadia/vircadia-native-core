@@ -1284,7 +1284,8 @@ void ScriptEngine::timerFired() {
 
     // call the associated JS function, if it exists
     if (timerData.function.isValid()) {
-        PROFILE_RANGE(script, __FUNCTION__);
+        //PROFILE_RANGE(script, __FUNCTION__);
+        PROFILE_RANGE(script, timerData.function.toString().toStdString().c_str());
         auto preTimer = p_high_resolution_clock::now();
         callWithEnvironment(timerData.definingEntityIdentifier, timerData.definingSandboxURL, timerData.function, timerData.function, QScriptValueList());
         auto postTimer = p_high_resolution_clock::now();
@@ -1310,6 +1311,7 @@ QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int 
 
     // make sure the timer stops when the script does
     connect(this, &ScriptEngine::scriptEnding, newTimer, &QTimer::stop);
+
 
     CallbackData timerData = { function, currentEntityIdentifier, currentSandboxURL };
     _timerFunctionMap.insert(newTimer, timerData);
