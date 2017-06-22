@@ -20,6 +20,8 @@
 
 #include <QThreadPool>
 
+#include <Gzip.h>
+
 #include "ModelNetworkingLogging.h"
 #include <Trace.h>
 #include <StatTracker.h>
@@ -171,7 +173,9 @@ void GeometryReader::run() {
 
         QString urlname = _url.path().toLower();
         if (!urlname.isEmpty() && !_url.path().isEmpty() &&
-            (_url.path().toLower().endsWith(".fbx") || _url.path().toLower().endsWith(".obj"))) {
+			(_url.path().toLower().endsWith(".fbx") || 
+			_url.path().toLower().endsWith(".obj") || 
+			_url.path().toLower().endsWith(".obj.gz"))) {
             FBXGeometry::Pointer fbxGeometry;
 
             if (_url.path().toLower().endsWith(".fbx")) {
@@ -181,7 +185,15 @@ void GeometryReader::run() {
                 }
             } else if (_url.path().toLower().endsWith(".obj")) {
                 fbxGeometry.reset(OBJReader().readOBJ(_data, _mapping, _combineParts, _url));
-            } else {
+			} else if (_url.path().toLower().endsWith(".obj.gz")) {
+				QByteArray uncompressedData;
+				if (gunzip(_data, uncompressedData)){
+					fbxGeometry.reset(OBJReader().readOBJ(uncompressedData, _mapping, _combineParts, _url));
+				} else {
+					throw QString("failed to decompress .obj.gz" );
+				}
+
+			} else {
                 throw QString("unsupported format");
             }
 

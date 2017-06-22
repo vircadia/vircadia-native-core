@@ -821,6 +821,7 @@ void NetworkTexture::refresh() {
         TextureCache::requestCompleted(_self);
     }
 
+    _ktxResourceState = PENDING_INITIAL_LOAD;
     Resource::refresh();
 }
 

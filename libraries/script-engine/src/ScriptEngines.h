@@ -114,6 +114,7 @@ protected:
     ScriptsModel _scriptsModel;
     ScriptsModelFilter _scriptsModelFilter;
     std::atomic<bool> _isStopped { false };
+    std::atomic<bool> _isReloading { false };
     bool _defaultScriptsLocationOverridden { false };
 };
 
