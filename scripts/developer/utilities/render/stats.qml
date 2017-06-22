@@ -21,97 +21,11 @@ Item {
         spacing: 8
         anchors.fill:parent
 
-        property var mainViewTask: Render.getConfig("RenderMainView");
-        property var config: mainViewTask.getConfig("Stats")
+        property var config: Render.getConfig("Stats")
 
         function evalEvenHeight() {
             // Why do we have to do that manually ? cannot seem to find a qml / anchor / layout mode that does that ?
             return (height - spacing * (children.length - 1)) / children.length
-        }
-
-        PlotPerf {
-            title: "Num Buffers"
-            height: parent.evalEvenHeight()
-            object: stats.config
-            plots: [
-                {
-                    prop: "bufferCPUCount",
-                    label: "CPU",
-                    color: "#00B4EF"
-                },
-                {
-                    prop: "bufferGPUCount",
-                    label: "GPU",
-                    color: "#1AC567"
-                }
-            ]
-        }
-        PlotPerf {
-            title: "gpu::Buffer Memory"
-            height: parent.evalEvenHeight()
-            object: stats.config
-            valueScale: 1048576
-            valueUnit: "Mb"
-            valueNumDigits: "1"
-            plots: [
-                {
-                    prop: "bufferCPUMemoryUsage",
-                    label: "CPU",
-                    color: "#00B4EF"
-                },
-                {
-                    prop: "bufferGPUMemoryUsage",
-                    label: "GPU",
-                    color: "#1AC567"
-                }
-            ]
-        }
-        PlotPerf {
-            title: "Num Textures"
-            height: parent.evalEvenHeight()
-            object: stats.config
-            plots: [
-                {
-                    prop: "textureCPUCount",
-                    label: "CPU",
-                    color: "#00B4EF"
-                },
-                {
-                    prop: "textureGPUCount",
-                    label: "GPU",
-                    color: "#1AC567"
-                },
-                {
-                    prop: "texturePendingGPUTransferCount",
-                    label: "Transfer",
-                    color: "#9495FF"
-                }
-            ]
-        }
-        PlotPerf {
-            title: "gpu::Texture Memory"
-            height: parent.evalEvenHeight()
-            object: stats.config
-            valueScale: 1048576
-            valueUnit: "Mb"
-            valueNumDigits: "1"
-            plots: [
-                {
-                    prop: "textureCPUMemoryUsage",
-                    label: "CPU",
-                    color: "#00B4EF"
-                },
-                {
-                    prop: "textureGPUMemoryUsage",
-                    label: "GPU",
-                    color: "#1AC567"
-                },
-                {
-                    prop: "textureGPUVirtualMemoryUsage",
-                    label: "GPU Virtual",
-                    color: "#9495FF"
-                }
-            ]
         }
 
         PlotPerf {
@@ -183,9 +97,9 @@ Item {
             ]
         }
 
-        property var drawOpaqueConfig: mainViewTask.getConfig("DrawOpaqueDeferred")
-        property var drawTransparentConfig: mainViewTask.getConfig("DrawTransparentDeferred")
-        property var drawLightConfig: mainViewTask.getConfig("DrawLight")
+        property var drawOpaqueConfig: Render.getConfig("RenderMainView.DrawOpaqueDeferred")
+        property var drawTransparentConfig: Render.getConfig("RenderMainView.DrawTransparentDeferred")
+        property var drawLightConfig: Render.getConfig("RenderMainView.DrawLight")
 
         PlotPerf {
             title: "Items"
@@ -200,13 +114,13 @@ Item {
                     color: "#1AC567"
                 },
                 {
-                    object: mainViewTask.getConfig("DrawTransparentDeferred"),
+                    object: Render.getConfig("RenderMainView.DrawTransparentDeferred"),
                     prop: "numDrawn",
                     label: "Translucents",
                     color: "#00B4EF"
                 },
                 {
-                    object: mainViewTask.getConfig("DrawLight"),
+                    object: Render.getConfig("RenderMainView.DrawLight"),
                     prop: "numDrawn",
                     label: "Lights",
                     color: "#FED959"
@@ -223,25 +137,25 @@ Item {
            valueNumDigits: "2"
            plots: [
                {
-                   object: mainViewTask.getConfig("DrawOpaqueDeferred"),
+                   object: Render.getConfig("RenderMainView.DrawOpaqueDeferred"),
                    prop: "cpuRunTime",
                    label: "Opaques",
                    color: "#1AC567"
                },
                {
-                   object: mainViewTask.getConfig("DrawTransparentDeferred"),
+                   object: Render.getConfig("RenderMainView.DrawTransparentDeferred"),
                    prop: "cpuRunTime",
                    label: "Translucents",
                    color: "#00B4EF"
                },
                {
-                   object: mainViewTask.getConfig("RenderDeferred"),
+                   object: Render.getConfig("RenderMainView.RenderDeferred"),
                    prop: "cpuRunTime",
                    label: "Lighting",
                    color: "#FED959"
                },
                {
-                   object: mainViewTask.getConfig("RenderDeferredTask"),
+                   object: Render.getConfig("RenderMainView.RenderDeferredTask"),
                    prop: "cpuRunTime",
                    label: "RenderFrame",
                    color: "#E2334D"

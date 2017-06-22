@@ -23,9 +23,33 @@ QString Audio::HMD { "VR" };
 
 Setting::Handle<bool> enableNoiseReductionSetting { QStringList { Audio::AUDIO, "NoiseReduction" }, true };
 
+float Audio::loudnessToLevel(float loudness) {
+    const float LOG2 = log(2.0f);
+    const float METER_LOUDNESS_SCALE = 2.8f / 5.0f;
+    const float LOG2_LOUDNESS_FLOOR = 11.0f;
+
+    float level = 0.0f;
+
+    loudness += 1.0f;
+    float log2loudness = logf(loudness) / LOG2;
+
+    if (log2loudness <= LOG2_LOUDNESS_FLOOR) {
+        level = (log2loudness / LOG2_LOUDNESS_FLOOR) * METER_LOUDNESS_SCALE;
+    } else {
+        level = (log2loudness - (LOG2_LOUDNESS_FLOOR - 1.0f)) * METER_LOUDNESS_SCALE;
+    }
+
+    if (level > 1.0f) {
+        level = 1.0;
+    }
+
+    return level;
+}
+
 Audio::Audio() : _devices(_contextIsHMD) {
-    auto client = DependencyManager::get<AudioClient>();
-    connect(client.data(), &AudioClient::muteToggled, this, &Audio::onMutedChanged);
+    auto client = DependencyManager::get<AudioClient>().data();
+    connect(client, &AudioClient::muteToggled, this, &Audio::onMutedChanged);
+    connect(client, &AudioClient::inputLoudnessChanged, this, &Audio::onInputLoudnessChanged);
     connect(this, &Audio::contextChanged, &_devices, &AudioDevices::onContextChanged);
     connect(&_devices._inputs, &AudioDeviceList::deviceChanged, this, &Audio::onInputChanged);
     enableNoiseReduction(enableNoiseReductionSetting.get());
@@ -85,6 +109,15 @@ void Audio::onInputChanged() {
     if (_inputVolume != volume) {
         _inputVolume = volume;
         emit inputVolumeChanged(_inputVolume);
+    }
+}
+
+void Audio::onInputLoudnessChanged(float loudness) {
+    float level = loudnessToLevel(loudness);
+
+    if (_inputLevel != level) {
+        _inputLevel = level;
+        emit inputLevelChanged(_inputLevel);
     }
 }
 

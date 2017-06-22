@@ -16,29 +16,28 @@ Column {
     Column {
         id: scattering
         spacing: 10
-        property var mainViewTask: Render.getConfig("RenderMainView");
 
-       Column{
+        Column{
             CheckBox {
                 text: "Scattering"
-                checked: mainViewTask.getConfig("Scattering").enableScattering
-                onCheckedChanged: { mainViewTask.getConfig("Scattering").enableScattering = checked }
+                checked: Render.getConfig("RenderMainView.Scattering").enableScattering
+                onCheckedChanged: { Render.getConfig("RenderMainView.Scattering").enableScattering = checked }
             }
 
             CheckBox {
                 text: "Show Scattering BRDF"
-                checked: mainViewTask.getConfig("Scattering").showScatteringBRDF
-                onCheckedChanged: { mainViewTask.getConfig("Scattering").showScatteringBRDF = checked }
+                checked: Render.getConfig("RenderMainView.Scattering").showScatteringBRDF
+                onCheckedChanged: { Render.getConfig("RenderMainView.Scattering").showScatteringBRDF = checked }
             }
             CheckBox {
                 text: "Show Curvature"
-                checked: mainViewTask.getConfig("Scattering").showCurvature
-                onCheckedChanged: { mainViewTask.getConfig("Scattering").showCurvature = checked }
+                checked: Render.getConfig("RenderMainView.Scattering").showCurvature
+                onCheckedChanged: { Render.getConfig("RenderMainView.Scattering").showCurvature = checked }
             }
             CheckBox {
                 text: "Show Diffused Normal"
-                checked: mainViewTask.getConfig("Scattering").showDiffusedNormal
-                onCheckedChanged: { mainViewTask.getConfig("Scattering").showDiffusedNormal = checked }
+                checked: Render.getConfig("RenderMainView.Scattering").showDiffusedNormal
+                onCheckedChanged: { Render.getConfig("RenderMainView.Scattering").showDiffusedNormal = checked }
             }
             Repeater {
                 model: [ "Scattering Bent Red:Scattering:bentRed:2.0",
@@ -59,23 +58,23 @@ Column {
             }
             CheckBox {
                 text: "Scattering Profile"
-                checked: mainViewTask.getConfig("DebugScattering").showProfile
-                onCheckedChanged: { mainViewTask.getConfig("DebugScattering").showProfile = checked }
+                checked: Render.getConfig("RenderMainView.DebugScattering").showProfile
+                onCheckedChanged: { Render.getConfig("RenderMainView.DebugScattering").showProfile = checked }
             }
             CheckBox {
                 text: "Scattering Table"
-                checked: mainViewTask.getConfig("DebugScattering").showLUT
-                onCheckedChanged: { mainViewTask.getConfig("DebugScattering").showLUT = checked }
+                checked: Render.getConfig("RenderMainView.DebugScattering").showLUT
+                onCheckedChanged: { Render.getConfig("RenderMainView.DebugScattering").showLUT = checked }
             }
             CheckBox {
                 text: "Cursor Pixel"
-                checked: mainViewTask.getConfig("DebugScattering").showCursorPixel
-                onCheckedChanged: { mainViewTask.getConfig("DebugScattering").showCursorPixel = checked }
+                checked: Render.getConfig("RenderMainView.DebugScattering").showCursorPixel
+                onCheckedChanged: { Render.getConfig("RenderMainView.DebugScattering").showCursorPixel = checked }
             }
             CheckBox {
                 text: "Skin Specular Beckmann"
-                checked: mainViewTask.getConfig("DebugScattering").showSpecularTable
-                onCheckedChanged: { mainViewTask.getConfig("DebugScattering").showSpecularTable = checked }
+                checked: Render.getConfig("RenderMainView.DebugScattering").showSpecularTable
+                onCheckedChanged: { Render.getConfig("RenderMainView.DebugScattering").showSpecularTable = checked }
             }
         }
     }
