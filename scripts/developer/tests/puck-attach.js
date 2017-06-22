@@ -13,7 +13,8 @@ Script.include("/~/system/libraries/Xform.js");
 (function() { // BEGIN LOCAL_SCOPE
 
 var TABLET_BUTTON_NAME = "PUCKTACH";
-var HTML_URL = "https://s3.amazonaws.com/hifi-public/tony/html/puck-attach.html";
+// var HTML_URL = "https://s3.amazonaws.com/hifi-public/tony/html/puck-attach.html";
+var HTML_URL = "file:///C:/msys64/home/anthony/code/hifi/examples/html/puck-attach.html";
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var tabletButton = tablet.addButton({
@@ -40,6 +41,14 @@ function onScreenChanged(type, url) {
         if (!shown) {
             // hook up to event bridge
             tablet.webEventReceived.connect(onWebEventReceived);
+
+            Script.setTimeout(function () {
+                // send available tracked objects to the html running in the tablet.
+                var availableTrackedObjects = getAvailableTrackedObjects();
+                tablet.emitScriptEvent(JSON.stringify(availableTrackedObjects));
+
+                print("PUCK-ATTACH: availableTrackedObjects = " + JSON.stringify(availableTrackedObjects));
+            }, 1000);  // wait 1 sec before sending..
         }
         shown = true;
     } else {
@@ -54,6 +63,24 @@ function onScreenChanged(type, url) {
 
 tablet.screenChanged.connect(onScreenChanged);
 
+function indexToTrackedObjectName(index) {
+    return "TrackedObject" + pad(index, 2);
+}
+
+function getAvailableTrackedObjects() {
+    var available = [];
+    var NUM_TRACKED_OBJECTS = 16;
+    var i;
+    for (i = 0; i < NUM_TRACKED_OBJECTS; i++) {
+        var key = indexToTrackedObjectName(i);
+        var pose = Controller.getPoseValue(Controller.Hardware.Vive[key]);
+        if (pose && pose.valid) {
+            available.push(i);
+        }
+    }
+    return available;
+}
+
 function attach(obj) {
     attachedEntity = Entities.addEntity({
         type: "Model",
@@ -64,7 +91,7 @@ function attach(obj) {
     var localPos = {x: Number(obj.posx), y: Number(obj.posy), z: Number(obj.posz)};
     var localRot = Quat.fromVec3Degrees({x: Number(obj.rotx), y: Number(obj.roty), z: Number(obj.rotz)});
     attachedObj.localXform = new Xform(localRot, localPos);
-    var key = "TrackedObject" + pad(attachedObj.puckno, 2);
+    var key = indexToTrackedObjectName(Number(attachedObj.puckno));
     attachedObj.key = key;
 
     print("PUCK-ATTACH: attachedObj = " + JSON.stringify(attachedObj));
@@ -83,8 +110,8 @@ function remove() {
 }
 
 function pad(num, size) {
-    var s = "000000000" + num;
-    return s.substr(s.length-size);
+    var tempString = "000000000" + num;
+    return tempString.substr(tempString.length - size);
 }
 
 function update(dt) {
