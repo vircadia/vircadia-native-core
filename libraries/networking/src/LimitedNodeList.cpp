@@ -277,12 +277,12 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
                 return true;
             } else {
                 static const QString UNSOLICITED_REPLICATED_REGEX =
-                "Replicated packet of type \\d+ \\([\\sa-zA-Z:]+\\) received from unknown upstream";
+                    "Replicated packet of type \\d+ \\([\\sa-zA-Z:]+\\) received from unknown upstream";
                 static QString repeatedMessage
-                = LogHandler::getInstance().addRepeatedMessageRegex(UNSOLICITED_REPLICATED_REGEX);
+                    = LogHandler::getInstance().addRepeatedMessageRegex(UNSOLICITED_REPLICATED_REGEX);
 
                 qCDebug(networking) << "Replicated packet of type" << headerType
-                << "received from unknown upstream" << packet.getSenderSockAddr();
+                    << "received from unknown upstream" << packet.getSenderSockAddr();
                 
                 return false;
             }
