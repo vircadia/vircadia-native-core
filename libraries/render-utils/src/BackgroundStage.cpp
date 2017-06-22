@@ -138,3 +138,14 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
     */
 
 }
+
+BackgroundStageSetup::BackgroundStageSetup() {
+}
+
+void BackgroundStageSetup::run(const render::RenderContextPointer& renderContext) {
+    auto stage = renderContext->_scene->getStage("BACKGROUND_STAGE");
+    if (!stage) {
+        renderContext->_scene->resetStage("BACKGROUND_STAGE", std::make_shared<BackgroundStage>());
+    }
+}
+

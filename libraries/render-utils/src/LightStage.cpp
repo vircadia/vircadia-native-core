@@ -165,3 +165,13 @@ void LightStage::updateLightArrayBuffer(Index lightId) {
     }
 }
 
+LightStageSetup::LightStageSetup() {
+}
+
+void LightStageSetup::run(const render::RenderContextPointer& renderContext) {
+    auto stage = renderContext->_scene->getStage("LIGHT_STAGE");
+    if (!stage) {
+        renderContext->_scene->resetStage("LIGHT_STAGE", std::make_shared<LightStage>());
+    }
+}
+

@@ -15,12 +15,13 @@
 #include <set>
 #include <unordered_map>
 #include <render/IndexedContainer.h>
+#include <render/Stage.h>
 
 #include "LightingModel.h"
 
 
 // Background stage to set up background-related rendering tasks
-class BackgroundStage {
+class BackgroundStage : public render::Stage {
 public:
     using Index = render::indexed_container::Index;
     static const Index INVALID_INDEX { render::indexed_container::INVALID_INDEX };
@@ -66,6 +67,15 @@ public:
 };
 using BackgroundStagePointer = std::shared_ptr<BackgroundStage>;
 
+class BackgroundStageSetup {
+public:
+    using JobModel = render::Job::Model<BackgroundStageSetup>;
+
+    BackgroundStageSetup();
+    void run(const render::RenderContextPointer& renderContext);
+
+protected:
+};
 
 class DrawBackgroundStage {
 public:

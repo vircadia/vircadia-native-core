@@ -33,7 +33,6 @@ public:
 
     void build(JobModel& task, const Varying& in, Varying& out) {
         task.addJob<EngineStats>("Stats");
-        task.addJob<PerformSceneTransaction>("PerformSceneTransaction");
     }
 };
 

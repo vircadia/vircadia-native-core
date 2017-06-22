@@ -111,6 +111,14 @@ public:
     // Access non-spatialized items (overlays, backgrounds)
     const ItemIDSet& getNonspatialSet() const { return _masterNonspatialSet; }
 
+
+
+    // Access a particular Stage (empty if doesn't exist)
+    // Thread safe
+    StagePointer getStage(const Stage::Name& name) const;
+    void resetStage(const Stage::Name& name, const StagePointer& stage);
+
+
 protected:
     // Thread safe elements that can be accessed from anywhere
     std::atomic<unsigned int> _IDAllocator{ 1 }; // first valid itemID will be One
@@ -139,9 +147,9 @@ protected:
   //  void appendToSelection(const Selection& selection);
   //  void mergeWithSelection(const Selection& selection);
 
-    // The Stages
+    // The Stage map
+    mutable std::mutex _stagesMutex; // mutable so it can be used in the thread safe getStage const method
     StageMap _stages;
-
 
 
     friend class Engine;
