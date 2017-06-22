@@ -470,7 +470,6 @@ Function PostInstallOptionsPage
 
   StrCpy $CurrentOffset 0
   StrCpy $OffsetUnits u
-  ${StrContains} $AR_RegFlags "/forceNoLaunch" $CMDLINE
 
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @INTERFACE_HF_SHORTCUT_NAME@"
@@ -505,7 +504,8 @@ Function PostInstallOptionsPage
 
     ; set the checkbox state depending on what is present in the registry
     !insertmacro SetPostInstallOption $LaunchServerNowCheckbox @SERVER_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
-    ${If} $AR_RegFlags == "/forceNoLaunch"
+    ${StrContains} $substringResult "/forceNoLaunchServer" $CMDLINE
+    ${IfNot} $substringResult == ""
         ${NSD_SetState} $LaunchServerNowCheckbox ${BST_UNCHECKED}
     ${EndIf}
 
@@ -518,7 +518,8 @@ Function PostInstallOptionsPage
 
 	  ; set the checkbox state depending on what is present in the registry
 	  !insertmacro SetPostInstallOption $LaunchClientNowCheckbox @CLIENT_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
-      ${If} $AR_RegFlags == "/forceNoLaunch"
+      ${StrContains} $substringResult "/forceNoLaunchClient" $CMDLINE
+      ${IfNot} $substringResult == ""
           ${NSD_SetState} $LaunchClientNowCheckbox ${BST_UNCHECKED}
       ${EndIf}
   ${EndIf}
