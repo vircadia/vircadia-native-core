@@ -1496,13 +1496,13 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
     udt::SequenceNumber incomingSequenceNumber(incomingSequenceNumberType);
 
     if (!_hasProcessedFirstIdentity) {
-        _lastSequenceNumber = incomingSequenceNumber - 1;
+        _sequenceNumber = incomingSequenceNumber - 1;
         _hasProcessedFirstIdentity = true;
         qCDebug(avatars) << "Processing first identity packet for" << avatarSessionID << "-"
             << (udt::SequenceNumber::Type) incomingSequenceNumber;
     }
 
-    if (incomingSequenceNumber > _lastSequenceNumber) {
+    if (incomingSequenceNumber > _sequenceNumber) {
         Identity identity;
 
         packetStream >> identity.skeletonModelURL
@@ -1512,7 +1512,7 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
             >> identity.avatarEntityData;
 
         // set the store identity sequence number to match the incoming identity
-        _lastSequenceNumber = incomingSequenceNumber;
+        _sequenceNumber = incomingSequenceNumber;
 
         if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
             setSkeletonModelURL(identity.skeletonModelURL);
@@ -1555,7 +1555,7 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
     } else {
 
         qCDebug(avatars) << "Refusing to process identity for" << uuidStringWithoutCurlyBraces(avatarSessionID) << "since"
-            << (udt::SequenceNumber::Type) _lastSequenceNumber
+            << (udt::SequenceNumber::Type) _sequenceNumber
             << "is >=" << (udt::SequenceNumber::Type) incomingSequenceNumber;
 #endif
     }
@@ -1571,7 +1571,7 @@ QByteArray AvatarData::identityByteArray() const {
 
     _avatarEntitiesLock.withReadLock([&] {
         identityStream << getSessionUUID()
-            << (udt::SequenceNumber::Type) _lastSequenceNumber
+            << (udt::SequenceNumber::Type) _sequenceNumber
             << urlToSend
             << _attachmentData
             << _displayName
@@ -1755,7 +1755,7 @@ void AvatarData::sendIdentityPacket() {
 
     if (_identityDataChanged) {
         // if the identity data has changed, push the sequence number forwards
-        ++_lastSequenceNumber;
+        ++_sequenceNumber;
     }
 
     QByteArray identityData = identityByteArray();
