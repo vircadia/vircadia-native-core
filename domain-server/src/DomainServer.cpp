@@ -87,7 +87,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     qDebug() << "[VERSION] VERSION:" << BuildInfo::VERSION;
     qDebug() << "[VERSION] BUILD_BRANCH:" << BuildInfo::BUILD_BRANCH;
     qDebug() << "[VERSION] BUILD_GLOBAL_SERVICES:" << BuildInfo::BUILD_GLOBAL_SERVICES;
-    qDebug() << "[VERSION] We will be using this default ICE server:" << ICE_SERVER_DEFAULT_HOSTNAME;
+    qDebug() << "[VERSION] We will be using this name to find ICE servers:" << _iceServerAddr;
 
 
     // make sure we have a fresh AccountManager instance
@@ -1549,7 +1549,7 @@ void DomainServer::sendHeartbeatToIceServer() {
 
     } else {
         qDebug() << "Not sending ice-server heartbeat since there is no selected ice-server.";
-        qDebug() << "Waiting for" << ICE_SERVER_DEFAULT_HOSTNAME << "host lookup response";
+        qDebug() << "Waiting for" << _iceServerAddr << "host lookup response";
 
     }
 }
@@ -2639,7 +2639,7 @@ void DomainServer::handleICEHostInfo(const QHostInfo& hostInfo) {
     _iceAddressLookupID = -1;
 
     if (hostInfo.error() != QHostInfo::NoError) {
-        qWarning() << "IP address lookup failed for" << ICE_SERVER_DEFAULT_HOSTNAME << ":" << hostInfo.errorString();
+        qWarning() << "IP address lookup failed for" << _iceServerAddr << ":" << hostInfo.errorString();
 
         // if we don't have an ICE server to use yet, trigger a retry
         if (_iceServerSocket.isNull()) {
@@ -2654,7 +2654,7 @@ void DomainServer::handleICEHostInfo(const QHostInfo& hostInfo) {
         _iceServerAddresses = hostInfo.addresses();
 
         if (countBefore == 0) {
-            qInfo() << "Found" << _iceServerAddresses.count() << "ice-server IP addresses for" << ICE_SERVER_DEFAULT_HOSTNAME;
+            qInfo() << "Found" << _iceServerAddresses.count() << "ice-server IP addresses for" << _iceServerAddr;
         }
 
         if (_iceServerSocket.isNull()) {
@@ -2689,7 +2689,7 @@ void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
         // so clear the set of failed addresses and start going through them again
 
         qWarning() << "All current ice-server addresses have failed - re-attempting all current addresses for"
-            << ICE_SERVER_DEFAULT_HOSTNAME;
+                   << _iceServerAddr;
 
         _failedIceServerAddresses.clear();
         candidateICEAddresses = _iceServerAddresses;
