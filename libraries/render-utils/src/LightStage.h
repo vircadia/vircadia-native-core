@@ -96,6 +96,7 @@ public:
     LightPointer getLight(Index lightId) const {
         return _lights.get(lightId);
     }
+
     Index getShadowId(Index lightId) const {
         if (checkLightId(lightId)) {
             return _descs[lightId].shadowId;
@@ -112,6 +113,7 @@ public:
         return LightAndShadow(getLight(lightId), getShadow(lightId));
     }
 
+    LightStage();
     Lights _lights;
     LightMap _lightMap;
     Descs _descs;

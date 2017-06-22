@@ -13,6 +13,9 @@
 
 #include "LightStage.h"
 
+LightStage::LightStage() {
+}
+
 LightStage::Shadow::Shadow(model::LightPointer light) : _light{ light}, _frustum{ std::make_shared<ViewFrustum>() } {
     framebuffer = gpu::FramebufferPointer(gpu::Framebuffer::createShadowmap(MAP_SIZE));
     map = framebuffer->getDepthStencilBuffer();
@@ -171,7 +174,8 @@ LightStageSetup::LightStageSetup() {
 void LightStageSetup::run(const render::RenderContextPointer& renderContext) {
     auto stage = renderContext->_scene->getStage("LIGHT_STAGE");
     if (!stage) {
-        renderContext->_scene->resetStage("LIGHT_STAGE", std::make_shared<LightStage>());
+        stage = std::make_shared<LightStage>();
+        renderContext->_scene->resetStage("LIGHT_STAGE", stage);
     }
 }
 

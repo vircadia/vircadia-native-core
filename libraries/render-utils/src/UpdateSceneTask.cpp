@@ -13,6 +13,7 @@
 #include <render/SceneTask.h>
 #include "LightStage.h"
 #include "BackgroundStage.h"
+#include "DeferredLightingEffect.h"
 
 void UpdateSceneTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
 
@@ -20,5 +21,6 @@ void UpdateSceneTask::build(JobModel& task, const render::Varying& input, render
 
     task.addJob<LightStageSetup>("LightStageSetup");
 
+    task.addJob<DefaultLightingSetup>("DefaultLightingSetup");
 }
 

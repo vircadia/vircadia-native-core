@@ -101,7 +101,7 @@ void DeferredLightingEffect::init() {
     loadLightProgram(deferred_light_vert, local_lights_drawOutline_frag, true, _localLightOutline, _localLightOutlineLocations);
 
     // Light Stage and clusters
-    _lightStage = std::make_shared<LightStage>();
+  /*  _lightStage = std::make_shared<LightStage>();
     
     // Allocate a global light representing the Global Directional light casting shadow (the sun) and the ambient light
     _allocatedLights.push_back(std::make_shared<model::Light>());
@@ -140,7 +140,7 @@ void DeferredLightingEffect::init() {
     auto irradianceSH = _defaultSkyboxAmbientTexture->getIrradiance();
     if (irradianceSH) {
         lp->setAmbientSphere((*irradianceSH));
-    }
+    }*/
 }
 
 void DeferredLightingEffect::setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
@@ -275,11 +275,11 @@ void DeferredLightingEffect::setGlobalLight(const model::LightPointer& light) {
     globalLight->setAmbientSphere(light->getAmbientSphere());
     globalLight->setAmbientMap(light->getAmbientMap());*/
 }
-
+/*
 const model::LightPointer& DeferredLightingEffect::getGlobalLight() const {
     return _allocatedLights.front();
 }
-
+*/
 
 #include <shared/Shapes.h>
 
@@ -483,8 +483,10 @@ void PrepareDeferred::run(const RenderContextPointer& renderContext, const Input
     
     
     // Prepare a fresh Light Frame
-    auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
-    deferredLightingEffect->getLightStage()->_currentFrame.clear();
+    //auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
+    //deferredLightingEffect->getLightStage()->_currentFrame.clear();
+    auto lightStage = renderContext->_scene->getStage<LightStage>("LIGHT_STAGE");
+    lightStage->_currentFrame.clear();
 }
 
 
@@ -547,8 +549,11 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
         // Global directional light and ambient pass
 
-        assert(deferredLightingEffect->getLightStage()->getNumLights() > 0);
-        auto lightAndShadow = deferredLightingEffect->getLightStage()->getLightAndShadow(0);
+        auto lightStage = renderContext->_scene->getStage<LightStage>("LIGHT_STAGE");
+ //   assert(deferredLightingEffect->getLightStage()->getNumLights() > 0);
+        assert(lightStage->getNumLights() > 0);
+     //   auto lightAndShadow = deferredLightingEffect->getLightStage()->getLightAndShadow(0);
+        auto lightAndShadow = lightStage->getLightAndShadow(0);
         const auto& globalShadow = lightAndShadow.second;
 
         // Bind the shadow buffer
@@ -749,3 +754,53 @@ void RenderDeferred::run(const RenderContextPointer& renderContext, const Inputs
     auto config = std::static_pointer_cast<Config>(renderContext->jobConfig);
     config->setGPUBatchRunTime(_gpuTimer->getGPUAverage(), _gpuTimer->getBatchAverage());
 }
+
+
+
+void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
+
+    if (!_defaultLight) {
+        if (!_defaultSkyboxTexture) {
+            auto textureCache = DependencyManager::get<TextureCache>();
+            {
+                PROFILE_RANGE(render, "Process Default Skybox");
+                auto textureCache = DependencyManager::get<TextureCache>();
+
+                auto skyboxUrl = PathUtils::resourcesPath().toStdString() + "images/Default-Sky-9-cubemap.ktx";
+
+                _defaultSkyboxTexture = gpu::Texture::unserialize(skyboxUrl);
+                _defaultSkyboxAmbientTexture = _defaultSkyboxTexture;
+
+                _defaultSkybox->setCubemap(_defaultSkyboxTexture);
+            }
+        }
+
+        auto lightStage = renderContext->_scene->getStage<LightStage>("LIGHT_STAGE");
+        if (lightStage) { 
+
+            // Allocate a default global light directional and ambient
+            model::LightPointer lp = std::make_shared<model::Light>();
+            lp->setType(model::Light::SUN);
+            lp->setDirection(glm::vec3(-1.0f));
+            lp->setColor(glm::vec3(1.0f));
+            lp->setIntensity(1.0f);
+            lp->setType(model::Light::SUN);
+            lp->setAmbientSpherePreset(gpu::SphericalHarmonics::Preset::OLD_TOWN_SQUARE);
+
+            lp->setAmbientIntensity(0.5f);
+            lp->setAmbientMap(_defaultSkyboxAmbientTexture);
+            auto irradianceSH = _defaultSkyboxAmbientTexture->getIrradiance();
+            if (irradianceSH) {
+                lp->setAmbientSphere((*irradianceSH));
+            }
+
+            // capture default light
+            _defaultLight = lp;
+
+            // Add the global light to the light stage (for later shadow rendering)
+            auto defaultLightID = lightStage->addLight(lp);
+            lightStage->addShadow(defaultLightID);
+        }
+    }
+}
+

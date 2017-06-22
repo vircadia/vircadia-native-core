@@ -432,9 +432,12 @@ void DebugDeferredBuffer::run(const RenderContextPointer& renderContext, const I
             batch.setResourceTexture(Lighting, deferredFramebuffer->getLightingTexture());
         }
 
-        auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
-        assert(deferredLightingEffect->getLightStage()->getNumLights() > 0);
-        auto lightAndShadow = deferredLightingEffect->getLightStage()->getLightAndShadow(0);
+      //  auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
+      auto lightStage = renderContext->_scene->getStage<LightStage>("LIGHT_STAGE");
+   //   assert(deferredLightingEffect->getLightStage()->getNumLights() > 0);
+        assert(lightStage->getNumLights() > 0);
+     //   auto lightAndShadow = deferredLightingEffect->getLightStage()->getLightAndShadow(0);
+        auto lightAndShadow = lightStage->getLightAndShadow(0);
         const auto& globalShadow = lightAndShadow.second;
         if (globalShadow) {
             batch.setResourceTexture(Shadow, globalShadow->map);
