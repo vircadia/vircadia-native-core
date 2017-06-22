@@ -44,15 +44,11 @@
 
         var isNewEntityNeeded = (laserEntities[hand].beam === null);
 
-        var currentHand = hand === 'right' ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
-        var jointName = hand === 'right' ? 'RightHand' : 'LeftHand'; //'RightHandIndex4' : 'LeftHandIndex4'
-        var controllerLocation = getControllerWorldLocation(currentHand, true);
-
-        var worldHandRotation = controllerLocation.orientation;
+        var jointName = hand === 'right' ? 'RightHandIndex4' : 'LeftHandIndex4'; //'RightHand' : 'LeftHand';
 
         var pickRay = {
             origin: MyAvatar.getJointPosition(jointName),
-            direction: Quat.getUp(worldHandRotation),
+            direction: MyAvatar.jointToWorldDirection(Vec3.UP, MyAvatar.getJointIndex(jointName)),
             length: PICK_MAX_DISTANCE
         };
 
@@ -70,16 +66,6 @@
             dist = Vec3.distance(pickRay.origin, ray.intersection);
         }
 
-        if (!ray.intersects && !avatarRay.intersects && laserEntities[hand].sphere !== null) {
-            Entities.editEntity(laserEntities[hand].sphere, {
-                visible: false
-            });
-        } else {
-            Entities.editEntity(laserEntities[hand].sphere, {
-                visible: true
-            });
-        }
-
         var sphereSize = dist * 0.01;
 
         if (isNewEntityNeeded) {
@@ -90,8 +76,8 @@
                 dimensions: {x: sphereSize, y: sphereSize, z: sphereSize},
                 color: {red: 0, green: 255, blue: 0},
                 position: intersection,
-                collisionless: true
-
+                collisionless: true,
+                visible: false
             };
 
             var beam = {
@@ -105,7 +91,7 @@
                 color: {red: 0, green: 255, blue: 0},
                 parentID: MyAvatar.sessionUUID,
                 parentJointIndex: MyAvatar.getJointIndex(jointName),
-                localPosition: {x: 0, y: .2, z: 0},
+                localPosition: {x: 0, y: .05, z: 0},
                 localRotation: Quat.normalize({}),
                 dimensions: Vec3.multiply(PICK_MAX_DISTANCE * 2, Vec3.ONE),
                 linePoints: [Vec3.ZERO, {x: 0, y: dist, z: 0}]
@@ -114,9 +100,13 @@
             laserEntities[hand].beam = Entities.addEntity(beam,true);
             rayExclusionList.push(laserEntities[hand].beam);
 
+            laserEntities[hand].sphere = Entities.addEntity(sphere,true);
+            rayExclusionList.push(laserEntities[hand].sphere);
+
             if (ray.intersects || avatarRay.intersects) {
-                laserEntities[hand].sphere = Entities.addEntity(sphere,true);
-                rayExclusionList.push(laserEntities[hand].sphere);
+                Entities.editEntity(laserEntities[hand].sphere, {
+                    visible: true
+                });
             }
 
         } else {
@@ -125,7 +115,7 @@
                 Entities.editEntity(laserEntities[hand].beam, {
                     parentID: MyAvatar.sessionUUID,
                     parentJointIndex: MyAvatar.getJointIndex(jointName),
-                    localPosition: {x: 0, y: .2, z: 0},
+                    localPosition: {x: 0, y: .05, z: 0},
                     localRotation: Quat.normalize({}),
                     dimensions: Vec3.multiply(PICK_MAX_DISTANCE * 2, Vec3.ONE),
                     linePoints: [Vec3.ZERO, {x: 0, y: dist, z: 0}]
@@ -133,17 +123,21 @@
 
                 Entities.editEntity(laserEntities[hand].sphere, {
                     dimensions: {x: sphereSize, y: sphereSize, z: sphereSize},
-                    position: intersection
+                    position: intersection,
+                    visible: true
 
                 });
             } else {
                 Entities.editEntity(laserEntities[hand].beam, {
                     parentID: MyAvatar.sessionUUID,
                     parentJointIndex: MyAvatar.getJointIndex(jointName),
-                    localPosition: {x: 0, y: .2, z: 0},
+                    localPosition: {x: 0, y: .05, z: 0},
                     localRotation: Quat.normalize({}),
                     dimensions: Vec3.multiply(PICK_MAX_DISTANCE * 2, Vec3.ONE),
                     linePoints: [Vec3.ZERO, {x: 0, y: dist, z: 0}]
+                });
+                Entities.editEntity(laserEntities[hand].sphere, {
+                    visible: false
                 });
             }
 
