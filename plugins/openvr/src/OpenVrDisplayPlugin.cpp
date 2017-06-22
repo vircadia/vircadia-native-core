@@ -7,6 +7,9 @@
 //
 #include "OpenVrDisplayPlugin.h"
 
+// Odd ordering of header is required to avoid 'macro redinition warnings'
+#include <AudioClient.h>
+
 #include <QtCore/QThread>
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QFileInfo>
@@ -713,3 +716,30 @@ bool OpenVrDisplayPlugin::isKeyboardVisible() {
 int OpenVrDisplayPlugin::getRequiredThreadCount() const { 
     return Parent::getRequiredThreadCount() + (_threadedSubmit ? 1 : 0);
 }
+
+QString OpenVrDisplayPlugin::getPreferredAudioInDevice() const {
+    QString device = getVrSettingString(vr::k_pch_audio_Section, vr::k_pch_audio_OnPlaybackDevice_String);
+    if (!device.isEmpty()) {
+        static const WCHAR INIT = 0;
+        size_t size = device.size() + 1;
+        std::vector<WCHAR> deviceW;
+        deviceW.assign(size, INIT);
+        device.toWCharArray(deviceW.data());
+        device = AudioClient::getWinDeviceName(deviceW.data());
+    }
+    return device;
+}
+
+QString OpenVrDisplayPlugin::getPreferredAudioOutDevice() const {
+    QString device = getVrSettingString(vr::k_pch_audio_Section, vr::k_pch_audio_OnRecordDevice_String);
+    if (!device.isEmpty()) {
+        static const WCHAR INIT = 0;
+        size_t size = device.size() + 1;
+        std::vector<WCHAR> deviceW;
+        deviceW.assign(size, INIT);
+        device.toWCharArray(deviceW.data());
+        device = AudioClient::getWinDeviceName(deviceW.data());
+    }
+    return device;
+}
+

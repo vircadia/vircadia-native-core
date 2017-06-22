@@ -33,7 +33,7 @@ public:
 
     // Sixense always seems to initialize even if the hydras are not present. Is there
     // a way we can properly detect whether the hydras are present?
-    bool isHandController() const override { return false; }
+    // bool isHandController() const override { return true; }
 
     virtual bool activate() override;
     virtual void deactivate() override;

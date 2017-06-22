@@ -16,11 +16,11 @@
 
 #include <OctreeUtils.h>
 #include <PerfStat.h>
-#include <RenderArgs.h>
 
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
 
+#include "Args.h"
 
 #include "drawCellBounds_vert.h"
 #include "drawCellBounds_frag.h"

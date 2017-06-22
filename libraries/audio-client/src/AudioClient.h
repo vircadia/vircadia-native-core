@@ -104,6 +104,7 @@ public:
         int _unfulfilledReads;
     };
 
+    void startThread();
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
 
@@ -121,8 +122,6 @@ public:
 
     float getTimeSinceLastClip() const { return _timeSinceLastClip; }
     float getAudioAverageInputLoudness() const { return _lastInputLoudness; }
-
-    bool isMuted() { return _muted; }
 
     const AudioIOStats& getStats() const { return _stats; }
 
@@ -146,10 +145,15 @@ public:
 
     bool outputLocalInjector(AudioInjector* injector) override;
 
+    QAudioDeviceInfo getActiveAudioDevice(QAudio::Mode mode) const;
+    QList<QAudioDeviceInfo> getAudioDevices(QAudio::Mode mode) const;
+
     static const float CALLBACK_ACCELERATOR_RATIO;
 
+    bool getNamedAudioDeviceForModeExists(QAudio::Mode mode, const QString& deviceName);
+
 #ifdef Q_OS_WIN
-    static QString friendlyNameForAudioDevice(wchar_t* guid);
+    static QString getWinDeviceName(wchar_t* guid);
 #endif
 
 public slots:
@@ -169,11 +173,14 @@ public slots:
     void handleRecordedAudioInput(const QByteArray& audio);
     void reset();
     void audioMixerKilled();
+
     void toggleMute();
+    bool isMuted() { return _muted; }
+
 
     virtual void setIsStereoInput(bool stereo) override;
 
-    void toggleAudioNoiseReduction() { _isNoiseGateEnabled = !_isNoiseGateEnabled; }
+    void setNoiseReduction(bool isNoiseGateEnabled) { _isNoiseGateEnabled = isNoiseGateEnabled; }
 
     void toggleLocalEcho() { _shouldEchoLocally = !_shouldEchoLocally; }
     void toggleServerEcho() { _shouldEchoToServer = !_shouldEchoToServer; }
@@ -185,12 +192,9 @@ public slots:
 
     bool shouldLoopbackInjectors() override { return _shouldEchoToServer; }
 
-    bool switchInputToAudioDevice(const QString& inputDeviceName);
-    bool switchOutputToAudioDevice(const QString& outputDeviceName);
-    QString getDeviceName(QAudio::Mode mode) const { return (mode == QAudio::AudioInput) ?
-                                                            _inputAudioDeviceName : _outputAudioDeviceName; }
-    QString getDefaultDeviceName(QAudio::Mode mode);
-    QVector<QString> getDeviceNames(QAudio::Mode mode);
+    // calling with a null QAudioDevice will use the system default
+    bool switchAudioDevice(QAudio::Mode mode, const QAudioDeviceInfo& deviceInfo = QAudioDeviceInfo());
+    bool switchAudioDevice(QAudio::Mode mode, const QString& deviceName);
 
     float getInputVolume() const { return (_audioInput) ? (float)_audioInput->volume() : 0.0f; }
     void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
@@ -206,13 +210,16 @@ signals:
     bool muteToggled();
     void mutedByMixer();
     void inputReceived(const QByteArray& inputSamples);
+    void inputLoudnessChanged(float loudness);
     void outputBytesToNetwork(int numBytes);
     void inputBytesFromNetwork(int numBytes);
     void noiseGateOpened();
     void noiseGateClosed();
 
     void changeDevice(const QAudioDeviceInfo& outputDeviceInfo);
-    void deviceChanged();
+
+    void deviceChanged(QAudio::Mode mode, const QAudioDeviceInfo& device);
+    void devicesChanged(QAudio::Mode mode, const QList<QAudioDeviceInfo>& devices);
 
     void receivedFirstPacket();
     void disconnected();
@@ -220,9 +227,6 @@ signals:
     void audioFinished();
 
     void muteEnvironmentRequested(glm::vec3 position, float radius);
-
-    void currentOutputDeviceChanged(const QString& name);
-    void currentInputDeviceChanged(const QString& name);
 
 protected:
     AudioClient();
@@ -289,9 +293,6 @@ private:
     std::atomic<bool> _localInjectorsAvailable { false };
     MixedProcessedAudioStream _receivedAudioStream;
     bool _isStereoInput;
-
-    QString _inputAudioDeviceName;
-    QString _outputAudioDeviceName;
 
     quint64 _outputStarveDetectionStartTimeMsec;
     int _outputStarveDetectionCount;
@@ -368,8 +369,11 @@ private:
     glm::vec3 avatarBoundingBoxCorner;
     glm::vec3 avatarBoundingBoxScale;
 
-    QVector<QString> _inputDevices;
-    QVector<QString> _outputDevices;
+    QAudioDeviceInfo _inputDeviceInfo;
+    QAudioDeviceInfo _outputDeviceInfo;
+
+    QList<QAudioDeviceInfo> _inputDevices;
+    QList<QAudioDeviceInfo> _outputDevices;
 
     bool _hasReceivedFirstPacket { false };
 
@@ -386,8 +390,7 @@ private:
     RateCounter<> _silentInbound;
     RateCounter<> _audioInbound;
 
-    QThread* _checkDevicesThread { nullptr };
-    QThread* _localInjectorsThread { nullptr };
+    QTimer* _checkDevicesTimer { nullptr };
 };
 
 

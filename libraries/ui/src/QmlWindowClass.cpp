@@ -104,9 +104,9 @@ void QmlWindowClass::initQml(QVariantMap properties) {
         Q_ASSERT(invokeResult);
     } else {
         // Build the event bridge and wrapper on the main thread
-        offscreenUi->load(qmlSource(), [&](QQmlContext* context, QObject* object) {
+        offscreenUi->loadInNewContext(qmlSource(), [&](QQmlContext* context, QObject* object) {
             _qmlWindow = object;
-            _qmlWindow->setProperty("eventBridge", QVariant::fromValue(this));
+            context->setContextProperty("eventBridge", this);
             context->engine()->setObjectOwnership(this, QQmlEngine::CppOwnership);
             context->engine()->setObjectOwnership(object, QQmlEngine::CppOwnership);
             if (properties.contains(TITLE_PROPERTY)) {
@@ -153,6 +153,9 @@ void QmlWindowClass::sendToQml(const QVariant& message) {
     QMetaObject::invokeMethod(asQuickItem(), "fromScript", Qt::QueuedConnection, Q_ARG(QVariant, message));
 }
 
+void QmlWindowClass::clearDebugWindow() {
+    QMetaObject::invokeMethod(asQuickItem(), "clearDebugWindow", Qt::QueuedConnection);
+}
 
 void QmlWindowClass::emitScriptEvent(const QVariant& scriptMessage) {
     if (QThread::currentThread() != thread()) {

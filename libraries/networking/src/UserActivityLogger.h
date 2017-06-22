@@ -18,9 +18,12 @@
 #include <QString>
 #include <QJsonObject>
 #include <QNetworkReply>
+#include <QElapsedTimer>
 
 #include <SettingHandle.h>
 #include "AddressManager.h"
+
+const QString USER_ACTIVITY_URL = "/api/v1/user_activities";
 
 class UserActivityLogger : public QObject {
     Q_OBJECT
@@ -49,8 +52,10 @@ private slots:
     void requestError(QNetworkReply& errorReply);
     
 private:
-    UserActivityLogger() {};
+    UserActivityLogger();
     Setting::Handle<bool> _disabled { "UserActivityLoggerDisabled", false };
+
+    QElapsedTimer _timer;
 };
 
 #endif // hifi_UserActivityLogger_h

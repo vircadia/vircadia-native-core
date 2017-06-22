@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Model.h"
+
 #include <QMetaType>
 #include <QRunnable>
 #include <QThreadPool>
@@ -24,7 +26,6 @@
 
 #include "AbstractViewStateInterface.h"
 #include "MeshPartPayload.h"
-#include "Model.h"
 
 #include "RenderUtilsLogging.h"
 #include <Trace.h>
@@ -332,7 +333,7 @@ void Model::initJointStates() {
 
 bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const glm::vec3& direction, float& distance,
                                                     BoxFace& face, glm::vec3& surfaceNormal,
-                                                    QString& extraInfo, bool pickAgainstTriangles) {
+                                                    QString& extraInfo, bool pickAgainstTriangles, bool allowBackface) {
 
     bool intersectedSomething = false;
 
@@ -381,7 +382,7 @@ bool Model::findRayIntersectionAgainstSubMeshes(const glm::vec3& origin, const g
             float triangleSetDistance = 0.0f;
             BoxFace triangleSetFace;
             glm::vec3 triangleSetNormal;
-            if (triangleSet.findRayIntersection(meshFrameOrigin, meshFrameDirection, triangleSetDistance, triangleSetFace, triangleSetNormal, pickAgainstTriangles)) {
+            if (triangleSet.findRayIntersection(meshFrameOrigin, meshFrameDirection, triangleSetDistance, triangleSetFace, triangleSetNormal, pickAgainstTriangles, allowBackface)) {
 
                 glm::vec3 meshIntersectionPoint = meshFrameOrigin + (meshFrameDirection * triangleSetDistance);
                 glm::vec3 worldIntersectionPoint = glm::vec3(meshToWorldMatrix * glm::vec4(meshIntersectionPoint, 1.0f));

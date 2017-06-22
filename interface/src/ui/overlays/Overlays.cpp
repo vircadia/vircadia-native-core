@@ -26,7 +26,6 @@
 #include "Shape3DOverlay.h"
 #include "ImageOverlay.h"
 #include "Line3DOverlay.h"
-#include "LocalModelsOverlay.h"
 #include "ModelOverlay.h"
 #include "Rectangle3DOverlay.h"
 #include "Sphere3DOverlay.h"
@@ -171,8 +170,6 @@ OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) 
         thisOverlay = std::make_shared<Line3DOverlay>();
     } else if (type == Grid3DOverlay::TYPE) {
         thisOverlay = std::make_shared<Grid3DOverlay>();
-    } else if (type == LocalModelsOverlay::TYPE) {
-        thisOverlay = std::make_shared<LocalModelsOverlay>(qApp->getEntityClipboardRenderer());
     } else if (type == ModelOverlay::TYPE) {
         thisOverlay = std::make_shared<ModelOverlay>();
     } else if (type == Web3DOverlay::TYPE) {

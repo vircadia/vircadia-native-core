@@ -43,6 +43,7 @@ class KinectPlugin : public InputPlugin {
     Q_OBJECT
 public:
     bool isHandController() const override;
+    bool isHeadController() const override;
 
     // Plugin functions
     virtual void init() override;

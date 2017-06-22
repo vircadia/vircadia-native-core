@@ -22,13 +22,12 @@
 #include <QtCore/QUrl>
 #include <QtNetwork/QHostInfo>
 
-#include <tbb/parallel_for.h>
-
 #include <LogHandler.h>
 #include <shared/NetworkUtils.h>
 #include <NumericalConstants.h>
 #include <SettingHandle.h>
 #include <SharedUtil.h>
+#include <StatTracker.h>
 #include <UUID.h>
 
 #include "AccountManager.h"
@@ -37,7 +36,6 @@
 #include "HifiSockAddr.h"
 #include "NetworkLogging.h"
 #include "udt/Packet.h"
-#include <Trace.h>
 
 static Setting::Handle<quint16> LIMITED_NODELIST_LOCAL_PORT("LimitedNodeList.LocalPort", 0);
 
@@ -448,7 +446,8 @@ qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList,
 
         return _nodeSocket.writePacketList(std::move(packetList), *activeSocket);
     } else {
-        qCDebug(networking) << "LimitedNodeList::sendPacketList called without active socket for node. Not sending.";
+        qCDebug(networking) << "LimitedNodeList::sendPacketList called without active socket for node "
+                            << destinationNode.getUUID() << ". Not sending.";
         return ERROR_SENDING_PACKET_BYTES;
     }
 }
@@ -456,7 +455,8 @@ qint64 LimitedNodeList::sendPacketList(std::unique_ptr<NLPacketList> packetList,
 qint64 LimitedNodeList::sendPacket(std::unique_ptr<NLPacket> packet, const Node& destinationNode,
                                    const HifiSockAddr& overridenSockAddr) {
     if (overridenSockAddr.isNull() && !destinationNode.getActiveSocket()) {
-        qCDebug(networking) << "LimitedNodeList::sendPacket called without active socket for node. Not sending.";
+        qCDebug(networking) << "LimitedNodeList::sendPacket called without active socket for node"
+                            << destinationNode.getUUID() << ". Not sending.";
         return ERROR_SENDING_PACKET_BYTES;
     }
 
@@ -570,8 +570,8 @@ void LimitedNodeList::handleNodeKill(const SharedNodePointer& node) {
 
 SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                                    const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                                   const NodePermissions& permissions,
-                                                   const QUuid& connectionSecret) {
+                                                   bool isReplicated, bool isUpstream,
+                                                   const QUuid& connectionSecret, const NodePermissions& permissions) {
     QReadLocker readLocker(&_nodeMutex);
     NodeHash::const_iterator it = _nodeHash.find(uuid);
 
@@ -582,11 +582,20 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         matchingNode->setLocalSocket(localSocket);
         matchingNode->setPermissions(permissions);
         matchingNode->setConnectionSecret(connectionSecret);
+        matchingNode->setIsReplicated(isReplicated);
+        matchingNode->setIsUpstream(isUpstream);
 
         return matchingNode;
     } else {
         // we didn't have this node, so add them
-        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket, permissions, connectionSecret, this);
+        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
+        newNode->setIsReplicated(isReplicated);
+        newNode->setIsUpstream(isUpstream);
+        newNode->setConnectionSecret(connectionSecret);
+        newNode->setPermissions(permissions);
+
+        // move the newly constructed node to the LNL thread
+        newNode->moveToThread(thread());
 
         if (nodeType == NodeType::AudioMixer) {
             LimitedNodeList::flagTimeForConnectionStep(LimitedNodeList::AddedAudioMixer);
@@ -619,24 +628,28 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         }
 
         // insert the new node and release our read lock
-        _nodeHash.insert(UUIDNodePair(newNode->getUUID(), newNodePointer));
+        _nodeHash.emplace(newNode->getUUID(), newNodePointer);
         readLocker.unlock();
 
         qCDebug(networking) << "Added" << *newNode;
+
+        auto weakPtr = newNodePointer.toWeakRef(); // We don't want the lambdas to hold a strong ref
 
         emit nodeAdded(newNodePointer);
         if (newNodePointer->getActiveSocket()) {
             emit nodeActivated(newNodePointer);
         } else {
-            connect(newNodePointer.data(), &NetworkPeer::socketActivated, this, [=] {
-                emit nodeActivated(newNodePointer);
-                disconnect(newNodePointer.data(), &NetworkPeer::socketActivated, this, 0);
+            connect(newNodePointer.data(), &NetworkPeer::socketActivated, this, [this, weakPtr] {
+                auto sharedPtr = weakPtr.lock();
+                if (sharedPtr) {
+                    emit nodeActivated(sharedPtr);
+                    disconnect(sharedPtr.data(), &NetworkPeer::socketActivated, this, 0);
+                }
             });
         }
 
         // Signal when a socket changes, so we can start the hole punch over.
-        auto weakPtr = newNodePointer.toWeakRef(); // We don't want the lambda to hold a strong ref
-        connect(newNodePointer.data(), &NetworkPeer::socketUpdated, this, [=] {
+        connect(newNodePointer.data(), &NetworkPeer::socketUpdated, this, [this, weakPtr] {
             emit nodeSocketUpdated(weakPtr);
         });
 
@@ -740,7 +753,8 @@ void LimitedNodeList::removeSilentNodes() {
         SharedNodePointer node = it->second;
         node->getMutex().lock();
 
-        if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > (NODE_SILENCE_THRESHOLD_MSECS * USECS_PER_MSEC)) {
+        if (!node->isForcedNeverSilent()
+            && (usecTimestampNow() - node->getLastHeardMicrostamp()) > (NODE_SILENCE_THRESHOLD_MSECS * USECS_PER_MSEC)) {
             // call the NodeHash erase to get rid of this node
             it = _nodeHash.unsafe_erase(it);
 
@@ -1044,10 +1058,10 @@ void LimitedNodeList::setLocalSocket(const HifiSockAddr& sockAddr) {
             qCInfo(networking) << "Local socket is" << sockAddr;
         } else {
             qCInfo(networking) << "Local socket has changed from" << _localSockAddr << "to" << sockAddr;
+            DependencyManager::get<StatTracker>()->incrementStat(LOCAL_SOCKET_CHANGE_STAT);
         }
 
         _localSockAddr = sockAddr;
-
         emit localSockAddrChanged(_localSockAddr);
     }
 }

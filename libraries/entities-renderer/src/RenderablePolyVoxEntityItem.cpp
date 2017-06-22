@@ -46,6 +46,9 @@
 #endif
 
 #include "model/Geometry.h"
+
+#include "StencilMaskPass.h"
+
 #include "EntityTreeRenderer.h"
 #include "polyvox_vert.h"
 #include "polyvox_frag.h"
@@ -743,6 +746,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        PrepareStencil::testMaskDrawShape(*state);
 
         _pipeline = gpu::Pipeline::create(program, state);
 
@@ -750,6 +754,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         wireframeState->setCullMode(gpu::State::CULL_BACK);
         wireframeState->setDepthTest(true, true, gpu::LESS_EQUAL);
         wireframeState->setFillMode(gpu::State::FILL_LINE);
+        PrepareStencil::testMaskDrawShape(*wireframeState);
 
         _wireframePipeline = gpu::Pipeline::create(program, wireframeState);
     }
@@ -815,7 +820,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     batch.drawIndexed(gpu::TRIANGLES, (gpu::uint32)mesh->getNumIndices(), 0);
 }
 
-bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
+bool RenderablePolyVoxEntityItem::addToScene(const EntityItemPointer& self,
                                              const render::ScenePointer& scene,
                                              render::Transaction& transaction) {
     _myItem = scene->allocateID();
@@ -833,7 +838,7 @@ bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
     return true;
 }
 
-void RenderablePolyVoxEntityItem::removeFromScene(EntityItemPointer self,
+void RenderablePolyVoxEntityItem::removeFromScene(const EntityItemPointer& self,
                                                   const render::ScenePointer& scene,
                                                   render::Transaction& transaction) {
     transaction.removeItem(_myItem);
@@ -860,7 +865,7 @@ namespace render {
 
     template <> void payloadRender(const PolyVoxPayload::Pointer& payload, RenderArgs* args) {
         if (args && payload && payload->_owner) {
-            payload->_owner->render(args);
+            payload->_owner->getRenderableInterface()->render(args);
         }
     }
 }

@@ -211,6 +211,8 @@ namespace khronos {
 
             template <uint32_t ALIGNMENT> 
             inline uint32_t evalAlignedCompressedBlockCount(uint32_t value) {
+                enum { val = ALIGNMENT && !(ALIGNMENT & (ALIGNMENT - 1)) };
+                static_assert(val, "template parameter ALIGNMENT must be a power of 2");
                 // FIXME add static assert that ALIGNMENT is a power of 2
                 static uint32_t ALIGNMENT_REMAINDER = ALIGNMENT - 1;
                 return (value + ALIGNMENT_REMAINDER) / ALIGNMENT;

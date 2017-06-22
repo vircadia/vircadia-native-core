@@ -13,6 +13,7 @@
 #include <DependencyManager.h>
 #include <PerfStat.h>
 #include <GeometryCache.h>
+#include <StencilMaskPass.h>
 #include <AbstractViewStateInterface.h>
 #include "EntitiesRendererLogging.h"
 
@@ -160,7 +161,7 @@ RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const Ent
     }
 }
 
-bool RenderableParticleEffectEntityItem::addToScene(EntityItemPointer self,
+bool RenderableParticleEffectEntityItem::addToScene(const EntityItemPointer& self,
                                                     const render::ScenePointer& scene,
                                                     render::Transaction& transaction) {
     _scene = scene;
@@ -175,7 +176,7 @@ bool RenderableParticleEffectEntityItem::addToScene(EntityItemPointer self,
     return true;
 }
 
-void RenderableParticleEffectEntityItem::removeFromScene(EntityItemPointer self,
+void RenderableParticleEffectEntityItem::removeFromScene(const EntityItemPointer& self,
                                                          const render::ScenePointer& scene,
                                                          render::Transaction& transaction) {
     transaction.removeItem(_renderItemId);
@@ -292,6 +293,7 @@ void RenderableParticleEffectEntityItem::createPipelines() {
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE,
                                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        PrepareStencil::testMask(*state);
 
         auto vertShader = gpu::Shader::createVertex(std::string(untextured_particle_vert));
         auto fragShader = gpu::Shader::createPixel(std::string(untextured_particle_frag));
@@ -305,6 +307,7 @@ void RenderableParticleEffectEntityItem::createPipelines() {
         state->setDepthTest(true, false, gpu::LESS_EQUAL);
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE,
                                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        PrepareStencil::testMask(*state);
 
         auto vertShader = gpu::Shader::createVertex(std::string(textured_particle_vert));
         auto fragShader = gpu::Shader::createPixel(std::string(textured_particle_frag));

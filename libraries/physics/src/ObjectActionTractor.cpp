@@ -23,14 +23,16 @@ const uint16_t ObjectActionTractor::tractorVersion = 1;
 
 ObjectActionTractor::ObjectActionTractor(const QUuid& id, EntityItemPointer ownerEntity) :
     ObjectAction(DYNAMIC_TYPE_TRACTOR, id, ownerEntity),
-    _positionalTarget(glm::vec3(0.0f)),
-    _desiredPositionalTarget(glm::vec3(0.0f)),
+    _positionalTarget(0.0f),
+    _desiredPositionalTarget(0.0f),
     _linearTimeScale(FLT_MAX),
-    _positionalTargetSet(true),
-    _rotationalTarget(glm::quat()),
-    _desiredRotationalTarget(glm::quat()),
+    _positionalTargetSet(false),
+    _rotationalTarget(),
+    _desiredRotationalTarget(),
     _angularTimeScale(FLT_MAX),
-    _rotationalTargetSet(true) {
+    _rotationalTargetSet(true),
+    _linearVelocityTarget(0.0f)
+{
     #if WANT_DEBUG
     qCDebug(physics) << "ObjectActionTractor::ObjectActionTractor";
     #endif
@@ -77,7 +79,6 @@ bool ObjectActionTractor::prepareForTractorUpdate(btScalar deltaTimeStep) {
 
     glm::quat rotation;
     glm::vec3 position;
-    glm::vec3 linearVelocity;
     glm::vec3 angularVelocity;
 
     bool linearValid = false;
@@ -117,7 +118,6 @@ bool ObjectActionTractor::prepareForTractorUpdate(btScalar deltaTimeStep) {
                 linearValid = true;
                 linearTractorCount++;
                 position += positionForAction;
-                linearVelocity += linearVelocityForAction;
             }
         }
     }
@@ -126,9 +126,18 @@ bool ObjectActionTractor::prepareForTractorUpdate(btScalar deltaTimeStep) {
         withWriteLock([&]{
             if (linearValid && linearTractorCount > 0) {
                 position /= linearTractorCount;
-                linearVelocity /= linearTractorCount;
+                if (_positionalTargetSet) {
+                    _lastPositionTarget = _positionalTarget;
+                } else {
+                    _lastPositionTarget = position;
+                }
                 _positionalTarget = position;
-                _linearVelocityTarget = linearVelocity;
+                if (deltaTimeStep > EPSILON) {
+                    // blend the new velocity with the old (low-pass filter)
+                    glm::vec3 newVelocity = (1.0f / deltaTimeStep) * (position - _lastPositionTarget);
+                    const float blend = 0.25f;
+                    _linearVelocityTarget = (1.0f - blend) * _linearVelocityTarget + blend * newVelocity;
+                }
                 _positionalTargetSet = true;
                 _active = true;
             }
@@ -169,19 +178,19 @@ void ObjectActionTractor::updateActionWorker(btScalar deltaTimeStep) {
         }
 
         if (_linearTimeScale < MAX_TRACTOR_TIMESCALE) {
-            btVector3 targetVelocity(0.0f, 0.0f, 0.0f);
+            btVector3 offsetVelocity(0.0f, 0.0f, 0.0f);
             btVector3 offset = rigidBody->getCenterOfMassPosition() - glmToBullet(_positionalTarget);
             float offsetLength = offset.length();
             if (offsetLength > FLT_EPSILON) {
                 float speed = glm::min(offsetLength / _linearTimeScale, TRACTOR_MAX_SPEED);
-                targetVelocity = (-speed / offsetLength) * offset;
+                offsetVelocity = (-speed / offsetLength) * offset;
                 if (speed > rigidBody->getLinearSleepingThreshold()) {
                     forceBodyNonStatic();
                     rigidBody->activate();
                 }
             }
             // this action is aggresively critically damped and defeats the current velocity
-            rigidBody->setLinearVelocity(targetVelocity);
+            rigidBody->setLinearVelocity(glmToBullet(_linearVelocityTarget) + offsetVelocity);
         }
 
         if (_angularTimeScale < MAX_TRACTOR_TIMESCALE) {

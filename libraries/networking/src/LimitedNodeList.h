@@ -31,7 +31,7 @@
 #include <QtNetwork/QUdpSocket>
 #include <QtNetwork/QHostAddress>
 
-#include <tbb/concurrent_unordered_map.h>
+#include <TBBHelpers.h>
 
 #include <DependencyManager.h>
 #include <SharedUtil.h>
@@ -66,9 +66,10 @@ const QHostAddress DEFAULT_ASSIGNMENT_CLIENT_MONITOR_HOSTNAME = QHostAddress::Lo
 
 const QString USERNAME_UUID_REPLACEMENT_STATS_KEY = "$username";
 
-using namespace tbb;
+const QString LOCAL_SOCKET_CHANGE_STAT = "LocalSocketChanges";
+
 typedef std::pair<QUuid, SharedNodePointer> UUIDNodePair;
-typedef concurrent_unordered_map<QUuid, SharedNodePointer, UUIDHasher> NodeHash;
+typedef tbb::concurrent_unordered_map<QUuid, SharedNodePointer, UUIDHasher> NodeHash;
 
 typedef quint8 PingType_t;
 namespace PingType {
@@ -144,8 +145,9 @@ public:
 
     SharedNodePointer addOrUpdateNode(const QUuid& uuid, NodeType_t nodeType,
                                       const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-                                      const NodePermissions& permissions = DEFAULT_AGENT_PERMISSIONS,
-                                      const QUuid& connectionSecret = QUuid());
+                                      bool isReplicated = false, bool isUpstream = false,
+                                      const QUuid& connectionSecret = QUuid(),
+                                      const NodePermissions& permissions = DEFAULT_AGENT_PERMISSIONS);
 
     static bool parseSTUNResponse(udt::BasePacket* packet, QHostAddress& newPublicAddress, uint16_t& newPublicPort);
     bool hasCompletedInitialSTUN() const { return _hasCompletedInitialSTUN; }
@@ -254,6 +256,16 @@ public:
         }
 
         return SharedNodePointer();
+    }
+
+    // This is unsafe because it does not take a lock
+    // Must only be called when you know that a read lock on the node mutex is held
+    // and will be held for the duration of your iteration
+    template<typename NodeLambda>
+    void unsafeEachNode(NodeLambda functor) {
+        for (NodeHash::const_iterator it = _nodeHash.cbegin(); it != _nodeHash.cend(); ++it) {
+            functor(it->second);
+        }
     }
 
     void putLocalPortIntoSharedMemory(const QString key, QObject* parent, quint16 localPort);
@@ -384,6 +396,7 @@ protected:
             functor(it);
         }
     }
+
 
 private slots:
     void flagTimeForConnectionStep(ConnectionStep connectionStep, quint64 timestamp);

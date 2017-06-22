@@ -19,7 +19,6 @@ Rectangle {
     id: root
 
     objectName: "DebugWindow"
-    property var eventBridge;
 
     property var title: "Debug Window"
     property bool isHMD: false

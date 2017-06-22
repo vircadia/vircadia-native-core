@@ -43,6 +43,7 @@ class NetworkTexture : public Resource, public Texture {
     Q_OBJECT
 
 public:
+    NetworkTexture(const QUrl& url);
     NetworkTexture(const QUrl& url, image::TextureUsage::Type type, const QByteArray& content, int maxNumPixels);
     ~NetworkTexture() override;
 
@@ -58,14 +59,13 @@ public:
 
     void refresh() override;
 
+    Q_INVOKABLE void setOriginalDescriptor(ktx::KTXDescriptor* descriptor) { _originalKtxDescriptor.reset(descriptor); }
+
 signals:
     void networkTextureCreated(const QWeakPointer<NetworkTexture>& self);
 
 public slots:
-    void ktxHeaderRequestProgress(uint64_t bytesReceived, uint64_t bytesTotal) { }
-    void ktxHeaderRequestFinished();
-
-    void ktxMipRequestProgress(uint64_t bytesReceived, uint64_t bytesTotal) { }
+    void ktxInitialDataRequestFinished();
     void ktxMipRequestFinished();
 
 protected:
@@ -74,14 +74,14 @@ protected:
     virtual bool isCacheable() const override { return _loaded; }
 
     virtual void downloadFinished(const QByteArray& data) override;
-
+    
     Q_INVOKABLE void loadContent(const QByteArray& content);
     Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
 
-    void startRequestForNextMipLevel();
+    Q_INVOKABLE void startRequestForNextMipLevel();
 
     void startMipRangeRequest(uint16_t low, uint16_t high);
-    void maybeHandleFinishedInitialLoad();
+    void handleFinishedInitialLoad();
 
 private:
     friend class KTXReader;
@@ -102,16 +102,13 @@ private:
     bool _sourceIsKTX { false };
     KTXResourceState _ktxResourceState { PENDING_INITIAL_LOAD };
 
-    // TODO Can this be removed?
-    KTXFilePointer _file;
-
     // The current mips that are currently being requested w/ _ktxMipRequest
     std::pair<uint16_t, uint16_t> _ktxMipLevelRangeInFlight{ NULL_MIP_LEVEL, NULL_MIP_LEVEL };
 
     ResourceRequest* _ktxHeaderRequest { nullptr };
     ResourceRequest* _ktxMipRequest { nullptr };
-    bool _ktxHeaderRequestFinished{ false };
-    bool _ktxHighMipRequestFinished{ false };
+    QByteArray _ktxHeaderData;
+    QByteArray _ktxHighMipData;
 
     uint16_t _lowestRequestedMipLevel { NULL_MIP_LEVEL };
     uint16_t _lowestKnownPopulatedMip { NULL_MIP_LEVEL };
@@ -128,6 +125,8 @@ private:
     int _width { 0 };
     int _height { 0 };
     int _maxNumPixels { ABSOLUTE_MAX_TEXTURE_NUM_PIXELS };
+
+    friend class TextureCache;
 };
 
 using NetworkTexturePointer = QSharedPointer<NetworkTexture>;
@@ -166,6 +165,12 @@ public:
     gpu::TexturePointer getTextureByHash(const std::string& hash);
     gpu::TexturePointer cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture);
 
+
+    /// SpectatorCamera rendering targets.
+    NetworkTexturePointer getResourceTexture(QUrl resourceTextureUrl);
+    const gpu::FramebufferPointer& getSpectatorCameraFramebuffer();
+    void resetSpectatorCameraFramebuffer(int width, int height);
+
 protected:
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);
@@ -183,7 +188,8 @@ private:
 
     static const std::string KTX_DIRNAME;
     static const std::string KTX_EXT;
-    KTXCache _ktxCache;
+
+    std::shared_ptr<cache::FileCache> _ktxCache { std::make_shared<KTXCache>(KTX_DIRNAME, KTX_EXT) };
     // Map from image hashes to texture weak pointers
     std::unordered_map<std::string, std::weak_ptr<gpu::Texture>> _texturesByHashes;
     std::mutex _texturesByHashesMutex;
@@ -193,6 +199,9 @@ private:
     gpu::TexturePointer _grayTexture;
     gpu::TexturePointer _blueTexture;
     gpu::TexturePointer _blackTexture;
+
+    NetworkTexturePointer _spectatorCameraNetworkTexture;
+    gpu::FramebufferPointer _spectatorCameraFramebuffer;
 };
 
 #endif // hifi_TextureCache_h

@@ -21,6 +21,11 @@ var blastShareText = "Blast to my Connections",
     hifiAlreadySharedText = "Already Shared to Snaps Feed",
     facebookShareText = "Share to Facebook",
     twitterShareText = "Share to Twitter";
+
+function fileExtensionMatches(filePath, extension) {
+    return filePath.split('.').pop().toLowerCase() === extension;
+}
+
 function showSetupInstructions() {
     var snapshotImagesDiv = document.getElementById("snapshot-images");
     snapshotImagesDiv.className = "snapshotInstructions";
@@ -276,10 +281,10 @@ function addImage(image_data, isLoggedIn, canShare, isGifLoading, isShowingPrevi
     if (!image_data.localPath) {
         return;
     }
-    var id = "p" + (idCounter++),
-        imageContainer = document.createElement("DIV"),
+    var imageContainer = document.createElement("DIV"),
         img = document.createElement("IMG"),
-        isGif;
+        isGif = fileExtensionMatches(image_data.localPath, "gif"),
+        id = "p" + (isGif ? "1" : "0");
     imageContainer.id = id;
     imageContainer.style.width = "95%";
     imageContainer.style.height = "240px";
@@ -290,22 +295,34 @@ function addImage(image_data, isLoggedIn, canShare, isGifLoading, isShowingPrevi
     imageContainer.style.position = "relative";
     img.id = id + "img";
     img.src = image_data.localPath;
-    isGif = img.src.split('.').pop().toLowerCase() === "gif";
     imageContainer.appendChild(img);
     document.getElementById("snapshot-images").appendChild(imageContainer);
     paths.push(image_data.localPath);
-    if (isGif) {
-        imageContainer.innerHTML += '<span class="gifLabel">GIF</span>';
-    }
-    if (!isGifLoading) {
-        appendShareBar(id, isLoggedIn, canShare, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast);
-    }
-    if (!isGifLoading || (isShowingPreviousImages && !image_data.story_id)) {
-        shareForUrl(id);
-    }
-    if (isShowingPreviousImages && isLoggedIn && image_data.story_id) {
-        updateShareInfo(id, image_data.story_id);
-    }
+    img.onload = function () {
+        if (isGif) {
+            imageContainer.innerHTML += '<span class="gifLabel">GIF</span>';
+        }
+        if (!isGifLoading) {
+            appendShareBar(id, isLoggedIn, canShare, isGif, blastButtonDisabled, hifiButtonDisabled, canBlast);
+        }
+        if ((!isShowingPreviousImages && ((isGif && !isGifLoading) || !isGif)) || (isShowingPreviousImages && !image_data.story_id)) {
+            shareForUrl(id);
+        }
+        if (isShowingPreviousImages && isLoggedIn && image_data.story_id) {
+            updateShareInfo(id, image_data.story_id);
+        }
+        if (isShowingPreviousImages) {
+            requestPrintButtonUpdate();  
+        } 
+    };
+    img.onerror = function () {
+        img.onload = null;
+        img.src = image_data.errorPath;
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "snapshot",
+            action: "alertSnapshotLoadFailed"
+        }));
+    };
 }
 function showConfirmationMessage(selectedID, destination) {
     if (selectedID.id) {
@@ -632,9 +649,8 @@ window.onload = function () {
                     // The last element of the message contents list contains a bunch of options,
                     // including whether or not we can share stuff
                     // The other elements of the list contain image paths.
-
-                    if (messageOptions.containsGif) {
-                        if (messageOptions.processingGif) {
+                    if (messageOptions.containsGif === true) {
+                        if (messageOptions.processingGif === true) {
                             imageCount = message.image_data.length + 1; // "+1" for the GIF that'll finish processing soon
                             message.image_data.push({ localPath: messageOptions.loadingGifPath });
                             message.image_data.forEach(function (element, idx) {
@@ -661,10 +677,22 @@ window.onload = function () {
                     break;
                 case 'captureSettings':
                     handleCaptureSetting(message.setting);
+                    break;              
+                case 'setPrintButtonEnabled':
+                    setPrintButtonEnabled();
+                    break;
+                case 'setPrintButtonLoading':
+                    setPrintButtonLoading();
+                    break;
+                case 'setPrintButtonDisabled':
+                    setPrintButtonDisabled();
                     break;
                 case 'snapshotUploadComplete':
-                    var isGif = message.image_url.split('.').pop().toLowerCase() === "gif";
+                    var isGif = fileExtensionMatches(message.image_url, "gif");
                     updateShareInfo(isGif ? "p1" : "p0", message.story_id);
+                    if (isPrintProcessing()) {                       
+                        setPrintButtonEnabled();
+                    }
                     break;
                 default:
                     console.log("Unknown message action received in SnapshotReview.js.");
@@ -691,6 +719,59 @@ function takeSnapshot() {
     }));
     if (document.getElementById('stillAndGif').checked === true) {
         document.getElementById("snap-button").disabled = true;
+    }
+}
+
+function isPrintDisabled() { 
+    var printElement = document.getElementById('print-icon');
+    
+    return printElement.classList.contains("print-icon") &&
+           printElement.classList.contains("print-icon-default") &&
+           document.getElementById('print-button').disabled;
+}
+function isPrintProcessing() { 
+    var printElement = document.getElementById('print-icon');  
+    
+    return printElement.classList.contains("print-icon") &&
+           printElement.classList.contains("print-icon-loading") &&
+           document.getElementById('print-button').disabled;
+}
+function isPrintEnabled() {
+    var printElement = document.getElementById('print-icon');    
+    
+    return printElement.classList.contains("print-icon") &&
+           printElement.classList.contains("print-icon-default") &&
+           !document.getElementById('print-button').disabled;
+}
+
+function setPrintButtonLoading() {
+    document.getElementById('print-icon').className = "print-icon print-icon-loading";
+    document.getElementById('print-button').disabled = true;
+}
+function setPrintButtonDisabled() {
+    document.getElementById('print-icon').className = "print-icon print-icon-default";
+    document.getElementById('print-button').disabled = true;
+}
+function setPrintButtonEnabled() { 
+    document.getElementById('print-button').disabled = false;
+    document.getElementById('print-icon').className = "print-icon print-icon-default";
+}
+
+function requestPrintButtonUpdate() {
+    EventBridge.emitWebEvent(JSON.stringify({
+        type: "snapshot",
+        action: "requestPrintButtonUpdate"
+    }));
+}
+
+function printToPolaroid() {   
+    if (isPrintEnabled()) {        
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "snapshot",
+            action: "printToPolaroid"
+        }));       
+    } else {
+        setPrintButtonLoading();
     }
 }
 

@@ -23,7 +23,6 @@ Rectangle {
     property string title: "Running Scripts"
     HifiConstants { id: hifi }
     signal sendToScript(var message);
-    property var eventBridge;
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
     property var runningScriptsModel: ListModel { }

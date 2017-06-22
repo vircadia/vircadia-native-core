@@ -183,24 +183,12 @@
             return;
         }
 
-        //TODO: move to tablet qml?
-        if (tabletShown) {
-            var currentMicEnabled = !Menu.isOptionChecked(MUTE_MICROPHONE_MENU_ITEM);
-            var currentMicLevel = getMicLevel();
-            gTablet.updateMicEnabled(currentMicEnabled);
-            gTablet.updateAudioBar(currentMicLevel);
-        }
-
-        if (validCheckTime - now > MSECS_PER_SEC/4) {
-            //each 250ms should be just fine
+        if (now - validCheckTime > MSECS_PER_SEC) {
+            validCheckTime = now;
             updateTabletWidthFromSettings();
             if (UIWebTablet) {
                 UIWebTablet.setLandscape(landscape);
             }
-        }
-
-        if (validCheckTime - now > MSECS_PER_SEC) {
-            validCheckTime = now;
             if (tabletRezzed && UIWebTablet && !tabletIsValid()) {
                 // when we switch domains, the tablet entity gets destroyed and recreated.  this causes
                 // the overlay to be deleted, but not recreated.  If the overlay is deleted for this or any
@@ -274,12 +262,6 @@
     Messages.messageReceived.connect(handleMessage);
 
     Script.setInterval(updateShowTablet, 100);
-
-    // Calculate microphone level with the same scaling equation (log scale, exponentially averaged) in AvatarInputs and pal.js
-    function getMicLevel() {
-        //reuse already existing C++ code
-        return AvatarInputs.loudnessToAudioLevel(MyAvatar.audioLoudness)
-    }
 
     Script.scriptEnding.connect(function () {
 

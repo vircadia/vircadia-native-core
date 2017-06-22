@@ -101,6 +101,10 @@ function getApplicationDataDirectory() {
     return path.join(getRootHifiDataDirectory(), '/Server Console');
 }
 
+// Update lock filepath
+const UPDATER_LOCK_FILENAME = ".updating";
+const UPDATER_LOCK_FULL_PATH = getRootHifiDataDirectory() + "/" + UPDATER_LOCK_FILENAME;
+
 // Configure log
 global.log = require('electron-log');
 const logFile = getApplicationDataDirectory() + '/log.txt';
@@ -630,11 +634,22 @@ function checkNewContent() {
                       userConfig.save(configPath);
                   }
               });
+            } else if (fs.existsSync(UPDATER_LOCK_FULL_PATH)) {
+                backupResourceDirectoriesAndRestart();
             }
         }
     });
 }
 
+function removeIncompleteUpdate(acResourceDirectory, dsResourceDirectory) {
+    if (fs.existsSync(UPDATER_LOCK_FULL_PATH)) {
+        log.debug('Removing incomplete content update files before copying new update');
+        fs.emptyDirSync(dsResourceDirectory);
+        fs.emptyDirSync(acResourceDirectory);
+    } else {
+         fs.ensureFileSync(UPDATER_LOCK_FULL_PATH);
+    }
+}
 
 function maybeInstallDefaultContentSet(onComplete) {
     // Check for existing data
@@ -673,7 +688,11 @@ function maybeInstallDefaultContentSet(onComplete) {
     }
 
     log.debug("Found contentPath:" + argv.contentPath);
+
     if (argv.contentPath) {
+        // check if we're updating a data folder whose update is incomplete
+        removeIncompleteUpdate(acResourceDirectory, dsResourceDirectory);
+
         fs.copy(argv.contentPath, getRootHifiDataDirectory(), function (err) {
             if (err) {
                 log.debug('Could not copy home content: ' + err);
@@ -682,11 +701,11 @@ function maybeInstallDefaultContentSet(onComplete) {
             log.debug('Copied home content over to: ' + getRootHifiDataDirectory());
             userConfig.set('homeContentLastModified', new Date());
             userConfig.save(configPath);
+            fs.removeSync(UPDATER_LOCK_FULL_PATH);
             onComplete();
         });
         return;
     }
-
 
     // Show popup
     var window = new BrowserWindow({
@@ -717,6 +736,9 @@ function maybeInstallDefaultContentSet(onComplete) {
         }
 
         var aborted = false;
+
+        // check if we're updating a data folder whose update is incomplete
+        removeIncompleteUpdate(acResourceDirectory, dsResourceDirectory);
 
         // Start downloading content set
         var req = progress(request.get({
@@ -763,6 +785,7 @@ function maybeInstallDefaultContentSet(onComplete) {
             log.debug("Finished unarchiving home content set");
             userConfig.set('homeContentLastModified', new Date());
             userConfig.save(configPath);
+            fs.removeSync(UPDATER_LOCK_FULL_PATH);
             sendStateUpdate('complete');
         });
 
@@ -820,6 +843,17 @@ for (var key in trayIcons) {
 
 
 const notificationIcon = path.join(__dirname, '../resources/console-notification.png');
+
+function isProcessRunning(pid) {
+    try {
+        // Sending a signal of 0 is effectively a NOOP.
+        // If sending the signal is successful, kill will return true.
+        // If the process is not running, an exception will be thrown.
+        return process.kill(pid, 0);
+    } catch (e) {
+    }
+    return false;
+}
 
 function onContentLoaded() {
     // Disable splash window for now.
@@ -882,31 +916,18 @@ function onContentLoaded() {
         startInterface();
     }
 
-    // If we were launched with the shutdownWatcher option, then we need to watch for the interface app
-    // shutting down. The interface app will regularly update a running state file which we will check.
-    // If the file doesn't exist or stops updating for a significant amount of time, we will shut down.
-    if (argv.shutdownWatcher) {
-        log.debug("Shutdown watcher requested... argv.shutdownWatcher:", argv.shutdownWatcher);
-        var MAX_TIME_SINCE_EDIT = 5000; // 5 seconds between updates
-        var firstAttemptToCheck = new Date().getTime();
-        var shutdownWatchInterval = setInterval(function(){
-            var stats = fs.stat(argv.shutdownWatcher, function(err, stats) {
-                if (err) {
-                    var sinceFirstCheck = new Date().getTime() - firstAttemptToCheck;
-                    if (sinceFirstCheck > MAX_TIME_SINCE_EDIT) {
-                        log.debug("Running state file is missing, assume interface has shutdown... shutting down snadbox.");
-                        forcedShutdown();
-                        clearTimeout(shutdownWatchInterval);
-                    }
-                } else {
-                    var sinceEdit = new Date().getTime() - stats.mtime.getTime();
-                    if (sinceEdit > MAX_TIME_SINCE_EDIT) {
-                        log.debug("Running state of interface hasn't updated in MAX time... shutting down.");
-                        forcedShutdown();
-                        clearTimeout(shutdownWatchInterval);
-                    }
-                }
-            });
+    // If we were launched with the shutdownWith option, then we need to shutdown when that process (pid)
+    // is no longer running.
+    if (argv.shutdownWith) {
+        let pid = argv.shutdownWith;
+        console.log("Shutting down with process: ", pid);
+        let checkProcessInterval = setInterval(function() {
+            let isRunning = isProcessRunning(pid);
+            if (!isRunning) {
+                log.debug("Watched process is no longer running, shutting down");
+                clearTimeout(checkProcessInterval);
+                forcedShutdown();
+            }
         }, 1000);
     }
 }
