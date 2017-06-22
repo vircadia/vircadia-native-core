@@ -469,6 +469,11 @@ public:
     controller::Pose getLeftHandControllerPoseInAvatarFrame() const;
     controller::Pose getRightHandControllerPoseInAvatarFrame() const;
 
+    typedef std::map<int, controller::Pose> FingerPosesMap;
+    void setFingerControllerPosesInSensorFrame(const FingerPosesMap& left, const FingerPosesMap& right);
+    FingerPosesMap getLeftHandFingerControllerPosesInSensorFrame() const;
+    FingerPosesMap getRightHandFingerControllerPosesInSensorFrame() const;
+
     void setFootControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right);
     controller::Pose getLeftFootControllerPoseInSensorFrame() const;
     controller::Pose getRightFootControllerPoseInSensorFrame() const;
@@ -783,6 +788,8 @@ private:
     ThreadSafeValueCache<controller::Pose> _headControllerPoseInSensorFrameCache{ controller::Pose() };
     ThreadSafeValueCache<controller::Pose> _leftArmControllerPoseInSensorFrameCache{ controller::Pose() };
     ThreadSafeValueCache<controller::Pose> _rightArmControllerPoseInSensorFrameCache{ controller::Pose() };
+    ThreadSafeValueCache<FingerPosesMap> _leftHandFingerPosesInSensorFramceCache { };
+    ThreadSafeValueCache<FingerPosesMap> _rightHandFingerPosesInSensorFramceCache { };
 
     bool _hmdLeanRecenterEnabled = true;
 

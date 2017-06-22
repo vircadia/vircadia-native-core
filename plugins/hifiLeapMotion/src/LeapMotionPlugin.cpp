@@ -31,13 +31,94 @@ const char* DEFAULT_SENSOR_LOCATION = SENSOR_ON_DESKTOP;
 
 enum LeapMotionJointIndex {
     LeftHand = 0,
+    LeftHandThumb1,
+    LeftHandThumb2,
+    LeftHandThumb3,
+    LeftHandThumb4,
+    LeftHandIndex1,
+    LeftHandIndex2,
+    LeftHandIndex3,
+    LeftHandIndex4,
+    LeftHandMiddle1,
+    LeftHandMiddle2,
+    LeftHandMiddle3,
+    LeftHandMiddle4,
+    LeftHandRing1,
+    LeftHandRing2,
+    LeftHandRing3,
+    LeftHandRing4,
+    LeftHandPinky1,
+    LeftHandPinky2,
+    LeftHandPinky3,
+    LeftHandPinky4,
     RightHand,
+    RightHandThumb1,
+    RightHandThumb2,
+    RightHandThumb3,
+    RightHandThumb4,
+    RightHandIndex1,
+    RightHandIndex2,
+    RightHandIndex3,
+    RightHandIndex4,
+    RightHandMiddle1,
+    RightHandMiddle2,
+    RightHandMiddle3,
+    RightHandMiddle4,
+    RightHandRing1,
+    RightHandRing2,
+    RightHandRing3,
+    RightHandRing4,
+    RightHandPinky1,
+    RightHandPinky2,
+    RightHandPinky3,
+    RightHandPinky4,
+
     Size
 };
 
 static controller::StandardPoseChannel LeapMotionJointIndexToPoseIndexMap[LeapMotionJointIndex::Size] = {
     controller::LEFT_HAND,
-    controller::RIGHT_HAND
+    controller::LEFT_HAND_THUMB1,
+    controller::LEFT_HAND_THUMB2,
+    controller::LEFT_HAND_THUMB3,
+    controller::LEFT_HAND_THUMB4,
+    controller::LEFT_HAND_INDEX1,
+    controller::LEFT_HAND_INDEX2,
+    controller::LEFT_HAND_INDEX3,
+    controller::LEFT_HAND_INDEX4,
+    controller::LEFT_HAND_MIDDLE1,
+    controller::LEFT_HAND_MIDDLE2,
+    controller::LEFT_HAND_MIDDLE3,
+    controller::LEFT_HAND_MIDDLE4,
+    controller::LEFT_HAND_RING1,
+    controller::LEFT_HAND_RING2,
+    controller::LEFT_HAND_RING3,
+    controller::LEFT_HAND_RING4,
+    controller::LEFT_HAND_PINKY1,
+    controller::LEFT_HAND_PINKY2,
+    controller::LEFT_HAND_PINKY3,
+    controller::LEFT_HAND_PINKY4,
+    controller::RIGHT_HAND,
+    controller::RIGHT_HAND_THUMB1,
+    controller::RIGHT_HAND_THUMB2,
+    controller::RIGHT_HAND_THUMB3,
+    controller::RIGHT_HAND_THUMB4,
+    controller::RIGHT_HAND_INDEX1,
+    controller::RIGHT_HAND_INDEX2,
+    controller::RIGHT_HAND_INDEX3,
+    controller::RIGHT_HAND_INDEX4,
+    controller::RIGHT_HAND_MIDDLE1,
+    controller::RIGHT_HAND_MIDDLE2,
+    controller::RIGHT_HAND_MIDDLE3,
+    controller::RIGHT_HAND_MIDDLE4,
+    controller::RIGHT_HAND_RING1,
+    controller::RIGHT_HAND_RING2,
+    controller::RIGHT_HAND_RING3,
+    controller::RIGHT_HAND_RING4,
+    controller::RIGHT_HAND_PINKY1,
+    controller::RIGHT_HAND_PINKY2,
+    controller::RIGHT_HAND_PINKY3,
+    controller::RIGHT_HAND_PINKY4
 };
 
 #define UNKNOWN_JOINT (controller::StandardPoseChannel)0 
@@ -374,21 +455,44 @@ glm::vec3 LeapVectorToVec3(const Leap::Vector& vec) {
 
 void LeapMotionPlugin::processFrame(const Leap::Frame& frame) {
     // Default to uncontrolled.
-    _joints[LeapMotionJointIndex::LeftHand].position = glm::vec3();
-    _joints[LeapMotionJointIndex::RightHand].position = glm::vec3();
+    for (int i = 0; i < _joints.size(); i++) {
+        _joints[i].position = glm::vec3();
+    }
 
     auto hands = frame.hands();
-
-    for (int i = 0; i < hands.count() && i < 2; i++) {
+    const int MAX_NUMBER_OF_HANDS = 2;
+    for (int i = 0; i < hands.count() && i < MAX_NUMBER_OF_HANDS; i++) {
         auto hand = hands[i];
-        auto arm = hand.arm();
 
-        if (hands[i].isLeft()) {
-            _joints[LeapMotionJointIndex::LeftHand].position = LeapVectorToVec3(hand.wristPosition());
-            _joints[LeapMotionJointIndex::LeftHand].orientation = LeapBasisToQuat(LEFT_SIDE_SIGN, hand.basis());
-        } else {
-            _joints[LeapMotionJointIndex::RightHand].position = LeapVectorToVec3(hand.wristPosition());
-            _joints[LeapMotionJointIndex::RightHand].orientation = LeapBasisToQuat(RIGHT_SIDE_SIGN, hand.basis());
+        int sideSign = hand.isLeft() ? LEFT_SIDE_SIGN : RIGHT_SIDE_SIGN;
+        int jointIndex = hand.isLeft() ? LeapMotionJointIndex::LeftHand : LeapMotionJointIndex::RightHand;
+
+        // Hand.
+        _joints[jointIndex].position = LeapVectorToVec3(hand.wristPosition());
+        _joints[jointIndex].orientation = LeapBasisToQuat(sideSign, hand.basis());
+
+        // Fingers.
+        // Leap Motion SDK guarantees full set of fingers and finger joints so can straightforwardly process them all.
+        Leap::FingerList fingers = hand.fingers();
+        for (int j = Leap::Finger::Type::TYPE_THUMB; j <= Leap::Finger::Type::TYPE_PINKY; j++) {
+            Leap::Finger finger;
+            finger = fingers[j];
+            Leap::Bone bone;
+            bone = finger.bone(Leap::Bone::Type::TYPE_PROXIMAL);
+            jointIndex++;
+            _joints[jointIndex].position = LeapVectorToVec3(bone.prevJoint());
+            _joints[jointIndex].orientation = LeapBasisToQuat(sideSign, bone.basis());
+            bone = finger.bone(Leap::Bone::Type::TYPE_INTERMEDIATE);
+            jointIndex++;
+            _joints[jointIndex].position = LeapVectorToVec3(bone.prevJoint());
+            _joints[jointIndex].orientation = LeapBasisToQuat(sideSign, bone.basis());
+            bone = finger.bone(Leap::Bone::Type::TYPE_DISTAL);
+            jointIndex++;
+            _joints[jointIndex].position = LeapVectorToVec3(bone.prevJoint());
+            _joints[jointIndex].orientation = LeapBasisToQuat(sideSign, bone.basis());
+            jointIndex++;
+            _joints[jointIndex].position = LeapVectorToVec3(bone.nextJoint());
+            _joints[jointIndex].orientation = LeapBasisToQuat(sideSign, bone.basis());
         }
     }
 }

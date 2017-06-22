@@ -4537,6 +4537,16 @@ void Application::update(float deltaTime) {
     auto avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
     myAvatar->setHandControllerPosesInSensorFrame(leftHandPose.transform(avatarToSensorMatrix), rightHandPose.transform(avatarToSensorMatrix));
 
+    MyAvatar::FingerPosesMap leftHandFingerPoses;
+    for (int i = (int)controller::Action::LEFT_HAND_THUMB1; i <= (int)controller::Action::LEFT_HAND_PINKY4; i++) {
+        leftHandFingerPoses[i] = userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix);
+    }
+    MyAvatar::FingerPosesMap rightHandFingerPoses;
+    for (int i = (int)controller::Action::RIGHT_HAND_THUMB1; i <= (int)controller::Action::RIGHT_HAND_PINKY4; i++) {
+        rightHandFingerPoses[i] = userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix);
+    }
+    myAvatar->setFingerControllerPosesInSensorFrame(leftHandFingerPoses, rightHandFingerPoses);
+
     controller::Pose leftFootPose = userInputMapper->getPoseState(controller::Action::LEFT_FOOT);
     controller::Pose rightFootPose = userInputMapper->getPoseState(controller::Action::RIGHT_FOOT);
     myAvatar->setFootControllerPosesInSensorFrame(leftFootPose.transform(avatarToSensorMatrix), rightFootPose.transform(avatarToSensorMatrix));
