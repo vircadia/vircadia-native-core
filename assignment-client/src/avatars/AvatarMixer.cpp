@@ -66,7 +66,6 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     connect(nodeList.data(), &NodeList::nodeAdded, this, [this](const SharedNodePointer& node) {
         if (node->getType() == NodeType::DownstreamAvatarMixer) {
             getOrCreateClientData(node);
-            node->activatePublicSocket();
         }
     });
 }
@@ -163,10 +162,6 @@ void AvatarMixer::queueIncomingPacket(QSharedPointer<ReceivedMessage> message, S
     getOrCreateClientData(node)->queuePacket(message, node);
     auto end = usecTimestampNow();
     _queueIncomingPacketElapsedTime += (end - start);
-}
-
-
-AvatarMixer::~AvatarMixer() {
 }
 
 void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
@@ -862,7 +857,10 @@ AvatarMixerClientData* AvatarMixer::getOrCreateClientData(SharedNodePointer node
 
 void AvatarMixer::domainSettingsRequestComplete() {
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::DownstreamAvatarMixer, NodeType::EntityScriptServer });
+    nodeList->addSetOfNodeTypesToNodeInterestSet({
+        NodeType::Agent, NodeType::EntityScriptServer,
+        NodeType::UpstreamAvatarMixer, NodeType::DownstreamAvatarMixer
+    });
 
     // parse the settings to pull out the values we need
     parseDomainServerSettings(nodeList->getDomainHandler().getSettingsObject());

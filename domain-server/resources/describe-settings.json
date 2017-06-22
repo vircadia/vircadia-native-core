@@ -1339,6 +1339,7 @@
     {
       "name": "broadcasting",
       "label": "Broadcasting",
+      "restart": false,
       "settings": [
         {
           "name": "users",
@@ -1364,6 +1365,46 @@
           "advanced": true,
           "can_add_new_rows": true,
           "help": "Servers that receive data for broadcasted users",
+          "numbered": false,
+          "columns": [
+            {
+              "name": "address",
+              "label": "Address",
+              "can_set": true
+            },
+            {
+              "name": "port",
+              "label": "Port",
+              "can_set": true
+            },
+            {
+              "name": "server_type",
+              "label": "Server Type",
+              "type": "select",
+              "placeholder": "Audio Mixer",
+              "default": "Audio Mixer",
+              "can_set": true,
+              "options": [
+                {
+                  "value": "Audio Mixer",
+                  "label": "Audio Mixer"
+                },
+                {
+                  "value": "Avatar Mixer",
+                  "label": "Avatar Mixer"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "upstream_servers",
+          "label": "Broadcasting Servers",
+          "assignment-types": [0,1],
+          "type": "table",
+          "advanced": true,
+          "can_add_new_rows": true,
+          "help": "Servers that broadcast data to this domain",
           "numbered": false,
           "columns": [
             {

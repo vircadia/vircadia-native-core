@@ -28,7 +28,6 @@ class AvatarMixer : public ThreadedAssignment {
     Q_OBJECT
 public:
     AvatarMixer(ReceivedMessage& message);
-    ~AvatarMixer();
 public slots:
     /// runs the avatar mixer
     void run() override;

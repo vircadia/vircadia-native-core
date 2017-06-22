@@ -257,8 +257,40 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
     PacketType headerType = NLPacket::typeInHeader(packet);
 
     if (NON_SOURCED_PACKETS.contains(headerType)) {
-        emit dataReceived(NodeType::Unassigned, packet.getPayloadSize());
-        return true;
+        if (REPLICATED_PACKET_MAPPING.key(headerType) != PacketType::Unknown) {
+            // this is a replicated packet type - make sure the socket that sent it to us matches
+            // one from one of our current upstream nodes
+
+            NodeType_t sendingNodeType { NodeType::Unassigned };
+
+            eachNodeBreakable([&packet, &sendingNodeType](const SharedNodePointer& node){
+                if (NodeType::isUpstream(node->getType()) && node->getPublicSocket() == packet.getSenderSockAddr()) {
+                    sendingNodeType = node->getType();
+                    return false;
+                } else {
+                    return true;
+                }
+            });
+
+            if (sendingNodeType != NodeType::Unassigned) {
+                emit dataReceived(sendingNodeType, packet.getPayloadSize());
+                return true;
+            } else {
+                static const QString UNSOLICITED_REPLICATED_REGEX =
+                    "Replicated packet of type \\d+ \\([\\sa-zA-Z:]+\\) received from unknown upstream";
+                static QString repeatedMessage
+                    = LogHandler::getInstance().addRepeatedMessageRegex(UNSOLICITED_REPLICATED_REGEX);
+
+                qCDebug(networking) << "Replicated packet of type" << headerType
+                    << "received from unknown upstream" << packet.getSenderSockAddr();
+                
+                return false;
+            }
+            
+        } else {
+            emit dataReceived(NodeType::Unassigned, packet.getPayloadSize());
+            return true;
+        }
     } else {
         QUuid sourceID = NLPacket::sourceIDInHeader(packet);
 
@@ -583,14 +615,14 @@ SharedNodePointer LimitedNodeList::addOrUpdateNode(const QUuid& uuid, NodeType_t
         matchingNode->setPermissions(permissions);
         matchingNode->setConnectionSecret(connectionSecret);
         matchingNode->setIsReplicated(isReplicated);
-        matchingNode->setIsUpstream(isUpstream);
+        matchingNode->setIsUpstream(isUpstream || NodeType::isUpstream(nodeType));
 
         return matchingNode;
     } else {
         // we didn't have this node, so add them
         Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
         newNode->setIsReplicated(isReplicated);
-        newNode->setIsUpstream(isUpstream);
+        newNode->setIsUpstream(isUpstream || NodeType::isUpstream(nodeType));
         newNode->setConnectionSecret(connectionSecret);
         newNode->setPermissions(permissions);
 
