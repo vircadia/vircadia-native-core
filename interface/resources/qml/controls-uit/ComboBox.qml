@@ -20,6 +20,7 @@ FocusScope {
     HifiConstants { id: hifi }
 
     property alias model: comboBox.model;
+    property alias editable: comboBox.editable
     property alias comboBox: comboBox
     readonly property alias currentText: comboBox.currentText;
     property alias currentIndex: comboBox.currentIndex;

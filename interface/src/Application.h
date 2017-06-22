@@ -181,7 +181,6 @@ public:
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() const { return _window; }
     EntityTreePointer getEntityClipboard() const { return _entityClipboard; }
-    EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
 
     ivec2 getMouse() const;
@@ -318,11 +317,10 @@ public slots:
     Q_INVOKABLE void loadScriptURLDialog() const;
     void toggleLogDialog();
     void toggleEntityScriptServerLogDialog();
-    void toggleRunningScriptsWidget() const;
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
     Q_INVOKABLE void loadAddAvatarBookmarkDialog() const;
 
-    void showDialog(const QString& desktopURL, const QString& tabletURL, const QString& name) const;
+    void showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const;
 
     // FIXME: Move addAssetToWorld* methods to own class?
     void addAssetToWorldFromURL(QString url);
@@ -391,7 +389,6 @@ public slots:
 
     void addAssetToWorldMessageClose();
 
-    Q_INVOKABLE void toggleMuteAudio();
     void loadLODToolsDialog();
     void loadEntityStatisticsDialog();
     void loadDomainConnectionDialog();
@@ -401,11 +398,10 @@ private slots:
     void showDesktop();
     void clearDomainOctreeDetails();
     void clearDomainAvatars();
-    void aboutToQuit();
+    void onAboutToQuit();
 
     void resettingDomain();
 
-    void audioMuteToggled() const;
     void faceTrackerMuteToggled();
 
     void activeChanged(Qt::ApplicationState state);
@@ -503,7 +499,7 @@ private:
     static void dragEnterEvent(QDragEnterEvent* event);
 
     void maybeToggleMenuVisible(QMouseEvent* event) const;
-    void toggleTabletUI() const;
+    void toggleTabletUI(bool shouldOpen = false) const;
 
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
@@ -535,7 +531,6 @@ private:
     PhysicalEntitySimulationPointer _entitySimulation;
     PhysicsEnginePointer _physicsEngine;
 
-    EntityTreeRenderer _entityClipboardRenderer;
     EntityTreePointer _entityClipboard;
 
     mutable QMutex _viewMutex { QMutex::Recursive };

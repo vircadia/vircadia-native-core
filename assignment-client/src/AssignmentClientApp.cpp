@@ -186,6 +186,10 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         listenPort = argumentVariantMap.value(ASSIGNMENT_CLIENT_LISTEN_PORT_OPTION).toUInt();
     }
 
+    if (parser.isSet(portOption)) {
+        listenPort = parser.value(portOption).toUInt();
+    }
+
     if (parser.isSet(numChildsOption)) {
         if (minForks && minForks > numForks) {
             qCritical() << "--min can't be more than -n";

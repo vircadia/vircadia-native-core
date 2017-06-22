@@ -118,7 +118,7 @@ public:
 
 protected:
     virtual bool isStereo() {
-        return _stereo._enable;
+        return _stereo.isStereo();
     }
 
     void getStereoProjections(mat4* eyeProjections) const {

@@ -257,7 +257,7 @@ bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
     return false;
 }
 
-bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, const render::ScenePointer& scene,
+bool RenderableZoneEntityItem::addToScene(const EntityItemPointer& self, const render::ScenePointer& scene,
     render::Transaction& transaction) {
     _myMetaItem = scene->allocateID();
 
@@ -277,7 +277,7 @@ bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, const render::
     return true;
 }
 
-void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, const render::ScenePointer& scene,
+void RenderableZoneEntityItem::removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene,
     render::Transaction& transaction) {
     transaction.removeItem(_myMetaItem);
     render::Item::clearID(_myMetaItem);

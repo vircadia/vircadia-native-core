@@ -88,6 +88,7 @@
 #include <UserActivityLoggerScriptingInterface.h>
 #include <LogHandler.h>
 #include "LocationBookmarks.h"
+#include <LocationScriptingInterface.h>
 #include <MainWindow.h>
 #include <MappingRequest.h>
 #include <MessagesClient.h>
@@ -108,6 +109,7 @@
 #include <plugins/PluginManager.h>
 #include <plugins/PluginUtils.h>
 #include <plugins/SteamClientPlugin.h>
+#include <plugins/InputConfiguration.h>
 #include <RecordingScriptingInterface.h>
 #include <RenderableWebEntityItem.h>
 #include <RenderShadowTask.h>
@@ -115,6 +117,7 @@
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
 #include <RenderViewTask.h>
+#include <SecondaryCamera.h>
 #include <ResourceCache.h>
 #include <ResourceRequest.h>
 #include <SandboxUtils.h>
@@ -149,16 +152,15 @@
 #include "InterfaceLogging.h"
 #include "LODManager.h"
 #include "ModelPackager.h"
+#include "scripting/Audio.h"
 #include "networking/CloseEventSender.h"
 #include "scripting/TestScriptingInterface.h"
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
-#include "scripting/AudioDeviceScriptingInterface.h"
 #include "scripting/ClipboardScriptingInterface.h"
 #include "scripting/DesktopScriptingInterface.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
-#include "scripting/LocationScriptingInterface.h"
 #include "scripting/MenuScriptingInterface.h"
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
@@ -249,6 +251,8 @@ Setting::Handle<int> maxOctreePacketsPerSecond("maxOctreePPS", DEFAULT_MAX_OCTRE
 static const QString MARKETPLACE_CDN_HOSTNAME = "mpassets.highfidelity.com";
 static const int INTERVAL_TO_CHECK_HMD_WORN_STATUS = 500; // milliseconds
 static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
+
+static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 
 const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
@@ -438,6 +442,34 @@ static const QString STATE_NAV_FOCUSED = "NavigationFocused";
 
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
+
+    // HRS: I could not figure out how to move these any earlier in startup, so when using this option, be sure to also supply
+    // --allowMultipleInstances
+    auto reportAndQuit = [&](const char* commandSwitch, std::function<void(FILE* fp)> report) {
+        const char* reportfile = getCmdOption(argc, constArgv, commandSwitch);
+        // Reports to the specified file, because stdout is set up to be captured for logging.
+        if (reportfile) {
+            FILE* fp = fopen(reportfile, "w");
+            if (fp) {
+                report(fp);
+                fclose(fp);
+                if (!runningMarkerExisted) { // don't leave ours around
+                    RunningMarker runingMarker(RUNNING_MARKER_FILENAME);
+                    runingMarker.deleteRunningMarkerFile(); // happens in deleter, but making the side-effect explicit.
+                }
+                _exit(0);
+            }
+        }
+    };
+    reportAndQuit("--protocolVersion", [&](FILE* fp) {
+        DependencyManager::set<AddressManager>();
+        auto version = DependencyManager::get<AddressManager>()->protocolVersion();
+        fputs(version.toLatin1().data(), fp);
+    });
+    reportAndQuit("--version", [&](FILE* fp) {
+        fputs(BuildInfo::VERSION.toLatin1().data(), fp);
+    });
+
     const char* portStr = getCmdOption(argc, constArgv, "--listenPort");
     const int listenPort = portStr ? atoi(portStr) : INVALID_PORT;
 
@@ -507,6 +539,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<HMDScriptingInterface>();
     DependencyManager::set<ResourceScriptingInterface>();
     DependencyManager::set<TabletScriptingInterface>();
+    DependencyManager::set<InputConfiguration>();
     DependencyManager::set<ToolbarScriptingInterface>();
     DependencyManager::set<UserActivityLoggerScriptingInterface>();
     DependencyManager::set<AssetMappingsScriptingInterface>();
@@ -577,7 +610,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _undoStackScriptingInterface(&_undoStack),
     _entitySimulation(new PhysicalEntitySimulation()),
     _physicsEngine(new PhysicsEngine(Vectors::ZERO)),
-    _entityClipboardRenderer(false, this, this),
     _entityClipboard(new EntityTree()),
     _lastQueriedTime(usecTimestampNow()),
     _previousScriptLocation("LastScriptLocation", DESKTOP_LOCATION),
@@ -710,9 +742,9 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             recorder->recordFrame(AUDIO_FRAME_TYPE, audio);
         }
     });
+    audioIO->startThread();
 
-    auto audioScriptingInterface = DependencyManager::set<AudioScriptingInterface>();
-    connect(audioIO.data(), &AudioClient::muteToggled, this, &Application::audioMuteToggled);
+    auto audioScriptingInterface = DependencyManager::set<AudioScriptingInterface, scripting::Audio>();
     connect(audioIO.data(), &AudioClient::mutedByMixer, audioScriptingInterface.data(), &AudioScriptingInterface::mutedByMixer);
     connect(audioIO.data(), &AudioClient::receivedFirstPacket, audioScriptingInterface.data(), &AudioScriptingInterface::receivedFirstPacket);
     connect(audioIO.data(), &AudioClient::disconnected, audioScriptingInterface.data(), &AudioScriptingInterface::disconnected);
@@ -728,8 +760,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             audioScriptingInterface->environmentMuted();
         }
     });
-
-    audioIO->startThread();
+    connect(this, &Application::activeDisplayPluginChanged,
+        reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
 
     ResourceManager::init();
     // Make sure we don't time out during slow operations at startup
@@ -952,7 +984,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
-    connect(this, SIGNAL(aboutToQuit()), this, SLOT(aboutToQuit()));
+    connect(this, SIGNAL(aboutToQuit()), this, SLOT(onAboutToQuit()));
 
     // hook up bandwidth estimator
     QSharedPointer<BandwidthRecorder> bandwidthRecorder = DependencyManager::get<BandwidthRecorder>();
@@ -1446,7 +1478,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
     sendStatsTimer->start();
 
-
     // Periodically check for count of nearby avatars
     static int lastCountOfNearbyAvatars = -1;
     QTimer* checkNearbyAvatarsTimer = new QTimer(this);
@@ -1604,12 +1635,12 @@ QString Application::getUserAgent() {
     return userAgent;
 }
 
-void Application::toggleTabletUI() const {
+void Application::toggleTabletUI(bool shouldOpen) const {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
-    TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
     bool messageOpen = tablet->isMessageDialogOpen();
-    if (!messageOpen || (messageOpen && !hmd->getShouldShowTablet())) {
+    if ((!messageOpen || (messageOpen && !hmd->getShouldShowTablet())) && !(shouldOpen && hmd->getShouldShowTablet())) {
         auto HMD = DependencyManager::get<HMDScriptingInterface>();
         HMD->toggleShouldShowTablet();
     }
@@ -1641,7 +1672,7 @@ void Application::updateHeartbeat() const {
     static_cast<DeadlockWatchdogThread*>(_deadlockWatchdogThread)->updateHeartbeat();
 }
 
-void Application::aboutToQuit() {
+void Application::onAboutToQuit() {
     emit beforeAboutToQuit();
 
     foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
@@ -1720,6 +1751,10 @@ void Application::cleanupBeforeQuit() {
 
     // Cleanup all overlays after the scripts, as scripts might add more
     _overlays.cleanupAllOverlays();
+    // The cleanup process enqueues the transactions but does not process them.  Calling this here will force the actual 
+    // removal of the items.  
+    // See https://highfidelity.fogbugz.com/f/cases/5328
+    _main3DScene->processTransactionQueue();
 
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
@@ -1866,6 +1901,7 @@ void Application::initializeGL() {
     render::CullFunctor cullFunctor = LODManager::shouldRender;
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
     bool isDeferred = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
+    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraFrame", cullFunctor);
     _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, isDeferred);
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
@@ -1980,7 +2016,6 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("Stats", Stats::getInstance());
     surfaceContext->setContextProperty("Settings", SettingsScriptingInterface::getInstance());
     surfaceContext->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
-    surfaceContext->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     surfaceContext->setContextProperty("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
     surfaceContext->setContextProperty("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
 
@@ -1989,6 +2024,7 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("TextureCache", DependencyManager::get<TextureCache>().data());
     surfaceContext->setContextProperty("ModelCache", DependencyManager::get<ModelCache>().data());
     surfaceContext->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
+    surfaceContext->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
 
     surfaceContext->setContextProperty("Account", AccountScriptingInterface::getInstance());
     surfaceContext->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
@@ -2309,12 +2345,6 @@ void Application::runTests() {
     runUnitTests();
 }
 
-void Application::audioMuteToggled() const {
-    QAction* muteAction = Menu::getInstance()->getActionForOption(MenuOption::MuteAudio);
-    Q_CHECK_PTR(muteAction);
-    muteAction->setChecked(DependencyManager::get<AudioClient>()->isMuted());
-}
-
 void Application::faceTrackerMuteToggled() {
 
     QAction* muteAction = Menu::getInstance()->getActionForOption(MenuOption::MuteFaceTracking);
@@ -2384,7 +2414,7 @@ void Application::showHelp() {
     queryString.addQueryItem("handControllerName", handControllerName);
     queryString.addQueryItem("defaultTab", defaultTab);
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
     tablet->gotoWebScreen(INFO_HELP_PATH + "?" + queryString.toString());
     //InfoView::show(INFO_HELP_PATH, false, queryString.toString());
 }
@@ -2477,8 +2507,11 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     Setting::Handle<bool> tutorialComplete{ "tutorialComplete", false };
     Setting::Handle<bool> firstRun{ Settings::firstRun, true };
 
+    const QString HIFI_SKIP_TUTORIAL_COMMAND_LINE_KEY = "--skipTutorial";
+    // Skips tutorial/help behavior, and does NOT clear firstRun setting.
+    bool skipTutorial = arguments().contains(HIFI_SKIP_TUTORIAL_COMMAND_LINE_KEY);
     bool isTutorialComplete = tutorialComplete.get();
-    bool shouldGoToTutorial = isUsingHMDAndHandControllers && hasTutorialContent && !isTutorialComplete;
+    bool shouldGoToTutorial = isUsingHMDAndHandControllers && hasTutorialContent && !isTutorialComplete && !skipTutorial;
 
     qCDebug(interfaceapp) << "HMD:" << hasHMD << ", Hand Controllers: " << hasHandControllers << ", Using HMD: " << isUsingHMDAndHandControllers;
     qCDebug(interfaceapp) << "Tutorial version:" << contentVersion << ", sufficient:" << hasTutorialContent <<
@@ -2521,14 +2554,9 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
         }
     } else {
 
-        bool isFirstRun = firstRun.get();
-
-        if (isFirstRun) {
-            showHelp();
-        }
-
         // If this is a first run we short-circuit the address passed in
-        if (isFirstRun) {
+        if (firstRun.get() && !skipTutorial) {
+            showHelp();
             if (isUsingHMDAndHandControllers) {
                 if (sandboxIsRunning) {
                     qCDebug(interfaceapp) << "Home sandbox appears to be running, going to Home.";
@@ -2566,7 +2594,9 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
     _connectionMonitor.init();
 
     // After all of the constructor is completed, then set firstRun to false.
-    firstRun.set(false);
+    if (!skipTutorial) {
+        firstRun.set(false);
+    }
 }
 
 bool Application::importJSONFromURL(const QString& urlString) {
@@ -2840,7 +2870,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isShifted && isMeta) {
                     auto offscreenUi = DependencyManager::get<OffscreenUi>();
                     offscreenUi->togglePinned();
-                    //offscreenUi->getRootContext()->engine()->clearComponentCache();
+                    //offscreenUi->getSurfaceContext()->engine()->clearComponentCache();
                     //OffscreenUi::information("Debugging", "Component cache cleared");
                     // placeholder for dialogs being converted to QML.
                 }
@@ -2879,6 +2909,12 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
             case Qt::Key_Asterisk:
                 Menu::getInstance()->triggerOption(MenuOption::DefaultSkybox);
+                break;
+
+            case Qt::Key_M:
+                if (isMeta) {
+                    DependencyManager::get<AudioClient>()->toggleMute();
+                }
                 break;
 
             case Qt::Key_N:
@@ -3978,11 +4014,6 @@ void Application::init() {
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 
     getEntities()->init();
-    {
-        QMutexLocker viewLocker(&_viewMutex);
-        getEntities()->setViewFrustum(_viewFrustum);
-    }
-
     getEntities()->setEntityLoadingPriorityFunction([this](const EntityItem& item) {
         auto dims = item.getDimensions();
         auto maxSize = glm::compMax(dims);
@@ -4011,13 +4042,6 @@ void Application::init() {
     // connect the _entities (EntityTreeRenderer) to our script engine's EntityScriptingInterface for firing
     // of events related clicking, hovering over, and entering entities
     getEntities()->connectSignalsToSlots(entityScriptingInterface.data());
-
-    _entityClipboardRenderer.init();
-    {
-        QMutexLocker viewLocker(&_viewMutex);
-        _entityClipboardRenderer.setViewFrustum(_viewFrustum);
-    }
-    _entityClipboardRenderer.setTree(_entityClipboard);
 
     // Make sure any new sounds are loaded as soon as know about them.
     connect(tree.get(), &EntityTree::newCollisionSoundURL, this, [this](QUrl newURL, EntityItemID id) {
@@ -4122,7 +4146,7 @@ void Application::updateMyAvatarLookAtPosition() {
                 lookAtSpot = transformPoint(worldHeadMat, glm::vec3(0.0f, 0.0f, TREE_SCALE));
             } else {
                 lookAtSpot = myAvatar->getHead()->getEyePosition() +
-                    (myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
+                    (myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, TREE_SCALE));
             }
         }
 
@@ -4462,10 +4486,11 @@ void Application::update(float deltaTime) {
             } else {
                 const quint64 MUTE_MICROPHONE_AFTER_USECS = 5000000;  //5 secs
                 Menu* menu = Menu::getInstance();
-                if (menu->isOptionChecked(MenuOption::AutoMuteAudio) && !menu->isOptionChecked(MenuOption::MuteAudio)) {
+                auto audioClient = DependencyManager::get<AudioClient>();
+                if (menu->isOptionChecked(MenuOption::AutoMuteAudio) && !audioClient->isMuted()) {
                     if (_lastFaceTrackerUpdate > 0
                         && ((usecTimestampNow() - _lastFaceTrackerUpdate) > MUTE_MICROPHONE_AFTER_USECS)) {
-                        menu->triggerOption(MenuOption::MuteAudio);
+                        audioClient->toggleMute();
                         _lastFaceTrackerUpdate = 0;
                     }
                 } else {
@@ -5017,9 +5042,6 @@ QRect Application::getDesirableApplicationGeometry() const {
     return applicationGeometry;
 }
 
-// FIXME, preprocessor guard this check to occur only in DEBUG builds
-static QThread * activeRenderingThread = nullptr;
-
 PickRay Application::computePickRay(float x, float y) const {
     vec2 pickPoint { x, y };
     PickRay result;
@@ -5090,7 +5112,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     auto myAvatar = getMyAvatar();
     myAvatar->preDisplaySide(renderArgs);
 
-    activeRenderingThread = QThread::currentThread();
     PROFILE_RANGE(render, __FUNCTION__);
     PerformanceTimer perfTimer("display");
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
@@ -5163,8 +5184,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
         // Before the deferred pass, let's try to use the render engine
         _renderEngine->run();
     }
-
-    activeRenderingThread = nullptr;
 }
 
 void Application::resetSensors(bool andReload) {
@@ -5294,6 +5313,11 @@ void Application::nodeActivated(SharedNodePointer node) {
 
     if (node->getType() == NodeType::AvatarMixer) {
         // new avatar mixer, send off our identity packet on next update loop
+        // Reset skeletonModelUrl if the last server modified our choice.
+        static const QUrl empty{};
+        if (getMyAvatar()->getFullAvatarURLFromPreferences() != getMyAvatar()->cannonicalSkeletonModelURL(empty)) {
+            getMyAvatar()->resetFullAvatarURL();
+        }
         getMyAvatar()->markIdentityDataChanged();
         getMyAvatar()->resetLastSent();
     }
@@ -5514,7 +5538,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("Stats", Stats::getInstance());
     scriptEngine->registerGlobalObject("Settings", SettingsScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("Snapshot", DependencyManager::get<Snapshot>().data());
-    scriptEngine->registerGlobalObject("AudioDevice", AudioDeviceScriptingInterface::getInstance());
     scriptEngine->registerGlobalObject("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
     scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
     scriptEngine->registerGlobalObject("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
@@ -5579,6 +5602,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     connect(scriptEngine, &ScriptEngine::errorMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onErrorMessage);
     connect(scriptEngine, &ScriptEngine::warningMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onWarningMessage);
     connect(scriptEngine, &ScriptEngine::infoMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onInfoMessage);
+    connect(scriptEngine, &ScriptEngine::clearDebugWindow, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onClearDebugWindow);
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {
@@ -5793,38 +5817,24 @@ bool Application::displayAvatarAttachmentConfirmationDialog(const QString& name)
     }
 }
 
-void Application::toggleRunningScriptsWidget() const {    
-    auto scriptEngines = DependencyManager::get<ScriptEngines>();
-    bool scriptsRunning = !scriptEngines->getRunningScripts().isEmpty();
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+void Application::showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const {
+    auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet(SYSTEM_TABLET);
+    auto hmd = DependencyManager::get<HMDScriptingInterface>();
+    bool onTablet = false;
 
-    if (tablet->getToolbarMode() || false == scriptsRunning) {
-        static const QUrl url("hifi/dialogs/RunningScripts.qml");
-        DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
-    } else {
-        auto hmd = DependencyManager::get<HMDScriptingInterface>();
-        if (!hmd->getShouldShowTablet() && !isHMDMode()) {
-            static const QUrl url("hifi/dialogs/RunningScripts.qml");
-            DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
-        } else {
-            static const QUrl url("../../hifi/dialogs/TabletRunningScripts.qml");
-            tablet->pushOntoStack(url);
+    if (!tablet->getToolbarMode()) {
+        onTablet = tablet->pushOntoStack(tabletUrl);
+        if (onTablet) {
+            toggleTabletUI(true);
         }
     }
-    //DependencyManager::get<OffscreenUi>()->show(url, "RunningScripts");
-    //if (_runningScriptsWidget->isVisible()) {
-    //    if (_runningScriptsWidget->hasFocus()) {
-    //        _runningScriptsWidget->hide();
-    //    } else {
-    //        _runningScriptsWidget->raise();
-    //        setActiveWindow(_runningScriptsWidget);
-    //        _runningScriptsWidget->setFocus();
-    //    }
-    //} else {
-    //    _runningScriptsWidget->show();
-    //    _runningScriptsWidget->setFocus();
-    //}
+
+    if (!onTablet) {
+        DependencyManager::get<OffscreenUi>()->show(widgetUrl, name);
+    }
+    if (tablet->getToolbarMode()) {
+        DependencyManager::get<OffscreenUi>()->show(widgetUrl, name);
+    }
 }
 
 void Application::showScriptLogs() {
@@ -5846,7 +5856,7 @@ void Application::showAssetServerWidget(QString filePath) {
         }
     };
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
     if (tablet->getToolbarMode()) {
         DependencyManager::get<OffscreenUi>()->show(url, "AssetServer", startUpload);
@@ -5879,21 +5889,6 @@ void Application::addAssetToWorldFromURL(QString url) {
     auto request = ResourceManager::createResourceRequest(nullptr, QUrl(url));
     connect(request, &ResourceRequest::finished, this, &Application::addAssetToWorldFromURLRequestFinished);
     request->send();
-}
-
-void Application::showDialog(const QString& desktopURL, const QString& tabletURL, const QString& name) const {
-    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
-    auto hmd = DependencyManager::get<HMDScriptingInterface>();
-    if (tablet->getToolbarMode()) {
-        DependencyManager::get<OffscreenUi>()->show(desktopURL, name);
-    } else {
-        tablet->pushOntoStack(tabletURL);
-        if (!hmd->getShouldShowTablet() && !isHMDMode()) {
-            hmd->openTablet();
-        }
-        
-    }
 }
 
 void Application::addAssetToWorldFromURLRequestFinished() {
@@ -6379,7 +6374,7 @@ void Application::loadScriptURLDialog() const {
 
 void Application::loadLODToolsDialog() {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
     if (tablet->getToolbarMode() || (!tablet->getTabletRoot() && !isHMDMode())) {
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         dialogsManager->lodTools();
@@ -6391,7 +6386,7 @@ void Application::loadLODToolsDialog() {
 
 void Application::loadEntityStatisticsDialog() {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
     if (tablet->getToolbarMode() || (!tablet->getTabletRoot() && !isHMDMode())) {
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         dialogsManager->octreeStatsDetails();
@@ -6402,7 +6397,7 @@ void Application::loadEntityStatisticsDialog() {
 
 void Application::loadDomainConnectionDialog() {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
     if (tablet->getToolbarMode() || (!tablet->getTabletRoot() && !isHMDMode())) {
         auto dialogsManager = DependencyManager::get<DialogsManager>();
         dialogsManager->showDomainConnectionDialog();
@@ -7057,11 +7052,6 @@ void Application::updateSystemTabletMode() {
     } else {
         DependencyManager::get<TabletScriptingInterface>()->setToolbarMode(getDesktopTabletBecomesToolbarSetting());
     }
-}
-
-void Application::toggleMuteAudio() {
-    auto menu = Menu::getInstance();
-    menu->setIsOptionChecked(MenuOption::MuteAudio, !menu->isOptionChecked(MenuOption::MuteAudio));
 }
 
 OverlayID Application::getTabletScreenID() const {

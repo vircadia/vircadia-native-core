@@ -183,14 +183,6 @@
             return;
         }
 
-        //TODO: move to tablet qml?
-        if (tabletShown) {
-            var currentMicEnabled = !Menu.isOptionChecked(MUTE_MICROPHONE_MENU_ITEM);
-            var currentMicLevel = getMicLevel();
-            gTablet.updateMicEnabled(currentMicEnabled);
-            gTablet.updateAudioBar(currentMicLevel);
-        }
-
         if (now - validCheckTime > MSECS_PER_SEC) {
             validCheckTime = now;
             updateTabletWidthFromSettings();
@@ -270,12 +262,6 @@
     Messages.messageReceived.connect(handleMessage);
 
     Script.setInterval(updateShowTablet, 100);
-
-    // Calculate microphone level with the same scaling equation (log scale, exponentially averaged) in AvatarInputs and pal.js
-    function getMicLevel() {
-        //reuse already existing C++ code
-        return AvatarInputs.loudnessToAudioLevel(MyAvatar.audioLoudness)
-    }
 
     Script.scriptEnding.connect(function () {
 
