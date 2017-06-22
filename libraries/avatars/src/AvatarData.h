@@ -625,7 +625,7 @@ public:
     bool getIdentityDataChanged() const { return _identityDataChanged; } // has the identity data changed since the last time sendIdentityPacket() was called
     void markIdentityDataChanged() { _identityDataChanged = true; }
 
-    void pushIdentitySequenceNumber() { ++_sequenceNumber; };
+    void pushIdentitySequenceNumber() { ++_identitySequenceNumber; };
 
     float getDensity() const { return _density; }
 
@@ -783,7 +783,7 @@ protected:
     float _audioAverageLoudness { 0.0f };
 
     bool _identityDataChanged { false };
-    udt::SequenceNumber _sequenceNumber { 0 };
+    udt::SequenceNumber _identitySequenceNumber { 0 };
     bool _hasProcessedFirstIdentity { false };
     float _density;
 
