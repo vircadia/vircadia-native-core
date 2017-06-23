@@ -5110,7 +5110,7 @@ namespace render {
 
             auto& batch = *args->_batch;
             DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
-            renderWorldBox(batch);
+            renderWorldBox(args, batch);
         }
     }
 }

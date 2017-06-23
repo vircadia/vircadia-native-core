@@ -891,7 +891,7 @@ private:
         // Setup the current Zone Entity lighting
         {
             auto stage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-            DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(stage->getSunLight());
+           // DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(stage->getSunLight());
         }
 
         {
@@ -914,7 +914,7 @@ private:
         // The pending changes collecting the changes here
         render::Transaction transaction;
         // Setup the current Zone Entity lighting
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(_sunSkyStage.getSunLight());
+      //  DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(_sunSkyStage.getSunLight());
         {
             PerformanceTimer perfTimer("SceneProcessTransaction");
             _main3DScene->enqueueTransaction(transaction);

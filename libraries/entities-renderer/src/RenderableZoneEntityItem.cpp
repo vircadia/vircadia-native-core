@@ -221,10 +221,10 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                 if (getShapeType() == SHAPE_TYPE_SPHERE) {
                     shapeTransform.postScale(SPHERE_ENTITY_SCALE);
                     batch.setModelTransform(shapeTransform);
-                    geometryCache->renderWireSphereInstance(batch, DEFAULT_COLOR);
+                    geometryCache->renderWireSphereInstance(args, batch, DEFAULT_COLOR);
                 } else {
                     batch.setModelTransform(shapeTransform);
-                    geometryCache->renderWireCubeInstance(batch, DEFAULT_COLOR);
+                    geometryCache->renderWireCubeInstance(args, batch, DEFAULT_COLOR);
                 }
                 break;
             }

@@ -60,7 +60,6 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
 
 
     // Background rendering decision
- //   auto backgroundStage = DependencyManager::get<DeferredLightingEffect>()->getBackgroundStage();
     auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>("BACKGROUND_STAGE");
     model::SunSkyStagePointer background;
     model::SkyboxPointer skybox;
@@ -69,9 +68,9 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
         auto background = backgroundStage->getBackground(backgroundId);
         if (background) {
             skybox = background->getSkybox();
-        }
+        }   
     } else {
-    //    skybox = DependencyManager::get<DeferredLightingEffect>()->getDefaultSkybox();
+        skybox = backgroundStage->getBackground(0)->getSkybox();
     }
 
   /*  auto backgroundMode = skyStage->getBackgroundMode();
