@@ -20,8 +20,6 @@
 #include <QtCore/QStandardPaths>
 #include <mutex> // std::once
 
-//QUrl PathUtils::_overriddenDefaultScriptsLocation = QUrl();
-
 const QString& PathUtils::resourcesPath() {
 #ifdef Q_OS_MAC
     static QString staticResourcePath = QCoreApplication::applicationDirPath() + "/../Resources/";
