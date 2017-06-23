@@ -365,20 +365,14 @@ void LeapMotionPlugin::init() {
 bool LeapMotionPlugin::activate() {
     InputPlugin::activate();
 
-    if (_enabled) {
-        // Nothing required to be done to start up Leap Motion.
+    // Nothing required to be done to start up Leap Motion library.
 
-        auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
-        userInputMapper->registerDevice(_inputDevice);
+    _joints.resize(LeapMotionJointIndex::Size, { glm::vec3(), glm::quat() });
 
-        if (_joints.size() != LeapMotionJointIndex::Size) {
-            _joints.resize(LeapMotionJointIndex::Size, { glm::vec3(), glm::quat() });
-        }
+    auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
+    userInputMapper->registerDevice(_inputDevice);
 
-        return true;
-    }
-
-    return false;
+    return true;
 }
 
 void LeapMotionPlugin::deactivate() {
