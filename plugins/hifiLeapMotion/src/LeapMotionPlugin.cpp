@@ -349,7 +349,7 @@ void LeapMotionPlugin::init() {
             saveSettings();
             applyDesktopHeightOffset();
         };
-        auto preference = new SpinnerPreference(LEAPMOTION_PLUGIN, "Desktop height offset", getter, setter);
+        auto preference = new SpinnerPreference(LEAPMOTION_PLUGIN, "Desktop height for horizontal forearms", getter, setter);
         float MIN_VALUE = 0.0f;
         float MAX_VALUE = 1.0f;
         float DECIMALS = 2.0f;
