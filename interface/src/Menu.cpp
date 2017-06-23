@@ -303,7 +303,7 @@ Menu::Menu() {
     // Settings > Avatar...
     action = addActionToQMenuAndActionHash(settingsMenu, "Avatar...");
     connect(action, &QAction::triggered, [] {
-        qApp->showDialog(QString("hifi/dialogs/AvatarPreferencesDialog.qml"), 
+        qApp->showDialog(QString("hifi/dialogs/AvatarPreferencesDialog.qml"),
             QString("../../hifi/tablet/TabletAvatarPreferences.qml"), "AvatarPreferencesDialog");
     });
 
@@ -629,7 +629,7 @@ Menu::Menu() {
     action = addActionToQMenuAndActionHash(audioDebugMenu, "Stats...");
     connect(action, &QAction::triggered, [] {
         auto scriptEngines = DependencyManager::get<ScriptEngines>();
-        QUrl defaultScriptsLoc = defaultScriptsLocation();
+        QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
         defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/utilities/audio/stats.js");
         scriptEngines->loadScript(defaultScriptsLoc.toString());
     });

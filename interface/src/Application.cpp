@@ -903,6 +903,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         _saveAvatarOverrideUrl = true;
     }
 
+    QString defaultScriptsLocation = getCmdOption(argc, constArgv, "--scripts");
+    if (!defaultScriptsLocation.isEmpty()) {
+        PathUtils::defaultScriptsLocation(defaultScriptsLocation);
+    }
+
     _glWidget = new GLCanvas();
     getApplicationCompositor().setRenderingWidget(_glWidget);
     _window->setCentralWidget(_glWidget);
@@ -1167,7 +1172,15 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // force the model the look at the correct directory (weird order of operations issue)
     scriptEngines->setScriptsLocation(scriptEngines->getScriptsLocation());
     // do this as late as possible so that all required subsystems are initialized
-    scriptEngines->loadScripts();
+    // If we've overridden the default scripts location, just load default scripts
+    // otherwise, load 'em all
+    if (!defaultScriptsLocation.isEmpty()) {
+        scriptEngines->loadDefaultScripts();
+        scriptEngines->defaultScriptsLocationOverridden(true);
+    } else {
+        scriptEngines->loadScripts();
+    }
+
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
@@ -5855,7 +5868,7 @@ void Application::showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const
 
 void Application::showScriptLogs() {
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
-    QUrl defaultScriptsLoc = defaultScriptsLocation();
+    QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
     defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/debugging/debugWindow.js");
     scriptEngines->loadScript(defaultScriptsLoc.toString());
 }

@@ -13,7 +13,6 @@
 #define hifi_PathUtils_h
 
 #include <QtCore/QObject>
-
 #include "DependencyManager.h"
 
 /**jsdoc
@@ -38,11 +37,11 @@ public:
     static QString stripFilename(const QUrl& url);
     // note: this is FS-case-sensitive version of parentURL.isParentOf(childURL)
     static bool isDescendantOf(const QUrl& childURL, const QUrl& parentURL);
+    static QUrl defaultScriptsLocation(const QString& newDefault = "");
+
 };
 
 QString fileNameWithoutExtension(const QString& fileName, const QVector<QString> possibleExtensions);
 QString findMostRecentFileExtension(const QString& originalFileName, QVector<QString> possibleExtensions);
-
-QUrl defaultScriptsLocation();
 
 #endif // hifi_PathUtils_h

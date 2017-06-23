@@ -74,7 +74,7 @@ ScriptEngines::ScriptEngines(ScriptEngine::Context context)
 QUrl normalizeScriptURL(const QUrl& rawScriptURL) {
     if (rawScriptURL.scheme() == "file") {
         QUrl fullNormal = rawScriptURL;
-        QUrl defaultScriptLoc = defaultScriptsLocation();
+        QUrl defaultScriptLoc = PathUtils::defaultScriptsLocation();
 
         // if this url is something "beneath" the default script url, replace the local path with ~
         if (fullNormal.scheme() == defaultScriptLoc.scheme() &&
@@ -93,7 +93,7 @@ QUrl normalizeScriptURL(const QUrl& rawScriptURL) {
 
 QString expandScriptPath(const QString& rawPath) {
     QStringList splitPath = rawPath.split("/");
-    QUrl defaultScriptsLoc = defaultScriptsLocation();
+    QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
     return defaultScriptsLoc.path() + "/" + splitPath.mid(2).join("/"); // 2 to skip the slashes in /~/
 }
 
@@ -112,7 +112,7 @@ QUrl expandScriptUrl(const QUrl& rawScriptURL) {
             QFileInfo fileInfo(url.toLocalFile());
             url = QUrl::fromLocalFile(fileInfo.canonicalFilePath());
 
-            QUrl defaultScriptsLoc = defaultScriptsLocation();
+            QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
             if (!defaultScriptsLoc.isParentOf(url)) {
                 qCWarning(scriptengine) << "Script.include() ignoring file path" << rawScriptURL
                                         << "-- outside of standard libraries: "
@@ -324,6 +324,13 @@ void ScriptEngines::saveScripts() {
     // Do not save anything if we are in the process of shutting down
     if (qApp->closingDown()) {
         qWarning() << "Trying to save scripts during shutdown.";
+        return;
+    }
+
+    // don't save scripts if we started with --scripts, as we would overwrite
+    // the scripts that the user expects to be there when launched without the
+    // --scripts override.
+    if (_defaultScriptsLocationOverridden) {
         return;
     }
 
@@ -541,11 +548,11 @@ void ScriptEngines::launchScriptEngine(ScriptEngine* scriptEngine) {
         initializer(scriptEngine);
     }
 
-    // FIXME disabling 'shift key' debugging for now.  If you start up the application with 
-    // the shift key held down, it triggers a deadlock because of script interfaces running 
+    // FIXME disabling 'shift key' debugging for now.  If you start up the application with
+    // the shift key held down, it triggers a deadlock because of script interfaces running
     // on the main thread
     auto const wantDebug = scriptEngine->isDebuggable(); //  || (qApp->queryKeyboardModifiers() & Qt::ShiftModifier);
-    
+
     if (HIFI_SCRIPT_DEBUGGABLES && wantDebug) {
         scriptEngine->runDebuggable();
     } else {
@@ -581,5 +588,5 @@ void ScriptEngines::onScriptEngineError(const QString& scriptFilename) {
 }
 
 QString ScriptEngines::getDefaultScriptsLocation() const {
-    return defaultScriptsLocation().toString();
+    return PathUtils::defaultScriptsLocation().toString();
 }
