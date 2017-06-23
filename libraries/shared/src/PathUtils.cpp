@@ -34,20 +34,7 @@ QString PathUtils::getAppDataPath() {
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/";
 }
 
-QString PathUtils::getAppLocalDataPath(const QString& overridePath) {
-    static QString overriddenPath = "";
-
-    // set the overridden path if one was passed in
-    if (!overridePath.isEmpty()) {
-        overriddenPath = overridePath;
-    }
-
-    // return overridden path if there is one
-    if (!overriddenPath.isEmpty()) {
-        return overriddenPath;
-    }
-
-    // otherwise return the standard path
+QString PathUtils::getAppLocalDataPath() {
     return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/";
 }
 
