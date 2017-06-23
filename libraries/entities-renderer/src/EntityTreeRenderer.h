@@ -20,9 +20,10 @@
 #include <EntityTree.h>
 #include <QMouseEvent>
 #include <PointerEvent.h>
-#include <OctreeRenderer.h>
 #include <ScriptCache.h>
 #include <TextureCache.h>
+#include <OctreeProcessor.h>
+#include <render/Forward.h>
 
 class AbstractScriptingServicesInterface;
 class AbstractViewStateInterface;
@@ -38,7 +39,7 @@ using ModelWeakPointer = std::weak_ptr<Model>;
 using CalculateEntityLoadingPriority = std::function<float(const EntityItem& item)>;
 
 // Generic client side Octree renderer class.
-class EntityTreeRenderer : public OctreeRenderer, public EntityItemFBXService, public Dependency {
+class EntityTreeRenderer : public OctreeProcessor, public EntityItemFBXService, public Dependency {
     Q_OBJECT
 public:
     EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
@@ -144,7 +145,7 @@ protected:
 private:
     void resetEntitiesScriptEngine();
 
-    void addEntityToScene(EntityItemPointer entity);
+    void addEntityToScene(const EntityItemPointer& entity);
     bool findBestZoneAndMaybeContainingEntities(QVector<EntityItemID>* entitiesContainingAvatar = nullptr);
 
     bool applyLayeredZones();

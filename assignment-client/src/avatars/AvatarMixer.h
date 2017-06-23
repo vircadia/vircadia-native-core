@@ -28,7 +28,13 @@ class AvatarMixer : public ThreadedAssignment {
     Q_OBJECT
 public:
     AvatarMixer(ReceivedMessage& message);
-    ~AvatarMixer();
+
+    static bool shouldReplicateTo(const Node& from, const Node& to) {
+        return to.getType() == NodeType::DownstreamAvatarMixer &&
+               to.getPublicSocket() != from.getPublicSocket() &&
+               to.getLocalSocket() != from.getLocalSocket();
+    }
+
 public slots:
     /// runs the avatar mixer
     void run() override;
@@ -46,7 +52,7 @@ private slots:
     void handleNodeIgnoreRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleRadiusIgnoreRequestPacket(QSharedPointer<ReceivedMessage> packet, SharedNodePointer sendingNode);
     void handleRequestsDomainListDataPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
-    void handleReplicatedPackets(QSharedPointer<ReceivedMessage> message);
+    void handleReplicatedPacket(QSharedPointer<ReceivedMessage> message);
     void handleReplicatedBulkAvatarPacket(QSharedPointer<ReceivedMessage> message);
     void domainSettingsRequestComplete();
     void handlePacketVersionMismatch(PacketType type, const HifiSockAddr& senderSockAddr, const QUuid& senderUUID);

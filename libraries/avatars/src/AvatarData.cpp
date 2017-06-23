@@ -1496,13 +1496,13 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
     udt::SequenceNumber incomingSequenceNumber(incomingSequenceNumberType);
 
     if (!_hasProcessedFirstIdentity) {
-        _lastIncomingSequenceNumber = incomingSequenceNumber - 1;
+        _identitySequenceNumber = incomingSequenceNumber - 1;
         _hasProcessedFirstIdentity = true;
         qCDebug(avatars) << "Processing first identity packet for" << avatarSessionID << "-"
             << (udt::SequenceNumber::Type) incomingSequenceNumber;
     }
 
-    if (incomingSequenceNumber > _lastIncomingSequenceNumber) {
+    if (incomingSequenceNumber > _identitySequenceNumber) {
         Identity identity;
 
         packetStream >> identity.skeletonModelURL
@@ -1513,7 +1513,7 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
             >> identity.avatarEntityData;
 
         // set the store identity sequence number to match the incoming identity
-        _lastIncomingSequenceNumber = incomingSequenceNumber;
+        _identitySequenceNumber = incomingSequenceNumber;
 
         if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
             setSkeletonModelURL(identity.skeletonModelURL);
@@ -1558,34 +1558,26 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
             << "identity.skeletonModelURL:" << identity.skeletonModelURL
             << "identity.displayName:" << identity.displayName
             << "identity.sessionDisplayName:" << identity.sessionDisplayName;
-#endif
-
     } else {
-#ifdef WANT_DEBUG
+
         qCDebug(avatars) << "Refusing to process identity for" << uuidStringWithoutCurlyBraces(avatarSessionID) << "since"
-            << (udt::SequenceNumber::Type) _lastIncomingSequenceNumber
+            << (udt::SequenceNumber::Type) _identitySequenceNumber
             << "is >=" << (udt::SequenceNumber::Type) incomingSequenceNumber;
 #endif
     }
 }
 
-QByteArray AvatarData::identityByteArray(bool shouldForwardIncomingSequenceNumber, bool setIsReplicated) const {
+QByteArray AvatarData::identityByteArray(bool setIsReplicated) const {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
     const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL); // depends on _skeletonModelURL
 
-    // we use the boolean flag to determine if this is an identity byte array for a mixer to send to an agent
-    // or an agent to send to a mixer
-
     // when mixers send identity packets to agents, they simply forward along the last incoming sequence number they received
     // whereas agents send a fresh outgoing sequence number when identity data has changed
 
-    udt::SequenceNumber identitySequenceNumber =
-        shouldForwardIncomingSequenceNumber ? _lastIncomingSequenceNumber : _lastOutgoingSequenceNumber;
-
     _avatarEntitiesLock.withReadLock([&] {
         identityStream << getSessionUUID()
-            << (udt::SequenceNumber::Type) identitySequenceNumber
+            << (udt::SequenceNumber::Type) _identitySequenceNumber
             << urlToSend
             << _attachmentData
             << _displayName
@@ -1770,7 +1762,7 @@ void AvatarData::sendIdentityPacket() {
 
     if (_identityDataChanged) {
         // if the identity data has changed, push the sequence number forwards
-        ++_lastOutgoingSequenceNumber;
+        ++_identitySequenceNumber;
     }
 
     QByteArray identityData = identityByteArray();

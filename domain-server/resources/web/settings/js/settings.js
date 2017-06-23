@@ -424,7 +424,11 @@ function postSettings(jsonSettings) {
     type: 'POST'
   }).done(function(data){
     if (data.status == "success") {
-      showRestartModal();
+      if ($(".save-button").html() === SAVE_BUTTON_LABEL_RESTART) {
+        showRestartModal();
+      } else {
+        location.reload(true);
+      }
     } else {
       showErrorMessage("Error", SETTINGS_ERROR_MESSAGE)
       reloadSettings();
@@ -1341,6 +1345,18 @@ function makeTableCategoryInput(setting, numVisibleColumns) {
   return html;
 }
 
+function getDescriptionForKey(key) {
+  for (var i in Settings.data.descriptions) {
+    if (Settings.data.descriptions[i].name === key) {
+      return Settings.data.descriptions[i];
+    }
+  }
+}
+
+var SAVE_BUTTON_LABEL_SAVE = "Save";
+var SAVE_BUTTON_LABEL_RESTART = "Save and restart";
+var reasonsForRestart = [];
+
 function badgeSidebarForDifferences(changedElement) {
   // figure out which group this input is in
   var panelParentID = changedElement.closest('.panel').attr('id');
@@ -1363,13 +1379,24 @@ function badgeSidebarForDifferences(changedElement) {
   }
 
   var badgeValue = 0
+  var description = getDescriptionForKey(panelParentID);
 
   // badge for any settings we have that are not the same or are not present in initialValues
   for (var setting in panelJSON) {
     if ((!_.has(initialPanelJSON, setting) && panelJSON[setting] !== "") ||
       (!_.isEqual(panelJSON[setting], initialPanelJSON[setting])
       && (panelJSON[setting] !== "" || _.has(initialPanelJSON, setting)))) {
-      badgeValue += 1
+      badgeValue += 1;
+
+      // add a reason to restart
+      if (description && description.restart != false) {
+        reasonsForRestart.push(setting);
+      }
+    } else {
+        // remove a reason to restart
+        if (description && description.restart != false) {
+          reasonsForRestart = $.grep(reasonsForRestart, function(v) { return v != setting; });
+      }
     }
   }
 
@@ -1378,6 +1405,7 @@ function badgeSidebarForDifferences(changedElement) {
     badgeValue = ""
   }
 
+  $(".save-button").html(reasonsForRestart.length > 0 ? SAVE_BUTTON_LABEL_RESTART : SAVE_BUTTON_LABEL_SAVE);
   $("a[href='#" + panelParentID + "'] .badge").html(badgeValue);
 }
 
@@ -1692,31 +1720,6 @@ function updateDataChangedForSiblingRows(row, forceTrue) {
       hiddenInput.removeAttr('data-changed')
     }
   })
-}
-
-function showRestartModal() {
-  $('#restart-modal').modal({
-    backdrop: 'static',
-    keyboard: false
-  });
-
-  var secondsElapsed = 0;
-  var numberOfSecondsToWait = 3;
-
-  var refreshSpan = $('span#refresh-time')
-  refreshSpan.html(numberOfSecondsToWait +  " seconds");
-
-  // call ourselves every 1 second to countdown
-  var refreshCountdown = setInterval(function(){
-    secondsElapsed++;
-    secondsLeft = numberOfSecondsToWait - secondsElapsed
-    refreshSpan.html(secondsLeft + (secondsLeft == 1 ? " second" : " seconds"))
-
-    if (secondsElapsed == numberOfSecondsToWait) {
-      location.reload(true);
-      clearInterval(refreshCountdown);
-    }
-  }, 1000);
 }
 
 function cleanupFormValues(node) {
