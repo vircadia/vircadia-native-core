@@ -1284,8 +1284,8 @@ void ScriptEngine::timerFired() {
 
     // call the associated JS function, if it exists
     if (timerData.function.isValid()) {
-        //PROFILE_RANGE(script, __FUNCTION__);
-        PROFILE_RANGE(script, timerData.function.toString().toStdString().c_str());
+        PROFILE_RANGE(script, __FUNCTION__);
+       // PROFILE_RANGE(script, timerData.function.toString().toStdString().c_str());
         auto preTimer = p_high_resolution_clock::now();
         callWithEnvironment(timerData.definingEntityIdentifier, timerData.definingSandboxURL, timerData.function, timerData.function, QScriptValueList());
         auto postTimer = p_high_resolution_clock::now();
@@ -1394,6 +1394,19 @@ QUrl ScriptEngine::resourcesPath() const {
 
 void ScriptEngine::print(const QString& message) {
     emit printedMessage(message, getFilename());
+}
+
+
+void ScriptEngine::beginProfileRange(const QString& label) const {
+    if (trace_script().isDebugEnabled()) {
+        tracing::traceEvent(trace_script(), label.toStdString().c_str(), tracing::DurationBegin);
+    }
+}
+
+void ScriptEngine::endProfileRange(const QString& label) const {
+    if (trace_script().isDebugEnabled()) {
+        tracing::traceEvent(trace_script(), label.toStdString().c_str(), tracing::DurationEnd);
+    }
 }
 
 // Script.require.resolve -- like resolvePath, but performs more validation and throws exceptions on invalid module identifiers (for consistency with Node.js)
