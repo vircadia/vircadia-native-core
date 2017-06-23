@@ -4,6 +4,8 @@ project(${TARGET_NAME})
 # set a default root dir for each of our optional externals if it was not passed
 set(OPTIONAL_EXTERNALS "LeapMotion")
 
+setup_memory_debugger()
+
 foreach(EXTERNAL ${OPTIONAL_EXTERNALS})
   string(TOUPPER ${EXTERNAL} ${EXTERNAL}_UPPERCASE)
   if (NOT ${${EXTERNAL}_UPPERCASE}_ROOT_DIR)
@@ -355,8 +357,6 @@ if (ANDROID)
 
   qt_create_apk()
 endif ()
-
-setup_memory_debugger()
 
 add_dependency_external_projects(GifCreator)
 find_package(GifCreator REQUIRED)
