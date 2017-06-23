@@ -94,6 +94,7 @@ namespace MenuOption {
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
+    const QString EnableFlying = "Enable Flying";
     const QString EnableAvatarCollisions = "Enable Avatar Collisions";
     const QString EnableInverseKinematics = "Enable Inverse Kinematics";
     const QString EntityScriptServerLog = "Entity Script Server Log";

@@ -214,7 +214,7 @@ static QTimer pingTimer;
 
 static const int MAX_CONCURRENT_RESOURCE_DOWNLOADS = 16;
 
-// For processing on QThreadPool, we target a number of threads after reserving some 
+// For processing on QThreadPool, we target a number of threads after reserving some
 // based on how many are being consumed by the application and the display plugin.  However,
 // we will never drop below the 'min' value
 static const int MIN_PROCESSING_THREAD_POOL_SIZE = 1;
@@ -888,6 +888,20 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     }
     ResourceCache::setRequestLimit(concurrentDownloads);
 
+    // perhaps override the avatar url.  Since we will test later for validity
+    // we don't need to do so here.
+    QString avatarURL = getCmdOption(argc, constArgv, "--avatarURL");
+    _avatarOverrideUrl = QUrl::fromUserInput(avatarURL);
+
+    // If someone specifies both --avatarURL and --replaceAvatarURL,
+    // the replaceAvatarURL wins.  So only set the _overrideUrl if this
+    // does have a non-empty string.
+    QString replaceURL = getCmdOption(argc, constArgv, "--replaceAvatarURL");
+    if (!replaceURL.isEmpty()) {
+        _avatarOverrideUrl = QUrl::fromUserInput(replaceURL);
+        _saveAvatarOverrideUrl = true;
+    }
+
     _glWidget = new GLCanvas();
     getApplicationCompositor().setRenderingWidget(_glWidget);
     _window->setCentralWidget(_glWidget);
@@ -1277,7 +1291,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Add periodic checks to send user activity data
     static int CHECK_NEARBY_AVATARS_INTERVAL_MS = 10000;
     static int NEARBY_AVATAR_RADIUS_METERS = 10;
-    
+
     // setup the stats interval depending on if the 1s faster hearbeat was requested
     static const QString FAST_STATS_ARG = "--fast-heartbeat";
     static int SEND_STATS_INTERVAL_MS = arguments().indexOf(FAST_STATS_ARG) != -1 ? 1000 : 10000;
@@ -1427,10 +1441,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
         _autoSwitchDisplayModeSupportedHMDPlugin = nullptr;
         foreach(DisplayPluginPointer displayPlugin, PluginManager::getInstance()->getDisplayPlugins()) {
-            if (displayPlugin->isHmd() && 
+            if (displayPlugin->isHmd() &&
                 displayPlugin->getSupportsAutoSwitch()) {
                 _autoSwitchDisplayModeSupportedHMDPlugin = displayPlugin;
-                _autoSwitchDisplayModeSupportedHMDPluginName = 
+                _autoSwitchDisplayModeSupportedHMDPluginName =
                     _autoSwitchDisplayModeSupportedHMDPlugin->getName();
                 _previousHMDWornStatus =
                     _autoSwitchDisplayModeSupportedHMDPlugin->isDisplayVisible();
@@ -1682,7 +1696,7 @@ void Application::onAboutToQuit() {
     }
 
     getActiveDisplayPlugin()->deactivate();
-    if (_autoSwitchDisplayModeSupportedHMDPlugin 
+    if (_autoSwitchDisplayModeSupportedHMDPlugin
         && _autoSwitchDisplayModeSupportedHMDPlugin->isSessionActive()) {
         _autoSwitchDisplayModeSupportedHMDPlugin->endSession();
     }
@@ -1751,8 +1765,8 @@ void Application::cleanupBeforeQuit() {
 
     // Cleanup all overlays after the scripts, as scripts might add more
     _overlays.cleanupAllOverlays();
-    // The cleanup process enqueues the transactions but does not process them.  Calling this here will force the actual 
-    // removal of the items.  
+    // The cleanup process enqueues the transactions but does not process them.  Calling this here will force the actual
+    // removal of the items.
     // See https://highfidelity.fogbugz.com/f/cases/5328
     _main3DScene->processTransactionQueue();
 
@@ -5265,7 +5279,7 @@ void Application::clearDomainOctreeDetails() {
     skyStage->setBackgroundMode(model::SunSkyStage::SKY_DEFAULT);
 
     _recentlyClearedDomain = true;
-    
+
     DependencyManager::get<AnimationCache>()->clearUnusedResources();
     DependencyManager::get<ModelCache>()->clearUnusedResources();
     DependencyManager::get<SoundCache>()->clearUnusedResources();
@@ -5329,6 +5343,10 @@ void Application::nodeActivated(SharedNodePointer node) {
     if (node->getType() == NodeType::AvatarMixer) {
         // new avatar mixer, send off our identity packet on next update loop
         // Reset skeletonModelUrl if the last server modified our choice.
+        // Override the avatar url (but not model name) here too.
+        if (_avatarOverrideUrl.isValid()) {
+            getMyAvatar()->useFullAvatarURL(_avatarOverrideUrl);
+        }
         static const QUrl empty{};
         if (getMyAvatar()->getFullAvatarURLFromPreferences() != getMyAvatar()->cannonicalSkeletonModelURL(empty)) {
             getMyAvatar()->resetFullAvatarURL();
@@ -7082,4 +7100,9 @@ OverlayID Application::getTabletHomeButtonID() const {
 QUuid Application::getTabletFrameID() const {
     auto HMD = DependencyManager::get<HMDScriptingInterface>();
     return HMD->getCurrentTabletFrameID();
+}
+
+void Application::setAvatarOverrideUrl(const QUrl& url, bool save) {
+    _avatarOverrideUrl = url;
+    _saveAvatarOverrideUrl = save;
 }
