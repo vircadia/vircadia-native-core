@@ -56,6 +56,14 @@ elseif (${CMAKE_CXX_COMPILER_ID} MATCHES "GNU")
 endif()
 
 function(_fbx_find_library _name _lib _suffix)
+  if (MSVC15)
+    set(VS_PREFIX vs2017)
+  endif()
+
+  if (MSVC14)
+    set(VS_PREFIX vs2015)
+  endif()
+
   if (MSVC12)
     set(VS_PREFIX vs2013)
   endif()
