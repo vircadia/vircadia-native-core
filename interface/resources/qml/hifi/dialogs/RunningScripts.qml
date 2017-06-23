@@ -39,10 +39,26 @@ ScrollingWindow {
         property alias x: root.x
         property alias y: root.y
     }
+    
+    Timer {
+        id: refreshTimer
+        interval: 100
+        repeat: false
+        running: false
+        onTriggered: updateRunningScripts();
+    }
+    
+    Component {
+        id: listModelBuilder
+        ListModel { }
+    }
 
     Connections {
         target: ScriptDiscoveryService
-        onScriptCountChanged: updateRunningScripts();
+        onScriptCountChanged: {
+            runningScriptsModel = listModelBuilder.createObject(root);
+            refreshTimer.restart();
+        }            
     }
 
     Component.onCompleted: {
@@ -65,10 +81,16 @@ ScrollingWindow {
             b = simplify(b.path);
             return a < b ? -1 : a > b ? 1 : 0;
         });
-        runningScriptsModel.clear()
+        // Calling  `runningScriptsModel.clear()` here instead of creating a new object
+        // triggers some kind of weird heap corruption deep inside Qt.  So instead of
+        // modifying the model in place, possibly triggering behaviors in the table
+        // instead we create a new `ListModel`, populate it and update the 
+        // existing model atomically.
+        var newRunningScriptsModel = listModelBuilder.createObject(root);
         for (var i = 0; i < runningScripts.length; ++i) {
-            runningScriptsModel.append(runningScripts[i]);
+            newRunningScriptsModel.append(runningScripts[i]);
         }
+        runningScriptsModel = newRunningScriptsModel;
     }
 
     function loadScript(script) {

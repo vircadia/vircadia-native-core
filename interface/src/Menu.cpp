@@ -19,7 +19,7 @@
 #include <AudioClient.h>
 #include <CrashHelpers.h>
 #include <DependencyManager.h>
-#include <TabletScriptingInterface.h>
+#include <ui/TabletScriptingInterface.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <PathUtils.h>
 #include <SettingHandle.h>
@@ -121,9 +121,14 @@ Menu::Menu() {
         QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
     // Edit > Reload All Scripts... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::Key_R,
-        scriptEngines.data(), SLOT(reloadAllScripts()),
+    action = addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::Key_R,
+        nullptr, nullptr,
         QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+    connect(action, &QAction::triggered, [] {
+        DependencyManager::get<ScriptEngines>()->reloadAllScripts();
+        DependencyManager::get<OffscreenUi>()->clearCache();
+    });
+
 
     // Edit > Console... [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::Console, Qt::CTRL | Qt::ALT | Qt::Key_J,
@@ -191,6 +196,9 @@ Menu::Menu() {
 
     addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::EnableAvatarCollisions, 0, true,
         avatar.get(), SLOT(updateMotionBehaviorFromMenu()));
+
+    addCheckableActionToQMenuAndActionHash(avatarMenu, MenuOption::EnableFlying, 0, true,
+        avatar.get(), SLOT(setFlyingEnabled(bool)));
 
     // Avatar > AvatarBookmarks related menus -- Note: the AvatarBookmarks class adds its own submenus here.
     auto avatarBookmarks = DependencyManager::get<AvatarBookmarks>();
@@ -300,7 +308,7 @@ Menu::Menu() {
     // Settings > Avatar...
     action = addActionToQMenuAndActionHash(settingsMenu, "Avatar...");
     connect(action, &QAction::triggered, [] {
-        qApp->showDialog(QString("hifi/dialogs/AvatarPreferencesDialog.qml"), 
+        qApp->showDialog(QString("hifi/dialogs/AvatarPreferencesDialog.qml"),
             QString("../../hifi/tablet/TabletAvatarPreferences.qml"), "AvatarPreferencesDialog");
     });
 
@@ -626,7 +634,7 @@ Menu::Menu() {
     action = addActionToQMenuAndActionHash(audioDebugMenu, "Stats...");
     connect(action, &QAction::triggered, [] {
         auto scriptEngines = DependencyManager::get<ScriptEngines>();
-        QUrl defaultScriptsLoc = defaultScriptsLocation();
+        QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
         defaultScriptsLoc.setPath(defaultScriptsLoc.path() + "developer/utilities/audio/stats.js");
         scriptEngines->loadScript(defaultScriptsLoc.toString());
     });

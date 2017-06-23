@@ -25,6 +25,8 @@ namespace NodeType {
     const NodeType_t AssetServer = 'A';
     const NodeType_t MessagesMixer = 'm';
     const NodeType_t EntityScriptServer = 'S';
+    const NodeType_t UpstreamAudioMixer = 'B';
+    const NodeType_t UpstreamAvatarMixer = 'C';
     const NodeType_t DownstreamAudioMixer = 'a';
     const NodeType_t DownstreamAvatarMixer = 'w';
     const NodeType_t Unassigned = 1;
@@ -32,8 +34,11 @@ namespace NodeType {
     void init();
 
     const QString& getNodeTypeName(NodeType_t nodeType);
+    bool isUpstream(NodeType_t nodeType);
     bool isDownstream(NodeType_t nodeType);
+    NodeType_t upstreamType(NodeType_t primaryType);
     NodeType_t downstreamType(NodeType_t primaryType);
+
 
     NodeType_t fromString(QString type);
 }

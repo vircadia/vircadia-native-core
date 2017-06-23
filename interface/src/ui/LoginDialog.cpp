@@ -19,13 +19,13 @@
 #include <NetworkingConstants.h>
 #include <plugins/PluginManager.h>
 #include <plugins/SteamClientPlugin.h>
+#include <ui/TabletScriptingInterface.h>
 
 #include "AccountManager.h"
 #include "DependencyManager.h"
 #include "Menu.h"
 
 #include "Application.h"
-#include "TabletScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 
 HIFI_QML_DEF(LoginDialog)
