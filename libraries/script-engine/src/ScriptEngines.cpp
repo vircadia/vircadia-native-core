@@ -16,8 +16,6 @@
 #include <UserActivityLogger.h>
 #include <PathUtils.h>
 
-#include <OffscreenUi.h>
-
 #include "ScriptEngine.h"
 #include "ScriptEngineLogging.h"
 
@@ -446,7 +444,6 @@ void ScriptEngines::setScriptsLocation(const QString& scriptsLocation) {
 void ScriptEngines::reloadAllScripts() {
     qCDebug(scriptengine) << "reloadAllScripts -- clearing caches";
     DependencyManager::get<ScriptCache>()->clearCache();
-    DependencyManager::get<OffscreenUi>()->clearCache();
     qCDebug(scriptengine) << "reloadAllScripts -- stopping all scripts";
     stopAllScripts(true);
 }
