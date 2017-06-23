@@ -105,7 +105,7 @@ void RenderablePolyLineEntityItem::updateGeometry() {
         _numVertices += 2;
         uCoord += uCoordInc;
 
-		if (_isUVModeStretch) {
+		if (!_isUVModeStretch) {
 			if (i % 2 == 0) {
 				uCoord = 1.0f;
 			}

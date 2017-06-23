@@ -1,0 +1,218 @@
+/*
+//  record.css
+//
+//  Created by David Rowe on 5 Apr 2017.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+*/
+
+
+body {
+    padding: 0;
+    overflow: hidden;
+}
+
+.title {
+    padding-left: 21px;
+}
+
+.title label {
+    font-size: 18px;
+    position: relative;
+    top: 12px;
+}
+
+
+#recordings {
+    height: 100%;
+    position: relative;
+    box-sizing: border-box;
+    padding: 51px 0 185px 0;
+    margin: 0 21px 0 21px;
+}
+
+#recordings #table-container {
+    height: 100%;
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    box-sizing: border-box;
+    border-left: 2px solid #575757;
+    border-right: 2px solid #575757;
+    background-color: #2e2e2e;
+}
+
+#recordings table {
+    border: none;
+}
+
+#recordings thead {
+    position: absolute;
+    top: 21px;
+    left: 0;
+    width: 100%;
+    box-sizing: border-box;
+    border: 2px solid #575757;
+    border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+    border-bottom: 1px solid #575757;
+    position: absolute;
+    word-wrap: nowrap;
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+#recordings table col#unload-column {
+    width: 100px;
+}
+
+#recordings thead th:last-child {
+    width: 100px;
+}
+
+#recordings table td {
+    text-overflow: ellipsis;
+}
+
+#recordings table td:nth-child(2) {
+    text-align: center;
+}
+
+#recordings tbody tr.filler td {
+    height: auto;
+    border-top: 1px solid #1c1c1c;
+}
+
+#recordings-list input {
+    height: 22px;
+    width: 22px;
+    min-width: 22px;
+    font-size: 16px;
+    padding: 0 1px 0 0;
+}
+
+#recordings tfoot {
+    position: absolute;
+    bottom: 159px;
+    left: 0;
+    width: 100%;
+    box-sizing: border-box;
+    border: 2px solid #575757;
+    border-bottom-left-radius: 7px;
+    border-bottom-right-radius: 7px;
+    border-top: 1px solid #575757;
+}
+
+#recordings tfoot tr, #recordings tfoot td {
+    background: none;
+}
+
+
+#spinner {
+    text-align: center;
+    margin-top: 25%;
+    position: relative;
+}
+
+#spinner span {
+    display: block;
+    position: relative;
+    top: -101px;
+    color: #e2334d;
+    font-size: 60px;
+    font-weight: bold;
+}
+
+
+#recordings tfoot tr {
+    height: 24px;
+}
+
+
+#instructions td {
+    white-space: normal;
+}
+
+#instructions h1 {
+    font-size: 16px;
+    margin-top: 28px;
+}
+
+#instructions h1 + p {
+    margin-top: 14px;
+}
+
+#instructions p, #instructions ul {
+    margin-top: 21px;
+    font-size: 14px;
+}
+
+#instructions p {
+    font-family: Raleway-Bold;
+}
+
+#instructions ul {
+    font-family: Raleway-SemiBold;
+    margin-left: 21px;
+    font-weight: normal;
+}
+
+#instructions li {
+    margin-top: 7px;
+}
+
+#instructions ul input {
+    margin-left: 1px;
+    margin-top: 6px;
+    font-size: 14px;
+    padding: 0 7px;
+}
+
+
+#show-info-button {
+    font-family: HiFi-Glyphs;
+    font-size: 32px;
+    height: 16px;
+    line-height: 16px;
+    display: inline-block;
+    position: absolute;
+    top: 15px;
+    right: 5px;
+    margin-top: -11px;
+    margin-left: 7px;
+}
+
+#show-info-button:hover {
+    color: #00b4ef;
+}
+
+
+#record-controls {
+    position: absolute;
+    bottom: 7px;
+    width: 100%;
+}
+
+#record-controls #load-container {
+    position: absolute;
+    left: 21px;
+}
+
+#record-controls #record-container {
+    text-align: center;
+}
+
+#record-controls #checkbox-container {
+    margin-top: 31px;
+}
+
+#record-controls div.property {
+    padding-left: 21px;
+}
+
+
+.hidden {
+    display: none;
+}
