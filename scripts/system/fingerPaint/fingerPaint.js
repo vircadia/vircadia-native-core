@@ -31,7 +31,8 @@
     var qml = Script.resolvePath('PaintWindow.qml');
     var window = null;
     
-    var inkSource = null;
+    //var inkSource = null;
+	var inkSourceOverlay = null;
 	// Set path for finger paint hand animations 
 	var RIGHT_ANIM_URL = Script.resourcesPath() + 'avatar/animations/touch_point_closed_right.fbx';
     var LEFT_ANIM_URL = Script.resourcesPath() + 'avatar/animations/touch_point_closed_left.fbx';
@@ -406,34 +407,34 @@
         function onUpdate() {
             
             //update ink Source
-            var strokeColor = leftBrush.getStrokeColor();
-            var strokeWidth = leftBrush.getStrokeWidth()*0.06;
+            // var strokeColor = leftBrush.getStrokeColor();
+            // var strokeWidth = leftBrush.getStrokeWidth()*0.06;
             
-            var position = MyAvatar.getJointPosition(isLeftHandDominant ? "LeftHandIndex4" : "RightHandIndex4");
-            if (inkSource){
+            // var position = MyAvatar.getJointPosition(isLeftHandDominant ? "LeftHandIndex4" : "RightHandIndex4");
+            // if (inkSource){
                 
                 
-                Entities.editEntity(inkSource, {
-                    color : strokeColor,
-                    position : position,
-                    dimensions : {
-                        x: strokeWidth, 
-                        y: strokeWidth, 
-                        z: strokeWidth} 
+                // Entities.editEntity(inkSource, {
+                    // color : strokeColor,
+                    // position : position,
+                    // dimensions : {
+                        // x: strokeWidth, 
+                        // y: strokeWidth, 
+                        // z: strokeWidth} 
                 
-                });
-            } else{
-                var inkSourceProps = {
-                    type: "Sphere",
-                    name: "inkSource",
-                    color: strokeColor,
-                    position: position,
-                    ignoreForCollisions: true,
+                // });
+            // } else{
+                // var inkSourceProps = {
+                    // type: "Sphere",
+                    // name: "inkSource",
+                    // color: strokeColor,
+                    // position: position,
+                    // ignoreForCollisions: true,
                     
-                    dimensions: {x: strokeWidth, y:strokeWidth, z:strokeWidth}
-                }
-                inkSource = Entities.addEntity(inkSourceProps);
-            }
+                    // dimensions: {x: strokeWidth, y:strokeWidth, z:strokeWidth}
+                // }
+                // inkSource = Entities.addEntity(inkSourceProps);
+            // }
             
             updateTriggerPress();
             updateGripPress();
@@ -449,10 +450,10 @@
         function tearDown() {
             // Nothing to do.
             //Entities
-            if (inkSource){
-                Entities.deleteEntity(inkSource);
-				inkSource = null;
-            }
+            //if (inkSource){
+            //    Entities.deleteEntity(inkSource);
+			//	inkSource = null;
+            //}
         }
 
         return {
@@ -518,6 +519,22 @@
 		//turn off lasers and other interactions
 		Messages.sendLocalMessage("Hifi-Hand-Disabler", "none");
 		Messages.sendLocalMessage("Hifi-Hand-Disabler", handLiteral);
+		
+		
+		
+		//update ink Source
+        var strokeColor = leftBrush.getStrokeColor();
+        var strokeWidth = leftBrush.getStrokeWidth()*0.06;
+		if (inkSourceOverlay == null){
+			inkSourceOverlay = Overlays.addOverlay("sphere", { parentID: MyAvatar.sessionUUID, parentJointIndex: MyAvatar.getJointIndex(handLiteral === "left" ? "LeftHandIndex4" : "RightHandIndex4"), localPosition: { x: 0, y: 0, z: 0 }, size: strokeWidth, color: strokeColor , solid: true });
+		} else {
+			Overlays.editOverlay(inkSourceOverlay, {
+                parentJointIndex: MyAvatar.getJointIndex(handLiteral === "left" ? "LeftHandIndex4" : "RightHandIndex4"),
+				localPosition: { x: 0, y: 0, z: 0 },
+				size: strokeWidth, 
+				color: strokeColor 
+            });
+		}
 
 	}
 	
@@ -561,8 +578,7 @@
         rightHand = handController("right");
 		
 		
-		//Change to finger paint hand animation
-		updateHandAnimations();
+		
 		
         var controllerMapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
         controllerMapping.from(Controller.Standard.LT).to(leftHand.onTriggerPress);
@@ -577,6 +593,9 @@
         rightBrush = paintBrush("right");
         rightHand.setUp(rightBrush.startLine, rightBrush.drawLine, rightBrush.finishLine, rightBrush.eraseClosestLine);
 
+		//Change to finger paint hand animation
+		updateHandAnimations();
+		
         // Messages channels for enabling/disabling other scripts' functions.
         Messages.subscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
         Messages.subscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
@@ -605,6 +624,9 @@
             if (message[0] === "color"){
                 leftBrush.changeStrokeColor(message[1], message[2], message[3]);
                 rightBrush.changeStrokeColor(message[1], message[2], message[3]);
+				Overlays.editOverlay(inkSourceOverlay, {
+				    color: {red: message[1], green: message[2], blue: message[3]} 
+                });
                 return;
             }
             if (message[0] === "width"){
@@ -612,6 +634,10 @@
                 //var dim2 = Math.floor( Math.random()*40 + 5);
                 leftBrush.changeStrokeWidthMultiplier(dim);
                 rightBrush.changeStrokeWidthMultiplier(dim);
+				Overlays.editOverlay(inkSourceOverlay, {
+				    size: dim * 0.06 
+				
+                });
                 return;
             }
             if (message[0] === "brush"){
@@ -674,6 +700,10 @@
 		
 		//Restores and clears hand animations
 		restoreAllHandAnimations();
+		
+		//clears Overlay sphere
+		Overlays.deleteOverlay(inkSourceOverlay);
+		inkSourceOverlay = null;
 		
         // disable window palette
         window.close();
