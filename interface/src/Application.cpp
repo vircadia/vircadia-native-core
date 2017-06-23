@@ -441,6 +441,11 @@ static const QString STATE_ADVANCED_MOVEMENT_CONTROLS = "AdvancedMovement";
 static const QString STATE_GROUNDED = "Grounded";
 static const QString STATE_NAV_FOCUSED = "NavigationFocused";
 
+// Statically provided display and input plugins
+extern DisplayPluginList getDisplayPlugins();
+extern InputPluginList getInputPlugins();
+extern void saveInputPluginSettings(const InputPluginList& plugins);
+
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
 
@@ -479,6 +484,11 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     bool previousSessionCrashed = CrashHandler::checkForResetSettings(runningMarkerExisted, suppressPrompt);
 
     Setting::init();
+
+    // Tell the plugin manager about our statically linked plugins
+    PluginManager::setInputPluginProvider([] { return getInputPlugins(); });
+    PluginManager::setDisplayPluginProvider([] { return getDisplayPlugins(); });
+    PluginManager::setInputPluginSettingsPersister([](const InputPluginList& plugins) { saveInputPluginSettings(plugins); });
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->init();
