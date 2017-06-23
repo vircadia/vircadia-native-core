@@ -584,8 +584,6 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                     }
 
                     glm::vec3 p = target.getPoleVector();
-                    glm::vec3 pProj = p - glm::dot(p, dUnit) * dUnit;
-
                     const float PROJ_VECTOR_LEN = 10.0f;
                     const float POLE_VECTOR_LEN = 100.0f;
                     glm::vec3 midPoint = (basePose.trans() + topPose.trans()) * 0.5f;

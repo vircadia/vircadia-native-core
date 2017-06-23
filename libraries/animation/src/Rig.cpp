@@ -1417,7 +1417,6 @@ glm::vec3 Rig::calculateKneePoleVector(int footJointIndex, int kneeIndex, int up
 
     // form a plane normal to the hips x-axis
     glm::vec3 n = hipsPose.rot() * Vectors::UNIT_X;
-    glm::vec3 y = hipsPose.rot() * Vectors::UNIT_Y;
 
     // project d onto this plane
     glm::vec3 dProj = d - glm::dot(d, n) * n;
