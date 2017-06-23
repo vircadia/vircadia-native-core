@@ -41,5 +41,3 @@ void SoundEffect::play(QVariant position) {
         _injector = AudioInjector::playSound(samples, options);
     }
 }
-
-#include "SoundEffect.moc"

@@ -166,19 +166,6 @@ void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> mes
     }
 }
 
-DisplayPluginList getDisplayPlugins() {
-    DisplayPluginList result;
-    return result;
-}
-
-InputPluginList getInputPlugins() {
-    InputPluginList result;
-    return result;
-}
-
-// must be here to satisfy a reference in PluginManager::saveSettings()
-void saveInputPluginSettings(const InputPluginList& plugins) {}
-
 const std::pair<QString, CodecPluginPointer> AudioMixer::negotiateCodec(std::vector<QString> codecs) {
     QString selectedCodecName;
     CodecPluginPointer selectedCodec;
