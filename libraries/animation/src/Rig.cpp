@@ -1265,14 +1265,14 @@ void Rig::updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose
     int hipsIndex = indexOfJoint("Hips");
 
     if (leftFootEnabled) {
-        glm::vec3 footPosition = leftFootPose.trans();
-        glm::quat footRotation = leftFootPose.rot();
-        _animVars.set("leftFootPosition", footPosition);
-        _animVars.set("leftFootRotation", footRotation);
+        _animVars.set("leftFootPosition", leftFootPose.trans());
+        _animVars.set("leftFootRotation", leftFootPose.rot());
         _animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
 
         int footJointIndex = _animSkeleton->nameToJointIndex("LeftFoot");
-        glm::vec3 poleVector = calculateKneePoleVector(footJointIndex, footRotation, hipsIndex);
+        int kneeJointIndex = _animSkeleton->nameToJointIndex("LeftLeg");
+        int upLegJointIndex = _animSkeleton->nameToJointIndex("LeftUpLeg");
+        glm::vec3 poleVector = calculateKneePoleVector(footJointIndex, kneeJointIndex, upLegJointIndex, hipsIndex, leftFootPose);
 
         // smooth toward desired pole vector from previous pole vector...  to reduce jitter
         if (!_prevLeftFootPoleVectorValid) {
@@ -1295,14 +1295,14 @@ void Rig::updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose
     }
 
     if (rightFootEnabled) {
-        glm::vec3 footPosition = rightFootPose.trans();
-        glm::quat footRotation = rightFootPose.rot();
-        _animVars.set("rightFootPosition", footPosition);
-        _animVars.set("rightFootRotation", footRotation);
+        _animVars.set("rightFootPosition", rightFootPose.trans());
+        _animVars.set("rightFootRotation", rightFootPose.rot());
         _animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
 
         int footJointIndex = _animSkeleton->nameToJointIndex("RightFoot");
-        glm::vec3 poleVector = calculateKneePoleVector(footJointIndex, footRotation, hipsIndex);
+        int kneeJointIndex = _animSkeleton->nameToJointIndex("RightLeg");
+        int upLegJointIndex = _animSkeleton->nameToJointIndex("RightUpLeg");
+        glm::vec3 poleVector = calculateKneePoleVector(footJointIndex, kneeJointIndex, upLegJointIndex, hipsIndex, rightFootPose);
 
         // smooth toward desired pole vector from previous pole vector...  to reduce jitter
         if (!_prevRightFootPoleVectorValid) {
@@ -1375,20 +1375,23 @@ glm::vec3 Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIn
     AnimPose handPose = _externalPoseSet._absolutePoses[handIndex];
     AnimPose elbowPose = _externalPoseSet._absolutePoses[elbowIndex];
     AnimPose armPose = _externalPoseSet._absolutePoses[armIndex];
+
+    // ray from hand to arm.
     glm::vec3 d = glm::normalize(handPose.trans() - armPose.trans());
 
     float sign = isLeft ? 1.0f : -1.0f;
 
+    // form a plane normal to the hips x-axis.
     glm::vec3 n = hipsPose.rot() * Vectors::UNIT_X;
     glm::vec3 y = hipsPose.rot() * Vectors::UNIT_Y;
-    // project d onto n.
+
+    // project d onto this plane
     glm::vec3 dProj = d - glm::dot(d, n) * n;
 
+    // give dProj a bit of offset away from the body.
     float avatarScale = extractUniformScale(_modelOffset);
     const float LATERAL_OFFSET = 0.333f * avatarScale;
     const float VERTICAL_OFFSET = -0.333f * avatarScale;
-
-    // give dProj a bit of offset away from the body.
     glm::vec3 dProjWithOffset = dProj + sign * LATERAL_OFFSET * n + y * VERTICAL_OFFSET;
 
     // rotate dProj by 90 degrees to get the poleVector.
@@ -1402,19 +1405,32 @@ glm::vec3 Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIn
     return glm::normalize(poleAdjust * poleVector);
 }
 
-glm::vec3 Rig::calculateKneePoleVector(int footJointIndex, const glm::quat& footTargetOrientation, int hipsIndex) const {
+glm::vec3 Rig::calculateKneePoleVector(int footJointIndex, int kneeIndex, int upLegIndex, int hipsIndex, const AnimPose& targetFootPose) const {
 
-    AnimPose defaultPose = _animSkeleton->getAbsoluteDefaultPose(footJointIndex);
-    glm::vec3 localForward = glm::inverse(defaultPose.rot()) * Vectors::UNIT_Z;
-    glm::vec3 footForward = footTargetOrientation * localForward;
+    AnimPose hipsPose = _externalPoseSet._absolutePoses[hipsIndex];
+    AnimPose footPose = targetFootPose;
+    AnimPose kneePose = _externalPoseSet._absolutePoses[kneeIndex];
+    AnimPose upLegPose = _externalPoseSet._absolutePoses[upLegIndex];
 
-    // compute the forward direction of the hips.
-    glm::quat hipsRotation = _externalPoseSet._absolutePoses[hipsIndex].rot();
-    glm::vec3 hipsForward = hipsRotation * Vectors::UNIT_Z;
+    // ray from foot to upLeg
+    glm::vec3 d = glm::normalize(footPose.trans() - upLegPose.trans());
 
-    // blend between the hips and the foot.
-    const float FOOT_TO_HIPS_BLEND_FACTOR = 0.5f;
-    return glm::normalize(lerp(footForward, hipsForward, FOOT_TO_HIPS_BLEND_FACTOR));
+    // form a plane normal to the hips x-axis
+    glm::vec3 n = hipsPose.rot() * Vectors::UNIT_X;
+    glm::vec3 y = hipsPose.rot() * Vectors::UNIT_Y;
+
+    // project d onto this plane
+    glm::vec3 dProj = d - glm::dot(d, n) * n;
+
+    // rotate dProj by 90 degrees to get the poleVector.
+    glm::vec3 poleVector = glm::angleAxis(-PI / 2.0f, n) * dProj;
+
+    // blend the foot oreintation into the pole vector
+    glm::quat kneeToFootDelta = footPose.rot() * glm::inverse(kneePose.rot());
+    const float WRIST_POLE_ADJUST_FACTOR = 0.5f;
+    glm::quat poleAdjust = quatLerp(Quaternions::IDENTITY, kneeToFootDelta, WRIST_POLE_ADJUST_FACTOR);
+
+    return glm::normalize(poleAdjust * poleVector);
 }
 
 void Rig::updateFromControllerParameters(const ControllerParameters& params, float dt) {

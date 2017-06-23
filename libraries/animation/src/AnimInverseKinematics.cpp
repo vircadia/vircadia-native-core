@@ -530,22 +530,33 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                 if (dLen > EPSILON) {
                     glm::vec3 dUnit = d / dLen;
                     glm::vec3 e = midPose.xformVector(target.getPoleReferenceVector());
-                    glm::vec3 p = target.getPoleVector();
                     glm::vec3 eProj = e - glm::dot(e, dUnit) * dUnit;
-                    glm::vec3 pProj = p - glm::dot(p, dUnit) * dUnit;
                     float eProjLen = glm::length(eProj);
-                    float pProjLen = glm::length(pProj);
-                    if (eProjLen > EPSILON && pProjLen > EPSILON) {
 
+                    const float MIN_EPROJ_LEN = 0.5f;
+                    if (eProjLen < MIN_EPROJ_LEN) {
+                        glm::vec3 midPoint = topPose.trans() + d * 0.5f;
+                        e = midPose.trans() - midPoint;
+                        eProj = e - glm::dot(e, dUnit) * dUnit;
+                        eProjLen = glm::length(eProj);
+                    }
+
+                    glm::vec3 p = target.getPoleVector();
+                    glm::vec3 pProj = p - glm::dot(p, dUnit) * dUnit;
+                    float pProjLen = glm::length(pProj);
+
+                    if (eProjLen > EPSILON && pProjLen > EPSILON) {
                         // as pProjLen become orthognal to d, reduce the amount of rotation.
                         float magnitude = easeOutExpo(pProjLen);
-
                         float dot = glm::clamp(glm::dot(eProj / eProjLen, pProj / pProjLen), 0.0f, 1.0f);
                         float theta = acosf(dot);
                         glm::vec3 cross = glm::cross(eProj, pProj);
-                        float crossLen = glm::length(cross);
-                        if (crossLen > EPSILON) {
-                            glm::vec3 axis = cross / crossLen;
+                        const float MIN_ADJUSTMENT_ANGLE = 0.001745f;  // 0.1 degree
+                        if (theta > MIN_ADJUSTMENT_ANGLE) {
+                            glm::vec3 axis = dUnit;
+                            if (glm::dot(cross, dUnit) < 0) {
+                                axis = -dUnit;
+                            }
                             poleRot = glm::angleAxis(magnitude * theta, axis);
                         }
                     }
@@ -562,8 +573,17 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
 
                     glm::vec3 dUnit = d / dLen;
                     glm::vec3 e = midPose.xformVector(target.getPoleReferenceVector());
-                    glm::vec3 p = target.getPoleVector();
                     glm::vec3 eProj = e - glm::dot(e, dUnit) * dUnit;
+                    float eProjLen = glm::length(eProj);
+                    const float MIN_EPROJ_LEN = 0.5f;
+                    if (eProjLen < MIN_EPROJ_LEN) {
+                        glm::vec3 midPoint = topPose.trans() + d * 0.5f;
+                        e = midPose.trans() - midPoint;
+                        eProj = e - glm::dot(e, dUnit) * dUnit;
+                        eProjLen = glm::length(eProj);
+                    }
+
+                    glm::vec3 p = target.getPoleVector();
                     glm::vec3 pProj = p - glm::dot(p, dUnit) * dUnit;
 
                     const float PROJ_VECTOR_LEN = 10.0f;
@@ -573,11 +593,8 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                                                      geomToWorldPose.xformPoint(topPose.trans()),
                                                      YELLOW);
                     DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(midPoint),
-                                                     geomToWorldPose.xformPoint(midPoint + PROJ_VECTOR_LEN * glm::normalize(eProj)),
+                                                     geomToWorldPose.xformPoint(midPoint + PROJ_VECTOR_LEN * glm::normalize(e)),
                                                      RED);
-                    DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(midPoint),
-                                                     geomToWorldPose.xformPoint(midPoint + PROJ_VECTOR_LEN * glm::normalize(pProj)),
-                                                     GREEN);
                     DebugDraw::getInstance().drawRay(geomToWorldPose.xformPoint(midPoint),
                                                      geomToWorldPose.xformPoint(midPoint + POLE_VECTOR_LEN * glm::normalize(p)),
                                                      BLUE);
@@ -1060,7 +1077,7 @@ void AnimInverseKinematics::initConstraints() {
     //         y                |
     //         |                |
     //         |            O---O---O RightUpLeg
-    //      z  |            | Hips2 |
+    //      z  |            | Hips  |
     //       \ |            |       |
     //        \|            |       |
     //  x -----+            O       O RightLeg
