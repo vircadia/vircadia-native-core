@@ -172,18 +172,13 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
     _rig.updateFromEyeParameters(eyeParams);
 
-
-    if (leftHandPose.isValid()) {
-        updateFingers(myAvatar->getLeftHandFingerControllerPosesInSensorFrame());
-    }
-    if (rightHandPose.isValid()) {
-        updateFingers(myAvatar->getRightHandFingerControllerPosesInSensorFrame());
-    }
+    updateFingers(myAvatar->getLeftHandFingerControllerPosesInSensorFrame());
+    updateFingers(myAvatar->getRightHandFingerControllerPosesInSensorFrame());
 }
 
 
 void MySkeletonModel::updateFingers(const MyAvatar::FingerPosesMap& fingerPoses) {
-    // Assumes that finger poses are kept in the poses map in order.
+    // Assumes that finger poses are kept in order in the poses map.
 
     if (fingerPoses.size() == 0) {
         return;
@@ -194,21 +189,23 @@ void MySkeletonModel::updateFingers(const MyAvatar::FingerPosesMap& fingerPoses)
     bool isLeftHand = posesMapItr->first < (int)controller::Action::RIGHT_HAND_THUMB1;
 
     MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
-    glm::quat handJointRotation = isLeftHand
-        ? myAvatar->getLeftHandControllerPoseInSensorFrame().getRotation()
-        : myAvatar->getRightHandControllerPoseInSensorFrame().getRotation();
+    auto handPose = isLeftHand 
+        ? myAvatar->getLeftHandControllerPoseInSensorFrame() 
+        : myAvatar->getRightHandControllerPoseInSensorFrame();
+    auto handJointRotation = handPose.getRotation();
 
+    bool isHandValid = handPose.isValid();
     bool isFingerValid = false;
     glm::quat previousJointRotation;
 
     while (posesMapItr != fingerPoses.end()) {
         auto jointName = posesMapItr->second.second;
-        if (jointName.right(1) == "1") {
+        if (isHandValid && jointName.right(1) == "1") {
             isFingerValid = posesMapItr->second.first.isValid();
             previousJointRotation = handJointRotation;
         }
 
-        if (isFingerValid) {
+        if (isHandValid && isFingerValid) {
             auto thisJointRotation = posesMapItr->second.first.getRotation();
             const float CONTROLLER_PRIORITY = 2.0f;
             _rig.setJointRotation(_rig.indexOfJoint(jointName), true, glm::inverse(previousJointRotation) * thisJointRotation, 

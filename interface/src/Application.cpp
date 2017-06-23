@@ -4562,19 +4562,28 @@ void Application::update(float deltaTime) {
     auto avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
     myAvatar->setHandControllerPosesInSensorFrame(leftHandPose.transform(avatarToSensorMatrix), rightHandPose.transform(avatarToSensorMatrix));
 
+    // If have previously done finger poses or there are new valid finger poses, update finger pose values. This so that if
+    // fingers are not being controlled, finger joints are not updated in MySkeletonModel.
+    // Assumption: Finger poses are either all present and valid or not present at all; thus can test just one joint.
     MyAvatar::FingerPosesMap leftHandFingerPoses;
-    for (int i = (int)controller::Action::LEFT_HAND_THUMB1; i <= (int)controller::Action::LEFT_HAND_PINKY4; i++) {
-        leftHandFingerPoses[i] = { 
-            userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix), 
-            userInputMapper->getActionName((controller::Action)i)
-        };
+    if (myAvatar->getLeftHandFingerControllerPosesInSensorFrame().size() > 0
+            || userInputMapper->getPoseState(controller::Action::LEFT_HAND_THUMB1).isValid()) {
+        for (int i = (int)controller::Action::LEFT_HAND_THUMB1; i <= (int)controller::Action::LEFT_HAND_PINKY4; i++) {
+            leftHandFingerPoses[i] = {
+                userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix),
+                userInputMapper->getActionName((controller::Action)i)
+            };
+        }
     }
     MyAvatar::FingerPosesMap rightHandFingerPoses;
-    for (int i = (int)controller::Action::RIGHT_HAND_THUMB1; i <= (int)controller::Action::RIGHT_HAND_PINKY4; i++) {
-        rightHandFingerPoses[i] = {
-            userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix),
-            userInputMapper->getActionName((controller::Action)i)
-        };
+    if (myAvatar->getRightHandFingerControllerPosesInSensorFrame().size() > 0
+        || userInputMapper->getPoseState(controller::Action::RIGHT_HAND_THUMB1).isValid()) {
+        for (int i = (int)controller::Action::RIGHT_HAND_THUMB1; i <= (int)controller::Action::RIGHT_HAND_PINKY4; i++) {
+            rightHandFingerPoses[i] = {
+                userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix),
+                userInputMapper->getActionName((controller::Action)i)
+            };
+        }
     }
     myAvatar->setFingerControllerPosesInSensorFrame(leftHandFingerPoses, rightHandFingerPoses);
 
