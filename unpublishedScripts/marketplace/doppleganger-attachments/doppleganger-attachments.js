@@ -5,6 +5,7 @@
 module.exports = DopplegangerAttachments;
 
 DopplegangerAttachments.version = '0.0.0';
+DopplegangerAttachments.WANT_DEBUG = false;
 
 var _modelHelper = require('./model-helper.js'),
     modelHelper = _modelHelper.modelHelper,
@@ -13,6 +14,10 @@ var _modelHelper = require('./model-helper.js'),
 
 function log() {
     print('doppleganger-attachments | ' + [].slice.call(arguments).join(' '));
+}
+
+function debugPrint() {
+    DopplegangerAttachments.WANT_DEBUG && log.apply(this, arguments);
 }
 
 function DopplegangerAttachments(doppleganger, options) {
@@ -24,7 +29,7 @@ function DopplegangerAttachments(doppleganger, options) {
         attachmentsUpdated: utils.signal(function attachmentsUpdated(currentAttachments, previousAttachments){}),
     });
     this._initialize();
-    log('DopplegangerAttachments...', JSON.stringify(options));
+    debugPrint('DopplegangerAttachments...', JSON.stringify(options));
 }
 DopplegangerAttachments.prototype = {
     // "hash" the current attachments (so that changes can be detected)
@@ -87,7 +92,7 @@ DopplegangerAttachments.prototype = {
                 jointNames = this.doppleganger.jointNames,
                 properties = modelHelper.getProperties(this.doppleganger.objectID);
 
-            log('DopplegangerAttachments..._createAttachmentObjects', JSON.stringify({
+            debugPrint('DopplegangerAttachments..._createAttachmentObjects', JSON.stringify({
                 type: properties.type,
                 attachments: attachments.length,
                 parentID: parentID,
@@ -96,7 +101,7 @@ DopplegangerAttachments.prototype = {
             return attachments.map(utils.bind(this, function(attachment, i) {
                 var type = modelHelper.type(attachment.properties && attachment.properties.objectID);
                 if (type === 'overlay') {
-                    log('skipping already-provisioned attachment object', type, attachment.properties && attachment.properties.name);
+                    debugPrint('skipping already-provisioned attachment object', type, attachment.properties && attachment.properties.name);
                     return attachment;
                 }
                 var jointIndex = attachment.$jointIndex, // jointNames.indexOf(attachment.jointName),
@@ -133,7 +138,7 @@ DopplegangerAttachments.prototype = {
                         modelHelper.deleteObject(objectID);
                         return objectID = null;
                     }
-                    log('attachment model ('+modelHelper.type(result.objectID)+') is ready; # joints ==',
+                    debugPrint('attachment model ('+modelHelper.type(result.objectID)+') is ready; # joints ==',
                         result.jointNames && result.jointNames.length, result.naturalDimensions, result.objectID);
                     var properties = modelHelper.getProperties(result.objectID),
                         naturalDimensions = attachment.properties.naturalDimensions = properties.naturalDimensions;

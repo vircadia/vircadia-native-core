@@ -12,6 +12,8 @@
 
 var require = Script.require;
 
+var WANT_DEBUG = false;
+
 var DopplegangerClass = require('./doppleganger.js'),
     DopplegangerAttachments = require('./doppleganger-attachments.js'),
     modelHelper = require('./model-helper.js').modelHelper;
@@ -57,7 +59,7 @@ var doppleganger = new DopplegangerClass({
         var currentHash = dopplegangerAttachments.getAttachmentsHash();
         if (currentHash !== lastHash) {
             lastHash = currentHash;
-            print('app-doppleganger | detect attachment change');
+            debugPrint('app-doppleganger | detect attachment change');
             dopplegangerAttachments.refreshAttachments();
         }
     }
@@ -86,7 +88,7 @@ button.clicked.connect(doppleganger, 'toggle');
 doppleganger.activeChanged.connect(function(active, reason) {
     if (button) {
         button.editProperties({ isActive: active });
-        print('doppleganger.activeChanged', active, reason);
+        debugPrint('doppleganger.activeChanged', active, reason);
     }
 });
 
@@ -101,9 +103,15 @@ doppleganger.modelLoaded.connect(function(error, result) {
 
 // add debug indicators, but only if the user has configured the settings value
 if (Settings.getValue('debug.doppleganger', false)) {
+    WANT_DEBUG = true;
     DopplegangerClass.addDebugControls(doppleganger);
 }
 
+function debugPrint() {
+    if (WANT_DEBUG) {
+        print('app-doppleganger | ' + [].slice.call(arguments).join(' '));
+    }
+}
 // ----------------------------------------------------------------------------
 
 UserActivityLogger.logAction('doppleganger_app_load');
@@ -115,7 +123,7 @@ doppleganger.activeChanged.connect(function(active, reason) {
             // user intentionally toggled the doppleganger
             UserActivityLogger.logAction('doppleganger_disable');
         } else {
-            print('doppleganger stopped:', reason);
+            debugPrint('doppleganger stopped:', reason);
             UserActivityLogger.logAction('doppleganger_autodisable', { reason: reason });
         }
     }

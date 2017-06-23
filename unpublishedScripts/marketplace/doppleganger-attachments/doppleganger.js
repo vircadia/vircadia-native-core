@@ -28,14 +28,14 @@ var _modelHelper = require('./model-helper.js'),
     modelHelper = _modelHelper.modelHelper,
     ModelReadyWatcher = _modelHelper.ModelReadyWatcher;
 
+// @property {bool} - toggle verbose debug logging on/off
+Doppleganger.WANT_DEBUG = false;
+
 // @property {bool} - when set true, Script.update will be used instead of setInterval for syncing joint data
 Doppleganger.USE_SCRIPT_UPDATE = false;
 
 // @property {int} - the frame rate to target when using setInterval for joint updates
 Doppleganger.TARGET_FPS = 60;
-
-// @property {int} - the maximum time in seconds to wait for the model overlay to finish loading
-Doppleganger.MAX_WAIT_SECS = 10;
 
 // @class Doppleganger - Creates a new instance of a Doppleganger.
 // @param {Avatar} [options.avatar=MyAvatar] - Avatar used to retrieve position and joint data.
@@ -64,10 +64,10 @@ Doppleganger.prototype = {
     // @public @method - toggles doppleganger on/off
     toggle: function() {
         if (this.active) {
-            log('toggling off');
+            debugPrint('toggling off');
             this.stop();
         } else {
-            log('toggling on');
+            debugPrint('toggling on');
             this.start();
         }
         return this.active;
@@ -92,7 +92,7 @@ Doppleganger.prototype = {
             // note: this mismatch can happen when the avatar's model is actively changing
             if (size !== translations.length ||
                 (this.jointStateCount && size !== this.jointStateCount)) {
-                log('mismatched joint counts (avatar model likely changed)', size, translations.length, this.jointStateCount);
+                debugPrint('mismatched joint counts (avatar model likely changed)', size, translations.length, this.jointStateCount);
                 this.stop('avatar_changed_joints');
                 return;
             }
@@ -168,7 +168,7 @@ Doppleganger.prototype = {
         Script.scriptEnding.connect(this, function() {
             modelHelper.deleteObject(this.objectID);
         });
-        log('doppleganger created; objectID =', this.objectID);
+        debugPrint('doppleganger created; objectID =', this.objectID);
 
         // trigger clean up (and stop updates) if the object gets deleted
         this.onObjectDeleted = function(uuid) {
@@ -193,14 +193,14 @@ Doppleganger.prototype = {
             if (error) {
                 return this.stop(error);
             }
-            log('model ('+modelHelper.type(this.objectID)+')' + ' is ready; # joints == ' + result.jointNames.length);
+            debugPrint('model ('+modelHelper.type(this.objectID)+')' + ' is ready; # joints == ' + result.jointNames.length);
             var naturalDimensions = modelHelper.getProperties(this.objectID, ['naturalDimensions']).naturalDimensions;
-            log('naturalDimensions:', JSON.stringify(naturalDimensions));
+            debugPrint('naturalDimensions:', JSON.stringify(naturalDimensions));
             var props = { visible: true };
             if (naturalDimensions) {
                 props.dimensions = Vec3.multiply(this.scale, naturalDimensions);
             }
-            log('scaledDimensions:', this.scale, JSON.stringify(props.dimensions));
+            debugPrint('scaledDimensions:', this.scale, JSON.stringify(props.dimensions));
             modelHelper.editObject(this.objectID, props);
             if (!options.position) {
                 this.syncVerticalPosition();
@@ -250,7 +250,7 @@ Doppleganger.prototype = {
         if (this.active) {
             this.activeChanged(this.active = false, reason);
         } else if (reason) {
-            log('already stopped so not triggering another activeChanged; latest reason was:', reason);
+            debugPrint('already stopped so not triggering another activeChanged; latest reason was:', reason);
         }
     },
     // @public @method - Reposition the doppleganger so it sees "eye to eye" with the Avatar.
@@ -263,7 +263,7 @@ Doppleganger.prototype = {
             doppleJointIndex = modelHelper.getJointIndex(this.objectID, byJointName),// names.indexOf(byJointName),
             doppleJointPosition = positions[doppleJointIndex];
 
-        print('........... doppleJointPosition', JSON.stringify({
+        debugPrint('........... doppleJointPosition', JSON.stringify({
             byJointName: byJointName,
             dopplePosition: dopplePosition,
             doppleJointIndex: doppleJointIndex,
@@ -276,7 +276,7 @@ Doppleganger.prototype = {
             avatarJointPosition = this.avatar.getJointPosition(avatarJointIndex);
 
         var offset = (avatarJointPosition.y - doppleJointPosition.y);
-        log('adjusting for offset', offset);
+        debugPrint('adjusting for offset', offset);
         if (properties.type === 'model') {
             dopplePosition.y = avatarPosition.y + offset;
         } else {
@@ -290,11 +290,11 @@ Doppleganger.prototype = {
     // @private @method - creates the update thread to synchronize joint data
     _createUpdateThread: function() {
         if (Doppleganger.USE_SCRIPT_UPDATE) {
-            log('creating Script.update thread');
+            debugPrint('creating Script.update thread');
             this.onUpdate = this.update;
             Script.update.connect(this, 'onUpdate');
         } else {
-            log('creating Script.setInterval thread @ ~', Doppleganger.TARGET_FPS +'fps');
+            debugPrint('creating Script.setInterval thread @ ~', Doppleganger.TARGET_FPS +'fps');
             var timeout = 1000 / Doppleganger.TARGET_FPS;
             this._interval = Script.setInterval(bind(this, 'update'), timeout);
         }
@@ -367,6 +367,10 @@ function assign(target, varArgs) { // .length of function is 2
 // @function - debug logging
 function log() {
     print('doppleganger | ' + [].slice.call(arguments).join(' '));
+}
+
+function debugPrint() {
+    Doppleganger.WANT_DEBUG && log.apply(this, arguments);
 }
 
 // -- ADVANCED DEBUGGING --
