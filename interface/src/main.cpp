@@ -71,15 +71,17 @@ int main(int argc, const char* argv[]) {
     QCommandLineOption runServerOption("runServer", "Whether to run the server");
     QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
     QCommandLineOption allowMultipleInstancesOption("allowMultipleInstances", "Allow multiple instances to run");
+    QCommandLineOption overrideAppLocalDataPathOption("cache", "Override cache directory", "value");
     parser.addOption(urlOption);
     parser.addOption(noUpdaterOption);
     parser.addOption(checkMinSpecOption);
     parser.addOption(runServerOption);
     parser.addOption(serverContentPathOption);
+    parser.addOption(overrideAppLocalDataPathOption);
     parser.addOption(allowMultipleInstancesOption);
     parser.parse(arguments);
 
-    
+
     const QString& applicationName = getInterfaceSharedMemoryName();
     bool instanceMightBeRunning = true;
 #ifdef Q_OS_WIN
@@ -95,6 +97,10 @@ int main(int argc, const char* argv[]) {
                                   QProcessEnvironment::systemEnvironment().contains("HIFI_ALLOW_MULTIPLE_INSTANCES");
     if (allowMultipleInstances) {
         instanceMightBeRunning = false;
+    }
+    if (parser.isSet(overrideAppLocalDataPathOption)) {
+        QString appLocalDataPath = parser.value(overrideAppLocalDataPathOption);
+        PathUtils::getAppLocalDataPath(appLocalDataPath);
     }
 
     if (instanceMightBeRunning) {
@@ -179,7 +185,7 @@ int main(int argc, const char* argv[]) {
         QString openvrDllPath = appPath + "/plugins/openvr.dll";
         HMODULE openvrDll;
         CHECKMINSPECPROC checkMinSpecPtr;
-        if ((openvrDll = LoadLibrary(openvrDllPath.toLocal8Bit().data())) && 
+        if ((openvrDll = LoadLibrary(openvrDllPath.toLocal8Bit().data())) &&
             (checkMinSpecPtr = (CHECKMINSPECPROC)GetProcAddress(openvrDll, "CheckMinSpec"))) {
             if (!checkMinSpecPtr()) {
                 return -1;
