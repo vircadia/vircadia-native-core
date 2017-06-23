@@ -66,6 +66,8 @@ public:
 
     Q_PROPERTY(QString defaultScriptsPath READ getDefaultScriptsLocation)
 
+    void defaultScriptsLocationOverridden(bool overridden) { _defaultScriptsLocationOverridden = overridden; };
+
     // Called at shutdown time
     void shutdownScripting();
     bool isStopped() const { return _isStopped; }
@@ -112,6 +114,8 @@ protected:
     ScriptsModel _scriptsModel;
     ScriptsModelFilter _scriptsModelFilter;
     std::atomic<bool> _isStopped { false };
+    std::atomic<bool> _isReloading { false };
+    bool _defaultScriptsLocationOverridden { false };
 };
 
 QUrl normalizeScriptURL(const QUrl& rawScriptURL);

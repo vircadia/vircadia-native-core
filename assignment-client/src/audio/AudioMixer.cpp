@@ -103,11 +103,6 @@ AudioMixer::AudioMixer(ReceivedMessage& message) :
     );
 
     connect(nodeList.data(), &NodeList::nodeKilled, this, &AudioMixer::handleNodeKilled);
-    connect(nodeList.data(), &NodeList::nodeAdded, this, [this](const SharedNodePointer& node) {
-        if (node->getType() == NodeType::DownstreamAudioMixer) {
-            node->activatePublicSocket();
-        }
-    });
 }
 
 void AudioMixer::queueAudioPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
@@ -170,19 +165,6 @@ void AudioMixer::handleMuteEnvironmentPacket(QSharedPointer<ReceivedMessage> mes
         });
     }
 }
-
-DisplayPluginList getDisplayPlugins() {
-    DisplayPluginList result;
-    return result;
-}
-
-InputPluginList getInputPlugins() {
-    InputPluginList result;
-    return result;
-}
-
-// must be here to satisfy a reference in PluginManager::saveSettings()
-void saveInputPluginSettings(const InputPluginList& plugins) {}
 
 const std::pair<QString, CodecPluginPointer> AudioMixer::negotiateCodec(std::vector<QString> codecs) {
     QString selectedCodecName;
@@ -389,7 +371,10 @@ void AudioMixer::start() {
     auto nodeList = DependencyManager::get<NodeList>();
 
     // prepare the NodeList
-    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::DownstreamAudioMixer, NodeType::EntityScriptServer });
+    nodeList->addSetOfNodeTypesToNodeInterestSet({
+        NodeType::Agent, NodeType::EntityScriptServer,
+        NodeType::UpstreamAudioMixer, NodeType::DownstreamAudioMixer
+    });
     nodeList->linkedDataCreateCallback = [&](Node* node) { getOrCreateClientData(node); };
 
     // parse out any AudioMixer settings

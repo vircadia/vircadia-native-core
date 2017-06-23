@@ -16,8 +16,6 @@
 #include <UserActivityLogger.h>
 #include <PathUtils.h>
 
-#include <OffscreenUi.h>
-
 #include "ScriptEngine.h"
 #include "ScriptEngineLogging.h"
 
@@ -74,7 +72,7 @@ ScriptEngines::ScriptEngines(ScriptEngine::Context context)
 QUrl normalizeScriptURL(const QUrl& rawScriptURL) {
     if (rawScriptURL.scheme() == "file") {
         QUrl fullNormal = rawScriptURL;
-        QUrl defaultScriptLoc = defaultScriptsLocation();
+        QUrl defaultScriptLoc = PathUtils::defaultScriptsLocation();
 
         // if this url is something "beneath" the default script url, replace the local path with ~
         if (fullNormal.scheme() == defaultScriptLoc.scheme() &&
@@ -93,7 +91,7 @@ QUrl normalizeScriptURL(const QUrl& rawScriptURL) {
 
 QString expandScriptPath(const QString& rawPath) {
     QStringList splitPath = rawPath.split("/");
-    QUrl defaultScriptsLoc = defaultScriptsLocation();
+    QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
     return defaultScriptsLoc.path() + "/" + splitPath.mid(2).join("/"); // 2 to skip the slashes in /~/
 }
 
@@ -112,7 +110,7 @@ QUrl expandScriptUrl(const QUrl& rawScriptURL) {
             QFileInfo fileInfo(url.toLocalFile());
             url = QUrl::fromLocalFile(fileInfo.canonicalFilePath());
 
-            QUrl defaultScriptsLoc = defaultScriptsLocation();
+            QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
             if (!defaultScriptsLoc.isParentOf(url)) {
                 qCWarning(scriptengine) << "Script.include() ignoring file path" << rawScriptURL
                                         << "-- outside of standard libraries: "
@@ -327,6 +325,13 @@ void ScriptEngines::saveScripts() {
         return;
     }
 
+    // don't save scripts if we started with --scripts, as we would overwrite
+    // the scripts that the user expects to be there when launched without the
+    // --scripts override.
+    if (_defaultScriptsLocationOverridden) {
+        return;
+    }
+
     // Saves all currently running user-loaded scripts
     QVariantList list;
 
@@ -356,6 +361,13 @@ QStringList ScriptEngines::getRunningScripts() {
 void ScriptEngines::stopAllScripts(bool restart) {
     QVector<QString> toReload;
     QReadLocker lock(&_scriptEnginesHashLock);
+
+    if (_isReloading) {
+        return;
+    } else {
+        _isReloading = true;
+    }
+
     for (QHash<QUrl, ScriptEngine*>::const_iterator it = _scriptEnginesHash.constBegin();
         it != _scriptEnginesHash.constEnd(); it++) {
         ScriptEngine *scriptEngine = it.value();
@@ -375,7 +387,7 @@ void ScriptEngines::stopAllScripts(bool restart) {
     }
     // wait for engines to stop (ie: providing time for .scriptEnding cleanup handlers to run) before
     // triggering reload of any Client scripts / Entity scripts
-    QTimer::singleShot(500, this, [=]() {
+    QTimer::singleShot(1000, this, [=]() {
         for(const auto &scriptName : toReload) {
             auto scriptEngine = getScriptEngine(scriptName);
             if (scriptEngine && !scriptEngine->isFinished()) {
@@ -390,6 +402,7 @@ void ScriptEngines::stopAllScripts(bool restart) {
             qCDebug(scriptengine) << "stopAllScripts -- emitting scriptsReloading";
             emit scriptsReloading();
         }
+        _isReloading = false;
     });
 }
 
@@ -431,7 +444,6 @@ void ScriptEngines::setScriptsLocation(const QString& scriptsLocation) {
 void ScriptEngines::reloadAllScripts() {
     qCDebug(scriptengine) << "reloadAllScripts -- clearing caches";
     DependencyManager::get<ScriptCache>()->clearCache();
-    DependencyManager::get<OffscreenUi>()->clearCache();
     qCDebug(scriptengine) << "reloadAllScripts -- stopping all scripts";
     stopAllScripts(true);
 }
@@ -533,11 +545,11 @@ void ScriptEngines::launchScriptEngine(ScriptEngine* scriptEngine) {
         initializer(scriptEngine);
     }
 
-    // FIXME disabling 'shift key' debugging for now.  If you start up the application with 
-    // the shift key held down, it triggers a deadlock because of script interfaces running 
+    // FIXME disabling 'shift key' debugging for now.  If you start up the application with
+    // the shift key held down, it triggers a deadlock because of script interfaces running
     // on the main thread
     auto const wantDebug = scriptEngine->isDebuggable(); //  || (qApp->queryKeyboardModifiers() & Qt::ShiftModifier);
-    
+
     if (HIFI_SCRIPT_DEBUGGABLES && wantDebug) {
         scriptEngine->runDebuggable();
     } else {
@@ -573,5 +585,5 @@ void ScriptEngines::onScriptEngineError(const QString& scriptFilename) {
 }
 
 QString ScriptEngines::getDefaultScriptsLocation() const {
-    return defaultScriptsLocation().toString();
+    return PathUtils::defaultScriptsLocation().toString();
 }

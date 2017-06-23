@@ -336,6 +336,13 @@ ShortbowGameManager.prototype = {
             volume: 1.0,
             position: this.rootPosition
         });
+		
+		var liveChecker = setInterval(function() {
+			if (this.livesLeft <= 0) {
+				this.endGame();
+				clearInterval(liveChecker);
+			}
+		}, 1000);
     },
     startNextWave: function() {
         if (this.gameState !== GAME_STATES.BETWEEN_WAVES) {
@@ -464,6 +471,7 @@ ShortbowGameManager.prototype = {
                 print("EXPIRING: ", enemy.id);
                 Entities.deleteEntity(enemy.id);
                 this.remainingEnemies.splice(i, 1);
+				// Play the sound when you hit an enemy
                 Audio.playSound(TARGET_HIT_SOUND, {
                     volume: 1.0,
                     position: this.rootPosition
@@ -561,10 +569,10 @@ ShortbowGameManager.prototype = {
         }
     },
     onEnemyKilled: function(entityID, position) {
-        if (this.gameState !== GAME_STATES.PLAYING) {
+		if (this.gameState !== GAME_STATES.PLAYING) {
             return;
         }
-
+		
         for (var i = this.remainingEnemies.length - 1; i >= 0; --i) {
             var enemy = this.remainingEnemies[i];
             if (enemy.id === entityID) {
@@ -573,7 +581,6 @@ ShortbowGameManager.prototype = {
                     volume: 1.0,
                     position: this.rootPosition
                 });
-
                 // Update score
                 this.setScore(this.score + POINTS_PER_KILL);
                 print("SCORE: ", this.score);
@@ -592,6 +599,7 @@ ShortbowGameManager.prototype = {
         for (var i = this.remainingEnemies.length - 1; i >= 0; --i) {
             var enemy = this.remainingEnemies[i];
             if (enemy.id === entityID) {
+				
                 Entities.deleteEntity(enemy.id);
                 this.remainingEnemies.splice(i, 1);
                 this.setLivesLeft(this.livesLeft - 1);
