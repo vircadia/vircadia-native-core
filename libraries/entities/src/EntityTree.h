@@ -136,7 +136,7 @@ public:
 
     /// \param position point of query in world-frame (meters)
     /// \param targetRadius radius of query (meters)
-    EntityItemPointer findClosestEntity(glm::vec3 position, float targetRadius);
+    EntityItemPointer findClosestEntity(const glm::vec3& position, float targetRadius);
     EntityItemPointer findEntityByID(const QUuid& id);
     EntityItemPointer findEntityByEntityItemID(const EntityItemID& entityID);
     virtual SpatiallyNestablePointer findByID(const QUuid& id) override { return findEntityByID(id); }
@@ -294,12 +294,12 @@ protected:
     bool updateEntityWithElement(EntityItemPointer entity, const EntityItemProperties& properties,
                                  EntityTreeElementPointer containingElement,
                                  const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
-    static bool findNearPointOperation(OctreeElementPointer element, void* extraData);
-    static bool findInSphereOperation(OctreeElementPointer element, void* extraData);
-    static bool findInCubeOperation(OctreeElementPointer element, void* extraData);
-    static bool findInBoxOperation(OctreeElementPointer element, void* extraData);
-    static bool findInFrustumOperation(OctreeElementPointer element, void* extraData);
-    static bool sendEntitiesOperation(OctreeElementPointer element, void* extraData);
+    static bool findNearPointOperation(const OctreeElementPointer& element, void* extraData);
+    static bool findInSphereOperation(const OctreeElementPointer& element, void* extraData);
+    static bool findInCubeOperation(const OctreeElementPointer& element, void* extraData);
+    static bool findInBoxOperation(const OctreeElementPointer& element, void* extraData);
+    static bool findInFrustumOperation(const OctreeElementPointer& element, void* extraData);
+    static bool sendEntitiesOperation(const OctreeElementPointer& element, void* extraData);
     static void bumpTimestamp(EntityItemProperties& properties);
 
     void notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode);

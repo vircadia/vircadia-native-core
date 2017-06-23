@@ -9,10 +9,11 @@
 #ifndef hifi_Stats_h
 #define hifi_Stats_h
 
+#include <QtGui/QVector3D>
+
 #include <OffscreenQmlElement.h>
-#include <RenderArgs.h>
-#include <QVector3D>
 #include <AudioIOStats.h>
+#include <render/Args.h>
 
 #define STATS_PROPERTY(type, name, initialValue) \
     Q_PROPERTY(type name READ name NOTIFY name##Changed) \
@@ -138,7 +139,7 @@ public:
 
     Stats(QQuickItem* parent = nullptr);
     bool includeTimingRecord(const QString& name);
-    void setRenderDetails(const RenderDetails& details);
+    void setRenderDetails(const render::RenderDetails& details);
     const QString& monospaceFont() {
         return _monospaceFont;
     }

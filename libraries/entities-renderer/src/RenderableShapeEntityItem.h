@@ -14,7 +14,7 @@
 
 #include "RenderableEntityItem.h"
 
-class RenderableShapeEntityItem : public ShapeEntityItem {
+class RenderableShapeEntityItem : public ShapeEntityItem, private SimplerRenderableEntitySupport {
     using Pointer = std::shared_ptr<RenderableShapeEntityItem>;
     static Pointer baseFactory(const EntityItemID& entityID, const EntityItemProperties& properties);
 public:

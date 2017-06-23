@@ -143,6 +143,9 @@ public:
     // Reset stages
     virtual void do_resetStages(const Batch& batch, size_t paramOffset) final;
 
+    virtual void do_disableContextStereo(const Batch& batch, size_t paramOffset) final;
+    virtual void do_restoreContextStereo(const Batch& batch, size_t paramOffset) final;
+
     virtual void do_runLambda(const Batch& batch, size_t paramOffset) final;
 
     virtual void do_startNamedCall(const Batch& batch, size_t paramOffset) final;

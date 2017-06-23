@@ -14,7 +14,6 @@
 
 #include <QtScript/QScriptEngine>
 
-#include <ui/Menu.h>
 #include "KeyEvent.h"
 
 
@@ -35,7 +34,7 @@ public:
     QKeySequence shortcutKeySequence; // this is what we actually use, it's set from one of the above
 
     // location related items: in order of priority
-    int position { ui::Menu::UNSPECIFIED_POSITION };
+    int position { UNSPECIFIED_POSITION };
     QString beforeItem;
     QString afterItem;
 
@@ -45,6 +44,9 @@ public:
     bool isSeparator { false };
 
     QString grouping; /// Either: "", "Advanced", or "Developer"
+
+private:
+    static const int UNSPECIFIED_POSITION = -1;
 };
 Q_DECLARE_METATYPE(MenuItemProperties)
 QScriptValue menuItemPropertiesToScriptValue(QScriptEngine* engine, const MenuItemProperties& props);

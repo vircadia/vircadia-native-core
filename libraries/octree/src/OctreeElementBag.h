@@ -24,7 +24,7 @@ class OctreeElementBag {
     using Bag = std::unordered_map<OctreeElement*, OctreeElementWeakPointer>;
     
 public:
-    void insert(OctreeElementPointer element); // put a element into the bag
+    void insert(const OctreeElementPointer& element); // put a element into the bag
 
     OctreeElementPointer extract(); /// pull a element out of the bag (could come in any order) and if all of the
                                     /// elements have expired, a single null pointer will be returned

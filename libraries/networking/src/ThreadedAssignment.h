@@ -18,6 +18,8 @@
 
 #include "Assignment.h"
 
+using DownstreamNodeFoundCallback = std::function<void(Node& downstreamNode)>;
+
 class ThreadedAssignment : public Assignment {
     Q_OBJECT
 public:
@@ -40,6 +42,7 @@ signals:
 
 protected:
     void commonInit(const QString& targetName, NodeType_t nodeType);
+
     bool _isFinished;
     QTimer _domainServerTimer;
     QTimer _statsTimer;

@@ -76,6 +76,14 @@ public:
     float getOutboundBandwidth() const; // in kbps
     float getInboundBandwidth() const; // in kbps
 
+    // Typically the LimitedNodeList removes nodes after they are "silent"
+    // meaning that we have not received any packets (including simple keepalive pings) from them for a set interval.
+    // The _isForcedNeverSilent flag tells the LimitedNodeList that a Node should never be killed by removeSilentNodes()
+    // even if its the timestamp of when it was last heard from has never been updated.
+
+    bool isForcedNeverSilent() const { return _isForcedNeverSilent; }
+    void setIsForcedNeverSilent(bool isForcedNeverSilent) { _isForcedNeverSilent = isForcedNeverSilent; }
+
     friend QDataStream& operator<<(QDataStream& out, const NetworkPeer& peer);
     friend QDataStream& operator>>(QDataStream& in, NetworkPeer& peer);
 public slots:
@@ -103,6 +111,8 @@ protected:
     QTimer* _pingTimer = NULL;
 
     int _connectionAttempts;
+
+    bool _isForcedNeverSilent { false };
 };
 
 QDebug operator<<(QDebug debug, const NetworkPeer &peer);

@@ -288,6 +288,13 @@ void Avatar::updateAvatarEntities() {
                 properties.setScript(noScript);
             }
 
+            // When grabbing avatar entities, they are parented to the joint moving them, then when un-grabbed
+            // they go back to the default parent (null uuid).  When un-gripped, others saw the entity disappear.
+            // The thinking here is the local position was noticed as changing, but not the parentID (since it is now
+            // back to the default), and the entity flew off somewhere.  Marking all changed definitely fixes this,
+            // and seems safe (per Seth).
+            properties.markAllChanged();
+
             // try to build the entity
             EntityItemPointer entity = entityTree->findEntityByEntityItemID(EntityItemID(entityID));
             bool success = true;
@@ -1067,15 +1074,15 @@ void Avatar::setModelURLFinished(bool success) {
         const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: we don't want to be as generous as ResourceCache is, we only want 4 attempts
         if (_skeletonModel->getResourceDownloadAttemptsRemaining() <= 0 ||
             _skeletonModel->getResourceDownloadAttempts() > MAX_SKELETON_DOWNLOAD_ATTEMPTS) {
-            qCWarning(avatars_renderer) << "Using default after failing to load Avatar model: " << _skeletonModelURL 
+            qCWarning(avatars_renderer) << "Using default after failing to load Avatar model: " << _skeletonModelURL
                                     << "after" << _skeletonModel->getResourceDownloadAttempts() << "attempts.";
             // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
             // we don't redo this every time we receive an identity packet from the avatar with the bad url.
             QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
                 Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
         } else {
-            qCWarning(avatars_renderer) << "Avatar model: " << _skeletonModelURL 
-                    << "failed to load... attempts:" << _skeletonModel->getResourceDownloadAttempts() 
+            qCWarning(avatars_renderer) << "Avatar model: " << _skeletonModelURL
+                    << "failed to load... attempts:" << _skeletonModel->getResourceDownloadAttempts()
                     << "out of:" << MAX_SKELETON_DOWNLOAD_ATTEMPTS;
         }
     }
