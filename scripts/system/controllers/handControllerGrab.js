@@ -1173,7 +1173,6 @@ function MyController(hand) {
     };
 
     this.update = function(deltaTime, timestamp) {
-        Script.beginProfileRange("handControllerGrab:MyController:update")
         this.updateSmoothedTrigger();
         this.maybeScaleMyAvatar();
 
@@ -1210,7 +1209,6 @@ function MyController(hand) {
         } else {
             print("WARNING: could not find state " + this.state + " in state machine");
         }
-        Script.endProfileRange("handControllerGrab:MyController:update") 
     };
 
     this.callEntityMethodOnGrabbed = function(entityMethodName) {
