@@ -713,9 +713,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateHeartbeat();
 
     // setup a timer for domain-server check ins
-    QTimer* domainCheckInTimer = new QTimer(nodeList.data());
+    QTimer* domainCheckInTimer = new QTimer(this);
     connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
     domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
+    connect(this, &QCoreApplication::aboutToQuit, [domainCheckInTimer] {
+        domainCheckInTimer->stop();
+        domainCheckInTimer->deleteLater();
+    });
 
 
     auto audioIO = DependencyManager::get<AudioClient>();
