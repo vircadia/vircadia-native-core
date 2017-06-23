@@ -5,6 +5,18 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
+//  When this script is running, a new app button, named "PUCKTACH", will be added to the toolbar/tablet.
+//  Click this app to bring up the puck attachment panel.  This panel contains the following fields.
+//
+//  * Tracked Object - A drop down list of all the available pucks found.  If no pucks are found this list will only have a single NONE entry.
+//    Closing and re-opening the app will refresh this list.
+//  * Model URL - A model url of the model you wish to be attached to the specified puck.
+//  * Position X, Y, Z - used to apply an offset between the puck and the attached model.
+//  * Rot X, Y, Z - used to apply euler angle offsets, in degrees, between the puck and the attached model.
+//  * Create Attachment - when this button is pressed a new Entity will be created at the specified puck's location.
+//    If a puck atttachment already exists, it will be destroyed before the new entity is created.
+//  * Destroy Attachmetn - destroies the entity attached to the puck.
+//
 
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 /* global Xform */
@@ -46,7 +58,7 @@ function onScreenChanged(type, url) {
                 var availableTrackedObjects = getAvailableTrackedObjects();
                 tablet.emitScriptEvent(JSON.stringify(availableTrackedObjects));
 
-                print("PUCK-ATTACH: availableTrackedObjects = " + JSON.stringify(availableTrackedObjects));
+                // print("PUCK-ATTACH: availableTrackedObjects = " + JSON.stringify(availableTrackedObjects));
             }, 1000);  // wait 1 sec before sending..
         }
         shown = true;
@@ -93,10 +105,10 @@ function attach(obj) {
     var key = indexToTrackedObjectName(Number(attachedObj.puckno));
     attachedObj.key = key;
 
-    print("PUCK-ATTACH: attachedObj = " + JSON.stringify(attachedObj));
+    // print("PUCK-ATTACH: attachedObj = " + JSON.stringify(attachedObj));
 
     Script.update.connect(update);
-    update(0.001);
+    update();
 }
 
 function remove() {
@@ -113,7 +125,7 @@ function pad(num, size) {
     return tempString.substr(tempString.length - size);
 }
 
-function update(dt) {
+function update() {
     if (attachedEntity && attachedObj && Controller.Hardware.Vive) {
         var pose = Controller.getPoseValue(Controller.Hardware.Vive[attachedObj.key]);
         var avatarXform = new Xform(MyAvatar.orientation, MyAvatar.position);
