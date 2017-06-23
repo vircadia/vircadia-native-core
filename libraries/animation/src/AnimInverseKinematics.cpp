@@ -1122,7 +1122,9 @@ void AnimInverseKinematics::initConstraints() {
         if (0 == baseName.compare("Arm", Qt::CaseSensitive)) {
             SwingTwistConstraint* stConstraint = new SwingTwistConstraint();
             stConstraint->setReferenceRotation(_defaultRelativePoses[i].rot());
-            stConstraint->setTwistLimits(-PI / 2.0f, PI / 2.0f);
+            //stConstraint->setTwistLimits(-PI / 2.0f, PI / 2.0f);
+            const float TWIST_LIMIT = 5.0f * PI / 8.0f;
+            stConstraint->setTwistLimits(-TWIST_LIMIT, TWIST_LIMIT);
 
             /* KEEP THIS CODE for future experimentation
             // these directions are approximate swing limits in root-frame
@@ -1148,7 +1150,7 @@ void AnimInverseKinematics::initConstraints() {
 
             // simple cone
             std::vector<float> minDots;
-            const float MAX_HAND_SWING = PI / 2.0f;
+            const float MAX_HAND_SWING = 5.0f * PI / 8.0f;
             minDots.push_back(cosf(MAX_HAND_SWING));
             stConstraint->setSwingLimits(minDots);
 

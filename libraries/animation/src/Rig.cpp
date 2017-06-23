@@ -1089,7 +1089,7 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
     const bool LEFT_HAND = true;
     const bool RIGHT_HAND = false;
 
-    const float ELBOW_POLE_VECTOR_BLEND_FACTOR = 0.9f;
+    const float ELBOW_POLE_VECTOR_BLEND_FACTOR = 0.95f;
 
     if (leftHandEnabled) {
         if (!_isLeftHandControlled) {
@@ -1260,7 +1260,7 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
 
 void Rig::updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose& leftFootPose, const AnimPose& rightFootPose) {
 
-    const float KNEE_POLE_VECTOR_BLEND_FACTOR = 0.9f;
+    const float KNEE_POLE_VECTOR_BLEND_FACTOR = 0.95f;
 
     int hipsIndex = indexOfJoint("Hips");
 
@@ -1390,7 +1390,7 @@ glm::vec3 Rig::calculateElbowPoleVector(int handIndex, int elbowIndex, int armIn
 
     // give dProj a bit of offset away from the body.
     float avatarScale = extractUniformScale(_modelOffset);
-    const float LATERAL_OFFSET = 0.333f * avatarScale;
+    const float LATERAL_OFFSET = 1.0f * avatarScale;
     const float VERTICAL_OFFSET = -0.333f * avatarScale;
     glm::vec3 dProjWithOffset = dProj + sign * LATERAL_OFFSET * n + y * VERTICAL_OFFSET;
 
