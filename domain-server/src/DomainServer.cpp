@@ -87,7 +87,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     qDebug() << "[VERSION] VERSION:" << BuildInfo::VERSION;
     qDebug() << "[VERSION] BUILD_BRANCH:" << BuildInfo::BUILD_BRANCH;
     qDebug() << "[VERSION] BUILD_GLOBAL_SERVICES:" << BuildInfo::BUILD_GLOBAL_SERVICES;
-    qDebug() << "[VERSION] We will be using this default ICE server:" << ICE_SERVER_DEFAULT_HOSTNAME;
+    qDebug() << "[VERSION] We will be using this name to find ICE servers:" << _iceServerAddr;
 
 
     // make sure we have a fresh AccountManager instance
@@ -121,6 +121,8 @@ DomainServer::DomainServer(int argc, char* argv[]) :
             this, &DomainServer::updateReplicatedNodes);
     connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
             this, &DomainServer::updateDownstreamNodes);
+    connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
+            this, &DomainServer::updateUpstreamNodes);
 
     setupGroupCacheRefresh();
 
@@ -135,6 +137,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     updateReplicatedNodes();
     updateDownstreamNodes();
+    updateUpstreamNodes();
 
     if (_type != NonMetaverse) {
         // if we have a metaverse domain, we'll use an access token for API calls
@@ -1549,7 +1552,7 @@ void DomainServer::sendHeartbeatToIceServer() {
 
     } else {
         qDebug() << "Not sending ice-server heartbeat since there is no selected ice-server.";
-        qDebug() << "Waiting for" << ICE_SERVER_DEFAULT_HOSTNAME << "host lookup response";
+        qDebug() << "Waiting for" << _iceServerAddr << "host lookup response";
 
     }
 }
@@ -2229,53 +2232,84 @@ void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer&
 
 static const QString BROADCASTING_SETTINGS_KEY = "broadcasting";
 
-void DomainServer::updateDownstreamNodes() {
+struct ReplicationServerInfo {
+    NodeType_t nodeType;
+    HifiSockAddr sockAddr;
+};
+
+ReplicationServerInfo serverInformationFromSettings(QVariantMap serverMap, ReplicationServerDirection direction) {
+    static const QString REPLICATION_SERVER_ADDRESS = "address";
+    static const QString REPLICATION_SERVER_PORT = "port";
+    static const QString REPLICATION_SERVER_TYPE = "server_type";
+
+    if (serverMap.contains(REPLICATION_SERVER_ADDRESS) && serverMap.contains(REPLICATION_SERVER_PORT)
+        && serverMap.contains(REPLICATION_SERVER_TYPE)) {
+
+        auto nodeType = NodeType::fromString(serverMap[REPLICATION_SERVER_TYPE].toString());
+
+        ReplicationServerInfo serverInfo;
+
+        if (direction == Upstream) {
+            serverInfo.nodeType = NodeType::upstreamType(nodeType);
+        } else if (direction == Downstream) {
+            serverInfo.nodeType = NodeType::downstreamType(nodeType);
+        }
+
+        // read the address and port and construct a HifiSockAddr from them
+        serverInfo.sockAddr = {
+            serverMap[REPLICATION_SERVER_ADDRESS].toString(),
+            (quint16) serverMap[REPLICATION_SERVER_PORT].toString().toInt()
+        };
+
+        return serverInfo;
+    }
+
+    return { NodeType::Unassigned, HifiSockAddr() };
+}
+
+void DomainServer::updateReplicationNodes(ReplicationServerDirection direction) {
     auto settings = _settingsManager.getSettingsMap();
+
     if (settings.contains(BROADCASTING_SETTINGS_KEY)) {
         auto nodeList = DependencyManager::get<LimitedNodeList>();
-        std::vector<HifiSockAddr> downstreamNodesInSettings;
-        auto replicationSettings = settings.value(BROADCASTING_SETTINGS_KEY).toMap();
-        if (replicationSettings.contains("downstream_servers")) {
-            auto serversSettings = replicationSettings.value("downstream_servers").toList();
+        std::vector<HifiSockAddr> replicationNodesInSettings;
 
-            std::vector<HifiSockAddr> knownDownstreamNodes;
+        auto replicationSettings = settings.value(BROADCASTING_SETTINGS_KEY).toMap();
+
+        QString serversKey = direction == Upstream ? "upstream_servers" : "downstream_servers";
+        QString replicationDirection = direction == Upstream ? "upstream" : "downstream";
+
+        if (replicationSettings.contains(serversKey)) {
+            auto serversSettings = replicationSettings.value(serversKey).toList();
+
+            std::vector<HifiSockAddr> knownReplicationNodes;
             nodeList->eachNode([&](const SharedNodePointer& otherNode) {
-                if (NodeType::isDownstream(otherNode->getType())) {
-                    knownDownstreamNodes.push_back(otherNode->getPublicSocket());
+                if ((direction == Upstream && NodeType::isUpstream(otherNode->getType()))
+                    || (direction == Downstream && NodeType::isDownstream(otherNode->getType()))) {
+                    knownReplicationNodes.push_back(otherNode->getPublicSocket());
                 }
             });
 
             for (auto& server : serversSettings) {
-                auto downstreamServer = server.toMap();
+                auto replicationServer = serverInformationFromSettings(server.toMap(), direction);
 
-                static const QString DOWNSTREAM_SERVER_ADDRESS = "address";
-                static const QString DOWNSTREAM_SERVER_PORT = "port";
-                static const QString DOWNSTREAM_SERVER_TYPE = "server_type";
+                if (!replicationServer.sockAddr.isNull() && replicationServer.nodeType != NodeType::Unassigned) {
+                    // make sure we have the settings we need for this replication server
+                    replicationNodesInSettings.push_back(replicationServer.sockAddr);
 
-                // make sure we have the settings we need for this downstream server
-                if (downstreamServer.contains(DOWNSTREAM_SERVER_ADDRESS) && downstreamServer.contains(DOWNSTREAM_SERVER_PORT)) {
-
-                    auto nodeType = NodeType::fromString(downstreamServer[DOWNSTREAM_SERVER_TYPE].toString());
-                    auto downstreamNodeType = NodeType::downstreamType(nodeType);
-
-                    // read the address and port and construct a HifiSockAddr from them
-                    HifiSockAddr downstreamServerAddr {
-                        downstreamServer[DOWNSTREAM_SERVER_ADDRESS].toString(),
-                        (quint16) downstreamServer[DOWNSTREAM_SERVER_PORT].toString().toInt()
-                    };
-                    downstreamNodesInSettings.push_back(downstreamServerAddr);
-
-                    bool knownNode = find(knownDownstreamNodes.cbegin(), knownDownstreamNodes.cend(),
-                                          downstreamServerAddr) != knownDownstreamNodes.cend();
+                    bool knownNode = find(knownReplicationNodes.cbegin(), knownReplicationNodes.cend(),
+                                          replicationServer.sockAddr) != knownReplicationNodes.cend();
                     if (!knownNode) {
-                        // manually add the downstream node to our node list
-                        auto node = nodeList->addOrUpdateNode(QUuid::createUuid(), downstreamNodeType,
-                                                              downstreamServerAddr, downstreamServerAddr);
+                        // manually add the replication node to our node list
+                        auto node = nodeList->addOrUpdateNode(QUuid::createUuid(), replicationServer.nodeType,
+                                                              replicationServer.sockAddr, replicationServer.sockAddr,
+                                                              false, direction == Upstream);
                         node->setIsForcedNeverSilent(true);
 
-                        qDebug() << "Adding downstream node:" << node->getUUID() << downstreamServerAddr;
+                        qDebug() << "Adding" << (direction == Upstream ? "upstream" : "downstream")
+                            << "node:" << node->getUUID() << replicationServer.sockAddr;
 
-                        // manually activate the public socket for the downstream node
+                        // manually activate the public socket for the replication node
                         node->activatePublicSocket();
                     }
                 }
@@ -2288,11 +2322,13 @@ void DomainServer::updateDownstreamNodes() {
         // we cannot recursively take the write lock required by handleKillNode)
         std::vector<SharedNodePointer> nodesToKill;
         nodeList->eachNode([&](const SharedNodePointer& otherNode) {
-            if (NodeType::isDownstream(otherNode->getType())) {
-                bool nodeInSettings = find(downstreamNodesInSettings.cbegin(), downstreamNodesInSettings.cend(),
-                                           otherNode->getPublicSocket()) != downstreamNodesInSettings.cend();
+            if ((direction == Upstream && NodeType::isUpstream(otherNode->getType()))
+                || (direction == Downstream && NodeType::isDownstream(otherNode->getType()))) {
+                bool nodeInSettings = find(replicationNodesInSettings.cbegin(), replicationNodesInSettings.cend(),
+                                           otherNode->getPublicSocket()) != replicationNodesInSettings.cend();
                 if (!nodeInSettings) {
-                    qDebug() << "Removing downstream node:" << otherNode->getUUID() << otherNode->getPublicSocket();
+                    qDebug() << "Removing" << replicationDirection
+                        << "node:" << otherNode->getUUID() << otherNode->getPublicSocket();
                     nodesToKill.push_back(otherNode);
                 }
             }
@@ -2302,6 +2338,14 @@ void DomainServer::updateDownstreamNodes() {
             handleKillNode(node);
         }
     }
+}
+
+void DomainServer::updateDownstreamNodes() {
+    updateReplicationNodes(Downstream);
+}
+
+void DomainServer::updateUpstreamNodes() {
+    updateReplicationNodes(Upstream);
 }
 
 void DomainServer::updateReplicatedNodes() {
@@ -2639,7 +2683,7 @@ void DomainServer::handleICEHostInfo(const QHostInfo& hostInfo) {
     _iceAddressLookupID = -1;
 
     if (hostInfo.error() != QHostInfo::NoError) {
-        qWarning() << "IP address lookup failed for" << ICE_SERVER_DEFAULT_HOSTNAME << ":" << hostInfo.errorString();
+        qWarning() << "IP address lookup failed for" << _iceServerAddr << ":" << hostInfo.errorString();
 
         // if we don't have an ICE server to use yet, trigger a retry
         if (_iceServerSocket.isNull()) {
@@ -2654,7 +2698,7 @@ void DomainServer::handleICEHostInfo(const QHostInfo& hostInfo) {
         _iceServerAddresses = hostInfo.addresses();
 
         if (countBefore == 0) {
-            qInfo() << "Found" << _iceServerAddresses.count() << "ice-server IP addresses for" << ICE_SERVER_DEFAULT_HOSTNAME;
+            qInfo() << "Found" << _iceServerAddresses.count() << "ice-server IP addresses for" << _iceServerAddr;
         }
 
         if (_iceServerSocket.isNull()) {
@@ -2689,7 +2733,7 @@ void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
         // so clear the set of failed addresses and start going through them again
 
         qWarning() << "All current ice-server addresses have failed - re-attempting all current addresses for"
-            << ICE_SERVER_DEFAULT_HOSTNAME;
+                   << _iceServerAddr;
 
         _failedIceServerAddresses.clear();
         candidateICEAddresses = _iceServerAddresses;

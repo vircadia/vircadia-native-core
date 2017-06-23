@@ -33,9 +33,17 @@ $(document).ready(function(){
       return this.href == url;
   }).parent().addClass('active');  
 
-  $('body').on('click', '#restart-server', function(e){
-    $.get("/restart");
-    showRestartModal();
+  $('body').on('click', '#restart-server', function(e) {    
+    swal( {
+      title: "Are you sure?",
+      text: "This will restart your domain server, causing your domain to be briefly offline.",
+      type: "warning",
+      html: true,
+      showCancelButton: true
+    }, function() {
+      $.get("/restart");
+      showRestartModal();
+    });
     return false;
   });
 });
