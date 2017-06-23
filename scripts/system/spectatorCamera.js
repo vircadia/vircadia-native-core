@@ -56,6 +56,8 @@
     var spectatorFrameRenderConfig = Render.getConfig("SecondaryCameraFrame");
     var beginSpectatorFrameRenderConfig = Render.getConfig("BeginSecondaryCamera");
     var viewFinderOverlay = false;
+    var backdrop = false;
+    var backdropAspect = false;
     var camera = false;
     var cameraIsDynamic = false;
     var lastCameraPosition = false;
@@ -93,22 +95,12 @@
     //
     var isUpdateRenderWired = false;
     var windowAspectRatio;
-    var previewAspectRatio = 16 / 9;
     var vFoV = 45.0;
     var nearClipPlaneDistance = 0.1;
     var farClipPlaneDistance = 100.0;
     function spectatorCameraOn() {
         // Set the special texture size based on the window in which it will eventually be displayed.
-        var previewWidth = Window.innerWidth / Window.innerHeight / previewAspectRatio * 0.16;
-        var previewHeight = Window.innerWidth / Window.innerHeight / previewAspectRatio * -0.16;
         spectatorFrameRenderConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
-        //-----------------------
-        /*if (windowAspectRatio < previewAspectRatio) { //vertical
-            Overlays.editOverlay(viewFinderOverlay, { dimensions: { x: 0.16 * windowAspectRatio / previewAspectRatio, y: -0.16, z: 0 } });
-        } else { //horizontal
-            Overlays.editOverlay(viewFinderOverlay, { dimensions: { x: 0.16, y: -0.16 * previewAspectRatio / windowAspectRatio, z: 0 } });
-        }*/
-        //-----------------------
         spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = true;
         beginSpectatorFrameRenderConfig.vFoV = vFoV;
         beginSpectatorFrameRenderConfig.nearClipPlaneDistance = nearClipPlaneDistance;
@@ -121,20 +113,14 @@
             "collisionsWillMove": 0,
             "damping": 0.98000001907348633,
             "dimensions": {
-                "x": 0.2338641881942749,
-                "y": 0.407032310962677,
-                "z": 0.38702544569969177
+                "x": .1,
+                "y": .1,
+                "z": .1
             },
             "dynamic": cameraIsDynamic,
             "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/spectator-camera.fbx",
-            "queryAACube": {
-                "scale": 0.60840487480163574,
-                "x": -0.30420243740081787,
-                "y": -0.30420243740081787,
-                "z": -0.30420243740081787
-            },
-            "rotation": { x: 0, y: 0, z: 0 },
-            "position": { x: 0, y: 0, z: 0 },
+            "rotation": cameraRotation,
+            "position": cameraPosition,
             "shapeType": "simple-compound",
             "type": "Model",
             "userData": "{\"grabbableKey\":{\"grabbable\":true}}"
@@ -145,18 +131,47 @@
             emissive: true,
             parentID: camera,
             alpha: 1,
-            position: { x: 0.007, y: 0.15, z: -0.005 },
-            dimensions: { x: 0.16, y: -0.16, z: 0 }
-            // Negative dimension for viewfinder is necessary for now due to the way Image3DOverlay
-            // draws textures.
-            // See Image3DOverlay.cpp:91. If you change the two lines there to:
-            //     glm::vec2 topLeft(-x, -y);
-            //     glm::vec2 bottomRight(x, y);
-            // the viewfinder will appear rightside up without this negative y-dimension.
-            // However, other Image3DOverlay textures (like the PAUSED one) will appear upside-down. *Why?*
+            localPosition: { x: 0, y: 0.18, z: 0 },
+            dimensions: { x: 0.2, y: -0.2, z: 0.2 }
         });
-        Entities.editEntity(camera, { position: cameraPosition, rotation: cameraRotation });
+        var backdropProp = {
+            parentID: camera,
+            "color": {
+                "blue": 0,
+                "green": 0,
+                "red": 0
+            },
+            localPosition: {x: 0, y: 0.18, z: -.0075},
+            "dimensions": {
+                "x": 0.2,
+                "y": 0.2,
+                "z": 0.01
+            },
+            "shape": "Cube",
+            "type": "Box"
+        }
+        var backdropAspectProp = {
+            parentID: camera,
+            "color": {
+                "blue": 255,
+                "green": 255,
+                "red": 255
+            },
+            localPosition: { x: 0, y: 0.18, z: -.0073 },
+            "dimensions": {
+                "x": 0.2,
+                "y": 0.1125,
+                "z": 0.01
+            },
+            "shape": "Cube",
+            "type": "Box"
+        }
+        backdrop = Entities.addEntity(backdropProp);
+        backdropAspect = Entities.addEntity(backdropAspectProp);
         setDisplay(monitorShowsCameraView);
+        print("woot1 " + JSON.stringify(Entities.getEntityProperties(camera).position));
+        print("woot2 " + JSON.stringify(Overlays.getProperty(viewFinderOverlay, "position")));
+        //"x":64.33030700683594,"y":2.2086398601531982,"z":333.57318115234375
     }
 
     //
@@ -184,8 +199,16 @@
         if (viewFinderOverlay) {
             Overlays.deleteOverlay(viewFinderOverlay);
         }
+        if (backdrop) {
+            Overlays.deleteOverlay(backdrop);
+        }
+        if (backdropAspect) {
+            Overlays.deleteOverlay(backdropAspect);
+        }
         camera = false;
         viewFinderOverlay = false;
+        backdrop = false;
+        backdropAspect = false;
         setDisplay(monitorShowsCameraView);
     }
 
@@ -249,6 +272,8 @@
         Controller.keyPressEvent.connect(keyPressEvent);
         HMD.displayModeChanged.connect(onHMDChanged);
         viewFinderOverlay = false;
+        backdrop = false;
+        backdropAspect = false;
         camera = false;
         registerButtonMappings();
     }
@@ -305,25 +330,46 @@
         }
     }
     function resizePreview(geometryChanged) {
-        var previewWidth = 0.16;
-        var previewHeight = -0.16;
-        if (geometryChanged.width / geometryChanged.height < previewAspectRatio) { //vertical is less than 1.71
-            previewWidth *= ((geometryChanged.width / geometryChanged.height) / previewAspectRatio) * 1.6;
-            if (previewWidth > 0.16) {
-                previewWidth = 0.16;
-            }
-            print("vert " + previewWidth);
-        } else { //horizontal is greater than 1.71
-            previewHeight *= (previewAspectRatio / (geometryChanged.width / geometryChanged.height)) * 1.6;
-            if (previewHeight < -0.16) {
-                previewHeight = -0.16;
-            }
-            print("hori " + previewHeight);
-        }
-        Overlays.editOverlay(viewFinderOverlay, { dimensions: { x: previewWidth, y: previewHeight, z: 0 } });
 
+        Overlays.deleteOverlay(viewFinderOverlay);
+        viewFinderOverlay = Overlays.addOverlay("image3d", {
+            url: "resource://spectatorCameraFrame",
+            emissive: true,
+            parentID: camera,
+            alpha: 1,
+            localPosition: { x: 0, y: 0.18, z: 0 },
+            dimensions: { x: 0.2, y: -0.2, z: 0.2 }
+        });
+        //print("woot2 " + JSON.stringify(Overlays.getProperty(viewFinderOverlay, "position")));
+        //* (geometryChanged.width / geometryChanged.height)
         spectatorFrameRenderConfig.resetSizeSpectatorCamera(geometryChanged.width, geometryChanged.height);
         setDisplay(monitorShowsCameraView);
+
+        /*ZACH CODE
+        spectatorCameraOff();
+        spectatorCameraOn();
+        var previewWidth = 0.0005 * geometryChanged.height;
+        var previewHeight = -0.0005 * geometryChanged.height;
+        Overlays.editOverlay(viewFinderOverlay, { dimensions: { x: previewWidth, y: previewHeight, z: 0.5 } });
+        */
+
+        /*MY CODE
+        var previewwidth = 0.16;
+        var previewheight = -0.16;
+        //if (geometrychanged.width / geometrychanged.height < previewaspectratio) { //vertical is less than 1.71
+        //    previewwidth *= ((geometrychanged.width / geometrychanged.height) / previewaspectratio);
+        //    print("vert " + previewwidth);
+        //} else { //horizontal is greater than 1.71
+        //    previewheight *= (previewaspectratio / (geometrychanged.width / geometrychanged.height));
+        //    print("hori " + previewheight);
+        //}
+        previewwidth *= ((geometrychanged.width / geometrychanged.height) / previewaspectratio);
+        print((geometrychanged.width / geometrychanged.height));
+        print(previewwidth);
+        previewheight *= (previewaspectratio / (geometrychanged.width / geometrychanged.height));
+        print(previewheight);
+        overlays.editoverlay(viewfinderoverlay, { dimensions: { x: previewwidth, y: previewheight, z: 0 } });
+        */
     }
 
     const SWITCH_VIEW_FROM_CONTROLLER_DEFAULT = false;
