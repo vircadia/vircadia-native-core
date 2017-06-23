@@ -55,6 +55,7 @@
             texture = null ,
             //'https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Caris_Tessellation.svg/1024px-Caris_Tessellation.svg.png', // Daantje
             strokeWidthMultiplier = 0.6,
+			IS_UV_MODE_STRETCH = true,
             MIN_STROKE_LENGTH = 0.005,  // m
             MIN_STROKE_INTERVAL = 66,  // ms
             MAX_POINTS_PER_LINE = 70;  // Hard-coded limit in PolyLineEntityItem.h.
@@ -78,11 +79,15 @@
         function changeStrokeWidthMultiplier(multiplier) {
             strokeWidthMultiplier = multiplier;
         }
+		
+		function changeUVMode(isUVModeStretch) {
+            IS_UV_MODE_STRETCH = isUVModeStretch;
+        }
         
         function getStrokeWidth() {
             return strokeWidthMultiplier;
         }
-        
+		        
         function changeTexture(textureURL) {
             texture = textureURL;
         }
@@ -120,6 +125,7 @@
                 normals: strokeNormals,
                 strokeWidths: strokeWidths,
                 textures: texture, // Daantje
+				isUVModeStretch: IS_UV_MODE_STRETCH,
                 dimensions: STROKE_DIMENSIONS
             });
 
@@ -244,7 +250,8 @@
             changeTexture: changeTexture,
             undoErasing: undoErasing,
             getStrokeColor: getStrokeColor,
-            getStrokeWidth: getStrokeWidth
+            getStrokeWidth: getStrokeWidth,
+			changeUVMode: changeUVMode
         };
     }
 
@@ -507,6 +514,10 @@
 		//"rightIndexPointAndThumbRaiseOpen","rightIndexPointAndThumbRaiseClosed", 
 		MyAvatar.overrideRoleAnimation(handLiteral + "IndexPointAndThumbRaiseOpen", ANIM_OPEN, 30, false, 19, 20);
 		MyAvatar.overrideRoleAnimation(handLiteral + "IndexPointAndThumbRaiseClosed", ANIM_URL, 30, false, 19, 20);
+		
+		//turn off lasers and other interactions
+		Messages.sendLocalMessage("Hifi-Hand-Disabler", "none");
+		Messages.sendLocalMessage("Hifi-Hand-Disabler", handLiteral);
 
 	}
 	
@@ -548,6 +559,7 @@
         // Connect controller API to handController objects.
         leftHand = handController("left");
         rightHand = handController("right");
+		
 		
 		//Change to finger paint hand animation
 		updateHandAnimations();
@@ -607,6 +619,17 @@
                 //var dim2 = Math.floor( Math.random()*40 + 5);
                 leftBrush.changeTexture(message[1]);
                 rightBrush.changeTexture(message[1]);
+				
+				if (message[1] === "content/brushes/paintbrush1.png") {
+					leftBrush.changeUVMode(true);
+					rightBrush.changeUVMode(true);
+				}else if (message[1] === "content/brushes/paintbrush3.png") {
+					leftBrush.changeUVMode(true);
+					rightBrush.changeUVMode(true);
+				}else{
+					leftBrush.changeUVMode(false);
+					rightBrush.changeUVMode(false);
+				}
                 return;
             }
             if (message[0] === "undo"){
@@ -622,6 +645,8 @@
         });
 
         
+		
+		
     }
 
     function disableProcessing() {
@@ -630,6 +655,8 @@
 
         Controller.disableMapping(CONTROLLER_MAPPING_NAME);
 
+		Messages.sendLocalMessage("Hifi-Hand-Disabler", "none");
+		
         leftBrush.tearDown();
         leftBrush = null;
         leftHand.tearDown();
