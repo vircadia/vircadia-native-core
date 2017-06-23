@@ -95,7 +95,7 @@ class TabletProxy : public QObject {
     Q_PROPERTY(bool landscape READ getLandscape WRITE setLandscape)
     Q_PROPERTY(bool tabletShown MEMBER _tabletShown NOTIFY tabletShownChanged)
 public:
-    TabletProxy(QObject* parent, QString name);
+    TabletProxy(QObject* parent, const QString& name);
     ~TabletProxy();
 
     void setQmlTabletRoot(OffscreenQmlSurface* offscreenQmlSurface);
@@ -163,14 +163,14 @@ public:
      * @function TabletProxy#emitScriptEvent
      * @param msg {object|string}
      */
-    Q_INVOKABLE void emitScriptEvent(QVariant msg);
+    Q_INVOKABLE void emitScriptEvent(const QVariant& msg);
 
     /**jsdoc
      * Used to send an event to the qml embedded in the tablet
      * @function TabletProxy#sendToQml
      * @param msg {object|string}
      */
-    Q_INVOKABLE void sendToQml(QVariant msg);
+    Q_INVOKABLE void sendToQml(const QVariant& msg);
 
     /**jsdoc
      * Check if the tablet is on the homescreen
@@ -186,7 +186,7 @@ public:
     Q_INVOKABLE void setLandscape(bool landscape) { _landscape = landscape; }
     Q_INVOKABLE bool getLandscape() { return _landscape; }
 
-    Q_INVOKABLE bool isPathLoaded(QVariant path);
+    Q_INVOKABLE bool isPathLoaded(const QVariant& path);
 
     QQuickItem* getTabletRoot() const { return _qmlTabletRoot; }
 
@@ -231,7 +231,7 @@ signals:
 protected slots:
     void addButtonsToHomeScreen();
     void desktopWindowClosed();
-    void emitWebEvent(QVariant msg);
+    void emitWebEvent(const QVariant& msg);
 protected:
     void removeButtonsFromHomeScreen();
     void loadHomeScreen(bool forceOntoHomeScreen);
@@ -284,7 +284,7 @@ public:
      * @function TabletButtonProxy#editProperties
      * @param {ButtonProperties} properties - set of properties to change
      */
-    Q_INVOKABLE void editProperties(QVariantMap properties);
+    Q_INVOKABLE void editProperties(const QVariantMap& properties);
 
 public slots:
     void clickedSlot() { emit clicked(); }
