@@ -15,12 +15,25 @@
     var APP_NAME = "EZRECORD",
         APP_ICON_INACTIVE = "icons/tablet-icons/avatar-record-i.svg",
         APP_ICON_ACTIVE = "icons/tablet-icons/avatar-record-a.svg",
+        SHORTCUT_KEY = "r",  // Ctrl modifier is assumed.
         tablet,
-        button;
+        button,
+        isRecording = false;
+
+    function toggleRecording() {
+        isRecording = !isRecording;
+        button.editProperties({ isActive: isRecording });
+        // TODO: Start/cancel/finish recording.
+    }
+
+    function onKeyPressEvent(event) {
+        if (event.isControl && event.text === SHORTCUT_KEY && !event.isMeta && !event.isAlt && !event.isAutoRepeat) {
+            toggleRecording();
+        }
+    }
 
     function onButtonClicked() {
-        // TODO
-        print("Clicked");
+        toggleRecording();
     }
 
     function setUp() {
@@ -39,9 +52,15 @@
         if (button) {
             button.clicked.connect(onButtonClicked);
         }
+
+        Controller.keyPressEvent.connect(onKeyPressEvent);
     }
 
     function tearDown() {
+        if (isRecording) {
+            // TODO: Cancel recording.
+        }
+
         if (!tablet) {
             return;
         }
@@ -53,6 +72,8 @@
         }
 
         tablet = null;
+
+        Controller.keyPressEvent.disconnect(onKeyPressEvent);
     }
 
     setUp();
