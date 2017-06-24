@@ -15,7 +15,7 @@
     var APP_NAME = "EZRECORD",
         APP_ICON_INACTIVE = "icons/tablet-icons/avatar-record-i.svg",
         APP_ICON_ACTIVE = "icons/tablet-icons/avatar-record-a.svg",
-        SHORTCUT_KEY = "r",  // Ctrl modifier is assumed.
+        SHORTCUT_KEY = "r",  // Alt modifier is assumed.
         tablet,
         button,
         isRecording = false;
@@ -27,7 +27,7 @@
     }
 
     function onKeyPressEvent(event) {
-        if (event.isControl && event.text === SHORTCUT_KEY && !event.isMeta && !event.isAlt && !event.isAutoRepeat) {
+        if (event.isAlt && event.text === SHORTCUT_KEY && !event.isControl && !event.isMeta && !event.isAutoRepeat) {
             toggleRecording();
         }
     }
