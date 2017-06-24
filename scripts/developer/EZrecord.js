@@ -21,36 +21,85 @@
 
         Recorder;
 
+    function log(message) {
+        print(APP_NAME + ": " + message);
+    }
+
     Recorder = (function () {
         var IDLE = 0,
             COUNTING_DOWN = 1,
             RECORDING = 2,
-            recordingState = IDLE;
+            recordingState = IDLE,
+
+            countdownTimer,
+            countdownSeconds,
+            COUNTDOWN_SECONDS = 3,
+
+            tickSound,
+            startRecordingSound,
+            finishRecordingSound,
+            TICK_SOUND = "../system/assets/sounds/countdown-tick.wav",
+            START_RECORDING_SOUND = "../system/assets/sounds/start-recording.wav",
+            FINISH_RECORDING_SOUND = "../system/assets/sounds/finish-recording.wav",
+            START_RECORDING_SOUND_DURATION = 1200,
+            SOUND_VOLUME = 0.2;
+
+        function playSound(sound) {
+            Audio.playSound(sound, {
+                position: MyAvatar.position,
+                localOnly: true,
+                volume: SOUND_VOLUME
+            });
+        }
 
         function isRecording() {
             return recordingState === COUNTING_DOWN || recordingState === RECORDING;
         }
 
         function startRecording() {
-
             if (recordingState !== IDLE) {
                 return;
             }
 
-            // TODO
+            log("Start countdown");
+            countdownSeconds = COUNTDOWN_SECONDS;
+            playSound(tickSound);
+            countdownTimer = Script.setInterval(function () {
+                countdownSeconds -= 1;
+                if (countdownSeconds <= 0) {
+                    Script.clearInterval(countdownTimer);
+                    playSound(startRecordingSound);
+                    log("Start recording");
+                    Script.setTimeout(function () {
+                        // Delay start so that start beep is not included in recorded sound.
+
+                        // TODO
+
+                    }, START_RECORDING_SOUND_DURATION);
+                    recordingState = RECORDING;
+                } else {
+                    playSound(tickSound);
+                }
+            }, 1000);
 
             recordingState = COUNTING_DOWN;
-
         }
 
         function cancelRecording() {
+            log("Cancel recording");
+            if (recordingState === COUNTING_DOWN) {
+                Script.clearInterval(countdownTimer);
+            } else {
 
-            // TODO
+                // TODO
 
+            }
             recordingState = IDLE;
         }
 
         function finishRecording() {
+            log("Finish recording");
+            playSound(finishRecordingSound);
 
             // TODO
 
@@ -60,13 +109,15 @@
         function stopRecording() {
             if (recordingState === COUNTING_DOWN) {
                 cancelRecording();
-            } else {
+            } else if (recordingState === RECORDING) {
                 finishRecording();
             }
         }
 
         function setUp() {
-
+            tickSound = SoundCache.getSound(Script.resolvePath(TICK_SOUND));
+            startRecordingSound = SoundCache.getSound(Script.resolvePath(START_RECORDING_SOUND));
+            finishRecordingSound = SoundCache.getSound(Script.resolvePath(FINISH_RECORDING_SOUND));
         }
 
         function tearDown() {
