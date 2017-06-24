@@ -53,6 +53,7 @@ public slots:
 
     // Scripts can use this to send a message to the QML object
     void sendToQml(const QVariant& message);
+    void clearDebugWindow();
 
     // QmlWindow content may include WebView requiring EventBridge.
     void emitScriptEvent(const QVariant& scriptMessage);

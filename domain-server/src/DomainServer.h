@@ -39,6 +39,11 @@ typedef QMultiHash<QUuid, WalletTransaction*> TransactionHash;
 using Subnet = QPair<QHostAddress, int>;
 using SubnetList = std::vector<Subnet>;
 
+enum ReplicationServerDirection {
+    Upstream,
+    Downstream
+};
+
 class DomainServer : public QCoreApplication, public HTTPSRequestHandler {
     Q_OBJECT
 public:
@@ -102,6 +107,10 @@ private slots:
 
     void handleOctreeFileReplacement(QByteArray octreeFile);
 
+    void updateReplicatedNodes();
+    void updateDownstreamNodes();
+    void updateUpstreamNodes();
+
 signals:
     void iceServerChanged();
     void userConnected();
@@ -161,11 +170,17 @@ private:
     QJsonObject jsonForSocket(const HifiSockAddr& socket);
     QJsonObject jsonObjectForNode(const SharedNodePointer& node);
 
+    bool shouldReplicateNode(const Node& node);
+
     void setupGroupCacheRefresh();
 
     QString pathForRedirect(QString path = QString()) const;
 
+    void updateReplicationNodes(ReplicationServerDirection direction);
+
     SubnetList _acSubnetWhitelist;
+
+    std::vector<QString> _replicatedUsernames;
 
     DomainGatekeeper _gatekeeper;
 

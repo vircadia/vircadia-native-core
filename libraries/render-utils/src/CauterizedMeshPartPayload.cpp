@@ -29,7 +29,7 @@ void CauterizedMeshPartPayload::updateTransformForCauterizedMesh(
 
 void CauterizedMeshPartPayload::bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const {
     // Still relying on the raw data from the model
-    bool useCauterizedMesh = (renderMode != RenderArgs::RenderMode::SHADOW_RENDER_MODE);
+    bool useCauterizedMesh = (renderMode != RenderArgs::RenderMode::SHADOW_RENDER_MODE && renderMode != RenderArgs::RenderMode::SECONDARY_CAMERA_RENDER_MODE);
     if (useCauterizedMesh) {
         ModelPointer model = _model.lock();
         if (model) {

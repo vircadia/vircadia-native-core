@@ -36,7 +36,6 @@ namespace MenuOption {
     const QString AssetMigration = "ATP Asset Migration";
     const QString AssetServer = "Asset Browser";
     const QString Attachments = "Attachments...";
-    const QString AudioNoiseReduction = "Noise Reduction";
     const QString AudioScope = "Show Scope";
     const QString AudioScopeFiftyFrames = "Fifty";
     const QString AudioScopeFiveFrames = "Five";
@@ -44,7 +43,6 @@ namespace MenuOption {
     const QString AudioScopePause = "Pause Scope";
     const QString AudioScopeTwentyFrames = "Twenty";
     const QString AudioStatsShowInjectedStreams = "Audio Stats Show Injected Streams";
-    const QString AudioTools = "Show Level Meter";
     const QString AutoMuteAudio = "Auto Mute Microphone";
     const QString AvatarReceiveStats = "Show Receive Stats";
     const QString AvatarBookmarks = "Avatar Bookmarks";
@@ -96,6 +94,7 @@ namespace MenuOption {
     const QString DontRenderEntitiesAsScene = "Don't Render Entities as Scene";
     const QString EchoLocalAudio = "Echo Local Audio";
     const QString EchoServerAudio = "Echo Server Audio";
+    const QString EnableFlying = "Enable Flying";
     const QString EnableAvatarCollisions = "Enable Avatar Collisions";
     const QString EnableInverseKinematics = "Enable Inverse Kinematics";
     const QString EntityScriptServerLog = "Entity Script Server Log";
@@ -124,7 +123,6 @@ namespace MenuOption {
     const QString LogExtraTimings = "Log Extra Timing Details";
     const QString LowVelocityFilter = "Low Velocity Filter";
     const QString MeshVisible = "Draw Mesh";
-    const QString MuteAudio = "Mute Microphone";
     const QString MuteEnvironment = "Mute Environment";
     const QString MuteFaceTracking = "Mute Face Tracking";
     const QString NamesAboveHeads = "Names Above Heads";

@@ -18,7 +18,7 @@
 #include <QUrl>
 
 #include <shared/Storage.h>
-
+#include <shared/FileCache.h>
 #include "Forward.h"
 #include "Resource.h"
 #include "Metric.h"
@@ -311,6 +311,7 @@ public:
     class KtxStorage : public Storage {
     public:
         KtxStorage(const std::string& filename);
+        KtxStorage(const cache::FilePointer& file);
         PixelsPointer getMipFace(uint16 level, uint8 face = 0) const override;
         Size getMipFaceSize(uint16 level, uint8 face = 0) const override;
         bool isMipAvailable(uint16 level, uint8 face = 0) const override;
@@ -328,6 +329,7 @@ public:
         mutable std::weak_ptr<storage::FileStorage> _cacheFile;
 
         std::string _filename;
+        cache::FilePointer _cacheEntry;
         std::atomic<uint8_t> _minMipLevelAvailable;
         size_t _offsetToMinMipKV;
 
@@ -499,6 +501,7 @@ public:
 
     void setStorage(std::unique_ptr<Storage>& newStorage);
     void setKtxBacking(const std::string& filename);
+    void setKtxBacking(const cache::FilePointer& cacheEntry);
 
     // Usage is a a set of flags providing Semantic about the usage of the Texture.
     void setUsage(const Usage& usage) { _usage = usage; }
@@ -529,8 +532,9 @@ public:
     // Serialize a texture into a KTX file
     static ktx::KTXUniquePointer serialize(const Texture& texture);
 
+    static TexturePointer build(const ktx::KTXDescriptor& descriptor);
     static TexturePointer unserialize(const std::string& ktxFile);
-    static TexturePointer unserialize(const std::string& ktxFile, const ktx::KTXDescriptor& descriptor);
+    static TexturePointer unserialize(const cache::FilePointer& cacheEntry);
 
     static bool evalKTXFormat(const Element& mipFormat, const Element& texelFormat, ktx::Header& header);
     static bool evalTextureFormat(const ktx::Header& header, Element& mipFormat, Element& texelFormat);

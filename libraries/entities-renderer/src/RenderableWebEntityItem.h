@@ -13,10 +13,9 @@
 #include <QMouseEvent>
 #include <QTouchEvent>
 #include <PointerEvent.h>
-#include <gl/OffscreenQmlSurface.h>
+#include <ui/OffscreenQmlSurface.h>
 
 #include <WebEntityItem.h>
-#include <gl/OffscreenQmlSurface.h>
 
 #include "RenderableEntityItem.h"
 
@@ -27,7 +26,7 @@ class EntityTreeRenderer;
 class RenderableWebEntityItem;
 
 
-class RenderableWebEntityItem : public WebEntityItem  {
+class RenderableWebEntityItem : public WebEntityItem, SimplerRenderableEntitySupport {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderableWebEntityItem(const EntityItemID& entityItemID);
@@ -73,8 +72,6 @@ private:
     QMetaObject::Connection _mouseReleaseConnection;
     QMetaObject::Connection _mouseMoveConnection;
     QMetaObject::Connection _hoverLeaveConnection;
-
-    QString _javaScriptToInject;
 
     enum contentType {
         htmlContent,

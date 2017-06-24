@@ -56,6 +56,7 @@ class MyAvatar : public Avatar {
      *
      * @namespace MyAvatar
      * @augments Avatar
+     * @property qmlPosition {Vec3} Used as a stopgap for position access by QML, as glm::vec3 is unavailable outside of scripts
      * @property shouldRenderLocally {bool} Set it to true if you would like to see MyAvatar in your local interface,
      *   and false if you would not like to see MyAvatar in your local interface.
      * @property motorVelocity {Vec3} Can be used to move the avatar with this velocity.
@@ -101,6 +102,10 @@ class MyAvatar : public Avatar {
      *   "scripts/system/controllers/toggleAdvancedMovementForHandControllers.js".
      */
 
+    // FIXME: `glm::vec3 position` is not accessible from QML, so this exposes position in a QML-native type
+    Q_PROPERTY(QVector3D qmlPosition READ getQmlPosition)
+    QVector3D getQmlPosition() { auto p = getPosition(); return QVector3D(p.x, p.y, p.z); }
+
     Q_PROPERTY(bool shouldRenderLocally READ getShouldRenderLocally WRITE setShouldRenderLocally)
     Q_PROPERTY(glm::vec3 motorVelocity READ getScriptedMotorVelocity WRITE setScriptedMotorVelocity)
     Q_PROPERTY(float motorTimescale READ getScriptedMotorTimescale WRITE setScriptedMotorTimescale)
@@ -131,6 +136,10 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(bool collisionsEnabled READ getCollisionsEnabled WRITE setCollisionsEnabled)
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
     Q_PROPERTY(bool useAdvancedMovementControls READ useAdvancedMovementControls WRITE setUseAdvancedMovementControls)
+
+    Q_PROPERTY(bool hmdRollControlEnabled READ getHMDRollControlEnabled WRITE setHMDRollControlEnabled)
+    Q_PROPERTY(float hmdRollControlDeadZone READ getHMDRollControlDeadZone WRITE setHMDRollControlDeadZone)
+    Q_PROPERTY(float hmdRollControlRate READ getHMDRollControlRate WRITE setHMDRollControlRate)
 
 public:
     enum DriveKeys {
@@ -337,6 +346,13 @@ public:
     void setUseAdvancedMovementControls(bool useAdvancedMovementControls)
         { _useAdvancedMovementControls.set(useAdvancedMovementControls); }
 
+    void setHMDRollControlEnabled(bool value) { _hmdRollControlEnabled = value; }
+    bool getHMDRollControlEnabled() const { return _hmdRollControlEnabled; }
+    void setHMDRollControlDeadZone(float value) { _hmdRollControlDeadZone = value; }
+    float getHMDRollControlDeadZone() const { return _hmdRollControlDeadZone; }
+    void setHMDRollControlRate(float value) { _hmdRollControlRate = value; }
+    float getHMDRollControlRate() const { return _hmdRollControlRate; }
+
     // get/set avatar data
     void saveData();
     void loadData();
@@ -491,6 +507,11 @@ public:
 
     bool hasDriveInput() const;
 
+    Q_INVOKABLE bool isFlying();
+    Q_INVOKABLE bool isInAir();
+    Q_INVOKABLE void setFlyingEnabled(bool enabled);
+    Q_INVOKABLE bool getFlyingEnabled();
+
     Q_INVOKABLE void setCollisionsEnabled(bool enabled);
     Q_INVOKABLE bool getCollisionsEnabled();
     Q_INVOKABLE void setCharacterControllerEnabled(bool enabled); // deprecated
@@ -553,6 +574,7 @@ public slots:
     void setEnableDebugDrawIKTargets(bool isEnabled);
     void setEnableDebugDrawIKConstraints(bool isEnabled);
     void setEnableDebugDrawIKChains(bool isEnabled);
+
     bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
     void setUseAnimPreAndPostRotations(bool isEnabled);
@@ -604,7 +626,7 @@ private:
                         float scale = 1.0f, bool isSoft = false,
                         bool allowDuplicates = false, bool useSaved = true) override;
 
-    bool cameraInsideHead() const;
+    bool cameraInsideHead(const glm::vec3& cameraPosition) const;
 
     void updateEyeContactTarget(float deltaTime);
 
@@ -625,6 +647,7 @@ private:
     std::array<float, MAX_DRIVE_KEYS> _driveKeys;
     std::bitset<MAX_DRIVE_KEYS> _disabledDriveKeys;
 
+    bool _enableFlying { true };
     bool _wasPushing { false };
     bool _isPushing { false };
     bool _isBeingPushed { false };
@@ -686,6 +709,13 @@ private:
     QUrl _fstAnimGraphOverrideUrl;
     bool _useSnapTurn { true };
     bool _clearOverlayWhenMoving { true };
+
+    const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // deg
+    const float ROLL_CONTROL_RATE_DEFAULT = 2.5f; // deg/sec/deg
+    bool _hmdRollControlEnabled { true };
+    float _hmdRollControlDeadZone { ROLL_CONTROL_DEAD_ZONE_DEFAULT };
+    float _hmdRollControlRate { ROLL_CONTROL_RATE_DEFAULT };
+    float _lastDrivenSpeed { 0.0f };
 
     // working copies -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
     glm::mat4 _sensorToWorldMatrix { glm::mat4() };
@@ -767,7 +797,6 @@ private:
     ThreadSafeValueCache<controller::Pose> _rightArmControllerPoseInSensorFrameCache{ controller::Pose() };
 
     bool _hmdLeanRecenterEnabled = true;
-
     AnimPose _prePhysicsRoomPose;
     std::mutex _holdActionsMutex;
     std::vector<AvatarActionHold*> _holdActions;

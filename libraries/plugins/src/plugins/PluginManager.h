@@ -31,6 +31,18 @@ public:
     void setContainer(PluginContainer* container) { _container = container; }
 
     void shutdown();
+
+    // Application that have statically linked plugins can expose them to the plugin manager with these function
+    static void setDisplayPluginProvider(const DisplayPluginProvider& provider);
+    static void setInputPluginProvider(const InputPluginProvider& provider);
+    static void setCodecPluginProvider(const CodecPluginProvider& provider);
+    static void setInputPluginSettingsPersister(const InputPluginSettingsPersister& persister);
+    
 private:
+    static DisplayPluginProvider _displayPluginProvider;
+    static InputPluginProvider _inputPluginProvider;  
+    static CodecPluginProvider _codecPluginProvider;
+    static InputPluginSettingsPersister _inputSettingsPersister;
+
     PluginContainer* _container { nullptr };
 };

@@ -23,6 +23,7 @@
 #include <AvatarHashMap.h>
 #include <AudioInjectorManager.h>
 #include <AssetClient.h>
+#include <LocationScriptingInterface.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
@@ -452,6 +453,9 @@ void Agent::executeScript() {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
     _scriptEngine->registerGlobalObject("EntityViewer", &_entityViewer);
+
+    _scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
+        LocationScriptingInterface::locationSetter);
 
     auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
     _scriptEngine->registerGlobalObject("Recording", recordingInterface.data());

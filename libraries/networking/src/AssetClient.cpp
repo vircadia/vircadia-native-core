@@ -353,13 +353,20 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
     connect(message.data(), &ReceivedMessage::progress, this, [this, weakNode, messageID, length](qint64 size) {
         handleProgressCallback(weakNode, messageID, size, length);
     });
-    connect(message.data(), &ReceivedMessage::completed, this, [this, weakNode, messageID]() {
-        handleCompleteCallback(weakNode, messageID);
+    connect(message.data(), &ReceivedMessage::completed, this, [this, weakNode, messageID, length]() {
+        handleCompleteCallback(weakNode, messageID, length);
     });
 
     if (message->isComplete()) {
         disconnect(message.data(), nullptr, this, nullptr);
-        callbacks.completeCallback(true, error, message->readAll());
+
+        if (length != message->getBytesLeftToRead()) {
+            callbacks.completeCallback(false, error, QByteArray());
+        } else {
+            callbacks.completeCallback(true, error, message->readAll());
+        }
+
+        
         messageCallbackMap.erase(requestIt);
     }
 }
@@ -391,7 +398,7 @@ void AssetClient::handleProgressCallback(const QWeakPointer<Node>& node, Message
     callbacks.progressCallback(size, length);
 }
 
-void AssetClient::handleCompleteCallback(const QWeakPointer<Node>& node, MessageID messageID) {
+void AssetClient::handleCompleteCallback(const QWeakPointer<Node>& node, MessageID messageID, DataOffset length) {
     auto senderNode = node.toStrongRef();
 
     if (!senderNode) {
@@ -424,8 +431,7 @@ void AssetClient::handleCompleteCallback(const QWeakPointer<Node>& node, Message
         return;
     }
 
-
-    if (message->failed()) {
+    if (message->failed() || length != message->getBytesLeftToRead()) {
         callbacks.completeCallback(false, AssetServerError::NoError, QByteArray());
     } else {
         callbacks.completeCallback(true, AssetServerError::NoError, message->readAll());
