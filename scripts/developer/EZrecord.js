@@ -136,9 +136,7 @@
                     log("Start recording");
                     Script.setTimeout(function () {
                         // Delay start so that start beep is not included in recorded sound.
-
-                        // TODO
-
+                        Recording.startRecording();
                         RecordingIndicator.show();
                     }, START_RECORDING_SOUND_DURATION);
                     recordingState = RECORDING;
@@ -155,21 +153,21 @@
             if (recordingState === COUNTING_DOWN) {
                 Script.clearInterval(countdownTimer);
             } else {
-
-                // TODO
-
+                Recording.stopRecording();
                 RecordingIndicator.hide();
             }
             recordingState = IDLE;
         }
 
         function finishRecording() {
-            log("Finish recording");
             playSound(finishRecordingSound);
-
-            // TODO
-
+            Recording.stopRecording();
             RecordingIndicator.hide();
+            var filename = (new Date()).toISOString();  // yyyy-mm-ddThh:mm:ss.sssZ
+            filename = filename.replace(/[\-:]|\.\d*Z$/g, "").replace("T", "-") + ".hfr";  // yyyymmmdd-hhmmss.hfr
+            filename = Recording.getDefaultRecordingSaveDirectory() + filename;
+            log("Finish recording: " + filename);
+            Recording.saveRecording(filename);
             recordingState = IDLE;
         }
 
