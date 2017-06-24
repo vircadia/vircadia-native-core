@@ -18,12 +18,79 @@
         SHORTCUT_KEY = "r",  // Alt modifier is assumed.
         tablet,
         button,
-        isRecording = false;
+
+        Recorder;
+
+    Recorder = (function () {
+        var IDLE = 0,
+            COUNTING_DOWN = 1,
+            RECORDING = 2,
+            recordingState = IDLE;
+
+        function isRecording() {
+            return recordingState === COUNTING_DOWN || recordingState === RECORDING;
+        }
+
+        function startRecording() {
+
+            if (recordingState !== IDLE) {
+                return;
+            }
+
+            // TODO
+
+            recordingState = COUNTING_DOWN;
+
+        }
+
+        function cancelRecording() {
+
+            // TODO
+
+            recordingState = IDLE;
+        }
+
+        function finishRecording() {
+
+            // TODO
+
+            recordingState = IDLE;
+        }
+
+        function stopRecording() {
+            if (recordingState === COUNTING_DOWN) {
+                cancelRecording();
+            } else {
+                finishRecording();
+            }
+        }
+
+        function setUp() {
+
+        }
+
+        function tearDown() {
+            if (recordingState !== IDLE) {
+                cancelRecording();
+            }
+        }
+
+        return {
+            isRecording: isRecording,
+            startRecording: startRecording,
+            stopRecording: stopRecording,
+            setUp: setUp,
+            tearDown: tearDown
+        };
+    }());
 
     function toggleRecording() {
-        isRecording = !isRecording;
-        button.editProperties({ isActive: isRecording });
-        // TODO: Start/cancel/finish recording.
+        if (Recorder.isRecording()) {
+            Recorder.stopRecording();
+        } else {
+            Recorder.startRecording();
+        }
+        button.editProperties({ isActive: Recorder.isRecording() });
     }
 
     function onKeyPressEvent(event) {
@@ -42,6 +109,8 @@
             return;
         }
 
+        Recorder.setUp();
+
         // Tablet/toolbar button.
         button = tablet.addButton({
             icon: APP_ICON_INACTIVE,
@@ -57,9 +126,10 @@
     }
 
     function tearDown() {
-        if (isRecording) {
-            // TODO: Cancel recording.
-        }
+
+        Controller.keyPressEvent.disconnect(onKeyPressEvent);
+
+        Recorder.tearDown();
 
         if (!tablet) {
             return;
@@ -73,7 +143,6 @@
 
         tablet = null;
 
-        Controller.keyPressEvent.disconnect(onKeyPressEvent);
     }
 
     setUp();
