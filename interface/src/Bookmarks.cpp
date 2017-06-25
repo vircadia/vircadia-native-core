@@ -28,49 +28,6 @@ Bookmarks::Bookmarks() :
 _isMenuSorted(false)
 {
 }
-/**
-void Bookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
-    // Enable/Disable menus as needed
-    enableMenuItems(_bookmarks.count() > 0);
-
-    // Load Bookmarks
-    for (auto it = _bookmarks.begin(); it != _bookmarks.end(); ++it) {
-        QString bookmarkName = it.key();
-
-        QMap<QString, QVariant> *avatarData;
-        QVariant::Type type = it.value().type;
-
-        if (type == QVariant::Map){
-            QMap<QString, QObject>& map = it.value().toMap;
-
-            // Convert to map and get version.-
-            if (map.contains("version")){
-                auto version = map.find("version");
-
-                if (version == AVATAR_BOOKMARK_VERSION) {
-                    addBookmarkToMenu(menubar, bookmarkName, map);
-                }
-            }
-            else {
-                //Not valid. Skip?
-            }
-        }
-        else if (type == QVariant::String) {
-            // Bookmark String type, generic usually for avatars or locations.
-            QString bookmarkAddress = it.value().toString();
-            avatarData = new QVariantMap;
-
-            avatarData->insert();
-
-            addBookmarkToMenu(menubar, bookmarkName, bookmarkAddress);
-        }
-        else {
-            // Unexpected Type
-        }
-
-    }
-}
-*/
 void Bookmarks::deleteBookmark() {
     QStringList bookmarkList;
     QList<QAction*> menuItems = _bookmarksMenu->actions();
