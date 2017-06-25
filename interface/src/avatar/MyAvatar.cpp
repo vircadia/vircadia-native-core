@@ -2524,6 +2524,21 @@ bool MyAvatar::getFlyingEnabled() {
     return _enableFlying;
 }
 
+// Public interface for targetscale
+float MyAvatar::getAvatarScale() {
+    return getTargetScale();
+}
+
+void MyAvatar::setAvatarScale(float val) {
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setScale", Q_ARG(float, val));
+        return;
+    }
+
+    setTargetScale(val);
+}
+
 void MyAvatar::setCollisionsEnabled(bool enabled) {
 
     if (QThread::currentThread() != thread()) {
