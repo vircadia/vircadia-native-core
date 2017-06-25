@@ -623,7 +623,8 @@ TabletButtonProxy* TabletProxy::addButton(const QVariant& properties) {
         auto toolbarProxy = DependencyManager::get<TabletScriptingInterface>()->getSystemToolbarProxy();
         if (toolbarProxy) {
             // copy properties from tablet button proxy to toolbar button proxy.
-            toolbarProxy->addButton(tabletButtonProxy->getProperties());
+            auto toolbarButtonProxy = toolbarProxy->addButton(tabletButtonProxy->getProperties());
+            tabletButtonProxy->setToolbarButtonProxy(toolbarButtonProxy);
         }
     }
     return tabletButtonProxy.data();
