@@ -107,26 +107,27 @@ void DeferredLightingEffect::setupKeyLightBatch(const RenderArgs* args, gpu::Bat
     auto lightStage = args->_scene->getStage<LightStage>();
     if (lightStage && lightStage->_currentFrame._sunLights.size()) {
         keySunLight = lightStage->getLight(lightStage->_currentFrame._sunLights.front());
-    } else {
-        keySunLight = lightStage->getLight(0);
     }
 
     model::LightPointer keyAmbiLight;
     if (lightStage && lightStage->_currentFrame._ambientLights.size()) {
         keyAmbiLight = lightStage->getLight(lightStage->_currentFrame._ambientLights.front());
-    } else {
-        keyAmbiLight = lightStage->getLight(0);
     }
 
-    if (lightBufferUnit >= 0) {
-        batch.setUniformBuffer(lightBufferUnit, keySunLight->getLightSchemaBuffer());
-    }
-    if (ambientBufferUnit >= 0) {
-        batch.setUniformBuffer(ambientBufferUnit, keyAmbiLight->getAmbientSchemaBuffer());
+    if (keySunLight) {
+        if (lightBufferUnit >= 0) {
+            batch.setUniformBuffer(lightBufferUnit, keySunLight->getLightSchemaBuffer());
+        }
     }
 
-    if (keyAmbiLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
-        batch.setResourceTexture(skyboxCubemapUnit, keyAmbiLight->getAmbientMap());
+    if (keyAmbiLight) {
+        if (ambientBufferUnit >= 0) {
+            batch.setUniformBuffer(ambientBufferUnit, keyAmbiLight->getAmbientSchemaBuffer());
+        }
+
+        if (keyAmbiLight->getAmbientMap() && (skyboxCubemapUnit >= 0)) {
+            batch.setResourceTexture(skyboxCubemapUnit, keyAmbiLight->getAmbientMap());
+        }
     }
 }
 
