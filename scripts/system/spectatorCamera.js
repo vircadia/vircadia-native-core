@@ -95,7 +95,7 @@
     var farClipPlaneDistance = 100.0;
     var cameraRotation;
     var cameraPosition;
-    var viewFinderOverlayDim = { x: 0.2, y: -0.2, z: 0.2 };
+    var viewFinderOverlayDim = { x: 0.16, y: -0.16, z: 0.16 };
     function spectatorCameraOn() {
         // Set the special texture size based on the window in which it will eventually be displayed.
         spectatorFrameRenderConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
@@ -110,13 +110,8 @@
             "angularDamping": 0.98000001907348633,
             "collisionsWillMove": 0,
             "damping": 0.98000001907348633,
-            "dimensions": {
-                "x": .1,
-                "y": .1,
-                "z": .1
-            },
             "dynamic": cameraIsDynamic,
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/spectator-camera.fbx",
+            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/spectator-camera.fbx?1",
             "rotation": cameraRotation,
             "position": cameraPosition,
             "shapeType": "simple-compound",
@@ -130,7 +125,7 @@
             parentID: camera,
             alpha: 1,
             rotation: cameraRotation,
-            localPosition: { x: 0, y: 0.18, z: 0 },
+            localPosition: { x: 0.007, y: 0.15, z: -0.005 },
             dimensions: viewFinderOverlayDim
         });
         setDisplay(monitorShowsCameraView);
@@ -289,8 +284,8 @@
             parentID: camera,
             alpha: 1,
             rotation: cameraRotation,
-            localPosition: { x: 0, y: 0.18, z: 0 },
-            dimensions: { x: 0.2, y: -0.2, z: 0.2 }
+            localPosition: { x: 0.007, y: 0.15, z: -0.005 },
+            dimensions: { x: 0.16, y: -0.16, z: 0.16 }
         });
         spectatorFrameRenderConfig.resetSizeSpectatorCamera(geometryChanged.width, geometryChanged.height);
         setDisplay(monitorShowsCameraView);
@@ -300,11 +295,11 @@
         var squareScale = verticalScale * (1 + (1 - (1 / (geometryChanged.width / geometryChanged.height))));
 
         if (geometryChanged.height > geometryChanged.width) { //vertical window size
-            viewFinderOverlayDim = { x: (0.2 * verticalScale), y: (-0.2 * verticalScale), z: 0.02 };
+            viewFinderOverlayDim = { x: (0.16 * verticalScale), y: (-0.16 * verticalScale), z: 0.16 };
         } else if ((geometryChanged.width / geometryChanged.height) < previewHolderRatio) { //square window size
-            viewFinderOverlayDim = { x: (0.2 * squareScale), y: (-0.2 * squareScale), z: 0.02 };
+            viewFinderOverlayDim = { x: (0.16 * squareScale), y: (-0.16 * squareScale), z: 0.16 };
         } else { //horizontal window size
-            viewFinderOverlayDim = { x: 0.2, y: -0.2, z: 0.02 };
+            viewFinderOverlayDim = { x: 0.16, y: -0.16, z: 0.16 };
         }
         Overlays.editOverlay(viewFinderOverlay, { dimensions: viewFinderOverlayDim });
     }
