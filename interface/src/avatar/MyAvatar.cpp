@@ -2532,7 +2532,7 @@ float MyAvatar::getAvatarScale() {
 void MyAvatar::setAvatarScale(float val) {
 
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setScale", Q_ARG(float, val));
+        QMetaObject::invokeMethod(this, "setAvatarScale", Q_ARG(float, val));
         return;
     }
 
