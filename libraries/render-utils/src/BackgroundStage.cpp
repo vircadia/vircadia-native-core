@@ -62,7 +62,7 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
 
 
     // Background rendering decision
-    auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>("BACKGROUND_STAGE");
+    auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
     model::SunSkyStagePointer background;
     model::SkyboxPointer skybox;
     if (backgroundStage->_currentFrame._backgrounds.size()) {
