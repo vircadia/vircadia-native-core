@@ -318,7 +318,7 @@ static QTimer pingTimer;
 static bool DISABLE_WATCHDOG = true;
 #else
 static const QString DISABLE_WATCHDOG_FLAG{ "HIFI_DISABLE_WATCHDOG" };
-static bool DISABLE_WATCHDOG = QProcessEnvironment::systemEnvironment().contains(DISABLE_WATCHDOG_FLAG);
+static bool DISABLE_WATCHDOG = nsightActive() || QProcessEnvironment::systemEnvironment().contains(DISABLE_WATCHDOG_FLAG);
 #endif
 
 #if defined(USE_GLES)
@@ -427,10 +427,6 @@ public:
     void run() override {
         while (!_quit) {
             QThread::sleep(HEARTBEAT_UPDATE_INTERVAL_SECS);
-            // Don't do heartbeat detection under nsight
-            if (nsightActive() || _paused) {
-                continue;
-            }
             uint64_t lastHeartbeat = _heartbeat; // sample atomic _heartbeat, because we could context switch away and have it updated on us
             uint64_t now = usecTimestampNow();
             auto lastHeartbeatAge = (now > lastHeartbeat) ? now - lastHeartbeat : 0;
@@ -796,6 +792,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 std::shared_ptr<Cube3DOverlay> _keyboardFocusHighlight{ nullptr };
 OverlayID _keyboardFocusHighlightID{ UNKNOWN_OVERLAY_ID };
 
+
+OffscreenGLCanvas* _qmlShareContext { nullptr };
 
 // FIXME hack access to the internal share context for the Chromium helper
 // Normally we'd want to use QWebEngine::initialize(), but we can't because
@@ -2259,17 +2257,36 @@ void Application::initializeGL() {
         _isGLInitialized = true;
     }
 
+    // Build a shared canvas / context for the Chromium processes
     _glWidget->makeCurrent();
 
 #if !defined(DISABLE_QML)
+    // Chromium rendering uses some GL functions that prevent nSight from capturing
+    // frames, so we only create the shared context if nsight is NOT active.
     if (!nsightActive()) {
         _chromiumShareContext = new OffscreenGLCanvas();
         _chromiumShareContext->setObjectName("ChromiumShareContext");
         _chromiumShareContext->create(_glWidget->qglContext());
         _chromiumShareContext->makeCurrent();
+        if (!_chromiumShareContext->makeCurrent()) {
+            qCWarning(interfaceapp, "Unable to make chromium shared context current");
+        }
         qt_gl_set_global_share_context(_chromiumShareContext->getContext());
+    } else {
+        qCWarning(interfaceapp) << "nSIGHT detected, disabling chrome rendering";
     }
 #endif
+
+    // Build a shared canvas / context for the QML rendering
+    _glWidget->makeCurrent();
+    _qmlShareContext = new OffscreenGLCanvas();
+    _qmlShareContext->setObjectName("QmlShareContext");
+    _qmlShareContext->create(_glWidget->qglContext());
+    if (!_qmlShareContext->makeCurrent()) {
+        qCWarning(interfaceapp, "Unable to make QML shared context current");
+    }
+    OffscreenQmlSurface::setSharedContext(_qmlShareContext->getContext());
+    _qmlShareContext->doneCurrent();
 
     _glWidget->makeCurrent();
     gpu::Context::init<gpu::gl::GLBackend>();
@@ -2313,20 +2330,23 @@ void Application::initializeGL() {
     if (!_offscreenContext->makeCurrent()) {
         qFatal("Unable to make offscreen context current");
     }
+    _offscreenContext->doneCurrent();
+    _renderEventHandler = new RenderEventHandler(_glWidget->qglContext());
 
     // The UI can't be created until the primary OpenGL
     // context is created, because it needs to share
     // texture resources
     // Needs to happen AFTER the render engine initialization to access its configuration
+    if (!_offscreenContext->makeCurrent()) {
+        qFatal("Unable to make offscreen context current");
+    }
+
     initializeUi();
     qCDebug(interfaceapp, "Initialized Offscreen UI.");
-    _glWidget->makeCurrent();
 
-
-    // call Menu getInstance static method to set up the menu
-    // Needs to happen AFTER the QML UI initialization
-    _window->setMenuBar(Menu::getInstance());
-
+    if (!_offscreenContext->makeCurrent()) {
+        qFatal("Unable to make offscreen context current");
+    }
     init();
     qCDebug(interfaceapp, "init() complete.");
 
@@ -2337,7 +2357,6 @@ void Application::initializeGL() {
 
     _idleLoopStdev.reset();
 
-    _renderEventHandler = new RenderEventHandler(_glWidget->qglContext());
 
     // Restore the primary GL content for the main thread
     if (!_offscreenContext->makeCurrent()) {
@@ -2404,9 +2423,11 @@ void Application::initializeUi() {
         tabletScriptingInterface->getTablet(SYSTEM_TABLET);
     }
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->create();
 
-    auto surfaceContext = offscreenUi->getSurfaceContext();
+    connect(offscreenUi.data(), &hifi::qml::OffscreenSurface::rootContextCreated,
+        this, &Application::onDesktopRootContextCreated);
+    connect(offscreenUi.data(), &hifi::qml::OffscreenSurface::rootItemCreated,
+        this, &Application::onDesktopRootItemCreated);
 
     offscreenUi->setProxyWindow(_window->windowHandle());
     // OffscreenUi is a subclass of OffscreenQmlSurface specifically designed to
@@ -2416,14 +2437,53 @@ void Application::initializeUi() {
     // do better detection in the offscreen UI of what has focus
     offscreenUi->setNavigationFocused(false);
 
-    auto engine = surfaceContext->engine();
-    connect(engine, &QQmlEngine::quit, [] {
-        qApp->quit();
-    });
-
-
     setupPreferences();
 
+    _glWidget->installEventFilter(offscreenUi.data());
+    offscreenUi->setMouseTranslator([=](const QPointF& pt) {
+        QPointF result = pt;
+        auto displayPlugin = getActiveDisplayPlugin();
+        if (displayPlugin->isHmd()) {
+            getApplicationCompositor().handleRealMouseMoveEvent(false);
+            auto resultVec = getApplicationCompositor().getReticlePosition();
+            result = QPointF(resultVec.x, resultVec.y);
+        }
+        return result.toPoint();
+    });
+    offscreenUi->resume();
+    connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
+        resizeGL();
+    });
+
+    // This will set up the input plugins UI
+    _activeInputPlugins.clear();
+    foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
+        if (KeyboardMouseDevice::NAME == inputPlugin->getName()) {
+            _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
+        }
+        if (TouchscreenDevice::NAME == inputPlugin->getName()) {
+            _touchscreenDevice = std::dynamic_pointer_cast<TouchscreenDevice>(inputPlugin);
+        }
+    }
+
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+    connect(compositorHelper.data(), &CompositorHelper::allowMouseCaptureChanged, this, [=] {
+        if (isHMDMode()) {
+            showCursor(compositorHelper->getAllowMouseCapture() ?
+                       Cursor::Manager::lookupIcon(_preferredCursor.get()) :
+                       Cursor::Icon::SYSTEM);
+        }
+    });
+
+    // Pre-create a couple of Web3D overlays to speed up tablet UI
+    auto offscreenSurfaceCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
+    offscreenSurfaceCache->reserve(TabletScriptingInterface::QML, 1);
+    offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
+}
+
+
+void Application::onDesktopRootContextCreated(QQmlContext* surfaceContext) {
+    auto engine = surfaceContext->engine();
     // in Qt 5.10.0 there is already an "Audio" object in the QML context
     // though I failed to find it (from QtMultimedia??). So..  let it be "AudioScriptingInterface"
     surfaceContext->setContextProperty("AudioScriptingInterface", DependencyManager::get<AudioScriptingInterface>().data());
@@ -2505,48 +2565,12 @@ void Application::initializeUi() {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
     }
 
-
-    _glWidget->installEventFilter(offscreenUi.data());
-    offscreenUi->setMouseTranslator([=](const QPointF& pt) {
-        QPointF result = pt;
-        auto displayPlugin = getActiveDisplayPlugin();
-        if (displayPlugin->isHmd()) {
-            getApplicationCompositor().handleRealMouseMoveEvent(false);
-            auto resultVec = getApplicationCompositor().getReticlePosition();
-            result = QPointF(resultVec.x, resultVec.y);
-        }
-        return result.toPoint();
-    });
-    offscreenUi->resume();
-    connect(_window, &MainWindow::windowGeometryChanged, [this](const QRect& r){
-        resizeGL();
-    });
-
-    // This will set up the input plugins UI
-    _activeInputPlugins.clear();
-    foreach(auto inputPlugin, PluginManager::getInstance()->getInputPlugins()) {
-        if (KeyboardMouseDevice::NAME == inputPlugin->getName()) {
-            _keyboardMouseDevice = std::dynamic_pointer_cast<KeyboardMouseDevice>(inputPlugin);
-        }
-        if (TouchscreenDevice::NAME == inputPlugin->getName()) {
-            _touchscreenDevice = std::dynamic_pointer_cast<TouchscreenDevice>(inputPlugin);
-        }
-    }
     _window->setMenuBar(new Menu());
+}
 
-    auto compositorHelper = DependencyManager::get<CompositorHelper>();
-    connect(compositorHelper.data(), &CompositorHelper::allowMouseCaptureChanged, this, [=] {
-        if (isHMDMode()) {
-            showCursor(compositorHelper->getAllowMouseCapture() ?
-                       Cursor::Manager::lookupIcon(_preferredCursor.get()) :
-                       Cursor::Icon::SYSTEM);
-        }
-    });
-
-    // Pre-create a couple of Web3D overlays to speed up tablet UI
-    auto offscreenSurfaceCache = DependencyManager::get<OffscreenQmlSurfaceCache>();
-    offscreenSurfaceCache->reserve(TabletScriptingInterface::QML, 1);
-    offscreenSurfaceCache->reserve(Web3DOverlay::QML, 2);
+void Application::onDesktopRootItemCreated(QQuickItem* rootItem) {
+    Stats::show();
+    AvatarInputs::show();
 }
 
 void Application::updateCamera(RenderArgs& renderArgs, float deltaTime) {
@@ -2785,6 +2809,8 @@ void Application::resizeGL() {
         QMutexLocker viewLocker(&_viewMutex);
         _myCamera.loadViewFrustum(_viewFrustum);
     }
+
+    DependencyManager::get<OffscreenUi>()->resize(fromGlm(displayPlugin->getRecommendedUiSize()));
 }
 
 void Application::handleSandboxStatus(QNetworkReply* reply) {
@@ -3993,7 +4019,7 @@ void Application::idle() {
         // Bit of a hack since there's no device pixel ratio change event I can find.
         if (offscreenUi->size() != fromGlm(uiSize)) {
             qCDebug(interfaceapp) << "Device pixel ratio changed, triggering resize to " << uiSize;
-            offscreenUi->resize(fromGlm(uiSize), true);
+            offscreenUi->resize(fromGlm(uiSize));
             _offscreenContext->makeCurrent();
         }
     }
@@ -7325,9 +7351,7 @@ void Application::updateDisplayMode() {
             action->setChecked(true);
         }
 
-        _offscreenContext->makeCurrent();
         offscreenUi->resize(fromGlm(newDisplayPlugin->getRecommendedUiSize()));
-        _offscreenContext->makeCurrent();
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
         connect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent, Qt::DirectConnection);

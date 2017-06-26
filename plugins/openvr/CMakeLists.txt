@@ -11,7 +11,7 @@ if (WIN32 AND (NOT USE_GLES))
     add_definitions(-DGLEW_STATIC)
     set(TARGET_NAME openvr)
     setup_hifi_plugin(Gui Qml Multimedia)
-    link_hifi_libraries(shared gl networking controllers ui 
+    link_hifi_libraries(shared gl qml networking controllers ui 
         plugins display-plugins ui-plugins input-plugins script-engine
         audio-client render-utils graphics gpu render model-networking fbx ktx image procedural ${PLATFORM_GL_BACKEND})
 

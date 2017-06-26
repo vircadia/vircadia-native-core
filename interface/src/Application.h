@@ -389,6 +389,8 @@ public slots:
     void setPreferredCursor(const QString& cursor);
 
 private slots:
+    void onDesktopRootItemCreated(QQuickItem* qmlContext);
+    void onDesktopRootContextCreated(QQmlContext* qmlContext);
     void showDesktop();
     void clearDomainOctreeDetails();
     void clearDomainAvatars();
