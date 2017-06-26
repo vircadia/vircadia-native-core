@@ -35,8 +35,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext,
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
 
-  //  auto lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
-    auto lightStage = renderContext->_scene->getStage<LightStage>("LIGHT_STAGE");
+    auto lightStage = renderContext->_scene->getStage<LightStage>();
 
     LightStage::Index globalLightIndex { 0 };
 
@@ -141,8 +140,7 @@ void RenderShadowTask::configure(const Config& configuration) {
 }
 
 void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, Output& output) {
- //   auto lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
-    auto lightStage = renderContext->_scene->getStage<LightStage>("LIGHT_STAGE");
+    auto lightStage = renderContext->_scene->getStage<LightStage>();
     const auto globalShadow = lightStage->getShadow(0);
 
     // Cache old render args
