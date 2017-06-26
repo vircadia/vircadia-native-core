@@ -56,8 +56,6 @@
     var spectatorFrameRenderConfig = Render.getConfig("SecondaryCameraFrame");
     var beginSpectatorFrameRenderConfig = Render.getConfig("BeginSecondaryCamera");
     var viewFinderOverlay = false;
-    var backdrop = false;
-    var backdropAspect = false;
     var camera = false;
     var cameraIsDynamic = false;
     var lastCameraPosition = false;
@@ -135,40 +133,6 @@
             localPosition: { x: 0, y: 0.18, z: 0 },
             dimensions: viewFinderOverlayDim
         });
-        var backdropProp = {
-            parentID: camera,
-            "color": {
-                "blue": 0,
-                "green": 0,
-                "red": 0
-            },
-            localPosition: {x: 0, y: 0.18, z: -.0075},
-            "dimensions": {
-                "x": 0.2,
-                "y": 0.2,
-                "z": 0.01
-            },
-            "shape": "Cube",
-            "type": "Box"
-        }
-        var backdropAspectProp = {
-            parentID: camera,
-            "color": {
-                "blue": 255,
-                "green": 255,
-                "red": 255
-            },
-            localPosition: { x: 0, y: 0.18, z: -.0073 },
-            "dimensions": {
-                "x": 0.2,
-                "y": 0.1125,
-                "z": 0.01
-            },
-            "shape": "Cube",
-            "type": "Box"
-        }
-        backdrop = Entities.addEntity(backdropProp);
-        backdropAspect = Entities.addEntity(backdropAspectProp);
         setDisplay(monitorShowsCameraView);
     }
 
@@ -197,16 +161,8 @@
         if (viewFinderOverlay) {
             Overlays.deleteOverlay(viewFinderOverlay);
         }
-        if (backdrop) {
-            Overlays.deleteOverlay(backdrop);
-        }
-        if (backdropAspect) {
-            Overlays.deleteOverlay(backdropAspect);
-        }
         camera = false;
         viewFinderOverlay = false;
-        backdrop = false;
-        backdropAspect = false;
         setDisplay(monitorShowsCameraView);
     }
 
@@ -270,8 +226,6 @@
         Controller.keyPressEvent.connect(keyPressEvent);
         HMD.displayModeChanged.connect(onHMDChanged);
         viewFinderOverlay = false;
-        backdrop = false;
-        backdropAspect = false;
         camera = false;
         registerButtonMappings();
     }
