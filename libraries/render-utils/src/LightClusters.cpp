@@ -576,7 +576,7 @@ void LightClusteringPass::run(const render::RenderContextPointer& renderContext,
     // From the LightStage and the current frame, update the light cluster Grid
  //   auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
   //  auto lightStage = deferredLightingEffect->getLightStage();
-    auto lightStage = renderContext->_scene->getStage<LightStage>("LIGHT_STAGE");
+    auto lightStage = renderContext->_scene->getStage<LightStage>();
     _lightClusters->updateLightStage(lightStage);
     _lightClusters->updateLightFrame(lightStage->_currentFrame, lightingModel->isPointLightEnabled(), lightingModel->isSpotLightEnabled());
     
