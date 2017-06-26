@@ -24,6 +24,8 @@
 
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QApplication>
+#include <QtWidgets/QMenuBar>
+#include <QtWidgets/QMenu>
 
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
@@ -48,7 +50,6 @@
 #include <ScriptAvatarData.h>
 #include <udt/PacketHeaders.h>
 #include <UUID.h>
-#include <ui/Menu.h>
 
 #include <controllers/ScriptingInterface.h>
 #include <AnimationObject.h>
@@ -70,7 +71,6 @@
 #include "WebSocketClass.h"
 #include "RecordingScriptingInterface.h"
 #include "ScriptEngines.h"
-#include "TabletScriptingInterface.h"
 #include "ModelScriptingInterface.h"
 
 
@@ -697,8 +697,6 @@ void ScriptEngine::init() {
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
 
-    registerGlobalObject("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
-    qScriptRegisterMetaType(this, tabletToScriptValue, tabletFromScriptValue);
     registerGlobalObject("Assets", &_assetScriptingInterface);
     registerGlobalObject("Resources", DependencyManager::get<ResourceScriptingInterface>().data());
 

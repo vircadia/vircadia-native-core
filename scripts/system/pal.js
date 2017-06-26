@@ -479,7 +479,8 @@ function populateNearbyUserList(selectData, oldAudioData) {
             admin: false,
             personalMute: !!id && Users.getPersonalMuteStatus(id), // expects proper boolean, not null
             ignore: !!id && Users.getIgnoreStatus(id), // ditto
-            isPresent: true
+            isPresent: true,
+            isReplicated: avatar.isReplicated
         };
         if (id) {
             addAvatarNode(id); // No overlay for ourselves
