@@ -1076,7 +1076,7 @@ void ScriptEngine::run() {
                 QTimer timer;
                 timer.setSingleShot(true);
                 connect(&timer, SIGNAL(timeout()), &loop, SLOT(quit()));
-                timer.start(sleepFor);
+                timer.start(sleepFor.count());
                 loop.exec();
             } else {
                 QCoreApplication::processEvents();
