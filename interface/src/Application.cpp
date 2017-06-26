@@ -483,11 +483,11 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     Setting::init();
 
     // Tell the plugin manager about our statically linked plugins
-    PluginManager::setInputPluginProvider([] { return getInputPlugins(); });
-    PluginManager::setDisplayPluginProvider([] { return getDisplayPlugins(); });
-    PluginManager::setInputPluginSettingsPersister([](const InputPluginList& plugins) { saveInputPluginSettings(plugins); });
-
-    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+    auto pluginManager = PluginManager::getInstance();
+    pluginManager->setInputPluginProvider([] { return getInputPlugins(); });
+    pluginManager->setDisplayPluginProvider([] { return getDisplayPlugins(); });
+    pluginManager->setInputPluginSettingsPersister([](const InputPluginList& plugins) { saveInputPluginSettings(plugins); });
+    if (auto steamClient = pluginManager->getSteamClientPlugin()) {
         steamClient->init();
     }
 

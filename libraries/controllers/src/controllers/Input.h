@@ -83,6 +83,8 @@ struct Input {
 
     using NamedPair = QPair<Input, QString>;
     using NamedVector = QVector<NamedPair>;
+
+    static const Input& invalidInput();
 };
 
 }

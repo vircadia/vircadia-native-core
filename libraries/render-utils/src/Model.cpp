@@ -867,10 +867,6 @@ bool Model::getRelativeDefaultJointTranslation(int jointIndex, glm::vec3& transl
     return _rig.getRelativeDefaultJointTranslation(jointIndex, translationOut);
 }
 
-bool Model::getJointCombinedRotation(int jointIndex, glm::quat& rotation) const {
-    return _rig.getJointCombinedRotation(jointIndex, rotation, _rotation);
-}
-
 QStringList Model::getJointNames() const {
     if (QThread::currentThread() != thread()) {
         QStringList result;
