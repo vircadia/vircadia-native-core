@@ -554,13 +554,11 @@ void RenderableZoneEntityItemMeta::setProceduralUserData(QString userData) {
 
 void RenderableZoneEntityItemMeta::render(RenderArgs* args) {
     if (!_stage) {
-      //  _stage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
-        _stage = args->_scene->getStage<LightStage>("LIGHT_STAGE");
+        _stage = args->_scene->getStage<LightStage>();
     }
 
     if (!_backgroundStage) {
-        //_backgroundStage = DependencyManager::get<DeferredLightingEffect>()->getBackgroundStage();
-        _backgroundStage = args->_scene->getStage<BackgroundStage>("BACKGROUND_STAGE");
+        _backgroundStage = args->_scene->getStage<BackgroundStage>();
     }
 
     { // Sun 

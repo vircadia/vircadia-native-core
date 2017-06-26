@@ -13,6 +13,8 @@
 
 #include <gpu/Context.h>
 
+std::string BackgroundStage::_stageName { "BACKGROUND_STAGE"};
+
 BackgroundStage::Index BackgroundStage::findBackground(const BackgroundPointer& background) const {
     auto found = _backgroundMap.find(background);
     if (found != _backgroundMap.end()) {
@@ -143,9 +145,9 @@ BackgroundStageSetup::BackgroundStageSetup() {
 }
 
 void BackgroundStageSetup::run(const render::RenderContextPointer& renderContext) {
-    auto stage = renderContext->_scene->getStage("BACKGROUND_STAGE");
+    auto stage = renderContext->_scene->getStage(BackgroundStage::getName());
     if (!stage) {
-        renderContext->_scene->resetStage("BACKGROUND_STAGE", std::make_shared<BackgroundStage>());
+        renderContext->_scene->resetStage(BackgroundStage::getName(), std::make_shared<BackgroundStage>());
     }
 }
 

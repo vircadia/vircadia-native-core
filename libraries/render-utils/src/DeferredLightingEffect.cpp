@@ -104,7 +104,7 @@ void DeferredLightingEffect::init() {
 void DeferredLightingEffect::setupKeyLightBatch(const RenderArgs* args, gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit) {
     PerformanceTimer perfTimer("DLE->setupBatch()");
     model::LightPointer keySunLight;
-    auto lightStage = args->_scene->getStage<LightStage>("LIGHT_STAGE");
+    auto lightStage = args->_scene->getStage<LightStage>();
     if (lightStage && lightStage->_currentFrame._sunLights.size()) {
         keySunLight = lightStage->getLight(lightStage->_currentFrame._sunLights.front());
     } else {
@@ -427,7 +427,7 @@ void PrepareDeferred::run(const RenderContextPointer& renderContext, const Input
     
     
     // Prepare a fresh Light Frame
-    auto lightStage = renderContext->_scene->getStage<LightStage>("LIGHT_STAGE");
+    auto lightStage = renderContext->_scene->getStage<LightStage>();
     lightStage->_currentFrame.clear();
 }
 
@@ -491,7 +491,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
 
         // Global directional light and ambient pass
 
-        auto lightStage = renderContext->_scene->getStage<LightStage>("LIGHT_STAGE");
+        auto lightStage = renderContext->_scene->getStage<LightStage>();
         assert(lightStage->getNumLights() > 0);
         auto lightAndShadow = lightStage->getLightAndShadow(0);
         const auto& globalShadow = lightAndShadow.second;
@@ -716,7 +716,7 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
             }
         }
 
-        auto lightStage = renderContext->_scene->getStage<LightStage>("LIGHT_STAGE");
+        auto lightStage = renderContext->_scene->getStage<LightStage>();
         if (lightStage) { 
 
             // Allocate a default global light directional and ambient
@@ -743,7 +743,7 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
             lightStage->addShadow(defaultLightID);
         }
 
-        auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>("BACKGROUND_STAGE");
+        auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
         if (backgroundStage) {
 
             auto background = std::make_shared<model::SunSkyStage>();

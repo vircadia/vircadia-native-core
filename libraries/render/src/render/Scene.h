@@ -117,7 +117,7 @@ public:
     // Thread safe
     StagePointer getStage(const Stage::Name& name) const;
     template <class T>
-    std::shared_ptr<T> getStage(const Stage::Name& name) const {
+    std::shared_ptr<T> getStage(const Stage::Name& name = T::getName()) const {
         auto stage = getStage(name);
         return (stage ? std::static_pointer_cast<T>(stage) : std::shared_ptr<T>());
     }

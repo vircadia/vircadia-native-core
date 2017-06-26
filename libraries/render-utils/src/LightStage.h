@@ -28,6 +28,9 @@ class ViewFrustum;
 // Light stage to set up light-related rendering tasks
 class LightStage : public render::Stage {
 public:
+    static std::string _stageName;
+    static const std::string& getName() { return _stageName; }
+
     using Index = render::indexed_container::Index;
     static const Index INVALID_INDEX { render::indexed_container::INVALID_INDEX };
     static bool isIndexInvalid(Index index) { return index == INVALID_INDEX; }
