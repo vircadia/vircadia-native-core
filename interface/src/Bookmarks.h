@@ -39,7 +39,7 @@ protected:
     void sortActions(Menu* menubar, MenuWrapper* menu);
     int getMenuItemLocation(QList<QAction*> actions, const QString& name) const;
     
-    bool Bookmarks::contains(const QString& name) const;
+    bool contains(const QString& name) const;
     
     QVariantMap _bookmarks;  // { name: url, ... }
     QPointer<MenuWrapper> _bookmarksMenu;
