@@ -11,7 +11,6 @@
 
 #include "StencilMaskPass.h"
 
-#include <RenderArgs.h>
 #include <ViewFrustum.h>
 #include <gpu/Context.h>
 

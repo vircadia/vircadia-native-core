@@ -145,7 +145,7 @@ void Context::enableStereo(bool enable) {
 }
 
 bool Context::isStereo() {
-    return _stereo._enable;
+    return _stereo.isStereo();
 }
 
 void Context::setStereoProjections(const mat4 eyeProjections[2]) {

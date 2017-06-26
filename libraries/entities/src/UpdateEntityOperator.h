@@ -25,9 +25,9 @@ public:
 
     ~UpdateEntityOperator();
 
-    virtual bool preRecursion(OctreeElementPointer element) override;
-    virtual bool postRecursion(OctreeElementPointer element) override;
-    virtual OctreeElementPointer possiblyCreateChildAt(OctreeElementPointer element, int childIndex) override;
+    virtual bool preRecursion(const OctreeElementPointer& element) override;
+    virtual bool postRecursion(const OctreeElementPointer& element) override;
+    virtual OctreeElementPointer possiblyCreateChildAt(const OctreeElementPointer& element, int childIndex) override;
 private:
     EntityTreePointer _tree;
     EntityItemPointer _existingEntity;
@@ -45,8 +45,8 @@ private:
     AABox _oldEntityBox; // clamped to domain
     AABox _newEntityBox; // clamped to domain
 
-    bool subTreeContainsOldEntity(OctreeElementPointer element);
-    bool subTreeContainsNewEntity(OctreeElementPointer element);
+    bool subTreeContainsOldEntity(const OctreeElementPointer& element);
+    bool subTreeContainsNewEntity(const OctreeElementPointer& element);
 
     bool _wantDebug;
 };

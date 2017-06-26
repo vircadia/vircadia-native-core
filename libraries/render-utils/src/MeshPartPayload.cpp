@@ -535,6 +535,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
 
     if (_fadeState == STATE_WAITING_TO_START) {
         if (model->isLoaded()) {
+            // FIXME as far as I can tell this is the ONLY reason render-util depends on entities.
             if (EntityItem::getEntitiesShouldFadeFunction()()) {
                 _fadeStartTime = usecTimestampNow();
                 _fadeState = STATE_IN_PROGRESS;

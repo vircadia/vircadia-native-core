@@ -5,6 +5,7 @@ setup_hifi_library(Script Qml)
 
 # use setup_hifi_library macro to setup our project and link appropriate Qt modules
 link_hifi_libraries(shared)
+include_hifi_library_headers(networking)
 
 GroupSources("src/controllers")
 

@@ -15,18 +15,20 @@
 #include <TextureCache.h>
 #include "RenderableEntityItem.h"
 
-class RenderableParticleEffectEntityItem : public ParticleEffectEntityItem  {
+class RenderableParticleEffectEntityItem : public ParticleEffectEntityItem, public RenderableEntityInterface {
     friend class ParticlePayloadData;
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderableParticleEffectEntityItem(const EntityItemID& entityItemID);
 
+    RenderableEntityInterface* getRenderableInterface() override { return this; }
+
     virtual void update(const quint64& now) override;
 
     void updateRenderItem();
 
-    virtual bool addToScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
-    virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    virtual bool addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    virtual void removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
 
 protected:
     virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); notifyBoundChanged(); }

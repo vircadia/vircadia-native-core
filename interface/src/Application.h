@@ -102,9 +102,9 @@ class Application;
 #endif
 #define qApp (static_cast<Application*>(QCoreApplication::instance()))
 
-class Application : public QApplication, 
-                    public AbstractViewStateInterface, 
-                    public AbstractScriptingServicesInterface, 
+class Application : public QApplication,
+                    public AbstractViewStateInterface,
+                    public AbstractScriptingServicesInterface,
                     public AbstractUriHandler,
                     public PluginContainer {
     Q_OBJECT
@@ -181,7 +181,6 @@ public:
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() const { return _window; }
     EntityTreePointer getEntityClipboard() const { return _entityClipboard; }
-    EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
 
     ivec2 getMouse() const;
@@ -294,6 +293,10 @@ public:
     OverlayID getTabletScreenID() const;
     OverlayID getTabletHomeButtonID() const;
     QUuid getTabletFrameID() const; // may be an entity or an overlay
+
+    void setAvatarOverrideUrl(const QUrl& url, bool save);
+    QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
+    bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
 
 signals:
     void svoImportRequested(const QString& url);
@@ -532,7 +535,6 @@ private:
     PhysicalEntitySimulationPointer _entitySimulation;
     PhysicsEnginePointer _physicsEngine;
 
-    EntityTreeRenderer _entityClipboardRenderer;
     EntityTreePointer _entityClipboard;
 
     mutable QMutex _viewMutex { QMutex::Recursive };
@@ -677,11 +679,14 @@ private:
     FileScriptingInterface* _fileDownload;
     AudioInjector* _snapshotSoundInjector { nullptr };
     SharedSoundPointer _snapshotSound;
-	
+
     DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;
     QString _autoSwitchDisplayModeSupportedHMDPluginName;
     bool _previousHMDWornStatus;
     void startHMDStandBySession();
     void endHMDSession();
+
+    QUrl _avatarOverrideUrl;
+    bool _saveAvatarOverrideUrl { false };
 };
 #endif // hifi_Application_h

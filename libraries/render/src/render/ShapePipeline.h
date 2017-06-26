@@ -15,7 +15,8 @@
 #include <unordered_set>
 
 #include <gpu/Batch.h>
-#include <RenderArgs.h>
+
+#include "Args.h"
 
 namespace render {
 

@@ -25,6 +25,7 @@
 #include <DependencyManager.h>
 #include <GeometryUtil.h>
 #include <gpu/Batch.h>
+#include <render/Forward.h>
 #include <render/Scene.h>
 #include <Transform.h>
 #include <SpatiallyNestable.h>
@@ -34,10 +35,10 @@
 #include "TextureCache.h"
 #include "Rig.h"
 
+
 class AbstractViewStateInterface;
 class QScriptEngine;
 
-#include "RenderArgs.h"
 class ViewFrustum;
 
 namespace render {
@@ -176,7 +177,6 @@ public:
     int getJointStateCount() const { return (int)_rig.getJointStateCount(); }
     bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
-    bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
 
     /// \param jointIndex index of joint in model structure
     /// \param rotation[out] rotation of joint in model-frame
