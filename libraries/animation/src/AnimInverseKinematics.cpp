@@ -1733,7 +1733,7 @@ void AnimInverseKinematics::initRelativePosesFromSolutionSource(SolutionSource s
     case SolutionSource::RelaxToLimitCenterPoses:
         blendToPoses(_limitCenterPoses, underPoses, RELAX_BLEND_FACTOR);
         // special case for hips: copy over hips pose whether or not IK is enabled.
-        if (_hipsIndex >= 0 && _hipsIndex < _relativePoses.size()) {
+        if (_hipsIndex >= 0 && _hipsIndex < (int)_relativePoses.size()) {
             _relativePoses[_hipsIndex] = _limitCenterPoses[_hipsIndex];
         }
         break;
