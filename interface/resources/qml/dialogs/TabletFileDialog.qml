@@ -25,10 +25,13 @@ import "fileDialog"
 //FIXME implement shortcuts for favorite location
 TabletModalWindow {
     id: root
+
     anchors.fill: parent
     width: parent.width
     height: parent.height
     HifiConstants { id: hifi }
+
+    property var filesModel: ListModel { }
 
     Settings {
         category: "FileDialog"
@@ -250,7 +253,9 @@ TabletModalWindow {
                 }
 
                 currentSelectionUrl = helper.pathToUrl(fileTableView.model.get(row).filePath);
-                currentSelectionIsFolder = fileTableView.model.isFolder(row);
+                currentSelectionIsFolder = fileTableView.model !== filesModel ?
+                            fileTableView.model.isFolder(row) :
+                            fileTableModel.isFolder(row);
                 if (root.selectDirectory || !currentSelectionIsFolder) {
                     currentSelection.text = capitalizeDrive(helper.urlToPath(currentSelectionUrl));
                 } else {
@@ -288,7 +293,7 @@ TabletModalWindow {
             }
 
             onFolderChanged: {
-                fileTableModel.update();  // Update once the data from the folder change is available.
+                refreshTimer.start()
             }
 
             function getItem(index, field) {
@@ -328,7 +333,20 @@ TabletModalWindow {
             }
         }
 
-        ListModel {
+        Timer {
+            id: refreshTimer
+            interval: 100
+            repeat: false
+            running: false
+            onTriggered: fileTableModel.update()
+        }
+
+        Component {
+            id: filesModelBuilder
+            ListModel { }
+        }
+
+        QtObject {
             id: fileTableModel
 
             // FolderListModel has a couple of problems:
@@ -380,7 +398,11 @@ TabletModalWindow {
                 if (row === -1) {
                     return false;
                 }
-                return get(row).fileIsDir;
+                return filesModel.get(row).fileIsDir;
+            }
+
+            function get(row) {
+                return filesModel.get(row)
             }
 
             function update() {
@@ -398,7 +420,8 @@ TabletModalWindow {
                     rows = 0,
                     i;
 
-                clear();
+                console.log("dialog.qml updating")
+                var newFilesModel = filesModelBuilder.createObject(root);
 
                 comparisonFunction = sortOrder === Qt.AscendingOrder
                     ? function(a, b) { return a < b; }
@@ -420,7 +443,7 @@ TabletModalWindow {
                     while (lower < upper) {
                         middle = Math.floor((lower + upper) / 2);
                         var lessThan;
-                        if (comparisonFunction(sortValue, get(middle)[sortField])) {
+                        if (comparisonFunction(sortValue, newFilesModel.get(middle)[sortField])) {
                             lessThan = true;
                             upper = middle;
                         } else {
@@ -429,7 +452,7 @@ TabletModalWindow {
                         }
                     }
 
-                    insert(lower, {
+                    newFilesModel.insert(lower, {
                        fileName: fileName,
                        fileModified: (fileIsDir ? new Date(0) : model.getItem(i, "fileModified")),
                        fileSize: model.getItem(i, "fileSize"),
@@ -440,6 +463,7 @@ TabletModalWindow {
 
                     rows++;
                 }
+                filesModel = newFilesModel;
 
                 d.clearSelection();
             }
@@ -467,7 +491,7 @@ TabletModalWindow {
             sortIndicatorOrder: Qt.AscendingOrder
             sortIndicatorVisible: true
 
-            model: fileTableModel
+            model: filesModel
 
             function updateSort() {
                 model.sortOrder = sortIndicatorOrder;
@@ -559,11 +583,12 @@ TabletModalWindow {
             }
 
             function navigateToCurrentRow() {
+                var currentModel = fileTableView.model !== filesModel ? fileTableView.model : fileTableModel
                 var row = fileTableView.currentRow
-                var isFolder = model.isFolder(row);
-                var file = model.get(row).filePath;
+                var isFolder = currentModel.isFolder(row);
+                var file = currentModel.get(row).filePath;
                 if (isFolder) {
-                    fileTableView.model.folder = helper.pathToUrl(file);
+                    currentModel.folder = helper.pathToUrl(file);
                 } else {
                     okAction.trigger();
                 }
@@ -578,7 +603,8 @@ TabletModalWindow {
                 var newPrefix = prefix + event.text.toLowerCase();
                 var matchedIndex = -1;
                 for (var i = 0; i < model.count; ++i) {
-                    var name = model.get(i).fileName.toLowerCase();
+                    var name = model !== filesModel ? model.get(i).fileName.toLowerCase() :
+                                                      filesModel.get(i).fileName.toLowerCase();
                     if (0 === name.indexOf(newPrefix)) {
                         matchedIndex = i;
                         break;
