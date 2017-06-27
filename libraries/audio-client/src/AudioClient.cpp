@@ -77,7 +77,7 @@ Setting::Handle<int> staticJitterBufferFrames("staticJitterBufferFrames",
 // protect the Qt internal device list
 using Mutex = std::mutex;
 using Lock = std::unique_lock<Mutex>;
-static Mutex _deviceMutex;
+Mutex _deviceMutex;
 
 // thread-safe
 QList<QAudioDeviceInfo> getAvailableDevices(QAudio::Mode mode) {
@@ -235,7 +235,7 @@ AudioClient::AudioClient() :
         QtConcurrent::run(QThreadPool::globalInstance(), [this] { checkPeakValues(); });
     });
     const unsigned long PEAK_VALUES_CHECK_INTERVAL_SECS = 50;
-
+    _checkPeakValuesTimer->start(PEAK_VALUES_CHECK_INTERVAL_SECS);
 
     configureReverb();
 
@@ -308,8 +308,6 @@ QString getWinDeviceName(IMMDevice* pEndpoint) {
     QString deviceName;
     IPropertyStore* pPropertyStore;
     pEndpoint->OpenPropertyStore(STGM_READ, &pPropertyStore);
-    pEndpoint->Release();
-    pEndpoint = nullptr;
     PROPVARIANT pv;
     PropVariantInit(&pv);
     HRESULT hr = pPropertyStore->GetValue(PKEY_Device_FriendlyName, &pv);
@@ -338,6 +336,8 @@ QString AudioClient::getWinDeviceName(wchar_t* guid) {
         deviceName = QString("NONE");
     } else {
         deviceName = ::getWinDeviceName(pEndpoint);
+        pEndpoint->Release();
+        pEndpoint = nullptr;
     }
     pMMDeviceEnumerator->Release();
     pMMDeviceEnumerator = nullptr;
@@ -421,6 +421,8 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
             deviceName = QString("NONE");
         } else {
             deviceName = getWinDeviceName(pEndpoint);
+            pEndpoint->Release();
+            pEndpoint = nullptr;
         }
         pMMDeviceEnumerator->Release();
         pMMDeviceEnumerator = NULL;

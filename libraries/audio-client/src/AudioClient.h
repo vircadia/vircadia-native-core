@@ -149,6 +149,7 @@ public:
     QList<QAudioDeviceInfo> getAudioDevices(QAudio::Mode mode) const;
 
     void enablePeakValues(bool enable) { _enablePeakValues = enable; }
+    bool peakValuesAvailable() const;
 
     static const float CALLBACK_ACCELERATOR_RATIO;
 
