@@ -497,13 +497,14 @@ float computeGain(const AvatarAudioStream& listeningNodeStream, const Positional
     // avatar: apply fixed off-axis attenuation to make them quieter as they turn away
     } else if (!isEcho && (streamToAdd.getType() == PositionalAudioStream::Microphone)) {
         glm::vec3 rotatedListenerPosition = glm::inverse(streamToAdd.getOrientation()) * relativePosition;
-        float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                           glm::normalize(rotatedListenerPosition));
+
+        // float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f), glm::normalize(rotatedListenerPosition));
+        glm::vec3 direction = glm::normalize(rotatedListenerPosition);
+        float angleOfDelivery = fastAcosf(glm::clamp(-direction.z, -1.0f, 1.0f));
 
         const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
         const float OFF_AXIS_ATTENUATION_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
-        float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-            (angleOfDelivery * (OFF_AXIS_ATTENUATION_STEP / PI_OVER_TWO));
+        float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION + (angleOfDelivery * (OFF_AXIS_ATTENUATION_STEP / PI_OVER_TWO));
 
         gain *= offAxisCoefficient;
     }
