@@ -76,11 +76,11 @@ const QString& AnimSkeleton::getJointName(int jointIndex) const {
     return _joints[jointIndex].name;
 }
 
-AnimPose AnimSkeleton::getAbsolutePose(int jointIndex, const AnimPoseVec& poses) const {
-    if (jointIndex < 0 || jointIndex >= (int)poses.size() || jointIndex >= _jointsSize) {
+AnimPose AnimSkeleton::getAbsolutePose(int jointIndex, const AnimPoseVec& relativePoses) const {
+    if (jointIndex < 0 || jointIndex >= (int)relativePoses.size() || jointIndex >= _jointsSize) {
         return AnimPose::identity;
     } else {
-        return getAbsolutePose(_joints[jointIndex].parentIndex, poses) * poses[jointIndex];
+        return getAbsolutePose(_joints[jointIndex].parentIndex, relativePoses) * relativePoses[jointIndex];
     }
 }
 

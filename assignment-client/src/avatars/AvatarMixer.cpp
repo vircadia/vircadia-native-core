@@ -143,8 +143,8 @@ void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node
         std::unique_ptr<NLPacket> packet;
 
         auto nodeList = DependencyManager::get<NodeList>();
-        nodeList->eachMatchingNode([&](const SharedNodePointer& node) {
-            return node->getType() == NodeType::DownstreamAvatarMixer;
+        nodeList->eachMatchingNode([&](const SharedNodePointer& downstreamNode) {
+            return shouldReplicateTo(node, *downstreamNode);
         }, [&](const SharedNodePointer& node) {
             if (!packet) {
                 // construct an NLPacket to send to the replicant that has the contents of the received packet
@@ -229,7 +229,7 @@ void AvatarMixer::start() {
             auto start = usecTimestampNow();
             nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
                 std::for_each(cbegin, cend, [&](const SharedNodePointer& node) {
-                    if (node->getType() == NodeType::Agent && !node->isUpstream()) {
+                    if (node->getType() == NodeType::Agent) {
                         manageIdentityData(node);
                     }
 
@@ -325,8 +325,8 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
             sendIdentity = true;
         }
     }
-    if (sendIdentity) {
-
+    if (sendIdentity && !node->isUpstream()) {
+        sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name or avatar.
         // since this packet includes a change to either the skeleton model URL or the display name
         // it needs a new sequence number
         nodeData->getAvatar().pushIdentitySequenceNumber();
@@ -424,8 +424,8 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
         nodeList->eachMatchingNode([&](const SharedNodePointer& node) {
             // we relay avatar kill packets to agents that are not upstream
             // and downstream avatar mixers, if the node that was just killed was being replicated
-            return (node->getType() == NodeType::Agent && !node->isUpstream())
-                || (killedNode->isReplicated() && node->getType() == NodeType::DownstreamAvatarMixer);
+            return (node->getType() == NodeType::Agent && !node->isUpstream()) ||
+                   (killedNode->isReplicated() && shouldReplicateTo(*killedNode, *node));
         }, [&](const SharedNodePointer& node) {
             if (node->getType() == NodeType::Agent) {
                 if (!killPacket) {

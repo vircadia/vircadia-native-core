@@ -15,6 +15,7 @@
 
 var TABLET_BUTTON_NAME = "AUDIO";
 var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
+var AUDIO_QML_SOURCE = "../audio/Audio.qml";
 
 var MUTE_ICONS = {
     icon: "icons/tablet-icons/mic-mute-i.svg",
@@ -34,7 +35,6 @@ function onMuteToggled() {
     }
 }
 
-var shouldActivateButton = false;
 var onAudioScreen = false;
 
 function onClicked() {
@@ -44,18 +44,14 @@ function onClicked() {
     } else {
         var entity = HMD.tabletID;
         Entities.editEntity(entity, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
-        shouldActivateButton = true;
-        shouldActivateButton = true;
-        tablet.loadQMLSource("../audio/Audio.qml");
-        onAudioScreen = true;
+        tablet.loadQMLSource(AUDIO_QML_SOURCE);
     }
 }
 
 function onScreenChanged(type, url) {
+    onAudioScreen = (type === "QML" && url === AUDIO_QML_SOURCE);
     // for toolbar mode: change button to active when window is first openend, false otherwise.
-    button.editProperties({isActive: shouldActivateButton});
-    shouldActivateButton = false;
-    onAudioScreen = false;
+    button.editProperties({isActive: onAudioScreen});
 }
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
