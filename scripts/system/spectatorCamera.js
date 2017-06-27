@@ -100,10 +100,10 @@
     var cameraRotation;
     var cameraPosition;
     //The negative y dimension for viewFinderOverlay is necessary for now due to the way Image3DOverlay
-    //    draws textures, but should be looked into at some point. Also the z dimension doesn't matter
-    //    so it is set to the glassPaneWidth
+    //    draws textures, but should be looked into at some point. Also the z dimension shouldn't affect
+    //    the overlay since it is an Image3DOverlay so it is set to 0
     var glassPaneWidth = 0.16;
-    var viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: glassPaneWidth };
+    var viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: 0 };
     function spectatorCameraOn() {
         // Sets the special texture size based on the window it is displayed in, which doesn't include the menu bar
         spectatorFrameRenderConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
@@ -307,11 +307,11 @@
         var squareScale = verticalScale * (1 + (1 - (1 / (geometryChanged.width / geometryChanged.height))));
 
         if (geometryChanged.height > geometryChanged.width) { //vertical window size
-            viewFinderOverlayDim = { x: (glassPaneWidth * verticalScale), y: (-glassPaneWidth * verticalScale), z: glassPaneWidth };
+            viewFinderOverlayDim = { x: (glassPaneWidth * verticalScale), y: (-glassPaneWidth * verticalScale), z: 0 };
         } else if ((geometryChanged.width / geometryChanged.height) < glassPaneRatio) { //square-ish window size, in-between vertical and horizontal
-            viewFinderOverlayDim = { x: (glassPaneWidth * squareScale), y: (-glassPaneWidth * squareScale), z: glassPaneWidth };
+            viewFinderOverlayDim = { x: (glassPaneWidth * squareScale), y: (-glassPaneWidth * squareScale), z: 0 };
         } else { //horizontal window size
-            viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: glassPaneWidth };
+            viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: 0 };
         }
 
         // The only way I found to update the viewFinderOverlay without turning the spectator camera on and off is to delete and recreate the
