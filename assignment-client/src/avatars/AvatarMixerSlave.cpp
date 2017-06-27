@@ -327,6 +327,9 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         if (otherAvatar->hasProcessedFirstIdentity()
             && nodeData->getLastBroadcastTime(otherNode->getUUID()) <= otherNodeData->getIdentityChangeTimestamp()) {
             identityBytesSent += sendIdentityPacket(otherNodeData, node);
+
+            // remember the last time we sent identity details about this other node to the receiver
+            nodeData->setLastBroadcastTime(otherNode->getUUID(), usecTimestampNow());
         }
 
         glm::vec3 otherPosition = otherAvatar->getClientGlobalPosition();
@@ -401,9 +404,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                 // set the last sent sequence number for this sender on the receiver
                 nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
                                                          otherNodeData->getLastReceivedSequenceNumber());
-
-                // remember the last time we sent details about this other node to the receiver
-                nodeData->setLastBroadcastTime(otherNode->getUUID(), start);
             }
         }
 
