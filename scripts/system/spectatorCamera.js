@@ -25,8 +25,6 @@
                         Vec3.multiply(distance, Quat.getForward(orientation || MyAvatar.orientation)));
     }
 
-
-
     // Function Name: updateRenderFromCamera()
     //
     // Description:
@@ -35,9 +33,10 @@
     //
     // Relevant Variables:
     //   -spectatorFrameRenderConfig: The render configuration of the spectator camera
-    //    render job. Controls size.
+    //    render job. It controls the rendered texture size of the spectator camera.
     //   -beginSpectatorFrameRenderConfig: The render configuration of the spectator camera
-    //    render job. Controls position and orientation.
+    //    render job. It controls the orientation and position of the secondary camera whose viewport is rendered to
+    //    the texture.
     //   -viewFinderOverlay: The in-world overlay that displays the spectator camera's view.
     //   -camera: The in-world entity that corresponds to the spectator camera.
     //   -cameraIsDynamic: "false" for now while we figure out why dynamic, parented overlays
