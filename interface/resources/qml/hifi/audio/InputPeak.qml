@@ -1,5 +1,5 @@
 //
-//  InputLevel.qml
+//  InputPeak.qml
 //  qml/hifi/audio
 //
 //  Created by Zach Pomerantz on 6/20/2017
@@ -15,7 +15,7 @@ import QtQuick.Layouts 1.3
 import QtGraphicalEffects 1.0
 
 Rectangle {
-    readonly property var level: Audio.inputLevel;
+    property var peak;
 
     width: 70;
     height: 8;
@@ -65,7 +65,7 @@ Rectangle {
 
         Rectangle { // mask
             id: mask;
-            width: parent.width * level;
+            width: parent.width * peak;
             radius: 5;
             anchors {
                 bottom: parent.bottom;

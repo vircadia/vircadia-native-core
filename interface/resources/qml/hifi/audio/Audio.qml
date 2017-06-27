@@ -36,6 +36,23 @@ Rectangle {
         return root.parent.objectName == "loader";
     }
 
+    property bool showPeaks: true;
+    function enablePeakValues() {
+        Audio.devices.input.peakValuesEnabled = true;
+        Audio.devices.input.peakValuesEnabledChanged.connect(function(enabled) {
+            if (!enabled && root.showPeaks) {
+                Audio.devices.input.peakValuesEnabled = true;
+            }
+        });
+    }
+    function disablePeakValues() {
+        root.showPeaks = false;
+        Audio.devices.input.peakValuesEnabled = false;
+    }
+
+    Component.onCompleted: enablePeakValues();
+    Component.onDestruction: disablePeakValues();
+
     Column {
         y: 16; // padding does not work
         spacing: 16;
@@ -122,7 +139,7 @@ Rectangle {
                     width: parent.width;
 
                     AudioControls.CheckBox {
-                        Layout.maximumWidth: parent.width - level.width - 40;
+                        Layout.maximumWidth: parent.width - inputPeak.width - 40;
                         text: display;
                         wrap: false;
                         checked: selected;
@@ -131,11 +148,12 @@ Rectangle {
                             checked = Qt.binding(function() { return selected; }); // restore binding
                         }
                     }
-                    InputLevel {
-                        id: level;
+                    InputPeak {
+                        id: inputPeak;
+                        visible: Audio.devices.input.peakValuesAvailable;
+                        peak: model.peak;
                         Layout.alignment: Qt.AlignRight;
                         Layout.rightMargin: 30;
-                        visible: selected;
                     }
                 }
             }
