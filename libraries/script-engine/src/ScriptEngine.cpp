@@ -1309,6 +1309,7 @@ QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int 
     // make sure the timer stops when the script does
     connect(this, &ScriptEngine::scriptEnding, newTimer, &QTimer::stop);
 
+
     CallbackData timerData = { function, currentEntityIdentifier, currentSandboxURL };
     _timerFunctionMap.insert(newTimer, timerData);
 
@@ -1390,6 +1391,15 @@ QUrl ScriptEngine::resourcesPath() const {
 
 void ScriptEngine::print(const QString& message) {
     emit printedMessage(message, getFilename());
+}
+
+
+void ScriptEngine::beginProfileRange(const QString& label) const {
+    PROFILE_SYNC_BEGIN(script, label.toStdString().c_str(), label.toStdString().c_str());
+}
+
+void ScriptEngine::endProfileRange(const QString& label) const {
+    PROFILE_SYNC_END(script, label.toStdString().c_str(), label.toStdString().c_str());
 }
 
 // Script.require.resolve -- like resolvePath, but performs more validation and throws exceptions on invalid module identifiers (for consistency with Node.js)
