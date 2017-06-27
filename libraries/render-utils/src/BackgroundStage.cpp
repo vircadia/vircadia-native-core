@@ -54,12 +54,10 @@ BackgroundStage::BackgroundPointer BackgroundStage::removeBackground(Index index
 
 
 void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
-  
     const auto& lightingModel = inputs;
     if (!lightingModel->isBackgroundEnabled()) {
         return;
     }
-
 
     // Background rendering decision
     auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
@@ -71,10 +69,7 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
         if (background) {
             skybox = background->getSkybox();
         }   
-    } else {
-        skybox = backgroundStage->getBackground(0)->getSkybox();
     }
-
   /*  auto backgroundMode = skyStage->getBackgroundMode();
 
     switch (backgroundMode) {
