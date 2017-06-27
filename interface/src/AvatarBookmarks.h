@@ -21,14 +21,14 @@ class AvatarBookmarks: public Bookmarks, public  Dependency {
 
 public:
     AvatarBookmarks();
-    void setupMenus(Menu* menubar, MenuWrapper* menu);
+    void setupMenus(Menu* menubar, MenuWrapper* menu) override;
 
 public slots:
     void addBookmark();
 
 protected:
-    void addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark);
-    void readFromFile();
+    void addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) override;
+    void readFromFile() override;
 
 private:
     const QString AVATARBOOKMARKS_FILENAME = "avatarbookmarks.json";
