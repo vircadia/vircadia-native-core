@@ -79,8 +79,12 @@
     // isUpdateRenderWired: Bool storing whether or not the camera's update
     //     function is wired.
     // vFoV: The vertical field of view of the spectator camera
-    // nearClipPlaneDistance: The near clip plane distance of the spectator camera
+    // nearClipPlaneDistance: The near clip plane distance of the spectator camera (aka "camera")
     // farClipPlaneDistance: The far clip plane distance of the spectator camera
+    // cameraRotation: The rotation of the spectator camera
+    // cameraPosition: The position of the spectator camera
+    // glassPaneWidth: The width of the glass pane above the spectator camera that holds the viewFinderOverlay
+    // viewFinderOverlayDim: The x, y, and z dimensions of the viewFinderOverlay
     // 
     // Arguments:
     // None
@@ -95,9 +99,13 @@
     var farClipPlaneDistance = 100.0;
     var cameraRotation;
     var cameraPosition;
-    var viewFinderOverlayDim = { x: 0.16, y: -0.16, z: 0.16 };
+    //The negative y dimension for viewFinderOverlay is necessary for now due to the way Image3DOverlay
+    //    draws textures, but should be looked into at some point. Also the z dimension doesn't matter
+    //    so it is set to the glassPaneWidth
+    var glassPaneWidth = 0.16;
+    var viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: glassPaneWidth };
     function spectatorCameraOn() {
-        // Set the special texture size based on the window in which it will eventually be displayed.
+        // Sets the special texture size based on the window it is displayed in, which doesn't include the menu bar
         spectatorFrameRenderConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
         spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = true;
         beginSpectatorFrameRenderConfig.vFoV = vFoV;
@@ -217,7 +225,7 @@
         addOrRemoveButton(false, HMD.active);
         tablet.screenChanged.connect(onTabletScreenChanged);
         Window.domainChanged.connect(spectatorCameraOff);
-        Window.geometryChanged.connect(resizePreview);
+        Window.geometryChanged.connect(resizeViewFinderOverlay);
         Controller.keyPressEvent.connect(keyPressEvent);
         HMD.displayModeChanged.connect(onHMDChanged);
         viewFinderOverlay = false;
@@ -276,7 +284,38 @@
             setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
         }
     }
-    function resizePreview(geometryChanged) {
+
+    //
+    // Function Name: resizeViewFinderOverlay()
+    //
+    // Relevant Variables:
+    // glassPaneRatio: The aspect ratio of the glass pane, currently set as a 16:9 aspect ratio (change if model changes)
+    // verticalScale: The amount the viewFinderOverlay should be scaled if the window size is vertical
+    // squareScale: The amount the viewFinderOverlay should be scaled if the window size is not vertical but is more square than the
+    //     glass pane's aspect ratio
+    //
+    // Arguments:
+    // geometryChanged: The signal argument that gives information on how the window changed, including x, y, width, and height
+    //
+    // Description:
+    // A function called when the window is moved/resized, which changes the viewFinderOverlay's texture and dimensions to be
+    //     appropriately altered to fit inside the glass pane while not distorting the texture
+    //
+    function resizeViewFinderOverlay(geometryChanged) {
+        var glassPaneRatio = 16 / 9;
+        var verticalScale = 1 / glassPaneRatio;
+        var squareScale = verticalScale * (1 + (1 - (1 / (geometryChanged.width / geometryChanged.height))));
+
+        if (geometryChanged.height > geometryChanged.width) { //vertical window size
+            viewFinderOverlayDim = { x: (glassPaneWidth * verticalScale), y: (-glassPaneWidth * verticalScale), z: glassPaneWidth };
+        } else if ((geometryChanged.width / geometryChanged.height) < glassPaneRatio) { //square-ish window size, in-between vertical and horizontal
+            viewFinderOverlayDim = { x: (glassPaneWidth * squareScale), y: (-glassPaneWidth * squareScale), z: glassPaneWidth };
+        } else { //horizontal window size
+            viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: glassPaneWidth };
+        }
+
+        // The only way I found to update the viewFinderOverlay without turning the spectator camera on and off is to delete and recreate the
+        //     overlay, which is inefficient but resizing the window shouldn't be performed often
         Overlays.deleteOverlay(viewFinderOverlay);
         viewFinderOverlay = Overlays.addOverlay("image3d", {
             url: "resource://spectatorCameraFrame",
@@ -285,23 +324,10 @@
             alpha: 1,
             rotation: cameraRotation,
             localPosition: { x: 0.007, y: 0.15, z: -0.005 },
-            dimensions: { x: 0.16, y: -0.16, z: 0.16 }
+            dimensions: viewFinderOverlayDim
         });
         spectatorFrameRenderConfig.resetSizeSpectatorCamera(geometryChanged.width, geometryChanged.height);
         setDisplay(monitorShowsCameraView);
-
-        var previewHolderRatio = 16 / 9;
-        var verticalScale = 1 / previewHolderRatio;
-        var squareScale = verticalScale * (1 + (1 - (1 / (geometryChanged.width / geometryChanged.height))));
-
-        if (geometryChanged.height > geometryChanged.width) { //vertical window size
-            viewFinderOverlayDim = { x: (0.16 * verticalScale), y: (-0.16 * verticalScale), z: 0.16 };
-        } else if ((geometryChanged.width / geometryChanged.height) < previewHolderRatio) { //square window size
-            viewFinderOverlayDim = { x: (0.16 * squareScale), y: (-0.16 * squareScale), z: 0.16 };
-        } else { //horizontal window size
-            viewFinderOverlayDim = { x: 0.16, y: -0.16, z: 0.16 };
-        }
-        Overlays.editOverlay(viewFinderOverlay, { dimensions: viewFinderOverlayDim });
     }
 
     const SWITCH_VIEW_FROM_CONTROLLER_DEFAULT = false;
@@ -506,7 +532,7 @@
     function shutdown() {
         spectatorCameraOff();
         Window.domainChanged.disconnect(spectatorCameraOff);
-        Window.geometryChanged.disconnect(resizePreview);
+        Window.geometryChanged.disconnect(resizeViewFinderOverlay);
         addOrRemoveButton(true, HMD.active);
         tablet.screenChanged.disconnect(onTabletScreenChanged);
         HMD.displayModeChanged.disconnect(onHMDChanged);
