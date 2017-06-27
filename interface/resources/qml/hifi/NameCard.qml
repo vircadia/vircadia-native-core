@@ -43,6 +43,7 @@ Item {
     property bool selected: false
     property bool isAdmin: false
     property bool isPresent: true
+    property bool isReplicated: false
     property string placeName: ""
     property string profilePicBorderColor: (connectionStatus == "connection" ? hifi.colors.indigoAccent : (connectionStatus == "friend" ? hifi.colors.greenHighlight : "transparent"))
     property alias avImage: avatarImage
