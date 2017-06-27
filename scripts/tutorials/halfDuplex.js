@@ -20,7 +20,7 @@
 var averageLoudness = 0.0; 
 var AVERAGING_TIME = 0.9;
 var LOUDNESS_THRESHOLD = 100;
-var HYSTERESIS_GAP = 1.41;          //  3db gap
+var HYSTERESIS_GAP = 1.41;          //  3dB gap
 var MICROPHONE_DISPLAY_NAME = "Microphone";
 
 var debug = false; 
@@ -54,17 +54,13 @@ Script.update.connect(function () {
             print("Muted!"); 
         }
         isMuted = true;
-        if (!AudioDevice.getMuted()) {
-            AudioDevice.toggleMute();
-        }
+        Audio.muted = true;
     } else if (isMuted && (averageLoudness < LOUDNESS_THRESHOLD)) {
         if (debug) { 
             print("UnMuted!"); 
         }
         isMuted = false;
-        if (AudioDevice.getMuted()) {
-            AudioDevice.toggleMute();
-        }
+        Audio.muted = false;
     }
 });
 

@@ -297,6 +297,7 @@ public:
     void setAvatarOverrideUrl(const QUrl& url, bool save);
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
+    void setCacheOverrideDir(const QString& dirName) { _cacheDir = dirName; }
 
 signals:
     void svoImportRequested(const QString& url);
@@ -688,5 +689,7 @@ private:
 
     QUrl _avatarOverrideUrl;
     bool _saveAvatarOverrideUrl { false };
+
+    QString _cacheDir;
 };
 #endif // hifi_Application_h
