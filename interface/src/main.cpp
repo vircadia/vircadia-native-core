@@ -23,6 +23,7 @@
 #include <gl/OpenGLVersionChecker.h>
 #include <SandboxUtils.h>
 #include <SharedUtil.h>
+#include <NetworkAccessManager.h>
 
 #include "AddressManager.h"
 #include "Application.h"
@@ -71,7 +72,7 @@ int main(int argc, const char* argv[]) {
     QCommandLineOption runServerOption("runServer", "Whether to run the server");
     QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
     QCommandLineOption allowMultipleInstancesOption("allowMultipleInstances", "Allow multiple instances to run");
-    QCommandLineOption overrideAppLocalDataPathOption("cache", "set test cache directory");
+    QCommandLineOption overrideAppLocalDataPathOption("cache", "set test cache <dir>", "dir");
     parser.addOption(urlOption);
     parser.addOption(noUpdaterOption);
     parser.addOption(checkMinSpecOption);
@@ -99,14 +100,17 @@ int main(int argc, const char* argv[]) {
         instanceMightBeRunning = false;
     }
     if (parser.isSet(overrideAppLocalDataPathOption)) {
-        // get standard path
-        auto standardAppDataLocation = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
-        // set to test so all future paths are the test paths
-        QStandardPaths::setTestModeEnabled(true);
-        // now, we need to link everything in AppDataLocation to the test AppDataLocation.  This
-        // leaves the test location for AppLocalDataLocation alone, but allows all the stuff in
-        // AppDataLocation to be usable
-        QFile::link(standardAppDataLocation, QStandardPaths::writableLocation(QStandardPaths::AppDataLocation));
+        // get dir to use for cache
+        QString cacheDir = parser.value(overrideAppLocalDataPathOption);
+        if (!cacheDir.isEmpty()) {
+            // tell everyone to use the right cache location
+            //
+            // this handles data8 and prepared
+            ResourceManager::setCacheDir(cacheDir);
+
+            // this does the ktx_cache
+            PathUtils::getAppLocalDataPath(cacheDir);
+        }
     }
 
     if (instanceMightBeRunning) {
