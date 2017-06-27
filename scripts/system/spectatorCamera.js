@@ -78,11 +78,13 @@
     // Relevant Variables:
     // isUpdateRenderWired: Bool storing whether or not the camera's update
     //     function is wired.
-    // windowAspectRatio: The ratio of the Interface windows's sizeX/sizeY
-    // previewAspectRatio: The ratio of the camera preview's sizeX/sizeY
     // vFoV: The vertical field of view of the spectator camera
-    // nearClipPlaneDistance: The near clip plane distance of the spectator camera
+    // nearClipPlaneDistance: The near clip plane distance of the spectator camera (aka "camera")
     // farClipPlaneDistance: The far clip plane distance of the spectator camera
+    // cameraRotation: The rotation of the spectator camera
+    // cameraPosition: The position of the spectator camera
+    // glassPaneWidth: The width of the glass pane above the spectator camera that holds the viewFinderOverlay
+    // viewFinderOverlayDim: The x, y, and z dimensions of the viewFinderOverlay
     // 
     // Arguments:
     // None
@@ -92,44 +94,34 @@
     //     spawn the camera entity.
     //
     var isUpdateRenderWired = false;
-    var windowAspectRatio;
-    var previewAspectRatio = 16 / 9;
     var vFoV = 45.0;
     var nearClipPlaneDistance = 0.1;
     var farClipPlaneDistance = 100.0;
+    var cameraRotation;
+    var cameraPosition;
+    //The negative y dimension for viewFinderOverlay is necessary for now due to the way Image3DOverlay
+    //    draws textures, but should be looked into at some point. Also the z dimension shouldn't affect
+    //    the overlay since it is an Image3DOverlay so it is set to 0
+    var glassPaneWidth = 0.16;
+    var viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: 0 };
     function spectatorCameraOn() {
-        // Set the special texture size based on the window in which it will eventually be displayed.
-        var size = Controller.getViewportDimensions(); // FIXME: Need a signal to hook into when the dimensions change.
-        var sizeX = Window.innerWidth;
-        var sizeY = Window.innerHeight;
-        windowAspectRatio = sizeX/sizeY;
-        spectatorFrameRenderConfig.resetSizeSpectatorCamera(sizeX, sizeY);
+        // Sets the special texture size based on the window it is displayed in, which doesn't include the menu bar
+        spectatorFrameRenderConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
         spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = true;
         beginSpectatorFrameRenderConfig.vFoV = vFoV;
         beginSpectatorFrameRenderConfig.nearClipPlaneDistance = nearClipPlaneDistance;
         beginSpectatorFrameRenderConfig.farClipPlaneDistance = farClipPlaneDistance;
-        var cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
+        cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
         Script.update.connect(updateRenderFromCamera);
         isUpdateRenderWired = true;
         camera = Entities.addEntity({
             "angularDamping": 0.98000001907348633,
             "collisionsWillMove": 0,
             "damping": 0.98000001907348633,
-            "dimensions": {
-                "x": 0.2338641881942749,
-                "y": 0.407032310962677,
-                "z": 0.38702544569969177
-            },
             "dynamic": cameraIsDynamic,
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/spectator-camera.fbx",
-            "queryAACube": {
-                "scale": 0.60840487480163574,
-                "x": -0.30420243740081787,
-                "y": -0.30420243740081787,
-                "z": -0.30420243740081787
-            },
-            "rotation": { x: 0, y: 0, z: 0 },
-            "position": { x: 0, y: 0, z: 0 },
+            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/spectator-camera.fbx?1",
+            "rotation": cameraRotation,
+            "position": cameraPosition,
             "shapeType": "simple-compound",
             "type": "Model",
             "userData": "{\"grabbableKey\":{\"grabbable\":true}}"
@@ -140,18 +132,10 @@
             emissive: true,
             parentID: camera,
             alpha: 1,
-            position: { x: 0.007, y: 0.15, z: -0.005 },
-            dimensions: { x: 0.16, y: -0.16 * windowAspectRatio / previewAspectRatio, z: 0 }
-            // Negative dimension for viewfinder is necessary for now due to the way Image3DOverlay
-            // draws textures.
-            // See Image3DOverlay.cpp:91. If you change the two lines there to:
-            //     glm::vec2 topLeft(-x, -y);
-            //     glm::vec2 bottomRight(x, y);
-            // the viewfinder will appear rightside up without this negative y-dimension.
-            // However, other Image3DOverlay textures (like the PAUSED one) will appear upside-down. *Why?*
-            // FIXME: This code will stretch the preview as the window aspect ratio changes. Fix that!
+            rotation: cameraRotation,
+            localPosition: { x: 0.007, y: 0.15, z: -0.005 },
+            dimensions: viewFinderOverlayDim
         });
-        Entities.editEntity(camera, { position: cameraPosition, rotation: cameraRotation });
         setDisplay(monitorShowsCameraView);
     }
 
@@ -241,6 +225,7 @@
         addOrRemoveButton(false, HMD.active);
         tablet.screenChanged.connect(onTabletScreenChanged);
         Window.domainChanged.connect(spectatorCameraOff);
+        Window.geometryChanged.connect(resizeViewFinderOverlay);
         Controller.keyPressEvent.connect(keyPressEvent);
         HMD.displayModeChanged.connect(onHMDChanged);
         viewFinderOverlay = false;
@@ -298,6 +283,51 @@
         if ((event.text === "0") && !event.isAutoRepeat && !event.isShifted && !event.isMeta && event.isControl && !event.isAlt) {
             setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
         }
+    }
+
+    //
+    // Function Name: resizeViewFinderOverlay()
+    //
+    // Relevant Variables:
+    // glassPaneRatio: The aspect ratio of the glass pane, currently set as a 16:9 aspect ratio (change if model changes)
+    // verticalScale: The amount the viewFinderOverlay should be scaled if the window size is vertical
+    // squareScale: The amount the viewFinderOverlay should be scaled if the window size is not vertical but is more square than the
+    //     glass pane's aspect ratio
+    //
+    // Arguments:
+    // geometryChanged: The signal argument that gives information on how the window changed, including x, y, width, and height
+    //
+    // Description:
+    // A function called when the window is moved/resized, which changes the viewFinderOverlay's texture and dimensions to be
+    //     appropriately altered to fit inside the glass pane while not distorting the texture
+    //
+    function resizeViewFinderOverlay(geometryChanged) {
+        var glassPaneRatio = 16 / 9;
+        var verticalScale = 1 / glassPaneRatio;
+        var squareScale = verticalScale * (1 + (1 - (1 / (geometryChanged.width / geometryChanged.height))));
+
+        if (geometryChanged.height > geometryChanged.width) { //vertical window size
+            viewFinderOverlayDim = { x: (glassPaneWidth * verticalScale), y: (-glassPaneWidth * verticalScale), z: 0 };
+        } else if ((geometryChanged.width / geometryChanged.height) < glassPaneRatio) { //square-ish window size, in-between vertical and horizontal
+            viewFinderOverlayDim = { x: (glassPaneWidth * squareScale), y: (-glassPaneWidth * squareScale), z: 0 };
+        } else { //horizontal window size
+            viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: 0 };
+        }
+
+        // The only way I found to update the viewFinderOverlay without turning the spectator camera on and off is to delete and recreate the
+        //     overlay, which is inefficient but resizing the window shouldn't be performed often
+        Overlays.deleteOverlay(viewFinderOverlay);
+        viewFinderOverlay = Overlays.addOverlay("image3d", {
+            url: "resource://spectatorCameraFrame",
+            emissive: true,
+            parentID: camera,
+            alpha: 1,
+            rotation: cameraRotation,
+            localPosition: { x: 0.007, y: 0.15, z: -0.005 },
+            dimensions: viewFinderOverlayDim
+        });
+        spectatorFrameRenderConfig.resetSizeSpectatorCamera(geometryChanged.width, geometryChanged.height);
+        setDisplay(monitorShowsCameraView);
     }
 
     const SWITCH_VIEW_FROM_CONTROLLER_DEFAULT = false;
@@ -502,6 +532,7 @@
     function shutdown() {
         spectatorCameraOff();
         Window.domainChanged.disconnect(spectatorCameraOff);
+        Window.geometryChanged.disconnect(resizeViewFinderOverlay);
         addOrRemoveButton(true, HMD.active);
         tablet.screenChanged.disconnect(onTabletScreenChanged);
         HMD.displayModeChanged.disconnect(onHMDChanged);
