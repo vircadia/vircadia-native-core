@@ -81,7 +81,7 @@ int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, 
 
 int AvatarMixerSlave::sendReplicatedIdentityPacket(const Node& agentNode, const AvatarMixerClientData* nodeData, const Node& destinationNode) {
     if (AvatarMixer::shouldReplicateTo(agentNode, destinationNode)) {
-        QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
+        QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray(true);
         individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
         auto identityPacket = NLPacketList::create(PacketType::ReplicatedAvatarIdentity, QByteArray(), true, true);
         identityPacket->write(individualData);
