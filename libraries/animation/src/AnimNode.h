@@ -44,6 +44,7 @@ public:
         StateMachine,
         Manipulator,
         InverseKinematics,
+        DefaultPose,
         NumTypes
     };
     using Pointer = std::shared_ptr<AnimNode>;

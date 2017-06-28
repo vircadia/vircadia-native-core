@@ -21,7 +21,6 @@
 #include <VariantMapToScriptValue.h>
 #include <SharedUtil.h>
 #include <SpatialParentFinder.h>
-#include <model-networking/MeshProxy.h>
 
 #include "EntitiesLogging.h"
 #include "EntityDynamicFactoryInterface.h"
@@ -298,18 +297,6 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
                 }
 
                 results = entity->getProperties(desiredProperties);
-
-                // TODO: improve naturalDimensions in the future,
-                //       for now we've added this hack for setting natural dimensions of models
-                if (entity->getType() == EntityTypes::Model) {
-                    const FBXGeometry* geometry = _entityTree->getGeometryForEntity(entity);
-                    if (geometry) {
-                        Extents meshExtents = geometry->getUnscaledMeshExtents();
-                        results.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
-                        results.calculateNaturalPosition(meshExtents.minimum, meshExtents.maximum);
-                    }
-                }
-
             }
         });
     }

@@ -12,8 +12,6 @@
 #ifndef hifi_ModelEntityItem_h
 #define hifi_ModelEntityItem_h
 
-#include <AnimationLoop.h>
-
 #include "EntityItem.h"
 #include "AnimationPropertyGroup.h"
 
@@ -103,10 +101,7 @@ public:
     void setAnimationLastFrame(float lastFrame) { _animationLoop.setLastFrame(lastFrame); }
     float getAnimationLastFrame() const { return _animationLoop.getLastFrame(); }
 
-    void mapJoints(const QStringList& modelJointNames);
-    bool jointsMapped() const { return _jointMappingURL == getAnimationURL() && _jointMappingCompleted; }
 
-    AnimationPointer getAnimation() const { return _animation; }
     bool getAnimationIsPlaying() const { return _animationLoop.getRunning(); }
     float getAnimationCurrentFrame() const { return _animationLoop.getCurrentFrame(); }
     float getAnimationFPS() const { return _animationLoop.getFPS(); }
@@ -158,7 +153,6 @@ protected:
     QUrl _parsedModelURL;
     QString _compoundShapeURL;
 
-    AnimationPointer _animation;
     AnimationPropertyGroup _animationProperties;
     AnimationLoop _animationLoop;
 
@@ -166,11 +160,6 @@ protected:
     QString _textures;
 
     ShapeType _shapeType = SHAPE_TYPE_NONE;
-
-    // used on client side
-    bool _jointMappingCompleted;
-    QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
-    QString _jointMappingURL;
 };
 
 #endif // hifi_ModelEntityItem_h
