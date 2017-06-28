@@ -886,12 +886,6 @@ QQmlContext* OffscreenQmlSurface::getSurfaceContext() {
     return _qmlContext;
 }
 
-Q_DECLARE_METATYPE(std::function<void()>);
-auto VoidLambdaType = qRegisterMetaType<std::function<void()>>();
-Q_DECLARE_METATYPE(std::function<QVariant()>);
-auto VariantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
-
-
 void OffscreenQmlSurface::executeOnUiThread(std::function<void()> function, bool blocking ) {
     if (QThread::currentThread() != thread()) {
         QMetaObject::invokeMethod(this, "executeOnUiThread", blocking ? Qt::BlockingQueuedConnection : Qt::QueuedConnection,
