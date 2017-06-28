@@ -43,8 +43,6 @@
     // camera: The in-world entity that corresponds to the spectator camera.
     // cameraIsDynamic: "false" for now while we figure out why dynamic, parented overlays
     //     drift with respect to their parent
-    // lastCameraPosition: Holds the last known camera position
-    // lastCameraRotation: Holds the last known camera rotation
     // 
     // Arguments:
     // None
@@ -61,7 +59,7 @@
     function updateRenderFromCamera() {
         var cameraData = Entities.getEntityProperties(camera, ['position', 'rotation']);
         beginSpectatorFrameRenderConfig.orientation = cameraData.rotation;
-        beginSpectatorFrameRenderConfig.position = Vec3.sum(inFrontOf(0.17, cameraData.position, lastCameraRotation), {x: 0, y: 0.02, z: 0});
+        beginSpectatorFrameRenderConfig.position = cameraData.position;
     }
 
     //
@@ -77,6 +75,7 @@
     // cameraPosition: The position of the spectator camera
     // glassPaneWidth: The width of the glass pane above the spectator camera that holds the viewFinderOverlay
     // viewFinderOverlayDim: The x, y, and z dimensions of the viewFinderOverlay
+    // cameraUpdateInterval: Used when setting Script.setInterval()
     // 
     // Arguments:
     // None
@@ -105,14 +104,20 @@
         beginSpectatorFrameRenderConfig.nearClipPlaneDistance = nearClipPlaneDistance;
         beginSpectatorFrameRenderConfig.farClipPlaneDistance = farClipPlaneDistance;
         cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
-        cameraUpdateInterval = Script.setInterval(updateRenderFromCamera, 10);
+        cameraUpdateInterval = Script.setInterval(updateRenderFromCamera, 11); // Update every 11ms (90.9hz)
         isUpdateRenderWired = true;
         camera = Entities.addEntity({
-            "angularDamping": 0.98000001907348633,
-            "collisionsWillMove": 0,
-            "damping": 0.98000001907348633,
+            "angularDamping": 1,
+            "damping": 1,
+            "collidesWith": "static,dynamic,kinematic,",
+            "collisionMask": 7,
             "dynamic": cameraIsDynamic,
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/spectator-camera.fbx?1",
+            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/spectator-camera.fbx?7",
+            "registrationPoint": {
+                "x": 0.53,
+                "y": 0.545,
+                "z": 0.2
+            },
             "rotation": cameraRotation,
             "position": cameraPosition,
             "shapeType": "simple-compound",
@@ -160,7 +165,6 @@
     // Relevant Variables:
     // button: The tablet button.
     // buttonName: The name of the button.
-    // tablet: The tablet instance to be modified.
     // showInDesktop: Set to "true" to show the "SPECTATOR" app in desktop mode
     // 
     // Arguments:
@@ -172,24 +176,25 @@
     //
     var button = false;
     var buttonName = "SPECTATOR";
-    var tablet = null;
     var showSpectatorInDesktop = true;
     function addOrRemoveButton(isShuttingDown, isHMDMode) {
-        if (!button) {
-            if ((isHMDMode || showSpectatorInDesktop) && !isShuttingDown) {
-                button = tablet.addButton({
-                    text: buttonName
-                });
-                button.clicked.connect(onTabletButtonClicked);
+        if (tablet) {
+            if (!button) {
+                if ((isHMDMode || showSpectatorInDesktop) && !isShuttingDown) {
+                    button = tablet.addButton({
+                        text: buttonName
+                    });
+                    button.clicked.connect(onTabletButtonClicked);
+                }
+            } else if (button) {
+                if ((!showSpectatorInDesktop || isShuttingDown)) {
+                    button.clicked.disconnect(onTabletButtonClicked);
+                    tablet.removeButton(button);
+                    button = false;
+                }
+            } else {
+                print("ERROR adding/removing Spectator button!");
             }
-        } else if (button) {
-            if ((!showSpectatorInDesktop || isShuttingDown) && !isHMDMode) {
-                button.clicked.disconnect(onTabletButtonClicked);
-                tablet.removeButton(button);
-                button = false;
-            }
-        } else {
-            print("ERROR adding/removing Spectator button!");
         }
     }
 
@@ -197,7 +202,7 @@
     // Function Name: startup()
     //
     // Relevant Variables:
-    // None
+    // tablet: The tablet instance to be modified.
     // 
     // Arguments:
     // None
@@ -205,6 +210,7 @@
     // Description:
     // startup() will be called when the script is loaded.
     //
+    var tablet = null;
     function startup() {
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         addOrRemoveButton(false, HMD.active);
@@ -232,15 +238,17 @@
     //
     var hasEventBridge = false;
     function wireEventBridge(on) {
-        if (on) {
-            if (!hasEventBridge) {
-                tablet.fromQml.connect(fromQml);
-                hasEventBridge = true;
-            }
-        } else {
-            if (hasEventBridge) {
-                tablet.fromQml.disconnect(fromQml);
-                hasEventBridge = false;
+        if (tablet) {
+            if (on) {
+                if (!hasEventBridge) {
+                    tablet.fromQml.connect(fromQml);
+                    hasEventBridge = true;
+                }
+            } else {
+                if (hasEventBridge) {
+                    tablet.fromQml.disconnect(fromQml);
+                    hasEventBridge = false;
+                }
             }
         }
     }
@@ -281,7 +289,7 @@
             parentID: camera,
             alpha: 1,
             localRotation: { w: 1, x: 0, y: 0, z: 0 },
-            localPosition: { x: 0.007, y: 0.15, z: -0.005 },
+            localPosition: { x: 0, y: 0.13, z: 0.112 },
             dimensions: viewFinderOverlayDim
         });
     }
@@ -387,9 +395,8 @@
     // Function Name: onTabletButtonClicked()
     //
     // Relevant Variables:
+    // SPECTATOR_CAMERA_QML_SOURCE: The path to the SpectatorCamera QML
     // onSpectatorCameraScreen: true/false depending on whether we're looking at the spectator camera app
-    // shouldActivateButton: true/false depending on whether we should show the button as white or gray the
-    //     next time we edit the button's properties
     // 
     // Arguments:
     // None
@@ -397,20 +404,20 @@
     // Description:
     // Fired when the Spectator Camera app button is pressed.
     //
+    var SPECTATOR_CAMERA_QML_SOURCE = "../SpectatorCamera.qml";
     var onSpectatorCameraScreen = false;
-    var shouldActivateButton = false;
     function onTabletButtonClicked() {
-        if (onSpectatorCameraScreen) {
-            // for toolbar-mode: go back to home screen, this will close the window.
-            tablet.gotoHomeScreen();
-        } else {
-            shouldActivateButton = true;
-            tablet.loadQMLSource("../SpectatorCamera.qml");
-            onSpectatorCameraScreen = true;
-            sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
-            sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
-            sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
-            Menu.setIsOptionChecked("Disable Preview", false);
+        if (tablet) {
+            if (onSpectatorCameraScreen) {
+                // for toolbar-mode: go back to home screen, this will close the window.
+                tablet.gotoHomeScreen();
+            } else {
+                tablet.loadQMLSource(SPECTATOR_CAMERA_QML_SOURCE);
+                sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
+                sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
+                sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
+                Menu.setIsOptionChecked("Disable Preview", false);
+            }
         }
     }
 
@@ -428,13 +435,12 @@
     // Called when the TabletScriptingInterface::screenChanged() signal is emitted.
     //
     function onTabletScreenChanged(type, url) {
-        wireEventBridge(shouldActivateButton);
+        onSpectatorCameraScreen = (type === "QML" && url === SPECTATOR_CAMERA_QML_SOURCE);
+        wireEventBridge(onSpectatorCameraScreen);
         // for toolbar mode: change button to active when window is first openend, false otherwise.
         if (button) {
-            button.editProperties({ isActive: shouldActivateButton });
+            button.editProperties({ isActive: onSpectatorCameraScreen });
         }
-        shouldActivateButton = false;
-        onSpectatorCameraScreen = false;
     }
 
     //
@@ -523,7 +529,12 @@
         Window.domainChanged.disconnect(spectatorCameraOff);
         Window.geometryChanged.disconnect(resizeViewFinderOverlay);
         addOrRemoveButton(true, HMD.active);
-        tablet.screenChanged.disconnect(onTabletScreenChanged);
+        if (tablet) {
+            tablet.screenChanged.disconnect(onTabletScreenChanged);
+            if (onSpectatorCameraScreen) {
+                tablet.gotoHomeScreen();
+            }
+        }
         HMD.displayModeChanged.disconnect(onHMDChanged);
         Controller.keyPressEvent.disconnect(keyPressEvent);
         controllerMapping.disable();
