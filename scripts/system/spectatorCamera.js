@@ -127,15 +127,7 @@
             "userData": "{\"grabbableKey\":{\"grabbable\":true}}"
         }, true);
         // This image3d overlay acts as the camera's preview screen.
-        viewFinderOverlay = Overlays.addOverlay("image3d", {
-            url: "resource://spectatorCameraFrame",
-            emissive: true,
-            parentID: camera,
-            alpha: 1,
-            rotation: cameraRotation,
-            localPosition: { x: 0.007, y: 0.15, z: -0.005 },
-            dimensions: viewFinderOverlayDim
-        });
+        updateOverlay();
         setDisplay(monitorShowsCameraView);
     }
 
@@ -284,6 +276,22 @@
             setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
         }
     }
+    function updateOverlay() {
+        // The only way I found to update the viewFinderOverlay without turning the spectator camera on and off is to delete and recreate the
+        //     overlay, which is inefficient but resizing the window shouldn't be performed often
+        if (viewFinderOverlay) {
+            Overlays.deleteOverlay(viewFinderOverlay);
+        }
+        viewFinderOverlay = Overlays.addOverlay("image3d", {
+            url: "resource://spectatorCameraFrame",
+            emissive: true,
+            parentID: camera,
+            alpha: 1,
+            localRotation: { w: 1, x: 0, y: 0, z: 0 },
+            localPosition: { x: 0.007, y: 0.15, z: -0.005 },
+            dimensions: viewFinderOverlayDim
+        });
+    }
 
     //
     // Function Name: resizeViewFinderOverlay()
@@ -313,19 +321,7 @@
         } else { //horizontal window size
             viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: 0 };
         }
-
-        // The only way I found to update the viewFinderOverlay without turning the spectator camera on and off is to delete and recreate the
-        //     overlay, which is inefficient but resizing the window shouldn't be performed often
-        Overlays.deleteOverlay(viewFinderOverlay);
-        viewFinderOverlay = Overlays.addOverlay("image3d", {
-            url: "resource://spectatorCameraFrame",
-            emissive: true,
-            parentID: camera,
-            alpha: 1,
-            rotation: cameraRotation,
-            localPosition: { x: 0.007, y: 0.15, z: -0.005 },
-            dimensions: viewFinderOverlayDim
-        });
+        updateOverlay();
         spectatorFrameRenderConfig.resetSizeSpectatorCamera(geometryChanged.width, geometryChanged.height);
         setDisplay(monitorShowsCameraView);
     }
