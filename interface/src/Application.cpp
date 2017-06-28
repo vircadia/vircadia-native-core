@@ -574,6 +574,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<LocationBookmarks>();
     DependencyManager::set<Snapshot>();
     DependencyManager::set<CloseEventSender>();
+    DependencyManager::set<ResourceManager>();
 
     return previousSessionCrashed;
 }
@@ -764,7 +765,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &Application::activeDisplayPluginChanged,
         reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
 
-    ResourceManager::init();
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
@@ -1868,7 +1868,7 @@ Application::~Application() {
     DependencyManager::destroy<SoundCache>();
     DependencyManager::destroy<OctreeStatsProvider>();
 
-    ResourceManager::cleanup();
+    DependencyManager::get<ResourceManager>()->cleanup();
 
     // remove the NodeList from the DependencyManager
     DependencyManager::destroy<NodeList>();
@@ -5925,7 +5925,7 @@ void Application::addAssetToWorldFromURL(QString url) {
 
     addAssetToWorldInfo(filename, "Downloading model file " + filename + ".");
 
-    auto request = ResourceManager::createResourceRequest(nullptr, QUrl(url));
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, QUrl(url));
     connect(request, &ResourceRequest::finished, this, &Application::addAssetToWorldFromURLRequestFinished);
     request->send();
 }

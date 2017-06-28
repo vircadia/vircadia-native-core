@@ -493,6 +493,7 @@ public:
         DependencyManager::set<PathUtils>();
         DependencyManager::set<SceneScriptingInterface>();
         DependencyManager::set<TestActionFactory>();
+        DependencyManager::set<ResourceManager>();
     }
 
     QTestWindow() {
@@ -518,8 +519,6 @@ public:
             _octree->getTree()->setSimulation(simpleSimulation);
             _entitySimulation = simpleSimulation;
         }
-
-        ResourceManager::init();
 
         setFlags(Qt::MSWindowsOwnDC | Qt::Window | Qt::Dialog | Qt::WindowMinMaxButtonsHint | Qt::WindowTitleHint);
         _size = QSize(800, 600);
@@ -574,7 +573,7 @@ public:
         DependencyManager::destroy<ModelCache>();
         DependencyManager::destroy<GeometryCache>();
         DependencyManager::destroy<ScriptCache>();
-        ResourceManager::cleanup();
+        DependencyManager::get<ResourceManager>()->cleanup();
         // remove the NodeList from the DependencyManager
         DependencyManager::destroy<NodeList>();
     }
@@ -997,7 +996,7 @@ private:
         QFileInfo atpPathInfo(atpPath);
         if (atpPathInfo.exists()) {
             QString atpUrl = QUrl::fromLocalFile(atpPath).toString();
-            ResourceManager::setUrlPrefixOverride("atp:/", atpUrl + "/");
+            DependencyManager::get<ResourceManager>()->setUrlPrefixOverride("atp:/", atpUrl + "/");
         }
         _octree->clear();
         _octree->getTree()->readFromURL(fileName);

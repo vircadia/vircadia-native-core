@@ -62,8 +62,6 @@ Agent::Agent(ReceivedMessage& message) :
     _entityEditSender.setPacketsPerSecond(DEFAULT_ENTITY_PPS_PER_SCRIPT);
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
-    ResourceManager::init();
-
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
 
     DependencyManager::set<ResourceCacheSharedItems>();
@@ -81,6 +79,7 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<UsersScriptingInterface>();
 
+    DependencyManager::set<ResourceManager>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
 
@@ -199,7 +198,7 @@ void Agent::requestScript() {
         return;
     }
 
-    auto request = ResourceManager::createResourceRequest(this, scriptURL);
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(this, scriptURL);
 
     if (!request) {
         qWarning() << "Could not create ResourceRequest for Agent script at" << scriptURL.toString();
@@ -779,7 +778,7 @@ void Agent::aboutToFinish() {
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
 
-    ResourceManager::cleanup();
+    DependencyManager::get<ResourceManager>()->cleanup();
 
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();
