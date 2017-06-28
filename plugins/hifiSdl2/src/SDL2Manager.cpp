@@ -57,7 +57,7 @@ void SDL2Manager::init() {
     loadSettings();
 
     auto preferences = DependencyManager::get<Preferences>();
-    static const QString SDL2_PLUGIN { "SDL2 Joystick" };
+    static const QString SDL2_PLUGIN { "Game Controller" };
     {
         auto getter = [this]()->bool { return _isEnabled; };
         auto setter = [this](bool value) {
