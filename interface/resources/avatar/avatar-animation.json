@@ -150,28 +150,19 @@
                         "children": []
                     },
                     {
-                        "id": "hipsManipulatorOverlay",
+                        "id": "defaultPoseOverlay",
                         "type": "overlay",
                         "data": {
                             "alpha": 0.0,
-                            "boneSet": "hipsOnly"
+                            "alphaVar": "defaultPoseOverlayAlpha",
+                            "boneSet": "fullBody",
+                            "boneSetVar": "defaultPoseOverlayBoneSet"
                         },
                         "children": [
                             {
-                                "id": "hipsManipulator",
-                                "type": "manipulator",
+                                "id": "defaultPose",
+                                "type": "defaultPose",
                                 "data": {
-                                    "alpha": 0.0,
-                                    "alphaVar": "hipsManipulatorAlpha",
-                                    "joints": [
-                                        {
-                                            "jointName": "Hips",
-                                            "rotationType": "absolute",
-                                            "translationType": "absolute",
-                                            "rotationVar": "hipsManipulatorRotation",
-                                            "translationVar": "hipsManipulatorPosition"
-                                        }
-                                    ]
                                 },
                                 "children": []
                             },
