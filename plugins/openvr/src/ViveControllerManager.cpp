@@ -374,6 +374,7 @@ QJsonObject ViveControllerManager::InputDevice::configurationSettings() {
     configurationSettings["trackerConfiguration"] = configToString(_preferedConfig);
     configurationSettings["HMDHead"] = (_headConfig == HeadConfig::HMD) ? true : false;
     configurationSettings["handController"] = (_handConfig == HandConfig::HandController) ? true : false;
+    configurationSettings["puckCount"] = (int)_validTrackedObjects.size();
     return configurationSettings;
 }
 
@@ -384,14 +385,22 @@ void ViveControllerManager::InputDevice::emitCalibrationStatus(const bool succes
     if (_calibrated && success) {
         status["calibrated"] = _calibrated;
         status["configuration"] = configToString(_preferedConfig);
+        status["head_puck"] = (_headConfig == HeadConfig::Puck) ? true : false;
+        status["hand_pucks"] = (_handConfig == HandConfig::Pucks) ? true : false;
+        status["puckCount"] = (int)_validTrackedObjects.size();
     } else if (!_calibrated && !success) {
         status["calibrated"] = _calibrated;
         status["success"] = success;
+        status["success"] = (int)_validTrackedObjects.size();
+        status["head_puck"] = (_headConfig == HeadConfig::Puck) ? true : false;
+        status["hand_pucks"] = (_handConfig == HandConfig::Pucks) ? true : false;
     } else if (!_calibrated && success) {
         status["calibrated"] = _calibrated;
         status["success"] = success;
         status["configuration"] = configToString(_preferedConfig);
         status["puckCount"] = (int)_validTrackedObjects.size();
+        status["head_puck"] = (_headConfig == HeadConfig::Puck) ? true : false;
+        status["hand_pucks"] = (_handConfig == HandConfig::Pucks) ? true : false;
     }
     
     emit inputConfiguration->calibrationStatus(status); //inputConfiguration->calibrated(status);
@@ -437,12 +446,31 @@ void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceInde
     }
 }
 
+void ViveControllerManager::InputDevice::sendUserActivityData(QString activity) {
+    QJsonObject jsonData = {
+        {"num_pucks", (int)_validTrackedObjects.size()},
+        {"configuration", configToString(_preferedConfig)},
+        {"head_puck", (_headConfig == HeadConfig::Puck) ? true : false},
+        {"hand_pucks", (_handConfig == HandConfig::Pucks) ? true : false}
+    };
+    
+    UserActivityLogger::getInstance().logAction(activity, jsonData);
+}
+
 void ViveControllerManager::InputDevice::calibrateOrUncalibrate(const controller::InputCalibrationData& inputCalibration) {
     if (!_calibrated) {
         calibrate(inputCalibration);
+
+        if (_calibrated) {
+            sendUserActivityData("mocap_button_success");
+        } else {
+            sendUserActivityData("mocap_button_fail");
+        }
+        
     } else {
         uncalibrate();
         emitCalibrationStatus(true);
+        sendUserActivityData("mocap_button_uncalibrate");
     }
 }
 

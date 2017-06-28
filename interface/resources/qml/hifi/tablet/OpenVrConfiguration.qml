@@ -458,7 +458,7 @@ Rectangle {
         width: glyphButton.width + calibrationText.width + padding
         height: hifi.dimensions.controlLineHeight
         anchors.top: bottomSeperator.bottom
-        anchors.topMargin: 10
+        anchors.topMargin: 15
         anchors.left: parent.left
         anchors.leftMargin: leftMargin
 
@@ -590,16 +590,24 @@ Rectangle {
         lastConfiguration = composeConfigurationSettings();
     }
 
+    Component.onDestruction: {
+        var settings = InputConfiguration.configurationSettings(pluginName);
+        var data = {
+            "num_pucks": settings["puckCount"]
+        }
+        UserActivityLogger.logAction("mocap_ui_close_dialog", data);
+    }
+
     HifiControls.SpinBox {
         id: timeToCalibrate
         width: 70
         anchors.top: calibrationButton.bottom
-        anchors.topMargin: 40
+        anchors.topMargin: 20
         anchors.left: parent.left
         anchors.leftMargin: leftMargin
 
-        minimumValue: 3
-        value: 3
+        minimumValue: 5
+        value: 5
         colorScheme: hifi.colorSchemes.dark
 
         onEditingFinished: {
@@ -645,10 +653,27 @@ Rectangle {
         var calibrationScreen = stack.currentItem;
         if (status["calibrated"]) {
             calibrationScreen.success();
+            var data = {
+                "num_pucks": status["puckCount"],
+                "puck_configuration": status["configuration"],
+                "head_puck": status["head_puck"],
+                "hand_puck": status["hand_puck"]
+            }
+            
+            UserActivityLogger.logAction("mocap_ui_success", data);
         } else if (!status["calibrated"]) {
             var uncalibrated = status["success"];
             if (!uncalibrated) {
                 calibrationScreen.failure();
+                
+                var data = {
+                    "num_pucks": status["puckCount"],
+                    "puck_configuration": status["configuration"],
+                    "head_puck": status["head_puck"],
+                    "hand_puck": status["hand_puck"]
+                }
+
+                UserActivityLogger.logAction("mocap_ui_fail", data);
             }
         }
 
@@ -717,6 +742,12 @@ Rectangle {
 
         initializeButtonState();
         updateCalibrationText();
+
+        var data = {
+            "num_pucks": settings["puckCount"]
+        };
+
+        UserActivityLogger.logAction("mocap_ui_open_dialog", data);
     }
 
     function displayTrackerConfiguration(type) {
