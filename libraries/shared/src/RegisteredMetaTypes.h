@@ -33,6 +33,8 @@ Q_DECLARE_METATYPE(xColor)
 Q_DECLARE_METATYPE(QVector<glm::vec3>)
 Q_DECLARE_METATYPE(QVector<float>)
 Q_DECLARE_METATYPE(AACube)
+Q_DECLARE_METATYPE(std::function<void()>);
+Q_DECLARE_METATYPE(std::function<QVariant()>);
 
 void registerMetaTypes(QScriptEngine* engine);
 
