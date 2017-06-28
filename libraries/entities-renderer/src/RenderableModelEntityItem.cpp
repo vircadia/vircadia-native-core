@@ -580,19 +580,14 @@ EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlag
     }
 
 
-    const FBXGeometry* geometry = NULL;
-    const_cast<RenderableModelEntityItem*>(this)->getModel();
     if (_model && _model->isLoaded()) {
-        geometry = &_model->getFBXGeometry();
-    }
-
-    // TODO: improve naturalDimensions in the future,
-    //       for now we've added this hack for setting natural dimensions of models
-    if (geometry) {
-        Extents meshExtents = geometry->getUnscaledMeshExtents();
+        // TODO: improve naturalDimensions in the future,
+        //       for now we've added this hack for setting natural dimensions of models
+        Extents meshExtents = _model->getFBXGeometry().getUnscaledMeshExtents();
         properties.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
         properties.calculateNaturalPosition(meshExtents.minimum, meshExtents.maximum);
     }
+
 
 
     return properties;

@@ -1,6 +1,6 @@
 //
-//  MeshProxy.h
-//  libraries/model/src/model/
+//  SimpleMeshProxy.h
+//  libraries/model-networking/src/model-networking/
 //
 //  Created by Seth Alves on 2017-1-27.
 //  Copyright 2017 High Fidelity, Inc.
