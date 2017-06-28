@@ -62,6 +62,8 @@ Agent::Agent(ReceivedMessage& message) :
     _entityEditSender.setPacketsPerSecond(DEFAULT_ENTITY_PPS_PER_SCRIPT);
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
+    DependencyManager::set<ResourceManager>();
+
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
 
     DependencyManager::set<ResourceCacheSharedItems>();
@@ -79,7 +81,6 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<UsersScriptingInterface>();
 
-    DependencyManager::set<ResourceManager>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
 

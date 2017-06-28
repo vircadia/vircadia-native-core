@@ -31,9 +31,9 @@ EntityServer::EntityServer(ReceivedMessage& message) :
     OctreeServer(message),
     _entitySimulation(NULL)
 {
+    DependencyManager::set<ResourceManager>();
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<ScriptCache>();
-    DependencyManager::set<ResourceManager>();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListenerForTypes({ PacketType::EntityAdd, PacketType::EntityEdit, PacketType::EntityErase, PacketType::EntityPhysics },
