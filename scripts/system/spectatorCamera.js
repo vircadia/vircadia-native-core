@@ -116,7 +116,7 @@
             "registrationPoint": {
                 "x": 0.53,
                 "y": 0.545,
-                "z": 0.2
+                "z": 0.16
             },
             "rotation": cameraRotation,
             "position": cameraPosition,
@@ -289,7 +289,7 @@
             parentID: camera,
             alpha: 1,
             localRotation: { w: 1, x: 0, y: 0, z: 0 },
-            localPosition: { x: 0, y: 0.13, z: 0.112 },
+            localPosition: { x: 0, y: 0.13, z: 0.126 },
             dimensions: viewFinderOverlayDim
         });
     }
