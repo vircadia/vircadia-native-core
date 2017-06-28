@@ -959,15 +959,33 @@ void ViveControllerManager::InputDevice::calibrateFeet(glm::mat4& defaultToRefer
     controller::Pose& secondFootPose = secondFoot.second;
     
     if (determineLimbOrdering(firstFootPose, secondFootPose, headXAxis, headPosition)) {
-        _jointToPuckMap[controller::LEFT_FOOT] = firstFoot.first;
-        _pucksOffset[firstFoot.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultLeftFoot, firstFootPose);
-        _jointToPuckMap[controller::RIGHT_FOOT] = secondFoot.first;
-        _pucksOffset[secondFoot.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultRightFoot, secondFootPose);   
+        calibrateFoot(defaultToReferenceMat, inputCalibration, firstFoot, true);
+        calibrateFoot(defaultToReferenceMat, inputCalibration, secondFoot, false);
     } else {
-        _jointToPuckMap[controller::LEFT_FOOT] = secondFoot.first;
-        _pucksOffset[secondFoot.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultLeftFoot, secondFootPose);
-        _jointToPuckMap[controller::RIGHT_FOOT] = firstFoot.first;
-        _pucksOffset[firstFoot.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultRightFoot, firstFootPose);
+        calibrateFoot(defaultToReferenceMat, inputCalibration, secondFoot, true);
+        calibrateFoot(defaultToReferenceMat, inputCalibration, firstFoot, false);
+    }
+}
+
+void ViveControllerManager::InputDevice::calibrateFoot(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& footPair, bool isLeftFoot){
+    controller::Pose footPose = footPair.second;
+    glm::mat4 puckPoseAvatarMat = createMatFromQuatAndPos(footPose.getRotation(), footPose.getTranslation());
+    glm::mat4 defaultFoot = isLeftFoot ? inputCalibration.defaultLeftFoot : inputCalibration.defaultRightFoot;
+    glm::mat4 footOffset = computeOffset(defaultToReferenceMat, defaultFoot, footPose);
+
+    glm::quat rotationOffset = glmExtractRotation(footOffset);
+    glm::vec3 translationOffset = extractTranslation(footOffset);
+    glm::vec3 avatarXAxisInPuckFrame = glm::normalize(transformVectorFast(glm::inverse(puckPoseAvatarMat), glm::vec3(-1.0f, 0.0f, 0.0f)));
+    float distance = glm::dot(translationOffset, avatarXAxisInPuckFrame);
+    glm::vec3 finalTranslation =  translationOffset - (distance * avatarXAxisInPuckFrame);
+    glm::mat4 finalOffset = createMatFromQuatAndPos(rotationOffset, finalTranslation);
+
+    if (isLeftFoot) {
+        _jointToPuckMap[controller::LEFT_FOOT] = footPair.first;
+        _pucksOffset[footPair.first] = finalOffset;
+    } else {
+        _jointToPuckMap[controller::RIGHT_FOOT] = footPair.first;
+        _pucksOffset[footPair.first] = finalOffset;
     }
 }
 

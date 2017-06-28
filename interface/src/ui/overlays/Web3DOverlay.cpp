@@ -25,16 +25,15 @@
 #include <GeometryCache.h>
 #include <GeometryUtil.h>
 #include <scripting/HMDScriptingInterface.h>
-#include <gl/OffscreenQmlSurface.h>
+#include <ui/OffscreenQmlSurface.h>
+#include <ui/OffscreenQmlSurfaceCache.h>
+#include <ui/TabletScriptingInterface.h>
 #include <PathUtils.h>
 #include <RegisteredMetaTypes.h>
-#include <TabletScriptingInterface.h>
 #include <TextureCache.h>
 #include <UsersScriptingInterface.h>
 #include <UserActivityLoggerScriptingInterface.h>
 #include <AbstractViewStateInterface.h>
-#include <gl/OffscreenQmlSurface.h>
-#include <gl/OffscreenQmlSurfaceCache.h>
 #include <AddressManager.h>
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
@@ -87,7 +86,7 @@ Web3DOverlay::~Web3DOverlay() {
 
         if (rootItem && rootItem->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr, nullptr);
+            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
         }
 
         // Fix for crash in QtWebEngineCore when rapidly switching domains
@@ -206,7 +205,7 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getSurfaceContext()->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
 
             _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
-            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
+            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface.data());
 
             // mark the TabletProxy object as cpp ownership.
             QObject* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");

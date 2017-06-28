@@ -51,6 +51,11 @@ public:
     static const QVector<ReverbSettings>& getReverbSettings() { return _zoneReverbSettings; }
     static const std::pair<QString, CodecPluginPointer> negotiateCodec(std::vector<QString> codecs);
 
+    static bool shouldReplicateTo(const Node& from, const Node& to) {
+        return to.getType() == NodeType::DownstreamAudioMixer &&
+               to.getPublicSocket() != from.getPublicSocket() &&
+               to.getLocalSocket() != from.getLocalSocket();
+    }
 public slots:
     void run() override;
     void sendStatsPacket() override;
