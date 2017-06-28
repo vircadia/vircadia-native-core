@@ -39,7 +39,7 @@ void SecondaryCameraRenderTaskConfig::resetSizeSpectatorCamera(int width, int he
     resetSize(width, height);
 }
 
-class BeginSecondaryCameraFrame {  // Changes renderContext for our framebuffer and and view.
+class BeginSecondaryCameraFrame {  // Changes renderContext for our framebuffer and view.
     glm::vec3 _position{};
     glm::quat _orientation{};
     float _vFoV{};
