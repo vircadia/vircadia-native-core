@@ -23,20 +23,21 @@
 #include "CubicHermiteSpline.h"
 #include "AnimUtil.h"
 
-static void lookupJointChainInfo(const std::vector<AnimInverseKinematics::JointChainInfo>& jointChainInfoVec,
+static void lookupJointInfo(const AnimInverseKinematics::JointChainInfo& jointChainInfo,
                                  int indexA, int indexB,
-                                 const AnimInverseKinematics::JointChainInfo** jointChainInfoA,
-                                 const AnimInverseKinematics::JointChainInfo** jointChainInfoB) {
-    *jointChainInfoA = nullptr;
-    *jointChainInfoB = nullptr;
-    for (size_t i = 0; i < jointChainInfoVec.size(); i++) {
-        if (jointChainInfoVec[i].jointIndex == indexA) {
-            *jointChainInfoA = &jointChainInfoVec[i];
+                                 const AnimInverseKinematics::JointInfo** jointInfoA,
+                                 const AnimInverseKinematics::JointInfo** jointInfoB) {
+    *jointInfoA = nullptr;
+    *jointInfoB = nullptr;
+    for (size_t i = 0; i < jointChainInfo.jointInfoVec.size(); i++) {
+        const AnimInverseKinematics::JointInfo* jointInfo = &jointChainInfo.jointInfoVec[i];
+        if (jointInfo->jointIndex == indexA) {
+            *jointInfoA = jointInfo;
         }
-        if (jointChainInfoVec[i].jointIndex == indexB) {
-            *jointChainInfoB = &jointChainInfoVec[i];
+        if (jointInfo->jointIndex == indexB) {
+            *jointInfoB = jointInfo;
         }
-        if (*jointChainInfoA && *jointChainInfoB) {
+        if (*jointInfoA && *jointInfoB) {
             break;
         }
     }
@@ -234,14 +235,15 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
         accumulator.clearAndClean();
     }
 
-    // initialize jointChainInfoVecVec, this holds the results for one iteration of each ik chain.
-    JointChainInfo defaultJointChainInfo = { glm::quat(), glm::vec3(), 0.0f, -1, false };
-    std::vector<std::vector<JointChainInfo>> jointChainInfoVecVec(targets.size());
+    // initialize a new jointChainInfoVec, this will holds the results for solving each ik chain.
+    JointInfo defaultJointInfo = { glm::quat(), glm::vec3(), -1, false };
+    JointChainInfoVec jointChainInfoVec(targets.size());
     for (size_t i = 0; i < targets.size(); i++) {
         int chainDepth = _skeleton->getChainDepth(targets[i].getIndex());
-        jointChainInfoVecVec[i].reserve(chainDepth);
+        jointChainInfoVec[i].jointInfoVec.reserve(chainDepth);
+        jointChainInfoVec[i].target = targets[i];
         for (size_t j = 0; j < chainDepth; j++) {
-            jointChainInfoVecVec[i].push_back(defaultJointChainInfo);
+            jointChainInfoVec[i].jointInfoVec.push_back(defaultJointInfo);
         }
     }
 
@@ -257,9 +259,9 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
         // solve all targets
         for (size_t i = 0; i < targets.size(); i++) {
             if (targets[i].getType() == IKTarget::Type::Spline) {
-                solveTargetWithSpline(context, targets[i], absolutePoses, debug, jointChainInfoVecVec[i]);
+                solveTargetWithSpline(context, targets[i], absolutePoses, debug, jointChainInfoVec[i]);
             } else {
-                solveTargetWithCCD(context, targets[i], absolutePoses, debug, jointChainInfoVecVec[i]);
+                solveTargetWithCCD(context, targets[i], absolutePoses, debug, jointChainInfoVec[i]);
             }
         }
 
@@ -267,12 +269,13 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
 
         // copy jointChainInfoVecs into accumulators
         for (size_t i = 0; i < targets.size(); i++) {
-            const std::vector<JointChainInfo>& jointChainInfoVec = jointChainInfoVecVec[i];
-            for (size_t j = 0; j < jointChainInfoVec.size(); j++) {
-                const JointChainInfo& info = jointChainInfoVec[j];
+            const std::vector<JointInfo>& jointInfoVec = jointChainInfoVec[i].jointInfoVec;
+            float weight = jointChainInfoVec[i].target.getWeight();
+            for (size_t j = 0; j < jointInfoVec.size(); j++) {
+                const JointInfo& info = jointInfoVec[j];
                 if (info.jointIndex >= 0) {
-                    _rotationAccumulators[info.jointIndex].add(info.relRot, info.weight);
-                    _translationAccumulators[info.jointIndex].add(info.relTrans, info.weight);
+                    _rotationAccumulators[info.jointIndex].add(info.rot, weight);
+                    _translationAccumulators[info.jointIndex].add(info.trans, weight);
                 }
             }
         }
@@ -336,7 +339,7 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
 }
 
 void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses,
-                                               bool debug, std::vector<JointChainInfo>& jointChainInfoVec) const {
+                                               bool debug, JointChainInfo& jointChainInfoOut) const {
     size_t chainDepth = 0;
 
     IKTarget::Type targetType = target.getType();
@@ -391,7 +394,7 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
         }
 
         glm::vec3 tipRelativeTranslation = _relativePoses[target.getIndex()].trans();
-        jointChainInfoVec[chainDepth] = { tipRelativeRotation, tipRelativeTranslation, target.getWeight(), tipIndex, constrained };
+        jointChainInfoOut.jointInfoVec[chainDepth] = { tipRelativeRotation, tipRelativeTranslation, tipIndex, constrained };
     }
 
     // cache tip absolute position
@@ -402,7 +405,7 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
     // descend toward root, pivoting each joint to get tip closer to target position
     while (pivotIndex != _hipsIndex && pivotsParentIndex != -1) {
 
-        assert(chainDepth < jointChainInfoVec.size());
+        assert(chainDepth < jointChainInfoOut.jointInfoVec.size());
 
         // compute the two lines that should be aligned
         glm::vec3 jointPosition = absolutePoses[pivotIndex].trans();
@@ -503,7 +506,7 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
         }
 
         glm::vec3 newTrans = _relativePoses[pivotIndex].trans();
-        jointChainInfoVec[chainDepth] = { newRot, newTrans, target.getWeight(), pivotIndex, constrained };
+        jointChainInfoOut.jointInfoVec[chainDepth] = { newRot, newTrans, pivotIndex, constrained };
 
         // keep track of tip's new transform as we descend towards root
         tipPosition = jointPosition + deltaRotation * (tipPosition - jointPosition);
@@ -530,20 +533,20 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                 AnimPose accum = absolutePoses[_hipsIndex];
                 AnimPose baseParentPose = absolutePoses[_hipsIndex];
                 for (int i = (int)chainDepth - 1; i >= 0; i--) {
-                    accum = accum * AnimPose(glm::vec3(1.0f), jointChainInfoVec[i].relRot, jointChainInfoVec[i].relTrans);
+                    accum = accum * AnimPose(glm::vec3(1.0f), jointChainInfoOut.jointInfoVec[i].rot, jointChainInfoOut.jointInfoVec[i].trans);
                     postAbsPoses[i] = accum;
-                    if (jointChainInfoVec[i].jointIndex == topJointIndex) {
+                    if (jointChainInfoOut.jointInfoVec[i].jointIndex == topJointIndex) {
                         topChainIndex = i;
                         topPose = accum;
                     }
-                    if (jointChainInfoVec[i].jointIndex == midJointIndex) {
+                    if (jointChainInfoOut.jointInfoVec[i].jointIndex == midJointIndex) {
                         midPose = accum;
                     }
-                    if (jointChainInfoVec[i].jointIndex == baseJointIndex) {
+                    if (jointChainInfoOut.jointInfoVec[i].jointIndex == baseJointIndex) {
                         baseChainIndex = i;
                         basePose = accum;
                     }
-                    if (jointChainInfoVec[i].jointIndex == baseParentJointIndex) {
+                    if (jointChainInfoOut.jointInfoVec[i].jointIndex == baseParentJointIndex) {
                         baseParentPose = accum;
                     }
                 }
@@ -623,16 +626,16 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                 }
 
                 glm::quat newBaseRelRot = glm::inverse(baseParentPose.rot()) * poleRot * basePose.rot();
-                jointChainInfoVec[baseChainIndex].relRot = newBaseRelRot;
+                jointChainInfoOut.jointInfoVec[baseChainIndex].rot = newBaseRelRot;
 
                 glm::quat newTopRelRot = glm::inverse(midPose.rot()) * glm::inverse(poleRot) * topPose.rot();
-                jointChainInfoVec[topChainIndex].relRot = newTopRelRot;
+                jointChainInfoOut.jointInfoVec[topChainIndex].rot = newTopRelRot;
             }
         }
     }
 
     if (debug) {
-        debugDrawIKChain(jointChainInfoVec, context);
+        debugDrawIKChain(jointChainInfoOut, context);
     }
 }
 
@@ -718,7 +721,7 @@ const std::vector<AnimInverseKinematics::SplineJointInfo>* AnimInverseKinematics
 
 // AJT: TODO: make this const someday
 void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses,
-                                                  bool debug, std::vector<JointChainInfo>& jointChainInfoVec) {
+                                                  bool debug, JointChainInfo& jointChainInfoOut) {
 
     const int baseIndex = _hipsIndex;
 
@@ -801,22 +804,14 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
                 }
             }
 
-            jointChainInfoVec[i] = { relPose.rot(), relPose.trans(), target.getWeight(), splineJointInfo.jointIndex, constrained };
+            jointChainInfoOut.jointInfoVec[i] = { relPose.rot(), relPose.trans(), splineJointInfo.jointIndex, constrained };
 
             parentAbsPose = flexedAbsPose;
         }
     }
 
-    // AJT: REMOVE
-    /*
-    for (size_t i = 0; i < splineJointInfoVec->size(); i++) {
-        _rotationAccumulators[jointChainInfos[i].jointIndex].add(jointChainInfos[i].relRot, jointChainInfos[i].weight);
-        _translationAccumulators[jointChainInfos[i].jointIndex].add(jointChainInfos[i].relTrans, jointChainInfos[i].weight);
-    }
-    */
-
     if (debug) {
-        debugDrawIKChain(jointChainInfoVec, context);
+        debugDrawIKChain(jointChainInfoOut, context);
     }
 }
 
@@ -1516,14 +1511,14 @@ void AnimInverseKinematics::debugDrawRelativePoses(const AnimContext& context) c
     }
 }
 
-void AnimInverseKinematics::debugDrawIKChain(const std::vector<JointChainInfo>& jointChainInfoVec, const AnimContext& context) const {
+void AnimInverseKinematics::debugDrawIKChain(const JointChainInfo& jointChainInfo, const AnimContext& context) const {
     AnimPoseVec poses = _relativePoses;
 
     // copy debug joint rotations into the relative poses
-    for (size_t i = 0; i < jointChainInfoVec.size(); i++) {
-        const JointChainInfo& info = jointChainInfoVec[i];
-        poses[info.jointIndex].rot() = info.relRot;
-        poses[info.jointIndex].trans() = info.relTrans;
+    for (size_t i = 0; i < jointChainInfo.jointInfoVec.size(); i++) {
+        const JointInfo& info = jointChainInfo.jointInfoVec[i];
+        poses[info.jointIndex].rot() = info.rot;
+        poses[info.jointIndex].trans() = info.trans;
     }
 
     // convert relative poses to absolute
@@ -1540,9 +1535,9 @@ void AnimInverseKinematics::debugDrawIKChain(const std::vector<JointChainInfo>& 
     // draw each pose
     for (int i = 0; i < (int)poses.size(); i++) {
         int parentIndex = _skeleton->getParentIndex(i);
-        const JointChainInfo* jointInfo = nullptr;
-        const JointChainInfo* parentJointInfo = nullptr;
-        lookupJointChainInfo(jointChainInfoVec, i, parentIndex, &jointInfo, &parentJointInfo);
+        const JointInfo* jointInfo = nullptr;
+        const JointInfo* parentJointInfo = nullptr;
+        lookupJointInfo(jointChainInfo, i, parentIndex, &jointInfo, &parentJointInfo);
         if (jointInfo && parentJointInfo) {
 
             // transform local axes into world space.

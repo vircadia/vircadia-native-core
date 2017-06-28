@@ -26,13 +26,19 @@ class RotationConstraint;
 class AnimInverseKinematics : public AnimNode {
 public:
 
-    struct JointChainInfo {
-        glm::quat relRot;
-        glm::vec3 relTrans;
-        float weight;
+    struct JointInfo {
+        glm::quat rot;
+        glm::vec3 trans;
         int jointIndex;
         bool constrained;
     };
+
+    struct JointChainInfo {
+        std::vector<JointInfo> jointInfoVec;
+        IKTarget target;
+    };
+
+    using JointChainInfoVec = std::vector<JointChainInfo>;
 
     explicit AnimInverseKinematics(const QString& id);
     virtual ~AnimInverseKinematics() override;
@@ -74,11 +80,11 @@ protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
     void solve(const AnimContext& context, const std::vector<IKTarget>& targets);
     void solveTargetWithCCD(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses,
-                            bool debug, std::vector<JointChainInfo>& jointChainInfoVec) const;
+                            bool debug, JointChainInfo& jointChainInfoOut) const;
     void solveTargetWithSpline(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses,
-                               bool debug, std::vector<JointChainInfo>& jointChainInfoVec);
+                               bool debug, JointChainInfo& jointChainInfoOut);
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
-    void debugDrawIKChain(const std::vector<JointChainInfo>& jointChainInfoVec, const AnimContext& context) const;
+    void debugDrawIKChain(const JointChainInfo& jointChainInfo, const AnimContext& context) const;
     void debugDrawRelativePoses(const AnimContext& context) const;
     void debugDrawConstraints(const AnimContext& context) const;
     void debugDrawSpineSplines(const AnimContext& context, const std::vector<IKTarget>& targets) const;
