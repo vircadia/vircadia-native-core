@@ -123,7 +123,10 @@
     //    destroy the camera entity.
     function spectatorCameraOff() {
         spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = false;
-        cameraUpdateInterval = Script.clearInterval(cameraUpdateInterval);
+        if (cameraUpdateInterval) {
+            Script.clearInterval(cameraUpdateInterval);
+            cameraUpdateInterval = false;
+        }
         if (camera) {
             Entities.deleteEntity(camera);
         }
