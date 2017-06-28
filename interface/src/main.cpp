@@ -73,12 +73,14 @@ int main(int argc, const char* argv[]) {
     QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
     QCommandLineOption allowMultipleInstancesOption("allowMultipleInstances", "Allow multiple instances to run");
     QCommandLineOption overrideAppLocalDataPathOption("cache", "set test cache <dir>", "dir");
+    QCommandLineOption overrideScriptsPathOption("scripts", "set scripts <path>", "path");
     parser.addOption(urlOption);
     parser.addOption(noUpdaterOption);
     parser.addOption(checkMinSpecOption);
     parser.addOption(runServerOption);
     parser.addOption(serverContentPathOption);
     parser.addOption(overrideAppLocalDataPathOption);
+    parser.addOption(overrideScriptsPathOption);
     parser.addOption(allowMultipleInstancesOption);
     parser.parse(arguments);
 
@@ -99,6 +101,14 @@ int main(int argc, const char* argv[]) {
     if (allowMultipleInstances) {
         instanceMightBeRunning = false;
     }
+
+    if (parser.isSet(overrideScriptsPathOption)) {
+        QDir scriptsPath(parser.value(overrideScriptsPathOption));
+        if (scriptsPath.exists()) {
+            PathUtils::defaultScriptsLocation(scriptsPath.path());
+        }
+    }
+
     if (parser.isSet(overrideAppLocalDataPathOption)) {
         // get dir to use for cache
         QString cacheDir = parser.value(overrideAppLocalDataPathOption);
