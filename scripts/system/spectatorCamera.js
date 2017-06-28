@@ -66,8 +66,6 @@
     // Function Name: spectatorCameraOn()
     //
     // Relevant Variables:
-    // isUpdateRenderWired: Bool storing whether or not the camera's update
-    //     function is wired.
     // vFoV: The vertical field of view of the spectator camera
     // nearClipPlaneDistance: The near clip plane distance of the spectator camera (aka "camera")
     // farClipPlaneDistance: The far clip plane distance of the spectator camera
@@ -76,6 +74,7 @@
     // glassPaneWidth: The width of the glass pane above the spectator camera that holds the viewFinderOverlay
     // viewFinderOverlayDim: The x, y, and z dimensions of the viewFinderOverlay
     // cameraUpdateInterval: Used when setting Script.setInterval()
+    // CAMERA_UPDATE_INTERVAL_MS: Defines the time between calls to updateRenderFromCamera()
     // 
     // Arguments:
     // None
@@ -84,7 +83,6 @@
     // Call this function to set up the spectator camera and
     //     spawn the camera entity.
     //
-    var isUpdateRenderWired = false;
     var vFoV = 45.0;
     var nearClipPlaneDistance = 0.1;
     var farClipPlaneDistance = 100.0;
@@ -96,6 +94,7 @@
     var glassPaneWidth = 0.16;
     var viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: 0 };
     var cameraUpdateInterval;
+    var CAMERA_UPDATE_INTERVAL_MS = 11; // Result of (1000 (ms/s)) / (90 (hz)) rounded down
     function spectatorCameraOn() {
         // Sets the special texture size based on the window it is displayed in, which doesn't include the menu bar
         spectatorFrameRenderConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
@@ -105,7 +104,6 @@
         beginSpectatorFrameRenderConfig.farClipPlaneDistance = farClipPlaneDistance;
         cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
         cameraUpdateInterval = Script.setInterval(updateRenderFromCamera, 11); // Update every 11ms (90.9hz)
-        isUpdateRenderWired = true;
         camera = Entities.addEntity({
             "angularDamping": 1,
             "damping": 1,
@@ -144,10 +142,7 @@
     //
     function spectatorCameraOff() {
         spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = false;
-        if (isUpdateRenderWired) {
-            Script.clearInterval(cameraUpdateInterval);
-            isUpdateRenderWired = false;
-        }
+        cameraUpdateInterval = Script.clearInterval(cameraUpdateInterval);
         if (camera) {
             Entities.deleteEntity(camera);
         }
@@ -238,24 +233,26 @@
     //
     var hasEventBridge = false;
     function wireEventBridge(on) {
-        if (tablet) {
-            if (on) {
-                if (!hasEventBridge) {
-                    tablet.fromQml.connect(fromQml);
-                    hasEventBridge = true;
-                }
-            } else {
-                if (hasEventBridge) {
-                    tablet.fromQml.disconnect(fromQml);
-                    hasEventBridge = false;
-                }
+        if (!tablet) {
+            print("Warning in wireEventBridge(): 'tablet' undefined!");
+            return;
+        }
+        if (on) {
+            if (!hasEventBridge) {
+                tablet.fromQml.connect(fromQml);
+                hasEventBridge = true;
+            }
+        } else {
+            if (hasEventBridge) {
+                tablet.fromQml.disconnect(fromQml);
+                hasEventBridge = false;
             }
         }
     }
 
     function setDisplay(showCameraView) {
-        // It would be fancy if (showCameraView && !isUpdateRenderWired) would show instructions, but that's out of scope for now.
-        var url = (showCameraView && isUpdateRenderWired) ? "resource://spectatorCameraFrame" : "";
+        // It would be fancy if (showCameraView && !cameraUpdateInterval) would show instructions, but that's out of scope for now.
+        var url = (showCameraView && cameraUpdateInterval) ? "resource://spectatorCameraFrame" : "";
         Window.setDisplayTexture(url);
     }
     const MONITOR_SHOWS_CAMERA_VIEW_DEFAULT = false;
@@ -407,17 +404,19 @@
     var SPECTATOR_CAMERA_QML_SOURCE = "../SpectatorCamera.qml";
     var onSpectatorCameraScreen = false;
     function onTabletButtonClicked() {
-        if (tablet) {
-            if (onSpectatorCameraScreen) {
-                // for toolbar-mode: go back to home screen, this will close the window.
-                tablet.gotoHomeScreen();
-            } else {
-                tablet.loadQMLSource(SPECTATOR_CAMERA_QML_SOURCE);
-                sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
-                sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
-                sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
-                Menu.setIsOptionChecked("Disable Preview", false);
-            }
+        if (!tablet) {
+            print("Warning in onTabletButtonClicked(): 'tablet' undefined!");
+            return;
+        }
+        if (onSpectatorCameraScreen) {
+            // for toolbar-mode: go back to home screen, this will close the window.
+            tablet.gotoHomeScreen();
+        } else {
+            tablet.loadQMLSource(SPECTATOR_CAMERA_QML_SOURCE);
+            sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
+            sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
+            sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
+            Menu.setIsOptionChecked("Disable Preview", false);
         }
     }
 
