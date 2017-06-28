@@ -173,23 +173,25 @@
     var buttonName = "SPECTATOR";
     var showSpectatorInDesktop = true;
     function addOrRemoveButton(isShuttingDown, isHMDMode) {
-        if (tablet) {
-            if (!button) {
-                if ((isHMDMode || showSpectatorInDesktop) && !isShuttingDown) {
-                    button = tablet.addButton({
-                        text: buttonName
-                    });
-                    button.clicked.connect(onTabletButtonClicked);
-                }
-            } else if (button) {
-                if ((!showSpectatorInDesktop || isShuttingDown)) {
-                    button.clicked.disconnect(onTabletButtonClicked);
-                    tablet.removeButton(button);
-                    button = false;
-                }
-            } else {
-                print("ERROR adding/removing Spectator button!");
+        if (!tablet) {
+            print("Warning in addOrRemoveButton(): 'tablet' undefined!");
+            return;
+        }
+        if (!button) {
+            if ((isHMDMode || showSpectatorInDesktop) && !isShuttingDown) {
+                button = tablet.addButton({
+                    text: buttonName
+                });
+                button.clicked.connect(onTabletButtonClicked);
             }
+        } else if (button) {
+            if ((!showSpectatorInDesktop || isShuttingDown)) {
+                button.clicked.disconnect(onTabletButtonClicked);
+                tablet.removeButton(button);
+                button = false;
+            }
+        } else {
+            print("ERROR adding/removing Spectator button!");
         }
     }
 
