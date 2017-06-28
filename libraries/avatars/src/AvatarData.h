@@ -52,15 +52,16 @@ typedef unsigned long long quint64;
 #include <JointData.h>
 #include <NLPacket.h>
 #include <Node.h>
-#include <RegisteredMetaTypes.h>
-#include <SimpleMovingAverage.h>
-#include <SpatiallyNestable.h>
 #include <NumericalConstants.h>
 #include <Packed.h>
-#include <ThreadSafeValueCache.h>
+#include <RegisteredMetaTypes.h>
 #include <SharedUtil.h>
-#include <shared/RateCounter.h>
+#include <SimpleMovingAverage.h>
+#include <SpatiallyNestable.h>
+#include <ThreadSafeValueCache.h>
 #include <ViewFrustum.h>
+#include <shared/RateCounter.h>
+#include <udt/SequenceNumber.h>
 
 #include "AABox.h"
 #include "HeadData.h"
@@ -526,21 +527,20 @@ public:
     const HeadData* getHeadData() const { return _headData; }
 
     struct Identity {
-        QUuid uuid;
         QUrl skeletonModelURL;
         QVector<AttachmentData> attachmentData;
         QString displayName;
         QString sessionDisplayName;
+        bool isReplicated;
         AvatarEntityMap avatarEntityData;
-        quint64 sequenceId;
     };
 
-    static void parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut);
-
+    // identityChanged returns true if identity has changed, false otherwise.
     // identityChanged returns true if identity has changed, false otherwise. Similarly for displayNameChanged and skeletonModelUrlChange.
-    void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, bool& skeletonModelUrlChanged);
+    void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged,
+                               bool& displayNameChanged, bool& skeletonModelUrlChanged);
 
-    QByteArray identityByteArray() const;
+    QByteArray identityByteArray(bool setIsReplicated = false) const;
 
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
@@ -624,12 +624,13 @@ public:
     static float _avatarSortCoefficientAge;
 
     bool getIdentityDataChanged() const { return _identityDataChanged; } // has the identity data changed since the last time sendIdentityPacket() was called
-    void markIdentityDataChanged() {
-        _identityDataChanged = true;
-        _identitySequenceId++;
-    }
+    void markIdentityDataChanged() { _identityDataChanged = true; }
+
+    void pushIdentitySequenceNumber() { ++_identitySequenceNumber; };
 
     float getDensity() const { return _density; }
+
+    bool getIsReplicated() const { return _isReplicated; }
 
 signals:
     void displayNameChanged();
@@ -666,6 +667,10 @@ protected:
 
     bool hasParent() const { return !getParentID().isNull(); }
     bool hasFaceTracker() const { return _headData ? _headData->_isFaceTrackerConnected : false; }
+
+    // isReplicated will be true on downstream Avatar Mixers and their clients, but false on the upstream "master"
+    // Audio Mixer that the replicated avatar is connected to.
+    bool _isReplicated{ false };
 
     glm::vec3 _handPosition;
     virtual const QString& getSessionDisplayNameForTransport() const { return _sessionDisplayName; }
@@ -785,7 +790,8 @@ protected:
     float _audioAverageLoudness { 0.0f };
 
     bool _identityDataChanged { false };
-    quint64 _identitySequenceId { 0 };
+    udt::SequenceNumber _identitySequenceNumber { 0 };
+    bool _hasProcessedFirstIdentity { false };
     float _density;
 
 private:

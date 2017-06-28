@@ -16,6 +16,7 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+#include <render/Args.h>
 #include <avatar/AvatarManager.h>
 #include <Application.h>
 #include <AudioClient.h>
@@ -32,6 +33,7 @@
 #include "Util.h"
 #include "SequenceNumberStats.h"
 #include "StatTracker.h"
+
 
 HIFI_QML_DEF(Stats)
 
@@ -454,7 +456,7 @@ void Stats::updateStats(bool force) {
     }
 }
 
-void Stats::setRenderDetails(const RenderDetails& details) {
+void Stats::setRenderDetails(const render::RenderDetails& details) {
     STAT_UPDATE(triangles, details._trianglesRendered);
     STAT_UPDATE(materialSwitches, details._materialSwitches);
     if (_expanded) {

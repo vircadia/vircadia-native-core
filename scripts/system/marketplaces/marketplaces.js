@@ -52,17 +52,11 @@ function onMessageBoxClosed(id, button) {
 
 Window.messageBoxClosed.connect(onMessageBoxClosed);
 
-var shouldActivateButton = false;
 var onMarketplaceScreen = false;
 
 function showMarketplace() {
     UserActivityLogger.openedMarketplace();
-
-    shouldActivateButton = true;
-
     tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
-    onMarketplaceScreen = true;
-
     tablet.webEventReceived.connect(function (message) {
 
         if (message === GOTO_DIRECTORY) {
@@ -122,7 +116,6 @@ function onClick() {
     if (onMarketplaceScreen) {
         // for toolbar-mode: go back to home screen, this will close the window.
         tablet.gotoHomeScreen();
-        onMarketplaceScreen = false;
     } else {
         var entity = HMD.tabletID;
         Entities.editEntity(entity, {textures: JSON.stringify({"tex.close": HOME_BUTTON_TEXTURE})});
@@ -131,10 +124,9 @@ function onClick() {
 }
 
 function onScreenChanged(type, url) {
+    onMarketplaceScreen = type === "Web" && url === MARKETPLACE_URL_INITIAL 
     // for toolbar mode: change button to active when window is first openend, false otherwise.
-    marketplaceButton.editProperties({isActive: shouldActivateButton});
-    shouldActivateButton = false;
-    onMarketplaceScreen = false;
+    marketplaceButton.editProperties({isActive: onMarketplaceScreen});
 }
 
 marketplaceButton.clicked.connect(onClick);

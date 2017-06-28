@@ -49,11 +49,15 @@ Item {
 
     property var valueMax : 1
 
-    property var _values : new Array()
+    property var _values
     property var tick : 0
 
     function createValues() {
+        if (!_values) {
+            _values = new Array();
+        }
         for (var i =0; i < plots.length; i++) {
+
             var plot = plots[i];
             var object = plot["object"] || root.object;
             var value = plot["prop"];
@@ -93,7 +97,7 @@ Item {
 
         var VALUE_HISTORY_SIZE = 100;
         tick++;
-
+                
         var currentValueMax = 0
         for (var i = 0; i < _values.length; i++) {
 
@@ -128,7 +132,6 @@ Item {
         if ((valueMax < currentValueMax) || (tick % VALUE_HISTORY_SIZE == 0)) {
             valueMax = currentValueMax;
         }
-
         mycanvas.requestPaint()
     }
 

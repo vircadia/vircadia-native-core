@@ -18,7 +18,7 @@
 
 #include "ui/OvenMainWindow.h"
 #include "Oven.h"
-#include "BakerCli.h"
+#include "BakerCLI.h"
 
 static const QString OUTPUT_FOLDER = "/Users/birarda/code/hifi/lod/test-oven/export";
 

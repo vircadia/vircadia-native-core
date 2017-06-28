@@ -11,20 +11,20 @@
 
 #include "DirtyOctreeElementOperator.h"
 
-DirtyOctreeElementOperator::DirtyOctreeElementOperator(OctreeElementPointer element)
+DirtyOctreeElementOperator::DirtyOctreeElementOperator(const OctreeElementPointer& element)
     :   _element(element) {
     assert(_element.get());
     _point = _element->getAACube().calcCenter();
 }
 
-bool DirtyOctreeElementOperator::preRecursion(OctreeElementPointer element) {
+bool DirtyOctreeElementOperator::preRecursion(const OctreeElementPointer& element) {
     if (element == _element) {
         return false;
     }
     return element->getAACube().contains(_point);
 }
 
-bool DirtyOctreeElementOperator::postRecursion(OctreeElementPointer element) {
+bool DirtyOctreeElementOperator::postRecursion(const OctreeElementPointer& element) {
     element->markWithChangedTime();
     return true;
 }

@@ -40,7 +40,7 @@ var HOVER_TEXTURES = {
 var UNSELECTED_COLOR = { red: 0x1F, green: 0xC6, blue: 0xA6};
 var SELECTED_COLOR = {red: 0xF3, green: 0x91, blue: 0x29};
 var HOVER_COLOR = {red: 0xD0, green: 0xD0, blue: 0xD0}; // almost white for now
-
+var PAL_QML_SOURCE = "../Pal.qml";
 var conserveResources = true;
 
 Script.include("/~/system/libraries/controllers.js");
@@ -479,7 +479,8 @@ function populateNearbyUserList(selectData, oldAudioData) {
             admin: false,
             personalMute: !!id && Users.getPersonalMuteStatus(id), // expects proper boolean, not null
             ignore: !!id && Users.getIgnoreStatus(id), // ditto
-            isPresent: true
+            isPresent: true,
+            isReplicated: avatar.isReplicated
         };
         if (id) {
             addAvatarNode(id); // No overlay for ourselves
@@ -726,17 +727,14 @@ function tabletVisibilityChanged() {
 }
 
 var onPalScreen = false;
-var shouldActivateButton = false;
 
 function onTabletButtonClicked() {
     if (onPalScreen) {
         // for toolbar-mode: go back to home screen, this will close the window.
         tablet.gotoHomeScreen();
     } else {
-        shouldActivateButton = true;
-        tablet.loadQMLSource("../Pal.qml");
+        tablet.loadQMLSource(PAL_QML_SOURCE);
         tablet.tabletShownChanged.connect(tabletVisibilityChanged);
-        onPalScreen = true;
         Users.requestsDomainListData = true;
         populateNearbyUserList();
         isWired = true;
@@ -764,14 +762,13 @@ function wireEventBridge(on) {
 }
 
 function onTabletScreenChanged(type, url) {
-    wireEventBridge(shouldActivateButton);
+    onPalScreen = (type === "QML" && url === PAL_QML_SOURCE);
+    wireEventBridge(onPalScreen);
     // for toolbar mode: change button to active when window is first openend, false otherwise.
-    button.editProperties({isActive: shouldActivateButton});
-    shouldActivateButton = false;
-    onPalScreen = false;
+    button.editProperties({isActive: onPalScreen});
 
     // disable sphere overlays when not on pal screen.
-    if (type !== "QML" || url !== "../Pal.qml") {
+    if (!onPalScreen) {
         off();
     }
 }

@@ -65,6 +65,7 @@ public slots:
 
     float recorderElapsed() const;
 
+    QString getDefaultRecordingSaveDirectory();
     void saveRecording(const QString& filename);
     bool saveRecordingToAsset(QScriptValue getClipAtpUrl);
     void loadLastRecording();
