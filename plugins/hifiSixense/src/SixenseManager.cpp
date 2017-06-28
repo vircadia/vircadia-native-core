@@ -54,7 +54,7 @@ bool SixenseManager::_sixenseLoaded = false;
 #define BAIL_IF_NOT_ENABLED \
     if (!_isEnabled) { \
         return; \
-        }
+    }
 
 #define BAIL_IF_NOT_LOADED \
     if (!_sixenseLoaded) { \

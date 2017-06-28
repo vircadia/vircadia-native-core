@@ -95,9 +95,6 @@ protected:
     ButtonPressedMap _buttonPressedMap;
     AxisStateMap _axisStateMap;
     PoseStateMap _poseStateMap;
-
-private:
-    static float _reticleMoveSpeed;
 };
 
 }
