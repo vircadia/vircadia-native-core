@@ -132,7 +132,7 @@
             emissive: true,
             parentID: camera,
             alpha: 1,
-            localRotation: { x: 0, y: 0, z: 0 },
+            localRotation: { w: 1, x: 0, y: 0, z: 0 },
             localPosition: { x: 0.007, y: 0.15, z: -0.005 },
             dimensions: viewFinderOverlayDim
         });
@@ -322,7 +322,7 @@
             emissive: true,
             parentID: camera,
             alpha: 1,
-            localRotation: { x: 0, y: 0, z: 0 },
+            localRotation: { w: 1, x: 0, y: 0, z: 0 },
             localPosition: { x: 0.007, y: 0.15, z: -0.005 },
             dimensions: viewFinderOverlayDim
         });
