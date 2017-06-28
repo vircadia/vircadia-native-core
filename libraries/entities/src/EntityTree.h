@@ -41,13 +41,6 @@ public:
     virtual void entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) = 0;
 };
 
-class EntityItemFBXService {
-public:
-    virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) = 0;
-    virtual ModelPointer getModelForEntityItem(EntityItemPointer entityItem) = 0;
-};
-
-
 class SendEntitiesOperationArgs {
 public:
     glm::vec3 root;
@@ -189,15 +182,6 @@ public:
     int processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
     int processEraseMessageDetails(const QByteArray& buffer, const SharedNodePointer& sourceNode);
 
-    EntityItemFBXService* getFBXService() const { return _fbxService; }
-    void setFBXService(EntityItemFBXService* service) { _fbxService = service; }
-    const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) {
-        return _fbxService ? _fbxService->getGeometryForEntity(entityItem) : NULL;
-    }
-    ModelPointer getModelForEntityItem(EntityItemPointer entityItem) {
-        return _fbxService ? _fbxService->getModelForEntityItem(entityItem) : NULL;
-    }
-
     EntityTreeElementPointer getContainingElement(const EntityItemID& entityItemID)  /*const*/;
     void setContainingElement(const EntityItemID& entityItemID, EntityTreeElementPointer element);
     void debugDumpMap();
@@ -324,8 +308,6 @@ protected:
         QWriteLocker locker(&_deletedEntitiesLock);
         _deletedEntityItemIDs << id;
     }
-
-    EntityItemFBXService* _fbxService;
 
     mutable QReadWriteLock _entityToElementLock;
     QHash<EntityItemID, EntityTreeElementPointer> _entityToElementMap;
