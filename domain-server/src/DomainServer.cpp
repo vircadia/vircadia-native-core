@@ -2091,22 +2091,31 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             // the user does not have allowed username or role, return 401
             return false;
         } else {
-            // re-direct this user to OAuth page
+            static const QByteArray REQUESTED_WITH_HEADER = "X-Requested-With";
+            static const QString XML_REQUESTED_WITH = "XMLHttpRequest";
 
-            // generate a random state UUID to use
-            QUuid stateUUID = QUuid::createUuid();
+            if (connection->requestHeaders().value(REQUESTED_WITH_HEADER) == XML_REQUESTED_WITH) {
+                // unauthorized XHR requests get a 401 and not a 302, since there isn't an XHR
+                // path to OAuth authorize
+                connection->respond(HTTPConnection::StatusCode401, UNAUTHENTICATED_BODY);
+            } else {
+                // re-direct this user to OAuth page
 
-            // add it to the set so we can handle the callback from the OAuth provider
-            _webAuthenticationStateSet.insert(stateUUID);
+                // generate a random state UUID to use
+                QUuid stateUUID = QUuid::createUuid();
 
-            QUrl authURL = oauthAuthorizationURL(stateUUID);
+                // add it to the set so we can handle the callback from the OAuth provider
+                _webAuthenticationStateSet.insert(stateUUID);
 
-            Headers redirectHeaders;
+                QUrl authURL = oauthAuthorizationURL(stateUUID);
 
-            redirectHeaders.insert("Location", authURL.toEncoded());
+                Headers redirectHeaders;
 
-            connection->respond(HTTPConnection::StatusCode302,
-                                QByteArray(), HTTPConnection::DefaultContentType, redirectHeaders);
+                redirectHeaders.insert("Location", authURL.toEncoded());
+
+                connection->respond(HTTPConnection::StatusCode302,
+                                    QByteArray(), HTTPConnection::DefaultContentType, redirectHeaders);
+            }
 
             // we don't know about this user yet, so they are not yet authenticated
             return false;
