@@ -239,7 +239,7 @@ void NodeList::reset() {
     LimitedNodeList::reset();
 
     _numNoReplyDomainCheckIns = 0;
-;
+
     // lock and clear our set of ignored IDs
     _ignoredSetLock.lockForWrite();
     _ignoredNodeIDs.clear();
