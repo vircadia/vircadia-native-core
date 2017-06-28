@@ -51,7 +51,7 @@ MovingEntitiesOperator::~MovingEntitiesOperator() {
 
 
 void MovingEntitiesOperator::addEntityToMoveList(EntityItemPointer entity, const AACube& newCube) {
-    EntityTreeElementPointer oldContainingElement = _tree->getContainingElement(entity->getEntityItemID());
+    EntityTreeElementPointer oldContainingElement = entity->getElement();
     AABox newCubeClamped = newCube.clamp((float)-HALF_TREE_SCALE, (float)HALF_TREE_SCALE);
 
     if (_wantDebug) {
@@ -201,7 +201,6 @@ bool MovingEntitiesOperator::preRecursion(const OctreeElementPointer& element) {
                         oldElement->removeEntityItem(details.entity);
                     }
                     entityTreeElement->addEntityItem(details.entity);
-                    _tree->setContainingElement(entityItemID, entityTreeElement);
                 }
                 _foundNewCount++;
                 //details.newFound = true; // TODO: would be nice to add this optimization

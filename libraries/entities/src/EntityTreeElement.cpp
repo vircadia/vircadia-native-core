@@ -1001,7 +1001,6 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                             if (currentContainingElement.get() != this) {
                                 currentContainingElement->removeEntityItem(entityItem);
                                 addEntityItem(entityItem);
-                                _myTree->setContainingElement(entityItemID, getThisPointer());
                             }
                         }
                     }
@@ -1032,9 +1031,9 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
 
                         // don't add if we've recently deleted....
                         if (!_myTree->isDeletedEntity(entityItem->getID())) {
+                            _myTree->addEntityMapEntry(entityItem);
                             addEntityItem(entityItem); // add this new entity to this elements entities
                             entityItemID = entityItem->getEntityItemID();
-                            _myTree->setContainingElement(entityItemID, getThisPointer());
                             _myTree->postAddEntity(entityItem);
                             if (entityItem->getCreated() == UNKNOWN_CREATED_TIME) {
                                 entityItem->recordCreationTime();
