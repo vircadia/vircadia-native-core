@@ -193,7 +193,6 @@ bool MovingEntitiesOperator::preRecursion(const OctreeElementPointer& element) {
 
             // If this element is the best fit for the new bounds of this entity then add the entity to the element
             if (!details.newFound && entityTreeElement->bestFitBounds(details.newCube)) {
-                EntityItemID entityItemID = details.entity->getEntityItemID();
                 // remove from the old before adding
                 EntityTreeElementPointer oldElement = details.entity->getElement();
                 if (oldElement != entityTreeElement) {
