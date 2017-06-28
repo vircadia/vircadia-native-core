@@ -14,6 +14,9 @@
 
 class AnimationDetails;
 
+#include <stdint.h>
+#include <glm/glm.hpp>
+
 class AnimationLoop {
 public:
     static const float MAXIMUM_POSSIBLE_FRAME;
@@ -58,7 +61,7 @@ public:
     void stop() { setRunning(false); }
     void simulate(float deltaTime); /// call this with deltaTime if you as the caller are managing the delta time between calls
 
-    void simulateAtTime(quint64 now); /// call this with "now" if you want the animationLoop to handle delta times
+    void simulateAtTime(uint64_t now); /// call this with "now" if you want the animationLoop to handle delta times
 
 private:
     float _fps;
@@ -71,7 +74,7 @@ private:
     float _currentFrame;
     float _maxFrameIndexHint;
     bool _resetOnRunning;
-    quint64 _lastSimulated;
+    uint64_t _lastSimulated;
 };
 
 #endif // hifi_AnimationLoop_h
