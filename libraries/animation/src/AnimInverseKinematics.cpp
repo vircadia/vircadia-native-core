@@ -870,9 +870,9 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                         float scaleFactor = ((offsetLength - MIN_HIPS_OFFSET_LENGTH) / offsetLength);
                         glm::vec3 hipsOffset = scaleFactor * _hipsOffset;
                         if (_hipsParentIndex == -1) {
-                            _relativePoses[_hipsIndex].trans() = underPoses[_hipsIndex].trans() + hipsOffset;
+                            _relativePoses[_hipsIndex].trans() = _relativePoses[_hipsIndex].trans() + hipsOffset;
                         } else {
-                            auto absHipsPose = _skeleton->getAbsolutePose(_hipsIndex, underPoses);
+                            auto absHipsPose = _skeleton->getAbsolutePose(_hipsIndex, _relativePoses);
                             absHipsPose.trans() += hipsOffset;
                             _relativePoses[_hipsIndex] = _skeleton->getAbsolutePose(_hipsParentIndex, _relativePoses).inverse() * absHipsPose;
                         }
@@ -1732,6 +1732,10 @@ void AnimInverseKinematics::initRelativePosesFromSolutionSource(SolutionSource s
         break;
     case SolutionSource::RelaxToLimitCenterPoses:
         blendToPoses(_limitCenterPoses, underPoses, RELAX_BLEND_FACTOR);
+        // special case for hips: copy over hips pose whether or not IK is enabled.
+        if (_hipsIndex >= 0 && _hipsIndex < (int)_relativePoses.size()) {
+            _relativePoses[_hipsIndex] = _limitCenterPoses[_hipsIndex];
+        }
         break;
     case SolutionSource::PreviousSolution:
         // do nothing... _relativePoses is already the previous solution

@@ -9,10 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <NumericalConstants.h>
-
-#include "AnimationCache.h"
 #include "AnimationLoop.h"
+
+#include "../../NumericalConstants.h"
+#include "../../SharedUtil.h"
+#include "../../GLMHelpers.h"
+#include "../../RegisteredMetaTypes.h"
 
 const float AnimationLoop::MAXIMUM_POSSIBLE_FRAME = 100000.0f;
 
@@ -62,7 +64,7 @@ AnimationLoop::AnimationLoop(float fps, bool loop, bool hold, bool startAutomati
 {
 }
 
-void AnimationLoop::simulateAtTime(quint64 now) {
+void AnimationLoop::simulateAtTime(uint64_t now) {
     float deltaTime = (float)(now - _lastSimulated) / (float)USECS_PER_SECOND;
     _lastSimulated = now;
     simulate(deltaTime);

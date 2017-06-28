@@ -27,6 +27,7 @@
 #include "AnimationLogging.h"
 #include "AnimClip.h"
 #include "AnimInverseKinematics.h"
+#include "AnimOverlay.h"
 #include "AnimSkeleton.h"
 #include "AnimUtil.h"
 #include "IKTarget.h"
@@ -1459,13 +1460,28 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     updateFeet(leftFootEnabled, rightFootEnabled,
                params.controllerPoses[ControllerType_LeftFoot], params.controllerPoses[ControllerType_RightFoot]);
 
-    if (hipsEnabled) {
+    // if the hips or the feet are being controlled.
+    if (hipsEnabled || rightFootEnabled || leftFootEnabled) {
+        // for more predictable IK solve from the center of the joint limits, not from the underpose
         _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToLimitCenterPoses);
+
+        // replace the feet animation with the default pose, this is to prevent unexpected toe wiggling.
+        _animVars.set("defaultPoseOverlayAlpha", 1.0f);
+        _animVars.set("defaultPoseOverlayBoneSet", (int)AnimOverlay::BothFeetBoneSet);
+    } else {
+        // augment the IK with the underPose.
+        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToUnderPoses);
+
+        // feet should follow source animation
+        _animVars.unset("defaultPoseOverlayAlpha");
+        _animVars.unset("defaultPoseOverlayBoneSet");
+    }
+
+    if (hipsEnabled) {
         _animVars.set("hipsType", (int)IKTarget::Type::RotationAndPosition);
         _animVars.set("hipsPosition", params.controllerPoses[ControllerType_Hips].trans());
         _animVars.set("hipsRotation", params.controllerPoses[ControllerType_Hips].rot());
     } else {
-        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToUnderPoses);
         _animVars.set("hipsType", (int)IKTarget::Type::Unknown);
     }
 
