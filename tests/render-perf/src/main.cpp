@@ -493,7 +493,6 @@ public:
         DependencyManager::set<PathUtils>();
         DependencyManager::set<SceneScriptingInterface>();
         DependencyManager::set<TestActionFactory>();
-        DependencyManager::set<ResourceManager>();
     }
 
     QTestWindow() {
@@ -519,6 +518,8 @@ public:
             _octree->getTree()->setSimulation(simpleSimulation);
             _entitySimulation = simpleSimulation;
         }
+        
+        DependencyManager::set<ResourceManager>();
 
         setFlags(Qt::MSWindowsOwnDC | Qt::Window | Qt::Dialog | Qt::WindowMinMaxButtonsHint | Qt::WindowTitleHint);
         _size = QSize(800, 600);
