@@ -14,6 +14,8 @@
 
 #include <stdint.h>
 
+#include <NumericalConstants.h>
+
 const int IEEE754_MANT_BITS = 23;
 const int IEEE754_EXPN_BIAS = 127;
 
@@ -105,7 +107,7 @@ static inline float fastAcosf(float x) {
     xi.f = ((-0.0198439236f * xi.f + 0.0762021306f) * xi.f + -0.212940971f) * xi.f + 1.57079633f;
 
     xi.f *= r;
-    return (sign ? 3.141592654f - xi.f : xi.f);
+    return (sign ? PI - xi.f : xi.f);
 }
 
 //
