@@ -162,7 +162,7 @@
                 button.clicked.connect(onTabletButtonClicked);
             }
         } else if (button) {
-            if ((!showSpectatorInDesktop || isShuttingDown) && !isHMDMode) {
+            if (!showSpectatorInDesktop || isShuttingDown) {
                 button.clicked.disconnect(onTabletButtonClicked);
                 tablet.removeButton(button);
                 button = false;
