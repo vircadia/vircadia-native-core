@@ -22,14 +22,14 @@ class LocationBookmarks : public Bookmarks, public  Dependency  {
 public:
     LocationBookmarks();
 
-    void setupMenus(Menu* menubar, MenuWrapper* menu);
+    void setupMenus(Menu* menubar, MenuWrapper* menu) override;
     static const QString HOME_BOOKMARK;
 
 public slots:
     void addBookmark();
 
 protected:
-    void addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& address);
+    void addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& address) override;
 
 private:
     const QString LOCATIONBOOKMARKS_FILENAME = "bookmarks.json";
