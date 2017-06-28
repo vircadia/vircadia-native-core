@@ -249,6 +249,7 @@ ViveControllerManager::InputDevice::InputDevice(vr::IVRSystem*& system) : contro
     _configStringMap[Config::FeetAndHips] = QString("FeetAndHips");
     _configStringMap[Config::FeetHipsAndChest] = QString("FeetHipsAndChest");
     _configStringMap[Config::FeetHipsAndShoulders] = QString("FeetHipsAndShoulders");
+    _configStringMap[Config::FeetHipsChestAndShoulders] = QString("FeetHipsChestAndShoulders");
 }
 
 void ViveControllerManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
@@ -325,6 +326,7 @@ void ViveControllerManager::InputDevice::calibrateFromUI(const controller::Input
     if (_calibrate) {
         uncalibrate();
         calibrate(inputCalibrationData);
+        emitCalibrationStatus();
         _calibrate = false;
     }
 }
@@ -378,32 +380,17 @@ QJsonObject ViveControllerManager::InputDevice::configurationSettings() {
     return configurationSettings;
 }
 
-void ViveControllerManager::InputDevice::emitCalibrationStatus(const bool success) {
+void ViveControllerManager::InputDevice::emitCalibrationStatus() {
     auto inputConfiguration = DependencyManager::get<InputConfiguration>();
     QJsonObject status = QJsonObject();
-
-    if (_calibrated && success) {
-        status["calibrated"] = _calibrated;
-        status["configuration"] = configToString(_preferedConfig);
-        status["head_puck"] = (_headConfig == HeadConfig::Puck) ? true : false;
-        status["hand_pucks"] = (_handConfig == HandConfig::Pucks) ? true : false;
-        status["puckCount"] = (int)_validTrackedObjects.size();
-    } else if (!_calibrated && !success) {
-        status["calibrated"] = _calibrated;
-        status["success"] = success;
-        status["success"] = (int)_validTrackedObjects.size();
-        status["head_puck"] = (_headConfig == HeadConfig::Puck) ? true : false;
-        status["hand_pucks"] = (_handConfig == HandConfig::Pucks) ? true : false;
-    } else if (!_calibrated && success) {
-        status["calibrated"] = _calibrated;
-        status["success"] = success;
-        status["configuration"] = configToString(_preferedConfig);
-        status["puckCount"] = (int)_validTrackedObjects.size();
-        status["head_puck"] = (_headConfig == HeadConfig::Puck) ? true : false;
-        status["hand_pucks"] = (_handConfig == HandConfig::Pucks) ? true : false;
-    }
+    status["calibrated"] = _calibrated;
+    status["configuration"] = configToString(_preferedConfig);
+    status["head_puck"] = (_headConfig == HeadConfig::Puck) ? true : false;
+    status["hand_pucks"] = (_handConfig == HandConfig::Pucks) ? true : false;
+    status["puckCount"] = (int)_validTrackedObjects.size();
+    status["UI"] = _calibrate;
     
-    emit inputConfiguration->calibrationStatus(status); //inputConfiguration->calibrated(status);
+    emit inputConfiguration->calibrationStatus(status);
 }
 
 void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData) {
@@ -460,16 +447,14 @@ void ViveControllerManager::InputDevice::sendUserActivityData(QString activity) 
 void ViveControllerManager::InputDevice::calibrateOrUncalibrate(const controller::InputCalibrationData& inputCalibration) {
     if (!_calibrated) {
         calibrate(inputCalibration);
-
         if (_calibrated) {
             sendUserActivityData("mocap_button_success");
         } else {
             sendUserActivityData("mocap_button_fail");
         }
-        
+        emitCalibrationStatus();
     } else {
         uncalibrate();
-        emitCalibrationStatus(true);
         sendUserActivityData("mocap_button_uncalibrate");
     }
 }
@@ -482,7 +467,6 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
 
     if (puckCount == 0) {
         uncalibrate();
-        emitCalibrationStatus(false);
         return;
     }
 
@@ -501,10 +485,8 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
 
     if (!headConfigured || !handsConfigured || !bodyConfigured) {
         uncalibrate();
-        emitCalibrationStatus(false);
     } else {
         _calibrated = true;
-        emitCalibrationStatus(true);
         qDebug() << "PuckCalibration: " << configToString(_config) << " Configuration Successful";
     }
 }
@@ -594,8 +576,6 @@ bool ViveControllerManager::InputDevice::configureBody(glm::mat4& defaultToRefer
         return true;
     }
     qDebug() << "Puck Calibration: " << configToString(_config) << " Config Failed: Could not meet the minimal # of pucks";
-    uncalibrate();
-    emitCalibrationStatus(false);
     return false;
 }
 

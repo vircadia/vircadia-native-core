@@ -649,34 +649,39 @@ Rectangle {
         to: 0
     }
 
+    function logAction(action, status) {
+        console.log("calibrated from ui");
+        var data = {
+            "num_pucks": status["puckCount"],
+            "puck_configuration": status["configuration"],
+            "head_puck": status["head_puck"],
+            "hand_puck": status["hand_pucks"]
+        }
+        UserActivityLogger.logAction(action, data);
+    }
+
     function calibrationStatusInfo(status) {
         var calibrationScreen = stack.currentItem;
+
+        if (!status["UI"]) {
+            calibratingScreen = screen.createObject();
+            stack.push(calibratingScreen);
+        }
+        
         if (status["calibrated"]) {
             calibrationScreen.success();
-            var data = {
-                "num_pucks": status["puckCount"],
-                "puck_configuration": status["configuration"],
-                "head_puck": status["head_puck"],
-                "hand_puck": status["hand_puck"]
+
+            if (status["UI"]) {
+                logAction("mocap_ui_success", status);
             }
             
-            UserActivityLogger.logAction("mocap_ui_success", data);
         } else if (!status["calibrated"]) {
-            var uncalibrated = status["success"];
-            if (!uncalibrated) {
-                calibrationScreen.failure();
-                
-                var data = {
-                    "num_pucks": status["puckCount"],
-                    "puck_configuration": status["configuration"],
-                    "head_puck": status["head_puck"],
-                    "hand_puck": status["hand_puck"]
-                }
+            calibrationScreen.failure();
 
-                UserActivityLogger.logAction("mocap_ui_fail", data);
+            if (status["UI"]) {
+                logAction("mocap_ui_failed", status);
             }
         }
-
         updateCalibrationButton();
     }
 

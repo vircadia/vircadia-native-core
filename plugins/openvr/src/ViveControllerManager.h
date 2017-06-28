@@ -107,7 +107,7 @@ private:
         void calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateFromHandController(const controller::InputCalibrationData& inputCalibrationData);
         void calibrateFromUI(const controller::InputCalibrationData& inputCalibrationData);
-        void emitCalibrationStatus(const bool success);
+        void emitCalibrationStatus();
         void calibrateNextFrame();
 
 
@@ -140,7 +140,7 @@ private:
             FeetAndHips,
             FeetHipsAndChest,
             FeetHipsAndShoulders,
-            FeetHipsChestAndShoulders,
+            FeetHipsChestAndShoulders
         };
 
         enum class HeadConfig {
