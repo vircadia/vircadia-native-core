@@ -1185,7 +1185,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // we just want to see if --scripts was set, we've already parsed it and done
     // the change in PathUtils.  Rather than pass that in the constructor, lets just
     // look (this could be debated)
-    QDir defaultScriptsLocation(getCmdOption(argc, constArgv, "--scripts"));
+    QString scriptsSwitch = QString("--").append(SCRIPTS_SWITCH);
+    QDir defaultScriptsLocation(getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str()));
     if (!defaultScriptsLocation.exists()) {
         scriptEngines->loadDefaultScripts();
         scriptEngines->defaultScriptsLocationOverridden(true);
