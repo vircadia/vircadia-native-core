@@ -229,7 +229,7 @@ void AvatarMixer::start() {
             auto start = usecTimestampNow();
             nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
                 std::for_each(cbegin, cend, [&](const SharedNodePointer& node) {
-                    if (node->getType() == NodeType::Agent && !node->isUpstream()) {
+                    if (node->getType() == NodeType::Agent) {
                         manageIdentityData(node);
                     }
 
@@ -325,8 +325,8 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
             sendIdentity = true;
         }
     }
-    if (sendIdentity) {
-
+    if (sendIdentity && !node->isUpstream()) {
+        sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name or avatar.
         // since this packet includes a change to either the skeleton model URL or the display name
         // it needs a new sequence number
         nodeData->getAvatar().pushIdentitySequenceNumber();
