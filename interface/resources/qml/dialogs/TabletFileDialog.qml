@@ -293,7 +293,7 @@ TabletModalWindow {
             }
 
             onFolderChanged: {
-                refreshTimer.start()
+                fileTableModel.update()
             }
 
             function getItem(index, field) {
@@ -333,14 +333,6 @@ TabletModalWindow {
             }
         }
 
-        Timer {
-            id: refreshTimer
-            interval: 100
-            repeat: false
-            running: false
-            onTriggered: fileTableModel.update()
-        }
-
         Component {
             id: filesModelBuilder
             ListModel { }
@@ -377,17 +369,16 @@ TabletModalWindow {
             }
 
             onFolderChanged: {
+
                 if (folder === rootFolder) {
                     model = driveListModel;
                     helper.monitorDirectory("");
                     update();
                 } else {
                     var needsUpdate = model === driveListModel && folder === folderListModel.folder;
-
                     model = folderListModel;
                     folderListModel.folder = folder;
                     helper.monitorDirectory(helper.urlToPath(folder));
-
                     if (needsUpdate) {
                         update();
                     }
@@ -420,7 +411,6 @@ TabletModalWindow {
                     rows = 0,
                     i;
 
-                console.log("dialog.qml updating")
                 var newFilesModel = filesModelBuilder.createObject(root);
 
                 comparisonFunction = sortOrder === Qt.AscendingOrder
