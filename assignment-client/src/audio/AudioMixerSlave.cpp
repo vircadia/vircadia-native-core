@@ -498,9 +498,9 @@ float computeGain(const AvatarAudioStream& listeningNodeStream, const Positional
     } else if (!isEcho && (streamToAdd.getType() == PositionalAudioStream::Microphone)) {
         glm::vec3 rotatedListenerPosition = glm::inverse(streamToAdd.getOrientation()) * relativePosition;
 
-        // float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f), glm::normalize(rotatedListenerPosition));
+        // source directivity is based on angle of emission, in local coordinates
         glm::vec3 direction = glm::normalize(rotatedListenerPosition);
-        float angleOfDelivery = fastAcosf(glm::clamp(-direction.z, -1.0f, 1.0f));
+        float angleOfDelivery = fastAcosf(glm::clamp(-direction.z, -1.0f, 1.0f));   // UNIT_NEG_Z is "forward"
 
         const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
         const float OFF_AXIS_ATTENUATION_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
@@ -557,9 +557,8 @@ float computeAzimuth(const AvatarAudioStream& listeningNodeStream, const Positio
     if (rotatedSourcePositionLength2 > SOURCE_DISTANCE_THRESHOLD) {
         
         // produce an oriented angle about the y-axis
-        // return glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f), glm::normalize(rotatedSourcePosition), glm::vec3(0.0f, -1.0f, 0.0f));
         glm::vec3 direction = rotatedSourcePosition * (1.0f / fastSqrtf(rotatedSourcePositionLength2));
-		float angle = fastAcosf(glm::clamp(-direction.z, -1.0f, 1.0f));
+		float angle = fastAcosf(glm::clamp(-direction.z, -1.0f, 1.0f)); // UNIT_NEG_Z is "forward"
         return (direction.x < 0.0f) ? -angle : angle;
 
     } else {   
