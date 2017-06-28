@@ -1,4 +1,7 @@
 "use strict";
+/*jslint vars:true, plusplus:true, forin:true*/
+/*global Tablet, Script,  */
+/* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 //
 // spectatorCamera.js
 //
@@ -41,25 +44,15 @@
     //   -camera: The in-world entity that corresponds to the spectator camera.
     //   -cameraIsDynamic: "false" for now while we figure out why dynamic, parented overlays
     //    drift with respect to their parent.
-    //   -lastCameraPosition: Holds the last known camera position.
-    //   -lastCameraRotation: Holds the last known camera rotation.
     var spectatorFrameRenderConfig = Render.getConfig("SecondaryCameraFrame");
     var beginSpectatorFrameRenderConfig = Render.getConfig("BeginSecondaryCamera");
     var viewFinderOverlay = false;
     var camera = false;
     var cameraIsDynamic = false;
-    var lastCameraPosition = false;
-    var lastCameraRotation = false;
     function updateRenderFromCamera() {
         var cameraData = Entities.getEntityProperties(camera, ['position', 'rotation']);
-        if (JSON.stringify(lastCameraRotation) !== JSON.stringify(cameraData.rotation)) {
-            lastCameraRotation = cameraData.rotation;
-            beginSpectatorFrameRenderConfig.orientation = lastCameraRotation;
-        }
-        if (JSON.stringify(lastCameraPosition) !== JSON.stringify(cameraData.position)) {
-            lastCameraPosition = cameraData.position;
-            beginSpectatorFrameRenderConfig.position = Vec3.sum(inFrontOf(0.17, lastCameraPosition, lastCameraRotation), {x: 0, y: 0.02, z: 0});
-        }
+        beginSpectatorFrameRenderConfig.orientation = cameraData.rotation;
+        beginSpectatorFrameRenderConfig.position = cameraData.position;
     }
 
     // Function Name: spectatorCameraOn()
@@ -69,8 +62,6 @@
     //    spawn the camera entity.
     //
     // Relevant Variables:
-    //   -isUpdateRenderWired: Bool storing whether or not the camera's update
-    //    function is wired.
     //   -vFoV: The vertical field of view of the spectator camera.
     //   -nearClipPlaneDistance: The near clip plane distance of the spectator camera (aka "camera").
     //   -farClipPlaneDistance: The far clip plane distance of the spectator camera.
@@ -80,7 +71,8 @@
     //   -viewFinderOverlayDim: The x, y, and z dimensions of the viewFinderOverlay.
     //   -camera: The camera model which is grabbable.
     //   -viewFinderOverlay: The preview of what the spectator camera is viewing, placed inside the glass pane.
-    var isUpdateRenderWired = false;
+    //   -cameraUpdateInterval: Used when setting Script.setInterval()
+    //   -CAMERA_UPDATE_INTERVAL_MS: Defines the time between calls to updateRenderFromCamera()
     var vFoV = 45.0;
     var nearClipPlaneDistance = 0.1;
     var farClipPlaneDistance = 100.0;
@@ -91,6 +83,8 @@
     // draws textures, but should be looked into at some point. Also the z dimension shouldn't affect
     // the overlay since it is an Image3DOverlay so it is set to 0.
     var viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: 0 };
+    var cameraUpdateInterval;
+    var CAMERA_UPDATE_INTERVAL_MS = 11; // Result of (1000 (ms/s)) / (90 (hz)) rounded down
     function spectatorCameraOn() {
         // Sets the special texture size based on the window it is displayed in, which doesn't include the menu bar
         spectatorFrameRenderConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
@@ -99,14 +93,19 @@
         beginSpectatorFrameRenderConfig.nearClipPlaneDistance = nearClipPlaneDistance;
         beginSpectatorFrameRenderConfig.farClipPlaneDistance = farClipPlaneDistance;
         cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
-        Script.update.connect(updateRenderFromCamera);
-        isUpdateRenderWired = true;
+        cameraUpdateInterval = Script.setInterval(updateRenderFromCamera, 11); // Update every 11ms (90.9hz)
         camera = Entities.addEntity({
-            "angularDamping": 0.98000001907348633,
-            "collisionsWillMove": 0,
-            "damping": 0.98000001907348633,
+            "angularDamping": 1,
+            "damping": 1,
+            "collidesWith": "static,dynamic,kinematic,",
+            "collisionMask": 7,
             "dynamic": cameraIsDynamic,
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/spectator-camera.fbx?1",
+            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/spectator-camera.fbx?7",
+            "registrationPoint": {
+                "x": 0.53,
+                "y": 0.545,
+                "z": 0.16
+            },
             "rotation": cameraRotation,
             "position": cameraPosition,
             "shapeType": "simple-compound",
@@ -124,9 +123,9 @@
     //    destroy the camera entity.
     function spectatorCameraOff() {
         spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = false;
-        if (isUpdateRenderWired) {
-            Script.update.disconnect(updateRenderFromCamera);
-            isUpdateRenderWired = false;
+        if (cameraUpdateInterval) {
+            Script.clearInterval(cameraUpdateInterval);
+            cameraUpdateInterval = false;
         }
         if (camera) {
             Entities.deleteEntity(camera);
@@ -149,13 +148,15 @@
     // Relevant Variables:
     //   -button: The tablet button.
     //   -buttonName: The name of the button.
-    //   -tablet: The tablet instance to be modified.
     //   -showInDesktop: Set to "true" to show the "SPECTATOR" app in desktop mode.
     var button = false;
     var buttonName = "SPECTATOR";
-    var tablet = null;
     var showSpectatorInDesktop = true;
     function addOrRemoveButton(isShuttingDown, isHMDMode) {
+        if (!tablet) {
+            print("Warning in addOrRemoveButton(): 'tablet' undefined!");
+            return;
+        }
         if (!button) {
             if ((isHMDMode || showSpectatorInDesktop) && !isShuttingDown) {
                 button = tablet.addButton({
@@ -164,7 +165,7 @@
                 button.clicked.connect(onTabletButtonClicked);
             }
         } else if (button) {
-            if ((!showSpectatorInDesktop || isShuttingDown) && !isHMDMode) {
+            if (!showSpectatorInDesktop || isShuttingDown) {
                 button.clicked.disconnect(onTabletButtonClicked);
                 tablet.removeButton(button);
                 button = false;
@@ -178,6 +179,10 @@
     //
     // Description:
     //   -startup() will be called when the script is loaded.
+    //
+    // Relevant Variables:
+    //   -tablet: The tablet instance to be modified.
+    var tablet = null;
     function startup() {
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         addOrRemoveButton(false, HMD.active);
@@ -201,6 +206,10 @@
     //   -hasEventBridge: true/false depending on whether we've already connected the event bridge.
     var hasEventBridge = false;
     function wireEventBridge(on) {
+        if (!tablet) {
+            print("Warning in wireEventBridge(): 'tablet' undefined!");
+            return;
+        }
         if (on) {
             if (!hasEventBridge) {
                 tablet.fromQml.connect(fromQml);
@@ -215,8 +224,8 @@
     }
 
     function setDisplay(showCameraView) {
-        // It would be fancy if (showCameraView && !isUpdateRenderWired) would show instructions, but that's out of scope for now.
-        var url = (showCameraView && isUpdateRenderWired) ? "resource://spectatorCameraFrame" : "";
+        // It would be fancy if (showCameraView && !cameraUpdateInterval) would show instructions, but that's out of scope for now.
+        var url = (showCameraView && cameraUpdateInterval) ? "resource://spectatorCameraFrame" : "";
         Window.setDisplayTexture(url);
     }
     const MONITOR_SHOWS_CAMERA_VIEW_DEFAULT = false;
@@ -250,7 +259,7 @@
             parentID: camera,
             alpha: 1,
             localRotation: { w: 1, x: 0, y: 0, z: 0 },
-            localPosition: { x: 0.007, y: 0.15, z: -0.005 },
+            localPosition: { x: 0, y: 0.13, z: 0.126 },
             dimensions: viewFinderOverlayDim
         });
     }
@@ -349,19 +358,20 @@
     //   -Fired when the Spectator Camera app button is pressed.
     //
     // Relevant Variables:
+    //   -SPECTATOR_CAMERA_QML_SOURCE: The path to the SpectatorCamera QML
     //   -onSpectatorCameraScreen: true/false depending on whether we're looking at the spectator camera app.
-    //   -shouldActivateButton: true/false depending on whether we should show the button as white or gray the
-    //     next time we edit the button's properties.
+    var SPECTATOR_CAMERA_QML_SOURCE = "../SpectatorCamera.qml";
     var onSpectatorCameraScreen = false;
-    var shouldActivateButton = false;
     function onTabletButtonClicked() {
+        if (!tablet) {
+            print("Warning in onTabletButtonClicked(): 'tablet' undefined!");
+            return;
+        }
         if (onSpectatorCameraScreen) {
             // for toolbar-mode: go back to home screen, this will close the window.
             tablet.gotoHomeScreen();
         } else {
-            shouldActivateButton = true;
-            tablet.loadQMLSource("../SpectatorCamera.qml");
-            onSpectatorCameraScreen = true;
+            tablet.loadQMLSource(SPECTATOR_CAMERA_QML_SOURCE);
             sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
             sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
             sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
@@ -375,13 +385,12 @@
     //   -Called when the TabletScriptingInterface::screenChanged() signal is emitted. The "type" argument can be either the string
     //    value of "Home", "Web", "Menu", "QML", or "Closed". The "url" argument is only valid for Web and QML.
     function onTabletScreenChanged(type, url) {
-        wireEventBridge(shouldActivateButton);
+        onSpectatorCameraScreen = (type === "QML" && url === SPECTATOR_CAMERA_QML_SOURCE);
+        wireEventBridge(onSpectatorCameraScreen);
         // for toolbar mode: change button to active when window is first openend, false otherwise.
         if (button) {
-            button.editProperties({ isActive: shouldActivateButton });
+            button.editProperties({ isActive: onSpectatorCameraScreen });
         }
-        shouldActivateButton = false;
-        onSpectatorCameraScreen = false;
     }
 
     // Function Name: sendToQml()
@@ -438,7 +447,12 @@
         Window.domainChanged.disconnect(spectatorCameraOff);
         Window.geometryChanged.disconnect(resizeViewFinderOverlay);
         addOrRemoveButton(true, HMD.active);
-        tablet.screenChanged.disconnect(onTabletScreenChanged);
+        if (tablet) {
+            tablet.screenChanged.disconnect(onTabletScreenChanged);
+            if (onSpectatorCameraScreen) {
+                tablet.gotoHomeScreen();
+            }
+        }
         HMD.displayModeChanged.disconnect(onHMDChanged);
         Controller.keyPressEvent.disconnect(keyPressEvent);
         controllerMapping.disable();
