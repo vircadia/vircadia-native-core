@@ -73,10 +73,12 @@ public:
 protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
     void solve(const AnimContext& context, const std::vector<IKTarget>& targets);
-    void solveTargetWithCCD(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug);
-    void solveTargetWithSpline(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses, bool debug);
+    void solveTargetWithCCD(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses,
+                            bool debug, std::vector<JointChainInfo>& jointChainInfoVec) const;
+    void solveTargetWithSpline(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses,
+                               bool debug, std::vector<JointChainInfo>& jointChainInfoVec);
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
-    void debugDrawIKChain(JointChainInfo* jointChainInfos, size_t numJointChainInfos, const AnimContext& context) const;
+    void debugDrawIKChain(const std::vector<JointChainInfo>& jointChainInfoVec, const AnimContext& context) const;
     void debugDrawRelativePoses(const AnimContext& context) const;
     void debugDrawConstraints(const AnimContext& context) const;
     void debugDrawSpineSplines(const AnimContext& context, const std::vector<IKTarget>& targets) const;
