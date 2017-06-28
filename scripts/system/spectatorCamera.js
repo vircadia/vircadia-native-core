@@ -58,18 +58,10 @@
     var viewFinderOverlay = false;
     var camera = false;
     var cameraIsDynamic = false;
-    var lastCameraPosition = false;
-    var lastCameraRotation = false;
     function updateRenderFromCamera() {
         var cameraData = Entities.getEntityProperties(camera, ['position', 'rotation']);
-        if (JSON.stringify(lastCameraRotation) !== JSON.stringify(cameraData.rotation)) {
-            lastCameraRotation = cameraData.rotation;
-            beginSpectatorFrameRenderConfig.orientation = lastCameraRotation;
-        }
-        if (JSON.stringify(lastCameraPosition) !== JSON.stringify(cameraData.position)) {
-            lastCameraPosition = cameraData.position;
-            beginSpectatorFrameRenderConfig.position = Vec3.sum(inFrontOf(0.17, lastCameraPosition, lastCameraRotation), {x: 0, y: 0.02, z: 0});
-        }
+        beginSpectatorFrameRenderConfig.orientation = cameraData.rotation;
+        beginSpectatorFrameRenderConfig.position = Vec3.sum(inFrontOf(0.17, cameraData.position, lastCameraRotation), {x: 0, y: 0.02, z: 0});
     }
 
     //
@@ -104,6 +96,7 @@
     //    the overlay since it is an Image3DOverlay so it is set to 0
     var glassPaneWidth = 0.16;
     var viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: 0 };
+    var cameraUpdateInterval;
     function spectatorCameraOn() {
         // Sets the special texture size based on the window it is displayed in, which doesn't include the menu bar
         spectatorFrameRenderConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
@@ -112,7 +105,7 @@
         beginSpectatorFrameRenderConfig.nearClipPlaneDistance = nearClipPlaneDistance;
         beginSpectatorFrameRenderConfig.farClipPlaneDistance = farClipPlaneDistance;
         cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
-        Script.update.connect(updateRenderFromCamera);
+        cameraUpdateInterval = Script.setInterval(updateRenderFromCamera, 10);
         isUpdateRenderWired = true;
         camera = Entities.addEntity({
             "angularDamping": 0.98000001907348633,
@@ -147,7 +140,7 @@
     function spectatorCameraOff() {
         spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = false;
         if (isUpdateRenderWired) {
-            Script.update.disconnect(updateRenderFromCamera);
+            Script.clearInterval(cameraUpdateInterval);
             isUpdateRenderWired = false;
         }
         if (camera) {
