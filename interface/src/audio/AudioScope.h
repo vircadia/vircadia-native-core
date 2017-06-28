@@ -19,7 +19,6 @@
 
 #include <DependencyManager.h>
 #include <gpu/Batch.h>
-#include <RenderArgs.h>
 
 
 class AudioScope : public QObject, public Dependency {

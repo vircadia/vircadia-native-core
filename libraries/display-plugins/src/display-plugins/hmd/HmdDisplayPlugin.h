@@ -46,6 +46,8 @@ public:
 
     float stutterRate() const override;
 
+    virtual bool onDisplayTextureReset() override { _clearPreviewFlag = true; return true; };
+
 protected:
     virtual void hmdPresent() = 0;
     virtual bool isHmdMounted() const = 0;

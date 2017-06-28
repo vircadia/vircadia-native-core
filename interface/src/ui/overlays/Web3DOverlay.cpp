@@ -25,16 +25,15 @@
 #include <GeometryCache.h>
 #include <GeometryUtil.h>
 #include <scripting/HMDScriptingInterface.h>
-#include <gl/OffscreenQmlSurface.h>
+#include <ui/OffscreenQmlSurface.h>
+#include <ui/OffscreenQmlSurfaceCache.h>
+#include <ui/TabletScriptingInterface.h>
 #include <PathUtils.h>
 #include <RegisteredMetaTypes.h>
-#include <TabletScriptingInterface.h>
 #include <TextureCache.h>
 #include <UsersScriptingInterface.h>
 #include <UserActivityLoggerScriptingInterface.h>
 #include <AbstractViewStateInterface.h>
-#include <gl/OffscreenQmlSurface.h>
-#include <gl/OffscreenQmlSurfaceCache.h>
 #include <AddressManager.h>
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
@@ -47,11 +46,12 @@
 #include "LODManager.h"
 #include "ui/OctreeStatsProvider.h"
 #include "ui/DomainConnectionModel.h"
-#include "scripting/AudioDeviceScriptingInterface.h"
 #include "ui/AvatarInputs.h"
 #include "avatar/AvatarManager.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
+#include <plugins/InputConfiguration.h>
 #include "ui/Snapshot.h"
+#include "SoundCache.h"
 
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
@@ -86,7 +86,7 @@ Web3DOverlay::~Web3DOverlay() {
 
         if (rootItem && rootItem->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr, nullptr);
+            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
         }
 
         // Fix for crash in QtWebEngineCore when rapidly switching domains
@@ -182,9 +182,11 @@ void Web3DOverlay::loadSourceURL() {
         if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
             auto flags = tabletScriptingInterface->getFlags();
+
             _webSurface->getSurfaceContext()->setContextProperty("offscreenFlags", flags);
             _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
             _webSurface->getSurfaceContext()->setContextProperty("Account", AccountScriptingInterface::getInstance());
+            _webSurface->getSurfaceContext()->setContextProperty("Audio", DependencyManager::get<AudioScriptingInterface>().data());
             _webSurface->getSurfaceContext()->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
             _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
             _webSurface->getSurfaceContext()->setContextProperty("fileDialogHelper", new FileDialogHelper());
@@ -195,14 +197,15 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getSurfaceContext()->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
             _webSurface->getSurfaceContext()->setContextProperty("OctreeStats", DependencyManager::get<OctreeStatsProvider>().data());
             _webSurface->getSurfaceContext()->setContextProperty("DCModel", DependencyManager::get<DomainConnectionModel>().data());
-            _webSurface->getSurfaceContext()->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
             _webSurface->getSurfaceContext()->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
             _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
             _webSurface->getSurfaceContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
             _webSurface->getSurfaceContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
+            _webSurface->getSurfaceContext()->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
 
             _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
-            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
+            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface.data());
 
             // mark the TabletProxy object as cpp ownership.
             QObject* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
@@ -319,7 +322,7 @@ void Web3DOverlay::render(RenderArgs* args) {
         geometryCache->bindOpaqueWebBrowserProgram(batch, _isAA);
     }
     geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color, _geometryId);
-    batch.setResourceTexture(0, args->_whiteTexture); // restore default white color after me
+    batch.setResourceTexture(0, nullptr); // restore default white color after me
 }
 
 const render::ShapeKey Web3DOverlay::getShapeKey() {
@@ -441,17 +444,27 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     touchEvent->setTouchPoints(touchPoints);
     touchEvent->setTouchPointStates(touchPointState);
 
+    // Send mouse events to the Web surface so that HTML dialog elements work with mouse press and hover.
+    // FIXME: Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times).
+    // This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".
+    //
+    // In Qt 5.9 mouse events must be sent before touch events to make sure some QtQuick components will
+    // receive mouse events
+#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
+    if (!(this->_pressed && event.getType() == PointerEvent::Move)) {
+        QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+        QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
+    }
+#endif
     QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
 
-    if (this->_pressed && event.getType() == PointerEvent::Move) {	
+#if QT_VERSION < QT_VERSION_CHECK(5, 9, 0)
+    if (this->_pressed && event.getType() == PointerEvent::Move) {
         return;
     }
-    // Send mouse events to the Web surface so that HTML dialog elements work with mouse press and hover.
-    // FIXME: Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times). 
-    // This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".
-
     QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
     QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
+#endif
 }
 
 void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {

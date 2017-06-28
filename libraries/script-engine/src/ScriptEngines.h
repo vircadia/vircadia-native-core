@@ -66,6 +66,8 @@ public:
 
     Q_PROPERTY(QString defaultScriptsPath READ getDefaultScriptsLocation)
 
+    void defaultScriptsLocationOverridden(bool overridden) { _defaultScriptsLocationOverridden = overridden; };
+
     // Called at shutdown time
     void shutdownScripting();
     bool isStopped() const { return _isStopped; }
@@ -79,6 +81,7 @@ signals:
     void warningMessage(const QString& message, const QString& engineName);
     void infoMessage(const QString& message, const QString& engineName);
     void errorLoadingScript(const QString& url);
+    void clearDebugWindow();
 
 public slots:
     void onPrintedMessage(const QString& message, const QString& scriptName);
@@ -86,6 +89,7 @@ public slots:
     void onWarningMessage(const QString& message, const QString& scriptName);
     void onInfoMessage(const QString& message, const QString& scriptName);
     void onErrorLoadingScript(const QString& url);
+    void onClearDebugWindow();
 
 protected slots:
     void onScriptFinished(const QString& fileNameString, ScriptEngine* engine);
@@ -110,6 +114,8 @@ protected:
     ScriptsModel _scriptsModel;
     ScriptsModelFilter _scriptsModelFilter;
     std::atomic<bool> _isStopped { false };
+    std::atomic<bool> _isReloading { false };
+    bool _defaultScriptsLocationOverridden { false };
 };
 
 QUrl normalizeScriptURL(const QUrl& rawScriptURL);

@@ -124,6 +124,11 @@ signals:
     void dirtyEnabled();
 };
 
+class TConfigProxy {
+public:
+    using Config = JobConfig;
+};
+
 class TaskConfig : public JobConfig {
     Q_OBJECT
 public:
@@ -134,12 +139,37 @@ public:
     TaskConfig() = default ;
     TaskConfig(bool enabled) : JobConfig(enabled) {}
 
+
+    
+    // Get a sub job config through task.getConfig(path)
+    // where path can be:
+    // - <job_name> search for the first job named job_name traversing the the sub graph of task and jobs (from this task as root)
+    // - <parent_name>.[<sub_parent_names>.]<job_name>
+    //    Allowing to first look for the parent_name job (from this task as root) and then search from there for the 
+    //    optional sub_parent_names and finally from there looking for the job_name (assuming every job in the path were found)
+    //
     // getter for qml integration, prefer the templated getter
-    Q_INVOKABLE QObject* getConfig(const QString& name) { return QObject::findChild<JobConfig*>(name); }
+    Q_INVOKABLE QObject* getConfig(const QString& name) { return getConfig<TConfigProxy>(name.toStdString()); }
     // getter for cpp (strictly typed), prefer this getter
     template <class T> typename T::Config* getConfig(std::string job = "") const {
-        QString name = job.empty() ? QString() : QString(job.c_str()); // an empty string is not a null string
-        return findChild<typename T::Config*>(name);
+        const TaskConfig* root = this;
+        QString path = (job.empty() ? QString() : QString(job.c_str())); // an empty string is not a null string
+        auto tokens = path.split('.', QString::SkipEmptyParts);
+
+        if (tokens.empty()) {
+            tokens.push_back(QString());
+        } else {
+            while (tokens.size() > 1) {
+                auto name = tokens.front();
+                tokens.pop_front();
+                root = QObject::findChild<TaskConfig*>(name);
+                if (!root) {
+                    return nullptr;
+                }
+            }
+        }
+
+        return root->findChild<typename T::Config*>(tokens.front());
     }
 
     void connectChildConfig(QConfigPointer childConfig, const std::string& name);

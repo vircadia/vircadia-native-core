@@ -37,9 +37,9 @@
 class Node : public NetworkPeer {
     Q_OBJECT
 public:
+
     Node(const QUuid& uuid, NodeType_t type,
          const HifiSockAddr& publicSocket, const HifiSockAddr& localSocket,
-         const NodePermissions& permissions, const QUuid& connectionSecret = QUuid(),
          QObject* parent = nullptr);
 
     bool operator==(const Node& otherNode) const { return _uuid == otherNode._uuid; }
@@ -47,6 +47,12 @@ public:
 
     char getType() const { return _type; }
     void setType(char type);
+
+    bool isReplicated() const { return _isReplicated; }
+    void setIsReplicated(bool isReplicated) { _isReplicated = isReplicated; }
+
+    bool isUpstream() const { return _isUpstream; }
+    void setIsUpstream(bool isUpstream) { _isUpstream = isUpstream; }
 
     const QUuid& getConnectionSecret() const { return _connectionSecret; }
     void setConnectionSecret(const QUuid& connectionSecret) { _connectionSecret = connectionSecret; }
@@ -89,13 +95,16 @@ private:
 
     QUuid _connectionSecret;
     std::unique_ptr<NodeData> _linkedData;
+    bool _isReplicated { false };
     int _pingMs;
     qint64 _clockSkewUsec;
     QMutex _mutex;
     MovingPercentile _clockSkewMovingPercentile;
     NodePermissions _permissions;
+    bool _isUpstream { false };
     tbb::concurrent_unordered_set<QUuid, UUIDHasher> _ignoredNodeIDSet;
     mutable QReadWriteLock _ignoredNodeIDSetLock;
+    std::vector<QString> _replicatedUsernames { };
 
     std::atomic_bool _ignoreRadiusEnabled;
 };

@@ -51,10 +51,6 @@ typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
 using EntityTreeElementExtraEncodeDataPointer = std::shared_ptr<EntityTreeElementExtraEncodeData>;
 
 
-namespace render {
-    class Scene;
-    class Transaction;
-}
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() override { };
@@ -64,6 +60,8 @@ namespace render {
 #define debugTreeVector(V) V << "[" << V << " in meters ]"
 
 class MeshProxyList;
+
+class RenderableEntityInterface;
 
 
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
@@ -82,6 +80,8 @@ public:
 
     EntityItem(const EntityItemID& entityItemID);
     virtual ~EntityItem();
+
+    virtual RenderableEntityInterface* getRenderableInterface() { return nullptr; }
 
     inline EntityItemPointer getThisPointer() const {
         return std::static_pointer_cast<EntityItem>(std::const_pointer_cast<SpatiallyNestable>(shared_from_this()));
@@ -150,13 +150,6 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged)
                                                 { somethingChanged = false; return 0; }
-
-    virtual bool addToScene(EntityItemPointer self, const render::ScenePointer& scene,
-                            render::Transaction& transaction) { return false; } // by default entity items don't add to scene
-    virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene,
-                                render::Transaction& transaction) { } // by default entity items don't add to scene
-    virtual void render(RenderArgs* args) { } // by default entity items don't know how to render
-
     static int expectedBytes();
 
     static void adjustEditPacketForClockSkew(QByteArray& buffer, qint64 clockSkew);

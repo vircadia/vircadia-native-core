@@ -74,6 +74,10 @@ void AudioMixerSlave::mix(const SharedNodePointer& node) {
         return;
     }
 
+    if (node->isUpstream()) {
+        return;
+    }
+
     // check that the stream is valid
     auto avatarStream = data->getAvatarAudioStream();
     if (avatarStream == nullptr) {
