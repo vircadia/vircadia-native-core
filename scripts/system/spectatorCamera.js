@@ -48,7 +48,6 @@
     var viewFinderOverlay = false;
     var camera = false;
     var cameraIsDynamic = false;
-    var attachedToggle = false;
     var lastCameraPosition = false;
     var lastCameraRotation = false;
     function updateRenderFromCamera() {
@@ -124,30 +123,6 @@
             dimensions: viewFinderOverlayDim
         });
         setDisplay(monitorShowsCameraView);
-
-        attachedToggle = Entities.addEntity({
-            "color": {
-                "blue": 0,
-                "green": 0,
-                "red": 255
-            },
-            parentID: camera,
-            localPosition: { x: 0.1, y: 0, z: -0.05 },
-            localRotation: { w: 0.70708787441253662, x: 0, y: 0, z: 0.70708787441253662 },
-            "dimensions": {
-                "x": 0.03,
-                "y": 0.03,
-                "z": 0.03
-            },
-            "queryAACube": {
-                "scale": 0.052,
-                "x": -0.026,
-                "y": -0.026,
-                "z": -0.026
-            },
-            "shape": "Cylinder",
-            "type": "Shape"
-        }, true);
     }
 
     // Function Name: spectatorCameraOff()
@@ -167,12 +142,8 @@
         if (viewFinderOverlay) {
             Overlays.deleteOverlay(viewFinderOverlay);
         }
-        if (attachedToggle) {
-            Entities.deleteEntity(attachedToggle);
-        }
         camera = false;
         viewFinderOverlay = false;
-        attachedToggle = false;
         setDisplay(monitorShowsCameraView);
     }
 
@@ -225,7 +196,6 @@
         HMD.displayModeChanged.connect(onHMDChanged);
         viewFinderOverlay = false;
         camera = false;
-        attachedToggle = false;
         registerButtonMappings();
     }
 
