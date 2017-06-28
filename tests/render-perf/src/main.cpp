@@ -519,7 +519,7 @@ public:
             _octree->getTree()->setSimulation(simpleSimulation);
             _entitySimulation = simpleSimulation;
         }
-        
+
         DependencyManager::set<ResourceManager>();
 
         setFlags(Qt::MSWindowsOwnDC | Qt::Window | Qt::Dialog | Qt::WindowMinMaxButtonsHint | Qt::WindowTitleHint);
