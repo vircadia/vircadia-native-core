@@ -27,7 +27,7 @@
 QThread ResourceManager::_thread;
 ResourceManager::PrefixMap ResourceManager::_prefixMap;
 QMutex ResourceManager::_prefixMapLock;
-
+QString ResourceManager::_cacheDir;
 
 void ResourceManager::setUrlPrefixOverride(const QString& prefix, const QString& replacement) {
     QMutexLocker locker(&_prefixMapLock);
@@ -78,7 +78,7 @@ QUrl ResourceManager::normalizeURL(const QUrl& originalUrl) {
 void ResourceManager::init() {
     _thread.setObjectName("Resource Manager Thread");
 
-    auto assetClient = DependencyManager::set<AssetClient>();
+    auto assetClient = DependencyManager::set<AssetClient>(_cacheDir);
     assetClient->moveToThread(&_thread);
     QObject::connect(&_thread, &QThread::started, assetClient.data(), &AssetClient::init);
 
@@ -164,3 +164,7 @@ bool ResourceManager::resourceExists(const QUrl& url) {
     return false;
 }
 
+void ResourceManager::setCacheDir(const QString& cacheDir) {
+    // TODO: check for existence?  
+    _cacheDir = cacheDir;
+}
