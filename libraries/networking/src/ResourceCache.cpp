@@ -672,7 +672,7 @@ void Resource::makeRequest() {
 
     PROFILE_ASYNC_BEGIN(resource, "Resource:" + getType(), QString::number(_requestID), { { "url", _url.toString() }, { "activeURL", _activeUrl.toString() } });
 
-    _request = ResourceManager::createResourceRequest(this, _activeUrl);
+    _request = DependencyManager::get<ResourceManager>()->createResourceRequest(this, _activeUrl);
 
     if (!_request) {
         qCDebug(networking).noquote() << "Failed to get request for" << _url.toDisplayString();

@@ -289,6 +289,7 @@ public:
         DependencyManager::set<GeometryCache>();
         DependencyManager::set<ModelCache>();
         DependencyManager::set<PathUtils>();
+        DependencyManager::set<ResourceManager>();
     }
 
     struct TextureLoad {
@@ -329,7 +330,6 @@ public:
         installEventFilter(this);
         QThreadPool::globalInstance()->setMaxThreadCount(2);
         QThread::currentThread()->setPriority(QThread::HighestPriority);
-        ResourceManager::init();
         setFlags(Qt::MSWindowsOwnDC | Qt::Window | Qt::Dialog | Qt::WindowMinMaxButtonsHint | Qt::WindowTitleHint);
         _size = QSize(800, 600);
         _renderThread._size = _size;
@@ -369,7 +369,7 @@ public:
         DependencyManager::destroy<TextureCache>();
         DependencyManager::destroy<ModelCache>();
         DependencyManager::destroy<GeometryCache>();
-        ResourceManager::cleanup();
+        DependencyManager::get<ResourceManager>()->cleanup();
     }
 
 protected:
