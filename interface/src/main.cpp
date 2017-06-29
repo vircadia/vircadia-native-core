@@ -118,7 +118,7 @@ int main(int argc, const char* argv[]) {
             // tell everyone to use the right cache location
             //
             // this handles data8 and prepared
-            ResourceManager::setCacheDir(cacheDir);
+            DependencyManager::get<ResourceManager>()->setCacheDir(cacheDir);
 
             // this does the ktx_cache
             PathUtils::getAppLocalDataPath(cacheDir);
