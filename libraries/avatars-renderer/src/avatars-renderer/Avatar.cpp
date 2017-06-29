@@ -1008,12 +1008,12 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
 }
 
 int Avatar::getJointIndex(const QString& name) const {
-    if (QThread::currentThread() != thread()) {
+ /*   if (QThread::currentThread() != thread()) {
         int result;
         QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointIndex", Qt::BlockingQueuedConnection,
             Q_RETURN_ARG(int, result), Q_ARG(const QString&, name));
         return result;
-    }
+    } */
     int result = getFauxJointIndex(name);
     if (result != -1) {
         return result;
@@ -1022,34 +1022,34 @@ int Avatar::getJointIndex(const QString& name) const {
 }
 
 QStringList Avatar::getJointNames() const {
-    if (QThread::currentThread() != thread()) {
+/*    if (QThread::currentThread() != thread()) {
         QStringList result;
         QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointNames", Qt::BlockingQueuedConnection,
             Q_RETURN_ARG(QStringList, result));
         return result;
-    }
+    }*/
     return _skeletonModel->isActive() ? _skeletonModel->getFBXGeometry().getJointNames() : QStringList();
 }
 
 glm::vec3 Avatar::getJointPosition(int index) const {
-    if (QThread::currentThread() != thread()) {
+/*    if (QThread::currentThread() != thread()) {
         glm::vec3 position;
         QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
                                   Q_RETURN_ARG(glm::vec3, position), Q_ARG(const int, index));
         return position;
-    }
+    }*/
     glm::vec3 position;
     _skeletonModel->getJointPositionInWorldFrame(index, position);
     return position;
 }
 
 glm::vec3 Avatar::getJointPosition(const QString& name) const {
-    if (QThread::currentThread() != thread()) {
+/*    if (QThread::currentThread() != thread()) {
         glm::vec3 position;
         QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
                                   Q_RETURN_ARG(glm::vec3, position), Q_ARG(const QString&, name));
         return position;
-    }
+    }*/
     glm::vec3 position;
     _skeletonModel->getJointPositionInWorldFrame(getJointIndex(name), position);
     return position;
