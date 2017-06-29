@@ -94,12 +94,17 @@ void FadeSwitchJob::distribute(const render::RenderContextPointer& renderContext
 void FadeJobConfig::setEditedCategory(int value) {
     assert(value < EVENT_CATEGORY_COUNT);
     editedCategory = std::min<int>(EVENT_CATEGORY_COUNT, value);
+    emit dirtyCategory();
     emit dirty();
 }
 
 void FadeJobConfig::setDuration(float value) {
-    duration[editedCategory] = value;
+    _duration[editedCategory] = value;
     emit dirty();
+}
+
+float FadeJobConfig::getDuration() const { 
+    return _duration[editedCategory]; 
 }
 
 void FadeJobConfig::setBaseSizeX(float value) {
@@ -107,14 +112,26 @@ void FadeJobConfig::setBaseSizeX(float value) {
     emit dirty();
 }
 
+float FadeJobConfig::getBaseSizeX() const { 
+    return logf(baseSize[editedCategory].x / FADE_MIN_SCALE) / logf(FADE_MAX_SCALE / FADE_MIN_SCALE);
+}
+
 void FadeJobConfig::setBaseSizeY(float value) {
     baseSize[editedCategory].y = FADE_MIN_SCALE*powf(FADE_MAX_SCALE / FADE_MIN_SCALE, value);
     emit dirty();
 }
 
+float FadeJobConfig::getBaseSizeY() const {
+    return logf(baseSize[editedCategory].y / FADE_MIN_SCALE) / logf(FADE_MAX_SCALE / FADE_MIN_SCALE);
+}
+
 void FadeJobConfig::setBaseSizeZ(float value) {
     baseSize[editedCategory].z = FADE_MIN_SCALE*powf(FADE_MAX_SCALE / FADE_MIN_SCALE, value);
     emit dirty();
+}
+
+float FadeJobConfig::getBaseSizeZ() const {
+    return logf(baseSize[editedCategory].z / FADE_MIN_SCALE) / logf(FADE_MAX_SCALE / FADE_MIN_SCALE);
 }
 
 void FadeJobConfig::setBaseLevel(float value) {
@@ -127,9 +144,17 @@ void FadeJobConfig::setBaseInverted(bool value) {
     emit dirty();
 }
 
+bool FadeJobConfig::isBaseInverted() const { 
+    return baseInverted[editedCategory]; 
+}
+
 void FadeJobConfig::setNoiseSizeX(float value) {
     noiseSize[editedCategory].x = FADE_MIN_SCALE*powf(FADE_MAX_SCALE / FADE_MIN_SCALE, value);
     emit dirty();
+}
+
+float FadeJobConfig::getNoiseSizeX() const {
+    return logf(noiseSize[editedCategory].x / FADE_MIN_SCALE) / logf(FADE_MAX_SCALE / FADE_MIN_SCALE);
 }
 
 void FadeJobConfig::setNoiseSizeY(float value) {
@@ -137,9 +162,17 @@ void FadeJobConfig::setNoiseSizeY(float value) {
     emit dirty();
 }
 
+float FadeJobConfig::getNoiseSizeY() const {
+    return logf(noiseSize[editedCategory].y / FADE_MIN_SCALE) / logf(FADE_MAX_SCALE / FADE_MIN_SCALE);
+}
+
 void FadeJobConfig::setNoiseSizeZ(float value) {
     noiseSize[editedCategory].z = FADE_MIN_SCALE*powf(FADE_MAX_SCALE / FADE_MIN_SCALE, value);
     emit dirty();
+}
+
+float FadeJobConfig::getNoiseSizeZ() const {
+    return logf(noiseSize[editedCategory].z / FADE_MIN_SCALE) / logf(FADE_MAX_SCALE / FADE_MIN_SCALE);
 }
 
 void FadeJobConfig::setNoiseLevel(float value) {
@@ -150,6 +183,10 @@ void FadeJobConfig::setNoiseLevel(float value) {
 void FadeJobConfig::setEdgeWidth(float value) {
     edgeWidth[editedCategory] = value * value;
     emit dirty();
+}
+
+float FadeJobConfig::getEdgeWidth() const { 
+    return sqrtf(edgeWidth[editedCategory]); 
 }
 
 void FadeJobConfig::setEdgeInnerColorR(float value) {
@@ -205,7 +242,7 @@ void FadeConfigureJob::configure(const Config& config) {
     for (auto i = 0; i < FadeJobConfig::EVENT_CATEGORY_COUNT; i++) {
         auto& configuration = _configurations[i];
 
-        _parameters->_durations[i] = config.duration[i];
+        _parameters->_durations[i] = config._duration[i];
         configuration._baseInvSizeAndLevel.x = 1.f / config.baseSize[i].x;
         configuration._baseInvSizeAndLevel.y = 1.f / config.baseSize[i].y;
         configuration._baseInvSizeAndLevel.z = 1.f / config.baseSize[i].z;

@@ -32,7 +32,7 @@ signals:
 
 class FadeJobConfig : public render::Job::Config {
     Q_OBJECT
-        Q_PROPERTY(int editedCategory MEMBER editedCategory WRITE setEditedCategory NOTIFY dirty)
+        Q_PROPERTY(int editedCategory MEMBER editedCategory WRITE setEditedCategory NOTIFY dirtyCategory)
         Q_PROPERTY(float duration READ getDuration WRITE setDuration NOTIFY dirty)
         Q_PROPERTY(float baseSizeX READ getBaseSizeX WRITE setBaseSizeX NOTIFY dirty)
         Q_PROPERTY(float baseSizeY READ getBaseSizeY WRITE setBaseSizeY NOTIFY dirty)
@@ -69,37 +69,37 @@ public:
     void setEditedCategory(int value);
 
     void setDuration(float value);
-    float getDuration() const { return duration[editedCategory]; }
+    float getDuration() const;
 
     void setBaseSizeX(float value);
-    float getBaseSizeX() const { return baseSize[editedCategory].x; }
+    float getBaseSizeX() const;
 
     void setBaseSizeY(float value);
-    float getBaseSizeY() const { return baseSize[editedCategory].y; }
+    float getBaseSizeY() const;
 
     void setBaseSizeZ(float value);
-    float getBaseSizeZ() const { return baseSize[editedCategory].z; }
+    float getBaseSizeZ() const;
 
     void setBaseLevel(float value);
     float getBaseLevel() const { return baseLevel[editedCategory]; }
 
     void setBaseInverted(bool value);
-    bool isBaseInverted() const { return baseInverted[editedCategory]; }
+    bool isBaseInverted() const;
 
     void setNoiseSizeX(float value);
-    float getNoiseSizeX() const { return noiseSize[editedCategory].x; }
+    float getNoiseSizeX() const;
 
     void setNoiseSizeY(float value);
-    float getNoiseSizeY() const { return noiseSize[editedCategory].y; }
+    float getNoiseSizeY() const;
 
     void setNoiseSizeZ(float value);
-    float getNoiseSizeZ() const { return noiseSize[editedCategory].z; }
+    float getNoiseSizeZ() const;
 
     void setNoiseLevel(float value);
     float getNoiseLevel() const { return noiseLevel[editedCategory]; }
 
     void setEdgeWidth(float value);
-    float getEdgeWidth() const { return edgeWidth[editedCategory]; }
+    float getEdgeWidth() const;
 
     void setEdgeInnerColorR(float value);
     float getEdgeInnerColorR() const { return edgeInnerColor[editedCategory].r; }
@@ -127,11 +127,11 @@ public:
 
     int editedCategory{ ELEMENT_ENTER_LEAVE_DOMAIN };
     glm::vec3 baseSize[EVENT_CATEGORY_COUNT]{
-        { 0.35f, 0.35f, 0.35f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-        { 0.35f, 0.35f, 0.35f },   // BUBBLE_ISECT_OWNER
-        { 0.35f, 0.35f, 0.35f },   // BUBBLE_ISECT_TRESPASSER
-        { 0.35f, 0.35f, 0.35f },   // USER_ENTER_LEAVE_DOMAIN
-        { 0.35f, 0.35f, 0.35f },   // AVATAR_CHANGE
+        { 0.4f, 0.4f, 0.4f },   // ELEMENT_ENTER_LEAVE_DOMAIN
+        { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_OWNER
+        { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_TRESPASSER
+        { 0.875f, 0.4f, 0.875f },   // USER_ENTER_LEAVE_DOMAIN
+        { 0.4f, 0.4f, 0.4f },   // AVATAR_CHANGE
     };
     float baseLevel[EVENT_CATEGORY_COUNT]{
         1.0f,    // ELEMENT_ENTER_LEAVE_DOMAIN
@@ -144,15 +144,15 @@ public:
         false,    // ELEMENT_ENTER_LEAVE_DOMAIN
         false,    // BUBBLE_ISECT_OWNER
         false,    // BUBBLE_ISECT_TRESPASSER
-        false,    // USER_ENTER_LEAVE_DOMAIN
+        true,    // USER_ENTER_LEAVE_DOMAIN
         false,    // AVATAR_CHANGE
     };
     glm::vec3 noiseSize[EVENT_CATEGORY_COUNT]{
-        { 0.35f, 0.35f, 0.35f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-        { 0.35f, 0.35f, 0.35f },   // BUBBLE_ISECT_OWNER
-        { 0.35f, 0.35f, 0.35f },   // BUBBLE_ISECT_TRESPASSER
-        { 0.35f, 0.35f, 0.35f },   // USER_ENTER_LEAVE_DOMAIN
-        { 0.35f, 0.35f, 0.35f },   // AVATAR_CHANGE
+        { 0.41f, 0.41f, 0.41f },   // ELEMENT_ENTER_LEAVE_DOMAIN
+        { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_OWNER
+        { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_TRESPASSER
+        { 0.4f, 0.4f, 0.4f },   // USER_ENTER_LEAVE_DOMAIN
+        { 0.4f, 0.4f, 0.4f },   // AVATAR_CHANGE
     };
     float noiseLevel[EVENT_CATEGORY_COUNT]{
         1.0f,    // ELEMENT_ENTER_LEAVE_DOMAIN
@@ -161,18 +161,18 @@ public:
         1.0f,    // USER_ENTER_LEAVE_DOMAIN
         1.0f,    // AVATAR_CHANGE
     };
-    float duration[EVENT_CATEGORY_COUNT]{
-        5.0f,   // ELEMENT_ENTER_LEAVE_DOMAIN
+    float _duration[EVENT_CATEGORY_COUNT]{
+        4.0f,   // ELEMENT_ENTER_LEAVE_DOMAIN
         0.0f,   // BUBBLE_ISECT_OWNER
         0.0f,   // BUBBLE_ISECT_TRESPASSER
         3.0f,   // USER_ENTER_LEAVE_DOMAIN
         3.0f,   // AVATAR_CHANGE
     };
     float edgeWidth[EVENT_CATEGORY_COUNT]{
-        0.05f,   // ELEMENT_ENTER_LEAVE_DOMAIN
-        0.05f,   // BUBBLE_ISECT_OWNER
-        0.05f,   // BUBBLE_ISECT_TRESPASSER
-        0.05f,   // USER_ENTER_LEAVE_DOMAIN
+        0.10f,   // ELEMENT_ENTER_LEAVE_DOMAIN
+        0.10f,   // BUBBLE_ISECT_OWNER
+        0.10f,   // BUBBLE_ISECT_TRESPASSER
+        0.10f,   // USER_ENTER_LEAVE_DOMAIN
         0.05f,   // AVATAR_CHANGE
     };
     glm::vec4 edgeInnerColor[EVENT_CATEGORY_COUNT]{
@@ -192,6 +192,7 @@ public:
 
 signals:
     void dirty();
+    void dirtyCategory();
 
 };
 
