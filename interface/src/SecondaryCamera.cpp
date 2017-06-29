@@ -47,11 +47,16 @@ class BeginSecondaryCameraFrame {  // Changes renderContext for our framebuffer 
     float _vFoV{};
     float _nearClipPlaneDistance{};
     float _farClipPlaneDistance{};
+    EntityPropertyFlags _attachedEntityPropertyFlags;
+    QSharedPointer<EntityScriptingInterface> _entityScriptingInterface;
 public:
     using Config = BeginSecondaryCameraFrameConfig;
     using JobModel = render::Job::ModelO<BeginSecondaryCameraFrame, RenderArgsPointer, Config>;
     BeginSecondaryCameraFrame() {
         _cachedArgsPointer = std::make_shared<RenderArgs>(_cachedArgs);
+        _entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+        _attachedEntityPropertyFlags += PROP_POSITION;
+        _attachedEntityPropertyFlags += PROP_ROTATION;
     }
 
     void configure(const Config& config) {
@@ -87,12 +92,7 @@ public:
 
             auto srcViewFrustum = args->getViewFrustum();
             if (_attachedEntityId != QUuid()) {
-                auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-                EntityPropertyFlags entityPropertyFlags;
-                entityPropertyFlags += PROP_POSITION;
-                entityPropertyFlags += PROP_ROTATION;
-                EntityItemProperties entityProperties = entityScriptingInterface->getEntityProperties(_attachedEntityId, entityPropertyFlags);
-
+                EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_attachedEntityId, _attachedEntityPropertyFlags);
                 srcViewFrustum.setPosition(entityProperties.getPosition());
                 srcViewFrustum.setOrientation(entityProperties.getRotation());
             } else {
