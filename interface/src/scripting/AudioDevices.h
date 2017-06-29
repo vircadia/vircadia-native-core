@@ -86,7 +86,7 @@ public:
     AudioInputDeviceList() : AudioDeviceList(QAudio::AudioInput) {}
     virtual ~AudioInputDeviceList() = default;
 
-    virtual std::shared_ptr<AudioDevice> newDevice(const AudioDevice& device)
+    virtual std::shared_ptr<AudioDevice> newDevice(const AudioDevice& device) override
         { return std::make_shared<AudioInputDevice>(device); }
 
     QVariant data(const QModelIndex& index, int role) const override;
