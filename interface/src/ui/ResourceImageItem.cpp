@@ -32,6 +32,8 @@ void ResourceImageItem::setUrl(const QString& url) {
 void ResourceImageItem::setReady(bool ready) {
     if (ready != m_ready) {
         m_ready = ready;
+        update();
+        /*
         if (m_ready) {
             // 10 HZ for now.  Also this serves as a small
             // delay before getting the network texture, which
@@ -40,7 +42,7 @@ void ResourceImageItem::setReady(bool ready) {
         } else {
             m_updateTimer.stop();
             update();
-        }
+        }*/
     }
 }
 
@@ -59,18 +61,18 @@ void ResourceImageItemRenderer::synchronize(QQuickFramebufferObject* item) {
     }
 
     _window = resourceImageItem->window();
-    _window->setClearBeforeRendering(true);
     if (_ready && !_url.isNull() && !_url.isEmpty() && (urlChanged || readyChanged || !_networkTexture)) {
         _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_url);
     }
 
+    resourceImageItem->forceActiveFocus();
     if (_ready && _networkTexture && _networkTexture->isLoaded()) {
         if(_fboMutex.tryLock()) {
             qApp->getActiveDisplayPlugin()->copyTextureToQuickFramebuffer(_networkTexture, _copyFbo, &_fenceSync);
             _fboMutex.unlock();
         }
+
     }
-    glFlush();
 
 }
 
@@ -82,26 +84,11 @@ QOpenGLFramebufferObject* ResourceImageItemRenderer::createFramebufferObject(con
 }
 
 void ResourceImageItemRenderer::render() {
-    qDebug() << "initial error" << glGetError();
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+    static int colorInt = 0;
+    float red = (float)((colorInt++ % 20)/(float)20);
+    glClearColor(red, 0.0f, 0.0f, 0.5f + red/2.0f);
     glClear(GL_COLOR_BUFFER_BIT);
-    QOpenGLFunctions* f = QOpenGLContext::currentContext()->functions();
-    QOpenGLExtraFunctions* extras = QOpenGLContext::currentContext()->extraFunctions();
-    _fboMutex.lock();
-    if (_fenceSync) {
-        extras->glWaitSync(_fenceSync, 0, GL_TIMEOUT_IGNORED);
-        qDebug() << "wait error" << glGetError();
-        qDebug() << "waited on fence";
-    }
-    if (_ready) {
-        QOpenGLFramebufferObject::blitFramebuffer(framebufferObject(), _copyFbo, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-        /*f->glBindTexture(GL_TEXTURE_2D, _copyFbo->texture());
-        qDebug() << "bind tex error" << f->glGetError() << "texture" << _copyFbo->texture();
-        f->glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, _copyFbo->width(), _copyFbo->height());*/
-        qDebug() << "copy error" << f->glGetError();
-    } else {
-        framebufferObject()->release();
-    }
-    _fboMutex.unlock();
-    update();
+    glFlush();
+    _window->resetOpenGLState();
+    update(); // schedule a call to render again on next frame (only do this when camera is on, in the future)
 }
