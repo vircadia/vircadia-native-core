@@ -9,8 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <QCommandLineParser>
-#include <QThread>
+#include "AssignmentClientApp.h"
+
+#include <QtCore/QCommandLineParser>
+#include <QtCore/QDir>
+#include <QtCore/QStandardPaths>
+#include <QtCore/QThread>
 
 #include <LogHandler.h>
 #include <SharedUtil.h>
@@ -20,30 +24,6 @@
 #include "Assignment.h"
 #include "AssignmentClient.h"
 #include "AssignmentClientMonitor.h"
-#include "AssignmentClientApp.h"
-#include <QtCore/QDir>
-#include <QtCore/QStandardPaths>
-
-#ifdef WIN32
-VOID CALLBACK parentDiedCallback(PVOID lpParameter, BOOLEAN timerOrWaitFired) {
-    if (!timerOrWaitFired && qApp) {
-        qDebug() << "Parent process died, quitting";
-        qApp->quit();
-    }
-}
-
-void watchParentProcess(int parentPID) {
-    DWORD processID = parentPID;
-    HANDLE procHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processID);
-
-    HANDLE newHandle;
-    RegisterWaitForSingleObject(&newHandle, procHandle, parentDiedCallback, NULL, INFINITE, WT_EXECUTEONLYONCE);
-}
-#else
-void watchParentProcess(int parentPID) {
-    qWarning() << "Parent PID option not implemented on this plateform";
-}
-#endif // WIN32
 
 AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     QCoreApplication(argc, argv)
@@ -107,7 +87,7 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     const QCommandLineOption logDirectoryOption(ASSIGNMENT_LOG_DIRECTORY, "directory to store logs", "log-directory");
     parser.addOption(logDirectoryOption);
 
-    const QCommandLineOption parentPIDOption(ASSIGNMENT_PARENT_PID, "PID of the parent process", "parent-pid");
+    const QCommandLineOption parentPIDOption(PARENT_PID_OPTION, "PID of the parent process", "parent-pid");
     parser.addOption(parentPIDOption);
 
     if (!parser.parse(QCoreApplication::arguments())) {
@@ -231,6 +211,7 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         int parentPID = parser.value(parentPIDOption).toInt(&ok);
 
         if (ok) {
+            qDebug() << "Parent process PID is" << parentPID;
             watchParentProcess(parentPID);
         }
     }

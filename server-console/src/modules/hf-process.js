@@ -267,7 +267,15 @@ Process.prototype = extend(Process.prototype, {
             clearTimeout(this.stoppingTimeoutID);
             this.stoppingTimeoutID = null;
         }
+        // Grab current state berofe updating it.
+        var unexpectedShutdown = this.state != ProcessStates.STOPPING;
         this.updateState(ProcessStates.STOPPED);
+
+        if (unexpectedShutdown) {
+            log.warn("Child stopped unexpectedly, restarting.");
+            this.start();
+            return;
+        }
     }
 });
 
