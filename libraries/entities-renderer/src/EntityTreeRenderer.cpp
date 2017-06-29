@@ -853,7 +853,7 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool 
             entity->scriptHasUnloaded();
         }
         if (shouldLoad) {
-            scriptUrl = ResourceManager::normalizeURL(scriptUrl);
+            scriptUrl = DependencyManager::get<ResourceManager>()->normalizeURL(scriptUrl);
             _entitiesScriptEngine->loadEntityScript(entityID, scriptUrl, reload);
             entity->scriptHasPreloaded();
         }
