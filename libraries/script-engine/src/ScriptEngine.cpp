@@ -1755,7 +1755,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     QList<QUrl> urls;
 
     for (QString includeFile : includeFiles) {
-        QString file = ResourceManager::normalizeURL(includeFile);
+        QString file = DependencyManager::get<ResourceManager>()->normalizeURL(includeFile);
         QUrl thisURL;
         bool isStandardLibrary = false;
         if (file.startsWith("/~/")) {
