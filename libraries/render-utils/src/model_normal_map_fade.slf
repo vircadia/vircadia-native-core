@@ -31,7 +31,9 @@ in vec3 _tangent;
 in vec3 _color;
 
 void main(void) {
-    applyFade(_worldFadePosition.xyz);
+    vec3 fadeEmissive;
+
+    applyFade(_worldFadePosition.xyz, fadeEmissive);
 
     Material mat = getMaterial();
     int matKey = getMaterialKey(mat);

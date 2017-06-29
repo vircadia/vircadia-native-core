@@ -316,7 +316,7 @@ public:
         virtual const ItemKey getKey() const = 0;
         virtual const Bound getBound() const = 0;
         virtual int getLayer() const = 0;
-
+        virtual bool mustFade() const = 0;
         virtual void render(RenderArgs* args) = 0;
 
         virtual const ShapeKey getShapeKey() const = 0;
@@ -364,6 +364,8 @@ public:
     // Get the layer where the item belongs. 0 by default meaning NOT LAYERED
     int getLayer() const { return _payload->getLayer(); }
 
+    bool mustFade() const { return _payload->mustFade(); }
+
     // Render call for the item
     void render(RenderArgs* args) const { _payload->render(args); }
 
@@ -409,6 +411,7 @@ template <class T> const ItemKey payloadGetKey(const std::shared_ptr<T>& payload
 template <class T> const Item::Bound payloadGetBound(const std::shared_ptr<T>& payloadData) { return Item::Bound(); }
 template <class T> int payloadGetLayer(const std::shared_ptr<T>& payloadData) { return 0; }
 template <class T> void payloadRender(const std::shared_ptr<T>& payloadData, RenderArgs* args) { }
+template <class T> bool payloadMustFade(const std::shared_ptr<T>& payloadData) { return false; }
 
 // Shape type interface
 // This allows shapes to characterize their pipeline via a ShapeKey, to be picked with a subclass of Shape.
@@ -435,7 +438,7 @@ public:
     virtual const ItemKey getKey() const override { return payloadGetKey<T>(_data); }
     virtual const Item::Bound getBound() const override { return payloadGetBound<T>(_data); }
     virtual int getLayer() const override { return payloadGetLayer<T>(_data); }
-
+    virtual bool mustFade() const override { return payloadMustFade<T>(_data); }
 
     virtual void render(RenderArgs* args) override { payloadRender<T>(_data, args); }
 

@@ -319,6 +319,11 @@ template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer&
 template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args) {
     return payload->render(args);
 }
+
+template <> bool payloadMustFade(const ModelMeshPartPayload::Pointer& payload) {
+    return payload->mustFade();
+}
+
 }
 
 ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int _meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform) :
@@ -525,6 +530,10 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
     batch.setModelTransform(_transform);
 }
 
+bool ModelMeshPartPayload::mustFade() const {
+    return _fadeState != STATE_COMPLETE;
+}
+
 void ModelMeshPartPayload::render(RenderArgs* args) {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
@@ -572,11 +581,16 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     // apply material properties
     bindMaterial(batch, locations, args->_enableTexturing);
 
-    // Apply fade effect
-    if (!DependencyManager::get<FadeEffect>()->bindPerItem(batch, args, _transform.getTranslation(), _fadeStartTime, _fadeState != STATE_COMPLETE)) {
+    if (args->_enableFade) {
+        // Apply fade effect
+        if (!FadeRenderJob::bindPerItem(batch, args, _transform.getTranslation(), _fadeStartTime)) {
+            _fadeState = STATE_COMPLETE;
+        }
+    }
+ /*   else {
         // TODO : very ugly way to update the fade state. Need to improve this with global fade manager.
         _fadeState = STATE_COMPLETE;
-    }
+    }*/
 
     args->_details._materialSwitches++;
 

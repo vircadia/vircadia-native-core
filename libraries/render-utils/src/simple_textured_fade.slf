@@ -29,7 +29,9 @@ in vec2 _texCoord0;
 in vec4 _worldFadePosition;
 
 void main(void) {
-    applyFade(_worldFadePosition.xyz);
+    vec3 fadeEmissive;
+
+    applyFade(_worldFadePosition.xyz, fadeEmissive);
 
     vec4 texel = texture(originalTexture, _texCoord0);
     float colorAlpha = _color.a;
@@ -43,7 +45,7 @@ void main(void) {
         packDeferredFragmentTranslucent(
             normalize(_normal),
             colorAlpha * texel.a,
-            _color.rgb * texel.rgb,
+            _color.rgb * texel.rgb + fadeEmissive,
             DEFAULT_FRESNEL,
             DEFAULT_ROUGHNESS);
     } else {
@@ -53,7 +55,7 @@ void main(void) {
             _color.rgb * texel.rgb,
             DEFAULT_ROUGHNESS,
             DEFAULT_METALLIC,
-            DEFAULT_EMISSIVE,
+            DEFAULT_EMISSIVE + fadeEmissive,
             DEFAULT_OCCLUSION,
             DEFAULT_SCATTERING);
     }

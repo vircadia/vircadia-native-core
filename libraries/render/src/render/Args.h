@@ -115,6 +115,7 @@ namespace render {
 
         uint32_t _globalShapeKey { 0 };
         bool _enableTexturing { true };
+        bool _enableFade{ false };
 
         RenderDetails _details;
         render::ScenePointer _scene;

@@ -35,7 +35,9 @@ in vec2 _texCoord0;
 in vec4 _worldFadePosition;
 
 void main(void) {
-    applyFade(_worldFadePosition.xyz);
+    vec3 fadeEmissive;
+
+    applyFade(_worldFadePosition.xyz, fadeEmissive);
 
     vec4 texel = texture(originalTexture, _texCoord0.st);
     float opacity = _color.a;
@@ -59,8 +61,8 @@ void main(void) {
         fragNormal,
         albedo,
         DEFAULT_FRESNEL,
-        0.0,
-        vec3(0.0f),
+        0.0f,
+        fadeEmissive,
         DEFAULT_ROUGHNESS,
         opacity),
         opacity);

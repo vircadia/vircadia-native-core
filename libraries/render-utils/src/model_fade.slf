@@ -30,7 +30,9 @@ in vec2 _texCoord1;
 
 
 void main(void) {
-    applyFade(_worldFadePosition.xyz);
+    vec3 fadeEmissive;
+
+    applyFade(_worldFadePosition.xyz, fadeEmissive);
 
     Material mat = getMaterial();
     int matKey = getMaterialKey(mat);
@@ -50,6 +52,7 @@ void main(void) {
 
     vec3 emissive = getMaterialEmissive(mat);
     <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
+    emissive += fadeEmissive;
 
     float scattering = getMaterialScattering(mat);
 

@@ -523,12 +523,10 @@ render::ShapePipelinePointer GeometryCache::getShapePipeline(bool textured, bool
 }
 
 render::ShapePipelinePointer GeometryCache::getOpaqueShapePipeline(bool isFading) {
-    isFading = isFading || DependencyManager::get<FadeEffect>()->isDebugEnabled();
     return isFading ? _simpleOpaqueFadePipeline : _simpleOpaquePipeline;
 }
 
 render::ShapePipelinePointer GeometryCache::getTransparentShapePipeline(bool isFading) { 
-    isFading = isFading || DependencyManager::get<FadeEffect>()->isDebugEnabled();
     return isFading ? _simpleTransparentFadePipeline : _simpleTransparentPipeline;
 }
 

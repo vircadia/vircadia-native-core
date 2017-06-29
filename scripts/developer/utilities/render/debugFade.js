@@ -15,7 +15,7 @@ var window = new OverlayWindow({
     title: 'Fade',
     source: qml,
     width: 500, 
-    height: 80
+    height: 900
 });
 window.setPosition(50, 50);
 window.closed.connect(function() { Script.stop(); });

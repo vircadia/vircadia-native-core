@@ -50,20 +50,15 @@ extern void initDeferredPipelines(render::ShapePlumber& plumber);
 
 void RenderDeferredTask::configure(const Config& config)
 {
-    const float SCALE_MIN = 0.01f;
-    const float SCALE_MAX = 5.f;
-
-    auto fadeEffect = DependencyManager::get<FadeEffect>();
-    float scale = SCALE_MIN + (SCALE_MAX - SCALE_MIN)*config.fadeScale*config.fadeScale*config.fadeScale;
-
-    fadeEffect->setScale(scale);
-    fadeEffect->setDuration(config.fadeDuration);
-    fadeEffect->setDebugEnabled(config.debugFade);
-    fadeEffect->setDebugFadePercent(config.debugFadePercent);
 }
 
 void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
-    auto items = input.get<Input>();
+    auto commonFadeParameters = std::make_shared<FadeCommonParameters>();
+    const auto fadeSwitchOutputs = task.addJob<FadeSwitchJob>("FadeSwitch", input, commonFadeParameters).get<FadeSwitchJob::Output>();
+    const auto fadeConfigureOutputs = task.addJob<FadeConfigureJob>("FadeConfigure", commonFadeParameters).get<FadeConfigureJob::Output>();
+
+    const auto& items = fadeSwitchOutputs.get0();
+    const auto& fadeItems = fadeSwitchOutputs.get1();
 
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
@@ -97,14 +92,16 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto deferredFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(0);
     const auto lightingFramebuffer = prepareDeferredOutputs.getN<PrepareDeferred::Outputs>(1);
 
-    DependencyManager::set<FadeEffect>();
-
     // draw a stencil mask in hidden regions of the framebuffer.
     task.addJob<PrepareStencil>("PrepareStencil", primaryFramebuffer);
 
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).hasVarying();
     task.addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaqueInputs, shapePlumber);
+
+    const auto fadeOpaques = fadeItems[FadeSwitchJob::OPAQUE_SHAPE];
+    const auto fadeOpaqueInputs = FadeRenderJob::Input(fadeOpaques, lightingModel, fadeConfigureOutputs).hasVarying();
+    task.addJob<FadeRenderJob>("DrawFadeOpaque", fadeOpaqueInputs, commonFadeParameters, shapePlumber);
 
     task.addJob<EndGPURangeTimer>("OpaqueRangeTimer", opaqueRangeTimer);
 
@@ -158,6 +155,10 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Render transparent objects forward in LightingBuffer
     const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).hasVarying();
     task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
+
+    const auto fadeTransparents = fadeItems[FadeSwitchJob::TRANSPARENT_SHAPE];
+    const auto fadeTransparentInputs = FadeRenderJob::Input(fadeTransparents, lightingModel, fadeConfigureOutputs).hasVarying();
+    task.addJob<FadeRenderJob>("DrawFadeTransparent", fadeTransparentInputs, commonFadeParameters, shapePlumber);
 
     // LIght Cluster Grid Debuging job
     {
@@ -262,7 +263,6 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
     const auto& lightingModel = inputs.get1();
 
     RenderArgs* args = renderContext->args;
-    ShapeKey::Builder   defaultKeyBuilder = DependencyManager::get<FadeEffect>()->getKeyBuilder();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
@@ -283,13 +283,10 @@ void DrawDeferred::run(const RenderContextPointer& renderContext, const Inputs& 
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
         // From the lighting model define a global shapKey ORED with individiual keys
-        ShapeKey::Builder keyBuilder = defaultKeyBuilder;
+        ShapeKey::Builder keyBuilder;
         if (lightingModel->isWireframeEnabled()) {
             keyBuilder.withWireframe();
         }
-
-        // Prepare fade effect
-        DependencyManager::get<FadeEffect>()->bindPerBatch(batch);
 
         ShapeKey globalKey = keyBuilder.build();
         args->_globalShapeKey = globalKey._flags.to_ulong();
@@ -313,7 +310,6 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
     const auto& lightingModel = inputs.get1();
 
     RenderArgs* args = renderContext->args;
-    ShapeKey::Builder defaultKeyBuilder = DependencyManager::get<FadeEffect>()->getKeyBuilder();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
@@ -334,13 +330,10 @@ void DrawStateSortDeferred::run(const RenderContextPointer& renderContext, const
         batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
 
         // From the lighting model define a global shapeKey ORED with individiual keys
-        ShapeKey::Builder keyBuilder = defaultKeyBuilder;
+        ShapeKey::Builder keyBuilder;
         if (lightingModel->isWireframeEnabled()) {
             keyBuilder.withWireframe();
         }
-
-        // Prepare fade effect
-        DependencyManager::get<FadeEffect>()->bindPerBatch(batch);
 
         ShapeKey globalKey = keyBuilder.build();
         args->_globalShapeKey = globalKey._flags.to_ulong();

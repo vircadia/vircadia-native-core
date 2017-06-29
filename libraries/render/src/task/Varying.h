@@ -281,6 +281,11 @@ public:
             (*this)[i] = Varying(T());
         }
     }
+
+    VaryingArray(std::initializer_list<Varying> list) {
+        assert(list.size() == NUM);
+        std::copy(list.begin(), list.end(), begin());
+    }
 };
 }
 

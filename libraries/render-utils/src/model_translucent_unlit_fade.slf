@@ -29,7 +29,9 @@ in vec4 _worldFadePosition;
 out vec4 _fragColor;
 
 void main(void) {
-    applyFade(_worldFadePosition.xyz);
+    vec3 fadeEmissive;
+
+    applyFade(_worldFadePosition.xyz, fadeEmissive);
 
     Material mat = getMaterial();
     int matKey = getMaterialKey(mat);
@@ -41,6 +43,6 @@ void main(void) {
     vec3 albedo = getMaterialAlbedo(mat);
     <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
     albedo *= _color;
-
+    albedo += fadeEmissive;
     _fragColor = vec4(albedo * isUnlitEnabled(), opacity);
 }

@@ -740,10 +740,11 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
+        slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), render::ShapePipeline::Slot::BUFFER::FADE_PARAMETERS));
         slotBindings.insert(gpu::Shader::Binding(std::string("xMap"), 0));
         slotBindings.insert(gpu::Shader::Binding(std::string("yMap"), 1));
         slotBindings.insert(gpu::Shader::Binding(std::string("zMap"), 2));
-        slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), 3));
+        slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), render::ShapePipeline::Slot::MAP::FADE_MASK));
 
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
@@ -823,9 +824,9 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     }
 
     // Apply fade effect
-    auto fadeEffect = DependencyManager::get<FadeEffect>();
-    if (fadeEffect->bindPerItem(batch, pipeline.get(), glm::vec3(0, 0, 0), _fadeStartTime, isFading())) {
-        fadeEffect->bindPerBatch(batch, 3);
+    if (args->_enableFade) {
+        FadeRenderJob::bindPerBatch(batch, render::ShapePipeline::Slot::MAP::FADE_MASK, render::ShapePipeline::Slot::BUFFER::FADE_PARAMETERS);
+        FadeRenderJob::bindPerItem(batch, pipeline.get(), glm::vec3(0, 0, 0), _fadeStartTime);
     }
 
     int voxelVolumeSizeLocation = pipeline->getProgram()->getUniforms().findLocation("voxelVolumeSize");
@@ -881,6 +882,13 @@ namespace render {
         if (args && payload && payload->_owner) {
             payload->_owner->getRenderableInterface()->render(args);
         }
+    }
+
+    template <> bool payloadMustFade(const PolyVoxPayload::Pointer& payload) {
+        if (payload && payload->_owner) {
+            return payload->_owner->mustFade();
+        }
+        return false;
     }
 }
 

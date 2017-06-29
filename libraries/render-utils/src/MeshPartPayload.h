@@ -97,6 +97,7 @@ public:
     int getLayer() const;
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) override;
+    bool mustFade() const;
 
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;
@@ -135,6 +136,7 @@ namespace render {
     template <> int payloadGetLayer(const ModelMeshPartPayload::Pointer& payload);
     template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload);
     template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args);
+    template <> bool payloadMustFade(const ModelMeshPartPayload::Pointer& payload);
 }
 
 #endif // hifi_MeshPartPayload_h

@@ -126,7 +126,6 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
         color.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         auto geometryCache = DependencyManager::get<GeometryCache>();
-        auto fadeEffect = DependencyManager::get<FadeEffect>();
         auto pipeline = color.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
         
         assert(pipeline != nullptr);

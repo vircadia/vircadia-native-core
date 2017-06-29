@@ -31,7 +31,7 @@ public:
         NUM_BUCKETS
     };
 
-    using Output = std::array<render::Varying, Buckets::NUM_BUCKETS>;
+    using Output = render::VaryingArray<render::ItemBounds, Buckets::NUM_BUCKETS>;
     using JobModel = render::Task::ModelO<RenderFetchCullSortTask, Output>;
 
     RenderFetchCullSortTask() {}

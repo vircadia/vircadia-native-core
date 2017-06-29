@@ -53,7 +53,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext,
     const auto& fbo = shadow->framebuffer;
 
     RenderArgs* args = renderContext->args;
-    ShapeKey::Builder defaultKeyBuilder = DependencyManager::get<FadeEffect>()->getKeyBuilder();
+    ShapeKey::Builder defaultKeyBuilder;// TODO: support fade on shadows     = DependencyManager::get<FadeEffect>()->getKeyBuilder();
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
@@ -75,7 +75,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext,
         auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
 
         // Prepare fade effect
-        DependencyManager::get<FadeEffect>()->bindPerBatch(batch);
+        // TODO: support fade on shadows        DependencyManager::get<FadeEffect>()->bindPerBatch(batch);
 
         std::vector<ShapeKey> skinnedShapeKeys{};
 
