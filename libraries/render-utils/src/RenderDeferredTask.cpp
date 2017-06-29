@@ -103,6 +103,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto fadeOpaqueInputs = FadeRenderJob::Input(fadeOpaques, lightingModel, fadeConfigureOutputs).hasVarying();
     task.addJob<FadeRenderJob>("DrawFadeOpaque", fadeOpaqueInputs, commonFadeParameters, shapePlumber);
 
+
     task.addJob<EndGPURangeTimer>("OpaqueRangeTimer", opaqueRangeTimer);
 
 
@@ -173,6 +174,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     { // DEbug the bounds of the rendered items, still look at the zbuffer
+        task.addJob<DrawBounds>("DrawFadedOpaqueBounds", fadeOpaques);
         task.addJob<DrawBounds>("DrawMetaBounds", metas);
         task.addJob<DrawBounds>("DrawOpaqueBounds", opaques);
         task.addJob<DrawBounds>("DrawTransparentBounds", transparents);

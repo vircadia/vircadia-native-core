@@ -13,20 +13,22 @@ import QtQuick.Controls 1.4
 import "configSlider"
 
 Column {
-	property var config: Render.getConfig("RenderDeferredTask");
+	id: root
+	property var config: Render.getConfig("RenderMainView.FadeConfigure");
+	property var switchConfig: Render.getConfig("RenderMainView.FadeSwitch");
 	spacing: 8
 	Row {
 		spacing: 8
 
 		CheckBox {
 			text: "Edit Fade"
-			checked: config["editFade"]
-			onCheckedChanged: { config["editFade"] = checked }
+			checked: root.switchConfig["editFade"]
+			onCheckedChanged: { root.switchConfig["editFade"] = checked }
 		}
 		ComboBox {
 			width: 400
 			model: ["Elements enter/leave domain", "Bubble isect. - Owner POV", "Bubble isect. - Trespasser POV", "Another user leaves/arrives", "Changing an avatar"]
-			onCurrentIndexChanged: { config["editedCategory"] = currentIndex }
+			onCurrentIndexChanged: { root.config["editedCategory"] = currentIndex }
 		}
 	}
 	Column {
@@ -35,7 +37,7 @@ Column {
 		ConfigSlider {
 			label: "Duration"
 			integral: false
-			config: config
+			config: root.config
 			property: "duration"
 			max: 10.0
 			min: 0.1
@@ -50,7 +52,7 @@ Column {
 				ConfigSlider {
 					label: "Size X"
 					integral: false
-					config: config
+					config: root.config
 					property: "baseSizeX"
 					max: 1.0
 					min: 0.0
@@ -59,7 +61,7 @@ Column {
 				ConfigSlider {
 					label: "Size Y"
 					integral: false
-					config: config
+					config: root.config
 					property: "baseSizeY"
 					max: 1.0
 					min: 0.0
@@ -68,7 +70,7 @@ Column {
 				ConfigSlider {
 					label: "Size Z"
 					integral: false
-					config: config
+					config: root.config
 					property: "baseSizeZ"
 					max: 1.0
 					min: 0.0
@@ -77,7 +79,7 @@ Column {
 				ConfigSlider {
 					label: "Level"
 					integral: false
-					config: config
+					config: root.config
 					property: "baseLevel"
 					max: 1.0
 					min: 0.0
@@ -85,8 +87,8 @@ Column {
 				}
 				CheckBox {
 					text: "Invert"
-					checked: config["baseInverted"]
-					onCheckedChanged: { config["baseInverted"] = checked }
+					checked: root.config["baseInverted"]
+					onCheckedChanged: { root.config["baseInverted"] = checked }
 				}
 			}
 		}
@@ -99,7 +101,7 @@ Column {
 				ConfigSlider {
 					label: "Size X"
 					integral: false
-					config: config
+					config: root.config
 					property: "noiseSizeX"
 					max: 1.0
 					min: 0.0
@@ -108,7 +110,7 @@ Column {
 				ConfigSlider {
 					label: "Size Y"
 					integral: false
-					config: config
+					config: root.config
 					property: "noiseSizeY"
 					max: 1.0
 					min: 0.0
@@ -117,7 +119,7 @@ Column {
 				ConfigSlider {
 					label: "Size Z"
 					integral: false
-					config: config
+					config: root.config
 					property: "noiseSizeZ"
 					max: 1.0
 					min: 0.0
@@ -126,7 +128,7 @@ Column {
 				ConfigSlider {
 					label: "Level"
 					integral: false
-					config: config
+					config: root.config
 					property: "noiseLevel"
 					max: 1.0
 					min: 0.0
@@ -143,7 +145,7 @@ Column {
 				ConfigSlider {
 					label: "Width"
 					integral: false
-					config: config
+					config: root.config
 					property: "edgeWidth"
 					max: 1.0
 					min: 0.0
@@ -156,7 +158,7 @@ Column {
 						ConfigSlider {
 							label: "Color R"
 							integral: false
-							config: config
+							config: root.config
 							property: "edgeInnerColorR"
 							max: 1.0
 							min: 0.0
@@ -165,7 +167,7 @@ Column {
 						ConfigSlider {
 							label: "Color G"
 							integral: false
-							config: config
+							config: root.config
 							property: "edgeInnerColorG"
 							max: 1.0
 							min: 0.0
@@ -174,7 +176,7 @@ Column {
 						ConfigSlider {
 							label: "Color B"
 							integral: false
-							config: config
+							config: root.config
 							property: "edgeInnerColorB"
 							max: 1.0
 							min: 0.0
@@ -183,7 +185,7 @@ Column {
 						ConfigSlider {
 							label: "Color intensity"
 							integral: false
-							config: config
+							config: root.config
 							property: "edgeInnerIntensity"
 							max: 5.0
 							min: 0.0
@@ -198,7 +200,7 @@ Column {
 						ConfigSlider {
 							label: "Color R"
 							integral: false
-							config: config
+							config: root.config
 							property: "edgeOuterColorR"
 							max: 1.0
 							min: 0.0
@@ -207,7 +209,7 @@ Column {
 						ConfigSlider {
 							label: "Color G"
 							integral: false
-							config: config
+							config: root.config
 							property: "edgeOuterColorG"
 							max: 1.0
 							min: 0.0
@@ -216,7 +218,7 @@ Column {
 						ConfigSlider {
 							label: "Color B"
 							integral: false
-							config: config
+							config: root.config
 							property: "edgeOuterColorB"
 							max: 1.0
 							min: 0.0
@@ -225,7 +227,7 @@ Column {
 						ConfigSlider {
 							label: "Color intensity"
 							integral: false
-							config: config
+							config: root.config
 							property: "edgeOuterIntensity"
 							max: 5.0
 							min: 0.0

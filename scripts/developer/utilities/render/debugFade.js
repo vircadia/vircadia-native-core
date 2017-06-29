@@ -19,3 +19,4 @@ var window = new OverlayWindow({
 });
 window.setPosition(50, 50);
 window.closed.connect(function() { Script.stop(); });
+Render.getConfig("RenderMainView.DrawFadedOpaqueBounds").enabled = true

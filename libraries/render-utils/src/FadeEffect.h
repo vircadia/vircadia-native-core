@@ -66,63 +66,63 @@ public:
         EVENT_CATEGORY_COUNT
     };
 
-    void setEditedCategory(int value) { assert(value < EVENT_CATEGORY_COUNT); editedCategory = std::min<int>(EVENT_CATEGORY_COUNT, value); }
+    void setEditedCategory(int value);
 
-    void setDuration(float value) { duration[editedCategory] = value; }
+    void setDuration(float value);
     float getDuration() const { return duration[editedCategory]; }
 
-    void setBaseSizeX(float value) { baseSize[editedCategory].x = value; }
+    void setBaseSizeX(float value);
     float getBaseSizeX() const { return baseSize[editedCategory].x; }
 
-    void setBaseSizeY(float value) { baseSize[editedCategory].y = value; }
+    void setBaseSizeY(float value);
     float getBaseSizeY() const { return baseSize[editedCategory].y; }
 
-    void setBaseSizeZ(float value) { baseSize[editedCategory].z = value; }
+    void setBaseSizeZ(float value);
     float getBaseSizeZ() const { return baseSize[editedCategory].z; }
 
-    void setBaseLevel(float value) { baseLevel[editedCategory] = value; }
+    void setBaseLevel(float value);
     float getBaseLevel() const { return baseLevel[editedCategory]; }
 
-    void setBaseInverted(bool value) { baseInverted[editedCategory] = value; }
+    void setBaseInverted(bool value);
     bool isBaseInverted() const { return baseInverted[editedCategory]; }
 
-    void setNoiseSizeX(float value) { noiseSize[editedCategory].x = value; }
+    void setNoiseSizeX(float value);
     float getNoiseSizeX() const { return noiseSize[editedCategory].x; }
 
-    void setNoiseSizeY(float value) { noiseSize[editedCategory].y = value; }
+    void setNoiseSizeY(float value);
     float getNoiseSizeY() const { return noiseSize[editedCategory].y; }
 
-    void setNoiseSizeZ(float value) { noiseSize[editedCategory].z = value; }
+    void setNoiseSizeZ(float value);
     float getNoiseSizeZ() const { return noiseSize[editedCategory].z; }
 
-    void setNoiseLevel(float value) { noiseLevel[editedCategory] = value; }
+    void setNoiseLevel(float value);
     float getNoiseLevel() const { return noiseLevel[editedCategory]; }
 
-    void setEdgeWidth(float value) { edgeWidth[editedCategory] = value; }
+    void setEdgeWidth(float value);
     float getEdgeWidth() const { return edgeWidth[editedCategory]; }
 
-    void setEdgeInnerColorR(float value) { edgeInnerColor[editedCategory].r = value; }
+    void setEdgeInnerColorR(float value);
     float getEdgeInnerColorR() const { return edgeInnerColor[editedCategory].r; }
 
-    void setEdgeInnerColorG(float value) { edgeInnerColor[editedCategory].g = value; }
+    void setEdgeInnerColorG(float value);
     float getEdgeInnerColorG() const { return edgeInnerColor[editedCategory].g; }
 
-    void setEdgeInnerColorB(float value) { edgeInnerColor[editedCategory].b = value; }
+    void setEdgeInnerColorB(float value);
     float getEdgeInnerColorB() const { return edgeInnerColor[editedCategory].b; }
 
-    void setEdgeInnerIntensity(float value) { edgeInnerColor[editedCategory].a = value; }
+    void setEdgeInnerIntensity(float value);
     float getEdgeInnerIntensity() const { return edgeInnerColor[editedCategory].a; }
 
-    void setEdgeOuterColorR(float value) { edgeOuterColor[editedCategory].r = value; }
+    void setEdgeOuterColorR(float value);
     float getEdgeOuterColorR() const { return edgeOuterColor[editedCategory].r; }
 
-    void setEdgeOuterColorG(float value) { edgeOuterColor[editedCategory].g = value; }
+    void setEdgeOuterColorG(float value);
     float getEdgeOuterColorG() const { return edgeOuterColor[editedCategory].g; }
 
-    void setEdgeOuterColorB(float value) { edgeOuterColor[editedCategory].b = value; }
+    void setEdgeOuterColorB(float value);
     float getEdgeOuterColorB() const { return edgeOuterColor[editedCategory].b; }
 
-    void setEdgeOuterIntensity(float value) { edgeOuterColor[editedCategory].a = value; }
+    void setEdgeOuterIntensity(float value);
     float getEdgeOuterIntensity() const { return edgeOuterColor[editedCategory].a; }
 
     int editedCategory{ ELEMENT_ENTER_LEAVE_DOMAIN };
@@ -199,6 +199,8 @@ struct FadeCommonParameters
 {
     using Pointer = std::shared_ptr<FadeCommonParameters>;
 
+    bool _isEditEnabled{ false };
+    int _editedCategory{ FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN };
     float _durations[FadeJobConfig::EVENT_CATEGORY_COUNT]{
         30.0f,   // ELEMENT_ENTER_LEAVE_DOMAIN
         0.0f,   // BUBBLE_ISECT_OWNER
@@ -233,10 +235,10 @@ public:
 private:
 
     FadeCommonParameters::Pointer _parameters;
-    bool _isEditEnabled{ false };
 
     void distribute(const render::RenderContextPointer& renderContext, const render::Varying& input, 
-        render::Varying& normalOutput, render::Varying& fadeOutput) const;
+        render::Varying& normalOutput, render::Varying& fadeOutput, const render::Item* editedItem = nullptr) const;
+    const render::Item* findNearestItem(const render::RenderContextPointer& renderContext, const render::Varying& input, float& minIsectDistance) const;
 };
 
 struct FadeParameters
@@ -308,7 +310,13 @@ private:
     render::ShapePlumberPointer _shapePlumber;
     FadeCommonParameters::Pointer _parameters;
 
+    float computeElementEnterThreshold(double time) const;
 
+    // Everything needed for interactive edition
+    uint64_t _editStartTime{ 0 };
+    float _editThreshold{ 0.f };
+
+    void updateFadeEdit();
 };
 
 #endif // hifi_FadeEffect_h
