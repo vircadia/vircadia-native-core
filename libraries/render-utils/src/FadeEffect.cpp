@@ -6,6 +6,9 @@
 #include <Interpolate.h>
 #include <gpu/Context.h>
 
+#define FADE_MIN_SCALE  0.001f
+#define FADE_MAX_SCALE  100000.f
+
 void FadeSwitchJob::configure(const Config& config) {
     _parameters->_isEditEnabled = config.editFade;
 }
@@ -100,17 +103,17 @@ void FadeJobConfig::setDuration(float value) {
 }
 
 void FadeJobConfig::setBaseSizeX(float value) {
-    baseSize[editedCategory].x = value;
+    baseSize[editedCategory].x = FADE_MIN_SCALE*powf(FADE_MAX_SCALE/ FADE_MIN_SCALE, value);
     emit dirty();
 }
 
 void FadeJobConfig::setBaseSizeY(float value) {
-    baseSize[editedCategory].y = value;
+    baseSize[editedCategory].y = FADE_MIN_SCALE*powf(FADE_MAX_SCALE / FADE_MIN_SCALE, value);
     emit dirty();
 }
 
 void FadeJobConfig::setBaseSizeZ(float value) {
-    baseSize[editedCategory].z = value;
+    baseSize[editedCategory].z = FADE_MIN_SCALE*powf(FADE_MAX_SCALE / FADE_MIN_SCALE, value);
     emit dirty();
 }
 
@@ -125,17 +128,17 @@ void FadeJobConfig::setBaseInverted(bool value) {
 }
 
 void FadeJobConfig::setNoiseSizeX(float value) {
-    noiseSize[editedCategory].x = value;
+    noiseSize[editedCategory].x = FADE_MIN_SCALE*powf(FADE_MAX_SCALE / FADE_MIN_SCALE, value);
     emit dirty();
 }
 
 void FadeJobConfig::setNoiseSizeY(float value) {
-    noiseSize[editedCategory].y = value;
+    noiseSize[editedCategory].y = FADE_MIN_SCALE*powf(FADE_MAX_SCALE / FADE_MIN_SCALE, value);
     emit dirty();
 }
 
 void FadeJobConfig::setNoiseSizeZ(float value) {
-    noiseSize[editedCategory].z = value;
+    noiseSize[editedCategory].z = FADE_MIN_SCALE*powf(FADE_MAX_SCALE / FADE_MIN_SCALE, value);
     emit dirty();
 }
 
@@ -145,7 +148,7 @@ void FadeJobConfig::setNoiseLevel(float value) {
 }
 
 void FadeJobConfig::setEdgeWidth(float value) {
-    edgeWidth[editedCategory] = value;
+    edgeWidth[editedCategory] = value * value;
     emit dirty();
 }
 
@@ -214,12 +217,8 @@ void FadeConfigureJob::configure(const Config& config) {
         configuration._invertBase = config.baseInverted[i];
         configuration._edgeWidthInvWidth.x = config.edgeWidth[i];
         configuration._edgeWidthInvWidth.y = 1.f / configuration._edgeWidthInvWidth.x;
-        configuration._innerEdgeColor.r = config.edgeInnerColor[i].r * config.edgeInnerColor[i].a;
-        configuration._innerEdgeColor.g = config.edgeInnerColor[i].g * config.edgeInnerColor[i].a;
-        configuration._innerEdgeColor.b = config.edgeInnerColor[i].b * config.edgeInnerColor[i].a;
-        configuration._outerEdgeColor.r = config.edgeOuterColor[i].r * config.edgeOuterColor[i].a;
-        configuration._outerEdgeColor.g = config.edgeOuterColor[i].g * config.edgeOuterColor[i].a;
-        configuration._outerEdgeColor.b = config.edgeOuterColor[i].b * config.edgeOuterColor[i].a;
+        configuration._innerEdgeColor = config.edgeInnerColor[i];
+        configuration._outerEdgeColor = config.edgeOuterColor[i];
     }
     _isBufferDirty = true;
 }

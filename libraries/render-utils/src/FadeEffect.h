@@ -127,11 +127,11 @@ public:
 
     int editedCategory{ ELEMENT_ENTER_LEAVE_DOMAIN };
     glm::vec3 baseSize[EVENT_CATEGORY_COUNT]{
-        { 1.0f, 1.0f, 1.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-        { 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_OWNER
-        { 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_TRESPASSER
-        { 1.0f, 1.0f, 1.0f },   // USER_ENTER_LEAVE_DOMAIN
-        { 1.0f, 1.0f, 1.0f },   // AVATAR_CHANGE
+        { 0.35f, 0.35f, 0.35f },   // ELEMENT_ENTER_LEAVE_DOMAIN
+        { 0.35f, 0.35f, 0.35f },   // BUBBLE_ISECT_OWNER
+        { 0.35f, 0.35f, 0.35f },   // BUBBLE_ISECT_TRESPASSER
+        { 0.35f, 0.35f, 0.35f },   // USER_ENTER_LEAVE_DOMAIN
+        { 0.35f, 0.35f, 0.35f },   // AVATAR_CHANGE
     };
     float baseLevel[EVENT_CATEGORY_COUNT]{
         1.0f,    // ELEMENT_ENTER_LEAVE_DOMAIN
@@ -148,11 +148,11 @@ public:
         false,    // AVATAR_CHANGE
     };
     glm::vec3 noiseSize[EVENT_CATEGORY_COUNT]{
-        { 1.0f, 1.0f, 1.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-        { 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_OWNER
-        { 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_TRESPASSER
-        { 1.0f, 1.0f, 1.0f },   // USER_ENTER_LEAVE_DOMAIN
-        { 1.0f, 1.0f, 1.0f },   // AVATAR_CHANGE
+        { 0.35f, 0.35f, 0.35f },   // ELEMENT_ENTER_LEAVE_DOMAIN
+        { 0.35f, 0.35f, 0.35f },   // BUBBLE_ISECT_OWNER
+        { 0.35f, 0.35f, 0.35f },   // BUBBLE_ISECT_TRESPASSER
+        { 0.35f, 0.35f, 0.35f },   // USER_ENTER_LEAVE_DOMAIN
+        { 0.35f, 0.35f, 0.35f },   // AVATAR_CHANGE
     };
     float noiseLevel[EVENT_CATEGORY_COUNT]{
         1.0f,    // ELEMENT_ENTER_LEAVE_DOMAIN
@@ -169,22 +169,22 @@ public:
         3.0f,   // AVATAR_CHANGE
     };
     float edgeWidth[EVENT_CATEGORY_COUNT]{
-        0.1f,   // ELEMENT_ENTER_LEAVE_DOMAIN
-        0.1f,   // BUBBLE_ISECT_OWNER
-        0.1f,   // BUBBLE_ISECT_TRESPASSER
-        0.1f,   // USER_ENTER_LEAVE_DOMAIN
-        0.1f,   // AVATAR_CHANGE
+        0.05f,   // ELEMENT_ENTER_LEAVE_DOMAIN
+        0.05f,   // BUBBLE_ISECT_OWNER
+        0.05f,   // BUBBLE_ISECT_TRESPASSER
+        0.05f,   // USER_ENTER_LEAVE_DOMAIN
+        0.05f,   // AVATAR_CHANGE
     };
     glm::vec4 edgeInnerColor[EVENT_CATEGORY_COUNT]{
-        { 1.0f, 1.0f, 1.0f, 1.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-        { 1.0f, 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_OWNER
+        { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
+        { 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f },   // BUBBLE_ISECT_OWNER
         { 1.0f, 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_TRESPASSER
         { 1.0f, 1.0f, 1.0f, 1.0f },   // USER_ENTER_LEAVE_DOMAIN
         { 1.0f, 1.0f, 1.0f, 1.0f },   // AVATAR_CHANGE
     };
     glm::vec4 edgeOuterColor[EVENT_CATEGORY_COUNT]{
-        { 1.0f, 1.0f, 1.0f, 1.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-        { 1.0f, 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_OWNER
+        { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
+        { 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f },   // BUBBLE_ISECT_OWNER
         { 1.0f, 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_TRESPASSER
         { 1.0f, 1.0f, 1.0f, 1.0f },   // USER_ENTER_LEAVE_DOMAIN
         { 1.0f, 1.0f, 1.0f, 1.0f },   // AVATAR_CHANGE
@@ -245,8 +245,8 @@ struct FadeParameters
 {
     glm::vec4       _baseInvSizeAndLevel;
     glm::vec4       _noiseInvSizeAndLevel;
-    glm::vec3       _innerEdgeColor;
-    glm::vec3       _outerEdgeColor;
+    glm::vec4       _innerEdgeColor;
+    glm::vec4       _outerEdgeColor;
     glm::vec2       _edgeWidthInvWidth;
     glm::int32      _invertBase;
     glm::float32    _padding;
