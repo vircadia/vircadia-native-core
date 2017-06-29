@@ -188,7 +188,7 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
                 bool success;
                 AACube queryCube = entity->getQueryAACube(success);
                 if (!success) {
-                    qCDebug(entities) << "Warning -- failed to get query-cube for" << entity->getID();
+                    qCWarning(entities) << "failed to get query-cube for" << entity->getID();
                 }
                 UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, queryCube);
                 recurseTreeWithOperator(&theOperator);
@@ -1512,7 +1512,7 @@ void EntityTree::addEntityMapEntry(EntityItemPointer entity) {
     QWriteLocker locker(&_entityMapLock);
     EntityItemPointer otherEntity = _entityMap.value(id);
     if (otherEntity) {
-        qCDebug(entities) << "EntityTree::addEntityMapEntry() found pre-existing id " << id;
+        qCWarning(entities) << "EntityTree::addEntityMapEntry() found pre-existing id " << id;
         assert(false);
         return;
     }
