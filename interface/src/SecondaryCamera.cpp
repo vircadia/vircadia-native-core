@@ -57,19 +57,8 @@ public:
     void configure(const Config& config) {
         if (config.enabled || config.alwaysEnabled) {
             _attachedEntityId = config.attachedEntityId;
-            if (_attachedEntityId != QUuid()) {
-                auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-                EntityPropertyFlags entityPropertyFlags;
-                entityPropertyFlags += PROP_POSITION;
-                entityPropertyFlags += PROP_ROTATION;
-                EntityItemProperties entityProperties = entityScriptingInterface->getEntityProperties(config.attachedEntityId, entityPropertyFlags);
-
-                _position = entityProperties.getPosition();
-                _orientation = entityProperties.getRotation();
-            } else {
-                _position = config.position;
-                _orientation = config.orientation;
-            }
+            _position = config.position;
+            _orientation = config.orientation;
             _vFoV = config.vFoV;
             _nearClipPlaneDistance = config.nearClipPlaneDistance;
             _farClipPlaneDistance = config.farClipPlaneDistance;
@@ -97,8 +86,19 @@ public:
             });
 
             auto srcViewFrustum = args->getViewFrustum();
-            srcViewFrustum.setPosition(_position);
-            srcViewFrustum.setOrientation(_orientation);
+            if (_attachedEntityId != QUuid()) {
+                auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+                EntityPropertyFlags entityPropertyFlags;
+                entityPropertyFlags += PROP_POSITION;
+                entityPropertyFlags += PROP_ROTATION;
+                EntityItemProperties entityProperties = entityScriptingInterface->getEntityProperties(_attachedEntityId, entityPropertyFlags);
+
+                srcViewFrustum.setPosition(entityProperties.getPosition());
+                srcViewFrustum.setOrientation(entityProperties.getRotation());
+            } else {
+                srcViewFrustum.setPosition(_position);
+                srcViewFrustum.setOrientation(_orientation);
+            }
             srcViewFrustum.setProjection(glm::perspective(glm::radians(_vFoV), ((float)args->_viewport.z / (float)args->_viewport.w), _nearClipPlaneDistance, _farClipPlaneDistance));
             // Without calculating the bound planes, the secondary camera will use the same culling frustum as the main camera,
             // which is not what we want here.
