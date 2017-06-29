@@ -71,8 +71,6 @@
     //   -viewFinderOverlayDim: The x, y, and z dimensions of the viewFinderOverlay.
     //   -camera: The camera model which is grabbable.
     //   -viewFinderOverlay: The preview of what the spectator camera is viewing, placed inside the glass pane.
-    //   -cameraUpdateInterval: Used when setting Script.setInterval()
-    //   -CAMERA_UPDATE_INTERVAL_MS: Defines the time between calls to updateRenderFromCamera()
     var vFoV = 45.0;
     var nearClipPlaneDistance = 0.1;
     var farClipPlaneDistance = 100.0;
@@ -83,8 +81,6 @@
     // draws textures, but should be looked into at some point. Also the z dimension shouldn't affect
     // the overlay since it is an Image3DOverlay so it is set to 0.
     var viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: 0 };
-    var cameraUpdateInterval;
-    var CAMERA_UPDATE_INTERVAL_MS = 11; // Result of (1000 (ms/s)) / (90 (hz)) rounded down
     function spectatorCameraOn() {
         // Sets the special texture size based on the window it is displayed in, which doesn't include the menu bar
         spectatorFrameRenderConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
@@ -93,7 +89,6 @@
         beginSpectatorFrameRenderConfig.nearClipPlaneDistance = nearClipPlaneDistance;
         beginSpectatorFrameRenderConfig.farClipPlaneDistance = farClipPlaneDistance;
         cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
-        //cameraUpdateInterval = Script.setInterval(updateRenderFromCamera, 11); // Update every 11ms (90.9hz)
         camera = Entities.addEntity({
             "angularDamping": 1,
             "damping": 1,
@@ -124,10 +119,7 @@
     //    destroy the camera entity.
     function spectatorCameraOff() {
         spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = false;
-        if (cameraUpdateInterval) {
-            Script.clearInterval(cameraUpdateInterval);
-            cameraUpdateInterval = false;
-        }
+        beginSpectatorFrameRenderConfig.attachedEntityId = false;
         if (camera) {
             Entities.deleteEntity(camera);
         }
@@ -225,8 +217,8 @@
     }
 
     function setDisplay(showCameraView) {
-        // It would be fancy if (showCameraView && !cameraUpdateInterval) would show instructions, but that's out of scope for now.
-        var url = (showCameraView && cameraUpdateInterval) ? "resource://spectatorCameraFrame" : "";
+        // It would be fancy if (showCameraView) would show instructions, but that's out of scope for now.
+        var url = showCameraView ? "resource://spectatorCameraFrame" : "";
         Window.setDisplayTexture(url);
     }
     const MONITOR_SHOWS_CAMERA_VIEW_DEFAULT = false;
