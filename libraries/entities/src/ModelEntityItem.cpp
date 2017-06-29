@@ -37,7 +37,6 @@ ModelEntityItem::ModelEntityItem(const EntityItemID& entityItemID) : EntityItem(
     _animationLoop.setResetOnRunning(false);
 
     _type = EntityTypes::Model;
-    _jointMappingCompleted = false;
     _lastKnownCurrentFrame = -1;
     _color[0] = _color[1] = _color[2] = 0;
 }
@@ -203,30 +202,6 @@ void ModelEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_JOINT_TRANSLATIONS, getJointTranslations());
 }
 
-
-void ModelEntityItem::mapJoints(const QStringList& modelJointNames) {
-    // if we don't have animation, or we're already joint mapped then bail early
-    if (!hasAnimation() || jointsMapped()) {
-        return;
-    }
-
-    if (!_animation || _animation->getURL().toString() != getAnimationURL()) {
-        _animation = DependencyManager::get<AnimationCache>()->getAnimation(getAnimationURL());
-    }
-
-    if (_animation && _animation->isLoaded()) {
-        QStringList animationJointNames = _animation->getJointNames();
-
-        if (modelJointNames.size() > 0 && animationJointNames.size() > 0) {
-            _jointMapping.resize(modelJointNames.size());
-            for (int i = 0; i < modelJointNames.size(); i++) {
-                _jointMapping[i] = animationJointNames.indexOf(modelJointNames[i]);
-            }
-            _jointMappingCompleted = true;
-            _jointMappingURL = _animationProperties.getURL();
-        }
-    }
-}
 
 bool ModelEntityItem::isAnimatingSomething() const {
     return getAnimationIsPlaying() &&

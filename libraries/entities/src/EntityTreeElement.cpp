@@ -9,17 +9,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityTreeElement.h"
+
 #include <glm/gtx/transform.hpp>
 
-#include <FBXReader.h>
 #include <GeometryUtil.h>
 #include <OctreeUtils.h>
+#include <Extents.h>
 
 #include "EntitiesLogging.h"
 #include "EntityNodeData.h"
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
-#include "EntityTreeElement.h"
 #include "EntityTypes.h"
 
 EntityTreeElement::EntityTreeElement(unsigned char* octalCode) : OctreeElement() {
