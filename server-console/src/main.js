@@ -892,12 +892,18 @@ function onContentLoaded() {
     deleteOldFiles(logPath, DELETE_LOG_FILES_OLDER_THAN_X_SECONDS, LOG_FILE_REGEX);
 
     if (dsPath && acPath) {
-        domainServer = new Process('domain-server', dsPath, ['--get-temp-name',
-                                                             '--parent-pid', process.pid], logPath);
-        acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n7',
-                                                                '--log-directory', logPath,
-                                                                '--http-status-port', httpStatusPort,
-                                                                '--parent-pid', process.pid], httpStatusPort, logPath);
+        var dsArguments = ['--get-temp-name',
+                           '--parent-pid', process.pid];
+        domainServer = new Process('domain-server', dsPath, dsArguments,
+                                   logPath, true);
+
+        var acArguments = ['-n7',
+                           '--log-directory', logPath,
+                           '--http-status-port', httpStatusPort,
+                           '--parent-pid', process.pid];
+        acMonitor = new ACMonitorProcess('ac-monitor', acPath, acArguments,
+                                         httpStatusPort, logPath, true);
+
         homeServer = new ProcessGroup('home', [domainServer, acMonitor]);
         logWindow = new LogWindow(acMonitor, domainServer);
 

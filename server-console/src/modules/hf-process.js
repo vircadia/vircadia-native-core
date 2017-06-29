@@ -102,7 +102,7 @@ ProcessGroup.prototype = extend(ProcessGroup.prototype, {
 });
 
 var ID = 0;
-function Process(name, command, commandArgs, logDirectory) {
+function Process(name, command, commandArgs, logDirectory, restartOnCrash) {
     events.EventEmitter.call(this);
 
     this.id = ++ID;
@@ -113,6 +113,7 @@ function Process(name, command, commandArgs, logDirectory) {
     this.logDirectory = logDirectory;
     this.logStdout = null;
     this.logStderr = null;
+    this.restartOnCrash = restartOnCrash;
 
     this.state = ProcessStates.STOPPED;
 };
@@ -271,7 +272,7 @@ Process.prototype = extend(Process.prototype, {
         var unexpectedShutdown = this.state != ProcessStates.STOPPING;
         this.updateState(ProcessStates.STOPPED);
 
-        if (unexpectedShutdown) {
+        if (unexpectedShutdown && this.restartOnCrash) {
             log.warn("Child stopped unexpectedly, restarting.");
             this.start();
             return;
@@ -282,8 +283,8 @@ Process.prototype = extend(Process.prototype, {
 // ACMonitorProcess is an extension of Process that keeps track of the AC Montior's
 // children status and log locations.
 const CHECK_AC_STATUS_INTERVAL = 1000;
-function ACMonitorProcess(name, path, args, httpStatusPort, logPath) {
-    Process.call(this, name, path, args, logPath);
+function ACMonitorProcess(name, path, args, httpStatusPort, logPath, restartOnCrash) {
+    Process.call(this, name, path, args, logPath, restartOnCrash);
 
     this.httpStatusPort = httpStatusPort;
 
