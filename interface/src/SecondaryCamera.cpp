@@ -12,6 +12,7 @@
 #include "SecondaryCamera.h"
 #include <TextureCache.h>
 #include <gpu/Context.h>
+#include <EntityScriptingInterface.h>
 
 using RenderArgsPointer = std::shared_ptr<RenderArgs>;
 
@@ -40,6 +41,7 @@ void SecondaryCameraRenderTaskConfig::resetSizeSpectatorCamera(int width, int he
 }
 
 class BeginSecondaryCameraFrame {  // Changes renderContext for our framebuffer and view.
+    QUuid _attachedEntityId{};
     glm::vec3 _position{};
     glm::quat _orientation{};
     float _vFoV{};
@@ -54,8 +56,20 @@ public:
 
     void configure(const Config& config) {
         if (config.enabled || config.alwaysEnabled) {
-            _position = config.position;
-            _orientation = config.orientation;
+            _attachedEntityId = config.attachedEntityId;
+            if (_attachedEntityId != QUuid()) {
+                auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+                EntityPropertyFlags entityPropertyFlags;
+                entityPropertyFlags += PROP_POSITION;
+                entityPropertyFlags += PROP_ROTATION;
+                EntityItemProperties entityProperties = entityScriptingInterface->getEntityProperties(config.attachedEntityId, entityPropertyFlags);
+
+                _position = entityProperties.getPosition();
+                _orientation = entityProperties.getRotation();
+            } else {
+                _position = config.position;
+                _orientation = config.orientation;
+            }
             _vFoV = config.vFoV;
             _nearClipPlaneDistance = config.nearClipPlaneDistance;
             _farClipPlaneDistance = config.farClipPlaneDistance;

@@ -93,7 +93,7 @@
         beginSpectatorFrameRenderConfig.nearClipPlaneDistance = nearClipPlaneDistance;
         beginSpectatorFrameRenderConfig.farClipPlaneDistance = farClipPlaneDistance;
         cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
-        cameraUpdateInterval = Script.setInterval(updateRenderFromCamera, 11); // Update every 11ms (90.9hz)
+        //cameraUpdateInterval = Script.setInterval(updateRenderFromCamera, 11); // Update every 11ms (90.9hz)
         camera = Entities.addEntity({
             "angularDamping": 1,
             "damping": 1,
@@ -112,6 +112,7 @@
             "type": "Model",
             "userData": "{\"grabbableKey\":{\"grabbable\":true}}"
         }, true);
+        beginSpectatorFrameRenderConfig.attachedEntityId = camera;
         updateOverlay();
         setDisplay(monitorShowsCameraView);
     }
