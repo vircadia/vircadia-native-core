@@ -24,12 +24,26 @@
 #include <QtCore/QDir>
 #include <QtCore/QStandardPaths>
 
+#ifdef WIN32
 VOID CALLBACK parentDiedCallback(PVOID lpParameter, BOOLEAN timerOrWaitFired) {
-    if (!timerOrWaitFired) {
+    if (!timerOrWaitFired && qApp) {
         qDebug() << "Parent process died, quitting";
         qApp->quit();
     }
 }
+
+void watchParentProcess(int parentPID) {
+    DWORD processID = parentPID;
+    HANDLE procHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processID);
+
+    HANDLE newHandle;
+    RegisterWaitForSingleObject(&newHandle, procHandle, parentDiedCallback, NULL, INFINITE, WT_EXECUTEONLYONCE);
+}
+#else
+void watchParentProcess(int parentPID) {
+    qWarning() << "Parent PID option not implemented on this plateform";
+}
+#endif // WIN32
 
 AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     QCoreApplication(argc, argv)
@@ -212,16 +226,12 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
         }
     }
 
-    DWORD processID;
-    HANDLE procHandle;
-    HANDLE newHandle;
     if (parser.isSet(parentPIDOption)) {
         bool ok = false;
-        processID = parser.value(parentPIDOption).toInt(&ok);
+        int parentPID = parser.value(parentPIDOption).toInt(&ok);
 
         if (ok) {
-            procHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processID);
-            RegisterWaitForSingleObject(&newHandle, procHandle, parentDiedCallback, NULL, INFINITE, WT_EXECUTEONLYONCE);
+            watchParentProcess(parentPID);
         }
     }
 
