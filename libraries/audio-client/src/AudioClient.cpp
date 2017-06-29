@@ -234,8 +234,8 @@ AudioClient::AudioClient() :
     connect(_checkPeakValuesTimer, &QTimer::timeout, [this] {
         QtConcurrent::run(QThreadPool::globalInstance(), [this] { checkPeakValues(); });
     });
-    const unsigned long PEAK_VALUES_CHECK_INTERVAL_SECS = 50;
-    _checkPeakValuesTimer->start(PEAK_VALUES_CHECK_INTERVAL_SECS);
+    const unsigned long PEAK_VALUES_CHECK_INTERVAL_MSECS = 50;
+    _checkPeakValuesTimer->start(PEAK_VALUES_CHECK_INTERVAL_MSECS);
 
     configureReverb();
 
