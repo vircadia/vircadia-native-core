@@ -159,6 +159,10 @@ void AssignmentClientMonitor::spawnChildClient() {
     // for now they simply talk to us on localhost
     _childArguments.append("--" + ASSIGNMENT_CLIENT_MONITOR_PORT_OPTION);
     _childArguments.append(QString::number(DependencyManager::get<NodeList>()->getLocalSockAddr().getPort()));
+    
+
+    _childArguments.append("--" + ASSIGNMENT_PARENT_PID);
+    _childArguments.append(QString::number(QCoreApplication::applicationPid()));
 
     QString nowString, stdoutFilenameTemp, stderrFilenameTemp, stdoutPathTemp, stderrPathTemp;
 

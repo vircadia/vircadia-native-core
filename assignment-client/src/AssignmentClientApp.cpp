@@ -24,6 +24,12 @@
 #include <QtCore/QDir>
 #include <QtCore/QStandardPaths>
 
+VOID CALLBACK parentDiedCallback(PVOID lpParameter, BOOLEAN timerOrWaitFired) {
+    if (!timerOrWaitFired) {
+        qDebug() << "Parent process died, quitting";
+        qApp->quit();
+    }
+}
 
 AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     QCoreApplication(argc, argv)
@@ -86,6 +92,9 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
 
     const QCommandLineOption logDirectoryOption(ASSIGNMENT_LOG_DIRECTORY, "directory to store logs", "log-directory");
     parser.addOption(logDirectoryOption);
+
+    const QCommandLineOption parentPIDOption(ASSIGNMENT_PARENT_PID, "PID of the parent process", "parent-pid");
+    parser.addOption(parentPIDOption);
 
     if (!parser.parse(QCoreApplication::arguments())) {
         qCritical() << parser.errorText() << endl;
@@ -200,6 +209,19 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
             qCritical() << "--max can't be less than -n";
             parser.showHelp();
             Q_UNREACHABLE();
+        }
+    }
+
+    DWORD processID;
+    HANDLE procHandle;
+    HANDLE newHandle;
+    if (parser.isSet(parentPIDOption)) {
+        bool ok = false;
+        processID = parser.value(parentPIDOption).toInt(&ok);
+
+        if (ok) {
+            procHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processID);
+            RegisterWaitForSingleObject(&newHandle, procHandle, parentDiedCallback, NULL, INFINITE, WT_EXECUTEONLYONCE);
         }
     }
 

@@ -168,6 +168,7 @@ Process.prototype = extend(Process.prototype, {
                 detached: false,
                 stdio: ['ignore', logStdout, logStderr]
             });
+            log.debug("Spawned " + this.command + " with pid " + this.child.pid);
         } catch (e) {
             log.debug("Got error starting child process for " + this.name, e);
             this.child = null;
