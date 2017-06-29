@@ -85,7 +85,7 @@ void AvatarBookmarks::changeToBookmarkedAvatar() {
         const QMap<QString, QVariant> bookmark = action->data().toMap();
         // Not magic value. This is the current made version, and if it changes this interpreter should be updated to 
         // handle the new one separately.
-        // This is where the avatar bookmark entry is parsed. If adding new Paradrims, make sure to have backward compat with previous
+        // This is where the avatar bookmark entry is parsed. If adding new Value, make sure to have backward compatability with previous
         if (bookmark.value(ENTRY_VERSION) == 3) {
                 const QString& avatarUrl = bookmark.value(ENTRY_AVATAR_URL, "").toString();
                 myAvatar->useFullAvatarURL(avatarUrl);
