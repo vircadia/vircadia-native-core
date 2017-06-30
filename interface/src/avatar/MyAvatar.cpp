@@ -67,6 +67,7 @@ const float MAX_WALKING_SPEED = 2.6f; // human walking speed
 const float MAX_BOOST_SPEED = 0.5f * MAX_WALKING_SPEED; // action motor gets additive boost below this speed
 const float MIN_AVATAR_SPEED = 0.05f;
 const float MIN_AVATAR_SPEED_SQUARED = MIN_AVATAR_SPEED * MIN_AVATAR_SPEED; // speed is set to zero below this
+const float DEFAULT_MAX_AVATAR_SCALE = 3.0f;
 
 const float YAW_SPEED_DEFAULT = 120.0f;   // degrees/sec
 const float PITCH_SPEED_DEFAULT = 90.0f; // degrees/sec
@@ -1075,6 +1076,7 @@ void MyAvatar::loadData() {
     getHead()->setBasePitch(loadSetting(settings, "headPitch", 0.0f));
 
     _targetScale = loadSetting(settings, "scale", 1.0f);
+    _targetScale = (_targetScale > DEFAULT_MAX_AVATAR_SCALE) ? DEFAULT_MAX_AVATAR_SCALE : _targetScale;
     setScale(glm::vec3(_targetScale));
 
     _prefOverrideAnimGraphUrl.set(QUrl(settings.value("animGraphURL", "").toString()));
