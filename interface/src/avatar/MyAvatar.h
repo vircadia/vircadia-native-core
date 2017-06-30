@@ -474,6 +474,11 @@ public:
     controller::Pose getLeftHandControllerPoseInAvatarFrame() const;
     controller::Pose getRightHandControllerPoseInAvatarFrame() const;
 
+    typedef std::map<int, std::pair<controller::Pose, QString>> FingerPosesMap;
+    void setFingerControllerPosesInSensorFrame(const FingerPosesMap& left, const FingerPosesMap& right);
+    FingerPosesMap getLeftHandFingerControllerPosesInSensorFrame() const;
+    FingerPosesMap getRightHandFingerControllerPosesInSensorFrame() const;
+
     void setFootControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right);
     controller::Pose getLeftFootControllerPoseInSensorFrame() const;
     controller::Pose getRightFootControllerPoseInSensorFrame() const;
@@ -788,13 +793,15 @@ private:
     // These are stored in SENSOR frame
     ThreadSafeValueCache<controller::Pose> _leftHandControllerPoseInSensorFrameCache { controller::Pose() };
     ThreadSafeValueCache<controller::Pose> _rightHandControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _leftFootControllerPoseInSensorFrameCache{ controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _rightFootControllerPoseInSensorFrameCache{ controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _hipsControllerPoseInSensorFrameCache{ controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _spine2ControllerPoseInSensorFrameCache{ controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _headControllerPoseInSensorFrameCache{ controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _leftArmControllerPoseInSensorFrameCache{ controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _rightArmControllerPoseInSensorFrameCache{ controller::Pose() };
+    ThreadSafeValueCache<FingerPosesMap> _leftHandFingerPosesInSensorFramceCache { };
+    ThreadSafeValueCache<FingerPosesMap> _rightHandFingerPosesInSensorFramceCache { };
+    ThreadSafeValueCache<controller::Pose> _leftFootControllerPoseInSensorFrameCache { controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _rightFootControllerPoseInSensorFrameCache { controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _hipsControllerPoseInSensorFrameCache { controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _spine2ControllerPoseInSensorFrameCache { controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _headControllerPoseInSensorFrameCache { controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _leftArmControllerPoseInSensorFrameCache { controller::Pose() };
+    ThreadSafeValueCache<controller::Pose> _rightArmControllerPoseInSensorFrameCache { controller::Pose() };
 
     bool _hmdLeanRecenterEnabled = true;
     AnimPose _prePhysicsRoomPose;

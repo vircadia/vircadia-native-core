@@ -1455,6 +1455,19 @@ controller::Pose MyAvatar::getRightHandControllerPoseInAvatarFrame() const {
     return getRightHandControllerPoseInWorldFrame().transform(invAvatarMatrix);
 }
 
+void MyAvatar::setFingerControllerPosesInSensorFrame(const FingerPosesMap& left, const FingerPosesMap& right) {
+    _leftHandFingerPosesInSensorFramceCache.set(left);
+    _rightHandFingerPosesInSensorFramceCache.set(right);
+}
+
+MyAvatar::FingerPosesMap MyAvatar::getLeftHandFingerControllerPosesInSensorFrame() const {
+    return _leftHandFingerPosesInSensorFramceCache.get();
+}
+
+MyAvatar::FingerPosesMap MyAvatar::getRightHandFingerControllerPosesInSensorFrame() const {
+    return _rightHandFingerPosesInSensorFramceCache.get();
+}
+
 void MyAvatar::setFootControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right) {
     _leftFootControllerPoseInSensorFrameCache.set(left);
     _rightFootControllerPoseInSensorFrameCache.set(right);

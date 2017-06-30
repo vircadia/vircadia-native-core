@@ -145,7 +145,6 @@
 #include "avatar/MyHead.h"
 #include "CrashHandler.h"
 #include "devices/DdeFaceTracker.h"
-#include "devices/Leapmotion.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
 #include "InterfaceDynamicFactory.h"
@@ -1885,8 +1884,6 @@ Application::~Application() {
 
     // remove the NodeList from the DependencyManager
     DependencyManager::destroy<NodeList>();
-
-    Leapmotion::destroy();
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->shutdown();
@@ -4055,8 +4052,6 @@ void Application::init() {
 
     qCDebug(interfaceapp) << "Loaded settings";
 
-    Leapmotion::init();
-
     // fire off an immediate domain-server check in now that settings are loaded
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 
@@ -4520,7 +4515,6 @@ void Application::update(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("devices");
-        DeviceTracker::updateAll();
 
         FaceTracker* tracker = getSelectedFaceTracker();
         if (tracker && Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking) != tracker->isMuted()) {
@@ -4589,8 +4583,6 @@ void Application::update(float deltaTime) {
         keyboardMousePlugin->pluginUpdate(deltaTime, calibrationData);
     }
 
-    _controllerScriptingInterface->updateInputControllers();
-
     // Transfer the user inputs to the driveKeys
     // FIXME can we drop drive keys and just have the avatar read the action states directly?
     myAvatar->clearDriveKeys();
@@ -4614,6 +4606,31 @@ void Application::update(float deltaTime) {
     auto worldToSensorMatrix = glm::inverse(myAvatar->getSensorToWorldMatrix());
     auto avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
     myAvatar->setHandControllerPosesInSensorFrame(leftHandPose.transform(avatarToSensorMatrix), rightHandPose.transform(avatarToSensorMatrix));
+
+    // If have previously done finger poses or there are new valid finger poses, update finger pose values. This so that if
+    // fingers are not being controlled, finger joints are not updated in MySkeletonModel.
+    // Assumption: Finger poses are either all present and valid or not present at all; thus can test just one joint.
+    MyAvatar::FingerPosesMap leftHandFingerPoses;
+    if (myAvatar->getLeftHandFingerControllerPosesInSensorFrame().size() > 0
+            || userInputMapper->getPoseState(controller::Action::LEFT_HAND_THUMB1).isValid()) {
+        for (int i = (int)controller::Action::LEFT_HAND_THUMB1; i <= (int)controller::Action::LEFT_HAND_PINKY4; i++) {
+            leftHandFingerPoses[i] = {
+                userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix),
+                userInputMapper->getActionName((controller::Action)i)
+            };
+        }
+    }
+    MyAvatar::FingerPosesMap rightHandFingerPoses;
+    if (myAvatar->getRightHandFingerControllerPosesInSensorFrame().size() > 0
+        || userInputMapper->getPoseState(controller::Action::RIGHT_HAND_THUMB1).isValid()) {
+        for (int i = (int)controller::Action::RIGHT_HAND_THUMB1; i <= (int)controller::Action::RIGHT_HAND_PINKY4; i++) {
+            rightHandFingerPoses[i] = {
+                userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix),
+                userInputMapper->getActionName((controller::Action)i)
+            };
+        }
+    }
+    myAvatar->setFingerControllerPosesInSensorFrame(leftHandFingerPoses, rightHandFingerPoses);
 
     controller::Pose leftFootPose = userInputMapper->getPoseState(controller::Action::LEFT_FOOT);
     controller::Pose rightFootPose = userInputMapper->getPoseState(controller::Action::RIGHT_FOOT);
