@@ -14,7 +14,7 @@
 
 /* global getEntityCustomData, flatten, Xform, Script, Quat, Vec3, MyAvatar, Entities, Overlays, Settings,
     Reticle, Controller, Camera, Messages, Mat4, getControllerWorldLocation, getGrabPointSphereOffset,
-   setGrabCommunications, Menu, HMD, isInEditMode, AvatarList */
+   setGrabCommunications, Menu, HMD, isInEditMode, isInVREditMode, AvatarList */
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
 
 (function() { // BEGIN LOCAL_SCOPE

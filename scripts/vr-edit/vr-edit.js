@@ -17,14 +17,20 @@
         APP_ICON_ACTIVE = "icons/tablet-icons/edit-a.svg",
         tablet,
         button,
-        isAppActive = false;
+        isAppActive = false,
+
+        VR_EDIT_SETTING = "io.highfidelity.isVREditing";  // Note: This constant is duplicated in utils.js.
+
 
     function onButtonClicked() {
         isAppActive = !isAppActive;
+        Settings.setValue(VR_EDIT_SETTING, isAppActive);
         button.editProperties({ isActive: isAppActive });
     }
 
     function setUp() {
+        Settings.setValue(VR_EDIT_SETTING, isAppActive);
+
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         if (!tablet) {
             return;

@@ -228,7 +228,7 @@ var GRABBABLE_ENTITIES_MENU_CATEGORY = "Edit";
 var GRABBABLE_ENTITIES_MENU_ITEM = "Create Entities As Grabbable";
 
 var toolBar = (function () {
-    var EDIT_SETTING = "io.highfidelity.isEditting"; // for communication with other scripts
+    var EDIT_SETTING = "io.highfidelity.isEditing"; // for communication with other scripts
     var that = {},
         toolBar,
         activeButton = null,
