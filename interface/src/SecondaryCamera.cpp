@@ -80,7 +80,7 @@ public:
             });
 
             auto srcViewFrustum = args->getViewFrustum();
-            if (_attachedEntityId != QUuid()) {
+            if (!_attachedEntityId.isNull()) {
                 EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_attachedEntityId, _attachedEntityPropertyFlags);
                 srcViewFrustum.setPosition(entityProperties.getPosition());
                 srcViewFrustum.setOrientation(entityProperties.getRotation());
@@ -101,6 +101,24 @@ protected:
     RenderArgs _cachedArgs;
     RenderArgsPointer _cachedArgsPointer;
 };
+
+void SecondaryCameraJobConfig::setPosition(glm::vec3 pos) {
+    if (attachedEntityId.isNull()) {
+        position = pos;
+        emit dirty();
+    } else {
+        qDebug() << "ERROR: Cannot set position of SecondaryCamera while attachedEntityId is set.";
+    }
+}
+
+void SecondaryCameraJobConfig::setOrientation(glm::quat orient) {
+    if (attachedEntityId.isNull()) {
+        orientation = orient;
+        emit dirty();
+    } else {
+        qDebug() << "ERROR: Cannot set orientation of SecondaryCamera while attachedEntityId is set.";
+    }
+}
 
 void SecondaryCameraJobConfig::enableSecondaryCameraRenderConfigs(bool enabled) {
     qApp->getRenderEngine()->getConfiguration()->getConfig<SecondaryCameraRenderTask>()->setEnabled(enabled);

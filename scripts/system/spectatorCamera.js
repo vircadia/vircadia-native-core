@@ -36,8 +36,14 @@
     //
     // Relevant Variables:
     //   -spectatorCameraConfig: The render configuration of the spectator camera
-    //    render job. It controls the orientation and position of the secondary camera whose viewport is rendered to
-    //    the texture, as well as the rendered texture size.
+    //    render job. It controls various attributes of the Secondary Camera, such as:
+    //      -The entity ID to follow
+    //      -Position
+    //      -Orientation
+    //      -Rendered texture size
+    //      -Vertical field of view
+    //      -Near clip plane distance
+    //      -Far clip plane distance
     //   -viewFinderOverlay: The in-world overlay that displays the spectator camera's view.
     //   -camera: The in-world entity that corresponds to the spectator camera.
     //   -cameraIsDynamic: "false" for now while we figure out why dynamic, parented overlays

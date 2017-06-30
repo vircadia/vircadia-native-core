@@ -31,8 +31,8 @@ public:
 class SecondaryCameraJobConfig : public render::Task::Config { // Exposes secondary camera parameters to JavaScript.
     Q_OBJECT
     Q_PROPERTY(QUuid attachedEntityId MEMBER attachedEntityId NOTIFY dirty)  // entity whose properties define camera position and orientation
-    Q_PROPERTY(glm::vec3 position MEMBER position NOTIFY dirty)  // of viewpoint to render from
-    Q_PROPERTY(glm::quat orientation MEMBER orientation NOTIFY dirty)  // of viewpoint to render from
+    Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)  // of viewpoint to render from
+    Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)  // of viewpoint to render from
     Q_PROPERTY(float vFoV MEMBER vFoV NOTIFY dirty)  // Secondary camera's vertical field of view. In degrees.
     Q_PROPERTY(float nearClipPlaneDistance MEMBER nearClipPlaneDistance NOTIFY dirty)  // Secondary camera's near clip plane distance. In meters.
     Q_PROPERTY(float farClipPlaneDistance MEMBER farClipPlaneDistance NOTIFY dirty)  // Secondary camera's far clip plane distance. In meters.
@@ -47,6 +47,10 @@ public:
 signals:
     void dirty();
 public slots:
+    glm::vec3 getPosition() { return position; }
+    void setPosition(glm::vec3 pos);
+    glm::quat getOrientation() { return orientation; }
+    void setOrientation(glm::quat orient);
     void enableSecondaryCameraRenderConfigs(bool enabled);
     void resetSizeSpectatorCamera(int width, int height);
 };
