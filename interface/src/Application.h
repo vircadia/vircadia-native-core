@@ -95,6 +95,7 @@ static const UINT UWM_SHOW_APPLICATION =
 #endif
 
 static const QString RUNNING_MARKER_FILENAME = "Interface.running";
+static const QString SCRIPTS_SWITCH = "scripts";
 
 class Application;
 #if defined(qApp)

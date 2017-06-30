@@ -23,8 +23,8 @@
 #include <PhysicsHelpers.h>
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // usecTimestampNow()
-#include <SoundCache.h>
 #include <LogHandler.h>
+#include <Extents.h>
 
 #include "EntityScriptingInterface.h"
 #include "EntitiesLogging.h"
@@ -986,21 +986,6 @@ void EntityItem::setCollisionSoundURL(const QString& value) {
             myTree->notifyNewCollisionSoundURL(value, getEntityItemID());
         }
     }
-}
-
-SharedSoundPointer EntityItem::getCollisionSound() {
-    SharedSoundPointer result;
-    withReadLock([&] {
-        result = _collisionSound;
-    });
-
-    if (!result) {
-        result = DependencyManager::get<SoundCache>()->getSound(_collisionSoundURL);
-        withWriteLock([&] {
-            _collisionSound = result;
-        });
-    }
-    return result;
 }
 
 void EntityItem::simulate(const quint64& now) {
@@ -2648,12 +2633,6 @@ QString EntityItem::getCollisionSoundURL() const {
         result = _collisionSoundURL;
     });
     return result;
-}
-
-void EntityItem::setCollisionSound(SharedSoundPointer sound) { 
-    withWriteLock([&] {
-        _collisionSound = sound;
-    });
 }
 
 glm::vec3 EntityItem::getRegistrationPoint() const { 

@@ -57,7 +57,7 @@ void ScriptCache::clearATPScriptsFromCache() {
 }
 
 void ScriptCache::deleteScript(const QUrl& unnormalizedURL) {
-    QUrl url = ResourceManager::normalizeURL(unnormalizedURL);
+    QUrl url = DependencyManager::get<ResourceManager>()->normalizeURL(unnormalizedURL);
     Lock lock(_containerLock);
     if (_scriptCache.contains(url)) {
         qCDebug(scriptengine) << "Delete script from cache:" << url.toString();
@@ -70,7 +70,7 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
     qCDebug(scriptengine) << "ScriptCache::getScriptContents() on thread [" << QThread::currentThread() << "] expected thread [" << thread() << "]";
     #endif
     QUrl unnormalizedURL(scriptOrURL);
-    QUrl url = ResourceManager::normalizeURL(unnormalizedURL);
+    QUrl url = DependencyManager::get<ResourceManager>()->normalizeURL(unnormalizedURL);
 
     // attempt to determine if this is a URL to a script, or if this is actually a script itself (which is valid in the
     // entityScript use case)
@@ -109,7 +109,7 @@ void ScriptCache::getScriptContents(const QString& scriptOrURL, contentAvailable
             #ifdef THREAD_DEBUGGING
             qCDebug(scriptengine) << "about to call: ResourceManager::createResourceRequest(this, url); on thread [" << QThread::currentThread() << "] expected thread [" << thread() << "]";
             #endif
-            auto request = ResourceManager::createResourceRequest(nullptr, url);
+            auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, url);
             Q_ASSERT(request);
             request->setCacheEnabled(!forceDownload);
             connect(request, &ResourceRequest::finished, this, [=]{ scriptContentAvailable(maxRetries); });
@@ -166,7 +166,7 @@ void ScriptCache::scriptContentAvailable(int maxRetries) {
                         qCDebug(scriptengine) << QString("Retrying script request [%1 / %2]: %3")
                             .arg(attempt).arg(maxRetries).arg(url.toString());
 
-                        auto request = ResourceManager::createResourceRequest(nullptr, url);
+                        auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, url);
                         Q_ASSERT(request);
 
                         // We've already made a request, so the cache must be disabled or it wasn't there, so enabling

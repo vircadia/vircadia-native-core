@@ -9,11 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <PerfStat.h>
-#include <QDateTime>
+#include "EntityTree.h"
+#include <QtCore/QDateTime>
+#include <QtCore/QQueue>
+
 #include <QtScript/QScriptEngine>
 
-#include "EntityTree.h"
+#include <PerfStat.h>
+#include <Extents.h>
+
 #include "EntitySimulation.h"
 #include "VariantMapToScriptValue.h"
 
@@ -55,9 +59,7 @@ public:
 
 
 EntityTree::EntityTree(bool shouldReaverage) :
-    Octree(shouldReaverage),
-    _fbxService(NULL),
-    _simulation(NULL)
+    Octree(shouldReaverage)
 {
     resetClientEditStats();
 }
