@@ -67,21 +67,22 @@ void AudioMixerClientData::processPackets() {
             case PacketType::MicrophoneAudioNoEcho:
             case PacketType::MicrophoneAudioWithEcho:
             case PacketType::InjectAudio:
-            case PacketType::AudioStreamStats:
-            case PacketType::SilentAudioFrame:
-            case PacketType::ReplicatedMicrophoneAudioNoEcho:
-            case PacketType::ReplicatedMicrophoneAudioWithEcho:
-            case PacketType::ReplicatedInjectAudio:
-            case PacketType::ReplicatedSilentAudioFrame: {
+            case PacketType::SilentAudioFrame: {
 
-                if (node->isUpstream() && !_hasSetupCodecForUpstreamNode) {
+                if (node->isUpstream()) {
                     setupCodecForReplicatedAgent(packet);
                 }
 
                 QMutexLocker lock(&getMutex());
                 parseData(*packet);
-                
+
                 optionallyReplicatePacket(*packet, *node);
+
+                break;
+            }
+            case PacketType::AudioStreamStats: {
+                QMutexLocker lock(&getMutex());
+                parseData(*packet);
 
                 break;
             }
@@ -141,7 +142,7 @@ void AudioMixerClientData::optionallyReplicatePacket(ReceivedMessage& message, c
 
         // enumerate the downstream audio mixers and send them the replicated version of this packet
         nodeList->unsafeEachNode([&](const SharedNodePointer& downstreamNode) {
-            if (downstreamNode->getType() == NodeType::DownstreamAudioMixer) {
+            if (AudioMixer::shouldReplicateTo(node, *downstreamNode)) {
                 // construct the packet only once, if we have any downstream audio mixers to send to
                 if (!packet) {
                     // construct an NLPacket to send to the replicant that has the contents of the received packet
@@ -687,14 +688,14 @@ void AudioMixerClientData::setupCodecForReplicatedAgent(QSharedPointer<ReceivedM
     // pull the codec string from the packet
     auto codecString = message->readString();
 
-    qDebug() << "Manually setting codec for replicated agent" << uuidStringWithoutCurlyBraces(getNodeID())
+    if (codecString != _selectedCodecName) {
+        qDebug() << "Manually setting codec for replicated agent" << uuidStringWithoutCurlyBraces(getNodeID())
         << "-" << codecString;
 
-    const std::pair<QString, CodecPluginPointer> codec = AudioMixer::negotiateCodec({ codecString });
-    setupCodec(codec.second, codec.first);
+        const std::pair<QString, CodecPluginPointer> codec = AudioMixer::negotiateCodec({ codecString });
+        setupCodec(codec.second, codec.first);
 
-    _hasSetupCodecForUpstreamNode = true;
-
-    // seek back to the beginning of the message so other readers are in the right place
-    message->seek(0);
+        // seek back to the beginning of the message so other readers are in the right place
+        message->seek(0);
+    }
 }

@@ -66,7 +66,6 @@ AvatarMixer::AvatarMixer(ReceivedMessage& message) :
     connect(nodeList.data(), &NodeList::nodeAdded, this, [this](const SharedNodePointer& node) {
         if (node->getType() == NodeType::DownstreamAvatarMixer) {
             getOrCreateClientData(node);
-            node->activatePublicSocket();
         }
     });
 }
@@ -144,8 +143,8 @@ void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node
         std::unique_ptr<NLPacket> packet;
 
         auto nodeList = DependencyManager::get<NodeList>();
-        nodeList->eachMatchingNode([&](const SharedNodePointer& node) {
-            return node->getType() == NodeType::DownstreamAvatarMixer;
+        nodeList->eachMatchingNode([&](const SharedNodePointer& downstreamNode) {
+            return shouldReplicateTo(node, *downstreamNode);
         }, [&](const SharedNodePointer& node) {
             if (!packet) {
                 // construct an NLPacket to send to the replicant that has the contents of the received packet
@@ -163,10 +162,6 @@ void AvatarMixer::queueIncomingPacket(QSharedPointer<ReceivedMessage> message, S
     getOrCreateClientData(node)->queuePacket(message, node);
     auto end = usecTimestampNow();
     _queueIncomingPacketElapsedTime += (end - start);
-}
-
-
-AvatarMixer::~AvatarMixer() {
 }
 
 void AvatarMixer::sendIdentityPacket(AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
@@ -331,7 +326,13 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
         }
     }
     if (sendIdentity) {
-        sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name or avatar.
+
+        // since this packet includes a change to either the skeleton model URL or the display name
+        // it needs a new sequence number
+        nodeData->getAvatar().pushIdentitySequenceNumber();
+
+        // tell node whose name changed about its new session display name or avatar.
+        sendIdentityPacket(nodeData, node);
     }
 }
 
@@ -423,8 +424,8 @@ void AvatarMixer::nodeKilled(SharedNodePointer killedNode) {
         nodeList->eachMatchingNode([&](const SharedNodePointer& node) {
             // we relay avatar kill packets to agents that are not upstream
             // and downstream avatar mixers, if the node that was just killed was being replicated
-            return (node->getType() == NodeType::Agent && !node->isUpstream())
-                || (killedNode->isReplicated() && node->getType() == NodeType::DownstreamAvatarMixer);
+            return (node->getType() == NodeType::Agent && !node->isUpstream()) ||
+                   (killedNode->isReplicated() && shouldReplicateTo(*killedNode, *node));
         }, [&](const SharedNodePointer& node) {
             if (node->getType() == NodeType::Agent) {
                 if (!killPacket) {
@@ -856,7 +857,10 @@ AvatarMixerClientData* AvatarMixer::getOrCreateClientData(SharedNodePointer node
 
 void AvatarMixer::domainSettingsRequestComplete() {
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->addSetOfNodeTypesToNodeInterestSet({ NodeType::Agent, NodeType::DownstreamAvatarMixer, NodeType::EntityScriptServer });
+    nodeList->addSetOfNodeTypesToNodeInterestSet({
+        NodeType::Agent, NodeType::EntityScriptServer,
+        NodeType::UpstreamAvatarMixer, NodeType::DownstreamAvatarMixer
+    });
 
     // parse the settings to pull out the values we need
     parseDomainServerSettings(nodeList->getDomainHandler().getSettingsObject());

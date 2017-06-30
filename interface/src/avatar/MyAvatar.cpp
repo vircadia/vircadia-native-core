@@ -593,12 +593,12 @@ void MyAvatar::simulate(float deltaTime) {
     auto entityTreeRenderer = qApp->getEntities();
     EntityTreePointer entityTree = entityTreeRenderer ? entityTreeRenderer->getTree() : nullptr;
     if (entityTree) {
-        bool flyingAllowed = true;
+        bool zoneAllowsFlying = true;
         bool collisionlessAllowed = true;
         entityTree->withWriteLock([&] {
             std::shared_ptr<ZoneEntityItem> zone = entityTreeRenderer->myAvatarZone();
             if (zone) {
-                flyingAllowed = zone->getFlyingAllowed();
+                zoneAllowsFlying = zone->getFlyingAllowed();
                 collisionlessAllowed = zone->getGhostingAllowed();
             }
             auto now = usecTimestampNow();
@@ -629,7 +629,7 @@ void MyAvatar::simulate(float deltaTime) {
                 entityTree->recurseTreeWithOperator(&moveOperator);
             }
         });
-        _characterController.setFlyingAllowed(flyingAllowed);
+        _characterController.setFlyingAllowed(zoneAllowsFlying && _enableFlying);
         _characterController.setCollisionlessAllowed(collisionlessAllowed);
     }
 
@@ -929,10 +929,15 @@ void MyAvatar::saveData() {
 
     settings.setValue("scale", _targetScale);
 
-    settings.setValue("fullAvatarURL",
+    // only save the fullAvatarURL if it has not been overwritten on command line
+    // (so the overrideURL is not valid), or it was overridden _and_ we specified
+    // --replaceAvatarURL (so _saveAvatarOverrideUrl is true)
+    if (qApp->getSaveAvatarOverrideUrl() || !qApp->getAvatarOverrideUrl().isValid() ) {
+        settings.setValue("fullAvatarURL",
                       _fullAvatarURLFromPreferences == AvatarData::defaultFullAvatarModelUrl() ?
                       "" :
                       _fullAvatarURLFromPreferences.toString());
+    }
 
     settings.setValue("fullAvatarModelName", _fullAvatarModelName);
 
@@ -2430,7 +2435,7 @@ bool MyAvatar::requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& bette
         // Our head may be embedded, but our center is out and there's room below. See corresponding comment above.
         return false; // nothing below
     }
- 
+
     // See if we have room between entities above and below, but that we are not contained.
     // First check if the surface above us is the bottom of something, and the surface below us it the top of something.
     // I.e., we are in a clearing between two objects.
@@ -2493,6 +2498,30 @@ void MyAvatar::updateMotionBehaviorFromMenu() {
         _motionBehaviors &= ~AVATAR_MOTION_SCRIPTED_MOTOR_ENABLED;
     }
     setCollisionsEnabled(menu->isOptionChecked(MenuOption::EnableAvatarCollisions));
+}
+
+void MyAvatar::setFlyingEnabled(bool enabled) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setFlyingEnabled", Q_ARG(bool, enabled));
+        return;
+    }
+
+    _enableFlying = enabled;
+}
+
+bool MyAvatar::isFlying() {
+    // Avatar is Flying, and is not Falling, or Taking off
+    return _characterController.getState() == CharacterController::State::Hover;
+}
+
+bool MyAvatar::isInAir() {
+    // If Avatar is Hover, Falling, or Taking off, they are in Air.
+    return _characterController.getState() != CharacterController::State::Ground;
+}
+
+bool MyAvatar::getFlyingEnabled() {
+    // May return true even if client is not allowed to fly in the zone.
+    return _enableFlying;
 }
 
 void MyAvatar::setCollisionsEnabled(bool enabled) {
@@ -3150,6 +3179,6 @@ void MyAvatar::updateHoldActions(const AnimPose& prePhysicsPose, const AnimPose&
     }
 }
 
-const MyHead* MyAvatar::getMyHead() const { 
-    return static_cast<const MyHead*>(getHead()); 
+const MyHead* MyAvatar::getMyHead() const {
+    return static_cast<const MyHead*>(getHead());
 }
