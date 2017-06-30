@@ -1704,9 +1704,6 @@ void Rig::computeAvatarBoundingCapsule(
     ikNode.setTargetVars("RightFoot", "rightFootPosition", "rightFootRotation",
                          "rightFootType", "rightFootWeight", 1.0f, {},
                          QString(), QString(), QString());
-
-    AnimPose geometryToRig = _modelOffset * _geometryOffset;
-
     glm::vec3 hipsPosition(0.0f);
     int hipsIndex = indexOfJoint("Hips");
     if (hipsIndex >= 0) {
@@ -1771,14 +1768,15 @@ void Rig::computeAvatarBoundingCapsule(
 
     // compute bounding shape parameters
     // NOTE: we assume that the longest side of totalExtents is the yAxis...
-    glm::vec3 diagonal = (geometryToRig * totalExtents.maximum) - (geometryToRig * totalExtents.minimum);
+    glm::vec3 diagonal = (transformPoint(_geometryToRigTransform, totalExtents.maximum) -
+                          transformPoint(_geometryToRigTransform, totalExtents.minimum));
     // ... and assume the radiusOut is half the RMS of the X and Z sides:
     radiusOut = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
     heightOut = diagonal.y - 2.0f * radiusOut;
 
     glm::vec3 rootPosition = finalPoses[geometry.rootJointIndex].trans();
-    glm::vec3 rigCenter = (geometryToRig * (0.5f * (totalExtents.maximum + totalExtents.minimum)));
-    localOffsetOut = rigCenter - (geometryToRig * rootPosition);
+    glm::vec3 rigCenter = transformPoint(_geometryToRigTransform, (0.5f * (totalExtents.maximum + totalExtents.minimum)));
+    localOffsetOut = rigCenter - transformPoint(_geometryToRigTransform, rootPosition);
 }
 
 bool Rig::transitionHandPose(float deltaTime, float totalDuration, AnimPose& controlledHandPose, bool isLeftHand,
