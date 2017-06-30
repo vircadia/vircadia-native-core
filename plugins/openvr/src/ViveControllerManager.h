@@ -189,7 +189,7 @@ private:
     };
 
     void renderHand(const controller::Pose& pose, gpu::Batch& batch, int sign);
-
+    bool isDesktopMode();
     bool _registeredWithInputMapper { false };
     bool _modelLoaded { false };
     model::Geometry _modelGeometry;

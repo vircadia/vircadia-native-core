@@ -28,6 +28,8 @@
 #include <GLMHelpers.h>
 #include <glm/ext.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <ui-plugins/PluginContainer.h>
+#include <plugins/DisplayPlugin.h>
 
 #include <controllers/UserInputMapper.h>
 #include <Plugins/InputConfiguration.h>
@@ -119,6 +121,13 @@ static QString deviceTrackingResultToString(vr::ETrackingResult trackingResult) 
         return iterator->second;
     }
     return result;
+}
+
+bool ViveControllerManager::isDesktopMode() {
+    if (_container) {
+        return !_container->getActiveDisplayPlugin()->isHmd();
+    }
+    return false;
 }
 
 void ViveControllerManager::calibrate() {
@@ -216,6 +225,10 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
 
     if (!_system) {
         return;
+    }
+
+    if (isDesktopMode()) {
+        qDebug() << "In desktop mode";
     }
 
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
