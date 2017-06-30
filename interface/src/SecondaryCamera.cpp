@@ -49,14 +49,12 @@ public:
     }
 
     void configure(const Config& config) {
-        if (config.enabled || config.alwaysEnabled) {
-            _attachedEntityId = config.attachedEntityId;
-            _position = config.position;
-            _orientation = config.orientation;
-            _vFoV = config.vFoV;
-            _nearClipPlaneDistance = config.nearClipPlaneDistance;
-            _farClipPlaneDistance = config.farClipPlaneDistance;
-        }
+        _attachedEntityId = config.attachedEntityId;
+        _position = config.position;
+        _orientation = config.orientation;
+        _vFoV = config.vFoV;
+        _nearClipPlaneDistance = config.nearClipPlaneDistance;
+        _farClipPlaneDistance = config.farClipPlaneDistance;
     }
 
     void run(const render::RenderContextPointer& renderContext, RenderArgsPointer& cachedArgs) {
