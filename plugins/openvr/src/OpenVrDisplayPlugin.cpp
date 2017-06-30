@@ -525,7 +525,7 @@ void OpenVrDisplayPlugin::resetSensors() {
     _sensorResetMat = glm::inverse(cancelOutRollAndPitch(m));
 }
 
-/static bool isBadPose(vr::HmdMatrix34_t* mat) {
+static bool isBadPose(vr::HmdMatrix34_t* mat) {
     if (mat->m[1][3] < -0.2f) {
         return true;
     }

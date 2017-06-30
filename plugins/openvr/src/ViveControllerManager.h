@@ -194,7 +194,7 @@ private:
     bool _registeredWithInputMapper { false };
     bool _modelLoaded { false };
     bool _resetMatCalculated { false };
-    bool _pullInputData { false };
+    bool _desktopMode { false };
     glm::mat4 _resetMat { glm::mat4() };
     model::Geometry _modelGeometry;
     gpu::TexturePointer _texture;

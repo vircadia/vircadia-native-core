@@ -166,13 +166,19 @@ bool ViveControllerManager::isSupported() const {
 
 void ViveControllerManager::setConfigurationSettings(const QJsonObject configurationSettings) {
     if (isSupported()) {
+        if (configurationSettings.contains("desktopMode")) {
+            qDebug() << configurationSettings["desktopMode"].toBool();
+            _desktopMode = configurationSettings["desktopMode"].toBool();
+        }
         _inputDevice->configureCalibrationSettings(configurationSettings);
     }
 }
 
 QJsonObject ViveControllerManager::configurationSettings() {
     if (isSupported()) {
-        return _inputDevice->configurationSettings();
+        QJsonObject configurationSettings = _inputDevice->configurationSettings();
+        configurationSettings["desktopMode"] = _desktopMode;
+        return configurationSettings;
     }
 
     return QJsonObject();
@@ -243,7 +249,7 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
         return;
     }
 
-    if (isDesktopMode()) {
+    if (isDesktopMode() && _desktopMode) {
         if (!_resetMatCalculated) {
             _resetMat = calculateResetMat();
             _resetMatCalculated = true;
@@ -251,6 +257,8 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
         
         _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, 0, _nextSimPoseData.vrPoses, vr::k_unMaxTrackedDeviceCount);
         _nextSimPoseData.update(_resetMat);
+    } else if (isDesktopMode()) {
+        _nextSimPoseData.resetToInvalid();
     }
 
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
