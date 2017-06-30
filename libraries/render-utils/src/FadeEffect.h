@@ -126,15 +126,29 @@ public:
     float getEdgeOuterIntensity() const { return edgeOuterColor[editedCategory].a; }
 
     int editedCategory{ ELEMENT_ENTER_LEAVE_DOMAIN };
-    glm::vec3 baseSize[EVENT_CATEGORY_COUNT]{
-        { 0.4f, 0.4f, 0.4f },   // ELEMENT_ENTER_LEAVE_DOMAIN
+    glm::vec3 noiseSize[EVENT_CATEGORY_COUNT]{
+        { 1.f, 1.f, 1.f },   // ELEMENT_ENTER_LEAVE_DOMAIN
         { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_OWNER
         { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_TRESPASSER
-        { 0.875f, 0.4f, 0.875f },   // USER_ENTER_LEAVE_DOMAIN
+        { 10.f, 0.01f, 10.0f },   // USER_ENTER_LEAVE_DOMAIN
+        { 0.4f, 0.4f, 0.4f },   // AVATAR_CHANGE
+    };
+    float noiseLevel[EVENT_CATEGORY_COUNT]{
+        1.0f,    // ELEMENT_ENTER_LEAVE_DOMAIN
+        1.0f,    // BUBBLE_ISECT_OWNER
+        1.0f,    // BUBBLE_ISECT_TRESPASSER
+        0.70f,    // USER_ENTER_LEAVE_DOMAIN
+        1.0f,    // AVATAR_CHANGE
+    };
+    glm::vec3 baseSize[EVENT_CATEGORY_COUNT]{
+        { 1.0f, 1.0f, 1.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
+        { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_OWNER
+        { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_TRESPASSER
+        { 10000.f, 1.0f, 10000.0f },   // USER_ENTER_LEAVE_DOMAIN
         { 0.4f, 0.4f, 0.4f },   // AVATAR_CHANGE
     };
     float baseLevel[EVENT_CATEGORY_COUNT]{
-        1.0f,    // ELEMENT_ENTER_LEAVE_DOMAIN
+        0.0f,    // ELEMENT_ENTER_LEAVE_DOMAIN
         1.0f,    // BUBBLE_ISECT_OWNER
         1.0f,    // BUBBLE_ISECT_TRESPASSER
         1.0f,    // USER_ENTER_LEAVE_DOMAIN
@@ -147,20 +161,6 @@ public:
         true,    // USER_ENTER_LEAVE_DOMAIN
         false,    // AVATAR_CHANGE
     };
-    glm::vec3 noiseSize[EVENT_CATEGORY_COUNT]{
-        { 0.41f, 0.41f, 0.41f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-        { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_OWNER
-        { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_TRESPASSER
-        { 0.4f, 0.4f, 0.4f },   // USER_ENTER_LEAVE_DOMAIN
-        { 0.4f, 0.4f, 0.4f },   // AVATAR_CHANGE
-    };
-    float noiseLevel[EVENT_CATEGORY_COUNT]{
-        1.0f,    // ELEMENT_ENTER_LEAVE_DOMAIN
-        1.0f,    // BUBBLE_ISECT_OWNER
-        1.0f,    // BUBBLE_ISECT_TRESPASSER
-        1.0f,    // USER_ENTER_LEAVE_DOMAIN
-        1.0f,    // AVATAR_CHANGE
-    };
     float _duration[EVENT_CATEGORY_COUNT]{
         4.0f,   // ELEMENT_ENTER_LEAVE_DOMAIN
         0.0f,   // BUBBLE_ISECT_OWNER
@@ -172,21 +172,21 @@ public:
         0.10f,   // ELEMENT_ENTER_LEAVE_DOMAIN
         0.10f,   // BUBBLE_ISECT_OWNER
         0.10f,   // BUBBLE_ISECT_TRESPASSER
-        0.10f,   // USER_ENTER_LEAVE_DOMAIN
+        0.529f,   // USER_ENTER_LEAVE_DOMAIN
         0.05f,   // AVATAR_CHANGE
     };
     glm::vec4 edgeInnerColor[EVENT_CATEGORY_COUNT]{
         { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
         { 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f },   // BUBBLE_ISECT_OWNER
         { 1.0f, 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_TRESPASSER
-        { 1.0f, 1.0f, 1.0f, 1.0f },   // USER_ENTER_LEAVE_DOMAIN
+        { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.25f },   // USER_ENTER_LEAVE_DOMAIN
         { 1.0f, 1.0f, 1.0f, 1.0f },   // AVATAR_CHANGE
     };
     glm::vec4 edgeOuterColor[EVENT_CATEGORY_COUNT]{
         { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
         { 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f },   // BUBBLE_ISECT_OWNER
         { 1.0f, 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_TRESPASSER
-        { 1.0f, 1.0f, 1.0f, 1.0f },   // USER_ENTER_LEAVE_DOMAIN
+        { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f },   // USER_ENTER_LEAVE_DOMAIN
         { 1.0f, 1.0f, 1.0f, 1.0f },   // AVATAR_CHANGE
     };
 
@@ -224,7 +224,7 @@ public:
     using FadeOutput = render::VaryingArray<render::ItemBounds, FadeBuckets::NUM_BUCKETS>;
 
     using Input = RenderFetchCullSortTask::Output;
-    using Output = render::VaryingSet2<RenderFetchCullSortTask::Output, FadeOutput>;
+    using Output = render::VaryingSet3 < RenderFetchCullSortTask::Output, FadeOutput, render::Item::Bound > ;
     using Config = FadeSwitchJobConfig;
     using JobModel = render::Job::ModelIO<FadeSwitchJob, Input, Output, Config>;
 
@@ -263,16 +263,17 @@ class FadeConfigureJob {
 public:
 
     using UniformBuffer = gpu::StructBuffer<FadeConfiguration>;
+    using Input = render::Item::Bound ;
     using Output = render::VaryingSet2<gpu::TexturePointer, UniformBuffer>;
     using Config = FadeJobConfig;
-    using JobModel = render::Job::ModelO<FadeConfigureJob, Output, Config>;
+    using JobModel = render::Job::ModelIO<FadeConfigureJob, Input, Output, Config>;
 
     FadeConfigureJob(FadeCommonParameters::Pointer commonParams);
 
     const gpu::TexturePointer getFadeMaskMap() const { return _fadeMaskMap; }
 
     void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, Output& output);
+    void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
 
 private:
 
@@ -316,8 +317,10 @@ private:
     // Everything needed for interactive edition
     uint64_t _editStartTime{ 0 };
     float _editThreshold{ 0.f };
+    glm::vec3 _editNoiseOffset{ 0.f, 0.f, 0.f };
+    glm::vec3 _editBaseOffset{ 0.f, 0.f, 0.f };
 
-    void updateFadeEdit();
+    void updateFadeEdit(const render::ItemBound& itemBounds);
 };
 
 #endif // hifi_FadeEffect_h

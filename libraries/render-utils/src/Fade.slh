@@ -90,11 +90,10 @@ float evalFadeGradient(vec3 position) {
 }
 
 float evalFadeAlpha(vec3 position) {
-/*    float edgeWidth = fadeParameters[fadeCategory]._edgeWidthInvWidth.x;
+    float edgeWidth = fadeParameters[fadeCategory]._edgeWidthInvWidth.x;
     float cutoff = mix(-edgeWidth, 1.0+edgeWidth, fadeThreshold);
 
-    return evalFadeGradient(position)-cutoff;*/
-    return evalFadeNoiseGradient(position)-fadeThreshold;
+    return evalFadeGradient(position)-cutoff;
 }
 
 void applyFadeClip(vec3 position) {
