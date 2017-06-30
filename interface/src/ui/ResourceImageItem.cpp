@@ -17,7 +17,6 @@
 #include <QOpenGLContext>
 
 #include <DependencyManager.h>
-#include <TextureCache.h>
 
 ResourceImageItem::ResourceImageItem(QQuickItem* parent) : QQuickFramebufferObject(parent) {
     connect(&m_updateTimer, SIGNAL(timeout()), this, SLOT(onUpdateTimer()));
@@ -118,6 +117,10 @@ void ResourceImageItemRenderer::render() {
 void ResourceImageItemRenderer::render() {
     auto f = QOpenGLContext::currentContext()->extraFunctions();
     bool doUpdate = false;
+    // black background
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
     if (_fenceSync) {
         f->glWaitSync(_fenceSync, 0, GL_TIMEOUT_IGNORED);
         f->glDeleteSync(_fenceSync);

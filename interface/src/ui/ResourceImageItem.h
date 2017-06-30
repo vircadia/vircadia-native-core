@@ -16,6 +16,8 @@
 #include <QQuickWindow>
 #include <QTimer>
 
+#include <TextureCache.h>
+
 class ResourceImageItemRenderer : public QQuickFramebufferObject::Renderer {
 public:
     QOpenGLFramebufferObject* createFramebufferObject(const QSize& size) override;
