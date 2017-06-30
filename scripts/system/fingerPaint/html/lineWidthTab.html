@@ -1,0 +1,50 @@
+<!--Note: change the parent postmessage second parameter due to possible security issues-->
+<style type="text/css">
+    /*range style: http://danielstern.ca/range.css/#/*/
+    input[type=range] {
+        -webkit-appearance: none;
+        width: 400px;
+    }
+    input[type=range]:focus {
+        outline: none;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+        width: 100%;
+        cursor: pointer;
+        background: #666;
+        border: 0.1px solid #010101;
+    }
+    input[type=range]::-webkit-slider-thumb {
+        border: 1px solid #000000;
+        height: 24px;
+        width: 24px;
+        background-color: #fff;
+        cursor: pointer;
+        -webkit-appearance: none;
+    }
+    #lineWidthText {
+        padding-left: 12px;
+        padding-top: 6px;
+        position: absolute;
+    }
+    #lineWidthContainer {
+        margin: 12px;
+        margin-top: 48px;
+    }
+</style>
+
+<div id="lineWidthContainer">
+    <input type="range" id="myRange" value=0.25 min=0 max=1 step=0.01 onchange="changeLineWidth(this)">
+    <span id="lineWidthText">0.25</span>
+</div>
+
+<script type="text/javascript">
+    function changeLineWidth(e) {
+        document.getElementById("lineWidthText").innerText = e.value;
+          var changeLineWidthEvent = {
+            "type"     : "changeLineWidth",
+            "brushWidth":  e.value
+        };
+        parent.postMessage(JSON.stringify(changeLineWidthEvent), "*");
+    }
+</script>

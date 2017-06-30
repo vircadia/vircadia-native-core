@@ -1,0 +1,51 @@
+<!--Note: change the parent postmessage second parameter due to possible security issues-->
+<style>
+.brushButton {
+	max-width: 220px,
+    padding: 10px,
+    background-color: #666666
+}
+.BrushIcon {
+    padding: 10px,
+    width: 130px,
+}
+#dynamicBrush {
+    margin: 20px 0;
+}
+.selectedBrush {
+    background-color: #f4e842
+}
+</style>
+<!--<input onchange="setDynamicBrush(this)" type="checkbox" id="dynamicBrush"> Use Dynamic brush </input>-->
+<div id="brushesCointainer">
+    <button class="brushButton" id="content/brushes/paintbrush1.png" onclick="changePaintBrush(0)"><img width="130px" src="../content/brushes/paintbrush1.png" class="BrushIcon" ></button>
+    <button class="brushButton" id="content/brushes/paintbrush2.png" onclick="changePaintBrush(1)"><img width="130px" src="../content/brushes/paintbrush2.png" class="BrushIcon" ></button>
+    <button class="brushButton" id="content/brushes/paintbrush3.png" onclick="changePaintBrush(2)"><img width="130px" src="../content/brushes/paintbrush3.png" class="BrushIcon" ></button>
+    <button class="brushButton" id="content/brushes/paintbrush4.png" onclick="changePaintBrush(3)"><img width="130px" src="../content/brushes/paintbrush4.png" class="BrushIcon" ></button>
+    <button class="brushButton" id="content/brushes/paintbrush5.png" onclick="changePaintBrush(4)"><img width="130px" src="../content/brushes/paintbrush5.png" class="BrushIcon" ></button>
+    <button class="brushButton" id="content/brushes/paintbrush6.png" onclick="changePaintBrush(5)"><img width="130px" src="../content/brushes/paintbrush6.png" class="BrushIcon" ></button>
+</div>
+
+
+<script type="text/javascript">
+    var currentBrush = 5;
+    function changePaintBrush(brushIndex) {
+        var bruhes = document.getElementById("brushesCointainer").children;
+        bruhes[currentBrush].classList.remove("selectedBrush");
+        currentBrush = brushIndex;
+        bruhes[currentBrush].classList.add("selectedBrush");
+        var changedBrushEvent = {
+            "type"     : "changeBrush",
+            "brushName":  bruhes[currentBrush].id
+        };
+        parent.postMessage(JSON.stringify(changedBrushEvent), "*");
+    }
+
+    /*function setDynamicBrush(checkbox) {
+        var switchBrushEvent = {
+            "type"                 : "switchDynamicBrush",
+            "isDynamicBrushEnabled":  checkbox.checked
+        };
+        parent.postMessage(JSON.stringify(switchBrushEvent), "*");
+    }*/
+</script>

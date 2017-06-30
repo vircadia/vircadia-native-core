@@ -1,0 +1,35 @@
+<!--Note: change the parent postmessage second parameter due to possible security issues-->
+<style type="text/css">
+    .changeHandButton {
+        width: 200px;
+        height: 200px;
+    }
+    .brushButton {
+        max-width: 220px,
+        padding: 10px,
+        background-color: #666666
+    }
+    .selectedHand {
+        background-color: #f4e842
+    }
+</style>
+
+<div id="handButtonsContainer" >
+    <button class="changeHandButton" id="left" onclick="chooseHand(0)">Left</button>
+    <button class="changeHandButton selectedHand" id="right" onclick="chooseHand(1)">Right</button>
+</div>
+
+<script type="text/javascript">
+    var currentHand = 1;
+    function chooseHand(handIndex) {
+        handButtons = document.getElementById("handButtonsContainer").children;
+        handButtons[currentHand].classList.remove("selectedHand");
+        currentHand = handIndex;
+        handButtons[currentHand].classList.add("selectedHand");
+        var chooseHandEvent = {
+            "type"       : "changeBrushHand",
+            "DrawingHand": handButtons[handIndex].id
+        };
+        parent.postMessage(JSON.stringify(chooseHandEvent), "*");
+    }
+</script>

@@ -1,0 +1,17 @@
+<!--Note: change the parent postmessage second parameter due to possible security issues-->
+<style type="text/css">
+    #undoButton {
+        width: 200px;
+        height: 200px;
+    }
+</style>
+
+<button id="undoButton" onclick="undo()">Undo</button>
+<script type="text/javascript">
+    function undo() {
+        var undoEvent = {
+            "type"     : "undo"
+        };
+        parent.postMessage(JSON.stringify(undoEvent), "*");
+    }
+</script>
