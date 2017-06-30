@@ -1526,9 +1526,11 @@ void EntityTree::clearEntityMapEntry(const EntityItemID& id) {
 }
 
 void EntityTree::debugDumpMap() {
+    // QHash's are implicitly shared, so we make a shared copy and use that instead.
+    // This way we might be able to avoid both a lock and a true copy.
+    QHash<EntityItemID, EntityItemPointer> localMap(_entityMap);
     qCDebug(entities) << "EntityTree::debugDumpMap() --------------------------";
-    QReadLocker locker(&_entityMapLock);
-    QHashIterator<EntityItemID, EntityItemPointer> i(_entityMap);
+    QHashIterator<EntityItemID, EntityItemPointer> i(localMap);
     while (i.hasNext()) {
         i.next();
         qCDebug(entities) << i.key() << ": " << i.value()->getElement().get();
