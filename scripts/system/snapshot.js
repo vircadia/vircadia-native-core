@@ -384,7 +384,6 @@ function onButtonClicked() {
     } else {
         fillImageDataFromPrevious();
         tablet.gotoWebScreen(SNAPSHOT_REVIEW_URL);
-        tablet.webEventReceived.connect(onMessage);
         HMD.openTablet();
     }
 }
@@ -660,10 +659,15 @@ function maybeDeleteSnapshotStories() {
     storyIDsToMaybeDelete = [];
 }
 function onTabletScreenChanged(type, url) {
+    var wasInSnapshotReview = isInSnapshotReview; 
     isInSnapshotReview = (type === "Web" && url === SNAPSHOT_REVIEW_URL);
     button.editProperties({ isActive: isInSnapshotReview });
-    if (!isInSnapshotReview) {
-        tablet.webEventReceived.disconnect(onMessage);
+    if (isInSnapshotReview !== wasInSnapshotReview) {
+        if (isInSnapshotReview) {
+            tablet.webEventReceived.connect(onMessage);
+        } else {
+            tablet.webEventReceived.disconnect(onMessage);
+        }
     }
 }
 function onUsernameChanged() {
