@@ -44,10 +44,15 @@ public:
     bool getReady() const { return m_ready; }
     void setReady(bool ready);
     QQuickFramebufferObject::Renderer* createRenderer() const override { return new ResourceImageItemRenderer; }
+
+public slots:
+    void onUpdateTimer();
+
 private:
     QString m_url;
     bool m_ready { false };
     QTimer m_updateTimer; // TODO: something more clever
+
 };
 
 #endif // hifi_ResourceImageItem_h

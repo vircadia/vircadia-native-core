@@ -20,35 +20,46 @@
 #include <TextureCache.h>
 
 ResourceImageItem::ResourceImageItem(QQuickItem* parent) : QQuickFramebufferObject(parent) {
-    connect(&m_updateTimer, SIGNAL(timeout()), this, SLOT(update()));
+    connect(&m_updateTimer, SIGNAL(timeout()), this, SLOT(onUpdateTimer()));
+}
+
+void ResourceImageItem::onUpdateTimer() {
+    qDebug() << "onUpdateTimer called";
+    // turn timer off if not visible
+    if (!isVisible()) {
+        m_updateTimer.stop();
+    } else {
+        update();
+    }
 }
 
 void ResourceImageItem::setUrl(const QString& url) {
     if (url != m_url) {
         m_url = url;
     }
+    update();
 }
 
 void ResourceImageItem::setReady(bool ready) {
     if (ready != m_ready) {
         m_ready = ready;
-        update();
-        /*
         if (m_ready) {
             // 10 HZ for now.  Also this serves as a small
             // delay before getting the network texture, which
             // helps a lot.  TODO: find better way.
+            qDebug() << "setReady called";
             m_updateTimer.start(100);
         } else {
             m_updateTimer.stop();
             update();
-        }*/
+        }
     }
 }
 
 void ResourceImageItemRenderer::synchronize(QQuickFramebufferObject* item) {
     ResourceImageItem* resourceImageItem = static_cast<ResourceImageItem*>(item);
 
+    resourceImageItem->setFlag(QQuickItem::ItemHasContents);
     bool urlChanged = false;
     if( _url != resourceImageItem->getUrl()) {
         _url = resourceImageItem->getUrl();
@@ -65,7 +76,6 @@ void ResourceImageItemRenderer::synchronize(QQuickFramebufferObject* item) {
         _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_url);
     }
 
-    resourceImageItem->forceActiveFocus();
     if (_ready && _networkTexture && _networkTexture->isLoaded()) {
         if(_fboMutex.tryLock()) {
             qApp->getActiveDisplayPlugin()->copyTextureToQuickFramebuffer(_networkTexture, _copyFbo, &_fenceSync);
@@ -73,6 +83,7 @@ void ResourceImageItemRenderer::synchronize(QQuickFramebufferObject* item) {
         }
 
     }
+    glFlush();
 
 }
 
@@ -82,13 +93,46 @@ QOpenGLFramebufferObject* ResourceImageItemRenderer::createFramebufferObject(con
     _copyFbo = new QOpenGLFramebufferObject(size, format);
     return new QOpenGLFramebufferObject(size, format);
 }
-
+/*
+// this is helpful to look for problems without the confusion of the framebufer stuff
 void ResourceImageItemRenderer::render() {
+    qDebug() << "rendering";
     static int colorInt = 0;
-    float red = (float)((colorInt++ % 20)/(float)20);
+    float red = (float)((colorInt++ % 50)/(float)50);
     glClearColor(red, 0.0f, 0.0f, 0.5f + red/2.0f);
     glClear(GL_COLOR_BUFFER_BIT);
     glFlush();
-    _window->resetOpenGLState();
-    update(); // schedule a call to render again on next frame (only do this when camera is on, in the future)
+    update();
+    //_window->resetOpenGLState();
+    // we only want to call Renderer::update once per timer tick, and
+    // so waiting on the fenceSync and resetting it does that
+    auto f = QOpenGLContext::currentContext()->extraFunctions();
+    if (_fenceSync) {
+        f->glWaitSync(_fenceSync, 0, GL_TIMEOUT_IGNORED);
+        f->glDeleteSync(_fenceSync);
+        _fenceSync = 0;
+        update();
+    }
+}
+*/
+void ResourceImageItemRenderer::render() {
+    auto f = QOpenGLContext::currentContext()->extraFunctions();
+    bool doUpdate = false;
+    if (_fenceSync) {
+        f->glWaitSync(_fenceSync, 0, GL_TIMEOUT_IGNORED);
+        f->glDeleteSync(_fenceSync);
+        _fenceSync = 0;
+        doUpdate = true;
+    }
+    if (_ready) {
+        _fboMutex.lock();
+        _copyFbo->bind();
+        QOpenGLFramebufferObject::blitFramebuffer(framebufferObject(), _copyFbo, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        _copyFbo->release();
+        _fboMutex.unlock();
+        if (doUpdate) {
+            update();
+        }
+    }
+    glFlush();
 }
