@@ -79,7 +79,7 @@ QScriptValue QmlWindowClass::constructor(QScriptContext* context, QScriptEngine*
     Q_ASSERT(retVal);
     if (QThread::currentThread() != qApp->thread()) {
         retVal->moveToThread(qApp->thread());
-        hifi::qt::blockingInvokeMethod(retVal, "initQml", Q_ARG(QVariantMap, properties));
+        BLOCKING_INVOKE_METHOD(retVal, "initQml", Q_ARG(QVariantMap, properties));
     } else {
         retVal->initQml(properties);
     }
@@ -111,7 +111,7 @@ void QmlWindowClass::initQml(QVariantMap properties) {
         // Build the event bridge and wrapper on the main thread
         offscreenUi->loadInNewContext(qmlSource(), [&](QQmlContext* context, QObject* object) {
             _qmlWindow = object;
-            context->setContextProperty("eventBridge", this);
+            context->setContextProperty(EVENT_BRIDGE_PROPERTY, this);
             context->engine()->setObjectOwnership(this, QQmlEngine::CppOwnership);
             context->engine()->setObjectOwnership(object, QQmlEngine::CppOwnership);
             if (properties.contains(TITLE_PROPERTY)) {
@@ -243,7 +243,7 @@ void QmlWindowClass::setVisible(bool visible) {
 bool QmlWindowClass::isVisible() {
     if (QThread::currentThread() != thread()) {
         bool result = false;
-        hifi::qt::blockingInvokeMethod(this, "isVisible", Q_RETURN_ARG(bool, result));
+        BLOCKING_INVOKE_METHOD(this, "isVisible", Q_RETURN_ARG(bool, result));
         return result;
     }
 
@@ -264,7 +264,7 @@ bool QmlWindowClass::isVisible() {
 glm::vec2 QmlWindowClass::getPosition() {
     if (QThread::currentThread() != thread()) {
         vec2 result;
-        hifi::qt::blockingInvokeMethod(this, "getPosition", Q_RETURN_ARG(vec2, result));
+        BLOCKING_INVOKE_METHOD(this, "getPosition", Q_RETURN_ARG(vec2, result));
         return result;
     }
 
@@ -299,7 +299,7 @@ glm::vec2 toGlm(const QSizeF& size) {
 glm::vec2 QmlWindowClass::getSize() {
     if (QThread::currentThread() != thread()) {
         vec2 result;
-        hifi::qt::blockingInvokeMethod(this, "getSize", Q_RETURN_ARG(vec2, result));
+        BLOCKING_INVOKE_METHOD(this, "getSize", Q_RETURN_ARG(vec2, result));
         return result;
     }
 

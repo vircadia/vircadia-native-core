@@ -483,7 +483,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& 
                                                                  const QScriptValue& avatarIdsToDiscard) {
     RayToAvatarIntersectionResult result;
     if (QThread::currentThread() != thread()) {
-        hifi::qt::blockingInvokeMethod(const_cast<AvatarManager*>(this), "findRayIntersection",
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarManager*>(this), "findRayIntersection",
                                   Q_RETURN_ARG(RayToAvatarIntersectionResult, result),
                                   Q_ARG(const PickRay&, ray),
                                   Q_ARG(const QScriptValue&, avatarIdsToInclude),

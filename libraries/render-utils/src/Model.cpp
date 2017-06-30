@@ -871,7 +871,7 @@ bool Model::getRelativeDefaultJointTranslation(int jointIndex, glm::vec3& transl
 QStringList Model::getJointNames() const {
     if (QThread::currentThread() != thread()) {
         QStringList result;
-        hifi::qt::blockingInvokeMethod(const_cast<Model*>(this), "getJointNames",
+        BLOCKING_INVOKE_METHOD(const_cast<Model*>(this), "getJointNames",
             Q_RETURN_ARG(QStringList, result));
         return result;
     }

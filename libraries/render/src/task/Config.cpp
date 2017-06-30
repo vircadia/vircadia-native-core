@@ -61,7 +61,7 @@ void TaskConfig::transferChildrenConfigs(QConfigPointer source) {
 
 void TaskConfig::refresh() {
     if (QThread::currentThread() != thread()) {
-        hifi::qt::blockingInvokeMethod(this, "refresh");
+        BLOCKING_INVOKE_METHOD(this, "refresh");
         return;
     }
 

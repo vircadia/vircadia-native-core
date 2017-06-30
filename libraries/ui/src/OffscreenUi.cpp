@@ -250,7 +250,7 @@ int OffscreenUi::waitForMessageBoxResult(QQuickItem* messageBox) {
 QMessageBox::StandardButton OffscreenUi::messageBox(Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
     if (QThread::currentThread() != thread()) {
         QMessageBox::StandardButton result = QMessageBox::StandardButton::NoButton;
-        hifi::qt::blockingInvokeMethod(this, "messageBox",
+        BLOCKING_INVOKE_METHOD(this, "messageBox",
             Q_RETURN_ARG(QMessageBox::StandardButton, result),
             Q_ARG(Icon, icon),
             Q_ARG(QString, title),
@@ -352,7 +352,7 @@ QVariant OffscreenUi::getCustomInfo(const Icon icon, const QString& title, const
 QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const QString& label, const QVariant& current) {
     if (QThread::currentThread() != thread()) {
         QVariant result;
-        hifi::qt::blockingInvokeMethod(this, "inputDialog",
+        BLOCKING_INVOKE_METHOD(this, "inputDialog",
             Q_RETURN_ARG(QVariant, result),
             Q_ARG(Icon, icon),
             Q_ARG(QString, title),
@@ -367,7 +367,7 @@ QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const Q
 QVariant OffscreenUi::customInputDialog(const Icon icon, const QString& title, const QVariantMap& config) {
     if (QThread::currentThread() != thread()) {
         QVariant result;
-        hifi::qt::blockingInvokeMethod(this, "customInputDialog",
+        BLOCKING_INVOKE_METHOD(this, "customInputDialog",
                                   Q_RETURN_ARG(QVariant, result),
                                   Q_ARG(Icon, icon),
                                   Q_ARG(QString, title),
@@ -641,7 +641,7 @@ QString OffscreenUi::fileDialog(const QVariantMap& properties) {
 QString OffscreenUi::fileOpenDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
     if (QThread::currentThread() != thread()) {
         QString result;
-        hifi::qt::blockingInvokeMethod(this, "fileOpenDialog",
+        BLOCKING_INVOKE_METHOD(this, "fileOpenDialog",
             Q_RETURN_ARG(QString, result),
             Q_ARG(QString, caption),
             Q_ARG(QString, dir),
@@ -663,7 +663,7 @@ QString OffscreenUi::fileOpenDialog(const QString& caption, const QString& dir, 
 QString OffscreenUi::fileSaveDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
     if (QThread::currentThread() != thread()) {
         QString result;
-        hifi::qt::blockingInvokeMethod(this, "fileSaveDialog",
+        BLOCKING_INVOKE_METHOD(this, "fileSaveDialog",
             Q_RETURN_ARG(QString, result),
             Q_ARG(QString, caption),
             Q_ARG(QString, dir),
@@ -687,7 +687,7 @@ QString OffscreenUi::fileSaveDialog(const QString& caption, const QString& dir, 
 QString OffscreenUi::existingDirectoryDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
     if (QThread::currentThread() != thread()) {
         QString result;
-        hifi::qt::blockingInvokeMethod(this, "existingDirectoryDialog",
+        BLOCKING_INVOKE_METHOD(this, "existingDirectoryDialog",
                                   Q_RETURN_ARG(QString, result),
                                   Q_ARG(QString, caption),
                                   Q_ARG(QString, dir),
@@ -774,7 +774,7 @@ QString OffscreenUi::assetOpenDialog(const QString& caption, const QString& dir,
     // ATP equivalent of fileOpenDialog().
     if (QThread::currentThread() != thread()) {
         QString result;
-        hifi::qt::blockingInvokeMethod(this, "assetOpenDialog",
+        BLOCKING_INVOKE_METHOD(this, "assetOpenDialog",
             Q_RETURN_ARG(QString, result),
             Q_ARG(QString, caption),
             Q_ARG(QString, dir),

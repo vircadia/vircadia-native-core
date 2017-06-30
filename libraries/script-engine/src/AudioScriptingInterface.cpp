@@ -34,7 +34,7 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound
     if (QThread::currentThread() != thread()) {
         ScriptAudioInjector* injector = NULL;
 
-        hifi::qt::blockingInvokeMethod(this, "playSound",
+        BLOCKING_INVOKE_METHOD(this, "playSound",
                                   Q_RETURN_ARG(ScriptAudioInjector*, injector),
                                   Q_ARG(SharedSoundPointer, sound),
                                   Q_ARG(const AudioInjectorOptions&, injectorOptions));

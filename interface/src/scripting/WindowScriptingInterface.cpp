@@ -317,7 +317,7 @@ bool WindowScriptingInterface::isPhysicsEnabled() {
 int WindowScriptingInterface::openMessageBox(QString title, QString text, int buttons, int defaultButton) {
     if (QThread::currentThread() != thread()) {
         int result;
-        hifi::qt::blockingInvokeMethod(this, "openMessageBox",
+        BLOCKING_INVOKE_METHOD(this, "openMessageBox",
             Q_RETURN_ARG(int, result),
             Q_ARG(QString, title),
             Q_ARG(QString, text),

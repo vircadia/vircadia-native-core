@@ -99,7 +99,7 @@ void RecordingScriptingInterface::loadRecording(const QString& url, QScriptValue
 
 void RecordingScriptingInterface::startPlaying() {
     if (QThread::currentThread() != thread()) {
-        hifi::qt::blockingInvokeMethod(this, "startPlaying");
+        BLOCKING_INVOKE_METHOD(this, "startPlaying");
         return;
     }
 
@@ -116,7 +116,7 @@ void RecordingScriptingInterface::setPlayerAudioOffset(float audioOffset) {
 
 void RecordingScriptingInterface::setPlayerTime(float time) {
     if (QThread::currentThread() != thread()) {
-        hifi::qt::blockingInvokeMethod(this, "setPlayerTime", Q_ARG(float, time));
+        BLOCKING_INVOKE_METHOD(this, "setPlayerTime", Q_ARG(float, time));
         return;
     }
     _player->seek(time);
@@ -148,7 +148,7 @@ void RecordingScriptingInterface::setPlayerUseSkeletonModel(bool useSkeletonMode
 
 void RecordingScriptingInterface::pausePlayer() {
     if (QThread::currentThread() != thread()) {
-        hifi::qt::blockingInvokeMethod(this, "pausePlayer");
+        BLOCKING_INVOKE_METHOD(this, "pausePlayer");
         return;
     }
     _player->pause();
@@ -156,7 +156,7 @@ void RecordingScriptingInterface::pausePlayer() {
 
 void RecordingScriptingInterface::stopPlaying() {
     if (QThread::currentThread() != thread()) {
-        hifi::qt::blockingInvokeMethod(this, "stopPlaying");
+        BLOCKING_INVOKE_METHOD(this, "stopPlaying");
         return;
     }
     _player->stop();
@@ -177,7 +177,7 @@ void RecordingScriptingInterface::startRecording() {
     }
 
     if (QThread::currentThread() != thread()) {
-        hifi::qt::blockingInvokeMethod(this, "startRecording");
+        BLOCKING_INVOKE_METHOD(this, "startRecording");
         return;
     }
 
@@ -200,7 +200,7 @@ QString RecordingScriptingInterface::getDefaultRecordingSaveDirectory() {
 
 void RecordingScriptingInterface::saveRecording(const QString& filename) {
     if (QThread::currentThread() != thread()) {
-        hifi::qt::blockingInvokeMethod(this, "saveRecording",
+        BLOCKING_INVOKE_METHOD(this, "saveRecording",
             Q_ARG(QString, filename));
         return;
     }
@@ -221,7 +221,7 @@ bool RecordingScriptingInterface::saveRecordingToAsset(QScriptValue getClipAtpUr
 
     if (QThread::currentThread() != thread()) {
         bool result;
-        hifi::qt::blockingInvokeMethod(this, "saveRecordingToAsset",
+        BLOCKING_INVOKE_METHOD(this, "saveRecordingToAsset",
             Q_RETURN_ARG(bool, result),
             Q_ARG(QScriptValue, getClipAtpUrl));
         return result;
@@ -258,7 +258,7 @@ bool RecordingScriptingInterface::saveRecordingToAsset(QScriptValue getClipAtpUr
 
 void RecordingScriptingInterface::loadLastRecording() {
     if (QThread::currentThread() != thread()) {
-        hifi::qt::blockingInvokeMethod(this, "loadLastRecording");
+        BLOCKING_INVOKE_METHOD(this, "loadLastRecording");
         return;
     }
 

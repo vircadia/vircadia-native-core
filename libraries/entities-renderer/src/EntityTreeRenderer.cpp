@@ -381,7 +381,7 @@ ModelPointer EntityTreeRenderer::allocateModel(const QString& url, float loading
 
     // Only create and delete models on the thread that owns the EntityTreeRenderer
     if (QThread::currentThread() != thread()) {
-        hifi::qt::blockingInvokeMethod(this, "allocateModel",
+        BLOCKING_INVOKE_METHOD(this, "allocateModel",
                 Q_RETURN_ARG(ModelPointer, model),
                 Q_ARG(const QString&, url));
 
@@ -398,7 +398,7 @@ ModelPointer EntityTreeRenderer::allocateModel(const QString& url, float loading
 ModelPointer EntityTreeRenderer::updateModel(ModelPointer model, const QString& newUrl) {
     // Only create and delete models on the thread that owns the EntityTreeRenderer
     if (QThread::currentThread() != thread()) {
-        hifi::qt::blockingInvokeMethod(this, "updateModel",
+        BLOCKING_INVOKE_METHOD(this, "updateModel",
             Q_RETURN_ARG(ModelPointer, model),
                 Q_ARG(ModelPointer, model),
                 Q_ARG(const QString&, newUrl));

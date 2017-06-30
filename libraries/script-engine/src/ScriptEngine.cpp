@@ -965,7 +965,7 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
         qCDebug(scriptengine) << "*** WARNING *** ScriptEngine::evaluate() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "] "
             "sourceCode:" << sourceCode << " fileName:" << fileName << "lineNumber:" << lineNumber;
 #endif
-        hifi::qt::blockingInvokeMethod(this, "evaluate",
+        BLOCKING_INVOKE_METHOD(this, "evaluate",
                                   Q_RETURN_ARG(QScriptValue, result),
                                   Q_ARG(const QString&, sourceCode),
                                   Q_ARG(const QString&, fileName),

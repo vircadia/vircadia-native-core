@@ -145,7 +145,7 @@ Overlay::Pointer Overlays::getOverlay(OverlayID id) const {
 OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) {
     if (QThread::currentThread() != thread()) {
         OverlayID result;
-        hifi::qt::blockingInvokeMethod(this, "addOverlay", Q_RETURN_ARG(OverlayID, result), Q_ARG(QString, type), Q_ARG(QVariant, properties));
+        BLOCKING_INVOKE_METHOD(this, "addOverlay", Q_RETURN_ARG(OverlayID, result), Q_ARG(QString, type), Q_ARG(QVariant, properties));
         return result;
     }
 
@@ -209,7 +209,7 @@ OverlayID Overlays::addOverlay(const Overlay::Pointer& overlay) {
 OverlayID Overlays::cloneOverlay(OverlayID id) {
     if (QThread::currentThread() != thread()) {
         OverlayID result;
-        hifi::qt::blockingInvokeMethod(this, "cloneOverlay", Q_RETURN_ARG(OverlayID, result), Q_ARG(OverlayID, id));
+        BLOCKING_INVOKE_METHOD(this, "cloneOverlay", Q_RETURN_ARG(OverlayID, result), Q_ARG(OverlayID, id));
         return result;
     }
 
@@ -232,7 +232,7 @@ OverlayID Overlays::cloneOverlay(OverlayID id) {
 bool Overlays::editOverlay(OverlayID id, const QVariant& properties) {
     if (QThread::currentThread() != thread()) {
         bool result;
-        hifi::qt::blockingInvokeMethod(this, "editOverlay", Q_RETURN_ARG(bool, result), Q_ARG(OverlayID, id), Q_ARG(QVariant, properties));
+        BLOCKING_INVOKE_METHOD(this, "editOverlay", Q_RETURN_ARG(bool, result), Q_ARG(OverlayID, id), Q_ARG(QVariant, properties));
         return result;
     }
 
@@ -247,7 +247,7 @@ bool Overlays::editOverlay(OverlayID id, const QVariant& properties) {
 bool Overlays::editOverlays(const QVariant& propertiesById) {
     if (QThread::currentThread() != thread()) {
         bool result;
-        hifi::qt::blockingInvokeMethod(this, "editOverlays", Q_RETURN_ARG(bool, result), Q_ARG(QVariant, propertiesById));
+        BLOCKING_INVOKE_METHOD(this, "editOverlays", Q_RETURN_ARG(bool, result), Q_ARG(QVariant, propertiesById));
         return result;
     }
 
@@ -299,7 +299,7 @@ void Overlays::deleteOverlay(OverlayID id) {
 QString Overlays::getOverlayType(OverlayID overlayId) {
     if (QThread::currentThread() != thread()) {
         QString result;
-        hifi::qt::blockingInvokeMethod(this, "getOverlayType", Q_RETURN_ARG(QString, result), Q_ARG(OverlayID, overlayId));
+        BLOCKING_INVOKE_METHOD(this, "getOverlayType", Q_RETURN_ARG(QString, result), Q_ARG(OverlayID, overlayId));
         return result;
     }
 
@@ -313,7 +313,7 @@ QString Overlays::getOverlayType(OverlayID overlayId) {
 QObject* Overlays::getOverlayObject(OverlayID id) {
     if (QThread::currentThread() != thread()) {
         QObject* result;
-        hifi::qt::blockingInvokeMethod(this, "getOverlayObject", Q_RETURN_ARG(QObject*, result), Q_ARG(OverlayID, id));
+        BLOCKING_INVOKE_METHOD(this, "getOverlayObject", Q_RETURN_ARG(QObject*, result), Q_ARG(OverlayID, id));
         return result;
     }
 
@@ -370,7 +370,7 @@ void Overlays::setParentPanel(OverlayID childId, OverlayID panelId) {
 OverlayID Overlays::getOverlayAtPoint(const glm::vec2& point) {
     if (QThread::currentThread() != thread()) {
         OverlayID result;
-        hifi::qt::blockingInvokeMethod(this, "getOverlayAtPoint", Q_RETURN_ARG(OverlayID, result), Q_ARG(glm::vec2, point));
+        BLOCKING_INVOKE_METHOD(this, "getOverlayAtPoint", Q_RETURN_ARG(OverlayID, result), Q_ARG(glm::vec2, point));
         return result;
     }
 
@@ -408,7 +408,7 @@ OverlayID Overlays::getOverlayAtPoint(const glm::vec2& point) {
 OverlayPropertyResult Overlays::getProperty(OverlayID id, const QString& property) {
     if (QThread::currentThread() != thread()) {
         OverlayPropertyResult result;
-        hifi::qt::blockingInvokeMethod(this, "getProperty", Q_RETURN_ARG(OverlayPropertyResult, result), Q_ARG(OverlayID, id), Q_ARG(QString, property));
+        BLOCKING_INVOKE_METHOD(this, "getProperty", Q_RETURN_ARG(OverlayPropertyResult, result), Q_ARG(OverlayID, id), Q_ARG(QString, property));
         return result;
     }
 
@@ -453,7 +453,7 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionInternal(const PickR
                                                                      bool visibleOnly, bool collidableOnly) {
     if (QThread::currentThread() != thread()) {
         RayToOverlayIntersectionResult result;
-        hifi::qt::blockingInvokeMethod(this, "findRayIntersectionInternal", Q_RETURN_ARG(RayToOverlayIntersectionResult, result), 
+        BLOCKING_INVOKE_METHOD(this, "findRayIntersectionInternal", Q_RETURN_ARG(RayToOverlayIntersectionResult, result), 
             Q_ARG(PickRay, ray), 
             Q_ARG(bool, precisionPicking), 
             Q_ARG(QVector<OverlayID>, overlaysToInclude), 
@@ -580,7 +580,7 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& objectVar
 bool Overlays::isLoaded(OverlayID id) {
     if (QThread::currentThread() != thread()) {
         bool result;
-        hifi::qt::blockingInvokeMethod(this, "isLoaded", Q_RETURN_ARG(bool, result), Q_ARG(OverlayID, id));
+        BLOCKING_INVOKE_METHOD(this, "isLoaded", Q_RETURN_ARG(bool, result), Q_ARG(OverlayID, id));
         return result;
     }
 
@@ -594,7 +594,7 @@ bool Overlays::isLoaded(OverlayID id) {
 QSizeF Overlays::textSize(OverlayID id, const QString& text) {
     if (QThread::currentThread() != thread()) {
         QSizeF result;
-        hifi::qt::blockingInvokeMethod(this, "textSize", Q_RETURN_ARG(QSizeF, result), Q_ARG(OverlayID, id), Q_ARG(QString, text));
+        BLOCKING_INVOKE_METHOD(this, "textSize", Q_RETURN_ARG(QSizeF, result), Q_ARG(OverlayID, id), Q_ARG(QString, text));
         return result;
     }
 
@@ -671,7 +671,7 @@ void Overlays::deletePanel(OverlayID panelId) {
 bool Overlays::isAddedOverlay(OverlayID id) {
     if (QThread::currentThread() != thread()) {
         bool result;
-        hifi::qt::blockingInvokeMethod(this, "isAddedOverlay", Q_RETURN_ARG(bool, result), Q_ARG(OverlayID, id));
+        BLOCKING_INVOKE_METHOD(this, "isAddedOverlay", Q_RETURN_ARG(bool, result), Q_ARG(OverlayID, id));
         return result;
     }
 
@@ -705,7 +705,7 @@ void Overlays::sendHoverLeaveOverlay(OverlayID  id, PointerEvent event) {
 OverlayID Overlays::getKeyboardFocusOverlay() {
     if (QThread::currentThread() != thread()) {
         OverlayID result;
-        hifi::qt::blockingInvokeMethod(this, "getKeyboardFocusOverlay", Q_RETURN_ARG(OverlayID, result));
+        BLOCKING_INVOKE_METHOD(this, "getKeyboardFocusOverlay", Q_RETURN_ARG(OverlayID, result));
         return result;
     }
 
@@ -724,7 +724,7 @@ void Overlays::setKeyboardFocusOverlay(OverlayID id) {
 float Overlays::width() {
     if (QThread::currentThread() != thread()) {
         float result;
-        hifi::qt::blockingInvokeMethod(this, "width", Q_RETURN_ARG(float, result));
+        BLOCKING_INVOKE_METHOD(this, "width", Q_RETURN_ARG(float, result));
         return result;
     }
 
@@ -735,7 +735,7 @@ float Overlays::width() {
 float Overlays::height() {
     if (QThread::currentThread() != thread()) {
         float result;
-        hifi::qt::blockingInvokeMethod(this, "height", Q_RETURN_ARG(float, result));
+        BLOCKING_INVOKE_METHOD(this, "height", Q_RETURN_ARG(float, result));
         return result;
     }
 
@@ -945,7 +945,7 @@ bool Overlays::mouseMoveEvent(QMouseEvent* event) {
 QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
     QVector<QUuid> result;
     if (QThread::currentThread() != thread()) {
-        hifi::qt::blockingInvokeMethod(this, "findOverlays", Q_RETURN_ARG(QVector<QUuid>, result), Q_ARG(glm::vec3, center), Q_ARG(float, radius));
+        BLOCKING_INVOKE_METHOD(this, "findOverlays", Q_RETURN_ARG(QVector<QUuid>, result), Q_ARG(glm::vec3, center), Q_ARG(float, radius));
         return result;
     }
 

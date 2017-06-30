@@ -43,7 +43,7 @@ ToolbarProxy* TabletScriptingInterface::getSystemToolbarProxy() {
 TabletProxy* TabletScriptingInterface::getTablet(const QString& tabletId) {
     TabletProxy* tabletProxy = nullptr;
     if (QThread::currentThread() != thread()) {
-        hifi::qt::blockingInvokeMethod(this, "getTablet", Q_RETURN_ARG(TabletProxy*, tabletProxy), Q_ARG(QString, tabletId));
+        BLOCKING_INVOKE_METHOD(this, "getTablet", Q_RETURN_ARG(TabletProxy*, tabletProxy), Q_ARG(QString, tabletId));
         return tabletProxy;
     } 
 
@@ -291,7 +291,7 @@ void TabletProxy::initialScreen(const QVariant& url) {
 bool TabletProxy::isMessageDialogOpen() {
     if (QThread::currentThread() != thread()) {
         bool result = false;
-        hifi::qt::blockingInvokeMethod(this, "isMessageDialogOpen", Q_RETURN_ARG(bool, result));
+        BLOCKING_INVOKE_METHOD(this, "isMessageDialogOpen", Q_RETURN_ARG(bool, result));
         return result;
     }
 
@@ -316,7 +316,7 @@ void TabletProxy::emitWebEvent(const QVariant& msg) {
 bool TabletProxy::isPathLoaded(const QVariant& path) {
     if (QThread::currentThread() != thread()) {
         bool result = false;
-        hifi::qt::blockingInvokeMethod(this, "isPathLoaded", Q_RETURN_ARG(bool, result), Q_ARG(QVariant, path));
+        BLOCKING_INVOKE_METHOD(this, "isPathLoaded", Q_RETURN_ARG(bool, result), Q_ARG(QVariant, path));
         return result;
     }
 
@@ -479,7 +479,7 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
 bool TabletProxy::pushOntoStack(const QVariant& path) {
     if (QThread::currentThread() != thread()) {
         bool result = false;
-        hifi::qt::blockingInvokeMethod(this, "pushOntoStack", Q_RETURN_ARG(bool, result), Q_ARG(QVariant, path));
+        BLOCKING_INVOKE_METHOD(this, "pushOntoStack", Q_RETURN_ARG(bool, result), Q_ARG(QVariant, path));
         return result;
     }
 
@@ -605,7 +605,7 @@ void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaS
 TabletButtonProxy* TabletProxy::addButton(const QVariant& properties) {
     if (QThread::currentThread() != thread()) {
         TabletButtonProxy* result = nullptr;
-        hifi::qt::blockingInvokeMethod(this, "addButton", Q_RETURN_ARG(TabletButtonProxy*, result), Q_ARG(QVariant, properties));
+        BLOCKING_INVOKE_METHOD(this, "addButton", Q_RETURN_ARG(TabletButtonProxy*, result), Q_ARG(QVariant, properties));
         return result;
     }
 
@@ -632,7 +632,7 @@ TabletButtonProxy* TabletProxy::addButton(const QVariant& properties) {
 bool TabletProxy::onHomeScreen() {
     if (QThread::currentThread() != thread()) {
         bool result = false;
-        hifi::qt::blockingInvokeMethod(this, "onHomeScreen", Q_RETURN_ARG(bool, result));
+        BLOCKING_INVOKE_METHOD(this, "onHomeScreen", Q_RETURN_ARG(bool, result));
         return result;
     }
 
@@ -839,7 +839,7 @@ void TabletButtonProxy::setToolbarButtonProxy(QObject* toolbarButtonProxy) {
 QVariantMap TabletButtonProxy::getProperties() {
     if (QThread::currentThread() != thread()) {
         QVariantMap result;
-        hifi::qt::blockingInvokeMethod(this, "getProperties", Q_RETURN_ARG(QVariantMap, result));
+        BLOCKING_INVOKE_METHOD(this, "getProperties", Q_RETURN_ARG(QVariantMap, result));
         return result;
     }
 

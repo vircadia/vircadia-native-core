@@ -291,7 +291,7 @@ glm::vec2 CompositorHelper::getReticleMaximumPosition() const {
 
 void CompositorHelper::sendFakeMouseEvent() {
     if (qApp->thread() != QThread::currentThread()) {
-        hifi::qt::blockingInvokeMethod(this, "sendFakeMouseEvent");
+        BLOCKING_INVOKE_METHOD(this, "sendFakeMouseEvent");
         return;
     }
 

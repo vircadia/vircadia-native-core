@@ -156,7 +156,7 @@ QString HMDScriptingInterface::preferredAudioOutput() const {
 bool HMDScriptingInterface::setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) {
     if (QThread::currentThread() != thread()) {
         bool result;
-        hifi::qt::blockingInvokeMethod(this, "setHandLasers", Q_RETURN_ARG(bool, result), 
+        BLOCKING_INVOKE_METHOD(this, "setHandLasers", Q_RETURN_ARG(bool, result), 
             Q_ARG(int, hands), Q_ARG(bool, enabled), Q_ARG(glm::vec4, color), Q_ARG(glm::vec3, direction));
         return result;
     }
@@ -171,7 +171,7 @@ bool HMDScriptingInterface::setHandLasers(int hands, bool enabled, const glm::ve
 bool HMDScriptingInterface::setExtraLaser(const glm::vec3& worldStart, bool enabled, const glm::vec4& color, const glm::vec3& direction) {
     if (QThread::currentThread() != thread()) {
         bool result;
-        hifi::qt::blockingInvokeMethod(this, "setExtraLaser", Q_RETURN_ARG(bool, result), 
+        BLOCKING_INVOKE_METHOD(this, "setExtraLaser", Q_RETURN_ARG(bool, result), 
             Q_ARG(glm::vec3, worldStart), Q_ARG(bool, enabled), Q_ARG(glm::vec4, color), Q_ARG(glm::vec3, direction));
         return result;
     }

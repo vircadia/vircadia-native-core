@@ -142,7 +142,7 @@ void AssignmentClient::stopAssignmentClient() {
         QThread* currentAssignmentThread = _currentAssignment->thread();
 
         // ask the current assignment to stop
-        hifi::qt::blockingInvokeMethod(_currentAssignment, "stop");
+        BLOCKING_INVOKE_METHOD(_currentAssignment, "stop");
 
         // ask the current assignment to delete itself on its thread
         _currentAssignment->deleteLater();

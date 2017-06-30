@@ -44,7 +44,7 @@ bool MenuScriptingInterface::menuExists(const QString& menu) {
         return Menu::getInstance()->menuExists(menu);
     }
     bool result;
-    hifi::qt::blockingInvokeMethod(Menu::getInstance(), "menuExists",
+    BLOCKING_INVOKE_METHOD(Menu::getInstance(), "menuExists",
                 Q_RETURN_ARG(bool, result), 
                 Q_ARG(const QString&, menu));
     return result;
@@ -87,7 +87,7 @@ bool MenuScriptingInterface::menuItemExists(const QString& menu, const QString& 
         return Menu::getInstance()->menuItemExists(menu, menuitem);
     }
     bool result;
-    hifi::qt::blockingInvokeMethod(Menu::getInstance(), "menuItemExists",
+    BLOCKING_INVOKE_METHOD(Menu::getInstance(), "menuItemExists",
         Q_RETURN_ARG(bool, result),
         Q_ARG(const QString&, menu),
         Q_ARG(const QString&, menuitem));
@@ -115,7 +115,7 @@ bool MenuScriptingInterface::isOptionChecked(const QString& menuOption) {
         return Menu::getInstance()->isOptionChecked(menuOption);
     }
     bool result;
-    hifi::qt::blockingInvokeMethod(Menu::getInstance(), "isOptionChecked",
+    BLOCKING_INVOKE_METHOD(Menu::getInstance(), "isOptionChecked",
                 Q_RETURN_ARG(bool, result), 
                 Q_ARG(const QString&, menuOption));
     return result;
@@ -132,7 +132,7 @@ bool MenuScriptingInterface::isMenuEnabled(const QString& menuOption) {
         return Menu::getInstance()->isOptionChecked(menuOption);
     }
     bool result;
-    hifi::qt::blockingInvokeMethod(Menu::getInstance(), "isMenuEnabled",
+    BLOCKING_INVOKE_METHOD(Menu::getInstance(), "isMenuEnabled",
         Q_RETURN_ARG(bool, result),
         Q_ARG(const QString&, menuOption));
     return result;
@@ -158,7 +158,7 @@ bool MenuScriptingInterface::isInfoViewVisible(const QString& path) {
     }
         
     bool result;
-    hifi::qt::blockingInvokeMethod(Menu::getInstance(), "isInfoViewVisible",
+    BLOCKING_INVOKE_METHOD(Menu::getInstance(), "isInfoViewVisible",
         Q_RETURN_ARG(bool, result), Q_ARG(const QString&, path));
     return result;
 }

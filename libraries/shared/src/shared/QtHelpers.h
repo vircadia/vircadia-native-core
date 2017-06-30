@@ -12,9 +12,11 @@
 
 #include <QtCore/QObject>
 
+
 namespace hifi { namespace qt {
 
 bool blockingInvokeMethod(
+    const char* function,
     QObject *obj, const char *member,
     QGenericReturnArgument ret,
     QGenericArgument val0 = QGenericArgument(Q_NULLPTR),
@@ -29,6 +31,7 @@ bool blockingInvokeMethod(
     QGenericArgument val9 = QGenericArgument());
 
 bool blockingInvokeMethod(
+    const char* function,
     QObject *obj, const char *member,
     QGenericArgument val0 = QGenericArgument(Q_NULLPTR),
     QGenericArgument val1 = QGenericArgument(),
@@ -43,5 +46,7 @@ bool blockingInvokeMethod(
 
 } }
 
+#define BLOCKING_INVOKE_METHOD(obj, member, ...) \
+    hifi::qt::blockingInvokeMethod(__FUNCTION__, obj, member, ##__VA_ARGS__)
 
 #endif

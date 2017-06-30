@@ -39,7 +39,7 @@ ClipCache::ClipCache(QObject* parent) :
 NetworkClipLoaderPointer ClipCache::getClipLoader(const QUrl& url) {
     if (QThread::currentThread() != thread()) {
         NetworkClipLoaderPointer result;
-        hifi::qt::blockingInvokeMethod(this, "getClipLoader",
+        BLOCKING_INVOKE_METHOD(this, "getClipLoader",
                                   Q_RETURN_ARG(NetworkClipLoaderPointer, result), Q_ARG(const QUrl&, url));
         return result;
     }

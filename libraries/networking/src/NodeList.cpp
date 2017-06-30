@@ -233,7 +233,7 @@ void NodeList::processICEPingPacket(QSharedPointer<ReceivedMessage> message) {
 
 void NodeList::reset() {
     if (thread() != QThread::currentThread()) {
-        hifi::qt::blockingInvokeMethod(this, "reset");
+        QMetaObject::invokeMethod(this, "reset");
         return;
     }
 

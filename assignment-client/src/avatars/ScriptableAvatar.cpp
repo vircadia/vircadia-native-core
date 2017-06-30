@@ -50,7 +50,7 @@ void ScriptableAvatar::stopAnimation() {
 AnimationDetails ScriptableAvatar::getAnimationDetails() {
     if (QThread::currentThread() != thread()) {
         AnimationDetails result;
-        hifi::qt::blockingInvokeMethod(this, "getAnimationDetails", 
+        BLOCKING_INVOKE_METHOD(this, "getAnimationDetails", 
                                   Q_RETURN_ARG(AnimationDetails, result));
         return result;
     }

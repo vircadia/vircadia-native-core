@@ -38,7 +38,7 @@ QScriptValue QmlWebWindowClass::constructor(QScriptContext* context, QScriptEngi
 QString QmlWebWindowClass::getURL() {
     if (QThread::currentThread() != thread()) {
         QString result;
-        hifi::qt::blockingInvokeMethod(this, "getURL", Q_RETURN_ARG(QString, result));
+        BLOCKING_INVOKE_METHOD(this, "getURL", Q_RETURN_ARG(QString, result));
         return result;
     }
 

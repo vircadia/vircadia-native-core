@@ -1656,7 +1656,7 @@ QString Application::getUserAgent() {
     if (QThread::currentThread() != thread()) {
         QString userAgent;
 
-        hifi::qt::blockingInvokeMethod(this, "getUserAgent", Q_RETURN_ARG(QString, userAgent));
+        BLOCKING_INVOKE_METHOD(this, "getUserAgent", Q_RETURN_ARG(QString, userAgent));
 
         return userAgent;
     }

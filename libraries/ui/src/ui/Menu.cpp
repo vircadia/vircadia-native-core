@@ -246,7 +246,7 @@ void Menu::removeAction(MenuWrapper* menu, const QString& actionName) {
 
 void Menu::setIsOptionChecked(const QString& menuOption, bool isChecked) {
     if (thread() != QThread::currentThread()) {
-        hifi::qt::blockingInvokeMethod(this, "setIsOptionChecked",
+        BLOCKING_INVOKE_METHOD(this, "setIsOptionChecked",
                     Q_ARG(const QString&, menuOption),
                     Q_ARG(bool, isChecked));
         return;

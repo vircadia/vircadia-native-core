@@ -17,6 +17,7 @@ Q_LOGGING_CATEGORY(thread_safety, "hifi.thread_safety")
 namespace hifi { namespace qt {
 
 bool blockingInvokeMethod(
+    const char* function,
     QObject *obj, const char *member,
     QGenericReturnArgument ret,
     QGenericArgument val0,
@@ -30,13 +31,14 @@ bool blockingInvokeMethod(
     QGenericArgument val8,
     QGenericArgument val9) {
     if (QThread::currentThread() == qApp->thread()) {
-        qCWarning(thread_safety, "BlockingQueuedConnection invoked on main thread!");
+        qCWarning(thread_safety) << "BlockingQueuedConnection invoked on main thread from " << function;
     }
     return QMetaObject::invokeMethod(obj, member,
             Qt::BlockingQueuedConnection, ret, val0, val1, val2, val3, val4, val5, val6, val7, val8, val9);
 }
 
 bool blockingInvokeMethod(
+    const char* function,
     QObject *obj, const char *member,
     QGenericArgument val0,
     QGenericArgument val1,
@@ -48,8 +50,7 @@ bool blockingInvokeMethod(
     QGenericArgument val7,
     QGenericArgument val8,
     QGenericArgument val9) {
-    qCWarning(thread_safety, "BlockingQueuedConnection invoked without return value!");
-    return blockingInvokeMethod(obj, member, QGenericReturnArgument(), val0, val1, val2, val3, val4, val5, val6, val7, val8, val9);
+    return blockingInvokeMethod(function, obj, member, QGenericReturnArgument(), val0, val1, val2, val3, val4, val5, val6, val7, val8, val9);
 }
 
 

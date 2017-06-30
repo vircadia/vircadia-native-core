@@ -116,7 +116,7 @@ void JSConsole::executeCommand(const QString& command) {
 
 QScriptValue JSConsole::executeCommandInWatcher(const QString& command) {
     QScriptValue result;
-    hifi::qt::blockingInvokeMethod(_scriptEngine, "evaluate",
+    BLOCKING_INVOKE_METHOD(_scriptEngine, "evaluate",
                               Q_RETURN_ARG(QScriptValue, result),
                               Q_ARG(const QString&, command),
                               Q_ARG(const QString&, _consoleFileName));

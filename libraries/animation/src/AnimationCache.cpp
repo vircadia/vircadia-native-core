@@ -34,7 +34,7 @@ AnimationCache::AnimationCache(QObject* parent) :
 AnimationPointer AnimationCache::getAnimation(const QUrl& url) {
     if (QThread::currentThread() != thread()) {
         AnimationPointer result;
-        hifi::qt::blockingInvokeMethod(this, "getAnimation",
+        BLOCKING_INVOKE_METHOD(this, "getAnimation",
             Q_RETURN_ARG(AnimationPointer, result), Q_ARG(const QUrl&, url));
         return result;
     }
@@ -100,7 +100,7 @@ bool Animation::isLoaded() const {
 QStringList Animation::getJointNames() const {
     if (QThread::currentThread() != thread()) {
         QStringList result;
-        hifi::qt::blockingInvokeMethod(const_cast<Animation*>(this), "getJointNames",
+        BLOCKING_INVOKE_METHOD(const_cast<Animation*>(this), "getJointNames",
             Q_RETURN_ARG(QStringList, result));
         return result;
     }
@@ -114,7 +114,7 @@ QStringList Animation::getJointNames() const {
 QVector<FBXAnimationFrame> Animation::getFrames() const {
     if (QThread::currentThread() != thread()) {
         QVector<FBXAnimationFrame> result;
-        hifi::qt::blockingInvokeMethod(const_cast<Animation*>(this), "getFrames", 
+        BLOCKING_INVOKE_METHOD(const_cast<Animation*>(this), "getFrames", 
             Q_RETURN_ARG(QVector<FBXAnimationFrame>, result));
         return result;
     }

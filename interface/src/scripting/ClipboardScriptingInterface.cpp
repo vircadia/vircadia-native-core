@@ -27,7 +27,7 @@ float ClipboardScriptingInterface::getClipboardContentsLargestDimension() {
 
 bool ClipboardScriptingInterface::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
     bool retVal;
-    hifi::qt::blockingInvokeMethod(qApp, "exportEntities",
+    BLOCKING_INVOKE_METHOD(qApp, "exportEntities",
                               Q_RETURN_ARG(bool, retVal),
                               Q_ARG(const QString&, filename),
                               Q_ARG(const QVector<EntityItemID>&, entityIDs));
@@ -36,7 +36,7 @@ bool ClipboardScriptingInterface::exportEntities(const QString& filename, const 
 
 bool ClipboardScriptingInterface::exportEntities(const QString& filename, float x, float y, float z, float s) {
     bool retVal;
-    hifi::qt::blockingInvokeMethod(qApp, "exportEntities",
+    BLOCKING_INVOKE_METHOD(qApp, "exportEntities",
                               Q_RETURN_ARG(bool, retVal),
                               Q_ARG(const QString&, filename),
                               Q_ARG(float, x),
@@ -48,7 +48,7 @@ bool ClipboardScriptingInterface::exportEntities(const QString& filename, float 
 
 bool ClipboardScriptingInterface::importEntities(const QString& filename) {
     bool retVal;
-    hifi::qt::blockingInvokeMethod(qApp, "importEntities",
+    BLOCKING_INVOKE_METHOD(qApp, "importEntities",
                               Q_RETURN_ARG(bool, retVal),
                               Q_ARG(const QString&, filename));
     return retVal;
@@ -56,7 +56,7 @@ bool ClipboardScriptingInterface::importEntities(const QString& filename) {
 
 QVector<EntityItemID> ClipboardScriptingInterface::pasteEntities(glm::vec3 position) {
     QVector<EntityItemID> retVal;
-    hifi::qt::blockingInvokeMethod(qApp, "pasteEntities",
+    BLOCKING_INVOKE_METHOD(qApp, "pasteEntities",
                               Q_RETURN_ARG(QVector<EntityItemID>, retVal),
                               Q_ARG(float, position.x),
                               Q_ARG(float, position.y),

@@ -38,7 +38,7 @@ void QmlWrapper::writeProperties(QVariant propertyMap) {
 QVariant QmlWrapper::readProperty(const QString& propertyName) {
     if (QThread::currentThread() != thread()) {
         QVariant result;
-        hifi::qt::blockingInvokeMethod(this, "readProperty", Q_RETURN_ARG(QVariant, result), Q_ARG(QString, propertyName));
+        BLOCKING_INVOKE_METHOD(this, "readProperty", Q_RETURN_ARG(QVariant, result), Q_ARG(QString, propertyName));
         return result;
     }
 
@@ -48,7 +48,7 @@ QVariant QmlWrapper::readProperty(const QString& propertyName) {
 QVariant QmlWrapper::readProperties(const QVariant& propertyList) {
     if (QThread::currentThread() != thread()) {
         QVariant result;
-        hifi::qt::blockingInvokeMethod(this, "readProperties", Q_RETURN_ARG(QVariant, result), Q_ARG(QVariant, propertyList));
+        BLOCKING_INVOKE_METHOD(this, "readProperties", Q_RETURN_ARG(QVariant, result), Q_ARG(QVariant, propertyList));
         return result;
     }
 

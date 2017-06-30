@@ -60,7 +60,7 @@ void TestScriptingInterface::waitIdle() {
 bool TestScriptingInterface::loadTestScene(QString scene) {
     if (QThread::currentThread() != thread()) {
         bool result;
-        hifi::qt::blockingInvokeMethod(this, "loadTestScene", Q_RETURN_ARG(bool, result), Q_ARG(QString, scene));
+        BLOCKING_INVOKE_METHOD(this, "loadTestScene", Q_RETURN_ARG(bool, result), Q_ARG(QString, scene));
         return result;
     }
 

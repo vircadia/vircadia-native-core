@@ -277,7 +277,7 @@ Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
 
 void Socket::clearConnections() {
     if (QThread::currentThread() != thread()) {
-        hifi::qt::blockingInvokeMethod(this, "clearConnections");
+        BLOCKING_INVOKE_METHOD(this, "clearConnections");
         return;
     }
 
