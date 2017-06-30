@@ -90,16 +90,17 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     if (_simulation) {
         _simulation->clearEntities();
     }
-    {
-        QWriteLocker locker(&_entityMapLock);
-        foreach(EntityItemPointer entity, _entityMap) {
+    QHash<EntityItemID, EntityItemPointer> localMap;
+    localMap.swap(_entityMap);
+    this->withWriteLock([&] {
+        foreach(EntityItemPointer entity, localMap) {
             EntityTreeElementPointer element = entity->getElement();
             if (element) {
                 element->cleanupEntities();
             }
         }
-        _entityMap.clear();
-    }
+    });
+    localMap.clear();
     Octree::eraseAllOctreeElements(createNewRoot);
 
     resetClientEditStats();
