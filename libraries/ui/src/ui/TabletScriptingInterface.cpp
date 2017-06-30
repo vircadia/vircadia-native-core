@@ -214,20 +214,18 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
 
         // create new desktop window
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
-        offscreenUi->executeOnUiThread([=] {
-            auto tabletRootWindow = new TabletRootWindow();
-            tabletRootWindow->initQml(QVariantMap());
-            auto quickItem = tabletRootWindow->asQuickItem();
-            _desktopWindow = tabletRootWindow;
-            QMetaObject::invokeMethod(quickItem, "setShown", Q_ARG(const QVariant&, QVariant(false)));
+        auto tabletRootWindow = new TabletRootWindow();
+        tabletRootWindow->initQml(QVariantMap());
+        auto quickItem = tabletRootWindow->asQuickItem();
+        _desktopWindow = tabletRootWindow;
+        QMetaObject::invokeMethod(quickItem, "setShown", Q_ARG(const QVariant&, QVariant(false)));
 
-            QObject::connect(quickItem, SIGNAL(windowClosed()), this, SLOT(desktopWindowClosed()));
+        QObject::connect(quickItem, SIGNAL(windowClosed()), this, SLOT(desktopWindowClosed()));
 
-            QObject::connect(tabletRootWindow, SIGNAL(webEventReceived(QVariant)), this, SLOT(emitWebEvent(QVariant)), Qt::DirectConnection);
+        QObject::connect(tabletRootWindow, SIGNAL(webEventReceived(QVariant)), this, SLOT(emitWebEvent(QVariant)), Qt::DirectConnection);
 
-            // forward qml surface events to interface js
-            connect(tabletRootWindow, &QmlWindowClass::fromQml, this, &TabletProxy::fromQml);
-        });
+        // forward qml surface events to interface js
+        connect(tabletRootWindow, &QmlWindowClass::fromQml, this, &TabletProxy::fromQml);
     } else {
         _state = State::Home;
         removeButtonsFromToolbar();

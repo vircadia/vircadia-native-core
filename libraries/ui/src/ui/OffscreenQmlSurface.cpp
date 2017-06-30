@@ -887,28 +887,6 @@ QQmlContext* OffscreenQmlSurface::getSurfaceContext() {
     return _qmlContext;
 }
 
-void OffscreenQmlSurface::executeOnUiThread(std::function<void()> function, bool blocking ) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "executeOnUiThread", blocking ? Qt::BlockingQueuedConnection : Qt::QueuedConnection,
-            Q_ARG(std::function<void()>, function));
-        return;
-    }
-
-    function();
-}
-
-QVariant OffscreenQmlSurface::returnFromUiThread(std::function<QVariant()> function) {
-    if (QThread::currentThread() != thread()) {
-        QVariant result;
-        hifi::qt::blockingInvokeMethod(this, "returnFromUiThread",
-            Q_RETURN_ARG(QVariant, result),
-            Q_ARG(std::function<QVariant()>, function));
-        return result;
-    }
-
-    return function();
-}
-
 void OffscreenQmlSurface::focusDestroyed(QObject *obj) {
     _currentFocusItem = nullptr;
 }

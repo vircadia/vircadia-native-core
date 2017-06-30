@@ -31,18 +31,18 @@ public:
     QmlWindowClass();
     ~QmlWindowClass();
 
-    virtual void initQml(QVariantMap properties);
+    Q_INVOKABLE virtual void initQml(QVariantMap properties);
     QQuickItem* asQuickItem() const;
 
 public slots:
-    bool isVisible() const;
+    bool isVisible();
     void setVisible(bool visible);
 
-    glm::vec2 getPosition() const;
+    glm::vec2 getPosition();
     void setPosition(const glm::vec2& position);
     void setPosition(int x, int y);
 
-    glm::vec2 getSize() const;
+    glm::vec2 getSize();
     void setSize(const glm::vec2& size);
     void setSize(int width, int height);
     void setTitle(const QString& title);
