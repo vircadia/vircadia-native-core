@@ -28,7 +28,7 @@ public:
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor, bool isDeferred = true);
 };
 
-class BeginSecondaryCameraFrameConfig : public render::Task::Config { // Exposes secondary camera parameters to JavaScript.
+class SecondaryCameraJobConfig : public render::Task::Config { // Exposes secondary camera parameters to JavaScript.
     Q_OBJECT
     Q_PROPERTY(QUuid attachedEntityId MEMBER attachedEntityId NOTIFY dirty)  // entity whose properties define camera position and orientation
     Q_PROPERTY(glm::vec3 position MEMBER position NOTIFY dirty)  // of viewpoint to render from
@@ -43,21 +43,21 @@ public:
     float vFoV{ 45.0f };
     float nearClipPlaneDistance{ 0.1f };
     float farClipPlaneDistance{ 100.0f };
-    BeginSecondaryCameraFrameConfig() : render::Task::Config(false) {}
+    SecondaryCameraJobConfig() : render::Task::Config(false) {}
 signals:
     void dirty();
+public slots:
+    void enableSecondaryCameraRenderConfigs(bool enabled);
+    void resetSizeSpectatorCamera(int width, int height);
 };
 
 class SecondaryCameraRenderTaskConfig : public render::Task::Config {
     Q_OBJECT
 public:
     SecondaryCameraRenderTaskConfig() : render::Task::Config(false) {}
-private:
     void resetSize(int width, int height);
 signals:
     void dirty();
-public slots:
-    void resetSizeSpectatorCamera(int width, int height);
 };
 
 class SecondaryCameraRenderTask {

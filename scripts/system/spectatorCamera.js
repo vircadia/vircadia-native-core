@@ -28,33 +28,6 @@
                         Vec3.multiply(distance, Quat.getForward(orientation || MyAvatar.orientation)));
     }
 
-    // Function Name: updateRenderFromCamera()
-    //
-    // Description:
-    //   -The update function for the spectator camera. Modifies the camera's position
-    //    and orientation.
-    //
-    // Relevant Variables:
-    //   -spectatorFrameRenderConfig: The render configuration of the spectator camera
-    //    render job. It controls the rendered texture size of the spectator camera.
-    //   -beginSpectatorFrameRenderConfig: The render configuration of the spectator camera
-    //    render job. It controls the orientation and position of the secondary camera whose viewport is rendered to
-    //    the texture.
-    //   -viewFinderOverlay: The in-world overlay that displays the spectator camera's view.
-    //   -camera: The in-world entity that corresponds to the spectator camera.
-    //   -cameraIsDynamic: "false" for now while we figure out why dynamic, parented overlays
-    //    drift with respect to their parent.
-    var spectatorFrameRenderConfig = Render.getConfig("SecondaryCameraFrame");
-    var beginSpectatorFrameRenderConfig = Render.getConfig("BeginSecondaryCamera");
-    var viewFinderOverlay = false;
-    var camera = false;
-    var cameraIsDynamic = false;
-    function updateRenderFromCamera() {
-        var cameraData = Entities.getEntityProperties(camera, ['position', 'rotation']);
-        beginSpectatorFrameRenderConfig.orientation = cameraData.rotation;
-        beginSpectatorFrameRenderConfig.position = cameraData.position;
-    }
-
     // Function Name: spectatorCameraOn()
     // 
     // Description:
@@ -62,6 +35,13 @@
     //    spawn the camera entity.
     //
     // Relevant Variables:
+    //   -spectatorCameraConfig: The render configuration of the spectator camera
+    //    render job. It controls the orientation and position of the secondary camera whose viewport is rendered to
+    //    the texture, as well as the rendered texture size.
+    //   -viewFinderOverlay: The in-world overlay that displays the spectator camera's view.
+    //   -camera: The in-world entity that corresponds to the spectator camera.
+    //   -cameraIsDynamic: "false" for now while we figure out why dynamic, parented overlays
+    //    drift with respect to their parent.
     //   -vFoV: The vertical field of view of the spectator camera.
     //   -nearClipPlaneDistance: The near clip plane distance of the spectator camera (aka "camera").
     //   -farClipPlaneDistance: The far clip plane distance of the spectator camera.
@@ -71,6 +51,10 @@
     //   -viewFinderOverlayDim: The x, y, and z dimensions of the viewFinderOverlay.
     //   -camera: The camera model which is grabbable.
     //   -viewFinderOverlay: The preview of what the spectator camera is viewing, placed inside the glass pane.
+    var spectatorCameraConfig = Render.getConfig("SecondaryCamera");
+    var viewFinderOverlay = false;
+    var camera = false;
+    var cameraIsDynamic = false;
     var vFoV = 45.0;
     var nearClipPlaneDistance = 0.1;
     var farClipPlaneDistance = 100.0;
@@ -83,11 +67,11 @@
     var viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: 0 };
     function spectatorCameraOn() {
         // Sets the special texture size based on the window it is displayed in, which doesn't include the menu bar
-        spectatorFrameRenderConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
-        spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = true;
-        beginSpectatorFrameRenderConfig.vFoV = vFoV;
-        beginSpectatorFrameRenderConfig.nearClipPlaneDistance = nearClipPlaneDistance;
-        beginSpectatorFrameRenderConfig.farClipPlaneDistance = farClipPlaneDistance;
+        spectatorCameraConfig.enableSecondaryCameraRenderConfigs(true);
+        spectatorCameraConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
+        spectatorCameraConfig.vFoV = vFoV;
+        spectatorCameraConfig.nearClipPlaneDistance = nearClipPlaneDistance;
+        spectatorCameraConfig.farClipPlaneDistance = farClipPlaneDistance;
         cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
         camera = Entities.addEntity({
             "angularDamping": 1,
@@ -107,7 +91,7 @@
             "type": "Model",
             "userData": "{\"grabbableKey\":{\"grabbable\":true}}"
         }, true);
-        beginSpectatorFrameRenderConfig.attachedEntityId = camera;
+        spectatorCameraConfig.attachedEntityId = camera;
         updateOverlay();
         setDisplay(monitorShowsCameraView);
     }
@@ -118,8 +102,8 @@
     //   -Call this function to shut down the spectator camera and
     //    destroy the camera entity.
     function spectatorCameraOff() {
-        spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = false;
-        beginSpectatorFrameRenderConfig.attachedEntityId = false;
+        spectatorCameraConfig.attachedEntityId = false;
+        spectatorCameraConfig.enableSecondaryCameraRenderConfigs(false);
         if (camera) {
             Entities.deleteEntity(camera);
         }
@@ -292,7 +276,7 @@
             viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: 0 };
         }
         updateOverlay();
-        spectatorFrameRenderConfig.resetSizeSpectatorCamera(geometryChanged.width, geometryChanged.height);
+        spectatorCameraConfig.resetSizeSpectatorCamera(geometryChanged.width, geometryChanged.height);
         setDisplay(monitorShowsCameraView);
     }
 
