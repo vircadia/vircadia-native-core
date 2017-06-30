@@ -156,10 +156,6 @@ protected:
     int _leftHandIndex { -1 };
     int _rightHandIndex { -1 };
 
-    // _maxTargetIndex is tracked to help optimize the recalculation of absolute poses
-    // during the the cyclic coordinate descent algorithm
-    int _maxTargetIndex { 0 };
-
     float _maxErrorOnLastSolve { FLT_MAX };
     bool _previousEnableDebugIKTargets { false };
     SolutionSource _solutionSource { SolutionSource::RelaxToUnderPoses };

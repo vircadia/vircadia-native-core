@@ -1707,36 +1707,38 @@ void Rig::computeAvatarBoundingCapsule(
 
     AnimPose geometryToRig = _modelOffset * _geometryOffset;
 
-    AnimPose hips(glm::vec3(1), glm::quat(), glm::vec3());
+    glm::vec3 hipsPosition(0.0f);
     int hipsIndex = indexOfJoint("Hips");
     if (hipsIndex >= 0) {
-        hips = geometryToRig * _animSkeleton->getAbsoluteBindPose(hipsIndex);
+        hipsPosition = transformPoint(_geometryToRigTransform, _animSkeleton->getAbsoluteDefaultPose(hipsIndex).trans());
     }
     AnimVariantMap animVars;
+    animVars.setRigToGeometryTransform(_rigToGeometryTransform);
     glm::quat handRotation = glm::angleAxis(PI, Vectors::UNIT_X);
-    animVars.set("leftHandPosition", hips.trans());
+    animVars.set("leftHandPosition", hipsPosition);
     animVars.set("leftHandRotation", handRotation);
     animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
-    animVars.set("rightHandPosition", hips.trans());
+    animVars.set("rightHandPosition", hipsPosition);
     animVars.set("rightHandRotation", handRotation);
     animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
 
     int rightFootIndex = indexOfJoint("RightFoot");
     int leftFootIndex = indexOfJoint("LeftFoot");
     if (rightFootIndex != -1 && leftFootIndex != -1) {
-        glm::vec3 foot = Vectors::ZERO;
+        glm::vec3 geomFootPosition = glm::vec3(0.0f, _animSkeleton->getAbsoluteDefaultPose(rightFootIndex).trans().y, 0.0f);
+        glm::vec3 footPosition = transformPoint(_geometryToRigTransform, geomFootPosition);
         glm::quat footRotation = glm::angleAxis(0.5f * PI, Vectors::UNIT_X);
-        animVars.set("leftFootPosition", foot);
+        animVars.set("leftFootPosition", footPosition);
         animVars.set("leftFootRotation", footRotation);
         animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
-        animVars.set("rightFootPosition", foot);
+        animVars.set("rightFootPosition", footPosition);
         animVars.set("rightFootRotation", footRotation);
         animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
     }
 
     // call overlay twice: once to verify AnimPoseVec joints and again to do the IK
     AnimNode::Triggers triggersOut;
-    AnimContext context(false, false, false, glm::mat4(), glm::mat4());
+    AnimContext context(false, false, false, _geometryToRigTransform, _rigToGeometryTransform);
     float dt = 1.0f; // the value of this does not matter
     ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
     AnimPoseVec finalPoses =  ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());

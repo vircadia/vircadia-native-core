@@ -150,24 +150,26 @@ void AnimInverseKinematics::setTargetVars(const QString& jointName, const QStrin
 }
 
 void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses) {
-    // build a list of valid targets from _targetVarVec and animVars
-    _maxTargetIndex = -1;
+
     _hipsTargetIndex = -1;
-    bool removeUnfoundJoints = false;
+
+    targets.reserve(_targetVarVec.size());
 
     for (auto& targetVar : _targetVarVec) {
+
+        // update targetVar jointIndex cache
         if (targetVar.jointIndex == -1) {
-            // this targetVar hasn't been validated yet...
             int jointIndex = _skeleton->nameToJointIndex(targetVar.jointName);
             if (jointIndex >= 0) {
                 // this targetVar has a valid joint --> cache the indices
                 targetVar.jointIndex = jointIndex;
             } else {
                 qCWarning(animation) << "AnimInverseKinematics could not find jointName" << targetVar.jointName << "in skeleton";
-                removeUnfoundJoints = true;
             }
-        } else {
-            IKTarget target;
+        }
+
+        IKTarget target;
+        if (targetVar.jointIndex != -1) {
             target.setType(animVars.lookup(targetVar.typeVar, (int)IKTarget::Type::RotationAndPosition));
             if (target.getType() != IKTarget::Type::Unknown) {
                 AnimPose absPose = _skeleton->getAbsolutePose(targetVar.jointIndex, underPoses);
@@ -189,35 +191,16 @@ void AnimInverseKinematics::computeTargets(const AnimVariantMap& animVars, std::
                 glm::vec3 poleReferenceVector = animVars.lookupRigToGeometryVector(targetVar.poleReferenceVectorVar, Vectors::UNIT_Z);
                 target.setPoleReferenceVector(glm::normalize(poleReferenceVector));
 
-                targets.push_back(target);
-
-                if (targetVar.jointIndex > _maxTargetIndex) {
-                    _maxTargetIndex = targetVar.jointIndex;
-                }
-
                 // record the index of the hips ik target.
                 if (target.getIndex() == _hipsIndex) {
-                    _hipsTargetIndex = (int)targets.size() - 1;
+                    _hipsTargetIndex = (int)targets.size();
                 }
             }
+        } else {
+            target.setType((int)IKTarget::Type::Unknown);
         }
-    }
 
-    if (removeUnfoundJoints) {
-        int numVars = (int)_targetVarVec.size();
-        int i = 0;
-        while (i < numVars) {
-            if (_targetVarVec[i].jointIndex == -1) {
-                if (numVars > 1) {
-                    // swap i for last element
-                    _targetVarVec[i] = _targetVarVec[numVars - 1];
-                }
-                _targetVarVec.pop_back();
-                --numVars;
-            } else {
-                ++i;
-            }
-        }
+        targets.push_back(target);
     }
 }
 
@@ -258,10 +241,15 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
 
         // solve all targets
         for (size_t i = 0; i < targets.size(); i++) {
-            if (targets[i].getType() == IKTarget::Type::Spline) {
+            switch (targets[i].getType()) {
+            case IKTarget::Type::Unknown:
+                break;
+            case IKTarget::Type::Spline:
                 solveTargetWithSpline(context, targets[i], absolutePoses, debug, jointChainInfoVec[i]);
-            } else {
+                break;
+            default:
                 solveTargetWithCCD(context, targets[i], absolutePoses, debug, jointChainInfoVec[i]);
+                break;
             }
         }
 
@@ -317,7 +305,7 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
     // finally set the relative rotation of each tip to agree with absolute target rotation
     for (auto& target: targets) {
         int tipIndex = target.getIndex();
-        int parentIndex = _skeleton->getParentIndex(tipIndex);
+        int parentIndex = (tipIndex >= 0) ? _skeleton->getParentIndex(tipIndex) : -1;
 
         // update rotationOnly targets that don't lie on the ik chain of other ik targets.
         if (parentIndex != -1 && !_rotationAccumulators[tipIndex].isDirty() && target.getType() == IKTarget::Type::RotationOnly) {
@@ -1429,8 +1417,6 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
     for (auto& targetVar: _targetVarVec) {
         targetVar.jointIndex = -1;
     }
-
-    _maxTargetIndex = -1;
 
     for (auto& accumulator: _rotationAccumulators) {
         accumulator.clearAndClean();
