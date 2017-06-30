@@ -93,9 +93,10 @@ QmlWindowClass::QmlWindowClass() {
 
 void QmlWindowClass::initQml(QVariantMap properties) {
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    _toolWindow = properties.contains(TOOLWINDOW_PROPERTY) && properties[TOOLWINDOW_PROPERTY].toBool();
     _source = properties[SOURCE_PROPERTY].toString();
 
+#if QML_TOOL_WINDOW
+    _toolWindow = properties.contains(TOOLWINDOW_PROPERTY) && properties[TOOLWINDOW_PROPERTY].toBool();
     if (_toolWindow) {
         // Build the event bridge and wrapper on the main thread
         _qmlWindow = offscreenUi->getToolWindow();
@@ -106,6 +107,7 @@ void QmlWindowClass::initQml(QVariantMap properties) {
             Q_ARG(QVariant, QVariant::fromValue(properties)));
         Q_ASSERT(invokeResult);
     } else {
+#endif
         // Build the event bridge and wrapper on the main thread
         offscreenUi->loadInNewContext(qmlSource(), [&](QQmlContext* context, QObject* object) {
             _qmlWindow = object;
@@ -136,7 +138,9 @@ void QmlWindowClass::initQml(QVariantMap properties) {
                 connect(_qmlWindow, SIGNAL(moved(QVector2D)), this, SLOT(hasMoved(QVector2D)), Qt::QueuedConnection);
             connect(_qmlWindow, SIGNAL(windowClosed()), this, SLOT(hasClosed()), Qt::QueuedConnection);
         });
+#if QML_TOOL_WINDOW
     }
+#endif
     Q_ASSERT(_qmlWindow);
     Q_ASSERT(dynamic_cast<const QQuickItem*>(_qmlWindow.data()));
 }
@@ -210,9 +214,11 @@ QmlWindowClass::~QmlWindowClass() {
 }
 
 QQuickItem* QmlWindowClass::asQuickItem() const {
+#if QML_TOOL_WINDOW
     if (_toolWindow) {
         return DependencyManager::get<OffscreenUi>()->getToolWindow();
     }
+#endif
     return _qmlWindow.isNull() ? nullptr : dynamic_cast<QQuickItem*>(_qmlWindow.data());
 }
 
@@ -223,13 +229,15 @@ void QmlWindowClass::setVisible(bool visible) {
     }
 
     QQuickItem* targetWindow = asQuickItem();
+#if QML_TOOL_WINDOW
     if (_toolWindow) {
         // For tool window tabs we special case visibility as a function call on the tab parent
         // The tool window itself has special logic based on whether any tabs are visible
         QMetaObject::invokeMethod(targetWindow, "showTabForUrl", Qt::QueuedConnection, Q_ARG(QVariant, _source), Q_ARG(QVariant, visible));
-    } else {
-        targetWindow->setProperty(OFFSCREEN_VISIBILITY_PROPERTY, visible);
-    }
+        return;
+    } 
+#endif
+    targetWindow->setProperty(OFFSCREEN_VISIBILITY_PROPERTY, visible);
 }
 
 bool QmlWindowClass::isVisible() {
@@ -244,10 +252,12 @@ bool QmlWindowClass::isVisible() {
         return false;
     }
 
+#if QML_TOOL_WINDOW
     if (_toolWindow) {
         return dynamic_cast<QQuickItem*>(_qmlWindow.data())->isEnabled();
     } 
-      
+#endif
+
     return asQuickItem()->isVisible();
 }
 
@@ -332,6 +342,7 @@ void QmlWindowClass::close() {
         return;
     }
 
+#if QML_TOOL_WINDOW
     if (_toolWindow) {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         auto toolWindow = offscreenUi->getToolWindow();
@@ -339,7 +350,10 @@ void QmlWindowClass::close() {
             Q_ARG(QVariant, _source));
         Q_ASSERT(invokeResult);
         return;
-    } else if (_qmlWindow) {
+    } 
+#endif
+
+    if (_qmlWindow) {
         _qmlWindow->deleteLater();
     }
     _qmlWindow = nullptr;

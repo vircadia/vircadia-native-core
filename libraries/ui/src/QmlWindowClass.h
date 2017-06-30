@@ -19,6 +19,8 @@
 class QScriptEngine;
 class QScriptContext;
 
+#define QML_TOOL_WINDOW 0
+
 // FIXME refactor this class to be a QQuickItem derived type and eliminate the needless wrapping 
 class QmlWindowClass : public QObject {
     Q_OBJECT
@@ -85,9 +87,12 @@ protected:
 
     virtual QString qmlSource() const { return "QmlWindow.qml"; }
 
+#if QML_TOOL_WINDOW
     // FIXME needs to be initialized in the ctor once we have support
     // for tool window panes in QML
     bool _toolWindow { false };
+#endif
+
     QPointer<QObject> _qmlWindow;
     QString _source;
 
