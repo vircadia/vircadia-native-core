@@ -48,6 +48,7 @@
 
 #include <gl/QOpenGLContextWrapper.h>
 
+#include <shared/QtHelpers.h>
 #include <shared/GlobalAppProperties.h>
 #include <StatTracker.h>
 #include <Trace.h>
@@ -1208,15 +1209,26 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
-    int SAVE_SETTINGS_INTERVAL = 10 * MSECS_PER_SECOND; // Let's save every seconds for now
-    connect(&_settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
-    connect(&_settingsThread, SIGNAL(started()), &_settingsTimer, SLOT(start()));
-    connect(&_settingsThread, SIGNAL(finished()), &_settingsTimer, SLOT(stop()));
-    _settingsTimer.moveToThread(&_settingsThread);
-    _settingsTimer.setSingleShot(false);
-    _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL); // 10s, Qt::CoarseTimer acceptable
-    _settingsThread.setPriority(QThread::LowestPriority);
-    _settingsThread.start();
+
+    QTimer* settingsTimer = new QTimer();
+    moveToNewNamedThread(settingsTimer, "Settings Thread", [this, settingsTimer]{
+        connect(qApp, &Application::beforeAboutToQuit, [this, settingsTimer]{
+            // Disconnect the signal from the save settings
+            QObject::disconnect(settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
+            // Stop the settings timer
+            settingsTimer->stop();
+            // Delete it (this will trigger the thread destruction
+            settingsTimer->deleteLater();
+            // Mark the settings thread as finished, so we know we can safely save in the main application 
+            // shutdown code 
+            _settingsGuard.trigger();
+        });
+
+        int SAVE_SETTINGS_INTERVAL = 10 * MSECS_PER_SECOND; // Let's save every seconds for now
+        settingsTimer->setSingleShot(false);
+        settingsTimer->setInterval(SAVE_SETTINGS_INTERVAL); // 10s, Qt::CoarseTimer acceptable
+        QObject::connect(settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
+    }, QThread::LowestPriority);
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
         getMyAvatar()->setBoomLength(MyAvatar::ZOOM_MIN);  // So that camera doesn't auto-switch to third person.
@@ -1644,7 +1656,7 @@ QString Application::getUserAgent() {
     if (QThread::currentThread() != thread()) {
         QString userAgent;
 
-        QMetaObject::invokeMethod(this, "getUserAgent", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QString, userAgent));
+        hifi::qt::blockingInvokeMethod(this, "getUserAgent", Q_RETURN_ARG(QString, userAgent));
 
         return userAgent;
     }
@@ -1802,11 +1814,13 @@ void Application::cleanupBeforeQuit() {
     locationUpdateTimer.stop();
     identityPacketTimer.stop();
     pingTimer.stop();
-    QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
 
-    // save state
-    _settingsThread.quit();
-    saveSettings();
+    // Wait for the settings thread to shut down, and save the settings one last time when it's safe
+    if (_settingsGuard.wait()) {
+        // save state
+        saveSettings();
+    }
+
     _window->saveGeometry();
 
     // Destroy third party processes after scripts have finished using them.
@@ -1830,8 +1844,7 @@ void Application::cleanupBeforeQuit() {
 
     // FIXME: something else is holding a reference to AudioClient,
     // so it must be explicitly synchronously stopped here
-    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
-        "cleanupBeforeQuit", Qt::BlockingQueuedConnection);
+    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(), "cleanupBeforeQuit", Qt::BlockingQueuedConnection);
 
     // destroy Audio so it and its threads have a chance to go down safely
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine

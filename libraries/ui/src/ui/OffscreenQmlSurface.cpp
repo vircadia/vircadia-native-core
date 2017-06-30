@@ -25,6 +25,8 @@
 #include <QtCore/QWaitCondition>
 
 #include <shared/NsightHelpers.h>
+#include <shared/GlobalAppProperties.h>
+#include <shared/QtHelpers.h>
 #include <PerfStat.h>
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
@@ -34,7 +36,6 @@
 #include <AccountManager.h>
 #include <NetworkAccessManager.h>
 #include <GLMHelpers.h>
-#include <shared/GlobalAppProperties.h>
 
 #include <gl/OffscreenGLCanvas.h>
 #include <gl/GLHelpers.h>
@@ -899,7 +900,7 @@ void OffscreenQmlSurface::executeOnUiThread(std::function<void()> function, bool
 QVariant OffscreenQmlSurface::returnFromUiThread(std::function<QVariant()> function) {
     if (QThread::currentThread() != thread()) {
         QVariant result;
-        QMetaObject::invokeMethod(this, "returnFromUiThread", Qt::BlockingQueuedConnection,
+        hifi::qt::blockingInvokeMethod(this, "returnFromUiThread",
             Q_RETURN_ARG(QVariant, result),
             Q_ARG(std::function<QVariant()>, function));
         return result;

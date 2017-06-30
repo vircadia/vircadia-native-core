@@ -58,7 +58,7 @@ private:
 
     static QHash<int, QByteArray> _roles;
     static Qt::ItemFlags _flags;
-
+    bool _userSelection { false };
     QAudio::Mode _mode;
     QAudioDeviceInfo _selectedDevice;
     QList<AudioDevice> _devices;
