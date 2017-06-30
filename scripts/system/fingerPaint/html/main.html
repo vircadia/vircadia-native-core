@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="../../html/js/jquery-2.1.4.min.js"></script>
+<style>
+    iframe {
+        height:100%;
+        width:100%;
+        position: absolute;
+    }
+    .tabButton {
+        background-color: #aaaaaa;
+        color: white;
+        font-size: 100%;
+        padding: 12px;
+        margin: 0px;
+        text-align: center;
+        vertical-align: middle;
+         display: inline-block;
+         user-select: none;
+    }
+    .tabIcon {
+        width: 24px;
+        height: 24px;
+        padding-right: 12px;
+    }
+    .selected {
+        background-color: #4286f4
+    }
+</style>
+</head>
+<body style="margin:0px;padding:0px;overflow:hidden">
+    <div id="tabs">
+        <span class="tabButton" onclick="selectTab(0)"><img class="tabIcon" src="../content/tabicons/colorpaletteBtn.png"/>Color</span>
+        <span class="tabButton" onclick="selectTab(1)"><img class="tabIcon" src="../content/tabicons/brushesBtn.png"/>Brushes</span>
+        <span class="tabButton" onclick="selectTab(2)"><img class="tabIcon" src="../content/tabicons/eraser.png"/>Eraser</span>
+        <span class="tabButton" onclick="selectTab(3)"><img class="tabIcon" src="../content/tabicons/linewidthBtn.png"/>Line Width</span>
+        <span class="tabButton" onclick="selectTab(4)"><img class="tabIcon" src="../content/tabicons/pointingfinger128px.png"/>Hand</span>
+    </div>
+    <div id="content">
+        <iframe frameborder="0" src="colorsTab.html" seamless></iframe>
+        <iframe frameborder="0" src="brushesTab.html" seamless style="display: none"></iframe>
+        <iframe frameborder="0" src="eraserTab.html" seamless style="display: none"></iframe>
+        <iframe frameborder="0" src="lineWidthTab.html" seamless style="display: none"></iframe>
+        <iframe frameborder="0" src="chooseHandTab.html" seamless style="display: none"></iframe>
+    </div>
+</body>
+</html>
+
+<script type="text/javascript">
+    var currentTab = 0;
+    selectTab(0);
+    function selectTab(tabIndex) {
+        var tabs = document.getElementById("tabs").children;
+        var contentPanels = document.getElementById("content").children;
+        tabs[currentTab].classList.remove("selected");
+        contentPanels[currentTab].style.display = "none";
+        contentPanels[tabIndex].style.display = "block";
+        tabs[tabIndex].classList.add("selected");
+        currentTab = tabIndex;
+    }
+
+    //Accept events from iframes
+    //https://stackoverflow.com/questions/8822907/html5-cross-browser-iframe-postmessage-child-to-parent
+    var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
+    var eventer = window[eventMethod];
+    var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
+
+    // Listen to message from child window
+    eventer(messageEvent,function(e) {
+        EventBridge.emitWebEvent(e.data);
+    }, false);
+
+</script>
+

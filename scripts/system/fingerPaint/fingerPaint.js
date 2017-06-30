@@ -12,7 +12,20 @@
     var tablet,
         button,
         BUTTON_NAME = "PAINT",
+        //undo vars
+        UNDO_STACK_SIZE = 5, 
+        undoStack = [];
         isFingerPainting = false,
+        //dynamic brush vars
+        /*9isDynamicBrushEnabled = false,
+        isDynamicBrushRunning = false,
+        DYNAMIC_BRUSH_UPDATE_TIME = 100,
+        lastFrameTime = Date.now(),
+        frameDeltaSeconds = null, //time that passed between frames in milliseconds
+        stopDynamicBrush = false,
+        prevBrushWidth = 0,
+        DYNAMIC_BRUSH_TIME = 50, //inteval in milliseconds to update the brush width
+        DYNAMIC_BRUSH_INCREMENT = 0.01, //linear increment of brush size */
         leftHand = null,
         rightHand = null,
         leftBrush = null,
@@ -22,11 +35,11 @@
         isTabletDisplayed = false,
         HIFI_POINT_INDEX_MESSAGE_CHANNEL = "Hifi-Point-Index",
         HIFI_GRAB_DISABLE_MESSAGE_CHANNEL = "Hifi-Grab-Disable",
-        HIFI_POINTER_DISABLE_MESSAGE_CHANNEL = "Hifi-Pointer-Disable";
+        HIFI_POINTER_DISABLE_MESSAGE_CHANNEL = "Hifi-Pointer-Disable",
+        SCRIPT_PATH = Script.resolvePath('')
+        CONTENT_PATH = SCRIPT_PATH.substr(0, SCRIPT_PATH.lastIndexOf('/')),
+        APP_URL = CONTENT_PATH + "/html/main.html";
 
-        
-        
-    
     // Set up the qml ui
     var qml = Script.resolvePath('PaintWindow.qml');
     var window = null;
@@ -38,8 +51,7 @@
     var LEFT_ANIM_URL = Script.resourcesPath() + 'avatar/animations/touch_point_closed_left.fbx';
 	var RIGHT_ANIM_URL_OPEN = Script.resourcesPath() + 'avatar/animations/touch_point_open_right.fbx';
     var LEFT_ANIM_URL_OPEN = Script.resourcesPath() + 'avatar/animations/touch_point_open_left.fbx'; 
-        
-
+    
     function paintBrush(name) {
         // Paints in 3D.
         var brushName = name,
@@ -60,9 +72,7 @@
             MIN_STROKE_LENGTH = 0.005,  // m
             MIN_STROKE_INTERVAL = 66,  // ms
             MAX_POINTS_PER_LINE = 70;  // Hard-coded limit in PolyLineEntityItem.h.
-        
-        var undo = null;
-        
+                
         function strokeNormal() {
             return Vec3.multiplyQbyV(Camera.getOrientation(), Vec3.UNIT_NEG_Z);
         }
@@ -94,15 +104,21 @@
         }
         
         function undoErasing() {
+            var undo = undoStack.pop();
             if (undo) {
                 Entities.addEntity(undo);
-                undo = null;
             }
         }
 
         function startLine(position, width) {
             // Start drawing a polyline.
-            
+            /*if (isDynamicBrushEnabled) {
+                print("start running the dynamic brush");
+                prevBrushWidth = getStrokeWidth();
+                changeStrokeWidthMultiplier(0.1);
+                isDynamicBrushRunning = true;
+            }*/
+
             width = width * strokeWidthMultiplier;
             
             if (isDrawingLine) {
@@ -134,6 +150,7 @@
         }
 
         function drawLine(position, width) {
+            print("current brush width" + getStrokeWidth());
             // Add a stroke to the polyline if stroke is a sufficient length.
             var localPosition,
                 distanceToPrevious,
@@ -172,7 +189,8 @@
 
         function finishLine(position, width) {
             // Finish drawing polyline; delete if it has only 1 point.
-
+            //stopDynamicBrush = true;
+            print("already stopped drawing");
             width = width * strokeWidthMultiplier;
             
             if (!isDrawingLine) {
@@ -230,7 +248,7 @@
 
             // Delete found entity.
             if (found) {
-                undo = Entities.getEntityProperties(foundID);
+                addElementToUndoStack(Entities.getEntityProperties(foundID));
                 Entities.deleteEntity(foundID);
             }
         }
@@ -288,10 +306,6 @@
         function onTriggerPress(value) {
             // Controller values are only updated when they change so store latest for use in update.
             rawTriggerValue = value;
-            
-            
-            
-            
         }
 
         function updateTriggerPress(value) {
@@ -404,6 +418,29 @@
             }
         }
 
+        /*function runDynamicBrush() {
+            if (isDynamicBrushRunning) {
+                var currentBrush = isLeftHandDominant ? leftBrush : rightBrush;
+            
+                if (currentBrush.getStrokeWidth() < 2.1 && !stopDynamicBrush) {
+                    currentBrush.changeStrokeWidthMultiplier(currentBrush.getStrokeWidth() + ((frameDeltaSeconds * DYNAMIC_BRUSH_INCREMENT)/DYNAMIC_BRUSH_TIME));
+                    print("going up: " + currentBrush.getStrokeWidth());
+                }
+                if (stopDynamicBrush) {
+                    currentBrush.changeStrokeWidthMultiplier(currentBrush.getStrokeWidth() - ((frameDeltaSeconds * DYNAMIC_BRUSH_INCREMENT)/DYNAMIC_BRUSH_TIME));
+                    print("going down: " + currentBrush.getStrokeWidth());
+                }
+                if (currentBrush.getStrokeWidth() <= 0) {
+                    print("stopped: " + currentBrush.getStrokeWidth());
+                    stopDynamicBrush = false;
+                    isDynamicBrushRunning = false;
+                    print("putting back the brush width: " + prevBrushWidth);
+                    currentBrush.changeStrokeWidthMultiplier(prevBrushWidth);
+                    currentBrush.finishLine();
+                }
+            }
+        }*/
+
         function onUpdate() {
             
             //update ink Source
@@ -435,7 +472,9 @@
                 // }
                 // inkSource = Entities.addEntity(inkSourceProps);
             // }
-            
+            /*frameDeltaSeconds = Date.now() - lastFrameTime;
+            lastFrameTime = Date.now();
+            runDynamicBrush();     */     
             updateTriggerPress();
             updateGripPress();
         }
@@ -630,7 +669,9 @@
                 return;
             }
             if (message[0] === "width"){
+                print("changing brush width " + message[1]);
                 var dim = message[1]*2 +0.1;
+                print("changing brush dim " + dim);
                 //var dim2 = Math.floor( Math.random()*40 + 5);
                 leftBrush.changeStrokeWidthMultiplier(dim);
                 rightBrush.changeStrokeWidthMultiplier(dim);
@@ -641,7 +682,8 @@
                 return;
             }
             if (message[0] === "brush"){
-                
+                print("changing brush to qml " + message[1]);
+
                 //var dim2 = Math.floor( Math.random()*40 + 5);
                 leftBrush.changeTexture(message[1]);
                 rightBrush.changeTexture(message[1]);
@@ -723,6 +765,7 @@
         }
 
         if (isFingerPainting) {
+        	tablet.gotoWebScreen(APP_URL);
             enableProcessing();
         }
 
@@ -740,12 +783,89 @@
         updateHandFunctions();
     }
 
+
+    function onWebEventReceived(event){
+        print("Received Web Event: " + event);
+
+        if (typeof event === "string") {
+            event = JSON.parse(event);
+        }
+        switch (event.type) {
+            case "changeColor":
+                print("changing color...");
+                leftBrush.changeStrokeColor(event.red, event.green, event.blue);
+                rightBrush.changeStrokeColor(event.red, event.green, event.blue);
+                Overlays.editOverlay(inkSourceOverlay, {
+                    color: {red: event.red, green: event.green, blue: event.blue} 
+                });
+                break;
+
+            case "changeBrush":
+                if (event.brushName === "content/brushes/paintbrush1.png") {
+                    leftBrush.changeUVMode(false);
+                    rightBrush.changeUVMode(false);
+                } else if (event.brushName === "content/brushes/paintbrush3.png") {
+                    leftBrush.changeUVMode(false);
+                    rightBrush.changeUVMode(false);
+                } else {
+                    leftBrush.changeUVMode(true);
+                    rightBrush.changeUVMode(true);
+                }
+                print("changing brush to " + event.brushName);
+                event.brushName = CONTENT_PATH + "/" + event.brushName;
+                leftBrush.changeTexture(event.brushName);
+                rightBrush.changeTexture(event.brushName);
+                break;
+
+            case "changeLineWidth":
+                var dim = event.brushWidth*2 +0.1;
+                print("changing brush width dim to " + dim);
+                //var dim2 = Math.floor( Math.random()*40 + 5);
+                leftBrush.changeStrokeWidthMultiplier(dim);
+                rightBrush.changeStrokeWidthMultiplier(dim);
+                Overlays.editOverlay(inkSourceOverlay, {
+                    size: dim * 0.06 
+                });
+                break;
+
+            case "undo":
+                print("Going to undo");
+                /**
+                The undo is called only on the right brush because the undo stack is global, meaning that
+                calling undoErasing on both the left and right brush would cause the stack to pop twice.
+                Using the leftBrush instead of the rightBrush would have the exact same effect.
+                */
+                rightBrush.undoErasing();
+                break;
+
+            case "changeBrushHand":
+                isLeftHandDominant = event.DrawingHand == "left";
+                updateHandAnimations();
+                break;
+
+            /*case "switchDynamicBrush":
+                isDynamicBrushEnabled = event.isDynamicBrushEnabled;
+                break;*/
+
+            default:
+                break;
+        }
+    }    
+
+    function addElementToUndoStack(item)
+    {
+        if (undoStack.length + 1 > UNDO_STACK_SIZE) {
+            undoStack.splice(0, 1);
+        }
+        undoStack.push(item);
+    }
+
     function setUp() {
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         if (!tablet) {
             return;
         }
-
+        tablet.webEventReceived.connect(onWebEventReceived);
         // Tablet button.
         button = tablet.addButton({
             icon: "icons/tablet-icons/finger-paint-i.svg",
