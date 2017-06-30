@@ -1500,8 +1500,11 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
 }
 
 EntityTreeElementPointer EntityTree::getContainingElement(const EntityItemID& entityItemID)  /*const*/ {
-    QReadLocker locker(&_entityMapLock);
-    EntityItemPointer entity = _entityMap.value(entityItemID);
+    EntityItemPointer entity;
+    {
+        QReadLocker locker(&_entityMapLock);
+        entity = _entityMap.value(entityItemID);
+    }
     if (entity) {
         return entity->getElement();
     }
