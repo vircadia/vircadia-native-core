@@ -40,7 +40,8 @@
     }
 
     function onScreenChanged(type, url) {
-        onHelpScreen = false;
+        onHelpScreen = type === "Web" && url.startsWith("../../../html/tabletHelp.html");
+        button.editProperties({ isActive: onHelpScreen });
     }
 
     button.clicked.connect(onClicked);

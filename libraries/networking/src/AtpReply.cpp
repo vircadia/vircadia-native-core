@@ -13,7 +13,7 @@
 #include "AtpReply.h"
 
 AtpReply::AtpReply(const QUrl& url, QObject* parent) :
-        _resourceRequest(ResourceManager::createResourceRequest(parent, url)) {
+    _resourceRequest(DependencyManager::get<ResourceManager>()->createResourceRequest(parent, url)) {
     setOperation(QNetworkAccessManager::GetOperation);
 
     connect(_resourceRequest, &AssetResourceRequest::progress, this, &AtpReply::downloadProgress);

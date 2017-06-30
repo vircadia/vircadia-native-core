@@ -31,7 +31,7 @@
 
 MessageID AssetClient::_currentID = 0;
 
-AssetClient::AssetClient() {
+AssetClient::AssetClient(const QString& cacheDir) : _cacheDir(cacheDir) {
     setCustomDeleter([](Dependency* dependency){
         static_cast<AssetClient*>(dependency)->deleteLater();
     });
@@ -55,14 +55,15 @@ void AssetClient::init() {
     // Setup disk cache if not already
     auto& networkAccessManager = NetworkAccessManager::getInstance();
     if (!networkAccessManager.cache()) {
-        QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-        cachePath = !cachePath.isEmpty() ? cachePath : "interfaceCache";
-
+        if (_cacheDir.isEmpty()) {
+            QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+            _cacheDir = !cachePath.isEmpty() ? cachePath : "interfaceCache";
+        }
         QNetworkDiskCache* cache = new QNetworkDiskCache();
         cache->setMaximumCacheSize(MAXIMUM_CACHE_SIZE);
-        cache->setCacheDirectory(cachePath);
+        cache->setCacheDirectory(_cacheDir);
         networkAccessManager.setCache(cache);
-        qInfo() << "ResourceManager disk cache setup at" << cachePath
+        qInfo() << "ResourceManager disk cache setup at" << _cacheDir
                  << "(size:" << MAXIMUM_CACHE_SIZE / BYTES_PER_GIGABYTES << "GB)";
     }
 }

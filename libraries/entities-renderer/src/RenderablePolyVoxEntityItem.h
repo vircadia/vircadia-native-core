@@ -12,17 +12,19 @@
 #ifndef hifi_RenderablePolyVoxEntityItem_h
 #define hifi_RenderablePolyVoxEntityItem_h
 
-#include <QSemaphore>
 #include <atomic>
+
+#include <QSemaphore>
 
 #include <PolyVoxCore/SimpleVolume.h>
 #include <PolyVoxCore/Raycast.h>
 
+#include <gpu/Context.h>
+#include <model/Forward.h>
 #include <TextureCache.h>
+#include <PolyVoxEntityItem.h>
 
-#include "PolyVoxEntityItem.h"
 #include "RenderableEntityItem.h"
-#include "gpu/Context.h"
 
 class PolyVoxPayload {
 public:
