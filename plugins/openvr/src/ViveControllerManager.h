@@ -192,6 +192,9 @@ private:
     bool isDesktopMode();
     bool _registeredWithInputMapper { false };
     bool _modelLoaded { false };
+    bool _resetMatCalculated { false };
+    bool _pullInputData { false };
+    glm::mat4 _resetMat { glm::mat4() };
     model::Geometry _modelGeometry;
     gpu::TexturePointer _texture;
 

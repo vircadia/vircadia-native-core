@@ -123,6 +123,22 @@ static QString deviceTrackingResultToString(vr::ETrackingResult trackingResult) 
     return result;
 }
 
+static glm::mat4 calculateResetMat() {
+    auto chaperone = vr::VRChaperone();
+    if (chaperone) {
+        float const UI_RADIUS = 1.0f;
+        float const UI_HEIGHT = 1.6f;
+        float const UI_Z_OFFSET = 0.5;
+        
+        float xSize, zSize;
+        chaperone->GetPlayAreaSize(&xSize, &zSize);
+        glm::vec3 uiPos(0.0f, UI_HEIGHT, UI_RADIUS - (0.5f * zSize) - UI_Z_OFFSET);
+
+        return glm::inverse(createMatFromQuatAndPos(glm::quat(), uiPos));
+    }
+    return glm::mat4();
+}
+
 bool ViveControllerManager::isDesktopMode() {
     if (_container) {
         return !_container->getActiveDisplayPlugin()->isHmd();
@@ -228,7 +244,13 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
     }
 
     if (isDesktopMode()) {
-        qDebug() << "In desktop mode";
+        if (!_resetMatCalculated) {
+            _resetMat = calculateResetMat();
+            _resetMatCalculated = true;
+        }
+        
+        _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, 0, _nextSimPoseData.vrPoses, vr::k_unMaxTrackedDeviceCount);
+        _nextSimPoseData.update(_resetMat);
     }
 
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();

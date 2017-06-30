@@ -34,36 +34,32 @@
         { "from": "Vive.RSCenter", "to": "Standard.RightPrimaryThumb" },
         { "from": "Vive.RightApplicationMenu", "to": "Standard.RightSecondaryThumb" },
 
-        { "from": "Vive.LeftHand", "to": "Standard.LeftHand", "when": [ "Application.InHMD" ] },
-        { "from": "Vive.RightHand", "to": "Standard.RightHand", "when": [ "Application.InHMD" ] },
+        { "from": "Vive.LeftHand", "to": "Standard.LeftHand"},
+        { "from": "Vive.RightHand", "to": "Standard.RightHand"},
 
         {
             "from": "Vive.LeftFoot", "to" : "Standard.LeftFoot",
-            "filters" : [{"type" :  "lowVelocity", "rotation" : 1.0, "translation": 1.0}],
-            "when": [ "Application.InHMD" ]
+            "filters" : [{"type" :  "lowVelocity", "rotation" : 1.0, "translation": 1.0}]
         },
 
         {
             "from": "Vive.RightFoot", "to" : "Standard.RightFoot",
-            "filters" : [{"type" :  "lowVelocity", "rotation" : 1.0, "translation": 1.0}],
-            "when": [ "Application.InHMD" ]
+            "filters" : [{"type" :  "lowVelocity", "rotation" : 1.0, "translation": 1.0}]
         },
 
         {
             "from": "Vive.Hips", "to" : "Standard.Hips",
-            "filters" : [{"type" :  "lowVelocity", "rotation" : 0.01, "translation": 0.01}],
-            "when": [ "Application.InHMD" ]
+            "filters" : [{"type" :  "lowVelocity", "rotation" : 0.01, "translation": 0.01}]
         },
 
         {
             "from": "Vive.Spine2", "to" : "Standard.Spine2",
-            "filters" : [{"type" :  "lowVelocity", "rotation" : 0.01, "translation": 0.01}],
-            "when": [ "Application.InHMD" ]
+            "filters" : [{"type" :  "lowVelocity", "rotation" : 0.01, "translation": 0.01}]
         },
 
-        { "from": "Vive.Head", "to" : "Standard.Head", "when": [ "Application.InHMD" ] },
+        { "from": "Vive.Head", "to" : "Standard.Head"},
 
-        { "from": "Vive.RightArm", "to" : "Standard.RightArm", "when": [ "Application.InHMD" ] },
-        { "from": "Vive.LeftArm", "to" : "Standard.LeftArm", "when": [ "Application.InHMD" ] }
+        { "from": "Vive.RightArm", "to" : "Standard.RightArm"},
+        { "from": "Vive.LeftArm", "to" : "Standard.LeftArm"}
     ]
 }
