@@ -374,8 +374,8 @@ QJsonObject ViveControllerManager::InputDevice::configurationSettings() {
     Locker locker(_lock);
     QJsonObject configurationSettings;
     configurationSettings["trackerConfiguration"] = configToString(_preferedConfig);
-    configurationSettings["HMDHead"] = (_headConfig == HeadConfig::HMD) ? true : false;
-    configurationSettings["handController"] = (_handConfig == HandConfig::HandController) ? true : false;
+    configurationSettings["HMDHead"] = (_headConfig == HeadConfig::HMD);
+    configurationSettings["handController"] = (_handConfig == HandConfig::HandController);
     configurationSettings["puckCount"] = (int)_validTrackedObjects.size();
     return configurationSettings;
 }
