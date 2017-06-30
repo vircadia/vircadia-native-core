@@ -79,6 +79,7 @@ public:
 
             gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
                 batch.disableContextStereo();
+                batch.disableContextViewCorrection();
             });
 
             auto srcViewFrustum = args->getViewFrustum();
@@ -112,6 +113,7 @@ public:
 
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             batch.restoreContextStereo();
+            batch.restoreContextViewCorrection();
         });
     }
 };
