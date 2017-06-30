@@ -223,9 +223,19 @@
         }
     }
 
+    // Function Name: setDisplay()
+    //
+    // Description:
+    //   -There are two bool variables that determine what the "url" argument to "setDisplayTexture(url)" should be:
+    //     Camera on/off switch, and the "Monitor Shows" on/off switch.
+    //     This results in four possible cases for the argument. Those four cases are:
+    //     1. Camera is off; "Monitor Shows" is "HMD Preview": "url" is ""
+    //     2. Camera is off; "Monitor Shows" is "Camera View": "url" is ""
+    //     3. Camera is on; "Monitor Shows" is "HMD Preview":  "url" is ""
+    //     4. Camera is on; "Monitor Shows" is "Camera View": "url" is "resource://spectatorCameraFrame"
     function setDisplay(showCameraView) {
         // It would be fancy if (showCameraView && !cameraUpdateInterval) would show instructions, but that's out of scope for now.
-        var url = (showCameraView && cameraUpdateInterval) ? "resource://spectatorCameraFrame" : "";
+        var url = (camera && showCameraView && cameraUpdateInterval) ? "resource://spectatorCameraFrame" : "";
         Window.setDisplayTexture(url);
     }
     const MONITOR_SHOWS_CAMERA_VIEW_DEFAULT = false;
