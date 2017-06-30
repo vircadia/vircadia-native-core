@@ -504,15 +504,9 @@ function takeSnapshot() {
             Window.takeSnapshot(false, includeAnimated, 1.91);
         }, SNAPSHOT_DELAY);
     }, FINISH_SOUND_DELAY);
-UserActivityLogger.logAction("snapshot_taken", logDetails());
+    UserActivityLogger.logAction("snaphshot_taken", { location: location.href });
 }
     
- function logDetails() {
-        return {
-            current_domain: location.href
-        };
-    }
-
 function isDomainOpen(id, callback) {
     print("Checking open status of domain with ID:", id);
     var status = false;
