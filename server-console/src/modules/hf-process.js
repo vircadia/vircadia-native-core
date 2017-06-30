@@ -115,6 +115,8 @@ function Process(name, command, commandArgs, logDirectory) {
     this.logStderr = null;
     this.detached = false;
     this.restartOnCrash = false;
+    this.restartCount = 0;
+    this.firstRestartTimestamp = Date.now();
 
     this.state = ProcessStates.STOPPED;
 };
@@ -269,14 +271,29 @@ Process.prototype = extend(Process.prototype, {
             clearTimeout(this.stoppingTimeoutID);
             this.stoppingTimeoutID = null;
         }
-        // Grab current state berofe updating it.
+        // Grab current state before updating it.
         var unexpectedShutdown = this.state != ProcessStates.STOPPING;
         this.updateState(ProcessStates.STOPPED);
 
         if (unexpectedShutdown && this.restartOnCrash) {
-            log.warn("Child stopped unexpectedly, restarting.");
-            this.start();
-            return;
+            var MAX_RESTARTS = 10;
+            var MAX_RESTARTS_PERIOD = 10; // 10 min
+            var MSEC_PER_MIN = 1000 * 60;
+            var now = Date.now();
+            var timeDiff = (now - this.firstRestartTimestamp) / MSEC_PER_MIN;
+            if (timeDiff > MAX_RESTARTS_PERIOD) {
+                this.firstRestartTimestamp = now;
+                this.restartCount = 0;
+            }
+
+            if (this.restartCount < 10) {
+                this.restartCount++;
+
+                log.warn("Child stopped unexpectedly, restarting.");
+                this.start();
+            } else {
+                log.warn("Child stopped unexpectedly too many times, not restarting.");
+            }
         }
     }
 });
