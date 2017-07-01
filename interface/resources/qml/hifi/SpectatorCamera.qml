@@ -39,7 +39,7 @@ Rectangle {
         letterboxMessage.visible = true;
         letterboxMessage.popupRadius = 0;
     }
-    
+
     //
     // TITLE BAR START
     //
@@ -221,13 +221,18 @@ Rectangle {
         Hifi.ResourceImageItem {
             id: spectatorCameraPreview;
             url: "resource://spectatorCameraFrame";
-            ready: false;
+            ready: cameraToggleCheckBox.checked;
             mirrorVertically: true;
             height: 250;
             anchors.left: parent.left;
             anchors.top: cameraToggleCheckBox.bottom;
             anchors.topMargin: 20;
             anchors.right: parent.right;
+            onVisibleChanged: {
+                ready = cameraToggleCheckBox.checked;
+                update();
+            }
+
         }
 
         // "Monitor Shows" Switch Label Glyph

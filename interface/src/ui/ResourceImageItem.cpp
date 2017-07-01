@@ -23,13 +23,7 @@ ResourceImageItem::ResourceImageItem(QQuickItem* parent) : QQuickFramebufferObje
 }
 
 void ResourceImageItem::onUpdateTimer() {
-    qDebug() << "onUpdateTimer called";
-    // turn timer off if not visible
-    if (!isVisible()) {
-        m_updateTimer.stop();
-    } else {
-        update();
-    }
+    update();
 }
 
 void ResourceImageItem::setUrl(const QString& url) {
@@ -46,7 +40,6 @@ void ResourceImageItem::setReady(bool ready) {
             // 10 HZ for now.  Also this serves as a small
             // delay before getting the network texture, which
             // helps a lot.  TODO: find better way.
-            qDebug() << "setReady called";
             m_updateTimer.start(100);
         } else {
             m_updateTimer.stop();

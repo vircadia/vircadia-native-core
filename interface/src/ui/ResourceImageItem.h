@@ -38,7 +38,6 @@ class ResourceImageItem : public QQuickFramebufferObject {
     Q_OBJECT
     Q_PROPERTY(QString url READ getUrl WRITE setUrl)
     Q_PROPERTY(bool ready READ getReady WRITE setReady)
-
 public:
     ResourceImageItem(QQuickItem* parent = Q_NULLPTR);
     QString getUrl() const { return m_url; }
