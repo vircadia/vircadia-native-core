@@ -428,8 +428,8 @@ void ViveControllerManager::InputDevice::emitCalibrationStatus() {
     QJsonObject status = QJsonObject();
     status["calibrated"] = _calibrated;
     status["configuration"] = configToString(_preferedConfig);
-    status["head_puck"] = (_headConfig == HeadConfig::Puck) ? true : false;
-    status["hand_pucks"] = (_handConfig == HandConfig::Pucks) ? true : false;
+    status["head_puck"] = (_headConfig == HeadConfig::Puck);
+    status["hand_pucks"] = (_handConfig == HandConfig::Pucks);
     status["puckCount"] = (int)_validTrackedObjects.size();
     status["UI"] = _calibrate;
     
