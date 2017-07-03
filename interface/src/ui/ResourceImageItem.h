@@ -18,8 +18,10 @@
 
 #include <TextureCache.h>
 
-class ResourceImageItemRenderer : public QQuickFramebufferObject::Renderer {
+class ResourceImageItemRenderer : public QObject, public QQuickFramebufferObject::Renderer {
+    Q_OBJECT
 public:
+    ResourceImageItemRenderer();
     QOpenGLFramebufferObject* createFramebufferObject(const QSize& size) override;
     void synchronize(QQuickFramebufferObject* item) override;
     void render() override;
@@ -32,6 +34,9 @@ private:
     QMutex _fboMutex;
     QOpenGLFramebufferObject* _copyFbo;
     GLsync _fenceSync { 0 };
+    QTimer _updateTimer;
+public slots:
+    void onUpdateTimer();
 };
 
 class ResourceImageItem : public QQuickFramebufferObject {
@@ -39,20 +44,15 @@ class ResourceImageItem : public QQuickFramebufferObject {
     Q_PROPERTY(QString url READ getUrl WRITE setUrl)
     Q_PROPERTY(bool ready READ getReady WRITE setReady)
 public:
-    ResourceImageItem(QQuickItem* parent = Q_NULLPTR);
     QString getUrl() const { return m_url; }
     void setUrl(const QString& url);
     bool getReady() const { return m_ready; }
     void setReady(bool ready);
     QQuickFramebufferObject::Renderer* createRenderer() const override { return new ResourceImageItemRenderer; }
 
-public slots:
-    void onUpdateTimer();
-
 private:
     QString m_url;
     bool m_ready { false };
-    QTimer m_updateTimer; // TODO: something more clever
 
 };
 
