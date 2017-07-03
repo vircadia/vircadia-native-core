@@ -41,7 +41,16 @@ var numStillSnapshotUploadsPending = 0;
 
 // It's totally unnecessary to return to C++ to perform many of these requests, such as DELETEing an old story,
 // POSTING a new one, PUTTING a new audience, or GETTING story data. It's far more efficient to do all of that within JS
-var request = Script.require('request').request;
+var request;
+
+try {
+    // Due to an issue where if the user spams 'script reload', this call could cause an exception
+    // preventing our scriptEnding to not properly be initialized resulting in the tablet button
+    // duplicating itself where you end up with a bunch of SNAP buttons on your toolbar
+    request = Script.require('request').request;
+} catch(err) {
+    print('Failed to resolve request api, error: ' + err);
+}
 
 function openLoginWindow() {
     if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar", false))
@@ -144,7 +153,9 @@ function onMessage(message) {
             isDomainOpen(Settings.getValue("previousSnapshotDomainID"), function (canShare) {
                 var isGif = fileExtensionMatches(message.data, "gif");      
                 isLoggedIn = Account.isLoggedIn();                        
-                isUploadingPrintableStill = canShare && Account.isLoggedIn() && !isGif;               
+                if (!isGif) {
+                    isUploadingPrintableStill = canShare && Account.isLoggedIn();
+                }
                 if (canShare) {                  
                     if (isLoggedIn) {
                         print('Sharing snapshot with audience "for_url":', message.data);
@@ -366,18 +377,15 @@ function fillImageDataFromPrevious() {
 
 var SNAPSHOT_REVIEW_URL = Script.resolvePath("html/SnapshotReview.html");
 var isInSnapshotReview = false;
-var shouldActivateButton = false;
 function onButtonClicked() {
     if (isInSnapshotReview){
         // for toolbar-mode: go back to home screen, this will close the window.
         tablet.gotoHomeScreen();
     } else {
-        shouldActivateButton = true;
         fillImageDataFromPrevious();
         tablet.gotoWebScreen(SNAPSHOT_REVIEW_URL);
         tablet.webEventReceived.connect(onMessage);
         HMD.openTablet();
-        isInSnapshotReview = true;
     }
 }
 
@@ -651,11 +659,10 @@ function maybeDeleteSnapshotStories() {
     storyIDsToMaybeDelete = [];
 }
 function onTabletScreenChanged(type, url) {
-    button.editProperties({ isActive: shouldActivateButton });
-    shouldActivateButton = false;
-    if (isInSnapshotReview) {
+    isInSnapshotReview = (type === "Web" && url === SNAPSHOT_REVIEW_URL);
+    button.editProperties({ isActive: isInSnapshotReview });
+    if (!isInSnapshotReview) {
         tablet.webEventReceived.disconnect(onMessage);
-        isInSnapshotReview = false;
     }
 }
 function onUsernameChanged() {
@@ -748,11 +755,10 @@ Script.scriptEnding.connect(function () {
     }
     if (tablet) {
         tablet.removeButton(button);
+        tablet.screenChanged.disconnect(onTabletScreenChanged);
     }
     Window.snapshotShared.disconnect(snapshotUploaded);
-    tablet.screenChanged.disconnect(onTabletScreenChanged);
     Snapshot.snapshotLocationSet.disconnect(snapshotLocationSet);
-    
     Entities.canRezChanged.disconnect(processRezPermissionChange);
     Entities.canRezTmpChanged.disconnect(processRezPermissionChange);
 });

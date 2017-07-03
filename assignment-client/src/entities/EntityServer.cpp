@@ -31,7 +31,7 @@ EntityServer::EntityServer(ReceivedMessage& message) :
     OctreeServer(message),
     _entitySimulation(NULL)
 {
-    ResourceManager::init();
+    DependencyManager::set<ResourceManager>();
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<ScriptCache>();
 

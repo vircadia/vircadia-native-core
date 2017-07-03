@@ -41,13 +41,6 @@ public:
     virtual void entityCreated(const EntityItem& newEntity, const SharedNodePointer& senderNode) = 0;
 };
 
-class EntityItemFBXService {
-public:
-    virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) = 0;
-    virtual ModelPointer getModelForEntityItem(EntityItemPointer entityItem) = 0;
-};
-
-
 class SendEntitiesOperationArgs {
 public:
     glm::vec3 root;
@@ -136,7 +129,7 @@ public:
 
     /// \param position point of query in world-frame (meters)
     /// \param targetRadius radius of query (meters)
-    EntityItemPointer findClosestEntity(glm::vec3 position, float targetRadius);
+    EntityItemPointer findClosestEntity(const glm::vec3& position, float targetRadius);
     EntityItemPointer findEntityByID(const QUuid& id);
     EntityItemPointer findEntityByEntityItemID(const EntityItemID& entityID);
     virtual SpatiallyNestablePointer findByID(const QUuid& id) override { return findEntityByID(id); }
@@ -188,15 +181,6 @@ public:
 
     int processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
     int processEraseMessageDetails(const QByteArray& buffer, const SharedNodePointer& sourceNode);
-
-    EntityItemFBXService* getFBXService() const { return _fbxService; }
-    void setFBXService(EntityItemFBXService* service) { _fbxService = service; }
-    const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) {
-        return _fbxService ? _fbxService->getGeometryForEntity(entityItem) : NULL;
-    }
-    ModelPointer getModelForEntityItem(EntityItemPointer entityItem) {
-        return _fbxService ? _fbxService->getModelForEntityItem(entityItem) : NULL;
-    }
 
     EntityTreeElementPointer getContainingElement(const EntityItemID& entityItemID)  /*const*/;
     void setContainingElement(const EntityItemID& entityItemID, EntityTreeElementPointer element);
@@ -294,12 +278,12 @@ protected:
     bool updateEntityWithElement(EntityItemPointer entity, const EntityItemProperties& properties,
                                  EntityTreeElementPointer containingElement,
                                  const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
-    static bool findNearPointOperation(OctreeElementPointer element, void* extraData);
-    static bool findInSphereOperation(OctreeElementPointer element, void* extraData);
-    static bool findInCubeOperation(OctreeElementPointer element, void* extraData);
-    static bool findInBoxOperation(OctreeElementPointer element, void* extraData);
-    static bool findInFrustumOperation(OctreeElementPointer element, void* extraData);
-    static bool sendEntitiesOperation(OctreeElementPointer element, void* extraData);
+    static bool findNearPointOperation(const OctreeElementPointer& element, void* extraData);
+    static bool findInSphereOperation(const OctreeElementPointer& element, void* extraData);
+    static bool findInCubeOperation(const OctreeElementPointer& element, void* extraData);
+    static bool findInBoxOperation(const OctreeElementPointer& element, void* extraData);
+    static bool findInFrustumOperation(const OctreeElementPointer& element, void* extraData);
+    static bool sendEntitiesOperation(const OctreeElementPointer& element, void* extraData);
     static void bumpTimestamp(EntityItemProperties& properties);
 
     void notifyNewlyCreatedEntity(const EntityItem& newEntity, const SharedNodePointer& senderNode);
@@ -324,8 +308,6 @@ protected:
         QWriteLocker locker(&_deletedEntitiesLock);
         _deletedEntityItemIDs << id;
     }
-
-    EntityItemFBXService* _fbxService;
 
     mutable QReadWriteLock _entityToElementLock;
     QHash<EntityItemID, EntityTreeElementPointer> _entityToElementMap;

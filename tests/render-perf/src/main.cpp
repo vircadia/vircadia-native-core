@@ -47,6 +47,7 @@
 #include <gpu/gl/GLTexture.h>
 #include <gpu/StandardShaderLib.h>
 
+#include <AnimationCache.h>
 #include <SimpleEntitySimulation.h>
 #include <EntityDynamicInterface.h>
 #include <EntityDynamicFactoryInterface.h>
@@ -507,7 +508,6 @@ public:
         REGISTER_ENTITY_TYPE_WITH_FACTORY(Web, WebEntityItem::factory);
 
         DependencyManager::set<ParentFinder>(_octree->getTree());
-        getEntities()->setViewFrustum(_viewFrustum);
         auto nodeList = DependencyManager::get<LimitedNodeList>();
         NodePermissions permissions;
         permissions.setAll(true);
@@ -520,7 +520,7 @@ public:
             _entitySimulation = simpleSimulation;
         }
 
-        ResourceManager::init();
+        DependencyManager::set<ResourceManager>();
 
         setFlags(Qt::MSWindowsOwnDC | Qt::Window | Qt::Dialog | Qt::WindowMinMaxButtonsHint | Qt::WindowTitleHint);
         _size = QSize(800, 600);
@@ -575,7 +575,7 @@ public:
         DependencyManager::destroy<ModelCache>();
         DependencyManager::destroy<GeometryCache>();
         DependencyManager::destroy<ScriptCache>();
-        ResourceManager::cleanup();
+        DependencyManager::get<ResourceManager>()->cleanup();
         // remove the NodeList from the DependencyManager
         DependencyManager::destroy<NodeList>();
     }
@@ -735,8 +735,8 @@ private:
     class EntityUpdateOperator : public RecurseOctreeOperator {
     public:
         EntityUpdateOperator(const qint64& now) : now(now) {}
-        bool preRecursion(OctreeElementPointer element) override { return true; }
-        bool postRecursion(OctreeElementPointer element) override {
+        bool preRecursion(const OctreeElementPointer& element) override { return true; }
+        bool postRecursion(const OctreeElementPointer& element) override {
             EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
             entityTreeElement->forEachEntity([&](EntityItemPointer entityItem) {
                 if (!entityItem->isParentIDValid()) {
@@ -865,7 +865,6 @@ private:
             }
         }
 
-        getEntities()->setViewFrustum(_viewFrustum);
         EntityUpdateOperator updateOperator(now);
         //getEntities()->getTree()->recurseTreeWithOperator(&updateOperator);
         {
@@ -999,7 +998,7 @@ private:
         QFileInfo atpPathInfo(atpPath);
         if (atpPathInfo.exists()) {
             QString atpUrl = QUrl::fromLocalFile(atpPath).toString();
-            ResourceManager::setUrlPrefixOverride("atp:/", atpUrl + "/");
+            DependencyManager::get<ResourceManager>()->setUrlPrefixOverride("atp:/", atpUrl + "/");
         }
         _octree->clear();
         _octree->getTree()->readFromURL(fileName);

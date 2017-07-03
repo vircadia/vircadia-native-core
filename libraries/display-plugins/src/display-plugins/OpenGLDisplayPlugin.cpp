@@ -847,6 +847,7 @@ void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer ne
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, targetTexture, 0);
         qDebug() << "error" << glGetError();
 
+        // TODO: perhaps maintain aspect ratio
         glBlitNamedFramebuffer(fbo[0], fbo[1], 0, 0, networkTexture->getWidth(), networkTexture->getHeight(), 0, 0, target->width(), target->height(), GL_COLOR_BUFFER_BIT, GL_NEAREST);
         qDebug() << "error" << glGetError();
 

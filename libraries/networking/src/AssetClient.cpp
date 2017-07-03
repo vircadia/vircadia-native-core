@@ -31,7 +31,7 @@
 
 MessageID AssetClient::_currentID = 0;
 
-AssetClient::AssetClient() {
+AssetClient::AssetClient(const QString& cacheDir) : _cacheDir(cacheDir) {
     setCustomDeleter([](Dependency* dependency){
         static_cast<AssetClient*>(dependency)->deleteLater();
     });
@@ -55,14 +55,15 @@ void AssetClient::init() {
     // Setup disk cache if not already
     auto& networkAccessManager = NetworkAccessManager::getInstance();
     if (!networkAccessManager.cache()) {
-        QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-        cachePath = !cachePath.isEmpty() ? cachePath : "interfaceCache";
-
+        if (_cacheDir.isEmpty()) {
+            QString cachePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+            _cacheDir = !cachePath.isEmpty() ? cachePath : "interfaceCache";
+        }
         QNetworkDiskCache* cache = new QNetworkDiskCache();
         cache->setMaximumCacheSize(MAXIMUM_CACHE_SIZE);
-        cache->setCacheDirectory(cachePath);
+        cache->setCacheDirectory(_cacheDir);
         networkAccessManager.setCache(cache);
-        qInfo() << "ResourceManager disk cache setup at" << cachePath
+        qInfo() << "ResourceManager disk cache setup at" << _cacheDir
                  << "(size:" << MAXIMUM_CACHE_SIZE / BYTES_PER_GIGABYTES << "GB)";
     }
 }
@@ -353,13 +354,20 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
     connect(message.data(), &ReceivedMessage::progress, this, [this, weakNode, messageID, length](qint64 size) {
         handleProgressCallback(weakNode, messageID, size, length);
     });
-    connect(message.data(), &ReceivedMessage::completed, this, [this, weakNode, messageID]() {
-        handleCompleteCallback(weakNode, messageID);
+    connect(message.data(), &ReceivedMessage::completed, this, [this, weakNode, messageID, length]() {
+        handleCompleteCallback(weakNode, messageID, length);
     });
 
     if (message->isComplete()) {
         disconnect(message.data(), nullptr, this, nullptr);
-        callbacks.completeCallback(true, error, message->readAll());
+
+        if (length != message->getBytesLeftToRead()) {
+            callbacks.completeCallback(false, error, QByteArray());
+        } else {
+            callbacks.completeCallback(true, error, message->readAll());
+        }
+
+        
         messageCallbackMap.erase(requestIt);
     }
 }
@@ -391,7 +399,7 @@ void AssetClient::handleProgressCallback(const QWeakPointer<Node>& node, Message
     callbacks.progressCallback(size, length);
 }
 
-void AssetClient::handleCompleteCallback(const QWeakPointer<Node>& node, MessageID messageID) {
+void AssetClient::handleCompleteCallback(const QWeakPointer<Node>& node, MessageID messageID, DataOffset length) {
     auto senderNode = node.toStrongRef();
 
     if (!senderNode) {
@@ -424,8 +432,7 @@ void AssetClient::handleCompleteCallback(const QWeakPointer<Node>& node, Message
         return;
     }
 
-
-    if (message->failed()) {
+    if (message->failed() || length != message->getBytesLeftToRead()) {
         callbacks.completeCallback(false, AssetServerError::NoError, QByteArray());
     } else {
         callbacks.completeCallback(true, AssetServerError::NoError, message->readAll());

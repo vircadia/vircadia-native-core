@@ -9,6 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "RegisteredMetaTypes.h"
+
+#include <glm/gtc/quaternion.hpp>
+
 #include <QtCore/QUrl>
 #include <QtCore/QUuid>
 #include <QtCore/QRect>
@@ -17,10 +21,9 @@
 #include <QtGui/QVector2D>
 #include <QtGui/QVector3D>
 #include <QtGui/QQuaternion>
-#include <glm/gtc/quaternion.hpp>
-#include <QAbstractSocket>
-
-#include "RegisteredMetaTypes.h"
+#include <QtNetwork/QAbstractSocket>
+#include <QtScript/QScriptValue>
+#include <QtScript/QScriptValueIterator>
 
 int vec4MetaTypeId = qRegisterMetaType<glm::vec4>();
 int vec3MetaTypeId = qRegisterMetaType<glm::vec3>();
@@ -34,6 +37,8 @@ int pickRayMetaTypeId = qRegisterMetaType<PickRay>();
 int collisionMetaTypeId = qRegisterMetaType<Collision>();
 int qMapURLStringMetaTypeId = qRegisterMetaType<QMap<QUrl,QString>>();
 int socketErrorMetaTypeId = qRegisterMetaType<QAbstractSocket::SocketError>();
+int voidLambdaType = qRegisterMetaType<std::function<void()>>();
+int variantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
 
 void registerMetaTypes(QScriptEngine* engine) {
     qScriptRegisterMetaType(engine, mat4toScriptValue, mat4FromScriptValue);
@@ -795,4 +800,102 @@ QScriptValue qSizeFToScriptValue(QScriptEngine* engine, const QSizeF& qSizeF) {
 void qSizeFFromScriptValue(const QScriptValue& object, QSizeF& qSizeF) {
     qSizeF.setWidth(object.property("width").toVariant().toFloat());
     qSizeF.setHeight(object.property("height").toVariant().toFloat());
+}
+
+AnimationDetails::AnimationDetails() :
+    role(), url(), fps(0.0f), priority(0.0f), loop(false), hold(false),
+    startAutomatically(false), firstFrame(0.0f), lastFrame(0.0f), running(false), currentFrame(0.0f) {
+}
+
+AnimationDetails::AnimationDetails(QString role, QUrl url, float fps, float priority, bool loop,
+    bool hold, bool startAutomatically, float firstFrame, float lastFrame, bool running, float currentFrame) :
+    role(role), url(url), fps(fps), priority(priority), loop(loop), hold(hold),
+    startAutomatically(startAutomatically), firstFrame(firstFrame), lastFrame(lastFrame),
+    running(running), currentFrame(currentFrame) {
+}
+
+
+QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const AnimationDetails& details) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("role", details.role);
+    obj.setProperty("url", details.url.toString());
+    obj.setProperty("fps", details.fps);
+    obj.setProperty("priority", details.priority);
+    obj.setProperty("loop", details.loop);
+    obj.setProperty("hold", details.hold);
+    obj.setProperty("startAutomatically", details.startAutomatically);
+    obj.setProperty("firstFrame", details.firstFrame);
+    obj.setProperty("lastFrame", details.lastFrame);
+    obj.setProperty("running", details.running);
+    obj.setProperty("currentFrame", details.currentFrame);
+    return obj;
+}
+
+void animationDetailsFromScriptValue(const QScriptValue& object, AnimationDetails& details) {
+    // nothing for now...
+}
+
+QScriptValue meshToScriptValue(QScriptEngine* engine, MeshProxy* const &in) {
+    return engine->newQObject(in, QScriptEngine::QtOwnership,
+        QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
+}
+
+void meshFromScriptValue(const QScriptValue& value, MeshProxy* &out) {
+    out = qobject_cast<MeshProxy*>(value.toQObject());
+}
+
+QScriptValue meshesToScriptValue(QScriptEngine* engine, const MeshProxyList &in) {
+    // QScriptValueList result;
+    QScriptValue result = engine->newArray();
+    int i = 0;
+    foreach(MeshProxy* const meshProxy, in) {
+        result.setProperty(i++, meshToScriptValue(engine, meshProxy));
+    }
+    return result;
+}
+
+void meshesFromScriptValue(const QScriptValue& value, MeshProxyList &out) {
+    QScriptValueIterator itr(value);
+
+    qDebug() << "in meshesFromScriptValue, value.length =" << value.property("length").toInt32();
+
+    while (itr.hasNext()) {
+        itr.next();
+        MeshProxy* meshProxy = qscriptvalue_cast<MeshProxyList::value_type>(itr.value());
+        if (meshProxy) {
+            out.append(meshProxy);
+        } else {
+            qDebug() << "null meshProxy";
+        }
+    }
+}
+
+
+QScriptValue meshFaceToScriptValue(QScriptEngine* engine, const MeshFace &meshFace) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("vertices", qVectorIntToScriptValue(engine, meshFace.vertexIndices));
+    return obj;
+}
+
+void meshFaceFromScriptValue(const QScriptValue &object, MeshFace& meshFaceResult) {
+    qVectorIntFromScriptValue(object.property("vertices"), meshFaceResult.vertexIndices);
+}
+
+QScriptValue qVectorMeshFaceToScriptValue(QScriptEngine* engine, const QVector<MeshFace>& vector) {
+    QScriptValue array = engine->newArray();
+    for (int i = 0; i < vector.size(); i++) {
+        array.setProperty(i, meshFaceToScriptValue(engine, vector.at(i)));
+    }
+    return array;
+}
+
+void qVectorMeshFaceFromScriptValue(const QScriptValue& array, QVector<MeshFace>& result) {
+    int length = array.property("length").toInteger();
+    result.clear();
+
+    for (int i = 0; i < length; i++) {
+        MeshFace meshFace = MeshFace();
+        meshFaceFromScriptValue(array.property(i), meshFace);
+        result << meshFace;
+    }
 }

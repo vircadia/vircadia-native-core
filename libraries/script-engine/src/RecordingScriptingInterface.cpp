@@ -8,22 +8,23 @@
 
 #include "RecordingScriptingInterface.h"
 
+#include <QStandardPaths>
 #include <QtCore/QThread>
+#include <QtCore/QUrl>
+#include <QtScript/QScriptValue>
+#include <QtWidgets/QFileDialog>
 
+#include <AssetClient.h>
+#include <AssetUpload.h>
+#include <BuildInfo.h>
 #include <NumericalConstants.h>
+#include <PathUtils.h>
 #include <Transform.h>
 #include <recording/Deck.h>
 #include <recording/Recorder.h>
 #include <recording/Clip.h>
 #include <recording/Frame.h>
 #include <recording/ClipCache.h>
-
-
-#include <QtScript/QScriptValue>
-#include <AssetClient.h>
-#include <AssetUpload.h>
-#include <QtCore/QUrl>
-#include <QtWidgets/QFileDialog>
 
 #include "ScriptEngineLogging.h"
 
@@ -186,6 +187,14 @@ void RecordingScriptingInterface::stopRecording() {
     _recorder->stop();
     _lastClip = _recorder->getClip();
     _lastClip->seek(0);
+}
+
+QString RecordingScriptingInterface::getDefaultRecordingSaveDirectory() {
+    QString directory = PathUtils::getAppLocalDataPath() + "Avatar Recordings/";
+    if (!QDir(directory).exists()) {
+        QDir().mkdir(directory);
+    }
+    return directory;
 }
 
 void RecordingScriptingInterface::saveRecording(const QString& filename) {

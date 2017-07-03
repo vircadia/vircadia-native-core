@@ -17,16 +17,20 @@
 #include <QOpenGLContext>
 
 #include <DependencyManager.h>
-#include <TextureCache.h>
 
 ResourceImageItem::ResourceImageItem(QQuickItem* parent) : QQuickFramebufferObject(parent) {
-    connect(&m_updateTimer, SIGNAL(timeout()), this, SLOT(update()));
+    connect(&m_updateTimer, SIGNAL(timeout()), this, SLOT(onUpdateTimer()));
+}
+
+void ResourceImageItem::onUpdateTimer() {
+    update();
 }
 
 void ResourceImageItem::setUrl(const QString& url) {
     if (url != m_url) {
         m_url = url;
     }
+    update();
 }
 
 void ResourceImageItem::setReady(bool ready) {
@@ -47,6 +51,7 @@ void ResourceImageItem::setReady(bool ready) {
 void ResourceImageItemRenderer::synchronize(QQuickFramebufferObject* item) {
     ResourceImageItem* resourceImageItem = static_cast<ResourceImageItem*>(item);
 
+    resourceImageItem->setFlag(QQuickItem::ItemHasContents);
     bool urlChanged = false;
     if( _url != resourceImageItem->getUrl()) {
         _url = resourceImageItem->getUrl();
@@ -59,16 +64,19 @@ void ResourceImageItemRenderer::synchronize(QQuickFramebufferObject* item) {
     }
 
     _window = resourceImageItem->window();
-    _window->setClearBeforeRendering(true);
     if (_ready && !_url.isNull() && !_url.isEmpty() && (urlChanged || readyChanged || !_networkTexture)) {
         _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_url);
     }
 
     if (_ready && _networkTexture && _networkTexture->isLoaded()) {
         if(_fboMutex.tryLock()) {
+            invalidateFramebufferObject();
             qApp->getActiveDisplayPlugin()->copyTextureToQuickFramebuffer(_networkTexture, _copyFbo, &_fenceSync);
             _fboMutex.unlock();
+        } else {
+            qDebug() << "couldn't get a lock, using last frame";
         }
+
     }
     glFlush();
 
@@ -82,24 +90,50 @@ QOpenGLFramebufferObject* ResourceImageItemRenderer::createFramebufferObject(con
     return new QOpenGLFramebufferObject(size, format);
 }
 
+/*
+// this is helpful to look for problems without the confusion of the framebufer stuff
 void ResourceImageItemRenderer::render() {
-    qDebug() << "initial error" << glGetError();
-    /*glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClear(GL_COLOR_BUFFER_BIT);*/
-    QOpenGLExtraFunctions* f = QOpenGLContext::currentContext()->extraFunctions();
-    _fboMutex.lock();
+    qDebug() << "rendering";
+    static int colorInt = 0;
+    float red = (float)((colorInt++ % 50)/(float)50);
+    glClearColor(red, 0.0f, 0.0f, 0.5f + red/2.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+    glFlush();
+    update();
+    //_window->resetOpenGLState();
+    // we only want to call Renderer::update once per timer tick, and
+    // so waiting on the fenceSync and resetting it does that
+    auto f = QOpenGLContext::currentContext()->extraFunctions();
     if (_fenceSync) {
         f->glWaitSync(_fenceSync, 0, GL_TIMEOUT_IGNORED);
-        qDebug() << "wait error" << f->glGetError();
+        f->glDeleteSync(_fenceSync);
+        _fenceSync = 0;
+        update();
+    }
+}
+*/
+void ResourceImageItemRenderer::render() {
+    auto f = QOpenGLContext::currentContext()->extraFunctions();
+    bool doUpdate = false;
+    // black background
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    if (_fenceSync) {
+        f->glWaitSync(_fenceSync, 0, GL_TIMEOUT_IGNORED);
+        f->glDeleteSync(_fenceSync);
+        _fenceSync = 0;
+        doUpdate = true;
     }
     if (_ready) {
-        f->glBindTexture(GL_TEXTURE_2D, _copyFbo->texture());
-        qDebug() << "bind tex error" << f->glGetError() << "texture" << _copyFbo->texture();
-        GLint internalFormat { 0 };
-        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_INTERNAL_FORMAT, &internalFormat);
-        qDebug() << "getTexLevelParameteriv error" << f->glGetError() << internalFormat;
-        f->glCopyTexImage2D(GL_TEXTURE_2D, 0, (GLenum)internalFormat, 0, 0, _copyFbo->width(), _copyFbo->height(), 0);
-        qDebug() << "copy error" << f->glGetError();
+        _fboMutex.lock();
+        _copyFbo->bind();
+        QOpenGLFramebufferObject::blitFramebuffer(framebufferObject(), _copyFbo, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+        _copyFbo->release();
+        _fboMutex.unlock();
+        if (doUpdate) {
+            update();
+        }
     }
-    _fboMutex.unlock();
+    glFlush();
 }

@@ -16,7 +16,7 @@
 #include "RenderableEntityItem.h"
 #include <GeometryCache.h>
 
-class RenderableLineEntityItem : public LineEntityItem {
+class RenderableLineEntityItem : public LineEntityItem, public SimplerRenderableEntitySupport {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderableLineEntityItem(const EntityItemID& entityItemID) :

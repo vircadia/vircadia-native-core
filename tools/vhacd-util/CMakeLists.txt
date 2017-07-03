@@ -8,6 +8,8 @@ find_package(VHACD REQUIRED)
 target_include_directories(${TARGET_NAME} PUBLIC ${VHACD_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${VHACD_LIBRARIES})
 
+setup_memory_debugger()
+
 if (UNIX AND NOT APPLE)
   include(FindOpenMP)
   if(OPENMP_FOUND)

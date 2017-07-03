@@ -14,165 +14,118 @@
 
 (function () { // BEGIN LOCAL_SCOPE
 
-    //
     // FUNCTION VAR DECLARATIONS
-    //
     var sendToQml, addOrRemoveButton, onTabletScreenChanged, fromQml,
         onTabletButtonClicked, wireEventBridge, startup, shutdown, registerButtonMappings;
 
-    //
     // Function Name: inFrontOf()
     // 
     // Description:
-    // Spectator camera utility functions and variables.
-    //
+    //   -Returns the position in front of the given "position" argument, where the forward vector is based off
+    //    the "orientation" argument and the amount in front is based off the "distance" argument.
     function inFrontOf(distance, position, orientation) {
         return Vec3.sum(position || MyAvatar.position,
                         Vec3.multiply(distance, Quat.getForward(orientation || MyAvatar.orientation)));
     }
 
-    //
     // Function Name: updateRenderFromCamera()
     //
-    // Relevant Variables:
-    // spectatorFrameRenderConfig: The render configuration of the spectator camera
-    //      render job. Controls size.
-    // beginSpectatorFrameRenderConfig: The render configuration of the spectator camera
-    //     render job. Controls position and orientation.
-    // viewFinderOverlay: The in-world overlay that displays the spectator camera's view.
-    // camera: The in-world entity that corresponds to the spectator camera.
-    // cameraIsDynamic: "false" for now while we figure out why dynamic, parented overlays
-    //     drift with respect to their parent
-    // lastCameraPosition: Holds the last known camera position
-    // lastCameraRotation: Holds the last known camera rotation
-    // 
-    // Arguments:
-    // None
-    // 
     // Description:
-    // The update function for the spectator camera. Modifies the camera's position
-    //     and orientation.
+    //   -The update function for the spectator camera. Modifies the camera's position
+    //    and orientation.
     //
+    // Relevant Variables:
+    //   -spectatorFrameRenderConfig: The render configuration of the spectator camera
+    //    render job. It controls the rendered texture size of the spectator camera.
+    //   -beginSpectatorFrameRenderConfig: The render configuration of the spectator camera
+    //    render job. It controls the orientation and position of the secondary camera whose viewport is rendered to
+    //    the texture.
+    //   -viewFinderOverlay: The in-world overlay that displays the spectator camera's view.
+    //   -camera: The in-world entity that corresponds to the spectator camera.
+    //   -cameraIsDynamic: "false" for now while we figure out why dynamic, parented overlays
+    //    drift with respect to their parent.
     var spectatorFrameRenderConfig = Render.getConfig("SecondaryCameraFrame");
     var beginSpectatorFrameRenderConfig = Render.getConfig("BeginSecondaryCamera");
     var viewFinderOverlay = false;
     var camera = false;
     var cameraIsDynamic = false;
-    var lastCameraPosition = false;
-    var lastCameraRotation = false;
     function updateRenderFromCamera() {
         var cameraData = Entities.getEntityProperties(camera, ['position', 'rotation']);
-        if (JSON.stringify(lastCameraRotation) !== JSON.stringify(cameraData.rotation)) {
-            lastCameraRotation = cameraData.rotation;
-            beginSpectatorFrameRenderConfig.orientation = lastCameraRotation;
-        }
-        if (JSON.stringify(lastCameraPosition) !== JSON.stringify(cameraData.position)) {
-            lastCameraPosition = cameraData.position;
-            beginSpectatorFrameRenderConfig.position = Vec3.sum(inFrontOf(0.17, lastCameraPosition, lastCameraRotation), {x: 0, y: 0.02, z: 0});
-        }
+        beginSpectatorFrameRenderConfig.orientation = cameraData.rotation;
+        beginSpectatorFrameRenderConfig.position = cameraData.position;
     }
 
-    //
     // Function Name: spectatorCameraOn()
-    //
-    // Relevant Variables:
-    // isUpdateRenderWired: Bool storing whether or not the camera's update
-    //     function is wired.
-    // windowAspectRatio: The ratio of the Interface windows's sizeX/sizeY
-    // previewAspectRatio: The ratio of the camera preview's sizeX/sizeY
-    // vFoV: The vertical field of view of the spectator camera
-    // nearClipPlaneDistance: The near clip plane distance of the spectator camera
-    // farClipPlaneDistance: The far clip plane distance of the spectator camera
-    // 
-    // Arguments:
-    // None
     // 
     // Description:
-    // Call this function to set up the spectator camera and
-    //     spawn the camera entity.
+    //   -Call this function to set up the spectator camera and
+    //    spawn the camera entity.
     //
-    var isUpdateRenderWired = false;
-    var windowAspectRatio;
-    var previewAspectRatio = 16 / 9;
+    // Relevant Variables:
+    //   -vFoV: The vertical field of view of the spectator camera.
+    //   -nearClipPlaneDistance: The near clip plane distance of the spectator camera (aka "camera").
+    //   -farClipPlaneDistance: The far clip plane distance of the spectator camera.
+    //   -cameraRotation: The rotation of the spectator camera.
+    //   -cameraPosition: The position of the spectator camera.
+    //   -glassPaneWidth: The width of the glass pane above the spectator camera that holds the viewFinderOverlay.
+    //   -viewFinderOverlayDim: The x, y, and z dimensions of the viewFinderOverlay.
+    //   -camera: The camera model which is grabbable.
+    //   -viewFinderOverlay: The preview of what the spectator camera is viewing, placed inside the glass pane.
+    //   -cameraUpdateInterval: Used when setting Script.setInterval()
+    //   -CAMERA_UPDATE_INTERVAL_MS: Defines the time between calls to updateRenderFromCamera()
     var vFoV = 45.0;
     var nearClipPlaneDistance = 0.1;
     var farClipPlaneDistance = 100.0;
+    var cameraRotation;
+    var cameraPosition;
+    var glassPaneWidth = 0.16;
+    // The negative y dimension for viewFinderOverlay is necessary for now due to the way Image3DOverlay
+    // draws textures, but should be looked into at some point. Also the z dimension shouldn't affect
+    // the overlay since it is an Image3DOverlay so it is set to 0.
+    var viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: 0 };
+    var cameraUpdateInterval;
+    var CAMERA_UPDATE_INTERVAL_MS = 11; // Result of (1000 (ms/s)) / (90 (hz)) rounded down
     function spectatorCameraOn() {
-        // Set the special texture size based on the window in which it will eventually be displayed.
-        var size = Controller.getViewportDimensions(); // FIXME: Need a signal to hook into when the dimensions change.
-        var sizeX = Window.innerWidth;
-        var sizeY = Window.innerHeight;
-        windowAspectRatio = sizeX/sizeY;
-        spectatorFrameRenderConfig.resetSizeSpectatorCamera(sizeX, sizeY);
+        // Sets the special texture size based on the window it is displayed in, which doesn't include the menu bar
+        spectatorFrameRenderConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
         spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = true;
         beginSpectatorFrameRenderConfig.vFoV = vFoV;
         beginSpectatorFrameRenderConfig.nearClipPlaneDistance = nearClipPlaneDistance;
         beginSpectatorFrameRenderConfig.farClipPlaneDistance = farClipPlaneDistance;
-        var cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
-        Script.update.connect(updateRenderFromCamera);
-        isUpdateRenderWired = true;
+        cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
+        cameraUpdateInterval = Script.setInterval(updateRenderFromCamera, 11); // Update every 11ms (90.9hz)
         camera = Entities.addEntity({
-            "angularDamping": 0.98000001907348633,
-            "collisionsWillMove": 0,
-            "damping": 0.98000001907348633,
-            "dimensions": {
-                "x": 0.2338641881942749,
-                "y": 0.407032310962677,
-                "z": 0.38702544569969177
-            },
+            "angularDamping": 1,
+            "damping": 1,
+            "collidesWith": "static,dynamic,kinematic,",
+            "collisionMask": 7,
             "dynamic": cameraIsDynamic,
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/spectator-camera.fbx",
-            "queryAACube": {
-                "scale": 0.60840487480163574,
-                "x": -0.30420243740081787,
-                "y": -0.30420243740081787,
-                "z": -0.30420243740081787
+            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/spectator-camera.fbx?7",
+            "registrationPoint": {
+                "x": 0.53,
+                "y": 0.545,
+                "z": 0.16
             },
-            "rotation": { x: 0, y: 0, z: 0 },
-            "position": { x: 0, y: 0, z: 0 },
+            "rotation": cameraRotation,
+            "position": cameraPosition,
             "shapeType": "simple-compound",
             "type": "Model",
             "userData": "{\"grabbableKey\":{\"grabbable\":true}}"
         }, true);
-        // This image3d overlay acts as the camera's preview screen.
-        viewFinderOverlay = Overlays.addOverlay("image3d", {
-            url: "resource://spectatorCameraFrame",
-            emissive: true,
-            parentID: camera,
-            alpha: 1,
-            position: { x: 0.007, y: 0.15, z: -0.005 },
-            dimensions: { x: 0.16, y: -0.16 * windowAspectRatio / previewAspectRatio, z: 0 }
-            // Negative dimension for viewfinder is necessary for now due to the way Image3DOverlay
-            // draws textures.
-            // See Image3DOverlay.cpp:91. If you change the two lines there to:
-            //     glm::vec2 topLeft(-x, -y);
-            //     glm::vec2 bottomRight(x, y);
-            // the viewfinder will appear rightside up without this negative y-dimension.
-            // However, other Image3DOverlay textures (like the PAUSED one) will appear upside-down. *Why?*
-            // FIXME: This code will stretch the preview as the window aspect ratio changes. Fix that!
-        });
-        Entities.editEntity(camera, { position: cameraPosition, rotation: cameraRotation });
+        updateOverlay();
         setDisplay(monitorShowsCameraView);
     }
 
-    //
     // Function Name: spectatorCameraOff()
-    //
-    // Relevant Variables:
-    // None
-    // 
-    // Arguments:
-    // None
     // 
     // Description:
-    // Call this function to shut down the spectator camera and
-    //     destroy the camera entity.
-    //
+    //   -Call this function to shut down the spectator camera and
+    //    destroy the camera entity.
     function spectatorCameraOff() {
         spectatorFrameRenderConfig.enabled = beginSpectatorFrameRenderConfig.enabled = false;
-        if (isUpdateRenderWired) {
-            Script.update.disconnect(updateRenderFromCamera);
-            isUpdateRenderWired = false;
+        if (cameraUpdateInterval) {
+            Script.clearInterval(cameraUpdateInterval);
+            cameraUpdateInterval = false;
         }
         if (camera) {
             Entities.deleteEntity(camera);
@@ -185,27 +138,25 @@
         setDisplay(monitorShowsCameraView);
     }
 
-    //
     // Function Name: addOrRemoveButton()
     //
-    // Relevant Variables:
-    // button: The tablet button.
-    // buttonName: The name of the button.
-    // tablet: The tablet instance to be modified.
-    // showInDesktop: Set to "true" to show the "SPECTATOR" app in desktop mode
-    // 
-    // Arguments:
-    // isShuttingDown: Set to "true" if you're calling this function upon script shutdown
-    // isHMDMode: "true" if user is in HMD; false otherwise
-    // 
     // Description:
-    // Used to add or remove the "SPECTATOR" app button from the HUD/tablet
+    //   -Used to add or remove the "SPECTATOR" app button from the HUD/tablet. Set the "isShuttingDown" argument
+    //    to true if you're calling this function upon script shutdown. Set the "isHMDmode" to true if the user is
+    //    in HMD; otherwise set to false.
     //
+    // Relevant Variables:
+    //   -button: The tablet button.
+    //   -buttonName: The name of the button.
+    //   -showInDesktop: Set to "true" to show the "SPECTATOR" app in desktop mode.
     var button = false;
     var buttonName = "SPECTATOR";
-    var tablet = null;
     var showSpectatorInDesktop = true;
     function addOrRemoveButton(isShuttingDown, isHMDMode) {
+        if (!tablet) {
+            print("Warning in addOrRemoveButton(): 'tablet' undefined!");
+            return;
+        }
         if (!button) {
             if ((isHMDMode || showSpectatorInDesktop) && !isShuttingDown) {
                 button = tablet.addButton({
@@ -214,7 +165,7 @@
                 button.clicked.connect(onTabletButtonClicked);
             }
         } else if (button) {
-            if ((!showSpectatorInDesktop || isShuttingDown) && !isHMDMode) {
+            if (!showSpectatorInDesktop || isShuttingDown) {
                 button.clicked.disconnect(onTabletButtonClicked);
                 tablet.removeButton(button);
                 button = false;
@@ -224,23 +175,20 @@
         }
     }
 
-    //
     // Function Name: startup()
     //
-    // Relevant Variables:
-    // None
-    // 
-    // Arguments:
-    // None
-    // 
     // Description:
-    // startup() will be called when the script is loaded.
+    //   -startup() will be called when the script is loaded.
     //
+    // Relevant Variables:
+    //   -tablet: The tablet instance to be modified.
+    var tablet = null;
     function startup() {
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         addOrRemoveButton(false, HMD.active);
         tablet.screenChanged.connect(onTabletScreenChanged);
         Window.domainChanged.connect(spectatorCameraOff);
+        Window.geometryChanged.connect(resizeViewFinderOverlay);
         Controller.keyPressEvent.connect(keyPressEvent);
         HMD.displayModeChanged.connect(onHMDChanged);
         viewFinderOverlay = false;
@@ -248,20 +196,20 @@
         registerButtonMappings();
     }
 
-    //
     // Function Name: wireEventBridge()
     //
-    // Relevant Variables:
-    // hasEventBridge: true/false depending on whether we've already connected the event bridge
-    // 
-    // Arguments:
-    // on: Enable or disable the event bridge
-    // 
     // Description:
-    // Used to connect/disconnect the script's response to the tablet's "fromQml" signal.
+    //   -Used to connect/disconnect the script's response to the tablet's "fromQml" signal. Set the "on" argument to enable or
+    //    disable to event bridge.
     //
+    // Relevant Variables:
+    //   -hasEventBridge: true/false depending on whether we've already connected the event bridge.
     var hasEventBridge = false;
     function wireEventBridge(on) {
+        if (!tablet) {
+            print("Warning in wireEventBridge(): 'tablet' undefined!");
+            return;
+        }
         if (on) {
             if (!hasEventBridge) {
                 tablet.fromQml.connect(fromQml);
@@ -275,9 +223,19 @@
         }
     }
 
+    // Function Name: setDisplay()
+    //
+    // Description:
+    //   -There are two bool variables that determine what the "url" argument to "setDisplayTexture(url)" should be:
+    //     Camera on/off switch, and the "Monitor Shows" on/off switch.
+    //     This results in four possible cases for the argument. Those four cases are:
+    //     1. Camera is off; "Monitor Shows" is "HMD Preview": "url" is ""
+    //     2. Camera is off; "Monitor Shows" is "Camera View": "url" is ""
+    //     3. Camera is on; "Monitor Shows" is "HMD Preview":  "url" is ""
+    //     4. Camera is on; "Monitor Shows" is "Camera View":  "url" is "resource://spectatorCameraFrame"
     function setDisplay(showCameraView) {
-        // It would be fancy if (showCameraView && !isUpdateRenderWired) would show instructions, but that's out of scope for now.
-        var url = (showCameraView && isUpdateRenderWired) ? "resource://spectatorCameraFrame" : "";
+        // It would be fancy if the app would show instructions when (url === ""), but that's out of scope for now.
+        var url = (camera && showCameraView && cameraUpdateInterval) ? "resource://spectatorCameraFrame" : "";
         Window.setDisplayTexture(url);
     }
     const MONITOR_SHOWS_CAMERA_VIEW_DEFAULT = false;
@@ -299,6 +257,51 @@
             setMonitorShowsCameraViewAndSendToQml(!monitorShowsCameraView);
         }
     }
+    function updateOverlay() {
+        // The only way I found to update the viewFinderOverlay without turning the spectator camera on and off is to delete and recreate the
+        //     overlay, which is inefficient but resizing the window shouldn't be performed often
+        if (viewFinderOverlay) {
+            Overlays.deleteOverlay(viewFinderOverlay);
+        }
+        viewFinderOverlay = Overlays.addOverlay("image3d", {
+            url: "resource://spectatorCameraFrame",
+            emissive: true,
+            parentID: camera,
+            alpha: 1,
+            localRotation: { w: 1, x: 0, y: 0, z: 0 },
+            localPosition: { x: 0, y: 0.13, z: 0.126 },
+            dimensions: viewFinderOverlayDim
+        });
+    }
+
+    // Function Name: resizeViewFinderOverlay()
+    //
+    // Description:
+    //   -A function called when the window is moved/resized, which changes the viewFinderOverlay's texture and dimensions to be
+    //    appropriately altered to fit inside the glass pane while not distorting the texture. The "geometryChanged" argument gives information
+    //    on how the window changed, including x, y, width, and height.
+    //
+    // Relevant Variables:
+    //   -glassPaneRatio: The aspect ratio of the glass pane, currently set as a 16:9 aspect ratio (change if model changes).
+    //   -verticalScale: The amount the viewFinderOverlay should be scaled if the window size is vertical.
+    //   -squareScale: The amount the viewFinderOverlay should be scaled if the window size is not vertical but is more square than the
+    //     glass pane's aspect ratio.
+    function resizeViewFinderOverlay(geometryChanged) {
+        var glassPaneRatio = 16 / 9;
+        var verticalScale = 1 / glassPaneRatio;
+        var squareScale = verticalScale * (1 + (1 - (1 / (geometryChanged.width / geometryChanged.height))));
+
+        if (geometryChanged.height > geometryChanged.width) { //vertical window size
+            viewFinderOverlayDim = { x: (glassPaneWidth * verticalScale), y: (-glassPaneWidth * verticalScale), z: 0 };
+        } else if ((geometryChanged.width / geometryChanged.height) < glassPaneRatio) { //square-ish window size, in-between vertical and horizontal
+            viewFinderOverlayDim = { x: (glassPaneWidth * squareScale), y: (-glassPaneWidth * squareScale), z: 0 };
+        } else { //horizontal window size
+            viewFinderOverlayDim = { x: glassPaneWidth, y: -glassPaneWidth, z: 0 };
+        }
+        updateOverlay();
+        spectatorFrameRenderConfig.resetSizeSpectatorCamera(geometryChanged.width, geometryChanged.height);
+        setDisplay(monitorShowsCameraView);
+    }
 
     const SWITCH_VIEW_FROM_CONTROLLER_DEFAULT = false;
     var switchViewFromController = !!Settings.getValue('spectatorCamera/switchViewFromController', SWITCH_VIEW_FROM_CONTROLLER_DEFAULT);
@@ -318,20 +321,15 @@
         Settings.setValue('spectatorCamera/switchViewFromController', setting);
     }
 
-    //
     // Function Name: registerButtonMappings()
     //
-    // Relevant Variables:
-    // controllerMappingName: The name of the controller mapping
-    // controllerMapping: The controller mapping itself
-    // controllerType: "OculusTouch", "Vive", "Other"
-    // 
-    // Arguments:
-    // None
-    // 
     // Description:
-    // Updates controller button mappings for Spectator Camera.
+    //   -Updates controller button mappings for Spectator Camera.
     //
+    // Relevant Variables:
+    //   -controllerMappingName: The name of the controller mapping.
+    //   -controllerMapping: The controller mapping itself.
+    //   -controllerType: "OculusTouch", "Vive", "Other".
     var controllerMappingName;
     var controllerMapping;
     var controllerType = "Other";
@@ -364,89 +362,61 @@
         sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
     }
 
-    //
     // Function Name: onTabletButtonClicked()
     //
-    // Relevant Variables:
-    // onSpectatorCameraScreen: true/false depending on whether we're looking at the spectator camera app
-    // shouldActivateButton: true/false depending on whether we should show the button as white or gray the
-    //     next time we edit the button's properties
-    // 
-    // Arguments:
-    // None
-    // 
     // Description:
-    // Fired when the Spectator Camera app button is pressed.
+    //   -Fired when the Spectator Camera app button is pressed.
     //
+    // Relevant Variables:
+    //   -SPECTATOR_CAMERA_QML_SOURCE: The path to the SpectatorCamera QML
+    //   -onSpectatorCameraScreen: true/false depending on whether we're looking at the spectator camera app.
+    var SPECTATOR_CAMERA_QML_SOURCE = "../SpectatorCamera.qml";
     var onSpectatorCameraScreen = false;
-    var shouldActivateButton = false;
     function onTabletButtonClicked() {
+        if (!tablet) {
+            print("Warning in onTabletButtonClicked(): 'tablet' undefined!");
+            return;
+        }
         if (onSpectatorCameraScreen) {
             // for toolbar-mode: go back to home screen, this will close the window.
             tablet.gotoHomeScreen();
         } else {
-            shouldActivateButton = true;
-            tablet.loadQMLSource("../SpectatorCamera.qml");
-            onSpectatorCameraScreen = true;
+            tablet.loadQMLSource(SPECTATOR_CAMERA_QML_SOURCE);
             sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
             sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
             sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
+            Menu.setIsOptionChecked("Disable Preview", false);
         }
     }
 
-    //
     // Function Name: onTabletScreenChanged()
     //
-    // Relevant Variables:
-    // None
-    // 
-    // Arguments:
-    // type: "Home", "Web", "Menu", "QML", "Closed"
-    // url: Only valid for Web and QML.
-    // 
     // Description:
-    // Called when the TabletScriptingInterface::screenChanged() signal is emitted.
-    //
+    //   -Called when the TabletScriptingInterface::screenChanged() signal is emitted. The "type" argument can be either the string
+    //    value of "Home", "Web", "Menu", "QML", or "Closed". The "url" argument is only valid for Web and QML.
     function onTabletScreenChanged(type, url) {
-        wireEventBridge(shouldActivateButton);
+        onSpectatorCameraScreen = (type === "QML" && url === SPECTATOR_CAMERA_QML_SOURCE);
+        wireEventBridge(onSpectatorCameraScreen);
         // for toolbar mode: change button to active when window is first openend, false otherwise.
         if (button) {
-            button.editProperties({ isActive: shouldActivateButton });
+            button.editProperties({ isActive: onSpectatorCameraScreen });
         }
-        shouldActivateButton = false;
-        onSpectatorCameraScreen = false;
     }
 
-    //
     // Function Name: sendToQml()
     //
-    // Relevant Variables:
-    // None
-    // 
-    // Arguments:
-    // message: The message to send to the SpectatorCamera QML.
-    //     Messages are in format "{method, params}", like json-rpc. See also fromQml().
-    // 
     // Description:
-    // Use this function to send a message to the QML (i.e. to change appearances).
-    //
+    //   -Use this function to send a message to the QML (i.e. to change appearances). The "message" argument is what is sent to
+    //    SpectatorCamera QML in the format "{method, params}", like json-rpc. See also fromQml().
     function sendToQml(message) {
         tablet.sendToQml(message);
     }
 
-    //
     // Function Name: fromQml()
     //
-    // Relevant Variables:
-    // None
-    // 
-    // Arguments:
-    // message: The message sent from the SpectatorCamera QML.
-    //     Messages are in format "{method, params}", like json-rpc. See also sendToQml().
-    // 
     // Description:
-    // Called when a message is received from SpectatorCamera.qml.
-    //
+    //   -Called when a message is received from SpectatorCamera.qml. The "message" argument is what is sent from the SpectatorCamera QML
+    //    in the format "{method, params}", like json-rpc. See also sendToQml().
     function fromQml(message) {
         switch (message.method) {
             case 'spectatorCameraOn':
@@ -466,18 +436,10 @@
         }
     }
 
-    //
     // Function Name: onHMDChanged()
-    //
-    // Relevant Variables:
-    // None
-    // 
-    // Arguments:
-    // isHMDMode: "true" if HMD is on; "false" otherwise
     // 
     // Description:
-    // Called from C++ when HMD mode is changed
-    //
+    //   -Called from C++ when HMD mode is changed. The argument "isHMDMode" should be true if HMD is on; false otherwise.
     function onHMDChanged(isHMDMode) {
         setDisplay(monitorShowsCameraView);
         addOrRemoveButton(false, isHMDMode);
@@ -486,31 +448,27 @@
         }
     }
 
-    //
     // Function Name: shutdown()
-    //
-    // Relevant Variables:
-    // None
-    // 
-    // Arguments:
-    // None
     // 
     // Description:
-    // shutdown() will be called when the script ends (i.e. is stopped).
-    //
+    //   -shutdown() will be called when the script ends (i.e. is stopped).
     function shutdown() {
         spectatorCameraOff();
         Window.domainChanged.disconnect(spectatorCameraOff);
+        Window.geometryChanged.disconnect(resizeViewFinderOverlay);
         addOrRemoveButton(true, HMD.active);
-        tablet.screenChanged.disconnect(onTabletScreenChanged);
+        if (tablet) {
+            tablet.screenChanged.disconnect(onTabletScreenChanged);
+            if (onSpectatorCameraScreen) {
+                tablet.gotoHomeScreen();
+            }
+        }
         HMD.displayModeChanged.disconnect(onHMDChanged);
         Controller.keyPressEvent.disconnect(keyPressEvent);
         controllerMapping.disable();
     }
 
-    //
     // These functions will be called when the script is loaded.
-    //
     startup();
     Script.scriptEnding.connect(shutdown);
 

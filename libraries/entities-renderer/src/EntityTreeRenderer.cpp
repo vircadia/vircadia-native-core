@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityTreeRenderer.h"
+
 #include <glm/gtx/quaternion.hpp>
 
 #include <QEventLoop>
@@ -24,7 +26,6 @@
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
 
-#include "EntityTreeRenderer.h"
 
 #include "RenderableEntityItem.h"
 
@@ -130,7 +131,12 @@ void EntityTreeRenderer::clear() {
     if (scene) {
         render::Transaction transaction;
         foreach(auto entity, _entitiesInScene) {
-            entity->removeFromScene(entity, scene, transaction);
+            auto renderable = entity->getRenderableInterface();
+            if (!renderable) {
+                qCWarning(entitiesrenderer) << "EntityTreeRenderer::deletingEntity(), trying to remove non-renderable entity";
+                continue;
+            }
+            renderable->removeFromScene(entity, scene, transaction);
         }
         scene->enqueueTransaction(transaction);
     } else {
@@ -141,7 +147,7 @@ void EntityTreeRenderer::clear() {
     // reset the zone to the default (while we load the next scene)
     _layeredZones.clear();
 
-    OctreeRenderer::clear();
+    OctreeProcessor::clear();
 }
 
 void EntityTreeRenderer::reloadEntityScripts() {
@@ -155,9 +161,8 @@ void EntityTreeRenderer::reloadEntityScripts() {
 }
 
 void EntityTreeRenderer::init() {
-    OctreeRenderer::init();
+    OctreeProcessor::init();
     EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
-    entityTree->setFBXService(this);
 
     if (_wantScripts) {
         resetEntitiesScriptEngine();
@@ -181,8 +186,7 @@ void EntityTreeRenderer::shutdown() {
 }
 
 void EntityTreeRenderer::setTree(OctreePointer newTree) {
-    OctreeRenderer::setTree(newTree);
-    std::static_pointer_cast<EntityTree>(_tree)->setFBXService(this);
+    OctreeProcessor::setTree(newTree);
 }
 
 void EntityTreeRenderer::update() {
@@ -240,8 +244,13 @@ bool EntityTreeRenderer::findBestZoneAndMaybeContainingEntities(QVector<EntityIt
 
                     // if this entity is a zone and visible, determine if it is the bestZone
                     if (isZone && entity->getVisible()) {
-                        auto zone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
-                        _layeredZones.insert(zone);
+                        auto renderID = std::dynamic_pointer_cast<RenderableZoneEntityItem>(entity)->getRenderItemID();
+                        bool isValidRenderID = (renderID != render::Item::INVALID_ITEM_ID);
+
+                        if (isValidRenderID) {
+                            auto zone = std::dynamic_pointer_cast<ZoneEntityItem>(entity);
+                            _layeredZones.insert(zone);
+                        }
                     }
                 }
             }
@@ -348,6 +357,7 @@ bool EntityTreeRenderer::applyLayeredZones() {
 
         for (auto& zone : _layeredZones) {
             auto id = std::dynamic_pointer_cast<RenderableZoneEntityItem>(zone.zone)->getRenderItemID();
+            Q_ASSERT(id != render::Item::INVALID_ITEM_ID);
             list.push_back(id);
         }
         render::Selection selection("RankedZones", list);
@@ -359,31 +369,6 @@ bool EntityTreeRenderer::applyLayeredZones() {
     }
      
      return true;
-}
-
-const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer entityItem) {
-    const FBXGeometry* result = NULL;
-
-    if (entityItem->getType() == EntityTypes::Model) {
-        std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
-                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
-        assert(modelEntityItem); // we need this!!!
-        ModelPointer model = modelEntityItem->getModel(getSharedFromThis());
-        if (model && model->isLoaded()) {
-            result = &model->getFBXGeometry();
-        }
-    }
-    return result;
-}
-
-ModelPointer EntityTreeRenderer::getModelForEntityItem(EntityItemPointer entityItem) {
-    ModelPointer result = nullptr;
-    if (entityItem->getType() == EntityTypes::Model) {
-        std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
-                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
-        result = modelEntityItem->getModel(getSharedFromThis());
-    }
-    return result;
 }
 
 void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
@@ -791,24 +776,33 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
 }
 
 void EntityTreeRenderer::deletingEntity(const EntityItemID& entityID) {
+    if (!_entitiesInScene.contains(entityID)) {
+        return;
+    }
+        
     if (_tree && !_shuttingDown && _entitiesScriptEngine) {
         _entitiesScriptEngine->unloadEntityScript(entityID, true);
+    }
+
+    auto scene = _viewState->getMain3DScene();
+    if (!scene) {
+        qCWarning(entitiesrenderer) << "EntityTreeRenderer::deletingEntity(), Unexpected null scene, possibly during application shutdown";
+        return;
+    }
+
+    auto entity = _entitiesInScene.take(entityID);
+    auto renderable = entity->getRenderableInterface();
+    if (!renderable) {
+        qCWarning(entitiesrenderer) << "EntityTreeRenderer::deletingEntity(), trying to remove non-renderable entity";
+        return;
     }
 
     forceRecheckEntities(); // reset our state to force checking our inside/outsideness of entities
 
     // here's where we remove the entity payload from the scene
-    if (_entitiesInScene.contains(entityID)) {
-        auto entity = _entitiesInScene.take(entityID);
-        render::Transaction transaction;
-        auto scene = _viewState->getMain3DScene();
-        if (scene) {
-            entity->removeFromScene(entity, scene, transaction);
-            scene->enqueueTransaction(transaction);
-        } else {
-            qCWarning(entitiesrenderer) << "EntityTreeRenderer::deletingEntity(), Unexpected null scene, possibly during application shutdown";
-        }
-    }
+    render::Transaction transaction;
+    renderable->removeFromScene(entity, scene, transaction);
+    scene->enqueueTransaction(transaction);
 }
 
 void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
@@ -820,18 +814,25 @@ void EntityTreeRenderer::addingEntity(const EntityItemID& entityID) {
     }
 }
 
-void EntityTreeRenderer::addEntityToScene(EntityItemPointer entity) {
+void EntityTreeRenderer::addEntityToScene(const EntityItemPointer& entity) {
     // here's where we add the entity payload to the scene
-    render::Transaction transaction;
     auto scene = _viewState->getMain3DScene();
-    if (scene) {
-        if (entity->addToScene(entity, scene, transaction)) {
-            _entitiesInScene.insert(entity->getEntityItemID(), entity);
-        }
-        scene->enqueueTransaction(transaction);
-    } else {
+    if (!scene) {
         qCWarning(entitiesrenderer) << "EntityTreeRenderer::addEntityToScene(), Unexpected null scene, possibly during application shutdown";
+        return;
     }
+
+    auto renderable = entity->getRenderableInterface();
+    if (!renderable) {
+        qCWarning(entitiesrenderer) << "EntityTreeRenderer::addEntityToScene(), Unexpected non-renderable entity";
+        return;
+    }
+
+    render::Transaction transaction;
+    if (renderable->addToScene(entity, scene, transaction)) {
+        _entitiesInScene.insert(entity->getEntityItemID(), entity);
+    }
+    scene->enqueueTransaction(transaction);
 }
 
 
@@ -852,7 +853,7 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool 
             entity->scriptHasUnloaded();
         }
         if (shouldLoad) {
-            scriptUrl = ResourceManager::normalizeURL(scriptUrl);
+            scriptUrl = DependencyManager::get<ResourceManager>()->normalizeURL(scriptUrl);
             _entitiesScriptEngine->loadEntityScript(entityID, scriptUrl, reload);
             entity->scriptHasPreloaded();
         }
@@ -861,7 +862,12 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool 
 
 void EntityTreeRenderer::playEntityCollisionSound(EntityItemPointer entity, const Collision& collision) {
     assert((bool)entity);
-    SharedSoundPointer collisionSound = entity->getCollisionSound();
+    auto renderable = entity->getRenderableInterface();
+    if (!renderable) { 
+        return; 
+    }
+    
+    SharedSoundPointer collisionSound = renderable->getCollisionSound();
     if (!collisionSound) {
         return;
     }
@@ -1050,3 +1056,4 @@ bool EntityTreeRenderer::LayeredZones::contains(const LayeredZones& other) {
     }
     return result;
 }
+

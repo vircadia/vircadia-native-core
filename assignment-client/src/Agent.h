@@ -23,7 +23,6 @@
 
 #include <EntityEditPacketSender.h>
 #include <EntityTree.h>
-#include <EntityTreeHeadlessViewer.h>
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
 
@@ -31,6 +30,7 @@
 
 #include "AudioGate.h"
 #include "MixedAudioStream.h"
+#include "entities/EntityTreeHeadlessViewer.h"
 #include "avatars/ScriptableAvatar.h"
 
 class Agent : public ThreadedAssignment {

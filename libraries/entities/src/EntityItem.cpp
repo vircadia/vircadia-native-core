@@ -23,8 +23,8 @@
 #include <PhysicsHelpers.h>
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // usecTimestampNow()
-#include <SoundCache.h>
 #include <LogHandler.h>
+#include <Extents.h>
 
 #include "EntityScriptingInterface.h"
 #include "EntitiesLogging.h"
@@ -386,7 +386,13 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         return 0;
     }
 
-    qint64 clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
+    int64_t clockSkew = 0;
+    uint64_t maxPingRoundTrip = 33333; // two frames periods at 60 fps
+    if (args.sourceNode) {
+        clockSkew = args.sourceNode->getClockSkewUsec();
+        const float MSECS_PER_USEC = 1000;
+        maxPingRoundTrip += args.sourceNode->getPingMs() * MSECS_PER_USEC;
+    }
 
     BufferParser parser(data, bytesLeftToRead);
 
@@ -653,7 +659,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     const QUuid& myNodeID = nodeList->getSessionUUID();
     bool weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
 
-
     // pack SimulationOwner and terse update properties near each other
     // NOTE: the server is authoritative for changes to simOwnerID so we always unpack ownership data
     // even when we would otherwise ignore the rest of the packet.
@@ -678,7 +683,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             if (newSimOwner.getID().isNull() && !_simulationOwner.pendingRelease(lastEditedFromBufferAdjusted)) {
                 // entity-server is trying to clear our ownership (probably at our own request)
                 // but we actually want to own it, therefore we ignore this clear event
-                // and pretend that we own it (we assume we'll recover it soon)
+                // and pretend that we own it (e.g. we assume we'll receive ownership soon)
 
                 // However, for now, when the server uses a newer time than what we sent, listen to what we're told.
                 if (overwriteLocalData) {
@@ -690,16 +695,19 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
                 // recompute weOwnSimulation for later
                 weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
             }
-        } else if (newSimOwner.getID().isNull() && _simulationOwner.pendingTake(lastEditedFromBufferAdjusted)) {
-            // entity-server is trying to clear someone  else's ownership
-            // but we want to own it, therefore we ignore this clear event
-            // and pretend that we own it (we assume we'll get it soon)
+        } else if (_simulationOwner.pendingTake(now - maxPingRoundTrip)) {
+            // we sent a bid before this packet could have been sent from the server
+            // so we ignore it and pretend we own the object's simulation
             weOwnSimulation = true;
-            if (!_simulationOwner.isNull()) {
-                // someone else really did own it
-                markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
-                somethingChanged = true;
-                _simulationOwner.clearCurrentOwner();
+            if (newSimOwner.getID().isNull()) {
+                // entity-server is trying to clear someone  else's ownership
+                // but we want to own it, therefore we ignore this clear event
+                if (!_simulationOwner.isNull()) {
+                    // someone else really did own it
+                    markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
+                    somethingChanged = true;
+                    _simulationOwner.clearCurrentOwner();
+                }
             }
         } else if (newSimOwner.matchesValidID(myNodeID) && !_hasBidOnSimulation) {
             // entity-server tells us that we have simulation ownership while we never requested this for this EntityItem,
@@ -978,21 +986,6 @@ void EntityItem::setCollisionSoundURL(const QString& value) {
             myTree->notifyNewCollisionSoundURL(value, getEntityItemID());
         }
     }
-}
-
-SharedSoundPointer EntityItem::getCollisionSound() {
-    SharedSoundPointer result;
-    withReadLock([&] {
-        result = _collisionSound;
-    });
-
-    if (!result) {
-        result = DependencyManager::get<SoundCache>()->getSound(_collisionSoundURL);
-        withWriteLock([&] {
-            _collisionSound = result;
-        });
-    }
-    return result;
 }
 
 void EntityItem::simulate(const quint64& now) {
@@ -2640,12 +2633,6 @@ QString EntityItem::getCollisionSoundURL() const {
         result = _collisionSoundURL;
     });
     return result;
-}
-
-void EntityItem::setCollisionSound(SharedSoundPointer sound) { 
-    withWriteLock([&] {
-        _collisionSound = sound;
-    });
 }
 
 glm::vec3 EntityItem::getRegistrationPoint() const { 

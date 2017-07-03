@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Model.h"
+
 #include <QMetaType>
 #include <QRunnable>
 #include <QThreadPool>
@@ -24,7 +26,6 @@
 
 #include "AbstractViewStateInterface.h"
 #include "MeshPartPayload.h"
-#include "Model.h"
 
 #include "RenderUtilsLogging.h"
 #include <Trace.h>
@@ -864,10 +865,6 @@ bool Model::getRelativeDefaultJointRotation(int jointIndex, glm::quat& rotationO
 
 bool Model::getRelativeDefaultJointTranslation(int jointIndex, glm::vec3& translationOut) const {
     return _rig.getRelativeDefaultJointTranslation(jointIndex, translationOut);
-}
-
-bool Model::getJointCombinedRotation(int jointIndex, glm::quat& rotation) const {
-    return _rig.getJointCombinedRotation(jointIndex, rotation, _rotation);
 }
 
 QStringList Model::getJointNames() const {

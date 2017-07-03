@@ -13,7 +13,7 @@ var qml = Script.resolvePath('ambientOcclusionPass.qml');
 var window = new OverlayWindow({
     title: 'Ambient Occlusion Pass',
     source: qml,
-    width: 400, height: 250,
+    width: 400, height: 300,
 });
 window.setPosition(Window.innerWidth - 420, 50 + 550 + 50);
 window.closed.connect(function() { Script.stop(); });
@@ -34,5 +34,5 @@ function setDebugCursor(x, y) {
     nx = (x / Window.innerWidth);
     ny = 1.0 - ((y) / (Window.innerHeight - 32));
 
-     Render.getConfig("DebugAmbientOcclusion").debugCursorTexcoord = { x: nx, y: ny };
+     Render.getConfig("RenderMainView").getConfig("DebugAmbientOcclusion").debugCursorTexcoord = { x: nx, y: ny };
 }

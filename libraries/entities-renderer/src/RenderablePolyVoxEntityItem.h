@@ -12,17 +12,19 @@
 #ifndef hifi_RenderablePolyVoxEntityItem_h
 #define hifi_RenderablePolyVoxEntityItem_h
 
-#include <QSemaphore>
 #include <atomic>
+
+#include <QSemaphore>
 
 #include <PolyVoxCore/SimpleVolume.h>
 #include <PolyVoxCore/Raycast.h>
 
+#include <gpu/Context.h>
+#include <model/Forward.h>
 #include <TextureCache.h>
+#include <PolyVoxEntityItem.h>
 
-#include "PolyVoxEntityItem.h"
 #include "RenderableEntityItem.h"
-#include "gpu/Context.h"
 
 class PolyVoxPayload {
 public:
@@ -41,12 +43,14 @@ namespace render {
 }
 
 
-class RenderablePolyVoxEntityItem : public PolyVoxEntityItem {
+class RenderablePolyVoxEntityItem : public PolyVoxEntityItem, public RenderableEntityInterface {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderablePolyVoxEntityItem(const EntityItemID& entityItemID);
 
     virtual ~RenderablePolyVoxEntityItem();
+
+    RenderableEntityInterface* getRenderableInterface() override { return this; }
 
     void initializePolyVox();
 
@@ -105,10 +109,10 @@ public:
     virtual void setYTextureURL(const QString& yTextureURL) override;
     virtual void setZTextureURL(const QString& zTextureURL) override;
 
-    virtual bool addToScene(EntityItemPointer self,
+    virtual bool addToScene(const EntityItemPointer& self,
                             const render::ScenePointer& scene,
                             render::Transaction& transaction) override;
-    virtual void removeFromScene(EntityItemPointer self,
+    virtual void removeFromScene(const EntityItemPointer& self,
                                  const render::ScenePointer& scene,
                                  render::Transaction& transaction) override;
 

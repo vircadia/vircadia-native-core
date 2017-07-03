@@ -43,7 +43,8 @@ public:
     void resetDevice(bool contextIsHMD, const QString& device);
 
 signals:
-    void deviceSelected(const QAudioDeviceInfo& device);
+    void deviceSelected(const QAudioDeviceInfo& device = QAudioDeviceInfo(),
+                        const QAudioDeviceInfo& previousDevice = QAudioDeviceInfo());
     void deviceChanged(const QAudioDeviceInfo& device);
 
 private slots:
@@ -52,6 +53,8 @@ private slots:
 
 private:
     friend class AudioDevices;
+
+    bool setDevice(int index, bool fromUser);
 
     static QHash<int, QByteArray> _roles;
     static Qt::ItemFlags _flags;
@@ -76,8 +79,7 @@ signals:
 
 private slots:
     void onContextChanged(const QString& context);
-    void onInputDeviceSelected(const QAudioDeviceInfo& device);
-    void onOutputDeviceSelected(const QAudioDeviceInfo& device);
+    void onDeviceSelected(QAudio::Mode mode, const QAudioDeviceInfo& device, const QAudioDeviceInfo& previousDevice);
     void onDeviceChanged(QAudio::Mode mode, const QAudioDeviceInfo& device);
     void onDevicesChanged(QAudio::Mode mode, const QList<QAudioDeviceInfo>& devices);
 

@@ -65,6 +65,12 @@ Windows.Window {
             root.dynamicContent.fromScript(message);
         }
     }
+
+    function clearDebugWindow() {
+        if (root.dynamicContent && root.dynamicContent.clearWindow) {
+            root.dynamicContent.clearWindow();
+        }
+    }
     
     // Handle message traffic from our loaded QML to the script that launched us
     signal sendToScript(var message);
