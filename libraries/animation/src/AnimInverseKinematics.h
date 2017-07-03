@@ -36,6 +36,7 @@ public:
     struct JointChainInfo {
         std::vector<JointInfo> jointInfoVec;
         IKTarget target;
+        float timer { 0.0f };
     };
 
     using JointChainInfoVec = std::vector<JointChainInfo>;
@@ -78,11 +79,11 @@ public:
 
 protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
-    void solve(const AnimContext& context, const std::vector<IKTarget>& targets);
+    void solve(const AnimContext& context, const std::vector<IKTarget>& targets, float dt, JointChainInfoVec& jointChainInfoVec);
     void solveTargetWithCCD(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses,
                             bool debug, JointChainInfo& jointChainInfoOut) const;
     void solveTargetWithSpline(const AnimContext& context, const IKTarget& target, const AnimPoseVec& absolutePoses,
-                               bool debug, JointChainInfo& jointChainInfoOut);
+                               bool debug, JointChainInfo& jointChainInfoOut) const;
     virtual void setSkeletonInternal(AnimSkeleton::ConstPointer skeleton) override;
     void debugDrawIKChain(const JointChainInfo& jointChainInfo, const AnimContext& context) const;
     void debugDrawRelativePoses(const AnimContext& context) const;
@@ -99,8 +100,8 @@ protected:
         AnimPose offsetPose;  // local offset from the spline to the joint.
     };
 
-    void computeSplineJointInfosForIKTarget(const AnimContext& context, const IKTarget& target);
-    const std::vector<SplineJointInfo>* findOrCreateSplineJointInfo(const AnimContext& context, const IKTarget& target);
+    void computeAndCacheSplineJointInfosForIKTarget(const AnimContext& context, const IKTarget& target) const;
+    const std::vector<SplineJointInfo>* findOrCreateSplineJointInfo(const AnimContext& context, const IKTarget& target) const;
 
     // for AnimDebugDraw rendering
     virtual const AnimPoseVec& getPosesInternal() const override { return _relativePoses; }
@@ -144,7 +145,7 @@ protected:
     AnimPoseVec _relativePoses; // current relative poses
     AnimPoseVec _limitCenterPoses;  // relative
 
-    std::map<int, std::vector<SplineJointInfo>> _splineJointInfoMap;
+    mutable std::map<int, std::vector<SplineJointInfo>> _splineJointInfoMap;
 
     // experimental data for moving hips during IK
     glm::vec3 _hipsOffset { Vectors::ZERO };
@@ -164,6 +165,8 @@ protected:
     AnimPose _uncontrolledLeftHandPose { AnimPose() };
     AnimPose _uncontrolledRightHandPose { AnimPose() };
     AnimPose _uncontrolledHipsPose { AnimPose() };
+
+    JointChainInfoVec _prevJointChainInfoVec;
 };
 
 #endif // hifi_AnimInverseKinematics_h
