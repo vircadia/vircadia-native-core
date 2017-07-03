@@ -331,7 +331,7 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
 
     // TODO: this final containingElement check should eventually be removed (or wrapped in an #ifdef DEBUG).
     if (!entity->getElement()) {
-        qCDebug(entities) << "UNEXPECTED!!!! after updateEntity() we no longer have a containing element??? entityID="
+        qCWarning(entities) << "EntityTree::updateEntity() we no longer have a containing element for entityID="
                 << entity->getEntityItemID();
         return false;
     }
@@ -364,7 +364,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
     EntityTreeElementPointer containingElement = getContainingElement(entityID);
     if (containingElement) {
-        qCDebug(entities) << "UNEXPECTED!!! ----- don't call addEntity() on existing entity items. entityID=" << entityID
+        qCWarning(entities) << "EntityTree::addEntity() on existing entity item with entityID=" << entityID
                           << "containingElement=" << containingElement.get();
         return result;
     }
@@ -420,7 +420,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
     EntityTreeElementPointer containingElement = getContainingElement(entityID);
     if (!containingElement) {
         if (!ignoreWarnings) {
-            qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::deleteEntity() entityID doesn't exist!!! entityID=" << entityID;
+            qCWarning(entities) << "EntityTree::deleteEntity() on non-existent entityID=" << entityID;
         }
         return;
     }
@@ -428,8 +428,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
     EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
     if (!existingEntity) {
         if (!ignoreWarnings) {
-            qCDebug(entities) << "UNEXPECTED!!!! don't call EntityTree::deleteEntity() on entity items that don't exist. "
-                        "entityID=" << entityID;
+            qCWarning(entities) << "EntityTree::deleteEntity() on non-existant entity item with entityID=" << entityID;
         }
         return;
     }
@@ -476,7 +475,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         EntityTreeElementPointer containingElement = getContainingElement(entityID);
         if (!containingElement) {
             if (!ignoreWarnings) {
-                qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::deleteEntities() entityID doesn't exist!!! entityID=" << entityID;
+                qCWarning(entities) << "EntityTree::deleteEntities() on non-existent entityID=" << entityID;
             }
             continue;
         }
@@ -484,8 +483,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
         if (!existingEntity) {
             if (!ignoreWarnings) {
-                qCDebug(entities) << "UNEXPECTED!!!! don't call EntityTree::deleteEntities() on entity items that don't exist. "
-                            "entityID=" << entityID;
+                qCWarning(entities) << "EntityTree::deleteEntities() on non-existent entity item with entityID=" << entityID;
             }
             continue;
         }
@@ -973,7 +971,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                      const SharedNodePointer& senderNode) {
 
     if (!getIsServer()) {
-        qCDebug(entities) << "UNEXPECTED!!! processEditPacketData() should only be called on a server tree.";
+        qCWarning(entities) << "EntityTree::processEditPacketData() should only be called on a server tree.";
         return 0;
     }
 
