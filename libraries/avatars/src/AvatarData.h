@@ -627,6 +627,7 @@ public:
     void markIdentityDataChanged() { _identityDataChanged = true; }
 
     void pushIdentitySequenceNumber() { ++_identitySequenceNumber; };
+    bool hasProcessedFirstIdentity() const { return _hasProcessedFirstIdentity; }
 
     float getDensity() const { return _density; }
 
