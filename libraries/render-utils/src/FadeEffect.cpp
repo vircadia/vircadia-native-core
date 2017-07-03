@@ -65,10 +65,10 @@ const render::Item* FadeSwitchJob::findNearestItem(const render::RenderContextPo
     glm::vec3 normal;
     float isectDistance;
     const render::Item* nearestItem = nullptr;
-    const float minDistance = 5.f;
+    const float minDistance = 2.f;
 
     for (const auto& itemBound : inputItems) {
-        if (itemBound.bound.findRayIntersection(rayOrigin, rayDirection, isectDistance, face, normal)) {
+        if (!itemBound.bound.contains(rayOrigin) && itemBound.bound.findRayIntersection(rayOrigin, rayDirection, isectDistance, face, normal)) {
             if (isectDistance>minDistance && isectDistance < minIsectDistance) {
                 auto& item = scene->getItem(itemBound.id);
                 nearestItem = &item;
@@ -117,7 +117,7 @@ FadeCommonParameters::FadeCommonParameters() :
 FadeJobConfig::FadeJobConfig() :
     noiseSize{
         { 0.75f, 0.75f, 0.75f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-        { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_OWNER
+        { 1.0f, 1.0f/15.f, 1.0f },   // BUBBLE_ISECT_OWNER
         { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_TRESPASSER
         { 10.f, 0.01f, 10.0f },   // USER_ENTER_LEAVE_DOMAIN
         { 0.4f, 0.4f, 0.4f },   // AVATAR_CHANGE
@@ -131,8 +131,8 @@ FadeJobConfig::FadeJobConfig() :
     },
     baseSize{
     { 1.0f, 1.0f, 1.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-    { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_OWNER
-    { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_TRESPASSER
+    { 2.0f, 2.0f, 2.0f },   // BUBBLE_ISECT_OWNER
+    { 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_TRESPASSER
     { 10000.f, 1.0f, 10000.0f },   // USER_ENTER_LEAVE_DOMAIN
     { 0.4f, 0.4f, 0.4f },   // AVATAR_CHANGE
     },
@@ -159,22 +159,22 @@ FadeJobConfig::FadeJobConfig() :
     },
     edgeWidth{
         0.10f,   // ELEMENT_ENTER_LEAVE_DOMAIN
-        0.10f,   // BUBBLE_ISECT_OWNER
-        0.10f,   // BUBBLE_ISECT_TRESPASSER
+        0.08f,   // BUBBLE_ISECT_OWNER
+        0.08f,   // BUBBLE_ISECT_TRESPASSER
         0.529f,   // USER_ENTER_LEAVE_DOMAIN
         0.05f,   // AVATAR_CHANGE
     },
     edgeInnerColor{
         { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
         { 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f },   // BUBBLE_ISECT_OWNER
-        { 1.0f, 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_TRESPASSER
+        { 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f },   // BUBBLE_ISECT_TRESPASSER
         { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.25f },   // USER_ENTER_LEAVE_DOMAIN
         { 1.0f, 1.0f, 1.0f, 1.0f },   // AVATAR_CHANGE
     },
     edgeOuterColor{
         { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-        { 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f },   // BUBBLE_ISECT_OWNER
-        { 1.0f, 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_TRESPASSER
+        { 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 2.0f },   // BUBBLE_ISECT_OWNER
+        { 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 2.0f },   // BUBBLE_ISECT_TRESPASSER
         { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f },   // USER_ENTER_LEAVE_DOMAIN
         { 1.0f, 1.0f, 1.0f, 1.0f },   // AVATAR_CHANGE
     }
@@ -479,51 +479,47 @@ void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderCon
     _editTime += deltaTime;
     _editPreviousTime = now;
 
+    if (cycleTime < eventDuration) {
+        _editThreshold = 1.f - computeElementEnterThreshold(cycleTime, eventDuration);
+    }
+    else if (cycleTime < (eventDuration + waitTime)) {
+        _editThreshold = 0.f;
+    }
+    else if (cycleTime < (2 * eventDuration + waitTime)) {
+        _editThreshold = computeElementEnterThreshold(cycleTime - (eventDuration + waitTime), eventDuration);
+    }
+    else {
+        _editThreshold = 1.f;
+    }
+
     switch (_parameters->_editedCategory) {
     case FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN:
-    {
-        if (cycleTime < eventDuration) {
-            _editThreshold = 1.f-computeElementEnterThreshold(cycleTime, eventDuration);
-        }
-        else if (cycleTime < (eventDuration + waitTime)) {
-            _editThreshold = 0.f;
-        }
-        else if (cycleTime < (2 * eventDuration + waitTime)) {
-            _editThreshold = computeElementEnterThreshold(cycleTime- (eventDuration + waitTime), eventDuration);
-        }
-        else {
-            _editThreshold = 1.f;
-        }
-    }
-    break;
+        break;
 
     case FadeJobConfig::BUBBLE_ISECT_OWNER:
-        break;
+    {
+        const glm::vec3 cameraPos = renderContext->args->getViewFrustum().getPosition();
+        const glm::vec3 delta = itemBounds.bound.calcCenter() - cameraPos;
+
+        _editNoiseOffset.x = _editTime*0.1f;
+        _editNoiseOffset.y = _editTime*2.5f;
+        _editNoiseOffset.z = _editTime*0.1f;
+
+        _editBaseOffset = cameraPos + delta*_editThreshold;
+        _editThreshold = 0.33f;
+    }
+    break;
 
     case FadeJobConfig::BUBBLE_ISECT_TRESPASSER:
         break;
 
     case FadeJobConfig::USER_ENTER_LEAVE_DOMAIN:
     {
-        _editNoiseOffset.x = _editTime*0.5;
+        _editNoiseOffset.x = _editTime*0.5f;
         _editNoiseOffset.y = 0.f;
-        _editNoiseOffset.z = _editTime*0.75;
+        _editNoiseOffset.z = _editTime*0.75f;
 
         _editBaseOffset = itemBounds.bound.calcCenter();
-        _editBaseOffset.y -= itemBounds.bound.getDimensions().y/2.f;
-
-        if (cycleTime < eventDuration) {
-            _editThreshold = 1.f - computeElementEnterThreshold(cycleTime, eventDuration);
-        }
-        else if (cycleTime < (eventDuration + waitTime)) {
-            _editThreshold = 0.f;
-        }
-        else if (cycleTime < (2 * eventDuration + waitTime)) {
-            _editThreshold = computeElementEnterThreshold(cycleTime - (eventDuration + waitTime), eventDuration);
-        }
-        else {
-            _editThreshold = 1.f;
-        }
     }
     break;
 

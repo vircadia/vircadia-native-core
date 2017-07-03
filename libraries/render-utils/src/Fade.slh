@@ -73,7 +73,7 @@ float evalFadeNoiseGradient(vec3 position) {
 
 float evalFadeBaseGradient(vec3 position) {
     float gradient = length((position - fadeBaseOffset) * fadeParameters[fadeCategory]._baseInvSizeAndLevel.xyz);
-    gradient = mod(gradient, 1.0)-0.5;  // Center on value 0.5
+    gradient = gradient-0.5;  // Center on value 0.5
     gradient *= fadeParameters[fadeCategory]._baseInvSizeAndLevel.w;
     return gradient;
 }
