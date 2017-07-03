@@ -53,7 +53,7 @@ void ResourceImageItemRenderer::synchronize(QQuickFramebufferObject* item) {
 
     resourceImageItem->setFlag(QQuickItem::ItemHasContents);
     bool urlChanged = false;
-    if( _url != resourceImageItem->getUrl()) {
+    if (_url != resourceImageItem->getUrl()) {
         _url = resourceImageItem->getUrl();
         urlChanged = true;
     }
@@ -67,9 +67,9 @@ void ResourceImageItemRenderer::synchronize(QQuickFramebufferObject* item) {
     if (_ready && !_url.isNull() && !_url.isEmpty() && (urlChanged || readyChanged || !_networkTexture)) {
         _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_url);
     }
-
+    static const int UPDATE_TIMER_DELAY_IN_MS = 100; // 100 ms = 10 hz for now
     if (_ready && !_updateTimer.isActive()) {
-        _updateTimer.start(100);
+        _updateTimer.start(UPDATE_TIMER_DELAY_IN_MS);
     } else if (!_ready && _updateTimer.isActive()) {
         _updateTimer.stop();
     }
