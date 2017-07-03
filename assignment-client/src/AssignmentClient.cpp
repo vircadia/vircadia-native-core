@@ -16,6 +16,7 @@
 #include <QThread>
 #include <QTimer>
 
+#include <shared/QtHelpers.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <Assignment.h>
@@ -141,7 +142,7 @@ void AssignmentClient::stopAssignmentClient() {
         QThread* currentAssignmentThread = _currentAssignment->thread();
 
         // ask the current assignment to stop
-        QMetaObject::invokeMethod(_currentAssignment, "stop", Qt::BlockingQueuedConnection);
+        BLOCKING_INVOKE_METHOD(_currentAssignment, "stop");
 
         // ask the current assignment to delete itself on its thread
         _currentAssignment->deleteLater();
