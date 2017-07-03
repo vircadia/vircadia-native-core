@@ -242,7 +242,7 @@ Rectangle {
             size: 32;
             color: hifi.colors.blueHighlight;
             anchors.top: spectatorCameraPreview.bottom;
-            anchors.topMargin: 12;
+            anchors.topMargin: 20;
             anchors.left: parent.left;
         }
         // "Monitor Shows" Switch Label

@@ -841,14 +841,31 @@ void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer ne
         glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sourceTexture, 0);
         qDebug() << "error" << glGetError();
+        GLint texWidth, texHeight;
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &texWidth);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &texHeight);
 
         // setup destination fbo
         glBindFramebuffer(GL_FRAMEBUFFER, fbo[1]);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, targetTexture, 0);
         qDebug() << "error" << glGetError();
 
-        // TODO: perhaps maintain aspect ratio
-        glBlitNamedFramebuffer(fbo[0], fbo[1], 0, 0, networkTexture->getWidth(), networkTexture->getHeight(), 0, 0, target->width(), target->height(), GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+        // maintain aspect ratio, filling the width first if possible.  If that makes the height too
+        // much, fill height instead.
+        GLint newX = 0;
+        GLint newY = 0;
+        float aspectRatio = (float)texHeight / (float)texWidth;
+        GLint newWidth = target->width();
+        GLint newHeight = std::round(aspectRatio * (float) target->width());
+        if (newHeight > target->height()) {
+            newHeight = target->height();
+            newWidth = std::round((float)target->height() / aspectRatio);
+            newX = (target->width() - newWidth) / 2;
+        } else {
+            newY = (target->height() - newHeight) / 2;
+        }
+        glBlitNamedFramebuffer(fbo[0], fbo[1], 0, 0, texWidth, texHeight, newX, newY, newWidth, newHeight, GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT, GL_NEAREST);
         qDebug() << "error" << glGetError();
 
         // don't delete the textures!
