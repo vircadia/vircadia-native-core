@@ -2,7 +2,7 @@
 
 /*
 	rockethands.js
-	system
+	unpublishedScripts/marketplace/rocketHands/rockethands.js
 
 	Created by Cain Kilgore on 30/06/2017
 	Copyright 2017 High Fidelity, Inc.
