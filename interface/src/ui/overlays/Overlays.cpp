@@ -231,9 +231,12 @@ OverlayID Overlays::cloneOverlay(OverlayID id) {
 
 bool Overlays::editOverlay(OverlayID id, const QVariant& properties) {
     if (QThread::currentThread() != thread()) {
-        bool result;
-        BLOCKING_INVOKE_METHOD(this, "editOverlay", Q_RETURN_ARG(bool, result), Q_ARG(OverlayID, id), Q_ARG(QVariant, properties));
-        return result;
+        // NOTE editOverlay can be called very frequently in scripts and can't afford to 
+        // block waiting on the main thread.  Additionally, no script actually 
+        // examines the return value and does something useful with it, so use a non-blocking
+        // invoke and just always return true
+        QMetaObject::invokeMethod(this, "editOverlay", Q_ARG(OverlayID, id), Q_ARG(QVariant, properties));
+        return true;
     }
 
     Overlay::Pointer thisOverlay = getOverlay(id);
@@ -246,9 +249,9 @@ bool Overlays::editOverlay(OverlayID id, const QVariant& properties) {
 
 bool Overlays::editOverlays(const QVariant& propertiesById) {
     if (QThread::currentThread() != thread()) {
-        bool result;
-        BLOCKING_INVOKE_METHOD(this, "editOverlays", Q_RETURN_ARG(bool, result), Q_ARG(QVariant, propertiesById));
-        return result;
+        // NOTE see comment on editOverlay for why this is not a blocking call
+        QMetaObject::invokeMethod(this, "editOverlays", Q_ARG(QVariant, propertiesById));
+        return true;
     }
 
     QVariantMap map = propertiesById.toMap();
