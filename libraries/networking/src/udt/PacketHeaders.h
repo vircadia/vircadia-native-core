@@ -115,11 +115,20 @@ public:
         AdjustAvatarSorting,
         OctreeFileReplacement,
         CollisionEventChanges,
-        LAST_PACKET_TYPE = CollisionEventChanges
+        ReplicatedMicrophoneAudioNoEcho,
+        ReplicatedMicrophoneAudioWithEcho,
+        ReplicatedInjectAudio,
+        ReplicatedSilentAudioFrame,
+        ReplicatedAvatarIdentity,
+        ReplicatedKillAvatar,
+        ReplicatedBulkAvatarData,
+        NUM_PACKET_TYPE
     };
 };
 
 using PacketType = PacketTypeEnum::Value;
+
+extern const QHash<PacketType, PacketType> REPLICATED_PACKET_MAPPING;
 
 const int NUM_BYTES_MD5_HASH = 16;
 
@@ -236,7 +245,10 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     AvatarAsChildFixes,
     StickAndBallDefaultAvatar,
     IdentityPacketsIncludeUpdateTime,
-    AvatarIdentitySequenceId
+    AvatarIdentitySequenceId,
+    MannequinDefaultAvatar,
+    AvatarIdentitySequenceFront,
+    IsReplicatedInAvatarIdentity
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

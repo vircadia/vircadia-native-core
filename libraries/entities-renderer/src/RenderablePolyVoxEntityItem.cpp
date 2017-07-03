@@ -9,11 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+
+#include "RenderablePolyVoxEntityItem.h"
+
 #include <math.h>
 #include <QObject>
 #include <QByteArray>
 #include <QtConcurrent/QtConcurrentRun>
 #include <glm/gtx/transform.hpp>
+#include <model-networking/SimpleMeshProxy.h>
 #include "ModelScriptingInterface.h"
 
 #if defined(__GNUC__) && !defined(__clang__)
@@ -46,10 +50,12 @@
 #endif
 
 #include "model/Geometry.h"
+
+#include "StencilMaskPass.h"
+
 #include "EntityTreeRenderer.h"
 #include "polyvox_vert.h"
 #include "polyvox_frag.h"
-#include "RenderablePolyVoxEntityItem.h"
 #include "EntityEditPacketSender.h"
 #include "PhysicalEntitySimulation.h"
 
@@ -743,6 +749,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        PrepareStencil::testMaskDrawShape(*state);
 
         _pipeline = gpu::Pipeline::create(program, state);
 
@@ -750,6 +757,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         wireframeState->setCullMode(gpu::State::CULL_BACK);
         wireframeState->setDepthTest(true, true, gpu::LESS_EQUAL);
         wireframeState->setFillMode(gpu::State::FILL_LINE);
+        PrepareStencil::testMaskDrawShape(*wireframeState);
 
         _wireframePipeline = gpu::Pipeline::create(program, wireframeState);
     }
@@ -815,7 +823,7 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     batch.drawIndexed(gpu::TRIANGLES, (gpu::uint32)mesh->getNumIndices(), 0);
 }
 
-bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
+bool RenderablePolyVoxEntityItem::addToScene(const EntityItemPointer& self,
                                              const render::ScenePointer& scene,
                                              render::Transaction& transaction) {
     _myItem = scene->allocateID();
@@ -833,7 +841,7 @@ bool RenderablePolyVoxEntityItem::addToScene(EntityItemPointer self,
     return true;
 }
 
-void RenderablePolyVoxEntityItem::removeFromScene(EntityItemPointer self,
+void RenderablePolyVoxEntityItem::removeFromScene(const EntityItemPointer& self,
                                                   const render::ScenePointer& scene,
                                                   render::Transaction& transaction) {
     transaction.removeItem(_myItem);
@@ -860,7 +868,7 @@ namespace render {
 
     template <> void payloadRender(const PolyVoxPayload::Pointer& payload, RenderArgs* args) {
         if (args && payload && payload->_owner) {
-            payload->_owner->render(args);
+            payload->_owner->getRenderableInterface()->render(args);
         }
     }
 }
@@ -1621,6 +1629,7 @@ void RenderablePolyVoxEntityItem::locationChanged(bool tellPhysics) {
     scene->enqueueTransaction(transaction);
 }
 
+
 bool RenderablePolyVoxEntityItem::getMeshes(MeshProxyList& result) {
     if (!updateDependents()) {
         return false;
@@ -1640,7 +1649,7 @@ bool RenderablePolyVoxEntityItem::getMeshes(MeshProxyList& result) {
         } else {
             success = true;
             // the mesh will be in voxel-space.  transform it into object-space
-            meshProxy = new MeshProxy(
+            meshProxy = new SimpleMeshProxy(
                 _mesh->map([=](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
                            [=](glm::vec3 normal){ return glm::normalize(glm::vec3(transform * glm::vec4(normal, 0.0f))); },
                            [&](uint32_t index){ return index; }));

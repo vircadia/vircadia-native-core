@@ -1,7 +1,17 @@
 set(TARGET_NAME entities-renderer)
 AUTOSCRIBE_SHADER_LIB(gpu model procedural render render-utils)
 setup_hifi_library(Widgets Network Script)
-link_hifi_libraries(shared gpu procedural model model-networking script-engine render render-utils image)
+link_hifi_libraries(shared gpu procedural model model-networking script-engine render render-utils image ui)
+include_hifi_library_headers(networking)
+include_hifi_library_headers(gl)
+include_hifi_library_headers(ktx)
+include_hifi_library_headers(octree)
+include_hifi_library_headers(audio)
+include_hifi_library_headers(physics)
+include_hifi_library_headers(animation)
+include_hifi_library_headers(fbx)
+include_hifi_library_headers(entities)
+include_hifi_library_headers(avatars)
 
 target_bullet()
 

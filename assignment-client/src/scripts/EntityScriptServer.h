@@ -19,10 +19,10 @@
 #include <QtCore/QUuid>
 
 #include <EntityEditPacketSender.h>
-#include <EntityTreeHeadlessViewer.h>
 #include <plugins/CodecPlugin.h>
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
+#include "../entities/EntityTreeHeadlessViewer.h"
 
 class EntityScriptServer : public ThreadedAssignment {
     Q_OBJECT

@@ -10,7 +10,6 @@
 #include <QtCore/QProcessEnvironment>
 
 #include <ViewFrustum.h>
-#include <controllers/Pose.h>
 #include <gpu/Frame.h>
 
 const QString DebugHmdDisplayPlugin::NAME("HMD Simulator");

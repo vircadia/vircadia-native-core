@@ -15,6 +15,7 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/vector_query.hpp>
 
+#include <shared/QtHelpers.h>
 #include <DeferredLightingEffect.h>
 #include <EntityTreeRenderer.h>
 #include <NodeList.h>
@@ -287,6 +288,13 @@ void Avatar::updateAvatarEntities() {
                 QString noScript;
                 properties.setScript(noScript);
             }
+
+            // When grabbing avatar entities, they are parented to the joint moving them, then when un-grabbed
+            // they go back to the default parent (null uuid).  When un-gripped, others saw the entity disappear.
+            // The thinking here is the local position was noticed as changing, but not the parentID (since it is now
+            // back to the default), and the entity flew off somewhere.  Marking all changed definitely fixes this,
+            // and seems safe (per Seth).
+            properties.markAllChanged();
 
             // try to build the entity
             EntityItemPointer entity = entityTree->findEntityByEntityItemID(EntityItemID(entityID));
@@ -1003,7 +1011,7 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
 int Avatar::getJointIndex(const QString& name) const {
     if (QThread::currentThread() != thread()) {
         int result;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointIndex", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getJointIndex",
             Q_RETURN_ARG(int, result), Q_ARG(const QString&, name));
         return result;
     }
@@ -1017,7 +1025,7 @@ int Avatar::getJointIndex(const QString& name) const {
 QStringList Avatar::getJointNames() const {
     if (QThread::currentThread() != thread()) {
         QStringList result;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointNames", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getJointNames",
             Q_RETURN_ARG(QStringList, result));
         return result;
     }
@@ -1027,7 +1035,7 @@ QStringList Avatar::getJointNames() const {
 glm::vec3 Avatar::getJointPosition(int index) const {
     if (QThread::currentThread() != thread()) {
         glm::vec3 position;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getJointPosition",
                                   Q_RETURN_ARG(glm::vec3, position), Q_ARG(const int, index));
         return position;
     }
@@ -1039,7 +1047,7 @@ glm::vec3 Avatar::getJointPosition(int index) const {
 glm::vec3 Avatar::getJointPosition(const QString& name) const {
     if (QThread::currentThread() != thread()) {
         glm::vec3 position;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getJointPosition",
                                   Q_RETURN_ARG(glm::vec3, position), Q_ARG(const QString&, name));
         return position;
     }
@@ -1067,15 +1075,15 @@ void Avatar::setModelURLFinished(bool success) {
         const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: we don't want to be as generous as ResourceCache is, we only want 4 attempts
         if (_skeletonModel->getResourceDownloadAttemptsRemaining() <= 0 ||
             _skeletonModel->getResourceDownloadAttempts() > MAX_SKELETON_DOWNLOAD_ATTEMPTS) {
-            qCWarning(avatars_renderer) << "Using default after failing to load Avatar model: " << _skeletonModelURL 
+            qCWarning(avatars_renderer) << "Using default after failing to load Avatar model: " << _skeletonModelURL
                                     << "after" << _skeletonModel->getResourceDownloadAttempts() << "attempts.";
             // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
             // we don't redo this every time we receive an identity packet from the avatar with the bad url.
             QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
                 Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
         } else {
-            qCWarning(avatars_renderer) << "Avatar model: " << _skeletonModelURL 
-                    << "failed to load... attempts:" << _skeletonModel->getResourceDownloadAttempts() 
+            qCWarning(avatars_renderer) << "Avatar model: " << _skeletonModelURL
+                    << "failed to load... attempts:" << _skeletonModel->getResourceDownloadAttempts()
                     << "out of:" << MAX_SKELETON_DOWNLOAD_ATTEMPTS;
         }
     }
@@ -1098,7 +1106,7 @@ static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, const Rig& ri
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setAttachmentData", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "setAttachmentData",
                                   Q_ARG(const QVector<AttachmentData>, attachmentData));
         return;
     }

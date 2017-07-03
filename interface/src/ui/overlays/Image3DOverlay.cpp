@@ -45,11 +45,13 @@ Image3DOverlay::~Image3DOverlay() {
 }
 
 void Image3DOverlay::update(float deltatime) {
+#if OVERLAY_PANELS
     if (usecTimestampNow() > _transformExpiry) {
         Transform transform = getTransform();
         applyTransformTo(transform);
         setTransform(transform);
     }
+#endif
 }
 
 void Image3DOverlay::render(RenderArgs* args) {
@@ -112,7 +114,7 @@ void Image3DOverlay::render(RenderArgs* args) {
         _geometryId
     );
 
-    batch->setResourceTexture(0, args->_whiteTexture); // restore default white color after me
+    batch->setResourceTexture(0, nullptr); // restore default white color after me
 }
 
 const render::ShapeKey Image3DOverlay::getShapeKey() {

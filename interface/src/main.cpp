@@ -23,7 +23,7 @@
 #include <gl/OpenGLVersionChecker.h>
 #include <SandboxUtils.h>
 #include <SharedUtil.h>
-
+#include <NetworkAccessManager.h>
 
 #include "AddressManager.h"
 #include "Application.h"
@@ -72,15 +72,19 @@ int main(int argc, const char* argv[]) {
     QCommandLineOption runServerOption("runServer", "Whether to run the server");
     QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
     QCommandLineOption allowMultipleInstancesOption("allowMultipleInstances", "Allow multiple instances to run");
+    QCommandLineOption overrideAppLocalDataPathOption("cache", "set test cache <dir>", "dir");
+    QCommandLineOption overrideScriptsPathOption(SCRIPTS_SWITCH, "set scripts <path>", "path");
     parser.addOption(urlOption);
     parser.addOption(noUpdaterOption);
     parser.addOption(checkMinSpecOption);
     parser.addOption(runServerOption);
     parser.addOption(serverContentPathOption);
+    parser.addOption(overrideAppLocalDataPathOption);
+    parser.addOption(overrideScriptsPathOption);
     parser.addOption(allowMultipleInstancesOption);
     parser.parse(arguments);
 
-    
+
     const QString& applicationName = getInterfaceSharedMemoryName();
     bool instanceMightBeRunning = true;
 #ifdef Q_OS_WIN
@@ -96,6 +100,29 @@ int main(int argc, const char* argv[]) {
                                   QProcessEnvironment::systemEnvironment().contains("HIFI_ALLOW_MULTIPLE_INSTANCES");
     if (allowMultipleInstances) {
         instanceMightBeRunning = false;
+    }
+    // this needs to be done here in main, as the mechanism for setting the 
+    // scripts directory appears not to work.  See the bug report
+    // https://highfidelity.fogbugz.com/f/cases/5759/Issues-changing-scripts-directory-in-ScriptsEngine
+    if (parser.isSet(overrideScriptsPathOption)) {
+        QDir scriptsPath(parser.value(overrideScriptsPathOption));
+        if (scriptsPath.exists()) {
+            PathUtils::defaultScriptsLocation(scriptsPath.path());
+        }
+    }
+
+    if (parser.isSet(overrideAppLocalDataPathOption)) {
+        // get dir to use for cache
+        QString cacheDir = parser.value(overrideAppLocalDataPathOption);
+        if (!cacheDir.isEmpty()) {
+            // tell everyone to use the right cache location
+            //
+            // this handles data8 and prepared
+            DependencyManager::get<ResourceManager>()->setCacheDir(cacheDir);
+
+            // this does the ktx_cache
+            PathUtils::getAppLocalDataPath(cacheDir);
+        }
     }
 
     if (instanceMightBeRunning) {
@@ -180,7 +207,7 @@ int main(int argc, const char* argv[]) {
         QString openvrDllPath = appPath + "/plugins/openvr.dll";
         HMODULE openvrDll;
         CHECKMINSPECPROC checkMinSpecPtr;
-        if ((openvrDll = LoadLibrary(openvrDllPath.toLocal8Bit().data())) && 
+        if ((openvrDll = LoadLibrary(openvrDllPath.toLocal8Bit().data())) &&
             (checkMinSpecPtr = (CHECKMINSPECPROC)GetProcAddress(openvrDll, "CheckMinSpec"))) {
             if (!checkMinSpecPtr()) {
                 return -1;
@@ -191,7 +218,7 @@ int main(int argc, const char* argv[]) {
 
     int exitCode;
     {
-        RunningMarker runningMarker(nullptr, RUNNING_MARKER_FILENAME);
+        RunningMarker runningMarker(RUNNING_MARKER_FILENAME);
         bool runningMarkerExisted = runningMarker.fileExists();
         runningMarker.writeRunningMarkerFile();
 
@@ -200,13 +227,10 @@ int main(int argc, const char* argv[]) {
         bool serverContentPathOptionIsSet = parser.isSet(serverContentPathOption);
         QString serverContentPath = serverContentPathOptionIsSet ? parser.value(serverContentPathOption) : QString();
         if (runServer) {
-            SandboxUtils::runLocalSandbox(serverContentPath, true, RUNNING_MARKER_FILENAME, noUpdater);
+            SandboxUtils::runLocalSandbox(serverContentPath, true, noUpdater);
         }
 
         Application app(argc, const_cast<char**>(argv), startupTime, runningMarkerExisted);
-
-        // Now that the main event loop is setup, launch running marker thread
-        runningMarker.startRunningMarker();
 
         // If we failed the OpenGLVersion check, log it.
         if (override) {

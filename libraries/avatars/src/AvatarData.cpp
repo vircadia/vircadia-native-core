@@ -25,6 +25,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
 
+#include <shared/QtHelpers.h>
 #include <QVariantGLM.h>
 #include <Transform.h>
 #include <NetworkAccessManager.h>
@@ -1227,7 +1228,7 @@ bool AvatarData::isJointDataValid(int index) const {
     }
     if (QThread::currentThread() != thread()) {
         bool result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "isJointDataValid", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "isJointDataValid", 
             Q_RETURN_ARG(bool, result), Q_ARG(int, index));
         return result;
     }
@@ -1240,7 +1241,7 @@ glm::quat AvatarData::getJointRotation(int index) const {
     }
     if (QThread::currentThread() != thread()) {
         glm::quat result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getJointRotation", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getJointRotation", 
             Q_RETURN_ARG(glm::quat, result), Q_ARG(int, index));
         return result;
     }
@@ -1255,7 +1256,7 @@ glm::vec3 AvatarData::getJointTranslation(int index) const {
     }
     if (QThread::currentThread() != thread()) {
         glm::vec3 result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getJointTranslation", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getJointTranslation", 
             Q_RETURN_ARG(glm::vec3, result), Q_ARG(int, index));
         return result;
     }
@@ -1266,7 +1267,7 @@ glm::vec3 AvatarData::getJointTranslation(int index) const {
 glm::vec3 AvatarData::getJointTranslation(const QString& name) const {
     if (QThread::currentThread() != thread()) {
         glm::vec3 result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getJointTranslation", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getJointTranslation", 
             Q_RETURN_ARG(glm::vec3, result), Q_ARG(const QString&, name));
         return result;
     }
@@ -1344,7 +1345,7 @@ void AvatarData::clearJointData(const QString& name) {
 bool AvatarData::isJointDataValid(const QString& name) const {
     if (QThread::currentThread() != thread()) {
         bool result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "isJointDataValid", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "isJointDataValid", 
             Q_RETURN_ARG(bool, result), Q_ARG(const QString&, name));
         return result;
     }
@@ -1354,7 +1355,7 @@ bool AvatarData::isJointDataValid(const QString& name) const {
 glm::quat AvatarData::getJointRotation(const QString& name) const {
     if (QThread::currentThread() != thread()) {
         glm::quat result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getJointRotation", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getJointRotation", 
             Q_RETURN_ARG(glm::quat, result), Q_ARG(const QString&, name));
         return result;
     }
@@ -1364,8 +1365,7 @@ glm::quat AvatarData::getJointRotation(const QString& name) const {
 QVector<glm::quat> AvatarData::getJointRotations() const {
     if (QThread::currentThread() != thread()) {
         QVector<glm::quat> result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this),
-                                  "getJointRotations", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getJointRotations",
                                   Q_RETURN_ARG(QVector<glm::quat>, result));
         return result;
     }
@@ -1380,8 +1380,7 @@ QVector<glm::quat> AvatarData::getJointRotations() const {
 void AvatarData::setJointRotations(QVector<glm::quat> jointRotations) {
     if (QThread::currentThread() != thread()) {
         QVector<glm::quat> result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this),
-                                  "setJointRotations", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "setJointRotations",
                                   Q_ARG(QVector<glm::quat>, jointRotations));
     }
     QWriteLocker writeLock(&_jointDataLock);
@@ -1398,8 +1397,7 @@ void AvatarData::setJointRotations(QVector<glm::quat> jointRotations) {
 QVector<glm::vec3> AvatarData::getJointTranslations() const {
     if (QThread::currentThread() != thread()) {
         QVector<glm::vec3> result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this),
-                                  "getJointTranslations", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getJointTranslations",
                                   Q_RETURN_ARG(QVector<glm::vec3>, result));
         return result;
     }
@@ -1414,8 +1412,7 @@ QVector<glm::vec3> AvatarData::getJointTranslations() const {
 void AvatarData::setJointTranslations(QVector<glm::vec3> jointTranslations) {
     if (QThread::currentThread() != thread()) {
         QVector<glm::quat> result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this),
-                                  "setJointTranslations", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "setJointTranslations",
                                   Q_ARG(QVector<glm::vec3>, jointTranslations));
     }
     QWriteLocker writeLock(&_jointDataLock);
@@ -1473,27 +1470,6 @@ QStringList AvatarData::getJointNames() const {
     return _jointNames;
 }
 
-void AvatarData::parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut) {
-    QDataStream packetStream(data);
-
-    packetStream >> identityOut.uuid
-                 >> identityOut.skeletonModelURL
-                 >> identityOut.attachmentData
-                 >> identityOut.displayName
-                 >> identityOut.sessionDisplayName
-                 >> identityOut.avatarEntityData
-                 >> identityOut.sequenceId;
-
-#ifdef WANT_DEBUG
-    qCDebug(avatars) << __FUNCTION__
-        << "identityOut.uuid:" << identityOut.uuid
-        << "identityOut.skeletonModelURL:" << identityOut.skeletonModelURL
-        << "identityOut.displayName:" << identityOut.displayName
-        << "identityOut.sessionDisplayName:" << identityOut.sessionDisplayName;
-#endif
-
-}
-
 glm::quat AvatarData::getOrientationOutbound() const {
     return (getLocalOrientation());
 }
@@ -1504,61 +1480,107 @@ QUrl AvatarData::cannonicalSkeletonModelURL(const QUrl& emptyURL) const {
     return _skeletonModelURL.scheme() == "file" ? emptyURL : _skeletonModelURL;
 }
 
-void AvatarData::processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged) {
+void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& identityChanged,
+                                       bool& displayNameChanged, bool& skeletonModelUrlChanged) {
 
-    if (identity.sequenceId < _identitySequenceId) {
-        qCDebug(avatars) << "Ignoring older identity packet for avatar" << getSessionUUID()
-            << "_identitySequenceId (" << _identitySequenceId << ") is greater than" << identity.sequenceId;
-        return;
+    QDataStream packetStream(identityData);
+
+    QUuid avatarSessionID;
+
+    // peek the sequence number, this will tell us if we should be processing this identity packet at all
+    udt::SequenceNumber::Type incomingSequenceNumberType;
+    packetStream >> avatarSessionID >> incomingSequenceNumberType;
+    udt::SequenceNumber incomingSequenceNumber(incomingSequenceNumberType);
+
+    if (!_hasProcessedFirstIdentity) {
+        _identitySequenceNumber = incomingSequenceNumber - 1;
+        _hasProcessedFirstIdentity = true;
+        qCDebug(avatars) << "Processing first identity packet for" << avatarSessionID << "-"
+            << (udt::SequenceNumber::Type) incomingSequenceNumber;
     }
-    // otherwise, set the identitySequenceId to match the incoming identity
-    _identitySequenceId = identity.sequenceId;
 
-    if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
-        setSkeletonModelURL(identity.skeletonModelURL);
-        identityChanged = true;
-        if (_firstSkeletonCheck) {
+    if (incomingSequenceNumber > _identitySequenceNumber) {
+        Identity identity;
+
+        packetStream >> identity.skeletonModelURL
+            >> identity.attachmentData
+            >> identity.displayName
+            >> identity.sessionDisplayName
+            >> identity.isReplicated
+            >> identity.avatarEntityData;
+
+        // set the store identity sequence number to match the incoming identity
+        _identitySequenceNumber = incomingSequenceNumber;
+
+        if (_firstSkeletonCheck || (identity.skeletonModelURL != cannonicalSkeletonModelURL(emptyURL))) {
+            setSkeletonModelURL(identity.skeletonModelURL);
+            identityChanged = true;
+            skeletonModelUrlChanged = true;
+            if (_firstSkeletonCheck) {
+                displayNameChanged = true;
+            }
+            _firstSkeletonCheck = false;
+        }
+
+        if (identity.displayName != _displayName) {
+            _displayName = identity.displayName;
+            identityChanged = true;
             displayNameChanged = true;
         }
-        _firstSkeletonCheck = false;
-    }
+        maybeUpdateSessionDisplayNameFromTransport(identity.sessionDisplayName);
 
-    if (identity.displayName != _displayName) {
-        _displayName = identity.displayName;
-        identityChanged = true;
-        displayNameChanged = true;
-    }
-    maybeUpdateSessionDisplayNameFromTransport(identity.sessionDisplayName);
+        if (identity.isReplicated != _isReplicated) {
+            _isReplicated = identity.isReplicated;
+            identityChanged = true;
+        }
 
-    if (identity.attachmentData != _attachmentData) {
-        setAttachmentData(identity.attachmentData);
-        identityChanged = true;
-    }
+        if (identity.attachmentData != _attachmentData) {
+            setAttachmentData(identity.attachmentData);
+            identityChanged = true;
+        }
 
-    bool avatarEntityDataChanged = false;
-    _avatarEntitiesLock.withReadLock([&] {
-        avatarEntityDataChanged = (identity.avatarEntityData != _avatarEntityData);
-    });
-    if (avatarEntityDataChanged) {
-        setAvatarEntityData(identity.avatarEntityData);
-        identityChanged = true;
-    }
+        bool avatarEntityDataChanged = false;
+        _avatarEntitiesLock.withReadLock([&] {
+            avatarEntityDataChanged = (identity.avatarEntityData != _avatarEntityData);
+        });
+        
+        if (avatarEntityDataChanged) {
+            setAvatarEntityData(identity.avatarEntityData);
+            identityChanged = true;
+        }
 
+#ifdef WANT_DEBUG
+        qCDebug(avatars) << __FUNCTION__
+            << "identity.uuid:" << identity.uuid
+            << "identity.skeletonModelURL:" << identity.skeletonModelURL
+            << "identity.displayName:" << identity.displayName
+            << "identity.sessionDisplayName:" << identity.sessionDisplayName;
+    } else {
+
+        qCDebug(avatars) << "Refusing to process identity for" << uuidStringWithoutCurlyBraces(avatarSessionID) << "since"
+            << (udt::SequenceNumber::Type) _identitySequenceNumber
+            << "is >=" << (udt::SequenceNumber::Type) incomingSequenceNumber;
+#endif
+    }
 }
 
-QByteArray AvatarData::identityByteArray() const {
+QByteArray AvatarData::identityByteArray(bool setIsReplicated) const {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
     const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL); // depends on _skeletonModelURL
 
+    // when mixers send identity packets to agents, they simply forward along the last incoming sequence number they received
+    // whereas agents send a fresh outgoing sequence number when identity data has changed
+
     _avatarEntitiesLock.withReadLock([&] {
         identityStream << getSessionUUID()
-                       << urlToSend
-                       << _attachmentData
-                       << _displayName
-                       << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
-                       << _avatarEntityData
-                       << _identitySequenceId;
+            << (udt::SequenceNumber::Type) _identitySequenceNumber
+            << urlToSend
+            << _attachmentData
+            << _displayName
+            << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
+            << (_isReplicated || setIsReplicated)
+            << _avatarEntityData;
     });
 
     return identityData;
@@ -1591,7 +1613,7 @@ void AvatarData::setDisplayName(const QString& displayName) {
 QVector<AttachmentData> AvatarData::getAttachmentData() const {
     if (QThread::currentThread() != thread()) {
         QVector<AttachmentData> result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getAttachmentData", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getAttachmentData",
             Q_RETURN_ARG(QVector<AttachmentData>, result));
         return result;
     }
@@ -1734,6 +1756,12 @@ void AvatarData::sendAvatarDataPacket() {
 
 void AvatarData::sendIdentityPacket() {
     auto nodeList = DependencyManager::get<NodeList>();
+
+    if (_identityDataChanged) {
+        // if the identity data has changed, push the sequence number forwards
+        ++_identitySequenceNumber;
+    }
+
     QByteArray identityData = identityByteArray();
 
     auto packetList = NLPacketList::create(PacketType::AvatarIdentity, QByteArray(), true, true);
@@ -1744,7 +1772,7 @@ void AvatarData::sendIdentityPacket() {
         },
         [&](const SharedNodePointer& node) {
             nodeList->sendPacketList(std::move(packetList), *node);
-        });
+    });
 
     _avatarEntityDataLocallyEdited = false;
     _identityDataChanged = false;
@@ -1947,7 +1975,7 @@ JointData jointDataFromJsonValue(const QJsonValue& json) {
         result.rotation = quatFromJsonValue(array[0]);
         result.rotationSet = true;
         result.translation = vec3FromJsonValue(array[1]);
-        result.translationSet = false;
+        result.translationSet = true;
     }
     return result;
 }
@@ -2115,12 +2143,9 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
             QVector<JointData> jointArray;
             QJsonArray jointArrayJson = json[JSON_AVATAR_JOINT_ARRAY].toArray();
             jointArray.reserve(jointArrayJson.size());
-            int i = 0;
             for (const auto& jointJson : jointArrayJson) {
                 auto joint = jointDataFromJsonValue(jointJson);
                 jointArray.push_back(joint);
-                setJointData(i, joint.rotation, joint.translation);
-                i++;
             }
             setRawJointData(jointArray);
         }
@@ -2311,7 +2336,7 @@ void AvatarData::clearAvatarEntity(const QUuid& entityID) {
 AvatarEntityMap AvatarData::getAvatarEntityData() const {
     AvatarEntityMap result;
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getAvatarEntityData", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getAvatarEntityData",
                                   Q_RETURN_ARG(AvatarEntityMap, result));
         return result;
     }
@@ -2352,7 +2377,7 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
 AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {
     AvatarEntityIDs result;
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getAndClearRecentlyDetachedIDs", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getAndClearRecentlyDetachedIDs",
                                   Q_RETURN_ARG(AvatarEntityIDs, result));
         return result;
     }

@@ -239,10 +239,11 @@ static void FIR_1x4_SSE(float* src, float* dst0, float* dst1, float* dst2, float
 #include "CPUDetect.h"
 
 void FIR_1x4_AVX2(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
+void FIR_1x4_AVX512(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames);
 
 static void FIR_1x4(float* src, float* dst0, float* dst1, float* dst2, float* dst3, float coef[4][HRTF_TAPS], int numFrames) {
 
-    static auto f = cpuSupportsAVX2() ? FIR_1x4_AVX2 : FIR_1x4_SSE;
+    static auto f = cpuSupportsAVX512() ? FIR_1x4_AVX512 : (cpuSupportsAVX2() ? FIR_1x4_AVX2 : FIR_1x4_SSE);
     (*f)(src, dst0, dst1, dst2, dst3, coef, numFrames); // dispatch
 }
 

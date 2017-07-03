@@ -19,7 +19,6 @@ StackView {
     objectName: "stack"
     property string title: "Avatar Settings"
 
-    property var eventBridge;
     signal sendToScript(var message);
 
     function pushSource(path) {

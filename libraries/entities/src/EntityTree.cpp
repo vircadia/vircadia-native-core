@@ -9,11 +9,15 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include <PerfStat.h>
-#include <QDateTime>
+#include "EntityTree.h"
+#include <QtCore/QDateTime>
+#include <QtCore/QQueue>
+
 #include <QtScript/QScriptEngine>
 
-#include "EntityTree.h"
+#include <PerfStat.h>
+#include <Extents.h>
+
 #include "EntitySimulation.h"
 #include "VariantMapToScriptValue.h"
 
@@ -55,9 +59,7 @@ public:
 
 
 EntityTree::EntityTree(bool shouldReaverage) :
-    Octree(shouldReaverage),
-    _fbxService(NULL),
-    _simulation(NULL)
+    Octree(shouldReaverage)
 {
     resetClientEditStats();
 }
@@ -554,7 +556,7 @@ public:
 };
 
 
-bool EntityTree::findNearPointOperation(OctreeElementPointer element, void* extraData) {
+bool EntityTree::findNearPointOperation(const OctreeElementPointer& element, void* extraData) {
     FindNearPointArgs* args = static_cast<FindNearPointArgs*>(extraData);
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
 
@@ -589,7 +591,7 @@ bool EntityTree::findNearPointOperation(OctreeElementPointer element, void* extr
     return false;
 }
 
-bool findRayIntersectionOp(OctreeElementPointer element, void* extraData) {
+bool findRayIntersectionOp(const OctreeElementPointer& element, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
     bool keepSearching = true;
     EntityTreeElementPointer entityTreeElementPointer = std::dynamic_pointer_cast<EntityTreeElement>(element);
@@ -625,7 +627,7 @@ bool EntityTree::findRayIntersection(const glm::vec3& origin, const glm::vec3& d
 }
 
 
-EntityItemPointer EntityTree::findClosestEntity(glm::vec3 position, float targetRadius) {
+EntityItemPointer EntityTree::findClosestEntity(const glm::vec3& position, float targetRadius) {
     FindNearPointArgs args = { position, targetRadius, false, NULL, FLT_MAX };
     withReadLock([&] {
         // NOTE: This should use recursion, since this is a spatial operation
@@ -642,7 +644,7 @@ public:
 };
 
 
-bool EntityTree::findInSphereOperation(OctreeElementPointer element, void* extraData) {
+bool EntityTree::findInSphereOperation(const OctreeElementPointer& element, void* extraData) {
     FindAllNearPointArgs* args = static_cast<FindAllNearPointArgs*>(extraData);
     glm::vec3 penetration;
     bool sphereIntersection = element->getAACube().findSpherePenetration(args->position, args->targetRadius, penetration);
@@ -678,7 +680,7 @@ public:
     QVector<EntityItemPointer> _foundEntities;
 };
 
-bool EntityTree::findInCubeOperation(OctreeElementPointer element, void* extraData) {
+bool EntityTree::findInCubeOperation(const OctreeElementPointer& element, void* extraData) {
     FindEntitiesInCubeArgs* args = static_cast<FindEntitiesInCubeArgs*>(extraData);
     if (element->getAACube().touches(args->_cube)) {
         EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
@@ -707,7 +709,7 @@ public:
     QVector<EntityItemPointer> _foundEntities;
 };
 
-bool EntityTree::findInBoxOperation(OctreeElementPointer element, void* extraData) {
+bool EntityTree::findInBoxOperation(const OctreeElementPointer& element, void* extraData) {
     FindEntitiesInBoxArgs* args = static_cast<FindEntitiesInBoxArgs*>(extraData);
     if (element->getAACube().touches(args->_box)) {
         EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
@@ -732,7 +734,7 @@ public:
     QVector<EntityItemPointer> entities;
 };
 
-bool EntityTree::findInFrustumOperation(OctreeElementPointer element, void* extraData) {
+bool EntityTree::findInFrustumOperation(const OctreeElementPointer& element, void* extraData) {
     FindInFrustumArgs* args = static_cast<FindInFrustumArgs*>(extraData);
     if (element->isInView(args->frustum)) {
         EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
@@ -1527,15 +1529,15 @@ void EntityTree::debugDumpMap() {
 
 class ContentsDimensionOperator : public RecurseOctreeOperator {
 public:
-    virtual bool preRecursion(OctreeElementPointer element) override;
-    virtual bool postRecursion(OctreeElementPointer element) override { return true; }
+    virtual bool preRecursion(const OctreeElementPointer& element) override;
+    virtual bool postRecursion(const OctreeElementPointer& element) override { return true; }
     glm::vec3 getDimensions() const { return _contentExtents.size(); }
     float getLargestDimension() const { return _contentExtents.largestDimension(); }
 private:
     Extents _contentExtents;
 };
 
-bool ContentsDimensionOperator::preRecursion(OctreeElementPointer element) {
+bool ContentsDimensionOperator::preRecursion(const OctreeElementPointer& element) {
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
     entityTreeElement->expandExtentsToContents(_contentExtents);
     return true;
@@ -1555,11 +1557,11 @@ float EntityTree::getContentsLargestDimension() {
 
 class DebugOperator : public RecurseOctreeOperator {
 public:
-    virtual bool preRecursion(OctreeElementPointer element) override;
-    virtual bool postRecursion(OctreeElementPointer element) override { return true; }
+    virtual bool preRecursion(const OctreeElementPointer& element) override;
+    virtual bool postRecursion(const OctreeElementPointer& element) override { return true; }
 };
 
-bool DebugOperator::preRecursion(OctreeElementPointer element) {
+bool DebugOperator::preRecursion(const OctreeElementPointer& element) {
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
     qCDebug(entities) << "EntityTreeElement [" << entityTreeElement.get() << "]";
     entityTreeElement->debugDump();
@@ -1573,11 +1575,11 @@ void EntityTree::dumpTree() {
 
 class PruneOperator : public RecurseOctreeOperator {
 public:
-    virtual bool preRecursion(OctreeElementPointer element) override { return true; }
-    virtual bool postRecursion(OctreeElementPointer element) override;
+    virtual bool preRecursion(const OctreeElementPointer& element) override { return true; }
+    virtual bool postRecursion(const OctreeElementPointer& element) override;
 };
 
-bool PruneOperator::postRecursion(OctreeElementPointer element) {
+bool PruneOperator::postRecursion(const OctreeElementPointer& element) {
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
     entityTreeElement->pruneChildren();
     return true;
@@ -1639,6 +1641,7 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
     // If this is called repeatedly (e.g., multiple pastes with the same data), the new elements will clash unless we
     // use new identifiers.  We need to keep a map so that we can map parent identifiers correctly.
     QHash<EntityItemID, EntityItemID> map;
+
     args.map = &map;
     withReadLock([&] {
         recurseTreeWithOperation(sendEntitiesOperation, &args);
@@ -1692,7 +1695,7 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
     return map.values().toVector();
 }
 
-bool EntityTree::sendEntitiesOperation(OctreeElementPointer element, void* extraData) {
+bool EntityTree::sendEntitiesOperation(const OctreeElementPointer& element, void* extraData) {
     SendEntitiesOperationArgs* args = static_cast<SendEntitiesOperationArgs*>(extraData);
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
 

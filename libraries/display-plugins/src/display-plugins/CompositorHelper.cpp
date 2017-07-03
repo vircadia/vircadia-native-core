@@ -11,14 +11,16 @@
 #include <memory>
 #include <math.h>
 
+#include <glm/gtc/type_ptr.hpp>
+
 #include <QtCore/QTimer>
 #include <QtCore/QThread>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QDesktopWidget>
-#include <glm/gtc/type_ptr.hpp>
 #include <QtGui/QWindow>
 #include <QQuickWindow>
 
+#include <shared/QtHelpers.h>
 #include <ui/Menu.h>
 #include <NumericalConstants.h>
 #include <DependencyManager.h>
@@ -289,7 +291,7 @@ glm::vec2 CompositorHelper::getReticleMaximumPosition() const {
 
 void CompositorHelper::sendFakeMouseEvent() {
     if (qApp->thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "sendFakeMouseEvent", Qt::BlockingQueuedConnection);
+        BLOCKING_INVOKE_METHOD(this, "sendFakeMouseEvent");
         return;
     }
 

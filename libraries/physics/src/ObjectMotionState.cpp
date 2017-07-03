@@ -202,6 +202,7 @@ void ObjectMotionState::setShape(const btCollisionShape* shape) {
 }
 
 void ObjectMotionState::handleEasyChanges(uint32_t& flags) {
+    assert(_body && _shape);
     if (flags & Simulation::DIRTY_POSITION) {
         btTransform worldTrans = _body->getWorldTransform();
         btVector3 newPosition = glmToBullet(getObjectPosition());
@@ -282,6 +283,7 @@ void ObjectMotionState::handleEasyChanges(uint32_t& flags) {
 }
 
 bool ObjectMotionState::handleHardAndEasyChanges(uint32_t& flags, PhysicsEngine* engine) {
+    assert(_body && _shape);
     if (flags & Simulation::DIRTY_SHAPE) {
         // make sure the new shape is valid
         if (!isReadyToComputeShape()) {

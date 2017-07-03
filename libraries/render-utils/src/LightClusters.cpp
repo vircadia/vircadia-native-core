@@ -16,6 +16,8 @@
 
 #include <gpu/StandardShaderLib.h>
 
+#include "StencilMaskPass.h"
+
 #include "lightClusters_drawGrid_vert.h"
 #include "lightClusters_drawGrid_frag.h"
 
@@ -546,6 +548,7 @@ glm::ivec3 LightClusters::updateClusters() {
 
 
 LightClusteringPass::LightClusteringPass() {
+    _lightClusters = std::make_shared<LightClusters>();
 }
 
 
@@ -564,12 +567,7 @@ void LightClusteringPass::run(const render::RenderContextPointer& renderContext,
     auto deferredTransform = inputs.get0();
     auto lightingModel = inputs.get1();
     auto surfaceGeometryFramebuffer = inputs.get2();
-    
-    
-    if (!_lightClusters) {
-        _lightClusters = std::make_shared<LightClusters>();
-    }
-    
+
     // first update the Grid with the new frustum
     if (!_freeze) {
         _lightClusters->updateFrustum(args->getViewFrustum());

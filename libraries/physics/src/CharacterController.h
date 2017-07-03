@@ -110,6 +110,7 @@ public:
     void setLocalBoundingBox(const glm::vec3& minCorner, const glm::vec3& scale);
 
     bool isEnabledAndReady() const { return _dynamicsWorld; }
+    bool isStuck() const { return _isStuck; }
 
     void setCollisionless(bool collisionless);
     int16_t computeCollisionGroup() const;
@@ -192,6 +193,7 @@ protected:
 
     State _state;
     bool _isPushingUp;
+    bool _isStuck { false };
 
     btDynamicsWorld* _dynamicsWorld { nullptr };
     btRigidBody* _rigidBody { nullptr };

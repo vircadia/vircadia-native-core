@@ -116,9 +116,7 @@ Preference {
 
         Component {
             id: tabletAvatarBrowserBuilder;
-            TabletAvatarBrowser {
-                eventBridge: tabletRoot.eventBridge
-            }
+            TabletAvatarBrowser { }
         }
 
     }

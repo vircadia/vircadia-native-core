@@ -17,10 +17,12 @@
 #include "RenderableEntityItem.h"
 
 
-class RenderableLightEntityItem : public LightEntityItem  {
+class RenderableLightEntityItem : public LightEntityItem, public RenderableEntityInterface {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderableLightEntityItem(const EntityItemID& entityItemID);
+
+    RenderableEntityInterface* getRenderableInterface() override { return this; }
 
     virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -30,10 +32,10 @@ public:
 
     void updateLightFromEntity(render::Transaction& transaction);
 
-    virtual bool addToScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    virtual bool addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
 
     virtual void somethingChangedNotification() override;
-    virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    virtual void removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
 
     virtual void locationChanged(bool tellPhysics = true) override;
 

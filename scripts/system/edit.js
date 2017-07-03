@@ -12,7 +12,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager, Overlays, OverlayWebWindow, UserActivityLogger, 
+/* global Script, SelectionDisplay, LightOverlayManager, CameraManager, Grid, GridTool, EntityListTool, Vec3, SelectionManager, Overlays, OverlayWebWindow, UserActivityLogger,
    Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
 
 (function() { // BEGIN LOCAL_SCOPE
@@ -80,27 +80,7 @@ selectionManager.addEventListener(function () {
         }
         var type = Entities.getEntityProperties(selectedEntityID, "type").type;
         if (type === "ParticleEffect") {
-            // Destroy the old particles web view first
-            particleExplorerTool.destroyWebView();
-            particleExplorerTool.createWebView();
-            var properties = Entities.getEntityProperties(selectedEntityID);
-            var particleData = {
-                messageType: "particle_settings",
-                currentProperties: properties
-            };
-            selectedParticleEntityID = selectedEntityID;
-            particleExplorerTool.setActiveParticleEntity(selectedParticleEntityID);
-
-            particleExplorerTool.webView.webEventReceived.connect(function (data) {
-                data = JSON.parse(data);
-                if (data.messageType === "page_loaded") {
-                    particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
-                }
-            });
-
-            // Switch to particle explorer
-            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-            tablet.sendToQml({method: 'selectTab', params: {id: 'particle'}});
+            selectParticleEntity(selectedEntityID);
         } else {
             needToDestroyParticleExplorer = true;
         }
@@ -217,6 +197,32 @@ function hideMarketplace() {
 //     }
 // }
 
+function adjustPositionPerBoundingBox(position, direction, registration, dimensions, orientation) {
+    // Adjust the position such that the bounding box (registration, dimenions, and orientation) lies behind the original
+    // position in the given direction.
+    var CORNERS = [
+        { x: 0, y: 0, z: 0 },
+        { x: 0, y: 0, z: 1 },
+        { x: 0, y: 1, z: 0 },
+        { x: 0, y: 1, z: 1 },
+        { x: 1, y: 0, z: 0 },
+        { x: 1, y: 0, z: 1 },
+        { x: 1, y: 1, z: 0 },
+        { x: 1, y: 1, z: 1 },
+    ];
+
+    // Go through all corners and find least (most negative) distance in front of position.
+    var distance = 0;
+    for (var i = 0, length = CORNERS.length; i < length; i++) {
+        var cornerVector =
+            Vec3.multiplyQbyV(orientation, Vec3.multiplyVbyV(Vec3.subtract(CORNERS[i], registration), dimensions));
+        var cornerDistance = Vec3.dot(cornerVector, direction);
+        distance = Math.min(cornerDistance, distance);
+    }
+    position = Vec3.sum(Vec3.multiply(distance, direction), position);
+    return position;
+}
+
 var TOOLS_PATH = Script.resolvePath("assets/images/tools/");
 var GRABBABLE_ENTITIES_MENU_CATEGORY = "Edit";
 var GRABBABLE_ENTITIES_MENU_ITEM = "Create Entities As Grabbable";
@@ -234,6 +240,32 @@ var toolBar = (function () {
         var position = getPositionToCreateEntity();
         var entityID = null;
         if (position !== null && position !== undefined) {
+            var direction;
+            if (Camera.mode === "entity" || Camera.mode === "independent") {
+                direction = Camera.orientation;
+            } else {
+                direction = MyAvatar.orientation;
+            }
+            direction = Vec3.multiplyQbyV(direction, Vec3.UNIT_Z);
+
+            var PRE_ADJUST_ENTITY_TYPES = ["Box", "Sphere", "Shape", "Text", "Web"];
+            if (PRE_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
+                // Adjust position of entity per bounding box prior to creating it.
+                var registration = properties.registration;
+                if (registration === undefined) {
+                    var DEFAULT_REGISTRATION = { x: 0.5, y: 0.5, z: 0.5 };
+                    registration = DEFAULT_REGISTRATION;
+                }
+
+                var orientation = properties.orientation;
+                if (orientation === undefined) {
+                    var DEFAULT_ORIENTATION = Quat.fromPitchYawRollDegrees(0, 0, 0);
+                    orientation = DEFAULT_ORIENTATION;
+                }
+
+                position = adjustPositionPerBoundingBox(position, direction, registration, dimensions, orientation);
+            }
+
             position = grid.snapToSurface(grid.snapToGrid(position, false, dimensions), dimensions);
             properties.position = position;
             if (Menu.isOptionChecked(GRABBABLE_ENTITIES_MENU_ITEM)) {
@@ -242,6 +274,32 @@ var toolBar = (function () {
             entityID = Entities.addEntity(properties);
             if (properties.type == "ParticleEffect") {
                 selectParticleEntity(entityID);
+            }
+
+            var POST_ADJUST_ENTITY_TYPES = ["Model"];
+            if (POST_ADJUST_ENTITY_TYPES.indexOf(properties.type) !== -1) {
+                // Adjust position of entity per bounding box after it has been created and auto-resized.
+                var initialDimensions = Entities.getEntityProperties(entityID, ["dimensions"]).dimensions;
+                var DIMENSIONS_CHECK_INTERVAL = 200;
+                var MAX_DIMENSIONS_CHECKS = 10;
+                var dimensionsCheckCount = 0;
+                var dimensionsCheckFunction = function () {
+                    dimensionsCheckCount++;
+                    var properties = Entities.getEntityProperties(entityID, ["dimensions", "registrationPoint", "rotation"]);
+                    if (!Vec3.equal(properties.dimensions, initialDimensions)) {
+                        position = adjustPositionPerBoundingBox(position, direction, properties.registrationPoint,
+                            properties.dimensions, properties.rotation);
+                        position = grid.snapToSurface(grid.snapToGrid(position, false, properties.dimensions),
+                            properties.dimensions);
+                        Entities.editEntity(entityID, {
+                            position: position
+                        });
+                        selectionManager._update();
+                    } else if (dimensionsCheckCount < MAX_DIMENSIONS_CHECKS) {
+                        Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
+                    }
+                };
+                Script.setTimeout(dimensionsCheckFunction, DIMENSIONS_CHECK_INTERVAL);
             }
         } else {
             Window.notifyEditError("Can't create " + properties.type + ": " +
@@ -540,7 +598,6 @@ var toolBar = (function () {
 
     that.toggle = function () {
         that.setActive(!isActive);
-        activeButton.editProperties({isActive: isActive});
         if (!isActive) {
             tablet.gotoHomeScreen();
         }
@@ -564,6 +621,10 @@ var toolBar = (function () {
             enabled: active
         }));
         isActive = active;
+        activeButton.editProperties({isActive: isActive});
+
+        var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+
         if (!isActive) {
             entityListTool.setVisible(false);
             gridTool.setVisible(false);
@@ -572,8 +633,8 @@ var toolBar = (function () {
             selectionManager.clearSelections();
             cameraManager.disable();
             selectionDisplay.triggerMapping.disable();
+            tablet.landscape = false;
         } else {
-            var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
             tablet.loadQMLSource("Edit.qml");
             UserActivityLogger.enabledEdit();
             entityListTool.setVisible(true);
@@ -581,6 +642,8 @@ var toolBar = (function () {
             grid.setEnabled(true);
             propertiesTool.setVisible(true);
             selectionDisplay.triggerMapping.enable();
+            print("starting tablet in landscape mode")
+            tablet.landscape = true;
             // Not sure what the following was meant to accomplish, but it currently causes
             // everybody else to think that Interface has lost focus overall. fogbugzid:558
             // Window.setFocus();
@@ -1290,7 +1353,7 @@ function parentSelectedEntities() {
             }
         });
 
-        if(parentCheck) {
+        if (parentCheck) {
             Window.notify("Entities parented");
         }else {
             Window.notify("Entities are already parented to last");
@@ -1407,40 +1470,26 @@ function handeMenuEvent(menuItem) {
     }
     tooltip.show(false);
 }
-function getPositionToCreateEntity() {
-    var HALF_TREE_SCALE = 16384;
-    var direction = Quat.getForward(MyAvatar.orientation);
-    var distance = 1;
-    var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, distance));
 
+var HALF_TREE_SCALE = 16384;
+
+function getPositionToCreateEntity(extra) {
+    var CREATE_DISTANCE = 2;
+    var position;
+    var delta = extra !== undefined ? extra : 0;
     if (Camera.mode === "entity" || Camera.mode === "independent") {
-        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getForward(Camera.orientation), distance));
+        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getForward(Camera.orientation), CREATE_DISTANCE + delta));
+    } else {
+        position = Vec3.sum(MyAvatar.position, Vec3.multiply(Quat.getForward(MyAvatar.orientation), CREATE_DISTANCE + delta));
+        position.y += 0.5;
     }
-    position.y += 0.5;
+
     if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
         return null;
     }
     return position;
 }
 
-function getPositionToImportEntity() {
-    var dimensions = Clipboard.getContentsDimensions();
-    var HALF_TREE_SCALE = 16384;
-    var direction = Quat.getForward(MyAvatar.orientation);
-    var longest = 1;
-    longest = Math.sqrt(Math.pow(dimensions.x, 2) + Math.pow(dimensions.z, 2));
-    var position = Vec3.sum(MyAvatar.position, Vec3.multiply(direction, longest));
-
-    if (Camera.mode === "entity" || Camera.mode === "independent") {
-        position = Vec3.sum(Camera.position, Vec3.multiply(Quat.getForward(Camera.orientation), longest));
-    }
-
-    if (position.x > HALF_TREE_SCALE || position.y > HALF_TREE_SCALE || position.z > HALF_TREE_SCALE) {
-        return null;
-    }
-
-    return position;
-}
 function importSVO(importURL) {
     if (!Entities.canRez() && !Entities.canRezTmp()) {
         Window.notifyEditError(INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG);
@@ -1458,22 +1507,77 @@ function importSVO(importURL) {
 
     if (success) {
         var VERY_LARGE = 10000;
-        var position = {
-            x: 0,
-            y: 0,
-            z: 0
-        };
-        if (Clipboard.getClipboardContentsLargestDimension() < VERY_LARGE) {
-            position = getPositionToImportEntity();
+        var isLargeImport = Clipboard.getClipboardContentsLargestDimension() >= VERY_LARGE;
+        var position = Vec3.ZERO;
+        if (!isLargeImport) {
+            position = getPositionToCreateEntity(Clipboard.getClipboardContentsLargestDimension() / 2);
         }
         if (position !== null && position !== undefined) {
             var pastedEntityIDs = Clipboard.pasteEntities(position);
+            if (!isLargeImport) {
+                // The first entity in Clipboard gets the specified position with the rest being relative to it. Therefore, move
+                // entities after they're imported so that they're all the correct distance in front of and with geometric mean
+                // centered on the avatar/camera direction.
+                var deltaPosition = Vec3.ZERO;
+                var entityPositions = [];
+                var entityParentIDs = [];
+
+                var properties = Entities.getEntityProperties(pastedEntityIDs[0], ["type"]);
+                var NO_ADJUST_ENTITY_TYPES = ["Zone", "Light", "ParticleEffect"];
+                if (NO_ADJUST_ENTITY_TYPES.indexOf(properties.type) === -1) {
+                    var targetDirection;
+                    if (Camera.mode === "entity" || Camera.mode === "independent") {
+                        targetDirection = Camera.orientation;
+                    } else {
+                        targetDirection = MyAvatar.orientation;
+                    }
+                    targetDirection = Vec3.multiplyQbyV(targetDirection, Vec3.UNIT_Z);
+
+                    var targetPosition = getPositionToCreateEntity();
+                    var deltaParallel = HALF_TREE_SCALE;  // Distance to move entities parallel to targetDirection.
+                    var deltaPerpendicular = Vec3.ZERO;  // Distance to move entities perpendicular to targetDirection.
+                    for (var i = 0, length = pastedEntityIDs.length; i < length; i++) {
+                        var properties = Entities.getEntityProperties(pastedEntityIDs[i], ["position", "dimensions",
+                            "registrationPoint", "rotation", "parentID"]);
+                        var adjustedPosition = adjustPositionPerBoundingBox(targetPosition, targetDirection,
+                            properties.registrationPoint, properties.dimensions, properties.rotation);
+                        var delta = Vec3.subtract(adjustedPosition, properties.position);
+                        var distance = Vec3.dot(delta, targetDirection);
+                        deltaParallel = Math.min(distance, deltaParallel);
+                        deltaPerpendicular = Vec3.sum(Vec3.subtract(delta, Vec3.multiply(distance, targetDirection)),
+                            deltaPerpendicular);
+                        entityPositions[i] = properties.position;
+                        entityParentIDs[i] = properties.parentID;
+                    }
+                    deltaPerpendicular = Vec3.multiply(1 / pastedEntityIDs.length, deltaPerpendicular);
+                    deltaPosition = Vec3.sum(Vec3.multiply(deltaParallel, targetDirection), deltaPerpendicular);
+                }
+
+                if (grid.getSnapToGrid()) {
+                    var properties = Entities.getEntityProperties(pastedEntityIDs[0], ["position", "dimensions",
+                        "registrationPoint"]);
+                    var position = Vec3.sum(deltaPosition, properties.position);
+                    position = grid.snapToSurface(grid.snapToGrid(position, false, properties.dimensions,
+                            properties.registrationPoint), properties.dimensions, properties.registrationPoint);
+                    deltaPosition = Vec3.subtract(position, properties.position);
+                }
+
+                if (!Vec3.equal(deltaPosition, Vec3.ZERO)) {
+                    for (var i = 0, length = pastedEntityIDs.length; i < length; i++) {
+                        if (Uuid.isNull(entityParentIDs[i])) {
+                            Entities.editEntity(pastedEntityIDs[i], {
+                                position: Vec3.sum(deltaPosition, entityPositions[i])
+                            });
+                        }
+                    }
+                }
+            }
 
             if (isActive) {
                 selectionManager.setSelections(pastedEntityIDs);
             }
         } else {
-            Window.notifyEditError("Can't import objects: objects would be out of bounds.");
+            Window.notifyEditError("Can't import entities: entities would be out of bounds.");
         }
     } else {
         Window.notifyEditError("There was an error importing the entity file.");
@@ -1787,11 +1891,11 @@ var PropertiesTool = function (opts) {
             }
             pushCommandForSelections();
             selectionManager._update();
-        } else if(data.type === 'parent') {
+        } else if (data.type === 'parent') {
             parentSelectedEntities();
-        } else if(data.type === 'unparent') {
+        } else if (data.type === 'unparent') {
             unparentSelectedEntities();
-        } else if(data.type === 'saveUserData'){
+        } else if (data.type === 'saveUserData'){
             //the event bridge and json parsing handle our avatar id string differently.
             var actualID = data.id.split('"')[1];
             Entities.editEntity(actualID, data.properties);
@@ -2083,6 +2187,10 @@ var selectedParticleEntityID = null;
 
 function selectParticleEntity(entityID) {
     var properties = Entities.getEntityProperties(entityID);
+
+    if (properties.emitOrientation) {
+        properties.emitOrientation = Quat.safeEulerAngles(properties.emitOrientation);
+    }
     var particleData = {
         messageType: "particle_settings",
         currentProperties: properties
@@ -2092,6 +2200,7 @@ function selectParticleEntity(entityID) {
 
     selectedParticleEntity = entityID;
     particleExplorerTool.setActiveParticleEntity(entityID);
+
     particleExplorerTool.webView.emitScriptEvent(JSON.stringify(particleData));
 
     // Switch to particle explorer
@@ -2100,10 +2209,16 @@ function selectParticleEntity(entityID) {
 }
 
 entityListTool.webView.webEventReceived.connect(function (data) {
-    data = JSON.parse(data);
+    try {
+        data = JSON.parse(data);
+    } catch(e) {
+        print("edit.js: Error parsing JSON: " + e.name + " data " + data)
+        return;
+    }
+
     if (data.type === 'parent') {
         parentSelectedEntities();
-    } else if(data.type === 'unparent') {
+    } else if (data.type === 'unparent') {
         unparentSelectedEntities();
     } else if (data.type === "selectionUpdate") {
         var ids = data.entityIds;
@@ -2124,4 +2239,3 @@ entityListTool.webView.webEventReceived.connect(function (data) {
 });
 
 }()); // END LOCAL_SCOPE
-

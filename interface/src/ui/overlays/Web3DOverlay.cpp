@@ -25,16 +25,15 @@
 #include <GeometryCache.h>
 #include <GeometryUtil.h>
 #include <scripting/HMDScriptingInterface.h>
-#include <gl/OffscreenQmlSurface.h>
+#include <ui/OffscreenQmlSurface.h>
+#include <ui/OffscreenQmlSurfaceCache.h>
+#include <ui/TabletScriptingInterface.h>
 #include <PathUtils.h>
 #include <RegisteredMetaTypes.h>
-#include <TabletScriptingInterface.h>
 #include <TextureCache.h>
 #include <UsersScriptingInterface.h>
 #include <UserActivityLoggerScriptingInterface.h>
 #include <AbstractViewStateInterface.h>
-#include <gl/OffscreenQmlSurface.h>
-#include <gl/OffscreenQmlSurfaceCache.h>
 #include <AddressManager.h>
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
@@ -47,11 +46,12 @@
 #include "LODManager.h"
 #include "ui/OctreeStatsProvider.h"
 #include "ui/DomainConnectionModel.h"
-#include "scripting/AudioDeviceScriptingInterface.h"
 #include "ui/AvatarInputs.h"
 #include "avatar/AvatarManager.h"
 #include "scripting/GlobalServicesScriptingInterface.h"
+#include <plugins/InputConfiguration.h>
 #include "ui/Snapshot.h"
+#include "SoundCache.h"
 
 static const float DPI = 30.47f;
 static const float INCHES_TO_METERS = 1.0f / 39.3701f;
@@ -86,7 +86,7 @@ Web3DOverlay::~Web3DOverlay() {
 
         if (rootItem && rootItem->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr, nullptr);
+            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", nullptr);
         }
 
         // Fix for crash in QtWebEngineCore when rapidly switching domains
@@ -135,7 +135,7 @@ Web3DOverlay::~Web3DOverlay() {
 void Web3DOverlay::update(float deltatime) {
     if (_webSurface) {
         // update globalPosition
-        _webSurface->getRootContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
+        _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
     }
 }
 
@@ -163,57 +163,59 @@ void Web3DOverlay::loadSourceURL() {
         _webSurface->resume();
         _webSurface->getRootItem()->setProperty("url", _url);
         _webSurface->getRootItem()->setProperty("scriptURL", _scriptURL);
-        _webSurface->getRootContext()->setContextProperty("ApplicationInterface", qApp);
 
     } else {
         _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath()));
         _webSurface->load(_url, [&](QQmlContext* context, QObject* obj) {});
         _webSurface->resume();
 
-        _webSurface->getRootContext()->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
-        _webSurface->getRootContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
-        _webSurface->getRootContext()->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
-        _webSurface->getRootContext()->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
-        _webSurface->getRootContext()->setContextProperty("Vec3", new Vec3());
-        _webSurface->getRootContext()->setContextProperty("Quat", new Quat());
-        _webSurface->getRootContext()->setContextProperty("MyAvatar", DependencyManager::get<AvatarManager>()->getMyAvatar().get());
-        _webSurface->getRootContext()->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
-        _webSurface->getRootContext()->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("Users", DependencyManager::get<UsersScriptingInterface>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("UserActivityLogger", DependencyManager::get<UserActivityLoggerScriptingInterface>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("Preferences", DependencyManager::get<Preferences>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("Vec3", new Vec3());
+        _webSurface->getSurfaceContext()->setContextProperty("Quat", new Quat());
+        _webSurface->getSurfaceContext()->setContextProperty("MyAvatar", DependencyManager::get<AvatarManager>()->getMyAvatar().get());
+        _webSurface->getSurfaceContext()->setContextProperty("Entities", DependencyManager::get<EntityScriptingInterface>().data());
+        _webSurface->getSurfaceContext()->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
 
         if (_webSurface->getRootItem() && _webSurface->getRootItem()->objectName() == "tabletRoot") {
             auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
             auto flags = tabletScriptingInterface->getFlags();
-            _webSurface->getRootContext()->setContextProperty("offscreenFlags", flags);
-            _webSurface->getRootContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
-            _webSurface->getRootContext()->setContextProperty("Account", AccountScriptingInterface::getInstance());
-            _webSurface->getRootContext()->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
-            _webSurface->getRootContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
-            _webSurface->getRootContext()->setContextProperty("fileDialogHelper", new FileDialogHelper());
-            _webSurface->getRootContext()->setContextProperty("MyAvatar", DependencyManager::get<AvatarManager>()->getMyAvatar().get());
-            _webSurface->getRootContext()->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
-            _webSurface->getRootContext()->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
-            _webSurface->getRootContext()->setContextProperty("Assets", DependencyManager::get<AssetMappingsScriptingInterface>().data());
-            _webSurface->getRootContext()->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
-            _webSurface->getRootContext()->setContextProperty("OctreeStats", DependencyManager::get<OctreeStatsProvider>().data());
-            _webSurface->getRootContext()->setContextProperty("DCModel", DependencyManager::get<DomainConnectionModel>().data());
-            _webSurface->getRootContext()->setContextProperty("AudioDevice", AudioDeviceScriptingInterface::getInstance());
-            _webSurface->getRootContext()->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
-            _webSurface->getRootContext()->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
-            _webSurface->getRootContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
-            _webSurface->getRootContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
 
-            _webSurface->getRootContext()->setContextProperty("pathToFonts", "../../");
-            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface->getRootItem(), _webSurface.data());
+            _webSurface->getSurfaceContext()->setContextProperty("offscreenFlags", flags);
+            _webSurface->getSurfaceContext()->setContextProperty("AddressManager", DependencyManager::get<AddressManager>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("Account", AccountScriptingInterface::getInstance());
+            _webSurface->getSurfaceContext()->setContextProperty("Audio", DependencyManager::get<AudioScriptingInterface>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("AudioStats", DependencyManager::get<AudioClient>()->getStats().data());
+            _webSurface->getSurfaceContext()->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("fileDialogHelper", new FileDialogHelper());
+            _webSurface->getSurfaceContext()->setContextProperty("MyAvatar", DependencyManager::get<AvatarManager>()->getMyAvatar().get());
+            _webSurface->getSurfaceContext()->setContextProperty("ScriptDiscoveryService", DependencyManager::get<ScriptEngines>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("Assets", DependencyManager::get<AssetMappingsScriptingInterface>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("OctreeStats", DependencyManager::get<OctreeStatsProvider>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("DCModel", DependencyManager::get<DomainConnectionModel>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
+            _webSurface->getSurfaceContext()->setContextProperty("GlobalServices", GlobalServicesScriptingInterface::getInstance());
+            _webSurface->getSurfaceContext()->setContextProperty("AvatarList", DependencyManager::get<AvatarManager>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
+            _webSurface->getSurfaceContext()->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
+
+            _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
+            tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface.data());
 
             // mark the TabletProxy object as cpp ownership.
             QObject* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
-            _webSurface->getRootContext()->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
+            _webSurface->getSurfaceContext()->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
 
             // Override min fps for tablet UI, for silky smooth scrolling
             setMaxFPS(90);
         }
     }
-    _webSurface->getRootContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
+    _webSurface->getSurfaceContext()->setContextProperty("globalPosition", vec3toVariant(getPosition()));
 }
 
 void Web3DOverlay::setMaxFPS(uint8_t maxFPS) {
@@ -320,7 +322,7 @@ void Web3DOverlay::render(RenderArgs* args) {
         geometryCache->bindOpaqueWebBrowserProgram(batch, _isAA);
     }
     geometryCache->renderQuad(batch, halfSize * -1.0f, halfSize, vec2(0), vec2(1), color, _geometryId);
-    batch.setResourceTexture(0, args->_whiteTexture); // restore default white color after me
+    batch.setResourceTexture(0, nullptr); // restore default white color after me
 }
 
 const render::ShapeKey Web3DOverlay::getShapeKey() {
@@ -442,17 +444,27 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     touchEvent->setTouchPoints(touchPoints);
     touchEvent->setTouchPointStates(touchPointState);
 
+    // Send mouse events to the Web surface so that HTML dialog elements work with mouse press and hover.
+    // FIXME: Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times).
+    // This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".
+    //
+    // In Qt 5.9 mouse events must be sent before touch events to make sure some QtQuick components will
+    // receive mouse events
+#if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
+    if (!(this->_pressed && event.getType() == PointerEvent::Move)) {
+        QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+        QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
+    }
+#endif
     QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
 
-    if (this->_pressed && event.getType() == PointerEvent::Move) {	
+#if QT_VERSION < QT_VERSION_CHECK(5, 9, 0)
+    if (this->_pressed && event.getType() == PointerEvent::Move) {
         return;
     }
-    // Send mouse events to the Web surface so that HTML dialog elements work with mouse press and hover.
-    // FIXME: Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times). 
-    // This may be improved in Qt 5.8. Release notes: "Cleaned up touch and mouse event delivery".
-
     QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
     QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
+#endif
 }
 
 void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {

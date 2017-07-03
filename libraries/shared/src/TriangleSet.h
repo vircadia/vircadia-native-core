@@ -27,7 +27,7 @@ class TriangleSet {
         void clear();
 
         bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-            float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched);
+            float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched, bool allowBackface = false);
 
         const AABox& getBounds() const { return _bounds; }
 
@@ -38,7 +38,7 @@ class TriangleSet {
 
         // checks our internal list of triangles
         bool findRayIntersectionInternal(const glm::vec3& origin, const glm::vec3& direction,
-            float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched);
+            float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, int& trianglesTouched, bool allowBackface = false);
 
         std::vector<Triangle>& _allTriangles;
         std::map<AABox::OctreeChild, TriangleOctreeCell> _children;
@@ -60,7 +60,7 @@ public:
     void insert(const Triangle& t);
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
-        float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision);
+        float& distance, BoxFace& face, glm::vec3& surfaceNormal, bool precision, bool allowBackface = false);
 
     void balanceOctree();
 

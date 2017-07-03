@@ -35,6 +35,23 @@ macro(SETUP_HIFI_LIBRARY)
     endif()
   endforeach()
 
+  # add compiler flags to AVX512 source files, if supported by compiler
+  include(CheckCXXCompilerFlag)
+  file(GLOB_RECURSE AVX512_SRCS "src/avx512/*.cpp" "src/avx512/*.c")
+  foreach(SRC ${AVX512_SRCS})
+    if (WIN32)
+      check_cxx_compiler_flag("/arch:AVX512" COMPILER_SUPPORTS_AVX512)
+      if (COMPILER_SUPPORTS_AVX512)
+        set_source_files_properties(${SRC} PROPERTIES COMPILE_FLAGS /arch:AVX512)
+      endif()
+    elseif (APPLE OR UNIX)
+      check_cxx_compiler_flag("-mavx512f" COMPILER_SUPPORTS_AVX512)
+      if (COMPILER_SUPPORTS_AVX512)
+        set_source_files_properties(${SRC} PROPERTIES COMPILE_FLAGS -mavx512f)
+      endif()
+    endif()
+  endforeach()
+
   setup_memory_debugger()
 
   # create a library and set the property so it can be referenced later

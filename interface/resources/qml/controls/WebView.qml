@@ -2,12 +2,10 @@ import QtQuick 2.5
 import QtWebEngine 1.1
 import QtWebChannel 1.0
 import "../controls-uit" as HiFiControls
-import HFWebEngineProfile 1.0
 
 Item {
     property alias url: root.url
     property alias scriptURL: root.userScriptUrl
-    property alias eventBridge: eventBridgeWrapper.eventBridge
     property alias canGoBack: root.canGoBack;
     property var goBack: root.goBack;
     property alias urlTag: root.urlTag
@@ -23,12 +21,6 @@ Item {
     }
     */
 
-    QtObject {
-        id: eventBridgeWrapper
-        WebChannel.id: "eventBridgeWrapper"
-        property var eventBridge;
-    }
-    
     property alias viewProfile: root.profile
 
     WebEngineView {
@@ -39,10 +31,7 @@ Item {
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
 
-        profile: HFWebEngineProfile {
-            id: webviewProfile
-            storageName: "qmlWebEngine"
-        }
+        profile: HFWebEngineProfile;
 
         property string userScriptUrl: ""
 
@@ -76,9 +65,9 @@ Item {
 
         property string newUrl: ""
 
-        webChannel.registeredObjects: [eventBridgeWrapper]
-
         Component.onCompleted: {
+            webChannel.registerObject("eventBridge", eventBridge);
+            webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
             // Ensure the JS from the web-engine makes it to our logging
             root.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
                 console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);

@@ -14,7 +14,11 @@
 
 #include <functional>
 
+#include <QObject>
 #include <QtCore/QMutex>
+#include <QThread>
+
+#include <DependencyManager.h>
 
 #include "ResourceRequest.h"
 
@@ -24,29 +28,38 @@ const QString URL_SCHEME_HTTPS = "https";
 const QString URL_SCHEME_FTP = "ftp";
 const QString URL_SCHEME_ATP = "atp";
 
-class ResourceManager {
+class ResourceManager: public QObject, public Dependency {
+    Q_OBJECT
+    SINGLETON_DEPENDENCY
+
 public:
+    ResourceManager();
 
-    static void setUrlPrefixOverride(const QString& prefix, const QString& replacement);
-    static QString normalizeURL(const QString& urlString);
-    static QUrl normalizeURL(const QUrl& url);
+    void setUrlPrefixOverride(const QString& prefix, const QString& replacement);
+    QString normalizeURL(const QString& urlString);
+    QUrl normalizeURL(const QUrl& url);
 
-    static ResourceRequest* createResourceRequest(QObject* parent, const QUrl& url);
+    ResourceRequest* createResourceRequest(QObject* parent, const QUrl& url);
 
-    static void init();
-    static void cleanup();
+    void init();
+    void cleanup();
 
     // Blocking call to check if a resource exists. This function uses a QEventLoop internally
     // to return to the calling thread so that events can still be processed.
-    static bool resourceExists(const QUrl& url);
+    bool resourceExists(const QUrl& url);
+
+    // adjust where we persist the cache
+    void setCacheDir(const QString& cacheDir);
 
 private:
-    static QThread _thread;
+    QThread _thread;
 
     using PrefixMap = std::map<QString, QString>;
 
-    static PrefixMap _prefixMap;
-    static QMutex _prefixMapLock;
+    PrefixMap _prefixMap;
+    QMutex _prefixMapLock;
+
+    QString _cacheDir;
 };
 
 #endif

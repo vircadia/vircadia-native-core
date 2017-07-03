@@ -56,7 +56,10 @@ public:
     bool isKeyboardVisible() override;
 
     // Possibly needs an additional thread for VR submission
-    int getRequiredThreadCount() const override; 
+    int getRequiredThreadCount() const override;
+
+    QString getPreferredAudioInDevice() const override;
+    QString getPreferredAudioOutDevice() const override;
 
 protected:
     bool internalActivate() override;

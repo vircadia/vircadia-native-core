@@ -34,7 +34,18 @@ QString PathUtils::getAppDataPath() {
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/";
 }
 
-QString PathUtils::getAppLocalDataPath() {
+QString PathUtils::getAppLocalDataPath(const QString& overridePath /* = "" */) {
+    static QString overriddenPath = "";
+    // set the overridden path if one was passed in
+    if (!overridePath.isEmpty()) {
+        overriddenPath = overridePath;
+    }
+    // return overridden path if set
+    if (!overriddenPath.isEmpty()) {
+        return overriddenPath;
+    }
+
+    // otherwise return standard path
     return QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation) + "/";
 }
 
@@ -71,20 +82,32 @@ QString findMostRecentFileExtension(const QString& originalFileName, QVector<QSt
     return newestFileName;
 }
 
-QUrl defaultScriptsLocation() {
-    // return "http://s3.amazonaws.com/hifi-public";
-#ifdef Q_OS_WIN
-    QString path = QCoreApplication::applicationDirPath() + "/scripts";
-#elif defined(Q_OS_OSX)
-    QString path = QCoreApplication::applicationDirPath() + "/../Resources/scripts";
-#else
-    QString path = QCoreApplication::applicationDirPath() + "/scripts";
-#endif
+QUrl PathUtils::defaultScriptsLocation(const QString& newDefaultPath) {
+    static QString overriddenDefaultScriptsLocation = "";
+    QString path;
 
+    // set overriddenDefaultScriptLocation if it was passed in
+    if (!newDefaultPath.isEmpty()) {
+        overriddenDefaultScriptsLocation = newDefaultPath;
+    }
+
+    // use the overridden location if it is set
+    if (!overriddenDefaultScriptsLocation.isEmpty()) {
+        path = overriddenDefaultScriptsLocation;
+    } else {
+#ifdef Q_OS_WIN
+        path = QCoreApplication::applicationDirPath() + "/scripts";
+#elif defined(Q_OS_OSX)
+        path = QCoreApplication::applicationDirPath() + "/../Resources/scripts";
+#else
+        path = QCoreApplication::applicationDirPath() + "/scripts";
+#endif
+    }
+
+    // turn the string into a legit QUrl
     QFileInfo fileInfo(path);
     return QUrl::fromLocalFile(fileInfo.canonicalFilePath());
 }
-
 
 QString PathUtils::stripFilename(const QUrl& url) {
     // Guard against meaningless query and fragment parts.

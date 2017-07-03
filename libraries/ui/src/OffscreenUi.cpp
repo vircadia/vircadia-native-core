@@ -15,12 +15,14 @@
 #include <QtQuick/QQuickWindow>
 #include <QtQml/QtQml>
 
+#include <shared/QtHelpers.h>
 #include <gl/GLHelpers.h>
 
 #include <AbstractUriHandler.h>
 #include <AccountManager.h>
 #include <DependencyManager.h>
-#include <TabletScriptingInterface.h>
+
+#include "ui/TabletScriptingInterface.h"
 #include "FileDialogHelper.h"
 #include "VrMenu.h"
 
@@ -91,14 +93,14 @@ QObject* OffscreenUi::getFlags() {
 
 void OffscreenUi::create(QOpenGLContext* context) {
     OffscreenQmlSurface::create(context);
-    auto rootContext = getRootContext();
+    auto myContext = getSurfaceContext();
 
-    rootContext->setContextProperty("OffscreenUi", this);
-    rootContext->setContextProperty("offscreenFlags", offscreenFlags = new OffscreenFlags());
-    rootContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
+    myContext->setContextProperty("OffscreenUi", this);
+    myContext->setContextProperty("offscreenFlags", offscreenFlags = new OffscreenFlags());
+    myContext->setContextProperty("fileDialogHelper", new FileDialogHelper());
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     TabletProxy* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
-    rootContext->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
+    myContext->engine()->setObjectOwnership(tablet, QQmlEngine::CppOwnership);
 }
 
 void OffscreenUi::show(const QUrl& url, const QString& name, std::function<void(QQmlContext*, QObject*)> f) {
@@ -248,7 +250,7 @@ int OffscreenUi::waitForMessageBoxResult(QQuickItem* messageBox) {
 QMessageBox::StandardButton OffscreenUi::messageBox(Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
     if (QThread::currentThread() != thread()) {
         QMessageBox::StandardButton result = QMessageBox::StandardButton::NoButton;
-        QMetaObject::invokeMethod(this, "messageBox", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "messageBox",
             Q_RETURN_ARG(QMessageBox::StandardButton, result),
             Q_ARG(Icon, icon),
             Q_ARG(QString, title),
@@ -350,7 +352,7 @@ QVariant OffscreenUi::getCustomInfo(const Icon icon, const QString& title, const
 QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const QString& label, const QVariant& current) {
     if (QThread::currentThread() != thread()) {
         QVariant result;
-        QMetaObject::invokeMethod(this, "inputDialog", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "inputDialog",
             Q_RETURN_ARG(QVariant, result),
             Q_ARG(Icon, icon),
             Q_ARG(QString, title),
@@ -365,7 +367,7 @@ QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const Q
 QVariant OffscreenUi::customInputDialog(const Icon icon, const QString& title, const QVariantMap& config) {
     if (QThread::currentThread() != thread()) {
         QVariant result;
-        QMetaObject::invokeMethod(this, "customInputDialog", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "customInputDialog",
                                   Q_RETURN_ARG(QVariant, result),
                                   Q_ARG(Icon, icon),
                                   Q_ARG(QString, title),
@@ -547,14 +549,14 @@ void OffscreenUi::createDesktop(const QUrl& url) {
     }
 
 #ifdef DEBUG
-    getRootContext()->setContextProperty("DebugQML", QVariant(true));
+    getSurfaceContext()->setContextProperty("DebugQML", QVariant(true));
 #else 
-    getRootContext()->setContextProperty("DebugQML", QVariant(false));
+    getSurfaceContext()->setContextProperty("DebugQML", QVariant(false));
 #endif
 
     _desktop = dynamic_cast<QQuickItem*>(load(url));
     Q_ASSERT(_desktop);
-    getRootContext()->setContextProperty("desktop", _desktop);
+    getSurfaceContext()->setContextProperty("desktop", _desktop);
 
     _toolWindow = _desktop->findChild<QQuickItem*>("ToolWindow");
 
@@ -639,7 +641,7 @@ QString OffscreenUi::fileDialog(const QVariantMap& properties) {
 QString OffscreenUi::fileOpenDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
     if (QThread::currentThread() != thread()) {
         QString result;
-        QMetaObject::invokeMethod(this, "fileOpenDialog", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "fileOpenDialog",
             Q_RETURN_ARG(QString, result),
             Q_ARG(QString, caption),
             Q_ARG(QString, dir),
@@ -661,7 +663,7 @@ QString OffscreenUi::fileOpenDialog(const QString& caption, const QString& dir, 
 QString OffscreenUi::fileSaveDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
     if (QThread::currentThread() != thread()) {
         QString result;
-        QMetaObject::invokeMethod(this, "fileSaveDialog", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "fileSaveDialog",
             Q_RETURN_ARG(QString, result),
             Q_ARG(QString, caption),
             Q_ARG(QString, dir),
@@ -685,7 +687,7 @@ QString OffscreenUi::fileSaveDialog(const QString& caption, const QString& dir, 
 QString OffscreenUi::existingDirectoryDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
     if (QThread::currentThread() != thread()) {
         QString result;
-        QMetaObject::invokeMethod(this, "existingDirectoryDialog", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "existingDirectoryDialog",
                                   Q_RETURN_ARG(QString, result),
                                   Q_ARG(QString, caption),
                                   Q_ARG(QString, dir),
@@ -772,7 +774,7 @@ QString OffscreenUi::assetOpenDialog(const QString& caption, const QString& dir,
     // ATP equivalent of fileOpenDialog().
     if (QThread::currentThread() != thread()) {
         QString result;
-        QMetaObject::invokeMethod(this, "assetOpenDialog", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "assetOpenDialog",
             Q_RETURN_ARG(QString, result),
             Q_ARG(QString, caption),
             Q_ARG(QString, dir),

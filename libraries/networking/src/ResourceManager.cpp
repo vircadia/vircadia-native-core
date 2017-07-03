@@ -24,10 +24,16 @@
 #include "NetworkAccessManager.h"
 #include "NetworkLogging.h"
 
-QThread ResourceManager::_thread;
-ResourceManager::PrefixMap ResourceManager::_prefixMap;
-QMutex ResourceManager::_prefixMapLock;
 
+ResourceManager::ResourceManager() {
+    _thread.setObjectName("Resource Manager Thread");
+
+    auto assetClient = DependencyManager::set<AssetClient>(_cacheDir);
+    assetClient->moveToThread(&_thread);
+    QObject::connect(&_thread, &QThread::started, assetClient.data(), &AssetClient::init);
+
+    _thread.start();
+}
 
 void ResourceManager::setUrlPrefixOverride(const QString& prefix, const QString& replacement) {
     QMutexLocker locker(&_prefixMapLock);
@@ -73,16 +79,6 @@ QUrl ResourceManager::normalizeURL(const QUrl& originalUrl) {
         }
     }
     return url;
-}
-
-void ResourceManager::init() {
-    _thread.setObjectName("Resource Manager Thread");
-
-    auto assetClient = DependencyManager::set<AssetClient>();
-    assetClient->moveToThread(&_thread);
-    QObject::connect(&_thread, &QThread::started, assetClient.data(), &AssetClient::init);
-
-    _thread.start();
 }
 
 void ResourceManager::cleanup() {
@@ -164,3 +160,7 @@ bool ResourceManager::resourceExists(const QUrl& url) {
     return false;
 }
 
+void ResourceManager::setCacheDir(const QString& cacheDir) {
+    // TODO: check for existence?  
+    _cacheDir = cacheDir;
+}

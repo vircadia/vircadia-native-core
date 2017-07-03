@@ -23,6 +23,7 @@
 #include <AvatarHashMap.h>
 #include <AudioInjectorManager.h>
 #include <AssetClient.h>
+#include <LocationScriptingInterface.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
 #include <NodeList.h>
@@ -61,7 +62,7 @@ Agent::Agent(ReceivedMessage& message) :
     _entityEditSender.setPacketsPerSecond(DEFAULT_ENTITY_PPS_PER_SCRIPT);
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
-    ResourceManager::init();
+    DependencyManager::set<ResourceManager>();
 
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
 
@@ -166,11 +167,7 @@ void Agent::run() {
 
     // Setup MessagesClient
     auto messagesClient = DependencyManager::set<MessagesClient>();
-    QThread* messagesThread = new QThread;
-    messagesThread->setObjectName("Messages Client Thread");
-    messagesClient->moveToThread(messagesThread);
-    connect(messagesThread, &QThread::started, messagesClient.data(), &MessagesClient::init);
-    messagesThread->start();
+    messagesClient->startThread();
 
     // make sure we hear about connected nodes so we can grab an ATP script if a request is pending
     connect(nodeList.data(), &LimitedNodeList::nodeActivated, this, &Agent::nodeActivated);
@@ -202,7 +199,7 @@ void Agent::requestScript() {
         return;
     }
 
-    auto request = ResourceManager::createResourceRequest(this, scriptURL);
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(this, scriptURL);
 
     if (!request) {
         qWarning() << "Could not create ResourceRequest for Agent script at" << scriptURL.toString();
@@ -456,6 +453,9 @@ void Agent::executeScript() {
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
 
     _scriptEngine->registerGlobalObject("EntityViewer", &_entityViewer);
+
+    _scriptEngine->registerGetterSetter("location", LocationScriptingInterface::locationGetter,
+        LocationScriptingInterface::locationSetter);
 
     auto recordingInterface = DependencyManager::get<RecordingScriptingInterface>();
     _scriptEngine->registerGlobalObject("Recording", recordingInterface.data());
@@ -779,7 +779,7 @@ void Agent::aboutToFinish() {
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
 
-    ResourceManager::cleanup();
+    DependencyManager::get<ResourceManager>()->cleanup();
 
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();

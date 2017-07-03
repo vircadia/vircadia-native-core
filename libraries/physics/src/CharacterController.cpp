@@ -152,6 +152,7 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
     btDispatcher* dispatcher = collisionWorld->getDispatcher();
     int numManifolds = dispatcher->getNumManifolds();
     bool hasFloor = false;
+    bool isStuck = false;
 
     btTransform rotation = _rigidBody->getWorldTransform();
     rotation.setOrigin(btVector3(0.0f, 0.0f, 0.0f)); // clear translation part
@@ -169,10 +170,18 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
                 btVector3 pointOnCharacter = characterIsFirst ? contact.m_localPointA : contact.m_localPointB; // object-local-frame
                 btVector3 normal = characterIsFirst ? contact.m_normalWorldOnB : -contact.m_normalWorldOnB; // points toward character
                 btScalar hitHeight = _halfHeight + _radius + pointOnCharacter.dot(_currentUp);
+                // If there's non-trivial penetration with a big impulse for several steps, we're probably stuck.
+                // Note it here in the controller, and let MyAvatar figure out what to do about it.
+                const float STUCK_PENETRATION = -0.05f; // always negative into the object.
+                const float STUCK_IMPULSE = 500.0f;
+                const int STUCK_LIFETIME = 3;
+                if ((contact.getDistance() < STUCK_PENETRATION) && (contact.getAppliedImpulse() > STUCK_IMPULSE) && (contact.getLifeTime() > STUCK_LIFETIME)) {
+                    isStuck = true; // latch on
+                }
                 if (hitHeight < _maxStepHeight && normal.dot(_currentUp) > _minFloorNormalDotUp) {
                     hasFloor = true;
-                    if (!pushing) {
-                        // we're not pushing against anything so we can early exit
+                    if (!pushing && isStuck) {
+                        // we're not pushing against anything and we're stuck so we can early exit
                         // (all we need to know is that there is a floor)
                         break;
                     }
@@ -198,12 +207,13 @@ bool CharacterController::checkForSupport(btCollisionWorld* collisionWorld) {
                 _stepHeight = highestStep;
                 _stepPoint = rotation * pointOnCharacter; // rotate into world-frame
             }
-            if (hasFloor && !(pushing && _stepUpEnabled)) {
+            if (hasFloor && isStuck && !(pushing && _stepUpEnabled)) {
                 // early exit since all we need to know is that we're on a floor
                 break;
             }
         }
     }
+    _isStuck = isStuck;
     return hasFloor;
 }
 

@@ -10,8 +10,11 @@
 //
 #include "Config.h"
 
-#include "Task.h"
 #include <QtCore/QThread>
+
+#include <shared/QtHelpers.h>
+
+#include "Task.h"
 
 using namespace task;
 
@@ -34,6 +37,7 @@ void TaskConfig::connectChildConfig(QConfigPointer childConfig, const std::strin
     if (childConfig->metaObject()->indexOfSignal(DIRTY_SIGNAL) != -1) {
         // Connect dirty->refresh if defined
         QObject::connect(childConfig.get(), SIGNAL(dirty()), this, SLOT(refresh()));
+        QObject::connect(childConfig.get(), SIGNAL(dirtyEnabled()), this, SLOT(refresh()));
     }
 }
 
@@ -50,13 +54,14 @@ void TaskConfig::transferChildrenConfigs(QConfigPointer source) {
         if (child->metaObject()->indexOfSignal(DIRTY_SIGNAL) != -1) {
             // Connect dirty->refresh if defined
             QObject::connect(child, SIGNAL(dirty()), this, SLOT(refresh()));
+            QObject::connect(child, SIGNAL(dirtyEnabled()), this, SLOT(refresh()));
         }
     }
 }
 
 void TaskConfig::refresh() {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "refresh", Qt::BlockingQueuedConnection);
+        BLOCKING_INVOKE_METHOD(this, "refresh");
         return;
     }
 

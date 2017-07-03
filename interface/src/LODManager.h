@@ -17,6 +17,7 @@
 #include <OctreeConstants.h>
 #include <PIDController.h>
 #include <SimpleMovingAverage.h>
+#include <render/Args.h>
 
 const float DEFAULT_DESKTOP_LOD_DOWN_FPS = 20.0;
 const float DEFAULT_HMD_LOD_DOWN_FPS = 20.0;
@@ -45,7 +46,6 @@ const float ADJUST_LOD_MAX_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE;
 // This controls how low the auto-adjust LOD will go. We want a minimum vision of ~20:500 or 0.04 of default
 const float ADJUST_LOD_MIN_SIZE_SCALE = DEFAULT_OCTREE_SIZE_SCALE * 0.04f;
 
-class RenderArgs;
 class AABox;
 
 class LODManager : public QObject, public Dependency {

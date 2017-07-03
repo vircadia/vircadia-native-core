@@ -18,6 +18,8 @@
 #include <QtScript/QScriptValue>
 #include <QtWidgets/QMessageBox>
 
+#include <DependencyManager.h>
+
 class CustomPromptResult {
 public:
     QVariant value;
@@ -62,6 +64,7 @@ public slots:
     void displayAnnouncement(const QString& message);
     void shareSnapshot(const QString& path, const QUrl& href = QUrl(""));
     bool isPhysicsEnabled();
+    bool setDisplayTexture(const QString& name);
 
     int openMessageBox(QString title, QString text, int buttons, int defaultButton);
     void updateMessageBox(int id, QString title, QString text, int buttons, int defaultButton);

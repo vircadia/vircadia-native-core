@@ -9,20 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityScriptingInterface.h"
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
-
-#include "EntityScriptingInterface.h"
 
 #include <QFutureWatcher>
 #include <QtConcurrent/QtConcurrentRun>
 
-#include "EntityItemID.h"
+#include <shared/QtHelpers.h>
 #include <VariantMapToScriptValue.h>
 #include <SharedUtil.h>
 #include <SpatialParentFinder.h>
-#include <model-networking/MeshProxy.h>
 
+#include "EntityItemID.h"
 #include "EntitiesLogging.h"
 #include "EntityDynamicFactoryInterface.h"
 #include "EntityDynamicInterface.h"
@@ -230,6 +230,8 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
                 }
 
                 entity->setLastBroadcast(usecTimestampNow());
+                // since we're creating this object we will immediately volunteer to own its simulation
+                entity->flagForOwnershipBid(VOLUNTEER_SIMULATION_PRIORITY);
                 propertiesWithSimID.setLastEdited(entity->getLastEdited());
             } else {
                 qCDebug(entities) << "script failed to add new Entity to local Octree";
@@ -296,18 +298,6 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
                 }
 
                 results = entity->getProperties(desiredProperties);
-
-                // TODO: improve naturalDimensions in the future,
-                //       for now we've added this hack for setting natural dimensions of models
-                if (entity->getType() == EntityTypes::Model) {
-                    const FBXGeometry* geometry = _entityTree->getGeometryForEntity(entity);
-                    if (geometry) {
-                        Extents meshExtents = geometry->getUnscaledMeshExtents();
-                        results.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
-                        results.calculateNaturalPosition(meshExtents.minimum, meshExtents.maximum);
-                    }
-                }
-
             }
         });
     }
@@ -440,7 +430,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                 } else {
                     // we make a bid for simulation ownership
                     properties.setSimulationOwner(myNodeID, SCRIPT_POKE_SIMULATION_PRIORITY);
-                    entity->pokeSimulationOwnership();
+                    entity->flagForOwnershipBid(SCRIPT_POKE_SIMULATION_PRIORITY);
                     entity->rememberHasSimulationOwnershipBid();
                 }
             }
@@ -1194,7 +1184,7 @@ QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
         }
         action->setIsMine(true);
         success = entity->addAction(simulation, action);
-        entity->grabSimulationOwnership();
+        entity->flagForOwnershipBid(SCRIPT_GRAB_SIMULATION_PRIORITY);
         return false; // Physics will cause a packet to be sent, so don't send from here.
     });
     if (success) {
@@ -1210,7 +1200,7 @@ bool EntityScriptingInterface::updateAction(const QUuid& entityID, const QUuid& 
     return actionWorker(entityID, [&](EntitySimulationPointer simulation, EntityItemPointer entity) {
         bool success = entity->updateAction(simulation, actionID, arguments);
         if (success) {
-            entity->grabSimulationOwnership();
+            entity->flagForOwnershipBid(SCRIPT_GRAB_SIMULATION_PRIORITY);
         }
         return success;
     });
@@ -1224,7 +1214,7 @@ bool EntityScriptingInterface::deleteAction(const QUuid& entityID, const QUuid& 
         success = entity->removeAction(simulation, actionID);
         if (success) {
             // reduce from grab to poke
-            entity->pokeSimulationOwnership();
+            entity->flagForOwnershipBid(SCRIPT_POKE_SIMULATION_PRIORITY);
         }
         return false; // Physics will cause a packet to be sent, so don't send from here.
     });
@@ -1499,7 +1489,7 @@ int EntityScriptingInterface::getJointIndex(const QUuid& entityID, const QString
         return -1;
     }
     int result;
-    QMetaObject::invokeMethod(_entityTree.get(), "getJointIndex", Qt::BlockingQueuedConnection,
+    BLOCKING_INVOKE_METHOD(_entityTree.get(), "getJointIndex",
                               Q_RETURN_ARG(int, result), Q_ARG(QUuid, entityID), Q_ARG(QString, name));
     return result;
 }
@@ -1509,7 +1499,7 @@ QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
         return QStringList();
     }
     QStringList result;
-    QMetaObject::invokeMethod(_entityTree.get(), "getJointNames", Qt::BlockingQueuedConnection,
+    BLOCKING_INVOKE_METHOD(_entityTree.get(), "getJointNames",
                               Q_RETURN_ARG(QStringList, result), Q_ARG(QUuid, entityID));
     return result;
 }
