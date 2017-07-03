@@ -13,6 +13,7 @@
 #include <QThread>
 #include <glm/gtx/transform.hpp>
 
+#include <shared/QtHelpers.h>
 #include <GLMHelpers.h>
 #include <AnimUtil.h>
 #include "ScriptableAvatar.h"
@@ -49,7 +50,7 @@ void ScriptableAvatar::stopAnimation() {
 AnimationDetails ScriptableAvatar::getAnimationDetails() {
     if (QThread::currentThread() != thread()) {
         AnimationDetails result;
-        QMetaObject::invokeMethod(this, "getAnimationDetails", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "getAnimationDetails", 
                                   Q_RETURN_ARG(AnimationDetails, result));
         return result;
     }

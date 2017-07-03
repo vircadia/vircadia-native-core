@@ -285,6 +285,13 @@ void AvatarMixer::start() {
 // is guaranteed to not be accessed by other thread
 void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
     AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
+
+    // there is no need to manage identity data we haven't received yet
+    // so bail early if we've never received an identity packet for this avatar
+    if (!nodeData || !nodeData->getAvatar().hasProcessedFirstIdentity()) {
+        return;
+    }
+
     bool sendIdentity = false;
     if (nodeData && nodeData->getAvatarSessionDisplayNameMustChange()) {
         AvatarData& avatar = nodeData->getAvatar();

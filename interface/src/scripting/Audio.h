@@ -62,9 +62,12 @@ signals:
     void contextChanged(const QString& context);
 
 public slots:
-    void onMutedChanged();
     void onContextChanged();
-    void onInputChanged();
+
+private slots:
+    void onMutedChanged();
+    void onNoiseReductionChanged();
+    void onInputVolumeChanged(float volume);
     void onInputLoudnessChanged(float loudness);
 
 protected:
