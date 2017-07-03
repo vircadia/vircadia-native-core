@@ -15,23 +15,15 @@
 	var isRocketing = false;
 	
 	function checkRocketing() {
-		if (HMD.active) {
-			if (Controller.Hardware.Vive || Controller.Hardware.OculusTouch) {
-				if (canRocket()) {
-					isRocketing = true;
-					MyAvatar.motorReferenceFrame = "world";
-					var moveVector = Vec3.multiply(Quat.getFront(Camera.getOrientation()), 10);
-					if (!MyAvatar.isFlying()) {
-						moveVector = Vec3.sum(moveVector, {x: 0, y: 1, z: 0});
-					}
-					MyAvatar.motorVelocity = moveVector;
-					MyAvatar.motorTimescale = 1.0;
-				} else {
-					checkCanStopRocketing();
-				}
-			} else {
-				checkCanStopRocketing();
+		if (HMD.active && (Controller.Hardware.Vive || Controller.Hardware.OculusTouch) && canRocket()) {
+			isRocketing = true;
+			MyAvatar.motorReferenceFrame = "world";
+			var moveVector = Vec3.multiply(Quat.getFront(Camera.getOrientation()), 10);
+			if (!MyAvatar.isFlying()) {
+				moveVector = Vec3.sum(moveVector, {x: 0, y: 1, z: 0});
 			}
+			MyAvatar.motorVelocity = moveVector;
+			MyAvatar.motorTimescale = 1.0;
 		} else {
 			checkCanStopRocketing();
 		}
