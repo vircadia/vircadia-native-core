@@ -39,7 +39,7 @@ using ModelWeakPointer = std::weak_ptr<Model>;
 using CalculateEntityLoadingPriority = std::function<float(const EntityItem& item)>;
 
 // Generic client side Octree renderer class.
-class EntityTreeRenderer : public OctreeProcessor, public EntityItemFBXService, public Dependency {
+class EntityTreeRenderer : public OctreeProcessor, public Dependency {
     Q_OBJECT
 public:
     EntityTreeRenderer(bool wantScripts, AbstractViewStateInterface* viewState,
@@ -67,9 +67,6 @@ public:
     void processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode);
 
     virtual void init() override;
-
-    virtual const FBXGeometry* getGeometryForEntity(EntityItemPointer entityItem) override;
-    virtual ModelPointer getModelForEntityItem(EntityItemPointer entityItem) override;
 
     /// clears the tree
     virtual void clear() override;

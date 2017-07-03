@@ -27,18 +27,20 @@ class Bookmarks: public QObject {
 public:
     Bookmarks();
 
-    virtual void setupMenus(Menu* menubar, MenuWrapper* menu);
+    virtual void setupMenus(Menu* menubar, MenuWrapper* menu) = 0;
     QString addressForBookmark(const QString& name) const;
 
 protected:
-    virtual void addBookmarkToFile(const QString& bookmarkName, const QString& bookmarkAddress);
-    virtual void addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) = 0;
+    void addBookmarkToFile(const QString& bookmarkName, const QVariant& bookmark);
+    virtual void addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) = 0;
     void enableMenuItems(bool enabled);
-    void readFromFile();
-    void insert(const QString& name, const QString& address);  // Overwrites any existing entry with same name.
+    virtual void readFromFile();
+    void insert(const QString& name, const QVariant& address);  // Overwrites any existing entry with same name.
     void sortActions(Menu* menubar, MenuWrapper* menu);
     int getMenuItemLocation(QList<QAction*> actions, const QString& name) const;
-
+    
+    bool contains(const QString& name) const;
+    
     QVariantMap _bookmarks;  // { name: url, ... }
     QPointer<MenuWrapper> _bookmarksMenu;
     QPointer<QAction> _deleteBookmarksAction;
@@ -50,7 +52,6 @@ protected slots:
 
 private:
     void remove(const QString& name);
-    bool contains(const QString& name) const;
     static bool sortOrder(QAction* a, QAction* b);
 
     void persistToFile();

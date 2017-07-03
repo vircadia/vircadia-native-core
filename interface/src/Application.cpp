@@ -145,7 +145,6 @@
 #include "avatar/MyHead.h"
 #include "CrashHandler.h"
 #include "devices/DdeFaceTracker.h"
-#include "devices/Leapmotion.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
 #include "InterfaceDynamicFactory.h"
@@ -582,6 +581,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<LocationBookmarks>();
     DependencyManager::set<Snapshot>();
     DependencyManager::set<CloseEventSender>();
+    DependencyManager::set<ResourceManager>();
 
     return previousSessionCrashed;
 }
@@ -776,7 +776,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &Application::activeDisplayPluginChanged,
         reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
 
-    ResourceManager::init();
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
@@ -913,11 +912,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     if (!replaceURL.isEmpty()) {
         _avatarOverrideUrl = QUrl::fromUserInput(replaceURL);
         _saveAvatarOverrideUrl = true;
-    }
-
-    QString defaultScriptsLocation = getCmdOption(argc, constArgv, "--scripts");
-    if (!defaultScriptsLocation.isEmpty()) {
-        PathUtils::defaultScriptsLocation(defaultScriptsLocation);
     }
 
     _glWidget = new GLCanvas();
@@ -1188,7 +1182,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // do this as late as possible so that all required subsystems are initialized
     // If we've overridden the default scripts location, just load default scripts
     // otherwise, load 'em all
-    if (!defaultScriptsLocation.isEmpty()) {
+
+    // we just want to see if --scripts was set, we've already parsed it and done
+    // the change in PathUtils.  Rather than pass that in the constructor, lets just
+    // look (this could be debated)
+    QString scriptsSwitch = QString("--").append(SCRIPTS_SWITCH);
+    QDir defaultScriptsLocation(getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str()));
+    if (!defaultScriptsLocation.exists()) {
         scriptEngines->loadDefaultScripts();
         scriptEngines->defaultScriptsLocationOverridden(true);
     } else {
@@ -1882,12 +1882,10 @@ Application::~Application() {
     DependencyManager::destroy<SoundCache>();
     DependencyManager::destroy<OctreeStatsProvider>();
 
-    ResourceManager::cleanup();
+    DependencyManager::get<ResourceManager>()->cleanup();
 
     // remove the NodeList from the DependencyManager
     DependencyManager::destroy<NodeList>();
-
-    Leapmotion::destroy();
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->shutdown();
@@ -4056,8 +4054,6 @@ void Application::init() {
 
     qCDebug(interfaceapp) << "Loaded settings";
 
-    Leapmotion::init();
-
     // fire off an immediate domain-server check in now that settings are loaded
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 
@@ -4096,7 +4092,10 @@ void Application::init() {
         EntityTreePointer tree = getEntities()->getTree();
         if (auto entity = tree->findEntityByEntityItemID(id)) {
             auto sound = DependencyManager::get<SoundCache>()->getSound(newURL);
-            entity->setCollisionSound(sound);
+            auto renderable = entity->getRenderableInterface();
+            if (renderable) {
+                renderable->setCollisionSound(sound);
+            }
         }
     }, Qt::QueuedConnection);
     connect(getMyAvatar().get(), &MyAvatar::newCollisionSoundURL, this, [this](QUrl newURL) {
@@ -4518,7 +4517,6 @@ void Application::update(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("devices");
-        DeviceTracker::updateAll();
 
         FaceTracker* tracker = getSelectedFaceTracker();
         if (tracker && Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking) != tracker->isMuted()) {
@@ -4587,8 +4585,6 @@ void Application::update(float deltaTime) {
         keyboardMousePlugin->pluginUpdate(deltaTime, calibrationData);
     }
 
-    _controllerScriptingInterface->updateInputControllers();
-
     // Transfer the user inputs to the driveKeys
     // FIXME can we drop drive keys and just have the avatar read the action states directly?
     myAvatar->clearDriveKeys();
@@ -4612,6 +4608,31 @@ void Application::update(float deltaTime) {
     auto worldToSensorMatrix = glm::inverse(myAvatar->getSensorToWorldMatrix());
     auto avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
     myAvatar->setHandControllerPosesInSensorFrame(leftHandPose.transform(avatarToSensorMatrix), rightHandPose.transform(avatarToSensorMatrix));
+
+    // If have previously done finger poses or there are new valid finger poses, update finger pose values. This so that if
+    // fingers are not being controlled, finger joints are not updated in MySkeletonModel.
+    // Assumption: Finger poses are either all present and valid or not present at all; thus can test just one joint.
+    MyAvatar::FingerPosesMap leftHandFingerPoses;
+    if (myAvatar->getLeftHandFingerControllerPosesInSensorFrame().size() > 0
+            || userInputMapper->getPoseState(controller::Action::LEFT_HAND_THUMB1).isValid()) {
+        for (int i = (int)controller::Action::LEFT_HAND_THUMB1; i <= (int)controller::Action::LEFT_HAND_PINKY4; i++) {
+            leftHandFingerPoses[i] = {
+                userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix),
+                userInputMapper->getActionName((controller::Action)i)
+            };
+        }
+    }
+    MyAvatar::FingerPosesMap rightHandFingerPoses;
+    if (myAvatar->getRightHandFingerControllerPosesInSensorFrame().size() > 0
+        || userInputMapper->getPoseState(controller::Action::RIGHT_HAND_THUMB1).isValid()) {
+        for (int i = (int)controller::Action::RIGHT_HAND_THUMB1; i <= (int)controller::Action::RIGHT_HAND_PINKY4; i++) {
+            rightHandFingerPoses[i] = {
+                userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix),
+                userInputMapper->getActionName((controller::Action)i)
+            };
+        }
+    }
+    myAvatar->setFingerControllerPosesInSensorFrame(leftHandFingerPoses, rightHandFingerPoses);
 
     controller::Pose leftFootPose = userInputMapper->getPoseState(controller::Action::LEFT_FOOT);
     controller::Pose rightFootPose = userInputMapper->getPoseState(controller::Action::RIGHT_FOOT);
@@ -5939,7 +5960,7 @@ void Application::addAssetToWorldFromURL(QString url) {
 
     addAssetToWorldInfo(filename, "Downloading model file " + filename + ".");
 
-    auto request = ResourceManager::createResourceRequest(nullptr, QUrl(url));
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, QUrl(url));
     connect(request, &ResourceRequest::finished, this, &Application::addAssetToWorldFromURLRequestFinished);
     request->send();
 }

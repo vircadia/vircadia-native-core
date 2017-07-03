@@ -114,7 +114,9 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_getQuery),
 
     (&::gpu::gl::GLBackend::do_resetStages),
-
+    
+    (&::gpu::gl::GLBackend::do_disableContextViewCorrection),
+    (&::gpu::gl::GLBackend::do_restoreContextViewCorrection),
     (&::gpu::gl::GLBackend::do_disableContextStereo),
     (&::gpu::gl::GLBackend::do_restoreContextStereo),
 
@@ -374,6 +376,13 @@ void GLBackend::do_resetStages(const Batch& batch, size_t paramOffset) {
     resetStages();
 }
 
+void GLBackend::do_disableContextViewCorrection(const Batch& batch, size_t paramOffset) {
+    _transform._viewCorrectionEnabled = false;
+}
+
+void GLBackend::do_restoreContextViewCorrection(const Batch& batch, size_t paramOffset) {
+    _transform._viewCorrectionEnabled = true;
+}
 
 void GLBackend::do_disableContextStereo(const Batch& batch, size_t paramOffset) {
 
