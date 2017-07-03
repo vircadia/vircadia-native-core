@@ -48,7 +48,7 @@
 	};
 	
 	function checkCanStopRocketing() {
-		if(isRocketing) {
+		if (isRocketing) {
 			MyAvatar.motorVelocity = 0;
 			isRocketing = false;
 		}
