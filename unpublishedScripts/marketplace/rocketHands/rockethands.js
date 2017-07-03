@@ -12,39 +12,45 @@
 */
 
 (function() {
-	var isRocketing = false;
+	var isRocketting = false;
 	MyAvatar.motorVelocity = 0;
 	
 	function checkRocketting() {
-		if (Controller.Hardware.Vive || Controller.Hardware.OculusTouch) {
-			var leftHand = Controller.getPoseValue(Controller.Standard.LeftHand);
-			var rightHand = Controller.getPoseValue(Controller.Standard.RightHand);
-			var leftWorldControllerPos = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, leftHand.translation));
-			var rightWorldControllerPos = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, rightHand.translation));
-			var hipPosition = MyAvatar.getJointPosition("Hips");
-			
-			if ((leftWorldControllerPos.y > (hipPosition.y - 0.1)) && (leftWorldControllerPos.y < (hipPosition.y + 0.1)) && rightWorldControllerPos.y > (hipPosition.y - 0.1) && (rightWorldControllerPos.y < (hipPosition.y + 0.1))) {
-				if (leftHand.rotation.y < 0.25 && leftHand.rotation.y > -0.25 && rightHand.rotation.y < 0.25 && rightHand.rotation.y > -0.25) {
-					isRocketing = true;
-					Controller.triggerHapticPulse(0.1, 120, 2);
-					MyAvatar.motorReferenceFrame = "world";
-					var moveVector = Vec3.multiply(Quat.getFront(Camera.getOrientation()), 10);
-					if(!MyAvatar.isFlying()) {
-						moveVector = Vec3.sum(moveVector, {x: 0, y: 1, z: 0});
+		if (HMD.active) {
+			if (Controller.Hardware.Vive || Controller.Hardware.OculusTouch) {
+				var leftHand = Controller.getPoseValue(Controller.Standard.LeftHand);
+				var rightHand = Controller.getPoseValue(Controller.Standard.RightHand);
+				var leftWorldControllerPos = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, leftHand.translation));
+				var rightWorldControllerPos = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, rightHand.translation));
+				var hipPosition = MyAvatar.getJointPosition("Hips");
+				
+				if ((leftWorldControllerPos.y > (hipPosition.y - 0.1)) && (leftWorldControllerPos.y < (hipPosition.y + 0.1)) && rightWorldControllerPos.y > (hipPosition.y - 0.1) && (rightWorldControllerPos.y < (hipPosition.y + 0.1))) {
+					if (leftHand.rotation.y < 0.25 && leftHand.rotation.y > -0.25 && rightHand.rotation.y < 0.25 && rightHand.rotation.y > -0.25) {
+						isRocketting = true;
+						MyAvatar.motorReferenceFrame = "world";
+						var moveVector = Vec3.multiply(Quat.getFront(Camera.getOrientation()), 10);
+						if(!MyAvatar.isFlying()) {
+							moveVector = Vec3.sum(moveVector, {x: 0, y: 1, z: 0});
+						}
+						MyAvatar.motorVelocity = moveVector;
+						MyAvatar.motorTimescale = 1.0;
+					} else {
+						if (isRocketting) {
+							MyAvatar.motorVelocity = 0;
+							isRocketting = false;
+						}
 					}
-					MyAvatar.motorVelocity = moveVector;
-					MyAvatar.motorTimescale = 1.0;
 				} else {
-					if (isRocketing) {
+					if (isRocketting) {
 						MyAvatar.motorVelocity = 0;
-						isRocketing = false;
+						isRocketting = false;
 					}
 				}
-			} else {
-				if (isRocketing) {
-					MyAvatar.motorVelocity = 0;
-					isRocketing = false;
-				}
+			}
+		} else {
+			if(isRocketting) {
+				MyAvatar.motorVelocity = 0;
+				isRocketting = false;
 			}
 		}
 	};
