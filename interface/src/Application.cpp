@@ -37,8 +37,6 @@
 #include <QtQml/QQmlEngine>
 #include <QtQuick/QQuickWindow>
 
-#include <QtWebEngineWidgets/QWebEngineProfile>
-
 #include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QMessageBox>
 
@@ -441,6 +439,11 @@ static const QString STATE_ADVANCED_MOVEMENT_CONTROLS = "AdvancedMovement";
 static const QString STATE_GROUNDED = "Grounded";
 static const QString STATE_NAV_FOCUSED = "NavigationFocused";
 
+// Statically provided display and input plugins
+extern DisplayPluginList getDisplayPlugins();
+extern InputPluginList getInputPlugins();
+extern void saveInputPluginSettings(const InputPluginList& plugins);
+
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
 
@@ -480,7 +483,12 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 
     Setting::init();
 
-    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+    // Tell the plugin manager about our statically linked plugins
+    auto pluginManager = PluginManager::getInstance();
+    pluginManager->setInputPluginProvider([] { return getInputPlugins(); });
+    pluginManager->setDisplayPluginProvider([] { return getDisplayPlugins(); });
+    pluginManager->setInputPluginSettingsPersister([](const InputPluginList& plugins) { saveInputPluginSettings(plugins); });
+    if (auto steamClient = pluginManager->getSteamClientPlugin()) {
         steamClient->init();
     }
 
@@ -714,9 +722,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateHeartbeat();
 
     // setup a timer for domain-server check ins
-    QTimer* domainCheckInTimer = new QTimer(nodeList.data());
+    QTimer* domainCheckInTimer = new QTimer(this);
     connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
     domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
+    connect(this, &QCoreApplication::aboutToQuit, [domainCheckInTimer] {
+        domainCheckInTimer->stop();
+        domainCheckInTimer->deleteLater();
+    });
 
 
     auto audioIO = DependencyManager::get<AudioClient>();
@@ -901,11 +913,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     if (!replaceURL.isEmpty()) {
         _avatarOverrideUrl = QUrl::fromUserInput(replaceURL);
         _saveAvatarOverrideUrl = true;
-    }
-
-    QString defaultScriptsLocation = getCmdOption(argc, constArgv, "--scripts");
-    if (!defaultScriptsLocation.isEmpty()) {
-        PathUtils::defaultScriptsLocation(defaultScriptsLocation);
     }
 
     _glWidget = new GLCanvas();
@@ -1174,7 +1181,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // do this as late as possible so that all required subsystems are initialized
     // If we've overridden the default scripts location, just load default scripts
     // otherwise, load 'em all
-    if (!defaultScriptsLocation.isEmpty()) {
+
+    // we just want to see if --scripts was set, we've already parsed it and done
+    // the change in PathUtils.  Rather than pass that in the constructor, lets just
+    // look (this could be debated)
+    QString scriptsSwitch = QString("--").append(SCRIPTS_SWITCH);
+    QDir defaultScriptsLocation(getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str()));
+    if (!defaultScriptsLocation.exists()) {
         scriptEngines->loadDefaultScripts();
         scriptEngines->defaultScriptsLocationOverridden(true);
     } else {
@@ -4082,7 +4095,10 @@ void Application::init() {
         EntityTreePointer tree = getEntities()->getTree();
         if (auto entity = tree->findEntityByEntityItemID(id)) {
             auto sound = DependencyManager::get<SoundCache>()->getSound(newURL);
-            entity->setCollisionSound(sound);
+            auto renderable = entity->getRenderableInterface();
+            if (renderable) {
+                renderable->setCollisionSound(sound);
+            }
         }
     }, Qt::QueuedConnection);
     connect(getMyAvatar().get(), &MyAvatar::newCollisionSoundURL, this, [this](QUrl newURL) {

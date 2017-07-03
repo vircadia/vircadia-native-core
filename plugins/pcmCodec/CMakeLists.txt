@@ -8,6 +8,6 @@
 
 set(TARGET_NAME pcmCodec)
 setup_hifi_client_server_plugin()
-link_hifi_libraries(shared plugins input-plugins display-plugins)
+link_hifi_libraries(shared plugins)
 install_beside_console()
 

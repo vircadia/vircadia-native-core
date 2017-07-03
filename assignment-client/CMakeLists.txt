@@ -7,11 +7,13 @@ if (APPLE)
   set_target_properties(${TARGET_NAME} PROPERTIES INSTALL_RPATH "@executable_path/../Frameworks")
 endif ()
 
+setup_memory_debugger()
+
 # link in the shared libraries
 link_hifi_libraries(
   audio avatars octree gpu model fbx entities
   networking animation recording shared script-engine embedded-webserver
-  controllers physics plugins
+  physics plugins
 )
 
 if (WIN32)

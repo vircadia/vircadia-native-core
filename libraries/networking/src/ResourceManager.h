@@ -48,6 +48,9 @@ public:
     // to return to the calling thread so that events can still be processed.
     bool resourceExists(const QUrl& url);
 
+    // adjust where we persist the cache
+    void setCacheDir(const QString& cacheDir);
+
 private:
     QThread _thread;
 
@@ -56,6 +59,7 @@ private:
     PrefixMap _prefixMap;
     QMutex _prefixMapLock;
 
+    QString _cacheDir;
 };
 
 #endif

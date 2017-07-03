@@ -23,6 +23,7 @@
 #include "AnimStateMachine.h"
 #include "AnimManipulator.h"
 #include "AnimInverseKinematics.h"
+#include "AnimDefaultPose.h"
 
 using NodeLoaderFunc = AnimNode::Pointer (*)(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 using NodeProcessFunc = bool (*)(AnimNode::Pointer node, const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
@@ -35,6 +36,7 @@ static AnimNode::Pointer loadOverlayNode(const QJsonObject& jsonObj, const QStri
 static AnimNode::Pointer loadStateMachineNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadManipulatorNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 static AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
+static AnimNode::Pointer loadDefaultPoseNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl);
 
 // called after children have been loaded
 // returns node on success, nullptr on failure.
@@ -50,6 +52,7 @@ static const char* animNodeTypeToString(AnimNode::Type type) {
     case AnimNode::Type::StateMachine: return "stateMachine";
     case AnimNode::Type::Manipulator: return "manipulator";
     case AnimNode::Type::InverseKinematics: return "inverseKinematics";
+    case AnimNode::Type::DefaultPose: return "defaultPose";
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -109,6 +112,7 @@ static NodeLoaderFunc animNodeTypeToLoaderFunc(AnimNode::Type type) {
     case AnimNode::Type::StateMachine: return loadStateMachineNode;
     case AnimNode::Type::Manipulator: return loadManipulatorNode;
     case AnimNode::Type::InverseKinematics: return loadInverseKinematicsNode;
+    case AnimNode::Type::DefaultPose: return loadDefaultPoseNode;
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -123,6 +127,7 @@ static NodeProcessFunc animNodeTypeToProcessFunc(AnimNode::Type type) {
     case AnimNode::Type::StateMachine: return processStateMachineNode;
     case AnimNode::Type::Manipulator: return processDoNothing;
     case AnimNode::Type::InverseKinematics: return processDoNothing;
+    case AnimNode::Type::DefaultPose: return processDoNothing;
     case AnimNode::Type::NumTypes: return nullptr;
     };
     return nullptr;
@@ -347,7 +352,8 @@ static const char* boneSetStrings[AnimOverlay::NumBoneSets] = {
     "empty",
     "leftHand",
     "rightHand",
-    "hipsOnly"
+    "hipsOnly",
+    "bothFeet"
 };
 
 static AnimOverlay::BoneSet stringToBoneSetEnum(const QString& str) {
@@ -479,6 +485,9 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
         READ_OPTIONAL_STRING(typeVar, targetObj);
         READ_OPTIONAL_STRING(weightVar, targetObj);
         READ_OPTIONAL_FLOAT(weight, targetObj, 1.0f);
+        READ_OPTIONAL_STRING(poleVectorEnabledVar, targetObj);
+        READ_OPTIONAL_STRING(poleReferenceVectorVar, targetObj);
+        READ_OPTIONAL_STRING(poleVectorVar, targetObj);
 
         auto flexCoefficientsValue = targetObj.value("flexCoefficients");
         if (!flexCoefficientsValue.isArray()) {
@@ -491,7 +500,7 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
             flexCoefficients.push_back((float)value.toDouble());
         }
 
-        node->setTargetVars(jointName, positionVar, rotationVar, typeVar, weightVar, weight, flexCoefficients);
+        node->setTargetVars(jointName, positionVar, rotationVar, typeVar, weightVar, weight, flexCoefficients, poleVectorEnabledVar, poleReferenceVectorVar, poleVectorVar);
     };
 
     READ_OPTIONAL_STRING(solutionSource, jsonObj);
@@ -511,6 +520,11 @@ AnimNode::Pointer loadInverseKinematicsNode(const QJsonObject& jsonObj, const QS
         node->setSolutionSourceVar(solutionSourceVar);
     }
 
+    return node;
+}
+
+static AnimNode::Pointer loadDefaultPoseNode(const QJsonObject& jsonObj, const QString& id, const QUrl& jsonUrl) {
+    auto node = std::make_shared<AnimDefaultPose>(id);
     return node;
 }
 

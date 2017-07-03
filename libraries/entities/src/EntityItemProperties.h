@@ -15,6 +15,7 @@
 #include <stdint.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtx/component_wise.hpp>
 
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>

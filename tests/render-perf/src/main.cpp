@@ -47,6 +47,7 @@
 #include <gpu/gl/GLTexture.h>
 #include <gpu/StandardShaderLib.h>
 
+#include <AnimationCache.h>
 #include <SimpleEntitySimulation.h>
 #include <EntityDynamicInterface.h>
 #include <EntityDynamicFactoryInterface.h>

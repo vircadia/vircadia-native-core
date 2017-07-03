@@ -28,7 +28,7 @@
 ResourceManager::ResourceManager() {
     _thread.setObjectName("Resource Manager Thread");
 
-    auto assetClient = DependencyManager::set<AssetClient>();
+    auto assetClient = DependencyManager::set<AssetClient>(_cacheDir);
     assetClient->moveToThread(&_thread);
     QObject::connect(&_thread, &QThread::started, assetClient.data(), &AssetClient::init);
 
@@ -160,3 +160,7 @@ bool ResourceManager::resourceExists(const QUrl& url) {
     return false;
 }
 
+void ResourceManager::setCacheDir(const QString& cacheDir) {
+    // TODO: check for existence?  
+    _cacheDir = cacheDir;
+}
