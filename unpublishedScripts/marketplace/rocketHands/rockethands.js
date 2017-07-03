@@ -12,10 +12,9 @@
 */
 
 (function() {
-	var isRocketting = false;
-	MyAvatar.motorVelocity = 0;
+	var isRocketing = false;
 	
-	function checkRocketting() {
+	function checkRocketing() {
 		if (HMD.active) {
 			if (Controller.Hardware.Vive || Controller.Hardware.OculusTouch) {
 				var leftHand = Controller.getPoseValue(Controller.Standard.LeftHand);
@@ -23,37 +22,36 @@
 				var leftWorldControllerPos = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, leftHand.translation));
 				var rightWorldControllerPos = Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, rightHand.translation));
 				var hipPosition = MyAvatar.getJointPosition("Hips");
+				var controllerHipThreshold = 0.1;
+				var controllerRotationThreshold = 0.25;
 				
-				if ((leftWorldControllerPos.y > (hipPosition.y - 0.1)) && (leftWorldControllerPos.y < (hipPosition.y + 0.1)) && rightWorldControllerPos.y > (hipPosition.y - 0.1) && (rightWorldControllerPos.y < (hipPosition.y + 0.1))) {
-					if (leftHand.rotation.y < 0.25 && leftHand.rotation.y > -0.25 && rightHand.rotation.y < 0.25 && rightHand.rotation.y > -0.25) {
-						isRocketting = true;
+				if ((leftWorldControllerPos.y > (hipPosition.y - controllerHipThreshold)) && (leftWorldControllerPos.y < (hipPosition.y + controllerHipThreshold)) && rightWorldControllerPos.y > (hipPosition.y - controllerHipThreshold) && (rightWorldControllerPos.y < (hipPosition.y + controllerHipThreshold))) {
+					if (leftHand.rotation.y < controllerRotationThreshold && leftHand.rotation.y > -controllerRotationThreshold && rightHand.rotation.y < controllerRotationThreshold && rightHand.rotation.y > -controllerRotationThreshold) {
+						isRocketing = true;
 						MyAvatar.motorReferenceFrame = "world";
 						var moveVector = Vec3.multiply(Quat.getFront(Camera.getOrientation()), 10);
-						if(!MyAvatar.isFlying()) {
+						if (!MyAvatar.isFlying()) {
 							moveVector = Vec3.sum(moveVector, {x: 0, y: 1, z: 0});
 						}
 						MyAvatar.motorVelocity = moveVector;
 						MyAvatar.motorTimescale = 1.0;
 					} else {
-						if (isRocketting) {
-							MyAvatar.motorVelocity = 0;
-							isRocketting = false;
-						}
+						checkCanStopRocketing();
 					}
 				} else {
-					if (isRocketting) {
-						MyAvatar.motorVelocity = 0;
-						isRocketting = false;
-					}
+					checkCanStopRocketing();
 				}
 			}
 		} else {
-			if(isRocketting) {
-				MyAvatar.motorVelocity = 0;
-				isRocketting = false;
-			}
+			checkCanStopRocketing();
 		}
 	};
 	
-	Script.update.connect(checkRocketting);
+	function checkCanStopRocketing() {
+		if(isRocketing) {
+			MyAvatar.motorVelocity = 0;
+			isRocketing = false;
+		}
+	}
+	Script.update.connect(checkRocketing);
 }());
