@@ -52,6 +52,8 @@ class FadeJobConfig : public render::Job::Config {
         Q_PROPERTY(float edgeOuterColorG READ getEdgeOuterColorG WRITE setEdgeOuterColorG NOTIFY dirty)
         Q_PROPERTY(float edgeOuterColorB READ getEdgeOuterColorB WRITE setEdgeOuterColorB NOTIFY dirty)
         Q_PROPERTY(float edgeOuterIntensity READ getEdgeOuterIntensity WRITE setEdgeOuterIntensity NOTIFY dirty)
+        Q_PROPERTY(bool manualFade MEMBER manualFade NOTIFY dirty)
+        Q_PROPERTY(float manualThreshold MEMBER manualThreshold NOTIFY dirty)
 
 public:
 
@@ -124,10 +126,12 @@ public:
 
     void setEdgeOuterIntensity(float value);
     float getEdgeOuterIntensity() const { return edgeOuterColor[editedCategory].a; }
-
+    
+    bool manualFade{ false };
+    float manualThreshold{ 0.f };
     int editedCategory{ ELEMENT_ENTER_LEAVE_DOMAIN };
     glm::vec3 noiseSize[EVENT_CATEGORY_COUNT]{
-        { 1.f, 1.f, 1.f },   // ELEMENT_ENTER_LEAVE_DOMAIN
+        { 0.75f, 0.75f, 0.75f },   // ELEMENT_ENTER_LEAVE_DOMAIN
         { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_OWNER
         { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_TRESPASSER
         { 10.f, 0.01f, 10.0f },   // USER_ENTER_LEAVE_DOMAIN
@@ -201,6 +205,9 @@ struct FadeCommonParameters
     using Pointer = std::shared_ptr<FadeCommonParameters>;
 
     bool _isEditEnabled{ false };
+    bool _isManualThresholdEnabled{ false };
+    float _manualThreshold{ 0.f };
+    float _thresholdScale[FadeJobConfig::EVENT_CATEGORY_COUNT];
     int _editedCategory{ FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN };
     float _durations[FadeJobConfig::EVENT_CATEGORY_COUNT]{
         30.0f,   // ELEMENT_ENTER_LEAVE_DOMAIN
@@ -312,15 +319,16 @@ private:
     render::ShapePlumberPointer _shapePlumber;
     FadeCommonParameters::Pointer _parameters;
 
-    float computeElementEnterThreshold(double time) const;
+    float computeElementEnterThreshold(double time, const double period) const;
 
     // Everything needed for interactive edition
-    uint64_t _editStartTime{ 0 };
+    uint64_t _editPreviousTime{ 0 };
+    double _editTime{ 0.0 };
     float _editThreshold{ 0.f };
     glm::vec3 _editNoiseOffset{ 0.f, 0.f, 0.f };
     glm::vec3 _editBaseOffset{ 0.f, 0.f, 0.f };
 
-    void updateFadeEdit(const render::ItemBound& itemBounds);
+    void updateFadeEdit(const render::RenderContextPointer& renderContext, const render::ItemBound& itemBounds);
 };
 
 #endif // hifi_FadeEffect_h

@@ -66,14 +66,14 @@ float evalFadeNoiseGradient(vec3 position) {
     vec4    maskXY = mix(maskLowZ, maskHighZ, noisePositionFraction.z);
     vec2    maskY = mix(maskXY.xy, maskXY.zw, noisePositionFraction.x);
 
-    return mix(maskY.x, maskY.y, noisePositionFraction.y) * fadeParameters[fadeCategory]._noiseInvSizeAndLevel.w;
+    float noise = mix(maskY.x, maskY.y, noisePositionFraction.y);
+    noise -= 0.5;   // Center on value 0
+    return noise * fadeParameters[fadeCategory]._noiseInvSizeAndLevel.w;
 }
 
 float evalFadeBaseGradient(vec3 position) {
     float gradient = length((position - fadeBaseOffset) * fadeParameters[fadeCategory]._baseInvSizeAndLevel.xyz);
-    if (fadeParameters[fadeCategory]._invertBase!=0) {
-        gradient = 1.0 - gradient;
-    }
+    gradient = mod(gradient, 1.0)-0.5;  // Center on value 0.5
     gradient *= fadeParameters[fadeCategory]._baseInvSizeAndLevel.w;
     return gradient;
 }
@@ -81,17 +81,15 @@ float evalFadeBaseGradient(vec3 position) {
 float evalFadeGradient(vec3 position) {
     float baseGradient = evalFadeBaseGradient(position);
     float noiseGradient = evalFadeNoiseGradient(position);
-    float gradient = (noiseGradient-0.5*fadeParameters[fadeCategory]._baseInvSizeAndLevel.w);
+    float gradient = noiseGradient+baseGradient+0.5;
 
-    // This is to be sure the noise is zero at the start of the gradient
-    gradient *= (1-baseGradient*baseGradient);
-    gradient += baseGradient;
     return gradient;
 }
 
 float evalFadeAlpha(vec3 position) {
-    float edgeWidth = fadeParameters[fadeCategory]._edgeWidthInvWidth.x;
-    float cutoff = mix(-edgeWidth, 1.0+edgeWidth, fadeThreshold);
+    //float edgeWidth = fadeParameters[fadeCategory]._edgeWidthInvWidth.x;
+    //float cutoff = mix(-edgeWidth, 1.0+edgeWidth, fadeThreshold);
+    float  cutoff = fadeThreshold;
 
     return evalFadeGradient(position)-cutoff;
 }
@@ -104,6 +102,10 @@ void applyFadeClip(vec3 position) {
 
 void applyFade(vec3 position, out vec3 emissive) {
     float alpha = evalFadeAlpha(position);
+    if (fadeParameters[fadeCategory]._invertBase!=0) {
+        alpha = -alpha;
+    }
+
     if (alpha < 0) {
         discard;
     }
@@ -111,12 +113,12 @@ void applyFade(vec3 position, out vec3 emissive) {
     float edgeMask = alpha * fadeParameters[fadeCategory]._edgeWidthInvWidth.y;
     float edgeAlpha = 1.0-clamp(edgeMask, 0, 1);
 
-    //edgeMask = step(edgeMask, 1.f);
-    edgeMask = edgeMask > 1.f ? 0.f : 1.f;
+    edgeMask = step(edgeMask, 1.f);
     edgeAlpha *= edgeAlpha; // Square to have a nice ease out
     vec4 color = mix(fadeParameters[fadeCategory]._innerEdgeColor, fadeParameters[fadeCategory]._outerEdgeColor, edgeAlpha);
     emissive = color.rgb * edgeMask * color.a;
 }
+
 <@endfunc@>
 
 <@endif@>

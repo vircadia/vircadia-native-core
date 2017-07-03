@@ -46,6 +46,25 @@ Column {
 			}
 		}
 	}
+	Row {
+		CheckBox {
+			text: "Manual"
+			checked: root.config["manualFade"]
+			onCheckedChanged: { 
+				root.config["manualFade"] = checked; 
+			}
+		}
+		ConfigSlider {
+			label: "Threshold"
+			integral: false
+			config: root.config
+			property: "manualThreshold"
+			max: 1.0
+			min: 0.0
+			width: 400
+		}
+	}
+
 
 	Component {
 		id: paramWidgets

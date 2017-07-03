@@ -250,6 +250,9 @@ FadeConfigureJob::FadeConfigureJob(FadeCommonParameters::Pointer commonParams) :
 void FadeConfigureJob::configure(const Config& config) {
     assert(_parameters);
     _parameters->_editedCategory = config.editedCategory;
+    _parameters->_isManualThresholdEnabled = config.manualFade;
+    _parameters->_manualThreshold = config.manualThreshold;
+
     for (auto i = 0; i < FadeJobConfig::EVENT_CATEGORY_COUNT; i++) {
         auto& configuration = _configurations[i];
 
@@ -267,6 +270,7 @@ void FadeConfigureJob::configure(const Config& config) {
         configuration._edgeWidthInvWidth.y = 1.f / configuration._edgeWidthInvWidth.x;
         configuration._innerEdgeColor = config.edgeInnerColor[i];
         configuration._outerEdgeColor = config.edgeOuterColor[i];
+        _parameters->_thresholdScale[i] = 1.f + 2.f*(configuration._edgeWidthInvWidth.x + std::max(0.f, (config.noiseLevel[i] + config.baseLevel[i])*0.5f-0.5f));
     }
     _isBufferDirty = true;
 }
@@ -276,7 +280,7 @@ void FadeConfigureJob::run(const render::RenderContextPointer& renderContext, co
         auto& configurations = output.edit1().edit();
         std::copy(_configurations, _configurations + FadeJobConfig::EVENT_CATEGORY_COUNT, configurations.parameters);
         if (_parameters->_editedCategory == FadeJobConfig::USER_ENTER_LEAVE_DOMAIN) {
-            configurations.parameters[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN]._baseInvSizeAndLevel.y = 2.f / input.getDimensions().y;
+            configurations.parameters[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN]._baseInvSizeAndLevel.y = 1.0f / input.getDimensions().y;
         }
         _isBufferDirty = false;
     }
@@ -314,10 +318,10 @@ void FadeRenderJob::run(const render::RenderContextPointer& renderContext, const
 
             // Update interactive edit effect
             if (_parameters->_isEditEnabled) {
-                updateFadeEdit(inItems.front());
+                updateFadeEdit(renderContext, inItems.front());
             }
             else {
-                _editStartTime = 0;
+                _editPreviousTime = 0;
             }
 
             // Setup camera, projection and viewport for all items
@@ -362,9 +366,10 @@ void FadeRenderJob::run(const render::RenderContextPointer& renderContext, const
     }
 }
 
-float FadeRenderJob::computeElementEnterThreshold(double time) const {
+float FadeRenderJob::computeElementEnterThreshold(double time, const double period) const {
+    assert(period > 0.0);
     float fadeAlpha = 1.0f;
-    const double INV_FADE_PERIOD = 1.0 / (double)(_parameters->_durations[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN]);
+    const double INV_FADE_PERIOD = 1.0 / period;
     double fraction = time * INV_FADE_PERIOD;
     fraction = std::max(fraction, 0.0);
     if (fraction < 1.0) {
@@ -376,31 +381,35 @@ float FadeRenderJob::computeElementEnterThreshold(double time) const {
 float FadeRenderJob::computeFadePercent(quint64 startTime) {
     const double time = (double)(int64_t(usecTimestampNow()) - int64_t(startTime)) / (double)(USECS_PER_SECOND);
     assert(_currentInstance);
-    return _currentInstance->computeElementEnterThreshold(time);
+    return _currentInstance->computeElementEnterThreshold(time, _currentInstance->_parameters->_durations[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN]);
 }
 
-void FadeRenderJob::updateFadeEdit(const render::ItemBound& itemBounds) {
-    if (_editStartTime == 0) {
-        _editStartTime = usecTimestampNow();
+void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderContext, const render::ItemBound& itemBounds) {
+    if (_editPreviousTime == 0) {
+        _editPreviousTime = usecTimestampNow();
+        _editTime = 0.0;
     }
 
-    const double time = (int64_t(usecTimestampNow()) - int64_t(_editStartTime)) / double(USECS_PER_SECOND);
+    uint64_t now = usecTimestampNow();
+    const double deltaTime = (int64_t(now) - int64_t(_editPreviousTime)) / double(USECS_PER_SECOND);
     const float eventDuration = _parameters->_durations[_parameters->_editedCategory];
+    const double waitTime = 0.5;    // Wait between fade in and out
+    double  cycleTime = fmod(_editTime, (eventDuration + waitTime) * 2.0);
+
+    _editTime += deltaTime;
+    _editPreviousTime = now;
 
     switch (_parameters->_editedCategory) {
     case FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN:
     {
-        const double waitTime = 0.5;    // Wait between fade in and out
-        double  cycleTime = fmod(time, (eventDuration+waitTime) * 2.0);
-
         if (cycleTime < eventDuration) {
-            _editThreshold = 1.f-computeElementEnterThreshold(cycleTime);
+            _editThreshold = 1.f-computeElementEnterThreshold(cycleTime, eventDuration);
         }
         else if (cycleTime < (eventDuration + waitTime)) {
             _editThreshold = 0.f;
         }
         else if (cycleTime < (2 * eventDuration + waitTime)) {
-            _editThreshold = computeElementEnterThreshold(cycleTime- (eventDuration + waitTime));
+            _editThreshold = computeElementEnterThreshold(cycleTime- (eventDuration + waitTime), eventDuration);
         }
         else {
             _editThreshold = 1.f;
@@ -416,28 +425,21 @@ void FadeRenderJob::updateFadeEdit(const render::ItemBound& itemBounds) {
 
     case FadeJobConfig::USER_ENTER_LEAVE_DOMAIN:
     {
-        const double waitTime = 0.5;    // Wait between fade in and out
-        double  cycleTime = fmod(time, (eventDuration + waitTime) * 2.0);
-
-        _editNoiseOffset.x = time*0.5;
+        _editNoiseOffset.x = _editTime*0.5;
         _editNoiseOffset.y = 0.f;
-        _editNoiseOffset.z = time*0.75;
+        _editNoiseOffset.z = _editTime*0.75;
 
-        _editBaseOffset.x = 0.f;
-        _editBaseOffset.y = -itemBounds.bound.getDimensions().y;
-        _editBaseOffset.z = 0.f;
-        {
-
-        }
+        _editBaseOffset = itemBounds.bound.calcCenter();
+        _editBaseOffset.y -= itemBounds.bound.getDimensions().y/2.f;
 
         if (cycleTime < eventDuration) {
-            _editThreshold = 1.f - computeElementEnterThreshold(cycleTime);
+            _editThreshold = 1.f - computeElementEnterThreshold(cycleTime, eventDuration);
         }
         else if (cycleTime < (eventDuration + waitTime)) {
             _editThreshold = 0.f;
         }
         else if (cycleTime < (2 * eventDuration + waitTime)) {
-            _editThreshold = computeElementEnterThreshold(cycleTime - (eventDuration + waitTime));
+            _editThreshold = computeElementEnterThreshold(cycleTime - (eventDuration + waitTime), eventDuration);
         }
         else {
             _editThreshold = 1.f;
@@ -450,6 +452,10 @@ void FadeRenderJob::updateFadeEdit(const render::ItemBound& itemBounds) {
 
     default:
         assert(false);
+    }
+
+    if (_parameters->_isManualThresholdEnabled) {
+        _editThreshold = _parameters->_manualThreshold;
     }
 }
 
@@ -496,8 +502,11 @@ bool FadeRenderJob::bindPerItem(gpu::Batch& batch, const gpu::Pipeline* pipeline
             eventCategory = _currentInstance->_parameters->_editedCategory;
             threshold = _currentInstance->_editThreshold;
             noiseOffset += _currentInstance->_editNoiseOffset;
-            baseOffset += _currentInstance->_editBaseOffset;
+            // This works supposing offset is the world position of the object that is fading.
+            baseOffset = _currentInstance->_editBaseOffset - offset;
         }
+
+        threshold = (threshold-0.5f)*_currentInstance->_parameters->_thresholdScale[eventCategory] + 0.5f;
 
         batch._glUniform1i(fadeCategoryLocation, eventCategory);
         batch._glUniform1f(fadeThresholdLocation, threshold);
