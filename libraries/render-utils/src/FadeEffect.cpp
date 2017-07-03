@@ -102,84 +102,70 @@ void FadeSwitchJob::distribute(const render::RenderContextPointer& renderContext
     }
 }
 
-FadeCommonParameters::FadeCommonParameters() :
-    _durations{
-        30.0f,   // ELEMENT_ENTER_LEAVE_DOMAIN
-        0.0f,   // BUBBLE_ISECT_OWNER
-        0.0f,   // BUBBLE_ISECT_TRESPASSER
-        3.0f,   // USER_ENTER_LEAVE_DOMAIN
-        3.0f,   // AVATAR_CHANGE
-    }
+FadeCommonParameters::FadeCommonParameters()
 {
-
+    _durations[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = 0.f;
+    _durations[FadeJobConfig::BUBBLE_ISECT_OWNER] = 0.f;
+    _durations[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = 0.f;
+    _durations[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = 0.f;
+    _durations[FadeJobConfig::AVATAR_CHANGE] = 0.f;
 }
 
-FadeJobConfig::FadeJobConfig() :
-    noiseSize{
-        { 0.75f, 0.75f, 0.75f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-        { 1.0f, 1.0f/15.f, 1.0f },   // BUBBLE_ISECT_OWNER
-        { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_TRESPASSER
-        { 10.f, 0.01f, 10.0f },   // USER_ENTER_LEAVE_DOMAIN
-        { 0.4f, 0.4f, 0.4f },   // AVATAR_CHANGE
-    },
-    noiseLevel{
-    1.0f,    // ELEMENT_ENTER_LEAVE_DOMAIN
-    1.0f,    // BUBBLE_ISECT_OWNER
-    1.0f,    // BUBBLE_ISECT_TRESPASSER
-    0.70f,    // USER_ENTER_LEAVE_DOMAIN
-    1.0f,    // AVATAR_CHANGE
-    },
-    baseSize{
-    { 1.0f, 1.0f, 1.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-    { 2.0f, 2.0f, 2.0f },   // BUBBLE_ISECT_OWNER
-    { 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_TRESPASSER
-    { 10000.f, 1.0f, 10000.0f },   // USER_ENTER_LEAVE_DOMAIN
-    { 0.4f, 0.4f, 0.4f },   // AVATAR_CHANGE
-    },
-    baseLevel{
-        0.0f,    // ELEMENT_ENTER_LEAVE_DOMAIN
-        1.0f,    // BUBBLE_ISECT_OWNER
-        1.0f,    // BUBBLE_ISECT_TRESPASSER
-        1.0f,    // USER_ENTER_LEAVE_DOMAIN
-        1.0f,    // AVATAR_CHANGE
-    },
-    baseInverted{
-        false,    // ELEMENT_ENTER_LEAVE_DOMAIN
-        false,    // BUBBLE_ISECT_OWNER
-        false,    // BUBBLE_ISECT_TRESPASSER
-        true,    // USER_ENTER_LEAVE_DOMAIN
-        false,    // AVATAR_CHANGE
-    },
-    _duration{
-        4.0f,   // ELEMENT_ENTER_LEAVE_DOMAIN
-        0.0f,   // BUBBLE_ISECT_OWNER
-        0.0f,   // BUBBLE_ISECT_TRESPASSER
-        3.0f,   // USER_ENTER_LEAVE_DOMAIN
-        3.0f,   // AVATAR_CHANGE
-    },
-    edgeWidth{
-        0.10f,   // ELEMENT_ENTER_LEAVE_DOMAIN
-        0.08f,   // BUBBLE_ISECT_OWNER
-        0.08f,   // BUBBLE_ISECT_TRESPASSER
-        0.529f,   // USER_ENTER_LEAVE_DOMAIN
-        0.05f,   // AVATAR_CHANGE
-    },
-    edgeInnerColor{
-        { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-        { 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f },   // BUBBLE_ISECT_OWNER
-        { 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f },   // BUBBLE_ISECT_TRESPASSER
-        { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.25f },   // USER_ENTER_LEAVE_DOMAIN
-        { 1.0f, 1.0f, 1.0f, 1.0f },   // AVATAR_CHANGE
-    },
-    edgeOuterColor{
-        { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-        { 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 2.0f },   // BUBBLE_ISECT_OWNER
-        { 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 2.0f },   // BUBBLE_ISECT_TRESPASSER
-        { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f },   // USER_ENTER_LEAVE_DOMAIN
-        { 1.0f, 1.0f, 1.0f, 1.0f },   // AVATAR_CHANGE
-    }
+FadeJobConfig::FadeJobConfig() 
 {
+    noiseSize[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = glm::vec3{ 0.75f, 0.75f, 0.75f };
+    noiseSize[FadeJobConfig::BUBBLE_ISECT_OWNER] = glm::vec3{ 0.4f, 0.4f, 0.4f };
+    noiseSize[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = glm::vec3{ 0.4f, 0.4f, 0.4f };
+    noiseSize[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = glm::vec3{ 10.f, 0.01f, 10.0f };
+    noiseSize[FadeJobConfig::AVATAR_CHANGE] = glm::vec3{ 0.4f, 0.4f, 0.4f };
 
+    noiseLevel[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = 1.f;
+    noiseLevel[FadeJobConfig::BUBBLE_ISECT_OWNER] = 1.f;
+    noiseLevel[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = 1.f;
+    noiseLevel[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = 0.7f;
+    noiseLevel[FadeJobConfig::AVATAR_CHANGE] = 1.f;
+
+    baseSize[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = glm::vec3{ 1.0f, 1.0f, 1.0f };
+    baseSize[FadeJobConfig::BUBBLE_ISECT_OWNER] = glm::vec3{ 2.0f, 2.0f, 2.0f };
+    baseSize[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = glm::vec3{ 2.0f, 2.0f, 2.0f };
+    baseSize[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = glm::vec3{ 10000.f, 1.0f, 10000.0f };
+    baseSize[FadeJobConfig::AVATAR_CHANGE] = glm::vec3{ 0.4f, 0.4f, 0.4f };
+
+    baseLevel[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = 0.f;
+    baseLevel[FadeJobConfig::BUBBLE_ISECT_OWNER] = 1.f;
+    baseLevel[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = 1.f;
+    baseLevel[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = 1.f;
+    baseLevel[FadeJobConfig::AVATAR_CHANGE] = 1.f;
+
+    baseInverted[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = false;
+    baseInverted[FadeJobConfig::BUBBLE_ISECT_OWNER] = false;
+    baseInverted[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = false;
+    baseInverted[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = true;
+    baseInverted[FadeJobConfig::AVATAR_CHANGE] = false;
+
+    _duration[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = 4.f;
+    _duration[FadeJobConfig::BUBBLE_ISECT_OWNER] = 0.f;
+    _duration[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = 0.f;
+    _duration[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = 3.f;
+    _duration[FadeJobConfig::AVATAR_CHANGE] = 3.f;
+
+    edgeWidth[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = 0.1f;
+    edgeWidth[FadeJobConfig::BUBBLE_ISECT_OWNER] = 0.08f;
+    edgeWidth[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = 0.08f;
+    edgeWidth[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = 0.329f;
+    edgeWidth[FadeJobConfig::AVATAR_CHANGE] = 0.05f;
+
+    edgeInnerColor[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.0f };
+    edgeInnerColor[FadeJobConfig::BUBBLE_ISECT_OWNER] = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f };
+    edgeInnerColor[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+    edgeInnerColor[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.25f };
+    edgeInnerColor[FadeJobConfig::AVATAR_CHANGE] = glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+
+    edgeOuterColor[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f };
+    edgeOuterColor[FadeJobConfig::BUBBLE_ISECT_OWNER] = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 2.0f };
+    edgeOuterColor[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 2.0f };
+    edgeOuterColor[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f };
+    edgeOuterColor[FadeJobConfig::AVATAR_CHANGE] = glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
 }
 
 void FadeJobConfig::setEditedCategory(int value) {
