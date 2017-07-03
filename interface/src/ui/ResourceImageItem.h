@@ -12,6 +12,8 @@
 #ifndef hifi_ResourceImageItem_h
 #define hifi_ResourceImageItem_h
 
+#include "Application.h"
+
 #include <QQuickFramebufferObject>
 #include <QQuickWindow>
 #include <QTimer>

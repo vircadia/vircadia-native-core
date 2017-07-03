@@ -8,7 +8,7 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Application.h"
+//#include "Application.h"
 #include "ResourceImageItem.h"
 
 #include <QOpenGLFramebufferObjectFormat>
@@ -16,7 +16,6 @@
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLContext>
 
-#include <DependencyManager.h>
 
 void ResourceImageItem::setUrl(const QString& url) {
     if (url != m_url) {
@@ -42,7 +41,6 @@ void ResourceImageItemRenderer::onUpdateTimer() {
             qDebug() << "couldn't get a lock, using last frame";
         }
     }
-
     update();
 }
 
