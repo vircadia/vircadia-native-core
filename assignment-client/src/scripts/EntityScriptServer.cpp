@@ -54,7 +54,7 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
 
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
 
-    ResourceManager::init();
+    DependencyManager::set<ResourceManager>();
 
     DependencyManager::registerInheritance<SpatialParentFinder, AssignmentParentFinder>();
 
@@ -66,7 +66,6 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
 
     DependencyManager::set<ScriptCache>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::ENTITY_SERVER_SCRIPT);
-
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListenerForTypes({ PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
@@ -493,7 +492,7 @@ void EntityScriptServer::checkAndCallPreload(const EntityItemID& entityID, bool 
         if (entity && (reload || notRunning || details.scriptText != entity->getServerScripts())) {
             QString scriptUrl = entity->getServerScripts();
             if (!scriptUrl.isEmpty()) {
-                scriptUrl = ResourceManager::normalizeURL(scriptUrl);
+                scriptUrl = DependencyManager::get<ResourceManager>()->normalizeURL(scriptUrl);
                 qCDebug(entity_script_server) << "Loading entity server script" << scriptUrl << "for" << entityID;
                 _entitiesScriptEngine->loadEntityScript(entityID, scriptUrl, reload);
             }
@@ -551,7 +550,7 @@ void EntityScriptServer::aboutToFinish() {
     // our entity tree is going to go away so tell that to the EntityScriptingInterface
     DependencyManager::get<EntityScriptingInterface>()->setEntityTree(nullptr);
 
-    ResourceManager::cleanup();
+    DependencyManager::get<ResourceManager>()->cleanup();
 
     // cleanup the AudioInjectorManager (and any still running injectors)
     DependencyManager::destroy<AudioInjectorManager>();
