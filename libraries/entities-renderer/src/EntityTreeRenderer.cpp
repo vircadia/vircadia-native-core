@@ -163,7 +163,6 @@ void EntityTreeRenderer::reloadEntityScripts() {
 void EntityTreeRenderer::init() {
     OctreeProcessor::init();
     EntityTreePointer entityTree = std::static_pointer_cast<EntityTree>(_tree);
-    entityTree->setFBXService(this);
 
     if (_wantScripts) {
         resetEntitiesScriptEngine();
@@ -188,7 +187,6 @@ void EntityTreeRenderer::shutdown() {
 
 void EntityTreeRenderer::setTree(OctreePointer newTree) {
     OctreeProcessor::setTree(newTree);
-    std::static_pointer_cast<EntityTree>(_tree)->setFBXService(this);
 }
 
 void EntityTreeRenderer::update() {
@@ -371,31 +369,6 @@ bool EntityTreeRenderer::applyLayeredZones() {
     }
      
      return true;
-}
-
-const FBXGeometry* EntityTreeRenderer::getGeometryForEntity(EntityItemPointer entityItem) {
-    const FBXGeometry* result = NULL;
-
-    if (entityItem->getType() == EntityTypes::Model) {
-        std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
-                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
-        assert(modelEntityItem); // we need this!!!
-        ModelPointer model = modelEntityItem->getModel(getSharedFromThis());
-        if (model && model->isLoaded()) {
-            result = &model->getFBXGeometry();
-        }
-    }
-    return result;
-}
-
-ModelPointer EntityTreeRenderer::getModelForEntityItem(EntityItemPointer entityItem) {
-    ModelPointer result = nullptr;
-    if (entityItem->getType() == EntityTypes::Model) {
-        std::shared_ptr<RenderableModelEntityItem> modelEntityItem =
-                                                        std::dynamic_pointer_cast<RenderableModelEntityItem>(entityItem);
-        result = modelEntityItem->getModel(getSharedFromThis());
-    }
-    return result;
 }
 
 void EntityTreeRenderer::processEraseMessage(ReceivedMessage& message, const SharedNodePointer& sourceNode) {
@@ -880,7 +853,7 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool 
             entity->scriptHasUnloaded();
         }
         if (shouldLoad) {
-            scriptUrl = ResourceManager::normalizeURL(scriptUrl);
+            scriptUrl = DependencyManager::get<ResourceManager>()->normalizeURL(scriptUrl);
             _entitiesScriptEngine->loadEntityScript(entityID, scriptUrl, reload);
             entity->scriptHasPreloaded();
         }
@@ -889,7 +862,12 @@ void EntityTreeRenderer::checkAndCallPreload(const EntityItemID& entityID, bool 
 
 void EntityTreeRenderer::playEntityCollisionSound(EntityItemPointer entity, const Collision& collision) {
     assert((bool)entity);
-    SharedSoundPointer collisionSound = entity->getCollisionSound();
+    auto renderable = entity->getRenderableInterface();
+    if (!renderable) { 
+        return; 
+    }
+    
+    SharedSoundPointer collisionSound = renderable->getCollisionSound();
     if (!collisionSound) {
         return;
     }

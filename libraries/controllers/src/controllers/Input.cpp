@@ -9,9 +9,14 @@
 #include "Input.h"
 
 namespace controller {
-    const Input Input::INVALID_INPUT = Input(0x7fffffff);
+    const Input Input::INVALID_INPUT = invalidInput();
     const uint16_t Input::INVALID_DEVICE = Input::INVALID_INPUT.device;
     const uint16_t Input::INVALID_CHANNEL = Input::INVALID_INPUT.channel;
     const uint16_t Input::INVALID_TYPE = Input::INVALID_INPUT.type;
+
+    const Input& Input::invalidInput() {
+        static const Input INVALID_INPUT = Input(0x7fffffff);
+        return INVALID_INPUT;
+    }
 }
 

@@ -153,6 +153,15 @@ QString ScriptAvatarData::getSessionDisplayName() const {
         return QString();
     }
 }
+
+bool ScriptAvatarData::getIsReplicated() const {
+    if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
+        return sharedAvatarData->getIsReplicated();
+    } else {
+        return false;
+    }
+}
+
 bool ScriptAvatarData::getLookAtSnappingEnabled() const {
     if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
         return sharedAvatarData->getLookAtSnappingEnabled();

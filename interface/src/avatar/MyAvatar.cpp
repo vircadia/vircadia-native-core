@@ -1474,6 +1474,19 @@ controller::Pose MyAvatar::getRightHandControllerPoseInAvatarFrame() const {
     return getRightHandControllerPoseInWorldFrame().transform(invAvatarMatrix);
 }
 
+void MyAvatar::setFingerControllerPosesInSensorFrame(const FingerPosesMap& left, const FingerPosesMap& right) {
+    _leftHandFingerPosesInSensorFramceCache.set(left);
+    _rightHandFingerPosesInSensorFramceCache.set(right);
+}
+
+MyAvatar::FingerPosesMap MyAvatar::getLeftHandFingerControllerPosesInSensorFrame() const {
+    return _leftHandFingerPosesInSensorFramceCache.get();
+}
+
+MyAvatar::FingerPosesMap MyAvatar::getRightHandFingerControllerPosesInSensorFrame() const {
+    return _rightHandFingerPosesInSensorFramceCache.get();
+}
+
 void MyAvatar::setFootControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right) {
     _leftFootControllerPoseInSensorFrameCache.set(left);
     _rightFootControllerPoseInSensorFrameCache.set(right);
@@ -2542,6 +2555,21 @@ bool MyAvatar::isInAir() {
 bool MyAvatar::getFlyingEnabled() {
     // May return true even if client is not allowed to fly in the zone.
     return _enableFlying;
+}
+
+// Public interface for targetscale
+float MyAvatar::getAvatarScale() {
+    return getTargetScale();
+}
+
+void MyAvatar::setAvatarScale(float val) {
+
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setAvatarScale", Q_ARG(float, val));
+        return;
+    }
+
+    setTargetScale(val);
 }
 
 void MyAvatar::setCollisionsEnabled(bool enabled) {

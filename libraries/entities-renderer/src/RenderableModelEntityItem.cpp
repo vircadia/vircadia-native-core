@@ -69,11 +69,9 @@ void RenderableModelEntityItem::setModelURL(const QString& url) {
 
 void RenderableModelEntityItem::loader() {
     _needsModelReload = true;
-    auto renderer = DependencyManager::get<EntityTreeRenderer>();
-    assert(renderer);
     {
         PerformanceTimer perfTimer("getModel");
-        getModel(renderer);
+        getModel();
     }
 }
 
@@ -390,8 +388,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         if (!_model || _needsModelReload) {
             // TODO: this getModel() appears to be about 3% of model render time. We should optimize
             PerformanceTimer perfTimer("getModel");
-            auto renderer = qSharedPointerCast<EntityTreeRenderer>(args->_renderData);
-            getModel(renderer);
+            getModel();
 
             // Remap textures immediately after loading to avoid flicker
             remapTextures();
@@ -483,7 +480,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         auto& currentURL = getParsedModelURL();
         if (currentURL != _model->getURL()) {
             // Defer setting the url to the render thread
-            getModel(_myRenderer);
+            getModel();
         }
     }
 }
@@ -492,16 +489,11 @@ ModelPointer RenderableModelEntityItem::getModelNotSafe() {
     return _model;
 }
 
-ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRenderer> renderer) {
-    if (!renderer) {
-        return nullptr;
-    }
-
+ModelPointer RenderableModelEntityItem::getModel() {
     // make sure our renderer is setup
     if (!_myRenderer) {
-        _myRenderer = renderer;
+        _myRenderer = DependencyManager::get<EntityTreeRenderer>();
     }
-    assert(_myRenderer == renderer); // you should only ever render on one renderer
 
     if (!_myRenderer || QThread::currentThread() != _myRenderer->thread()) {
         return _model;
@@ -513,7 +505,7 @@ ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRender
     if (!getModelURL().isEmpty()) {
         // If we don't have a model, allocate one *immediately*
         if (!_model) {
-            _model = _myRenderer->allocateModel(getModelURL(), renderer->getEntityLoadingPriority(*this), this);
+            _model = _myRenderer->allocateModel(getModelURL(), _myRenderer->getEntityLoadingPriority(*this), this);
             _needsInitialSimulation = true;
         // If we need to change URLs, update it *after rendering* (to avoid access violations)
         } else if (QUrl(getModelURL()) != _model->getURL()) {
@@ -586,6 +578,17 @@ EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlag
         properties.setRenderInfoDrawCalls(_model->getRenderInfoDrawCalls());
         properties.setRenderInfoHasTransparent(_model->getRenderInfoHasTransparent());
     }
+
+
+    if (_model && _model->isLoaded()) {
+        // TODO: improve naturalDimensions in the future,
+        //       for now we've added this hack for setting natural dimensions of models
+        Extents meshExtents = _model->getFBXGeometry().getUnscaledMeshExtents();
+        properties.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
+        properties.calculateNaturalPosition(meshExtents.minimum, meshExtents.maximum);
+    }
+
+
 
     return properties;
 }
@@ -1254,4 +1257,28 @@ QStringList RenderableModelEntityItem::getJointNames() const {
         }
     }
     return result;
+}
+
+void RenderableModelEntityItem::mapJoints(const QStringList& modelJointNames) {
+    // if we don't have animation, or we're already joint mapped then bail early
+    if (!hasAnimation() || jointsMapped()) {
+        return;
+    }
+
+    if (!_animation || _animation->getURL().toString() != getAnimationURL()) {
+        _animation = DependencyManager::get<AnimationCache>()->getAnimation(getAnimationURL());
+    }
+
+    if (_animation && _animation->isLoaded()) {
+        QStringList animationJointNames = _animation->getJointNames();
+
+        if (modelJointNames.size() > 0 && animationJointNames.size() > 0) {
+            _jointMapping.resize(modelJointNames.size());
+            for (int i = 0; i < modelJointNames.size(); i++) {
+                _jointMapping[i] = animationJointNames.indexOf(modelJointNames[i]);
+            }
+            _jointMappingCompleted = true;
+            _jointMappingURL = _animationProperties.getURL();
+        }
+    }
 }

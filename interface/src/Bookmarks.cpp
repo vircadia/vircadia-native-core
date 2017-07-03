@@ -28,19 +28,6 @@ Bookmarks::Bookmarks() :
 _isMenuSorted(false)
 {
 }
-
-void Bookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
-    // Enable/Disable menus as needed
-    enableMenuItems(_bookmarks.count() > 0);
-
-    // Load Bookmarks
-    for (auto it = _bookmarks.begin(); it != _bookmarks.end(); ++it) {
-        QString bookmarkName = it.key();
-        QString bookmarkAddress = it.value().toString();
-        addBookmarkToMenu(menubar, bookmarkName, bookmarkAddress);
-    }
-}
-
 void Bookmarks::deleteBookmark() {
     QStringList bookmarkList;
     QList<QAction*> menuItems = _bookmarksMenu->actions();
@@ -67,7 +54,7 @@ void Bookmarks::deleteBookmark() {
     }
 }
 
-void Bookmarks::addBookmarkToFile(const QString& bookmarkName, const QString& bookmarkAddress) {
+void Bookmarks::addBookmarkToFile(const QString& bookmarkName, const QVariant& bookmark) {
     Menu* menubar = Menu::getInstance();
     if (contains(bookmarkName)) {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -75,7 +62,6 @@ void Bookmarks::addBookmarkToFile(const QString& bookmarkName, const QString& bo
             "The bookmark name you entered already exists in your list.",
             QMessageBox::Yes | QMessageBox::No, QMessageBox::Yes);
         duplicateBookmarkMessage->setProperty("informativeText", "Would you like to overwrite it?");
-
         auto result = offscreenUi->waitForMessageBoxResult(duplicateBookmarkMessage);
         if (result != QMessageBox::Yes) {
             return;
@@ -83,19 +69,20 @@ void Bookmarks::addBookmarkToFile(const QString& bookmarkName, const QString& bo
         removeBookmarkFromMenu(menubar, bookmarkName);
     }
 
-    addBookmarkToMenu(menubar, bookmarkName, bookmarkAddress);
-    insert(bookmarkName, bookmarkAddress);  // Overwrites any item with the same bookmarkName.
+    addBookmarkToMenu(menubar, bookmarkName, bookmark);
+    insert(bookmarkName, bookmark);  // Overwrites any item with the same bookmarkName.
     enableMenuItems(true);
 }
 
-void Bookmarks::insert(const QString& name, const QString& address) {
-    _bookmarks.insert(name, address);
+void Bookmarks::insert(const QString& name, const QVariant& bookmark) {
+    _bookmarks.insert(name, bookmark);
 
     if (contains(name)) {
-        qCDebug(interfaceapp) << "Added bookmark:" << name << "," << address;
+        qCDebug(interfaceapp) << "Added bookmark:" << name;
         persistToFile();
-    } else {
-        qWarning() << "Couldn't add bookmark: " << name << "," << address;
+    }
+    else {
+        qWarning() << "Couldn't add bookmark: " << name;
     }
 }
 

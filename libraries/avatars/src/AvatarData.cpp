@@ -1511,6 +1511,7 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
             >> identity.attachmentData
             >> identity.displayName
             >> identity.sessionDisplayName
+            >> identity.isReplicated
             >> identity.avatarEntityData
             >> identity.lookAtSnappingEnabled
         ;
@@ -1534,6 +1535,11 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
             displayNameChanged = true;
         }
         maybeUpdateSessionDisplayNameFromTransport(identity.sessionDisplayName);
+
+        if (identity.isReplicated != _isReplicated) {
+            _isReplicated = identity.isReplicated;
+            identityChanged = true;
+        }
 
         if (identity.attachmentData != _attachmentData) {
             setAttachmentData(identity.attachmentData);
@@ -1570,7 +1576,7 @@ void AvatarData::processAvatarIdentity(const QByteArray& identityData, bool& ide
     }
 }
 
-QByteArray AvatarData::identityByteArray() const {
+QByteArray AvatarData::identityByteArray(bool setIsReplicated) const {
     QByteArray identityData;
     QDataStream identityStream(&identityData, QIODevice::Append);
     const QUrl& urlToSend = cannonicalSkeletonModelURL(emptyURL); // depends on _skeletonModelURL
@@ -1585,6 +1591,7 @@ QByteArray AvatarData::identityByteArray() const {
             << _attachmentData
             << _displayName
             << getSessionDisplayNameForTransport() // depends on _sessionDisplayName
+            << (_isReplicated || setIsReplicated)
             << _avatarEntityData
             << _lookAtSnappingEnabled
         ;
@@ -1982,7 +1989,7 @@ JointData jointDataFromJsonValue(const QJsonValue& json) {
         result.rotation = quatFromJsonValue(array[0]);
         result.rotationSet = true;
         result.translation = vec3FromJsonValue(array[1]);
-        result.translationSet = false;
+        result.translationSet = true;
     }
     return result;
 }
@@ -2150,12 +2157,9 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
             QVector<JointData> jointArray;
             QJsonArray jointArrayJson = json[JSON_AVATAR_JOINT_ARRAY].toArray();
             jointArray.reserve(jointArrayJson.size());
-            int i = 0;
             for (const auto& jointJson : jointArrayJson) {
                 auto joint = jointDataFromJsonValue(jointJson);
                 jointArray.push_back(joint);
-                setJointData(i, joint.rotation, joint.translation);
-                i++;
             }
             setRawJointData(jointArray);
         }

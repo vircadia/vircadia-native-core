@@ -171,7 +171,7 @@ void DomainMetadata::maybeUpdateUsers() {
         if (linkedData) {
             auto nodeData = static_cast<DomainServerNodeData*>(linkedData);
 
-            if (!nodeData->wasAssigned()) {
+            if (!nodeData->wasAssigned() && node->getType() == NodeType::Agent) {
                 ++numConnected;
 
                 if (nodeData->getUsername().isEmpty()) {

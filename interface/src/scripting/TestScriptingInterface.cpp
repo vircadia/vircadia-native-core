@@ -62,7 +62,7 @@ bool TestScriptingInterface::loadTestScene(QString scene) {
     static const QString TEST_SCRIPTS_ROOT = TEST_ROOT + "scripts/";
     static const QString TEST_SCENES_ROOT = TEST_ROOT + "scenes/";
     return DependencyManager::get<OffscreenUi>()->returnFromUiThread([scene]()->QVariant {
-        ResourceManager::setUrlPrefixOverride("atp:/", TEST_BINARY_ROOT + scene + ".atp/");
+        DependencyManager::get<ResourceManager>()->setUrlPrefixOverride("atp:/", TEST_BINARY_ROOT + scene + ".atp/");
         auto tree = qApp->getEntities()->getTree();
         auto treeIsClient = tree->getIsClient();
         // Force the tree to accept the load regardless of permissions
