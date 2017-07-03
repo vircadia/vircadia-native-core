@@ -11,6 +11,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+import Hifi 1.0 as Hifi
 import QtQuick 2.5
 import QtQuick.Controls 1.4
 import "../styles-uit"
@@ -38,7 +39,7 @@ Rectangle {
         letterboxMessage.visible = true;
         letterboxMessage.popupRadius = 0;
     }
-    
+
     //
     // TITLE BAR START
     //
@@ -77,7 +78,7 @@ Rectangle {
     //
     // TITLE BAR END
     //
-    
+
     //
     // SPECTATOR APP DESCRIPTION START
     //
@@ -152,7 +153,7 @@ Rectangle {
             // Alignment
             horizontalAlignment: Text.AlignHLeft;
             verticalAlignment: Text.AlignVCenter;
-            
+
             MouseArea {
                 anchors.fill: parent;
                 hoverEnabled: enabled;
@@ -186,7 +187,7 @@ Rectangle {
     // SPECTATOR APP DESCRIPTION END
     //
 
-    
+
     //
     // SPECTATOR CONTROLS START
     //
@@ -212,23 +213,28 @@ Rectangle {
             boxSize: 24;
             onClicked: {
                 sendToScript({method: (checked ? 'spectatorCameraOn' : 'spectatorCameraOff')});
+                spectatorCameraPreview.ready = checked;
             }
         }
 
         // Spectator Camera Preview
-        Image {
+        Hifi.ResourceImageItem {
             id: spectatorCameraPreview;
+            url: "resource://spectatorCameraFrame";
+            ready: cameraToggleCheckBox.checked;
+            mirrorVertically: true;
             height: 250;
             anchors.left: parent.left;
             anchors.top: cameraToggleCheckBox.bottom;
             anchors.topMargin: 20;
             anchors.right: parent.right;
-            fillMode: Image.PreserveAspectFit;
-            horizontalAlignment: Image.AlignHCenter;
-            verticalAlignment: Image.AlignVCenter;
-            source: "http://1.bp.blogspot.com/-1GABEq__054/T03B00j_OII/AAAAAAAAAa8/jo55LcvEPHI/s1600/Winning.jpg";
+            onVisibleChanged: {
+                ready = cameraToggleCheckBox.checked;
+                update();
+            }
+
         }
-        
+
         // "Monitor Shows" Switch Label Glyph
         HiFiGlyphs {
             id: monitorShowsSwitchLabelGlyph;
@@ -236,7 +242,7 @@ Rectangle {
             size: 32;
             color: hifi.colors.blueHighlight;
             anchors.top: spectatorCameraPreview.bottom;
-            anchors.topMargin: 12;
+            anchors.topMargin: 20;
             anchors.left: parent.left;
         }
         // "Monitor Shows" Switch Label
@@ -282,7 +288,7 @@ Rectangle {
                 sendToScript({method: 'changeSwitchViewFromControllerPreference', params: checked});
             }
         }
-    }    
+    }
     //
     // SPECTATOR CONTROLS END
     //
@@ -295,11 +301,11 @@ Rectangle {
     //
     // Relevant Variables:
     // None
-    // 
+    //
     // Arguments:
     // message: The message sent from the SpectatorCamera JavaScript.
     //     Messages are in format "{method, params}", like json-rpc.
-    // 
+    //
     // Description:
     // Called when a message is received from spectatorCamera.js.
     //

@@ -16,6 +16,7 @@
 
 #include <QtOpenGL/QGLWidget>
 #include <QtGui/QImage>
+#include <QOpenGLFramebufferObject>
 #if defined(Q_OS_MAC)
 #include <OpenGL/CGLCurrent.h>
 #endif
@@ -41,7 +42,7 @@
 #include <ui-plugins/PluginContainer.h>
 #include <ui/Menu.h>
 #include <CursorManager.h>
-
+#include <TextureCache.h>
 #include "CompositorHelper.h"
 #include "Logging.h"
 
@@ -55,7 +56,7 @@ out vec4 outFragColor;
 
 float sRGBFloatToLinear(float value) {
     const float SRGB_ELBOW = 0.04045;
-    
+
     return (value <= SRGB_ELBOW) ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4);
 }
 
@@ -121,10 +122,10 @@ public:
         PROFILE_SET_THREAD_NAME("Present Thread");
 
         // FIXME determine the best priority balance between this and the main thread...
-        // It may be dependent on the display plugin being used, since VR plugins should 
+        // It may be dependent on the display plugin being used, since VR plugins should
         // have higher priority on rendering (although we could say that the Oculus plugin
         // doesn't need that since it has async timewarp).
-        // A higher priority here 
+        // A higher priority here
         setPriority(QThread::HighPriority);
         OpenGLDisplayPlugin* currentPlugin{ nullptr };
         Q_ASSERT(_context);
@@ -233,7 +234,7 @@ public:
         // Move the context back to the presentation thread
         _context->moveToThread(this);
 
-        // restore control of the context to the presentation thread and signal 
+        // restore control of the context to the presentation thread and signal
         // the end of the operation
         _finishedMainThreadOperation = true;
         lock.unlock();
@@ -291,7 +292,7 @@ bool OpenGLDisplayPlugin::activate() {
     if (!RENDER_THREAD) {
         RENDER_THREAD = _presentThread;
     }
-    
+
     // Child classes may override this in order to do things like initialize
     // libraries, etc
     if (!internalActivate()) {
@@ -411,7 +412,7 @@ void OpenGLDisplayPlugin::customizeContext() {
             gpu::Shader::makeProgram(*program);
             gpu::StatePointer state = gpu::StatePointer(new gpu::State());
             state->setDepthTest(gpu::State::DepthTest(false));
-            state->setBlendFunction(true, 
+            state->setBlendFunction(true,
                 gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
                 gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
             _overlayPipeline = gpu::Pipeline::create(program, state);
@@ -686,7 +687,7 @@ void OpenGLDisplayPlugin::resetPresentRate() {
     // _presentRate = RateCounter<100>();
 }
 
-float OpenGLDisplayPlugin::renderRate() const { 
+float OpenGLDisplayPlugin::renderRate() const {
     return _renderRate.rate();
 }
 
@@ -821,3 +822,51 @@ void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
         _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
     }
 }
+
+void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer networkTexture, QOpenGLFramebufferObject* target, GLsync* fenceSync) {
+    auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
+    withMainThreadContext([&] {
+        GLuint sourceTexture = glBackend->getTextureID(networkTexture->getGPUTexture());
+        GLuint targetTexture = target->texture();
+        GLuint fbo[2] {0, 0};
+
+        // need mipmaps for blitting texture
+        glGenerateTextureMipmap(sourceTexture);
+
+        // create 2 fbos (one for initial texture, second for scaled one)
+        glCreateFramebuffers(2, fbo);
+
+        // setup source fbo
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sourceTexture, 0);
+        GLint texWidth, texHeight;
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &texWidth);
+        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &texHeight);
+
+        // setup destination fbo
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo[1]);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, targetTexture, 0);
+
+
+        // maintain aspect ratio, filling the width first if possible.  If that makes the height too
+        // much, fill height instead. TODO: only do this when texture changes
+        GLint newX = 0;
+        GLint newY = 0;
+        float aspectRatio = (float)texHeight / (float)texWidth;
+        GLint newWidth = target->width();
+        GLint newHeight = std::round(aspectRatio * (float) target->width());
+        if (newHeight > target->height()) {
+            newHeight = target->height();
+            newWidth = std::round((float)target->height() / aspectRatio);
+            newX = (target->width() - newWidth) / 2;
+        } else {
+            newY = (target->height() - newHeight) / 2;
+        }
+        glBlitNamedFramebuffer(fbo[0], fbo[1], 0, 0, texWidth, texHeight, newX, newY, newWidth, newHeight, GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT, GL_NEAREST);
+
+        // don't delete the textures!
+        glDeleteFramebuffers(2, fbo);
+        *fenceSync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    });
+}
+
