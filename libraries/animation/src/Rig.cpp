@@ -1093,24 +1093,9 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
     const float ELBOW_POLE_VECTOR_BLEND_FACTOR = 0.95f;
 
     if (leftHandEnabled) {
-        if (!_isLeftHandControlled) {
-            _leftHandControlTimeRemaining = CONTROL_DURATION;
-            _isLeftHandControlled = true;
-        }
 
         glm::vec3 handPosition = leftHandPose.trans();
         glm::quat handRotation = leftHandPose.rot();
-
-        if (_leftHandControlTimeRemaining > 0.0f) {
-            // Move hand from non-controlled position to controlled position.
-            _leftHandControlTimeRemaining = std::max(_leftHandControlTimeRemaining - dt, 0.0f);
-            AnimPose handPose(Vectors::ONE, handRotation, handPosition);
-            if (transitionHandPose(_leftHandControlTimeRemaining, CONTROL_DURATION, handPose,
-                                   LEFT_HAND, TO_CONTROLLED, handPose)) {
-                handPosition = handPose.trans();
-                handRotation = handPose.rot();
-            }
-        }
 
         if (!hipsEnabled) {
             // prevent the hand IK targets from intersecting the body capsule
@@ -1123,9 +1108,6 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         _animVars.set("leftHandPosition", handPosition);
         _animVars.set("leftHandRotation", handRotation);
         _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
-
-        _lastLeftHandControlledPose = AnimPose(Vectors::ONE, handRotation, handPosition);
-        _isLeftHandControlled = true;
 
         // compute pole vector
         int handJointIndex = _animSkeleton->nameToJointIndex("LeftHand");
@@ -1154,46 +1136,16 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         _prevLeftHandPoleVectorValid = false;
         _animVars.set("leftHandPoleVectorEnabled", false);
 
-        if (_isLeftHandControlled) {
-            _leftHandRelaxTimeRemaining = RELAX_DURATION;
-            _isLeftHandControlled = false;
-        }
+        _animVars.unset("leftHandPosition");
+        _animVars.unset("leftHandRotation");
+        _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
 
-        if (_leftHandRelaxTimeRemaining > 0.0f) {
-            // Move hand from controlled position to non-controlled position.
-            _leftHandRelaxTimeRemaining = std::max(_leftHandRelaxTimeRemaining - dt, 0.0f);
-            AnimPose handPose;
-            if (transitionHandPose(_leftHandRelaxTimeRemaining, RELAX_DURATION, _lastLeftHandControlledPose,
-                                   LEFT_HAND, FROM_CONTROLLED, handPose)) {
-                _animVars.set("leftHandPosition", handPose.trans());
-                _animVars.set("leftHandRotation", handPose.rot());
-                _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
-            }
-        } else {
-            _animVars.unset("leftHandPosition");
-            _animVars.unset("leftHandRotation");
-            _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
-        }
     }
 
     if (rightHandEnabled) {
-        if (!_isRightHandControlled) {
-            _rightHandControlTimeRemaining = CONTROL_DURATION;
-            _isRightHandControlled = true;
-        }
 
         glm::vec3 handPosition = rightHandPose.trans();
         glm::quat handRotation = rightHandPose.rot();
-
-        if (_rightHandControlTimeRemaining > 0.0f) {
-            // Move hand from non-controlled position to controlled position.
-            _rightHandControlTimeRemaining = std::max(_rightHandControlTimeRemaining - dt, 0.0f);
-            AnimPose handPose(Vectors::ONE, handRotation, handPosition);
-            if (transitionHandPose(_rightHandControlTimeRemaining, CONTROL_DURATION, handPose, RIGHT_HAND, TO_CONTROLLED, handPose)) {
-                handPosition = handPose.trans();
-                handRotation = handPose.rot();
-            }
-        }
 
         if (!hipsEnabled) {
             // prevent the hand IK targets from intersecting the body capsule
@@ -1206,9 +1158,6 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         _animVars.set("rightHandPosition", handPosition);
         _animVars.set("rightHandRotation", handRotation);
         _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
-
-        _lastRightHandControlledPose = AnimPose(Vectors::ONE, handRotation, handPosition);
-        _isRightHandControlled = true;
 
         // compute pole vector
         int handJointIndex = _animSkeleton->nameToJointIndex("RightHand");
@@ -1237,25 +1186,9 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         _prevRightHandPoleVectorValid = false;
         _animVars.set("rightHandPoleVectorEnabled", false);
 
-        if (_isRightHandControlled) {
-            _rightHandRelaxTimeRemaining = RELAX_DURATION;
-            _isRightHandControlled = false;
-        }
-
-        if (_rightHandRelaxTimeRemaining > 0.0f) {
-            // Move hand from controlled position to non-controlled position.
-            _rightHandRelaxTimeRemaining = std::max(_rightHandRelaxTimeRemaining - dt, 0.0f);
-            AnimPose handPose;
-            if (transitionHandPose(_rightHandRelaxTimeRemaining, RELAX_DURATION, _lastRightHandControlledPose, RIGHT_HAND, FROM_CONTROLLED, handPose)) {
-                _animVars.set("rightHandPosition", handPose.trans());
-                _animVars.set("rightHandRotation", handPose.rot());
-                _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
-            }
-        } else {
-            _animVars.unset("rightHandPosition");
-            _animVars.unset("rightHandRotation");
-            _animVars.set("rightHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
-        }
+        _animVars.unset("rightHandPosition");
+        _animVars.unset("rightHandRotation");
+        _animVars.set("rightHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
     }
 }
 

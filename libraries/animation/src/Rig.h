@@ -343,15 +343,6 @@ protected:
     bool transitionHandPose(float deltaTime, float totalDuration, AnimPose& controlledHandPose, bool isLeftHand,
                             bool isToControlled, AnimPose& returnHandPose);
 
-    bool _isLeftHandControlled { false };
-    bool _isRightHandControlled { false };
-    float _leftHandControlTimeRemaining { 0.0f };
-    float _rightHandControlTimeRemaining { 0.0f };
-    float _leftHandRelaxTimeRemaining { 0.0f };
-    float _rightHandRelaxTimeRemaining { 0.0f };
-    AnimPose _lastLeftHandControlledPose;
-    AnimPose _lastRightHandControlledPose;
-
     glm::vec3 _prevRightFootPoleVector { Vectors::UNIT_Z };
     bool _prevRightFootPoleVectorValid { false };
 
