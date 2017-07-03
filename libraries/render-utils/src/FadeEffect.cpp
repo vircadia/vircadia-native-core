@@ -102,6 +102,86 @@ void FadeSwitchJob::distribute(const render::RenderContextPointer& renderContext
     }
 }
 
+FadeCommonParameters::FadeCommonParameters() :
+    _durations{
+        30.0f,   // ELEMENT_ENTER_LEAVE_DOMAIN
+        0.0f,   // BUBBLE_ISECT_OWNER
+        0.0f,   // BUBBLE_ISECT_TRESPASSER
+        3.0f,   // USER_ENTER_LEAVE_DOMAIN
+        3.0f,   // AVATAR_CHANGE
+    }
+{
+
+}
+
+FadeJobConfig::FadeJobConfig() :
+    noiseSize{
+        { 0.75f, 0.75f, 0.75f },   // ELEMENT_ENTER_LEAVE_DOMAIN
+        { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_OWNER
+        { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_TRESPASSER
+        { 10.f, 0.01f, 10.0f },   // USER_ENTER_LEAVE_DOMAIN
+        { 0.4f, 0.4f, 0.4f },   // AVATAR_CHANGE
+    },
+    noiseLevel{
+    1.0f,    // ELEMENT_ENTER_LEAVE_DOMAIN
+    1.0f,    // BUBBLE_ISECT_OWNER
+    1.0f,    // BUBBLE_ISECT_TRESPASSER
+    0.70f,    // USER_ENTER_LEAVE_DOMAIN
+    1.0f,    // AVATAR_CHANGE
+    },
+    baseSize{
+    { 1.0f, 1.0f, 1.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
+    { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_OWNER
+    { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_TRESPASSER
+    { 10000.f, 1.0f, 10000.0f },   // USER_ENTER_LEAVE_DOMAIN
+    { 0.4f, 0.4f, 0.4f },   // AVATAR_CHANGE
+    },
+    baseLevel{
+        0.0f,    // ELEMENT_ENTER_LEAVE_DOMAIN
+        1.0f,    // BUBBLE_ISECT_OWNER
+        1.0f,    // BUBBLE_ISECT_TRESPASSER
+        1.0f,    // USER_ENTER_LEAVE_DOMAIN
+        1.0f,    // AVATAR_CHANGE
+    },
+    baseInverted{
+        false,    // ELEMENT_ENTER_LEAVE_DOMAIN
+        false,    // BUBBLE_ISECT_OWNER
+        false,    // BUBBLE_ISECT_TRESPASSER
+        true,    // USER_ENTER_LEAVE_DOMAIN
+        false,    // AVATAR_CHANGE
+    },
+    _duration{
+        4.0f,   // ELEMENT_ENTER_LEAVE_DOMAIN
+        0.0f,   // BUBBLE_ISECT_OWNER
+        0.0f,   // BUBBLE_ISECT_TRESPASSER
+        3.0f,   // USER_ENTER_LEAVE_DOMAIN
+        3.0f,   // AVATAR_CHANGE
+    },
+    edgeWidth{
+        0.10f,   // ELEMENT_ENTER_LEAVE_DOMAIN
+        0.10f,   // BUBBLE_ISECT_OWNER
+        0.10f,   // BUBBLE_ISECT_TRESPASSER
+        0.529f,   // USER_ENTER_LEAVE_DOMAIN
+        0.05f,   // AVATAR_CHANGE
+    },
+    edgeInnerColor{
+        { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
+        { 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f },   // BUBBLE_ISECT_OWNER
+        { 1.0f, 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_TRESPASSER
+        { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.25f },   // USER_ENTER_LEAVE_DOMAIN
+        { 1.0f, 1.0f, 1.0f, 1.0f },   // AVATAR_CHANGE
+    },
+    edgeOuterColor{
+        { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
+        { 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f },   // BUBBLE_ISECT_OWNER
+        { 1.0f, 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_TRESPASSER
+        { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f },   // USER_ENTER_LEAVE_DOMAIN
+        { 1.0f, 1.0f, 1.0f, 1.0f },   // AVATAR_CHANGE
+    }
+{
+
+}
+
 void FadeJobConfig::setEditedCategory(int value) {
     assert(value < EVENT_CATEGORY_COUNT);
     editedCategory = std::min<int>(EVENT_CATEGORY_COUNT, value);

@@ -68,6 +68,8 @@ public:
         EVENT_CATEGORY_COUNT
     };
 
+    FadeJobConfig();
+
     void setEditedCategory(int value);
 
     void setDuration(float value);
@@ -130,69 +132,15 @@ public:
     bool manualFade{ false };
     float manualThreshold{ 0.f };
     int editedCategory{ ELEMENT_ENTER_LEAVE_DOMAIN };
-    glm::vec3 noiseSize[EVENT_CATEGORY_COUNT]{
-        { 0.75f, 0.75f, 0.75f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-        { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_OWNER
-        { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_TRESPASSER
-        { 10.f, 0.01f, 10.0f },   // USER_ENTER_LEAVE_DOMAIN
-        { 0.4f, 0.4f, 0.4f },   // AVATAR_CHANGE
-    };
-    float noiseLevel[EVENT_CATEGORY_COUNT]{
-        1.0f,    // ELEMENT_ENTER_LEAVE_DOMAIN
-        1.0f,    // BUBBLE_ISECT_OWNER
-        1.0f,    // BUBBLE_ISECT_TRESPASSER
-        0.70f,    // USER_ENTER_LEAVE_DOMAIN
-        1.0f,    // AVATAR_CHANGE
-    };
-    glm::vec3 baseSize[EVENT_CATEGORY_COUNT]{
-        { 1.0f, 1.0f, 1.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-        { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_OWNER
-        { 0.4f, 0.4f, 0.4f },   // BUBBLE_ISECT_TRESPASSER
-        { 10000.f, 1.0f, 10000.0f },   // USER_ENTER_LEAVE_DOMAIN
-        { 0.4f, 0.4f, 0.4f },   // AVATAR_CHANGE
-    };
-    float baseLevel[EVENT_CATEGORY_COUNT]{
-        0.0f,    // ELEMENT_ENTER_LEAVE_DOMAIN
-        1.0f,    // BUBBLE_ISECT_OWNER
-        1.0f,    // BUBBLE_ISECT_TRESPASSER
-        1.0f,    // USER_ENTER_LEAVE_DOMAIN
-        1.0f,    // AVATAR_CHANGE
-    };
-    bool baseInverted[EVENT_CATEGORY_COUNT]{
-        false,    // ELEMENT_ENTER_LEAVE_DOMAIN
-        false,    // BUBBLE_ISECT_OWNER
-        false,    // BUBBLE_ISECT_TRESPASSER
-        true,    // USER_ENTER_LEAVE_DOMAIN
-        false,    // AVATAR_CHANGE
-    };
-    float _duration[EVENT_CATEGORY_COUNT]{
-        4.0f,   // ELEMENT_ENTER_LEAVE_DOMAIN
-        0.0f,   // BUBBLE_ISECT_OWNER
-        0.0f,   // BUBBLE_ISECT_TRESPASSER
-        3.0f,   // USER_ENTER_LEAVE_DOMAIN
-        3.0f,   // AVATAR_CHANGE
-    };
-    float edgeWidth[EVENT_CATEGORY_COUNT]{
-        0.10f,   // ELEMENT_ENTER_LEAVE_DOMAIN
-        0.10f,   // BUBBLE_ISECT_OWNER
-        0.10f,   // BUBBLE_ISECT_TRESPASSER
-        0.529f,   // USER_ENTER_LEAVE_DOMAIN
-        0.05f,   // AVATAR_CHANGE
-    };
-    glm::vec4 edgeInnerColor[EVENT_CATEGORY_COUNT]{
-        { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-        { 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f },   // BUBBLE_ISECT_OWNER
-        { 1.0f, 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_TRESPASSER
-        { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.25f },   // USER_ENTER_LEAVE_DOMAIN
-        { 1.0f, 1.0f, 1.0f, 1.0f },   // AVATAR_CHANGE
-    };
-    glm::vec4 edgeOuterColor[EVENT_CATEGORY_COUNT]{
-        { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f },   // ELEMENT_ENTER_LEAVE_DOMAIN
-        { 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f },   // BUBBLE_ISECT_OWNER
-        { 1.0f, 1.0f, 1.0f, 1.0f },   // BUBBLE_ISECT_TRESPASSER
-        { 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f },   // USER_ENTER_LEAVE_DOMAIN
-        { 1.0f, 1.0f, 1.0f, 1.0f },   // AVATAR_CHANGE
-    };
+    glm::vec3 noiseSize[EVENT_CATEGORY_COUNT];
+    float noiseLevel[EVENT_CATEGORY_COUNT];
+    glm::vec3 baseSize[EVENT_CATEGORY_COUNT];
+    float baseLevel[EVENT_CATEGORY_COUNT];
+    bool baseInverted[EVENT_CATEGORY_COUNT];
+    float _duration[EVENT_CATEGORY_COUNT];
+    float edgeWidth[EVENT_CATEGORY_COUNT];
+    glm::vec4 edgeInnerColor[EVENT_CATEGORY_COUNT];
+    glm::vec4 edgeOuterColor[EVENT_CATEGORY_COUNT];
 
 signals:
     void dirty();
@@ -204,18 +152,14 @@ struct FadeCommonParameters
 {
     using Pointer = std::shared_ptr<FadeCommonParameters>;
 
+    FadeCommonParameters();
+
     bool _isEditEnabled{ false };
     bool _isManualThresholdEnabled{ false };
     float _manualThreshold{ 0.f };
     float _thresholdScale[FadeJobConfig::EVENT_CATEGORY_COUNT];
     int _editedCategory{ FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN };
-    float _durations[FadeJobConfig::EVENT_CATEGORY_COUNT]{
-        30.0f,   // ELEMENT_ENTER_LEAVE_DOMAIN
-        0.0f,   // BUBBLE_ISECT_OWNER
-        0.0f,   // BUBBLE_ISECT_TRESPASSER
-        3.0f,   // USER_ENTER_LEAVE_DOMAIN
-        3.0f,   // AVATAR_CHANGE
-    };
+    float _durations[FadeJobConfig::EVENT_CATEGORY_COUNT];
 };
 
 class FadeSwitchJob {
