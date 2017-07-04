@@ -319,6 +319,7 @@ signals:
 private:
     void cleanupOverlaysToDelete();
 
+    mutable QMutex _mutex;
     QMap<OverlayID, Overlay::Pointer> _overlaysHUD;
     QMap<OverlayID, Overlay::Pointer> _overlaysWorld;
 #if OVERLAY_PANELS
