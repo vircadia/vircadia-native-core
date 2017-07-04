@@ -73,7 +73,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto& metas = items.get0()[RenderFetchCullSortTask::META];
     const auto& overlayOpaques = items.get0()[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
     const auto& overlayTransparents = items.get0()[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
-    const auto& background = items.get0()[RenderFetchCullSortTask::BACKGROUND];
+    //const auto& background = items.get0()[RenderFetchCullSortTask::BACKGROUND];
     const auto& spatialSelection = items[1];
 
     // Filter the non antialiaased overlays

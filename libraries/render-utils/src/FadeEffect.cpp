@@ -10,11 +10,11 @@
 #define FADE_MAX_SCALE  10000.0
 
 inline float parameterToValuePow(float parameter, const double minValue, const double maxOverMinValue) {
-    return (float)(minValue * pow(maxOverMinValue, parameter));
+    return (float)(minValue * pow(maxOverMinValue, double(parameter)));
 }
 
 inline float valueToParameterPow(float value, const double minValue, const double maxOverMinValue) {
-    return (float)(log(value / minValue) / log(maxOverMinValue));
+    return (float)(log(double(value) / minValue) / log(maxOverMinValue));
 }
 
 void FadeSwitchJob::configure(const Config& config) {
@@ -71,8 +71,11 @@ const render::Item* FadeSwitchJob::findNearestItem(const render::RenderContextPo
         if (!itemBound.bound.contains(rayOrigin) && itemBound.bound.findRayIntersection(rayOrigin, rayDirection, isectDistance, face, normal)) {
             if (isectDistance>minDistance && isectDistance < minIsectDistance) {
                 auto& item = scene->getItem(itemBound.id);
-                nearestItem = &item;
-                minIsectDistance = isectDistance;
+
+                if (item.getKey().isShape() && !item.getKey().isMeta()) {
+                    nearestItem = &item;
+                    minIsectDistance = isectDistance;
+                }
             }
         }
     }
@@ -114,13 +117,13 @@ FadeCommonParameters::FadeCommonParameters()
 FadeJobConfig::FadeJobConfig() 
 {
     noiseSize[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = glm::vec3{ 0.75f, 0.75f, 0.75f };
-    noiseSize[FadeJobConfig::BUBBLE_ISECT_OWNER] = glm::vec3{ 0.4f, 0.4f, 0.4f };
+    noiseSize[FadeJobConfig::BUBBLE_ISECT_OWNER] = glm::vec3{ 1.0f, 1.0f/15.f, 1.0f };
     noiseSize[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = glm::vec3{ 0.4f, 0.4f, 0.4f };
     noiseSize[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = glm::vec3{ 10.f, 0.01f, 10.0f };
     noiseSize[FadeJobConfig::AVATAR_CHANGE] = glm::vec3{ 0.4f, 0.4f, 0.4f };
 
     noiseLevel[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = 1.f;
-    noiseLevel[FadeJobConfig::BUBBLE_ISECT_OWNER] = 1.f;
+    noiseLevel[FadeJobConfig::BUBBLE_ISECT_OWNER] = 0.37f;
     noiseLevel[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = 1.f;
     noiseLevel[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = 0.7f;
     noiseLevel[FadeJobConfig::AVATAR_CHANGE] = 1.f;
@@ -144,8 +147,8 @@ FadeJobConfig::FadeJobConfig()
     baseInverted[FadeJobConfig::AVATAR_CHANGE] = false;
 
     _duration[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = 4.f;
-    _duration[FadeJobConfig::BUBBLE_ISECT_OWNER] = 0.f;
-    _duration[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = 0.f;
+    _duration[FadeJobConfig::BUBBLE_ISECT_OWNER] = 4.f;
+    _duration[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = 4.f;
     _duration[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = 3.f;
     _duration[FadeJobConfig::AVATAR_CHANGE] = 3.f;
 
@@ -458,24 +461,29 @@ void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderCon
 
     uint64_t now = usecTimestampNow();
     const double deltaTime = (int64_t(now) - int64_t(_editPreviousTime)) / double(USECS_PER_SECOND);
-    const float eventDuration = _parameters->_durations[_parameters->_editedCategory];
+    const double eventDuration = (double)_parameters->_durations[_parameters->_editedCategory];
     const double waitTime = 0.5;    // Wait between fade in and out
     double  cycleTime = fmod(_editTime, (eventDuration + waitTime) * 2.0);
 
     _editTime += deltaTime;
     _editPreviousTime = now;
 
-    if (cycleTime < eventDuration) {
-        _editThreshold = 1.f - computeElementEnterThreshold(cycleTime, eventDuration);
-    }
-    else if (cycleTime < (eventDuration + waitTime)) {
-        _editThreshold = 0.f;
-    }
-    else if (cycleTime < (2 * eventDuration + waitTime)) {
-        _editThreshold = computeElementEnterThreshold(cycleTime - (eventDuration + waitTime), eventDuration);
+    if (_parameters->_isManualThresholdEnabled) {
+        _editThreshold = _parameters->_manualThreshold;
     }
     else {
-        _editThreshold = 1.f;
+        if (cycleTime < eventDuration) {
+            _editThreshold = 1.f - computeElementEnterThreshold(cycleTime, eventDuration);
+        }
+        else if (cycleTime < (eventDuration + waitTime)) {
+            _editThreshold = 0.f;
+        }
+        else if (cycleTime < (2 * eventDuration + waitTime)) {
+            _editThreshold = computeElementEnterThreshold(cycleTime - (eventDuration + waitTime), eventDuration);
+        }
+        else {
+            _editThreshold = 1.f;
+        }
     }
 
     switch (_parameters->_editedCategory) {
@@ -485,8 +493,10 @@ void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderCon
     case FadeJobConfig::BUBBLE_ISECT_OWNER:
     {
         const glm::vec3 cameraPos = renderContext->args->getViewFrustum().getPosition();
-        const glm::vec3 delta = itemBounds.bound.calcCenter() - cameraPos;
+        glm::vec3 delta = itemBounds.bound.calcCenter() - cameraPos;
+        float distance = glm::length(delta);
 
+        delta = glm::normalize(delta) * std::max(0.f, distance - 0.5f);
         _editNoiseOffset.x = _editTime*0.1f;
         _editNoiseOffset.y = _editTime*2.5f;
         _editNoiseOffset.z = _editTime*0.1f;
@@ -506,6 +516,7 @@ void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderCon
         _editNoiseOffset.z = _editTime*0.75f;
 
         _editBaseOffset = itemBounds.bound.calcCenter();
+        _editBaseOffset.y -= itemBounds.bound.getDimensions().y / 2.f;
     }
     break;
 
@@ -514,10 +525,6 @@ void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderCon
 
     default:
         assert(false);
-    }
-
-    if (_parameters->_isManualThresholdEnabled) {
-        _editThreshold = _parameters->_manualThreshold;
     }
 }
 
