@@ -54,6 +54,9 @@ float evalFadeNoiseGradient(vec3 position) {
     vec3    noisePosition = position * fadeParameters[fadeCategory]._noiseInvSizeAndLevel.xyz + fadeNoiseOffset;
     vec3    noisePositionFloored = floor(noisePosition);
     vec3    noisePositionFraction = fract(noisePosition);
+
+    noisePositionFraction = noisePositionFraction*noisePositionFraction*(3 - 2*noisePositionFraction);
+
     float   noiseLowXLowYLowZ = noise3D(noisePositionFloored);
     float   noiseLowXHighYLowZ = noise3D(noisePositionFloored+vec3(0,1,0));
     float   noiseHighXLowYLowZ = noise3D(noisePositionFloored+vec3(1,0,0));

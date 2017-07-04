@@ -157,13 +157,13 @@ FadeJobConfig::FadeJobConfig()
 
     events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].noiseSize = glm::vec3{ 10.f, 0.01f, 10.0f };
     events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].noiseLevel = 0.7f;
-    events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].noiseSpeed = glm::vec3{ 1.0f, -0.5f, 50.0f };
+    events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].noiseSpeed = glm::vec3{ 0.0f, -0.5f, 0.0f };
     events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].timing = FadeJobConfig::LINEAR;
     events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].baseSize = glm::vec3{ 10000.f, 1.0f, 10000.0f };
     events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].baseLevel = 1.f;
     events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN]._isInverted = true;
-    events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN]._duration = 3.f;
-    events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].edgeWidth = 0.329f;
+    events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN]._duration = 5.f;
+    events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].edgeWidth = 0.229f;
     events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].edgeInnerColor = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.25f };
     events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].edgeOuterColor = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f };
 
