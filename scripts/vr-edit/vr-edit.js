@@ -22,14 +22,19 @@
         VR_EDIT_SETTING = "io.highfidelity.isVREditing";  // Note: This constant is duplicated in utils.js.
 
 
+    function updateHandControllerGrab() {
+        // Communicate status to handControllerGrab.js.
+        Settings.setValue(VR_EDIT_SETTING, isAppActive);
+    }
+
     function onButtonClicked() {
         isAppActive = !isAppActive;
-        Settings.setValue(VR_EDIT_SETTING, isAppActive);
+        updateHandControllerGrab();
         button.editProperties({ isActive: isAppActive });
     }
 
     function setUp() {
-        Settings.setValue(VR_EDIT_SETTING, isAppActive);
+        updateHandControllerGrab();
 
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         if (!tablet) {
@@ -49,6 +54,9 @@
     }
 
     function tearDown() {
+        isAppActive = false;
+        updateHandControllerGrab();
+
         if (!tablet) {
             return;
         }
