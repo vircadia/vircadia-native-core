@@ -385,7 +385,7 @@ void FadeConfigureJob::configure(const Config& config) {
         configuration._edgeWidthInvWidth.y = 1.f / configuration._edgeWidthInvWidth.x;
         configuration._innerEdgeColor = config.edgeInnerColor[i];
         configuration._outerEdgeColor = config.edgeOuterColor[i];
-        _parameters->_thresholdScale[i] = 1.f + 2.f*(configuration._edgeWidthInvWidth.x + std::max(0.f, (config.noiseLevel[i] + config.baseLevel[i])*0.5f-0.5f));
+        _parameters->_thresholdScale[i] = 1.f + (configuration._edgeWidthInvWidth.x + std::max(0.f, (config.noiseLevel[i] + config.baseLevel[i])*0.5f-0.5f));
         _parameters->_noiseSpeed[i] = config.noiseSpeed[i];
         _parameters->_timing[i] = (FadeJobConfig::Timing) config.timing[i];
     }
@@ -495,14 +495,14 @@ float FadeRenderJob::computeElementEnterThreshold(double time, const double peri
             fadeAlpha = fraction;
             break;
         case FadeJobConfig::EASE_IN:
-            fadeAlpha = fraction*fraction;
+            fadeAlpha = fraction*fraction*fraction;
             break;
         case FadeJobConfig::EASE_OUT:
             fadeAlpha = 1.f - fraction;
-            fadeAlpha = 1.f- fadeAlpha*fadeAlpha;
+            fadeAlpha = 1.f- fadeAlpha*fadeAlpha*fadeAlpha;
             break;
         case FadeJobConfig::EASE_IN_OUT:
-            fadeAlpha = fraction*fraction*(3 - 2 * fraction);
+            fadeAlpha = fraction*fraction*fraction*(fraction*(fraction * 6 - 15) + 10);
             break;
         }
     }
@@ -552,7 +552,11 @@ void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderCon
         }
     }
 
-    renderContext->jobConfig->setProperty("threshold", _editThreshold);
+    float threshold = _editThreshold;
+    if (editedCategory != FadeJobConfig::BUBBLE_ISECT_OWNER) {
+        threshold = (threshold - 0.5f)*_parameters->_thresholdScale[editedCategory] + 0.5f;
+    }
+    renderContext->jobConfig->setProperty("threshold", threshold);
 
     _editNoiseOffset = _parameters->_noiseSpeed[editedCategory] * (float)_editTime;
 

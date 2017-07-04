@@ -45,7 +45,8 @@ vec2 hash2D(vec3 position) {
 }
 
 float noise3D(vec3 position) {
-    return textureLod(fadeMaskMap, hash2D(position), 0).r;
+    float n = textureLod(fadeMaskMap, hash2D(position), 0).r;
+    return pow(n, 1.0/2.2); // Need to fix this later directly in the texture
 }
 
 float evalFadeNoiseGradient(vec3 position) {
@@ -87,8 +88,6 @@ float evalFadeGradient(vec3 position) {
 }
 
 float evalFadeAlpha(vec3 position) {
-    //float edgeWidth = fadeParameters[fadeCategory]._edgeWidthInvWidth.x;
-    //float cutoff = mix(-edgeWidth, 1.0+edgeWidth, fadeThreshold);
     float  cutoff = fadeThreshold;
 
     return evalFadeGradient(position)-cutoff;
