@@ -63,10 +63,7 @@ void RenderingClient::sendAvatarPacket() {
 }
 
 void RenderingClient::cleanupBeforeQuit() {
-    
-    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
-                              "stop", Qt::BlockingQueuedConnection);
-    
+    DependencyManager::get<AudioClient>()->cleanupBeforeQuit();
     // destroy the AudioClient so it and its thread will safely go down
     DependencyManager::destroy<AudioClient>();
 }
