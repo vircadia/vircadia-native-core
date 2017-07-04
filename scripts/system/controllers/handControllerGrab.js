@@ -1786,7 +1786,7 @@ function MyController(hand) {
                 var nonTabletEntities = grabbableEntities.filter(function(entityID) {
                     return entityID != HMD.tabletID && entityID != HMD.homeButtonID;
                 });
-                if (nonTabletEntities.length > 0) {
+                if (nonTabletEntities.length > 0 && !isInEditMode() && !isInVREditMode()) {
                     Controller.triggerHapticPulse(1, 20, this.hand);
                 }
                 this.grabPointIntersectsEntity = true;
