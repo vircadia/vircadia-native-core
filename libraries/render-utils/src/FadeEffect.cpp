@@ -625,6 +625,7 @@ void FadeRenderJob::run(const render::RenderContextPointer& renderContext, const
         render::ShapeKey::Builder   defaultKeyBuilder;
 
         defaultKeyBuilder.withFade();
+        defaultKeyBuilder.withoutCullFace();
 
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             args->_batch = &batch;
