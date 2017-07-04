@@ -537,7 +537,7 @@ function storeAttachPointForHotspotInSettings(hotspot, hand, offsetPosition, off
 var EXTERNALLY_MANAGED_2D_MINOR_MODE = true;
 
 function isEditing() {
-    return EXTERNALLY_MANAGED_2D_MINOR_MODE && isInEditMode();
+    return EXTERNALLY_MANAGED_2D_MINOR_MODE && (isInEditMode() || isInVREditMode());
 }
 
 function isIn2DMode() {
@@ -1220,7 +1220,7 @@ function MyController(hand) {
     };
 
     this.setState = function(newState, reason) {
-        if ((isInEditMode() && this.grabbedThingID !== HMD.tabletID) &&
+        if (((isInEditMode() || isInVREditMode()) && this.grabbedThingID !== HMD.tabletID) &&
             (newState !== STATE_OFF &&
              newState !== STATE_SEARCHING &&
              newState !== STATE_STYLUS_TOUCHING &&
@@ -1799,8 +1799,9 @@ function MyController(hand) {
 
         this.processStylus();
 
-        if (isInEditMode() && !this.isNearStylusTarget && HMD.isHandControllerAvailable()) {
+        if (isInEditMode() && !isInVREditMode() && !this.isNearStylusTarget && HMD.isHandControllerAvailable()) {
             // Always showing lasers while in edit mode and hands/stylus is not active.
+            // But don't show lasers while in VR edit mode.
             var rayPickInfo = this.calcRayPickInfo(this.hand);
             this.intersectionDistance = (rayPickInfo.entityID || rayPickInfo.overlayID) ? rayPickInfo.distance : 0;
             this.searchIndicatorOn(rayPickInfo.searchRay);
@@ -2263,7 +2264,7 @@ function MyController(hand) {
                 return aDistance - bDistance;
             });
             entity = grabbableEntities[0];
-            if (!isInEditMode() || entity == HMD.tabletID) { // tablet is grabbable, even when editing
+            if ((!isInEditMode() && !isInVREditMode()) || entity == HMD.tabletID) { // tablet is grabbable, even when editing
                 name = entityPropertiesCache.getProps(entity).name;
                 this.grabbedThingID = entity;
                 this.grabbedIsOverlay = false;
@@ -2371,7 +2372,7 @@ function MyController(hand) {
             equipHotspotBuddy.highlightHotspot(potentialEquipHotspot);
         }
 
-        if (farGrabEnabled && farSearching) {
+        if (farGrabEnabled && farSearching && !isInVREditMode()) {
             this.searchIndicatorOn(rayPickInfo.searchRay);
         }
         Reticle.setVisible(false);
