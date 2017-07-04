@@ -117,8 +117,8 @@ FadeCommonParameters::FadeCommonParameters()
 FadeJobConfig::FadeJobConfig() 
 {
     noiseSize[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = glm::vec3{ 0.75f, 0.75f, 0.75f };
-    noiseSize[FadeJobConfig::BUBBLE_ISECT_OWNER] = glm::vec3{ 1.0f, 1.0f/15.f, 1.0f };
-    noiseSize[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = glm::vec3{ 0.4f, 0.4f, 0.4f };
+    noiseSize[FadeJobConfig::BUBBLE_ISECT_OWNER] = glm::vec3{ 1.5f, 1.0f/25.f, 0.5f };
+    noiseSize[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = glm::vec3{ 0.5f, 1.0f / 25.f, 0.5f };
     noiseSize[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = glm::vec3{ 10.f, 0.01f, 10.0f };
     noiseSize[FadeJobConfig::AVATAR_CHANGE] = glm::vec3{ 0.4f, 0.4f, 0.4f };
 
@@ -136,7 +136,7 @@ FadeJobConfig::FadeJobConfig()
 
     baseLevel[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = 0.f;
     baseLevel[FadeJobConfig::BUBBLE_ISECT_OWNER] = 1.f;
-    baseLevel[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = 1.f;
+    baseLevel[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = 0.f;
     baseLevel[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = 1.f;
     baseLevel[FadeJobConfig::AVATAR_CHANGE] = 1.f;
 
@@ -153,14 +153,14 @@ FadeJobConfig::FadeJobConfig()
     _duration[FadeJobConfig::AVATAR_CHANGE] = 3.f;
 
     edgeWidth[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = 0.1f;
-    edgeWidth[FadeJobConfig::BUBBLE_ISECT_OWNER] = 0.08f;
-    edgeWidth[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = 0.08f;
+    edgeWidth[FadeJobConfig::BUBBLE_ISECT_OWNER] = 0.02f;
+    edgeWidth[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = 0.025f;
     edgeWidth[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = 0.329f;
     edgeWidth[FadeJobConfig::AVATAR_CHANGE] = 0.05f;
 
     edgeInnerColor[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.0f };
     edgeInnerColor[FadeJobConfig::BUBBLE_ISECT_OWNER] = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f };
-    edgeInnerColor[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+    edgeInnerColor[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f };
     edgeInnerColor[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.25f };
     edgeInnerColor[FadeJobConfig::AVATAR_CHANGE] = glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
 
@@ -497,9 +497,9 @@ void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderCon
         float distance = glm::length(delta);
 
         delta = glm::normalize(delta) * std::max(0.f, distance - 0.5f);
-        _editNoiseOffset.x = _editTime*0.1f;
-        _editNoiseOffset.y = _editTime*2.5f;
-        _editNoiseOffset.z = _editTime*0.1f;
+        _editNoiseOffset.x = _editTime*2.1f;
+        _editNoiseOffset.y = _editTime*1.0f;
+        _editNoiseOffset.z = _editTime*2.1f;
 
         _editBaseOffset = cameraPos + delta*_editThreshold;
         _editThreshold = 0.33f;
@@ -507,6 +507,13 @@ void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderCon
     break;
 
     case FadeJobConfig::BUBBLE_ISECT_TRESPASSER:
+    {
+        _editNoiseOffset.x = _editTime*2.1f;
+        _editNoiseOffset.y = _editTime*1.0f;
+        _editNoiseOffset.z = _editTime*2.1f;
+
+        _editBaseOffset = glm::vec3{ 0.f, 0.f, 0.f };
+    }
         break;
 
     case FadeJobConfig::USER_ENTER_LEAVE_DOMAIN:
@@ -572,10 +579,14 @@ bool FadeRenderJob::bindPerItem(gpu::Batch& batch, const gpu::Pipeline* pipeline
             threshold = _currentInstance->_editThreshold;
             noiseOffset += _currentInstance->_editNoiseOffset;
             // This works supposing offset is the world position of the object that is fading.
-            baseOffset = _currentInstance->_editBaseOffset - offset;
+            if (eventCategory != FadeJobConfig::BUBBLE_ISECT_TRESPASSER) {
+                baseOffset = _currentInstance->_editBaseOffset - offset;
+            }
         }
 
-        threshold = (threshold-0.5f)*_currentInstance->_parameters->_thresholdScale[eventCategory] + 0.5f;
+        if (eventCategory != FadeJobConfig::BUBBLE_ISECT_OWNER) {
+            threshold = (threshold - 0.5f)*_currentInstance->_parameters->_thresholdScale[eventCategory] + 0.5f;
+        }
 
         batch._glUniform1i(fadeCategoryLocation, eventCategory);
         batch._glUniform1f(fadeThresholdLocation, threshold);
