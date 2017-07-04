@@ -1,5 +1,6 @@
 #include "FadeEffect.h"
 #include "TextureCache.h"
+#include "Logging.h"
 
 #include <PathUtils.h>
 #include <NumericalConstants.h>
@@ -694,17 +695,17 @@ float FadeRenderJob::computeElementEnterThreshold(double time, const double peri
     if (fraction < 1.0) {
         switch (timing) {
         default:
-            fadeAlpha = fraction;
+            fadeAlpha = (float)fraction;
             break;
         case FadeJobConfig::EASE_IN:
-            fadeAlpha = fraction*fraction*fraction;
+            fadeAlpha = (float)(fraction*fraction*fraction);
             break;
         case FadeJobConfig::EASE_OUT:
-            fadeAlpha = 1.f - fraction;
+            fadeAlpha = 1.f - (float)fraction;
             fadeAlpha = 1.f- fadeAlpha*fadeAlpha*fadeAlpha;
             break;
         case FadeJobConfig::EASE_IN_OUT:
-            fadeAlpha = fraction*fraction*fraction*(fraction*(fraction * 6 - 15) + 10);
+            fadeAlpha = (float)(fraction*fraction*fraction*(fraction*(fraction * 6 - 15) + 10));
             break;
         }
     }
