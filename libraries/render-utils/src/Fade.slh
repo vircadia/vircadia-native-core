@@ -25,7 +25,7 @@ struct FadeParameters
     vec4  _innerEdgeColor;
     vec4  _outerEdgeColor;
     vec2  _edgeWidthInvWidth;
-    int   _invertBase;
+    int   _isInverted;
     float _padding;
 };
 
@@ -102,7 +102,7 @@ void applyFadeClip(vec3 position) {
 
 void applyFade(vec3 position, out vec3 emissive) {
     float alpha = evalFadeAlpha(position);
-    if (fadeParameters[fadeCategory]._invertBase!=0) {
+    if (fadeParameters[fadeCategory]._isInverted!=0) {
         alpha = -alpha;
     }
 

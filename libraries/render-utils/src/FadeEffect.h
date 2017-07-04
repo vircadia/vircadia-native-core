@@ -38,7 +38,7 @@ class FadeJobConfig : public render::Job::Config {
         Q_PROPERTY(float baseSizeY READ getBaseSizeY WRITE setBaseSizeY NOTIFY dirty)
         Q_PROPERTY(float baseSizeZ READ getBaseSizeZ WRITE setBaseSizeZ NOTIFY dirty)
         Q_PROPERTY(float baseLevel READ getBaseLevel WRITE setBaseLevel NOTIFY dirty)
-        Q_PROPERTY(bool baseInverted READ isBaseInverted WRITE setBaseInverted NOTIFY dirty)
+        Q_PROPERTY(bool _isInverted READ isInverted WRITE setInverted NOTIFY dirty)
         Q_PROPERTY(float noiseSizeX READ getNoiseSizeX WRITE setNoiseSizeX NOTIFY dirty)
         Q_PROPERTY(float noiseSizeY READ getNoiseSizeY WRITE setNoiseSizeY NOTIFY dirty)
         Q_PROPERTY(float noiseSizeZ READ getNoiseSizeZ WRITE setNoiseSizeZ NOTIFY dirty)
@@ -54,6 +54,10 @@ class FadeJobConfig : public render::Job::Config {
         Q_PROPERTY(float edgeOuterIntensity READ getEdgeOuterIntensity WRITE setEdgeOuterIntensity NOTIFY dirty)
         Q_PROPERTY(bool manualFade MEMBER manualFade NOTIFY dirty)
         Q_PROPERTY(float manualThreshold MEMBER manualThreshold NOTIFY dirty)
+        Q_PROPERTY(int timing READ getTiming WRITE setTiming NOTIFY dirty)
+        Q_PROPERTY(float noiseSpeedX READ getNoiseSpeedX WRITE setNoiseSpeedX NOTIFY dirty)
+        Q_PROPERTY(float noiseSpeedY READ getNoiseSpeedY WRITE setNoiseSpeedY NOTIFY dirty)
+        Q_PROPERTY(float noiseSpeedZ READ getNoiseSpeedZ WRITE setNoiseSpeedZ NOTIFY dirty)
 
 public:
 
@@ -66,6 +70,15 @@ public:
 
         // Don't forget to modify Fade.slh to reflect the change in number of categories
         EVENT_CATEGORY_COUNT
+    };
+
+    enum Timing {
+        LINEAR,
+        EASE_IN,
+        EASE_OUT,
+        EASE_IN_OUT,
+
+        TIMING_COUNT
     };
 
     FadeJobConfig();
@@ -87,8 +100,8 @@ public:
     void setBaseLevel(float value);
     float getBaseLevel() const { return baseLevel[editedCategory]; }
 
-    void setBaseInverted(bool value);
-    bool isBaseInverted() const;
+    void setInverted(bool value);
+    bool isInverted() const;
 
     void setNoiseSizeX(float value);
     float getNoiseSizeX() const;
@@ -101,6 +114,15 @@ public:
 
     void setNoiseLevel(float value);
     float getNoiseLevel() const { return noiseLevel[editedCategory]; }
+
+    void setNoiseSpeedX(float value);
+    float getNoiseSpeedX() const;
+
+    void setNoiseSpeedY(float value);
+    float getNoiseSpeedY() const;
+
+    void setNoiseSpeedZ(float value);
+    float getNoiseSpeedZ() const;
 
     void setEdgeWidth(float value);
     float getEdgeWidth() const;
@@ -128,19 +150,24 @@ public:
 
     void setEdgeOuterIntensity(float value);
     float getEdgeOuterIntensity() const { return edgeOuterColor[editedCategory].a; }
+
+    void setTiming(int value);
+    int getTiming() const { return timing[editedCategory]; }
     
     bool manualFade{ false };
     float manualThreshold{ 0.f };
     int editedCategory{ ELEMENT_ENTER_LEAVE_DOMAIN };
     glm::vec3 noiseSize[EVENT_CATEGORY_COUNT];
+    glm::vec3 noiseSpeed[EVENT_CATEGORY_COUNT];
     float noiseLevel[EVENT_CATEGORY_COUNT];
     glm::vec3 baseSize[EVENT_CATEGORY_COUNT];
     float baseLevel[EVENT_CATEGORY_COUNT];
-    bool baseInverted[EVENT_CATEGORY_COUNT];
+    bool _isInverted[EVENT_CATEGORY_COUNT];
     float _duration[EVENT_CATEGORY_COUNT];
     float edgeWidth[EVENT_CATEGORY_COUNT];
     glm::vec4 edgeInnerColor[EVENT_CATEGORY_COUNT];
     glm::vec4 edgeOuterColor[EVENT_CATEGORY_COUNT];
+    int timing[EVENT_CATEGORY_COUNT];
 
 signals:
     void dirty();
@@ -160,6 +187,8 @@ struct FadeCommonParameters
     float _thresholdScale[FadeJobConfig::EVENT_CATEGORY_COUNT];
     int _editedCategory{ FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN };
     float _durations[FadeJobConfig::EVENT_CATEGORY_COUNT];
+    glm::vec3 _noiseSpeed[FadeJobConfig::EVENT_CATEGORY_COUNT];
+    FadeJobConfig::Timing _timing[FadeJobConfig::EVENT_CATEGORY_COUNT];
 };
 
 class FadeSwitchJob {
@@ -200,7 +229,7 @@ struct FadeParameters
     glm::vec4       _innerEdgeColor;
     glm::vec4       _outerEdgeColor;
     glm::vec2       _edgeWidthInvWidth;
-    glm::int32      _invertBase;
+    glm::int32      _isInverted;
     glm::float32    _padding;
 };
 
@@ -234,15 +263,31 @@ private:
     FadeParameters _configurations[FadeJobConfig::EVENT_CATEGORY_COUNT];
 };
 
+
+class FadeRenderJobConfig : public render::Job::Config {
+    Q_OBJECT
+        Q_PROPERTY(float threshold MEMBER threshold NOTIFY dirty)
+
+public:
+
+    float threshold{ 0.f };
+
+signals:
+    void dirty();
+
+};
+
 class FadeRenderJob {
 
 public:
 
+    using Config = FadeRenderJobConfig;
     using Input = render::VaryingSet3<render::ItemBounds, LightingModelPointer, FadeConfigureJob::Output>;
-    using JobModel = render::Job::ModelI<FadeRenderJob, Input>;
+    using JobModel = render::Job::ModelI<FadeRenderJob, Input, Config>;
 
     FadeRenderJob(FadeCommonParameters::Pointer commonParams, render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber }, _parameters{ commonParams }  {}
 
+    void configure(const Config& config) {}
     void run(const render::RenderContextPointer& renderContext, const Input& inputs);
 
     static void bindPerBatch(gpu::Batch& batch, int fadeMaskMapLocation, int fadeBufferLocation);
@@ -263,7 +308,7 @@ private:
     render::ShapePlumberPointer _shapePlumber;
     FadeCommonParameters::Pointer _parameters;
 
-    float computeElementEnterThreshold(double time, const double period) const;
+    float computeElementEnterThreshold(double time, const double period, FadeJobConfig::Timing timing) const;
 
     // Everything needed for interactive edition
     uint64_t _editPreviousTime{ 0 };

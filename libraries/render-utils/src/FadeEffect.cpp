@@ -8,6 +8,7 @@
 
 #define FADE_MIN_SCALE  0.001
 #define FADE_MAX_SCALE  10000.0
+#define FADE_MAX_SPEED  50.f
 
 inline float parameterToValuePow(float parameter, const double minValue, const double maxOverMinValue) {
     return (float)(minValue * pow(maxOverMinValue, double(parameter)));
@@ -128,6 +129,18 @@ FadeJobConfig::FadeJobConfig()
     noiseLevel[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = 0.7f;
     noiseLevel[FadeJobConfig::AVATAR_CHANGE] = 1.f;
 
+    noiseSpeed[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = glm::vec3{ 0.0f, 0.0f, 0.0f };
+    noiseSpeed[FadeJobConfig::BUBBLE_ISECT_OWNER] = glm::vec3{ 1.0f, 0.2f, 1.0f };
+    noiseSpeed[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = glm::vec3{ 1.0f, 0.2f, 1.0f };
+    noiseSpeed[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = glm::vec3{ 0.0f, -0.5f, 0.0f };
+    noiseSpeed[FadeJobConfig::AVATAR_CHANGE] = glm::vec3{ 0.0f, 0.0f, 0.0f };
+
+    timing[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = FadeJobConfig::LINEAR;
+    timing[FadeJobConfig::BUBBLE_ISECT_OWNER] = FadeJobConfig::LINEAR;
+    timing[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = FadeJobConfig::LINEAR;
+    timing[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = FadeJobConfig::LINEAR;
+    timing[FadeJobConfig::AVATAR_CHANGE] = FadeJobConfig::LINEAR;
+
     baseSize[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = glm::vec3{ 1.0f, 1.0f, 1.0f };
     baseSize[FadeJobConfig::BUBBLE_ISECT_OWNER] = glm::vec3{ 2.0f, 2.0f, 2.0f };
     baseSize[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = glm::vec3{ 2.0f, 2.0f, 2.0f };
@@ -140,11 +153,11 @@ FadeJobConfig::FadeJobConfig()
     baseLevel[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = 1.f;
     baseLevel[FadeJobConfig::AVATAR_CHANGE] = 1.f;
 
-    baseInverted[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = false;
-    baseInverted[FadeJobConfig::BUBBLE_ISECT_OWNER] = false;
-    baseInverted[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = false;
-    baseInverted[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = true;
-    baseInverted[FadeJobConfig::AVATAR_CHANGE] = false;
+    _isInverted[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = false;
+    _isInverted[FadeJobConfig::BUBBLE_ISECT_OWNER] = false;
+    _isInverted[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = false;
+    _isInverted[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = true;
+    _isInverted[FadeJobConfig::AVATAR_CHANGE] = false;
 
     _duration[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = 4.f;
     _duration[FadeJobConfig::BUBBLE_ISECT_OWNER] = 4.f;
@@ -219,13 +232,13 @@ void FadeJobConfig::setBaseLevel(float value) {
     emit dirty();
 }
 
-void FadeJobConfig::setBaseInverted(bool value) {
-    baseInverted[editedCategory] = value;
+void FadeJobConfig::setInverted(bool value) {
+    _isInverted[editedCategory] = value;
     emit dirty();
 }
 
-bool FadeJobConfig::isBaseInverted() const { 
-    return baseInverted[editedCategory]; 
+bool FadeJobConfig::isInverted() const { 
+    return _isInverted[editedCategory];
 }
 
 void FadeJobConfig::setNoiseSizeX(float value) {
@@ -258,6 +271,33 @@ float FadeJobConfig::getNoiseSizeZ() const {
 void FadeJobConfig::setNoiseLevel(float value) {
     noiseLevel[editedCategory] = value;
     emit dirty();
+}
+
+void FadeJobConfig::setNoiseSpeedX(float value) {
+    noiseSpeed[editedCategory].x = powf(value, 3.f)*FADE_MAX_SPEED;
+    emit dirty();
+}
+
+float FadeJobConfig::getNoiseSpeedX() const {
+    return powf(noiseSpeed[editedCategory].x / FADE_MAX_SPEED, 1.f/3.f);
+}
+
+void FadeJobConfig::setNoiseSpeedY(float value) {
+    noiseSpeed[editedCategory].y = powf(value, 3.f)*FADE_MAX_SPEED;
+    emit dirty();
+}
+
+float FadeJobConfig::getNoiseSpeedY() const {
+    return powf(noiseSpeed[editedCategory].y / FADE_MAX_SPEED, 1.f / 3.f);
+}
+
+void FadeJobConfig::setNoiseSpeedZ(float value) {
+    noiseSpeed[editedCategory].z = powf(value, 3.f)*FADE_MAX_SPEED;
+    emit dirty();
+}
+
+float FadeJobConfig::getNoiseSpeedZ() const {
+    return powf(noiseSpeed[editedCategory].z / FADE_MAX_SPEED, 1.f / 3.f);
 }
 
 void FadeJobConfig::setEdgeWidth(float value) {
@@ -309,6 +349,12 @@ void FadeJobConfig::setEdgeOuterIntensity(float value) {
     emit dirty();
 }
 
+void FadeJobConfig::setTiming(int value) {
+    assert(value < TIMING_COUNT);
+    timing[editedCategory] = value;
+    emit dirty();
+}
+
 FadeConfigureJob::FadeConfigureJob(FadeCommonParameters::Pointer commonParams) : 
     _parameters{ commonParams }
 {
@@ -334,12 +380,14 @@ void FadeConfigureJob::configure(const Config& config) {
         configuration._noiseInvSizeAndLevel.y = 1.f / config.noiseSize[i].y;
         configuration._noiseInvSizeAndLevel.z = 1.f / config.noiseSize[i].z;
         configuration._noiseInvSizeAndLevel.w = config.noiseLevel[i];
-        configuration._invertBase = config.baseInverted[i] & 1;
+        configuration._isInverted = config._isInverted[i] & 1;
         configuration._edgeWidthInvWidth.x = config.edgeWidth[i];
         configuration._edgeWidthInvWidth.y = 1.f / configuration._edgeWidthInvWidth.x;
         configuration._innerEdgeColor = config.edgeInnerColor[i];
         configuration._outerEdgeColor = config.edgeOuterColor[i];
         _parameters->_thresholdScale[i] = 1.f + 2.f*(configuration._edgeWidthInvWidth.x + std::max(0.f, (config.noiseLevel[i] + config.baseLevel[i])*0.5f-0.5f));
+        _parameters->_noiseSpeed[i] = config.noiseSpeed[i];
+        _parameters->_timing[i] = (FadeJobConfig::Timing) config.timing[i];
     }
     _isBufferDirty = true;
 }
@@ -435,14 +483,28 @@ void FadeRenderJob::run(const render::RenderContextPointer& renderContext, const
     }
 }
 
-float FadeRenderJob::computeElementEnterThreshold(double time, const double period) const {
+float FadeRenderJob::computeElementEnterThreshold(double time, const double period, FadeJobConfig::Timing timing) const {
     assert(period > 0.0);
     float fadeAlpha = 1.0f;
     const double INV_FADE_PERIOD = 1.0 / period;
     double fraction = time * INV_FADE_PERIOD;
     fraction = std::max(fraction, 0.0);
     if (fraction < 1.0) {
-        fadeAlpha = Interpolate::easeInOutQuad(fraction);
+        switch (timing) {
+        default:
+            fadeAlpha = fraction;
+            break;
+        case FadeJobConfig::EASE_IN:
+            fadeAlpha = fraction*fraction;
+            break;
+        case FadeJobConfig::EASE_OUT:
+            fadeAlpha = 1.f - fraction;
+            fadeAlpha = 1.f- fadeAlpha*fadeAlpha;
+            break;
+        case FadeJobConfig::EASE_IN_OUT:
+            fadeAlpha = fraction*fraction*(3 - 2 * fraction);
+            break;
+        }
     }
     return fadeAlpha;
 }
@@ -450,7 +512,9 @@ float FadeRenderJob::computeElementEnterThreshold(double time, const double peri
 float FadeRenderJob::computeFadePercent(quint64 startTime) {
     const double time = (double)(int64_t(usecTimestampNow()) - int64_t(startTime)) / (double)(USECS_PER_SECOND);
     assert(_currentInstance);
-    return _currentInstance->computeElementEnterThreshold(time, _currentInstance->_parameters->_durations[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN]);
+    return _currentInstance->computeElementEnterThreshold(time, 
+        _currentInstance->_parameters->_durations[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN],
+        _currentInstance->_parameters->_timing[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN]);
 }
 
 void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderContext, const render::ItemBound& itemBounds) {
@@ -461,7 +525,9 @@ void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderCon
 
     uint64_t now = usecTimestampNow();
     const double deltaTime = (int64_t(now) - int64_t(_editPreviousTime)) / double(USECS_PER_SECOND);
-    const double eventDuration = (double)_parameters->_durations[_parameters->_editedCategory];
+    const int editedCategory = _parameters->_editedCategory;
+    const double eventDuration = (double)_parameters->_durations[editedCategory];
+    const FadeJobConfig::Timing timing = _parameters->_timing[editedCategory];
     const double waitTime = 0.5;    // Wait between fade in and out
     double  cycleTime = fmod(_editTime, (eventDuration + waitTime) * 2.0);
 
@@ -473,20 +539,24 @@ void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderCon
     }
     else {
         if (cycleTime < eventDuration) {
-            _editThreshold = 1.f - computeElementEnterThreshold(cycleTime, eventDuration);
+            _editThreshold = 1.f - computeElementEnterThreshold(cycleTime, eventDuration, timing);
         }
         else if (cycleTime < (eventDuration + waitTime)) {
             _editThreshold = 0.f;
         }
         else if (cycleTime < (2 * eventDuration + waitTime)) {
-            _editThreshold = computeElementEnterThreshold(cycleTime - (eventDuration + waitTime), eventDuration);
+            _editThreshold = computeElementEnterThreshold(cycleTime - (eventDuration + waitTime), eventDuration, timing);
         }
         else {
             _editThreshold = 1.f;
         }
     }
 
-    switch (_parameters->_editedCategory) {
+    renderContext->jobConfig->setProperty("threshold", _editThreshold);
+
+    _editNoiseOffset = _parameters->_noiseSpeed[editedCategory] * (float)_editTime;
+
+    switch (editedCategory) {
     case FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN:
         break;
 
@@ -497,9 +567,6 @@ void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderCon
         float distance = glm::length(delta);
 
         delta = glm::normalize(delta) * std::max(0.f, distance - 0.5f);
-        _editNoiseOffset.x = _editTime*2.1f;
-        _editNoiseOffset.y = _editTime*1.0f;
-        _editNoiseOffset.z = _editTime*2.1f;
 
         _editBaseOffset = cameraPos + delta*_editThreshold;
         _editThreshold = 0.33f;
@@ -508,20 +575,12 @@ void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderCon
 
     case FadeJobConfig::BUBBLE_ISECT_TRESPASSER:
     {
-        _editNoiseOffset.x = _editTime*2.1f;
-        _editNoiseOffset.y = _editTime*1.0f;
-        _editNoiseOffset.z = _editTime*2.1f;
-
         _editBaseOffset = glm::vec3{ 0.f, 0.f, 0.f };
     }
         break;
 
     case FadeJobConfig::USER_ENTER_LEAVE_DOMAIN:
     {
-        _editNoiseOffset.x = _editTime*0.5f;
-        _editNoiseOffset.y = 0.f;
-        _editNoiseOffset.z = _editTime*0.75f;
-
         _editBaseOffset = itemBounds.bound.calcCenter();
         _editBaseOffset.y -= itemBounds.bound.getDimensions().y / 2.f;
     }

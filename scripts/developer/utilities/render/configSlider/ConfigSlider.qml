@@ -43,7 +43,7 @@ Item {
         anchors.left: root.left
         anchors.leftMargin: 200
         anchors.top: root.top
-        anchors.topMargin: 7
+        anchors.topMargin: 15
     }
 
     Binding {
@@ -57,7 +57,7 @@ Item {
     Slider {
         id: sliderControl
         stepSize: root.integral ? 1.0 : 0.0
-        width: 150
+        width: root.width-130
         height: 20
         anchors.right: root.right
         anchors.rightMargin: 8
