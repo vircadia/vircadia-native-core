@@ -6,6 +6,8 @@
 #include <Interpolate.h>
 #include <gpu/Context.h>
 
+#include <QJsonArray>
+
 #define FADE_MIN_SCALE  0.001
 #define FADE_MAX_SCALE  10000.0
 #define FADE_MAX_SPEED  50.f
@@ -117,71 +119,65 @@ FadeCommonParameters::FadeCommonParameters()
 
 FadeJobConfig::FadeJobConfig() 
 {
-    noiseSize[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = glm::vec3{ 0.75f, 0.75f, 0.75f };
-    noiseSize[FadeJobConfig::BUBBLE_ISECT_OWNER] = glm::vec3{ 1.5f, 1.0f/25.f, 0.5f };
-    noiseSize[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = glm::vec3{ 0.5f, 1.0f / 25.f, 0.5f };
-    noiseSize[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = glm::vec3{ 10.f, 0.01f, 10.0f };
-    noiseSize[FadeJobConfig::AVATAR_CHANGE] = glm::vec3{ 0.4f, 0.4f, 0.4f };
+    events[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN].noiseSize = glm::vec3{ 0.75f, 0.75f, 0.75f };
+    events[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN].noiseLevel = 1.f;
+    events[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN].noiseSpeed = glm::vec3{ 0.0f, 0.0f, 0.0f };
+    events[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN].timing = FadeJobConfig::LINEAR;
+    events[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN].baseSize = glm::vec3{ 1.0f, 1.0f, 1.0f };
+    events[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN].baseLevel = 0.f;
+    events[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN]._isInverted = false;
+    events[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN]._duration = 4.f;
+    events[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN].edgeWidth = 0.1f;
+    events[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN].edgeInnerColor = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.0f };
+    events[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN].edgeOuterColor = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f };
 
-    noiseLevel[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = 1.f;
-    noiseLevel[FadeJobConfig::BUBBLE_ISECT_OWNER] = 0.37f;
-    noiseLevel[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = 1.f;
-    noiseLevel[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = 0.7f;
-    noiseLevel[FadeJobConfig::AVATAR_CHANGE] = 1.f;
+    events[FadeJobConfig::BUBBLE_ISECT_OWNER].noiseSize = glm::vec3{ 1.5f, 1.0f/25.f, 0.5f };
+    events[FadeJobConfig::BUBBLE_ISECT_OWNER].noiseLevel = 0.37f;
+    events[FadeJobConfig::BUBBLE_ISECT_OWNER].noiseSpeed = glm::vec3{ 1.0f, 0.2f, 1.0f };
+    events[FadeJobConfig::BUBBLE_ISECT_OWNER].timing = FadeJobConfig::LINEAR;
+    events[FadeJobConfig::BUBBLE_ISECT_OWNER].baseSize = glm::vec3{ 2.0f, 2.0f, 2.0f };
+    events[FadeJobConfig::BUBBLE_ISECT_OWNER].baseLevel = 1.f;
+    events[FadeJobConfig::BUBBLE_ISECT_OWNER]._isInverted = false;
+    events[FadeJobConfig::BUBBLE_ISECT_OWNER]._duration = 4.f;
+    events[FadeJobConfig::BUBBLE_ISECT_OWNER].edgeWidth = 0.02f;
+    events[FadeJobConfig::BUBBLE_ISECT_OWNER].edgeInnerColor = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f };
+    events[FadeJobConfig::BUBBLE_ISECT_OWNER].edgeOuterColor = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 2.0f };
 
-    noiseSpeed[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = glm::vec3{ 0.0f, 0.0f, 0.0f };
-    noiseSpeed[FadeJobConfig::BUBBLE_ISECT_OWNER] = glm::vec3{ 1.0f, 0.2f, 1.0f };
-    noiseSpeed[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = glm::vec3{ 1.0f, 0.2f, 1.0f };
-    noiseSpeed[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = glm::vec3{ 0.0f, -0.5f, 0.0f };
-    noiseSpeed[FadeJobConfig::AVATAR_CHANGE] = glm::vec3{ 0.0f, 0.0f, 0.0f };
+    events[FadeJobConfig::BUBBLE_ISECT_TRESPASSER].noiseSize = glm::vec3{ 0.5f, 1.0f / 25.f, 0.5f };
+    events[FadeJobConfig::BUBBLE_ISECT_TRESPASSER].noiseLevel = 1.f;
+    events[FadeJobConfig::BUBBLE_ISECT_TRESPASSER].noiseSpeed = glm::vec3{ 1.0f, 0.2f, 1.0f };
+    events[FadeJobConfig::BUBBLE_ISECT_TRESPASSER].timing = FadeJobConfig::LINEAR;
+    events[FadeJobConfig::BUBBLE_ISECT_TRESPASSER].baseSize = glm::vec3{ 2.0f, 2.0f, 2.0f };
+    events[FadeJobConfig::BUBBLE_ISECT_TRESPASSER].baseLevel = 0.f;
+    events[FadeJobConfig::BUBBLE_ISECT_TRESPASSER]._isInverted = false;
+    events[FadeJobConfig::BUBBLE_ISECT_TRESPASSER]._duration = 4.f;
+    events[FadeJobConfig::BUBBLE_ISECT_TRESPASSER].edgeWidth = 0.025f;
+    events[FadeJobConfig::BUBBLE_ISECT_TRESPASSER].edgeInnerColor = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f };
+    events[FadeJobConfig::BUBBLE_ISECT_TRESPASSER].edgeOuterColor = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 2.0f };
 
-    timing[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = FadeJobConfig::LINEAR;
-    timing[FadeJobConfig::BUBBLE_ISECT_OWNER] = FadeJobConfig::LINEAR;
-    timing[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = FadeJobConfig::LINEAR;
-    timing[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = FadeJobConfig::LINEAR;
-    timing[FadeJobConfig::AVATAR_CHANGE] = FadeJobConfig::LINEAR;
+    events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].noiseSize = glm::vec3{ 10.f, 0.01f, 10.0f };
+    events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].noiseLevel = 0.7f;
+    events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].noiseSpeed = glm::vec3{ 1.0f, -0.5f, 50.0f };
+    events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].timing = FadeJobConfig::LINEAR;
+    events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].baseSize = glm::vec3{ 10000.f, 1.0f, 10000.0f };
+    events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].baseLevel = 1.f;
+    events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN]._isInverted = true;
+    events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN]._duration = 3.f;
+    events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].edgeWidth = 0.329f;
+    events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].edgeInnerColor = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.25f };
+    events[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN].edgeOuterColor = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f };
 
-    baseSize[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = glm::vec3{ 1.0f, 1.0f, 1.0f };
-    baseSize[FadeJobConfig::BUBBLE_ISECT_OWNER] = glm::vec3{ 2.0f, 2.0f, 2.0f };
-    baseSize[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = glm::vec3{ 2.0f, 2.0f, 2.0f };
-    baseSize[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = glm::vec3{ 10000.f, 1.0f, 10000.0f };
-    baseSize[FadeJobConfig::AVATAR_CHANGE] = glm::vec3{ 0.4f, 0.4f, 0.4f };
-
-    baseLevel[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = 0.f;
-    baseLevel[FadeJobConfig::BUBBLE_ISECT_OWNER] = 1.f;
-    baseLevel[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = 0.f;
-    baseLevel[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = 1.f;
-    baseLevel[FadeJobConfig::AVATAR_CHANGE] = 1.f;
-
-    _isInverted[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = false;
-    _isInverted[FadeJobConfig::BUBBLE_ISECT_OWNER] = false;
-    _isInverted[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = false;
-    _isInverted[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = true;
-    _isInverted[FadeJobConfig::AVATAR_CHANGE] = false;
-
-    _duration[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = 4.f;
-    _duration[FadeJobConfig::BUBBLE_ISECT_OWNER] = 4.f;
-    _duration[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = 4.f;
-    _duration[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = 3.f;
-    _duration[FadeJobConfig::AVATAR_CHANGE] = 3.f;
-
-    edgeWidth[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = 0.1f;
-    edgeWidth[FadeJobConfig::BUBBLE_ISECT_OWNER] = 0.02f;
-    edgeWidth[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = 0.025f;
-    edgeWidth[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = 0.329f;
-    edgeWidth[FadeJobConfig::AVATAR_CHANGE] = 0.05f;
-
-    edgeInnerColor[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.0f };
-    edgeInnerColor[FadeJobConfig::BUBBLE_ISECT_OWNER] = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f };
-    edgeInnerColor[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f };
-    edgeInnerColor[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.25f };
-    edgeInnerColor[FadeJobConfig::AVATAR_CHANGE] = glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
-
-    edgeOuterColor[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f };
-    edgeOuterColor[FadeJobConfig::BUBBLE_ISECT_OWNER] = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 2.0f };
-    edgeOuterColor[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 2.0f };
-    edgeOuterColor[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f };
-    edgeOuterColor[FadeJobConfig::AVATAR_CHANGE] = glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+    events[FadeJobConfig::AVATAR_CHANGE].noiseSize = glm::vec3{ 0.4f, 0.4f, 0.4f };
+    events[FadeJobConfig::AVATAR_CHANGE].noiseLevel = 1.f;
+    events[FadeJobConfig::AVATAR_CHANGE].noiseSpeed = glm::vec3{ 0.0f, 0.0f, 0.0f };
+    events[FadeJobConfig::AVATAR_CHANGE].timing = FadeJobConfig::LINEAR;
+    events[FadeJobConfig::AVATAR_CHANGE].baseSize = glm::vec3{ 0.4f, 0.4f, 0.4f };
+    events[FadeJobConfig::AVATAR_CHANGE].baseLevel = 1.f;
+    events[FadeJobConfig::AVATAR_CHANGE]._isInverted = false;
+    events[FadeJobConfig::AVATAR_CHANGE]._duration = 3.f;
+    events[FadeJobConfig::AVATAR_CHANGE].edgeWidth = 0.05f;
+    events[FadeJobConfig::AVATAR_CHANGE].edgeInnerColor = glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+    events[FadeJobConfig::AVATAR_CHANGE].edgeOuterColor = glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
 }
 
 void FadeJobConfig::setEditedCategory(int value) {
@@ -192,167 +188,371 @@ void FadeJobConfig::setEditedCategory(int value) {
 }
 
 void FadeJobConfig::setDuration(float value) {
-    _duration[editedCategory] = value;
+    events[editedCategory]._duration = value;
     emit dirty();
 }
 
 float FadeJobConfig::getDuration() const { 
-    return _duration[editedCategory]; 
+    return events[editedCategory]._duration;
 }
 
 void FadeJobConfig::setBaseSizeX(float value) {
-    baseSize[editedCategory].x = parameterToValuePow(value, FADE_MIN_SCALE, FADE_MAX_SCALE/ FADE_MIN_SCALE);
+    events[editedCategory].baseSize.x = parameterToValuePow(value, FADE_MIN_SCALE, FADE_MAX_SCALE/ FADE_MIN_SCALE);
     emit dirty();
 }
 
 float FadeJobConfig::getBaseSizeX() const { 
-    return valueToParameterPow(baseSize[editedCategory].x, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
+    return valueToParameterPow(events[editedCategory].baseSize.x, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
 }
 
 void FadeJobConfig::setBaseSizeY(float value) {
-    baseSize[editedCategory].y = parameterToValuePow(value, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
+    events[editedCategory].baseSize.y = parameterToValuePow(value, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
     emit dirty();
 }
 
 float FadeJobConfig::getBaseSizeY() const {
-    return valueToParameterPow(baseSize[editedCategory].y, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
+    return valueToParameterPow(events[editedCategory].baseSize.y, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
 }
 
 void FadeJobConfig::setBaseSizeZ(float value) {
-    baseSize[editedCategory].z = parameterToValuePow(value, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
+    events[editedCategory].baseSize.z = parameterToValuePow(value, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
     emit dirty();
 }
 
 float FadeJobConfig::getBaseSizeZ() const {
-    return valueToParameterPow(baseSize[editedCategory].z, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
+    return valueToParameterPow(events[editedCategory].baseSize.z, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
 }
 
 void FadeJobConfig::setBaseLevel(float value) {
-    baseLevel[editedCategory] = value;
+    events[editedCategory].baseLevel = value;
     emit dirty();
 }
 
 void FadeJobConfig::setInverted(bool value) {
-    _isInverted[editedCategory] = value;
+    events[editedCategory]._isInverted = value;
     emit dirty();
 }
 
 bool FadeJobConfig::isInverted() const { 
-    return _isInverted[editedCategory];
+    return events[editedCategory]._isInverted;
 }
 
 void FadeJobConfig::setNoiseSizeX(float value) {
-    noiseSize[editedCategory].x = parameterToValuePow(value, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
+    events[editedCategory].noiseSize.x = parameterToValuePow(value, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
     emit dirty();
 }
 
 float FadeJobConfig::getNoiseSizeX() const {
-    return valueToParameterPow(noiseSize[editedCategory].x, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
+    return valueToParameterPow(events[editedCategory].noiseSize.x, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
 }
 
 void FadeJobConfig::setNoiseSizeY(float value) {
-    noiseSize[editedCategory].y = parameterToValuePow(value, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
+    events[editedCategory].noiseSize.y = parameterToValuePow(value, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
     emit dirty();
 }
 
 float FadeJobConfig::getNoiseSizeY() const {
-    return valueToParameterPow(noiseSize[editedCategory].y, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
+    return valueToParameterPow(events[editedCategory].noiseSize.y, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
 }
 
 void FadeJobConfig::setNoiseSizeZ(float value) {
-    noiseSize[editedCategory].z = parameterToValuePow(value, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
+    events[editedCategory].noiseSize.z = parameterToValuePow(value, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
     emit dirty();
 }
 
 float FadeJobConfig::getNoiseSizeZ() const {
-    return valueToParameterPow(noiseSize[editedCategory].z, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
+    return valueToParameterPow(events[editedCategory].noiseSize.z, FADE_MIN_SCALE, FADE_MAX_SCALE / FADE_MIN_SCALE);
 }
 
 void FadeJobConfig::setNoiseLevel(float value) {
-    noiseLevel[editedCategory] = value;
+    events[editedCategory].noiseLevel = value;
     emit dirty();
 }
 
 void FadeJobConfig::setNoiseSpeedX(float value) {
-    noiseSpeed[editedCategory].x = powf(value, 3.f)*FADE_MAX_SPEED;
+    events[editedCategory].noiseSpeed.x = powf(value, 3.f)*FADE_MAX_SPEED;
     emit dirty();
 }
 
 float FadeJobConfig::getNoiseSpeedX() const {
-    return powf(noiseSpeed[editedCategory].x / FADE_MAX_SPEED, 1.f/3.f);
+    return powf(events[editedCategory].noiseSpeed.x / FADE_MAX_SPEED, 1.f / 3.f);
 }
 
 void FadeJobConfig::setNoiseSpeedY(float value) {
-    noiseSpeed[editedCategory].y = powf(value, 3.f)*FADE_MAX_SPEED;
+    events[editedCategory].noiseSpeed.y = powf(value, 3.f)*FADE_MAX_SPEED;
     emit dirty();
 }
 
 float FadeJobConfig::getNoiseSpeedY() const {
-    return powf(noiseSpeed[editedCategory].y / FADE_MAX_SPEED, 1.f / 3.f);
+    return powf(events[editedCategory].noiseSpeed.y / FADE_MAX_SPEED, 1.f / 3.f);
 }
 
 void FadeJobConfig::setNoiseSpeedZ(float value) {
-    noiseSpeed[editedCategory].z = powf(value, 3.f)*FADE_MAX_SPEED;
+    events[editedCategory].noiseSpeed.z = powf(value, 3.f)*FADE_MAX_SPEED;
     emit dirty();
 }
 
 float FadeJobConfig::getNoiseSpeedZ() const {
-    return powf(noiseSpeed[editedCategory].z / FADE_MAX_SPEED, 1.f / 3.f);
+    return powf(events[editedCategory].noiseSpeed.z / FADE_MAX_SPEED, 1.f / 3.f);
 }
 
 void FadeJobConfig::setEdgeWidth(float value) {
-    edgeWidth[editedCategory] = value * value;
+    events[editedCategory].edgeWidth = value * value;
     emit dirty();
 }
 
 float FadeJobConfig::getEdgeWidth() const { 
-    return sqrtf(edgeWidth[editedCategory]); 
+    return sqrtf(events[editedCategory].edgeWidth);
 }
 
 void FadeJobConfig::setEdgeInnerColorR(float value) {
-    edgeInnerColor[editedCategory].r = value;
+    events[editedCategory].edgeInnerColor.r = value;
     emit dirty();
 }
 
 void FadeJobConfig::setEdgeInnerColorG(float value) {
-    edgeInnerColor[editedCategory].g = value;
+    events[editedCategory].edgeInnerColor.g = value;
     emit dirty();
 }
 
 void FadeJobConfig::setEdgeInnerColorB(float value) {
-    edgeInnerColor[editedCategory].b = value;
+    events[editedCategory].edgeInnerColor.b = value;
     emit dirty();
 }
 
 void FadeJobConfig::setEdgeInnerIntensity(float value) {
-    edgeInnerColor[editedCategory].a = value;
+    events[editedCategory].edgeInnerColor.a = value;
     emit dirty();
 }
 
 void FadeJobConfig::setEdgeOuterColorR(float value) {
-    edgeOuterColor[editedCategory].r = value;
+    events[editedCategory].edgeOuterColor.r = value;
     emit dirty();
 }
 
 void FadeJobConfig::setEdgeOuterColorG(float value) {
-    edgeOuterColor[editedCategory].g = value;
+    events[editedCategory].edgeOuterColor.g = value;
     emit dirty();
 }
 
 void FadeJobConfig::setEdgeOuterColorB(float value) {
-    edgeOuterColor[editedCategory].b = value;
+    events[editedCategory].edgeOuterColor.b = value;
     emit dirty();
 }
 
 void FadeJobConfig::setEdgeOuterIntensity(float value) {
-    edgeOuterColor[editedCategory].a = value;
+    events[editedCategory].edgeOuterColor.a = value;
     emit dirty();
 }
 
 void FadeJobConfig::setTiming(int value) {
     assert(value < TIMING_COUNT);
-    timing[editedCategory] = value;
+    events[editedCategory].timing = value;
     emit dirty();
+}
+
+QString FadeJobConfig::eventNames[EVENT_CATEGORY_COUNT] = {
+    "element_enter_leave_domain",
+    "bubble_isect_owner",
+    "bubble_isect_trespasser",
+    "user_enter_leave_domain",
+    "avatar_change",
+};
+
+void FadeJobConfig::save() const {
+    assert(category < EVENT_CATEGORY_COUNT);
+    QJsonObject lProperties;
+    const QString configFile = "config/" + eventNames[editedCategory] + ".json";
+    QUrl path(PathUtils::resourcesPath() + configFile);
+    QFile file(path.toString());
+    if (!file.open(QFile::WriteOnly | QFile::Text)) {
+        qWarning() << "Fade event configuration file " << path << " cannot be opened";
+    }
+    else {
+        const auto& event = events[editedCategory];
+
+        lProperties["edgeInnerColor"] = QJsonArray{ event.edgeInnerColor.r, event.edgeInnerColor.g, event.edgeInnerColor.b, event.edgeInnerColor.a };
+        lProperties["edgeOuterColor"] = QJsonArray{ event.edgeOuterColor.r, event.edgeOuterColor.g, event.edgeOuterColor.b, event.edgeOuterColor.a };
+        lProperties["noiseSize"] = QJsonArray{ event.noiseSize.x, event.noiseSize.y, event.noiseSize.z };
+        lProperties["noiseSpeed"] = QJsonArray{ event.noiseSpeed.x, event.noiseSpeed.y, event.noiseSpeed.z };
+        lProperties["baseSize"] = QJsonArray{ event.baseSize.x, event.baseSize.y, event.baseSize.z };
+        lProperties["noiseLevel"] = event.noiseLevel;
+        lProperties["baseLevel"] = event.baseLevel;
+        lProperties["duration"] = event._duration;
+        lProperties["edgeWidth"] = event.edgeWidth;
+        lProperties["timing"] = event.timing;
+        lProperties["isInverted"] = event._isInverted;
+
+        file.write( QJsonDocument(lProperties).toJson() );
+        file.close();
+    }
+}
+
+void FadeJobConfig::load() {
+    const QString configFile = "config/" + eventNames[editedCategory] + ".json";
+
+    QUrl path(PathUtils::resourcesPath() + configFile);
+    QFile file(path.toString());
+    if (!file.exists()) {
+        qWarning() << "Fade event configuration file " << path << " does not exist";
+    }
+    else if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "Fade event configuration file " << path << " cannot be opened";
+    }
+    else {
+        QString fileData = file.readAll();
+        file.close();
+        QJsonParseError error;
+        QJsonDocument doc = QJsonDocument::fromJson(fileData.toUtf8(), &error);
+        if (error.error == error.NoError) {
+            QJsonObject jsonObject = doc.object();
+            QJsonValue value;
+            auto& event = events[editedCategory];
+
+            qCDebug(renderlogging) << "Fade event configuration file" << path << "loaded";
+
+            value = jsonObject["edgeInnerColor"];
+            if (value.isArray()) {
+                QJsonArray data = value.toArray();
+
+                if (data.size() < 4) {
+                    qWarning() << "Fade event configuration file " << path << " contains an invalid 'edgeInnerColor' field. Expected array of size 4";
+                }
+                else {
+                    event.edgeInnerColor.r = (float)data.at(0).toDouble();
+                    event.edgeInnerColor.g = (float)data.at(1).toDouble();
+                    event.edgeInnerColor.b = (float)data.at(2).toDouble();
+                    event.edgeInnerColor.a = (float)data.at(3).toDouble();
+                }
+            }
+            else {
+                qWarning() << "Fade event configuration file " << path << " contains an invalid 'edgeInnerColor' field. Expected array of size 4";
+            }
+
+            value = jsonObject["edgeOuterColor"];
+            if (value.isArray()) {
+                QJsonArray data = value.toArray();
+
+                if (data.size() < 4) {
+                    qWarning() << "Fade event configuration file " << path << " contains an invalid 'edgeOuterColor' field. Expected array of size 4";
+                }
+                else {
+                    event.edgeOuterColor.r = (float)data.at(0).toDouble();
+                    event.edgeOuterColor.g = (float)data.at(1).toDouble();
+                    event.edgeOuterColor.b = (float)data.at(2).toDouble();
+                    event.edgeOuterColor.a = (float)data.at(3).toDouble();
+                }
+            }
+            else {
+                qWarning() << "Fade event configuration file " << path << " contains an invalid 'edgeOuterColor' field. Expected array of size 4";
+            }
+
+            value = jsonObject["noiseSize"];
+            if (value.isArray()) {
+                QJsonArray data = value.toArray();
+
+                if (data.size() < 3) {
+                    qWarning() << "Fade event configuration file " << path << " contains an invalid 'noiseSize' field. Expected array of size 3";
+                }
+                else {
+                    event.noiseSize.x = (float)data.at(0).toDouble();
+                    event.noiseSize.y = (float)data.at(1).toDouble();
+                    event.noiseSize.z = (float)data.at(2).toDouble();
+                }
+            }
+            else {
+                qWarning() << "Fade event configuration file " << path << " contains an invalid 'noiseSize' field. Expected array of size 3";
+            }
+
+            value = jsonObject["noiseSpeed"];
+            if (value.isArray()) {
+                QJsonArray data = value.toArray();
+
+                if (data.size() < 3) {
+                    qWarning() << "Fade event configuration file " << path << " contains an invalid 'noiseSpeed' field. Expected array of size 3";
+                }
+                else {
+                    event.noiseSpeed.x = (float)data.at(0).toDouble();
+                    event.noiseSpeed.y = (float)data.at(1).toDouble();
+                    event.noiseSpeed.z = (float)data.at(2).toDouble();
+                }
+            }
+            else {
+                qWarning() << "Fade event configuration file " << path << " contains an invalid 'noiseSpeed' field. Expected array of size 3";
+            }
+
+            value = jsonObject["baseSize"];
+            if (value.isArray()) {
+                QJsonArray data = value.toArray();
+
+                if (data.size() < 3) {
+                    qWarning() << "Fade event configuration file " << path << " contains an invalid 'baseSize' field. Expected array of size 3";
+                }
+                else {
+                    event.baseSize.x = (float)data.at(0).toDouble();
+                    event.baseSize.y = (float)data.at(1).toDouble();
+                    event.baseSize.z = (float)data.at(2).toDouble();
+                }
+            }
+            else {
+                qWarning() << "Fade event configuration file " << path << " contains an invalid 'baseSize' field. Expected array of size 3";
+            }
+
+            value = jsonObject["noiseLevel"];
+            if (value.isDouble()) {
+                event.noiseLevel = (float)value.toDouble();
+            }
+            else {
+                qWarning() << "Fade event configuration file " << path << " contains an invalid 'noiseLevel' field. Expected float value";
+            }
+
+            value = jsonObject["baseLevel"];
+            if (value.isDouble()) {
+                event.baseLevel = (float)value.toDouble();
+            }
+            else {
+                qWarning() << "Fade event configuration file " << path << " contains an invalid 'baseLevel' field. Expected float value";
+            }
+
+            value = jsonObject["duration"];
+            if (value.isDouble()) {
+                event._duration = (float)value.toDouble();
+            }
+            else {
+                qWarning() << "Fade event configuration file " << path << " contains an invalid 'duration' field. Expected float value";
+            }
+
+            value = jsonObject["edgeWidth"];
+            if (value.isDouble()) {
+                event.edgeWidth = std::min(1.f, std::max(0.f, (float)value.toDouble()));
+            }
+            else {
+                qWarning() << "Fade event configuration file " << path << " contains an invalid 'edgeWidth' field. Expected float value";
+            }
+
+            value = jsonObject["timing"];
+            if (value.isDouble()) {
+                event.timing = std::max(0, std::min(TIMING_COUNT - 1, value.toInt()));
+            }
+            else {
+                qWarning() << "Fade event configuration file " << path << " contains an invalid 'timing' field. Expected integer value";
+            }
+
+            value = jsonObject["isInverted"];
+            if (value.isBool()) {
+                event._isInverted = value.toBool();
+            }
+            else {
+                qWarning() << "Fade event configuration file " << path << " contains an invalid 'isInverted' field. Expected boolean value";
+            }
+
+            emit dirty();
+        }
+        else {
+            qWarning() << "Fade event configuration file" << path << "failed to load:" <<
+                error.errorString() << "at offset" << error.offset;
+        }
+    }
 }
 
 FadeConfigureJob::FadeConfigureJob(FadeCommonParameters::Pointer commonParams) : 
@@ -370,24 +570,25 @@ void FadeConfigureJob::configure(const Config& config) {
 
     for (auto i = 0; i < FadeJobConfig::EVENT_CATEGORY_COUNT; i++) {
         auto& configuration = _configurations[i];
+        const auto& eventConfig = config.events[i];
 
-        _parameters->_durations[i] = config._duration[i];
-        configuration._baseInvSizeAndLevel.x = 1.f / config.baseSize[i].x;
-        configuration._baseInvSizeAndLevel.y = 1.f / config.baseSize[i].y;
-        configuration._baseInvSizeAndLevel.z = 1.f / config.baseSize[i].z;
-        configuration._baseInvSizeAndLevel.w = config.baseLevel[i];
-        configuration._noiseInvSizeAndLevel.x = 1.f / config.noiseSize[i].x;
-        configuration._noiseInvSizeAndLevel.y = 1.f / config.noiseSize[i].y;
-        configuration._noiseInvSizeAndLevel.z = 1.f / config.noiseSize[i].z;
-        configuration._noiseInvSizeAndLevel.w = config.noiseLevel[i];
-        configuration._isInverted = config._isInverted[i] & 1;
-        configuration._edgeWidthInvWidth.x = config.edgeWidth[i];
+        _parameters->_durations[i] = eventConfig._duration;
+        configuration._baseInvSizeAndLevel.x = 1.f / eventConfig.baseSize.x;
+        configuration._baseInvSizeAndLevel.y = 1.f / eventConfig.baseSize.y;
+        configuration._baseInvSizeAndLevel.z = 1.f / eventConfig.baseSize.z;
+        configuration._baseInvSizeAndLevel.w = eventConfig.baseLevel;
+        configuration._noiseInvSizeAndLevel.x = 1.f / eventConfig.noiseSize.x;
+        configuration._noiseInvSizeAndLevel.y = 1.f / eventConfig.noiseSize.y;
+        configuration._noiseInvSizeAndLevel.z = 1.f / eventConfig.noiseSize.z;
+        configuration._noiseInvSizeAndLevel.w = eventConfig.noiseLevel;
+        configuration._isInverted = eventConfig._isInverted & 1;
+        configuration._edgeWidthInvWidth.x = eventConfig.edgeWidth;
         configuration._edgeWidthInvWidth.y = 1.f / configuration._edgeWidthInvWidth.x;
-        configuration._innerEdgeColor = config.edgeInnerColor[i];
-        configuration._outerEdgeColor = config.edgeOuterColor[i];
-        _parameters->_thresholdScale[i] = 1.f + (configuration._edgeWidthInvWidth.x + std::max(0.f, (config.noiseLevel[i] + config.baseLevel[i])*0.5f-0.5f));
-        _parameters->_noiseSpeed[i] = config.noiseSpeed[i];
-        _parameters->_timing[i] = (FadeJobConfig::Timing) config.timing[i];
+        configuration._innerEdgeColor = eventConfig.edgeInnerColor;
+        configuration._outerEdgeColor = eventConfig.edgeOuterColor;
+        _parameters->_thresholdScale[i] = 1.f + (configuration._edgeWidthInvWidth.x + std::max(0.f, (eventConfig.noiseLevel + eventConfig.baseLevel)*0.5f-0.5f));
+        _parameters->_noiseSpeed[i] = eventConfig.noiseSpeed;
+        _parameters->_timing[i] = (FadeJobConfig::Timing) eventConfig.timing;
     }
     _isBufferDirty = true;
 }
@@ -530,6 +731,7 @@ void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderCon
     const FadeJobConfig::Timing timing = _parameters->_timing[editedCategory];
     const double waitTime = 0.5;    // Wait between fade in and out
     double  cycleTime = fmod(_editTime, (eventDuration + waitTime) * 2.0);
+    bool inverseTime = false;
 
     _editTime += deltaTime;
     _editPreviousTime = now;
@@ -546,9 +748,11 @@ void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderCon
         }
         else if (cycleTime < (2 * eventDuration + waitTime)) {
             _editThreshold = computeElementEnterThreshold(cycleTime - (eventDuration + waitTime), eventDuration, timing);
+            inverseTime = true;
         }
         else {
             _editThreshold = 1.f;
+            inverseTime = true;
         }
     }
 
@@ -559,6 +763,9 @@ void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderCon
     renderContext->jobConfig->setProperty("threshold", threshold);
 
     _editNoiseOffset = _parameters->_noiseSpeed[editedCategory] * (float)_editTime;
+    if (inverseTime) {
+        _editNoiseOffset = -_editNoiseOffset;
+    }
 
     switch (editedCategory) {
     case FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN:

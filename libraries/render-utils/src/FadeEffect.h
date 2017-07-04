@@ -98,7 +98,7 @@ public:
     float getBaseSizeZ() const;
 
     void setBaseLevel(float value);
-    float getBaseLevel() const { return baseLevel[editedCategory]; }
+    float getBaseLevel() const { return events[editedCategory].baseLevel; }
 
     void setInverted(bool value);
     bool isInverted() const;
@@ -113,7 +113,7 @@ public:
     float getNoiseSizeZ() const;
 
     void setNoiseLevel(float value);
-    float getNoiseLevel() const { return noiseLevel[editedCategory]; }
+    float getNoiseLevel() const { return events[editedCategory].noiseLevel; }
 
     void setNoiseSpeedX(float value);
     float getNoiseSpeedX() const;
@@ -128,46 +128,56 @@ public:
     float getEdgeWidth() const;
 
     void setEdgeInnerColorR(float value);
-    float getEdgeInnerColorR() const { return edgeInnerColor[editedCategory].r; }
+    float getEdgeInnerColorR() const { return events[editedCategory].edgeInnerColor.r; }
 
     void setEdgeInnerColorG(float value);
-    float getEdgeInnerColorG() const { return edgeInnerColor[editedCategory].g; }
+    float getEdgeInnerColorG() const { return events[editedCategory].edgeInnerColor.g; }
 
     void setEdgeInnerColorB(float value);
-    float getEdgeInnerColorB() const { return edgeInnerColor[editedCategory].b; }
+    float getEdgeInnerColorB() const { return events[editedCategory].edgeInnerColor.b; }
 
     void setEdgeInnerIntensity(float value);
-    float getEdgeInnerIntensity() const { return edgeInnerColor[editedCategory].a; }
+    float getEdgeInnerIntensity() const { return events[editedCategory].edgeInnerColor.a; }
 
     void setEdgeOuterColorR(float value);
-    float getEdgeOuterColorR() const { return edgeOuterColor[editedCategory].r; }
+    float getEdgeOuterColorR() const { return events[editedCategory].edgeOuterColor.r; }
 
     void setEdgeOuterColorG(float value);
-    float getEdgeOuterColorG() const { return edgeOuterColor[editedCategory].g; }
+    float getEdgeOuterColorG() const { return events[editedCategory].edgeOuterColor.g; }
 
     void setEdgeOuterColorB(float value);
-    float getEdgeOuterColorB() const { return edgeOuterColor[editedCategory].b; }
+    float getEdgeOuterColorB() const { return events[editedCategory].edgeOuterColor.b; }
 
     void setEdgeOuterIntensity(float value);
-    float getEdgeOuterIntensity() const { return edgeOuterColor[editedCategory].a; }
+    float getEdgeOuterIntensity() const { return events[editedCategory].edgeOuterColor.a; }
 
     void setTiming(int value);
-    int getTiming() const { return timing[editedCategory]; }
+    int getTiming() const { return events[editedCategory].timing; }
     
     bool manualFade{ false };
     float manualThreshold{ 0.f };
     int editedCategory{ ELEMENT_ENTER_LEAVE_DOMAIN };
-    glm::vec3 noiseSize[EVENT_CATEGORY_COUNT];
-    glm::vec3 noiseSpeed[EVENT_CATEGORY_COUNT];
-    float noiseLevel[EVENT_CATEGORY_COUNT];
-    glm::vec3 baseSize[EVENT_CATEGORY_COUNT];
-    float baseLevel[EVENT_CATEGORY_COUNT];
-    bool _isInverted[EVENT_CATEGORY_COUNT];
-    float _duration[EVENT_CATEGORY_COUNT];
-    float edgeWidth[EVENT_CATEGORY_COUNT];
-    glm::vec4 edgeInnerColor[EVENT_CATEGORY_COUNT];
-    glm::vec4 edgeOuterColor[EVENT_CATEGORY_COUNT];
-    int timing[EVENT_CATEGORY_COUNT];
+
+    struct Event {
+        glm::vec4 edgeInnerColor;
+        glm::vec4 edgeOuterColor;
+        glm::vec3 noiseSize;
+        glm::vec3 noiseSpeed;
+        glm::vec3 baseSize;
+        float noiseLevel;
+        float baseLevel;
+        float _duration;
+        float edgeWidth;
+        int timing;
+        bool _isInverted;
+    };
+
+    Event events[EVENT_CATEGORY_COUNT];
+
+    Q_INVOKABLE void save() const;
+    Q_INVOKABLE void load();
+
+    static QString eventNames[EVENT_CATEGORY_COUNT];
 
 signals:
     void dirty();

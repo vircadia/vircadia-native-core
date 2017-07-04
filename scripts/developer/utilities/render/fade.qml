@@ -18,6 +18,7 @@ Column {
 	property var config: Render.getConfig("RenderMainView.FadeConfigure");
 	property var switchConfig: Render.getConfig("RenderMainView.FadeSwitch");
 	spacing: 8
+
 	Row {
 		spacing: 8
 
@@ -43,6 +44,7 @@ Column {
 				// This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
 				// by setting the loader source to Null and then recreate it 100ms later
 				paramWidgetLoader.sourceComponent = undefined;
+				postpone.interval = 100
 				postpone.start()
 			}
 		}
@@ -68,6 +70,25 @@ Column {
 		}
 	}
 
+	Action {
+        id: saveAction
+        text: "Save"
+        onTriggered: {
+			root.config.save()
+		}
+    }
+	Action {
+        id: loadAction
+        text: "Load"
+        onTriggered: {
+			root.config.load()
+			// This is a hack to be sure the widgets below properly reflect the change of category: delete the Component
+			// by setting the loader source to Null and then recreate it 500ms later
+			paramWidgetLoader.sourceComponent = undefined;
+			postpone.interval = 500
+			postpone.start()
+		}
+    }
 
 	Component {
 		id: paramWidgets
@@ -277,81 +298,94 @@ Column {
 					}
 				}
 
-				GroupBox {
-					title: "Timing"
-					width: 450
-					Column {
-						spacing: 8
+				Column {
+					GroupBox {
+						title: "Timing"
+						width: 450
+						Column {
+							spacing: 8
 
-						ConfigSlider {
-							label: "Duration"
-							integral: false
-							config: root.config
-							property: "duration"
-							max: 10.0
-							min: 0.1
-							width: 400
-						}
-						ComboBox {
-							width: 400
-							model: ["Linear", "Ease In", "Ease Out", "Ease In / Out"]
-							onCurrentIndexChanged: {
-								root.config["timing"] = currentIndex;
+							ConfigSlider {
+								label: "Duration"
+								integral: false
+								config: root.config
+								property: "duration"
+								max: 10.0
+								min: 0.1
+								width: 400
 							}
-						}
-						GroupBox {
-							title: "Noise Animation"
-							Column {
-								spacing: 8
-								ConfigSlider {
-									label: "Speed X"
-									integral: false
-									config: root.config
-									property: "noiseSpeedX"
-									max: 1.0
-									min: -1.0
-									width: 400
-								}
-								ConfigSlider {
-									label: "Speed Y"
-									integral: false
-									config: root.config
-									property: "noiseSpeedY"
-									max: 1.0
-									min: -1.0
-									width: 400
-								}
-								ConfigSlider {
-									label: "Speed Z"
-									integral: false
-									config: root.config
-									property: "noiseSpeedZ"
-									max: 1.0
-									min: -1.0
-									width: 400
+							ComboBox {
+								width: 400
+								model: ["Linear", "Ease In", "Ease Out", "Ease In / Out"]
+								currentIndex: root.config["timing"]
+								onCurrentIndexChanged: {
+									root.config["timing"] = currentIndex;
 								}
 							}
-						}
-
-						PlotPerf {
-							title: "Threshold"
-							height: parent.evalEvenHeight()
-							object:  Render.getConfig("RenderMainView.DrawFadeOpaque")
-							valueUnit: "%"
-							valueScale: 0.01
-							valueNumDigits: "1"
-							plots: [
-								{
-									prop: "threshold",
-									label: "Threshold",
-									color: "#FFBB77"
+							GroupBox {
+								title: "Noise Animation"
+								Column {
+									spacing: 8
+									ConfigSlider {
+										label: "Speed X"
+										integral: false
+										config: root.config
+										property: "noiseSpeedX"
+										max: 1.0
+										min: -1.0
+										width: 400
+									}
+									ConfigSlider {
+										label: "Speed Y"
+										integral: false
+										config: root.config
+										property: "noiseSpeedY"
+										max: 1.0
+										min: -1.0
+										width: 400
+									}
+									ConfigSlider {
+										label: "Speed Z"
+										integral: false
+										config: root.config
+										property: "noiseSpeedZ"
+										max: 1.0
+										min: -1.0
+										width: 400
+									}
 								}
-							]
-						}
+							}
 
+							PlotPerf {
+								title: "Threshold"
+								height: parent.evalEvenHeight()
+								object:  Render.getConfig("RenderMainView.DrawFadeOpaque")
+								valueUnit: "%"
+								valueScale: 0.01
+								valueNumDigits: "1"
+								plots: [
+									{
+										prop: "threshold",
+										label: "Threshold",
+										color: "#FFBB77"
+									}
+								]
+							}
+
+						}
 					}
-				}
 
+					Row {
+						spacing: 8
+						Button {
+							action: saveAction
+						}
+						Button {
+							action: loadAction
+						}
+					}
+
+				}
 			}		
 		}
 	}
