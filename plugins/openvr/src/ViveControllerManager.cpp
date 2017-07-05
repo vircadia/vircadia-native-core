@@ -168,6 +168,9 @@ void ViveControllerManager::setConfigurationSettings(const QJsonObject configura
     if (isSupported()) {
         if (configurationSettings.contains("desktopMode")) {
             _desktopMode = configurationSettings["desktopMode"].toBool();
+            if (!_desktopMode) {
+                _resetMatCalculated = false;
+            }
         }
         _inputDevice->configureCalibrationSettings(configurationSettings);
     }
@@ -761,7 +764,7 @@ glm::mat4 ViveControllerManager::InputDevice::calculateDefaultToReferenceForHead
     glm::mat4 finalHeadPuck = newHeadPuck * headPuckOffset;
 
     // calculate the defaultToRefrenceXform
-    glm::mat4 defaultToReferenceMat = currentHead * glm::inverse(inputCalibration.defaultHeadMat);
+    glm::mat4 defaultToReferenceMat = finalHeadPuck * glm::inverse(inputCalibration.defaultHeadMat);
     return defaultToReferenceMat;
 }
 
