@@ -21,6 +21,15 @@
 
         VR_EDIT_SETTING = "io.highfidelity.isVREditing";  // Note: This constant is duplicated in utils.js.
 
+        UPDATE_LOOP_TIMEOUT = 16,
+        updateTimer = null;
+
+    function update() {
+        // Main update loop.
+        updateTimer = null;
+
+        updateTimer = Script.setTimeout(update, UPDATE_LOOP_TIMEOUT);
+    }
 
     function updateHandControllerGrab() {
         // Communicate status to handControllerGrab.js.
@@ -31,6 +40,13 @@
         isAppActive = !isAppActive;
         updateHandControllerGrab();
         button.editProperties({ isActive: isAppActive });
+
+        if (isAppActive) {
+            update();
+        } else {
+            Script.clearTimeout(updateTimer);
+            updateTimer = null;
+        }
     }
 
     function setUp() {
@@ -51,9 +67,17 @@
         if (button) {
             button.clicked.connect(onButtonClicked);
         }
+
+        if (isAppActive) {
+            update();
+        }
     }
 
     function tearDown() {
+        if (updateTimer) {
+            Script.clearTimeout(updateTimer);
+        }
+
         isAppActive = false;
         updateHandControllerGrab();
 
