@@ -335,6 +335,9 @@
             isLaserOn = false,
             laseredEntityID = null,
 
+            EDITIBLE_ENTITY_QUERY_PROPERTYES = ["parentID", "visible", "locked", "type"],
+            NONEDITABLE_ENTITY_TYPES = ["Unknown", "Zone", "Light"],
+
             isEditing = false,
             initialHandPosition,
             initialHandOrientationInverse,
@@ -403,6 +406,15 @@
             laseredEntityID = null;
         }
 
+        function isEditableEntity(entityID) {
+            // Entity trees are moved as a group so check the root entity.
+            var properties = Entities.getEntityProperties(entityID, EDITIBLE_ENTITY_QUERY_PROPERTYES);
+            while (properties.parentID && properties.parentID !== NULL_UUID) {
+                properties = Entities.getEntityProperties(properties.parentID, EDITIBLE_ENTITY_QUERY_PROPERTYES);
+            }
+            return properties.visible && !properties.locked && NONEDITABLE_ENTITY_TYPES.indexOf(properties.type) === -1;
+        }
+
         function update() {
             var wasLaserOn,
                 handPose,
@@ -446,6 +458,7 @@
             intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
                 VISIBLE_ONLY);
             distance = isEditing ? editingDistance : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
+            intersection.intersects = isEditableEntity(intersection.entityID);
 
             // Laser, hover, edit.
             isTriggerClicked = Controller.getValue(controllerTriggerClicked);
