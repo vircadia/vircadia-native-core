@@ -447,15 +447,7 @@ Grabber.prototype.releaseEvent = function(event) {
     }
 };
 
-Grabber.prototype.moveEvent = function(event) {
-    // during the handling of the event, do as little as possible.  We save the updated mouse position,
-    // and start a timer to react to the change.  If more changes arrive before the timer fires, only
-    // the last update will be considered.  This is done to avoid backing-up Qt's event queue.
-    if (!this.isGrabbing) {
-        return;
-    }
-    mouse.updateDrag(event);
-
+Grabber.prototype.scheduleMouseMoveProcessor = function(event) {
     var _this = this;
     if (!this.moveEventTimer) {
         this.moveEventTimer = Script.setTimeout(function() {
@@ -464,7 +456,19 @@ Grabber.prototype.moveEvent = function(event) {
     }
 };
 
+Grabber.prototype.moveEvent = function(event) {
+    // during the handling of the event, do as little as possible.  We save the updated mouse position,
+    // and start a timer to react to the change.  If more changes arrive before the timer fires, only
+    // the last update will be considered.  This is done to avoid backing-up Qt's event queue.
+    if (!this.isGrabbing) {
+        return;
+    }
+    mouse.updateDrag(event);
+    this.scheduleMouseMoveProcessor();
+};
+
 Grabber.prototype.moveEventProcess = function() {
+    this.moveEventTimer = null;
     // see if something added/restored gravity
     var entityProperties = Entities.getEntityProperties(this.entityID);
     if (!entityProperties || !entityProperties.gravity) {
@@ -559,10 +563,7 @@ Grabber.prototype.moveEventProcess = function() {
         Entities.updateAction(this.entityID, this.actionID, actionArgs);
     }
 
-    var _this = this;
-    this.moveEventTimer = Script.setTimeout(function() {
-        _this.moveEventProcess();
-    }, DELAY_FOR_30HZ);
+    this.scheduleMouseMoveProcessor();
 };
 
 Grabber.prototype.keyReleaseEvent = function(event) {
