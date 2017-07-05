@@ -92,16 +92,11 @@ QOpenGLFramebufferObject* ResourceImageItemRenderer::createFramebufferObject(con
 
 void ResourceImageItemRenderer::render() {
     auto f = QOpenGLContext::currentContext()->extraFunctions();
-    bool doUpdate = false;
-    // black background
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT);
 
     if (_fenceSync) {
         f->glWaitSync(_fenceSync, 0, GL_TIMEOUT_IGNORED);
         f->glDeleteSync(_fenceSync);
         _fenceSync = 0;
-        doUpdate = true;
     }
     if (_ready) {
         _fboMutex.lock();
@@ -116,9 +111,6 @@ void ResourceImageItemRenderer::render() {
         _copyFbo->release();
 
         _fboMutex.unlock();
-        if (doUpdate) {
-            update();
-        }
     }
     glFlush();
     _window->resetOpenGLState();
