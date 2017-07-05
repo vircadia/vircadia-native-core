@@ -94,19 +94,6 @@ AvatarData::AvatarData() :
     setBodyPitch(0.0f);
     setBodyYaw(-90.0f);
     setBodyRoll(0.0f);
-
-    ASSERT(sizeof(AvatarDataPacket::Header) == AvatarDataPacket::HEADER_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::AvatarGlobalPosition) == AvatarDataPacket::AVATAR_GLOBAL_POSITION_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::AvatarLocalPosition) == AvatarDataPacket::AVATAR_LOCAL_POSITION_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::AvatarBoundingBox) == AvatarDataPacket::AVATAR_BOUNDING_BOX_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::AvatarOrientation) == AvatarDataPacket::AVATAR_ORIENTATION_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::AvatarScale) == AvatarDataPacket::AVATAR_SCALE_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::LookAtPosition) == AvatarDataPacket::LOOK_AT_POSITION_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::AudioLoudness) == AvatarDataPacket::AUDIO_LOUDNESS_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::SensorToWorldMatrix) == AvatarDataPacket::SENSOR_TO_WORLD_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::AdditionalFlags) == AvatarDataPacket::ADDITIONAL_FLAGS_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::ParentInfo) == AvatarDataPacket::PARENT_INFO_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::FaceTrackerInfo) == AvatarDataPacket::FACE_TRACKER_INFO_SIZE);
 }
 
 AvatarData::~AvatarData() {
