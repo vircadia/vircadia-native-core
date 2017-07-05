@@ -491,9 +491,8 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
                             glm::quat twistPart;
                             glm::vec3 axis = glm::normalize(deltaRotation * leverArm);
                             swingTwistDecomposition(missingRotation, axis, swingPart, twistPart);
-                            float dotSign = copysignf(1.0f, twistPart.w);
                             const float LIMIT_LEAK_FRACTION = 0.1f;
-                            deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * twistPart, LIMIT_LEAK_FRACTION)) * deltaRotation;
+                            deltaRotation = safeLerp(glm::quat(), twistPart, LIMIT_LEAK_FRACTION);
                         }
                     }
                 }
@@ -502,9 +501,8 @@ void AnimInverseKinematics::solveTargetWithCCD(const AnimContext& context, const
             // An HmdHead target slaves the orientation of the end-effector by distributing rotation
             // deltas up the hierarchy.  Its target position is enforced later (by shifting the hips).
             deltaRotation = target.getRotation() * glm::inverse(tipOrientation);
-            float dotSign = copysignf(1.0f, deltaRotation.w);
             const float ANGLE_DISTRIBUTION_FACTOR = 0.45f;
-            deltaRotation = glm::normalize(glm::lerp(glm::quat(), dotSign * deltaRotation, ANGLE_DISTRIBUTION_FACTOR));
+            deltaRotation = safeLerp(glm::quat(), deltaRotation, ANGLE_DISTRIBUTION_FACTOR);
         }
 
         // compute joint's new parent-relative rotation after swing
@@ -761,7 +759,7 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
 
     // This prevents the rotation interpolation from rotating the wrong physical way (but correct mathematical way)
     // when the head is arched backwards very far.
-    glm::quat halfRot = glm::normalize(glm::lerp(basePose.rot(), tipPose.rot(), 0.5f));
+    glm::quat halfRot = safeLerp(basePose.rot(), tipPose.rot(), 0.5f);
     if (glm::dot(halfRot * Vectors::UNIT_Z, basePose.rot() * Vectors::UNIT_Z) < 0.0f) {
         tipPose.rot() = -tipPose.rot();
     }
@@ -784,7 +782,7 @@ void AnimInverseKinematics::solveTargetWithSpline(const AnimContext& context, co
             if (target.getIndex() == _headIndex) {
                 rotT = t * t;
             }
-            glm::quat twistRot = glm::normalize(glm::lerp(basePose.rot(), tipPose.rot(), rotT));
+            glm::quat twistRot = safeLerp(basePose.rot(), tipPose.rot(), rotT);
 
             // compute the rotation by using the derivative of the spline as the y-axis, and the twistRot x-axis
             glm::vec3 y = glm::normalize(spline.d(t));
@@ -1682,7 +1680,7 @@ void AnimInverseKinematics::debugDrawConstraints(const AnimContext& context) con
 
                     const int NUM_SWING_STEPS = 10;
                     for (int i = 0; i < NUM_SWING_STEPS + 1; i++) {
-                        glm::quat rot = glm::normalize(glm::lerp(minRot, maxRot, i * (1.0f / NUM_SWING_STEPS)));
+                        glm::quat rot = safeLerp(minRot, maxRot, i * (1.0f / NUM_SWING_STEPS));
                         glm::vec3 axis = transformVectorFast(geomToWorldMatrix, parentAbsRot * rot * refRot * Vectors::UNIT_Y);
                         DebugDraw::getInstance().drawRay(pos, pos + TWIST_LENGTH * axis, CYAN);
                     }
@@ -1700,7 +1698,7 @@ void AnimInverseKinematics::debugDrawConstraints(const AnimContext& context) con
 
                         const int NUM_SWING_STEPS = 10;
                         for (int i = 0; i < NUM_SWING_STEPS + 1; i++) {
-                            glm::quat rot = glm::normalize(glm::lerp(minRot, maxRot, i * (1.0f / NUM_SWING_STEPS)));
+                            glm::quat rot = safeLerp(minRot, maxRot, i * (1.0f / NUM_SWING_STEPS));
                             glm::vec3 axis = transformVectorFast(geomToWorldMatrix, parentAbsRot * rot * refRot * Vectors::UNIT_X);
                             DebugDraw::getInstance().drawRay(pos, pos + TWIST_LENGTH * axis, CYAN);
                         }
@@ -1740,10 +1738,9 @@ void AnimInverseKinematics::blendToPoses(const AnimPoseVec& targetPoses, const A
     // relax toward poses
     int numJoints = (int)_relativePoses.size();
     for (int i = 0; i < numJoints; ++i) {
-        float dotSign = copysignf(1.0f, glm::dot(_relativePoses[i].rot(), targetPoses[i].rot()));
         if (_rotationAccumulators[i].isDirty()) {
             // this joint is affected by IK --> blend toward the targetPoses rotation
-            _relativePoses[i].rot() = glm::normalize(glm::lerp(_relativePoses[i].rot(), dotSign * targetPoses[i].rot(), blendFactor));
+            _relativePoses[i].rot() = safeLerp(_relativePoses[i].rot(), targetPoses[i].rot(), blendFactor);
         } else {
             // this joint is NOT affected by IK --> slam to underPoses rotation
             _relativePoses[i].rot() = underPoses[i].rot();
