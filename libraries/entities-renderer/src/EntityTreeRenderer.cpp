@@ -17,6 +17,7 @@
 #include <QScriptSyntaxCheckResult>
 #include <QThreadPool>
 
+#include <shared/QtHelpers.h>
 #include <ColorUtils.h>
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
@@ -380,7 +381,7 @@ ModelPointer EntityTreeRenderer::allocateModel(const QString& url, float loading
 
     // Only create and delete models on the thread that owns the EntityTreeRenderer
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "allocateModel", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "allocateModel",
                 Q_RETURN_ARG(ModelPointer, model),
                 Q_ARG(const QString&, url));
 
@@ -397,7 +398,7 @@ ModelPointer EntityTreeRenderer::allocateModel(const QString& url, float loading
 ModelPointer EntityTreeRenderer::updateModel(ModelPointer model, const QString& newUrl) {
     // Only create and delete models on the thread that owns the EntityTreeRenderer
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "updateModel", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "updateModel",
             Q_RETURN_ARG(ModelPointer, model),
                 Q_ARG(ModelPointer, model),
                 Q_ARG(const QString&, newUrl));

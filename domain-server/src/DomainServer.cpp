@@ -221,6 +221,8 @@ void DomainServer::parseCommandLine() {
     const QCommandLineOption masterConfigOption("master-config", "Deprecated config-file option");
     parser.addOption(masterConfigOption);
 
+    const QCommandLineOption parentPIDOption(PARENT_PID_OPTION, "PID of the parent process", "parent-pid");
+    parser.addOption(parentPIDOption);
 
     if (!parser.parse(QCoreApplication::arguments())) {
         qWarning() << parser.errorText() << endl;
@@ -248,6 +250,17 @@ void DomainServer::parseCommandLine() {
         _overridingDomainID = QUuid(parser.value(domainIDOption));
         _overrideDomainID = true;
         qDebug() << "domain-server ID is" << _overridingDomainID;
+    }
+
+
+    if (parser.isSet(parentPIDOption)) {
+        bool ok = false;
+        int parentPID = parser.value(parentPIDOption).toInt(&ok);
+
+        if (ok) {
+            qDebug() << "Parent process PID is" << parentPID;
+            watchParentProcess(parentPID);
+        }
     }
 }
 
