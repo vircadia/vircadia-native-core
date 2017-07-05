@@ -1198,6 +1198,7 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
     static const QString SECURITY_ROOT_KEY = "security";
     static const QString AC_SUBNET_WHITELIST_KEY = "ac_subnet_whitelist";
     static const QString BROADCASTING_KEY = "broadcasting";
+	static const QString PATHS_ROOT_KEY = "Places / Paths";
 
     auto& settingsVariant = _configMap.getConfig();
     bool needRestart = false;
@@ -1249,7 +1250,7 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
             if (!matchingDescriptionObject.isEmpty()) {
                 updateSetting(rootKey, rootValue, *thisMap, matchingDescriptionObject);
-                if (rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY) {
+                if (rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY && rootKey != SETTINGS_PATHS_KEY ) {
                     needRestart = true;
                 }
             } else {
