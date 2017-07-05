@@ -460,7 +460,7 @@ Grabber.prototype.moveEvent = function(event) {
     if (!this.moveEventTimer) {
         this.moveEventTimer = Script.setTimeout(function() {
             _this.moveEventProcess();
-        } , DELAY_FOR_30HZ);
+        }, DELAY_FOR_30HZ);
     }
 };
 
