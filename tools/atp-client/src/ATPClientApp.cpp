@@ -235,8 +235,6 @@ void ATPClientApp::nodeActivated(SharedNodePointer node) {
             qDebug() << "path is " << path;
         }
 
-        qDebug() << "_localUploadFile =" << _localUploadFile;
-
         if (!_localUploadFile.isEmpty()) {
             uploadAsset();
         } else if (path == "/") {
