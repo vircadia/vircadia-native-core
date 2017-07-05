@@ -396,6 +396,13 @@
             isEditing = false;
         }
 
+        function clearLaser() {
+            laser.clear();
+            selection.clear();
+            highlights.clear();
+            laseredEntityID = null;
+        }
+
         function update() {
             var wasLaserOn,
                 handPose,
@@ -412,10 +419,7 @@
             isLaserOn = Controller.getValue(controllerTrigger) > (isLaserOn ? TRIGGER_OFF_VALUE : TRIGGER_ON_VALUE);
             if (!isLaserOn) {
                 if (wasLaserOn) {
-                    laser.clear();
-                    selection.clear();
-                    highlights.clear();
-                    laseredEntityID = null;
+                    clearLaser();
                 }
                 return;
             }
@@ -425,10 +429,7 @@
             if (!handPose.valid) {
                 isLaserOn = false;
                 if (wasLaserOn) {
-                    laser.clear();
-                    selection.clear();
-                    highlights.clear();
-                    laseredEntityID = null;
+                    clearLaser();
                 }
                 return;
             }
@@ -449,7 +450,6 @@
             // Laser, hover, edit.
             isTriggerClicked = Controller.getValue(controllerTriggerClicked);
             laser.update(pickRay.origin, pickRay.direction, distance, isTriggerClicked);
-
             if (isTriggerClicked) {
                 if (isEditing) {
                     // Perform edit.
@@ -487,7 +487,6 @@
                         laseredEntityID = null;
                     }
                 }
-
             }
         }
 
@@ -515,7 +514,6 @@
             destroy: destroy
         };
     };
-
 
     function update() {
         // Main update loop.
