@@ -21,6 +21,7 @@
 
 #include <QtCore/QTimer>
 
+#include <shared/QtHelpers.h>
 #include <scripting/HMDScriptingInterface.h>
 #include <AccountManager.h>
 #include <AddressManager.h>
@@ -897,7 +898,7 @@ void MyAvatar::restoreAnimation() {
 QStringList MyAvatar::getAnimationRoles() {
     if (QThread::currentThread() != thread()) {
         QStringList result;
-        QMetaObject::invokeMethod(this, "getAnimationRoles", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QStringList, result));
+        BLOCKING_INVOKE_METHOD(this, "getAnimationRoles", Q_RETURN_ARG(QStringList, result));
         return result;
     }
     return _skeletonModel->getRig().getAnimationRoles();
@@ -1368,7 +1369,7 @@ void MyAvatar::resetFullAvatarURL() {
 void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelName) {
 
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "useFullAvatarURL", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "useFullAvatarURL",
                                   Q_ARG(const QUrl&, fullAvatarURL),
                                   Q_ARG(const QString&, modelName));
         return;
@@ -1394,7 +1395,7 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
 
 void MyAvatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setAttachmentData", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "setAttachmentData",
                                   Q_ARG(const QVector<AttachmentData>, attachmentData));
         return;
     }
@@ -2372,7 +2373,7 @@ bool MyAvatar::safeLanding(const glm::vec3& position) {
 
     if (QThread::currentThread() != thread()) {
         bool result;
-        QMetaObject::invokeMethod(this, "safeLanding", Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, result), Q_ARG(const glm::vec3&, position));
+        BLOCKING_INVOKE_METHOD(this, "safeLanding", Q_RETURN_ARG(bool, result), Q_ARG(const glm::vec3&, position));
         return result;
     }
     glm::vec3 better;

@@ -25,6 +25,8 @@
 #include <QtCore/QWaitCondition>
 
 #include <shared/NsightHelpers.h>
+#include <shared/GlobalAppProperties.h>
+#include <shared/QtHelpers.h>
 #include <PerfStat.h>
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
@@ -34,7 +36,6 @@
 #include <AccountManager.h>
 #include <NetworkAccessManager.h>
 #include <GLMHelpers.h>
-#include <shared/GlobalAppProperties.h>
 
 #include <gl/OffscreenGLCanvas.h>
 #include <gl/GLHelpers.h>
@@ -884,28 +885,6 @@ QSize OffscreenQmlSurface::size() const {
 
 QQmlContext* OffscreenQmlSurface::getSurfaceContext() {
     return _qmlContext;
-}
-
-void OffscreenQmlSurface::executeOnUiThread(std::function<void()> function, bool blocking ) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "executeOnUiThread", blocking ? Qt::BlockingQueuedConnection : Qt::QueuedConnection,
-            Q_ARG(std::function<void()>, function));
-        return;
-    }
-
-    function();
-}
-
-QVariant OffscreenQmlSurface::returnFromUiThread(std::function<QVariant()> function) {
-    if (QThread::currentThread() != thread()) {
-        QVariant result;
-        QMetaObject::invokeMethod(this, "returnFromUiThread", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(QVariant, result),
-            Q_ARG(std::function<QVariant()>, function));
-        return result;
-    }
-
-    return function();
 }
 
 void OffscreenQmlSurface::focusDestroyed(QObject *obj) {
