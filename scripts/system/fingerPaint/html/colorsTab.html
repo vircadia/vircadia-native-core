@@ -33,6 +33,10 @@
         flat:true, 
         layout:'hex',
         colorScheme:'dark',
+        submitText: 'Add custom color',
+        onChange: function(hsb, hex, rgb, el) {
+            update([rgb.r, rgb.g, rgb.b])
+        },
         onSubmit: function(hsb, hex, rgb, el) {
             updateColorFromCustomPicker(rgb)
         }
