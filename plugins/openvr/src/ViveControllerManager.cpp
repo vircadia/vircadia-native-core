@@ -760,10 +760,6 @@ glm::mat4 ViveControllerManager::InputDevice::calculateDefaultToReferenceForHead
 
     glm::mat4 finalHeadPuck = newHeadPuck * headPuckOffset;
 
-    glm::mat4 defaultHeadOffset = glm::inverse(inputCalibration.defaultCenterEyeMat) * inputCalibration.defaultHeadMat;
-
-    glm::mat4 currentHead  = finalHeadPuck * defaultHeadOffset;
-
     // calculate the defaultToRefrenceXform
     glm::mat4 defaultToReferenceMat = currentHead * glm::inverse(inputCalibration.defaultHeadMat);
     return defaultToReferenceMat;
