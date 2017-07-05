@@ -34,7 +34,7 @@ private:
     NetworkTexturePointer _networkTexture;
     QQuickWindow* _window;
     QMutex _fboMutex;
-    QOpenGLFramebufferObject* _copyFbo;
+    QOpenGLFramebufferObject* _copyFbo { nullptr };
     GLsync _fenceSync { 0 };
     QTimer _updateTimer;
 public slots:
