@@ -28,12 +28,114 @@
         UPDATE_LOOP_TIMEOUT = 16,
         updateTimer = null,
 
-        Hand,
+        Selection,
         Laser,
+        Hand,
 
-        AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
+        AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
+        NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
+
+    Selection = function () {
+        // Manages set of selected entities. Currently supports just one set of linked entities.
+
+        var selection = [],
+            selectedEntityID = null,
+            selectionPosition = null,
+            selectionOrientation,
+            rootEntityID;
+
+        function traverseEntityTree(id, result) {
+            // Recursively traverses tree of entities and their children, gather IDs and properties.
+            var children,
+                properties,
+                SELECTION_PROPERTIES = ["position", "registrationPoint", "rotation", "dimensions"],
+                i,
+                length;
+
+            properties = Entities.getEntityProperties(id, SELECTION_PROPERTIES);
+            result.push({
+                id: id,
+                position: properties.position,
+                registrationPoint: properties.registrationPoint,
+                rotation: properties.rotation,
+                dimensions: properties.dimensions
+            });
+
+            children = Entities.getChildrenIDs(id);
+            for (i = 0, length = children.length; i < length; i += 1) {
+                traverseEntityTree(children[i], result);
+            }
+        }
+
+        function select(entityID) {
+            var entityProperties,
+                PARENT_PROPERTIES = ["parentID", "position", "rotation"];
+
+            // Find root parent.
+            rootEntityID = entityID;
+            entityProperties = Entities.getEntityProperties(rootEntityID, PARENT_PROPERTIES);
+            while (entityProperties.parentID !== NULL_UUID) {
+                rootEntityID = entityProperties.parentID;
+                entityProperties = Entities.getEntityProperties(rootEntityID, PARENT_PROPERTIES);
+            }
+
+            // Selection position and orientation is that of the root entity.
+            selectionPosition = entityProperties.position;
+            selectionOrientation = entityProperties.rotation;
+
+            // Find all children.
+            selection = [];
+            traverseEntityTree(rootEntityID, selection);
+
+            selectedEntityID = entityID;
+        }
+
+        function getSelection() {
+            return selection;
+        }
+
+        function getPositionAndOrientation() {
+            return {
+                position: selectionPosition,
+                orientation: selectionOrientation
+            };
+        }
+
+        function setPositionAndOrientation(position, orientation) {
+            selectionPosition = position;
+            selectionOrientation = orientation;
+            Entities.editEntity(rootEntityID, {
+                position: position,
+                rotation: orientation
+            });
+        }
+
+        function clear() {
+            selection = [];
+            selectedEntityID = null;
+            rootEntityID = null;
+        }
+
+        function destroy() {
+            clear();
+        }
+
+        if (!this instanceof Selection) {
+            return new Selection();
+        }
+
+        return {
+            select: select,
+            selection: getSelection,
+            getPositionAndOrientation: getPositionAndOrientation,
+            setPositionAndOrientation: setPositionAndOrientation,
+            clear: clear,
+            destroy: destroy
+        };
+    };
 
     Laser = function (side) {
+        // Draws hand lasers.
         // May intersect with entities or bounding box of other hand's selection.
 
         var hand,
@@ -139,6 +241,9 @@
     };
 
     Hand = function (side) {
+        // Hand controller input.
+        // Each hand has a laser, an entity selection, and entity highlighter.
+
         var hand,
             handController,
             controllerTrigger,
@@ -155,8 +260,10 @@
             VISIBLE_ONLY = true,
 
             isLaserOn = false,
+            hoveredEntityID = null,
 
-            laser;
+            laser,
+            selection;
 
         hand = side;
         if (hand === LEFT_HAND) {
@@ -171,6 +278,7 @@
         }
 
         laser = new Laser(hand);
+        selection = new Selection();
 
         function update() {
             var wasLaserOn,
@@ -188,6 +296,8 @@
             if (!isLaserOn) {
                 if (wasLaserOn) {
                     laser.clear();
+                    selection.clear();
+                    hoveredEntityID = null;
                 }
                 return;
             }
@@ -198,6 +308,8 @@
                 isLaserOn = false;
                 if (wasLaserOn) {
                     laser.clear();
+                    selection.clear();
+                    hoveredEntityID = null;
                 }
                 return;
             }
@@ -215,14 +327,29 @@
                 VISIBLE_ONLY);
             distance = intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE;
 
-            // Update laser.
+            // Hover entities.
             laser.update(pickRay.origin, pickRay.direction, distance, Controller.getValue(controllerTriggerClicked));
+            if (intersection.intersects) {
+                if (intersection.entityID !== hoveredEntityID) {
+                    hoveredEntityID = intersection.entityID;
+                    selection.select(hoveredEntityID);
+                }
+            } else {
+                if (hoveredEntityID) {
+                    selection.clear();
+                    hoveredEntityID = null;
+                }
+            }
         }
 
         function destroy() {
             if (laser) {
                 laser.destroy();
                 laser = null;
+            }
+            if (selection) {
+                selection.destroy();
+                selection = null;
             }
         }
 
@@ -248,7 +375,7 @@
     }
 
     function updateHandControllerGrab() {
-        // Communicate status to handControllerGrab.js.
+        // Communicate app status to handControllerGrab.js.
         Settings.setValue(VR_EDIT_SETTING, isAppActive);
     }
 
