@@ -217,8 +217,8 @@
     //     3. Camera is on; "Monitor Shows" is "HMD Preview":  "url" is ""
     //     4. Camera is on; "Monitor Shows" is "Camera View":  "url" is "resource://spectatorCameraFrame"
     function setDisplay(showCameraView) {
-        // It would be fancy if the app would show instructions when (url === ""), but that's out of scope for now.
         var url = (camera && showCameraView) ? "resource://spectatorCameraFrame" : "";
+        sendToQml({ method: 'showPreviewTextureNotInstructions', setting: !!url });
         Window.setDisplayTexture(url);
     }
     const MONITOR_SHOWS_CAMERA_VIEW_DEFAULT = false;

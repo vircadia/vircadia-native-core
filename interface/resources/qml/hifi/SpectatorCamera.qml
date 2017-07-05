@@ -217,23 +217,41 @@ Rectangle {
             }
         }
 
-        // Spectator Camera Preview
-        Hifi.ResourceImageItem {
-            id: spectatorCameraPreview;
-            url: "resource://spectatorCameraFrame";
-            ready: cameraToggleCheckBox.checked;
-            mirrorVertically: true;
-            height: 250;
+        // Instructions or Preview
+        Item {
+            id: spectatorCameraImageContainer;
             anchors.left: parent.left;
             anchors.top: cameraToggleCheckBox.bottom;
             anchors.topMargin: 20;
             anchors.right: parent.right;
-            onVisibleChanged: {
-                ready = cameraToggleCheckBox.checked;
-                update();
+            height: 250;
+            
+            // Instructions (visible when display texture isn't set)
+            Image {
+                id: spectatorCameraInstructions;
+                visible: !spectatorCameraPreview.visible;
+                anchors.fill: parent;
+                fillMode: Image.PreserveAspectFit;
+                horizontalAlignment: Image.AlignHCenter;
+                verticalAlignment: Image.AlignVCenter;
+                source: "http://1.bp.blogspot.com/-1GABEq__054/T03B00j_OII/AAAAAAAAAa8/jo55LcvEPHI/s1600/Winning.jpg";
             }
-
+            
+            // Spectator Camera Preview
+            Hifi.ResourceImageItem {
+                id: spectatorCameraPreview;
+                visible: false;
+                url: "resource://spectatorCameraFrame";
+                ready: cameraToggleCheckBox.checked;
+                mirrorVertically: true;
+                anchors.fill: parent;
+                onVisibleChanged: {
+                    ready = cameraToggleCheckBox.checked;
+                    update();
+                }
+            }
         }
+
 
         // "Monitor Shows" Switch Label Glyph
         HiFiGlyphs {
@@ -241,15 +259,15 @@ Rectangle {
             text: hifi.glyphs.screen;
             size: 32;
             color: hifi.colors.blueHighlight;
-            anchors.top: spectatorCameraPreview.bottom;
-            anchors.topMargin: 20;
+            anchors.top: spectatorCameraImageContainer.bottom;
+            anchors.topMargin: 13;
             anchors.left: parent.left;
         }
         // "Monitor Shows" Switch Label
         RalewayLight {
             id: monitorShowsSwitchLabel;
             text: "MONITOR SHOWS:";
-            anchors.top: spectatorCameraPreview.bottom;
+            anchors.top: spectatorCameraImageContainer.bottom;
             anchors.topMargin: 20;
             anchors.left: monitorShowsSwitchLabelGlyph.right;
             anchors.leftMargin: 6;
@@ -329,6 +347,9 @@ Rectangle {
                 switchViewFromControllerCheckBox.checked = true;
                 switchViewFromControllerCheckBox.enabled = false;
             }
+        break;
+        case 'showPreviewTextureNotInstructions':
+            spectatorCameraPreview.visible = message.setting;
         break;
         default:
             console.log('Unrecognized message from spectatorCamera.js:', JSON.stringify(message));
