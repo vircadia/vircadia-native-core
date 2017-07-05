@@ -34,7 +34,8 @@
         Hand,
 
         AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
-        NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
+        NULL_UUID = "{00000000-0000-0000-0000-000000000000}",
+        HALF_TREE_SCALE = 16384;
 
     Highlights = function () {
         // Draws highlights on selected entities.
@@ -326,14 +327,19 @@
             TRIGGER_OFF_VALUE = 0.1,  // Per handControllerGrab.js.
             GRAB_POINT_SPHERE_OFFSET = { x: 0.04, y: 0.13, z: 0.039 },  // Per HmdDisplayPlugin.cpp and controllers.js.
 
+            NEAR_GRAB_RADIUS = 0.1,  // Per handControllerGrab.js.
+
             PICK_MAX_DISTANCE = 500,  // Per handControllerGrab.js.
             PRECISION_PICKING = true,
             NO_INCLUDE_IDS = [],
             NO_EXCLUDE_IDS = [],
             VISIBLE_ONLY = true,
 
+            isTriggerPressed = false,
+
+            isHandHover = false,
             isLaserOn = false,
-            laseredEntityID = null,
+            hoveredEntityID = null,
 
             EDITIBLE_ENTITY_QUERY_PROPERTYES = ["parentID", "visible", "locked", "type"],
             NONEDITABLE_ENTITY_TYPES = ["Unknown", "Zone", "Light"],
@@ -343,7 +349,7 @@
             initialHandOrientationInverse,
             initialHandToSelectionVector,
             initialSelectionOrientation,
-            editingDistance,
+            laserEditingDistance,
 
             laser,
             selection,
@@ -416,88 +422,130 @@
         }
 
         function update() {
-            var wasLaserOn,
+            var palmPosition,
+                entityID,
+                entityIDs,
+                entitySize,
+                size,
+                wasLaserOn,
                 handPose,
                 handPosition,
                 handOrientation,
                 deltaOrigin,
                 pickRay,
                 intersection,
-                distance,
-                isTriggerClicked;
-
-            // Controller trigger.
-            wasLaserOn = isLaserOn;
-            isLaserOn = Controller.getValue(controllerTrigger) > (isLaserOn ? TRIGGER_OFF_VALUE : TRIGGER_ON_VALUE);
-            if (!isLaserOn) {
-                if (wasLaserOn) {
-                    clearLaser();
-                }
-                return;
-            }
+                laserLength,
+                isTriggerClicked,
+                wasEditing,
+                i,
+                length;
 
             // Hand position and orientation.
             handPose = Controller.getPoseValue(handController);
             if (!handPose.valid) {
                 isLaserOn = false;
                 if (wasLaserOn) {
-                    clearLaser();
+                    laser.clear();
+                    selection.clear();
+                    highlights.clear();
+                    hoveredEntityID = null;
                 }
                 return;
             }
-            handPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, handPose.translation), MyAvatar.position);
-            handOrientation = Quat.multiply(MyAvatar.orientation, handPose.rotation);
 
-            // Entity intersection, if any.
-            deltaOrigin = Vec3.multiplyQbyV(handOrientation, GRAB_POINT_SPHERE_OFFSET);
-            pickRay = {
-                origin: Vec3.sum(handPosition, deltaOrigin),  // Add a bit to ...
-                direction: Quat.getUp(handOrientation),
-                length: PICK_MAX_DISTANCE
-            };
-            intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
-                VISIBLE_ONLY);
-            distance = isEditing ? editingDistance : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
-            intersection.intersects = isEditableEntity(intersection.entityID);
-
-            // Laser, hover, edit.
+            // Controller trigger.
+            isTriggerPressed = Controller.getValue(controllerTrigger) > (isTriggerPressed
+                ? TRIGGER_OFF_VALUE : TRIGGER_ON_VALUE);
             isTriggerClicked = Controller.getValue(controllerTriggerClicked);
-            laser.update(pickRay.origin, pickRay.direction, distance, isTriggerClicked);
+
+            // Hand-entity intersection, if any.
+            entityID = null;
+            palmPosition = hand === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
+            entityIDs = Entities.findEntities(palmPosition, NEAR_GRAB_RADIUS);
+            if (entityIDs.length > 0) {
+                // Find smallest, editable entity.
+                entitySize = HALF_TREE_SCALE;
+                for (i = 0, length = entityIDs.length; i < length; i += 1) {
+                    if (isEditableEntity(entityIDs[i])) {
+                        size = Vec3.length(Entities.getEntityProperties(entityIDs[i], "dimensions").dimensions);
+                        if (size < entitySize) {
+                            entityID = entityIDs[i];
+                            entitySize = size;
+                        }
+                    }
+                }
+            }
+            intersection = {
+                intersects: entityID !== null,
+                entityID: entityID
+            };
+            isHandHover = intersection.intersects;
+
+            // Laser-entity intersection, if any.
+            wasLaserOn = isLaserOn;
+            if (!isHandHover && isTriggerPressed) {
+                handPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, handPose.translation), MyAvatar.position);
+                handOrientation = Quat.multiply(MyAvatar.orientation, handPose.rotation);
+                deltaOrigin = Vec3.multiplyQbyV(handOrientation, GRAB_POINT_SPHERE_OFFSET);
+                pickRay = {
+                    origin: Vec3.sum(handPosition, deltaOrigin),  // Add a bit to ...
+                    direction: Quat.getUp(handOrientation),
+                    length: PICK_MAX_DISTANCE
+                };
+                intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
+                    VISIBLE_ONLY);
+                laserLength = isEditing
+                    ? laserEditingDistance
+                    : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
+                intersection.intersects = isEditableEntity(intersection.entityID);
+                isLaserOn = true;
+            } else {
+                isLaserOn = false;
+            }
+
+            // Laser update.
+            if (isLaserOn) {
+                laser.update(pickRay.origin, pickRay.direction, laserLength, isTriggerClicked);
+            } else if (wasLaserOn) {
+                laser.clear();
+            }
+
+            // Highlight / edit.
             if (isTriggerClicked) {
                 if (isEditing) {
                     // Perform edit.
                     applyEdit(handPose);
                 } else if (intersection.intersects) {
                     // Start editing.
-                    if (intersection.entityID !== laseredEntityID) {
-                        laseredEntityID = intersection.entityID;
-                        selection.select(laseredEntityID);
-                    } else {
-                        highlights.clear();
+                    if (intersection.entityID !== hoveredEntityID) {
+                        hoveredEntityID = intersection.entityID;
+                        selection.select(hoveredEntityID);
                     }
-                    editingDistance = distance;
+                    highlights.clear();
+                    if (isLaserOn) {
+                        laserEditingDistance = laserLength;
+                    }
                     startEditing(handPose);
                 }
             } else {
+                wasEditing = isEditing;
                 if (isEditing) {
                     // Stop editing.
                     stopEditing();
-                    laseredEntityID = null;  // Force highlighting entities at their new position.
                 }
-
                 if (intersection.intersects) {
                     // Hover entities.
-                    if (intersection.entityID !== laseredEntityID) {
-                        laseredEntityID = intersection.entityID;
-                        selection.select(laseredEntityID);
+                    if (wasEditing || intersection.entityID !== hoveredEntityID) {
+                        hoveredEntityID = intersection.entityID;
+                        selection.select(hoveredEntityID);
                         highlights.display(selection.selection());
                     }
                 } else {
                     // Unhover entities.
-                    if (laseredEntityID) {
+                    if (hoveredEntityID) {
                         selection.clear();
                         highlights.clear();
-                        laseredEntityID = null;
+                        hoveredEntityID = null;
                     }
                 }
             }
