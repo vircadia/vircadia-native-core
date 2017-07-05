@@ -125,7 +125,6 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
     QString domainServerAddress = QString("127.0.0.1") + ":" + QString::number(domainPort);
     if (parser.isSet(domainAddressOption)) {
         domainServerAddress = parser.value(domainAddressOption);
-        qDebug() << "domainServerAddress is " << domainServerAddress;
         connectToDomain(domainServerAddress);
     } else if (!_url.host().isEmpty()) {
         QUrl domainURL;
@@ -133,7 +132,6 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
         domainURL.setHost(_url.host());
         connectToDomain(domainURL.toString());
     } else {
-        qDebug() << "domainServerAddress is default " << domainServerAddress;
         connectToDomain(domainServerAddress);
     }
 }
