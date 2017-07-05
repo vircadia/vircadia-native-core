@@ -1,6 +1,6 @@
 #include "FadeEffect.h"
 #include "TextureCache.h"
-#include "Logging.h"
+#include "render/Logging.h"
 
 #include <PathUtils.h>
 #include <NumericalConstants.h>
