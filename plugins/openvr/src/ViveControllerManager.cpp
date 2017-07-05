@@ -167,7 +167,6 @@ bool ViveControllerManager::isSupported() const {
 void ViveControllerManager::setConfigurationSettings(const QJsonObject configurationSettings) {
     if (isSupported()) {
         if (configurationSettings.contains("desktopMode")) {
-            qDebug() << configurationSettings["desktopMode"].toBool();
             _desktopMode = configurationSettings["desktopMode"].toBool();
         }
         _inputDevice->configureCalibrationSettings(configurationSettings);
