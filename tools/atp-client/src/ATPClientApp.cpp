@@ -17,6 +17,7 @@
 #include <QCommandLineParser>
 
 #include <NetworkLogging.h>
+#include <NetworkingConstants.h>
 #include <SharedLogging.h>
 #include <AddressManager.h>
 #include <DependencyManager.h>
@@ -42,14 +43,14 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
     const QCommandLineOption uploadOption("T", "upload local file", "local-file-to-send");
     parser.addOption(uploadOption);
 
+    const QCommandLineOption authOption("u", "set usename and pass", "username:password");
+    parser.addOption(authOption);
+
     const QCommandLineOption outputFilenameOption("o", "output filename", "output-file-name");
     parser.addOption(outputFilenameOption);
 
     const QCommandLineOption domainAddressOption("d", "domain-server address", "127.0.0.1");
     parser.addOption(domainAddressOption);
-
-    const QCommandLineOption cacheSTUNOption("s", "cache stun-server response");
-    parser.addOption(cacheSTUNOption);
 
     const QCommandLineOption listenPortOption("listenPort", "listen port", QString::number(INVALID_PORT));
     parser.addOption(listenPortOption);
@@ -107,6 +108,18 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
         _localUploadFile = parser.value(uploadOption);
     }
 
+    if (parser.isSet(authOption)) {
+        QStringList pieces = parser.value(authOption).split(":");
+        if (pieces.size() != 2) {
+            qDebug() << "-u should be followed by username:password";
+            parser.showHelp();
+            Q_UNREACHABLE();
+        }
+
+        _username = pieces[0];
+        _password = pieces[1];
+    }
+
 
     if (parser.isSet(listenPortOption)) {
         _listenPort = parser.value(listenPortOption).toInt();
@@ -134,11 +147,6 @@ void ATPClientApp::connectToDomain(QString domainServerAddress) {
     if (_verbose) {
         qDebug() << "domain-server address is" << domainServerAddress;
     }
-
-    DependencyManager::set<AccountManager>();
-    auto accountManager = DependencyManager::get<AccountManager>();
-    QString username = accountManager->getAccountInfo().getUsername();
-    qDebug() << "username is" << username;
 
     Setting::init();
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
@@ -176,6 +184,27 @@ void ATPClientApp::connectToDomain(QString domainServerAddress) {
 
     auto assetClient = DependencyManager::set<AssetClient>();
     assetClient->init();
+
+    auto accountManager = DependencyManager::get<AccountManager>();
+    accountManager->setIsAgent(true);
+    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
+
+    if (_verbose) {
+        QString username = accountManager->getAccountInfo().getUsername();
+        qDebug() << "cached username is" << username << ", isLoggedIn =" << accountManager->isLoggedIn();
+    }
+
+    if (!_username.isEmpty()) {
+        connect(accountManager.data(), &AccountManager::loginComplete, this, [&](){
+            if (_verbose) {
+                qDebug() << "login successful";
+            }
+        });
+        connect(accountManager.data(), &AccountManager::loginFailed, this, [&](){
+            qDebug() << "login failed.";
+        });
+        accountManager->requestAccessToken(_username, _password);
+    }
 
     QTimer* _timeoutTimer = new QTimer(this);
     _timeoutTimer->setSingleShot(true);

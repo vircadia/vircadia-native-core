@@ -56,6 +56,9 @@ private:
 
     int _listenPort { INVALID_PORT };
 
+    QString _username;
+    QString _password;
+
     QTimer* _domainCheckInTimer { nullptr };
     QTimer* _timeoutTimer { nullptr };
 };
