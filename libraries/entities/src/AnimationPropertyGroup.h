@@ -19,7 +19,7 @@
 
 #include <QtScript/QScriptEngine>
 
-#include "AnimationLoop.h"
+#include <shared/types/AnimationLoop.h> // for Animation, AnimationCache, and AnimationPointer classes
 #include "EntityItemPropertiesMacros.h"
 #include "PropertyGroup.h"
 

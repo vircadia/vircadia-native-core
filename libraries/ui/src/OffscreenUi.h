@@ -21,9 +21,9 @@
 #include <QtWidgets/QMessageBox>
 #include <QtWidgets/QInputDialog>
 
-#include <gl/OffscreenQmlSurface.h>
 #include <DependencyManager.h>
 
+#include "ui/OffscreenQmlSurface.h"
 #include "OffscreenQmlElement.h"
 
 class VrMenu;

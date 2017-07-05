@@ -19,7 +19,7 @@
 #include <AudioClient.h>
 #include <CrashHelpers.h>
 #include <DependencyManager.h>
-#include <TabletScriptingInterface.h>
+#include <ui/TabletScriptingInterface.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <PathUtils.h>
 #include <SettingHandle.h>
@@ -121,9 +121,14 @@ Menu::Menu() {
         QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
 
     // Edit > Reload All Scripts... [advanced]
-    addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::Key_R,
-        scriptEngines.data(), SLOT(reloadAllScripts()),
+    action = addActionToQMenuAndActionHash(editMenu, MenuOption::ReloadAllScripts, Qt::CTRL | Qt::Key_R,
+        nullptr, nullptr,
         QAction::NoRole, UNSPECIFIED_POSITION, "Advanced");
+    connect(action, &QAction::triggered, [] {
+        DependencyManager::get<ScriptEngines>()->reloadAllScripts();
+        DependencyManager::get<OffscreenUi>()->clearCache();
+    });
+
 
     // Edit > Console... [advanced]
     addActionToQMenuAndActionHash(editMenu, MenuOption::Console, Qt::CTRL | Qt::ALT | Qt::Key_J,
@@ -560,9 +565,6 @@ Menu::Menu() {
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawHandControllers(bool)));
-
-    MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
-    addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
 
     // Developer > Entities >>>
     MenuWrapper* entitiesOptionsMenu = developerMenu->addMenu("Entities");

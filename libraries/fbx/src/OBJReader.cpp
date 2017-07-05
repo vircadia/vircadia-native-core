@@ -202,7 +202,7 @@ bool OBJReader::isValidTexture(const QByteArray &filename) {
     }
     QUrl candidateUrl = _url.resolved(QUrl(filename));
 
-    return ResourceManager::resourceExists(candidateUrl);
+    return DependencyManager::get<ResourceManager>()->resourceExists(candidateUrl);
 }
 
 void OBJReader::parseMaterialLibrary(QIODevice* device) {
@@ -267,7 +267,7 @@ void OBJReader::parseMaterialLibrary(QIODevice* device) {
 }
 
 std::tuple<bool, QByteArray> requestData(QUrl& url) {
-    auto request = ResourceManager::createResourceRequest(nullptr, url);
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, url);
 
     if (!request) {
         return std::make_tuple(false, QByteArray());

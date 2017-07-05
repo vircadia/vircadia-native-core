@@ -249,6 +249,7 @@ ViveControllerManager::InputDevice::InputDevice(vr::IVRSystem*& system) : contro
     _configStringMap[Config::FeetAndHips] = QString("FeetAndHips");
     _configStringMap[Config::FeetHipsAndChest] = QString("FeetHipsAndChest");
     _configStringMap[Config::FeetHipsAndShoulders] = QString("FeetHipsAndShoulders");
+    _configStringMap[Config::FeetHipsChestAndShoulders] = QString("FeetHipsChestAndShoulders");
 }
 
 void ViveControllerManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
@@ -325,6 +326,7 @@ void ViveControllerManager::InputDevice::calibrateFromUI(const controller::Input
     if (_calibrate) {
         uncalibrate();
         calibrate(inputCalibrationData);
+        emitCalibrationStatus();
         _calibrate = false;
     }
 }
@@ -372,29 +374,23 @@ QJsonObject ViveControllerManager::InputDevice::configurationSettings() {
     Locker locker(_lock);
     QJsonObject configurationSettings;
     configurationSettings["trackerConfiguration"] = configToString(_preferedConfig);
-    configurationSettings["HMDHead"] = (_headConfig == HeadConfig::HMD) ? true : false;
-    configurationSettings["handController"] = (_handConfig == HandConfig::HandController) ? true : false;
+    configurationSettings["HMDHead"] = (_headConfig == HeadConfig::HMD);
+    configurationSettings["handController"] = (_handConfig == HandConfig::HandController);
+    configurationSettings["puckCount"] = (int)_validTrackedObjects.size();
     return configurationSettings;
 }
 
-void ViveControllerManager::InputDevice::emitCalibrationStatus(const bool success) {
+void ViveControllerManager::InputDevice::emitCalibrationStatus() {
     auto inputConfiguration = DependencyManager::get<InputConfiguration>();
     QJsonObject status = QJsonObject();
-
-    if (_calibrated && success) {
-        status["calibrated"] = _calibrated;
-        status["configuration"] = configToString(_preferedConfig);
-    } else if (!_calibrated && !success) {
-        status["calibrated"] = _calibrated;
-        status["success"] = success;
-    } else if (!_calibrated && success) {
-        status["calibrated"] = _calibrated;
-        status["success"] = success;
-        status["configuration"] = configToString(_preferedConfig);
-        status["puckCount"] = (int)_validTrackedObjects.size();
-    }
+    status["calibrated"] = _calibrated;
+    status["configuration"] = configToString(_preferedConfig);
+    status["head_puck"] = (_headConfig == HeadConfig::Puck);
+    status["hand_pucks"] = (_handConfig == HandConfig::Pucks);
+    status["puckCount"] = (int)_validTrackedObjects.size();
+    status["UI"] = _calibrate;
     
-    emit inputConfiguration->calibrationStatus(status); //inputConfiguration->calibrated(status);
+    emit inputConfiguration->calibrationStatus(status);
 }
 
 void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData) {
@@ -437,12 +433,29 @@ void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceInde
     }
 }
 
+void ViveControllerManager::InputDevice::sendUserActivityData(QString activity) {
+    QJsonObject jsonData = {
+        {"num_pucks", (int)_validTrackedObjects.size()},
+        {"configuration", configToString(_preferedConfig)},
+        {"head_puck", (_headConfig == HeadConfig::Puck) ? true : false},
+        {"hand_pucks", (_handConfig == HandConfig::Pucks) ? true : false}
+    };
+    
+    UserActivityLogger::getInstance().logAction(activity, jsonData);
+}
+
 void ViveControllerManager::InputDevice::calibrateOrUncalibrate(const controller::InputCalibrationData& inputCalibration) {
     if (!_calibrated) {
         calibrate(inputCalibration);
+        if (_calibrated) {
+            sendUserActivityData("mocap_button_success");
+        } else {
+            sendUserActivityData("mocap_button_fail");
+        }
+        emitCalibrationStatus();
     } else {
         uncalibrate();
-        emitCalibrationStatus(true);
+        sendUserActivityData("mocap_button_uncalibrate");
     }
 }
 
@@ -454,7 +467,6 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
 
     if (puckCount == 0) {
         uncalibrate();
-        emitCalibrationStatus(false);
         return;
     }
 
@@ -473,10 +485,8 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
 
     if (!headConfigured || !handsConfigured || !bodyConfigured) {
         uncalibrate();
-        emitCalibrationStatus(false);
     } else {
         _calibrated = true;
-        emitCalibrationStatus(true);
         qDebug() << "PuckCalibration: " << configToString(_config) << " Configuration Successful";
     }
 }
@@ -566,8 +576,6 @@ bool ViveControllerManager::InputDevice::configureBody(glm::mat4& defaultToRefer
         return true;
     }
     qDebug() << "Puck Calibration: " << configToString(_config) << " Config Failed: Could not meet the minimal # of pucks";
-    uncalibrate();
-    emitCalibrationStatus(false);
     return false;
 }
 
@@ -959,15 +967,33 @@ void ViveControllerManager::InputDevice::calibrateFeet(glm::mat4& defaultToRefer
     controller::Pose& secondFootPose = secondFoot.second;
     
     if (determineLimbOrdering(firstFootPose, secondFootPose, headXAxis, headPosition)) {
-        _jointToPuckMap[controller::LEFT_FOOT] = firstFoot.first;
-        _pucksOffset[firstFoot.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultLeftFoot, firstFootPose);
-        _jointToPuckMap[controller::RIGHT_FOOT] = secondFoot.first;
-        _pucksOffset[secondFoot.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultRightFoot, secondFootPose);   
+        calibrateFoot(defaultToReferenceMat, inputCalibration, firstFoot, true);
+        calibrateFoot(defaultToReferenceMat, inputCalibration, secondFoot, false);
     } else {
-        _jointToPuckMap[controller::LEFT_FOOT] = secondFoot.first;
-        _pucksOffset[secondFoot.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultLeftFoot, secondFootPose);
-        _jointToPuckMap[controller::RIGHT_FOOT] = firstFoot.first;
-        _pucksOffset[firstFoot.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultRightFoot, firstFootPose);
+        calibrateFoot(defaultToReferenceMat, inputCalibration, secondFoot, true);
+        calibrateFoot(defaultToReferenceMat, inputCalibration, firstFoot, false);
+    }
+}
+
+void ViveControllerManager::InputDevice::calibrateFoot(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& footPair, bool isLeftFoot){
+    controller::Pose footPose = footPair.second;
+    glm::mat4 puckPoseAvatarMat = createMatFromQuatAndPos(footPose.getRotation(), footPose.getTranslation());
+    glm::mat4 defaultFoot = isLeftFoot ? inputCalibration.defaultLeftFoot : inputCalibration.defaultRightFoot;
+    glm::mat4 footOffset = computeOffset(defaultToReferenceMat, defaultFoot, footPose);
+
+    glm::quat rotationOffset = glmExtractRotation(footOffset);
+    glm::vec3 translationOffset = extractTranslation(footOffset);
+    glm::vec3 avatarXAxisInPuckFrame = glm::normalize(transformVectorFast(glm::inverse(puckPoseAvatarMat), glm::vec3(-1.0f, 0.0f, 0.0f)));
+    float distance = glm::dot(translationOffset, avatarXAxisInPuckFrame);
+    glm::vec3 finalTranslation =  translationOffset - (distance * avatarXAxisInPuckFrame);
+    glm::mat4 finalOffset = createMatFromQuatAndPos(rotationOffset, finalTranslation);
+
+    if (isLeftFoot) {
+        _jointToPuckMap[controller::LEFT_FOOT] = footPair.first;
+        _pucksOffset[footPair.first] = finalOffset;
+    } else {
+        _jointToPuckMap[controller::RIGHT_FOOT] = footPair.first;
+        _pucksOffset[footPair.first] = finalOffset;
     }
 }
 

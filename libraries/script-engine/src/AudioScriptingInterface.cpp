@@ -13,6 +13,8 @@
 
 #include <QVector3D>
 
+#include <shared/QtHelpers.h>
+
 #include "ScriptAudioInjector.h"
 #include "ScriptEngineLogging.h"
 
@@ -32,7 +34,7 @@ ScriptAudioInjector* AudioScriptingInterface::playSound(SharedSoundPointer sound
     if (QThread::currentThread() != thread()) {
         ScriptAudioInjector* injector = NULL;
 
-        QMetaObject::invokeMethod(this, "playSound", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "playSound",
                                   Q_RETURN_ARG(ScriptAudioInjector*, injector),
                                   Q_ARG(SharedSoundPointer, sound),
                                   Q_ARG(const AudioInjectorOptions&, injectorOptions));

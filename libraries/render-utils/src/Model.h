@@ -177,7 +177,6 @@ public:
     int getJointStateCount() const { return (int)_rig.getJointStateCount(); }
     bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position) const;
     bool getJointRotationInWorldFrame(int jointIndex, glm::quat& rotation) const;
-    bool getJointCombinedRotation(int jointIndex, glm::quat& rotation) const;
 
     /// \param jointIndex index of joint in model structure
     /// \param rotation[out] rotation of joint in model-frame

@@ -73,6 +73,7 @@ private:
         void calibrateOrUncalibrate(const controller::InputCalibrationData& inputCalibration);
         void calibrate(const controller::InputCalibrationData& inputCalibration);
         void uncalibrate();
+        void sendUserActivityData(QString activity);
         void configureCalibrationSettings(const QJsonObject configurationSettings);
         QJsonObject configurationSettings();
         controller::Pose addOffsetToPuckPose(int joint) const;
@@ -98,6 +99,7 @@ private:
         void calibrateLeftHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair);
         void calibrateRightHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair);
         void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateFoot(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& footPair, bool isLeftFoot);
         void calibrateHips(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateChest(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
@@ -105,7 +107,7 @@ private:
         void calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateFromHandController(const controller::InputCalibrationData& inputCalibrationData);
         void calibrateFromUI(const controller::InputCalibrationData& inputCalibrationData);
-        void emitCalibrationStatus(const bool success);
+        void emitCalibrationStatus();
         void calibrateNextFrame();
 
 
@@ -138,7 +140,7 @@ private:
             FeetAndHips,
             FeetHipsAndChest,
             FeetHipsAndShoulders,
-            FeetHipsChestAndShoulders,
+            FeetHipsChestAndShoulders
         };
 
         enum class HeadConfig {

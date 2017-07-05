@@ -14,6 +14,7 @@
 
 #include <render/Scene.h>
 #include <EntityItem.h>
+#include <Sound.h>
 #include "AbstractViewStateInterface.h"
 #include "EntitiesRendererLogging.h"
 
@@ -40,7 +41,11 @@ public:
     virtual void render(RenderArgs* args) {};
     virtual bool addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) = 0;
     virtual void removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) = 0;
+    const SharedSoundPointer& getCollisionSound() { return _collisionSound; }
+    void setCollisionSound(const SharedSoundPointer& sound) { _collisionSound = sound; }
     virtual RenderableEntityInterface* getRenderableInterface() { return nullptr; }
+private:
+    SharedSoundPointer _collisionSound;
 };
 
 class RenderableEntityItemProxy {

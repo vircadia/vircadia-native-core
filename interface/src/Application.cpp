@@ -37,8 +37,6 @@
 #include <QtQml/QQmlEngine>
 #include <QtQuick/QQuickWindow>
 
-#include <QtWebEngineWidgets/QWebEngineProfile>
-
 #include <QtWidgets/QDesktopWidget>
 #include <QtWidgets/QMessageBox>
 
@@ -50,6 +48,7 @@
 
 #include <gl/QOpenGLContextWrapper.h>
 
+#include <shared/QtHelpers.h>
 #include <shared/GlobalAppProperties.h>
 #include <StatTracker.h>
 #include <Trace.h>
@@ -99,8 +98,8 @@
 #include <OctalCode.h>
 #include <OctreeSceneStats.h>
 #include <OffscreenUi.h>
-#include <gl/OffscreenQmlSurfaceCache.h>
 #include <gl/OffscreenGLCanvas.h>
+#include <ui/OffscreenQmlSurfaceCache.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
 #include <PhysicsEngine.h>
@@ -125,7 +124,8 @@
 #include <ScriptEngines.h>
 #include <ScriptCache.h>
 #include <SoundCache.h>
-#include <TabletScriptingInterface.h>
+#include <ui/TabletScriptingInterface.h>
+#include <ui/ToolbarScriptingInterface.h>
 #include <Tooltip.h>
 #include <udt/PacketHeaders.h>
 #include <UserActivityLogger.h>
@@ -146,7 +146,6 @@
 #include "avatar/MyHead.h"
 #include "CrashHandler.h"
 #include "devices/DdeFaceTracker.h"
-#include "devices/Leapmotion.h"
 #include "DiscoverabilityManager.h"
 #include "GLCanvas.h"
 #include "InterfaceDynamicFactory.h"
@@ -166,7 +165,6 @@
 #include "scripting/SettingsScriptingInterface.h"
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
-#include "scripting/ToolbarScriptingInterface.h"
 #include "scripting/RatesScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
@@ -441,6 +439,11 @@ static const QString STATE_ADVANCED_MOVEMENT_CONTROLS = "AdvancedMovement";
 static const QString STATE_GROUNDED = "Grounded";
 static const QString STATE_NAV_FOCUSED = "NavigationFocused";
 
+// Statically provided display and input plugins
+extern DisplayPluginList getDisplayPlugins();
+extern InputPluginList getInputPlugins();
+extern void saveInputPluginSettings(const InputPluginList& plugins);
+
 bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     const char** constArgv = const_cast<const char**>(argv);
 
@@ -480,7 +483,12 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
 
     Setting::init();
 
-    if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
+    // Tell the plugin manager about our statically linked plugins
+    auto pluginManager = PluginManager::getInstance();
+    pluginManager->setInputPluginProvider([] { return getInputPlugins(); });
+    pluginManager->setDisplayPluginProvider([] { return getDisplayPlugins(); });
+    pluginManager->setInputPluginSettingsPersister([](const InputPluginList& plugins) { saveInputPluginSettings(plugins); });
+    if (auto steamClient = pluginManager->getSteamClientPlugin()) {
         steamClient->init();
     }
 
@@ -574,6 +582,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<LocationBookmarks>();
     DependencyManager::set<Snapshot>();
     DependencyManager::set<CloseEventSender>();
+    DependencyManager::set<ResourceManager>();
 
     return previousSessionCrashed;
 }
@@ -713,9 +722,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     updateHeartbeat();
 
     // setup a timer for domain-server check ins
-    QTimer* domainCheckInTimer = new QTimer(nodeList.data());
+    QTimer* domainCheckInTimer = new QTimer(this);
     connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
     domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
+    connect(this, &QCoreApplication::aboutToQuit, [domainCheckInTimer] {
+        domainCheckInTimer->stop();
+        domainCheckInTimer->deleteLater();
+    });
 
 
     auto audioIO = DependencyManager::get<AudioClient>();
@@ -764,7 +777,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(this, &Application::activeDisplayPluginChanged,
         reinterpret_cast<scripting::Audio*>(audioScriptingInterface.data()), &scripting::Audio::onContextChanged);
 
-    ResourceManager::init();
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
@@ -901,11 +913,6 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     if (!replaceURL.isEmpty()) {
         _avatarOverrideUrl = QUrl::fromUserInput(replaceURL);
         _saveAvatarOverrideUrl = true;
-    }
-
-    QString defaultScriptsLocation = getCmdOption(argc, constArgv, "--scripts");
-    if (!defaultScriptsLocation.isEmpty()) {
-        PathUtils::defaultScriptsLocation(defaultScriptsLocation);
     }
 
     _glWidget = new GLCanvas();
@@ -1174,7 +1181,13 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // do this as late as possible so that all required subsystems are initialized
     // If we've overridden the default scripts location, just load default scripts
     // otherwise, load 'em all
-    if (!defaultScriptsLocation.isEmpty()) {
+
+    // we just want to see if --scripts was set, we've already parsed it and done
+    // the change in PathUtils.  Rather than pass that in the constructor, lets just
+    // look (this could be debated)
+    QString scriptsSwitch = QString("--").append(SCRIPTS_SWITCH);
+    QDir defaultScriptsLocation(getCmdOption(argc, constArgv, scriptsSwitch.toStdString().c_str()));
+    if (!defaultScriptsLocation.exists()) {
         scriptEngines->loadDefaultScripts();
         scriptEngines->defaultScriptsLocationOverridden(true);
     } else {
@@ -1195,15 +1208,26 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
-    int SAVE_SETTINGS_INTERVAL = 10 * MSECS_PER_SECOND; // Let's save every seconds for now
-    connect(&_settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
-    connect(&_settingsThread, SIGNAL(started()), &_settingsTimer, SLOT(start()));
-    connect(&_settingsThread, SIGNAL(finished()), &_settingsTimer, SLOT(stop()));
-    _settingsTimer.moveToThread(&_settingsThread);
-    _settingsTimer.setSingleShot(false);
-    _settingsTimer.setInterval(SAVE_SETTINGS_INTERVAL); // 10s, Qt::CoarseTimer acceptable
-    _settingsThread.setPriority(QThread::LowestPriority);
-    _settingsThread.start();
+
+    QTimer* settingsTimer = new QTimer();
+    moveToNewNamedThread(settingsTimer, "Settings Thread", [this, settingsTimer]{
+        connect(qApp, &Application::beforeAboutToQuit, [this, settingsTimer]{
+            // Disconnect the signal from the save settings
+            QObject::disconnect(settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
+            // Stop the settings timer
+            settingsTimer->stop();
+            // Delete it (this will trigger the thread destruction
+            settingsTimer->deleteLater();
+            // Mark the settings thread as finished, so we know we can safely save in the main application 
+            // shutdown code 
+            _settingsGuard.trigger();
+        });
+
+        int SAVE_SETTINGS_INTERVAL = 10 * MSECS_PER_SECOND; // Let's save every seconds for now
+        settingsTimer->setSingleShot(false);
+        settingsTimer->setInterval(SAVE_SETTINGS_INTERVAL); // 10s, Qt::CoarseTimer acceptable
+        QObject::connect(settingsTimer, &QTimer::timeout, this, &Application::saveSettings);
+    }, QThread::LowestPriority);
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
         getMyAvatar()->setBoomLength(MyAvatar::ZOOM_MIN);  // So that camera doesn't auto-switch to third person.
@@ -1631,7 +1655,7 @@ QString Application::getUserAgent() {
     if (QThread::currentThread() != thread()) {
         QString userAgent;
 
-        QMetaObject::invokeMethod(this, "getUserAgent", Qt::BlockingQueuedConnection, Q_RETURN_ARG(QString, userAgent));
+        BLOCKING_INVOKE_METHOD(this, "getUserAgent", Q_RETURN_ARG(QString, userAgent));
 
         return userAgent;
     }
@@ -1789,11 +1813,13 @@ void Application::cleanupBeforeQuit() {
     locationUpdateTimer.stop();
     identityPacketTimer.stop();
     pingTimer.stop();
-    QMetaObject::invokeMethod(&_settingsTimer, "stop", Qt::BlockingQueuedConnection);
 
-    // save state
-    _settingsThread.quit();
-    saveSettings();
+    // Wait for the settings thread to shut down, and save the settings one last time when it's safe
+    if (_settingsGuard.wait()) {
+        // save state
+        saveSettings();
+    }
+
     _window->saveGeometry();
 
     // Destroy third party processes after scripts have finished using them.
@@ -1805,6 +1831,8 @@ void Application::cleanupBeforeQuit() {
 #endif
 
     // stop QML
+    DependencyManager::destroy<TabletScriptingInterface>();
+    DependencyManager::destroy<ToolbarScriptingInterface>();
     DependencyManager::destroy<OffscreenUi>();
 
     DependencyManager::destroy<OffscreenQmlSurfaceCache>();
@@ -1815,8 +1843,7 @@ void Application::cleanupBeforeQuit() {
 
     // FIXME: something else is holding a reference to AudioClient,
     // so it must be explicitly synchronously stopped here
-    QMetaObject::invokeMethod(DependencyManager::get<AudioClient>().data(),
-        "cleanupBeforeQuit", Qt::BlockingQueuedConnection);
+    DependencyManager::get<AudioClient>()->cleanupBeforeQuit();
 
     // destroy Audio so it and its threads have a chance to go down safely
     // this must happen after QML, as there are unexplained audio crashes originating in qtwebengine
@@ -1866,12 +1893,10 @@ Application::~Application() {
     DependencyManager::destroy<SoundCache>();
     DependencyManager::destroy<OctreeStatsProvider>();
 
-    ResourceManager::cleanup();
+    DependencyManager::get<ResourceManager>()->cleanup();
 
     // remove the NodeList from the DependencyManager
     DependencyManager::destroy<NodeList>();
-
-    Leapmotion::destroy();
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         steamClient->shutdown();
@@ -4040,8 +4065,6 @@ void Application::init() {
 
     qCDebug(interfaceapp) << "Loaded settings";
 
-    Leapmotion::init();
-
     // fire off an immediate domain-server check in now that settings are loaded
     DependencyManager::get<NodeList>()->sendDomainServerCheckIn();
 
@@ -4080,7 +4103,10 @@ void Application::init() {
         EntityTreePointer tree = getEntities()->getTree();
         if (auto entity = tree->findEntityByEntityItemID(id)) {
             auto sound = DependencyManager::get<SoundCache>()->getSound(newURL);
-            entity->setCollisionSound(sound);
+            auto renderable = entity->getRenderableInterface();
+            if (renderable) {
+                renderable->setCollisionSound(sound);
+            }
         }
     }, Qt::QueuedConnection);
     connect(getMyAvatar().get(), &MyAvatar::newCollisionSoundURL, this, [this](QUrl newURL) {
@@ -4178,7 +4204,7 @@ void Application::updateMyAvatarLookAtPosition() {
                 lookAtSpot = transformPoint(worldHeadMat, glm::vec3(0.0f, 0.0f, TREE_SCALE));
             } else {
                 lookAtSpot = myAvatar->getHead()->getEyePosition() +
-                    (myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, TREE_SCALE));
+                    (myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
             }
         }
 
@@ -4502,7 +4528,6 @@ void Application::update(float deltaTime) {
 
     {
         PerformanceTimer perfTimer("devices");
-        DeviceTracker::updateAll();
 
         FaceTracker* tracker = getSelectedFaceTracker();
         if (tracker && Menu::getInstance()->isOptionChecked(MenuOption::MuteFaceTracking) != tracker->isMuted()) {
@@ -4571,8 +4596,6 @@ void Application::update(float deltaTime) {
         keyboardMousePlugin->pluginUpdate(deltaTime, calibrationData);
     }
 
-    _controllerScriptingInterface->updateInputControllers();
-
     // Transfer the user inputs to the driveKeys
     // FIXME can we drop drive keys and just have the avatar read the action states directly?
     myAvatar->clearDriveKeys();
@@ -4596,6 +4619,31 @@ void Application::update(float deltaTime) {
     auto worldToSensorMatrix = glm::inverse(myAvatar->getSensorToWorldMatrix());
     auto avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
     myAvatar->setHandControllerPosesInSensorFrame(leftHandPose.transform(avatarToSensorMatrix), rightHandPose.transform(avatarToSensorMatrix));
+
+    // If have previously done finger poses or there are new valid finger poses, update finger pose values. This so that if
+    // fingers are not being controlled, finger joints are not updated in MySkeletonModel.
+    // Assumption: Finger poses are either all present and valid or not present at all; thus can test just one joint.
+    MyAvatar::FingerPosesMap leftHandFingerPoses;
+    if (myAvatar->getLeftHandFingerControllerPosesInSensorFrame().size() > 0
+            || userInputMapper->getPoseState(controller::Action::LEFT_HAND_THUMB1).isValid()) {
+        for (int i = (int)controller::Action::LEFT_HAND_THUMB1; i <= (int)controller::Action::LEFT_HAND_PINKY4; i++) {
+            leftHandFingerPoses[i] = {
+                userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix),
+                userInputMapper->getActionName((controller::Action)i)
+            };
+        }
+    }
+    MyAvatar::FingerPosesMap rightHandFingerPoses;
+    if (myAvatar->getRightHandFingerControllerPosesInSensorFrame().size() > 0
+        || userInputMapper->getPoseState(controller::Action::RIGHT_HAND_THUMB1).isValid()) {
+        for (int i = (int)controller::Action::RIGHT_HAND_THUMB1; i <= (int)controller::Action::RIGHT_HAND_PINKY4; i++) {
+            rightHandFingerPoses[i] = {
+                userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix),
+                userInputMapper->getActionName((controller::Action)i)
+            };
+        }
+    }
+    myAvatar->setFingerControllerPosesInSensorFrame(leftHandFingerPoses, rightHandFingerPoses);
 
     controller::Pose leftFootPose = userInputMapper->getPoseState(controller::Action::LEFT_FOOT);
     controller::Pose rightFootPose = userInputMapper->getPoseState(controller::Action::RIGHT_FOOT);
@@ -5548,7 +5596,15 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerGlobalObject("OffscreenFlags", DependencyManager::get<OffscreenUi>()->getFlags());
     scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
+
+    qScriptRegisterMetaType(scriptEngine, wrapperToScriptValue<ToolbarProxy>, wrapperFromScriptValue<ToolbarProxy>);
+    qScriptRegisterMetaType(scriptEngine, wrapperToScriptValue<ToolbarButtonProxy>, wrapperFromScriptValue<ToolbarButtonProxy>);
     scriptEngine->registerGlobalObject("Toolbars", DependencyManager::get<ToolbarScriptingInterface>().data());
+
+    qScriptRegisterMetaType(scriptEngine, wrapperToScriptValue<TabletProxy>, wrapperFromScriptValue<TabletProxy>);
+    qScriptRegisterMetaType(scriptEngine, wrapperToScriptValue<TabletButtonProxy>, wrapperFromScriptValue<TabletButtonProxy>);
+    scriptEngine->registerGlobalObject("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
+
 
     DependencyManager::get<TabletScriptingInterface>().data()->setToolbarScriptingInterface(DependencyManager::get<ToolbarScriptingInterface>().data());
 
@@ -5623,7 +5679,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("EntityScriptServerLog", entityScriptServerLog.data());
     scriptEngine->registerGlobalObject("AvatarInputs", AvatarInputs::getInstance());
 
-
     qScriptRegisterMetaType(scriptEngine, OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
     // connect this script engines printedMessage signal to the global ScriptEngines these various messages
@@ -5632,6 +5687,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     connect(scriptEngine, &ScriptEngine::warningMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onWarningMessage);
     connect(scriptEngine, &ScriptEngine::infoMessage, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onInfoMessage);
     connect(scriptEngine, &ScriptEngine::clearDebugWindow, DependencyManager::get<ScriptEngines>().data(), &ScriptEngines::onClearDebugWindow);
+
 }
 
 bool Application::canAcceptURL(const QString& urlString) const {
@@ -5915,7 +5971,7 @@ void Application::addAssetToWorldFromURL(QString url) {
 
     addAssetToWorldInfo(filename, "Downloading model file " + filename + ".");
 
-    auto request = ResourceManager::createResourceRequest(nullptr, QUrl(url));
+    auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, QUrl(url));
     connect(request, &ResourceRequest::finished, this, &Application::addAssetToWorldFromURLRequestFinished);
     request->send();
 }

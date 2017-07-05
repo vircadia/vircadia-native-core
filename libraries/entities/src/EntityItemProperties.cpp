@@ -17,6 +17,7 @@
 #include <ByteCountCoding.h>
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
+#include <Extents.h>
 
 #include "EntitiesLogging.h"
 #include "EntityItem.h"
