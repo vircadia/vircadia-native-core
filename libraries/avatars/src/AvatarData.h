@@ -404,7 +404,7 @@ public:
         SendAllData
     } AvatarDataDetail;
 
-    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail);
+    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking = false);
 
     virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
         AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust, glm::vec3 viewerPosition,

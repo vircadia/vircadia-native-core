@@ -190,12 +190,12 @@ float AvatarData::getDistanceBasedMinTranslationDistance(glm::vec3 viewerPositio
 
 
 // we want to track outbound data in this case...
-QByteArray AvatarData::toByteArrayStateful(AvatarDataDetail dataDetail) {
+QByteArray AvatarData::toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) {
     AvatarDataPacket::HasFlags hasFlagsOut;
     auto lastSentTime = _lastToByteArray;
     _lastToByteArray = usecTimestampNow();
     return AvatarData::toByteArray(dataDetail, lastSentTime, getLastSentJointData(),
-                        hasFlagsOut, false, false, glm::vec3(0), nullptr,
+                        hasFlagsOut, dropFaceTracking, false, glm::vec3(0), nullptr,
                         &_outboundDataRate);
 }
 
@@ -1775,6 +1775,24 @@ void AvatarData::sendAvatarDataPacket() {
     bool cullSmallData = (randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
     auto dataDetail = cullSmallData ? SendAllData : CullSmallData;
     QByteArray avatarByteArray = toByteArrayStateful(dataDetail);
+
+    auto maximumByteArraySize = NLPacket::maxPayloadSize(PacketType::AvatarData) - sizeof(AvatarDataSequenceNumber);
+
+    if (avatarByteArray.size() > maximumByteArraySize) {
+        qCWarning(avatars) << "toByteArrayStateful() resulted in very large buffer:" << avatarByteArray.size() << "... attempt to drop facial data";
+        avatarByteArray = toByteArrayStateful(dataDetail, true);
+
+        if (avatarByteArray.size() > maximumByteArraySize) {
+            qCWarning(avatars) << "toByteArrayStateful() without facial data resulted in very large buffer:" << avatarByteArray.size() << "... reduce to MinimumData";
+            avatarByteArray = toByteArrayStateful(MinimumData, true);
+        }
+
+        if (avatarByteArray.size() > maximumByteArraySize) {
+            qCWarning(avatars) << "toByteArrayStateful() MinimumData resulted in very large buffer:" << avatarByteArray.size() << "... FAIL!!";
+            return;
+        }
+    }
+
     doneEncoding(cullSmallData);
 
     static AvatarDataSequenceNumber sequenceNumber = 0;
