@@ -1082,14 +1082,6 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
     const glm::vec3 bodyCapsuleEnd = bodyCapsuleCenter + glm::vec3(0, bodyCapsuleHalfHeight, 0);
 
     const float HAND_RADIUS = 0.05f;
-
-    const float RELAX_DURATION = 0.6f;
-    const float CONTROL_DURATION = 0.4f;
-    const bool TO_CONTROLLED = true;
-    const bool FROM_CONTROLLED = false;
-    const bool LEFT_HAND = true;
-    const bool RIGHT_HAND = false;
-
     const float ELBOW_POLE_VECTOR_BLEND_FACTOR = 0.95f;
 
     if (leftHandEnabled) {

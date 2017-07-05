@@ -891,7 +891,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 // initialize a new jointChainInfoVec, this will holds the results for solving each ik chain.
                 JointInfo defaultJointInfo = { glm::quat(), glm::vec3(), -1, false };
                 for (size_t i = 0; i < targets.size(); i++) {
-                    int chainDepth = _skeleton->getChainDepth(targets[i].getIndex());
+                    size_t chainDepth = (size_t)_skeleton->getChainDepth(targets[i].getIndex());
                     jointChainInfoVec[i].jointInfoVec.reserve(chainDepth);
                     jointChainInfoVec[i].target = targets[i];
                     int index = targets[i].getIndex();
