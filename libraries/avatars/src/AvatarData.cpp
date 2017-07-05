@@ -57,6 +57,27 @@ static const float DEFAULT_AVATAR_DENSITY = 1000.0f; // density of water
 
 #define ASSERT(COND)  do { if (!(COND)) { abort(); } } while(0)
 
+size_t AvatarDataPacket::maxFaceTrackerInfoSize(size_t numBlendshapeCoefficients) {
+    return FACE_TRACKER_INFO_SIZE + numBlendshapeCoefficients * sizeof(float);
+}
+
+size_t AvatarDataPacket::maxJointDataSize(size_t numJoints) {
+    const size_t validityBitsSize = (size_t)std::ceil(numJoints / (float)BITS_IN_BYTE);
+
+    size_t totalSize = sizeof(uint8_t); // numJoints
+
+    totalSize += validityBitsSize; // Orientations mask
+    totalSize += numJoints * sizeof(SixByteQuat); // Orientations
+    totalSize += validityBitsSize; // Translations mask
+    totalSize += numJoints * sizeof(SixByteTrans); // Translations
+
+    size_t NUM_FAUX_JOINT = 2;
+    totalSize += NUM_FAUX_JOINT * (sizeof(SixByteQuat) + sizeof(SixByteTrans)); // faux joints
+
+    return totalSize;
+}
+
+
 AvatarData::AvatarData() :
     SpatiallyNestable(NestableType::Avatar, QUuid()),
     _handPosition(0.0f),
@@ -189,15 +210,11 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     lazyInitHeadData();
 
-    QByteArray avatarDataByteArray(udt::MAX_PACKET_SIZE, 0);
-    unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
-    unsigned char* startPosition = destinationBuffer;
-
     // special case, if we were asked for no data, then just include the flags all set to nothing
     if (dataDetail == NoData) {
         AvatarDataPacket::HasFlags packetStateFlags = 0;
-        memcpy(destinationBuffer, &packetStateFlags, sizeof(packetStateFlags));
-        return avatarDataByteArray.left(sizeof(packetStateFlags));
+        QByteArray avatarDataByteArray(reinterpret_cast<char*>(&packetStateFlags), sizeof(packetStateFlags));
+        return avatarDataByteArray;
     }
 
     // FIXME -
@@ -257,6 +274,15 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         hasFaceTrackerInfo = !dropFaceTracking && hasFaceTracker() && (sendAll || faceTrackerInfoChangedSince(lastSentTime));
         hasJointData = sendAll || !sendMinimum;
     }
+
+
+    const size_t byteArraySize = AvatarDataPacket::MAX_CONSTANT_HEADER_SIZE +
+        (hasFaceTrackerInfo ? AvatarDataPacket::maxFaceTrackerInfoSize(_headData->getNumSummedBlendshapeCoefficients()) : 0) +
+        (hasJointData ? AvatarDataPacket::maxJointDataSize(_jointData.size()) : 0);
+
+    QByteArray avatarDataByteArray(byteArraySize, 0);
+    unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
+    unsigned char* startPosition = destinationBuffer;
 
     // Leading flags, to indicate how much data is actually included in the packet...
     AvatarDataPacket::HasFlags packetStateFlags =
@@ -624,6 +650,12 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     }
 
     int avatarDataSize = destinationBuffer - startPosition;
+
+    if (avatarDataSize > byteArraySize) {
+        qCCritical(avatars) << "AvatarData::toByteArray buffer overflow"; // We've overflown into the heap
+        ASSERT(false);
+    }
+
     return avatarDataByteArray.left(avatarDataSize);
 }
 // NOTE: This is never used in a "distanceAdjust" mode, so it's ok that it doesn't use a variable minimum rotation/translation

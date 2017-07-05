@@ -140,6 +140,9 @@ namespace AvatarDataPacket {
     const HasFlags PACKET_HAS_JOINT_DATA             = 1U << 11;
     const size_t AVATAR_HAS_FLAGS_SIZE = 2;
 
+    using SixByteQuat = uint8_t[6];
+    using SixByteTrans = uint8_t[6];
+
     // NOTE: AvatarDataPackets start with a uint16_t sequence number that is not reflected in the Header structure.
 
     PACKED_BEGIN struct Header {
@@ -158,8 +161,6 @@ namespace AvatarDataPacket {
     } PACKED_END;
     const size_t AVATAR_BOUNDING_BOX_SIZE = 24;
 
-
-    using SixByteQuat = uint8_t[6];
     PACKED_BEGIN struct AvatarOrientation {
         SixByteQuat avatarOrientation;      // encodeded and compressed by packOrientationQuatToSixBytes()
     } PACKED_END;
@@ -219,6 +220,21 @@ namespace AvatarDataPacket {
     } PACKED_END;
     const size_t AVATAR_LOCAL_POSITION_SIZE = 12;
 
+    const size_t MAX_CONSTANT_HEADER_SIZE = HEADER_SIZE +
+        AVATAR_GLOBAL_POSITION_SIZE +
+        AVATAR_BOUNDING_BOX_SIZE +
+        AVATAR_ORIENTATION_SIZE +
+        AVATAR_SCALE_SIZE +
+        LOOK_AT_POSITION_SIZE +
+        AUDIO_LOUDNESS_SIZE +
+        SENSOR_TO_WORLD_SIZE +
+        ADDITIONAL_FLAGS_SIZE +
+        PARENT_INFO_SIZE +
+        AVATAR_LOCAL_POSITION_SIZE;
+
+
+    // variable length structure follows
+
     // only present if IS_FACE_TRACKER_CONNECTED flag is set in AvatarInfo.flags
     PACKED_BEGIN struct FaceTrackerInfo {
         float leftEyeBlink;
@@ -229,8 +245,8 @@ namespace AvatarDataPacket {
         // float blendshapeCoefficients[numBlendshapeCoefficients];
     } PACKED_END;
     const size_t FACE_TRACKER_INFO_SIZE = 17;
+    size_t maxFaceTrackerInfoSize(size_t numBlendshapeCoefficients);
 
-    // variable length structure follows
     /*
     struct JointData {
         uint8_t numJoints;
@@ -240,6 +256,7 @@ namespace AvatarDataPacket {
         SixByteTrans translation[numValidTranslations];        // encodeded and compressed by packFloatVec3ToSignedTwoByteFixed()
     };
     */
+    size_t maxJointDataSize(size_t numJoints);
 }
 
 static const float MAX_AVATAR_SCALE = 1000.0f;
