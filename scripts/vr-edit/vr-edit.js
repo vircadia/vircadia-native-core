@@ -333,7 +333,13 @@
             VISIBLE_ONLY = true,
 
             isLaserOn = false,
-            hoveredEntityID = null,
+            laseredEntityID = null,
+
+            isEditing = false,
+            initialHandPosition,
+            initialHandOrientationInverse,
+            initialHandToSelectionVector,
+            initialSelectionOrientation,
 
             laser,
             selection,
@@ -355,6 +361,40 @@
         selection = new Selection();
         highlights = new Highlights();
 
+        function startEditing(handPose) {
+            var selectionPositionAndOrientation;
+
+            initialHandPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, handPose.translation), MyAvatar.position);
+            initialHandOrientationInverse = Quat.inverse(Quat.multiply(MyAvatar.orientation, handPose.rotation));
+
+            selectionPositionAndOrientation = selection.getPositionAndOrientation();
+            initialHandToSelectionVector = Vec3.subtract(selectionPositionAndOrientation.position, initialHandPosition);
+            initialSelectionOrientation = selectionPositionAndOrientation.orientation;
+
+            isEditing = true;
+        }
+
+        function applyEdit(handPose) {
+            var handPosition,
+                handOrientation,
+                deltaOrientation,
+                selectionPosition,
+                selectionOrientation;
+
+            handPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, handPose.translation), MyAvatar.position);
+            handOrientation = Quat.multiply(MyAvatar.orientation, handPose.rotation);
+
+            deltaOrientation = Quat.multiply(handOrientation, initialHandOrientationInverse);
+            selectionPosition = Vec3.sum(handPosition, Vec3.multiplyQbyV(deltaOrientation, initialHandToSelectionVector));
+            selectionOrientation = Quat.multiply(deltaOrientation, initialSelectionOrientation);
+
+            selection.setPositionAndOrientation(selectionPosition, selectionOrientation);
+        }
+
+        function stopEditing() {
+            isEditing = false;
+        }
+
         function update() {
             var wasLaserOn,
                 handPose,
@@ -363,7 +403,8 @@
                 deltaOrigin,
                 pickRay,
                 intersection,
-                distance;
+                distance,
+                isTriggerClicked;
 
             // Controller trigger.
             wasLaserOn = isLaserOn;
@@ -373,7 +414,7 @@
                     laser.clear();
                     selection.clear();
                     highlights.clear();
-                    hoveredEntityID = null;
+                    laseredEntityID = null;
                 }
                 return;
             }
@@ -386,7 +427,7 @@
                     laser.clear();
                     selection.clear();
                     highlights.clear();
-                    hoveredEntityID = null;
+                    laseredEntityID = null;
                 }
                 return;
             }
@@ -404,20 +445,47 @@
                 VISIBLE_ONLY);
             distance = intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE;
 
-            // Hover entities.
-            laser.update(pickRay.origin, pickRay.direction, distance, Controller.getValue(controllerTriggerClicked));
-            if (intersection.intersects) {
-                if (intersection.entityID !== hoveredEntityID) {
-                    hoveredEntityID = intersection.entityID;
-                    selection.select(hoveredEntityID);
-                    highlights.display(selection.selection());
+            // Laser, hover, edit.
+            isTriggerClicked = Controller.getValue(controllerTriggerClicked);
+            laser.update(pickRay.origin, pickRay.direction, distance, isTriggerClicked);
+
+            if (isTriggerClicked) {
+                if (isEditing) {
+                    // Perform edit.
+                    applyEdit(handPose);
+                } else if (intersection.intersects) {
+                    // Start editing.
+                    if (intersection.entityID !== laseredEntityID) {
+                        laseredEntityID = intersection.entityID;
+                        selection.select(laseredEntityID);
+                    } else {
+                        highlights.clear();
+                    }
+                    startEditing(handPose);
                 }
             } else {
-                if (hoveredEntityID) {
-                    selection.clear();
-                    highlights.clear();
-                    hoveredEntityID = null;
+                if (isEditing) {
+                    // Stop editing.
+                    stopEditing();
+                    laseredEntityID = null;  // Force highlighting entities at their new position.
                 }
+
+                if (intersection.intersects) {
+                    // Hover entities.
+                    if (intersection.entityID !== laseredEntityID) {
+                        laseredEntityID = intersection.entityID;
+                        selection.select(laseredEntityID);
+                        highlights.display(selection.selection());
+                    }
+                } else {
+                    // Unhover entities.
+                    if (laseredEntityID) {
+                        selection.clear();
+                        highlights.clear();
+                        laseredEntityID = null;
+                    }
+                }
+
             }
         }
 
