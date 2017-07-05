@@ -28,12 +28,85 @@
         UPDATE_LOOP_TIMEOUT = 16,
         updateTimer = null,
 
+        Highlights,
         Selection,
         Laser,
         Hand,
 
         AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
         NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
+
+    Highlights = function () {
+        // Draws highlights on selected entities.
+
+        var overlays = [],
+            HIGHLIGHT_COLOR = { red: 240, green: 240, blue: 0 },
+            HIGHLIGHT_ALPHA = 0.8;
+
+        function maybeAddOverlay(index) {
+            if (index >= overlays.length) {
+                overlays.push(Overlays.addOverlay("cube", {
+                    color: HIGHLIGHT_COLOR,
+                    alpha: HIGHLIGHT_ALPHA,
+                    solid: false,
+                    drawInFront: true,
+                    ignoreRayIntersection: true,
+                    visible: false
+                }));
+            }
+        }
+
+        function editOverlay(index, details) {
+            Overlays.editOverlay(overlays[index], {
+                position: details.position,
+                registrationPoint: details.registrationPoint,
+                rotation: details.rotation,
+                dimensions: details.dimensions,
+                visible: true
+            });
+        }
+
+        function display(selection) {
+            var i,
+                length;
+
+            // Add/edit overlay.
+            for (i = 0, length = selection.length; i < length; i += 1) {
+                maybeAddOverlay(i);
+                editOverlay(i, selection[i]);
+            }
+
+            // Delete extra overlays.
+            for (i = overlays.length - 1, length = selection.length; i >= length; i -= 1) {
+                Overlays.deleteOverlay(overlays[i]);
+                overlays.splice(i, 1);
+            }
+        }
+
+        function clear() {
+            var i,
+                length;
+
+            for (i = 0, length = overlays.length; i < length; i += 1) {
+                Overlays.deleteOverlay(overlays[i]);
+            }
+            overlays = [];
+        }
+
+        function destroy() {
+            clear();
+        }
+
+        if (!this instanceof Highlights) {
+            return new Highlights();
+        }
+
+        return {
+            display: display,
+            clear: clear,
+            destroy: destroy
+        };
+    };
 
     Selection = function () {
         // Manages set of selected entities. Currently supports just one set of linked entities.
@@ -263,7 +336,8 @@
             hoveredEntityID = null,
 
             laser,
-            selection;
+            selection,
+            highlights;
 
         hand = side;
         if (hand === LEFT_HAND) {
@@ -279,6 +353,7 @@
 
         laser = new Laser(hand);
         selection = new Selection();
+        highlights = new Highlights();
 
         function update() {
             var wasLaserOn,
@@ -297,6 +372,7 @@
                 if (wasLaserOn) {
                     laser.clear();
                     selection.clear();
+                    highlights.clear();
                     hoveredEntityID = null;
                 }
                 return;
@@ -309,6 +385,7 @@
                 if (wasLaserOn) {
                     laser.clear();
                     selection.clear();
+                    highlights.clear();
                     hoveredEntityID = null;
                 }
                 return;
@@ -333,10 +410,12 @@
                 if (intersection.entityID !== hoveredEntityID) {
                     hoveredEntityID = intersection.entityID;
                     selection.select(hoveredEntityID);
+                    highlights.display(selection.selection());
                 }
             } else {
                 if (hoveredEntityID) {
                     selection.clear();
+                    highlights.clear();
                     hoveredEntityID = null;
                 }
             }
@@ -350,6 +429,10 @@
             if (selection) {
                 selection.destroy();
                 selection = null;
+            }
+            if (highlights) {
+                highlights.destroy();
+                highlights = null;
             }
         }
 
