@@ -124,7 +124,7 @@ static glm::mat4 calculateResetMat() {
         float const UI_RADIUS = 1.0f;
         float const UI_HEIGHT = 1.6f;
         float const UI_Z_OFFSET = 0.5;
-        
+
         float xSize, zSize;
         chaperone->GetPlayAreaSize(&xSize, &zSize);
         glm::vec3 uiPos(0.0f, UI_HEIGHT, UI_RADIUS - (0.5f * zSize) - UI_Z_OFFSET);
@@ -251,7 +251,7 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
             _resetMat = calculateResetMat();
             _resetMatCalculated = true;
         }
-        
+
         _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, 0, _nextSimPoseData.vrPoses, vr::k_unMaxTrackedDeviceCount);
         _nextSimPoseData.update(_resetMat);
     } else if (isDesktopMode()) {
@@ -429,7 +429,7 @@ void ViveControllerManager::InputDevice::emitCalibrationStatus() {
     status["hand_pucks"] = (_handConfig == HandConfig::Pucks);
     status["puckCount"] = (int)_validTrackedObjects.size();
     status["UI"] = _calibrate;
-    
+
     emit inputConfiguration->calibrationStatus(status);
 }
 
@@ -480,7 +480,7 @@ void ViveControllerManager::InputDevice::sendUserActivityData(QString activity) 
         {"head_puck", (_headConfig == HeadConfig::Puck) ? true : false},
         {"hand_pucks", (_handConfig == HandConfig::Pucks) ? true : false}
     };
-    
+
     UserActivityLogger::getInstance().logAction(activity, jsonData);
 }
 
@@ -513,12 +513,12 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
     glm::mat4 defaultToReferenceMat = glm::mat4();
     if (_headConfig == HeadConfig::HMD) {
         defaultToReferenceMat = calculateDefaultToReferenceForHmd(inputCalibration);
-    } else if (_headConfig == HeadConfig::Puck) { 
+    } else if (_headConfig == HeadConfig::Puck) {
         defaultToReferenceMat = calculateDefaultToReferenceForHeadPuck(inputCalibration);
     }
-    
+
     _config = _preferedConfig;
-    
+
     bool headConfigured = configureHead(defaultToReferenceMat, inputCalibration);
     bool handsConfigured = configureHands(defaultToReferenceMat, inputCalibration);
     bool bodyConfigured = configureBody(defaultToReferenceMat, inputCalibration);
@@ -952,12 +952,12 @@ void ViveControllerManager::InputDevice::calibrateLeftHand(glm::mat4& defaultToR
 
     glm::mat4 newHandMat = glm::mat4(glm::vec4(xPrime, 0.0f), glm::vec4(yPrime, 0.0f),
                                      glm::vec4(zPrime, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-    
+
 
     glm::vec3 translationOffset = glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
     glm::quat initialRotation = glmExtractRotation(handPoseAvatarMat);
     glm::quat finalRotation = glmExtractRotation(newHandMat);
-    
+
     glm::quat rotationOffset = glm::inverse(initialRotation) * finalRotation;
 
     glm::mat4 offsetMat = createMatFromQuatAndPos(rotationOffset, translationOffset);
@@ -982,13 +982,13 @@ void ViveControllerManager::InputDevice::calibrateRightHand(glm::mat4& defaultTo
     glm::vec3 yPrime = glm::normalize(glm::cross(zPrime, xPrime));
     glm::mat4 newHandMat = glm::mat4(glm::vec4(xPrime, 0.0f), glm::vec4(yPrime, 0.0f),
                                      glm::vec4(zPrime, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-    
+
 
 
     glm::vec3 translationOffset = glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
     glm::quat initialRotation = glmExtractRotation(handPoseAvatarMat);
     glm::quat finalRotation = glmExtractRotation(newHandMat);
-    
+
     glm::quat rotationOffset = glm::inverse(initialRotation) * finalRotation;
 
     glm::mat4 offsetMat = createMatFromQuatAndPos(rotationOffset, translationOffset);
@@ -1005,7 +1005,7 @@ void ViveControllerManager::InputDevice::calibrateFeet(glm::mat4& defaultToRefer
     auto& secondFoot = _validTrackedObjects[SECOND_FOOT];
     controller::Pose& firstFootPose = firstFoot.second;
     controller::Pose& secondFootPose = secondFoot.second;
-    
+
     if (determineLimbOrdering(firstFootPose, secondFootPose, headXAxis, headPosition)) {
         calibrateFoot(defaultToReferenceMat, inputCalibration, firstFoot, true);
         calibrateFoot(defaultToReferenceMat, inputCalibration, secondFoot, false);

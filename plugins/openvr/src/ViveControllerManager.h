@@ -152,7 +152,7 @@ private:
             HandController,
             Pucks
         };
-            
+
         Config _config { Config::None };
         Config _preferedConfig { Config::None };
         HeadConfig _headConfig { HeadConfig::HMD };
