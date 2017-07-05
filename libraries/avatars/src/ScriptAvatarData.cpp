@@ -152,6 +152,15 @@ QString ScriptAvatarData::getSessionDisplayName() const {
         return QString();
     }
 }
+
+bool ScriptAvatarData::getIsReplicated() const {
+    if (AvatarSharedPointer sharedAvatarData = _avatarData.lock()) {
+        return sharedAvatarData->getIsReplicated();
+    } else {
+        return false;
+    }
+}
+
 //
 // IDENTIFIER PROPERTIES
 // END

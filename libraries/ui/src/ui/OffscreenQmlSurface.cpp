@@ -6,7 +6,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "OffscreenQmlSurface.h"
-#include "Config.h"
+
+// Has to come before Qt GL includes
+#include <gl/Config.h>
 
 #include <unordered_set>
 #include <unordered_map>
@@ -33,14 +35,17 @@
 #include <NetworkAccessManager.h>
 #include <GLMHelpers.h>
 #include <shared/GlobalAppProperties.h>
-#include <FileTypeProfile.h>
-#include <HFWebEngineProfile.h>
-#include <HFTabletWebEngineProfile.h>
 
-#include "OffscreenGLCanvas.h"
-#include "GLHelpers.h"
-#include "GLLogging.h"
-#include "Context.h"
+#include <gl/OffscreenGLCanvas.h>
+#include <gl/GLHelpers.h>
+#include <gl/Context.h>
+
+#include "types/FileTypeProfile.h"
+#include "types/HFWebEngineProfile.h"
+#include "types/HFTabletWebEngineProfile.h"
+#include "types/SoundEffect.h"
+
+#include "Logging.h"
 
 Q_LOGGING_CATEGORY(trace_render_qml, "trace.render.qml")
 Q_LOGGING_CATEGORY(trace_render_qml_gl, "trace.render.qml.gl")
@@ -272,7 +277,7 @@ QString getEventBridgeJavascript() {
         QString createGlobalEventBridgeStr = QTextStream(&createGlobalEventBridgeFile).readAll();
         javaScriptToInject = webChannelStr + createGlobalEventBridgeStr;
     } else {
-        qCWarning(glLogging) << "Unable to find qwebchannel.js or createGlobalEventBridge.js";
+        qCWarning(uiLogging) << "Unable to find qwebchannel.js or createGlobalEventBridge.js";
     }
     return javaScriptToInject;
 }
@@ -297,6 +302,14 @@ private:
 
 QQmlEngine* acquireEngine(QQuickWindow* window) {
     Q_ASSERT(QThread::currentThread() == qApp->thread());
+    if (QThread::currentThread() != qApp->thread()) {
+        qCWarning(uiLogging) << "Cannot acquire QML engine on any thread but the main thread";
+    }
+    static std::once_flag once;
+    std::call_once(once, [] {
+        qmlRegisterType<SoundEffect>("Hifi", 1, 0, "SoundEffect");
+    });
+
     if (!globalEngine) {
         Q_ASSERT(0 == globalEngineRefCount);
         globalEngine = new QQmlEngine();
@@ -325,8 +338,6 @@ QQmlEngine* acquireEngine(QQuickWindow* window) {
         rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
         rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
         rootContext->setContextProperty("HFTabletWebEngineProfile", new HFTabletWebEngineProfile(rootContext));
-        
-         
     }
 
     ++globalEngineRefCount;
@@ -457,7 +468,7 @@ void OffscreenQmlSurface::onAboutToQuit() {
 }
 
 void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
-    qCDebug(glLogging) << "Building QML surface";
+    qCDebug(uiLogging) << "Building QML surface";
 
     _renderControl = new QMyQuickRenderControl();
     connect(_renderControl, &QQuickRenderControl::renderRequested, this, [this] { _render = true; });
@@ -548,7 +559,7 @@ void OffscreenQmlSurface::resize(const QSize& newSize_, bool forceResize) {
         return;
     }
 
-    qCDebug(glLogging) << "Offscreen UI resizing to " << newSize.width() << "x" << newSize.height();
+    qCDebug(uiLogging) << "Offscreen UI resizing to " << newSize.width() << "x" << newSize.height();
     gl::withSavedContext([&] {
         _canvas->makeCurrent();
 
@@ -595,6 +606,9 @@ void OffscreenQmlSurface::setBaseUrl(const QUrl& baseUrl) {
 }
 
 QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, std::function<void(QQmlContext*, QObject*)> f) {
+    if (QThread::currentThread() != thread()) {
+        qCWarning(uiLogging) << "Called load on a non-surface thread";
+    }
     // Synchronous loading may take a while; restart the deadlock timer
     QMetaObject::invokeMethod(qApp, "updateHeartbeat", Qt::DirectConnection);
 
@@ -636,7 +650,7 @@ QObject* OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlCon
     disconnect(qmlComponent, &QQmlComponent::statusChanged, this, 0);
     if (qmlComponent->isError()) {
         for (const auto& error : qmlComponent->errors()) {
-            qCWarning(glLogging) << error.url() << error.line() << error;
+            qCWarning(uiLogging) << error.url() << error.line() << error;
         }
         qmlComponent->deleteLater();
         return nullptr;
@@ -646,7 +660,7 @@ QObject* OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlCon
     QObject* newObject = qmlComponent->beginCreate(qmlContext);
     if (qmlComponent->isError()) {
         for (const auto& error : qmlComponent->errors()) {
-            qCWarning(glLogging) << error.url() << error.line() << error;
+            qCWarning(uiLogging) << error.url() << error.line() << error;
         }
         if (!_rootItem) {
             qFatal("Unable to finish loading QML root");
@@ -871,12 +885,6 @@ QSize OffscreenQmlSurface::size() const {
 QQmlContext* OffscreenQmlSurface::getSurfaceContext() {
     return _qmlContext;
 }
-
-Q_DECLARE_METATYPE(std::function<void()>);
-auto VoidLambdaType = qRegisterMetaType<std::function<void()>>();
-Q_DECLARE_METATYPE(std::function<QVariant()>);
-auto VariantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
-
 
 void OffscreenQmlSurface::executeOnUiThread(std::function<void()> function, bool blocking ) {
     if (QThread::currentThread() != thread()) {

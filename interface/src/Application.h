@@ -95,6 +95,7 @@ static const UINT UWM_SHOW_APPLICATION =
 #endif
 
 static const QString RUNNING_MARKER_FILENAME = "Interface.running";
+static const QString SCRIPTS_SWITCH = "scripts";
 
 class Application;
 #if defined(qApp)
@@ -297,6 +298,7 @@ public:
     void setAvatarOverrideUrl(const QUrl& url, bool save);
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
+    void setCacheOverrideDir(const QString& dirName) { _cacheDir = dirName; }
 
 signals:
     void svoImportRequested(const QString& url);
@@ -688,5 +690,7 @@ private:
 
     QUrl _avatarOverrideUrl;
     bool _saveAvatarOverrideUrl { false };
+
+    QString _cacheDir;
 };
 #endif // hifi_Application_h

@@ -461,11 +461,6 @@ void GLVariableAllocationSupport::updateMemoryPressure() {
 
     if (newState != _memoryPressureState) {
         _memoryPressureState = newState;
-#if THREADED_TEXTURE_BUFFERING
-        if (MemoryPressureState::Transfer == _memoryPressureState) {
-            TransferJob::startBufferingThread();
-        }
-#endif
         // Clear the existing queue
         _transferQueue = WorkQueue();
         _promoteQueue = WorkQueue();

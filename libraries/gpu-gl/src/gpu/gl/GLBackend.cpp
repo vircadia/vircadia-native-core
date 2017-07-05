@@ -179,6 +179,11 @@ void GLBackend::init() {
             qCDebug(gpugllogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
         }*/
 #endif
+#if THREADED_TEXTURE_BUFFERING
+        // This has to happen on the main thread in order to give the thread 
+        // pool a reasonable parent object
+        GLVariableAllocationSupport::TransferJob::startBufferingThread();
+#endif
     });
 }
 

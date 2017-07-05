@@ -144,38 +144,3 @@ void Animation::animationParseError(int error, QString str) {
     finishedLoading(false);
 }
 
-AnimationDetails::AnimationDetails() :
-    role(), url(), fps(0.0f), priority(0.0f), loop(false), hold(false), 
-    startAutomatically(false), firstFrame(0.0f), lastFrame(0.0f), running(false), currentFrame(0.0f) 
-{
-}
-
-AnimationDetails::AnimationDetails(QString role, QUrl url, float fps, float priority, bool loop,
-    bool hold, bool startAutomatically, float firstFrame, float lastFrame, bool running, float currentFrame) :
-    role(role), url(url), fps(fps), priority(priority), loop(loop), hold(hold), 
-    startAutomatically(startAutomatically), firstFrame(firstFrame), lastFrame(lastFrame), 
-    running(running), currentFrame(currentFrame) 
-{ 
-}
-
-
-QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const AnimationDetails& details) {
-    QScriptValue obj = engine->newObject();
-    obj.setProperty("role", details.role);
-    obj.setProperty("url", details.url.toString());
-    obj.setProperty("fps", details.fps);
-    obj.setProperty("priority", details.priority);
-    obj.setProperty("loop", details.loop);
-    obj.setProperty("hold", details.hold);
-    obj.setProperty("startAutomatically", details.startAutomatically);
-    obj.setProperty("firstFrame", details.firstFrame);
-    obj.setProperty("lastFrame", details.lastFrame);
-    obj.setProperty("running", details.running);
-    obj.setProperty("currentFrame", details.currentFrame);
-    return obj;
-}
-
-void animationDetailsFromScriptValue(const QScriptValue& object, AnimationDetails& details) {
-    // nothing for now...
-}
-

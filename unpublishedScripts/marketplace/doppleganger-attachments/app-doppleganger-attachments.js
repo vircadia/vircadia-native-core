@@ -10,12 +10,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-var DopplegangerClass = Script.require('./doppleganger.js');
+var require = Script.require;
+
+var WANT_DEBUG = false;
+
+var DopplegangerClass = require('./doppleganger.js'),
+    DopplegangerAttachments = require('./doppleganger-attachments.js'),
+    modelHelper = require('./model-helper.js').modelHelper;
 
 var tablet = Tablet.getTablet('com.highfidelity.interface.tablet.system'),
     button = tablet.addButton({
-        icon: "icons/tablet-icons/doppleganger-i.svg",
-        activeIcon: "icons/tablet-icons/doppleganger-a.svg",
+        icon: Script.resolvePath('./doppleganger-i.svg'),
+        activeIcon: Script.resolvePath('./doppleganger-a.svg'),
         text: 'MIRROR'
     });
 
@@ -26,9 +32,38 @@ Script.scriptEnding.connect(function() {
 
 var doppleganger = new DopplegangerClass({
     avatar: MyAvatar,
-    mirrored: true,
-    autoUpdate: true
+    mirrored: false,
+    autoUpdate: true,
+    type: 'overlay'
 });
+
+// add support for displaying regular (non-soft) attachments on the doppleganger
+{
+    var RECHECK_ATTACHMENT_MS = 1000;
+    var dopplegangerAttachments = new DopplegangerAttachments(doppleganger),
+        attachmentInterval = null,
+        lastHash = dopplegangerAttachments.getAttachmentsHash();
+
+    // monitor for attachment changes, but only when the doppleganger is active
+    doppleganger.activeChanged.connect(function(active, reason) {
+        if (attachmentInterval) {
+            Script.clearInterval(attachmentInterval);
+        }
+        if (active) {
+            attachmentInterval = Script.setInterval(checkAttachmentsHash, RECHECK_ATTACHMENT_MS);
+        } else {
+            attachmentInterval = null;
+        }
+    });
+    function checkAttachmentsHash() {
+        var currentHash = dopplegangerAttachments.getAttachmentsHash();
+        if (currentHash !== lastHash) {
+            lastHash = currentHash;
+            debugPrint('app-doppleganger | detect attachment change');
+            dopplegangerAttachments.refreshAttachments();
+        }
+    }
+}
 
 // hide the doppleganger if this client script is unloaded
 Script.scriptEnding.connect(doppleganger, 'stop');
@@ -53,21 +88,31 @@ button.clicked.connect(doppleganger, 'toggle');
 doppleganger.activeChanged.connect(function(active, reason) {
     if (button) {
         button.editProperties({ isActive: active });
-        print('doppleganger.activeChanged', active, reason);
+        debugPrint('doppleganger.activeChanged', active, reason);
     }
 });
 
 // alert the user if there was an error applying their skeletonModelURL
-doppleganger.modelOverlayLoaded.connect(function(error, result) {
+doppleganger.modelLoaded.connect(function(error, result) {
     if (doppleganger.active && error) {
         Window.alert('doppleganger | ' + error + '\n' + doppleganger.skeletonModelURL);
     }
 });
 
+// ----------------------------------------------------------------------------
+
 // add debug indicators, but only if the user has configured the settings value
 if (Settings.getValue('debug.doppleganger', false)) {
+    WANT_DEBUG = true;
     DopplegangerClass.addDebugControls(doppleganger);
 }
+
+function debugPrint() {
+    if (WANT_DEBUG) {
+        print('app-doppleganger | ' + [].slice.call(arguments).join(' '));
+    }
+}
+// ----------------------------------------------------------------------------
 
 UserActivityLogger.logAction('doppleganger_app_load');
 doppleganger.activeChanged.connect(function(active, reason) {
@@ -78,8 +123,12 @@ doppleganger.activeChanged.connect(function(active, reason) {
             // user intentionally toggled the doppleganger
             UserActivityLogger.logAction('doppleganger_disable');
         } else {
-            print('doppleganger stopped:', reason);
+            debugPrint('doppleganger stopped:', reason);
             UserActivityLogger.logAction('doppleganger_autodisable', { reason: reason });
         }
     }
 });
+dopplegangerAttachments.attachmentsUpdated.connect(function(attachments) {
+    UserActivityLogger.logAction('doppleganger_attachments', { count: attachments.length });
+});
+

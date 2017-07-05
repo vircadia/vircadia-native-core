@@ -9,6 +9,6 @@
 if (NOT ANDROID)
   set(TARGET_NAME hifiSixense)
   setup_hifi_plugin(Script Qml Widgets)
-  link_hifi_libraries(shared controllers ui plugins ui-plugins input-plugins display-plugins)
+  link_hifi_libraries(shared controllers ui plugins ui-plugins input-plugins)
   target_sixense()
 endif ()
