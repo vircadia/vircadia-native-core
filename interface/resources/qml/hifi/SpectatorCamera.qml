@@ -218,23 +218,34 @@ Rectangle {
         }
 
         // Instructions or Preview
-        Item {
+        Rectangle {
             id: spectatorCameraImageContainer;
             anchors.left: parent.left;
             anchors.top: cameraToggleCheckBox.bottom;
             anchors.topMargin: 20;
             anchors.right: parent.right;
             height: 250;
+            color: spectatorCameraPreview.visible ? "transparent" : "black";
+
             
-            // Instructions (visible when display texture isn't set)
-            Image {
-                id: spectatorCameraInstructions;
+
+            AnimatedImage {
+                source: "../../images/static.gif"
                 visible: !spectatorCameraPreview.visible;
                 anchors.fill: parent;
-                fillMode: Image.PreserveAspectFit;
-                horizontalAlignment: Image.AlignHCenter;
-                verticalAlignment: Image.AlignVCenter;
-                source: "http://1.bp.blogspot.com/-1GABEq__054/T03B00j_OII/AAAAAAAAAa8/jo55LcvEPHI/s1600/Winning.jpg";
+                opacity: 0.15;
+            }
+            
+            // Instructions (visible when display texture isn't set)
+            FiraSansRegular {
+                id: spectatorCameraInstructions;
+                text: "Turn on Spectator Camera for a preview\nof what your monitor shows.";
+                size: 16;
+                color: hifi.colors.lightGrayText;
+                visible: !spectatorCameraPreview.visible;
+                anchors.fill: parent;
+                horizontalAlignment: Text.AlignHCenter;
+                verticalAlignment: Text.AlignVCenter;
             }
             
             // Spectator Camera Preview
