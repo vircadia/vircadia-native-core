@@ -16,6 +16,8 @@
         UNDO_STACK_SIZE = 5, 
         undoStack = [];
         isFingerPainting = false,
+        isTabletFocused = false,
+        tabletDebugFocusLine = null,
         //dynamic brush vars
         /*9isDynamicBrushEnabled = false,
         isDynamicBrushRunning = false,
@@ -42,6 +44,7 @@
 
     // Set up the qml ui
     var qml = Script.resolvePath('PaintWindow.qml');
+    Script.include("../libraries/controllers.js");
     var window = null;
     
     //var inkSource = null;
@@ -418,6 +421,43 @@
             }
         }
 
+        function checkTabletHasFocus() {
+            var controllerPose = getControllerWorldLocation(Controller.Standard.RightHand, true); // note: this will return head pose if hand pose is invalid (third eye)
+            var fingerTipRotation = controllerPose.rotation;//Quat.inverse(MyAvatar.orientation);
+            var fingerTipPosition = controllerPose.position;//MyAvatar.getJointPosition(handName === "left" ? "LeftHandIndex4" : "RightHandIndex4");
+            var pickRay = {
+                origin: fingerTipPosition,
+                direction: Quat.getUp(fingerTipRotation)
+            }
+            var overlays = Overlays.findRayIntersection(pickRay, false, [HMD.tabletID], [inkSourceOverlay.overlayID]);
+            print(JSON.stringify(overlays));
+            if (overlays.intersects && HMD.tabletID == overlays.overlayID) {
+                if (!isTabletFocused) {
+                    isTabletFocused = true;
+                    //isFingerPainting = false;
+                    Overlays.editOverlay(inkSourceOverlay, {visible: false});
+
+                    updateHandAnimations();
+                    pauseProcessing();
+                    print("Hovering tablet!");
+                } 
+            } else {
+                if (isTabletFocused) {
+                    print("Unhovering tablet!");
+                    isTabletFocused = false;
+                    //isFingerPainting = true;
+                    Overlays.editOverlay(inkSourceOverlay, {visible: true});
+                    resumeProcessing();
+                    updateHandFunctions();
+                    //updateHandAnimations();
+                    print("Current hand " + handName);
+                    print("isFingerPainting " + isFingerPainting);
+                    print("inkSourceOverlay " + JSON.stringify(inkSourceOverlay));
+                    print("inkSourceOverlay " + JSON.stringify(inkSourceOverlay));
+                }            
+            };
+        }
+
         /*function runDynamicBrush() {
             if (isDynamicBrushRunning) {
                 var currentBrush = isLeftHandDominant ? leftBrush : rightBrush;
@@ -474,7 +514,11 @@
             // }
             /*frameDeltaSeconds = Date.now() - lastFrameTime;
             lastFrameTime = Date.now();
-            runDynamicBrush();     */     
+            runDynamicBrush();     */   
+
+            if (((!leftBrush || !rightBrush) || !leftBrush.isDrawingLine && !rightBrush.isDrawingLine)) {
+                checkTabletHasFocus();
+            }
             updateTriggerPress();
             updateGripPress();
         }
@@ -715,6 +759,33 @@
         
 		
 		
+    }
+
+    function pauseProcessing() {
+        //Script.update.disconnect(leftHand.onUpdate);
+        //Script.update.disconnect(rightHand.onUpdate);
+
+        //Controller.disableMapping(CONTROLLER_MAPPING_NAME);
+
+        Messages.sendLocalMessage("Hifi-Hand-Disabler", "none");
+
+        Messages.unsubscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
+        Messages.unsubscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
+        Messages.unsubscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
+        
+        
+        //Restores and clears hand animations
+        restoreAllHandAnimations();
+    }
+
+     function resumeProcessing() {
+        //Change to finger paint hand animation
+        updateHandAnimations();
+        
+        // Messages channels for enabling/disabling other scripts' functions.
+        Messages.subscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
+        Messages.subscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
+        Messages.subscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
     }
 
     function disableProcessing() {
