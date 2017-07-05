@@ -50,12 +50,12 @@
     {
       "label": "Places / Paths",
       "html_id": "places_paths",
-	  "restart": false,
+      "restart": false,
       "settings": [
         {
           "name": "paths",
           "label": "Paths",
-		  "help": "Clients can enter a path to reach an exact viewpoint in your domain.<br/>Add rows to the table below to map a path to a viewpoint.<br/>The index path ( / ) is where clients will enter if they do not enter an explicit path.",
+          "help": "Clients can enter a path to reach an exact viewpoint in your domain.<br/>Add rows to the table below to map a path to a viewpoint.<br/>The index path ( / ) is where clients will enter if they do not enter an explicit path.",
           "type": "table",
           "can_add_new_rows": true,
           "key": {
