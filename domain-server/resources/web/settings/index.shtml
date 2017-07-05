@@ -86,7 +86,6 @@
 <script src='/js/underscore-keypath.min.js'></script>
 <script src='/js/bootbox.min.js'></script>
 <script src='js/bootstrap-switch.min.js'></script>
-<script src='/js/sweetalert.min.js'></script>
 <script src='js/settings.js'></script>
 <script src='js/form2js.min.js'></script>
 <script src='js/sha256.js'></script>

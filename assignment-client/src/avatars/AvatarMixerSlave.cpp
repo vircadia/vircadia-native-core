@@ -79,13 +79,13 @@ int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, 
     }
 }
 
-int AvatarMixerSlave::sendReplicatedIdentityPacket(const AvatarMixerClientData* nodeData, const SharedNodePointer& destinationNode) {
-    if (destinationNode->getType() == NodeType::DownstreamAvatarMixer) {
+int AvatarMixerSlave::sendReplicatedIdentityPacket(const Node& agentNode, const AvatarMixerClientData* nodeData, const Node& destinationNode) {
+    if (AvatarMixer::shouldReplicateTo(agentNode, destinationNode)) {
         QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
         individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
-        auto identityPacket = NLPacket::create(PacketType::ReplicatedAvatarIdentity);
+        auto identityPacket = NLPacketList::create(PacketType::ReplicatedAvatarIdentity, QByteArray(), true, true);
         identityPacket->write(individualData);
-        DependencyManager::get<NodeList>()->sendUnreliablePacket(*identityPacket, *destinationNode);
+        DependencyManager::get<NodeList>()->sendPacketList(std::move(identityPacket), destinationNode);
         _stats.numIdentityPackets++;
         return individualData.size();
     } else {
@@ -453,6 +453,10 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
     nodeData->resetNumAvatarsSentLastFrame();
 
     std::for_each(_begin, _end, [&](const SharedNodePointer& agentNode) {
+        if (!AvatarMixer::shouldReplicateTo(*agentNode, *node)) {
+            return;
+        }
+        
         // collect agents that we have avatar data for that we are supposed to replicate
         if (agentNode->getType() == NodeType::Agent && agentNode->getLinkedData() && agentNode->isReplicated()) {
             const AvatarMixerClientData* agentNodeData = reinterpret_cast<const AvatarMixerClientData*>(agentNode->getLinkedData());
@@ -479,7 +483,7 @@ void AvatarMixerSlave::broadcastAvatarDataToDownstreamMixer(const SharedNodePoin
             auto lastBroadcastTime = nodeData->getLastBroadcastTime(agentNode->getUUID());
             if (lastBroadcastTime <= agentNodeData->getIdentityChangeTimestamp()
                 || (start - lastBroadcastTime) >= REBROADCAST_IDENTITY_TO_DOWNSTREAM_EVERY_US) {
-                sendReplicatedIdentityPacket(agentNodeData, node);
+                sendReplicatedIdentityPacket(*agentNode, agentNodeData, *node);
                 nodeData->setLastBroadcastTime(agentNode->getUUID(), start);
             }
 
