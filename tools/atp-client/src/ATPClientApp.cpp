@@ -55,7 +55,6 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
     const QCommandLineOption listenPortOption("listenPort", "listen port", QString::number(INVALID_PORT));
     parser.addOption(listenPortOption);
 
-
     if (!parser.parse(QCoreApplication::arguments())) {
         qCritical() << parser.errorText() << endl;
         parser.showHelp();
@@ -79,7 +78,6 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
         const_cast<QLoggingCategory*>(&shared())->setEnabled(QtInfoMsg, false);
         const_cast<QLoggingCategory*>(&shared())->setEnabled(QtWarningMsg, false);
     }
-
 
     QStringList posArgs = parser.positionalArguments();
     if (posArgs.size() != 1) {
@@ -120,7 +118,6 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
         _password = pieces[1];
     }
 
-
     if (parser.isSet(listenPortOption)) {
         _listenPort = parser.value(listenPortOption).toInt();
     }
@@ -140,7 +137,6 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
         connectToDomain(domainServerAddress);
     }
 }
-
 
 void ATPClientApp::connectToDomain(QString domainServerAddress) {
 
@@ -216,7 +212,6 @@ ATPClientApp::~ATPClientApp() {
     delete _domainCheckInTimer;
     delete _timeoutTimer;
 }
-
 
 void ATPClientApp::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
     qDebug() << "domainConnectionRefused";

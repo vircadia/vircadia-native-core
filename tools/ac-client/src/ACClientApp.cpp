@@ -14,6 +14,7 @@
 #include <QLoggingCategory>
 #include <QCommandLineParser>
 #include <NetworkLogging.h>
+#include <NetworkingConstants.h>
 #include <SharedLogging.h>
 #include <AddressManager.h>
 #include <DependencyManager.h>
@@ -32,6 +33,9 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
 
     const QCommandLineOption verboseOutput("v", "verbose output");
     parser.addOption(verboseOutput);
+
+    const QCommandLineOption authOption("u", "set usename and pass", "username:password");
+    parser.addOption(authOption);
 
     const QCommandLineOption domainAddressOption("d", "domain-server address", "127.0.0.1");
     parser.addOption(domainAddressOption);
@@ -81,6 +85,18 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
         listenPort = parser.value(listenPortOption).toInt();
     }
 
+    if (parser.isSet(authOption)) {
+        QStringList pieces = parser.value(authOption).split(":");
+        if (pieces.size() != 2) {
+            qDebug() << "-u should be followed by username:password";
+            parser.showHelp();
+            Q_UNREACHABLE();
+        }
+
+        _username = pieces[0];
+        _password = pieces[1];
+    }
+
     Setting::init();
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
 
@@ -116,6 +132,28 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
                                                  << NodeType::EntityServer << NodeType::AssetServer << NodeType::MessagesMixer);
 
     DependencyManager::get<AddressManager>()->handleLookupString(domainServerAddress, false);
+
+    auto accountManager = DependencyManager::get<AccountManager>();
+    accountManager->setIsAgent(true);
+    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
+
+    if (_verbose) {
+        QString username = accountManager->getAccountInfo().getUsername();
+        qDebug() << "cached username is" << username << ", isLoggedIn =" << accountManager->isLoggedIn();
+    }
+
+    if (!_username.isEmpty()) {
+        connect(accountManager.data(), &AccountManager::loginComplete, this, [&](){
+            if (_verbose) {
+                qDebug() << "login successful";
+            }
+        });
+        connect(accountManager.data(), &AccountManager::loginFailed, this, [&](){
+            qDebug() << "login failed.";
+        });
+        accountManager->requestAccessToken(_username, _password);
+    }
+
 
     QTimer* doTimer = new QTimer(this);
     doTimer->setSingleShot(true);
