@@ -37,18 +37,37 @@
         NULL_UUID = "{00000000-0000-0000-0000-000000000000}",
         HALF_TREE_SCALE = 16384;
 
-    Highlights = function () {
+    Highlights = function (hand) {
         // Draws highlights on selected entities.
 
-        var overlays = [],
+        var handOverlay,
+            entityOverlays = [],
             HIGHLIGHT_COLOR = { red: 240, green: 240, blue: 0 },
-            HIGHLIGHT_ALPHA = 0.8;
+            HAND_HIGHLIGHT_ALPHA = 0.35,
+            ENTITY_HIGHLIGHT_ALPHA = 0.8,
+            HAND_HIGHLIGHT_DIMENSIONS = { x: 0.2, y: 0.2, z: 0.2 },
+            HAND_HIGHLIGHT_OFFSET = { x: 0.0, y: 0.11, z: 0.02 };
 
-        function maybeAddOverlay(index) {
-            if (index >= overlays.length) {
-                overlays.push(Overlays.addOverlay("cube", {
+        handOverlay = Overlays.addOverlay("sphere", {
+            dimensions: HAND_HIGHLIGHT_DIMENSIONS,
+            parentID: AVATAR_SELF_ID,
+            parentJointIndex: MyAvatar.getJointIndex(hand === LEFT_HAND
+                ? "_CONTROLLER_LEFTHAND"
+                : "_CONTROLLER_RIGHTHAND"),
+            localPosition: HAND_HIGHLIGHT_OFFSET,
+            color: HIGHLIGHT_COLOR,
+            alpha: HAND_HIGHLIGHT_ALPHA,
+            solid: true,
+            drawInFront: true,
+            ignoreRayIntersection: true,
+            visible: false
+        });
+
+        function maybeAddEntityOverlay(index) {
+            if (index >= entityOverlays.length) {
+                entityOverlays.push(Overlays.addOverlay("cube", {
                     color: HIGHLIGHT_COLOR,
-                    alpha: HIGHLIGHT_ALPHA,
+                    alpha: ENTITY_HIGHLIGHT_ALPHA,
                     solid: false,
                     drawInFront: true,
                     ignoreRayIntersection: true,
@@ -57,8 +76,8 @@
             }
         }
 
-        function editOverlay(index, details) {
-            Overlays.editOverlay(overlays[index], {
+        function editEntityOverlay(index, details) {
+            Overlays.editOverlay(entityOverlays[index], {
                 position: details.position,
                 registrationPoint: details.registrationPoint,
                 rotation: details.rotation,
@@ -67,20 +86,23 @@
             });
         }
 
-        function display(selection) {
+        function display(handSelected, selection) {
             var i,
                 length;
 
-            // Add/edit overlay.
+            // Show/hide hand overlay.
+            Overlays.editOverlay(handOverlay, { visible: handSelected });
+
+            // Add/edit entity overlay.
             for (i = 0, length = selection.length; i < length; i += 1) {
-                maybeAddOverlay(i);
-                editOverlay(i, selection[i]);
+                maybeAddEntityOverlay(i);
+                editEntityOverlay(i, selection[i]);
             }
 
-            // Delete extra overlays.
-            for (i = overlays.length - 1, length = selection.length; i >= length; i -= 1) {
-                Overlays.deleteOverlay(overlays[i]);
-                overlays.splice(i, 1);
+            // Delete extra entity overlays.
+            for (i = entityOverlays.length - 1, length = selection.length; i >= length; i -= 1) {
+                Overlays.deleteOverlay(entityOverlays[i]);
+                entityOverlays.splice(i, 1);
             }
         }
 
@@ -88,14 +110,19 @@
             var i,
                 length;
 
-            for (i = 0, length = overlays.length; i < length; i += 1) {
-                Overlays.deleteOverlay(overlays[i]);
+            // Hide hand overlay.
+            Overlays.editOverlay(handOverlay, { visible: false });
+
+            // Delete entity overlays.
+            for (i = 0, length = entityOverlays.length; i < length; i += 1) {
+                Overlays.deleteOverlay(entityOverlays[i]);
             }
-            overlays = [];
+            entityOverlays = [];
         }
 
         function destroy() {
             clear();
+            Overlays.deleteOverlay(handOverlay);
         }
 
         if (!this instanceof Highlights) {
@@ -337,7 +364,6 @@
 
             isTriggerPressed = false,
 
-            isHandHover = false,
             isLaserOn = false,
             hoveredEntityID = null,
 
@@ -369,7 +395,7 @@
 
         laser = new Laser(hand);
         selection = new Selection();
-        highlights = new Highlights();
+        highlights = new Highlights(hand);
 
         function startEditing(handPose) {
             var selectionPositionAndOrientation;
@@ -403,13 +429,6 @@
 
         function stopEditing() {
             isEditing = false;
-        }
-
-        function clearLaser() {
-            laser.clear();
-            selection.clear();
-            highlights.clear();
-            laseredEntityID = null;
         }
 
         function isEditableEntity(entityID) {
@@ -477,13 +496,13 @@
             }
             intersection = {
                 intersects: entityID !== null,
-                entityID: entityID
+                entityID: entityID,
+                handSelected: true
             };
-            isHandHover = intersection.intersects;
 
             // Laser-entity intersection, if any.
             wasLaserOn = isLaserOn;
-            if (!isHandHover && isTriggerPressed) {
+            if (!intersection.intersects && isTriggerPressed) {
                 handPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, handPose.translation), MyAvatar.position);
                 handOrientation = Quat.multiply(MyAvatar.orientation, handPose.rotation);
                 deltaOrigin = Vec3.multiplyQbyV(handOrientation, GRAB_POINT_SPHERE_OFFSET);
@@ -538,7 +557,7 @@
                     if (wasEditing || intersection.entityID !== hoveredEntityID) {
                         hoveredEntityID = intersection.entityID;
                         selection.select(hoveredEntityID);
-                        highlights.display(selection.selection());
+                        highlights.display(intersection.handSelected, selection.selection());
                     }
                 } else {
                     // Unhover entities.
