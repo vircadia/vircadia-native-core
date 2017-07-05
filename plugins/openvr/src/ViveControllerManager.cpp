@@ -62,10 +62,10 @@ static const int SECOND_FOOT = 1;
 static const int HIP = 2;
 static const int CHEST = 3;
 
-static float HEAD_PUCK_Y_OFFSET = -0.0254f;
-static float HEAD_PUCK_Z_OFFSET = -0.152f;
-static float HAND_PUCK_Y_OFFSET = -0.0508f;
-static float HAND_PUCK_Z_OFFSET = 0.0254f;
+static float HEAD_PUCK_Y_OFFSET = 0.0f;
+static float HEAD_PUCK_Z_OFFSET = 0.0f;
+static float HAND_PUCK_Y_OFFSET = 0.0f;
+static float HAND_PUCK_Z_OFFSET = 0.0f;
 
 const char* ViveControllerManager::NAME { "OpenVR" };
 
@@ -763,8 +763,12 @@ glm::mat4 ViveControllerManager::InputDevice::calculateDefaultToReferenceForHead
 
     glm::mat4 finalHeadPuck = newHeadPuck * headPuckOffset;
 
+    glm::mat4 defaultHeadOffset = glm::inverse(inputCalibration.defaultCenterEyeMat) * inputCalibration.defaultHeadMat;
+
+    glm::mat4 currentHead  = finalHeadPuck * defaultHeadOffset;
+
     // calculate the defaultToRefrenceXform
-    glm::mat4 defaultToReferenceMat = finalHeadPuck * glm::inverse(inputCalibration.defaultHeadMat);
+    glm::mat4 defaultToReferenceMat = currentHead * glm::inverse(inputCalibration.defaultHeadMat);
     return defaultToReferenceMat;
 }
 
