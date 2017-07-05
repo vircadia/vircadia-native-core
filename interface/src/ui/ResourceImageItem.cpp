@@ -32,13 +32,17 @@ void ResourceImageItem::setReady(bool ready) {
 }
 
 void ResourceImageItemRenderer::onUpdateTimer() {
-    if (_ready && _networkTexture && _networkTexture->isLoaded()) {
-        if(_fboMutex.tryLock()) {
-            invalidateFramebufferObject();
-            qApp->getActiveDisplayPlugin()->copyTextureToQuickFramebuffer(_networkTexture, _copyFbo, &_fenceSync);
-            _fboMutex.unlock();
+    if (_ready) {
+        if (_networkTexture && _networkTexture->isLoaded()) {
+            if(_fboMutex.tryLock()) {
+                invalidateFramebufferObject();
+                qApp->getActiveDisplayPlugin()->copyTextureToQuickFramebuffer(_networkTexture, _copyFbo, &_fenceSync);
+                _fboMutex.unlock();
+            } else {
+                qDebug() << "couldn't get a lock, using last frame";
+            }
         } else {
-            qDebug() << "couldn't get a lock, using last frame";
+            _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_url);
         }
     }
     update();
@@ -76,6 +80,9 @@ void ResourceImageItemRenderer::synchronize(QQuickFramebufferObject* item) {
 }
 
 QOpenGLFramebufferObject* ResourceImageItemRenderer::createFramebufferObject(const QSize& size) {
+    if (_copyFbo) {
+        delete _copyFbo;
+    }
     QOpenGLFramebufferObjectFormat format;
     format.setAttachment(QOpenGLFramebufferObject::CombinedDepthStencil);
     _copyFbo = new QOpenGLFramebufferObject(size, format);
@@ -100,7 +107,14 @@ void ResourceImageItemRenderer::render() {
         _fboMutex.lock();
         _copyFbo->bind();
         QOpenGLFramebufferObject::blitFramebuffer(framebufferObject(), _copyFbo, GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT, GL_NEAREST);
+
+        // this clears the copyFbo texture
+        // so next frame starts fresh - helps
+        // when aspect ratio changes
+        _copyFbo->takeTexture();
+        _copyFbo->bind();
         _copyFbo->release();
+
         _fboMutex.unlock();
         if (doUpdate) {
             update();
