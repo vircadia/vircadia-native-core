@@ -397,9 +397,10 @@ var toolBar = (function () {
             }
         });
 
+        var hasEditPermissions = (Entities.canRez() || Entities.canRezTmp());
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         activeButton = tablet.addButton({
-            icon: "icons/tablet-icons/edit-i.svg",
+            icon: (hasEditPermissions ? "icons/tablet-icons/edit-i.svg" : "icons/tablet-icons/edit-disabled.svg"),
             activeIcon: "icons/tablet-icons/edit-a.svg",
             text: "CREATE",
             sortOrder: 10
@@ -412,6 +413,11 @@ var toolBar = (function () {
         tablet.fromQml.connect(fromQml);
 
         activeButton.clicked.connect(function() {
+            if ( ! hasEditPermissions ){
+                Window.notifyEditError(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
+                return;
+            }
+
             that.toggle();
         });
 
