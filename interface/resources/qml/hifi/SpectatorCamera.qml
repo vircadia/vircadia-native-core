@@ -209,7 +209,7 @@ Rectangle {
             colorScheme: hifi.colorSchemes.dark;
             anchors.left: parent.left;
             anchors.top: parent.top;
-            text: "Camera On";
+            text: "Spectator Camera On";
             boxSize: 24;
             onClicked: {
                 sendToScript({method: (checked ? 'spectatorCameraOn' : 'spectatorCameraOff')});
