@@ -290,6 +290,27 @@ Rectangle {
         anchors.leftMargin: leftMargin
     }
 
+    RalewayRegular {
+        id: info
+
+        text: "See Recommended Tracker Placement"
+        color: hifi.colors.blueHighlight
+        size: 10
+        anchors {
+            left: additional.right
+            leftMargin: 10
+            verticalCenter: additional.verticalCenter
+        }
+
+        MouseArea {
+            anchors.fill: parent;
+
+            onEntered: info.color = hifi.colors.blueAccent
+            onExited: info.color = hifi.colors.blueHighlight
+            onClicked: console.log("text clicked");
+        }
+    }
+
     Row {
         id: feetConfig
         anchors.top: additional.bottom
@@ -379,6 +400,7 @@ Rectangle {
                 if (checked) {
                     hipBox.checked = true;
                     feetBox.checked = true;
+                    shoulderBox.checked = false;
                 }
                 sendConfigurationSettings();
             }
@@ -416,6 +438,7 @@ Rectangle {
                 if (checked) {
                     hipBox.checked = true;
                     feetBox.checked = true;
+                    chestBox.checked = false;
                 }
                 sendConfigurationSettings();
             }
