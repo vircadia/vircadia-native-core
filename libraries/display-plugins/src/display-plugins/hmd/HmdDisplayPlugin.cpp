@@ -410,6 +410,7 @@ void HmdDisplayPlugin::updateFrameData() {
         vec3 castDirection = glm::quat_cast(model) * laserDirection;
 
         // this offset needs to match GRAB_POINT_SPHERE_OFFSET in scripts/system/libraries/controllers.js:19
+        // and in vr-edit.js
         static const vec3 GRAB_POINT_SPHERE_OFFSET(0.04f, 0.13f, 0.039f);  // x = upward, y = forward, z = lateral
 
         // swizzle grab point so that (x = upward, y = lateral, z = forward)

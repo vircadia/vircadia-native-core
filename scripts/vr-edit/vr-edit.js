@@ -19,7 +19,7 @@
         button,
         isAppActive = false,
 
-        VR_EDIT_SETTING = "io.highfidelity.isVREditing";  // Note: This constant is duplicated in utils.js.
+        VR_EDIT_SETTING = "io.highfidelity.isVREditing",  // Note: This constant is duplicated in utils.js.
 
         hands = [],
         LEFT_HAND = 0,
@@ -28,7 +28,115 @@
         UPDATE_LOOP_TIMEOUT = 16,
         updateTimer = null,
 
-        Hand;
+        Hand,
+        Laser,
+
+        AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
+
+    Laser = function (side) {
+        // May intersect with entities or bounding box of other hand's selection.
+
+        var hand,
+            laserLine = null,
+            laserSphere = null,
+
+            searchDistance = 0.0,
+
+            SEARCH_SPHERE_SIZE = 0.013,  // Per handControllerGrab.js multiplied by 1.2 per handControllerGrab.js.
+            SEARCH_SPHERE_FOLLOW_RATE = 0.5,  // Per handControllerGrab.js.
+            COLORS_GRAB_SEARCHING_HALF_SQUEEZE = { red: 10, green: 10, blue: 255 },  // Per handControllgerGrab.js.
+            COLORS_GRAB_SEARCHING_FULL_SQUEEZE = { red: 250, green: 10, blue: 10 };  // Per handControllgerGrab.js.
+
+        hand = side;
+        laserLine = Overlays.addOverlay("line3d", {
+            lineWidth: 5,
+            alpha: 1.0,
+            glow: 1.0,
+            ignoreRayIntersection: true,
+            drawInFront: true,
+            parentID: AVATAR_SELF_ID,
+            parentJointIndex: MyAvatar.getJointIndex(hand === LEFT_HAND
+                ? "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND"
+                : "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND"),
+            visible: false
+        });
+        laserSphere = Overlays.addOverlay("circle3d", {
+            innerAlpha: 1.0,
+            outerAlpha: 0.0,
+            solid: true,
+            ignoreRayIntersection: true,
+            drawInFront: true,
+            visible: false
+        });
+
+        function colorPow(color, power) {
+            return {
+                red: Math.pow(color.red / 255, power) * 255,
+                green: Math.pow(color.green / 255, power) * 255,
+                blue: Math.pow(color.blue / 255, power) * 255
+            };
+        }
+
+        function updateLine(start, end, color) {
+            Overlays.editOverlay(laserLine, {
+                start: start,
+                end: end,
+                color: color,
+                visible: true
+            });
+        }
+
+        function updateSphere(location, size, color) {
+            var rotation,
+                brightColor;
+
+            rotation = Quat.lookAt(location, Camera.getPosition(), Vec3.UP);
+            brightColor = colorPow(color, 0.06);
+
+            Overlays.editOverlay(laserSphere, {
+                position: location,
+                rotation: rotation,
+                innerColor: brightColor,
+                outerColor: color,
+                outerRadius: size,
+                visible: true
+            });
+        }
+
+        function update(origin, direction, distance, isClicked) {
+            var searchTarget,
+                sphereSize,
+                color;
+
+            searchDistance = SEARCH_SPHERE_FOLLOW_RATE * searchDistance + (1.0 - SEARCH_SPHERE_FOLLOW_RATE) * distance;
+            searchTarget = Vec3.sum(origin, Vec3.multiply(searchDistance, direction));
+            sphereSize = SEARCH_SPHERE_SIZE * searchDistance;
+            color = isClicked ? COLORS_GRAB_SEARCHING_FULL_SQUEEZE : COLORS_GRAB_SEARCHING_HALF_SQUEEZE;
+
+            updateLine(origin, searchTarget, color);
+            updateSphere(searchTarget, sphereSize, color);
+        }
+
+        function clear() {
+            Overlays.editOverlay(laserLine, { visible: false });
+            Overlays.editOverlay(laserSphere, { visible: false });
+        }
+
+        function destroy() {
+            Overlays.deleteOverlay(laserLine);
+            Overlays.deleteOverlay(laserSphere);
+        }
+
+        if (!this instanceof Laser) {
+            return new Laser();
+        }
+
+        return {
+            update: update,
+            clear: clear,
+            destroy: destroy
+        };
+    };
 
     Hand = function (side) {
         var hand,
@@ -46,7 +154,9 @@
             NO_EXCLUDE_IDS = [],
             VISIBLE_ONLY = true,
 
-            isLaserOn = false;
+            isLaserOn = false,
+
+            laser;
 
         hand = side;
         if (hand === LEFT_HAND) {
@@ -59,6 +169,8 @@
             controllerTrigger = Controller.Standard.RT;
             controllerTriggerClicked = Controller.Standard.RTClick;
         }
+
+        laser = new Laser(hand);
 
         function update() {
             var wasLaserOn,
@@ -75,7 +187,7 @@
             isLaserOn = Controller.getValue(controllerTrigger) > (isLaserOn ? TRIGGER_OFF_VALUE : TRIGGER_ON_VALUE);
             if (!isLaserOn) {
                 if (wasLaserOn) {
-                    // Clear laser
+                    laser.clear();
                 }
                 return;
             }
@@ -85,7 +197,7 @@
             if (!handPose.valid) {
                 isLaserOn = false;
                 if (wasLaserOn) {
-                    // Clear laser
+                    laser.clear();
                 }
                 return;
             }
@@ -104,9 +216,14 @@
             distance = intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE;
 
             // Update laser.
+            laser.update(pickRay.origin, pickRay.direction, distance, Controller.getValue(controllerTriggerClicked));
         }
 
         function destroy() {
+            if (laser) {
+                laser.destroy();
+                laser = null;
+            }
         }
 
         if (!this instanceof Hand) {
