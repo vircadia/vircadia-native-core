@@ -20,6 +20,7 @@
 #include <QtNetwork/QHostInfo>
 #include <QtNetwork/QNetworkInterface>
 
+#include <shared/QtHelpers.h>
 #include <ThreadHelpers.h>
 #include <LogHandler.h>
 #include <UUID.h>
@@ -232,7 +233,7 @@ void NodeList::processICEPingPacket(QSharedPointer<ReceivedMessage> message) {
 
 void NodeList::reset() {
     if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "reset", Qt::BlockingQueuedConnection);
+        QMetaObject::invokeMethod(this, "reset");
         return;
     }
 

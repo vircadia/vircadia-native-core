@@ -12,6 +12,7 @@
 
 #include <QtWidgets/QApplication>
 
+#include <shared/QtHelpers.h>
 #include <SettingHandle.h>
 #include <UserActivityLogger.h>
 #include <PathUtils.h>
@@ -452,7 +453,7 @@ ScriptEngine* ScriptEngines::loadScript(const QUrl& scriptFilename, bool isUserL
                                         bool activateMainWindow, bool reload) {
     if (thread() != QThread::currentThread()) {
         ScriptEngine* result { nullptr };
-        QMetaObject::invokeMethod(this, "loadScript", Qt::BlockingQueuedConnection, Q_RETURN_ARG(ScriptEngine*, result),
+        BLOCKING_INVOKE_METHOD(this, "loadScript", Q_RETURN_ARG(ScriptEngine*, result),
             Q_ARG(QUrl, scriptFilename),
             Q_ARG(bool, isUserLoaded),
             Q_ARG(bool, loadScriptFromEditor),

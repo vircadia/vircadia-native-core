@@ -10,8 +10,11 @@
 //
 #include "Config.h"
 
-#include "Task.h"
 #include <QtCore/QThread>
+
+#include <shared/QtHelpers.h>
+
+#include "Task.h"
 
 using namespace task;
 
@@ -58,7 +61,7 @@ void TaskConfig::transferChildrenConfigs(QConfigPointer source) {
 
 void TaskConfig::refresh() {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "refresh", Qt::BlockingQueuedConnection);
+        BLOCKING_INVOKE_METHOD(this, "refresh");
         return;
     }
 
