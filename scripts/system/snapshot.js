@@ -384,7 +384,6 @@ function onButtonClicked() {
     } else {
         fillImageDataFromPrevious();
         tablet.gotoWebScreen(SNAPSHOT_REVIEW_URL);
-        tablet.webEventReceived.connect(onMessage);
         HMD.openTablet();
     }
 }
@@ -504,8 +503,9 @@ function takeSnapshot() {
             Window.takeSnapshot(false, includeAnimated, 1.91);
         }, SNAPSHOT_DELAY);
     }, FINISH_SOUND_DELAY);
+    UserActivityLogger.logAction("snaphshot_taken", { location: location.href });
 }
-
+    
 function isDomainOpen(id, callback) {
     print("Checking open status of domain with ID:", id);
     var status = false;
@@ -659,10 +659,15 @@ function maybeDeleteSnapshotStories() {
     storyIDsToMaybeDelete = [];
 }
 function onTabletScreenChanged(type, url) {
+    var wasInSnapshotReview = isInSnapshotReview; 
     isInSnapshotReview = (type === "Web" && url === SNAPSHOT_REVIEW_URL);
     button.editProperties({ isActive: isInSnapshotReview });
-    if (!isInSnapshotReview) {
-        tablet.webEventReceived.disconnect(onMessage);
+    if (isInSnapshotReview !== wasInSnapshotReview) {
+        if (isInSnapshotReview) {
+            tablet.webEventReceived.connect(onMessage);
+        } else {
+            tablet.webEventReceived.disconnect(onMessage);
+        }
     }
 }
 function onUsernameChanged() {

@@ -1076,3 +1076,24 @@ void setMaxCores(uint8_t maxCores) {
     SetProcessAffinityMask(process, newProcessAffinity);
 #endif
 }
+
+#ifdef Q_OS_WIN
+VOID CALLBACK parentDiedCallback(PVOID lpParameter, BOOLEAN timerOrWaitFired) {
+    if (!timerOrWaitFired && qApp) {
+        qDebug() << "Parent process died, quitting";
+        qApp->quit();
+    }
+}
+
+void watchParentProcess(int parentPID) {
+    DWORD processID = parentPID;
+    HANDLE procHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, processID);
+
+    HANDLE newHandle;
+    RegisterWaitForSingleObject(&newHandle, procHandle, parentDiedCallback, NULL, INFINITE, WT_EXECUTEONLYONCE);
+}
+#else
+void watchParentProcess(int parentPID) {
+    qWarning() << "Parent PID option not implemented on this plateform";
+}
+#endif // Q_OS_WIN

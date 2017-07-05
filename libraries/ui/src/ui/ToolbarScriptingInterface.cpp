@@ -12,6 +12,8 @@
 #include <QtQuick/QQuickItem>
 #include <QtScript/QScriptValue>
 #include <QtScript/QScriptEngine>
+
+#include <shared/QtHelpers.h>
 #include "../OffscreenUi.h"
 
 QScriptValue toolbarToScriptValue(QScriptEngine* engine, ToolbarProxy* const &in) {
@@ -68,7 +70,7 @@ ToolbarProxy::ToolbarProxy(QObject* qmlObject, QObject* parent) : QmlWrapper(qml
 ToolbarButtonProxy* ToolbarProxy::addButton(const QVariant& properties) {
     if (QThread::currentThread() != thread()) {
         ToolbarButtonProxy* result = nullptr;
-        QMetaObject::invokeMethod(this, "addButton", Qt::BlockingQueuedConnection, Q_RETURN_ARG(ToolbarButtonProxy*, result), Q_ARG(QVariant, properties));
+        BLOCKING_INVOKE_METHOD(this, "addButton", Q_RETURN_ARG(ToolbarButtonProxy*, result), Q_ARG(QVariant, properties));
         return result;
     }
 
@@ -99,18 +101,14 @@ void ToolbarProxy::removeButton(const QVariant& name) {
 ToolbarProxy* ToolbarScriptingInterface::getToolbar(const QString& toolbarId) {
     if (QThread::currentThread() != thread()) {
         ToolbarProxy* result = nullptr;
-        QMetaObject::invokeMethod(this, "getToolbar", Qt::BlockingQueuedConnection, Q_RETURN_ARG(ToolbarProxy*, result), Q_ARG(QString, toolbarId));
+        BLOCKING_INVOKE_METHOD(this, "getToolbar", Q_RETURN_ARG(ToolbarProxy*, result), Q_ARG(QString, toolbarId));
         return result;
     }
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     auto desktop = offscreenUi->getDesktop();
-    Qt::ConnectionType connectionType = Qt::AutoConnection;
-    if (QThread::currentThread() != desktop->thread()) {
-        connectionType = Qt::BlockingQueuedConnection;
-    }
     QVariant resultVar;
-    bool invokeResult = QMetaObject::invokeMethod(desktop, "getToolbar", connectionType, Q_RETURN_ARG(QVariant, resultVar), Q_ARG(QVariant, toolbarId));
+    bool invokeResult = QMetaObject::invokeMethod(desktop, "getToolbar", Q_RETURN_ARG(QVariant, resultVar), Q_ARG(QVariant, toolbarId));
     if (!invokeResult) {
         return nullptr;
     }
