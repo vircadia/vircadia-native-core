@@ -340,6 +340,7 @@
             initialHandOrientationInverse,
             initialHandToSelectionVector,
             initialSelectionOrientation,
+            editingDistance,
 
             laser,
             selection,
@@ -443,7 +444,7 @@
             };
             intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
                 VISIBLE_ONLY);
-            distance = intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE;
+            distance = isEditing ? editingDistance : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
 
             // Laser, hover, edit.
             isTriggerClicked = Controller.getValue(controllerTriggerClicked);
@@ -461,6 +462,7 @@
                     } else {
                         highlights.clear();
                     }
+                    editingDistance = distance;
                     startEditing(handPose);
                 }
             } else {
