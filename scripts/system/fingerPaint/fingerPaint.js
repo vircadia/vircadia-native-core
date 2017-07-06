@@ -884,16 +884,16 @@
                 break;
 
             case "changeBrush":
-                if (event.brushName === "content/brushes/paintbrush1.png") {
+                print("abrushType: " + event.brushType);
+                if (event.brushType === "repeat") {
+                    print("brushType: " + event.brushType);
                     leftBrush.changeUVMode(false);
                     rightBrush.changeUVMode(false);
-                } else if (event.brushName === "content/brushes/paintbrush3.png") {
-                    leftBrush.changeUVMode(false);
-                    rightBrush.changeUVMode(false);
-                } else {
+                } else if (event.brushType === "stretch") {
+                    print("brushType: " + event.brushType);
                     leftBrush.changeUVMode(true);
                     rightBrush.changeUVMode(true);
-                }
+                } 
                 /*leftBrush.changeUVMode(false);
                 rightBrush.changeUVMode(false);
                 if (event.brushName.indexOf("256x256") != -1) {
