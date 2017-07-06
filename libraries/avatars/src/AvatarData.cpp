@@ -267,7 +267,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         (hasFaceTrackerInfo ? AvatarDataPacket::maxFaceTrackerInfoSize(_headData->getNumSummedBlendshapeCoefficients()) : 0) +
         (hasJointData ? AvatarDataPacket::maxJointDataSize(_jointData.size()) : 0);
 
-    QByteArray avatarDataByteArray(byteArraySize, 0);
+    QByteArray avatarDataByteArray((int)byteArraySize, 0);
     unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
     unsigned char* startPosition = destinationBuffer;
 
@@ -620,7 +620,7 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     int avatarDataSize = destinationBuffer - startPosition;
 
-    if (avatarDataSize > byteArraySize) {
+    if (avatarDataSize > (int)byteArraySize) {
         qCCritical(avatars) << "AvatarData::toByteArray buffer overflow"; // We've overflown into the heap
         ASSERT(false);
     }
@@ -1745,7 +1745,7 @@ void AvatarData::sendAvatarDataPacket() {
     auto dataDetail = cullSmallData ? SendAllData : CullSmallData;
     QByteArray avatarByteArray = toByteArrayStateful(dataDetail);
 
-    auto maximumByteArraySize = NLPacket::maxPayloadSize(PacketType::AvatarData) - sizeof(AvatarDataSequenceNumber);
+    int maximumByteArraySize = NLPacket::maxPayloadSize(PacketType::AvatarData) - sizeof(AvatarDataSequenceNumber);
 
     if (avatarByteArray.size() > maximumByteArraySize) {
         qCWarning(avatars) << "toByteArrayStateful() resulted in very large buffer:" << avatarByteArray.size() << "... attempt to drop facial data";
