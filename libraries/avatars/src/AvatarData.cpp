@@ -491,11 +491,14 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         unsigned char* validityPosition = destinationBuffer;
         unsigned char validity = 0;
         int validityBit = 0;
+        int numValidityBytes = (int)std::ceil(numJoints / (float)BITS_IN_BYTE);
 
 #ifdef WANT_DEBUG
         int rotationSentCount = 0;
         unsigned char* beforeRotations = destinationBuffer;
 #endif
+
+        destinationBuffer += numValidityBytes; // Move pointer past the validity bytes
 
         if (sentJointDataOut) {
             sentJointDataOut->resize(_jointData.size()); // Make sure the destination is resized before using it
@@ -516,6 +519,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 #ifdef WANT_DEBUG
                         rotationSentCount++;
 #endif
+                        destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, data.rotation);
+
                         if (sentJointDataOut) {
                             auto jointDataOut = *sentJointDataOut;
                             jointDataOut[i].rotation = data.rotation;
@@ -525,27 +530,13 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                 }
             }
             if (++validityBit == BITS_IN_BYTE) {
-                *destinationBuffer++ = validity;
+                *validityPosition++ = validity;
                 validityBit = validity = 0;
             }
         }
         if (validityBit != 0) {
-            *destinationBuffer++ = validity;
+            *validityPosition++ = validity;
         }
-
-        validityBit = 0;
-        validity = *validityPosition++;
-        for (int i = 0; i < _jointData.size(); i++) {
-            const JointData& data = _jointData[i];
-            if (validity & (1 << validityBit)) {
-                destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, data.rotation);
-            }
-            if (++validityBit == BITS_IN_BYTE) {
-                validityBit = 0;
-                validity = *validityPosition++;
-            }
-        }
-
 
         // joint translation data
         validityPosition = destinationBuffer;
@@ -556,6 +547,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         int translationSentCount = 0;
         unsigned char* beforeTranslations = destinationBuffer;
 #endif
+
+        destinationBuffer += numValidityBytes; // Move pointer past the validity bytes
 
         float minTranslation = !distanceAdjust ? AVATAR_MIN_TRANSLATION : getDistanceBasedMinTranslationDistance(viewerPosition);
 
@@ -575,6 +568,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                         maxTranslationDimension = glm::max(fabsf(data.translation.y), maxTranslationDimension);
                         maxTranslationDimension = glm::max(fabsf(data.translation.z), maxTranslationDimension);
 
+                        destinationBuffer +=
+                            packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
+
                         if (sentJointDataOut) {
                             auto jointDataOut = *sentJointDataOut;
                             jointDataOut[i].translation = data.translation;
@@ -584,27 +580,13 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                 }
             }
             if (++validityBit == BITS_IN_BYTE) {
-                *destinationBuffer++ = validity;
+                *validityPosition++ = validity;
                 validityBit = validity = 0;
             }
         }
 
         if (validityBit != 0) {
-            *destinationBuffer++ = validity;
-        }
-
-        validityBit = 0;
-        validity = *validityPosition++;
-        for (int i = 0; i < _jointData.size(); i++) {
-            const JointData& data = _jointData[i];
-            if (validity & (1 << validityBit)) {
-                destinationBuffer +=
-                    packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
-            }
-            if (++validityBit == BITS_IN_BYTE) {
-                validityBit = 0;
-                validity = *validityPosition++;
-            }
+            *validityPosition++ = validity;
         }
 
         // faux joints
