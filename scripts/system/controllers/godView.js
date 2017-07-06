@@ -52,9 +52,6 @@ function keyPressEvent(event) {
 function mousePress(event) {
     if (godView) {
         var pickRay = Camera.computePickRay(event.x, event.y);
-        Vec3.print("pr.o:", pickRay.origin);
-        Vec3.print("pr.d:", pickRay.direction);
-        Vec3.print("c.p:", Camera.position);
         var pointingAt = Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction,300));
         var moveToPosition = { x: pointingAt.x, y: MyAvatar.position.y, z: pointingAt.z };
         moveTo(moveToPosition);
@@ -62,9 +59,11 @@ function mousePress(event) {
 }
 
 
+var oldCameraMode = Camera.mode;
+
 function startGodView() {
     if (!godView) {
-        Camera.mode = "first person";
+        oldCameraMode = Camera.mode;
         MyAvatar.position = Vec3.sum(MyAvatar.position, {x:0, y: GOD_VIEW_HEIGHT, z: 0});
         Camera.mode = "independent";
         Camera.position = Vec3.sum(MyAvatar.position, {x:0, y: GOD_CAMERA_OFFSET, z: 0});
@@ -75,7 +74,7 @@ function startGodView() {
 
 function endGodView() {
     if (godView) {
-        Camera.mode = "first person";
+        Camera.mode = oldCameraMode;
         MyAvatar.position = Vec3.sum(MyAvatar.position, {x:0, y: (-1 * GOD_VIEW_HEIGHT) + ABOVE_GROUND_DROP, z: 0});
         godView = false;
     }
