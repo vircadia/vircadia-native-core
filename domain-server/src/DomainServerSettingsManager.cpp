@@ -1250,7 +1250,7 @@ bool DomainServerSettingsManager::recurseJSONObjectAndOverwriteSettings(const QJ
 
             if (!matchingDescriptionObject.isEmpty()) {
                 updateSetting(rootKey, rootValue, *thisMap, matchingDescriptionObject);
-                if (rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY) {
+                if (rootKey != SECURITY_ROOT_KEY && rootKey != BROADCASTING_KEY && rootKey != SETTINGS_PATHS_KEY ) {
                     needRestart = true;
                 }
             } else {

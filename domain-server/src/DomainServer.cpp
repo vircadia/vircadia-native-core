@@ -40,11 +40,11 @@
 #include <LogHandler.h>
 #include <PathUtils.h>
 #include <NumericalConstants.h>
+#include <Trace.h>
+#include <StatTracker.h>
 
 #include "DomainServerNodeData.h"
 #include "NodeConnectionData.h"
-#include <Trace.h>
-#include <StatTracker.h>
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
