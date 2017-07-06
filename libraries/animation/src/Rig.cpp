@@ -404,31 +404,41 @@ void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, flo
 }
 
 bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position, glm::vec3 translation, glm::quat rotation) const {
-  //  if (isIndexValid(jointIndex)) {
+    if (QThread::currentThread() == thread()) {
+        if (isIndexValid(jointIndex)) {
+            position = (rotation * _internalPoseSet._absolutePoses[jointIndex].trans()) + translation;
+            return true;
+        }
+        return false;
+    }
+
     QReadLocker readLock(&_externalPoseSetLock);
     if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._absolutePoses.size()) {
         position = (rotation * _externalPoseSet._absolutePoses[jointIndex].trans()) + translation;
         return true;
-    } else {
-        return false;
     }
+    return false;
 }
 
 bool Rig::getJointPosition(int jointIndex, glm::vec3& position) const {
-/*
-    if (isIndexValid(jointIndex)) {
-        position = _internalPoseSet._absolutePoses[jointIndex].trans();
-        return true;
-    } else {
+    if (QThread::currentThread() == thread()) {
+        if (isIndexValid(jointIndex)) {
+            position = _internalPoseSet._absolutePoses[jointIndex].trans();
+            return true;
+        }
         return false;
-    }*/
+    }
     return getAbsoluteJointTranslationInRigFrame(jointIndex, position);
 }
 
 bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const glm::quat& rotation) const {
-   // if (isIndexValid(jointIndex)) {
-   //     result = rotation * _internalPoseSet._absolutePoses[jointIndex].rot();
-   //     return true;
+    if (QThread::currentThread() == thread()) {
+        if (isIndexValid(jointIndex)) {
+            result = rotation * _internalPoseSet._absolutePoses[jointIndex].rot();
+            return true;
+        }
+        return false;
+    }
 
     QReadLocker readLock(&_externalPoseSetLock);
     if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._absolutePoses.size()) {
@@ -440,6 +450,14 @@ bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const 
 }
 
 bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
+    if (QThread::currentThread() == thread()) {
+        if (isIndexValid(jointIndex)) {
+            rotation = _internalPoseSet._relativePoses[jointIndex].rot();
+            return true;
+        }
+        return false;
+    }
+
     QReadLocker readLock(&_externalPoseSetLock);
     if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._relativePoses.size()) {
         rotation = _externalPoseSet._relativePoses[jointIndex].rot();
