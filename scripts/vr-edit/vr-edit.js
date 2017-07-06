@@ -470,6 +470,7 @@
 
             // Hand position and orientation.
             handPose = Controller.getPoseValue(handController);
+            wasLaserOn = isLaserOn;
             if (!handPose.valid) {
                 isLaserOn = false;
                 if (wasLaserOn) {
@@ -510,7 +511,6 @@
             };
 
             // Laser-entity intersection, if any.
-            wasLaserOn = isLaserOn;
             if (!intersection.intersects && isTriggerPressed) {
                 handPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, handPose.translation), MyAvatar.position);
                 handOrientation = Quat.multiply(MyAvatar.orientation, handPose.rotation);
