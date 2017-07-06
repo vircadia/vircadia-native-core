@@ -16,7 +16,7 @@
         UNDO_STACK_SIZE = 5, 
         undoStack = [];
         isFingerPainting = false,
-        isTabletFocused = false,
+        isTabletFocused = false, //starts with true cause you need to be hovering the tablet in order to open the app
         tabletDebugFocusLine = null,
         //dynamic brush vars
         /*9isDynamicBrushEnabled = false,
@@ -89,6 +89,10 @@
         function getStrokeColor() {
             return STROKE_COLOR;
         }
+
+        function isDrawing() {
+            return isDrawingLine;
+        }
         
         function changeStrokeWidthMultiplier(multiplier) {
             strokeWidthMultiplier = multiplier;
@@ -121,6 +125,8 @@
                 changeStrokeWidthMultiplier(0.1);
                 isDynamicBrushRunning = true;
             }*/
+            if (isTabletFocused)
+                return;
 
             width = width * strokeWidthMultiplier;
             
@@ -270,6 +276,7 @@
             changeStrokeColor: changeStrokeColor,
             changeStrokeWidthMultiplier: changeStrokeWidthMultiplier,
             changeTexture: changeTexture,
+            isDrawing: isDrawing,
             undoErasing: undoErasing,
             getStrokeColor: getStrokeColor,
             getStrokeWidth: getStrokeWidth,
@@ -430,7 +437,7 @@
                 direction: Quat.getUp(fingerTipRotation)
             }
             var overlays = Overlays.findRayIntersection(pickRay, false, [HMD.tabletID], [inkSourceOverlay.overlayID]);
-            print(JSON.stringify(overlays));
+            //print(JSON.stringify(overlays));
             if (overlays.intersects && HMD.tabletID == overlays.overlayID) {
                 if (!isTabletFocused) {
                     isTabletFocused = true;
@@ -515,8 +522,7 @@
             /*frameDeltaSeconds = Date.now() - lastFrameTime;
             lastFrameTime = Date.now();
             runDynamicBrush();     */   
-
-            if (((!leftBrush || !rightBrush) || !leftBrush.isDrawingLine && !rightBrush.isDrawingLine)) {
+            if ((leftBrush == null || rightBrush == null) || (!leftBrush.isDrawing() && !rightBrush.isDrawing()))  {
                 checkTabletHasFocus();
             }
             updateTriggerPress();
@@ -654,6 +660,33 @@
 		MyAvatar.restoreRoleAnimation("leftIndexPointAndThumbRaiseOpen");
 		MyAvatar.restoreRoleAnimation("leftIndexPointAndThumbRaiseClosed");
 	}
+
+    function pauseProcessing() {
+        //Script.update.disconnect(leftHand.onUpdate);
+        //Script.update.disconnect(rightHand.onUpdate);
+
+        //Controller.disableMapping(CONTROLLER_MAPPING_NAME);
+
+        Messages.sendLocalMessage("Hifi-Hand-Disabler", "none");
+
+        Messages.unsubscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
+        Messages.unsubscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
+        Messages.unsubscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
+        
+        
+        //Restores and clears hand animations
+        restoreAllHandAnimations();
+    }
+
+     function resumeProcessing() {
+        //Change to finger paint hand animation
+        updateHandAnimations();
+        
+        // Messages channels for enabling/disabling other scripts' functions.
+        Messages.subscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
+        Messages.subscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
+        Messages.subscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
+    }
 	
     function enableProcessing() {
         // Connect controller API to handController objects.
@@ -690,20 +723,20 @@
         
 		
         // enable window palette
-        window = new OverlayWindow({
+        /*window = new OverlayWindow({
             title: 'Paint Window',
             source: qml,
             width: 600, height: 600,
-        });
+        });*/
         
         // 75
         //50
-        window.setPosition(75, 100);
+        //window.setPosition(75, 100);
         //window.closed.connect(function() { 
         //Script.stop(); 
-        //});
+        //}); uncomment for qml interface
 
-        window.fromQml.connect(function(message){
+        /*window.fromQml.connect(function(message){
             if (message[0] === "color"){
                 leftBrush.changeStrokeColor(message[1], message[2], message[3]);
                 rightBrush.changeStrokeColor(message[1], message[2], message[3]);
@@ -754,38 +787,7 @@
 				updateHandAnimations();
                 return;
             }
-        });
-
-        
-		
-		
-    }
-
-    function pauseProcessing() {
-        //Script.update.disconnect(leftHand.onUpdate);
-        //Script.update.disconnect(rightHand.onUpdate);
-
-        //Controller.disableMapping(CONTROLLER_MAPPING_NAME);
-
-        Messages.sendLocalMessage("Hifi-Hand-Disabler", "none");
-
-        Messages.unsubscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
-        Messages.unsubscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
-        Messages.unsubscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
-        
-        
-        //Restores and clears hand animations
-        restoreAllHandAnimations();
-    }
-
-     function resumeProcessing() {
-        //Change to finger paint hand animation
-        updateHandAnimations();
-        
-        // Messages channels for enabling/disabling other scripts' functions.
-        Messages.subscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
-        Messages.subscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
-        Messages.subscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
+        });*/ //uncomment for qml interface
     }
 
     function disableProcessing() {
@@ -819,10 +821,11 @@
 		inkSourceOverlay = null;
 		
         // disable window palette
-        window.close();
+        //window.close(); //uncomment for qml interface
     }
 
     function onButtonClicked() {
+        isTabletFocused = false; //should always start false so onUpdate updates this variable to true in the beggining
         var wasFingerPainting = isFingerPainting;
 
         isFingerPainting = !isFingerPainting;
@@ -849,8 +852,17 @@
 
     function onTabletScreenChanged(type, url) {
         var TABLET_SCREEN_CLOSED = "Closed";
+        var TABLET_SCREEN_HOME = "Home";
 
         isTabletDisplayed = type !== TABLET_SCREEN_CLOSED;
+        if (type === TABLET_SCREEN_HOME) {
+            if (isFingerPainting) {
+                isFingerPainting = false;
+                disableProcessing();
+            }
+            button.editProperties({ isActive: isFingerPainting });
+            print("Closing the APP");
+        }
         updateHandFunctions();
     }
 
@@ -882,6 +894,12 @@
                     leftBrush.changeUVMode(true);
                     rightBrush.changeUVMode(true);
                 }
+                /*leftBrush.changeUVMode(false);
+                rightBrush.changeUVMode(false);
+                if (event.brushName.indexOf("256x256") != -1) {
+                    leftBrush.changeUVMode(true);
+                    rightBrush.changeUVMode(true);
+                }*/
                 print("changing brush to " + event.brushName);
                 event.brushName = CONTENT_PATH + "/" + event.brushName;
                 leftBrush.changeTexture(event.brushName);
