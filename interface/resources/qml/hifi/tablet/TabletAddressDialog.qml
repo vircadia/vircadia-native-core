@@ -94,9 +94,19 @@ StackView {
         property bool keyboardEnabled: false
         property bool keyboardRaised: false
         property bool punctuationMode: false
-        
+
         width: parent.width
         height: parent.height
+
+        MouseArea {
+            anchors.fill: parent
+            propagateComposedEvents: true
+            onPressed: {
+                parent.forceActiveFocus();
+                addressBarDialog.keyboardEnabled = false;
+                mouse.accepted = false;
+            }
+        }
 
         anchors {
             right: parent.right
