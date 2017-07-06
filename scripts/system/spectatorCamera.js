@@ -143,7 +143,8 @@
         if (!button) {
             if ((isHMDMode || showSpectatorInDesktop) && !isShuttingDown) {
                 button = tablet.addButton({
-                    text: buttonName
+                    text: buttonName,
+                    icon: "icons/tablet-icons/spectator-i.svg"
                 });
                 button.clicked.connect(onTabletButtonClicked);
             }
