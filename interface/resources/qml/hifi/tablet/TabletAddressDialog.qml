@@ -227,7 +227,7 @@ StackView {
                 MouseArea {
                     anchors.fill: parent;
                     onClicked: {
-                        if (!addressLine.focus || !HMD.active) {
+                        if (!addressLine.focus || HMD.active) {
                             addressLine.focus = true;
                             addressLine.forceActiveFocus();
                             addressBarDialog.keyboardEnabled = HMD.active;
