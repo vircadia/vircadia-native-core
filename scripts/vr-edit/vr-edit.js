@@ -77,8 +77,11 @@
         }
 
         function editEntityOverlay(index, details) {
+            var offset = Vec3.multiplyQbyV(details.rotation,
+                Vec3.multiplyVbyV(Vec3.subtract(Vec3.HALF, details.registrationPoint), details.dimensions));
+
             Overlays.editOverlay(entityOverlays[index], {
-                position: details.position,
+                position: Vec3.sum(details.position, offset),
                 registrationPoint: details.registrationPoint,
                 rotation: details.rotation,
                 dimensions: details.dimensions,
