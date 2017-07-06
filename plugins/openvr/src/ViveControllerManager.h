@@ -177,8 +177,8 @@ private:
         float _leftHapticDuration { 0.0f };
         float _rightHapticStrength { 0.0f };
         float _rightHapticDuration { 0.0f };
-        float _headPuckYOffset { 0.0f };
-        float _headPuckZOffset { 0.0f };
+        float _headPuckYOffset { -0.05f };
+        float _headPuckZOffset { -0.05f };
         float _handPuckYOffset { 0.0f };
         float _handPuckZOffset { 0.0f };
         bool _triggersPressedHandled { false };
