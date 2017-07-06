@@ -36,6 +36,7 @@
 
 #include <QtScriptTools/QScriptEngineDebugger>
 
+#include <shared/QtHelpers.h>
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
 #include <AvatarData.h>
@@ -436,12 +437,12 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
     _fileNameString = url.toString();
     _isReloading = reload;
 
-	// Check that script has a supported file extension
+    // Check that script has a supported file extension
     if (!hasValidScriptSuffix(_fileNameString)) {
         scriptErrorMessage("File extension of file: " + _fileNameString + " is not a currently supported script type");
         emit errorLoadingScript(_fileNameString);
         return;
-	}
+    }
 
     const auto maxRetries = 0; // for consistency with previous scriptCache->getScript() behavior
     auto scriptCache = DependencyManager::get<ScriptCache>();
@@ -964,7 +965,7 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
         qCDebug(scriptengine) << "*** WARNING *** ScriptEngine::evaluate() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "] "
             "sourceCode:" << sourceCode << " fileName:" << fileName << "lineNumber:" << lineNumber;
 #endif
-        QMetaObject::invokeMethod(this, "evaluate", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "evaluate",
                                   Q_RETURN_ARG(QScriptValue, result),
                                   Q_ARG(const QString&, sourceCode),
                                   Q_ARG(const QString&, fileName),
@@ -1820,7 +1821,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
                         clearExceptions();
                     }
                 } else {
-                    scriptWarningMessage("Script.include() skipping evaluation of previously included url:" + url.toString());
+                    scriptPrintedMessage("Script.include() skipping evaluation of previously included url:" + url.toString());
                 }
             }
         }

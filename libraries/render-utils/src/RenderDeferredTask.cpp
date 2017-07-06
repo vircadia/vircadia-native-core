@@ -406,7 +406,7 @@ void Blit::run(const RenderContextPointer& renderContext, const gpu::Framebuffer
         batch.setFramebuffer(blitFbo);
 
         if (renderArgs->_renderMode == RenderArgs::MIRROR_RENDER_MODE) {
-            if (renderArgs->_context->isStereo()) {
+            if (renderArgs->isStereo()) {
                 gpu::Vec4i srcRectLeft;
                 srcRectLeft.z = width / 2;
                 srcRectLeft.w = height;

@@ -11,6 +11,8 @@
 
 #include <map>
 
+#include <shared/QtHelpers.h>
+
 #include "AudioDevices.h"
 
 #include "Application.h"
@@ -71,22 +73,14 @@ bool AudioDeviceList::setData(const QModelIndex& index, const QVariant& value, i
 bool AudioDeviceList::setDevice(int row, bool fromUser) {
     bool success = false;
     auto& device = _devices[row];
+    _userSelection = fromUser;
 
     // skip if already selected
     if (!device.selected) {
         auto client = DependencyManager::get<AudioClient>();
-        QMetaObject::invokeMethod(client.data(), "switchAudioDevice", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(bool, success),
+        QMetaObject::invokeMethod(client.data(), "switchAudioDevice",
             Q_ARG(QAudio::Mode, _mode),
             Q_ARG(const QAudioDeviceInfo&, device.info));
-
-        if (success) {
-            device.selected = true;
-            if (fromUser) {
-                emit deviceSelected(device.info, _selectedDevice);
-            }
-            emit deviceChanged(device.info);
-        }
     }
 
     emit dataChanged(createIndex(0, 0), createIndex(rowCount() - 1, 0));
@@ -135,18 +129,23 @@ void AudioDeviceList::resetDevice(bool contextIsHMD, const QString& device) {
 }
 
 void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device) {
+    auto oldDevice = _selectedDevice;
     _selectedDevice = device;
     QModelIndex index;
 
     for (auto i = 0; i < _devices.size(); ++i) {
         AudioDevice& device = _devices[i];
-
         if (device.selected && device.info != _selectedDevice) {
             device.selected = false;
         } else if (device.info == _selectedDevice) {
             device.selected = true;
             index = createIndex(i, 0);
         }
+    }
+
+    if (_userSelection) {
+        _userSelection = false;
+        emit deviceSelected(_selectedDevice, oldDevice);
     }
 
     emit deviceChanged(_selectedDevice);

@@ -14,6 +14,7 @@
 #include <QMessageBox>
 #include <QStandardPaths>
 #include <QQmlContext>
+#include <QList>
 
 #include <Application.h>
 #include <OffscreenUi.h>
@@ -23,6 +24,8 @@
 #include "Menu.h"
 #include "AvatarBookmarks.h"
 #include "InterfaceLogging.h"
+
+#include "QVariantGLM.h"
 
 #include <QtQuick/QQuickWindow>
 
@@ -58,16 +61,48 @@ void AvatarBookmarks::setupMenus(Menu* menubar, MenuWrapper* menu) {
     _deleteBookmarksAction = menubar->addActionToQMenuAndActionHash(menu, MenuOption::DeleteAvatarBookmark);
     QObject::connect(_deleteBookmarksAction, SIGNAL(triggered()), this, SLOT(deleteBookmark()), Qt::QueuedConnection);
 
-    Bookmarks::setupMenus(menubar, menu);
+    for (auto it = _bookmarks.begin(); it != _bookmarks.end(); ++it) {
+        addBookmarkToMenu(menubar, it.key(), it.value());
+    }
+
     Bookmarks::sortActions(menubar, _bookmarksMenu);
 }
 
 void AvatarBookmarks::changeToBookmarkedAvatar() {
     QAction* action = qobject_cast<QAction*>(sender());
-    const QString& address = action->data().toString();
-
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    myAvatar->useFullAvatarURL(address);
+
+
+
+    if (action->data().type() == QVariant::String) {
+        // TODO: Phase this out eventually.
+        // Legacy avatar bookmark.
+
+        myAvatar->useFullAvatarURL(action->data().toString());
+        qCDebug(interfaceapp) << " Using Legacy V1 Avatar Bookmark ";
+    } else {
+        
+        const QMap<QString, QVariant> bookmark = action->data().toMap();
+        // Not magic value. This is the current made version, and if it changes this interpreter should be updated to 
+        // handle the new one separately.
+        // This is where the avatar bookmark entry is parsed. If adding new Value, make sure to have backward compatability with previous
+        if (bookmark.value(ENTRY_VERSION) == 3) {
+                const QString& avatarUrl = bookmark.value(ENTRY_AVATAR_URL, "").toString();
+                myAvatar->useFullAvatarURL(avatarUrl);
+                qCDebug(interfaceapp) << "Avatar On " << avatarUrl;
+                const QList<QVariant>& attachments = bookmark.value(ENTRY_AVATAR_ATTACHMENTS, QList<QVariant>()).toList();
+
+                qCDebug(interfaceapp) << "Attach " << attachments;
+                myAvatar->setAttachmentsVariant(attachments);
+
+                const float& qScale = bookmark.value(ENTRY_AVATAR_SCALE, 1.0f).toFloat();
+                myAvatar->setAvatarScale(qScale);
+     
+        } else {
+            qCDebug(interfaceapp) << " Bookmark entry does not match client version, make sure client has a handler for the new AvatarBookmark";
+        }
+    }
+
 }
 
 void AvatarBookmarks::addBookmark() {
@@ -83,13 +118,23 @@ void AvatarBookmarks::addBookmark() {
     }
 
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-    const QString& bookmarkAddress = myAvatar->getSkeletonModelURL().toString();
-    Bookmarks::addBookmarkToFile(bookmarkName, bookmarkAddress);
+
+    const QString& avatarUrl = myAvatar->getSkeletonModelURL().toString();
+    const QVariant& avatarScale = myAvatar->getAvatarScale();
+
+    // If Avatar attachments ever change, this is where to update them, when saving remember to also append to AVATAR_BOOKMARK_VERSION
+    QVariantMap *bookmark = new QVariantMap;
+    bookmark->insert(ENTRY_VERSION, AVATAR_BOOKMARK_VERSION);
+    bookmark->insert(ENTRY_AVATAR_URL, avatarUrl);
+    bookmark->insert(ENTRY_AVATAR_SCALE, avatarScale);
+    bookmark->insert(ENTRY_AVATAR_ATTACHMENTS, myAvatar->getAttachmentsVariant());
+    
+    Bookmarks::addBookmarkToFile(bookmarkName, *bookmark);
 }
 
-void AvatarBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) {
+void AvatarBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& bookmark) {
     QAction* changeAction = _bookmarksMenu->newAction();
-    changeAction->setData(address);
+    changeAction->setData(bookmark);
     connect(changeAction, SIGNAL(triggered()), this, SLOT(changeToBookmarkedAvatar()));
     if (!_isMenuSorted) {
         menubar->addActionToQMenuAndActionHash(_bookmarksMenu, changeAction, name, 0, QAction::NoRole);

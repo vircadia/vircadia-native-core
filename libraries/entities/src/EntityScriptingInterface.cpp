@@ -9,19 +9,20 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityScriptingInterface.h"
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
-
-#include "EntityScriptingInterface.h"
 
 #include <QFutureWatcher>
 #include <QtConcurrent/QtConcurrentRun>
 
-#include "EntityItemID.h"
+#include <shared/QtHelpers.h>
 #include <VariantMapToScriptValue.h>
 #include <SharedUtil.h>
 #include <SpatialParentFinder.h>
 
+#include "EntityItemID.h"
 #include "EntitiesLogging.h"
 #include "EntityDynamicFactoryInterface.h"
 #include "EntityDynamicInterface.h"
@@ -1488,7 +1489,7 @@ int EntityScriptingInterface::getJointIndex(const QUuid& entityID, const QString
         return -1;
     }
     int result;
-    QMetaObject::invokeMethod(_entityTree.get(), "getJointIndex", Qt::BlockingQueuedConnection,
+    BLOCKING_INVOKE_METHOD(_entityTree.get(), "getJointIndex",
                               Q_RETURN_ARG(int, result), Q_ARG(QUuid, entityID), Q_ARG(QString, name));
     return result;
 }
@@ -1498,7 +1499,7 @@ QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
         return QStringList();
     }
     QStringList result;
-    QMetaObject::invokeMethod(_entityTree.get(), "getJointNames", Qt::BlockingQueuedConnection,
+    BLOCKING_INVOKE_METHOD(_entityTree.get(), "getJointNames",
                               Q_RETURN_ARG(QStringList, result), Q_ARG(QUuid, entityID));
     return result;
 }

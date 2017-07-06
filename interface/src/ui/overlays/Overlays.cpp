@@ -14,6 +14,7 @@
 
 #include <QtScript/QScriptValueIterator>
 
+#include <shared/QtHelpers.h>
 #include <OffscreenUi.h>
 #include <render/Scene.h>
 #include <RegisteredMetaTypes.h>
@@ -39,34 +40,39 @@
 Q_LOGGING_CATEGORY(trace_render_overlays, "trace.render.overlays")
 
 void Overlays::cleanupAllOverlays() {
+    QMap<OverlayID, Overlay::Pointer> overlaysHUD;
+    QMap<OverlayID, Overlay::Pointer> overlaysWorld;
     {
-        QWriteLocker lock(&_lock);
-        QWriteLocker deleteLock(&_deleteLock);
-        foreach(Overlay::Pointer overlay, _overlaysHUD) {
-            _overlaysToDelete.push_back(overlay);
-        }
-        foreach(Overlay::Pointer overlay, _overlaysWorld) {
-            _overlaysToDelete.push_back(overlay);
-        }
-        _overlaysHUD.clear();
-        _overlaysWorld.clear();
-        _panels.clear();
+        QMutexLocker locker(&_mutex);
+        overlaysHUD.swap(_overlaysHUD);
+        overlaysWorld.swap(_overlaysWorld);
     }
+
+    foreach(Overlay::Pointer overlay, overlaysHUD) {
+        _overlaysToDelete.push_back(overlay);
+    }
+    foreach(Overlay::Pointer overlay, overlaysWorld) {
+        _overlaysToDelete.push_back(overlay);
+    }
+#if OVERLAY_PANELS
+    _panels.clear();
+#endif
     cleanupOverlaysToDelete();
 }
 
 void Overlays::init() {
+#if OVERLAY_PANELS
     _scriptEngine = new QScriptEngine();
+#endif
 }
 
 void Overlays::update(float deltatime) {
-
     {
-        QWriteLocker lock(&_lock);
-        foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
+        QMutexLocker locker(&_mutex);
+        foreach(const auto& thisOverlay, _overlaysHUD) {
             thisOverlay->update(deltatime);
         }
-        foreach(Overlay::Pointer thisOverlay, _overlaysWorld) {
+        foreach(const auto& thisOverlay, _overlaysWorld) {
             thisOverlay->update(deltatime);
         }
     }
@@ -80,8 +86,6 @@ void Overlays::cleanupOverlaysToDelete() {
         render::Transaction transaction;
 
         {
-            QWriteLocker lock(&_deleteLock);
-
             do {
                 Overlay::Pointer overlay = _overlaysToDelete.takeLast();
 
@@ -100,7 +104,6 @@ void Overlays::cleanupOverlaysToDelete() {
 
 void Overlays::renderHUD(RenderArgs* renderArgs) {
     PROFILE_RANGE(render_overlays, __FUNCTION__);
-    QReadLocker lock(&_lock);
     gpu::Batch& batch = *renderArgs->_batch;
 
     auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -111,7 +114,7 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
     int height = size.y;
     mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
 
-
+    QMutexLocker locker(&_mutex);
     foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
     
         // Reset all batch pipeline settings between overlay
@@ -126,16 +129,17 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
 }
 
 void Overlays::disable() {
-    QWriteLocker lock(&_lock);
     _enabled = false;
 }
 
 void Overlays::enable() {
-    QWriteLocker lock(&_lock);
     _enabled = true;
 }
 
+// Note, can't be invoked by scripts, but can be called by the InterfaceParentFinder 
+// class on packet processing threads
 Overlay::Pointer Overlays::getOverlay(OverlayID id) const {
+    QMutexLocker locker(&_mutex);
     if (_overlaysHUD.contains(id)) {
         return _overlaysHUD[id];
     }
@@ -146,6 +150,12 @@ Overlay::Pointer Overlays::getOverlay(OverlayID id) const {
 }
 
 OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) {
+    if (QThread::currentThread() != thread()) {
+        OverlayID result;
+        BLOCKING_INVOKE_METHOD(this, "addOverlay", Q_RETURN_ARG(OverlayID, result), Q_ARG(QString, type), Q_ARG(QVariant, properties));
+        return result;
+    }
+
     Overlay::Pointer thisOverlay = nullptr;
 
     if (type == ImageOverlay::TYPE) {
@@ -185,19 +195,22 @@ OverlayID Overlays::addOverlay(const QString& type, const QVariant& properties) 
     return UNKNOWN_OVERLAY_ID;
 }
 
-OverlayID Overlays::addOverlay(Overlay::Pointer overlay) {
-    QWriteLocker lock(&_lock);
+OverlayID Overlays::addOverlay(const Overlay::Pointer& overlay) {
     OverlayID thisID = OverlayID(QUuid::createUuid());
     overlay->setOverlayID(thisID);
     overlay->setStackOrder(_stackOrder++);
     if (overlay->is3D()) {
-        _overlaysWorld[thisID] = overlay;
+        {
+            QMutexLocker locker(&_mutex);
+            _overlaysWorld[thisID] = overlay;
+        }
 
         render::ScenePointer scene = qApp->getMain3DScene();
         render::Transaction transaction;
         overlay->addToScene(overlay, scene, transaction);
         scene->enqueueTransaction(transaction);
     } else {
+        QMutexLocker locker(&_mutex);
         _overlaysHUD[thisID] = overlay;
     }
 
@@ -205,14 +218,22 @@ OverlayID Overlays::addOverlay(Overlay::Pointer overlay) {
 }
 
 OverlayID Overlays::cloneOverlay(OverlayID id) {
+    if (QThread::currentThread() != thread()) {
+        OverlayID result;
+        BLOCKING_INVOKE_METHOD(this, "cloneOverlay", Q_RETURN_ARG(OverlayID, result), Q_ARG(OverlayID, id));
+        return result;
+    }
+
     Overlay::Pointer thisOverlay = getOverlay(id);
 
     if (thisOverlay) {
         OverlayID cloneId = addOverlay(Overlay::Pointer(thisOverlay->createClone()));
+#if OVERLAY_PANELS
         auto attachable = std::dynamic_pointer_cast<PanelAttachable>(thisOverlay);
         if (attachable && attachable->getParentPanel()) {
             attachable->getParentPanel()->addChild(cloneId);
         }
+#endif
         return cloneId;
     }
 
@@ -220,21 +241,32 @@ OverlayID Overlays::cloneOverlay(OverlayID id) {
 }
 
 bool Overlays::editOverlay(OverlayID id, const QVariant& properties) {
-    QWriteLocker lock(&_lock);
+    if (QThread::currentThread() != thread()) {
+        // NOTE editOverlay can be called very frequently in scripts and can't afford to 
+        // block waiting on the main thread.  Additionally, no script actually 
+        // examines the return value and does something useful with it, so use a non-blocking
+        // invoke and just always return true
+        QMetaObject::invokeMethod(this, "editOverlay", Q_ARG(OverlayID, id), Q_ARG(QVariant, properties));
+        return true;
+    }
 
     Overlay::Pointer thisOverlay = getOverlay(id);
     if (thisOverlay) {
         thisOverlay->setProperties(properties.toMap());
-
         return true;
     }
     return false;
 }
 
 bool Overlays::editOverlays(const QVariant& propertiesById) {
+    if (QThread::currentThread() != thread()) {
+        // NOTE see comment on editOverlay for why this is not a blocking call
+        QMetaObject::invokeMethod(this, "editOverlays", Q_ARG(QVariant, propertiesById));
+        return true;
+    }
+
     QVariantMap map = propertiesById.toMap();
     bool success = true;
-    QWriteLocker lock(&_lock);
     for (const auto& key : map.keys()) {
         OverlayID id = OverlayID(key);
         Overlay::Pointer thisOverlay = getOverlay(id);
@@ -249,10 +281,15 @@ bool Overlays::editOverlays(const QVariant& propertiesById) {
 }
 
 void Overlays::deleteOverlay(OverlayID id) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "deleteOverlay", Q_ARG(OverlayID, id));
+        return;
+    }
+
     Overlay::Pointer overlayToDelete;
 
     {
-        QWriteLocker lock(&_lock);
+        QMutexLocker locker(&_mutex);
         if (_overlaysHUD.contains(id)) {
             overlayToDelete = _overlaysHUD.take(id);
         } else if (_overlaysWorld.contains(id)) {
@@ -262,19 +299,25 @@ void Overlays::deleteOverlay(OverlayID id) {
         }
     }
 
+#if OVERLAY_PANELS
     auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlayToDelete);
     if (attachable && attachable->getParentPanel()) {
         attachable->getParentPanel()->removeChild(id);
         attachable->setParentPanel(nullptr);
     }
+#endif
 
-    QWriteLocker lock(&_deleteLock);
     _overlaysToDelete.push_back(overlayToDelete);
-
     emit overlayDeleted(id);
 }
 
-QString Overlays::getOverlayType(OverlayID overlayId) const {
+QString Overlays::getOverlayType(OverlayID overlayId) {
+    if (QThread::currentThread() != thread()) {
+        QString result;
+        BLOCKING_INVOKE_METHOD(this, "getOverlayType", Q_RETURN_ARG(QString, result), Q_ARG(OverlayID, overlayId));
+        return result;
+    }
+
     Overlay::Pointer overlay = getOverlay(overlayId);
     if (overlay) {
         return overlay->getType();
@@ -283,6 +326,12 @@ QString Overlays::getOverlayType(OverlayID overlayId) const {
 }
 
 QObject* Overlays::getOverlayObject(OverlayID id) {
+    if (QThread::currentThread() != thread()) {
+        QObject* result;
+        BLOCKING_INVOKE_METHOD(this, "getOverlayObject", Q_RETURN_ARG(QObject*, result), Q_ARG(OverlayID, id));
+        return result;
+    }
+
     Overlay::Pointer thisOverlay = getOverlay(id);
     if (thisOverlay) {
         return qobject_cast<QObject*>(&(*thisOverlay));
@@ -290,6 +339,7 @@ QObject* Overlays::getOverlayObject(OverlayID id) {
     return nullptr;
 }
 
+#if OVERLAY_PANELS
 OverlayID Overlays::getParentPanel(OverlayID childId) const {
     Overlay::Pointer overlay = getOverlay(childId);
     auto attachable = std::dynamic_pointer_cast<PanelAttachable>(overlay);
@@ -330,33 +380,31 @@ void Overlays::setParentPanel(OverlayID childId, OverlayID panelId) {
         }
     }
 }
+#endif
 
 OverlayID Overlays::getOverlayAtPoint(const glm::vec2& point) {
-    glm::vec2 pointCopy = point;
-    QReadLocker lock(&_lock);
+    if (QThread::currentThread() != thread()) {
+        OverlayID result;
+        BLOCKING_INVOKE_METHOD(this, "getOverlayAtPoint", Q_RETURN_ARG(OverlayID, result), Q_ARG(glm::vec2, point));
+        return result;
+    }
+
     if (!_enabled) {
         return UNKNOWN_OVERLAY_ID;
     }
-    QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysHUD);
 
-    const float LARGE_NEGATIVE_FLOAT = -9999999;
-    glm::vec3 origin(pointCopy.x, pointCopy.y, LARGE_NEGATIVE_FLOAT);
-    glm::vec3 direction(0, 0, 1);
-    glm::vec3 thisSurfaceNormal;
+    QMutexLocker locker(&_mutex);
+    QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysHUD);
     unsigned int bestStackOrder = 0;
     OverlayID bestOverlayID = UNKNOWN_OVERLAY_ID;
-
     while (i.hasNext()) {
         i.next();
-        OverlayID thisID = i.key();
-        if (!i.value()->is3D()) {
-            auto thisOverlay = std::dynamic_pointer_cast<Overlay2D>(i.value());
-            if (thisOverlay && thisOverlay->getVisible() && thisOverlay->isLoaded() &&
-                thisOverlay->getBoundingRect().contains(pointCopy.x, pointCopy.y, false)) {
-                if (thisOverlay->getStackOrder() > bestStackOrder) {
-                    bestOverlayID = thisID;
-                    bestStackOrder = thisOverlay->getStackOrder();
-                }
+        auto thisOverlay = std::dynamic_pointer_cast<Overlay2D>(i.value());
+        if (thisOverlay && thisOverlay->getVisible() && thisOverlay->isLoaded() &&
+            thisOverlay->getBoundingRect().contains(point.x, point.y, false)) {
+            if (thisOverlay->getStackOrder() > bestStackOrder) {
+                bestOverlayID = i.key();
+                bestStackOrder = thisOverlay->getStackOrder();
             }
         }
     }
@@ -365,9 +413,14 @@ OverlayID Overlays::getOverlayAtPoint(const glm::vec2& point) {
 }
 
 OverlayPropertyResult Overlays::getProperty(OverlayID id, const QString& property) {
+    if (QThread::currentThread() != thread()) {
+        OverlayPropertyResult result;
+        BLOCKING_INVOKE_METHOD(this, "getProperty", Q_RETURN_ARG(OverlayPropertyResult, result), Q_ARG(OverlayID, id), Q_ARG(QString, property));
+        return result;
+    }
+
     OverlayPropertyResult result;
     Overlay::Pointer thisOverlay = getOverlay(id);
-    QReadLocker lock(&_lock);
     if (thisOverlay && thisOverlay->supportsGetProperty()) {
         result.value = thisOverlay->getProperty(property);
     }
@@ -405,10 +458,22 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionInternal(const PickR
                                                                      const QVector<OverlayID>& overlaysToInclude,
                                                                      const QVector<OverlayID>& overlaysToDiscard,
                                                                      bool visibleOnly, bool collidableOnly) {
-    QReadLocker lock(&_lock);
+    if (QThread::currentThread() != thread()) {
+        RayToOverlayIntersectionResult result;
+        BLOCKING_INVOKE_METHOD(this, "findRayIntersectionInternal", Q_RETURN_ARG(RayToOverlayIntersectionResult, result), 
+            Q_ARG(PickRay, ray), 
+            Q_ARG(bool, precisionPicking), 
+            Q_ARG(QVector<OverlayID>, overlaysToInclude), 
+            Q_ARG(QVector<OverlayID>, overlaysToDiscard), 
+            Q_ARG(bool, visibleOnly), 
+            Q_ARG(bool, collidableOnly));
+        return result;
+    }
+
     float bestDistance = std::numeric_limits<float>::max();
     bool bestIsFront = false;
 
+    QMutexLocker locker(&_mutex);
     RayToOverlayIntersectionResult result;
     QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
     while (i.hasNext()) {
@@ -446,16 +511,6 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionInternal(const PickR
         }
     }
     return result;
-}
-
-RayToOverlayIntersectionResult::RayToOverlayIntersectionResult() :
-    intersects(false),
-    overlayID(UNKNOWN_OVERLAY_ID),
-    distance(0),
-    face(),
-    intersection(),
-    extraInfo()
-{
 }
 
 QScriptValue RayToOverlayIntersectionResultToScriptValue(QScriptEngine* engine, const RayToOverlayIntersectionResult& value) {
@@ -531,7 +586,12 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& objectVar
 }
 
 bool Overlays::isLoaded(OverlayID id) {
-    QReadLocker lock(&_lock);
+    if (QThread::currentThread() != thread()) {
+        bool result;
+        BLOCKING_INVOKE_METHOD(this, "isLoaded", Q_RETURN_ARG(bool, result), Q_ARG(OverlayID, id));
+        return result;
+    }
+
     Overlay::Pointer thisOverlay = getOverlay(id);
     if (!thisOverlay) {
         return false; // not found
@@ -539,14 +599,27 @@ bool Overlays::isLoaded(OverlayID id) {
     return thisOverlay->isLoaded();
 }
 
-QSizeF Overlays::textSize(OverlayID id, const QString& text) const {
-    Overlay::Pointer thisOverlay = _overlaysHUD[id];
+QSizeF Overlays::textSize(OverlayID id, const QString& text) {
+    if (QThread::currentThread() != thread()) {
+        QSizeF result;
+        BLOCKING_INVOKE_METHOD(this, "textSize", Q_RETURN_ARG(QSizeF, result), Q_ARG(OverlayID, id), Q_ARG(QString, text));
+        return result;
+    }
+
+    Overlay::Pointer thisOverlay;
+    {
+        QMutexLocker locker(&_mutex);
+        thisOverlay = _overlaysHUD[id];
+    }
     if (thisOverlay) {
         if (auto textOverlay = std::dynamic_pointer_cast<TextOverlay>(thisOverlay)) {
             return textOverlay->textSize(text);
         }
     } else {
-        thisOverlay = _overlaysWorld[id];
+        { 
+            QMutexLocker locker(&_mutex);
+            thisOverlay = _overlaysWorld[id];
+        }
         if (auto text3dOverlay = std::dynamic_pointer_cast<Text3DOverlay>(thisOverlay)) {
             return text3dOverlay->textSize(text);
         }
@@ -554,6 +627,7 @@ QSizeF Overlays::textSize(OverlayID id, const QString& text) const {
     return QSizeF(0.0f, 0.0f);
 }
 
+#if OVERLAY_PANELS
 OverlayID Overlays::addPanel(OverlayPanel::Pointer panel) {
     QWriteLocker lock(&_lock);
 
@@ -607,8 +681,16 @@ void Overlays::deletePanel(OverlayID panelId) {
 
     emit panelDeleted(panelId);
 }
+#endif
 
 bool Overlays::isAddedOverlay(OverlayID id) {
+    if (QThread::currentThread() != thread()) {
+        bool result;
+        BLOCKING_INVOKE_METHOD(this, "isAddedOverlay", Q_RETURN_ARG(bool, result), Q_ARG(OverlayID, id));
+        return result;
+    }
+
+    QMutexLocker locker(&_mutex);
     return _overlaysHUD.contains(id) || _overlaysWorld.contains(id);
 }
 
@@ -636,20 +718,43 @@ void Overlays::sendHoverLeaveOverlay(OverlayID  id, PointerEvent event) {
     emit hoverLeaveOverlay(id, event);
 }
 
-OverlayID Overlays::getKeyboardFocusOverlay() const {
+OverlayID Overlays::getKeyboardFocusOverlay() {
+    if (QThread::currentThread() != thread()) {
+        OverlayID result;
+        BLOCKING_INVOKE_METHOD(this, "getKeyboardFocusOverlay", Q_RETURN_ARG(OverlayID, result));
+        return result;
+    }
+
     return qApp->getKeyboardFocusOverlay();
 }
 
 void Overlays::setKeyboardFocusOverlay(OverlayID id) {
+    if (QThread::currentThread() != thread()) {
+        QMetaObject::invokeMethod(this, "setKeyboardFocusOverlay", Q_ARG(OverlayID, id));
+        return;
+    }
+
     qApp->setKeyboardFocusOverlay(id);
 }
 
-float Overlays::width() const {
+float Overlays::width() {
+    if (QThread::currentThread() != thread()) {
+        float result;
+        BLOCKING_INVOKE_METHOD(this, "width", Q_RETURN_ARG(float, result));
+        return result;
+    }
+
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     return offscreenUi->getWindow()->size().width();
 }
 
-float Overlays::height() const {
+float Overlays::height() {
+    if (QThread::currentThread() != thread()) {
+        float result;
+        BLOCKING_INVOKE_METHOD(this, "height", Q_RETURN_ARG(float, result));
+        return result;
+    }
+
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     return offscreenUi->getWindow()->size().height();
 }
@@ -705,7 +810,6 @@ PointerEvent Overlays::calculatePointerEvent(Overlay::Pointer overlay, PickRay r
 
     auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(overlay);
 
-    QReadLocker lock(&_lock);
     auto position = thisOverlay->getPosition();
     auto rotation = thisOverlay->getRotation();
     auto dimensions = thisOverlay->getSize();
@@ -854,9 +958,14 @@ bool Overlays::mouseMoveEvent(QMouseEvent* event) {
     return false;
 }
 
-QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) const {
+QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
     QVector<QUuid> result;
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "findOverlays", Q_RETURN_ARG(QVector<QUuid>, result), Q_ARG(glm::vec3, center), Q_ARG(float, radius));
+        return result;
+    }
 
+    QMutexLocker locker(&_mutex);
     QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
     int checked = 0;
     while (i.hasNext()) {

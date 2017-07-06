@@ -32,6 +32,6 @@ StackView {
     TabletPreferencesDialog {
         id: root
         objectName: "TabletGeneralPreferences"
-        showCategories: ["UI", "Snapshots", "Scripts", "Privacy", "Octree", "HMD", "Sixense Controllers", "Perception Neuron", "Kinect", "Vive Pucks Configuration"]
+        showCategories: ["UI", "Snapshots", "Scripts", "Privacy", "Octree", "HMD", "Sixense Controllers", "Perception Neuron", "Kinect", "Vive Pucks Configuration", "Leap Motion"]
     }
 }

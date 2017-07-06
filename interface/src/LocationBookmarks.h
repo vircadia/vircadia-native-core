@@ -29,7 +29,7 @@ public slots:
     void addBookmark();
 
 protected:
-    void addBookmarkToMenu(Menu* menubar, const QString& name, const QString& address) override;
+    void addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& address) override;
 
 private:
     const QString LOCATIONBOOKMARKS_FILENAME = "bookmarks.json";

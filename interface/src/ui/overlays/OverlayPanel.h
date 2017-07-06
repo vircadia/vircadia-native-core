@@ -22,6 +22,7 @@
 #include "Billboardable.h"
 #include "Overlay.h"
 
+#if OVERLAY_PANELS
 class PropertyBinding {
 public:
     PropertyBinding() {}
@@ -79,5 +80,7 @@ private:
 
     QScriptEngine* _scriptEngine;
 };
+
+#endif
 
 #endif // hifi_OverlayPanel_h

@@ -25,6 +25,7 @@
 #endif
 
 
+#include <shared/QtHelpers.h>
 #include <AvatarData.h>
 #include <PerfStat.h>
 #include <RegisteredMetaTypes.h>
@@ -482,7 +483,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& 
                                                                  const QScriptValue& avatarIdsToDiscard) {
     RayToAvatarIntersectionResult result;
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(const_cast<AvatarManager*>(this), "findRayIntersection", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarManager*>(this), "findRayIntersection",
                                   Q_RETURN_ARG(RayToAvatarIntersectionResult, result),
                                   Q_ARG(const PickRay&, ray),
                                   Q_ARG(const QScriptValue&, avatarIdsToInclude),
