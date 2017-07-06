@@ -209,7 +209,7 @@ Rectangle {
             colorScheme: hifi.colorSchemes.dark;
             anchors.left: parent.left;
             anchors.top: parent.top;
-            text: "Camera On";
+            text: "Spectator Camera On";
             boxSize: 24;
             onClicked: {
                 sendToScript({method: (checked ? 'spectatorCameraOn' : 'spectatorCameraOff')});
@@ -217,23 +217,52 @@ Rectangle {
             }
         }
 
-        // Spectator Camera Preview
-        Hifi.ResourceImageItem {
-            id: spectatorCameraPreview;
-            url: "resource://spectatorCameraFrame";
-            ready: cameraToggleCheckBox.checked;
-            mirrorVertically: true;
-            height: 250;
+        // Instructions or Preview
+        Rectangle {
+            id: spectatorCameraImageContainer;
             anchors.left: parent.left;
             anchors.top: cameraToggleCheckBox.bottom;
             anchors.topMargin: 20;
             anchors.right: parent.right;
-            onVisibleChanged: {
-                ready = cameraToggleCheckBox.checked;
-                update();
-            }
+            height: 250;
+            color: spectatorCameraPreview.visible ? "transparent" : "black";
 
+            
+
+            AnimatedImage {
+                source: "../../images/static.gif"
+                visible: !spectatorCameraPreview.visible;
+                anchors.fill: parent;
+                opacity: 0.15;
+            }
+            
+            // Instructions (visible when display texture isn't set)
+            FiraSansRegular {
+                id: spectatorCameraInstructions;
+                text: "Turn on Spectator Camera for a preview\nof what your monitor shows.";
+                size: 16;
+                color: hifi.colors.lightGrayText;
+                visible: !spectatorCameraPreview.visible;
+                anchors.fill: parent;
+                horizontalAlignment: Text.AlignHCenter;
+                verticalAlignment: Text.AlignVCenter;
+            }
+            
+            // Spectator Camera Preview
+            Hifi.ResourceImageItem {
+                id: spectatorCameraPreview;
+                visible: false;
+                url: "resource://spectatorCameraFrame";
+                ready: cameraToggleCheckBox.checked;
+                mirrorVertically: true;
+                anchors.fill: parent;
+                onVisibleChanged: {
+                    ready = cameraToggleCheckBox.checked;
+                    update();
+                }
+            }
         }
+
 
         // "Monitor Shows" Switch Label Glyph
         HiFiGlyphs {
@@ -241,15 +270,15 @@ Rectangle {
             text: hifi.glyphs.screen;
             size: 32;
             color: hifi.colors.blueHighlight;
-            anchors.top: spectatorCameraPreview.bottom;
-            anchors.topMargin: 20;
+            anchors.top: spectatorCameraImageContainer.bottom;
+            anchors.topMargin: 13;
             anchors.left: parent.left;
         }
         // "Monitor Shows" Switch Label
         RalewayLight {
             id: monitorShowsSwitchLabel;
             text: "MONITOR SHOWS:";
-            anchors.top: spectatorCameraPreview.bottom;
+            anchors.top: spectatorCameraImageContainer.bottom;
             anchors.topMargin: 20;
             anchors.left: monitorShowsSwitchLabelGlyph.right;
             anchors.leftMargin: 6;
@@ -329,6 +358,9 @@ Rectangle {
                 switchViewFromControllerCheckBox.checked = true;
                 switchViewFromControllerCheckBox.enabled = false;
             }
+        break;
+        case 'showPreviewTextureNotInstructions':
+            spectatorCameraPreview.visible = message.setting;
         break;
         default:
             console.log('Unrecognized message from spectatorCamera.js:', JSON.stringify(message));
