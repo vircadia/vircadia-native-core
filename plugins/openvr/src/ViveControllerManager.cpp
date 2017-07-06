@@ -713,10 +713,10 @@ void ViveControllerManager::InputDevice::handleHandController(float deltaTime, u
 }
 
 // defaultToReferenceMat is an offset from avatar space to sensor space.
-// it aligns the default head in avatar space with the hmd in sensor space.
+// it aligns the default center-eye in avatar space with the hmd in sensor space.
 //
-//  * E_a is the the default center-eye transform in avatar space.
-//  * E_s is the the hmd center-eye transform in sensor space, with roll and pitch removed.
+//  * E_a is the the default center-of-the-eyes transform in avatar space.
+//  * E_s is the the hmd eye-center transform in sensor space, with roll and pitch removed.
 //  * D is the defaultReferenceMat.
 //
 //  E_s = D * E_a  =>
@@ -739,7 +739,9 @@ glm::mat4 ViveControllerManager::InputDevice::calculateDefaultToReferenceForHmd(
 }
 
 // defaultToReferenceMat is an offset from avatar space to sensor space.
-// it aligns the default head in avatar space with the head-puck in sensor space.
+// it aligns the default center-of-the-eyes transform in avatar space with the head-puck in sensor space.
+// The offset from the center-of-the-eyes to the head-puck can be configured via _headPuckYOffset and _headPuckZOffset,
+// these values are exposed in the configuration UI.
 //
 //  * E_a is the the default center-eye transform in avatar space.
 //  * E_s is the the head-puck center-eye transform in sensor space, with roll and pitch removed.
