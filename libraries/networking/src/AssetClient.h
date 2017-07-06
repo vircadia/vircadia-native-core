@@ -49,7 +49,7 @@ using ProgressCallback = std::function<void(qint64 totalReceived, qint64 total)>
 class AssetClient : public QObject, public Dependency {
     Q_OBJECT
 public:
-    AssetClient(const QString& cacheDir="");
+    AssetClient();
 
     Q_INVOKABLE GetMappingRequest* createGetMappingRequest(const AssetPath& path);
     Q_INVOKABLE GetAllMappingsRequest* createGetAllMappingsRequest();
