@@ -90,13 +90,15 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
 
 
     auto nodeList = DependencyManager::get<NodeList>();
-    // start the nodeThread so its event loop is running
-    nodeList->startThread();
 
     // setup a timer for domain-server check ins
     QTimer* domainCheckInTimer = new QTimer(nodeList.data());
     connect(domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
     domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
+
+    // start the nodeThread so its event loop is running 
+    // (must happen after the checkin timer is created with the nodelist as it's parent)
+    nodeList->startThread();
 
     const DomainHandler& domainHandler = nodeList->getDomainHandler();
 
