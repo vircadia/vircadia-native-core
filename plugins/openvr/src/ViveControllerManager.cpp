@@ -28,6 +28,8 @@
 #include <GLMHelpers.h>
 #include <glm/ext.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <ui-plugins/PluginContainer.h>
+#include <plugins/DisplayPlugin.h>
 
 #include <controllers/UserInputMapper.h>
 #include <Plugins/InputConfiguration.h>
@@ -59,11 +61,6 @@ static const int FIRST_FOOT = 0;
 static const int SECOND_FOOT = 1;
 static const int HIP = 2;
 static const int CHEST = 3;
-
-static float HEAD_PUCK_Y_OFFSET = -0.0254f;
-static float HEAD_PUCK_Z_OFFSET = -0.152f;
-static float HAND_PUCK_Y_OFFSET = -0.0508f;
-static float HAND_PUCK_Z_OFFSET = 0.0254f;
 
 const char* ViveControllerManager::NAME { "OpenVR" };
 
@@ -121,6 +118,29 @@ static QString deviceTrackingResultToString(vr::ETrackingResult trackingResult) 
     return result;
 }
 
+static glm::mat4 calculateResetMat() {
+    auto chaperone = vr::VRChaperone();
+    if (chaperone) {
+        float const UI_RADIUS = 1.0f;
+        float const UI_HEIGHT = 1.6f;
+        float const UI_Z_OFFSET = 0.5;
+        
+        float xSize, zSize;
+        chaperone->GetPlayAreaSize(&xSize, &zSize);
+        glm::vec3 uiPos(0.0f, UI_HEIGHT, UI_RADIUS - (0.5f * zSize) - UI_Z_OFFSET);
+
+        return glm::inverse(createMatFromQuatAndPos(glm::quat(), uiPos));
+    }
+    return glm::mat4();
+}
+
+bool ViveControllerManager::isDesktopMode() {
+    if (_container) {
+        return !_container->getActiveDisplayPlugin()->isHmd();
+    }
+    return false;
+}
+
 void ViveControllerManager::calibrate() {
     if (isSupported()) {
         _inputDevice->calibrateNextFrame();
@@ -141,13 +161,21 @@ bool ViveControllerManager::isSupported() const {
 
 void ViveControllerManager::setConfigurationSettings(const QJsonObject configurationSettings) {
     if (isSupported()) {
+        if (configurationSettings.contains("desktopMode")) {
+            _desktopMode = configurationSettings["desktopMode"].toBool();
+            if (!_desktopMode) {
+                _resetMatCalculated = false;
+            }
+        }
         _inputDevice->configureCalibrationSettings(configurationSettings);
     }
 }
 
 QJsonObject ViveControllerManager::configurationSettings() {
     if (isSupported()) {
-        return _inputDevice->configurationSettings();
+        QJsonObject configurationSettings = _inputDevice->configurationSettings();
+        configurationSettings["desktopMode"] = _desktopMode;
+        return configurationSettings;
     }
 
     return QJsonObject();
@@ -216,6 +244,18 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
 
     if (!_system) {
         return;
+    }
+
+    if (isDesktopMode() && _desktopMode) {
+        if (!_resetMatCalculated) {
+            _resetMat = calculateResetMat();
+            _resetMatCalculated = true;
+        }
+        
+        _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, 0, _nextSimPoseData.vrPoses, vr::k_unMaxTrackedDeviceCount);
+        _nextSimPoseData.update(_resetMat);
+    } else if (isDesktopMode()) {
+        _nextSimPoseData.resetToInvalid();
     }
 
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
@@ -344,8 +384,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 bool overrideHead = headObject["override"].toBool();
                 if (overrideHead) {
                     _headConfig = HeadConfig::Puck;
-                    HEAD_PUCK_Y_OFFSET = headObject["Y"].toDouble();
-                    HEAD_PUCK_Z_OFFSET = headObject["Z"].toDouble();
+                    _headPuckYOffset = headObject["Y"].toDouble();
+                    _headPuckZOffset = headObject["Z"].toDouble();
                 } else {
                     _headConfig = HeadConfig::HMD;
                 }
@@ -354,8 +394,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 bool overrideHands = handsObject["override"].toBool();
                 if (overrideHands) {
                     _handConfig = HandConfig::Pucks;
-                    HAND_PUCK_Y_OFFSET = handsObject["Y"].toDouble();
-                    HAND_PUCK_Z_OFFSET = handsObject["Z"].toDouble();
+                    _handPuckYOffset = handsObject["Y"].toDouble();
+                    _handPuckZOffset = handsObject["Z"].toDouble();
                 } else {
                     _handConfig = HandConfig::HandController;
                 }
@@ -714,7 +754,7 @@ glm::mat4 ViveControllerManager::InputDevice::calculateDefaultToReferenceForHead
                                       glm::vec4(zPrime, 0.0f), glm::vec4(headPuckTranslation, 1.0f));
 
     glm::mat4 headPuckOffset = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
-                                         glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, HEAD_PUCK_Y_OFFSET, HEAD_PUCK_Z_OFFSET, 1.0f));
+                                         glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, _headPuckYOffset, _headPuckZOffset, 1.0f));
 
     glm::mat4 finalHeadPuck = newHeadPuck * headPuckOffset;
 
@@ -914,7 +954,7 @@ void ViveControllerManager::InputDevice::calibrateLeftHand(glm::mat4& defaultToR
                                      glm::vec4(zPrime, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
     
 
-    glm::vec3 translationOffset = glm::vec3(0.0f, HAND_PUCK_Y_OFFSET, HAND_PUCK_Z_OFFSET);
+    glm::vec3 translationOffset = glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
     glm::quat initialRotation = glmExtractRotation(handPoseAvatarMat);
     glm::quat finalRotation = glmExtractRotation(newHandMat);
     
@@ -945,7 +985,7 @@ void ViveControllerManager::InputDevice::calibrateRightHand(glm::mat4& defaultTo
     
 
 
-    glm::vec3 translationOffset = glm::vec3(0.0f, HAND_PUCK_Y_OFFSET, HAND_PUCK_Z_OFFSET);
+    glm::vec3 translationOffset = glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
     glm::quat initialRotation = glmExtractRotation(handPoseAvatarMat);
     glm::quat finalRotation = glmExtractRotation(newHandMat);
     
