@@ -18,10 +18,17 @@
 using namespace render;
 
 void ShapePipeline::prepare(gpu::Batch& batch) {
-    if (batchSetter) {
-        batchSetter(*this, batch);
+    if (_batchSetter) {
+        _batchSetter(*this, batch);
     }
 }
+
+void ShapePipeline::prepareShapeItem(RenderArgs* args, const ShapeKey& key, const Item& shape) {
+    if (_itemSetter) {
+        _itemSetter(*this, args, shape);
+    }
+}
+
 
 ShapeKey::Filter::Builder::Builder() {
     _mask.set(OWN_PIPELINE);
@@ -48,12 +55,12 @@ void ShapePlumber::addPipelineHelper(const Filter& filter, ShapeKey key, int bit
 }
 
 void ShapePlumber::addPipeline(const Key& key, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
-        BatchSetter batchSetter) {
-    addPipeline(Filter{key}, program, state, batchSetter);
+        BatchSetter batchSetter, ItemSetter itemSetter) {
+    addPipeline(Filter{key}, program, state, batchSetter, itemSetter);
 }
 
 void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
-        BatchSetter batchSetter) {
+        BatchSetter batchSetter, ItemSetter itemSetter) {
     gpu::Shader::BindingSet slotBindings;
     slotBindings.insert(gpu::Shader::Binding(std::string("lightingModelBuffer"), Slot::BUFFER::LIGHTING_MODEL));
     slotBindings.insert(gpu::Shader::Binding(std::string("skinClusterBuffer"), Slot::BUFFER::SKINNING));
@@ -90,7 +97,7 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     
     ShapeKey key{filter._flags};
     auto gpuPipeline = gpu::Pipeline::create(program, state);
-    auto shapePipeline = std::make_shared<Pipeline>(gpuPipeline, locations, batchSetter);
+    auto shapePipeline = std::make_shared<Pipeline>(gpuPipeline, locations, batchSetter, itemSetter);
     addPipelineHelper(filter, key, 0, shapePipeline);
 }
 
@@ -118,8 +125,8 @@ const ShapePipelinePointer ShapePlumber::pickPipeline(RenderArgs* args, const Ke
     batch->setPipeline(shapePipeline->pipeline);
 
     // Run the pipeline's BatchSetter on the passed in batch
-    if (shapePipeline->batchSetter) {
-        shapePipeline->batchSetter(*shapePipeline, *batch);
+    if (shapePipeline->_batchSetter) {
+        shapePipeline->_batchSetter(*shapePipeline, *batch);
     }
 
     return shapePipeline;

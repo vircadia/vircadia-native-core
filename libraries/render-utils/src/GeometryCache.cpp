@@ -459,7 +459,8 @@ _nextID(0) {
                 // Set the defaults needed for a simple program
                 batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
                     DependencyManager::get<TextureCache>()->getWhiteTexture());
-            }
+            },
+            nullptr
         );
     GeometryCache::_simpleTransparentPipeline =
         std::make_shared<render::ShapePipeline>(getSimplePipeline(false, true, true, false), nullptr,
@@ -467,11 +468,13 @@ _nextID(0) {
                 // Set the defaults needed for a simple program
                 batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
                     DependencyManager::get<TextureCache>()->getWhiteTexture());
-            }
+            },
+            nullptr
         );
     GeometryCache::_simpleWirePipeline =
         std::make_shared<render::ShapePipeline>(getSimplePipeline(false, false, true, true), nullptr,
-            [](const render::ShapePipeline&, gpu::Batch& batch) {});
+            [](const render::ShapePipeline&, gpu::Batch& batch) {},
+            nullptr);
 }
 
 GeometryCache::~GeometryCache() {

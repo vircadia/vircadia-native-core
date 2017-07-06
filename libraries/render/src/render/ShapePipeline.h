@@ -19,6 +19,7 @@
 #include "Args.h"
 
 namespace render {
+class Item;
 
 class ShapeKey {
 public:
@@ -242,8 +243,13 @@ public:
 
     using BatchSetter = std::function<void(const ShapePipeline&, gpu::Batch&)>;
 
-    ShapePipeline(gpu::PipelinePointer pipeline, LocationsPointer locations, BatchSetter batchSetter) :
-        pipeline(pipeline), locations(locations), batchSetter(batchSetter) {}
+    using ItemSetter = std::function<void(const ShapePipeline&, render::Args*, const render::Item&)>;
+
+    ShapePipeline(gpu::PipelinePointer pipeline, LocationsPointer locations, BatchSetter batchSetter, ItemSetter itemSetter) :
+        pipeline(pipeline),
+        locations(locations),
+        _batchSetter(batchSetter),
+        _itemSetter(itemSetter) {}
 
     // Normally, a pipeline is accessed thorugh pickPipeline. If it needs to be set manually,
     // after calling setPipeline this method should be called to prepare the pipeline with default buffers.
@@ -252,10 +258,13 @@ public:
     gpu::PipelinePointer pipeline;
     std::shared_ptr<Locations> locations;
 
+    void prepareShapeItem(Args* args, const ShapeKey& key, const Item& shape);
+
 protected:
     friend class ShapePlumber;
 
-    BatchSetter batchSetter;
+    BatchSetter _batchSetter;
+    ItemSetter _itemSetter;
 };
 using ShapePipelinePointer = std::shared_ptr<ShapePipeline>;
 
@@ -270,11 +279,12 @@ public:
     using Locations = Pipeline::Locations;
     using LocationsPointer = Pipeline::LocationsPointer;
     using BatchSetter = Pipeline::BatchSetter;
+    using ItemSetter = Pipeline::ItemSetter;
 
     void addPipeline(const Key& key, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
-        BatchSetter batchSetter = nullptr);
+        BatchSetter batchSetter = nullptr, ItemSetter itemSetter = nullptr);
     void addPipeline(const Filter& filter, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
-        BatchSetter batchSetter = nullptr);
+        BatchSetter batchSetter = nullptr, ItemSetter itemSetter = nullptr);
 
     const PipelinePointer pickPipeline(RenderArgs* args, const Key& key) const;
 
