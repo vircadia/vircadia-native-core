@@ -737,7 +737,7 @@ Rectangle {
     RalewayBold {
         id: viveDesktopText
         size: 10
-        text: "Use vive devices in desktop mode"
+        text: "Use Vive devices in desktop mode"
         color: hifi.colors.white
         
         anchors {
