@@ -642,6 +642,57 @@ Rectangle {
         }
     }
 
+    Separator {
+        id: advanceSeperator
+        width: parent.width
+        anchors.top: timeToCalibrate.bottom
+        anchors.topMargin: 10
+    }
+
+    RalewayBold {
+        id: advanceSettings
+        
+        text: "Advance Settings"
+        size: 12
+        
+        color: hifi.colors.white
+        
+        anchors.top: advanceSeperator.bottom
+        anchors.topMargin: 10
+        anchors.left: parent.left
+        anchors.leftMargin: leftMargin
+    }
+
+
+    HifiControls.CheckBox {
+        id: viveInDesktop
+        width: 15
+        height: 15
+        boxRadius: 7
+
+        anchors.top: advanceSettings.bottom
+        anchors.topMargin: 5
+        anchors.left: openVrConfiguration.left
+        anchors.leftMargin: leftMargin + 10
+        
+        onClicked: {
+            sendConfigurationSettings();
+        }
+    }
+
+    RalewayBold {
+        id: viveDesktopText
+        size: 10
+        text: "Use vive devices in desktop mode"
+        color: hifi.colors.white
+        
+        anchors {
+            left: viveInDesktop.right
+            leftMargin: 5
+            verticalCenter: viveInDesktop.verticalCenter
+        }
+    }
+    
     NumberAnimation {
         id: numberAnimation
         target: openVrConfiguration
@@ -728,6 +779,7 @@ Rectangle {
 
         var HmdHead = settings["HMDHead"];
         var viveController = settings["handController"];
+        var desktopMode = settings["desktopMode"];
 
         if (HmdHead) {
             headBox.checked = true;
@@ -744,6 +796,8 @@ Rectangle {
             handPuckBox.checked = true;
             handBox.checked = false;
         }
+
+        viveInDesktop.checked = desktopMode;
 
         initializeButtonState();
         updateCalibrationText();
@@ -901,7 +955,8 @@ Rectangle {
         var settingsObject = {
             "bodyConfiguration": trackerConfiguration,
             "headConfiguration": headObject,
-            "handConfiguration": handObject 
+            "handConfiguration": handObject,
+            "desktopMode": viveInDesktop.checked
         }
 
         return settingsObject;
