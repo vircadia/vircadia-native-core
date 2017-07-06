@@ -8,8 +8,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#include "Application.h"
 #include "ClipboardScriptingInterface.h"
+
+#include <shared/QtHelpers.h>
+
+#include "Application.h"
 
 ClipboardScriptingInterface::ClipboardScriptingInterface() {
 }
@@ -24,7 +27,7 @@ float ClipboardScriptingInterface::getClipboardContentsLargestDimension() {
 
 bool ClipboardScriptingInterface::exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs) {
     bool retVal;
-    QMetaObject::invokeMethod(qApp, "exportEntities", Qt::BlockingQueuedConnection,
+    BLOCKING_INVOKE_METHOD(qApp, "exportEntities",
                               Q_RETURN_ARG(bool, retVal),
                               Q_ARG(const QString&, filename),
                               Q_ARG(const QVector<EntityItemID>&, entityIDs));
@@ -33,7 +36,7 @@ bool ClipboardScriptingInterface::exportEntities(const QString& filename, const 
 
 bool ClipboardScriptingInterface::exportEntities(const QString& filename, float x, float y, float z, float s) {
     bool retVal;
-    QMetaObject::invokeMethod(qApp, "exportEntities", Qt::BlockingQueuedConnection,
+    BLOCKING_INVOKE_METHOD(qApp, "exportEntities",
                               Q_RETURN_ARG(bool, retVal),
                               Q_ARG(const QString&, filename),
                               Q_ARG(float, x),
@@ -45,7 +48,7 @@ bool ClipboardScriptingInterface::exportEntities(const QString& filename, float 
 
 bool ClipboardScriptingInterface::importEntities(const QString& filename) {
     bool retVal;
-    QMetaObject::invokeMethod(qApp, "importEntities", Qt::BlockingQueuedConnection,
+    BLOCKING_INVOKE_METHOD(qApp, "importEntities",
                               Q_RETURN_ARG(bool, retVal),
                               Q_ARG(const QString&, filename));
     return retVal;
@@ -53,7 +56,7 @@ bool ClipboardScriptingInterface::importEntities(const QString& filename) {
 
 QVector<EntityItemID> ClipboardScriptingInterface::pasteEntities(glm::vec3 position) {
     QVector<EntityItemID> retVal;
-    QMetaObject::invokeMethod(qApp, "pasteEntities", Qt::BlockingQueuedConnection,
+    BLOCKING_INVOKE_METHOD(qApp, "pasteEntities",
                               Q_RETURN_ARG(QVector<EntityItemID>, retVal),
                               Q_ARG(float, position.x),
                               Q_ARG(float, position.y),

@@ -84,9 +84,9 @@ public:
     void setColorPulse(float value) { _colorPulse = value; }
     void setAlphaPulse(float value) { _alphaPulse = value; }
 
-    virtual void setProperties(const QVariantMap& properties);
-    virtual Overlay* createClone() const = 0;
-    virtual QVariant getProperty(const QString& property);
+    Q_INVOKABLE virtual void setProperties(const QVariantMap& properties);
+    Q_INVOKABLE virtual Overlay* createClone() const = 0;
+    Q_INVOKABLE virtual QVariant getProperty(const QString& property);
 
     render::ItemID getRenderItemID() const { return _renderItemID; }
     void setRenderItemID(render::ItemID renderItemID) { _renderItemID = renderItemID; }

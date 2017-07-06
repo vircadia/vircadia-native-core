@@ -16,6 +16,7 @@
 
 #include <QtCore/QMutex>
 #include <QtCore/QMutexLocker>
+#include <QtCore/QWaitCondition>
 #include <QtCore/QObject>
 #include <QtCore/QString>
 #include <QtCore/QThread>
@@ -33,5 +34,26 @@ void withLock(QMutex& lock, F function) {
 
 void moveToNewNamedThread(QObject* object, const QString& name, std::function<void()> startCallback, QThread::Priority priority = QThread::InheritPriority);
 void moveToNewNamedThread(QObject* object, const QString& name, QThread::Priority priority = QThread::InheritPriority);
+
+class ConditionalGuard {
+public:
+    void trigger() {
+        QMutexLocker locker(&_mutex);
+        _triggered = true;
+        _condition.wakeAll();
+    }
+
+    bool wait(unsigned long time = ULONG_MAX) {
+        QMutexLocker locker(&_mutex);
+        if (!_triggered) {
+            _condition.wait(&_mutex, time);
+        }
+        return _triggered;
+    }
+private:
+    QMutex _mutex;
+    QWaitCondition _condition;
+    bool _triggered { false };
+};
 
 #endif

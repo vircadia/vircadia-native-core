@@ -198,11 +198,7 @@ gpu::TexturePointer TextureCache::getTextureByHash(const std::string& hash) {
         std::unique_lock<std::mutex> lock(_texturesByHashesMutex);
         weakPointer = _texturesByHashes[hash];
     }
-    auto result = weakPointer.lock();
-    if (result) {
-        qCWarning(modelnetworking) << "QQQ Returning live texture for hash " << hash.c_str();
-    }
-    return result;
+    return weakPointer.lock();
 }
 
 gpu::TexturePointer TextureCache::cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture) {
