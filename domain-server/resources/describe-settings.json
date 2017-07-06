@@ -50,6 +50,7 @@
     {
       "label": "Places / Paths",
       "html_id": "places_paths",
+      "restart": false,
       "settings": [
         {
           "name": "paths",
