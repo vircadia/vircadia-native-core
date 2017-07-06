@@ -1008,17 +1008,48 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
     }
 }
 
-int Avatar::getJointIndex(const QString& name) const {
-    QReadLocker readLock(&_jointIndicesCacheLock);
-    if (_jointIndicesCache.contains(name)) {
-        return _jointIndicesCache[name];
+void Avatar::cacheJoints() const {
+    // _jointIndicesCacheLock should be locked for write before calling this.
+    _jointIndicesCache.clear();
+    if (_skeletonModel && _skeletonModel->isActive()) {
+        _jointIndicesCache = _skeletonModel->getFBXGeometry().jointIndices;
+        _jointsCached = true;
     }
-    return -1;
+}
+
+int Avatar::getJointIndex(const QString& name) const {
+    auto getJointIndexWorker = [&]() {
+        if (_jointIndicesCache.contains(name)) {
+            return _jointIndicesCache[name];
+        }
+        return -1;
+    };
+    QReadLocker readLock(&_jointIndicesCacheLock);
+    if (!_jointsCached) {
+        readLock.unlock();
+        {
+            QWriteLocker writeLock(&_jointIndicesCacheLock);
+            Avatar::cacheJoints();
+            return getJointIndexWorker();
+        }
+    }
+    return getJointIndexWorker();
 }
 
 QStringList Avatar::getJointNames() const {
+    auto getJointNamesWorker = [&]() {
+        return _jointIndicesCache.keys();
+    };
     QReadLocker readLock(&_jointIndicesCacheLock);
-    return _jointIndicesCache.keys();
+    if (!_jointsCached) {
+        readLock.unlock();
+        {
+            QWriteLocker writeLock(&_jointIndicesCacheLock);
+            Avatar::cacheJoints();
+            return getJointNamesWorker();
+        }
+    }
+    return getJointNamesWorker();
 }
 
 glm::vec3 Avatar::getJointPosition(int index) const {
@@ -1050,12 +1081,8 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 void Avatar::setModelURLFinished(bool success) {
     {
         QWriteLocker writeLock(&_jointIndicesCacheLock);
-        _jointIndicesCache.clear();
-        if (_skeletonModel && _skeletonModel->isActive()) {
-            _jointIndicesCache = _skeletonModel->getFBXGeometry().jointIndices;
-        }
+        _jointsCached = false;
     }
-
     if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
         const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: we don't want to be as generous as ResourceCache is, we only want 4 attempts
         if (_skeletonModel->getResourceDownloadAttemptsRemaining() <= 0 ||

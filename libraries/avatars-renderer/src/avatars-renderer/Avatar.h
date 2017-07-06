@@ -268,8 +268,10 @@ protected:
 
     SkeletonModelPointer _skeletonModel;
 
-    QHash<QString, int> _jointIndicesCache;
+    void cacheJoints() const;
+    mutable QHash<QString, int> _jointIndicesCache;
     mutable QReadWriteLock _jointIndicesCacheLock;
+    mutable bool _jointsCached { false };
 
     glm::vec3 _skeletonOffset;
     std::vector<std::shared_ptr<Model>> _attachmentModels;
