@@ -162,8 +162,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     _gatekeeper.preloadAllowedUserPublicKeys(); // so they can connect on first request
 
+    //send signal to DomainMetadata when descriptors changed
     _metadata = new DomainMetadata(this);
-
+    connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
+            _metadata, &DomainMetadata::descriptorsChanged);
 
     qDebug() << "domain-server is running";
     static const QString AC_SUBNET_WHITELIST_SETTING_PATH = "security.ac_subnet_whitelist";
