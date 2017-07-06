@@ -150,6 +150,7 @@ Rectangle {
             label: "Y: offset"
             minimumValue: -10
             stepSize: 0.0254
+            value: -0.05
             colorScheme: hifi.colorSchemes.dark
 
             onEditingFinished: {
@@ -165,6 +166,7 @@ Rectangle {
             minimumValue: -10
             stepSize: 0.0254
             decimals: 4
+            value: -0.05
             colorScheme: hifi.colorSchemes.dark
 
             onEditingFinished: {
