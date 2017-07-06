@@ -123,6 +123,8 @@ var SETTING_EASE_ON_FOCUS = "cameraEaseOnFocus";
 var SETTING_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE = "showLightsAndParticlesInEditMode";
 var SETTING_SHOW_ZONES_IN_EDIT_MODE = "showZonesInEditMode";
 
+var CREATE_ENABLED_ICON = "icons/tablet-icons/edit-i.svg";
+var CREATE_DISABLED_ICON = "icons/tablet-icons/edit-disabled.svg";
 
 // marketplace info, etc.  not quite ready yet.
 var SHOULD_SHOW_PROPERTY_MENU = false;
@@ -130,6 +132,7 @@ var INSUFFICIENT_PERMISSIONS_ERROR_MSG = "You do not have the necessary permissi
 var INSUFFICIENT_PERMISSIONS_IMPORT_ERROR_MSG = "You do not have the necessary permissions to place items on this domain.";
 
 var isActive = false;
+var createButton = null;
 
 var IMPORTING_SVO_OVERLAY_WIDTH = 144;
 var IMPORTING_SVO_OVERLAY_HEIGHT = 30;
@@ -397,14 +400,15 @@ var toolBar = (function () {
             }
         });
 
-        var hasEditPermissions = (Entities.canRez() || Entities.canRezTmp());
+        var createButtonIconRsrc = ((Entities.canRez() || Entities.canRezTmp()) ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON);
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         activeButton = tablet.addButton({
-            icon: (hasEditPermissions ? "icons/tablet-icons/edit-i.svg" : "icons/tablet-icons/edit-disabled.svg"),
+            icon: createButtonIconRsrc,
             activeIcon: "icons/tablet-icons/edit-a.svg",
             text: "CREATE",
             sortOrder: 10
         });
+        createButton = activeButton;
         tablet.screenChanged.connect(function (type, url) {
             if (isActive && (type !== "QML" || url !== "Edit.qml")) {
                 that.toggle();
@@ -412,8 +416,8 @@ var toolBar = (function () {
         });
         tablet.fromQml.connect(fromQml);
 
-        activeButton.clicked.connect(function() {
-            if ( ! hasEditPermissions ){
+        createButton.clicked.connect(function() {
+            if ( ! (Entities.canRez() || Entities.canRezTmp()) ) {
                 Window.notifyEditError(INSUFFICIENT_PERMISSIONS_ERROR_MSG);
                 return;
             }
@@ -766,8 +770,38 @@ function handleOverlaySelectionToolUpdates(channel, message, sender) {
     }
 }
 
+// Handles any edit mode updates required when domains have switched
+function handleDomainChange() {
+    if ( (createButton === null) || (createButton === undefined) ){
+        //--EARLY EXIT--( nothing to safely update )
+        return;
+    }
+
+    var hasRezPermissions = (Entities.canRez() || Entities.canRezTmp());
+    createButton.editProperties({
+        icon: (hasRezPermissions ? CREATE_ENABLED_ICON : CREATE_DISABLED_ICON),
+    });
+}
+
+function handleMessagesReceived(channel, message, sender) {
+    switch( channel ){
+        case 'entityToolUpdates': {
+            handleOverlaySelectionToolUpdates( channel, message, sender );
+            break;
+        }
+        case 'Toolbar-DomainChanged': {
+            handleDomainChange();
+            break;
+        }
+        default: {
+            return;
+        }
+    }
+}
+
+Messages.subscribe('Toolbar-DomainChanged');
 Messages.subscribe("entityToolUpdates");
-Messages.messageReceived.connect(handleOverlaySelectionToolUpdates);
+Messages.messageReceived.connect(handleMessagesReceived);
 
 var mouseHasMovedSincePress = false;
 var mousePressStartTime = 0;
@@ -1195,6 +1229,8 @@ Script.scriptEnding.connect(function () {
 
     Messages.messageReceived.disconnect(handleOverlaySelectionToolUpdates);
     Messages.unsubscribe("entityToolUpdates");
+    Messages.unsubscribe("Toolbar-DomainChanged");
+    createButton = null;
 });
 
 var lastOrientation = null;
