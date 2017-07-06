@@ -227,9 +227,9 @@ StackView {
                 MouseArea {
                     anchors.fill: parent;
                     onClicked: {
-                        if (!addressLine.focus || HMD.active) {
-                            addressLine.focus = true;
-                            addressLine.forceActiveFocus();
+                        addressLine.focus = true;
+                        addressLine.forceActiveFocus();
+                        if (HMD.active) {
                             addressBarDialog.keyboardEnabled = HMD.active;
                         }
                         tabletRoot.playButtonClickSound();
