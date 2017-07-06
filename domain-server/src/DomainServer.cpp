@@ -42,7 +42,6 @@
 #include <NumericalConstants.h>
 #include <Trace.h>
 #include <StatTracker.h>
-#include <UserActivityLogger.h>
 
 #include "DomainServerNodeData.h"
 #include "NodeConnectionData.h"
@@ -75,9 +74,6 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _iceServerPort(ICE_SERVER_DEFAULT_PORT)
 {
     parseCommandLine();
-
-    // the DS should not send any user activity events so disable the logger ASAP
-    UserActivityLogger::getInstance().disable(true);
 
     DependencyManager::set<tracing::Tracer>();
     DependencyManager::set<StatTracker>();

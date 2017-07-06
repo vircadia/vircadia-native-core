@@ -16,7 +16,6 @@
 #include <HifiConfigVariantMap.h>
 #include <SharedUtil.h>
 #include <ShutdownEventListener.h>
-#include <UserActivityLogger.h>
 
 #include "Assignment.h"
 #include "AssignmentClient.h"
@@ -207,9 +206,6 @@ AssignmentClientApp::AssignmentClientApp(int argc, char* argv[]) :
     QThread::currentThread()->setObjectName("main thread");
 
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
-
-    // the ACs should not send any user activity events so disable the logger ASAP
-    UserActivityLogger::getInstance().disable(true);
 
     if (numForks || minForks || maxForks) {
         AssignmentClientMonitor* monitor =  new AssignmentClientMonitor(numForks, minForks, maxForks,
