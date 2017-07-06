@@ -40,6 +40,7 @@ namespace render {
    template <> const ItemKey payloadGetKey(const PolyVoxPayload::Pointer& payload);
    template <> const Item::Bound payloadGetBound(const PolyVoxPayload::Pointer& payload);
    template <> void payloadRender(const PolyVoxPayload::Pointer& payload, RenderArgs* args);
+   template <> bool payloadMustFade(const PolyVoxPayload::Pointer& payload);
 }
 
 
@@ -147,7 +148,7 @@ public:
 
     void setVolDataDirty() { withWriteLock([&] { _volDataDirty = true; _meshReady = false; }); }
 
-    // Transparent polyvox didn't seem to be working so disable for now
+    // Transparent polyvox didn't seem to be working so disable for now.
     bool isTransparent() override { return false; }
 
     bool getMeshes(MeshProxyList& result) override;
@@ -170,8 +171,9 @@ private:
 
     const int MATERIAL_GPU_SLOT = 3;
     render::ItemID _myItem{ render::Item::INVALID_ITEM_ID };
-    static gpu::PipelinePointer _pipeline;
-    static gpu::PipelinePointer _wireframePipeline;
+
+    static gpu::PipelinePointer _pipelines[2];
+    static gpu::PipelinePointer _wireframePipelines[2];
 
     ShapeInfo _shapeInfo;
 
@@ -205,5 +207,6 @@ private:
 
 bool inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,
                   int x, int y, int z);
+
 
 #endif // hifi_RenderablePolyVoxEntityItem_h

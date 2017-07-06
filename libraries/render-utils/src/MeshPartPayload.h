@@ -22,10 +22,7 @@
 #include <model/Geometry.h>
 
 #include "Model.h"
-
-const uint8_t FADE_WAITING_TO_START = 0;
-const uint8_t FADE_IN_PROGRESS = 1;
-const uint8_t FADE_COMPLETE = 2;
+#include "FadeEffect.h"
 
 class Model;
 
@@ -95,13 +92,12 @@ public:
             const Transform& boundTransform,
             const gpu::BufferPointer& buffer);
 
-    float computeFadeAlpha();
-
     // Render Item interface
     render::ItemKey getKey() const override;
     int getLayer() const;
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) override;
+    bool mustFade() const;
 
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;
@@ -122,8 +118,16 @@ public:
     bool _materialNeedsUpdate { true };
 
 private:
-    quint64 _fadeStartTime { 0 };
-    uint8_t _fadeState { FADE_WAITING_TO_START };
+
+    enum State : uint8_t {
+        STATE_WAITING_TO_START = 0,
+        STATE_IN_PROGRESS = 1,
+        STATE_COMPLETE = 2,
+    };
+
+    mutable quint64 _fadeStartTime { 0 };
+    mutable State _fadeState { STATE_WAITING_TO_START } ;
+
 };
 
 namespace render {
@@ -132,6 +136,7 @@ namespace render {
     template <> int payloadGetLayer(const ModelMeshPartPayload::Pointer& payload);
     template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload);
     template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args);
+    template <> bool payloadMustFade(const ModelMeshPartPayload::Pointer& payload);
 }
 
 #endif // hifi_MeshPartPayload_h

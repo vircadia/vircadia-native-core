@@ -16,6 +16,7 @@
 #include <StencilMaskPass.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
+#include <FadeEffect.h>
 
 #include <render-utils/simple_vert.h>
 #include <render-utils/simple_frag.h>
@@ -122,11 +123,13 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
             DependencyManager::get<GeometryCache>()->renderShape(batch, MAPPING[_shape]);
         }
     } else {
-        // FIXME, support instanced multi-shape rendering using multidraw indirect
         color.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
+        // FIXME, support instanced multi-shape rendering using multidraw indirect
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto pipeline = color.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
         
+        assert(pipeline != nullptr);
+
         if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
             geometryCache->renderWireShapeInstance(batch, MAPPING[_shape], color, pipeline);
         } else {

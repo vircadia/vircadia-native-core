@@ -15,6 +15,7 @@
 
 #include "DeferredLightingEffect.h"
 #include "EntityItem.h"
+#include "FadeEffect.h"
 
 using namespace render;
 
@@ -318,6 +319,11 @@ template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer&
 template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args) {
     return payload->render(args);
 }
+
+template <> bool payloadMustFade(const ModelMeshPartPayload::Pointer& payload) {
+    return payload->mustFade();
+}
+
 }
 
 ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int _meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform) :
@@ -327,6 +333,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int _meshIndex, i
     assert(model && model->isLoaded());
     _model = model;
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
+
     updateMeshPart(modelMesh, partIndex);
 
     updateTransform(transform, offsetTransform);
@@ -389,10 +396,6 @@ ItemKey ModelMeshPartPayload::getKey() const {
             if (matKey.isTranslucent()) {
                 builder.withTransparent();
             }
-        }
-
-        if (_fadeState != FADE_COMPLETE) {
-            builder.withTransparent();
         }
     }
     return builder.build();
@@ -465,7 +468,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     ShapeKey::Builder builder;
     builder.withMaterial();
 
-    if (isTranslucent || _fadeState != FADE_COMPLETE) {
+    if (isTranslucent) {
         builder.withTranslucent();
     }
     if (hasTangents) {
@@ -485,6 +488,9 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     }
     if (wireframe) {
         builder.withWireframe();
+    }
+    if (_fadeState != STATE_COMPLETE) {
+        builder.withFade();
     }
     return builder.build();
 }
@@ -510,9 +516,8 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
         }
     }
 
-    if (_fadeState != FADE_COMPLETE) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, computeFadeAlpha());
-    } else if (!_hasColorAttrib) {
+    // TODO: Get rid of that extra call
+    if (!_hasColorAttrib) {
         batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
 }
@@ -525,26 +530,8 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
     batch.setModelTransform(_transform);
 }
 
-float ModelMeshPartPayload::computeFadeAlpha() {
-    if (_fadeState == FADE_WAITING_TO_START) {
-        return 0.0f;
-    }
-    float fadeAlpha = 1.0f;
-    const float INV_FADE_PERIOD = 1.0f / (float)(1 * USECS_PER_SECOND);
-    float fraction = (float)(usecTimestampNow() - _fadeStartTime) * INV_FADE_PERIOD;
-    if (fraction < 1.0f) {
-        fadeAlpha = Interpolate::simpleNonLinearBlend(fraction);
-    }
-    if (fadeAlpha >= 1.0f) {
-        _fadeState = FADE_COMPLETE;
-        // when fade-in completes we flag model for one last "render item update"
-        ModelPointer model = _model.lock();
-        if (model) {
-            model->setRenderItemsNeedUpdate();
-        }
-        return 1.0f;
-    }
-    return Interpolate::simpleNonLinearBlend(fadeAlpha);
+bool ModelMeshPartPayload::mustFade() const {
+    return _fadeState != STATE_COMPLETE;
 }
 
 void ModelMeshPartPayload::render(RenderArgs* args) {
@@ -555,14 +542,14 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
         return; // bail asap
     }
 
-    if (_fadeState == FADE_WAITING_TO_START) {
+    if (_fadeState == STATE_WAITING_TO_START) {
         if (model->isLoaded()) {
             // FIXME as far as I can tell this is the ONLY reason render-util depends on entities.
             if (EntityItem::getEntitiesShouldFadeFunction()()) {
                 _fadeStartTime = usecTimestampNow();
-                _fadeState = FADE_IN_PROGRESS;
+                _fadeState = STATE_IN_PROGRESS;
             } else {
-                _fadeState = FADE_COMPLETE;
+                _fadeState = STATE_COMPLETE;
             }
             model->setRenderItemsNeedUpdate();
         } else {
@@ -593,6 +580,17 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
 
     // apply material properties
     bindMaterial(batch, locations, args->_enableTexturing);
+
+    if (args->_enableFade) {
+        // Apply fade effect
+        if (!FadeRenderJob::bindPerItem(batch, args, _transform.getTranslation(), _fadeStartTime)) {
+            _fadeState = STATE_COMPLETE;
+        }
+    }
+ /*   else {
+        // TODO : very ugly way to update the fade state. Need to improve this with global fade manager.
+        _fadeState = STATE_COMPLETE;
+    }*/
 
     args->_details._materialSwitches++;
 
