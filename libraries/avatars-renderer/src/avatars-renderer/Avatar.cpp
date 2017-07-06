@@ -1009,12 +1009,12 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
 }
 
 int Avatar::getJointIndex(const QString& name) const {
-    if (QThread::currentThread() != thread()) {
+ /*   if (QThread::currentThread() != thread()) {
         int result;
         BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getJointIndex",
             Q_RETURN_ARG(int, result), Q_ARG(const QString&, name));
         return result;
-    }
+    } */
     int result = getFauxJointIndex(name);
     if (result != -1) {
         return result;
@@ -1023,34 +1023,34 @@ int Avatar::getJointIndex(const QString& name) const {
 }
 
 QStringList Avatar::getJointNames() const {
-    if (QThread::currentThread() != thread()) {
+/*    if (QThread::currentThread() != thread()) {
         QStringList result;
         BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getJointNames",
             Q_RETURN_ARG(QStringList, result));
         return result;
-    }
+    }*/
     return _skeletonModel->isActive() ? _skeletonModel->getFBXGeometry().getJointNames() : QStringList();
 }
 
 glm::vec3 Avatar::getJointPosition(int index) const {
-    if (QThread::currentThread() != thread()) {
+/*    if (QThread::currentThread() != thread()) {
         glm::vec3 position;
         BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getJointPosition",
                                   Q_RETURN_ARG(glm::vec3, position), Q_ARG(const int, index));
         return position;
-    }
+    }*/
     glm::vec3 position;
     _skeletonModel->getJointPositionInWorldFrame(index, position);
     return position;
 }
 
 glm::vec3 Avatar::getJointPosition(const QString& name) const {
-    if (QThread::currentThread() != thread()) {
+/*    if (QThread::currentThread() != thread()) {
         glm::vec3 position;
         BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getJointPosition",
                                   Q_RETURN_ARG(glm::vec3, position), Q_ARG(const QString&, name));
         return position;
-    }
+    }*/
     glm::vec3 position;
     _skeletonModel->getJointPositionInWorldFrame(getJointIndex(name), position);
     return position;
