@@ -38,8 +38,7 @@ private slots:
     void notifyPacketVersionMismatch();
 
 private:
-    void connectToDomain(QString domainServerAddress);
-
+    void go();
     NodeList* _nodeList;
     void timedOut();
     void uploadAsset();
@@ -56,8 +55,13 @@ private:
 
     int _listenPort { INVALID_PORT };
 
+    QString _domainServerAddress;
+
     QString _username;
     QString _password;
+
+    bool _waitingForLogin { false };
+    bool _waitingForNode { true };
 
     QTimer* _domainCheckInTimer { nullptr };
     QTimer* _timeoutTimer { nullptr };

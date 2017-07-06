@@ -27,6 +27,7 @@
 #include "ATPClientApp.h"
 
 #define HIGH_FIDELITY_ATP_CLIENT_USER_AGENT "Mozilla/5.0 (HighFidelityATPClient)"
+#define TIMEOUT_MILLISECONDS 8000
 
 ATPClientApp::ATPClientApp(int argc, char* argv[]) :
     QCoreApplication(argc, argv)
@@ -116,30 +117,21 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
 
         _username = pieces[0];
         _password = pieces[1];
+        _waitingForLogin = true;
     }
 
     if (parser.isSet(listenPortOption)) {
         _listenPort = parser.value(listenPortOption).toInt();
     }
 
-    QString domainServerAddress = QString("127.0.0.1") + ":" + QString::number(domainPort);
+    _domainServerAddress = QString("127.0.0.1") + ":" + QString::number(domainPort);
     if (parser.isSet(domainAddressOption)) {
-        domainServerAddress = parser.value(domainAddressOption);
-        connectToDomain(domainServerAddress);
+        _domainServerAddress = parser.value(domainAddressOption);
     } else if (!_url.host().isEmpty()) {
         QUrl domainURL;
         domainURL.setScheme("hifi");
         domainURL.setHost(_url.host());
-        connectToDomain(domainURL.toString());
-    } else {
-        connectToDomain(domainServerAddress);
-    }
-}
-
-void ATPClientApp::connectToDomain(QString domainServerAddress) {
-
-    if (_verbose) {
-        qDebug() << "domain-server address is" << domainServerAddress;
+        _domainServerAddress = domainURL.toString();
     }
 
     Setting::init();
@@ -149,39 +141,31 @@ void ATPClientApp::connectToDomain(QString domainServerAddress) {
     DependencyManager::set<AddressManager>();
     DependencyManager::set<NodeList>(NodeType::Agent, _listenPort);
 
+    auto accountManager = DependencyManager::get<AccountManager>();
+    accountManager->setIsAgent(true);
+    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
+
     auto nodeList = DependencyManager::get<NodeList>();
-    nodeList->startThread();
 
     // setup a timer for domain-server check ins
     _domainCheckInTimer = new QTimer(nodeList.data());
     connect(_domainCheckInTimer, &QTimer::timeout, nodeList.data(), &NodeList::sendDomainServerCheckIn);
     _domainCheckInTimer->start(DOMAIN_SERVER_CHECK_IN_MSECS);
 
-    const DomainHandler& domainHandler = nodeList->getDomainHandler();
+    // start the nodeThread so its event loop is running
+    // (must happen after the checkin timer is created with the nodelist as it's parent)
+    nodeList->startThread();
 
+    const DomainHandler& domainHandler = nodeList->getDomainHandler();
     connect(&domainHandler, SIGNAL(hostnameChanged(const QString&)), SLOT(domainChanged(const QString&)));
-    // connect(&domainHandler, SIGNAL(resetting()), SLOT(resettingDomain()));
-    // connect(&domainHandler, SIGNAL(disconnectedFromDomain()), SLOT(clearDomainOctreeDetails()));
     connect(&domainHandler, &DomainHandler::domainConnectionRefused, this, &ATPClientApp::domainConnectionRefused);
 
     connect(nodeList.data(), &NodeList::nodeAdded, this, &ATPClientApp::nodeAdded);
     connect(nodeList.data(), &NodeList::nodeKilled, this, &ATPClientApp::nodeKilled);
     connect(nodeList.data(), &NodeList::nodeActivated, this, &ATPClientApp::nodeActivated);
-    // connect(nodeList.data(), &NodeList::uuidChanged, getMyAvatar(), &MyAvatar::setSessionUUID);
-    // connect(nodeList.data(), &NodeList::uuidChanged, this, &ATPClientApp::setSessionUUID);
     connect(nodeList.data(), &NodeList::packetVersionMismatch, this, &ATPClientApp::notifyPacketVersionMismatch);
-
     nodeList->addSetOfNodeTypesToNodeInterestSet(NodeSet() << NodeType::AudioMixer << NodeType::AvatarMixer
                                                  << NodeType::EntityServer << NodeType::AssetServer << NodeType::MessagesMixer);
-
-    DependencyManager::get<AddressManager>()->handleLookupString(domainServerAddress, false);
-
-    auto assetClient = DependencyManager::set<AssetClient>();
-    assetClient->init();
-
-    auto accountManager = DependencyManager::get<AccountManager>();
-    accountManager->setIsAgent(true);
-    accountManager->setAuthURL(NetworkingConstants::METAVERSE_SERVER_URL);
 
     if (_verbose) {
         QString username = accountManager->getAccountInfo().getUsername();
@@ -189,30 +173,58 @@ void ATPClientApp::connectToDomain(QString domainServerAddress) {
     }
 
     if (!_username.isEmpty()) {
+
+        connect(accountManager.data(), &AccountManager::newKeypair, this, [&](){
+            if (_verbose) {
+                qDebug() << "new keypair has been created.";
+            }
+        });
+
         connect(accountManager.data(), &AccountManager::loginComplete, this, [&](){
             if (_verbose) {
                 qDebug() << "login successful";
             }
+            _waitingForLogin = false;
+            go();
         });
         connect(accountManager.data(), &AccountManager::loginFailed, this, [&](){
             qDebug() << "login failed.";
+            _waitingForLogin = false;
+            go();
         });
         accountManager->requestAccessToken(_username, _password);
     }
 
+    auto assetClient = DependencyManager::set<AssetClient>();
+    assetClient->init();
+
+    if (_verbose) {
+        qDebug() << "domain-server address is" << _domainServerAddress;
+    }
+
+
+    DependencyManager::get<AddressManager>()->handleLookupString(_domainServerAddress, false);
+
     QTimer* _timeoutTimer = new QTimer(this);
     _timeoutTimer->setSingleShot(true);
     connect(_timeoutTimer, &QTimer::timeout, this, &ATPClientApp::timedOut);
-    _timeoutTimer->start(4000);
+    _timeoutTimer->start(TIMEOUT_MILLISECONDS);
 }
 
 ATPClientApp::~ATPClientApp() {
-    delete _domainCheckInTimer;
-    delete _timeoutTimer;
+    if (_domainCheckInTimer) {
+        QMetaObject::invokeMethod(_domainCheckInTimer, "deleteLater", Qt::QueuedConnection);
+    }
+    if (_timeoutTimer) {
+        QMetaObject::invokeMethod(_timeoutTimer, "deleteLater", Qt::QueuedConnection);
+    }
 }
 
 void ATPClientApp::domainConnectionRefused(const QString& reasonMessage, int reasonCodeInt, const QString& extraInfo) {
-    qDebug() << "domainConnectionRefused";
+    // this is non-fatal if we are trying to get an authenticated connection -- it will be retried.
+    if (_verbose) {
+        qDebug() << "domainConnectionRefused";
+    }
 }
 
 void ATPClientApp::domainChanged(const QString& domainHostname) {
@@ -228,25 +240,36 @@ void ATPClientApp::nodeAdded(SharedNodePointer node) {
 }
 
 void ATPClientApp::nodeActivated(SharedNodePointer node) {
-    if (node->getType() == NodeType::AssetServer) {
-        auto path = _url.path();
+    if (!_waitingForLogin && node->getType() == NodeType::AssetServer) {
+        _waitingForNode = false;
+        go();
+    }
+}
 
-        if (_verbose) {
-            qDebug() << "path is " << path;
-        }
+void ATPClientApp::go() {
+    if (_waitingForLogin || _waitingForNode) {
+        return;
+    }
 
-        if (!_localUploadFile.isEmpty()) {
-            uploadAsset();
-        } else if (path == "/") {
-            listAssets();
-        } else {
-            lookupAsset();
-        }
+    auto path = _url.path();
+
+    if (_verbose) {
+        qDebug() << "path is " << path;
+    }
+
+    if (!_localUploadFile.isEmpty()) {
+        uploadAsset();
+    } else if (path == "/") {
+        listAssets();
+    } else {
+        lookupAsset();
     }
 }
 
 void ATPClientApp::nodeKilled(SharedNodePointer node) {
-    qDebug() << "nodeKilled";
+    if (_verbose) {
+        qDebug() << "nodeKilled" << node->getType();
+    }
 }
 
 void ATPClientApp::timedOut() {
@@ -289,8 +312,11 @@ void ATPClientApp::setMapping(QString hash) {
     connect(request, &SetMappingRequest::finished, this, [=](SetMappingRequest* request) mutable {
         if (request->getError() != SetMappingRequest::NoError) {
             qDebug() << "upload succeeded, but couldn't set mapping: " << request->getErrorString();
+        } else if (_verbose) {
+            qDebug() << "mapping set.";
         }
         request->deleteLater();
+        finish(0);
     });
 
     request->start();
@@ -311,6 +337,7 @@ void ATPClientApp::listAssets() {
             qDebug() << "error -- " << request->getError() << " -- " << request->getErrorString();
         }
         request->deleteLater();
+        finish(0);
     });
     request->start();
 }
