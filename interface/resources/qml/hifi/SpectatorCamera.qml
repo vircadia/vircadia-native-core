@@ -227,7 +227,7 @@ Rectangle {
             height: 250;
             color: spectatorCameraPreview.visible ? "transparent" : "black";
 
-            
+
 
             AnimatedImage {
                 source: "../../images/static.gif"
@@ -235,7 +235,7 @@ Rectangle {
                 anchors.fill: parent;
                 opacity: 0.15;
             }
-            
+
             // Instructions (visible when display texture isn't set)
             FiraSansRegular {
                 id: spectatorCameraInstructions;
@@ -247,7 +247,7 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter;
                 verticalAlignment: Text.AlignVCenter;
             }
-            
+
             // Spectator Camera Preview
             Hifi.ResourceImageItem {
                 id: spectatorCameraPreview;
@@ -360,6 +360,8 @@ Rectangle {
             }
         break;
         case 'showPreviewTextureNotInstructions':
+            console.log('showPreviewTextureNotInstructions recvd', JSON.stringify(message));
+            spectatorCameraPreview.url = message.url;
             spectatorCameraPreview.visible = message.setting;
         break;
         default:
