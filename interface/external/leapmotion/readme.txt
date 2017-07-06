@@ -10,7 +10,7 @@ Interface has been tested with SDK versions:
 1. Copy the LeapSDK folders from the LeapDeveloperKit installation directory (Lib, Include) into the interface/externals/leapmotion folder.
    This readme.txt should be there as well.
    
-   The files neeeded in the folders are:
+   The files needed in the folders are:
    
    include/
    - Leap.h
@@ -21,8 +21,8 @@ Interface has been tested with SDK versions:
      x86/
      - Leap.dll
      - Leap.lib
-     - mscvcp120.dll (optional if you already have the Msdev 2012 SDK redistriuable installed)
-     - mscvcr120.dll (optional if you already have the Msdev 2012 SDK redistriuable installed)
+     - mscvcp120.dll (optional if you already have the Msdev 2012 SDK redistributable installed)
+     - mscvcr120.dll (optional if you already have the Msdev 2012 SDK redistributable installed)
    - lipLeap.dylib
      libc++/
      -libLeap.dylib

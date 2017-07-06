@@ -162,8 +162,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     _gatekeeper.preloadAllowedUserPublicKeys(); // so they can connect on first request
 
+    //send signal to DomainMetadata when descriptors changed
     _metadata = new DomainMetadata(this);
-
+    connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
+            _metadata, &DomainMetadata::descriptorsChanged);
 
     qDebug() << "domain-server is running";
     static const QString AC_SUBNET_WHITELIST_SETTING_PATH = "security.ac_subnet_whitelist";
@@ -221,6 +223,8 @@ void DomainServer::parseCommandLine() {
     const QCommandLineOption masterConfigOption("master-config", "Deprecated config-file option");
     parser.addOption(masterConfigOption);
 
+    const QCommandLineOption parentPIDOption(PARENT_PID_OPTION, "PID of the parent process", "parent-pid");
+    parser.addOption(parentPIDOption);
 
     if (!parser.parse(QCoreApplication::arguments())) {
         qWarning() << parser.errorText() << endl;
@@ -248,6 +252,17 @@ void DomainServer::parseCommandLine() {
         _overridingDomainID = QUuid(parser.value(domainIDOption));
         _overrideDomainID = true;
         qDebug() << "domain-server ID is" << _overridingDomainID;
+    }
+
+
+    if (parser.isSet(parentPIDOption)) {
+        bool ok = false;
+        int parentPID = parser.value(parentPIDOption).toInt(&ok);
+
+        if (ok) {
+            qDebug() << "Parent process PID is" << parentPID;
+            watchParentProcess(parentPID);
+        }
     }
 }
 

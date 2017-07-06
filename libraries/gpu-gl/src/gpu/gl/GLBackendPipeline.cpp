@@ -77,8 +77,14 @@ void GLBackend::do_setPipeline(const Batch& batch, size_t paramOffset) {
     if (_pipeline._invalidProgram) {
         glUseProgram(_pipeline._program);
         if (_pipeline._cameraCorrectionLocation != -1) {
-            auto cameraCorrectionBuffer = syncGPUObject(*_pipeline._cameraCorrectionBuffer._buffer);
+            gl::GLBuffer* cameraCorrectionBuffer = nullptr;
+            if (_transform._viewCorrectionEnabled) {
+                cameraCorrectionBuffer = syncGPUObject(*_pipeline._cameraCorrectionBuffer._buffer);
+            } else {
+                cameraCorrectionBuffer = syncGPUObject(*_pipeline._cameraCorrectionBufferIdentity._buffer);
+            }
             glBindBufferRange(GL_UNIFORM_BUFFER, _pipeline._cameraCorrectionLocation, cameraCorrectionBuffer->_id, 0, sizeof(CameraCorrection));
+
         }
         (void) CHECK_GL_ERROR();
         _pipeline._invalidProgram = false;

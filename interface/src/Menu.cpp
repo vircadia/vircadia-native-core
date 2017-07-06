@@ -566,9 +566,6 @@ Menu::Menu() {
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawHandControllers(bool)));
 
-    MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
-    addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
-
     // Developer > Entities >>>
     MenuWrapper* entitiesOptionsMenu = developerMenu->addMenu("Entities");
 
