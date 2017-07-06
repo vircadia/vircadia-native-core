@@ -480,6 +480,12 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     static const auto SUPPRESS_SETTINGS_RESET = "--suppress-settings-reset";
     bool suppressPrompt = cmdOptionExists(argc, const_cast<const char**>(argv), SUPPRESS_SETTINGS_RESET);
     bool previousSessionCrashed = CrashHandler::checkForResetSettings(runningMarkerExisted, suppressPrompt);
+    // get dir to use for cache
+    static const auto CACHE_SWITCH = "--cache";
+    QString cacheDir = getCmdOption(argc, const_cast<const char**>(argv), CACHE_SWITCH);
+    if (!cacheDir.isEmpty()) {
+        qApp->setProperty(hifi::properties::APP_LOCAL_DATA_PATH, cacheDir);
+    }
 
     Setting::init();
 
@@ -1218,8 +1224,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             settingsTimer->stop();
             // Delete it (this will trigger the thread destruction
             settingsTimer->deleteLater();
-            // Mark the settings thread as finished, so we know we can safely save in the main application 
-            // shutdown code 
+            // Mark the settings thread as finished, so we know we can safely save in the main application
+            // shutdown code
             _settingsGuard.trigger();
         });
 
