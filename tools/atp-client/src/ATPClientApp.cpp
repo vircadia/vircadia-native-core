@@ -202,7 +202,6 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
         qDebug() << "domain-server address is" << _domainServerAddress;
     }
 
-
     DependencyManager::get<AddressManager>()->handleLookupString(_domainServerAddress, false);
 
     QTimer* _timeoutTimer = new QTimer(this);
