@@ -248,7 +248,21 @@
             SEARCH_SPHERE_SIZE = 0.013,  // Per handControllerGrab.js multiplied by 1.2 per handControllerGrab.js.
             SEARCH_SPHERE_FOLLOW_RATE = 0.5,  // Per handControllerGrab.js.
             COLORS_GRAB_SEARCHING_HALF_SQUEEZE = { red: 10, green: 10, blue: 255 },  // Per handControllgerGrab.js.
-            COLORS_GRAB_SEARCHING_FULL_SQUEEZE = { red: 250, green: 10, blue: 10 };  // Per handControllgerGrab.js.
+            COLORS_GRAB_SEARCHING_FULL_SQUEEZE = { red: 250, green: 10, blue: 10 },  // Per handControllgerGrab.js.
+            COLORS_GRAB_SEARCHING_HALF_SQUEEZE_BRIGHT,
+            COLORS_GRAB_SEARCHING_FULL_SQUEEZE_BRIGHT,
+            BRIGHT_POW = 0.06;  // Per handControllgerGrab.js.
+
+        function colorPow(color, power) {  // Per handControllerGrab.js.
+            return {
+                red: Math.pow(color.red / 255, power) * 255,
+                green: Math.pow(color.green / 255, power) * 255,
+                blue: Math.pow(color.blue / 255, power) * 255
+            };
+        }
+
+        COLORS_GRAB_SEARCHING_HALF_SQUEEZE_BRIGHT = colorPow(COLORS_GRAB_SEARCHING_HALF_SQUEEZE, BRIGHT_POW);
+        COLORS_GRAB_SEARCHING_FULL_SQUEEZE_BRIGHT = colorPow(COLORS_GRAB_SEARCHING_FULL_SQUEEZE, BRIGHT_POW);
 
         hand = side;
         laserLine = Overlays.addOverlay("line3d", {
@@ -272,14 +286,6 @@
             visible: false
         });
 
-        function colorPow(color, power) {
-            return {
-                red: Math.pow(color.red / 255, power) * 255,
-                green: Math.pow(color.green / 255, power) * 255,
-                blue: Math.pow(color.blue / 255, power) * 255
-            };
-        }
-
         function updateLine(start, end, color) {
             Overlays.editOverlay(laserLine, {
                 start: start,
@@ -289,12 +295,10 @@
             });
         }
 
-        function updateSphere(location, size, color) {
-            var rotation,
-                brightColor;
+        function updateSphere(location, size, color, brightColor) {
+            var rotation;
 
             rotation = Quat.lookAt(location, Camera.getPosition(), Vec3.UP);
-            brightColor = colorPow(color, 0.06);
 
             Overlays.editOverlay(laserSphere, {
                 position: location,
@@ -309,15 +313,17 @@
         function update(origin, direction, distance, isClicked) {
             var searchTarget,
                 sphereSize,
-                color;
+                color,
+                brightColor;
 
             searchDistance = SEARCH_SPHERE_FOLLOW_RATE * searchDistance + (1.0 - SEARCH_SPHERE_FOLLOW_RATE) * distance;
             searchTarget = Vec3.sum(origin, Vec3.multiply(searchDistance, direction));
             sphereSize = SEARCH_SPHERE_SIZE * searchDistance;
             color = isClicked ? COLORS_GRAB_SEARCHING_FULL_SQUEEZE : COLORS_GRAB_SEARCHING_HALF_SQUEEZE;
+            brightColor = isClicked ? COLORS_GRAB_SEARCHING_FULL_SQUEEZE_BRIGHT : COLORS_GRAB_SEARCHING_HALF_SQUEEZE_BRIGHT;
 
             updateLine(origin, searchTarget, color);
-            updateSphere(searchTarget, sphereSize, color);
+            updateSphere(searchTarget, sphereSize, color, brightColor);
         }
 
         function clear() {
