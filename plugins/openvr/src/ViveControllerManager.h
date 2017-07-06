@@ -177,6 +177,10 @@ private:
         float _leftHapticDuration { 0.0f };
         float _rightHapticStrength { 0.0f };
         float _rightHapticDuration { 0.0f };
+        float _headPuckYOffset { 0.0f };
+        float _headPuckZOffset { 0.0f };
+        float _handPuckYOffset { 0.0f };
+        float _handPuckZOffset { 0.0f };
         bool _triggersPressedHandled { false };
         bool _calibrated { false };
         bool _timeTilCalibrationSet { false };
@@ -190,9 +194,12 @@ private:
     };
 
     void renderHand(const controller::Pose& pose, gpu::Batch& batch, int sign);
-
+    bool isDesktopMode();
     bool _registeredWithInputMapper { false };
     bool _modelLoaded { false };
+    bool _resetMatCalculated { false };
+    bool _desktopMode { false };
+    glm::mat4 _resetMat { glm::mat4() };
     model::Geometry _modelGeometry;
     gpu::TexturePointer _texture;
 
