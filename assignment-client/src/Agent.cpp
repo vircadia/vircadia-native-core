@@ -23,6 +23,7 @@
 #include <AvatarHashMap.h>
 #include <AudioInjectorManager.h>
 #include <AssetClient.h>
+#include <DebugDraw.h>
 #include <LocationScriptingInterface.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
@@ -80,6 +81,8 @@ Agent::Agent(ReceivedMessage& message) :
 
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<UsersScriptingInterface>();
+    
+    DebugDraw::getInstance();
 
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();

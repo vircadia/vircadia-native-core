@@ -16,6 +16,7 @@
 #include <AudioConstants.h>
 #include <AudioInjectorManager.h>
 #include <ClientServerUtils.h>
+#include <DebugDraw.h>
 #include <EntityNodeData.h>
 #include <EntityScriptingInterface.h>
 #include <LogHandler.h>
@@ -66,6 +67,8 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
 
     DependencyManager::set<ScriptCache>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::ENTITY_SERVER_SCRIPT);
+
+    DebugDraw::getInstance();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
     packetReceiver.registerListenerForTypes({ PacketType::OctreeStats, PacketType::EntityData, PacketType::EntityErase },
