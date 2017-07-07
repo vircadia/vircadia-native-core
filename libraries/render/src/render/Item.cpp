@@ -13,6 +13,8 @@
 #include <numeric>
 #include "gpu/Batch.h"
 
+#include "TransitionStage.h"
+
 using namespace render;
 
 const Item::Status::Value Item::Status::Value::INVALID = Item::Status::Value();

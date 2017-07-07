@@ -21,13 +21,13 @@
 
 <@include Fade.slh@>
 
-out vec3 _color;
 out float _alpha;
 out vec2 _texCoord0;
 out vec2 _texCoord1;
 out vec4 _position;
 out vec4 _worldFadePosition;
 out vec3 _normal;
+out vec3 _color;
 
 void main(void) {
     _color = colorToLinearRGB(inColor.xyz);

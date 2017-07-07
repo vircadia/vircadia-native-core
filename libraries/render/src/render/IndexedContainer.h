@@ -12,6 +12,7 @@
 #ifndef hifi_render_IndexedContainer_h
 #define hifi_render_IndexedContainer_h
 
+#include <cassert>
 #include <vector>
 
 namespace render {

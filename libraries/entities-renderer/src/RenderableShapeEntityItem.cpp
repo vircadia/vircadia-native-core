@@ -130,9 +130,9 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
         assert(pipeline != nullptr);
 
         if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
-            geometryCache->renderWireShapeInstance(batch, MAPPING[_shape], color, pipeline);
+            geometryCache->renderWireShapeInstance(args, batch, MAPPING[_shape], color, pipeline);
         } else {
-            geometryCache->renderSolidShapeInstance(batch, MAPPING[_shape], color, pipeline);
+            geometryCache->renderSolidShapeInstance(args, batch, MAPPING[_shape], color, pipeline);
         }
     }
 

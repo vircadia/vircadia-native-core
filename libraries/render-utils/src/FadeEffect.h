@@ -179,8 +179,6 @@ public:
     render::ShapePipeline::BatchSetter getBatchSetter() const;
     render::ShapePipeline::ItemSetter getItemSetter() const;
 
-    static float computeFadePercent(quint64 startTime);
-
 private:
 
 #include "Fade_shared.slh"
@@ -198,7 +196,6 @@ private:
     void update(const Config& config, const render::ScenePointer& scene, render::Transition& transition, const double deltaTime) const;
     float computeElementEnterThreshold(double time, const double period, FadeConfig::Timing timing) const;
 
-    void updateFadeEdit(const render::RenderContextPointer& renderContext, const render::ItemBound& itemBounds);
     const render::Item* findNearestItem(const render::RenderContextPointer& renderContext, const render::Varying& input, float& minIsectDistance) const;
 };
 

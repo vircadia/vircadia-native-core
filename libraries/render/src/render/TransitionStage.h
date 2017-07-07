@@ -11,16 +11,19 @@
 #ifndef hifi_render_TransitionStage_h
 #define hifi_render_TransitionStage_h
 
-#include <model/Stage.h>
+#include "Stage.h"
 #include "IndexedContainer.h"
-
+#include "Engine.h"
 #include "Transition.h"
 
 namespace render {
 
 	// Transition stage to set up Transition-related effects
-	class TransitionStage {
+	class TransitionStage : public render::Stage {
 	public:
+
+        static const std::string& getName() { return _name; }
+
 		using Index = indexed_container::Index;
 		static const Index INVALID_INDEX{ indexed_container::INVALID_INDEX };
         using TransitionIdList = indexed_container::Indices;
@@ -43,10 +46,22 @@ namespace render {
 
         using Transitions = indexed_container::IndexedVector<Transition>;
 
+        static std::string _name;
+
 		Transitions _transitions;
         TransitionIdList _activeTransitionIds;
 	};
 	using TransitionStagePointer = std::shared_ptr<TransitionStage>;
+
+    class TransitionStageSetup {
+    public:
+        using JobModel = render::Job::Model<TransitionStageSetup>;
+
+        TransitionStageSetup();
+        void run(const RenderContextPointer& renderContext);
+
+    protected:
+    };
 
 }
 

@@ -50,9 +50,9 @@ void Sphere3DOverlay::render(RenderArgs* args) {
         }
 
         if (_isSolid) {
-            geometryCache->renderSolidSphereInstance(*batch, sphereColor, pipeline);
+            geometryCache->renderSolidSphereInstance(args, *batch, sphereColor, pipeline);
         } else {
-            geometryCache->renderWireSphereInstance(*batch, sphereColor, pipeline);
+            geometryCache->renderWireSphereInstance(args, *batch, sphereColor, pipeline);
         }
     }
 }

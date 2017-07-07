@@ -18,9 +18,10 @@
 
 <@func declareFadeFragment()@>
 
-<@include Fade_shared.slh@>
 
 #define EVENT_CATEGORY_COUNT    5
+
+<@include Fade_shared.slh@>
 
 uniform fadeParametersBuffer {
     FadeParameters fadeParameters[EVENT_CATEGORY_COUNT];

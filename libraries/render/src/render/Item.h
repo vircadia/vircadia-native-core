@@ -27,9 +27,11 @@
 
 #include "model/Material.h"
 #include "ShapePipeline.h"
-#include "TransitionStage.h"
 
 namespace render {
+
+typedef int32_t Index;
+const Index INVALID_INDEX{ -1 };
 
 class Context;
 
@@ -375,14 +377,14 @@ public:
     // Access the status
     const StatusPointer& getStatus() const { return _payload->getStatus(); }
 
-    void setTransitionId(TransitionStage::Index id) { _transitionId = id; }
-    TransitionStage::Index getTransitionId() const { return _transitionId; }
+    void setTransitionId(Index id) { _transitionId = id; }
+    Index getTransitionId() const { return _transitionId; }
 
 protected:
     PayloadPointer _payload;
     ItemKey _key;
     ItemCell _cell{ INVALID_CELL };
-    TransitionStage::Index _transitionId{ TransitionStage::INVALID_INDEX };
+    Index _transitionId{ INVALID_INDEX };
 
     friend class Scene;
 };

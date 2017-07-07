@@ -4,6 +4,8 @@
 
 using namespace render;
 
+std::string TransitionStage::_name("Transition");
+
 TransitionStage::Index TransitionStage::addTransition(ItemID itemId, Transition::Type type) {
     Transition transition;
     Index id;
@@ -23,3 +25,15 @@ void TransitionStage::removeTransition(Index index) {
     }
     _transitions.freeElement(index);
 }
+
+TransitionStageSetup::TransitionStageSetup() {
+}
+
+void TransitionStageSetup::run(const RenderContextPointer& renderContext) {
+    auto stage = renderContext->_scene->getStage(TransitionStage::getName());
+    if (!stage) {
+        stage = std::make_shared<TransitionStage>();
+        renderContext->_scene->resetStage(TransitionStage::getName(), stage);
+    }
+}
+

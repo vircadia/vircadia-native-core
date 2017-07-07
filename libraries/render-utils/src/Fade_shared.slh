@@ -20,3 +20,8 @@ struct FadeParameters
 	FLOAT32   _baseLevel;
 	INT32     _isInverted;
 };
+
+    // <@if 1@>
+    // Trigger Scribe include 
+    // <@endif@> <!def that !> 
+//

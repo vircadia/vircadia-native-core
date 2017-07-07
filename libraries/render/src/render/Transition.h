@@ -8,8 +8,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#ifndef hifi_render_utils_Transition_h
-#define hifi_render_utils_Transition_h
+#ifndef hifi_render_Transition_h
+#define hifi_render_Transition_h
 
 #include "Item.h"
 
@@ -43,4 +43,4 @@ namespace render {
     typedef std::shared_ptr<Transition> TransitionPointer;
 }
 
-#endif
+#endif // hifi_render_Transition_h
