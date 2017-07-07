@@ -307,6 +307,7 @@ void Overlays::deleteOverlay(OverlayID id) {
     }
 #endif
 
+
     _overlaysToDelete.push_back(overlayToDelete);
     emit overlayDeleted(id);
 }
@@ -606,22 +607,16 @@ QSizeF Overlays::textSize(OverlayID id, const QString& text) {
         return result;
     }
 
-    Overlay::Pointer thisOverlay;
-    {
-        QMutexLocker locker(&_mutex);
-        thisOverlay = _overlaysHUD[id];
-    }
+    Overlay::Pointer thisOverlay = getOverlay(id);
     if (thisOverlay) {
-        if (auto textOverlay = std::dynamic_pointer_cast<TextOverlay>(thisOverlay)) {
-            return textOverlay->textSize(text);
-        }
-    } else {
-        { 
-            QMutexLocker locker(&_mutex);
-            thisOverlay = _overlaysWorld[id];
-        }
-        if (auto text3dOverlay = std::dynamic_pointer_cast<Text3DOverlay>(thisOverlay)) {
-            return text3dOverlay->textSize(text);
+        if (thisOverlay->is3D()) {
+            if (auto text3dOverlay = std::dynamic_pointer_cast<Text3DOverlay>(thisOverlay)) {
+                return text3dOverlay->textSize(text);
+            }
+        } else {
+            if (auto textOverlay = std::dynamic_pointer_cast<TextOverlay>(thisOverlay)) {
+                return textOverlay->textSize(text);
+            }
         }
     }
     return QSizeF(0.0f, 0.0f);
