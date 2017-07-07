@@ -1009,23 +1009,23 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
 }
 
 void Avatar::invalidateJointIndicesCache() const {
-    QWriteLocker writeLock(&_jointIndicesCacheLock);
-    _jointsCached = false;
+    QWriteLocker writeLock(&_modelJointIndicesCacheLock);
+    _modelJointsCached = false;
 }
 
 void Avatar::withValidJointIndicesCache(std::function<void()> const& worker) const {
-    QReadLocker readLock(&_jointIndicesCacheLock);
-    if (_jointsCached) {
+    QReadLocker readLock(&_modelJointIndicesCacheLock);
+    if (_modelJointsCached) {
         worker();
     } else {
         readLock.unlock();
         {
-            QWriteLocker writeLock(&_jointIndicesCacheLock);
-            if (!_jointsCached) {
-                _jointIndicesCache.clear();
+            QWriteLocker writeLock(&_modelJointIndicesCacheLock);
+            if (!_modelJointsCached) {
+                _modelJointIndicesCache.clear();
                 if (_skeletonModel && _skeletonModel->isActive()) {
-                    _jointIndicesCache = _skeletonModel->getFBXGeometry().jointIndices;
-                    _jointsCached = true;
+                    _modelJointIndicesCache = _skeletonModel->getFBXGeometry().jointIndices;
+                    _modelJointsCached = true;
                 }
             }
             worker();
@@ -1040,8 +1040,8 @@ int Avatar::getJointIndex(const QString& name) const {
     }
 
     withValidJointIndicesCache([&]() {
-        if (_jointIndicesCache.contains(name)) {
-            result = _jointIndicesCache[name] - 1;
+        if (_modelJointIndicesCache.contains(name)) {
+            result = _modelJointIndicesCache[name] - 1;
         }
     });
     return result;
@@ -1050,7 +1050,7 @@ int Avatar::getJointIndex(const QString& name) const {
 QStringList Avatar::getJointNames() const {
     QStringList result;
     withValidJointIndicesCache([&]() {
-        result = _jointIndicesCache.keys();
+        result = _modelJointIndicesCache.keys();
     });
     return result;
 }

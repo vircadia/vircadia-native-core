@@ -270,9 +270,9 @@ protected:
 
     void invalidateJointIndicesCache() const;
     void withValidJointIndicesCache(std::function<void()> const& worker) const;
-    mutable QHash<QString, int> _jointIndicesCache;
-    mutable QReadWriteLock _jointIndicesCacheLock;
-    mutable bool _jointsCached { false };
+    mutable QHash<QString, int> _modelJointIndicesCache;
+    mutable QReadWriteLock _modelJointIndicesCacheLock;
+    mutable bool _modelJointsCached { false };
 
     glm::vec3 _skeletonOffset;
     std::vector<std::shared_ptr<Model>> _attachmentModels;
