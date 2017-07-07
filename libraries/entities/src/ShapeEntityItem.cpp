@@ -12,6 +12,7 @@
 #include <QtCore/QDebug>
 
 #include <GeometryUtil.h>
+#include <ShapeFactory.h>
 
 #include "EntitiesLogging.h"
 #include "EntityItemProperties.h"
@@ -58,7 +59,11 @@ ShapeEntityItem::Pointer ShapeEntityItem::baseFactory(const EntityItemID& entity
 }
 
 EntityItemPointer ShapeEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return baseFactory(entityID, properties);
+	auto result = baseFactory(entityID, properties);
+
+	qCDebug(entities) << "Creating ShapeEntityItem( " << result->_name << " ): " << result.get() << " ID: " << result->_id;
+
+	return result;
 }
 
 EntityItemPointer ShapeEntityItem::boxFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -99,6 +104,11 @@ void ShapeEntityItem::setShape(const entity::Shape& shape) {
             _type = EntityTypes::Shape;
             break;
     }
+}
+
+//TODO_CUSACK: Move back to header prior to PN
+void ShapeEntityItem::setShape( const QString &shape ) {
+	setShape(entity::shapeFromString(shape));
 }
 
 bool ShapeEntityItem::setProperties(const EntityItemProperties& properties) {
@@ -160,10 +170,46 @@ void ShapeEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
 }
 
+void ShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
+
+	if ( _collisionShapeType == ShapeType::SHAPE_TYPE_NONE ) {
+		if (_shape == entity::Shape::NUM_SHAPES)
+		{
+			EntityItem::computeShapeInfo(info);
+
+			//--EARLY EXIT--( allow default handling to process )
+			return;
+		}
+
+		_collisionShapeType = ShapeFactory::computeShapeType(getShape(), getDimensions());
+	}
+
+	return EntityItem::computeShapeInfo(info);
+}
+
 // This value specifes how the shape should be treated by physics calculations.  
 // For now, all polys will act as spheres
 ShapeType ShapeEntityItem::getShapeType() const {
-    return (_shape == entity::Shape::Cube) ? SHAPE_TYPE_BOX : SHAPE_TYPE_ELLIPSOID;
+	//TODO_CUSACK: This needs to be retrieved from properties if possible
+	//		    or stored within a new member and set during parsing of
+	//			the properties like setShape via set/get/readEntityProperties.
+	//          Perhaps if the _actual_ collisionShapeType is needed (the version that's in use
+	//			based on analysis of the shape's halfExtents when BulletLibrary collision shape was
+	//			created as opposed to the desired ShapeType is it possible to retrieve that information)?
+	//if (_shape == entity::Shape::Cylinder) {
+	//	return SHAPE_TYPE_CYLINDER_Y;
+	//}
+
+	//// Original functionality:  Everything not a cube, is treated like an ellipsoid/sphere
+	//return (_shape == entity::Shape::Cube) ? SHAPE_TYPE_BOX : SHAPE_TYPE_ELLIPSOID;
+
+	if (_collisionShapeType == ShapeType::SHAPE_TYPE_NONE)
+	{
+		//--EARLY EXIT--( Maintain previous behavior of treating invalid as Ellipsoid/Sphere )
+		return SHAPE_TYPE_ELLIPSOID;
+	}
+
+	return _collisionShapeType;
 }
 
 void ShapeEntityItem::setColor(const rgbColor& value) {
@@ -223,10 +269,12 @@ bool ShapeEntityItem::findDetailedRayIntersection(const glm::vec3& origin, const
 void ShapeEntityItem::debugDump() const {
     quint64 now = usecTimestampNow();
     qCDebug(entities) << "SHAPE EntityItem id:" << getEntityItemID() << "---------------------------------------------";
-    qCDebug(entities) << "              shape:" << stringFromShape(_shape);
+	qCDebug(entities) << "               name:" << _name;
+    qCDebug(entities) << "              shape:" << stringFromShape(_shape) << " (EnumId: " << _shape << " )";
     qCDebug(entities) << "              color:" << _color[0] << "," << _color[1] << "," << _color[2];
     qCDebug(entities) << "           position:" << debugTreeVector(getPosition());
     qCDebug(entities) << "         dimensions:" << debugTreeVector(getDimensions());
     qCDebug(entities) << "      getLastEdited:" << debugTime(getLastEdited(), now);
+	qCDebug(entities) << "SHAPE EntityItem Ptr:" << this;
 }
 

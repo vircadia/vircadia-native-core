@@ -8,9 +8,9 @@
   var SCRIPT_URL = Script.resolvePath("myEntityScript.js")
 
   var myEntity = Entities.addEntity({
-      name: "Cusack_Testing",
+      name: "ShapeSpawnTest",
       type: "Shape",
-      shapeType: "Cylinder",
+      shape: "Cylinder",
       color: {
           red: 200,
           green: 10,

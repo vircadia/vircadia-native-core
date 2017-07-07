@@ -48,18 +48,22 @@ RenderableShapeEntityItem::Pointer RenderableShapeEntityItem::baseFactory(const 
 }
 
 EntityItemPointer RenderableShapeEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    return baseFactory(entityID, properties);
+	auto result = baseFactory(entityID, properties);
+
+	qCDebug(entities) << "Creating RenderableShapeEntityItem( " << result->_name << " ): " << result.get() << " ID: " << result->_id;
+
+	return result;
 }
 
 EntityItemPointer RenderableShapeEntityItem::boxFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     auto result = baseFactory(entityID, properties);
-    result->setShape(entity::Cube);
+    result->setShape(entity::Shape::Cube);
     return result;
 }
 
 EntityItemPointer RenderableShapeEntityItem::sphereFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     auto result = baseFactory(entityID, properties);
-    result->setShape(entity::Sphere);
+    result->setShape(entity::Shape::Sphere);
     return result;
 }
 

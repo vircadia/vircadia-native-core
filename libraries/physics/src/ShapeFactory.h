@@ -15,11 +15,14 @@
 #include <btBulletDynamicsCommon.h>
 #include <glm/glm.hpp>
 
+#include <ShapeEntityItem.h> //< Needed for entity::Shape
 #include <ShapeInfo.h>
 
 // translates between ShapeInfo and btShape
 
 namespace ShapeFactory {
+
+	ShapeType computeShapeType( entity::Shape shape, const glm::vec3 &entityDimensions);
     const btCollisionShape* createShapeFromInfo(const ShapeInfo& info);
     void deleteShape(const btCollisionShape* shape);
 
