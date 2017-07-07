@@ -194,6 +194,10 @@
             selectedEntityID = entityID;
         }
 
+        function getRootEntityID() {
+            return rootEntityID;
+        }
+
         function getSelection() {
             return selection;
         }
@@ -231,6 +235,7 @@
         return {
             select: select,
             selection: getSelection,
+            rootEntityID: getRootEntityID,
             getPositionAndOrientation: getPositionAndOrientation,
             setPositionAndOrientation: setPositionAndOrientation,
             clear: clear,
@@ -412,8 +417,12 @@
         selection = new Selection();
         highlights = new Highlights(hand);
 
-        function setOtherhand(hand) {
+        function setOtherHand(hand) {
             otherHand = hand;
+        }
+
+        function getIsEditing(rootEntityID) {
+            return isEditing && rootEntityID === selection.rootEntityID();
         }
 
         function startEditing() {
@@ -429,7 +438,7 @@
             isEditing = true;
         }
 
-        function applyEdit() {
+        function applyGrab() {
             var handPosition,
                 handOrientation,
                 deltaOrientation,
@@ -444,6 +453,10 @@
             selectionOrientation = Quat.multiply(deltaOrientation, initialSelectionOrientation);
 
             selection.setPositionAndOrientation(selectionPosition, selectionOrientation);
+        }
+
+        function applyScale() {
+            // TODO
         }
 
         function stopEditing() {
@@ -593,7 +606,13 @@
 
         function apply() {
             if (doEdit) {
-                applyEdit();
+                if (otherHand.isEditing(selection.rootEntityID())) {
+                    if (hand === LEFT_HAND) {
+                        applyScale();
+                    }
+                } else {
+                    applyGrab();
+                }
             } else if (doHighlight) {
                 highlights.display(intersection.handSelected, selection.selection());
             }
@@ -619,7 +638,8 @@
         }
 
         return {
-            setOtherHand: setOtherhand,
+            setOtherHand: setOtherHand,
+            isEditing: getIsEditing,
             update: update,
             apply: apply,
             destroy: destroy
