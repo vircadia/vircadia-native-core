@@ -1034,7 +1034,9 @@ int Avatar::getJointIndex(const QString& name) const {
         }
     };
     QReadLocker readLock(&_jointIndicesCacheLock);
-    if (!_jointsCached) {
+    if (_jointsCached) {
+        return getJointIndexWorker();
+    } else {
         readLock.unlock();
         {
             QWriteLocker writeLock(&_jointIndicesCacheLock);
@@ -1042,7 +1044,6 @@ int Avatar::getJointIndex(const QString& name) const {
             return getJointIndexWorker();
         }
     }
-    return getJointIndexWorker();
 }
 
 QStringList Avatar::getJointNames() const {
@@ -1050,7 +1051,9 @@ QStringList Avatar::getJointNames() const {
         return _jointIndicesCache.keys();
     };
     QReadLocker readLock(&_jointIndicesCacheLock);
-    if (!_jointsCached) {
+    if (_jointsCached) {
+        return getJointNamesWorker();
+    } else {
         readLock.unlock();
         {
             QWriteLocker writeLock(&_jointIndicesCacheLock);
@@ -1058,7 +1061,6 @@ QStringList Avatar::getJointNames() const {
             return getJointNamesWorker();
         }
     }
-    return getJointNamesWorker();
 }
 
 glm::vec3 Avatar::getJointPosition(int index) const {
