@@ -101,27 +101,13 @@ int main(int argc, const char* argv[]) {
     if (allowMultipleInstances) {
         instanceMightBeRunning = false;
     }
-    // this needs to be done here in main, as the mechanism for setting the 
+    // this needs to be done here in main, as the mechanism for setting the
     // scripts directory appears not to work.  See the bug report
     // https://highfidelity.fogbugz.com/f/cases/5759/Issues-changing-scripts-directory-in-ScriptsEngine
     if (parser.isSet(overrideScriptsPathOption)) {
         QDir scriptsPath(parser.value(overrideScriptsPathOption));
         if (scriptsPath.exists()) {
             PathUtils::defaultScriptsLocation(scriptsPath.path());
-        }
-    }
-
-    if (parser.isSet(overrideAppLocalDataPathOption)) {
-        // get dir to use for cache
-        QString cacheDir = parser.value(overrideAppLocalDataPathOption);
-        if (!cacheDir.isEmpty()) {
-            // tell everyone to use the right cache location
-            //
-            // this handles data8 and prepared
-            DependencyManager::get<ResourceManager>()->setCacheDir(cacheDir);
-
-            // this does the ktx_cache
-            PathUtils::getAppLocalDataPath(cacheDir);
         }
     }
 

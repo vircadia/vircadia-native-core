@@ -67,19 +67,14 @@ void Overlays::init() {
 }
 
 void Overlays::update(float deltatime) {
-    QMap<OverlayID, Overlay::Pointer> overlaysHUD;
-    QMap<OverlayID, Overlay::Pointer> overlaysWorld;
     {
         QMutexLocker locker(&_mutex);
-        overlaysHUD = _overlaysHUD;
-        overlaysWorld = _overlaysWorld;
-    }
-
-    foreach(const auto& thisOverlay, overlaysHUD) {
-        thisOverlay->update(deltatime);
-    }
-    foreach(const auto& thisOverlay, overlaysWorld) {
-        thisOverlay->update(deltatime);
+        foreach(const auto& thisOverlay, _overlaysHUD) {
+            thisOverlay->update(deltatime);
+        }
+        foreach(const auto& thisOverlay, _overlaysWorld) {
+            thisOverlay->update(deltatime);
+        }
     }
 
     cleanupOverlaysToDelete();
@@ -119,14 +114,8 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
     int height = size.y;
     mat4 legacyProjection = glm::ortho<float>(0, width, height, 0, -1000, 1000);
 
-    QMap<OverlayID, Overlay::Pointer> overlaysHUD;
-    {
-        QMutexLocker locker(&_mutex);
-        overlaysHUD = _overlaysHUD;
-    }
-
-
-    foreach(Overlay::Pointer thisOverlay, overlaysHUD) {
+    QMutexLocker locker(&_mutex);
+    foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
     
         // Reset all batch pipeline settings between overlay
         geometryCache->useSimpleDrawPipeline(batch);
@@ -400,36 +389,22 @@ OverlayID Overlays::getOverlayAtPoint(const glm::vec2& point) {
         return result;
     }
 
-    glm::vec2 pointCopy = point;
     if (!_enabled) {
         return UNKNOWN_OVERLAY_ID;
     }
 
-    QMap<OverlayID, Overlay::Pointer> overlaysHUD;
-    {
-        QMutexLocker locker(&_mutex);
-        overlaysHUD = _overlaysHUD;
-    }
-    QMapIterator<OverlayID, Overlay::Pointer> i(overlaysHUD);
-
-    const float LARGE_NEGATIVE_FLOAT = -9999999;
-    glm::vec3 origin(pointCopy.x, pointCopy.y, LARGE_NEGATIVE_FLOAT);
-    glm::vec3 direction(0, 0, 1);
-    glm::vec3 thisSurfaceNormal;
+    QMutexLocker locker(&_mutex);
+    QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysHUD);
     unsigned int bestStackOrder = 0;
     OverlayID bestOverlayID = UNKNOWN_OVERLAY_ID;
-
     while (i.hasNext()) {
         i.next();
-        OverlayID thisID = i.key();
-        if (!i.value()->is3D()) {
-            auto thisOverlay = std::dynamic_pointer_cast<Overlay2D>(i.value());
-            if (thisOverlay && thisOverlay->getVisible() && thisOverlay->isLoaded() &&
-                thisOverlay->getBoundingRect().contains(pointCopy.x, pointCopy.y, false)) {
-                if (thisOverlay->getStackOrder() > bestStackOrder) {
-                    bestOverlayID = thisID;
-                    bestStackOrder = thisOverlay->getStackOrder();
-                }
+        auto thisOverlay = std::dynamic_pointer_cast<Overlay2D>(i.value());
+        if (thisOverlay && thisOverlay->getVisible() && thisOverlay->isLoaded() &&
+            thisOverlay->getBoundingRect().contains(point.x, point.y, false)) {
+            if (thisOverlay->getStackOrder() > bestStackOrder) {
+                bestOverlayID = i.key();
+                bestStackOrder = thisOverlay->getStackOrder();
             }
         }
     }
@@ -498,14 +473,9 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionInternal(const PickR
     float bestDistance = std::numeric_limits<float>::max();
     bool bestIsFront = false;
 
-    QMap<OverlayID, Overlay::Pointer> overlaysWorld;
-    {
-        QMutexLocker locker(&_mutex);
-        overlaysWorld = _overlaysWorld;
-    }
-
+    QMutexLocker locker(&_mutex);
     RayToOverlayIntersectionResult result;
-    QMapIterator<OverlayID, Overlay::Pointer> i(overlaysWorld);
+    QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
     while (i.hasNext()) {
         i.next();
         OverlayID thisID = i.key();
@@ -995,13 +965,8 @@ QVector<QUuid> Overlays::findOverlays(const glm::vec3& center, float radius) {
         return result;
     }
 
-    QMap<OverlayID, Overlay::Pointer> overlaysWorld;
-    {
-        QMutexLocker locker(&_mutex);
-        overlaysWorld = _overlaysWorld;
-    }
-
-    QMapIterator<OverlayID, Overlay::Pointer> i(overlaysWorld);
+    QMutexLocker locker(&_mutex);
+    QMapIterator<OverlayID, Overlay::Pointer> i(_overlaysWorld);
     int checked = 0;
     while (i.hasNext()) {
         checked++;

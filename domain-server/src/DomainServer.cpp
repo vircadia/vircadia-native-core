@@ -40,11 +40,11 @@
 #include <LogHandler.h>
 #include <PathUtils.h>
 #include <NumericalConstants.h>
+#include <Trace.h>
+#include <StatTracker.h>
 
 #include "DomainServerNodeData.h"
 #include "NodeConnectionData.h"
-#include <Trace.h>
-#include <StatTracker.h>
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
@@ -162,8 +162,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 
     _gatekeeper.preloadAllowedUserPublicKeys(); // so they can connect on first request
 
+    //send signal to DomainMetadata when descriptors changed
     _metadata = new DomainMetadata(this);
-
+    connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
+            _metadata, &DomainMetadata::descriptorsChanged);
 
     qDebug() << "domain-server is running";
     static const QString AC_SUBNET_WHITELIST_SETTING_PATH = "security.ac_subnet_whitelist";
@@ -1972,7 +1974,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     return _settingsManager.handleAuthenticatedHTTPRequest(connection, url);
 }
 
-const QString HIFI_SESSION_COOKIE_KEY = "DS_WEB_SESSION_UUID";
+static const QString HIFI_SESSION_COOKIE_KEY = "DS_WEB_SESSION_UUID";
+static const QString STATE_QUERY_KEY = "state";
 
 bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &url, bool skipSubHandler) {
     qDebug() << "HTTPS request received at" << url.toString();
@@ -1983,10 +1986,9 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
         const QString CODE_QUERY_KEY = "code";
         QString authorizationCode = codeURLQuery.queryItemValue(CODE_QUERY_KEY);
 
-        const QString STATE_QUERY_KEY = "state";
         QUuid stateUUID = QUuid(codeURLQuery.queryItemValue(STATE_QUERY_KEY));
 
-        if (!authorizationCode.isEmpty() && !stateUUID.isNull()) {
+        if (!authorizationCode.isEmpty() && !stateUUID.isNull() && _webAuthenticationStateSet.remove(stateUUID)) {
             // fire off a request with this code and state to get an access token for the user
 
             const QString OAUTH_TOKEN_REQUEST_PATH = "/oauth/token";
@@ -2004,47 +2006,83 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
             tokenRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
             QNetworkReply* tokenReply = NetworkAccessManager::getInstance().post(tokenRequest, tokenPostBody.toLocal8Bit());
+            connect(tokenReply, &QNetworkReply::finished, this, &DomainServer::tokenGrantFinished);
 
-            if (_webAuthenticationStateSet.remove(stateUUID)) {
-                // this is a web user who wants to auth to access web interface
-                // we hold the response back to them until we get their profile information
-                // and can decide if they are let in or not
+            // add this connection to our list of pending connections so that we can hold the response
+            _pendingOAuthConnections.insert(stateUUID, connection);
 
-                QEventLoop loop;
-                connect(tokenReply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+            // set the state UUID on the reply so that we can associate the response with the connection later
+            tokenReply->setProperty(STATE_QUERY_KEY.toLocal8Bit(), stateUUID);
 
-                // start the loop for the token request
-                loop.exec();
+            return true;
+        } else {
+            connection->respond(HTTPConnection::StatusCode400);
 
-                QNetworkReply* profileReply = profileRequestGivenTokenReply(tokenReply);
+            return true;
+        }
+    } else {
+        return false;
+    }
+}
 
-                // stop the loop once the profileReply is complete
-                connect(profileReply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+HTTPSConnection* DomainServer::connectionFromReplyWithState(QNetworkReply* reply) {
+    // grab the UUID state property from the reply
+    QUuid stateUUID = reply->property(STATE_QUERY_KEY.toLocal8Bit()).toUuid();
 
-                // restart the loop for the profile request
-                loop.exec();
+    if (!stateUUID.isNull()) {
+        return _pendingOAuthConnections.take(stateUUID);
+    } else {
+        return nullptr;
+    }
+}
 
+void DomainServer::tokenGrantFinished() {
+    auto tokenReply = qobject_cast<QNetworkReply*>(sender());
+
+    if (tokenReply) {
+        if (tokenReply->error() == QNetworkReply::NoError) {
+            // now that we have a token for this profile, send off a profile request
+            QNetworkReply* profileReply = profileRequestGivenTokenReply(tokenReply);
+
+            // forward along the state UUID that we kept with the token request
+            profileReply->setProperty(STATE_QUERY_KEY.toLocal8Bit(), tokenReply->property(STATE_QUERY_KEY.toLocal8Bit()));
+
+            connect(profileReply, &QNetworkReply::finished, this, &DomainServer::profileRequestFinished);
+        } else {
+            // the token grant failed, send back a 500 (assuming the connection is still around)
+            auto connection = connectionFromReplyWithState(tokenReply);
+
+            if (connection) {
+                connection->respond(HTTPConnection::StatusCode500);
+            }
+        }
+
+        tokenReply->deleteLater();
+    }
+}
+
+void DomainServer::profileRequestFinished() {
+
+    auto profileReply = qobject_cast<QNetworkReply*>(sender());
+
+    if (profileReply) {
+        auto connection = connectionFromReplyWithState(profileReply);
+
+        if (connection) {
+            if (profileReply->error() == QNetworkReply::NoError) {
                 // call helper method to get cookieHeaders
                 Headers cookieHeaders = setupCookieHeadersFromProfileReply(profileReply);
 
                 connection->respond(HTTPConnection::StatusCode302, QByteArray(),
                                     HTTPConnection::DefaultContentType, cookieHeaders);
 
-                delete tokenReply;
-                delete profileReply;
-
-                // we've redirected the user back to our homepage
-                return true;
-
+            } else {
+                // the profile request failed, send back a 500 (assuming the connection is still around)
+                connection->respond(HTTPConnection::StatusCode500);
             }
         }
 
-        // respond with a 200 code indicating that login is complete
-        connection->respond(HTTPConnection::StatusCode200);
-
-        return true;
-    } else {
-        return false;
+        profileReply->deleteLater();
     }
 }
 
@@ -2104,22 +2142,31 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             // the user does not have allowed username or role, return 401
             return false;
         } else {
-            // re-direct this user to OAuth page
+            static const QByteArray REQUESTED_WITH_HEADER = "X-Requested-With";
+            static const QString XML_REQUESTED_WITH = "XMLHttpRequest";
 
-            // generate a random state UUID to use
-            QUuid stateUUID = QUuid::createUuid();
+            if (connection->requestHeaders().value(REQUESTED_WITH_HEADER) == XML_REQUESTED_WITH) {
+                // unauthorized XHR requests get a 401 and not a 302, since there isn't an XHR
+                // path to OAuth authorize
+                connection->respond(HTTPConnection::StatusCode401, UNAUTHENTICATED_BODY);
+            } else {
+                // re-direct this user to OAuth page
 
-            // add it to the set so we can handle the callback from the OAuth provider
-            _webAuthenticationStateSet.insert(stateUUID);
+                // generate a random state UUID to use
+                QUuid stateUUID = QUuid::createUuid();
 
-            QUrl authURL = oauthAuthorizationURL(stateUUID);
+                // add it to the set so we can handle the callback from the OAuth provider
+                _webAuthenticationStateSet.insert(stateUUID);
 
-            Headers redirectHeaders;
+                QUrl authURL = oauthAuthorizationURL(stateUUID);
 
-            redirectHeaders.insert("Location", authURL.toEncoded());
+                Headers redirectHeaders;
 
-            connection->respond(HTTPConnection::StatusCode302,
-                                QByteArray(), HTTPConnection::DefaultContentType, redirectHeaders);
+                redirectHeaders.insert("Location", authURL.toEncoded());
+
+                connection->respond(HTTPConnection::StatusCode302,
+                                    QByteArray(), HTTPConnection::DefaultContentType, redirectHeaders);
+            }
 
             // we don't know about this user yet, so they are not yet authenticated
             return false;

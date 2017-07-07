@@ -111,6 +111,9 @@ private slots:
     void updateDownstreamNodes();
     void updateUpstreamNodes();
 
+    void tokenGrantFinished();
+    void profileRequestFinished();
+
 signals:
     void iceServerChanged();
     void userConnected();
@@ -178,6 +181,8 @@ private:
 
     void updateReplicationNodes(ReplicationServerDirection direction);
 
+    HTTPSConnection* connectionFromReplyWithState(QNetworkReply* reply);
+
     SubnetList _acSubnetWhitelist;
 
     std::vector<QString> _replicatedUsernames;
@@ -235,6 +240,8 @@ private:
 
     bool _sendICEServerAddressToMetaverseAPIInProgress { false };
     bool _sendICEServerAddressToMetaverseAPIRedo { false };
+
+    QHash<QUuid, QPointer<HTTPSConnection>> _pendingOAuthConnections;
 };
 
 

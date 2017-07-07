@@ -319,7 +319,7 @@ Menu::Menu() {
             QString("../../hifi/tablet/TabletLodPreferences.qml"), "LodPreferencesDialog");
     });
 
-    action = addActionToQMenuAndActionHash(settingsMenu, "Controller Settings");
+    action = addActionToQMenuAndActionHash(settingsMenu, "Controller Settings...");
     connect(action, &QAction::triggered, [] {
             auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
             auto hmd = DependencyManager::get<HMDScriptingInterface>();

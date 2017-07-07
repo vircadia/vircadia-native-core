@@ -1821,7 +1821,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
                         clearExceptions();
                     }
                 } else {
-                    scriptWarningMessage("Script.include() skipping evaluation of previously included url:" + url.toString());
+                    scriptPrintedMessage("Script.include() skipping evaluation of previously included url:" + url.toString());
                 }
             }
         }
