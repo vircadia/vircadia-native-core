@@ -7082,6 +7082,12 @@ void Application::updateDisplayMode() {
     // reset the avatar, to set head and hand palms back to a reasonable default pose.
     getMyAvatar()->reset(false);
 
+    // switch to first person if entering hmd and setting is checked
+    if (isHmd && menu->isOptionChecked(MenuOption::FirstPersonHMD)) {
+        menu->setIsOptionChecked(MenuOption::FirstPerson, true);
+        cameraMenuChanged();
+    }
+
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }
 
