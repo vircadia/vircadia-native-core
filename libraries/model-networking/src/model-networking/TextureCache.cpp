@@ -970,13 +970,6 @@ void ImageReader::read() {
                                 Q_ARG(int, texture->getHeight()));
 }
 
-void TextureCache::setHmdPreviewTexture(gpu::TexturePointer texturePointer) {
-    if (!_hmdPreviewNetworkTexture) {
-        _hmdPreviewNetworkTexture.reset(new NetworkTexture(HMD_PREVIEW_FRAME_URL));
-    }
-    _hmdPreviewNetworkTexture->setImage(texturePointer, texturePointer->getWidth(), texturePointer->getHeight());
-}
-
 NetworkTexturePointer TextureCache::getResourceTexture(QUrl resourceTextureUrl) {
     gpu::TexturePointer texture;
     if (resourceTextureUrl == SPECTATOR_CAMERA_FRAME_URL) {
@@ -991,13 +984,28 @@ NetworkTexturePointer TextureCache::getResourceTexture(QUrl resourceTextureUrl) 
             }
         }
     }
+    // FIXME: Generalize this, DRY up this code
     if (resourceTextureUrl == HMD_PREVIEW_FRAME_URL) {
-        if (_hmdPreviewNetworkTexture) {
-            return _hmdPreviewNetworkTexture;
+        if (!_hmdPreviewNetworkTexture) {
+            _hmdPreviewNetworkTexture.reset(new NetworkTexture(resourceTextureUrl));
+        }
+        if (_hmdPreviewFramebuffer) {
+            texture = _hmdPreviewFramebuffer->getRenderBuffer(0);
+            if (texture) {
+                _hmdPreviewNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
+                return _hmdPreviewNetworkTexture;
+            }
         }
     }
 
     return NetworkTexturePointer();
+}
+
+const gpu::FramebufferPointer& TextureCache::getHmdPreviewFramebuffer() {
+    if (!_hmdPreviewFramebuffer) {
+        _hmdPreviewFramebuffer.reset(gpu::Framebuffer::create("hmdPreview",gpu::Element::COLOR_SRGBA_32, 2040, 1024));
+    }
+    return _hmdPreviewFramebuffer;
 }
 
 const gpu::FramebufferPointer& TextureCache::getSpectatorCameraFramebuffer() {

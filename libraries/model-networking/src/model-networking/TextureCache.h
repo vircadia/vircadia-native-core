@@ -170,7 +170,7 @@ public:
     NetworkTexturePointer getResourceTexture(QUrl resourceTextureUrl);
     const gpu::FramebufferPointer& getSpectatorCameraFramebuffer();
     void resetSpectatorCameraFramebuffer(int width, int height);
-    void setHmdPreviewTexture(gpu::TexturePointer texturePointer);
+    const gpu::FramebufferPointer& getHmdPreviewFramebuffer();
 
 protected:
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
@@ -205,6 +205,7 @@ private:
     gpu::FramebufferPointer _spectatorCameraFramebuffer;
 
     NetworkTexturePointer _hmdPreviewNetworkTexture;
+    gpu::FramebufferPointer _hmdPreviewFramebuffer;
 };
 
 #endif // hifi_TextureCache_h

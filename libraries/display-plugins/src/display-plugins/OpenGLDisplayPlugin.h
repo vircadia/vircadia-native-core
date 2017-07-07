@@ -113,6 +113,7 @@ protected:
     // Plugin specific functionality to send the composed scene to the output window or device
     virtual void internalPresent();
 
+    void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor, gpu::FramebufferPointer fbo);
     void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor);
     virtual void updateFrameData();
 

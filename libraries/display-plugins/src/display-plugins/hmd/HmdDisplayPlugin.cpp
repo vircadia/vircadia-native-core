@@ -242,7 +242,6 @@ void HmdDisplayPlugin::internalPresent() {
 
         glm::ivec4 viewport = getViewportForSourceSize(sourceSize);
         glm::ivec4 scissor = viewport;
-
         render([&](gpu::Batch& batch) {
 
             if (_monoPreview) {
@@ -287,10 +286,11 @@ void HmdDisplayPlugin::internalPresent() {
 
                 viewport.z *= 2;
             }
-            DependencyManager::get<TextureCache>()->setHmdPreviewTexture(_compositeFramebuffer->getRenderBuffer(0));
-            renderFromTexture(batch, _compositeFramebuffer->getRenderBuffer(0), viewport, scissor);
+            auto fbo = DependencyManager::get<TextureCache>()->getHmdPreviewFramebuffer();
+            renderFromTexture(batch, _compositeFramebuffer->getRenderBuffer(0), viewport, scissor, fbo);
         });
         swapBuffers();
+
     } else if (_clearPreviewFlag) {
         QImage image;
         if (_vsyncEnabled) {

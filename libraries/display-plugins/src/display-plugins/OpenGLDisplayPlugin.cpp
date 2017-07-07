@@ -497,16 +497,26 @@ void OpenGLDisplayPlugin::submitFrame(const gpu::FramePointer& newFrame) {
         _newFrameQueue.push(newFrame);
     });
 }
+
 void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor) {
+    renderFromTexture(batch, texture, viewport, scissor, gpu::FramebufferPointer());
+}
+
+void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor, gpu::FramebufferPointer copyFbo /*=gpu::FramebufferPointer()*/) {
+    auto fbo = gpu::FramebufferPointer();
     batch.enableStereo(false);
     batch.resetViewTransform();
-    batch.setFramebuffer(gpu::FramebufferPointer());
+    batch.setFramebuffer(fbo);
     batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
     batch.setStateScissorRect(scissor);
     batch.setViewportTransform(viewport);
     batch.setResourceTexture(0, texture);
     batch.setPipeline(_presentPipeline);
     batch.draw(gpu::TRIANGLE_STRIP, 4);
+    if (copyFbo) {
+        gpu::Vec4i rect {0, 0, scissor.z, scissor.w};
+        batch.blit(fbo, rect, copyFbo, rect);
+    }
 }
 
 void OpenGLDisplayPlugin::updateFrameData() {
