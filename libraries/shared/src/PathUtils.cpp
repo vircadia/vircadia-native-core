@@ -19,6 +19,7 @@
 #include "PathUtils.h"
 #include <QtCore/QStandardPaths>
 #include <mutex> // std::once
+#include "shared/GlobalAppProperties.h"
 
 const QString& PathUtils::resourcesPath() {
 #ifdef Q_OS_MAC
@@ -34,12 +35,8 @@ QString PathUtils::getAppDataPath() {
     return QStandardPaths::writableLocation(QStandardPaths::AppDataLocation) + "/";
 }
 
-QString PathUtils::getAppLocalDataPath(const QString& overridePath /* = "" */) {
-    static QString overriddenPath = "";
-    // set the overridden path if one was passed in
-    if (!overridePath.isEmpty()) {
-        overriddenPath = overridePath;
-    }
+QString PathUtils::getAppLocalDataPath() {
+    QString overriddenPath = qApp->property(hifi::properties::APP_LOCAL_DATA_PATH).toString();
     // return overridden path if set
     if (!overriddenPath.isEmpty()) {
         return overriddenPath;
