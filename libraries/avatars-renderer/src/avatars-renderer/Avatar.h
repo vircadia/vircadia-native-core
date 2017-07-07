@@ -269,6 +269,7 @@ protected:
     SkeletonModelPointer _skeletonModel;
 
     void cacheJoints() const;
+    void invalidateJointIndicesCache() const;
     mutable QHash<QString, int> _jointIndicesCache;
     mutable QReadWriteLock _jointIndicesCacheLock;
     mutable bool _jointsCached { false };

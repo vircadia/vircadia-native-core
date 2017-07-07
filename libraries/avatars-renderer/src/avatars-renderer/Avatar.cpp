@@ -1020,6 +1020,11 @@ void Avatar::cacheJoints() const {
     }
 }
 
+void Avatar::invalidateJointIndicesCache() const {
+    QWriteLocker writeLock(&_jointIndicesCacheLock);
+    _jointsCached = false;
+}
+
 int Avatar::getJointIndex(const QString& name) const {
     int result = getFauxJointIndex(name);
     if (result != -1) {
@@ -1090,10 +1095,8 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 }
 
 void Avatar::setModelURLFinished(bool success) {
-    {
-        QWriteLocker writeLock(&_jointIndicesCacheLock);
-        _jointsCached = false;
-    }
+    invalidateJointIndicesCache();
+
     if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
         const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: we don't want to be as generous as ResourceCache is, we only want 4 attempts
         if (_skeletonModel->getResourceDownloadAttemptsRemaining() <= 0 ||
