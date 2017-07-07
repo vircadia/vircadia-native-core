@@ -15,7 +15,6 @@
 
 #include "DeferredLightingEffect.h"
 #include "EntityItem.h"
-#include "FadeEffect.h"
 
 using namespace render;
 
@@ -318,14 +317,6 @@ template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer&
 
 template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args) {
     return payload->render(args);
-}
-
-template <> const Item::FadeState* payloadGetFadeState(const ModelMeshPartPayload::Pointer& payload) {
-    return &payload->getFadeState();
-}
-
-template <> Item::FadeState* const payloadEditFadeState(ModelMeshPartPayload::Pointer& payload) {
-    return &payload->editFadeState();
 }
 
 }

@@ -14,7 +14,6 @@
 #include <gpu/Context.h>
 
 #include <ViewFrustum.h>
-#include "FadeEffect.h"
 
 #include <render/CullTask.h>
 #include <render/SortTask.h>
@@ -53,7 +52,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext,
     const auto& fbo = shadow->framebuffer;
 
     RenderArgs* args = renderContext->args;
-    ShapeKey::Builder defaultKeyBuilder;// TODO: support fade on shadows     = DependencyManager::get<FadeEffect>()->getKeyBuilder();
+    ShapeKey::Builder defaultKeyBuilder;
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         args->_batch = &batch;
@@ -73,9 +72,6 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext,
 
         auto shadowPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder);
         auto shadowSkinnedPipeline = _shapePlumber->pickPipeline(args, defaultKeyBuilder.withSkinned());
-
-        // Prepare fade effect
-        // TODO: support fade on shadows        DependencyManager::get<FadeEffect>()->bindPerBatch(batch);
 
         std::vector<ShapeKey> skinnedShapeKeys{};
 

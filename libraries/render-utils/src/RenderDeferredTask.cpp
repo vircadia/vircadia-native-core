@@ -46,7 +46,7 @@
 
 using namespace render;
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
-extern void initDeferredPipelines(render::ShapePlumber& plumber);
+extern void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 
 void RenderDeferredTask::configure(const Config& config)
 {
@@ -55,11 +55,12 @@ void RenderDeferredTask::configure(const Config& config)
 void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
     const auto& items = input.get<Input>();
    
-//    task.addJob<FadeJob>("Fade", fadeEditedItem, commonFadeParameters).get<FadeConfigureJob::Output>();
+    task.addJob<FadeJob>("Fade");
+    auto& fadeJob = task._jobs.back().get<FadeJob>();
 
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
-    initDeferredPipelines(*shapePlumber);
+    initDeferredPipelines(*shapePlumber, fadeJob.getBatchSetter(), fadeJob.getItemSetter());
 
     // Extract opaques / transparents / lights / metas / overlays / background
     const auto& opaques = items.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE];

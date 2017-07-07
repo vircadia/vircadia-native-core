@@ -16,7 +16,6 @@
 #include <StencilMaskPass.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
-#include <FadeEffect.h>
 
 #include <render-utils/simple_vert.h>
 #include <render-utils/simple_frag.h>

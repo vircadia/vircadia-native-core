@@ -78,3 +78,11 @@ void Item::resetPayload(const PayloadPointer& payload) {
         _key = _payload->getKey();
     }
 }
+
+const ShapeKey Item::getShapeKey() const {
+    auto shapeKey = _payload->getShapeKey();
+    if (_transitionId != TransitionStage::INVALID_INDEX) {
+        return ShapeKey::Builder(shapeKey).withFade();
+    }
+    return shapeKey;
+}

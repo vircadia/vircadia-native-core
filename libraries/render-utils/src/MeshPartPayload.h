@@ -22,7 +22,6 @@
 #include <model/Geometry.h>
 
 #include "Model.h"
-#include "FadeEffect.h"
 
 class Model;
 
@@ -98,9 +97,6 @@ public:
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) override;
 
-    const render::Item::FadeState& getFadeState() const { return _fadeState; }
-    render::Item::FadeState& editFadeState() { return _fadeState; }
-
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;
     void bindTransform(gpu::Batch& batch, const render::ShapePipeline::LocationsPointer locations, RenderArgs::RenderMode renderMode) const override;
@@ -127,8 +123,6 @@ private:
     };
 
     mutable State _state { WAITING_TO_START } ;
-
-    render::Item::FadeState _fadeState;
 };
 
 namespace render {
@@ -137,8 +131,6 @@ namespace render {
     template <> int payloadGetLayer(const ModelMeshPartPayload::Pointer& payload);
     template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload);
     template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args);
-    template <> const Item::FadeState* payloadGetFadeState(const ModelMeshPartPayload::Pointer& payload);
-    template <> Item::FadeState* const payloadEditFadeState(ModelMeshPartPayload::Pointer& payload);
 }
 
 #endif // hifi_MeshPartPayload_h

@@ -18,16 +18,7 @@
 
 <@func declareFadeFragment()@>
 
-struct FadeParameters
-{
-    vec4  _baseInvSizeAndLevel;
-    vec4  _noiseInvSizeAndLevel;
-    vec4  _innerEdgeColor;
-    vec4  _outerEdgeColor;
-    vec2  _edgeWidthInvWidth;
-    int   _isInverted;
-    float _padding;
-};
+<@include Fade_shared.slh@>
 
 #define EVENT_CATEGORY_COUNT    5
 
@@ -37,6 +28,7 @@ uniform fadeParametersBuffer {
 uniform int fadeCategory;
 uniform vec3 fadeNoiseOffset;
 uniform vec3 fadeBaseOffset;
+uniform vec3 fadeBaseInvSize;
 uniform float fadeThreshold;
 uniform sampler2D fadeMaskMap;
 
@@ -76,9 +68,9 @@ float evalFadeNoiseGradient(vec3 position) {
 }
 
 float evalFadeBaseGradient(vec3 position) {
-    float gradient = length((position - fadeBaseOffset) * fadeParameters[fadeCategory]._baseInvSizeAndLevel.xyz);
+    float gradient = length((position - fadeBaseOffset) * fadeBaseInvSize.xyz);
     gradient = gradient-0.5;  // Center on value 0.5
-    gradient *= fadeParameters[fadeCategory]._baseInvSizeAndLevel.w;
+    gradient *= fadeParameters[fadeCategory]._baseLevel;
     return gradient;
 }
 

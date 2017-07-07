@@ -27,7 +27,7 @@
 
 #include "model/Material.h"
 #include "ShapePipeline.h"
-
+#include "TransitionStage.h"
 
 namespace render {
 
@@ -310,23 +310,6 @@ public:
     };
     typedef std::shared_ptr<UpdateFunctorInterface> UpdateFunctorPointer;
 
-    // This holds the current state for all fade event types applied to this item
-    class FadeState {
-    public:
-
-        enum {
-            INACTIVE = (uint8_t)-1
-        };
-
-        uint8_t eventType{ INACTIVE };
-        uint64_t startTime{ 0 };
-        glm::vec3 noiseOffset{ 0.f, 0.f, 0.f };
-        glm::vec3 baseOffset{ 0.f, 0.f, 0.f };
-        glm::vec3 baseSize{ 1.f, 1.f, 1.f };
-        float threshold{ 0.f };
-
-    };
-
     // Payload is whatever is in this Item and implement the Payload Interface
     class PayloadInterface {
     public:
@@ -338,9 +321,6 @@ public:
         virtual const ShapeKey getShapeKey() const = 0;
 
         virtual uint32_t fetchMetaSubItems(ItemIDs& subItems) const = 0;
-
-        virtual const FadeState* getFadeState() const = 0;
-        virtual FadeState* const editFadeState() = 0;
 
         ~PayloadInterface() {}
 
@@ -387,7 +367,7 @@ public:
     void render(RenderArgs* args) const { _payload->render(args); }
 
     // Shape Type Interface
-    const ShapeKey getShapeKey() const { return _payload->getShapeKey(); }
+    const ShapeKey getShapeKey() const;
 
     // Meta Type Interface
     uint32_t fetchMetaSubItems(ItemIDs& subItems) const { return _payload->fetchMetaSubItems(subItems); }
@@ -395,13 +375,14 @@ public:
     // Access the status
     const StatusPointer& getStatus() const { return _payload->getStatus(); }
 
-    const FadeState* getFadeState() const { return _payload->getFadeState(); }
-    FadeState* const editFadeState() { return _payload->editFadeState(); }
+    void setTransitionId(TransitionStage::Index id) { _transitionId = id; }
+    TransitionStage::Index getTransitionId() const { return _transitionId; }
 
 protected:
     PayloadPointer _payload;
     ItemKey _key;
     ItemCell _cell{ INVALID_CELL };
+    TransitionStage::Index _transitionId{ TransitionStage::INVALID_INDEX };
 
     friend class Scene;
 };
@@ -431,8 +412,6 @@ template <class T> const ItemKey payloadGetKey(const std::shared_ptr<T>& payload
 template <class T> const Item::Bound payloadGetBound(const std::shared_ptr<T>& payloadData) { return Item::Bound(); }
 template <class T> int payloadGetLayer(const std::shared_ptr<T>& payloadData) { return 0; }
 template <class T> void payloadRender(const std::shared_ptr<T>& payloadData, RenderArgs* args) { }
-template <class T> const Item::FadeState* payloadGetFadeState(const std::shared_ptr<T>& payloadData) { return nullptr; }
-template <class T> Item::FadeState* const payloadEditFadeState(std::shared_ptr<T>& payloadData) { return nullptr; }
 
 // Shape type interface
 // This allows shapes to characterize their pipeline via a ShapeKey, to be picked with a subclass of Shape.
@@ -459,9 +438,6 @@ public:
     virtual const ItemKey getKey() const override { return payloadGetKey<T>(_data); }
     virtual const Item::Bound getBound() const override { return payloadGetBound<T>(_data); }
     virtual int getLayer() const override { return payloadGetLayer<T>(_data); }
-
-    virtual const Item::FadeState* getFadeState() const { return payloadGetFadeState<T>(_data); }
-    virtual Item::FadeState* const editFadeState() { return payloadEditFadeState<T>(_data); }
 
     virtual void render(RenderArgs* args) override { payloadRender<T>(_data, args); }
 

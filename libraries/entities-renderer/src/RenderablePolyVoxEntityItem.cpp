@@ -63,8 +63,6 @@
 #include "EntityEditPacketSender.h"
 #include "PhysicalEntitySimulation.h"
 
-#include "FadeEffect.h"
-
 gpu::PipelinePointer RenderablePolyVoxEntityItem::_pipelines[2] = { nullptr, nullptr };
 gpu::PipelinePointer RenderablePolyVoxEntityItem::_wireframePipelines[2] = { nullptr, nullptr };
 

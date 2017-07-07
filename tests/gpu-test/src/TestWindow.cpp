@@ -24,7 +24,7 @@
 #include <TextureCache.h>
 
 #ifdef DEFERRED_LIGHTING
-extern void initDeferredPipelines(render::ShapePlumber& plumber);
+extern void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 extern void initStencilPipeline(gpu::PipelinePointer& pipeline);
 #endif
 

@@ -24,7 +24,6 @@
 
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"
-#include "FadeEffect.h"
 #include "StencilMaskPass.h"
 
 #include "gpu/StandardShaderLib.h"
