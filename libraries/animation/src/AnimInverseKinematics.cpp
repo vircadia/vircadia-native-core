@@ -252,6 +252,14 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
                         jointChainInfoVec[i].jointInfoVec[j].rot = safeMix(_prevJointChainInfoVec[i].jointInfoVec[j].rot, jointChainInfoVec[i].jointInfoVec[j].rot, alpha);
                         jointChainInfoVec[i].jointInfoVec[j].trans = lerp(_prevJointChainInfoVec[i].jointInfoVec[j].trans, jointChainInfoVec[i].jointInfoVec[j].trans, alpha);
                     }
+
+                    // if joint chain was just disabled, ramp the weight toward zero.
+                    if (_prevJointChainInfoVec[i].target.getType() != IKTarget::Type::Unknown &&
+                        jointChainInfoVec[i].target.getType() == IKTarget::Type::Unknown) {
+                        IKTarget newTarget = _prevJointChainInfoVec[i].target;
+                        newTarget.setWeight(alpha);
+                        jointChainInfoVec[i].target = newTarget;
+                    }
                 }
             }
         }
@@ -336,6 +344,7 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
         }
     }
 
+    // copy jointChainInfoVec into _prevJointChainInfoVec, and update timers
     for (size_t i = 0; i < jointChainInfoVec.size(); i++) {
         _prevJointChainInfoVec[i].timer = _prevJointChainInfoVec[i].timer - dt;
         if (_prevJointChainInfoVec[i].timer <= 0.0f) {
@@ -888,7 +897,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             {
                 PROFILE_RANGE_EX(simulation_animation, "ik/jointChainInfo", 0xffff00ff, 0);
 
-                // initialize a new jointChainInfoVec, this will holds the results for solving each ik chain.
+                // initialize a new jointChainInfoVec, this will hold the results for solving each ik chain.
                 JointInfo defaultJointInfo = { glm::quat(), glm::vec3(), -1, false };
                 for (size_t i = 0; i < targets.size(); i++) {
                     size_t chainDepth = (size_t)_skeleton->getChainDepth(targets[i].getIndex());
@@ -902,6 +911,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                     }
                 }
 
+                // identity joint chains that have changed types this frame.
                 _prevJointChainInfoVec.resize(jointChainInfoVec.size());
                 for (size_t i = 0; i < _prevJointChainInfoVec.size(); i++) {
                     if (_prevJointChainInfoVec[i].timer <= 0.0f &&
@@ -923,7 +933,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                     int parentIndex = _skeleton->getParentIndex(targets[_hipsTargetIndex].getIndex());
                     AnimPose parentAbsPose = _skeleton->getAbsolutePose(parentIndex, _relativePoses);
 
-                    // do smooth interpolation of hips here, if necessary.
+                    // do smooth interpolation of hips, if necessary.
                     if (_prevJointChainInfoVec[_hipsTargetIndex].timer > 0.0f) {
                         float alpha = (JOINT_CHAIN_INTERP_TIME - _prevJointChainInfoVec[_hipsTargetIndex].timer) / JOINT_CHAIN_INTERP_TIME;
 
