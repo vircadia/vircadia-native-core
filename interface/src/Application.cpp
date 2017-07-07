@@ -2729,56 +2729,41 @@ bool Application::importSVOFromURL(const QString& urlString) {
     return true;
 }
 
+bool _renderRequested { false };
+
 bool Application::event(QEvent* event) {
     if (!Menu::getInstance()) {
         return false;
     }
 
-    // Presentation/painting logic
-    // TODO: Decouple presentation and painting loops
-    static bool isPaintingThrottled = false;
-    if ((int)event->type() == (int)Present) {
-        if (isPaintingThrottled) {
-            // If painting (triggered by presentation) is hogging the main thread,
-            // repost as low priority to avoid hanging the GUI.
-            // This has the effect of allowing presentation to exceed the paint budget by X times and
-            // only dropping every (1/X) frames, instead of every ceil(X) frames
-            // (e.g. at a 60FPS target, painting for 17us would fall to 58.82FPS instead of 30FPS).
-            removePostedEvents(this, Present);
-            postEvent(this, new QEvent(static_cast<QEvent::Type>(Present)), Qt::LowEventPriority);
-            isPaintingThrottled = false;
+    int type = event->type();
+    switch (type) {
+        case Event::Lambda:
+            static_cast<LambdaEvent*>(event)->call();
             return true;
-        }
 
-        float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
-        if (shouldPaint(nsecsElapsed)) {
-            _lastTimeUpdated.start();
-            idle(nsecsElapsed);
-            postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
-        }
-        isPaintingThrottled = true;
+        case Event::Present:
+            if (!_renderRequested) {
+                float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
+                if (shouldPaint(nsecsElapsed)) {
+                    _renderRequested = true;
+                    _lastTimeUpdated.start();
+                    idle(nsecsElapsed);
+                    postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
+                }
+            }
+            return true;
 
-        return true;
-    } else if ((int)event->type() == (int)Paint) {
-        // NOTE: This must be updated as close to painting as possible,
-        //       or AvatarInputs will mysteriously move to the bottom-right
-        AvatarInputs::getInstance()->update();
+        case Event::Paint:
+            // NOTE: This must be updated as close to painting as possible,
+            //       or AvatarInputs will mysteriously move to the bottom-right
+            AvatarInputs::getInstance()->update();
+            paintGL();
+            _renderRequested = false;
+            return true;
 
-        paintGL();
-
-        isPaintingThrottled = false;
-
-        return true;
-    } else if ((int)event->type() == (int)Idle) {
-        float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
-        idle(nsecsElapsed);
-
-        return true;
-    }
-
-    if ((int)event->type() == (int)Lambda) {
-        static_cast<LambdaEvent*>(event)->call();
-        return true;
+        default:
+            break;
     }
 
     {
