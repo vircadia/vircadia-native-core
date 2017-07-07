@@ -320,8 +320,12 @@ template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, Ren
     return payload->render(args);
 }
 
-template <> bool payloadMustFade(const ModelMeshPartPayload::Pointer& payload) {
-    return payload->mustFade();
+template <> const Item::FadeState* payloadGetFadeState(const ModelMeshPartPayload::Pointer& payload) {
+    return &payload->getFadeState();
+}
+
+template <> Item::FadeState* const payloadEditFadeState(ModelMeshPartPayload::Pointer& payload) {
+    return &payload->editFadeState();
 }
 
 }
@@ -489,9 +493,9 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     if (wireframe) {
         builder.withWireframe();
     }
-    if (_fadeState != STATE_COMPLETE) {
+/*    if (_fadeState != STATE_COMPLETE) {
         builder.withFade();
-    }
+    }*/
     return builder.build();
 }
 
@@ -530,10 +534,6 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
     batch.setModelTransform(_transform);
 }
 
-bool ModelMeshPartPayload::mustFade() const {
-    return _fadeState != STATE_COMPLETE;
-}
-
 void ModelMeshPartPayload::render(RenderArgs* args) {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
@@ -542,15 +542,16 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
         return; // bail asap
     }
 
-    if (_fadeState == STATE_WAITING_TO_START) {
+    if (_state == WAITING_TO_START) {
         if (model->isLoaded()) {
-            // FIXME as far as I can tell this is the ONLY reason render-util depends on entities.
+ /*           // FIXME as far as I can tell this is the ONLY reason render-util depends on entities.
             if (EntityItem::getEntitiesShouldFadeFunction()()) {
                 _fadeStartTime = usecTimestampNow();
                 _fadeState = STATE_IN_PROGRESS;
             } else {
                 _fadeState = STATE_COMPLETE;
-            }
+            }*/
+            _state = STARTED;
             model->setRenderItemsNeedUpdate();
         } else {
             return;
@@ -581,12 +582,12 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     // apply material properties
     bindMaterial(batch, locations, args->_enableTexturing);
 
-    if (args->_enableFade) {
+ /*   if (args->_enableFade) {
         // Apply fade effect
         if (!FadeRenderJob::bindPerItem(batch, args, _transform.getTranslation(), _fadeStartTime)) {
             _fadeState = STATE_COMPLETE;
         }
-    }
+    }*/
  /*   else {
         // TODO : very ugly way to update the fade state. Need to improve this with global fade manager.
         _fadeState = STATE_COMPLETE;

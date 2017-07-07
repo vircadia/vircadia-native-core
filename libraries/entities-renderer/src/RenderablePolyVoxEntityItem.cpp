@@ -888,13 +888,6 @@ namespace render {
             payload->_owner->getRenderableInterface()->render(args);
         }
     }
-
-    template <> bool payloadMustFade(const PolyVoxPayload::Pointer& payload) {
-        if (payload && payload->_owner) {
-            return payload->_owner->mustFade();
-        }
-        return false;
-    }
 }
 
 

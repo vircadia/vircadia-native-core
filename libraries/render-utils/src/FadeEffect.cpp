@@ -99,13 +99,13 @@ void FadeSwitchJob::distribute(const render::RenderContextPointer& renderContext
     for (const auto&  itemBound : inputItems) {
         auto& item = scene->getItem(itemBound.id);
 
-        if (!item.mustFade() && &item!=editedItem) {
+//        if (!item.mustFade() && &item!=editedItem) {
             // No need to fade
             normalOutput.edit<render::ItemBounds>().emplace_back(itemBound);
-        }
+/*        }
         else {
             fadeOutput.edit<render::ItemBounds>().emplace_back(itemBound);
-        }
+        }*/
     }
 }
 

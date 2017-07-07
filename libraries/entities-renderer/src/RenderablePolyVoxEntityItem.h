@@ -40,7 +40,6 @@ namespace render {
    template <> const ItemKey payloadGetKey(const PolyVoxPayload::Pointer& payload);
    template <> const Item::Bound payloadGetBound(const PolyVoxPayload::Pointer& payload);
    template <> void payloadRender(const PolyVoxPayload::Pointer& payload, RenderArgs* args);
-   template <> bool payloadMustFade(const PolyVoxPayload::Pointer& payload);
 }
 
 

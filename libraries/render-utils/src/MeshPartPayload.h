@@ -97,7 +97,9 @@ public:
     int getLayer() const;
     render::ShapeKey getShapeKey() const override; // shape interface
     void render(RenderArgs* args) override;
-    bool mustFade() const;
+
+    const render::Item::FadeState& getFadeState() const { return _fadeState; }
+    render::Item::FadeState& editFadeState() { return _fadeState; }
 
     // ModelMeshPartPayload functions to perform render
     void bindMesh(gpu::Batch& batch) override;
@@ -120,14 +122,13 @@ public:
 private:
 
     enum State : uint8_t {
-        STATE_WAITING_TO_START = 0,
-        STATE_IN_PROGRESS = 1,
-        STATE_COMPLETE = 2,
+        WAITING_TO_START = 0,
+        STARTED = 1,
     };
 
-    mutable quint64 _fadeStartTime { 0 };
-    mutable State _fadeState { STATE_WAITING_TO_START } ;
+    mutable State _state { WAITING_TO_START } ;
 
+    render::Item::FadeState _fadeState;
 };
 
 namespace render {
@@ -136,7 +137,8 @@ namespace render {
     template <> int payloadGetLayer(const ModelMeshPartPayload::Pointer& payload);
     template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer& payload);
     template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args);
-    template <> bool payloadMustFade(const ModelMeshPartPayload::Pointer& payload);
+    template <> const Item::FadeState* payloadGetFadeState(const ModelMeshPartPayload::Pointer& payload);
+    template <> Item::FadeState* const payloadEditFadeState(ModelMeshPartPayload::Pointer& payload);
 }
 
 #endif // hifi_MeshPartPayload_h
