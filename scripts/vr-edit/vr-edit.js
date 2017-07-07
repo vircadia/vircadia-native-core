@@ -42,7 +42,8 @@
 
         var handOverlay,
             entityOverlays = [],
-            HIGHLIGHT_COLOR = { red: 240, green: 240, blue: 0 },
+            GRAB_HIGHLIGHT_COLOR = { red: 240, green: 240, blue: 0 },
+            SCALE_HIGHLIGHT_COLOR = { red: 0, green: 240, blue: 240 },
             HAND_HIGHLIGHT_ALPHA = 0.35,
             ENTITY_HIGHLIGHT_ALPHA = 0.8,
             HAND_HIGHLIGHT_DIMENSIONS = { x: 0.2, y: 0.2, z: 0.2 },
@@ -55,7 +56,6 @@
                 ? "_CONTROLLER_LEFTHAND"
                 : "_CONTROLLER_RIGHTHAND"),
             localPosition: HAND_HIGHLIGHT_OFFSET,
-            color: HIGHLIGHT_COLOR,
             alpha: HAND_HIGHLIGHT_ALPHA,
             solid: true,
             drawInFront: true,
@@ -66,7 +66,6 @@
         function maybeAddEntityOverlay(index) {
             if (index >= entityOverlays.length) {
                 entityOverlays.push(Overlays.addOverlay("cube", {
-                    color: HIGHLIGHT_COLOR,
                     alpha: ENTITY_HIGHLIGHT_ALPHA,
                     solid: false,
                     drawInFront: true,
@@ -76,7 +75,7 @@
             }
         }
 
-        function editEntityOverlay(index, details) {
+        function editEntityOverlay(index, details, overlayColor) {
             var offset = Vec3.multiplyQbyV(details.rotation,
                 Vec3.multiplyVbyV(Vec3.subtract(Vec3.HALF, details.registrationPoint), details.dimensions));
 
@@ -86,21 +85,26 @@
                 registrationPoint: details.registrationPoint,
                 rotation: details.rotation,
                 dimensions: details.dimensions,
+                color: overlayColor,
                 visible: true
             });
         }
 
-        function display(handSelected, selection) {
-            var i,
+        function display(handSelected, selection, isScale) {
+            var overlayColor = isScale ? SCALE_HIGHLIGHT_COLOR : GRAB_HIGHLIGHT_COLOR,
+                i,
                 length;
 
             // Show/hide hand overlay.
-            Overlays.editOverlay(handOverlay, { visible: handSelected });
+            Overlays.editOverlay(handOverlay, {
+                color: overlayColor,
+                visible: handSelected
+            });
 
             // Add/edit entity overlay.
             for (i = 0, length = selection.length; i < length; i += 1) {
                 maybeAddEntityOverlay(i);
-                editEntityOverlay(i, selection[i]);
+                editEntityOverlay(i, selection[i], overlayColor);
             }
 
             // Delete extra entity overlays.
@@ -397,6 +401,7 @@
             doHighlight,
 
             otherHand,
+            otherHandWasEditing,
 
             laser,
             selection,
@@ -484,11 +489,11 @@
                 handOrientation,
                 deltaOrigin,
                 pickRay,
-                intersection,
                 laserLength,
                 isTriggerPressed,
                 isTriggerClicked,
                 wasEditing,
+                otherHandIsEditing,
                 i,
                 length;
 
@@ -589,9 +594,11 @@
                 }
                 if (intersection.intersects) {
                     // Hover entities.
-                    if (wasEditing || intersection.entityID !== hoveredEntityID) {
+                    otherHandIsEditing = otherHand.isEditing(selection.rootEntityID());
+                    if (wasEditing || intersection.entityID !== hoveredEntityID || otherHandIsEditing !== otherHandWasEditing) {
                         hoveredEntityID = intersection.entityID;
                         selection.select(hoveredEntityID);
+                        otherHandWasEditing = otherHandIsEditing;
                         doHighlight = true;
                     }
                 } else {
@@ -615,7 +622,8 @@
                     applyGrab();
                 }
             } else if (doHighlight) {
-                highlights.display(intersection.handSelected, selection.selection());
+                highlights.display(intersection.handSelected, selection.selection(),
+                    otherHand.isEditing(selection.rootEntityID()));
             }
         }
 
