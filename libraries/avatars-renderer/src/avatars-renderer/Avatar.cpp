@@ -1008,21 +1008,29 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
     }
 }
 
-void Avatar::cacheJoints() const {
-    // _jointIndicesCacheLock should be locked for write before calling this.
-    if (_jointsCached) {
-        return;
-    }
-    _jointIndicesCache.clear();
-    if (_skeletonModel && _skeletonModel->isActive()) {
-        _jointIndicesCache = _skeletonModel->getFBXGeometry().jointIndices;
-        _jointsCached = true;
-    }
-}
-
 void Avatar::invalidateJointIndicesCache() const {
     QWriteLocker writeLock(&_jointIndicesCacheLock);
     _jointsCached = false;
+}
+
+void Avatar::withValidCache(std::function<void()> const& worker) const {
+    QReadLocker readLock(&_jointIndicesCacheLock);
+    if (_jointsCached) {
+        worker();
+    } else {
+        readLock.unlock();
+        {
+            QWriteLocker writeLock(&_jointIndicesCacheLock);
+            if (!_jointsCached) {
+                _jointIndicesCache.clear();
+                if (_skeletonModel && _skeletonModel->isActive()) {
+                    _jointIndicesCache = _skeletonModel->getFBXGeometry().jointIndices;
+                    _jointsCached = true;
+                }
+            }
+            worker();
+        }
+    }
 }
 
 int Avatar::getJointIndex(const QString& name) const {
@@ -1031,41 +1039,20 @@ int Avatar::getJointIndex(const QString& name) const {
         return result;
     }
 
-    auto getJointIndexWorker = [&]() {
+    withValidCache([&]() {
         if (_jointIndicesCache.contains(name)) {
-            return _jointIndicesCache[name];
-        } else {
-            return -1;
+            result = _jointIndicesCache[name];
         }
-    };
-    QReadLocker readLock(&_jointIndicesCacheLock);
-    if (_jointsCached) {
-        return getJointIndexWorker();
-    } else {
-        readLock.unlock();
-        {
-            QWriteLocker writeLock(&_jointIndicesCacheLock);
-            Avatar::cacheJoints();
-            return getJointIndexWorker();
-        }
-    }
+    });
+    return result;
 }
 
 QStringList Avatar::getJointNames() const {
-    auto getJointNamesWorker = [&]() {
-        return _jointIndicesCache.keys();
-    };
-    QReadLocker readLock(&_jointIndicesCacheLock);
-    if (_jointsCached) {
-        return getJointNamesWorker();
-    } else {
-        readLock.unlock();
-        {
-            QWriteLocker writeLock(&_jointIndicesCacheLock);
-            Avatar::cacheJoints();
-            return getJointNamesWorker();
-        }
-    }
+    QStringList result;
+    withValidCache([&]() {
+        result = _jointIndicesCache.keys();
+    });
+    return result;
 }
 
 glm::vec3 Avatar::getJointPosition(int index) const {
