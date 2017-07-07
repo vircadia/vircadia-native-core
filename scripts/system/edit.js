@@ -1,5 +1,3 @@
-"use strict";
-
 //  edit.js
 //
 //  Created by Brad Hefta-Gaub on 10/2/14.
@@ -16,6 +14,8 @@
    Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
 
 (function() { // BEGIN LOCAL_SCOPE
+    
+"use strict";
 
 var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
 var EDIT_TOGGLE_BUTTON = "com.highfidelity.interface.system.editButton";
@@ -41,19 +41,19 @@ Script.include([
 var selectionDisplay = SelectionDisplay;
 var selectionManager = SelectionManager;
 
-const PARTICLE_SYSTEM_URL = Script.resolvePath("assets/images/icon-particles.svg");
-const POINT_LIGHT_URL = Script.resolvePath("assets/images/icon-point-light.svg");
-const SPOT_LIGHT_URL = Script.resolvePath("assets/images/icon-spot-light.svg");
+var PARTICLE_SYSTEM_URL = Script.resolvePath("assets/images/icon-particles.svg");
+var POINT_LIGHT_URL = Script.resolvePath("assets/images/icon-point-light.svg");
+var SPOT_LIGHT_URL = Script.resolvePath("assets/images/icon-spot-light.svg");
 entityIconOverlayManager = new EntityIconOverlayManager(['Light', 'ParticleEffect'], function(entityID) {
     var properties = Entities.getEntityProperties(entityID, ['type', 'isSpotlight']);
     if (properties.type === 'Light') {
         return {
             url: properties.isSpotlight ? SPOT_LIGHT_URL : POINT_LIGHT_URL,
-        }
+        };
     } else {
         return {
             url: PARTICLE_SYSTEM_URL,
-        }
+        };
     }
 });
 
@@ -94,7 +94,7 @@ selectionManager.addEventListener(function () {
     }
 });
 
-const KEY_P = 80; //Key code for letter p used for Parenting hotkey.
+var KEY_P = 80; //Key code for letter p used for Parenting hotkey.
 var DEGREES_TO_RADIANS = Math.PI / 180.0;
 var RADIANS_TO_DEGREES = 180.0 / Math.PI;
 
@@ -652,7 +652,7 @@ var toolBar = (function () {
             grid.setEnabled(true);
             propertiesTool.setVisible(true);
             selectionDisplay.triggerMapping.enable();
-            print("starting tablet in landscape mode")
+            print("starting tablet in landscape mode");
             tablet.landscape = true;
             // Not sure what the following was meant to accomplish, but it currently causes
             // everybody else to think that Interface has lost focus overall. fogbugzid:558
@@ -1356,7 +1356,7 @@ function unparentSelectedEntities() {
             if (parentId !== null && parentId.length > 0 && parentId !== "{00000000-0000-0000-0000-000000000000}") {
                 parentCheck = true;
             }
-            Entities.editEntity(id, {parentID: null})
+            Entities.editEntity(id, {parentID: null});
             return true;
         });
         if (parentCheck) {
@@ -1391,7 +1391,7 @@ function parentSelectedEntities() {
                 if (parentId !== lastEntityId) {
                     parentCheck = true;
                 }
-                Entities.editEntity(id, {parentID: lastEntityId})
+                Entities.editEntity(id, {parentID: lastEntityId});
             }
         });
 
@@ -1564,9 +1564,9 @@ function importSVO(importURL) {
                 var entityPositions = [];
                 var entityParentIDs = [];
 
-                var properties = Entities.getEntityProperties(pastedEntityIDs[0], ["type"]);
+                var propType = Entities.getEntityProperties(pastedEntityIDs[0], ["type"]).type;
                 var NO_ADJUST_ENTITY_TYPES = ["Zone", "Light", "ParticleEffect"];
-                if (NO_ADJUST_ENTITY_TYPES.indexOf(properties.type) === -1) {
+                if (NO_ADJUST_ENTITY_TYPES.indexOf(propType) === -1) {
                     var targetDirection;
                     if (Camera.mode === "entity" || Camera.mode === "independent") {
                         targetDirection = Camera.orientation;
@@ -1579,36 +1579,36 @@ function importSVO(importURL) {
                     var deltaParallel = HALF_TREE_SCALE;  // Distance to move entities parallel to targetDirection.
                     var deltaPerpendicular = Vec3.ZERO;  // Distance to move entities perpendicular to targetDirection.
                     for (var i = 0, length = pastedEntityIDs.length; i < length; i++) {
-                        var properties = Entities.getEntityProperties(pastedEntityIDs[i], ["position", "dimensions",
+                        var curLoopEntityProps = Entities.getEntityProperties(pastedEntityIDs[i], ["position", "dimensions",
                             "registrationPoint", "rotation", "parentID"]);
                         var adjustedPosition = adjustPositionPerBoundingBox(targetPosition, targetDirection,
-                            properties.registrationPoint, properties.dimensions, properties.rotation);
-                        var delta = Vec3.subtract(adjustedPosition, properties.position);
+                            curLoopEntityProps.registrationPoint, curLoopEntityProps.dimensions, curLoopEntityProps.rotation);
+                        var delta = Vec3.subtract(adjustedPosition, curLoopEntityProps.position);
                         var distance = Vec3.dot(delta, targetDirection);
                         deltaParallel = Math.min(distance, deltaParallel);
                         deltaPerpendicular = Vec3.sum(Vec3.subtract(delta, Vec3.multiply(distance, targetDirection)),
                             deltaPerpendicular);
-                        entityPositions[i] = properties.position;
-                        entityParentIDs[i] = properties.parentID;
+                        entityPositions[i] = curLoopEntityProps.position;
+                        entityParentIDs[i] = curLoopEntityProps.parentID;
                     }
                     deltaPerpendicular = Vec3.multiply(1 / pastedEntityIDs.length, deltaPerpendicular);
                     deltaPosition = Vec3.sum(Vec3.multiply(deltaParallel, targetDirection), deltaPerpendicular);
                 }
 
                 if (grid.getSnapToGrid()) {
-                    var properties = Entities.getEntityProperties(pastedEntityIDs[0], ["position", "dimensions",
+                    var firstEntityProps = Entities.getEntityProperties(pastedEntityIDs[0], ["position", "dimensions",
                         "registrationPoint"]);
-                    var position = Vec3.sum(deltaPosition, properties.position);
-                    position = grid.snapToSurface(grid.snapToGrid(position, false, properties.dimensions,
-                            properties.registrationPoint), properties.dimensions, properties.registrationPoint);
-                    deltaPosition = Vec3.subtract(position, properties.position);
+                    var positionPreSnap = Vec3.sum(deltaPosition, firstEntityProps.position);
+                    position = grid.snapToSurface(grid.snapToGrid(positionPreSnap, false, firstEntityProps.dimensions,
+                            firstEntityProps.registrationPoint), firstEntityProps.dimensions, firstEntityProps.registrationPoint);
+                    deltaPosition = Vec3.subtract(position, firstEntityProps.position);
                 }
 
                 if (!Vec3.equal(deltaPosition, Vec3.ZERO)) {
-                    for (var i = 0, length = pastedEntityIDs.length; i < length; i++) {
-                        if (Uuid.isNull(entityParentIDs[i])) {
-                            Entities.editEntity(pastedEntityIDs[i], {
-                                position: Vec3.sum(deltaPosition, entityPositions[i])
+                    for (var editEntityIndex = 0, numEntities = pastedEntityIDs.length; editEntityIndex < numEntities; editEntityIndex++) {
+                        if (Uuid.isNull(entityParentIDs[editEntityIndex])) {
+                            Entities.editEntity(pastedEntityIDs[editEntityIndex], {
+                                position: Vec3.sum(deltaPosition, entityPositions[editEntityIndex])
                             });
                         }
                     }
@@ -2254,7 +2254,7 @@ entityListTool.webView.webEventReceived.connect(function (data) {
     try {
         data = JSON.parse(data);
     } catch(e) {
-        print("edit.js: Error parsing JSON: " + e.name + " data " + data)
+        print("edit.js: Error parsing JSON: " + e.name + " data " + data);
         return;
     }
 
