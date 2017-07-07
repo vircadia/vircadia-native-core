@@ -142,6 +142,15 @@ namespace render {
             payload->render(args);
         }
     }
+    template <>
+    const ShapeKey shapeGetShapeKey(const ParticlePayloadData::Pointer& payload) {
+        return ShapeKey::Builder().withCustom(75).build();
+    }
+    
+    template <>
+    bool shapeDefineCustomShapePipeline(const ParticlePayloadData::Pointer& payload, ShapePlumber& plumber, const ShapeKey& key) {
+        return false;
+    }
 }
 
 

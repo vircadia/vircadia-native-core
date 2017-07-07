@@ -39,7 +39,19 @@ public:
         OWN_PIPELINE,
         INVALID,
 
+        CUSTOM_0,
+        CUSTOM_1,
+        CUSTOM_2,
+        CUSTOM_3,
+        CUSTOM_4,
+        CUSTOM_5,
+        CUSTOM_6,
+        CUSTOM_7,
+
         NUM_FLAGS, // Not a valid flag
+
+        CUSTOM_MASK = (0xFF << CUSTOM_0),
+
     };
     using Flags = std::bitset<NUM_FLAGS>;
 
@@ -74,6 +86,8 @@ public:
         Builder& withOwnPipeline() { _flags.set(OWN_PIPELINE); return (*this); }
         Builder& invalidate() { _flags.set(INVALID); return (*this); }
 
+        Builder& withCustom(uint8_t custom) {  _flags &= (~CUSTOM_MASK); _flags |= (custom << CUSTOM_0); return (*this); }
+        
         static const ShapeKey ownPipeline() { return Builder().withOwnPipeline(); }
         static const ShapeKey invalid() { return Builder().invalidate(); }
 
@@ -128,6 +142,9 @@ public:
             Builder& withCullFace() { _flags.reset(NO_CULL_FACE); _mask.set(NO_CULL_FACE); return (*this); }
             Builder& withoutCullFace() { _flags.set(NO_CULL_FACE); _mask.set(NO_CULL_FACE); return (*this); }
 
+            Builder& withCustom(uint8_t custom) { _flags &= (~CUSTOM_MASK); _flags |= (custom << CUSTOM_0); _mask |= (CUSTOM_MASK); return (*this); }
+            Builder& withoutCustom() { _flags &= (~CUSTOM_MASK);  _mask |= (CUSTOM_MASK); return (*this); }
+
         protected:
             friend class Filter;
             Flags _flags{0};
@@ -155,6 +172,9 @@ public:
 
     bool hasOwnPipeline() const { return _flags[OWN_PIPELINE]; }
     bool isValid() const { return !_flags[INVALID]; }
+
+    uint8_t getCustom() const { return (_flags.to_ulong() & CUSTOM_MASK) >> CUSTOM_0; }
+    bool isCustom() const { return (_flags.to_ulong() & CUSTOM_MASK); }
 
     // Comparator for use in stl containers
     class Hash {
