@@ -740,8 +740,8 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
             _defaultLight = lp;
 
             // Add the global light to the light stage (for later shadow rendering)
-            auto defaultLightID = lightStage->addLight(lp);
-            lightStage->addShadow(defaultLightID);
+            _defaultLightID = lightStage->addLight(lp);
+            lightStage->addShadow(_defaultLightID);
         }
 
         auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
@@ -754,7 +754,7 @@ void DefaultLightingSetup::run(const RenderContextPointer& renderContext) {
             _defaultBackground = background;
 
             // Add the global light to the light stage (for later shadow rendering)
-            auto defaultBackgroundID = backgroundStage->addBackground(_defaultBackground);
+            _defaultBackgroundID = backgroundStage->addBackground(_defaultBackground);
         }
     }
 }

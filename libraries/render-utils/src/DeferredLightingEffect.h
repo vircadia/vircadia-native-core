@@ -180,7 +180,9 @@ public:
 
 protected:
     model::LightPointer _defaultLight;
+    LightStage::Index _defaultLightID{ LightStage::INVALID_INDEX };
     model::SunSkyStagePointer _defaultBackground;
+    BackgroundStage::Index _defaultBackgroundID{ BackgroundStage::INVALID_INDEX };
     model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() };
     gpu::TexturePointer _defaultSkyboxTexture;
     gpu::TexturePointer _defaultSkyboxAmbientTexture;
