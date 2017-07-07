@@ -127,7 +127,6 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
                     overlayProperties[key] = customProperties[key];
                 }
             }
-
             if(properties.type === 'ParticleEffect' || properties.type === 'Light'){
                 overlayProperties.ignoreRayIntersection = true;
             }
