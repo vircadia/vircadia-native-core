@@ -314,12 +314,16 @@ public:
     class FadeState {
     public:
 
+        enum {
+            INACTIVE = (uint8_t)-1
+        };
+
+        uint8_t eventType{ INACTIVE };
         uint64_t startTime{ 0 };
         glm::vec3 noiseOffset{ 0.f, 0.f, 0.f };
         glm::vec3 baseOffset{ 0.f, 0.f, 0.f };
         glm::vec3 baseSize{ 1.f, 1.f, 1.f };
         float threshold{ 0.f };
-        uint8_t eventType{ (uint8_t)-1 };
 
     };
 

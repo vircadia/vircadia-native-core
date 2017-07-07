@@ -53,14 +53,9 @@ void RenderDeferredTask::configure(const Config& config)
 }
 
 void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
-    auto commonFadeParameters = std::make_shared<FadeCommonParameters>();
-    const auto fadeSwitchOutputs = task.addJob<FadeSwitchJob>("FadeSwitch", input, commonFadeParameters).get<FadeSwitchJob::Output>();
-
-    const auto& items = fadeSwitchOutputs.get0();
-    const auto& fadeItems = fadeSwitchOutputs.get1();
-    const auto& fadeEditedItem = fadeSwitchOutputs[2];
-
-    const auto fadeConfigureOutputs = task.addJob<FadeConfigureJob>("FadeConfigure", fadeEditedItem, commonFadeParameters).get<FadeConfigureJob::Output>();
+    const auto& items = input.get<Input>();
+   
+//    task.addJob<FadeJob>("Fade", fadeEditedItem, commonFadeParameters).get<FadeConfigureJob::Output>();
 
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
@@ -100,11 +95,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).asVarying();
     task.addJob<DrawStateSortDeferred>("DrawOpaqueDeferred", opaqueInputs, shapePlumber);
-
-    const auto fadeOpaques = fadeItems[FadeSwitchJob::OPAQUE_SHAPE];
-    const auto fadeOpaqueInputs = FadeRenderJob::Input(fadeOpaques, lightingModel, fadeConfigureOutputs).asVarying();
-    task.addJob<FadeRenderJob>("DrawFadeOpaque", fadeOpaqueInputs, commonFadeParameters, shapePlumber);
-
 
     task.addJob<EndGPURangeTimer>("OpaqueRangeTimer", opaqueRangeTimer);
 
@@ -159,10 +149,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto transparentsInputs = DrawDeferred::Inputs(transparents, lightingModel).asVarying();
     task.addJob<DrawDeferred>("DrawTransparentDeferred", transparentsInputs, shapePlumber);
 
-    const auto fadeTransparents = fadeItems[FadeSwitchJob::TRANSPARENT_SHAPE];
-    const auto fadeTransparentInputs = FadeRenderJob::Input(fadeTransparents, lightingModel, fadeConfigureOutputs).asVarying();
-    task.addJob<FadeRenderJob>("DrawFadeTransparent", fadeTransparentInputs, commonFadeParameters, shapePlumber);
-
     // LIght Cluster Grid Debuging job
     {
         const auto debugLightClustersInputs = DebugLightClusters::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel, linearDepthTarget, lightClusters).asVarying();
@@ -176,7 +162,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     { // DEbug the bounds of the rendered items, still look at the zbuffer
-        task.addJob<DrawBounds>("DrawFadedOpaqueBounds", fadeOpaques);
         task.addJob<DrawBounds>("DrawMetaBounds", metas);
         task.addJob<DrawBounds>("DrawOpaqueBounds", opaques);
         task.addJob<DrawBounds>("DrawTransparentBounds", transparents);

@@ -15,21 +15,6 @@
 #include <render/ShapePipeline.h>
 #include <render/RenderFetchCullSortTask.h>
 
-#include "LightingModel.h"
-
-class FadeSwitchJobConfig : public render::Job::Config {
-    Q_OBJECT
-        Q_PROPERTY(bool editFade MEMBER editFade NOTIFY dirty)
-
-public:
-
-    bool editFade{ false };
-
-signals:
-    void dirty();
-
-};
-
 class FadeJobConfig : public render::Job::Config {
     Q_OBJECT
         Q_PROPERTY(int editedCategory MEMBER editedCategory WRITE setEditedCategory NOTIFY dirtyCategory)
@@ -58,6 +43,8 @@ class FadeJobConfig : public render::Job::Config {
         Q_PROPERTY(float noiseSpeedX READ getNoiseSpeedX WRITE setNoiseSpeedX NOTIFY dirty)
         Q_PROPERTY(float noiseSpeedY READ getNoiseSpeedY WRITE setNoiseSpeedY NOTIFY dirty)
         Q_PROPERTY(float noiseSpeedZ READ getNoiseSpeedZ WRITE setNoiseSpeedZ NOTIFY dirty)
+        Q_PROPERTY(float threshold MEMBER threshold NOTIFY dirty)
+        Q_PROPERTY(bool editFade MEMBER editFade NOTIFY dirty)
 
 public:
 
@@ -153,10 +140,6 @@ public:
 
     void setTiming(int value);
     int getTiming() const { return events[editedCategory].timing; }
-    
-    bool manualFade{ false };
-    float manualThreshold{ 0.f };
-    int editedCategory{ ELEMENT_ENTER_LEAVE_DOMAIN };
 
     struct Event {
         glm::vec4 edgeInnerColor;
@@ -173,6 +156,11 @@ public:
     };
 
     Event events[EVENT_CATEGORY_COUNT];
+    float threshold{ 0.f };
+    float manualThreshold{ 0.f };
+    int editedCategory{ ELEMENT_ENTER_LEAVE_DOMAIN };
+    bool editFade{ false };
+    bool manualFade{ false };
 
     Q_INVOKABLE void save() const;
     Q_INVOKABLE void load();
@@ -180,67 +168,20 @@ public:
     static QString eventNames[EVENT_CATEGORY_COUNT];
 
 signals:
+
     void dirty();
     void dirtyCategory();
 
 };
 
-struct FadeCommonParameters
-{
-    using Pointer = std::shared_ptr<FadeCommonParameters>;
-
-    FadeCommonParameters();
-
-    bool _isEditEnabled{ false };
-    bool _isManualThresholdEnabled{ false };
-    float _manualThreshold{ 0.f };
-    float _thresholdScale[FadeJobConfig::EVENT_CATEGORY_COUNT];
-    int _editedCategory{ FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN };
-    float _durations[FadeJobConfig::EVENT_CATEGORY_COUNT];
-    glm::vec3 _noiseSpeed[FadeJobConfig::EVENT_CATEGORY_COUNT];
-    FadeJobConfig::Timing _timing[FadeJobConfig::EVENT_CATEGORY_COUNT];
-};
-
-class FadeSwitchJob {
-public:
-
-    enum FadeBuckets {
-        OPAQUE_SHAPE = 0,
-        TRANSPARENT_SHAPE,
-
-        NUM_BUCKETS
-    };
-
-    using FadeOutput = render::VaryingArray<render::ItemBounds, FadeBuckets::NUM_BUCKETS>;
-
-    using Input = RenderFetchCullSortTask::Output;
-    using Output = render::VaryingSet3 < RenderFetchCullSortTask::Output, FadeOutput, render::Item::Bound > ;
-    using Config = FadeSwitchJobConfig;
-    using JobModel = render::Job::ModelIO<FadeSwitchJob, Input, Output, Config>;
-
-    FadeSwitchJob(FadeCommonParameters::Pointer commonParams) : _parameters{ commonParams } {}
-
-    void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
-
-private:
-
-    FadeCommonParameters::Pointer _parameters;
-
-    void distribute(const render::RenderContextPointer& renderContext, const render::Varying& input, 
-        render::Varying& normalOutput, render::Varying& fadeOutput, const render::Item* editedItem = nullptr) const;
-    const render::Item* findNearestItem(const render::RenderContextPointer& renderContext, const render::Varying& input, float& minIsectDistance) const;
-};
-
 struct FadeParameters
 {
-    glm::vec4       _baseInvSizeAndLevel;
     glm::vec4       _noiseInvSizeAndLevel;
     glm::vec4       _innerEdgeColor;
     glm::vec4       _outerEdgeColor;
     glm::vec2       _edgeWidthInvWidth;
+    glm::float32    _baseLevel;
     glm::int32      _isInverted;
-    glm::float32    _padding;
 };
 
 struct FadeConfiguration
@@ -248,56 +189,17 @@ struct FadeConfiguration
     FadeParameters  parameters[FadeJobConfig::EVENT_CATEGORY_COUNT];
 };
 
-class FadeConfigureJob {
+class FadeJob {
 
 public:
 
-    using UniformBuffer = gpu::StructBuffer<FadeConfiguration>;
-    using Input = render::Item::Bound ;
-    using Output = render::VaryingSet2<gpu::TexturePointer, UniformBuffer>;
     using Config = FadeJobConfig;
-    using JobModel = render::Job::ModelIO<FadeConfigureJob, Input, Output, Config>;
+    using Input = RenderFetchCullSortTask::BucketList;
+    using JobModel = render::Job::ModelI<FadeJob, Input, Config>;
 
-    FadeConfigureJob(FadeCommonParameters::Pointer commonParams);
-
-    const gpu::TexturePointer getFadeMaskMap() const { return _fadeMaskMap; }
+    FadeJob();
 
     void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, const Input& input, Output& output);
-
-private:
-
-    FadeCommonParameters::Pointer _parameters;
-    bool _isBufferDirty{ true };
-    gpu::TexturePointer _fadeMaskMap;
-    FadeParameters _configurations[FadeJobConfig::EVENT_CATEGORY_COUNT];
-};
-
-
-class FadeRenderJobConfig : public render::Job::Config {
-    Q_OBJECT
-        Q_PROPERTY(float threshold MEMBER threshold NOTIFY dirty)
-
-public:
-
-    float threshold{ 0.f };
-
-signals:
-    void dirty();
-
-};
-
-class FadeRenderJob {
-
-public:
-
-    using Config = FadeRenderJobConfig;
-    using Input = render::VaryingSet3<render::ItemBounds, LightingModelPointer, FadeConfigureJob::Output>;
-    using JobModel = render::Job::ModelI<FadeRenderJob, Input, Config>;
-
-    FadeRenderJob(FadeCommonParameters::Pointer commonParams, render::ShapePlumberPointer shapePlumber) : _shapePlumber{ shapePlumber }, _parameters{ commonParams }  {}
-
-    void configure(const Config& config) {}
     void run(const render::RenderContextPointer& renderContext, const Input& inputs);
 
     static void bindPerBatch(gpu::Batch& batch, int fadeMaskMapLocation, int fadeBufferLocation);
@@ -311,14 +213,16 @@ public:
 
 private:
 
-    static const FadeRenderJob* _currentInstance;
+    static const FadeJob* _currentInstance;
     static gpu::TexturePointer _currentFadeMaskMap;
     static const gpu::BufferView* _currentFadeBuffer;
 
-    render::ShapePlumberPointer _shapePlumber;
-    FadeCommonParameters::Pointer _parameters;
+    gpu::StructBuffer<FadeConfiguration> _configurations;
+    gpu::TexturePointer _fadeMaskMap;
+    float _thresholdScale[FadeJobConfig::EVENT_CATEGORY_COUNT];
 
     float computeElementEnterThreshold(double time, const double period, FadeJobConfig::Timing timing) const;
+
 
     // Everything needed for interactive edition
     uint64_t _editPreviousTime{ 0 };
@@ -328,6 +232,7 @@ private:
     glm::vec3 _editBaseOffset{ 0.f, 0.f, 0.f };
 
     void updateFadeEdit(const render::RenderContextPointer& renderContext, const render::ItemBound& itemBounds);
+    const render::Item* findNearestItem(const render::RenderContextPointer& renderContext, const render::Varying& input, float& minIsectDistance) const;
 };
 
 #endif // hifi_FadeEffect_h

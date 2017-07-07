@@ -21,103 +21,6 @@ inline float valueToParameterPow(float value, const double minValue, const doubl
     return (float)(log(double(value) / minValue) / log(maxOverMinValue));
 }
 
-void FadeSwitchJob::configure(const Config& config) {
-    _parameters->_isEditEnabled = config.editFade;
-}
-
-void FadeSwitchJob::run(const render::RenderContextPointer& renderContext, const Input& input, Output& output) {
-    auto& normalOutputs = output.edit0().edit0();
-    auto& fadeOutputs = output.edit1();
-
-    // Only shapes are affected by fade at this time.
-    normalOutputs[RenderFetchCullSortTask::LIGHT].edit<render::ItemBounds>() = input.get0()[RenderFetchCullSortTask::LIGHT].get<render::ItemBounds>();
-    normalOutputs[RenderFetchCullSortTask::META].edit<render::ItemBounds>() = input.get0()[RenderFetchCullSortTask::META].get<render::ItemBounds>();
-    normalOutputs[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE].edit<render::ItemBounds>() = input.get0()[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE].get<render::ItemBounds>();
-    normalOutputs[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE].edit<render::ItemBounds>() = input.get0()[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE].get<render::ItemBounds>();
-    normalOutputs[RenderFetchCullSortTask::BACKGROUND].edit<render::ItemBounds>() = input.get0()[RenderFetchCullSortTask::BACKGROUND].get<render::ItemBounds>();
-    output.edit0().edit1() = input.get1();
-
-    // Find the nearest item that intersects the view direction
-    const render::Item* editedItem = nullptr;
-    if (_parameters->_isEditEnabled) {
-        float nearestOpaqueDistance = std::numeric_limits<float>::max();
-        float nearestTransparentDistance = std::numeric_limits<float>::max();
-        const render::Item* nearestItem;
-
-        editedItem = findNearestItem(renderContext, input.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE], nearestOpaqueDistance);
-        nearestItem = findNearestItem(renderContext, input.get0()[RenderFetchCullSortTask::TRANSPARENT_SHAPE], nearestTransparentDistance);
-        if (nearestTransparentDistance < nearestOpaqueDistance) {
-            editedItem = nearestItem;
-        }
-
-        if (editedItem) {
-            output.edit2() = editedItem->getBound();
-        }
-    }
-
-    // Now, distribute items that need to be faded accross both outputs
-    distribute(renderContext, input.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE], normalOutputs[RenderFetchCullSortTask::OPAQUE_SHAPE], fadeOutputs[OPAQUE_SHAPE], editedItem);
-    distribute(renderContext, input.get0()[RenderFetchCullSortTask::TRANSPARENT_SHAPE], normalOutputs[RenderFetchCullSortTask::TRANSPARENT_SHAPE], fadeOutputs[TRANSPARENT_SHAPE], editedItem);
-}
-
-const render::Item* FadeSwitchJob::findNearestItem(const render::RenderContextPointer& renderContext, const render::Varying& input, float& minIsectDistance) const {
-    const glm::vec3 rayOrigin = renderContext->args->getViewFrustum().getPosition();
-    const glm::vec3 rayDirection = renderContext->args->getViewFrustum().getDirection();
-    const auto& inputItems = input.get<render::ItemBounds>();
-    auto& scene = renderContext->_scene;
-    BoxFace face;
-    glm::vec3 normal;
-    float isectDistance;
-    const render::Item* nearestItem = nullptr;
-    const float minDistance = 2.f;
-
-    for (const auto& itemBound : inputItems) {
-        if (!itemBound.bound.contains(rayOrigin) && itemBound.bound.findRayIntersection(rayOrigin, rayDirection, isectDistance, face, normal)) {
-            if (isectDistance>minDistance && isectDistance < minIsectDistance) {
-                auto& item = scene->getItem(itemBound.id);
-
-                if (item.getKey().isShape() && !item.getKey().isMeta()) {
-                    nearestItem = &item;
-                    minIsectDistance = isectDistance;
-                }
-            }
-        }
-    }
-    return nearestItem;
-}
-
-void FadeSwitchJob::distribute(const render::RenderContextPointer& renderContext, const render::Varying& input, 
-    render::Varying& normalOutput, render::Varying& fadeOutput, const render::Item* editedItem) const {
-    auto& scene = renderContext->_scene;
-    assert(_parameters);
-    const auto& inputItems = input.get<render::ItemBounds>();
-
-    // Clear previous values
-    normalOutput.edit<render::ItemBounds>().clear();
-    fadeOutput.edit<render::ItemBounds>().clear();
-
-    for (const auto&  itemBound : inputItems) {
-        auto& item = scene->getItem(itemBound.id);
-
-//        if (!item.mustFade() && &item!=editedItem) {
-            // No need to fade
-            normalOutput.edit<render::ItemBounds>().emplace_back(itemBound);
-/*        }
-        else {
-            fadeOutput.edit<render::ItemBounds>().emplace_back(itemBound);
-        }*/
-    }
-}
-
-FadeCommonParameters::FadeCommonParameters()
-{
-    _durations[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN] = 0.f;
-    _durations[FadeJobConfig::BUBBLE_ISECT_OWNER] = 0.f;
-    _durations[FadeJobConfig::BUBBLE_ISECT_TRESPASSER] = 0.f;
-    _durations[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN] = 0.f;
-    _durations[FadeJobConfig::AVATAR_CHANGE] = 0.f;
-}
-
 FadeJobConfig::FadeJobConfig() 
 {
     events[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN].noiseSize = glm::vec3{ 0.75f, 0.75f, 0.75f };
@@ -556,137 +459,54 @@ void FadeJobConfig::load() {
     }
 }
 
-FadeConfigureJob::FadeConfigureJob(FadeCommonParameters::Pointer commonParams) : 
-    _parameters{ commonParams }
+FadeJob::FadeJob()
 {
 	auto texturePath = PathUtils::resourcesPath() + "images/fadeMask.png";
 	_fadeMaskMap = DependencyManager::get<TextureCache>()->getImageTexture(texturePath, image::TextureUsage::STRICT_TEXTURE);
 }
 
-void FadeConfigureJob::configure(const Config& config) {
-    assert(_parameters);
-    _parameters->_editedCategory = config.editedCategory;
-    _parameters->_isManualThresholdEnabled = config.manualFade;
-    _parameters->_manualThreshold = config.manualThreshold;
+void FadeJob::configure(const Config& config) {
+    auto& configurations = _configurations.edit();
 
     for (auto i = 0; i < FadeJobConfig::EVENT_CATEGORY_COUNT; i++) {
-        auto& configuration = _configurations[i];
+        auto& eventParameters = configurations.parameters[i];
         const auto& eventConfig = config.events[i];
 
-        _parameters->_durations[i] = eventConfig._duration;
-        configuration._baseInvSizeAndLevel.x = 1.f / eventConfig.baseSize.x;
-        configuration._baseInvSizeAndLevel.y = 1.f / eventConfig.baseSize.y;
-        configuration._baseInvSizeAndLevel.z = 1.f / eventConfig.baseSize.z;
-        configuration._baseInvSizeAndLevel.w = eventConfig.baseLevel;
-        configuration._noiseInvSizeAndLevel.x = 1.f / eventConfig.noiseSize.x;
-        configuration._noiseInvSizeAndLevel.y = 1.f / eventConfig.noiseSize.y;
-        configuration._noiseInvSizeAndLevel.z = 1.f / eventConfig.noiseSize.z;
-        configuration._noiseInvSizeAndLevel.w = eventConfig.noiseLevel;
-        configuration._isInverted = eventConfig._isInverted & 1;
-        configuration._edgeWidthInvWidth.x = eventConfig.edgeWidth;
-        configuration._edgeWidthInvWidth.y = 1.f / configuration._edgeWidthInvWidth.x;
-        configuration._innerEdgeColor = eventConfig.edgeInnerColor;
-        configuration._outerEdgeColor = eventConfig.edgeOuterColor;
-        _parameters->_thresholdScale[i] = 1.f + (configuration._edgeWidthInvWidth.x + std::max(0.f, (eventConfig.noiseLevel + eventConfig.baseLevel)*0.5f-0.5f));
-        _parameters->_noiseSpeed[i] = eventConfig.noiseSpeed;
-        _parameters->_timing[i] = (FadeJobConfig::Timing) eventConfig.timing;
+        eventParameters._baseLevel = eventConfig.baseLevel;
+        eventParameters._noiseInvSizeAndLevel.x = 1.f / eventConfig.noiseSize.x;
+        eventParameters._noiseInvSizeAndLevel.y = 1.f / eventConfig.noiseSize.y;
+        eventParameters._noiseInvSizeAndLevel.z = 1.f / eventConfig.noiseSize.z;
+        eventParameters._noiseInvSizeAndLevel.w = eventConfig.noiseLevel;
+        eventParameters._isInverted = eventConfig._isInverted & 1;
+        eventParameters._edgeWidthInvWidth.x = eventConfig.edgeWidth;
+        eventParameters._edgeWidthInvWidth.y = 1.f / eventParameters._edgeWidthInvWidth.x;
+        eventParameters._innerEdgeColor = eventConfig.edgeInnerColor;
+        eventParameters._outerEdgeColor = eventConfig.edgeOuterColor;
+        _thresholdScale[i] = 1.f + (eventParameters._edgeWidthInvWidth.x + std::max(0.f, (eventConfig.noiseLevel + eventConfig.baseLevel)*0.5f - 0.5f));
     }
-    _isBufferDirty = true;
 }
 
-void FadeConfigureJob::run(const render::RenderContextPointer& renderContext, const Input& input, Output& output) {
-    if (_isBufferDirty || _parameters->_isEditEnabled) {
-        auto& configurations = output.edit1().edit();
-        std::copy(_configurations, _configurations + FadeJobConfig::EVENT_CATEGORY_COUNT, configurations.parameters);
-        if (_parameters->_editedCategory == FadeJobConfig::USER_ENTER_LEAVE_DOMAIN) {
-            configurations.parameters[FadeJobConfig::USER_ENTER_LEAVE_DOMAIN]._baseInvSizeAndLevel.y = 1.0f / input.getDimensions().y;
+const FadeJob* FadeJob::_currentInstance{ nullptr };
+gpu::TexturePointer FadeJob::_currentFadeMaskMap;
+const gpu::BufferView* FadeJob::_currentFadeBuffer{ nullptr };
+
+void FadeJob::run(const render::RenderContextPointer& renderContext, const Input& input) {
+    const Config* jobConfig = static_cast<const Config*>(renderContext->jobConfig.get());
+    auto scene = renderContext->args->_scene;
+
+    // And now update fade effect on all visible items
+    for (auto i = 0; i < RenderFetchCullSortTask::NUM_BUCKETS; i++) {
+        auto& bucket = input[i].get<render::ItemBounds>();
+
+        for (const auto& itemBound : bucket) {
+            auto& item = scene->getItem(itemBound.id);
+
+            //updateFadeOnItem(item);
         }
-        _isBufferDirty = false;
-    }
-    output.edit0() = _fadeMaskMap;
-}
-
-const FadeRenderJob* FadeRenderJob::_currentInstance{ nullptr };
-gpu::TexturePointer FadeRenderJob::_currentFadeMaskMap;
-const gpu::BufferView* FadeRenderJob::_currentFadeBuffer{ nullptr };
-
-void FadeRenderJob::run(const render::RenderContextPointer& renderContext, const Input& inputs) {
-    assert(renderContext->args);
-    assert(renderContext->args->hasViewFrustum());
-
-    const auto& inItems = inputs.get0();
-
-    if (!inItems.empty()) {
-        const auto& lightingModel = inputs.get1();
-        const auto& configuration = inputs.get2();
-        const auto& fadeMaskMap = configuration.get0();
-        const auto& fadeParamBuffer = configuration.get1();
-
-        RenderArgs* args = renderContext->args;
-        render::ShapeKey::Builder   defaultKeyBuilder;
-
-        defaultKeyBuilder.withFade();
-        defaultKeyBuilder.withoutCullFace();
-
-        gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-            args->_batch = &batch;
-
-            // Very, very ugly hack to keep track of the current fade render job
-            _currentInstance = this;
-            _currentFadeMaskMap = fadeMaskMap;
-            _currentFadeBuffer = &fadeParamBuffer;
-
-            // Update interactive edit effect
-            if (_parameters->_isEditEnabled) {
-                updateFadeEdit(renderContext, inItems.front());
-            }
-            else {
-                _editPreviousTime = 0;
-            }
-
-            // Setup camera, projection and viewport for all items
-            batch.setViewportTransform(args->_viewport);
-            batch.setStateScissorRect(args->_viewport);
-
-            glm::mat4 projMat;
-            Transform viewMat;
-            args->getViewFrustum().evalProjectionMatrix(projMat);
-            args->getViewFrustum().evalViewTransform(viewMat);
-
-            batch.setProjectionTransform(projMat);
-            batch.setViewTransform(viewMat);
-
-            // Setup lighting model for all items;
-            batch.setUniformBuffer(render::ShapePipeline::Slot::LIGHTING_MODEL, lightingModel->getParametersBuffer());
-
-            // From the lighting model define a global shapKey ORED with individiual keys
-            render::ShapeKey::Builder keyBuilder = defaultKeyBuilder;
-            if (lightingModel->isWireframeEnabled()) {
-                keyBuilder.withWireframe();
-            }
-
-            // Prepare fade effect
-            bindPerBatch(batch, fadeMaskMap, render::ShapePipeline::Slot::MAP::FADE_MASK, &fadeParamBuffer, render::ShapePipeline::Slot::BUFFER::FADE_PARAMETERS);
-
-            render::ShapeKey globalKey = keyBuilder.build();
-            args->_globalShapeKey = globalKey._flags.to_ulong();
-            args->_enableFade = true;
-
-            renderShapes(renderContext, _shapePlumber, inItems, -1, globalKey);
-
-            args->_enableFade = false;
-            args->_batch = nullptr;
-            args->_globalShapeKey = 0;
-
-            // Very, very ugly hack to keep track of the current fade render job
-            _currentInstance = nullptr;
-            _currentFadeMaskMap.reset();
-            _currentFadeBuffer = nullptr;
-        });
     }
 }
 
-float FadeRenderJob::computeElementEnterThreshold(double time, const double period, FadeJobConfig::Timing timing) const {
+float FadeJob::computeElementEnterThreshold(double time, const double period, FadeJobConfig::Timing timing) const {
     assert(period > 0.0);
     float fadeAlpha = 1.0f;
     const double INV_FADE_PERIOD = 1.0 / period;
@@ -712,16 +532,17 @@ float FadeRenderJob::computeElementEnterThreshold(double time, const double peri
     return fadeAlpha;
 }
 
-float FadeRenderJob::computeFadePercent(quint64 startTime) {
+float FadeJob::computeFadePercent(quint64 startTime) {
     const double time = (double)(int64_t(usecTimestampNow()) - int64_t(startTime)) / (double)(USECS_PER_SECOND);
-    assert(_currentInstance);
+/*    assert(_currentInstance);
     return _currentInstance->computeElementEnterThreshold(time, 
         _currentInstance->_parameters->_durations[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN],
-        _currentInstance->_parameters->_timing[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN]);
+        _currentInstance->_parameters->_timing[FadeJobConfig::ELEMENT_ENTER_LEAVE_DOMAIN]);*/
+    return (float)time;
 }
 
-void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderContext, const render::ItemBound& itemBounds) {
-    if (_editPreviousTime == 0) {
+void FadeJob::updateFadeEdit(const render::RenderContextPointer& renderContext, const render::ItemBound& itemBounds) {
+/*    if (_editPreviousTime == 0) {
         _editPreviousTime = usecTimestampNow();
         _editTime = 0.0;
     }
@@ -804,32 +625,32 @@ void FadeRenderJob::updateFadeEdit(const render::RenderContextPointer& renderCon
 
     default:
         assert(false);
-    }
+    }*/
 }
 
-void FadeRenderJob::bindPerBatch(gpu::Batch& batch, int fadeMaskMapLocation, int fadeBufferLocation) {
+void FadeJob::bindPerBatch(gpu::Batch& batch, int fadeMaskMapLocation, int fadeBufferLocation) {
     assert(_currentFadeMaskMap);
     assert(_currentFadeBuffer!=nullptr);
     bindPerBatch(batch, _currentFadeMaskMap, fadeMaskMapLocation, _currentFadeBuffer, fadeBufferLocation);
 }
 
-void FadeRenderJob::bindPerBatch(gpu::Batch& batch, gpu::TexturePointer texture, int fadeMaskMapLocation, const gpu::BufferView* buffer, int fadeBufferLocation) {
+void FadeJob::bindPerBatch(gpu::Batch& batch, gpu::TexturePointer texture, int fadeMaskMapLocation, const gpu::BufferView* buffer, int fadeBufferLocation) {
     batch.setResourceTexture(fadeMaskMapLocation, texture);
     batch.setUniformBuffer(fadeBufferLocation, *buffer);
 }
 
-void FadeRenderJob::bindPerBatch(gpu::Batch& batch, gpu::TexturePointer texture, const gpu::BufferView* buffer, const gpu::PipelinePointer& pipeline)  {
+void FadeJob::bindPerBatch(gpu::Batch& batch, gpu::TexturePointer texture, const gpu::BufferView* buffer, const gpu::PipelinePointer& pipeline)  {
     auto program = pipeline->getProgram();
     auto maskMapLocation = program->getTextures().findLocation("fadeMaskMap");
     auto bufferLocation = program->getUniformBuffers().findLocation("fadeParametersBuffer");
     bindPerBatch(batch, texture, maskMapLocation, buffer, bufferLocation);
 }
 
-bool FadeRenderJob::bindPerItem(gpu::Batch& batch, RenderArgs* args, glm::vec3 offset, quint64 startTime) {
+bool FadeJob::bindPerItem(gpu::Batch& batch, RenderArgs* args, glm::vec3 offset, quint64 startTime) {
     return bindPerItem(batch, args->_pipeline->pipeline.get(), offset, startTime);
 }
 
-bool FadeRenderJob::bindPerItem(gpu::Batch& batch, const gpu::Pipeline* pipeline, glm::vec3 offset, quint64 startTime) {
+bool FadeJob::bindPerItem(gpu::Batch& batch, const gpu::Pipeline* pipeline, glm::vec3 offset, quint64 startTime) {
     auto& uniforms = pipeline->getProgram()->getUniforms();
     auto fadeNoiseOffsetLocation = uniforms.findLocation("fadeNoiseOffset");
     auto fadeBaseOffsetLocation = uniforms.findLocation("fadeBaseOffset");
@@ -845,7 +666,7 @@ bool FadeRenderJob::bindPerItem(gpu::Batch& batch, const gpu::Pipeline* pipeline
         threshold = 1.f-computeFadePercent(startTime);
 
         // Manage interactive edition override
-        assert(_currentInstance);
+/*        assert(_currentInstance);
         if (_currentInstance->_parameters->_isEditEnabled) {
             eventCategory = _currentInstance->_parameters->_editedCategory;
             threshold = _currentInstance->_editThreshold;
@@ -859,7 +680,7 @@ bool FadeRenderJob::bindPerItem(gpu::Batch& batch, const gpu::Pipeline* pipeline
         if (eventCategory != FadeJobConfig::BUBBLE_ISECT_OWNER) {
             threshold = (threshold - 0.5f)*_currentInstance->_parameters->_thresholdScale[eventCategory] + 0.5f;
         }
-
+        */
         batch._glUniform1i(fadeCategoryLocation, eventCategory);
         batch._glUniform1f(fadeThresholdLocation, threshold);
         // This is really temporary
@@ -870,4 +691,30 @@ bool FadeRenderJob::bindPerItem(gpu::Batch& batch, const gpu::Pipeline* pipeline
         return threshold > 0.f;
     }
     return false;
+}
+
+const render::Item* FadeJob::findNearestItem(const render::RenderContextPointer& renderContext, const render::Varying& input, float& minIsectDistance) const {
+    const glm::vec3 rayOrigin = renderContext->args->getViewFrustum().getPosition();
+    const glm::vec3 rayDirection = renderContext->args->getViewFrustum().getDirection();
+    const auto& inputItems = input.get<render::ItemBounds>();
+    auto& scene = renderContext->_scene;
+    BoxFace face;
+    glm::vec3 normal;
+    float isectDistance;
+    const render::Item* nearestItem = nullptr;
+    const float minDistance = 2.f;
+
+    for (const auto& itemBound : inputItems) {
+        if (!itemBound.bound.contains(rayOrigin) && itemBound.bound.findRayIntersection(rayOrigin, rayDirection, isectDistance, face, normal)) {
+            if (isectDistance>minDistance && isectDistance < minIsectDistance) {
+                auto& item = scene->getItem(itemBound.id);
+
+                if (item.getKey().isShape() && !item.getKey().isMeta()) {
+                    nearestItem = &item;
+                    minIsectDistance = isectDistance;
+                }
+            }
+        }
+    }
+    return nearestItem;
 }

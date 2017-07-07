@@ -829,10 +829,10 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     }
 
     // Apply fade effect
-    if (args->_enableFade) {
+/*    if (args->_enableFade) {
         FadeRenderJob::bindPerBatch(batch, render::ShapePipeline::Slot::MAP::FADE_MASK, render::ShapePipeline::Slot::BUFFER::FADE_PARAMETERS);
         FadeRenderJob::bindPerItem(batch, pipeline.get(), glm::vec3(0, 0, 0), _fadeStartTime);
-    }
+    }*/
 
     int voxelVolumeSizeLocation = pipeline->getProgram()->getUniforms().findLocation("voxelVolumeSize");
     batch._glUniform3f(voxelVolumeSizeLocation, voxelVolumeSize.x, voxelVolumeSize.y, voxelVolumeSize.z);
