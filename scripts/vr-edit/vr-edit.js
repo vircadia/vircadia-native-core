@@ -371,7 +371,8 @@
             NO_EXCLUDE_IDS = [],
             VISIBLE_ONLY = true,
 
-            isTriggerPressed = false,
+            handPose,
+            intersection = {},
 
             isLaserOn = false,
             hoveredEntityID = null,
@@ -385,6 +386,9 @@
             initialHandToSelectionVector,
             initialSelectionOrientation,
             laserEditingDistance,
+
+            doEdit,
+            doHighlight,
 
             laser,
             selection,
@@ -406,7 +410,7 @@
         selection = new Selection();
         highlights = new Highlights(hand);
 
-        function startEditing(handPose) {
+        function startEditing() {
             var selectionPositionAndOrientation;
 
             initialHandPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, handPose.translation), MyAvatar.position);
@@ -419,7 +423,7 @@
             isEditing = true;
         }
 
-        function applyEdit(handPose) {
+        function applyEdit() {
             var handPosition,
                 handOrientation,
                 deltaOrientation,
@@ -456,13 +460,13 @@
                 entitySize,
                 size,
                 wasLaserOn,
-                handPose,
                 handPosition,
                 handOrientation,
                 deltaOrigin,
                 pickRay,
                 intersection,
                 laserLength,
+                isTriggerPressed,
                 isTriggerClicked,
                 wasEditing,
                 i,
@@ -539,10 +543,12 @@
             }
 
             // Highlight / edit.
+            doEdit = false;
+            doHighlight = false;
             if (isTriggerClicked) {
                 if (isEditing) {
                     // Perform edit.
-                    applyEdit(handPose);
+                    doEdit = true;
                 } else if (intersection.intersects) {
                     // Start editing.
                     if (intersection.entityID !== hoveredEntityID) {
@@ -553,7 +559,7 @@
                     if (isLaserOn) {
                         laserEditingDistance = laserLength;
                     }
-                    startEditing(handPose);
+                    startEditing();
                 }
             } else {
                 wasEditing = isEditing;
@@ -566,7 +572,7 @@
                     if (wasEditing || intersection.entityID !== hoveredEntityID) {
                         hoveredEntityID = intersection.entityID;
                         selection.select(hoveredEntityID);
-                        highlights.display(intersection.handSelected, selection.selection());
+                        doHighlight = true;
                     }
                 } else {
                     // Unhover entities.
@@ -576,6 +582,14 @@
                         hoveredEntityID = null;
                     }
                 }
+            }
+        }
+
+        function apply() {
+            if (doEdit) {
+                applyEdit();
+            } else if (doHighlight) {
+                highlights.display(intersection.handSelected, selection.selection());
             }
         }
 
@@ -600,6 +614,7 @@
 
         return {
             update: update,
+            apply: apply,
             destroy: destroy
         };
     };
@@ -610,6 +625,8 @@
 
         hands[LEFT_HAND].update();
         hands[RIGHT_HAND].update();
+        hands[LEFT_HAND].apply();
+        hands[RIGHT_HAND].apply();
 
         updateTimer = Script.setTimeout(update, UPDATE_LOOP_TIMEOUT);
     }
