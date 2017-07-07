@@ -320,14 +320,18 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         ++numOtherAvatars;
 
         const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
+        const AvatarData* otherAvatar = otherNodeData->getConstAvatarData();
 
         // If the time that the mixer sent AVATAR DATA about Avatar B to Avatar A is BEFORE OR EQUAL TO
         // the time that Avatar B flagged an IDENTITY DATA change, send IDENTITY DATA about Avatar B to Avatar A.
-        if (nodeData->getLastBroadcastTime(otherNode->getUUID()) <= otherNodeData->getIdentityChangeTimestamp()) {
+        if (otherAvatar->hasProcessedFirstIdentity()
+            && nodeData->getLastBroadcastTime(otherNode->getUUID()) <= otherNodeData->getIdentityChangeTimestamp()) {
             identityBytesSent += sendIdentityPacket(otherNodeData, node);
+
+            // remember the last time we sent identity details about this other node to the receiver
+            nodeData->setLastBroadcastTime(otherNode->getUUID(), usecTimestampNow());
         }
 
-        const AvatarData* otherAvatar = otherNodeData->getConstAvatarData();
         glm::vec3 otherPosition = otherAvatar->getClientGlobalPosition();
 
         // determine if avatar is in view, to determine how much data to include...
@@ -400,9 +404,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                 // set the last sent sequence number for this sender on the receiver
                 nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
                                                          otherNodeData->getLastReceivedSequenceNumber());
-
-                // remember the last time we sent details about this other node to the receiver
-                nodeData->setLastBroadcastTime(otherNode->getUUID(), start);
             }
         }
 

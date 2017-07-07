@@ -45,11 +45,13 @@ Image3DOverlay::~Image3DOverlay() {
 }
 
 void Image3DOverlay::update(float deltatime) {
+#if OVERLAY_PANELS
     if (usecTimestampNow() > _transformExpiry) {
         Transform transform = getTransform();
         applyTransformTo(transform);
         setTransform(transform);
     }
+#endif
 }
 
 void Image3DOverlay::render(RenderArgs* args) {

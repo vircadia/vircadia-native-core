@@ -39,7 +39,7 @@ void DeferredFrameTransform::update(RenderArgs* args) {
     args->getViewFrustum().evalProjectionMatrix(frameTransformBuffer.projectionMono);
 
     // Running in stero ?
-    bool isStereo = args->_context->isStereo();
+    bool isStereo = args->isStereo();
     if (!isStereo) {
         frameTransformBuffer.projection[0] = frameTransformBuffer.projectionMono;
         frameTransformBuffer.stereoInfo = glm::vec4(0.0f, (float)args->_viewport.z, 0.0f, 0.0f);

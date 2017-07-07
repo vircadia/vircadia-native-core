@@ -15,6 +15,7 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/vector_query.hpp>
 
+#include <shared/QtHelpers.h>
 #include <DeferredLightingEffect.h>
 #include <EntityTreeRenderer.h>
 #include <NodeList.h>
@@ -1010,7 +1011,7 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
 int Avatar::getJointIndex(const QString& name) const {
     if (QThread::currentThread() != thread()) {
         int result;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointIndex", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getJointIndex",
             Q_RETURN_ARG(int, result), Q_ARG(const QString&, name));
         return result;
     }
@@ -1024,7 +1025,7 @@ int Avatar::getJointIndex(const QString& name) const {
 QStringList Avatar::getJointNames() const {
     if (QThread::currentThread() != thread()) {
         QStringList result;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointNames", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getJointNames",
             Q_RETURN_ARG(QStringList, result));
         return result;
     }
@@ -1034,7 +1035,7 @@ QStringList Avatar::getJointNames() const {
 glm::vec3 Avatar::getJointPosition(int index) const {
     if (QThread::currentThread() != thread()) {
         glm::vec3 position;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getJointPosition",
                                   Q_RETURN_ARG(glm::vec3, position), Q_ARG(const int, index));
         return position;
     }
@@ -1046,7 +1047,7 @@ glm::vec3 Avatar::getJointPosition(int index) const {
 glm::vec3 Avatar::getJointPosition(const QString& name) const {
     if (QThread::currentThread() != thread()) {
         glm::vec3 position;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getJointPosition",
                                   Q_RETURN_ARG(glm::vec3, position), Q_ARG(const QString&, name));
         return position;
     }
@@ -1105,7 +1106,7 @@ static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, const Rig& ri
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setAttachmentData", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "setAttachmentData",
                                   Q_ARG(const QVector<AttachmentData>, attachmentData));
         return;
     }

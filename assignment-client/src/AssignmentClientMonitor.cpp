@@ -131,7 +131,6 @@ void AssignmentClientMonitor::aboutToQuit() {
 void AssignmentClientMonitor::spawnChildClient() {
     QProcess* assignmentClient = new QProcess(this);
 
-
     // unparse the parts of the command-line that the child cares about
     QStringList _childArguments;
     if (_assignmentPool != "") {
@@ -159,6 +158,9 @@ void AssignmentClientMonitor::spawnChildClient() {
     // for now they simply talk to us on localhost
     _childArguments.append("--" + ASSIGNMENT_CLIENT_MONITOR_PORT_OPTION);
     _childArguments.append(QString::number(DependencyManager::get<NodeList>()->getLocalSockAddr().getPort()));
+
+    _childArguments.append("--" + PARENT_PID_OPTION);
+    _childArguments.append(QString::number(QCoreApplication::applicationPid()));
 
     QString nowString, stdoutFilenameTemp, stderrFilenameTemp, stdoutPathTemp, stderrPathTemp;
 

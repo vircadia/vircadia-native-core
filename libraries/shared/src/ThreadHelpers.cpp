@@ -17,10 +17,6 @@ void moveToNewNamedThread(QObject* object, const QString& name, std::function<vo
      QThread* thread = new QThread();
      thread->setObjectName(name);
 
-     if (priority != QThread::InheritPriority) {
-         thread->setPriority(priority);
-     }
-
      QString tempName = name;
      QObject::connect(thread, &QThread::started, [startCallback] {
          startCallback();
@@ -32,6 +28,9 @@ void moveToNewNamedThread(QObject* object, const QString& name, std::function<vo
      // put the object on the thread
      object->moveToThread(thread);
      thread->start();
+     if (priority != QThread::InheritPriority) {
+         thread->setPriority(priority);
+     }
 }
 
 void moveToNewNamedThread(QObject* object, const QString& name, QThread::Priority priority) {
