@@ -220,9 +220,12 @@
 
         var url = (camera) ? (showCameraView ? "resource://spectatorCameraFrame" : "resource://hmdPreviewFrame") : "";
         sendToQml({ method: 'showPreviewTextureNotInstructions', setting: !!url, url: url});
+
         // FIXME: temporary hack to avoid setting the display texture to hmdPreviewFrame
         // until it is the correct mono.
-        if (url != "resource://hmdPreviewFrame") {
+        if (url === "resource://hmdPreviewFrame") {
+            Window.setDisplayTexture("");
+        } else {
             Window.setDisplayTexture(url);
         }
     }
