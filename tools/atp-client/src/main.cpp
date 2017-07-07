@@ -1,6 +1,6 @@
 //
 //  main.cpp
-//  tools/atp-get/src
+//  tools/atp-client/src
 //
 //  Created by Seth Alves on 2017-3-15
 //  Copyright 2017 High Fidelity, Inc.
@@ -15,7 +15,7 @@
 
 #include <BuildInfo.h>
 
-#include "ATPGetApp.h"
+#include "ATPClientApp.h"
 
 using namespace std;
 
@@ -25,7 +25,7 @@ int main(int argc, char * argv[]) {
     QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
     QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
 
-    ATPGetApp app(argc, argv);
+    ATPClientApp app(argc, argv);
 
     return app.exec();
 }
