@@ -336,5 +336,6 @@ Item {
         readonly property string source: "\ue01c"
         readonly property string playback_play: "\ue01d"
         readonly property string stop_square: "\ue01e"
+        readonly property string avatarTPose: "\ue01f"
     }
 }

@@ -15,6 +15,9 @@
 
 #include "NumericalConstants.h" // for MILLIMETERS_PER_METER
 
+// Bullet doesn't support arbitrarily small shapes
+const float MIN_HALF_EXTENT = 0.005f; // 0.5 cm
+
 void ShapeInfo::clear() {
     _url.clear();
     _pointCollection.clear();
@@ -26,14 +29,20 @@ void ShapeInfo::clear() {
 }
 
 void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString url) {
+    _url = "";
     _type = type;
-    _halfExtents = halfExtents;
+    setHalfExtents(halfExtents);
     switch(type) {
         case SHAPE_TYPE_NONE:
             _halfExtents = glm::vec3(0.0f);
             break;
         case SHAPE_TYPE_BOX:
-        case SHAPE_TYPE_SPHERE:
+            break;
+        case SHAPE_TYPE_SPHERE: {
+                float radius = glm::length(halfExtents) / SQUARE_ROOT_OF_3;
+                radius = glm::max(radius, MIN_HALF_EXTENT);
+                _halfExtents = glm::vec3(radius);
+            }
             break;
         case SHAPE_TYPE_COMPOUND:
         case SHAPE_TYPE_STATIC_MESH:
@@ -48,14 +57,15 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString 
 void ShapeInfo::setBox(const glm::vec3& halfExtents) {
     _url = "";
     _type = SHAPE_TYPE_BOX;
-    _halfExtents = halfExtents;
+    setHalfExtents(halfExtents);
     _doubleHashKey.clear();
 }
 
 void ShapeInfo::setSphere(float radius) {
     _url = "";
     _type = SHAPE_TYPE_SPHERE;
-    _halfExtents = glm::vec3(radius, radius, radius);
+    radius = glm::max(radius, MIN_HALF_EXTENT);
+    _halfExtents = glm::vec3(radius);
     _doubleHashKey.clear();
 }
 
@@ -68,6 +78,8 @@ void ShapeInfo::setPointCollection(const ShapeInfo::PointCollection& pointCollec
 void ShapeInfo::setCapsuleY(float radius, float halfHeight) {
     _url = "";
     _type = SHAPE_TYPE_CAPSULE_Y;
+    radius = glm::max(radius, MIN_HALF_EXTENT);
+    halfHeight = glm::max(halfHeight, 0.0f);
     _halfExtents = glm::vec3(radius, halfHeight, radius);
     _doubleHashKey.clear();
 }
@@ -238,4 +250,8 @@ const DoubleHashKey& ShapeInfo::getHash() const {
         }
     }
     return _doubleHashKey;
+}
+
+void ShapeInfo::setHalfExtents(const glm::vec3& halfExtents) {
+    _halfExtents = glm::max(halfExtents, glm::vec3(MIN_HALF_EXTENT));
 }

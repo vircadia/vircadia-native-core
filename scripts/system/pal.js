@@ -482,10 +482,10 @@ function populateNearbyUserList(selectData, oldAudioData) {
             isPresent: true,
             isReplicated: avatar.isReplicated
         };
+        // Everyone needs to see admin status. Username and fingerprint returns default constructor output if the requesting user isn't an admin.
+        Users.requestUsernameFromID(id);
         if (id) {
             addAvatarNode(id); // No overlay for ourselves
-            // Everyone needs to see admin status. Username and fingerprint returns default constructor output if the requesting user isn't an admin.
-            Users.requestUsernameFromID(id);
             avatarsOfInterest[id] = true;
         } else {
             // Return our username from the Account API
@@ -862,6 +862,9 @@ function avatarDisconnected(nodeID) {
 
 function clearLocalQMLDataAndClosePAL() {
     sendToQml({ method: 'clearLocalQMLData' });
+    if (onPalScreen) {
+        tablet.gotoHomeScreen();
+    }
 }
 
 function avatarAdded(avatarID) {
