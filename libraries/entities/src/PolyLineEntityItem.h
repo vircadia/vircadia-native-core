@@ -74,6 +74,14 @@ class PolyLineEntityItem : public EntityItem {
 
     virtual ShapeType getShapeType() const override { return SHAPE_TYPE_NONE; }
 
+    bool pointsChanged() const { return _pointsChanged; } 
+    bool normalsChanged() const { return _normalsChanged; }
+    bool strokeWidthsChanged() const { return _strokeWidthsChanged; }
+    bool texturesChanged() const { return _texturesChangedFlag; }
+    void resetTexturesChanged() { _texturesChangedFlag = false; }
+    void resetPolyLineChanged() { _strokeWidthsChanged = _normalsChanged = _pointsChanged = false; }
+
+
     // never have a ray intersection pick a PolyLineEntityItem.
     virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
@@ -94,10 +102,10 @@ private:
 	
  protected:
     rgbColor _color;
-    float _lineWidth;
-    bool _pointsChanged;
-    bool _normalsChanged;
-    bool _strokeWidthsChanged;
+    float _lineWidth { DEFAULT_LINE_WIDTH };
+    bool _pointsChanged { true };
+    bool _normalsChanged { true };
+    bool _strokeWidthsChanged { true };
     QVector<glm::vec3> _points;
     QVector<glm::vec3> _normals;
     QVector<float> _strokeWidths;

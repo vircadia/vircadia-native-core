@@ -113,7 +113,6 @@
 #include <plugins/SteamClientPlugin.h>
 #include <plugins/InputConfiguration.h>
 #include <RecordingScriptingInterface.h>
-#include <RenderableWebEntityItem.h>
 #include <UpdateSceneTask.h>
 #include <RenderViewTask.h>
 #include <SecondaryCamera.h>
@@ -139,6 +138,7 @@
 #include <display-plugins/CompositorHelper.h>
 #include <trackers/EyeTracker.h>
 #include <avatars-renderer/ScriptAvatar.h>
+#include <RenderableEntityItem.h>
 
 #include "AudioClient.h"
 #include "audio/AudioScope.h"
@@ -211,6 +211,73 @@ extern "C" {
  _declspec(dllexport) DWORD NvOptimusEnablement = 0x00000001;
 }
 #endif
+
+enum ApplicationEvent {
+    // Execute a lambda function
+    Lambda = QEvent::User + 1,
+    // Trigger the next render
+    Render,
+    // Trigger the next idle
+    Idle,
+};
+
+
+class RenderEventHandler : public QObject {
+    using Parent = QObject;
+    Q_OBJECT
+public:
+    RenderEventHandler(QOpenGLContext* context) {
+        _renderContext = new OffscreenGLCanvas();
+        _renderContext->setObjectName("RenderContext");
+        _renderContext->create(context);
+        if (!_renderContext->makeCurrent()) {
+            qFatal("Unable to make rendering context current");
+        }
+        _renderContext->doneCurrent();
+
+        // Deleting the object with automatically shutdown the thread
+        connect(qApp, &QCoreApplication::aboutToQuit, this, &QObject::deleteLater);
+
+        // Transfer to a new thread
+        moveToNewNamedThread(this, "RenderThread", [this](QThread* renderThread) {
+            hifi::qt::addBlockingForbiddenThread("Render", renderThread);
+            _renderContext->moveToThreadWithContext(renderThread);
+            qApp->_lastTimeRendered.start();
+        }, std::bind(&RenderEventHandler::initialize, this), QThread::HighestPriority);
+    }
+
+private:
+    void initialize() {
+        PROFILE_SET_THREAD_NAME("Render");
+        if (!_renderContext->makeCurrent()) {
+            qFatal("Unable to make rendering context current on render thread");
+        }
+    }
+
+    void render() {
+        if (qApp->shouldPaint()) {
+            qApp->paintGL();
+        }
+    }
+
+    bool event(QEvent* event) override {
+        switch ((int)event->type()) {
+            case ApplicationEvent::Render:
+                render();
+                // Ensure we never back up the render events.  Each render should be triggered only in response 
+                // to the NEXT render event after the last render occured
+                QCoreApplication::removePostedEvents(this, ApplicationEvent::Render);
+                return true;
+
+            default:
+                break;
+        }
+        return Parent::event(event);
+    }
+
+    OffscreenGLCanvas* _renderContext { nullptr };
+};
+
 
 Q_LOGGING_CATEGORY(trace_app_input_mouse, "trace.app.input.mouse")
 
@@ -427,10 +494,10 @@ class LambdaEvent : public QEvent {
     std::function<void()> _fun;
 public:
     LambdaEvent(const std::function<void()> & fun) :
-    QEvent(static_cast<QEvent::Type>(Application::Lambda)), _fun(fun) {
+    QEvent(static_cast<QEvent::Type>(ApplicationEvent::Lambda)), _fun(fun) {
     }
     LambdaEvent(std::function<void()> && fun) :
-    QEvent(static_cast<QEvent::Type>(Application::Lambda)), _fun(fun) {
+    QEvent(static_cast<QEvent::Type>(ApplicationEvent::Lambda)), _fun(fun) {
     }
     void call() const { _fun(); }
 };
@@ -1367,8 +1434,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     connect(entityScriptingInterface.data(), &EntityScriptingInterface::clickDownOnEntity,
             [this](const EntityItemID& entityItemID, const PointerEvent& event) {
-        auto entity = getEntities()->getTree()->findEntityByID(entityItemID);
-        if (entity && entity->wantsKeyboardFocus()) {
+        if (getEntities()->wantsKeyboardFocus(entityItemID)) {
             setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
             setKeyboardFocusEntity(entityItemID);
         } else {
@@ -1692,7 +1758,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         _defaultSkybox->setCubemap(_defaultSkyboxTexture);
     }
 
-    EntityItem::setEntitiesShouldFadeFunction([this]() {
+    EntityTreeRenderer::setEntitiesShouldFadeFunction([this]() {
         SharedNodePointer entityServerNode = DependencyManager::get<NodeList>()->soloNodeOfType(NodeType::EntityServer);
         return entityServerNode && !isPhysicsEnabled();
     });
@@ -2099,6 +2165,13 @@ void Application::initializeGL() {
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
 
+    _offscreenContext = new OffscreenGLCanvas();
+    _offscreenContext->setObjectName("MainThreadContext");
+    _offscreenContext->create(_glWidget->qglContext());
+    if (!_offscreenContext->makeCurrent()) {
+        qFatal("Unable to make offscreen context current");
+    }
+
     // The UI can't be created until the primary OpenGL
     // context is created, because it needs to share
     // texture resources
@@ -2122,14 +2195,15 @@ void Application::initializeGL() {
 
     _idleLoopStdev.reset();
 
-    _offscreenContext = new OffscreenGLCanvas();
-    _offscreenContext->setObjectName("MainThreadContext");
-    _offscreenContext->create(_glWidget->qglContext());
-    _offscreenContext->makeCurrent();
+    _renderEventHandler = new RenderEventHandler(_glWidget->qglContext());
+
+    // Restore the primary GL content for the main thread
+    if (!_offscreenContext->makeCurrent()) {
+        qFatal("Unable to make offscreen context current");
+    }
 
     // update before the first render
     update(0);
-
 }
 
 FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
@@ -2137,6 +2211,9 @@ FrameTimingsScriptingInterface _frameTimingsScriptingInterface;
 extern void setupPreferences();
 
 void Application::initializeUi() {
+    // Make sure all QML surfaces share the main thread GL context
+    OffscreenQmlSurface::setSharedContext(_offscreenContext->getContext());
+
     AddressBarDialog::registerType();
     ErrorDialog::registerType();
     LoginDialog::registerType();
@@ -2147,7 +2224,7 @@ void Application::initializeUi() {
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->create(_glWidget->qglContext());
+    offscreenUi->create();
 
     auto surfaceContext = offscreenUi->getSurfaceContext();
 
@@ -2292,14 +2369,12 @@ void Application::initializeUi() {
 
 void Application::paintGL() {
     // Some plugins process message events, allowing paintGL to be called reentrantly.
-    if (_inPaint || _aboutToQuit || _window->isMinimized()) {
+    if (_aboutToQuit || _window->isMinimized()) {
         return;
     }
 
-    _inPaint = true;
-    Finally clearFlag([this] { _inPaint = false; });
-
     _frameCount++;
+    _lastTimeRendered.start();
 
     auto lastPaintBegin = usecTimestampNow();
     PROFILE_RANGE_EX(render, __FUNCTION__, 0xff0000ff, (uint64_t)_frameCount);
@@ -2316,17 +2391,10 @@ void Application::paintGL() {
     }
 
     {
-        PROFILE_RANGE(render, "/offscreenMakeCurrent");
-        // FIXME not needed anymore?
-        _offscreenContext->makeCurrent();
-    }
-
-    {
         PROFILE_RANGE(render, "/pluginBeginFrameRender");
         // If a display plugin loses it's underlying support, it
         // needs to be able to signal us to not use it
         if (!displayPlugin->beginFrameRender(_frameCount)) {
-            _inPaint = false;
             updateDisplayMode();
             return;
         }
@@ -2393,12 +2461,6 @@ void Application::paintGL() {
 
             auto myAvatar = getMyAvatar();
             boomOffset = myAvatar->getScale() * myAvatar->getBoomLength() * -IDENTITY_FORWARD;
-
-            if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
-                Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
-                Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
-                cameraMenuChanged();
-            }
 
             // The render mode is default or mirror if the camera is in mirror mode, assigned further below
             renderArgs._renderMode = RenderArgs::DEFAULT_RENDER_MODE;
@@ -2707,15 +2769,6 @@ void Application::resizeGL() {
         QMutexLocker viewLocker(&_viewMutex);
         _myCamera.loadViewFrustum(_viewFrustum);
     }
-
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    auto uiSize = displayPlugin->getRecommendedUiSize();
-    // Bit of a hack since there's no device pixel ratio change event I can find.
-    if (offscreenUi->size() != fromGlm(uiSize)) {
-        qCDebug(interfaceapp) << "Device pixel ratio changed, triggering resize to " << uiSize;
-        offscreenUi->resize(fromGlm(uiSize), true);
-        _offscreenContext->makeCurrent();
-    }
 }
 
 void Application::handleSandboxStatus(QNetworkReply* reply) {
@@ -2889,56 +2942,26 @@ bool Application::importFromZIP(const QString& filePath) {
 }
 
 void Application::onPresent(quint32 frameCount) {
-    if (shouldPaint()) {
-        postEvent(this, new QEvent(static_cast<QEvent::Type>(Idle)), Qt::HighEventPriority);
-        postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
+    postEvent(this, new QEvent((QEvent::Type)ApplicationEvent::Idle), Qt::HighEventPriority);
+    if (_renderEventHandler && !isAboutToQuit()) {
+        postEvent(_renderEventHandler, new QEvent((QEvent::Type)ApplicationEvent::Render));
     }
 }
 
-bool _renderRequested { false };
+static inline bool isKeyEvent(QEvent::Type type) {
+    return type == QEvent::KeyPress || type == QEvent::KeyRelease;
+}
 
-bool Application::event(QEvent* event) {
-    if (!Menu::getInstance()) {
-        return false;
-    }
-
-    int type = event->type();
-    switch (type) {
-        case Event::Lambda:
-            static_cast<LambdaEvent*>(event)->call();
-            return true;
-
-        // Explicit idle keeps the idle running at a lower interval, but without any rendering
-        // see (windowMinimizedChanged)
-        case Event::Idle:
-            idle();
-            // Clear the event queue of pending idle calls
-            removePostedEvents(this, Idle);
-            return true;
-
-        case Event::Paint:
-            // NOTE: This must be updated as close to painting as possible,
-            //       or AvatarInputs will mysteriously move to the bottom-right
-            AvatarInputs::getInstance()->update();
-            paintGL();
-            // Clear the event queue of pending paint calls
-            removePostedEvents(this, Paint);
-            return true;
-
-        default:
-            break;
-    }
-
-    {
-        if (!_keyboardFocusedEntity.get().isInvalidID()) {
-            switch (event->type()) {
-                case QEvent::KeyPress:
-                case QEvent::KeyRelease: {
-                    //auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
-                    auto entity = getEntities()->getTree()->findEntityByID(_keyboardFocusedEntity.get());
-                    if (entity && entity->getEventHandler()) {
+bool Application::handleKeyEventForFocusedEntityOrOverlay(QEvent* event) {
+    if (!_keyboardFocusedEntity.get().isInvalidID()) {
+        switch (event->type()) {
+            case QEvent::KeyPress:
+            case QEvent::KeyRelease:
+                {
+                    auto eventHandler = getEntities()->getEventHandler(_keyboardFocusedEntity.get());
+                    if (eventHandler) {
                         event->setAccepted(false);
-                        QCoreApplication::sendEvent(entity->getEventHandler(), event);
+                        QCoreApplication::sendEvent(eventHandler, event);
                         if (event->isAccepted()) {
                             _lastAcceptedKeyPress = usecTimestampNow();
                             return true;
@@ -2946,20 +2969,17 @@ bool Application::event(QEvent* event) {
                     }
                     break;
                 }
-                default:
-                    break;
-                }
+            default:
+                break;
         }
     }
 
-    {
-        if (_keyboardFocusedOverlay.get() != UNKNOWN_OVERLAY_ID) {
-            switch (event->type()) {
-                case QEvent::KeyPress:
-                case QEvent::KeyRelease: {
+    if (_keyboardFocusedOverlay.get() != UNKNOWN_OVERLAY_ID) {
+        switch (event->type()) {
+            case QEvent::KeyPress:
+            case QEvent::KeyRelease: {
                     // Only Web overlays can have focus.
-                    auto overlay =
-                        std::dynamic_pointer_cast<Web3DOverlay>(getOverlays().getOverlay(_keyboardFocusedOverlay.get()));
+                    auto overlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlays().getOverlay(_keyboardFocusedOverlay.get()));
                     if (overlay && overlay->getEventHandler()) {
                         event->setAccepted(false);
                         QCoreApplication::sendEvent(overlay->getEventHandler(), event);
@@ -2968,15 +2988,52 @@ bool Application::event(QEvent* event) {
                             return true;
                         }
                     }
-                    break;
                 }
-                default:
-                    break;
-                }
+                break;
+
+            default:
+                break;
         }
     }
 
-    switch (event->type()) {
+    return false;
+}
+
+bool Application::handleFileOpenEvent(QFileOpenEvent* fileEvent) {
+    QUrl url = fileEvent->url();
+    if (!url.isEmpty()) {
+        QString urlString = url.toString();
+        if (canAcceptURL(urlString)) {
+            return acceptURL(urlString);
+        }
+    }
+    return false;
+}
+
+bool Application::event(QEvent* event) {
+    if (!Menu::getInstance()) {
+        return false;
+    }
+
+    // Allow focused Entities and Overlays to handle keyboard input
+    if (isKeyEvent(event->type()) && handleKeyEventForFocusedEntityOrOverlay(event)) {
+        return true;
+    }
+
+    int type = event->type();
+    switch (type) {
+        case ApplicationEvent::Lambda:
+            static_cast<LambdaEvent*>(event)->call();
+            return true;
+
+        // Explicit idle keeps the idle running at a lower interval, but without any rendering
+        // see (windowMinimizedChanged)
+        case ApplicationEvent::Idle:
+            idle();
+            // Don't process extra idle events that arrived in the event queue while we were doing this idle
+            QCoreApplication::removePostedEvents(this, ApplicationEvent::Idle);
+            return true;
+
         case QEvent::MouseMove:
             mouseMoveEvent(static_cast<QMouseEvent*>(event));
             return true;
@@ -3017,26 +3074,15 @@ bool Application::event(QEvent* event) {
         case QEvent::Drop:
             dropEvent(static_cast<QDropEvent*>(event));
             return true;
+
+        case QEvent::FileOpen:
+            if (handleFileOpenEvent(static_cast<QFileOpenEvent*>(event))) {
+                return true;
+            }
+            break;
+
         default:
             break;
-    }
-
-    // handle custom URL
-    if (event->type() == QEvent::FileOpen) {
-
-        QFileOpenEvent* fileEvent = static_cast<QFileOpenEvent*>(event);
-
-        QUrl url = fileEvent->url();
-
-        if (!url.isEmpty()) {
-            QString urlString = url.toString();
-
-            if (canAcceptURL(urlString)) {
-
-                return acceptURL(urlString);
-            }
-        }
-        return false;
     }
 
     if (HFActionEvent::types().contains(event->type())) {
@@ -3741,10 +3787,11 @@ bool Application::acceptSnapshot(const QString& urlString) {
 
 static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
-bool Application::shouldPaint() {
+bool Application::shouldPaint() const {
     if (_aboutToQuit) {
         return false;
     }
+
 
     auto displayPlugin = getActiveDisplayPlugin();
 
@@ -3763,13 +3810,12 @@ bool Application::shouldPaint() {
 #endif
 
     // Throttle if requested
-    if (displayPlugin->isThrottled() && (_lastTimeUpdated.elapsed() < THROTTLED_SIM_FRAME_PERIOD_MS)) {
+    if (displayPlugin->isThrottled() && (_lastTimeRendered.elapsed() < THROTTLED_SIM_FRAME_PERIOD_MS)) {
         return false;
     }
 
     // Sync up the _renderedFrameIndex
     _renderedFrameIndex = displayPlugin->presentCount();
-
     return true;
 }
 
@@ -3979,7 +4025,6 @@ void setupCpuMonitorThread() {
 
 #endif
 
-
 void Application::idle() {
     PerformanceTimer perfTimer("idle");
 
@@ -4010,9 +4055,17 @@ void Application::idle() {
     });
 #endif
 
-
-
     auto displayPlugin = getActiveDisplayPlugin();
+    if (displayPlugin) {
+        auto uiSize = displayPlugin->getRecommendedUiSize();
+        // Bit of a hack since there's no device pixel ratio change event I can find.
+        if (offscreenUi->size() != fromGlm(uiSize)) {
+            qCDebug(interfaceapp) << "Device pixel ratio changed, triggering resize to " << uiSize;
+            offscreenUi->resize(fromGlm(uiSize), true);
+            _offscreenContext->makeCurrent();
+        }
+    }
+
     if (displayPlugin) {
         PROFILE_COUNTER_IF_CHANGED(app, "present", float, displayPlugin->presentRate());
     }
@@ -4059,6 +4112,10 @@ void Application::idle() {
     // details normally.
     bool showWarnings = getLogger()->extraDebugging();
     PerformanceWarning warn(showWarnings, "idle()");
+
+    if (!_offscreenContext->makeCurrent()) {
+        qFatal("Unable to make main thread context current");
+    }
 
     {
         PerformanceTimer perfTimer("update");
@@ -4122,6 +4179,13 @@ void Application::idle() {
     }
 
     _overlayConductor.update(secondsSinceLastUpdate);
+
+    auto myAvatar = getMyAvatar();
+    if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON || _myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
+        Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN);
+        Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !(myAvatar->getBoomLength() <= MyAvatar::ZOOM_MIN));
+        cameraMenuChanged();
+    }
 }
 
 ivec2 Application::getMouse() const {
@@ -4376,7 +4440,6 @@ void Application::init() {
     _timerStart.start();
     _lastTimeUpdated.start();
 
-
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         // when +connect_lobby in command line, join steam lobby
         const QString STEAM_LOBBY_COMMAND_LINE_KEY = "+connect_lobby";
@@ -4425,14 +4488,7 @@ void Application::init() {
 
     // Make sure any new sounds are loaded as soon as know about them.
     connect(tree.get(), &EntityTree::newCollisionSoundURL, this, [this](QUrl newURL, EntityItemID id) {
-        EntityTreePointer tree = getEntities()->getTree();
-        if (auto entity = tree->findEntityByEntityItemID(id)) {
-            auto sound = DependencyManager::get<SoundCache>()->getSound(newURL);
-            auto renderable = entity->getRenderableInterface();
-            if (renderable) {
-                renderable->setCollisionSound(sound);
-            }
-        }
+        getEntities()->setCollisionSound(id, DependencyManager::get<SoundCache>()->getSound(newURL));
     }, Qt::QueuedConnection);
     connect(getMyAvatar().get(), &MyAvatar::newCollisionSoundURL, this, [this](QUrl newURL) {
         if (auto avatar = getMyAvatar()) {
@@ -4743,9 +4799,12 @@ void Application::setKeyboardFocusEntity(EntityItemID entityItemID) {
         auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
         auto properties = entityScriptingInterface->getEntityProperties(entityItemID);
         if (!properties.getLocked() && properties.getVisible()) {
-            auto entity = getEntities()->getTree()->findEntityByID(entityItemID);
-            if (entity && entity->wantsKeyboardFocus()) {
-                entity->setProxyWindow(_window->windowHandle());
+
+            auto entities = getEntities();
+            auto entityId = _keyboardFocusedEntity.get();
+            if (entities->wantsKeyboardFocus(entityId)) {
+                entities->setProxyWindow(entityId, _window->windowHandle());
+                auto entity = getEntities()->getEntity(entityId);
                 if (_keyboardMouseDevice->isActive()) {
                     _keyboardMouseDevice->pluginFocusOutEvent();
                 }
@@ -5021,7 +5080,7 @@ void Application::update(float deltaTime) {
         PerformanceTimer perfTimer("physics");
 
         {
-            PROFILE_RANGE_EX(simulation_physics, "UpdateStats", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
+            PROFILE_RANGE_EX(simulation_physics, "UpdateStates", 0xffffff00, (uint64_t)getActiveDisplayPlugin()->presentCount());
 
             PerformanceTimer perfTimer("updateStates)");
             static VectorOfMotionStates motionStates;
@@ -5090,7 +5149,7 @@ void Application::update(float deltaTime) {
 
                     // NOTE: the getEntities()->update() call below will wait for lock
                     // and will simulate entity motion (the EntityTree has been given an EntitySimulation).
-                    getEntities()->update(); // update the models...
+                    getEntities()->update(true); // update the models...
                 }
 
                 myAvatar->harvestResultsFromPhysicsSimulation(deltaTime);
@@ -5103,6 +5162,9 @@ void Application::update(float deltaTime) {
                 _physicsEngine->dumpStatsIfNecessary();
             }
         }
+    } else {
+        // update the rendering without any simulation
+        getEntities()->update(false); 
     }
 
     // AvatarManager update
@@ -7255,14 +7317,6 @@ void Application::updateDisplayMode() {
         qFatal("Attempted to switch display plugins from a non-main thread");
     }
 
-    // Some plugins *cough* Oculus *cough* process message events from inside their
-    // display function, and we don't want to change the display plugin underneath
-    // the paintGL call, so we need to guard against that
-    // The current oculus runtime doesn't do this anymore
-    if (_inPaint) {
-        qFatal("Attempted to switch display plugins while in painting");
-    }
-
     auto menu = Menu::getInstance();
     auto displayPlugins = PluginManager::getInstance()->getDisplayPlugins();
 
@@ -7339,12 +7393,12 @@ void Application::updateDisplayMode() {
         bool wasRepositionLocked = offscreenUi->getDesktop()->property("repositionLocked").toBool();
         offscreenUi->getDesktop()->setProperty("repositionLocked", true);
 
-        auto oldDisplayPlugin = _displayPlugin;
         if (_displayPlugin) {
-            disconnect(_displayPluginPresentConnection);
+            disconnect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent);
             _displayPlugin->deactivate();
         }
 
+        auto oldDisplayPlugin = _displayPlugin;
         bool active = newDisplayPlugin->activate();
 
         if (!active) {
@@ -7382,7 +7436,7 @@ void Application::updateDisplayMode() {
         _offscreenContext->makeCurrent();
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
-        _displayPluginPresentConnection = connect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent);
+        connect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent);
         offscreenUi->getDesktop()->setProperty("repositionLocked", wasRepositionLocked);
     }
 
@@ -7634,3 +7688,5 @@ void Application::setAvatarOverrideUrl(const QUrl& url, bool save) {
     _avatarOverrideUrl = url;
     _saveAvatarOverrideUrl = save;
 }
+
+#include "Application.moc"
