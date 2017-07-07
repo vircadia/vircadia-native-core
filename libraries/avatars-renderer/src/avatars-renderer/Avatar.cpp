@@ -1013,7 +1013,7 @@ void Avatar::invalidateJointIndicesCache() const {
     _jointsCached = false;
 }
 
-void Avatar::withValidCache(std::function<void()> const& worker) const {
+void Avatar::withValidJointIndicesCache(std::function<void()> const& worker) const {
     QReadLocker readLock(&_jointIndicesCacheLock);
     if (_jointsCached) {
         worker();
@@ -1039,7 +1039,7 @@ int Avatar::getJointIndex(const QString& name) const {
         return result;
     }
 
-    withValidCache([&]() {
+    withValidJointIndicesCache([&]() {
         if (_jointIndicesCache.contains(name)) {
             result = _jointIndicesCache[name];
         }
@@ -1049,7 +1049,7 @@ int Avatar::getJointIndex(const QString& name) const {
 
 QStringList Avatar::getJointNames() const {
     QStringList result;
-    withValidCache([&]() {
+    withValidJointIndicesCache([&]() {
         result = _jointIndicesCache.keys();
     });
     return result;
