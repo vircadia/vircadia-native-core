@@ -1440,8 +1440,7 @@ void Avatar::addToScene(AvatarSharedPointer myHandle, const render::ScenePointer
     if (scene) {
         auto nodelist = DependencyManager::get<NodeList>();
         if (showAvatars
-            && !nodelist->isIgnoringNode(getSessionUUID())
-            && !nodelist->isRadiusIgnoringNode(getSessionUUID())) {
+            && !nodelist->isIgnoringNode(getSessionUUID())) {
             render::Transaction transaction;
             addToScene(myHandle, scene, transaction);
             scene->enqueueTransaction(transaction);
