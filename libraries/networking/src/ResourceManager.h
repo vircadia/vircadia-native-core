@@ -59,7 +59,6 @@ private:
     PrefixMap _prefixMap;
     QMutex _prefixMapLock;
 
-    QString _cacheDir;
 };
 
 #endif

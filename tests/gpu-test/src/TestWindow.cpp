@@ -77,7 +77,6 @@ void TestWindow::initGl() {
 #ifdef DEFERRED_LIGHTING
     auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
     deferredLightingEffect->init();
-    deferredLightingEffect->setGlobalLight(_light);
     initDeferredPipelines(*_shapePlumber);
 #endif
 }

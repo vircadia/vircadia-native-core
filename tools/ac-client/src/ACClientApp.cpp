@@ -42,7 +42,6 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
     const QCommandLineOption listenPortOption("listenPort", "listen port", QString::number(INVALID_PORT));
     parser.addOption(listenPortOption);
 
-
     if (!parser.parse(QCoreApplication::arguments())) {
         qCritical() << parser.errorText() << endl;
         parser.showHelp();
@@ -66,6 +65,7 @@ ACClientApp::ACClientApp(int argc, char* argv[]) :
         const_cast<QLoggingCategory*>(&shared())->setEnabled(QtInfoMsg, false);
         const_cast<QLoggingCategory*>(&shared())->setEnabled(QtWarningMsg, false);
     }
+    
 
     QString domainServerAddress = "127.0.0.1:40103";
     if (parser.isSet(domainAddressOption)) {

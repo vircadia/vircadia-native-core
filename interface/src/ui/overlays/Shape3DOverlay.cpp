@@ -53,9 +53,9 @@ void Shape3DOverlay::render(RenderArgs* args) {
         transform.setScale(dimensions);
         batch->setModelTransform(transform);
         if (_isSolid) {
-            geometryCache->renderSolidShapeInstance(*batch, _shape, cubeColor, pipeline);
+            geometryCache->renderSolidShapeInstance(args, *batch, _shape, cubeColor, pipeline);
         } else {
-            geometryCache->renderWireShapeInstance(*batch, _shape, cubeColor, pipeline);
+            geometryCache->renderWireShapeInstance(args, *batch, _shape, cubeColor, pipeline);
         }
     }
 }

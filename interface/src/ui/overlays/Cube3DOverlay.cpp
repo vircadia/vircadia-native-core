@@ -73,7 +73,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
         if (_isSolid) {
             transform.setScale(dimensions);
             batch->setModelTransform(transform);
-            geometryCache->renderSolidCubeInstance(*batch, cubeColor, pipeline);
+            geometryCache->renderSolidCubeInstance(args, *batch, cubeColor, pipeline);
         } else {
             geometryCache->bindSimpleProgram(*batch, false, false, false, true, true);
             if (getIsDashedLine()) {
@@ -109,7 +109,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
             } else {
                 transform.setScale(dimensions);
                 batch->setModelTransform(transform);
-                geometryCache->renderWireCubeInstance(*batch, cubeColor, pipeline);
+                geometryCache->renderWireCubeInstance(args, *batch, cubeColor, pipeline);
             }
         }
     }

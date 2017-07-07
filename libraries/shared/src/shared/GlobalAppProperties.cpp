@@ -17,6 +17,7 @@ namespace hifi { namespace properties {
     const char* TEST = "com.highfidelity.test";
     const char* TRACING = "com.highfidelity.tracing";
     const char* HMD = "com.highfidelity.hmd";
+    const char* APP_LOCAL_DATA_PATH = "com.highfidelity.appLocalDataPath";
 
     namespace gl {
         const char* BACKEND = "com.highfidelity.gl.backend";
