@@ -1010,6 +1010,9 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
 
 void Avatar::cacheJoints() const {
     // _jointIndicesCacheLock should be locked for write before calling this.
+    if (_jointsCached) {
+        return;
+    }
     _jointIndicesCache.clear();
     if (_skeletonModel && _skeletonModel->isActive()) {
         _jointIndicesCache = _skeletonModel->getFBXGeometry().jointIndices;
