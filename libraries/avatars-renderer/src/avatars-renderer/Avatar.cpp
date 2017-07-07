@@ -1022,11 +1022,11 @@ int Avatar::getJointIndex(const QString& name) const {
         int result = getFauxJointIndex(name);
         if (result != -1) {
             return result;
-        }
-        if (_jointIndicesCache.contains(name)) {
+        } else if (_jointIndicesCache.contains(name)) {
             return _jointIndicesCache[name];
+        } else {
+            return -1;
         }
-        return -1;
     };
     QReadLocker readLock(&_jointIndicesCacheLock);
     if (!_jointsCached) {
