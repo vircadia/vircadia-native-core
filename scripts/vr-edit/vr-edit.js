@@ -390,6 +390,8 @@
             doEdit,
             doHighlight,
 
+            otherHand,
+
             laser,
             selection,
             highlights;
@@ -409,6 +411,10 @@
         laser = new Laser(hand);
         selection = new Selection();
         highlights = new Highlights(hand);
+
+        function setOtherhand(hand) {
+            otherHand = hand;
+        }
 
         function startEditing() {
             var selectionPositionAndOrientation;
@@ -613,6 +619,7 @@
         }
 
         return {
+            setOtherHand: setOtherhand,
             update: update,
             apply: apply,
             destroy: destroy
@@ -671,6 +678,8 @@
         // Hands, each with a laser, selection, etc.
         hands[LEFT_HAND] = new Hand(LEFT_HAND);
         hands[RIGHT_HAND] = new Hand(RIGHT_HAND);
+        hands[LEFT_HAND].setOtherHand(hands[RIGHT_HAND]);
+        hands[RIGHT_HAND].setOtherHand(hands[LEFT_HAND]);
 
         if (isAppActive) {
             update();
