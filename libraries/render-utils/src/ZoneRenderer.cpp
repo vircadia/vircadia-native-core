@@ -136,14 +136,13 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
 
     auto deferredTransform = inputs;
 
-    auto lightStage = context->_scene->getStage<LightStage>("LIGHT_STAGE");
+    auto lightStage = context->_scene->getStage<LightStage>(LightStage::getName());
     std::vector<model::LightPointer> keyLightStack;
     if (lightStage && lightStage->_currentFrame._sunLights.size()) {
         for (auto index : lightStage->_currentFrame._sunLights) {
             keyLightStack.push_back(lightStage->getLight(index));
         }
     }
-   // keyLightStack.push_back(lightStage->getLight(0));
 
     std::vector<model::LightPointer> ambientLightStack;
     if (lightStage && lightStage->_currentFrame._ambientLights.size()) {
@@ -151,9 +150,8 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
             ambientLightStack.push_back(lightStage->getLight(index));
         }
     }
-  //  ambientLightStack.push_back(lightStage->getLight(0));
 
-    auto backgroundStage = context->_scene->getStage<BackgroundStage>("BACKGROUND_STAGE");
+    auto backgroundStage = context->_scene->getStage<BackgroundStage>(BackgroundStage::getName());
     std::vector<model::SkyboxPointer> skyboxStack;
     if (backgroundStage && backgroundStage->_currentFrame._backgrounds.size()) {
         for (auto index : backgroundStage->_currentFrame._backgrounds) {
@@ -162,8 +160,7 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
                 skyboxStack.push_back(background->getSkybox());
             }
         }
-    } 
-  //  skyboxStack.push_back(backgroundStage->getBackground(0)->getSkybox());
+    }
 
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
