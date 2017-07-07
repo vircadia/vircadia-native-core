@@ -1041,7 +1041,7 @@ int Avatar::getJointIndex(const QString& name) const {
 
     withValidJointIndicesCache([&]() {
         if (_jointIndicesCache.contains(name)) {
-            result = _jointIndicesCache[name];
+            result = _jointIndicesCache[name] - 1;
         }
     });
     return result;
