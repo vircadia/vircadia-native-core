@@ -81,6 +81,7 @@
                 Vec3.multiplyVbyV(Vec3.subtract(Vec3.HALF, details.registrationPoint), details.dimensions));
 
             Overlays.editOverlay(entityOverlays[index], {
+                parentID: details.id,
                 position: Vec3.sum(details.position, offset),
                 registrationPoint: details.registrationPoint,
                 rotation: details.rotation,
