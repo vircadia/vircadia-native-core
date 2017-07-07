@@ -1021,11 +1021,13 @@ void Avatar::cacheJoints() const {
 }
 
 int Avatar::getJointIndex(const QString& name) const {
+    int result = getFauxJointIndex(name);
+    if (result != -1) {
+        return result;
+    }
+
     auto getJointIndexWorker = [&]() {
-        int result = getFauxJointIndex(name);
-        if (result != -1) {
-            return result;
-        } else if (_jointIndicesCache.contains(name)) {
+        if (_jointIndicesCache.contains(name)) {
             return _jointIndicesCache[name];
         } else {
             return -1;
