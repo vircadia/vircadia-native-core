@@ -1099,9 +1099,9 @@ Rectangle {
         case 'nearbyUsers':
             var data = message.params;
             var index = -1;
+            iAmAdmin = Users.canKick;
             index = findNearbySessionIndex('', data);
             if (index !== -1) {
-                iAmAdmin = Users.canKick;
                 myData = data[index];
                 data.splice(index, 1);
             } else {
