@@ -153,7 +153,8 @@
             selectionOrientation,
             rootEntityID,
             scaleCenter,
-            scaleRootOffset;
+            scaleRootOffset,
+            scaleRootOrientation;
 
         function traverseEntityTree(id, result) {
             // Recursively traverses tree of entities and their children, gather IDs and properties.
@@ -229,19 +230,24 @@
         function startScaling(center) {
             scaleCenter = center;
             scaleRootOffset = Vec3.subtract(selection[0].position, center);
+            scaleRootOrientation = selectionOrientation;
         }
 
-        function scale(factor, center) {
+        function scale(factor, rotation, center) {
             var position,
+                orientation,
                 i,
                 length;
 
             // Position root.
-            position = Vec3.sum(center, Vec3.multiply(factor, scaleRootOffset));
+            position = Vec3.sum(center, Vec3.multiply(factor, Vec3.multiplyQbyV(rotation, scaleRootOffset)));
+            orientation = Quat.multiply(rotation, scaleRootOrientation);
             selectionPosition = position;
+            selectionOrientation = orientation;
             Entities.editEntity(selection[0].id, {
                 dimensions: Vec3.multiply(factor, selection[0].dimensions),
-                position: position
+                position: position,
+                rotation: orientation
             });
 
             // Scale and position children.
@@ -433,6 +439,7 @@
             initialTargetPosition,
             initialTargetsCenter,
             initialTargetsSeparation,
+            initialtargetsDirection,
 
             doEdit,
             doHighlight,
@@ -499,6 +506,7 @@
                 initialOtherTargetPosition = otherHand.getTargetPosition();
                 initialTargetsCenter = Vec3.multiply(0.5, Vec3.sum(initialTargetPosition, initialOtherTargetPosition));
                 initialTargetsSeparation = Vec3.distance(initialTargetPosition, initialOtherTargetPosition);
+                initialtargetsDirection = Vec3.subtract(initialOtherTargetPosition, initialTargetPosition);
                 selection.startScaling(initialTargetsCenter);
                 isScaling = true;
             } else {
@@ -535,8 +543,9 @@
             var targetPosition,
                 otherTargetPosition,
                 targetsSeparation,
-                center,
                 scale,
+                rotation,
+                center,
                 selectionPositionAndOrientation;
 
             // Scale selection.
@@ -544,8 +553,9 @@
             otherTargetPosition = otherHand.getTargetPosition();
             targetsSeparation = Vec3.distance(targetPosition, otherTargetPosition);
             scale = targetsSeparation / initialTargetsSeparation;
+            rotation = Quat.rotationBetween(initialtargetsDirection, Vec3.subtract(otherTargetPosition, targetPosition));
             center = Vec3.multiply(0.5, Vec3.sum(targetPosition, otherTargetPosition));
-            selection.scale(scale, center);
+            selection.scale(scale, rotation, center);
 
             // Update grab offsets.
             selectionPositionAndOrientation = selection.getPositionAndOrientation();
