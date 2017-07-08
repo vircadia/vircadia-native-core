@@ -1,8 +1,8 @@
 /* globals EntityIconOverlayManager:true */
 
 EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
+
     var visible = false;
-    var iconsSelectable = false;
 
     // List of all created overlays
     var allOverlays = [];
@@ -71,13 +71,24 @@ EntityIconOverlayManager = function(entityTypes, getOverlayPropertiesFunc) {
     };
 
 
-    this.setIconsSelectable = function(isIconsSelectable) {
-        if (iconsSelectable !== isIconsSelectable) {
-            iconsSelectable = isIconsSelectable;
+    this.setIconsSelectable = function(arrayOfSelectedEntityIDs, isIconsSelectable) {
+        if (arrayOfSelectedEntityIDs === null) {
             for (var id in entityOverlays) {
                 Overlays.editOverlay(entityOverlays[id], {
-                    ignoreRayIntersection: iconsSelectable
+                    ignoreRayIntersection: isIconsSelectable
                 });
+            }
+        } else {
+            for (var id in entityOverlays) {
+                if (arrayOfSelectedEntityIDs.indexOf(id) !== -1) { // in the entityOverlays array and selectable
+                    Overlays.editOverlay(entityOverlays[id], {
+                        ignoreRayIntersection: isIconsSelectable
+                    });
+                } else {
+                    Overlays.editOverlay(entityOverlays[id], {
+                        ignoreRayIntersection: !isIconsSelectable
+                    });
+                }
             }
         }
     };

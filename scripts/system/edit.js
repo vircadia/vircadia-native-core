@@ -644,14 +644,12 @@ var toolBar = (function () {
             selectionDisplay.triggerMapping.enable();
             print("starting tablet in landscape mode")
             tablet.landscape = true;
+            entityIconOverlayManager.setIconsSelectable(null,false);
             // Not sure what the following was meant to accomplish, but it currently causes
             // everybody else to think that Interface has lost focus overall. fogbugzid:558
             // Window.setFocus();
         }
-        var activeLightParticle = (isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
-        entityIconOverlayManager.setVisible(activeLightParticle);
-        entityIconOverlayManager.setIconsSelectable(activeLightParticle);
-
+        entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     };
 
@@ -944,6 +942,9 @@ function mouseClickEvent(event) {
                 } else {
                     selectionManager.addEntity(foundEntity, true);
                 }
+
+                entityIconOverlayManager.setIconsSelectable(selectionManager.selections,true);
+
                 if (wantDebug) {
                     print("Model selected: " + foundEntity);
                 }
@@ -1467,10 +1468,7 @@ function handeMenuEvent(menuItem) {
     } else if (menuItem === "Select All Entities Touching Box") {
         selectAllEtitiesInCurrentSelectionBox(true);
     } else if (menuItem === MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE) {
-        var activeLightParticle = (isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
-        entityIconOverlayManager.setVisible(activeLightParticle);
-        entityIconOverlayManager.setIconsSelectable(activeLightParticle);
-
+        entityIconOverlayManager.setVisible(isActive && Menu.isOptionChecked(MENU_SHOW_LIGHTS_AND_PARTICLES_IN_EDIT_MODE));
     } else if (menuItem === MENU_SHOW_ZONES_IN_EDIT_MODE) {
         Entities.setDrawZoneBoundaries(isActive && Menu.isOptionChecked(MENU_SHOW_ZONES_IN_EDIT_MODE));
     }
