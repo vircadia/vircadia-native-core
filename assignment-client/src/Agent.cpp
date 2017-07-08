@@ -801,6 +801,7 @@ void Agent::aboutToFinish() {
 
     emit stopAvatarAudioTimer();
     _avatarAudioTimerThread.quit();
+    _avatarAudioTimerThread.wait();
 
     // cleanup codec & encoder
     if (_codec && _encoder) {
