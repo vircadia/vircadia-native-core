@@ -1010,7 +1010,6 @@ function setupModelMenus() {
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Entity List...",
-        shortcutKey: "CTRL+META+L",
         afterItem: "Entities",
         grouping: "Advanced"
     });
@@ -1041,7 +1040,6 @@ function setupModelMenus() {
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Allow Selecting of Large Models",
-        shortcutKey: "CTRL+META+L",
         afterItem: GRABBABLE_ENTITIES_MENU_ITEM,
         isCheckable: true,
         isChecked: true,
@@ -1050,7 +1048,6 @@ function setupModelMenus() {
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Allow Selecting of Small Models",
-        shortcutKey: "CTRL+META+S",
         afterItem: "Allow Selecting of Large Models",
         isCheckable: true,
         isChecked: true,
@@ -1059,7 +1056,6 @@ function setupModelMenus() {
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Allow Selecting of Lights",
-        shortcutKey: "CTRL+SHIFT+META+L",
         afterItem: "Allow Selecting of Small Models",
         isCheckable: true,
         grouping: "Advanced"
@@ -1067,14 +1063,12 @@ function setupModelMenus() {
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Select All Entities In Box",
-        shortcutKey: "CTRL+SHIFT+META+A",
         afterItem: "Allow Selecting of Lights",
         grouping: "Advanced"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Select All Entities Touching Box",
-        shortcutKey: "CTRL+SHIFT+META+T",
         afterItem: "Select All Entities In Box",
         grouping: "Advanced"
     });
@@ -1082,21 +1076,18 @@ function setupModelMenus() {
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Export Entities",
-        shortcutKey: "CTRL+META+E",
         afterItem: "Entities",
         grouping: "Advanced"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Import Entities",
-        shortcutKey: "CTRL+META+I",
         afterItem: "Export Entities",
         grouping: "Advanced"
     });
     Menu.addMenuItem({
         menuName: "Edit",
         menuItemName: "Import Entities from URL",
-        shortcutKey: "CTRL+META+U",
         afterItem: "Import Entities",
         grouping: "Advanced"
     });

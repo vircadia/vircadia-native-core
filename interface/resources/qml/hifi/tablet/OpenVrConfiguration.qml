@@ -50,9 +50,12 @@ Rectangle {
         readonly property int apply: 1
         readonly property int applyAndCalibrate: 2
         readonly property int calibrate: 3
-        
+
     }
-        
+
+
+
+
 
     MouseArea {
         id: mouseArea
@@ -64,6 +67,7 @@ Rectangle {
             mouse.accepted = false;
         }
     }
+
     color: hifi.colors.baseGray
 
     RalewayBold {
@@ -146,6 +150,7 @@ Rectangle {
             label: "Y: offset"
             minimumValue: -10
             stepSize: 0.0254
+            value: -0.05
             colorScheme: hifi.colorSchemes.dark
 
             onEditingFinished: {
@@ -161,15 +166,16 @@ Rectangle {
             minimumValue: -10
             stepSize: 0.0254
             decimals: 4
+            value: -0.05
             colorScheme: hifi.colorSchemes.dark
-            
+
             onEditingFinished: {
                 sendConfigurationSettings();
             }
         }
     }
-        
-    
+
+
     RalewayBold {
         id: hands
 
@@ -245,7 +251,7 @@ Rectangle {
         anchors.left: openVrConfiguration.left
         anchors.leftMargin: leftMargin + 10
         spacing: 10
-        
+
         HifiControls.SpinBox {
             id: handYOffset
             decimals: 4
@@ -269,7 +275,7 @@ Rectangle {
             stepSize: 0.0254
             decimals: 4
             colorScheme: hifi.colorSchemes.dark
-            
+
             onEditingFinished: {
                 sendConfigurationSettings();
             }
@@ -288,6 +294,52 @@ Rectangle {
         anchors.topMargin: (handOffset.visible ? 22 : 10)
         anchors.left: parent.left
         anchors.leftMargin: leftMargin
+    }
+
+    RalewayRegular {
+        id: info
+
+        text: "See Recommended Tracker Placement"
+        color: hifi.colors.blueHighlight
+        size: 10
+        anchors {
+            left: additional.right
+            leftMargin: 10
+            verticalCenter: additional.verticalCenter
+        }
+
+        Rectangle {
+            id: selected
+            color: hifi.colors.blueHighlight
+
+            width: info.width
+            height: 1
+
+            anchors {
+                top: info.bottom
+                topMargin: 1
+                left: info.left
+                right: info.right
+            }
+
+            visible: false
+        }
+
+        MouseArea {
+            anchors.fill: parent;
+            hoverEnabled: true
+
+            onEntered: {
+                selected.visible = true;
+            }
+
+            onExited: {
+                selected.visible = false;
+            }
+            onClicked: {
+                stack.messageVisible = true;
+            }
+        }
     }
 
     Row {
@@ -379,6 +431,7 @@ Rectangle {
                 if (checked) {
                     hipBox.checked = true;
                     feetBox.checked = true;
+                    shoulderBox.checked = false;
                 }
                 sendConfigurationSettings();
             }
@@ -416,6 +469,7 @@ Rectangle {
                 if (checked) {
                     hipBox.checked = true;
                     feetBox.checked = true;
+                    chestBox.checked = false;
                 }
                 sendConfigurationSettings();
             }
@@ -463,7 +517,7 @@ Rectangle {
         anchors.leftMargin: leftMargin
 
         radius: hifi.buttons.radius
-        
+
         gradient: Gradient {
             GradientStop {
                 position: 0.2
@@ -479,7 +533,7 @@ Rectangle {
                     }
                 }
             }
-            
+
             GradientStop {
                 position: 1.0
                 color: {
@@ -495,10 +549,10 @@ Rectangle {
                 }
             }
         }
-    
 
 
-       
+
+
         HiFiGlyphs {
             id: glyphButton
             color: enabled ? hifi.buttons.textColor[calibrationButton.color]
@@ -512,7 +566,7 @@ Rectangle {
                 bottomMargin: 1
             }
         }
-            
+
         RalewayBold {
             id: calibrationText
             font.capitalization: Font.AllUppercase
@@ -527,7 +581,7 @@ Rectangle {
                 topMargin: 7
             }
         }
-    
+
 
         MouseArea {
             anchors.fill: parent
@@ -549,19 +603,19 @@ Rectangle {
                     }
                 }
             }
-            
+
             onPressed: {
                 calibrationButton.pressed = true;
             }
-            
+
             onReleased: {
                 calibrationButton.pressed = false;
             }
-            
+
             onEntered: {
                 calibrationButton.hovered = true;
             }
-            
+
             onExited: {
                 calibrationButton.hovered = false;
             }
@@ -642,6 +696,57 @@ Rectangle {
         }
     }
 
+    Separator {
+        id: advanceSeperator
+        width: parent.width
+        anchors.top: timeToCalibrate.bottom
+        anchors.topMargin: 10
+    }
+
+    RalewayBold {
+        id: advanceSettings
+        
+        text: "Advanced Settings"
+        size: 12
+        
+        color: hifi.colors.white
+        
+        anchors.top: advanceSeperator.bottom
+        anchors.topMargin: 10
+        anchors.left: parent.left
+        anchors.leftMargin: leftMargin
+    }
+
+
+    HifiControls.CheckBox {
+        id: viveInDesktop
+        width: 15
+        height: 15
+        boxRadius: 7
+
+        anchors.top: advanceSettings.bottom
+        anchors.topMargin: 5
+        anchors.left: openVrConfiguration.left
+        anchors.leftMargin: leftMargin + 10
+        
+        onClicked: {
+            sendConfigurationSettings();
+        }
+    }
+
+    RalewayBold {
+        id: viveDesktopText
+        size: 10
+        text: "Use Vive devices in desktop mode"
+        color: hifi.colors.white
+        
+        anchors {
+            left: viveInDesktop.right
+            leftMargin: 5
+            verticalCenter: viveInDesktop.verticalCenter
+        }
+    }
+    
     NumberAnimation {
         id: numberAnimation
         target: openVrConfiguration
@@ -667,14 +772,14 @@ Rectangle {
             calibratingScreen = screen.createObject();
             stack.push(calibratingScreen);
         }
-        
+
         if (status["calibrated"]) {
             calibrationScreen.success();
 
             if (status["UI"]) {
                 logAction("mocap_ui_success", status);
             }
-            
+
         } else if (!status["calibrated"]) {
             calibrationScreen.failure();
 
@@ -728,6 +833,7 @@ Rectangle {
 
         var HmdHead = settings["HMDHead"];
         var viveController = settings["handController"];
+        var desktopMode = settings["desktopMode"];
 
         if (HmdHead) {
             headBox.checked = true;
@@ -744,6 +850,8 @@ Rectangle {
             handPuckBox.checked = true;
             handBox.checked = false;
         }
+
+        viveInDesktop.checked = desktopMode;
 
         initializeButtonState();
         updateCalibrationText();
@@ -786,11 +894,11 @@ Rectangle {
         var handOverride = handSetting["override"];
 
         var settingsChanged = false;
-        
+
         if (lastConfiguration["bodyConfiguration"] !== bodySetting) {
             settingsChanged = true;
         }
-        
+
         var lastHead = lastConfiguration["headConfiguration"];
         if (lastHead["override"] !== headOverride) {
             settingsChanged = true;
@@ -800,13 +908,13 @@ Rectangle {
         if (lastHand["override"] !== handOverride) {
             settingsChanged = true;
         }
-        
+
         if (settingsChanged) {
             if ((!handOverride) && (!headOverride) && (bodySetting === "None")) {
                 state = buttonState.apply;
             } else {
                 state = buttonState.applyAndCalibrate;
-            }   
+            }
         } else {
             if (state == buttonState.apply) {
                 state = buttonState.disabled;
@@ -814,7 +922,7 @@ Rectangle {
                 state = buttonState.calibrate;
             }
         }
-        
+
         lastConfiguration = settings;
     }
 
@@ -831,7 +939,7 @@ Rectangle {
             state = buttonState.disabled;
         } else {
             state = buttonState.calibrate;
-        }   
+        }
     }
 
     function updateCalibrationButton() {
@@ -897,11 +1005,12 @@ Rectangle {
             "Y": handYOffset.value,
             "Z": handZOffset.value
         }
-        
+
         var settingsObject = {
             "bodyConfiguration": trackerConfiguration,
             "headConfiguration": headObject,
-            "handConfiguration": handObject 
+            "handConfiguration": handObject,
+            "desktopMode": viveInDesktop.checked
         }
 
         return settingsObject;

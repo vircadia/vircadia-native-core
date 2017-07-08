@@ -107,6 +107,7 @@ namespace Setting {
         }
 
         bool isSet() const {
+            maybeInit();
             return _isSet;
         }
 

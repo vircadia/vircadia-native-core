@@ -50,6 +50,7 @@
     {
       "label": "Places / Paths",
       "html_id": "places_paths",
+      "restart": false,
       "settings": [
         {
           "name": "paths",
@@ -75,6 +76,7 @@
     {
       "name": "descriptors",
       "label": "Description",
+      "restart": false,
       "help": "This data will be queryable from your server. It may be collected by High Fidelity and used to share your domain with others.",
       "settings": [
         {
