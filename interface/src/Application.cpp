@@ -2751,7 +2751,7 @@ bool Application::event(QEvent* event) {
                     idle(nsecsElapsed);
                     postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
                 }
-            }
+            } 
             return true;
 
         case Event::Paint:
@@ -2759,6 +2759,8 @@ bool Application::event(QEvent* event) {
             //       or AvatarInputs will mysteriously move to the bottom-right
             AvatarInputs::getInstance()->update();
             paintGL();
+            // wait for the next present event before starting idle / paint again
+            removePostedEvents(this, Present);
             _renderRequested = false;
             return true;
 
