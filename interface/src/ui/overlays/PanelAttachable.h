@@ -67,7 +67,7 @@ protected:
 
     /// set position, rotation and scale on transform based on offsets, and parent panel offsets
     /// if force is false, only apply transform if it hasn't been applied in the last .1 seconds
-    virtual void applyTransformTo(Transform& transform, bool force = false);
+    virtual bool applyTransformTo(Transform& transform, bool force = false);
     quint64 _transformExpiry = 0;
 
 private:
