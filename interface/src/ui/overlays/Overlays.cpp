@@ -414,17 +414,44 @@ OverlayID Overlays::getOverlayAtPoint(const glm::vec2& point) {
 }
 
 OverlayPropertyResult Overlays::getProperty(OverlayID id, const QString& property) {
-    if (QThread::currentThread() != thread()) {
-        OverlayPropertyResult result;
-        BLOCKING_INVOKE_METHOD(this, "getProperty", Q_RETURN_ARG(OverlayPropertyResult, result), Q_ARG(OverlayID, id), Q_ARG(QString, property));
-        return result;
-    }
-
-    OverlayPropertyResult result;
     Overlay::Pointer thisOverlay = getOverlay(id);
+    OverlayPropertyResult result;
     if (thisOverlay && thisOverlay->supportsGetProperty()) {
         result.value = thisOverlay->getProperty(property);
     }
+    return result;
+}
+
+OverlayPropertyResult Overlays::getProperties(const OverlayID& id, const QStringList& properties) {
+    Overlay::Pointer thisOverlay = getOverlay(id);
+    OverlayPropertyResult result;
+    if (thisOverlay && thisOverlay->supportsGetProperty()) {
+        QVariantMap mapResult;
+        for (const auto& property : properties) {
+            mapResult.insert(property, thisOverlay->getProperty(property));
+        }
+        result.value = mapResult;
+    }
+    return result;
+}
+
+OverlayPropertyResult Overlays::getOverlaysProperties(const QVariant& propertiesById) {
+    QVariantMap map = propertiesById.toMap();
+    OverlayPropertyResult result;
+    QVariantMap resultMap;
+    for (const auto& key : map.keys()) {
+        OverlayID id = OverlayID(key);
+        QVariantMap overlayResult;
+        Overlay::Pointer thisOverlay = getOverlay(id);
+        if (thisOverlay && thisOverlay->supportsGetProperty()) {
+            QStringList propertiesToFetch = map[key].toStringList();
+            for (const auto& property : propertiesToFetch) {
+                overlayResult[property] = thisOverlay->getProperty(property);
+            }
+        }
+        resultMap[key] = overlayResult;
+    }
+    result.value = resultMap;
     return result;
 }
 
