@@ -151,13 +151,15 @@
             selectedEntityID = null,
             selectionPosition = null,
             selectionOrientation,
-            rootEntityID;
+            rootEntityID,
+            scaleCenter,
+            scaleRootOffset;
 
         function traverseEntityTree(id, result) {
             // Recursively traverses tree of entities and their children, gather IDs and properties.
             var children,
                 properties,
-                SELECTION_PROPERTIES = ["position", "registrationPoint", "rotation", "dimensions"],
+                SELECTION_PROPERTIES = ["position", "registrationPoint", "rotation", "dimensions", "localPosition"],
                 i,
                 length;
 
@@ -165,6 +167,7 @@
             result.push({
                 id: id,
                 position: properties.position,
+                localPosition: properties.localPosition,
                 registrationPoint: properties.registrationPoint,
                 rotation: properties.rotation,
                 dimensions: properties.dimensions
@@ -223,6 +226,33 @@
             });
         }
 
+        function startScaling(center) {
+            scaleCenter = center;
+            scaleRootOffset = Vec3.subtract(selection[0].position, center);
+        }
+
+        function scale(factor, center) {
+            var position,
+                i,
+                length;
+
+            // Position root.
+            position = Vec3.sum(center, Vec3.multiply(factor, scaleRootOffset));
+            selectionPosition = position;
+            Entities.editEntity(selection[0].id, {
+                dimensions: Vec3.multiply(factor, selection[0].dimensions),
+                position: position
+            });
+
+            // Scale and position children.
+            for (i = 1, length = selection.length; i < length; i += 1) {
+                Entities.editEntity(selection[i].id, {
+                    dimensions: Vec3.multiply(factor, selection[i].dimensions),
+                    localPosition: Vec3.multiply(factor, selection[i].localPosition)
+                });
+            }
+        }
+
         function clear() {
             selection = [];
             selectedEntityID = null;
@@ -243,6 +273,8 @@
             rootEntityID: getRootEntityID,
             getPositionAndOrientation: getPositionAndOrientation,
             setPositionAndOrientation: setPositionAndOrientation,
+            startScaling: startScaling,
+            scale: scale,
             clear: clear,
             destroy: destroy
         };
@@ -391,11 +423,16 @@
             NONEDITABLE_ENTITY_TYPES = ["Unknown", "Zone", "Light"],
 
             isEditing = false,
-            initialHandPosition,
+            isEditingWithHand = false,
             initialHandOrientationInverse,
             initialHandToSelectionVector,
             initialSelectionOrientation,
             laserEditingDistance,
+
+            isScaling = false,
+            initialTargetPosition,
+            initialTargetsCenter,
+            initialTargetsSeparation,
 
             doEdit,
             doHighlight,
@@ -431,17 +468,50 @@
             return isEditing && rootEntityID === selection.rootEntityID();
         }
 
-        function startEditing() {
-            var selectionPositionAndOrientation;
+        function getHandPosition() {
+            return Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, handPose.translation), MyAvatar.position);
+        }
 
-            initialHandPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, handPose.translation), MyAvatar.position);
+        function getTargetPosition() {
+            if (isEditingWithHand) {
+                return hand === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
+            }
+            return Vec3.sum(getHandPosition(), Vec3.multiply(laserEditingDistance,
+                Quat.getUp(Quat.multiply(MyAvatar.orientation, handPose.rotation))));
+        }
+
+        function startEditing() {
+            var selectionPositionAndOrientation,
+                initialOtherTargetPosition;
+
             initialHandOrientationInverse = Quat.inverse(Quat.multiply(MyAvatar.orientation, handPose.rotation));
 
+            selection.select(hoveredEntityID);  // Entity may have been moved by other hand so refresh position and orientation.
             selectionPositionAndOrientation = selection.getPositionAndOrientation();
-            initialHandToSelectionVector = Vec3.subtract(selectionPositionAndOrientation.position, initialHandPosition);
+            initialHandToSelectionVector = Vec3.subtract(selectionPositionAndOrientation.position, getHandPosition());
             initialSelectionOrientation = selectionPositionAndOrientation.orientation;
 
+            isEditingWithHand = intersection.handSelected;
+
+            if (otherHand.isEditing(selection.rootEntityID())) {
+                // Store initial values for use in scaling.
+                initialTargetPosition = getTargetPosition();
+                initialOtherTargetPosition = otherHand.getTargetPosition();
+                initialTargetsCenter = Vec3.multiply(0.5, Vec3.sum(initialTargetPosition, initialOtherTargetPosition));
+                initialTargetsSeparation = Vec3.distance(initialTargetPosition, initialOtherTargetPosition);
+                selection.startScaling(initialTargetsCenter);
+                isScaling = true;
+            } else {
+                isScaling = false;
+            }
+
             isEditing = true;
+        }
+
+        function updateGrabOffset(selectionPositionAndOrientation) {
+            initialHandOrientationInverse = Quat.inverse(Quat.multiply(MyAvatar.orientation, handPose.rotation));
+            initialHandToSelectionVector = Vec3.subtract(selectionPositionAndOrientation.position, getHandPosition());
+            initialSelectionOrientation = selectionPositionAndOrientation.orientation;
         }
 
         function applyGrab() {
@@ -451,7 +521,7 @@
                 selectionPosition,
                 selectionOrientation;
 
-            handPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, handPose.translation), MyAvatar.position);
+            handPosition = getHandPosition();
             handOrientation = Quat.multiply(MyAvatar.orientation, handPose.rotation);
 
             deltaOrientation = Quat.multiply(handOrientation, initialHandOrientationInverse);
@@ -462,10 +532,29 @@
         }
 
         function applyScale() {
-            // TODO
+            var targetPosition,
+                otherTargetPosition,
+                targetsSeparation,
+                center,
+                scale,
+                selectionPositionAndOrientation;
+
+            // Scale selection.
+            targetPosition = getTargetPosition();
+            otherTargetPosition = otherHand.getTargetPosition();
+            targetsSeparation = Vec3.distance(targetPosition, otherTargetPosition);
+            scale = targetsSeparation / initialTargetsSeparation;
+            center = Vec3.multiply(0.5, Vec3.sum(targetPosition, otherTargetPosition));
+            selection.scale(scale, center);
+
+            // Update grab offsets.
+            selectionPositionAndOrientation = selection.getPositionAndOrientation();
+            updateGrabOffset(selectionPositionAndOrientation);
+            otherHand.updateGrabOffset(selectionPositionAndOrientation);
         }
 
         function stopEditing() {
+            isScaling = false;
             isEditing = false;
         }
 
@@ -615,7 +704,7 @@
         function apply() {
             if (doEdit) {
                 if (otherHand.isEditing(selection.rootEntityID())) {
-                    if (hand === LEFT_HAND) {
+                    if (isScaling) {
                         applyScale();
                     }
                 } else {
@@ -649,6 +738,8 @@
         return {
             setOtherHand: setOtherHand,
             isEditing: getIsEditing,
+            getTargetPosition: getTargetPosition,
+            updateGrabOffset: updateGrabOffset,
             update: update,
             apply: apply,
             destroy: destroy
