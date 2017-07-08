@@ -8,8 +8,8 @@
     Script.include("/~/system/libraries/controllers.js");
 
     var APP_NAME = 'LASER',
-        APP_ICON = 'https://binaryrelay.com/files/public-docs/hifi/laser/laser.svg',
-        APP_ICON_ACTIVE = 'https://binaryrelay.com/files/public-docs/hifi/laser/laser-a.svg';
+        APP_ICON = Script.resolvePath('laser.svg'),
+        APP_ICON_ACTIVE = Script.resolvePath('laser-a.svg');
 
     var POINT_INDEX_CHANNEL = "Hifi-Point-Index",
         GRAB_DISABLE_CHANNEL = "Hifi-Grab-Disable",
@@ -47,11 +47,25 @@
 
         var jointName = hand === 'right' ? 'RightHandIndex4' : 'LeftHandIndex4'; //'RightHand' : 'LeftHand';
 
+        var _hand = hand === 'right' ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
+        var controllerLocation = getControllerWorldLocation(_hand, true);
+
+        var worldControllerPosition = controllerLocation.position;
+        var worldControllerRotation = controllerLocation.orientation;
+
+        var jointExists = (MyAvatar.getJointIndex(jointName) > 0) ;
+        var CONTROLLER_FORWARD_OFFSET = Vec3.multiply(Quat.getUp(worldControllerRotation), FORWARD_OFFSET);
+
         var pickRay = {
-            origin: MyAvatar.getJointPosition(jointName),
-            direction: MyAvatar.jointToWorldDirection(Vec3.UP, MyAvatar.getJointIndex(jointName)),
+            origin: worldControllerPosition,
+            direction: Quat.getUp(worldControllerRotation),
             length: PICK_MAX_DISTANCE
         };
+
+        if (jointExists) {
+            pickRay.origin = MyAvatar.getJointPosition(jointName);
+            pickRay.direction = MyAvatar.jointToWorldDirection(Vec3.UP, MyAvatar.getJointIndex(jointName));
+        }
 
         var ray = Entities.findRayIntersection(pickRay, true, [], rayExclusionList, true);
         var avatarRay = AvatarManager.findRayIntersection(pickRay, true, [], rayExclusionList, true);
@@ -91,12 +105,18 @@
                 drawInFront: true,
                 color: {red: 0, green: 255, blue: 0},
                 parentID: MyAvatar.sessionUUID,
-                parentJointIndex: MyAvatar.getJointIndex(jointName),
-                localPosition: {x: 0, y: FORWARD_OFFSET, z: 0},
-                localRotation: Quat.normalize({}),
                 dimensions: Vec3.multiply(PICK_MAX_DISTANCE * 2, Vec3.ONE),
-                linePoints: [Vec3.ZERO, {x: 0, y: dist, z: 0}]
+                linePoints: [Vec3.ZERO, {x: 0, y: dist - FORWARD_OFFSET, z: 0}]
             };
+
+            if(jointExists) {
+                beam.parentJointIndex = MyAvatar.getJointIndex(jointName);
+                beam.localPosition = {x: 0, y: FORWARD_OFFSET, z: 0};
+                beam.localRotation = Quat.normalize({});
+            } else {
+                beam.position = Vec3.sum(pickRay.origin, CONTROLLER_FORWARD_OFFSET);
+                beam.rotation = worldControllerRotation;
+            }
 
             laserEntities[hand].beam = Entities.addEntity(beam,true);
             rayExclusionList.push(laserEntities[hand].beam);
@@ -112,15 +132,25 @@
 
         } else {
             if (ray.intersects || avatarRay.intersects) {
-
-                Entities.editEntity(laserEntities[hand].beam, {
-                    parentID: MyAvatar.sessionUUID,
-                    parentJointIndex: MyAvatar.getJointIndex(jointName),
-                    localPosition: {x: 0, y: FORWARD_OFFSET, z: 0},
-                    localRotation: Quat.normalize({}),
-                    dimensions: Vec3.multiply(PICK_MAX_DISTANCE * 2, Vec3.ONE),
-                    linePoints: [Vec3.ZERO, {x: 0, y: dist - FORWARD_OFFSET, z: 0}]
-                });
+                if(jointExists) {
+                    Entities.editEntity(laserEntities[hand].beam, {
+                        parentID: MyAvatar.sessionUUID,
+                        parentJointIndex: MyAvatar.getJointIndex(jointName),
+                        localPosition: {x: 0, y: FORWARD_OFFSET, z: 0},
+                        localRotation: Quat.normalize({}),
+                        dimensions: Vec3.multiply(PICK_MAX_DISTANCE * 2, Vec3.ONE),
+                        linePoints: [Vec3.ZERO, {x: 0, y: dist - FORWARD_OFFSET, z: 0}]
+                    });
+                } else {
+                    Entities.editEntity(laserEntities[hand].beam, {
+                        parentID: MyAvatar.sessionUUID,
+                        parentJointIndex: MyAvatar.getJointIndex(jointName),
+                        position: Vec3.sum(pickRay.origin, CONTROLLER_FORWARD_OFFSET),
+                        rotation: worldControllerRotation,
+                        dimensions: Vec3.multiply(PICK_MAX_DISTANCE * 2, Vec3.ONE),
+                        linePoints: [Vec3.ZERO, {x: 0, y: dist - FORWARD_OFFSET, z: 0}]
+                    });
+                }
 
                 Entities.editEntity(laserEntities[hand].sphere, {
                     dimensions: {x: sphereSize, y: sphereSize, z: sphereSize},
@@ -128,14 +158,26 @@
                     visible: true
                 });
             } else {
-                Entities.editEntity(laserEntities[hand].beam, {
-                    parentID: MyAvatar.sessionUUID,
-                    parentJointIndex: MyAvatar.getJointIndex(jointName),
-                    localPosition: {x: 0, y: FORWARD_OFFSET, z: 0},
-                    localRotation: Quat.normalize({}),
-                    dimensions: Vec3.multiply(PICK_MAX_DISTANCE * 2, Vec3.ONE),
-                    linePoints: [Vec3.ZERO, {x: 0, y: dist - FORWARD_OFFSET, z: 0}]
-                });
+                if(jointExists) {
+                    Entities.editEntity(laserEntities[hand].beam, {
+                        parentID: MyAvatar.sessionUUID,
+                        parentJointIndex: MyAvatar.getJointIndex(jointName),
+                        localPosition: {x: 0, y: FORWARD_OFFSET, z: 0},
+                        localRotation: Quat.normalize({}),
+                        dimensions: Vec3.multiply(PICK_MAX_DISTANCE * 2, Vec3.ONE),
+                        linePoints: [Vec3.ZERO, {x: 0, y: dist - FORWARD_OFFSET, z: 0}]
+                    });
+                } else {
+                    Entities.editEntity(laserEntities[hand].beam, {
+                        parentID: MyAvatar.sessionUUID,
+                        parentJointIndex: MyAvatar.getJointIndex(jointName),
+                        position: Vec3.sum(pickRay.origin, CONTROLLER_FORWARD_OFFSET),
+                        rotation: worldControllerRotation,
+                        dimensions: Vec3.multiply(PICK_MAX_DISTANCE * 2, Vec3.ONE),
+                        linePoints: [Vec3.ZERO, {x: 0, y: dist - FORWARD_OFFSET, z: 0}]
+                    });
+                }
+
                 Entities.editEntity(laserEntities[hand].sphere, {
                     visible: false
                 });
