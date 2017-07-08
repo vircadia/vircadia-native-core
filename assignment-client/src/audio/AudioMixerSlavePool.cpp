@@ -76,7 +76,7 @@ void AudioMixerSlavePool::processPackets(ConstIter begin, ConstIter end) {
 
 void AudioMixerSlavePool::mix(ConstIter begin, ConstIter end, unsigned int frame, float throttlingRatio) {
     _function = &AudioMixerSlave::mix;
-    _configure = [&](AudioMixerSlave& slave) {
+    _configure = [=](AudioMixerSlave& slave) {
         slave.configureMix(_begin, _end, _frame, _throttlingRatio);
     };
     _frame = frame;
