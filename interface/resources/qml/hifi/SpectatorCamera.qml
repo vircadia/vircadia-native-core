@@ -225,7 +225,7 @@ Rectangle {
             anchors.topMargin: 20;
             anchors.right: parent.right;
             height: 250;
-            color: spectatorCameraPreview.visible ? "transparent" : "black";
+            color: cameraToggleCheckBox.checked ? "transparent" : "black";
 
             AnimatedImage {
                 source: "../../images/static.gif"
