@@ -62,6 +62,8 @@ static const int SECOND_FOOT = 1;
 static const int HIP = 2;
 static const int CHEST = 3;
 
+static const float POINTING_THRESHOLD = 0.75f;
+
 const char* ViveControllerManager::NAME { "OpenVR" };
 
 const std::map<vr::ETrackingResult, QString> TRACKING_RESULT_TO_STRING = {
@@ -810,8 +812,7 @@ void ViveControllerManager::InputDevice::handleAxisEvent(float deltaTime, uint32
         _axisStateMap[isLeftHand ? LX : RX] = stick.x;
         _axisStateMap[isLeftHand ? LY : RY] = stick.y;
 
-        if (stick.y > 0.75f)
-        {
+        if (stick.y > POINTING_THRESHOLD) {
             // Simulate pointing gesture from the oculus controller
             _buttonPressedMap.insert(isLeftHand ? LEFT_INDEX_POINT : RIGHT_INDEX_POINT);
         }
