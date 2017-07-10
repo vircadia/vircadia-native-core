@@ -754,6 +754,12 @@ void ViveControllerManager::InputDevice::handleAxisEvent(float deltaTime, uint32
         }
         _axisStateMap[isLeftHand ? LX : RX] = stick.x;
         _axisStateMap[isLeftHand ? LY : RY] = stick.y;
+
+        if (stick.y > 0.75f)
+        {
+            // Simulate pointing gesture from the oculus controller
+            _buttonPressedMap.insert(isLeftHand ? LEFT_INDEX_POINT : RIGHT_INDEX_POINT);
+        }
     } else if (axis == vr::k_EButton_SteamVR_Trigger) {
         _axisStateMap[isLeftHand ? LT : RT] = x;
         // The click feeling on the Vive controller trigger represents a value of *precisely* 1.0,
@@ -808,9 +814,11 @@ void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint
         }
     }
 
-    if (touched) {
-         if (button == vr::k_EButton_SteamVR_Touchpad) {
-             _buttonPressedMap.insert(isLeftHand ? LS_TOUCH : RS_TOUCH);
+    if (button == vr::k_EButton_SteamVR_Touchpad) {
+        if (touched) {
+            _buttonPressedMap.insert(isLeftHand ? LS_TOUCH : RS_TOUCH);
+        } else {
+            _buttonPressedMap.insert(isLeftHand ? LEFT_THUMB_UP : RIGHT_THUMB_UP);
         }
     }
 }
@@ -1102,6 +1110,11 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
         // app button above trackpad.
         Input::NamedPair(Input(_deviceID, LEFT_APP_MENU, ChannelType::BUTTON), "LeftApplicationMenu"),
         Input::NamedPair(Input(_deviceID, RIGHT_APP_MENU, ChannelType::BUTTON), "RightApplicationMenu"),
+
+        makePair(LEFT_THUMB_UP, "LeftThumbUp"),
+        makePair(RIGHT_THUMB_UP, "RightThumbUp"),
+        makePair(LEFT_INDEX_POINT, "LeftIndexPoint"),
+        makePair(RIGHT_INDEX_POINT, "RightIndexPoint"),
     };
 
     return availableInputs;
