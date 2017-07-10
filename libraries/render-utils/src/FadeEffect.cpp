@@ -620,7 +620,7 @@ render::ShapePipeline::ItemSetter FadeJob::getItemSetter() const {
             auto scene = args->_scene;
             auto batch = args->_batch;
             auto transitionStage = scene->getStage<render::TransitionStage>(render::TransitionStage::getName());
-            render::Transition  transitionState = transitionStage->getTransition(item.getTransitionId());
+            auto& transitionState = transitionStage->getTransition(item.getTransitionId());
             render::ShapeKey shapeKey(args->_globalShapeKey);
 
             // TODO test various cases: polyvox... etc

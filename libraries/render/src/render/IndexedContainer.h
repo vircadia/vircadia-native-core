@@ -98,6 +98,10 @@ namespace indexed_container {
             return _elements[index];
         }
 
+        bool isElementFreed(Index index) const {
+            return std::find(_allocator._freeIndices.begin(), _allocator._freeIndices.end(), index) != _allocator._freeIndices.end();
+        }
+
         const Element& get(Index index) const {
             return _elements[index];
         }

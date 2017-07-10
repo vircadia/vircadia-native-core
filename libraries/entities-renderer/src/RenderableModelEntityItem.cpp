@@ -493,11 +493,17 @@ ModelPointer RenderableModelEntityItem::getModelNotSafe() {
 void RenderableModelEntityItem::setModelURLFinished(bool success) {
     if (success) {
         const render::ScenePointer& scene = AbstractViewStateInterface::instance()->getMain3DScene();
-        render::Transaction transaction;
 
-        const auto& item = scene->getItem(_myMetaItem);
-        transaction.transitionItem(_myMetaItem, render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN);
-        scene->enqueueTransaction(transaction);
+        if (scene->isAllocatedID(_myMetaItem)) {
+            render::Transaction transaction;
+
+            const auto& item = scene->getItem(_myMetaItem);
+            if (!item.exist()) {
+                qWarning() << "Starting transition on item without payload";
+            }
+            transaction.transitionItem(_myMetaItem, render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN);
+            scene->enqueueTransaction(transaction);
+        }
     }
 }
 

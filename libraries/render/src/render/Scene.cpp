@@ -178,6 +178,12 @@ void Scene::removeItems(const ItemIDs& ids) {
             _masterNonspatialSet.erase(removedID);
         }
 
+        // If there is a transition on this item, remove it
+        if (item.getTransitionId() != render::TransitionStage::INVALID_INDEX) {
+            auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
+            transitionStage->removeTransition(item.getTransitionId());
+        }
+
         // Kill it
         item.kill();
     }
@@ -236,6 +242,10 @@ void Scene::transitionItems(const ItemIDs& ids, const TransitionTypes& types) {
 
         if (*transitionType != Transition::NONE) {
             transitionId = transitionStage->addTransition(itemId, *transitionType);
+        }
+        else {
+            const auto& item = _items[itemId];
+            transitionStage->removeTransition(item.getTransitionId());
         }
 
         setItemTransition(itemId, transitionId);

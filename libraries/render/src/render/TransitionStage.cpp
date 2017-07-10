@@ -23,7 +23,9 @@ void TransitionStage::removeTransition(Index index) {
     if (idIterator != _activeTransitionIds.end()) {
         _activeTransitionIds.erase(idIterator);
     }
-    _transitions.freeElement(index);
+    if (!_transitions.isElementFreed(index)) {
+        _transitions.freeElement(index);
+    }
 }
 
 TransitionStageSetup::TransitionStageSetup() {
