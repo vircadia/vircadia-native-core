@@ -112,10 +112,7 @@
 #include <plugins/InputConfiguration.h>
 #include <RecordingScriptingInterface.h>
 #include <RenderableWebEntityItem.h>
-#include <RenderShadowTask.h>
-#include <render/RenderFetchCullSortTask.h>
-#include <RenderDeferredTask.h>
-#include <RenderForwardTask.h>
+#include <UpdateSceneTask.h>
 #include <RenderViewTask.h>
 #include <SecondaryCamera.h>
 #include <ResourceCache.h>
@@ -1007,7 +1004,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             properties["processor_l2_cache_count"] = procInfo.numProcessorCachesL2;
             properties["processor_l3_cache_count"] = procInfo.numProcessorCachesL3;
         }
-        
+
         properties["first_run"] = firstRun.get();
 
         // add the user's machine ID to the launch event
@@ -1974,6 +1971,7 @@ void Application::initializeGL() {
     render::CullFunctor cullFunctor = LODManager::shouldRender;
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
     bool isDeferred = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
+    _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
     _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor);
     _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, isDeferred);
     _renderEngine->load();
@@ -2731,56 +2729,43 @@ bool Application::importSVOFromURL(const QString& urlString) {
     return true;
 }
 
+bool _renderRequested { false };
+
 bool Application::event(QEvent* event) {
     if (!Menu::getInstance()) {
         return false;
     }
 
-    // Presentation/painting logic
-    // TODO: Decouple presentation and painting loops
-    static bool isPaintingThrottled = false;
-    if ((int)event->type() == (int)Present) {
-        if (isPaintingThrottled) {
-            // If painting (triggered by presentation) is hogging the main thread,
-            // repost as low priority to avoid hanging the GUI.
-            // This has the effect of allowing presentation to exceed the paint budget by X times and
-            // only dropping every (1/X) frames, instead of every ceil(X) frames
-            // (e.g. at a 60FPS target, painting for 17us would fall to 58.82FPS instead of 30FPS).
-            removePostedEvents(this, Present);
-            postEvent(this, new QEvent(static_cast<QEvent::Type>(Present)), Qt::LowEventPriority);
-            isPaintingThrottled = false;
+    int type = event->type();
+    switch (type) {
+        case Event::Lambda:
+            static_cast<LambdaEvent*>(event)->call();
             return true;
-        }
 
-        float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
-        if (shouldPaint(nsecsElapsed)) {
-            _lastTimeUpdated.start();
-            idle(nsecsElapsed);
-            postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
-        }
-        isPaintingThrottled = true;
+        case Event::Present:
+            if (!_renderRequested) {
+                float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
+                if (shouldPaint(nsecsElapsed)) {
+                    _renderRequested = true;
+                    _lastTimeUpdated.start();
+                    idle(nsecsElapsed);
+                    postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
+                }
+            }
+            return true;
 
-        return true;
-    } else if ((int)event->type() == (int)Paint) {
-        // NOTE: This must be updated as close to painting as possible,
-        //       or AvatarInputs will mysteriously move to the bottom-right
-        AvatarInputs::getInstance()->update();
+        case Event::Paint:
+            // NOTE: This must be updated as close to painting as possible,
+            //       or AvatarInputs will mysteriously move to the bottom-right
+            AvatarInputs::getInstance()->update();
+            paintGL();
+            // wait for the next present event before starting idle / paint again
+            removePostedEvents(this, Present);
+            _renderRequested = false;
+            return true;
 
-        paintGL();
-
-        isPaintingThrottled = false;
-
-        return true;
-    } else if ((int)event->type() == (int)Idle) {
-        float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
-        idle(nsecsElapsed);
-
-        return true;
-    }
-
-    if ((int)event->type() == (int)Lambda) {
-        static_cast<LambdaEvent*>(event)->call();
-        return true;
+        default:
+            break;
     }
 
     {
@@ -3742,8 +3727,8 @@ void updateCpuInformation() {
         // Update friendly structure
         auto& myCpuInfo = myCpuInfos[i];
         myCpuInfo.update(cpuInfo);
-        PROFILE_COUNTER(app, myCpuInfo.name.c_str(), { 
-            { "kernel", myCpuInfo.kernelUsage }, 
+        PROFILE_COUNTER(app, myCpuInfo.name.c_str(), {
+            { "kernel", myCpuInfo.kernelUsage },
             { "user", myCpuInfo.userUsage }
         });
     }
@@ -3810,7 +3795,7 @@ void getCpuUsage(vec3& systemAndUser) {
 void setupCpuMonitorThread() {
     initCpuUsage();
     auto cpuMonitorThread = QThread::currentThread();
-    
+
     QTimer* timer = new QTimer();
     timer->setInterval(50);
     QObject::connect(timer, &QTimer::timeout, [] {
@@ -5327,7 +5312,7 @@ namespace render {
 
             auto& batch = *args->_batch;
             DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
-            renderWorldBox(batch);
+            renderWorldBox(args, batch);
         }
     }
 }
@@ -5390,10 +5375,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     }
 
     {
-        PerformanceTimer perfTimer("SceneProcessTransaction");
         _main3DScene->enqueueTransaction(transaction);
-
-        _main3DScene->processTransactionQueue();
     }
 
     // For now every frame pass the renderContext
