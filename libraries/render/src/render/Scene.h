@@ -14,6 +14,7 @@
 
 #include "Item.h"
 #include "SpatialTree.h"
+#include "Stage.h"
 #include "Selection.h"
 
 namespace render {
@@ -110,6 +111,19 @@ public:
     // Access non-spatialized items (overlays, backgrounds)
     const ItemIDSet& getNonspatialSet() const { return _masterNonspatialSet; }
 
+
+
+    // Access a particular Stage (empty if doesn't exist)
+    // Thread safe
+    StagePointer getStage(const Stage::Name& name) const;
+    template <class T>
+    std::shared_ptr<T> getStage(const Stage::Name& name = T::getName()) const {
+        auto stage = getStage(name);
+        return (stage ? std::static_pointer_cast<T>(stage) : std::shared_ptr<T>());
+    }
+    void resetStage(const Stage::Name& name, const StagePointer& stage);
+
+
 protected:
     // Thread safe elements that can be accessed from anywhere
     std::atomic<unsigned int> _IDAllocator{ 1 }; // first valid itemID will be One
@@ -128,7 +142,6 @@ protected:
     void removeItems(const ItemIDs& ids);
     void updateItems(const ItemIDs& ids, UpdateFunctors& functors);
 
-
     // The Selection map
     mutable std::mutex _selectionsMutex; // mutable so it can be used in the thread safe getSelection const method
     SelectionMap _selections;
@@ -138,6 +151,11 @@ protected:
   //  void removeFromSelection(const Selection& selection);
   //  void appendToSelection(const Selection& selection);
   //  void mergeWithSelection(const Selection& selection);
+
+    // The Stage map
+    mutable std::mutex _stagesMutex; // mutable so it can be used in the thread safe getStage const method
+    StageMap _stages;
+
 
     friend class Engine;
 };

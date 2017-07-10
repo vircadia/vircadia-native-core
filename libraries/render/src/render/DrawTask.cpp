@@ -43,11 +43,11 @@ void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, cons
     assert(item.getKey().isShape());
     auto key = item.getShapeKey() | globalKey;
     if (key.isValid() && !key.hasOwnPipeline()) {
-        args->_pipeline = shapeContext->pickPipeline(args, key);
-        if (args->_pipeline) {
+        args->_shapePipeline = shapeContext->pickPipeline(args, key);
+        if (args->_shapePipeline) {
             item.render(args);
         }
-        args->_pipeline = nullptr;
+        args->_shapePipeline = nullptr;
     } else if (key.hasOwnPipeline()) {
         item.render(args);
     } else {
@@ -109,15 +109,15 @@ void render::renderStateSortShapes(const RenderContextPointer& renderContext,
     // Then render
     for (auto& pipelineKey : sortedPipelines) {
         auto& bucket = sortedShapes[pipelineKey];
-        args->_pipeline = shapeContext->pickPipeline(args, pipelineKey);
-        if (!args->_pipeline) {
+        args->_shapePipeline = shapeContext->pickPipeline(args, pipelineKey);
+        if (!args->_shapePipeline) {
             continue;
         }
         for (auto& item : bucket) {
             item.render(args);
         }
     }
-    args->_pipeline = nullptr;
+    args->_shapePipeline = nullptr;
     for (auto& item : ownPipelineBucket) {
         item.render(args);
     }
