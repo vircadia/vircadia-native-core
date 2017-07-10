@@ -149,7 +149,7 @@
                 button.clicked.connect(onTabletButtonClicked);
             }
         } else if (button) {
-            if (!showSpectatorInDesktop || isShuttingDown) {
+            if ((!isHMDMode && !showSpectatorInDesktop) || isShuttingDown) {
                 button.clicked.disconnect(onTabletButtonClicked);
                 tablet.removeButton(button);
                 button = false;
@@ -298,6 +298,9 @@
     const SWITCH_VIEW_FROM_CONTROLLER_DEFAULT = false;
     var switchViewFromController = !!Settings.getValue('spectatorCamera/switchViewFromController', SWITCH_VIEW_FROM_CONTROLLER_DEFAULT);
     function setControllerMappingStatus(status) {
+        if (!controllerMapping) {
+            return;
+        }
         if (status) {
             controllerMapping.enable();
         } else {
@@ -327,10 +330,15 @@
     var controllerType = "Other";
     function registerButtonMappings() {
         var VRDevices = Controller.getDeviceNames().toString();
-        if (VRDevices.includes("Vive")) {
-            controllerType = "Vive";
-        } else if (VRDevices.includes("OculusTouch")) {
-            controllerType = "OculusTouch";
+        if (VRDevices) {
+            if (VRDevices.includes("Vive")) {
+                controllerType = "Vive";
+            } else if (VRDevices.includes("OculusTouch")) {
+                controllerType = "OculusTouch";
+            } else {
+                sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
+                return; // Neither Vive nor Touch detected
+            }
         }
 
         controllerMappingName = 'Hifi-SpectatorCamera-Mapping';
@@ -376,7 +384,11 @@
             tablet.loadQMLSource(SPECTATOR_CAMERA_QML_SOURCE);
             sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
             sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
-            sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
+            if (!controllerMapping) {
+                registerButtonMappings();
+            } else {
+                sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
+            }
             Menu.setIsOptionChecked("Disable Preview", false);
             Menu.setIsOptionChecked("Mono Preview", true);
         }
@@ -432,8 +444,11 @@
     // Function Name: onHMDChanged()
     //
     // Description:
-    //   -Called from C++ when HMD mode is changed. The argument "isHMDMode" should be true if HMD is on; false otherwise.
+    //   -Called from C++ when HMD mode is changed. The argument "isHMDMode" is true if HMD is on; false otherwise.
     function onHMDChanged(isHMDMode) {
+        if (!controllerMapping) {
+            registerButtonMappings();
+        }
         setDisplay(monitorShowsCameraView);
         addOrRemoveButton(false, isHMDMode);
         if (!isHMDMode && !showSpectatorInDesktop) {
@@ -458,7 +473,9 @@
         }
         HMD.displayModeChanged.disconnect(onHMDChanged);
         Controller.keyPressEvent.disconnect(keyPressEvent);
-        controllerMapping.disable();
+        if (controllerMapping) {
+            controllerMapping.disable();
+        }
     }
 
     // These functions will be called when the script is loaded.
