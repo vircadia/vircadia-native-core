@@ -334,6 +334,7 @@ function startInterface(url) {
 
     // create a new Interface instance - Interface makes sure only one is running at a time
     var pInterface = new Process('interface', interfacePath, argArray);
+    pInterface.detached = true;
     pInterface.start();
 }
 
@@ -892,10 +893,19 @@ function onContentLoaded() {
     deleteOldFiles(logPath, DELETE_LOG_FILES_OLDER_THAN_X_SECONDS, LOG_FILE_REGEX);
 
     if (dsPath && acPath) {
-        domainServer = new Process('domain-server', dsPath, ["--get-temp-name"], logPath);
-        acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n7',
-                                                                '--log-directory', logPath,
-                                                                '--http-status-port', httpStatusPort], httpStatusPort, logPath);
+        var dsArguments = ['--get-temp-name',
+                           '--parent-pid', process.pid];
+        domainServer = new Process('domain-server', dsPath, dsArguments, logPath);
+        domainServer.restartOnCrash = true;
+
+        var acArguments = ['-n7',
+                           '--log-directory', logPath,
+                           '--http-status-port', httpStatusPort,
+                           '--parent-pid', process.pid];
+        acMonitor = new ACMonitorProcess('ac-monitor', acPath, acArguments,
+                                         httpStatusPort, logPath);
+        acMonitor.restartOnCrash = true;
+
         homeServer = new ProcessGroup('home', [domainServer, acMonitor]);
         logWindow = new LogWindow(acMonitor, domainServer);
 
