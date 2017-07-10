@@ -16,6 +16,7 @@
 #include "SpatialTree.h"
 #include "Stage.h"
 #include "Selection.h"
+#include "Transition.h"
 
 namespace render {
 
@@ -39,6 +40,8 @@ public:
     void resetItem(ItemID id, const PayloadPointer& payload);
     void removeItem(ItemID id);
 
+    void transitionItem(ItemID id, Transition::Type transition);
+
     template <class T> void updateItem(ItemID id, std::function<void(T&)> func) {
         updateItem(id, std::make_shared<UpdateFunctor<T>>(func));
     }
@@ -54,10 +57,12 @@ public:
     // Checkers if there is work to do when processing the transaction
     bool touchTransactions() const { return !_resetSelections.empty(); }
 
-    ItemIDs _resetItems; 
+    ItemIDs _resetItems;
     Payloads _resetPayloads;
     ItemIDs _removedItems;
     ItemIDs _updatedItems;
+    ItemIDs _transitioningItems;
+    TransitionTypes _transitionTypes;
     UpdateFunctors _updateFunctors;
 
     Selections _resetSelections;
@@ -123,6 +128,8 @@ public:
     }
     void resetStage(const Stage::Name& name, const StagePointer& stage);
 
+    void setItemTransition(ItemID id, Index transitionId);
+    void resetItemTransition(ItemID id);
 
 protected:
     // Thread safe elements that can be accessed from anywhere
@@ -141,6 +148,9 @@ protected:
     void resetItems(const ItemIDs& ids, Payloads& payloads);
     void removeItems(const ItemIDs& ids);
     void updateItems(const ItemIDs& ids, UpdateFunctors& functors);
+    void transitionItems(const ItemIDs& ids, const TransitionTypes& types);
+
+    void collectSubItems(ItemID parentId, ItemIDs& subItems) const;
 
     // The Selection map
     mutable std::mutex _selectionsMutex; // mutable so it can be used in the thread safe getSelection const method

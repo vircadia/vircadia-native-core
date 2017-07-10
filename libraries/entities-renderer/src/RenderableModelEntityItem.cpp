@@ -217,8 +217,9 @@ namespace render {
     }
     template <> uint32_t metaFetchMetaSubItems(const RenderableModelEntityItemMeta::Pointer& payload, ItemIDs& subItems) {
         auto modelEntity = std::static_pointer_cast<RenderableModelEntityItem>(payload->entity);
-        if (modelEntity->hasModel()) {
-            auto metaSubItems = modelEntity->getModelNotSafe()->fetchRenderItemIDs();
+        auto model = modelEntity->getModelNotSafe();
+        if (modelEntity->hasModel() && model) {
+            auto& metaSubItems = model->fetchRenderItemIDs();
             subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
             return (uint32_t) metaSubItems.size();
         }
@@ -489,6 +490,17 @@ ModelPointer RenderableModelEntityItem::getModelNotSafe() {
     return _model;
 }
 
+void RenderableModelEntityItem::setModelURLFinished(bool success) {
+    if (success) {
+        const render::ScenePointer& scene = AbstractViewStateInterface::instance()->getMain3DScene();
+        render::Transaction transaction;
+
+        const auto& item = scene->getItem(_myMetaItem);
+        transaction.transitionItem(_myMetaItem, render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN);
+        scene->enqueueTransaction(transaction);
+    }
+}
+
 ModelPointer RenderableModelEntityItem::getModel() {
     // make sure our renderer is setup
     if (!_myRenderer) {
@@ -506,6 +518,7 @@ ModelPointer RenderableModelEntityItem::getModel() {
         // If we don't have a model, allocate one *immediately*
         if (!_model) {
             _model = _myRenderer->allocateModel(getModelURL(), _myRenderer->getEntityLoadingPriority(*this), this);
+            QObject::connect(_model.get(), &Model::setURLFinished, this, &RenderableModelEntityItem::setModelURLFinished);
             _needsInitialSimulation = true;
         // If we need to change URLs, update it *after rendering* (to avoid access violations)
         } else if (QUrl(getModelURL()) != _model->getURL()) {

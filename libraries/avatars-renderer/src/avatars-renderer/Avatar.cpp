@@ -61,7 +61,7 @@ namespace render {
     template <> uint32_t metaFetchMetaSubItems(const AvatarSharedPointer& avatar, ItemIDs& subItems) {
         auto avatarPtr = static_pointer_cast<Avatar>(avatar);
         if (avatarPtr->getSkeletonModel()) {
-            auto metaSubItems = avatarPtr->getSkeletonModel()->fetchRenderItemIDs();
+            auto& metaSubItems = avatarPtr->getSkeletonModel()->fetchRenderItemIDs();
             subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
             return (uint32_t) metaSubItems.size();
         }

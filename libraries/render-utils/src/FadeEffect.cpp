@@ -464,6 +464,7 @@ FadeJob::FadeJob()
 {
 	auto texturePath = PathUtils::resourcesPath() + "images/fadeMask.png";
 	_fadeMaskMap = DependencyManager::get<TextureCache>()->getImageTexture(texturePath, image::TextureUsage::STRICT_TEXTURE);
+    _previousTime = usecTimestampNow();
 }
 
 void FadeJob::configure(const Config& config) {
@@ -493,76 +494,91 @@ void FadeJob::run(const render::RenderContextPointer& renderContext) {
     auto transitionStage = scene->getStage<render::TransitionStage>(render::TransitionStage::getName());
     uint64_t now = usecTimestampNow();
     const double deltaTime = (int64_t(now) - int64_t(_previousTime)) / double(USECS_PER_SECOND);
+    render::Transaction transaction;
+    bool hasTransactions = false;
 
     // And now update fade effect
     for (auto transitionId : *transitionStage) {
         auto& state = transitionStage->editTransition(transitionId);
-        update(*jobConfig, scene, state, deltaTime);
+        if (!update(*jobConfig, scene, state, deltaTime)) {
+            // Remove transition for this item
+            transaction.transitionItem(state.itemId, render::Transition::NONE);
+            hasTransactions = true;
+        }
     }
 
+    if (hasTransactions) {
+        scene->enqueueTransaction(transaction);
+    }
     _previousTime = now;
 }
 
-void FadeJob::update(const Config& config, const render::ScenePointer& scene, render::Transition& transition, const double deltaTime) const {
+bool FadeJob::update(const Config& config, const render::ScenePointer& scene, render::Transition& transition, const double deltaTime) const {
     auto& eventConfig = config.events[transition.eventType];
     auto& item = scene->getItem(transition.itemId);
-    auto& aabb = item.getBound();
-    auto& dimensions = aabb.getDimensions();
     const double eventDuration = (double)eventConfig.duration;
     const FadeConfig::Timing timing = (FadeConfig::Timing) eventConfig.timing;
+    bool continueTransition = true;
 
-    assert(timing < render::Transition::EVENT_CATEGORY_COUNT);
+    if (item.exist()) {
+        auto& aabb = item.getBound();
+        auto& dimensions = aabb.getDimensions();
 
-    switch (transition.eventType) {
-    case render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN:
-        transition.threshold = 1.f - computeElementEnterThreshold(transition.time, eventConfig.duration, timing);
-        transition.threshold = (transition.threshold - 0.5f)*_thresholdScale[transition.eventType] + 0.5f;
-        transition.noiseOffset = aabb.calcCenter();
-        transition.baseOffset = transition.noiseOffset - dimensions.y;
-        transition.baseInvSize.x = 1.f / dimensions.x;
-        transition.baseInvSize.y = 1.f / dimensions.y;
-        transition.baseInvSize.z = 1.f / dimensions.z;
+        assert(timing < render::Transition::EVENT_CATEGORY_COUNT);
+
+        switch (transition.eventType) {
+        case render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN:
+            transition.threshold = 1.f - computeElementEnterRatio(transition.time, eventConfig.duration, timing);
+            transition.threshold = (transition.threshold - 0.5f)*_thresholdScale[transition.eventType] + 0.5f;
+            transition.noiseOffset = aabb.calcCenter();
+            transition.baseOffset = transition.noiseOffset - dimensions.y;
+            transition.baseInvSize.x = 1.f / dimensions.x;
+            transition.baseInvSize.y = 1.f / dimensions.y;
+            transition.baseInvSize.z = 1.f / dimensions.z;
+            continueTransition = transition.threshold > 0.f;
+            break;
+
+        case render::Transition::BUBBLE_ISECT_OWNER:
+        {
+            /*       const glm::vec3 cameraPos = renderContext->args->getViewFrustum().getPosition();
+            glm::vec3 delta = itemBounds.bound.calcCenter() - cameraPos;
+            float distance = glm::length(delta);
+
+            delta = glm::normalize(delta) * std::max(0.f, distance - 0.5f);
+
+            _editBaseOffset = cameraPos + delta*_editThreshold;
+            _editThreshold = 0.33f;*/
+        }
         break;
 
-    case render::Transition::BUBBLE_ISECT_OWNER:
-    {
- /*       const glm::vec3 cameraPos = renderContext->args->getViewFrustum().getPosition();
-        glm::vec3 delta = itemBounds.bound.calcCenter() - cameraPos;
-        float distance = glm::length(delta);
-
-        delta = glm::normalize(delta) * std::max(0.f, distance - 0.5f);
-
-        _editBaseOffset = cameraPos + delta*_editThreshold;
-        _editThreshold = 0.33f;*/
-    }
-    break;
-
-    case render::Transition::BUBBLE_ISECT_TRESPASSER:
-    {
-    //    _editBaseOffset = glm::vec3{ 0.f, 0.f, 0.f };
-    }
-    break;
-
-    case render::Transition::USER_ENTER_LEAVE_DOMAIN:
-    {
-/*        _editBaseOffset = itemBounds.bound.calcCenter();
-        _editBaseOffset.y -= itemBounds.bound.getDimensions().y / 2.f;*/
-    }
-    break;
-
-    case render::Transition::AVATAR_CHANGE:
+        case render::Transition::BUBBLE_ISECT_TRESPASSER:
+        {
+            //    _editBaseOffset = glm::vec3{ 0.f, 0.f, 0.f };
+        }
         break;
 
-    default:
-        assert(false);
+        case render::Transition::USER_ENTER_LEAVE_DOMAIN:
+        {
+            /*        _editBaseOffset = itemBounds.bound.calcCenter();
+            _editBaseOffset.y -= itemBounds.bound.getDimensions().y / 2.f;*/
+        }
+        break;
+
+        case render::Transition::AVATAR_CHANGE:
+            break;
+
+        default:
+            assert(false);
+        }
     }
 
     transition.time += deltaTime;
 
 //    renderContext->jobConfig->setProperty("threshold", threshold);
+    return continueTransition;
 }
 
-float FadeJob::computeElementEnterThreshold(double time, const double period, FadeConfig::Timing timing) const {
+float FadeJob::computeElementEnterRatio(double time, const double period, FadeConfig::Timing timing) {
     assert(period > 0.0);
     float fadeAlpha = 1.0f;
     const double INV_FADE_PERIOD = 1.0 / period;

@@ -27,7 +27,8 @@ namespace render {
             AVATAR_CHANGE,
 
             // Don't forget to modify Fade.slh to reflect the change in number of categories
-            EVENT_CATEGORY_COUNT
+            EVENT_CATEGORY_COUNT,
+            NONE = EVENT_CATEGORY_COUNT
         };
 
         Type eventType{ ELEMENT_ENTER_LEAVE_DOMAIN };
@@ -41,6 +42,7 @@ namespace render {
     };
 
     typedef std::shared_ptr<Transition> TransitionPointer;
+    typedef std::vector<Transition::Type> TransitionTypes;
 }
 
 #endif // hifi_render_Transition_h

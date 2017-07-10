@@ -12,16 +12,21 @@
 #ifndef hifi_RenderableModelEntityItem_h
 #define hifi_RenderableModelEntityItem_h
 
+#include <QObject>
 #include <QString>
 #include <QStringList>
 
 #include <ModelEntityItem.h>
 #include <AnimationCache.h>
+#include <model-networking\ModelCache.h>
+
+#include "RenderableEntityItem.h"
 
 class Model;
 class EntityTreeRenderer;
 
-class RenderableModelEntityItem : public ModelEntityItem, RenderableEntityInterface {
+class RenderableModelEntityItem : public QObject, public ModelEntityItem, RenderableEntityInterface {
+    Q_OBJECT
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
@@ -115,6 +120,10 @@ public:
     AnimationPointer getAnimation() const {
         return _animation;
     }
+
+public slots:
+
+    void setModelURLFinished(bool success);
 
 private:
     QVariantMap parseTexturesToMap(QString textures);

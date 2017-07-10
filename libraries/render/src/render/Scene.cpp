@@ -13,6 +13,7 @@
 #include <numeric>
 #include <gpu/Batch.h>
 #include "Logging.h"
+#include "TransitionStage.h"
 
 using namespace render;
 
@@ -28,6 +29,11 @@ void Transaction::resetItem(ItemID id, const PayloadPointer& payload) {
 
 void Transaction::removeItem(ItemID id) {
     _removedItems.emplace_back(id);
+}
+
+void Transaction::transitionItem(ItemID id, Transition::Type transition) {
+    _transitioningItems.emplace_back(id);
+    _transitionTypes.emplace_back(transition);
 }
 
 void Transaction::updateItem(ItemID id, const UpdateFunctorPointer& functor) {
@@ -46,6 +52,8 @@ void Transaction::merge(const Transaction& transaction) {
     _updatedItems.insert(_updatedItems.end(), transaction._updatedItems.begin(), transaction._updatedItems.end());
     _updateFunctors.insert(_updateFunctors.end(), transaction._updateFunctors.begin(), transaction._updateFunctors.end());
     _resetSelections.insert(_resetSelections.end(), transaction._resetSelections.begin(), transaction._resetSelections.end());
+    _transitioningItems.insert(_transitioningItems.end(), transaction._transitioningItems.begin(), transaction._transitioningItems.end());
+    _transitionTypes.insert(_transitionTypes.end(), transaction._transitionTypes.begin(), transaction._transitionTypes.end());
 }
 
 
@@ -114,6 +122,9 @@ void Scene::processTransactionQueue() {
 
         // removes
         removeItems(consolidatedTransaction._removedItems);
+
+        // Transitions
+        transitionItems(consolidatedTransaction._transitioningItems, consolidatedTransaction._transitionTypes);
 
         // Update the numItemsAtomic counter AFTER the pending changes went through
         _numAllocatedItems.exchange(maxID);
@@ -214,6 +225,67 @@ void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
         // next loop
         updateFunctor++;
     }
+}
+
+void Scene::transitionItems(const ItemIDs& ids, const TransitionTypes& types) {
+    auto transitionType = types.begin();
+    auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
+
+    for (auto itemId : ids) {
+        auto transitionId = INVALID_INDEX;
+
+        if (*transitionType != Transition::NONE) {
+            transitionId = transitionStage->addTransition(itemId, *transitionType);
+        }
+
+        setItemTransition(itemId, transitionId);
+        // next loop
+        transitionType++;
+    }
+}
+
+void Scene::collectSubItems(ItemID parentId, ItemIDs& subItems) const {
+    // Access the true item
+    auto& item = _items[parentId];
+
+    if (item.exist()) {
+        // Recursivelly collect the subitems
+        auto subItemBeginIndex = subItems.size();
+        auto subItemCount = item.fetchMetaSubItems(subItems);
+        for (auto i = subItemBeginIndex; i < (subItemBeginIndex + subItemCount); i++) {
+            collectSubItems(subItems[i], subItems);
+        }
+    }
+}
+
+void Scene::setItemTransition(ItemID itemId, Index transitionId) {
+    // Access the true item
+    auto& item = _items[itemId];
+
+    if (item.exist()) {
+        ItemIDs subItems;
+
+        item.setTransitionId(transitionId);
+
+        // Sub-items share the same transition Id
+        collectSubItems(itemId, subItems);
+        for (auto subItemId : subItems) {
+            auto& subItem = _items[subItemId];
+            subItem.setTransitionId(transitionId);
+        }
+    }
+    else {
+        qWarning() << "Collecting sub items on item without payload";
+    }
+}
+
+void Scene::resetItemTransition(ItemID itemId) {
+    // Access the true item
+    auto& item = _items[itemId];
+    auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
+
+    transitionStage->removeTransition(item.getTransitionId());
+    setItemTransition(itemId, Transition::NONE);
 }
 
 // THis fucntion is thread safe
