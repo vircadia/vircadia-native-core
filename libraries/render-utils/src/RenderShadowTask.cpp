@@ -36,7 +36,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext,
     assert(renderContext->args->hasViewFrustum());
 
     auto lightStage = renderContext->_scene->getStage<LightStage>();
-
+    assert(lightStage);
     LightStage::Index globalLightIndex { 0 };
 
     const auto globalLight = lightStage->getLight(globalLightIndex);
@@ -68,7 +68,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext,
         std::vector<ShapeKey> skinnedShapeKeys{};
 
         // Iterate through all inShapes and render the unskinned
-        args->_pipeline = shadowPipeline;
+        args->_shapePipeline = shadowPipeline;
         batch.setPipeline(shadowPipeline->pipeline);
         for (auto items : inShapes) {
             if (items.first.isSkinned()) {
@@ -79,13 +79,13 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext,
         }
 
         // Reiterate to render the skinned
-        args->_pipeline = shadowSkinnedPipeline;
+        args->_shapePipeline = shadowSkinnedPipeline;
         batch.setPipeline(shadowSkinnedPipeline->pipeline);
         for (const auto& key : skinnedShapeKeys) {
             renderItems(renderContext, inShapes.at(key));
         }
 
-        args->_pipeline = nullptr;
+        args->_shapePipeline = nullptr;
         args->_batch = nullptr;
     });
 }
@@ -141,6 +141,7 @@ void RenderShadowTask::configure(const Config& configuration) {
 
 void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, Output& output) {
     auto lightStage = renderContext->_scene->getStage<LightStage>();
+    assert(lightStage);
     const auto globalShadow = lightStage->getShadow(0);
 
     // Cache old render args

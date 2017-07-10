@@ -575,6 +575,7 @@ void LightClusteringPass::run(const render::RenderContextPointer& renderContext,
     
     // From the LightStage and the current frame, update the light cluster Grid
     auto lightStage = renderContext->_scene->getStage<LightStage>();
+    assert(lightStage);
     _lightClusters->updateLightStage(lightStage);
     _lightClusters->updateLightFrame(lightStage->_currentFrame, lightingModel->isPointLightEnabled(), lightingModel->isSpotLightEnabled());
     
