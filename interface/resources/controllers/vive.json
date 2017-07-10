@@ -59,8 +59,8 @@
 
         { "from": "Vive.Head", "to" : "Standard.Head"},
 
-        { "from": "Vive.RightArm", "to" : "Standard.RightArm",
-        { "from": "Vive.LeftArm", "to" : "Standard.LeftArm",
+        { "from": "Vive.RightArm", "to" : "Standard.RightArm" },
+        { "from": "Vive.LeftArm", "to" : "Standard.LeftArm" },
         { "from": "Vive.LeftThumbUp", "to": "Standard.LeftThumbUp" },
         { "from": "Vive.RightThumbUp", "to": "Standard.RightThumbUp" },
         { "from": "Vive.LeftIndexPoint", "to": "Standard.LeftIndexPoint" },
