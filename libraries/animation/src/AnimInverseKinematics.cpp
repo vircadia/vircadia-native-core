@@ -990,7 +990,6 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 // if there is an active jointChainInfo for the hips store the post shifted hips into it.
                 // This is so we have a valid pose to interplate from when the hips target is disabled.
                 if (_hipsTargetIndex >= 0) {
-                    // AJT: TODO: WILL THIS WORK if hips aren't the root of skeleton?
                     jointChainInfoVec[_hipsTargetIndex].jointInfoVec[0].rot = _relativePoses[_hipsIndex].rot();
                     jointChainInfoVec[_hipsTargetIndex].jointInfoVec[0].trans = _relativePoses[_hipsIndex].trans();
                 }
