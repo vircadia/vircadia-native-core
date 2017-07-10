@@ -69,7 +69,7 @@ void ResourceImageItemRenderer::synchronize(QQuickFramebufferObject* item) {
     bool visibleChanged = false;
     if (_visible != resourceImageItem->isVisible()) {
         _visible = resourceImageItem->isVisible();
-        visibleChanged=true;
+        visibleChanged = true;
     }
     _window = resourceImageItem->window();
 
