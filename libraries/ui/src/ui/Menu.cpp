@@ -13,12 +13,12 @@
 #include <QtWidgets/QShortcut>
 
 #include <SettingHandle.h>
+#include <shared/QtHelpers.h>
 
 #include "../VrMenu.h"
 #include "../OffscreenUi.h"
 
 #include "Logging.h"
-
 using namespace ui;
 
 static QList<QString> groups;
@@ -246,7 +246,7 @@ void Menu::removeAction(MenuWrapper* menu, const QString& actionName) {
 
 void Menu::setIsOptionChecked(const QString& menuOption, bool isChecked) {
     if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "setIsOptionChecked", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "setIsOptionChecked",
                     Q_ARG(const QString&, menuOption),
                     Q_ARG(bool, isChecked));
         return;

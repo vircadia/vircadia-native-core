@@ -68,7 +68,10 @@
                                     "typeVar": "rightHandType",
                                     "weightVar": "rightHandWeight",
                                     "weight": 1.0,
-                                    "flexCoefficients": [1, 0.5, 0.5, 0.2, 0.01, 0.005, 0.001, 0.0, 0.0]
+                                    "flexCoefficients": [1, 0.5, 0.5, 0.2, 0.01, 0.005, 0.001, 0.0, 0.0],
+                                    "poleVectorEnabledVar": "rightHandPoleVectorEnabled",
+                                    "poleReferenceVectorVar": "rightHandPoleReferenceVector",
+                                    "poleVectorVar": "rightHandPoleVector"
                                 },
                                 {
                                     "jointName": "LeftHand",
@@ -77,7 +80,10 @@
                                     "typeVar": "leftHandType",
                                     "weightVar": "leftHandWeight",
                                     "weight": 1.0,
-                                    "flexCoefficients": [1, 0.5, 0.5, 0.2, 0.01, 0.005, 0.001, 0.0, 0.0]
+                                    "flexCoefficients": [1, 0.5, 0.5, 0.2, 0.01, 0.005, 0.001, 0.0, 0.0],
+                                    "poleVectorEnabledVar": "leftHandPoleVectorEnabled",
+                                    "poleReferenceVectorVar": "leftHandPoleReferenceVector",
+                                    "poleVectorVar": "leftHandPoleVector"
                                 },
                                 {
                                     "jointName": "RightFoot",
@@ -86,7 +92,10 @@
                                     "typeVar": "rightFootType",
                                     "weightVar": "rightFootWeight",
                                     "weight": 1.0,
-                                    "flexCoefficients": [1, 0.45, 0.45]
+                                    "flexCoefficients": [1, 0.45, 0.45],
+                                    "poleVectorEnabledVar": "rightFootPoleVectorEnabled",
+                                    "poleReferenceVectorVar": "rightFootPoleReferenceVector",
+                                    "poleVectorVar": "rightFootPoleVector"
                                 },
                                 {
                                     "jointName": "LeftFoot",
@@ -95,7 +104,10 @@
                                     "typeVar": "leftFootType",
                                     "weightVar": "leftFootWeight",
                                     "weight": 1.0,
-                                    "flexCoefficients": [1, 0.45, 0.45]
+                                    "flexCoefficients": [1, 0.45, 0.45],
+                                    "poleVectorEnabledVar": "leftFootPoleVectorEnabled",
+                                    "poleReferenceVectorVar": "leftFootPoleReferenceVector",
+                                    "poleVectorVar": "leftFootPoleVector"
                                 },
                                 {
                                     "jointName": "Spine2",
@@ -138,28 +150,19 @@
                         "children": []
                     },
                     {
-                        "id": "hipsManipulatorOverlay",
+                        "id": "defaultPoseOverlay",
                         "type": "overlay",
                         "data": {
                             "alpha": 0.0,
-                            "boneSet": "hipsOnly"
+                            "alphaVar": "defaultPoseOverlayAlpha",
+                            "boneSet": "fullBody",
+                            "boneSetVar": "defaultPoseOverlayBoneSet"
                         },
                         "children": [
                             {
-                                "id": "hipsManipulator",
-                                "type": "manipulator",
+                                "id": "defaultPose",
+                                "type": "defaultPose",
                                 "data": {
-                                    "alpha": 0.0,
-                                    "alphaVar": "hipsManipulatorAlpha",
-                                    "joints": [
-                                        {
-                                            "jointName": "Hips",
-                                            "rotationType": "absolute",
-                                            "translationType": "absolute",
-                                            "rotationVar": "hipsManipulatorRotation",
-                                            "translationVar": "hipsManipulatorPosition"
-                                        }
-                                    ]
                                 },
                                 "children": []
                             },

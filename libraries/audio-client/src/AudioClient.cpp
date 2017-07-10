@@ -48,6 +48,7 @@
 
 #include "AudioClientLogging.h"
 #include "AudioLogging.h"
+#include "AudioHelpers.h"
 
 #include "AudioClient.h"
 
@@ -258,10 +259,21 @@ void AudioClient::customDeleter() {
 void AudioClient::cleanupBeforeQuit() {
     // FIXME: this should be put in customDeleter, but there is still a reference to this when it is called,
     //        so this must be explicitly, synchronously stopped
+    static ConditionalGuard guard;
+    if (QThread::currentThread() != thread()) {
+        // This will likely be called from the main thread, but we don't want to do blocking queued calls 
+        // from the main thread, so we use a normal auto-connection invoke, and then use a conditional to wait 
+        // for completion
+        // The effect is the same, yes, but we actually want to avoid the use of Qt::BlockingQueuedConnection 
+        // in the code
+        QMetaObject::invokeMethod(this, "cleanupBeforeQuit");
+        guard.wait();
+        return;
+    }
 
     stop();
-
     _checkDevicesTimer->stop();
+    guard.trigger();
 }
 
 void AudioClient::handleMismatchAudioFormat(SharedNodePointer node, const QString& currentCodec, const QString& recievedCodec) {
@@ -1334,6 +1346,14 @@ void AudioClient::toggleMute() {
     emit muteToggled();
 }
 
+void AudioClient::setNoiseReduction(bool enable) {
+    if (_isNoiseGateEnabled != enable) {
+        _isNoiseGateEnabled = enable;
+        emit noiseReductionChanged();
+    }
+}
+
+
 void AudioClient::setIsStereoInput(bool isStereoInput) {
     if (isStereoInput != _isStereoInput) {
         _isStereoInput = isStereoInput;
@@ -1445,6 +1465,8 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
                 _audioInput = new QAudioInput(inputDeviceInfo, _inputFormat, this);
                 _numInputCallbackBytes = calculateNumberOfInputCallbackBytes(_inputFormat);
                 _audioInput->setBufferSize(_numInputCallbackBytes);
+                // different audio input devices may have different volumes
+                emit inputVolumeChanged(_audioInput->volume());
 
                 // how do we want to handle input working, but output not working?
                 int numFrameSamples = calculateNumberOfFrameSamples(_numInputCallbackBytes);
@@ -1688,23 +1710,24 @@ int AudioClient::calculateNumberOfFrameSamples(int numBytes) const {
 }
 
 float AudioClient::azimuthForSource(const glm::vec3& relativePosition) {
-    // copied from AudioMixer, more or less
     glm::quat inverseOrientation = glm::inverse(_orientationGetter());
     
-    // compute sample delay for the 2 ears to create phase panning
     glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
     
-    // project the rotated source position vector onto x-y plane
+    // project the rotated source position vector onto the XZ plane
     rotatedSourcePosition.y = 0.0f;
 
     static const float SOURCE_DISTANCE_THRESHOLD = 1e-30f;
 
-    if (glm::length2(rotatedSourcePosition) > SOURCE_DISTANCE_THRESHOLD) {
+    float rotatedSourcePositionLength2 = glm::length2(rotatedSourcePosition);
+    if (rotatedSourcePositionLength2 > SOURCE_DISTANCE_THRESHOLD) {
         
         // produce an oriented angle about the y-axis
-        return glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f), glm::normalize(rotatedSourcePosition), glm::vec3(0.0f, -1.0f, 0.0f));
-    } else {
-        
+        glm::vec3 direction = rotatedSourcePosition * (1.0f / fastSqrtf(rotatedSourcePositionLength2));
+        float angle = fastAcosf(glm::clamp(-direction.z, -1.0f, 1.0f)); // UNIT_NEG_Z is "forward"
+        return (direction.x < 0.0f) ? -angle : angle;
+
+    } else {   
         // no azimuth if they are in same spot
         return 0.0f; 
     }
@@ -1844,4 +1867,11 @@ void AudioClient::setAvatarBoundingBoxParameters(glm::vec3 corner, glm::vec3 sca
 
 void AudioClient::startThread() {
     moveToNewNamedThread(this, "Audio Thread", [this] { start(); });
+}
+
+void AudioClient::setInputVolume(float volume) { 
+    if (_audioInput && volume != (float)_audioInput->volume()) { 
+        _audioInput->setVolume(volume); 
+        emit inputVolumeChanged(_audioInput->volume());
+    }
 }

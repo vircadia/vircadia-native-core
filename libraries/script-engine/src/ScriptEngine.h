@@ -43,6 +43,7 @@
 #include "Vec3.h"
 #include "ConsoleScriptingInterface.h"
 #include "SettingHandle.h"
+#include "Profile.h"
 
 class QScriptEngineDebugger;
 
@@ -182,6 +183,8 @@ public:
     Q_INVOKABLE void print(const QString& message);
     Q_INVOKABLE QUrl resolvePath(const QString& path) const;
     Q_INVOKABLE QUrl resourcesPath() const;
+    Q_INVOKABLE void beginProfileRange(const QString& label) const;
+    Q_INVOKABLE void endProfileRange(const QString& label) const;
 
     // Entity Script Related methods
     Q_INVOKABLE bool isEntityScriptRunning(const EntityItemID& entityID) {

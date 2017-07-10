@@ -17,6 +17,7 @@
 
 #include <QtCore/QThread>
 
+#include <shared/QtHelpers.h>
 #include <LogHandler.h>
 
 #include "../NetworkLogging.h"
@@ -276,7 +277,7 @@ Connection* Socket::findOrCreateConnection(const HifiSockAddr& sockAddr) {
 
 void Socket::clearConnections() {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "clearConnections", Qt::BlockingQueuedConnection);
+        BLOCKING_INVOKE_METHOD(this, "clearConnections");
         return;
     }
 

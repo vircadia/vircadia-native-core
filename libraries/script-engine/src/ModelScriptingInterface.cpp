@@ -9,17 +9,17 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ModelScriptingInterface.h"
 #include <QScriptEngine>
 #include <QScriptValueIterator>
 #include <QtScript/QScriptValue>
-#include <model-networking/MeshFace.h>
+#include <model-networking/SimpleMeshProxy.h>
 #include "ScriptEngine.h"
 #include "ScriptEngineLogging.h"
-#include "ModelScriptingInterface.h"
 #include "OBJWriter.h"
 
 ModelScriptingInterface::ModelScriptingInterface(QObject* parent) : QObject(parent) {
-    _modelScriptEngine = qobject_cast<ScriptEngine*>(parent);
+    _modelScriptEngine = qobject_cast<QScriptEngine*>(parent);
 
     qScriptRegisterSequenceMetaType<QList<MeshProxy*>>(_modelScriptEngine);
     qScriptRegisterMetaType(_modelScriptEngine, meshFaceToScriptValue, meshFaceFromScriptValue);
@@ -118,7 +118,7 @@ QScriptValue ModelScriptingInterface::appendMeshes(MeshProxyList in) {
                                                           (gpu::Byte*) parts.data()), gpu::Element::PART_DRAWCALL));
 
 
-    MeshProxy* resultProxy = new MeshProxy(result);
+    MeshProxy* resultProxy = new SimpleMeshProxy(result);
     return meshToScriptValue(_modelScriptEngine, resultProxy);
 }
 
@@ -134,7 +134,7 @@ QScriptValue ModelScriptingInterface::transformMesh(glm::mat4 transform, MeshPro
     model::MeshPointer result = mesh->map([&](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
                                           [&](glm::vec3 normal){ return glm::vec3(transform * glm::vec4(normal, 0.0f)); },
                                           [&](uint32_t index){ return index; });
-    MeshProxy* resultProxy = new MeshProxy(result);
+    MeshProxy* resultProxy = new SimpleMeshProxy(result);
     return meshToScriptValue(_modelScriptEngine, resultProxy);
 }
 
@@ -188,6 +188,6 @@ QScriptValue ModelScriptingInterface::newMesh(const QVector<glm::vec3>& vertices
 
 
 
-    MeshProxy* meshProxy = new MeshProxy(mesh);
+    MeshProxy* meshProxy = new SimpleMeshProxy(mesh);
     return meshToScriptValue(_modelScriptEngine, meshProxy);
 }

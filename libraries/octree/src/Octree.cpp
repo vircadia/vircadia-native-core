@@ -1668,7 +1668,8 @@ bool Octree::readJSONFromGzippedFile(QString qFileName) {
 }
 
 bool Octree::readFromURL(const QString& urlString) {
-    auto request = std::unique_ptr<ResourceRequest>(ResourceManager::createResourceRequest(this, urlString));
+    auto request =
+        std::unique_ptr<ResourceRequest>(DependencyManager::get<ResourceManager>()->createResourceRequest(this, urlString));
 
     if (!request) {
         return false;

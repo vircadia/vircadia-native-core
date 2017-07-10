@@ -73,6 +73,7 @@ private:
         void calibrateOrUncalibrate(const controller::InputCalibrationData& inputCalibration);
         void calibrate(const controller::InputCalibrationData& inputCalibration);
         void uncalibrate();
+        void sendUserActivityData(QString activity);
         void configureCalibrationSettings(const QJsonObject configurationSettings);
         QJsonObject configurationSettings();
         controller::Pose addOffsetToPuckPose(int joint) const;
@@ -98,6 +99,7 @@ private:
         void calibrateLeftHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair);
         void calibrateRightHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair);
         void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateFoot(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& footPair, bool isLeftFoot);
         void calibrateHips(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateChest(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
@@ -105,7 +107,7 @@ private:
         void calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateFromHandController(const controller::InputCalibrationData& inputCalibrationData);
         void calibrateFromUI(const controller::InputCalibrationData& inputCalibrationData);
-        void emitCalibrationStatus(const bool success);
+        void emitCalibrationStatus();
         void calibrateNextFrame();
 
 
@@ -138,7 +140,7 @@ private:
             FeetAndHips,
             FeetHipsAndChest,
             FeetHipsAndShoulders,
-            FeetHipsChestAndShoulders,
+            FeetHipsChestAndShoulders
         };
 
         enum class HeadConfig {
@@ -150,7 +152,7 @@ private:
             HandController,
             Pucks
         };
-            
+
         Config _config { Config::None };
         Config _preferedConfig { Config::None };
         HeadConfig _headConfig { HeadConfig::HMD };
@@ -175,6 +177,10 @@ private:
         float _leftHapticDuration { 0.0f };
         float _rightHapticStrength { 0.0f };
         float _rightHapticDuration { 0.0f };
+        float _headPuckYOffset { -0.05f };
+        float _headPuckZOffset { -0.05f };
+        float _handPuckYOffset { 0.0f };
+        float _handPuckZOffset { 0.0f };
         bool _triggersPressedHandled { false };
         bool _calibrated { false };
         bool _timeTilCalibrationSet { false };
@@ -188,9 +194,12 @@ private:
     };
 
     void renderHand(const controller::Pose& pose, gpu::Batch& batch, int sign);
-
+    bool isDesktopMode();
     bool _registeredWithInputMapper { false };
     bool _modelLoaded { false };
+    bool _resetMatCalculated { false };
+    bool _desktopMode { false };
+    glm::mat4 _resetMat { glm::mat4() };
     model::Geometry _modelGeometry;
     gpu::TexturePointer _texture;
 

@@ -33,16 +33,15 @@ public:
     void shutdown();
 
     // Application that have statically linked plugins can expose them to the plugin manager with these function
-    static void setDisplayPluginProvider(const DisplayPluginProvider& provider);
-    static void setInputPluginProvider(const InputPluginProvider& provider);
-    static void setCodecPluginProvider(const CodecPluginProvider& provider);
-    static void setInputPluginSettingsPersister(const InputPluginSettingsPersister& persister);
+    void setDisplayPluginProvider(const DisplayPluginProvider& provider);
+    void setInputPluginProvider(const InputPluginProvider& provider);
+    void setCodecPluginProvider(const CodecPluginProvider& provider);
+    void setInputPluginSettingsPersister(const InputPluginSettingsPersister& persister);
     
 private:
-    static DisplayPluginProvider _displayPluginProvider;
-    static InputPluginProvider _inputPluginProvider;  
-    static CodecPluginProvider _codecPluginProvider;
-    static InputPluginSettingsPersister _inputSettingsPersister;
-
+    DisplayPluginProvider _displayPluginProvider { []()->DisplayPluginList { return {}; } };
+    InputPluginProvider _inputPluginProvider { []()->InputPluginList { return {}; } };
+    CodecPluginProvider _codecPluginProvider { []()->CodecPluginList { return {}; } };
+    InputPluginSettingsPersister _inputSettingsPersister { [](const InputPluginList& list) {} };
     PluginContainer* _container { nullptr };
 };

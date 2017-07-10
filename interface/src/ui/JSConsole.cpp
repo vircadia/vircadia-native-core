@@ -15,6 +15,7 @@
 #include <QScrollBar>
 #include <QtConcurrent/QtConcurrentRun>
 
+#include <shared/QtHelpers.h>
 #include <ScriptEngines.h>
 #include <PathUtils.h>
 
@@ -115,7 +116,7 @@ void JSConsole::executeCommand(const QString& command) {
 
 QScriptValue JSConsole::executeCommandInWatcher(const QString& command) {
     QScriptValue result;
-    QMetaObject::invokeMethod(_scriptEngine, "evaluate", Qt::ConnectionType::BlockingQueuedConnection,
+    BLOCKING_INVOKE_METHOD(_scriptEngine, "evaluate",
                               Q_RETURN_ARG(QScriptValue, result),
                               Q_ARG(const QString&, command),
                               Q_ARG(const QString&, _consoleFileName));

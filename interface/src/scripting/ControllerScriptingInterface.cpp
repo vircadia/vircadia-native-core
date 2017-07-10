@@ -17,7 +17,6 @@
 #include <plugins/PluginManager.h>
 
 #include "Application.h"
-#include <trackers/MotionTracker.h>
 
 void ControllerScriptingInterface::handleMetaEvent(HFMetaEvent* event) {
     if (event->type() == HFActionEvent::startType()) {
@@ -96,86 +95,6 @@ QVariant ControllerScriptingInterface::getRecommendedOverlayRect() const {
     auto rect = qApp->getRecommendedOverlayRect();
     return qRectToVariant(rect);
 }
-
-controller::InputController* ControllerScriptingInterface::createInputController(const QString& deviceName, const QString& tracker) {
-    // This is where we retrieve the Device Tracker category and then the sub tracker within it
-    auto icIt = _inputControllers.find(0);
-    if (icIt != _inputControllers.end()) {
-        return (*icIt).second.get();
-    }
-
-    // Look for device
-    DeviceTracker::ID deviceID = DeviceTracker::getDeviceID(deviceName.toStdString());
-    if (deviceID < 0) {
-        deviceID = 0;
-    }
-    // TODO in this current implementation, we just pick the device assuming there is one (normally the Leapmotion)
-    // in the near future we need to change that to a real mapping between the devices and the deviceName
-    // ALso we need to expand the spec so we can fall back on  the "default" controller per categories
-
-    if (deviceID >= 0) {
-        // TODO here again the assumption it's the LeapMotion and so it's a MOtionTracker, this would need to be changed to support different types of devices
-        MotionTracker* motionTracker = dynamic_cast< MotionTracker* > (DeviceTracker::getDevice(deviceID));
-        if (motionTracker) {
-            MotionTracker::Index trackerID = motionTracker->findJointIndex(tracker.toStdString());
-            if (trackerID >= 0) {
-                controller::InputController::Pointer inputController = std::make_shared<InputController>(deviceID, trackerID, this);
-                controller::InputController::Key key = inputController->getKey();
-                _inputControllers.insert(InputControllerMap::value_type(key, inputController));
-                return inputController.get();
-            }
-        }
-    }
-
-    return nullptr;
-}
-
-void ControllerScriptingInterface::releaseInputController(controller::InputController* input) {
-    _inputControllers.erase(input->getKey());
-}
-
-void ControllerScriptingInterface::updateInputControllers() {
-    for (auto it = _inputControllers.begin(); it != _inputControllers.end(); it++) {
-        (*it).second->update();
-    }
-}
-
-InputController::InputController(int deviceTrackerId, int subTrackerId, QObject* parent) :
-    _deviceTrackerId(deviceTrackerId),
-    _subTrackerId(subTrackerId),
-    _isActive(false)
-{
-}
-
-void InputController::update() {
-    _isActive = false;
-
-    // TODO for now the InputController is only supporting a JointTracker from a MotionTracker
-    MotionTracker* motionTracker = dynamic_cast< MotionTracker*> (DeviceTracker::getDevice(_deviceTrackerId));
-    if (motionTracker) {
-        if ((int)_subTrackerId < motionTracker->numJointTrackers()) {
-            const MotionTracker::JointTracker* joint = motionTracker->getJointTracker(_subTrackerId);
-
-            if (joint->isActive()) {
-                joint->getAbsFrame().getTranslation(_eventCache.absTranslation);
-                joint->getAbsFrame().getRotation(_eventCache.absRotation);
-                joint->getLocFrame().getTranslation(_eventCache.locTranslation);
-                joint->getLocFrame().getRotation(_eventCache.locRotation);
-
-                _isActive = true;
-                //emit spatialEvent(_eventCache);
-            }
-        }
-    }
-}
-
-const unsigned int INPUTCONTROLLER_KEY_DEVICE_OFFSET = 16;
-const unsigned int INPUTCONTROLLER_KEY_DEVICE_MASK = 16;
-
-InputController::Key InputController::getKey() const {
-    return (((_deviceTrackerId & INPUTCONTROLLER_KEY_DEVICE_MASK) << INPUTCONTROLLER_KEY_DEVICE_OFFSET) | _subTrackerId);
-}
-
 
 void ControllerScriptingInterface::emitKeyPressEvent(QKeyEvent* event) { emit keyPressEvent(KeyEvent(*event)); }
 void ControllerScriptingInterface::emitKeyReleaseEvent(QKeyEvent* event) { emit keyReleaseEvent(KeyEvent(*event)); }

@@ -531,6 +531,7 @@ public:
         QVector<AttachmentData> attachmentData;
         QString displayName;
         QString sessionDisplayName;
+        bool isReplicated;
         AvatarEntityMap avatarEntityData;
     };
 
@@ -539,7 +540,7 @@ public:
     void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged,
                                bool& displayNameChanged, bool& skeletonModelUrlChanged);
 
-    QByteArray identityByteArray() const;
+    QByteArray identityByteArray(bool setIsReplicated = false) const;
 
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
@@ -626,8 +627,11 @@ public:
     void markIdentityDataChanged() { _identityDataChanged = true; }
 
     void pushIdentitySequenceNumber() { ++_identitySequenceNumber; };
+    bool hasProcessedFirstIdentity() const { return _hasProcessedFirstIdentity; }
 
     float getDensity() const { return _density; }
+
+    bool getIsReplicated() const { return _isReplicated; }
 
 signals:
     void displayNameChanged();
@@ -665,6 +669,10 @@ protected:
     bool hasParent() const { return !getParentID().isNull(); }
     bool hasFaceTracker() const { return _headData ? _headData->_isFaceTrackerConnected : false; }
 
+    // isReplicated will be true on downstream Avatar Mixers and their clients, but false on the upstream "master"
+    // Audio Mixer that the replicated avatar is connected to.
+    bool _isReplicated{ false };
+
     glm::vec3 _handPosition;
     virtual const QString& getSessionDisplayNameForTransport() const { return _sessionDisplayName; }
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) { } // No-op in AvatarMixer
@@ -696,8 +704,8 @@ protected:
     QString _displayName;
     QString _sessionDisplayName { };
 
-    QHash<QString, int> _jointIndices; ///< 1-based, since zero is returned for missing keys
-    QStringList _jointNames; ///< in order of depth-first traversal
+    QHash<QString, int> _fstJointIndices; ///< 1-based, since zero is returned for missing keys
+    QStringList _fstJointNames; ///< in order of depth-first traversal
 
     quint64 _errorLogExpiry; ///< time in future when to log an error
 

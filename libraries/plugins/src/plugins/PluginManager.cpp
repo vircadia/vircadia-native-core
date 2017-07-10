@@ -23,10 +23,6 @@
 #include "InputPlugin.h"
 #include "PluginLogging.h"
 
-DisplayPluginProvider PluginManager::_displayPluginProvider = []()->DisplayPluginList { return {}; };
-InputPluginProvider PluginManager::_inputPluginProvider = []()->InputPluginList { return {}; };
-CodecPluginProvider PluginManager::_codecPluginProvider = []()->CodecPluginList { return {}; };
-InputPluginSettingsPersister PluginManager::_inputSettingsPersister = [](const InputPluginList& list) {};
 
 void PluginManager::setDisplayPluginProvider(const DisplayPluginProvider& provider) {
     _displayPluginProvider = provider;

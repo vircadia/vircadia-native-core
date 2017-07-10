@@ -198,11 +198,7 @@ gpu::TexturePointer TextureCache::getTextureByHash(const std::string& hash) {
         std::unique_lock<std::mutex> lock(_texturesByHashesMutex);
         weakPointer = _texturesByHashes[hash];
     }
-    auto result = weakPointer.lock();
-    if (result) {
-        qCWarning(modelnetworking) << "QQQ Returning live texture for hash " << hash.c_str();
-    }
-    return result;
+    return weakPointer.lock();
 }
 
 gpu::TexturePointer TextureCache::cacheTextureByHash(const std::string& hash, const gpu::TexturePointer& texture) {
@@ -384,7 +380,7 @@ void NetworkTexture::makeRequest() {
         // Add a fragment to the base url so we can identify the section of the ktx being requested when debugging
         // The actual requested url is _activeUrl and will not contain the fragment
         _url.setFragment("head");
-        _ktxHeaderRequest = ResourceManager::createResourceRequest(this, _activeUrl);
+        _ktxHeaderRequest = DependencyManager::get<ResourceManager>()->createResourceRequest(this, _activeUrl);
 
         if (!_ktxHeaderRequest) {
             qCDebug(networking).noquote() << "Failed to get request for" << _url.toDisplayString();
@@ -454,7 +450,7 @@ void NetworkTexture::startMipRangeRequest(uint16_t low, uint16_t high) {
 
     bool isHighMipRequest = low == NULL_MIP_LEVEL && high == NULL_MIP_LEVEL;
 
-    _ktxMipRequest = ResourceManager::createResourceRequest(this, _activeUrl);
+    _ktxMipRequest = DependencyManager::get<ResourceManager>()->createResourceRequest(this, _activeUrl);
 
     if (!_ktxMipRequest) {
         qCWarning(networking).noquote() << "Failed to get request for" << _url.toDisplayString();

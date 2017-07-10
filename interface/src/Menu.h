@@ -105,6 +105,7 @@ namespace MenuOption {
     const QString ExpandPhysicsSimulationTiming = "Expand /physics";
     const QString ExpandUpdateTiming = "Expand /update";
     const QString FirstPerson = "First Person";
+    const QString FirstPersonHMD = "Enter First Person Mode in HMD";
     const QString FivePointCalibration = "5 Point Calibration";
     const QString FixGaze = "Fix Gaze (no saccade)";
     const QString Forward = "Forward";
@@ -114,7 +115,6 @@ namespace MenuOption {
     const QString IncreaseAvatarSize = "Increase Avatar Size";
     const QString IndependentMode = "Independent Mode";
     const QString ActionMotorControl = "Enable Default Motor Control";
-    const QString LeapMotionOnHMD = "Leap Motion on HMD";
     const QString LoadScript = "Open and Run Script File...";
     const QString LoadScriptURL = "Open and Run Script from URL...";
     const QString LodTools = "LOD Tools";
