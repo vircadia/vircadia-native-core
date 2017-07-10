@@ -340,9 +340,6 @@ protected:
     int _nextStateHandlerId { 0 };
     QMutex _stateMutex;
 
-    bool transitionHandPose(float deltaTime, float totalDuration, AnimPose& controlledHandPose, bool isLeftHand,
-                            bool isToControlled, AnimPose& returnHandPose);
-
     glm::vec3 _prevRightFootPoleVector { Vectors::UNIT_Z };
     bool _prevRightFootPoleVectorValid { false };
 

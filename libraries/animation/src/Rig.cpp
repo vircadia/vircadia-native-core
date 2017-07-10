@@ -1703,25 +1703,3 @@ void Rig::computeAvatarBoundingCapsule(
     glm::vec3 rigCenter = transformPoint(_geometryToRigTransform, (0.5f * (totalExtents.maximum + totalExtents.minimum)));
     localOffsetOut = rigCenter - transformPoint(_geometryToRigTransform, rootPosition);
 }
-
-bool Rig::transitionHandPose(float deltaTime, float totalDuration, AnimPose& controlledHandPose, bool isLeftHand,
-                             bool isToControlled, AnimPose& returnHandPose) {
-    auto ikNode = getAnimInverseKinematicsNode();
-    if (ikNode) {
-        float alpha = 1.0f - deltaTime / totalDuration;
-        const AnimPose geometryToRigTransform(_geometryToRigTransform);
-        AnimPose uncontrolledHandPose;
-        if (isLeftHand) {
-            uncontrolledHandPose = geometryToRigTransform * ikNode->getUncontrolledLeftHandPose();
-        } else {
-            uncontrolledHandPose = geometryToRigTransform * ikNode->getUncontrolledRightHandPose();
-        }
-        if (isToControlled) {
-            ::blend(1, &uncontrolledHandPose, &controlledHandPose, alpha, &returnHandPose);
-        } else {
-            ::blend(1, &controlledHandPose, &uncontrolledHandPose, alpha, &returnHandPose);
-        }
-        return true;
-    }
-    return false;
-}

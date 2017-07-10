@@ -73,10 +73,6 @@ public:
     void setSolutionSource(SolutionSource solutionSource) { _solutionSource = solutionSource; }
     void setSolutionSourceVar(const QString& solutionSourceVar) { _solutionSourceVar = solutionSourceVar; }
 
-    const AnimPose& getUncontrolledLeftHandPose() { return _uncontrolledLeftHandPose; }
-    const AnimPose& getUncontrolledRightHandPose() { return _uncontrolledRightHandPose; }
-    const AnimPose& getUncontrolledHipPose() { return _uncontrolledHipsPose; }
-
 protected:
     void computeTargets(const AnimVariantMap& animVars, std::vector<IKTarget>& targets, const AnimPoseVec& underPoses);
     void solve(const AnimContext& context, const std::vector<IKTarget>& targets, float dt, JointChainInfoVec& jointChainInfoVec);
@@ -92,6 +88,7 @@ protected:
     void initRelativePosesFromSolutionSource(SolutionSource solutionSource, const AnimPoseVec& underPose);
     void blendToPoses(const AnimPoseVec& targetPoses, const AnimPoseVec& underPose, float blendFactor);
     void preconditionRelativePosesToAvoidLimbLock(const AnimContext& context, const std::vector<IKTarget>& targets);
+    AnimPose applyHipsOffset() const;
 
     // used to pre-compute information about each joint influeced by a spline IK target.
     struct SplineJointInfo {
@@ -110,7 +107,7 @@ protected:
     void clearConstraints();
     void initConstraints();
     void initLimitCenterPoses();
-    void computeHipsOffset(const std::vector<IKTarget>& targets, const AnimPoseVec& underPoses, float dt);
+    glm::vec3 computeHipsOffset(const std::vector<IKTarget>& targets, const AnimPoseVec& underPoses, float dt, glm::vec3 prevHipsOffset) const;
 
     // no copies
     AnimInverseKinematics(const AnimInverseKinematics&) = delete;
@@ -161,10 +158,6 @@ protected:
     bool _previousEnableDebugIKTargets { false };
     SolutionSource _solutionSource { SolutionSource::RelaxToUnderPoses };
     QString _solutionSourceVar;
-
-    AnimPose _uncontrolledLeftHandPose { AnimPose() };
-    AnimPose _uncontrolledRightHandPose { AnimPose() };
-    AnimPose _uncontrolledHipsPose { AnimPose() };
 
     JointChainInfoVec _prevJointChainInfoVec;
 };

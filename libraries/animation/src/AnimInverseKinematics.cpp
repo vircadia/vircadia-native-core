@@ -257,7 +257,7 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
                     if (_prevJointChainInfoVec[i].target.getType() != IKTarget::Type::Unknown &&
                         jointChainInfoVec[i].target.getType() == IKTarget::Type::Unknown) {
                         IKTarget newTarget = _prevJointChainInfoVec[i].target;
-                        newTarget.setWeight(alpha);
+                        newTarget.setWeight((1.0f - alpha) * _prevJointChainInfoVec[i].target.getWeight());
                         jointChainInfoVec[i].target = newTarget;
                     }
                 }
@@ -349,6 +349,7 @@ void AnimInverseKinematics::solve(const AnimContext& context, const std::vector<
         _prevJointChainInfoVec[i].timer = _prevJointChainInfoVec[i].timer - dt;
         if (_prevJointChainInfoVec[i].timer <= 0.0f) {
             _prevJointChainInfoVec[i] = jointChainInfoVec[i];
+            _prevJointChainInfoVec[i].target = targets[i];
             // store relative poses into unknown/rotation only joint chains.
             // so we have something to interpolate from if this chain is activated.
             IKTarget::Type type = _prevJointChainInfoVec[i].target.getType();
@@ -849,6 +850,24 @@ const AnimPoseVec& AnimInverseKinematics::evaluate(const AnimVariantMap& animVar
     return _relativePoses;
 }
 
+AnimPose AnimInverseKinematics::applyHipsOffset() const {
+    glm::vec3 hipsOffset = _hipsOffset;
+    AnimPose relHipsPose = _relativePoses[_hipsIndex];
+    float offsetLength = glm::length(hipsOffset);
+    const float MIN_HIPS_OFFSET_LENGTH = 0.03f;
+    if (offsetLength > MIN_HIPS_OFFSET_LENGTH) {
+        float scaleFactor = ((offsetLength - MIN_HIPS_OFFSET_LENGTH) / offsetLength);
+        glm::vec3 scaledHipsOffset = scaleFactor * hipsOffset;
+        if (_hipsParentIndex == -1) {
+            relHipsPose.trans() = _relativePoses[_hipsIndex].trans() + scaledHipsOffset;
+        } else {
+            AnimPose absHipsPose = _skeleton->getAbsolutePose(_hipsIndex, _relativePoses);
+            absHipsPose.trans() += scaledHipsOffset;
+            relHipsPose = _skeleton->getAbsolutePose(_hipsParentIndex, _relativePoses).inverse() * absHipsPose;
+        }
+    }
+    return relHipsPose;
+}
 
 //virtual
 const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars, const AnimContext& context, float dt, Triggers& triggersOut, const AnimPoseVec& underPoses) {
@@ -925,7 +944,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             {
                 PROFILE_RANGE_EX(simulation_animation, "ik/shiftHips", 0xffff00ff, 0);
 
-                if (_hipsTargetIndex >= 0 && _hipsTargetIndex < (int)targets.size()) {
+                if (_hipsTargetIndex >= 0 && _hipsTargetIndex >= 0 && _hipsTargetIndex < (int)targets.size()) {
                     // slam the hips to match the _hipsTarget
 
                     AnimPose absPose = targets[_hipsTargetIndex].getPose();
@@ -934,7 +953,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                     AnimPose parentAbsPose = _skeleton->getAbsolutePose(parentIndex, _relativePoses);
 
                     // do smooth interpolation of hips, if necessary.
-                    if (_prevJointChainInfoVec[_hipsTargetIndex].timer > 0.0f) {
+                    if (_prevJointChainInfoVec[_hipsTargetIndex].timer > 0.0f && _prevJointChainInfoVec[_hipsTargetIndex].jointInfoVec.size() > 0) {
                         float alpha = (JOINT_CHAIN_INTERP_TIME - _prevJointChainInfoVec[_hipsTargetIndex].timer) / JOINT_CHAIN_INTERP_TIME;
 
                         auto& info = _prevJointChainInfoVec[_hipsTargetIndex].jointInfoVec[0];
@@ -944,22 +963,36 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                     }
 
                     _relativePoses[_hipsIndex] = parentAbsPose.inverse() * absPose;
+                    _relativePoses[_hipsIndex].scale() = glm::vec3(1.0f);
+                    _hipsOffset = Vectors::ZERO;
 
-                } else {
+                } else if (_hipsIndex >= 0) {
+
                     // if there is no hips target, shift hips according to the _hipsOffset from the previous frame
-                    float offsetLength = glm::length(_hipsOffset);
-                    const float MIN_HIPS_OFFSET_LENGTH = 0.03f;
-                    if (offsetLength > MIN_HIPS_OFFSET_LENGTH && _hipsIndex >= 0) {
-                        float scaleFactor = ((offsetLength - MIN_HIPS_OFFSET_LENGTH) / offsetLength);
-                        glm::vec3 hipsOffset = scaleFactor * _hipsOffset;
-                        if (_hipsParentIndex == -1) {
-                            _relativePoses[_hipsIndex].trans() = _relativePoses[_hipsIndex].trans() + hipsOffset;
-                        } else {
-                            auto absHipsPose = _skeleton->getAbsolutePose(_hipsIndex, _relativePoses);
-                            absHipsPose.trans() += hipsOffset;
-                            _relativePoses[_hipsIndex] = _skeleton->getAbsolutePose(_hipsParentIndex, _relativePoses).inverse() * absHipsPose;
+                    AnimPose relHipsPose = applyHipsOffset();
+
+                    // determine if we should begin interpolating the hips.
+                    for (size_t i = 0; i < targets.size(); i++) {
+                        if (_prevJointChainInfoVec[i].target.getIndex() == _hipsIndex) {
+                            if (_prevJointChainInfoVec[i].timer > 0.0f) {
+                                // smoothly lerp in hipsOffset
+                                float alpha = (JOINT_CHAIN_INTERP_TIME - _prevJointChainInfoVec[i].timer) / JOINT_CHAIN_INTERP_TIME;
+                                AnimPose prevRelHipsPose(_prevJointChainInfoVec[i].jointInfoVec[0].rot, _prevJointChainInfoVec[i].jointInfoVec[0].trans);
+                                ::blend(1, &prevRelHipsPose, &relHipsPose, alpha, &relHipsPose);
+                            }
+                            break;
                         }
                     }
+
+                    _relativePoses[_hipsIndex] = relHipsPose;
+                }
+
+                // if there is an active jointChainInfo for the hips store the post shifted hips into it.
+                // This is so we have a valid pose to interplate from when the hips target is disabled.
+                if (_hipsTargetIndex >= 0) {
+                    // AJT: TODO: WILL THIS WORK if hips aren't the root of skeleton?
+                    jointChainInfoVec[_hipsTargetIndex].jointInfoVec[0].rot = _relativePoses[_hipsIndex].rot();
+                    jointChainInfoVec[_hipsTargetIndex].jointInfoVec[0].trans = _relativePoses[_hipsIndex].trans();
                 }
 
                 // update all HipsRelative targets to account for the hips shift/ik target.
@@ -1010,9 +1043,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
 
             if (_hipsTargetIndex < 0) {
                 PROFILE_RANGE_EX(simulation_animation, "ik/measureHipsOffset", 0xffff00ff, 0);
-                computeHipsOffset(targets, underPoses, dt);
-            } else {
-                _hipsOffset = Vectors::ZERO;
+                _hipsOffset = computeHipsOffset(targets, underPoses, dt, _hipsOffset);
             }
         }
 
@@ -1021,23 +1052,15 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
         }
     }
 
-    if (_leftHandIndex > -1) {
-        _uncontrolledLeftHandPose = _skeleton->getAbsolutePose(_leftHandIndex, underPoses);
-    }
-    if (_rightHandIndex > -1) {
-        _uncontrolledRightHandPose = _skeleton->getAbsolutePose(_rightHandIndex, underPoses);
-    }
-    if (_hipsIndex > -1) {
-        _uncontrolledHipsPose = _skeleton->getAbsolutePose(_hipsIndex, underPoses);
-    }
-
     return _relativePoses;
 }
 
-void AnimInverseKinematics::computeHipsOffset(const std::vector<IKTarget>& targets, const AnimPoseVec& underPoses, float dt) {
+glm::vec3 AnimInverseKinematics::computeHipsOffset(const std::vector<IKTarget>& targets, const AnimPoseVec& underPoses, float dt, glm::vec3 prevHipsOffset) const {
+
     // measure new _hipsOffset for next frame
     // by looking for discrepancies between where a targeted endEffector is
     // and where it wants to be (after IK solutions are done)
+    glm::vec3 hipsOffset = prevHipsOffset;
     glm::vec3 newHipsOffset = Vectors::ZERO;
     for (auto& target: targets) {
         int targetIndex = target.getIndex();
@@ -1053,9 +1076,9 @@ void AnimInverseKinematics::computeHipsOffset(const std::vector<IKTarget>& targe
             } else if (target.getType() == IKTarget::Type::HmdHead) {
                 // we want to shift the hips to bring the head to its designated position
                 glm::vec3 actual = _skeleton->getAbsolutePose(_headIndex, _relativePoses).trans();
-                _hipsOffset += target.getTranslation() - actual;
+                hipsOffset += target.getTranslation() - actual;
                 // and ignore all other targets
-                newHipsOffset = _hipsOffset;
+                newHipsOffset = hipsOffset;
                 break;
             } else if (target.getType() == IKTarget::Type::RotationAndPosition) {
                 glm::vec3 actualPosition = _skeleton->getAbsolutePose(targetIndex, _relativePoses).trans();
@@ -1075,16 +1098,18 @@ void AnimInverseKinematics::computeHipsOffset(const std::vector<IKTarget>& targe
         }
     }
 
-    // smooth transitions by relaxing _hipsOffset toward the new value
+    // smooth transitions by relaxing hipsOffset toward the new value
     const float HIPS_OFFSET_SLAVE_TIMESCALE = 0.10f;
     float tau = dt < HIPS_OFFSET_SLAVE_TIMESCALE ?  dt / HIPS_OFFSET_SLAVE_TIMESCALE : 1.0f;
-    _hipsOffset += (newHipsOffset - _hipsOffset) * tau;
+    hipsOffset += (newHipsOffset - hipsOffset) * tau;
 
     // clamp the hips offset
-    float hipsOffsetLength = glm::length(_hipsOffset);
+    float hipsOffsetLength = glm::length(hipsOffset);
     if (hipsOffsetLength > _maxHipsOffsetLength) {
-        _hipsOffset *= _maxHipsOffsetLength / hipsOffsetLength;
+        hipsOffset *= _maxHipsOffsetLength / hipsOffsetLength;
     }
+
+    return hipsOffset;
 }
 
 void AnimInverseKinematics::setMaxHipsOffsetLength(float maxLength) {
@@ -1528,10 +1553,6 @@ void AnimInverseKinematics::setSkeletonInternal(AnimSkeleton::ConstPointer skele
         _leftHandIndex = -1;
         _rightHandIndex = -1;
     }
-
-    _uncontrolledLeftHandPose = AnimPose();
-    _uncontrolledRightHandPose = AnimPose();
-    _uncontrolledHipsPose = AnimPose();
 }
 
 static glm::vec3 sphericalToCartesian(float phi, float theta) {
