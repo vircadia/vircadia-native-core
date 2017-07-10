@@ -614,11 +614,11 @@ void Agent::processAgentAvatar() {
             if (avatarByteArray.size() > maximumByteArraySize) {
                 qWarning() << " scriptedAvatar->toByteArrayStateful() without facial data resulted in very large buffer:" << avatarByteArray.size() << "... reduce to MinimumData";
                 avatarByteArray = scriptedAvatar->toByteArrayStateful(AvatarData::MinimumData, true);
-            }
 
-            if (avatarByteArray.size() > maximumByteArraySize) {
-                qWarning() << " scriptedAvatar->toByteArrayStateful() MinimumData resulted in very large buffer:" << avatarByteArray.size() << "... FAIL!!";
-                return;
+                if (avatarByteArray.size() > maximumByteArraySize) {
+                    qWarning() << " scriptedAvatar->toByteArrayStateful() MinimumData resulted in very large buffer:" << avatarByteArray.size() << "... FAIL!!";
+                    return;
+                }
             }
         }
 

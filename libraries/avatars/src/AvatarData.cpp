@@ -1754,11 +1754,11 @@ void AvatarData::sendAvatarDataPacket() {
         if (avatarByteArray.size() > maximumByteArraySize) {
             qCWarning(avatars) << "toByteArrayStateful() without facial data resulted in very large buffer:" << avatarByteArray.size() << "... reduce to MinimumData";
             avatarByteArray = toByteArrayStateful(MinimumData, true);
-        }
 
-        if (avatarByteArray.size() > maximumByteArraySize) {
-            qCWarning(avatars) << "toByteArrayStateful() MinimumData resulted in very large buffer:" << avatarByteArray.size() << "... FAIL!!";
-            return;
+            if (avatarByteArray.size() > maximumByteArraySize) {
+                qCWarning(avatars) << "toByteArrayStateful() MinimumData resulted in very large buffer:" << avatarByteArray.size() << "... FAIL!!";
+                return;
+            }
         }
     }
 
