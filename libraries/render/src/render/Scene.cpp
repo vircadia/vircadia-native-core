@@ -238,17 +238,24 @@ void Scene::transitionItems(const ItemIDs& ids, const TransitionTypes& types) {
     auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
 
     for (auto itemId : ids) {
-        auto transitionId = INVALID_INDEX;
-
-        if (*transitionType != Transition::NONE) {
-            transitionId = transitionStage->addTransition(itemId, *transitionType);
-        }
-        else {
+        // Access the true item
+        const auto& item = _items[itemId];
+        if (item.exist()) {
+            auto transitionId = INVALID_INDEX;
             const auto& item = _items[itemId];
-            transitionStage->removeTransition(item.getTransitionId());
+
+            // Remove pre-existing transition, if need be
+            if (item.getTransitionId() == render::TransitionStage::INVALID_INDEX) {
+                transitionStage->removeTransition(item.getTransitionId());
+            }
+            // Add a new one.
+            if (*transitionType != Transition::NONE) {
+                transitionId = transitionStage->addTransition(itemId, *transitionType);
+            }
+
+            setItemTransition(itemId, transitionId);
         }
 
-        setItemTransition(itemId, transitionId);
         // next loop
         transitionType++;
     }

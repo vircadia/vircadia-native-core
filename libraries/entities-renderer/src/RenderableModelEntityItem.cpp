@@ -242,6 +242,8 @@ bool RenderableModelEntityItem::addToScene(const EntityItemPointer& self, const 
 
         // note: we don't mind if the model fails to add, we'll retry (in render()) until it succeeds
         _model->addToScene(scene, transaction, statusGetters);
+
+        transaction.transitionItem(_myMetaItem, render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN);
     }
 
     // we've successfully added _myMetaItem so we always return true
@@ -475,6 +477,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             makeEntityItemStatusGetters(getThisPointer(), statusGetters);
             _model->addToScene(scene, transaction, statusGetters);
 
+            transaction.transitionItem(_myMetaItem, render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN);
+
             scene->enqueueTransaction(transaction);
         }
 
@@ -488,23 +492,6 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
 ModelPointer RenderableModelEntityItem::getModelNotSafe() {
     return _model;
-}
-
-void RenderableModelEntityItem::setModelURLFinished(bool success) {
-    if (success) {
-        const render::ScenePointer& scene = AbstractViewStateInterface::instance()->getMain3DScene();
-
-        if (scene->isAllocatedID(_myMetaItem)) {
-            render::Transaction transaction;
-
-            const auto& item = scene->getItem(_myMetaItem);
-            if (!item.exist()) {
-                qWarning() << "Starting transition on item without payload";
-            }
-            transaction.transitionItem(_myMetaItem, render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN);
-            scene->enqueueTransaction(transaction);
-        }
-    }
 }
 
 ModelPointer RenderableModelEntityItem::getModel() {
@@ -524,7 +511,6 @@ ModelPointer RenderableModelEntityItem::getModel() {
         // If we don't have a model, allocate one *immediately*
         if (!_model) {
             _model = _myRenderer->allocateModel(getModelURL(), _myRenderer->getEntityLoadingPriority(*this), this);
-            QObject::connect(_model.get(), &Model::setURLFinished, this, &RenderableModelEntityItem::setModelURLFinished);
             _needsInitialSimulation = true;
         // If we need to change URLs, update it *after rendering* (to avoid access violations)
         } else if (QUrl(getModelURL()) != _model->getURL()) {
