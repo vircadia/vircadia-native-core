@@ -131,10 +131,10 @@
     // Relevant Variables:
     //   -button: The tablet button.
     //   -buttonName: The name of the button.
-    //   -showInDesktop: Set to "true" to show the "SPECTATOR" app in desktop mode.
+    //   -showSpectatorInDesktop: Set to "true" to show the "SPECTATOR" app in desktop mode.
     var button = false;
     var buttonName = "SPECTATOR";
-    var showSpectatorInDesktop = true;
+    var showSpectatorInDesktop = false;
     function addOrRemoveButton(isShuttingDown, isHMDMode) {
         if (!tablet) {
             print("Warning in addOrRemoveButton(): 'tablet' undefined!");
