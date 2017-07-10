@@ -66,15 +66,20 @@ void ResourceImageItemRenderer::synchronize(QQuickFramebufferObject* item) {
         _ready = resourceImageItem->getReady();
         readyChanged = true;
     }
-
+    bool visibleChanged = false;
+    if (_visible != resourceImageItem->isVisible()) {
+        _visible = resourceImageItem->isVisible();
+        visibleChanged = true;
+    }
     _window = resourceImageItem->window();
-    if (_ready && !_url.isNull() && !_url.isEmpty() && (urlChanged || readyChanged || !_networkTexture)) {
+
+    if (_ready && _visible && !_url.isNull() && !_url.isEmpty() && (visibleChanged || urlChanged || readyChanged || !_networkTexture)) {
         _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_url);
     }
     static const int UPDATE_TIMER_DELAY_IN_MS = 100; // 100 ms = 10 hz for now
-    if (_ready && !_updateTimer.isActive()) {
+    if (_ready && _visible && !_updateTimer.isActive()) {
         _updateTimer.start(UPDATE_TIMER_DELAY_IN_MS);
-    } else if (!_ready && _updateTimer.isActive()) {
+    } else if (!(_ready && _visible) && _updateTimer.isActive()) {
         _updateTimer.stop();
     }
 }

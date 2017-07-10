@@ -251,8 +251,8 @@ Rectangle {
             // Spectator Camera Preview
             Hifi.ResourceImageItem {
                 id: spectatorCameraPreview;
-                visible: false;
-                url: "resource://spectatorCameraFrame";
+                visible: cameraToggleCheckbox.checked;
+                url: monitorShowsSwitch.checked ? "resource://spectatorCameraFrame" : "resource://hmdPreviewFrame";
                 ready: cameraToggleCheckBox.checked;
                 mirrorVertically: true;
                 anchors.fill: parent;
