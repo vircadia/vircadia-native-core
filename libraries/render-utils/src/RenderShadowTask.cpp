@@ -36,7 +36,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext,
     assert(renderContext->args->hasViewFrustum());
 
     auto lightStage = renderContext->_scene->getStage<LightStage>();
-
+    assert(lightStage);
     LightStage::Index globalLightIndex { 0 };
 
     const auto globalLight = lightStage->getLight(globalLightIndex);
@@ -141,6 +141,7 @@ void RenderShadowTask::configure(const Config& configuration) {
 
 void RenderShadowSetup::run(const render::RenderContextPointer& renderContext, Output& output) {
     auto lightStage = renderContext->_scene->getStage<LightStage>();
+    assert(lightStage);
     const auto globalShadow = lightStage->getShadow(0);
 
     // Cache old render args

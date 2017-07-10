@@ -429,6 +429,7 @@ void PrepareDeferred::run(const RenderContextPointer& renderContext, const Input
     
     // Prepare a fresh Light Frame
     auto lightStage = renderContext->_scene->getStage<LightStage>();
+    assert(lightStage);
     lightStage->_currentFrame.clear();
 }
 
@@ -493,6 +494,7 @@ void RenderDeferredSetup::run(const render::RenderContextPointer& renderContext,
         // Global directional light and ambient pass
 
         auto lightStage = renderContext->_scene->getStage<LightStage>();
+        assert(lightStage);
         assert(lightStage->getNumLights() > 0);
         auto lightAndShadow = lightStage->getLightAndShadow(0);
         const auto& globalShadow = lightAndShadow.second;

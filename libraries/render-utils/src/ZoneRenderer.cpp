@@ -52,19 +52,21 @@ void ZoneRendererTask::build(JobModel& task, const Varying& input, Varying& oupu
 }
 
 void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) {
-    auto backgroundStage = context->_scene->getStage<BackgroundStage>("BACKGROUND_STAGE");
+    auto backgroundStage = context->_scene->getStage<BackgroundStage>();
+    assert(backgroundStage);
     backgroundStage->_currentFrame.clear();
 
     // call render in the correct order first...
     render::renderItems(context, inputs);
 
     // Finally add the default lights and background:
-    auto lightStage = context->_scene->getStage<LightStage>("LIGHT_STAGE");
+    auto lightStage = context->_scene->getStage<LightStage>();
+    assert(lightStage);
+    
     lightStage->_currentFrame.pushSunLight(0);
     lightStage->_currentFrame.pushAmbientLight(0);
 
     backgroundStage->_currentFrame.pushBackground(0);
-
 }
 
 const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {

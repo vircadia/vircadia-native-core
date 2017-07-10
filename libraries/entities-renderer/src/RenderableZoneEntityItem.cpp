@@ -555,10 +555,12 @@ void RenderableZoneEntityItemMeta::setProceduralUserData(QString userData) {
 void RenderableZoneEntityItemMeta::render(RenderArgs* args) {
     if (!_stage) {
         _stage = args->_scene->getStage<LightStage>();
+        assert(_stage);
     }
 
     if (!_backgroundStage) {
         _backgroundStage = args->_scene->getStage<BackgroundStage>();
+        assert(_backgroundStage);
     }
 
     { // Sun 
