@@ -15,8 +15,8 @@ import "../lib/plotperf"
 
 Column {
 	id: root
-	property var config: Render.getConfig("RenderMainView.FadeConfigure");
-	property var switchConfig: Render.getConfig("RenderMainView.FadeSwitch");
+	property var config: Render.getConfig("RenderMainView.Fade");
+	property var configEdit: Render.getConfig("RenderMainView.FadeEdit");
 	spacing: 8
 
 	Row {
@@ -24,9 +24,9 @@ Column {
 
 		CheckBox {
 			text: "Edit Fade"
-			checked: root.switchConfig["editFade"]
+			checked: root.configEdit["editFade"]
 			onCheckedChanged: { 
-				root.switchConfig["editFade"] = checked; 
+				root.configEdit["editFade"] = checked; 
 				Render.getConfig("RenderMainView.DrawFadedOpaqueBounds").enabled = checked;
 			}
 		}
@@ -54,15 +54,15 @@ Column {
 
 		CheckBox {
 			text: "Manual"
-			checked: root.config["manualFade"]
+			checked: root.configEdit["manualFade"]
 			onCheckedChanged: { 
-				root.config["manualFade"] = checked; 
+				root.configEdit["manualFade"] = checked; 
 			}
 		}
 		ConfigSlider {
 			label: "Threshold"
 			integral: false
-			config: root.config
+			config: root.configEdit
 			property: "manualThreshold"
 			max: 1.0
 			min: 0.0
@@ -359,7 +359,7 @@ Column {
 							PlotPerf {
 								title: "Threshold"
 								height: parent.evalEvenHeight()
-								object:  Render.getConfig("RenderMainView.DrawFadeOpaque")
+								object:  config
 								valueUnit: "%"
 								valueScale: 0.01
 								valueNumDigits: "1"

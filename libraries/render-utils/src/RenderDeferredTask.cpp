@@ -55,7 +55,7 @@ void RenderDeferredTask::configure(const Config& config)
 void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
     const auto& items = input.get<Input>();
    
-    task.addJob<FadeJob>("Fade");
+    auto editedTransitionType = task.addJob<FadeJob>("Fade");
     auto& fadeJob = task._jobs.back().get<FadeJob>();
 
     // Prepare the ShapePipelines
@@ -71,6 +71,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto& overlayTransparents = items.get0()[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
     //const auto& background = items.get0()[RenderFetchCullSortTask::BACKGROUND];
     const auto& spatialSelection = items[1];
+
+    const auto fadeEditInput = FadeEditJob::Input(opaques, editedTransitionType).asVarying();
+    task.addJob<FadeEditJob>("FadeEdit", fadeEditInput);
 
     // Filter the non antialiaased overlays
     const int LAYER_NO_AA = 3;

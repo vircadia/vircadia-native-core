@@ -22,6 +22,52 @@ inline float valueToParameterPow(float value, const double minValue, const doubl
     return (float)(log(double(value) / minValue) / log(maxOverMinValue));
 }
 
+void FadeEditJob::run(const render::RenderContextPointer& renderContext, const Input& inputs) {
+    auto jobConfig = static_cast<const FadeEditConfig*>(renderContext->jobConfig.get());
+    auto& itemBounds = inputs.get0();
+
+    if (jobConfig->editFade) {
+        float minIsectDistance = std::numeric_limits<float>::max();
+        auto itemId = findNearestItem(renderContext, itemBounds, minIsectDistance);
+
+        if (itemId != render::Item::INVALID_ITEM_ID) {
+            const auto& item = renderContext->_scene->getItem(itemId);
+
+            if (item.getTransitionId() == render::TransitionStage::INVALID_INDEX) {
+                // Relaunch transition
+                render::Transaction transaction;
+                transaction.transitionItem(itemId, inputs.get1());
+                renderContext->_scene->enqueueTransaction(transaction);
+            }
+        }
+    }
+}
+
+render::ItemID FadeEditJob::findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const {
+    const glm::vec3 rayOrigin = renderContext->args->getViewFrustum().getPosition();
+    const glm::vec3 rayDirection = renderContext->args->getViewFrustum().getDirection();
+    auto& scene = renderContext->_scene;
+    BoxFace face;
+    glm::vec3 normal;
+    float isectDistance;
+    render::ItemID nearestItem = render::Item::INVALID_ITEM_ID;
+    const float minDistance = 2.f;
+
+    for (const auto& itemBound : inputs) {
+        if (!itemBound.bound.contains(rayOrigin) && itemBound.bound.findRayIntersection(rayOrigin, rayDirection, isectDistance, face, normal)) {
+            if (isectDistance>minDistance && isectDistance < minIsectDistance) {
+                auto& item = scene->getItem(itemBound.id);
+
+                if (item.getKey().isShape() && !item.getKey().isMeta()) {
+                    nearestItem = itemBound.id;
+                    minIsectDistance = isectDistance;
+                }
+            }
+        }
+    }
+    return nearestItem;
+}
+
 FadeConfig::FadeConfig() 
 {
     events[render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN].noiseSize = glm::vec3{ 0.75f, 0.75f, 0.75f };
@@ -488,14 +534,16 @@ void FadeJob::configure(const Config& config) {
     }
 }
 
-void FadeJob::run(const render::RenderContextPointer& renderContext) {
-    const Config* jobConfig = static_cast<const Config*>(renderContext->jobConfig.get());
+void FadeJob::run(const render::RenderContextPointer& renderContext, Output& output) {
+    Config* jobConfig = static_cast<Config*>(renderContext->jobConfig.get());
     auto scene = renderContext->args->_scene;
     auto transitionStage = scene->getStage<render::TransitionStage>(render::TransitionStage::getName());
     uint64_t now = usecTimestampNow();
     const double deltaTime = (int64_t(now) - int64_t(_previousTime)) / double(USECS_PER_SECOND);
     render::Transaction transaction;
     bool hasTransactions = false;
+    
+    output = (render::Transition::Type) jobConfig->editedCategory;
 
     // And now update fade effect
     for (auto transitionId : *transitionStage) {
@@ -505,6 +553,8 @@ void FadeJob::run(const render::RenderContextPointer& renderContext) {
             transaction.transitionItem(state.itemId, render::Transition::NONE);
             hasTransactions = true;
         }
+
+        jobConfig->setProperty("threshold", state.threshold);
     }
 
     if (hasTransactions) {
@@ -574,7 +624,6 @@ bool FadeJob::update(const Config& config, const render::ScenePointer& scene, re
 
     transition.time += deltaTime;
 
-//    renderContext->jobConfig->setProperty("threshold", threshold);
     return continueTransition;
 }
 
@@ -644,30 +693,4 @@ render::ShapePipeline::ItemSetter FadeJob::getItemSetter() const {
             }
         }
     };
-}
-
-const render::Item* FadeJob::findNearestItem(const render::RenderContextPointer& renderContext, const render::Varying& input, float& minIsectDistance) const {
-    const glm::vec3 rayOrigin = renderContext->args->getViewFrustum().getPosition();
-    const glm::vec3 rayDirection = renderContext->args->getViewFrustum().getDirection();
-    const auto& inputItems = input.get<render::ItemBounds>();
-    auto& scene = renderContext->_scene;
-    BoxFace face;
-    glm::vec3 normal;
-    float isectDistance;
-    const render::Item* nearestItem = nullptr;
-    const float minDistance = 2.f;
-
-    for (const auto& itemBound : inputItems) {
-        if (!itemBound.bound.contains(rayOrigin) && itemBound.bound.findRayIntersection(rayOrigin, rayDirection, isectDistance, face, normal)) {
-            if (isectDistance>minDistance && isectDistance < minIsectDistance) {
-                auto& item = scene->getItem(itemBound.id);
-
-                if (item.getKey().isShape() && !item.getKey().isMeta()) {
-                    nearestItem = &item;
-                    minIsectDistance = isectDistance;
-                }
-            }
-        }
-    }
-    return nearestItem;
 }

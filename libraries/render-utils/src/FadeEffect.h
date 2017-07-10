@@ -16,6 +16,41 @@
 #include <render/RenderFetchCullSortTask.h>
 #include <render/Transition.h>
 
+class FadeEditConfig : public render::Job::Config {
+    Q_OBJECT
+        Q_PROPERTY(bool manualFade MEMBER manualFade NOTIFY dirty)
+        Q_PROPERTY(float manualThreshold MEMBER manualThreshold NOTIFY dirty)
+        Q_PROPERTY(bool editFade MEMBER editFade NOTIFY dirty)
+
+public:
+
+    float manualThreshold{ 0.f };
+    bool editFade{ false };
+    bool manualFade{ false };
+
+signals:
+
+    void dirty();
+};
+
+class FadeEditJob {
+
+public:
+
+    using Config = FadeEditConfig;
+    using Input = render::VaryingSet2<render::ItemBounds, render::Transition::Type>;
+    using JobModel = render::Job::ModelI<FadeEditJob, Input, Config>;
+
+    FadeEditJob() {}
+
+    void configure(const Config& config) {}
+    void run(const render::RenderContextPointer& renderContext, const Input& inputs);
+
+private:
+
+    render::ItemID findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const;
+};
+
 class FadeConfig : public render::Job::Config {
     Q_OBJECT
         Q_PROPERTY(int editedCategory MEMBER editedCategory WRITE setEditedCategory NOTIFY dirtyCategory)
@@ -38,14 +73,11 @@ class FadeConfig : public render::Job::Config {
         Q_PROPERTY(float edgeOuterColorG READ getEdgeOuterColorG WRITE setEdgeOuterColorG NOTIFY dirty)
         Q_PROPERTY(float edgeOuterColorB READ getEdgeOuterColorB WRITE setEdgeOuterColorB NOTIFY dirty)
         Q_PROPERTY(float edgeOuterIntensity READ getEdgeOuterIntensity WRITE setEdgeOuterIntensity NOTIFY dirty)
-        Q_PROPERTY(bool manualFade MEMBER manualFade NOTIFY dirty)
-        Q_PROPERTY(float manualThreshold MEMBER manualThreshold NOTIFY dirty)
         Q_PROPERTY(int timing READ getTiming WRITE setTiming NOTIFY dirty)
         Q_PROPERTY(float noiseSpeedX READ getNoiseSpeedX WRITE setNoiseSpeedX NOTIFY dirty)
         Q_PROPERTY(float noiseSpeedY READ getNoiseSpeedY WRITE setNoiseSpeedY NOTIFY dirty)
         Q_PROPERTY(float noiseSpeedZ READ getNoiseSpeedZ WRITE setNoiseSpeedZ NOTIFY dirty)
         Q_PROPERTY(float threshold MEMBER threshold NOTIFY dirty)
-        Q_PROPERTY(bool editFade MEMBER editFade NOTIFY dirty)
 
 public:
 
@@ -146,11 +178,8 @@ public:
     };
 
     Event events[render::Transition::EVENT_CATEGORY_COUNT];
-    float threshold{ 0.f };
-    float manualThreshold{ 0.f };
     int editedCategory{ render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN };
-    bool editFade{ false };
-    bool manualFade{ false };
+    float threshold{ 0.f };
 
     Q_INVOKABLE void save() const;
     Q_INVOKABLE void load();
@@ -169,12 +198,13 @@ class FadeJob {
 public:
 
     using Config = FadeConfig;
-    using JobModel = render::Job::Model<FadeJob, Config>;
+    using Output = render::Transition::Type;
+    using JobModel = render::Job::ModelO<FadeJob, Output, Config>;
 
     FadeJob();
 
     void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext);
+    void run(const render::RenderContextPointer& renderContext, Output& output);
 
     render::ShapePipeline::BatchSetter getBatchSetter() const;
     render::ShapePipeline::ItemSetter getItemSetter() const;

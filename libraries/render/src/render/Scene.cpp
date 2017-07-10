@@ -245,7 +245,7 @@ void Scene::transitionItems(const ItemIDs& ids, const TransitionTypes& types) {
             const auto& item = _items[itemId];
 
             // Remove pre-existing transition, if need be
-            if (item.getTransitionId() == render::TransitionStage::INVALID_INDEX) {
+            if (item.getTransitionId() != render::TransitionStage::INVALID_INDEX) {
                 transitionStage->removeTransition(item.getTransitionId());
             }
             // Add a new one.
