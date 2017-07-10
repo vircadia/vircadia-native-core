@@ -19,7 +19,7 @@
         onTabletButtonClicked, wireEventBridge, startup, shutdown, registerButtonMappings;
 
     // Function Name: inFrontOf()
-    // 
+    //
     // Description:
     //   -Returns the position in front of the given "position" argument, where the forward vector is based off
     //    the "orientation" argument and the amount in front is based off the "distance" argument.
@@ -29,7 +29,7 @@
     }
 
     // Function Name: spectatorCameraOn()
-    // 
+    //
     // Description:
     //   -Call this function to set up the spectator camera and
     //    spawn the camera entity.
@@ -103,7 +103,7 @@
     }
 
     // Function Name: spectatorCameraOff()
-    // 
+    //
     // Description:
     //   -Call this function to shut down the spectator camera and
     //    destroy the camera entity.
@@ -218,9 +218,17 @@
     //     3. Camera is on; "Monitor Shows" is "HMD Preview":  "url" is ""
     //     4. Camera is on; "Monitor Shows" is "Camera View":  "url" is "resource://spectatorCameraFrame"
     function setDisplay(showCameraView) {
-        var url = (camera && showCameraView) ? "resource://spectatorCameraFrame" : "";
-        sendToQml({ method: 'showPreviewTextureNotInstructions', setting: !!url });
-        Window.setDisplayTexture(url);
+
+        var url = (camera) ? (showCameraView ? "resource://spectatorCameraFrame" : "resource://hmdPreviewFrame") : "";
+        sendToQml({ method: 'showPreviewTextureNotInstructions', setting: !!url, url: url});
+
+        // FIXME: temporary hack to avoid setting the display texture to hmdPreviewFrame
+        // until it is the correct mono.
+        if (url === "resource://hmdPreviewFrame") {
+            Window.setDisplayTexture("");
+        } else {
+            Window.setDisplayTexture(url);
+        }
     }
     const MONITOR_SHOWS_CAMERA_VIEW_DEFAULT = false;
     var monitorShowsCameraView = !!Settings.getValue('spectatorCamera/monitorShowsCameraView', MONITOR_SHOWS_CAMERA_VIEW_DEFAULT);
@@ -421,7 +429,7 @@
     }
 
     // Function Name: onHMDChanged()
-    // 
+    //
     // Description:
     //   -Called from C++ when HMD mode is changed. The argument "isHMDMode" should be true if HMD is on; false otherwise.
     function onHMDChanged(isHMDMode) {
@@ -433,7 +441,7 @@
     }
 
     // Function Name: shutdown()
-    // 
+    //
     // Description:
     //   -shutdown() will be called when the script ends (i.e. is stopped).
     function shutdown() {

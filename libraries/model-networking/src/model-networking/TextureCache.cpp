@@ -54,6 +54,7 @@ const std::string TextureCache::KTX_EXT { "ktx" };
 
 static const QString RESOURCE_SCHEME = "resource";
 static const QUrl SPECTATOR_CAMERA_FRAME_URL("resource://spectatorCameraFrame");
+static const QUrl HMD_PREVIEW_FRAME_URL("resource://hmdPreviewFrame");
 
 static const float SKYBOX_LOAD_PRIORITY { 10.0f }; // Make sure skybox loads first
 static const float HIGH_MIPS_LOAD_PRIORITY { 9.0f }; // Make sure high mips loads after skybox but before models
@@ -969,7 +970,6 @@ void ImageReader::read() {
                                 Q_ARG(int, texture->getHeight()));
 }
 
-
 NetworkTexturePointer TextureCache::getResourceTexture(QUrl resourceTextureUrl) {
     gpu::TexturePointer texture;
     if (resourceTextureUrl == SPECTATOR_CAMERA_FRAME_URL) {
@@ -984,8 +984,28 @@ NetworkTexturePointer TextureCache::getResourceTexture(QUrl resourceTextureUrl) 
             }
         }
     }
+    // FIXME: Generalize this, DRY up this code
+    if (resourceTextureUrl == HMD_PREVIEW_FRAME_URL) {
+        if (!_hmdPreviewNetworkTexture) {
+            _hmdPreviewNetworkTexture.reset(new NetworkTexture(resourceTextureUrl));
+        }
+        if (_hmdPreviewFramebuffer) {
+            texture = _hmdPreviewFramebuffer->getRenderBuffer(0);
+            if (texture) {
+                _hmdPreviewNetworkTexture->setImage(texture, texture->getWidth(), texture->getHeight());
+                return _hmdPreviewNetworkTexture;
+            }
+        }
+    }
 
     return NetworkTexturePointer();
+}
+
+const gpu::FramebufferPointer& TextureCache::getHmdPreviewFramebuffer() {
+    if (!_hmdPreviewFramebuffer) {
+        _hmdPreviewFramebuffer.reset(gpu::Framebuffer::create("hmdPreview",gpu::Element::COLOR_SRGBA_32, 2040, 1024));
+    }
+    return _hmdPreviewFramebuffer;
 }
 
 const gpu::FramebufferPointer& TextureCache::getSpectatorCameraFramebuffer() {
