@@ -28,7 +28,7 @@ QVariant Billboardable::getProperty(const QString &property) {
     return QVariant();
 }
 
-void Billboardable::pointTransformAtCamera(Transform& transform, glm::quat offsetRotation) {
+bool Billboardable::pointTransformAtCamera(Transform& transform, glm::quat offsetRotation) {
     if (isFacingAvatar()) {
         glm::vec3 billboardPos = transform.getTranslation();
         glm::vec3 cameraPos = qApp->getCamera().getPosition();
@@ -38,5 +38,7 @@ void Billboardable::pointTransformAtCamera(Transform& transform, glm::quat offse
         glm::quat rotation(glm::vec3(elevation, azimuth, 0));
         transform.setRotation(rotation);
         transform.postRotate(offsetRotation);
+        return true;
     }
+    return false;
 }

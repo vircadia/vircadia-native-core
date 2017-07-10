@@ -65,7 +65,7 @@ Rectangle {
 
     HiFiGlyphs {
         id: image
-        text: hifi.glyphs.avatar1
+        text: hifi.glyphs.avatarTPose
         size: 190
         color: hifi.colors.white
 

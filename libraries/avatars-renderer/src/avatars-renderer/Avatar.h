@@ -267,6 +267,13 @@ protected:
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) override { _sessionDisplayName = sessionDisplayName; } // don't use no-op setter!
 
     SkeletonModelPointer _skeletonModel;
+
+    void invalidateJointIndicesCache() const;
+    void withValidJointIndicesCache(std::function<void()> const& worker) const;
+    mutable QHash<QString, int> _modelJointIndicesCache;
+    mutable QReadWriteLock _modelJointIndicesCacheLock;
+    mutable bool _modelJointsCached { false };
+
     glm::vec3 _skeletonOffset;
     std::vector<std::shared_ptr<Model>> _attachmentModels;
     std::vector<std::shared_ptr<Model>> _attachmentsToRemove;

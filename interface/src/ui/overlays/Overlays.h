@@ -190,6 +190,10 @@ public slots:
      */
     OverlayPropertyResult getProperty(OverlayID id, const QString& property);
 
+    OverlayPropertyResult getProperties(const OverlayID& id, const QStringList& properties);
+
+    OverlayPropertyResult getOverlaysProperties(const QVariant& overlaysProperties);
+
     /*jsdoc
      * Find the closest 3D overlay hit by a pick ray.
      *

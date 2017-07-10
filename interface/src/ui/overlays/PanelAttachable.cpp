@@ -61,7 +61,7 @@ void PanelAttachable::setProperties(const QVariantMap& properties) {
     }
 }
 
-void PanelAttachable::applyTransformTo(Transform& transform, bool force) {
+bool PanelAttachable::applyTransformTo(Transform& transform, bool force) {
     if (force || usecTimestampNow() > _transformExpiry) {
         const quint64 TRANSFORM_UPDATE_PERIOD = 100000; // frequency is 10 Hz
         _transformExpiry = usecTimestampNow() + TRANSFORM_UPDATE_PERIOD;
@@ -71,7 +71,9 @@ void PanelAttachable::applyTransformTo(Transform& transform, bool force) {
             transform.postTranslate(getOffsetPosition());
             transform.postRotate(getOffsetRotation());
             transform.postScale(getOffsetScale());
+            return true;
         }
 #endif
     }
+    return false;
 }

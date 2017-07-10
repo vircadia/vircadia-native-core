@@ -52,13 +52,21 @@ void ZoneRendererTask::build(JobModel& task, const Varying& input, Varying& oupu
 }
 
 void SetupZones::run(const RenderContextPointer& context, const Inputs& inputs) {
-    
-    auto backgroundStage = DependencyManager::get<DeferredLightingEffect>()->getBackgroundStage();
+    auto backgroundStage = context->_scene->getStage<BackgroundStage>();
+    assert(backgroundStage);
     backgroundStage->_currentFrame.clear();
 
     // call render in the correct order first...
     render::renderItems(context, inputs);
 
+    // Finally add the default lights and background:
+    auto lightStage = context->_scene->getStage<LightStage>();
+    assert(lightStage);
+    
+    lightStage->_currentFrame.pushSunLight(0);
+    lightStage->_currentFrame.pushAmbientLight(0);
+
+    backgroundStage->_currentFrame.pushBackground(0);
 }
 
 const gpu::PipelinePointer& DebugZoneLighting::getKeyLightPipeline() {
@@ -130,14 +138,13 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
 
     auto deferredTransform = inputs;
 
-    auto lightStage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
+    auto lightStage = context->_scene->getStage<LightStage>(LightStage::getName());
     std::vector<model::LightPointer> keyLightStack;
     if (lightStage && lightStage->_currentFrame._sunLights.size()) {
         for (auto index : lightStage->_currentFrame._sunLights) {
             keyLightStack.push_back(lightStage->getLight(index));
         }
     }
-    keyLightStack.push_back(DependencyManager::get<DeferredLightingEffect>()->getGlobalLight());
 
     std::vector<model::LightPointer> ambientLightStack;
     if (lightStage && lightStage->_currentFrame._ambientLights.size()) {
@@ -145,10 +152,8 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
             ambientLightStack.push_back(lightStage->getLight(index));
         }
     }
-    ambientLightStack.push_back(DependencyManager::get<DeferredLightingEffect>()->getGlobalLight());
 
-
-    auto backgroundStage = DependencyManager::get<DeferredLightingEffect>()->getBackgroundStage();
+    auto backgroundStage = context->_scene->getStage<BackgroundStage>(BackgroundStage::getName());
     std::vector<model::SkyboxPointer> skyboxStack;
     if (backgroundStage && backgroundStage->_currentFrame._backgrounds.size()) {
         for (auto index : backgroundStage->_currentFrame._backgrounds) {
@@ -157,8 +162,7 @@ void DebugZoneLighting::run(const render::RenderContextPointer& context, const I
                 skyboxStack.push_back(background->getSkybox());
             }
         }
-    } 
-    skyboxStack.push_back(DependencyManager::get<DeferredLightingEffect>()->getDefaultSkybox());
+    }
 
 
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {

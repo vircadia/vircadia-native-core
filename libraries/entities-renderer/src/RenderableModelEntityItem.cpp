@@ -378,7 +378,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         auto shapeTransform = getTransformToCenter(success);
         if (success) {
             batch.setModelTransform(shapeTransform); // we want to include the scale as well
-            DependencyManager::get<GeometryCache>()->renderWireCubeInstance(batch, greenColor);
+            DependencyManager::get<GeometryCache>()->renderWireCubeInstance(args, batch, greenColor);
         }
         return;
     }

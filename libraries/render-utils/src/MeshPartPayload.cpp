@@ -259,7 +259,7 @@ void MeshPartPayload::render(RenderArgs* args) {
 
     gpu::Batch& batch = *(args->_batch);
 
-    auto locations = args->_pipeline->locations;
+    auto locations = args->_shapePipeline->locations;
     assert(locations);
 
     // Bind the model transform and the skinCLusterMatrices if needed
@@ -583,7 +583,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     }
 
     gpu::Batch& batch = *(args->_batch);
-    auto locations =  args->_pipeline->locations;
+    auto locations =  args->_shapePipeline->locations;
     assert(locations);
 
     bindTransform(batch, locations, args->_renderMode);
