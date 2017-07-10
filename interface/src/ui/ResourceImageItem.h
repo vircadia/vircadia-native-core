@@ -30,6 +30,7 @@ public:
 private:
     bool _ready;
     QString _url;
+    bool _visible;
 
     NetworkTexturePointer _networkTexture;
     QQuickWindow* _window;
