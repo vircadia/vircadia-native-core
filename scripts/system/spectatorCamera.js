@@ -370,6 +370,7 @@
             sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
             sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
             Menu.setIsOptionChecked("Disable Preview", false);
+            Menu.setIsOptionChecked("Mono Preview", true);
         }
     }
 
