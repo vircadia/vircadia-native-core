@@ -329,7 +329,6 @@
     var controllerMapping;
     var controllerType = "Other";
     function registerButtonMappings() {
-
         var VRDevices = Controller.getDeviceNames().toString();
         if (VRDevices) {
             if (VRDevices.includes("Vive")) {
@@ -337,6 +336,7 @@
             } else if (VRDevices.includes("OculusTouch")) {
                 controllerType = "OculusTouch";
             } else {
+                sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
                 return; // Neither Vive nor Touch detected
             }
         }
@@ -384,12 +384,13 @@
             tablet.loadQMLSource(SPECTATOR_CAMERA_QML_SOURCE);
             sendToQml({ method: 'updateSpectatorCameraCheckbox', params: !!camera });
             sendToQml({ method: 'updateMonitorShowsSwitch', params: monitorShowsCameraView });
-            sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
-            Menu.setIsOptionChecked("Disable Preview", false);
-            Menu.setIsOptionChecked("Mono Preview", true);
             if (!controllerMapping) {
                 registerButtonMappings();
+            } else {
+                sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
             }
+            Menu.setIsOptionChecked("Disable Preview", false);
+            Menu.setIsOptionChecked("Mono Preview", true);
         }
     }
 
