@@ -65,15 +65,15 @@ void Cube3DOverlay::render(RenderArgs* args) {
         transform.setTranslation(position);
         transform.setRotation(rotation);
         auto geometryCache = DependencyManager::get<GeometryCache>();
-        auto pipeline = args->_pipeline;
-        if (!pipeline) {
-            pipeline = _isSolid ? geometryCache->getOpaqueShapePipeline() : geometryCache->getWireShapePipeline();
+        auto shapePipeline = args->_shapePipeline;
+        if (!shapePipeline) {
+            shapePipeline = _isSolid ? geometryCache->getOpaqueShapePipeline() : geometryCache->getWireShapePipeline();
         }
 
         if (_isSolid) {
             transform.setScale(dimensions);
             batch->setModelTransform(transform);
-            geometryCache->renderSolidCubeInstance(*batch, cubeColor, pipeline);
+            geometryCache->renderSolidCubeInstance(args, *batch, cubeColor, shapePipeline);
         } else {
             geometryCache->bindSimpleProgram(*batch, false, false, false, true, true);
             if (getIsDashedLine()) {
@@ -109,7 +109,7 @@ void Cube3DOverlay::render(RenderArgs* args) {
             } else {
                 transform.setScale(dimensions);
                 batch->setModelTransform(transform);
-                geometryCache->renderWireCubeInstance(*batch, cubeColor, pipeline);
+                geometryCache->renderWireCubeInstance(args, *batch, cubeColor, shapePipeline);
             }
         }
     }
