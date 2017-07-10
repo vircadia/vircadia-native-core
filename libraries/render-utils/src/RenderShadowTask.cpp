@@ -68,7 +68,7 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext,
         std::vector<ShapeKey> skinnedShapeKeys{};
 
         // Iterate through all inShapes and render the unskinned
-        args->_pipeline = shadowPipeline;
+        args->_shapePipeline = shadowPipeline;
         batch.setPipeline(shadowPipeline->pipeline);
         for (auto items : inShapes) {
             if (items.first.isSkinned()) {
@@ -79,13 +79,13 @@ void RenderShadowMap::run(const render::RenderContextPointer& renderContext,
         }
 
         // Reiterate to render the skinned
-        args->_pipeline = shadowSkinnedPipeline;
+        args->_shapePipeline = shadowSkinnedPipeline;
         batch.setPipeline(shadowSkinnedPipeline->pipeline);
         for (const auto& key : skinnedShapeKeys) {
             renderItems(renderContext, inShapes.at(key));
         }
 
-        args->_pipeline = nullptr;
+        args->_shapePipeline = nullptr;
         args->_batch = nullptr;
     });
 }
