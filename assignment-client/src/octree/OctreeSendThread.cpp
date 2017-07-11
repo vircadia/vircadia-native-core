@@ -130,7 +130,7 @@ AtomicUIntStat OctreeSendThread::_totalSpecialPackets { 0 };
 
 
 int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* nodeData, int& trueBytesSent,
-                                       int& truePacketsSent, bool dontSuppressDuplicate) {
+                                       bool dontSuppressDuplicate) {
     OctreeServer::didHandlePacketSend(this);
 
     // if we're shutting down, then exit early
@@ -222,7 +222,6 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
             }
 
             trueBytesSent += statsPacket.getDataSize();
-            truePacketsSent++;
             packetsSent++;
 
             OctreeServer::didCallWriteDatagram(this);
@@ -290,7 +289,6 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
     if (packetSent) {
         nodeData->stats.packetSent(nodeData->getPacket().getPayloadSize());
         trueBytesSent += nodeData->getPacket().getPayloadSize();
-        truePacketsSent++;
         packetsSent++;
         nodeData->octreePacketSent();
         nodeData->resetOctreePacket();
@@ -342,7 +340,9 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
     // If we have a packet waiting, and our desired want color, doesn't match the current waiting packets color
     // then let's just send that waiting packet.
     if (nodeData->isPacketWaiting()) {
-        packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+        int numPackets = handlePacketSend(node, nodeData, trueBytesSent);
+        truePacketsSent += numPackets;
+        packetsSentThisInterval += numPackets;
     } else {
         nodeData->resetOctreePacket();
     }
@@ -373,8 +373,9 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
         //unsigned long encodeTime = nodeData->stats.getTotalEncodeTime();
         //unsigned long elapsedTime = nodeData->stats.getElapsedTime();
 
-        int packetsJustSent = handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent, isFullScene);
-        packetsSentThisInterval += packetsJustSent;
+        int numPackets = handlePacketSend(node, nodeData, trueBytesSent, isFullScene);
+        truePacketsSent += numPackets;
+        packetsSentThisInterval += numPackets;
 
         // If we're starting a full scene, then definitely we want to empty the elementBag
         if (isFullScene) {
@@ -489,7 +490,9 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
                     unsigned int additionalSize = _packetData.getFinalizedSize() + sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
                     if (additionalSize > nodeData->getAvailable()) {
                         // no room --> flush what we've got
-                        packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+                        int numPackets = handlePacketSend(node, nodeData, trueBytesSent);
+                        truePacketsSent += numPackets;
+                        packetsSentThisInterval += numPackets;
                     }
 
                     // either there is room, or we've flushed and reset nodeData's data buffer
@@ -505,7 +508,9 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
                 int targetSize = MAX_OCTREE_PACKET_DATA_SIZE;
                 if (sendNow) {
                     quint64 packetSendingStart = usecTimestampNow();
-                    packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+                    int numPackets = handlePacketSend(node, nodeData, trueBytesSent);
+                    truePacketsSent += numPackets;
+                    packetsSentThisInterval += numPackets;
                     quint64 packetSendingEnd = usecTimestampNow();
                     packetSendingElapsedUsec = (float)(packetSendingEnd - packetSendingStart);
 
@@ -587,12 +592,11 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
             // the clients will know the scene is stable
             if (isFullScene) {
                 int thisTrueBytesSent = 0;
-                int thisTruePacketsSent = 0;
                 nodeData->stats.sceneCompleted();
-                int packetsJustSent = handlePacketSend(node, nodeData, thisTrueBytesSent, thisTruePacketsSent, true);
+                int numPackets = handlePacketSend(node, nodeData, thisTrueBytesSent, true);
                 _totalBytes += thisTrueBytesSent;
-                _totalPackets += thisTruePacketsSent;
-                truePacketsSent += packetsJustSent;
+                _totalPackets += numPackets;
+                truePacketsSent += numPackets;
             }
         }
 

@@ -34,7 +34,7 @@ public:
 
     void setIsShuttingDown();
     bool isShuttingDown() { return _isShuttingDown; }
-    
+
     QUuid getNodeUuid() const { return _nodeUuid; }
 
     static AtomicUIntStat _totalBytes;
@@ -58,9 +58,9 @@ protected:
     QWeakPointer<Node> _node;
 
 private:
-    int handlePacketSend(SharedNodePointer node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent, bool dontSuppressDuplicate = false);
+    int handlePacketSend(SharedNodePointer node, OctreeQueryNode* nodeData, int& trueBytesSent, bool dontSuppressDuplicate = false);
     int packetDistributor(SharedNodePointer node, OctreeQueryNode* nodeData, bool viewFrustumChanged);
-    
+
 
     QUuid _nodeUuid;
 
