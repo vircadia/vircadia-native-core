@@ -232,9 +232,9 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
             numBytes = nodeData->getPacket().getDataSize();
             _totalBytes += numBytes;
             _totalPackets++;
-            // since a stats message is only included on end of scene, don't consider any of these bytes "wasted"
-            // there was nothing else to send.
-            //_totalWastedBytes += 0;
+            // we count wasted bytes here because we were unable to fit the stats packet
+            thisWastedBytes = udt::MAX_PACKET_SIZE - numBytes;
+            _totalWastedBytes += thisWastedBytes;
             _trueBytesSent += numBytes;
             numPackets++;
 
