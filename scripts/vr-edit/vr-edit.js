@@ -18,6 +18,7 @@
         tablet,
         button,
         isAppActive = false,
+        isScaleWithHandles = false,
 
         VR_EDIT_SETTING = "io.highfidelity.isVREditing",  // Note: This constant is duplicated in utils.js.
 
@@ -398,7 +399,7 @@
         };
     };
 
-    Hand = function (side) {
+    Hand = function (side, gripPressedCallback) {
         // Hand controller input.
         // Each hand has a laser, an entity selection, and entity highlighter.
 
@@ -406,6 +407,11 @@
             handController,
             controllerTrigger,
             controllerTriggerClicked,
+            controllerGrip,
+
+            isGripPressed = false,
+            GRIP_ON_VALUE = 0.99,
+            GRIP_OFF_VALUE = 0.95,
 
             TRIGGER_ON_VALUE = 0.15,  // Per handControllerGrab.js.
             TRIGGER_OFF_VALUE = 0.1,  // Per handControllerGrab.js.
@@ -421,6 +427,8 @@
 
             handPose,
             intersection = {},
+
+            isScaleWithHandles = false,
 
             isLaserOn = false,
             hoveredEntityID = null,
@@ -456,11 +464,13 @@
             handController = Controller.Standard.LeftHand;
             controllerTrigger = Controller.Standard.LT;
             controllerTriggerClicked = Controller.Standard.LTClick;
+            controllerGrip = Controller.Standard.LeftGrip;
             GRAB_POINT_SPHERE_OFFSET.x = -GRAB_POINT_SPHERE_OFFSET.x;
         } else {
             handController = Controller.Standard.RightHand;
             controllerTrigger = Controller.Standard.RT;
             controllerTriggerClicked = Controller.Standard.RTClick;
+            controllerGrip = Controller.Standard.RightGrip;
         }
 
         laser = new Laser(hand);
@@ -469,6 +479,10 @@
 
         function setOtherHand(hand) {
             otherHand = hand;
+        }
+
+        function setScaleWithHandles(value) {
+            isScaleWithHandles = value;
         }
 
         function getIsEditing(rootEntityID) {
@@ -578,7 +592,8 @@
         }
 
         function update() {
-            var palmPosition,
+            var gripValue,
+                palmPosition,
                 entityID,
                 entityIDs,
                 entitySize,
@@ -614,6 +629,17 @@
             isTriggerPressed = Controller.getValue(controllerTrigger) > (isTriggerPressed
                 ? TRIGGER_OFF_VALUE : TRIGGER_ON_VALUE);
             isTriggerClicked = Controller.getValue(controllerTriggerClicked);
+
+            // Controller grip.
+            gripValue = Controller.getValue(controllerGrip);
+            if (isGripPressed) {
+                isGripPressed = gripValue > GRIP_OFF_VALUE;
+            } else {
+                isGripPressed = gripValue > GRIP_ON_VALUE;
+                if (isGripPressed) {
+                    gripPressedCallback();
+                }
+            }
 
             // Hand-entity intersection, if any.
             entityID = null;
@@ -747,6 +773,7 @@
 
         return {
             setOtherHand: setOtherHand,
+            setScaleWithHandles: setScaleWithHandles,
             isEditing: getIsEditing,
             getTargetPosition: getTargetPosition,
             updateGrabOffset: updateGrabOffset,
@@ -786,6 +813,12 @@
         }
     }
 
+    function onGripClicked() {
+        isScaleWithHandles = !isScaleWithHandles;
+        hands[LEFT_HAND].setScaleWithHandles(isScaleWithHandles);
+        hands[RIGHT_HAND].setScaleWithHandles(isScaleWithHandles);
+    }
+
     function setUp() {
         updateHandControllerGrab();
 
@@ -806,8 +839,8 @@
         }
 
         // Hands, each with a laser, selection, etc.
-        hands[LEFT_HAND] = new Hand(LEFT_HAND);
-        hands[RIGHT_HAND] = new Hand(RIGHT_HAND);
+        hands[LEFT_HAND] = new Hand(LEFT_HAND, onGripClicked);
+        hands[RIGHT_HAND] = new Hand(RIGHT_HAND, onGripClicked);
         hands[LEFT_HAND].setOtherHand(hands[RIGHT_HAND]);
         hands[RIGHT_HAND].setOtherHand(hands[LEFT_HAND]);
 
