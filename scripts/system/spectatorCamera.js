@@ -113,6 +113,14 @@
     //    destroy the camera entity. "isChangingDomains" is true when this function is called
     //    from the "Window.domainChanged()" signal.
     function spectatorCameraOff(isChangingDomains) {
+
+        function deleteCamera() {
+            Entities.deleteEntity(camera);
+            camera = false;
+            // Change button to active when window is first openend OR if the camera is on, false otherwise.
+            button.editProperties({ isActive: onSpectatorCameraScreen || camera });
+        }
+
         spectatorCameraConfig.attachedEntityId = false;
         spectatorCameraConfig.enableSecondaryCameraRenderConfigs(false);
         if (camera) {
@@ -121,12 +129,10 @@
             // Should be removed after FB6155 is fixed.
             if (isChangingDomains) {
                 Script.setTimeout(function () {
-                    Entities.deleteEntity(camera);
-                    camera = false;
+                    deleteCamera();
                 }, 1 * 1000);
             } else {
-                Entities.deleteEntity(camera);
-                camera = false;
+                deleteCamera();
             }
         }
         if (viewFinderOverlay) {
@@ -134,10 +140,6 @@
         }
         viewFinderOverlay = false;
         setDisplay(monitorShowsCameraView);
-        // Change button to active when window is first openend OR if the camera is on, false otherwise.
-        if (button) {
-            button.editProperties({ isActive: onSpectatorCameraScreen || camera });
-        }
     }
 
     // Function Name: addOrRemoveButton()
