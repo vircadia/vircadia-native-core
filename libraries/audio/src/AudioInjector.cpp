@@ -432,7 +432,7 @@ void AudioInjector::stopAndDeleteLater() {
 AudioInjectorPointer AudioInjector::playSound(SharedSoundPointer sound, const float volume,
                                               const float stretchFactor, const glm::vec3 position) {
     if (!sound || !sound->isReady()) {
-        return nullptr;
+        return AudioInjectorPointer(nullptr);
     }
 
     AudioInjectorOptions options;
