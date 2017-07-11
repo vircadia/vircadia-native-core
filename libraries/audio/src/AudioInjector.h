@@ -79,7 +79,6 @@ public:
     static AudioInjectorPointer playSound(SharedSoundPointer sound, const float volume,
                                           const float stretchFactor, const glm::vec3 position);
 
-    QWeakPointer<AudioInjector> weakRef() const { return _self; }
     AudioInjectorPointer getThisPointer();
     void setThisPointer(AudioInjectorPointer self);
 
