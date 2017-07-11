@@ -250,6 +250,10 @@ public:
     void addPhysicsFlags(uint32_t flags);
     bool isInPhysicsSimulation() const { return _physicsCallback != nullptr; }
 
+    void fadeIn(render::ScenePointer scene);
+    void fadeOut(render::ScenePointer scene);
+    bool isFading(render::ScenePointer scene) const;
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead
@@ -293,6 +297,8 @@ protected:
 
     // protected methods...
     bool isLookingAtMe(AvatarSharedPointer avatar) const;
+
+    void fade(render::Transaction& transaction, render::Transition::Type type);
 
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
@@ -342,6 +348,8 @@ private:
     bool _initialized { false };
     bool _isLookAtTarget { false };
     bool _isAnimatingScale { false };
+    bool _mustFadeIn{ false };
+    bool _isWaitingForFade{ false };
 
     static int _jointConesID;
 

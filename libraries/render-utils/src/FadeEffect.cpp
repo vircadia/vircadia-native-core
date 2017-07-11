@@ -594,7 +594,13 @@ bool FadeJob::update(const Config& config, const render::ScenePointer& scene, re
     bool continueTransition = true;
 
     if (item.exist()) {
-        auto& aabb = item.getBound();
+        auto aabb = item.getBound();
+        if (render::Item::isValidID(transition.boundItemId)) {
+            auto& boundItem = scene->getItem(transition.boundItemId);
+            if (boundItem.exist()) {
+                aabb = boundItem.getBound();
+            }
+        }
         auto& dimensions = aabb.getDimensions();
 
         assert(timing < FadeConfig::TIMING_COUNT);
@@ -645,7 +651,7 @@ bool FadeJob::update(const Config& config, const render::ScenePointer& scene, re
             transition.baseInvSize.y = 1.f / dimensions.y;
             transition.baseInvSize.z = 1.f / eventConfig.baseSize.z;
             continueTransition = transition.threshold < 1.f;
-            if (transition.eventType == render::Transition::USER_ENTER_DOMAIN) {
+            if (transition.eventType == render::Transition::USER_LEAVE_DOMAIN) {
                 transition.threshold = 1.f - transition.threshold;
             }
         }

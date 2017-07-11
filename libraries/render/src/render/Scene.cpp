@@ -31,8 +31,9 @@ void Transaction::removeItem(ItemID id) {
     _removedItems.emplace_back(id);
 }
 
-void Transaction::transitionItem(ItemID id, Transition::Type transition) {
+void Transaction::transitionItem(ItemID id, Transition::Type transition, ItemID boundId) {
     _transitioningItems.emplace_back(id);
+    _transitioningItemBounds.emplace_back(boundId);
     _transitionTypes.emplace_back(transition);
 }
 
@@ -53,6 +54,7 @@ void Transaction::merge(const Transaction& transaction) {
     _updateFunctors.insert(_updateFunctors.end(), transaction._updateFunctors.begin(), transaction._updateFunctors.end());
     _resetSelections.insert(_resetSelections.end(), transaction._resetSelections.begin(), transaction._resetSelections.end());
     _transitioningItems.insert(_transitioningItems.end(), transaction._transitioningItems.begin(), transaction._transitioningItems.end());
+    _transitioningItemBounds.insert(_transitioningItemBounds.end(), transaction._transitioningItemBounds.begin(), transaction._transitioningItemBounds.end());
     _transitionTypes.insert(_transitionTypes.end(), transaction._transitionTypes.begin(), transaction._transitionTypes.end());
 }
 
@@ -124,7 +126,7 @@ void Scene::processTransactionQueue() {
         removeItems(consolidatedTransaction._removedItems);
 
         // Transitions
-        transitionItems(consolidatedTransaction._transitioningItems, consolidatedTransaction._transitionTypes);
+        transitionItems(consolidatedTransaction._transitioningItems, consolidatedTransaction._transitionTypes, consolidatedTransaction._transitioningItemBounds);
 
         // Update the numItemsAtomic counter AFTER the pending changes went through
         _numAllocatedItems.exchange(maxID);
@@ -233,8 +235,9 @@ void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
     }
 }
 
-void Scene::transitionItems(const ItemIDs& ids, const TransitionTypes& types) {
+void Scene::transitionItems(const ItemIDs& ids, const TransitionTypes& types, const ItemIDs& boundIds) {
     auto transitionType = types.begin();
+    auto boundId = boundIds.begin();
     auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
 
     for (auto itemId : ids) {
@@ -242,7 +245,6 @@ void Scene::transitionItems(const ItemIDs& ids, const TransitionTypes& types) {
         const auto& item = _items[itemId];
         if (item.exist()) {
             auto transitionId = INVALID_INDEX;
-            const auto& item = _items[itemId];
 
             // Remove pre-existing transition, if need be
             if (item.getTransitionId() != render::TransitionStage::INVALID_INDEX) {
@@ -250,7 +252,7 @@ void Scene::transitionItems(const ItemIDs& ids, const TransitionTypes& types) {
             }
             // Add a new one.
             if (*transitionType != Transition::NONE) {
-                transitionId = transitionStage->addTransition(itemId, *transitionType);
+                transitionId = transitionStage->addTransition(itemId, *transitionType, *boundId);
             }
 
             setItemTransition(itemId, transitionId);
@@ -258,6 +260,7 @@ void Scene::transitionItems(const ItemIDs& ids, const TransitionTypes& types) {
 
         // next loop
         transitionType++;
+        boundId++;
     }
 }
 

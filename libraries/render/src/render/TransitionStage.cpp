@@ -6,12 +6,13 @@ using namespace render;
 
 std::string TransitionStage::_name("Transition");
 
-TransitionStage::Index TransitionStage::addTransition(ItemID itemId, Transition::Type type) {
+TransitionStage::Index TransitionStage::addTransition(ItemID itemId, Transition::Type type, ItemID boundId) {
     Transition transition;
     Index id;
     
     transition.eventType = type;
     transition.itemId = itemId;
+    transition.boundItemId = boundId;
     id = _transitions.newElement(transition);
     _activeTransitionIds.push_back(id);
 

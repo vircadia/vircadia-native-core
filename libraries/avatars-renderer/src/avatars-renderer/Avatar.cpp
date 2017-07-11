@@ -30,6 +30,7 @@
 #include <DebugDraw.h>
 #include <shared/Camera.h>
 #include <SoftAttachmentModel.h>
+#include <render/TransitionStage.h>
 
 #include "Logging.h"
 
@@ -493,6 +494,39 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     for (auto& attachmentModel : _attachmentModels) {
         attachmentModel->addToScene(scene, transaction);
     }
+
+    _mustFadeIn = true;
+}
+
+bool Avatar::isFading(render::ScenePointer scene) const {
+    if (isInScene()) {
+        const auto& item = scene->getItem(_renderItemID);
+        auto transitionId = item.getTransitionId();
+        return _isWaitingForFade || transitionId!= render::TransitionStage::INVALID_INDEX;
+    }
+    return _isWaitingForFade;
+}
+
+void Avatar::fadeIn(render::ScenePointer scene) {
+    render::Transaction transaction;
+    fade(transaction, render::Transition::USER_ENTER_DOMAIN);
+    scene->enqueueTransaction(transaction);
+}
+
+void Avatar::fadeOut(render::ScenePointer scene) {
+    render::Transaction transaction;
+    fade(transaction, render::Transition::USER_LEAVE_DOMAIN);
+    scene->enqueueTransaction(transaction);
+}
+
+void Avatar::fade(render::Transaction& transaction, render::Transition::Type type) {
+    transaction.transitionItem(_renderItemID, type);
+    for (auto& attachmentModel : _attachmentModels) {
+        for (auto itemId : attachmentModel->fetchRenderItemIDs()) {
+            transaction.transitionItem(itemId, type, _renderItemID);
+        }
+    }
+    _isWaitingForFade = true;
 }
 
 void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
@@ -645,6 +679,8 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
+    bool canTryFade{ false };
+
     _attachmentsToDelete.clear();
 
     // check to see if when we added our models to the scene they were ready, if they were not ready, then
@@ -653,11 +689,26 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
     if (_skeletonModel->isRenderable() && _skeletonModel->needsFixupInScene()) {
         _skeletonModel->removeFromScene(scene, transaction);
         _skeletonModel->addToScene(scene, transaction);
+        canTryFade = true;
     }
     for (auto attachmentModel : _attachmentModels) {
         if (attachmentModel->isRenderable() && attachmentModel->needsFixupInScene()) {
             attachmentModel->removeFromScene(scene, transaction);
             attachmentModel->addToScene(scene, transaction);
+        }
+    }
+
+    if (_mustFadeIn && canTryFade) {
+        // Do it now to be sure all the sub items are ready and the fade is sent to them too
+        fade(transaction, render::Transition::USER_ENTER_DOMAIN);
+        _mustFadeIn = false;
+    }
+
+    if (isInScene()) {
+        const auto& item = scene->getItem(_renderItemID);
+        auto transitionId = item.getTransitionId();
+        if (_isWaitingForFade && transitionId != render::TransitionStage::INVALID_INDEX) {
+            _isWaitingForFade = false;
         }
     }
 

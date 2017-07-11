@@ -36,7 +36,7 @@ namespace render {
 
         Transition& editTransition(Index TransitionId) { return _transitions.edit(TransitionId); }
 
-        Index addTransition(ItemID itemId, Transition::Type type);
+        Index addTransition(ItemID itemId, Transition::Type type, ItemID boundId);
         void removeTransition(Index index);
 
         TransitionIdList::iterator begin() { return _activeTransitionIds.begin(); }

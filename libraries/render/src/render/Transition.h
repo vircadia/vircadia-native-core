@@ -35,6 +35,7 @@ namespace render {
 
         Type eventType{ ELEMENT_ENTER_DOMAIN };
         ItemID itemId{ Item::INVALID_ITEM_ID };
+        ItemID boundItemId{ Item::INVALID_ITEM_ID };
         double time{ 0.0 };
         glm::vec3 noiseOffset{ 0.f, 0.f, 0.f };
         glm::vec3 baseOffset{ 0.f, 0.f, 0.f };

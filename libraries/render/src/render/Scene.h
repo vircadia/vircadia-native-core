@@ -40,7 +40,7 @@ public:
     void resetItem(ItemID id, const PayloadPointer& payload);
     void removeItem(ItemID id);
 
-    void transitionItem(ItemID id, Transition::Type transition);
+    void transitionItem(ItemID id, Transition::Type transition, ItemID boundId = render::Item::INVALID_ITEM_ID);
 
     template <class T> void updateItem(ItemID id, std::function<void(T&)> func) {
         updateItem(id, std::make_shared<UpdateFunctor<T>>(func));
@@ -62,6 +62,7 @@ public:
     ItemIDs _removedItems;
     ItemIDs _updatedItems;
     ItemIDs _transitioningItems;
+    ItemIDs _transitioningItemBounds;
     TransitionTypes _transitionTypes;
     UpdateFunctors _updateFunctors;
 
@@ -148,7 +149,7 @@ protected:
     void resetItems(const ItemIDs& ids, Payloads& payloads);
     void removeItems(const ItemIDs& ids);
     void updateItems(const ItemIDs& ids, UpdateFunctors& functors);
-    void transitionItems(const ItemIDs& ids, const TransitionTypes& types);
+    void transitionItems(const ItemIDs& ids, const TransitionTypes& types, const ItemIDs& boundIds);
 
     void collectSubItems(ItemID parentId, ItemIDs& subItems) const;
 
