@@ -112,6 +112,7 @@
     //   -Call this function to shut down the spectator camera and
     //    destroy the camera entity. "isChangingDomains" is true when this function is called
     //    from the "Window.domainChanged()" signal.
+    var WAIT_AFTER_DOMAIN_SWITCH_BEFORE_CAMERA_DELETE_MS = 1 * 1000;
     function spectatorCameraOff(isChangingDomains) {
 
         function deleteCamera() {
@@ -131,7 +132,7 @@
                 Script.setTimeout(function () {
                     deleteCamera();
                     spectatorCameraOn();
-                }, 1 * 1000);
+                }, WAIT_AFTER_DOMAIN_SWITCH_BEFORE_CAMERA_DELETE_MS);
             } else {
                 deleteCamera();
             }
