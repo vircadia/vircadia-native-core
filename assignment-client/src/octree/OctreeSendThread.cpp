@@ -160,13 +160,13 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
             // copy octree message to back of stats message
             statsPacket.write(nodeData->getPacket().getData(), nodeData->getPacket().getDataSize());
 
-            // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
-            // there was nothing else to send.
-            int thisWastedBytes = 0;
             int numBytes = statsPacket.getDataSize();
-            _totalWastedBytes += thisWastedBytes;
             _totalBytes += numBytes;
             _totalPackets++;
+            // since a stats message is only included on end of scene, don't consider any of these bytes "wasted"
+            // there was nothing else to send.
+            int thisWastedBytes = 0;
+            //_totalWastedBytes += 0;
             _trueBytesSent += numBytes;
             numPackets++;
 
@@ -198,13 +198,13 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
             OctreeServer::didCallWriteDatagram(this);
             DependencyManager::get<NodeList>()->sendUnreliablePacket(statsPacket, *node);
 
-            // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
-            // there was nothing else to send.
-            int thisWastedBytes = 0;
             int numBytes = statsPacket.getDataSize();
-            _totalWastedBytes += thisWastedBytes;
             _totalBytes += numBytes;
             _totalPackets++;
+            // since a stats message is only included on end of scene, don't consider any of these bytes "wasted"
+            // there was nothing else to send.
+            int thisWastedBytes = 0;
+            //_totalWastedBytes += 0;
             _trueBytesSent += numBytes;
             numPackets++;
 
@@ -230,10 +230,11 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
             DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), *node);
 
             numBytes = nodeData->getPacket().getDataSize();
-            thisWastedBytes = udt::MAX_PACKET_SIZE - numBytes;
-            _totalWastedBytes += thisWastedBytes;
             _totalBytes += numBytes;
             _totalPackets++;
+            // since a stats message is only included on end of scene, don't consider any of these bytes "wasted"
+            // there was nothing else to send.
+            //_totalWastedBytes += 0;
             _trueBytesSent += numBytes;
             numPackets++;
 
@@ -263,11 +264,12 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
             DependencyManager::get<NodeList>()->sendUnreliablePacket(nodeData->getPacket(), *node);
 
             int numBytes = nodeData->getPacket().getDataSize();
-            int thisWastedBytes = udt::MAX_PACKET_SIZE - numBytes;
-            _totalWastedBytes += thisWastedBytes;
             _totalBytes += numBytes;
             _totalPackets++;
+            int thisWastedBytes = udt::MAX_PACKET_SIZE - numBytes;
+            _totalWastedBytes += thisWastedBytes;
             numPackets++;
+            _trueBytesSent += numBytes;
 
             if (debug) {
                 NLPacket& sentPacket = nodeData->getPacket();
@@ -285,7 +287,6 @@ int OctreeSendThread::handlePacketSend(SharedNodePointer node, OctreeQueryNode* 
                         " size: " << numBytes << " [" << _totalBytes <<
                         "] wasted bytes:" << thisWastedBytes << " [" << _totalWastedBytes << "]";
             }
-            _trueBytesSent += numBytes;
         }
     }
 
@@ -331,8 +332,8 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
              && ((!viewFrustumChanged && nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged()));
     }
 
-    // send any waiting packet
     if (nodeData->isPacketWaiting()) {
+        // send the waiting packet
         _packetsSentThisInterval += handlePacketSend(node, nodeData);
     } else {
         nodeData->resetOctreePacket();
