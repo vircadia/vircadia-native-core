@@ -110,17 +110,28 @@
     //
     // Description:
     //   -Call this function to shut down the spectator camera and
-    //    destroy the camera entity.
-    function spectatorCameraOff() {
+    //    destroy the camera entity. "isChangingDomains" is true when this function is called
+    //    from the "Window.domainChanged()" signal.
+    function spectatorCameraOff(isChangingDomains) {
         spectatorCameraConfig.attachedEntityId = false;
         spectatorCameraConfig.enableSecondaryCameraRenderConfigs(false);
         if (camera) {
-            Entities.deleteEntity(camera);
+            // Workaround for Avatar Entities not immediately having properties after
+            // the "Window.domainChanged()" signal is emitted.
+            // Should be removed after FB6155 is fixed.
+            if (isChangingDomains) {
+                Script.setTimeout(function () {
+                    Entities.deleteEntity(camera);
+                    camera = false;
+                }, 1 * 1000);
+            } else {
+                Entities.deleteEntity(camera);
+                camera = false;
+            }
         }
         if (viewFinderOverlay) {
             Overlays.deleteOverlay(viewFinderOverlay);
         }
-        camera = false;
         viewFinderOverlay = false;
         setDisplay(monitorShowsCameraView);
         // Change button to active when window is first openend OR if the camera is on, false otherwise.
@@ -179,7 +190,9 @@
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         addOrRemoveButton(false, HMD.active);
         tablet.screenChanged.connect(onTabletScreenChanged);
-        Window.domainChanged.connect(spectatorCameraOff);
+        Window.domainChanged.connect(function () {
+            spectatorCameraOff(true);
+        });
         Window.geometryChanged.connect(resizeViewFinderOverlay);
         Controller.keyPressEvent.connect(keyPressEvent);
         HMD.displayModeChanged.connect(onHMDChanged);
@@ -470,7 +483,9 @@
     //   -shutdown() will be called when the script ends (i.e. is stopped).
     function shutdown() {
         spectatorCameraOff();
-        Window.domainChanged.disconnect(spectatorCameraOff);
+        Window.domainChanged.disconnect(function () {
+            spectatorCameraOff(true);
+        });
         Window.geometryChanged.disconnect(resizeViewFinderOverlay);
         addOrRemoveButton(true, HMD.active);
         if (tablet) {
