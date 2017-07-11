@@ -100,6 +100,10 @@
         spectatorCameraConfig.attachedEntityId = camera;
         updateOverlay();
         setDisplay(monitorShowsCameraView);
+        // Change button to active when window is first openend OR if the camera is on, false otherwise.
+        if (button) {
+            button.editProperties({ isActive: onSpectatorCameraScreen || camera });
+        }
     }
 
     // Function Name: spectatorCameraOff()
@@ -119,6 +123,10 @@
         camera = false;
         viewFinderOverlay = false;
         setDisplay(monitorShowsCameraView);
+        // Change button to active when window is first openend OR if the camera is on, false otherwise.
+        if (button) {
+            button.editProperties({ isActive: onSpectatorCameraScreen || camera });
+        }
     }
 
     // Function Name: addOrRemoveButton()
@@ -402,9 +410,9 @@
     function onTabletScreenChanged(type, url) {
         onSpectatorCameraScreen = (type === "QML" && url === SPECTATOR_CAMERA_QML_SOURCE);
         wireEventBridge(onSpectatorCameraScreen);
-        // for toolbar mode: change button to active when window is first openend, false otherwise.
+        // Change button to active when window is first openend OR if the camera is on, false otherwise.
         if (button) {
-            button.editProperties({ isActive: onSpectatorCameraScreen });
+            button.editProperties({ isActive: onSpectatorCameraScreen || camera });
         }
     }
 
