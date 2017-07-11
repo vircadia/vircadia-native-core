@@ -52,6 +52,7 @@ Rectangle {
 
     Component.onCompleted: enablePeakValues();
     Component.onDestruction: disablePeakValues();
+    onVisibleChanged: visible ? enablePeakValues() : disablePeakValues();
 
     Column {
         y: 16; // padding does not work
