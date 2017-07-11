@@ -1001,9 +1001,9 @@ NetworkTexturePointer TextureCache::getResourceTexture(QUrl resourceTextureUrl) 
     return NetworkTexturePointer();
 }
 
-const gpu::FramebufferPointer& TextureCache::getHmdPreviewFramebuffer() {
+const gpu::FramebufferPointer& TextureCache::getHmdPreviewFramebuffer(int width, int height) {
     if (!_hmdPreviewFramebuffer) {
-        _hmdPreviewFramebuffer.reset(gpu::Framebuffer::create("hmdPreview",gpu::Element::COLOR_SRGBA_32, 2040, 1024));
+        _hmdPreviewFramebuffer.reset(gpu::Framebuffer::create("hmdPreview",gpu::Element::COLOR_SRGBA_32, width, height));
     }
     return _hmdPreviewFramebuffer;
 }

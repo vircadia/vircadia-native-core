@@ -286,7 +286,8 @@ void HmdDisplayPlugin::internalPresent() {
 
                 viewport.z *= 2;
             }
-            auto fbo = DependencyManager::get<TextureCache>()->getHmdPreviewFramebuffer();
+            // TODO: only bother getting and passing in the hmdPreviewFramebuffer if the camera is on
+            auto fbo = DependencyManager::get<TextureCache>()->getHmdPreviewFramebuffer(scissor.z, scissor.w);
             renderFromTexture(batch, _compositeFramebuffer->getRenderBuffer(0), viewport, scissor, fbo);
         });
         swapBuffers();
