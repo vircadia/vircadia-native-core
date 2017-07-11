@@ -96,7 +96,6 @@
             Overlays.editOverlay(entityOverlays[index], {
                 parentID: details.id,
                 position: Vec3.sum(details.position, offset),
-                registrationPoint: details.registrationPoint,
                 rotation: details.rotation,
                 dimensions: details.dimensions,
                 color: overlayColor,
@@ -208,9 +207,9 @@
         // Manages set of selected entities. Currently supports just one set of linked entities.
         var selection = [],
             selectedEntityID = null,
-            selectionPosition = null,
-            selectionOrientation,
-            rootEntityID,
+            rootEntityID = null,
+            rootPosition,
+            rootOrientation,
             scaleCenter,
             scaleRootOffset,
             scaleRootOrientation,
@@ -255,8 +254,8 @@
             }
 
             // Selection position and orientation is that of the root entity.
-            selectionPosition = entityProperties.position;
-            selectionOrientation = entityProperties.rotation;
+            rootPosition = entityProperties.position;
+            rootOrientation = entityProperties.rotation;
 
             // Find all children.
             selection = [];
@@ -291,14 +290,14 @@
 
             if (selection.length === 1) {
                 if (Vec3.equal(selection[0].registrationPoint, Vec3.HALF)) {
-                    center = selectionPosition;
+                    center = rootPosition;
                 } else {
-                    center = Vec3.sum(selectionPosition,
-                        Vec3.multiplyQbyV(selectionOrientation,
+                    center = Vec3.sum(rootPosition,
+                        Vec3.multiplyQbyV(rootOrientation,
                             Vec3.multiplyVbyV(selection[0].dimensions,
                                 Vec3.subtract(Vec3.HALF, selection[0].registrationPoint))));
                 }
-                orientation = selectionOrientation;
+                orientation = rootOrientation;
                 dimensions = selection[0].dimensions;
             } else if (selection.length > 1) {
                 // Find min & max x, y, z values of entities' dimension box corners in root entity coordinate system.
@@ -306,7 +305,7 @@
                 // bounding box be larger than necessary.
                 min = Vec3.multiplyVbyV(Vec3.subtract(Vec3.ZERO, selection[0].registrationPoint), selection[0].dimensions);
                 max = Vec3.multiplyVbyV(Vec3.subtract(Vec3.ONE, selection[0].registrationPoint), selection[0].dimensions);
-                inverseOrientation = Quat.inverse(selectionOrientation);
+                inverseOrientation = Quat.inverse(rootOrientation);
                 for (i = 1, length = selection.length; i < length; i += 1) {
 
                     registration = selection[i].registrationPoint;
@@ -327,7 +326,7 @@
                         // Corner position in world coordinates.
                         corners[j] = Vec3.sum(position, Vec3.multiplyQbyV(rotation, Vec3.multiplyVbyV(corners[j], dimensions)));
                         // Corner position in root entity coordinates.
-                        corners[j] = Vec3.multiplyQbyV(inverseOrientation, Vec3.subtract(corners[j], selectionPosition));
+                        corners[j] = Vec3.multiplyQbyV(inverseOrientation, Vec3.subtract(corners[j], rootPosition));
                         // Update min & max.
                         min = Vec3.min(corners[j], min);
                         max = Vec3.max(corners[j], max);
@@ -335,9 +334,9 @@
                 }
 
                 // Calculate bounding box.
-                center = Vec3.sum(selectionPosition,
-                    Vec3.multiplyQbyV(selectionOrientation, Vec3.multiply(0.5, Vec3.sum(min, max))));
-                orientation = selectionOrientation;
+                center = Vec3.sum(rootPosition,
+                    Vec3.multiplyQbyV(rootOrientation, Vec3.multiply(0.5, Vec3.sum(min, max))));
+                orientation = rootOrientation;
                 dimensions = Vec3.subtract(max, min);
             }
 
@@ -349,15 +348,17 @@
         }
 
         function getPositionAndOrientation() {
+            // Position and orientation of root entity.
             return {
-                position: selectionPosition,
-                orientation: selectionOrientation
+                position: rootPosition,
+                orientation: rootOrientation
             };
         }
 
         function setPositionAndOrientation(position, orientation) {
-            selectionPosition = position;
-            selectionOrientation = orientation;
+            // Position and orientation of root entity.
+            rootPosition = position;
+            rootOrientation = orientation;
             Entities.editEntity(rootEntityID, {
                 position: position,
                 rotation: orientation
@@ -367,7 +368,7 @@
         function startScaling(center) {
             scaleCenter = center;
             scaleRootOffset = Vec3.subtract(selection[0].position, center);
-            scaleRootOrientation = selectionOrientation;
+            scaleRootOrientation = rootOrientation;
         }
 
         function scale(factor, rotation, center) {
@@ -379,8 +380,8 @@
             // Position root.
             position = Vec3.sum(center, Vec3.multiply(factor, Vec3.multiplyQbyV(rotation, scaleRootOffset)));
             orientation = Quat.multiply(rotation, scaleRootOrientation);
-            selectionPosition = position;
-            selectionOrientation = orientation;
+            rootPosition = position;
+            rootOrientation = orientation;
             Entities.editEntity(selection[0].id, {
                 dimensions: Vec3.multiply(factor, selection[0].dimensions),
                 position: position,
@@ -935,6 +936,7 @@
         // Main update loop.
         updateTimer = null;
 
+        // Each hand's action depends on the state of the other hand, so update the states first then apply in actions.
         hands[LEFT_HAND].update();
         hands[RIGHT_HAND].update();
         hands[LEFT_HAND].apply();
