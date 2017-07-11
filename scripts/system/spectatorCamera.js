@@ -110,23 +110,38 @@
     //
     // Description:
     //   -Call this function to shut down the spectator camera and
-    //    destroy the camera entity.
-    function spectatorCameraOff() {
+    //    destroy the camera entity. "isChangingDomains" is true when this function is called
+    //    from the "Window.domainChanged()" signal.
+    var WAIT_AFTER_DOMAIN_SWITCH_BEFORE_CAMERA_DELETE_MS = 1 * 1000;
+    function spectatorCameraOff(isChangingDomains) {
+
+        function deleteCamera() {
+            Entities.deleteEntity(camera);
+            camera = false;
+            // Change button to active when window is first openend OR if the camera is on, false otherwise.
+            button.editProperties({ isActive: onSpectatorCameraScreen || camera });
+        }
+
         spectatorCameraConfig.attachedEntityId = false;
         spectatorCameraConfig.enableSecondaryCameraRenderConfigs(false);
         if (camera) {
-            Entities.deleteEntity(camera);
+            // Workaround for Avatar Entities not immediately having properties after
+            // the "Window.domainChanged()" signal is emitted.
+            // Should be removed after FB6155 is fixed.
+            if (isChangingDomains) {
+                Script.setTimeout(function () {
+                    deleteCamera();
+                    spectatorCameraOn();
+                }, WAIT_AFTER_DOMAIN_SWITCH_BEFORE_CAMERA_DELETE_MS);
+            } else {
+                deleteCamera();
+            }
         }
         if (viewFinderOverlay) {
             Overlays.deleteOverlay(viewFinderOverlay);
         }
-        camera = false;
         viewFinderOverlay = false;
         setDisplay(monitorShowsCameraView);
-        // Change button to active when window is first openend OR if the camera is on, false otherwise.
-        if (button) {
-            button.editProperties({ isActive: onSpectatorCameraScreen || camera });
-        }
     }
 
     // Function Name: addOrRemoveButton()
@@ -179,7 +194,7 @@
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         addOrRemoveButton(false, HMD.active);
         tablet.screenChanged.connect(onTabletScreenChanged);
-        Window.domainChanged.connect(spectatorCameraOff);
+        Window.domainChanged.connect(onDomainChanged);
         Window.geometryChanged.connect(resizeViewFinderOverlay);
         Controller.keyPressEvent.connect(keyPressEvent);
         HMD.displayModeChanged.connect(onHMDChanged);
@@ -470,7 +485,7 @@
     //   -shutdown() will be called when the script ends (i.e. is stopped).
     function shutdown() {
         spectatorCameraOff();
-        Window.domainChanged.disconnect(spectatorCameraOff);
+        Window.domainChanged.disconnect(onDomainChanged);
         Window.geometryChanged.disconnect(resizeViewFinderOverlay);
         addOrRemoveButton(true, HMD.active);
         if (tablet) {
@@ -484,6 +499,14 @@
         if (controllerMapping) {
             controllerMapping.disable();
         }
+    }
+
+    // Function Name: onDomainChanged()
+    //
+    // Description:
+    //   -A small utility function used when the Window.domainChanged() signal is fired.
+    function onDomainChanged() {
+        spectatorCameraOff(true);
     }
 
     // These functions will be called when the script is loaded.
