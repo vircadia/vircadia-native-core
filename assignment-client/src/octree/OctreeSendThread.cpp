@@ -334,8 +334,6 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
              && ((!viewFrustumChanged && nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged()));
     }
 
-    bool somethingToSend = true; // assume we have something
-
     // If our packet already has content in it, then we must use the color choice of the waiting packet.
     // If we're starting a fresh packet, then...
     //     If we're moving, and the client asked for low res, then we force monochrome, otherwise, use
@@ -404,7 +402,6 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
 
     // If we have something in our elementBag, then turn them into packets and send them out...
     if (!nodeData->elementBag.isEmpty()) {
-        int bytesWritten = 0;
         quint64 start = usecTimestampNow();
 
         // TODO: add these to stats page
@@ -414,6 +411,7 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
         int extraPackingAttempts = 0;
         bool completedScene = false;
 
+        bool somethingToSend = true; // assume we have something
         while (somethingToSend && packetsSentThisInterval < maxPacketsPerInterval && !nodeData->isShuttingDown()) {
             float lockWaitElapsedUsec = OctreeServer::SKIP_TIME;
             float encodeElapsedUsec = OctreeServer::SKIP_TIME;
@@ -461,7 +459,7 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
                     // are reported to client. Since you can encode without the lock
                     nodeData->stats.encodeStarted();
 
-                    bytesWritten = _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->elementBag, params);
+                    _myServer->getOctree()->encodeTreeBitstream(subTree, &_packetData, nodeData->elementBag, params);
 
                     quint64 encodeEnd = usecTimestampNow();
                     encodeElapsedUsec = (float)(encodeEnd - encodeStart);
@@ -479,45 +477,30 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
                     nodeData->stats.encodeStopped();
                 });
             } else {
-                // If the bag was empty then we didn't even attempt to encode, and so we know the bytesWritten were 0
-                bytesWritten = 0;
                 somethingToSend = false; // this will cause us to drop out of the loop...
             }
 
-            // If the last node didn't fit, but we're in compressed mode, then we actually want to see if we can fit a
-            // little bit more in this packet. To do this we write into the packet, but don't send it yet, we'll
-            // keep attempting to write in compressed mode to add more compressed segments
-
-            // We only consider sending anything if there is something in the _packetData to send... But
-            // if bytesWritten == 0 it means either the subTree couldn't fit or we had an empty bag... Both cases
-            // mean we should send the previous packet contents and reset it.
             if (completedScene || lastNodeDidntFit) {
-
+                // we probably want to flush what has accumulated in nodeData but:
+                // do we have more data to send? and is there room?
                 if (_packetData.hasContent()) {
+                    // yes, more data to send
                     quint64 compressAndWriteStart = usecTimestampNow();
-
-                    // if for some reason the finalized size is greater than our available size, then probably the "compressed"
-                    // form actually inflated beyond our padding, and in this case we will send the current packet, then
-                    // write to out new packet...
-                    unsigned int writtenSize = _packetData.getFinalizedSize() + sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
-
-                    if (writtenSize > nodeData->getAvailable()) {
+                    unsigned int additionalSize = _packetData.getFinalizedSize() + sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
+                    if (additionalSize > nodeData->getAvailable()) {
+                        // no room --> flush what we've got
                         packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                     }
 
+                    // either there is room, or we've flushed and reset nodeData's data buffer
+                    // so we can transfer whatever is in _packetData to nodeData
                     nodeData->writeToPacket(_packetData.getFinalizedData(), _packetData.getFinalizedSize());
-                    quint64 compressAndWriteEnd = usecTimestampNow();
-                    compressAndWriteElapsedUsec = (float)(compressAndWriteEnd - compressAndWriteStart);
+                    compressAndWriteElapsedUsec = (float)(usecTimestampNow()- compressAndWriteStart);
                 }
 
-                // If we're not running compressed, then we know we can just send now. Or if we're running compressed, but
-                // the packet doesn't have enough space to bother attempting to pack more...
-                bool sendNow = true;
-
-                if (!completedScene && (nodeData->getAvailable() >= MINIMUM_ATTEMPT_MORE_PACKING &&
-                                        extraPackingAttempts <= REASONABLE_NUMBER_OF_PACKING_ATTEMPTS)) {
-                    sendNow = false; // try to pack more
-                }
+                bool sendNow = completedScene ||
+                    nodeData->getAvailable() < MINIMUM_ATTEMPT_MORE_PACKING ||
+                    extraPackingAttempts > REASONABLE_NUMBER_OF_PACKING_ATTEMPTS;
 
                 int targetSize = MAX_OCTREE_PACKET_DATA_SIZE;
                 if (sendNow) {
@@ -529,16 +512,13 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
                     targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE);
                     extraPackingAttempts = 0;
                 } else {
-                    // If we're in compressed mode, then we want to see if we have room for more in this wire packet.
-                    // but we've finalized the _packetData, so we want to start a new section, we will do that by
-                    // resetting the packet settings with the max uncompressed size of our current available space
-                    // in the wire packet. We also include room for our section header, and a little bit of padding
-                    // to account for the fact that whenc compressing small amounts of data, we sometimes end up with
-                    // a larger compressed size then uncompressed size
+                    // We want to see if we have room for more in this wire packet but we've copied the _packetData,
+                    // so we want to start a new section. We will do that by resetting the packet settings with the max
+                    // size of our current available space in the wire packet plus room for our section header and a
+                    // little bit of padding.
                     targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE) - COMPRESS_PADDING;
                 }
                 _packetData.changeSettings(true, targetSize); // will do reset - NOTE: Always compressed
-
             }
             OctreeServer::trackTreeWaitTime(lockWaitElapsedUsec);
             OctreeServer::trackEncodeTime(encodeElapsedUsec);
