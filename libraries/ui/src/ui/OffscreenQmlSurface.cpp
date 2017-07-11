@@ -831,7 +831,9 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
                     mouseEvent->screenPos(), mouseEvent->button(),
                     mouseEvent->buttons(), mouseEvent->modifiers());
             if (event->type() == QEvent::MouseMove) {
-                _qmlContext->setContextProperty("lastMousePosition", transformedPos);
+                // TODO - this line necessary for the QML Tooltop to work (which is not currently being used), but it causes interface to crash on launch on a fresh install
+                // need to investigate into why this crash is happening.
+                //_qmlContext->setContextProperty("lastMousePosition", transformedPos);
             }
             mappedEvent.ignore();
             if (QCoreApplication::sendEvent(_quickWindow, &mappedEvent)) {

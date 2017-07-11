@@ -889,11 +889,6 @@ private:
             BackgroundRenderData::_item = _main3DScene->allocateID();
             transaction.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
         }
-        // Setup the current Zone Entity lighting
-        {
-            auto stage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-            DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(stage->getSunLight());
-        }
 
         {
             PerformanceTimer perfTimer("SceneProcessTransaction");
@@ -914,8 +909,6 @@ private:
         PerformanceTimer perfTimer("draw");
         // The pending changes collecting the changes here
         render::Transaction transaction;
-        // Setup the current Zone Entity lighting
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(_sunSkyStage.getSunLight());
         {
             PerformanceTimer perfTimer("SceneProcessTransaction");
             _main3DScene->enqueueTransaction(transaction);

@@ -606,6 +606,7 @@ signals:
     void onLoadComplete();
     void wentAway();
     void wentActive();
+    void skeletonChanged();
 
 private:
 
