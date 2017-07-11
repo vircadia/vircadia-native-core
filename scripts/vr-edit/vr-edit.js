@@ -30,6 +30,7 @@
         updateTimer = null,
 
         Highlights,
+        Handles,
         Selection,
         Laser,
         Hand,
@@ -37,6 +38,18 @@
         AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
         NULL_UUID = "{00000000-0000-0000-0000-000000000000}",
         HALF_TREE_SCALE = 16384;
+
+    if (typeof Vec3.min !== "function") {
+        Vec3.min = function (a, b) {
+            return { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), z: Math.min(a.z, b.z) };
+        };
+    }
+
+    if (typeof Vec3.max !== "function") {
+        Vec3.max = function (a, b) {
+            return { x: Math.max(a.x, b.x), y: Math.max(a.y, b.y), z: Math.max(a.z, b.z) };
+        };
+    }
 
     Highlights = function (hand) {
         // Draws highlights on selected entities.
@@ -145,9 +158,54 @@
         };
     };
 
+    Handles = function () {
+        var boundingBoxOverlay,
+            //HIGHLIGHT_COLOR = { red: 0, green: 240, blue: 240 },
+            HIGHLIGHT_COLOR = { red: 255, green: 0, blue: 255 },
+            BOUNDING_BOX_ALPHA = 0.8;
+
+        boundingBoxOverlay = Overlays.addOverlay("cube", {
+            color: HIGHLIGHT_COLOR,
+            alpha: BOUNDING_BOX_ALPHA,
+            solid: false,
+            drawInFront: true,
+            ignoreRayIntersection: true,
+            visible: false
+        });
+
+        function display(rootEntityID, boundingBox) {
+            // Selection bounding box.
+            Overlays.editOverlay(boundingBoxOverlay, {
+                parentID: rootEntityID,
+                position: boundingBox.center,
+                rotation: boundingBox.orientation,
+                dimensions: boundingBox.dimensions,
+                visible: true
+            });
+        }
+
+        function clear() {
+            Overlays.editOverlay(boundingBoxOverlay, { visible: false });
+        }
+
+        function destroy() {
+            clear();
+            Overlays.deleteOverlay(boundingBoxOverlay);
+        }
+
+        if (!this instanceof Handles) {
+            return new Handles();
+        }
+
+        return {
+            display: display,
+            clear: clear,
+            destroy: destroy
+        };
+    };
+
     Selection = function () {
         // Manages set of selected entities. Currently supports just one set of linked entities.
-
         var selection = [],
             selectedEntityID = null,
             selectionPosition = null,
@@ -155,7 +213,8 @@
             rootEntityID,
             scaleCenter,
             scaleRootOffset,
-            scaleRootOrientation;
+            scaleRootOrientation,
+            ENTITY_TYPE = "entity";
 
         function traverseEntityTree(id, result) {
             // Recursively traverses tree of entities and their children, gather IDs and properties.
@@ -212,6 +271,81 @@
 
         function getSelection() {
             return selection;
+        }
+
+        function getBoundingBox() {
+            var center,
+                orientation,
+                inverseOrientation,
+                dimensions,
+                min,
+                max,
+                i,
+                j,
+                length,
+                registration,
+                position,
+                rotation,
+                corners = [],
+                NUM_CORNERS = 8;
+
+            if (selection.length === 1) {
+                if (Vec3.equal(selection[0].registrationPoint, Vec3.HALF)) {
+                    center = selectionPosition;
+                } else {
+                    center = Vec3.sum(selectionPosition,
+                        Vec3.multiplyQbyV(selectionOrientation,
+                            Vec3.multiplyVbyV(selection[0].dimensions,
+                                Vec3.subtract(Vec3.HALF, selection[0].registrationPoint))));
+                }
+                orientation = selectionOrientation;
+                dimensions = selection[0].dimensions;
+            } else if (selection.length > 1) {
+                // Find min & max x, y, z values of entities' dimension box corners in root entity coordinate system.
+                // Note: Don't use entities' bounding boxes because they're in world coordinates and may make the calculated
+                // bounding box be larger than necessary.
+                min = Vec3.multiplyVbyV(Vec3.subtract(Vec3.ZERO, selection[0].registrationPoint), selection[0].dimensions);
+                max = Vec3.multiplyVbyV(Vec3.subtract(Vec3.ONE, selection[0].registrationPoint), selection[0].dimensions);
+                inverseOrientation = Quat.inverse(selectionOrientation);
+                for (i = 1, length = selection.length; i < length; i += 1) {
+
+                    registration = selection[i].registrationPoint;
+                    corners[0] = { x: -registration.x, y: -registration.y, z: -registration.z };
+                    corners[1] = { x: -registration.x, y: -registration.y, z: 1.0 - registration.z };
+                    corners[2] = { x: -registration.x, y: 1.0 - registration.y, z: -registration.z };
+                    corners[3] = { x: -registration.x, y: 1.0 - registration.y, z: 1.0 - registration.z };
+                    corners[4] = { x: 1.0 - registration.x, y: -registration.y, z: -registration.z };
+                    corners[5] = { x: 1.0 - registration.x, y: -registration.y, z: 1.0 - registration.z };
+                    corners[6] = { x: 1.0 - registration.x, y: 1.0 - registration.y, z: -registration.z };
+                    corners[7] = { x: 1.0 - registration.x, y: 1.0 - registration.y, z: 1.0 - registration.z };
+
+                    position = selection[i].position;
+                    rotation = selection[i].rotation;
+                    dimensions = selection[i].dimensions;
+
+                    for (j = 0; j < NUM_CORNERS; j += 1) {
+                        // Corner position in world coordinates.
+                        corners[j] = Vec3.sum(position, Vec3.multiplyQbyV(rotation, Vec3.multiplyVbyV(corners[j], dimensions)));
+                        // Corner position in root entity coordinates.
+                        corners[j] = Vec3.multiplyQbyV(inverseOrientation, Vec3.subtract(corners[j], selectionPosition));
+                        // Update min & max.
+                        min = Vec3.min(corners[j], min);
+                        max = Vec3.max(corners[j], max);
+                    }
+                }
+
+                // Calculate bounding box.
+                center = Vec3.sum(selectionPosition,
+                    Vec3.multiplyQbyV(selectionOrientation, Vec3.multiply(0.5, Vec3.sum(min, max))));
+                orientation = selectionOrientation;
+                dimensions = Vec3.subtract(max, min);
+            }
+
+            return {
+                center: center,
+                orientation: orientation,
+                dimensions: dimensions
+            };
         }
 
         function getPositionAndOrientation() {
@@ -280,6 +414,7 @@
             select: select,
             selection: getSelection,
             rootEntityID: getRootEntityID,
+            boundingBox: getBoundingBox,
             getPositionAndOrientation: getPositionAndOrientation,
             setPositionAndOrientation: setPositionAndOrientation,
             startScaling: startScaling,
@@ -459,7 +594,8 @@
 
             laser,
             selection,
-            highlights;
+            highlights,
+            handles;
 
         hand = side;
         if (hand === LEFT_HAND) {
@@ -478,6 +614,7 @@
         laser = new Laser(hand);
         selection = new Selection();
         highlights = new Highlights(hand);
+        handles = new Handles();
 
         function setOtherHand(hand) {
             otherHand = hand;
@@ -622,6 +759,7 @@
                     laser.clear();
                     selection.clear();
                     highlights.clear();
+                    handles.clear();
                     hoveredEntityID = null;
                 }
                 return;
@@ -712,6 +850,9 @@
                         laserEditingDistance = laserLength;
                     }
                     startEditing();
+                    if (isScaleWithHandles) {
+                        handles.display(selection.rootEntityID(), selection.boundingBox());
+                    }
                 }
             } else {
                 wasEditing = isEditing;
@@ -733,6 +874,7 @@
                     if (hoveredEntityID) {
                         selection.clear();
                         highlights.clear();
+                        handles.clear();
                         hoveredEntityID = null;
                     }
                 }
@@ -766,6 +908,10 @@
             if (highlights) {
                 highlights.destroy();
                 highlights = null;
+            }
+            if (handles) {
+                handles.destroy();
+                handles = null;
             }
         }
 
