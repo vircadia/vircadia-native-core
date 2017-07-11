@@ -748,7 +748,7 @@
                 }
             } else if (doHighlight) {
                 highlights.display(intersection.handSelected, selection.selection(),
-                    otherHand.isEditing(selection.rootEntityID()));
+                    otherHand.isEditing(selection.rootEntityID()) || isScaleWithHandles);
             }
         }
 
