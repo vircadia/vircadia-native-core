@@ -27,6 +27,7 @@
 #include "AnimationLogging.h"
 #include "AnimClip.h"
 #include "AnimInverseKinematics.h"
+#include "AnimOverlay.h"
 #include "AnimSkeleton.h"
 #include "AnimUtil.h"
 #include "IKTarget.h"
@@ -403,8 +404,18 @@ void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, flo
 }
 
 bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position, glm::vec3 translation, glm::quat rotation) const {
-    if (isIndexValid(jointIndex)) {
-        position = (rotation * _internalPoseSet._absolutePoses[jointIndex].trans()) + translation;
+    if (QThread::currentThread() == thread()) {
+        if (isIndexValid(jointIndex)) {
+            position = (rotation * _internalPoseSet._absolutePoses[jointIndex].trans()) + translation;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    QReadLocker readLock(&_externalPoseSetLock);
+    if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._absolutePoses.size()) {
+        position = (rotation * _externalPoseSet._absolutePoses[jointIndex].trans()) + translation;
         return true;
     } else {
         return false;
@@ -412,17 +423,31 @@ bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position, glm:
 }
 
 bool Rig::getJointPosition(int jointIndex, glm::vec3& position) const {
-    if (isIndexValid(jointIndex)) {
-        position = _internalPoseSet._absolutePoses[jointIndex].trans();
-        return true;
+    if (QThread::currentThread() == thread()) {
+        if (isIndexValid(jointIndex)) {
+            position = _internalPoseSet._absolutePoses[jointIndex].trans();
+            return true;
+        } else {
+            return false;
+        }
     } else {
-        return false;
+        return getAbsoluteJointTranslationInRigFrame(jointIndex, position);
     }
 }
 
 bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const glm::quat& rotation) const {
-    if (isIndexValid(jointIndex)) {
-        result = rotation * _internalPoseSet._absolutePoses[jointIndex].rot();
+    if (QThread::currentThread() == thread()) {
+        if (isIndexValid(jointIndex)) {
+            result = rotation * _internalPoseSet._absolutePoses[jointIndex].rot();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    QReadLocker readLock(&_externalPoseSetLock);
+    if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._absolutePoses.size()) {
+        result = rotation * _externalPoseSet._absolutePoses[jointIndex].rot();
         return true;
     } else {
         return false;
@@ -430,6 +455,15 @@ bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const 
 }
 
 bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
+    if (QThread::currentThread() == thread()) {
+        if (isIndexValid(jointIndex)) {
+            rotation = _internalPoseSet._relativePoses[jointIndex].rot();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     QReadLocker readLock(&_externalPoseSetLock);
     if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._relativePoses.size()) {
         rotation = _externalPoseSet._relativePoses[jointIndex].rot();
@@ -1459,13 +1493,28 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     updateFeet(leftFootEnabled, rightFootEnabled,
                params.controllerPoses[ControllerType_LeftFoot], params.controllerPoses[ControllerType_RightFoot]);
 
-    if (hipsEnabled) {
+    // if the hips or the feet are being controlled.
+    if (hipsEnabled || rightFootEnabled || leftFootEnabled) {
+        // for more predictable IK solve from the center of the joint limits, not from the underpose
         _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToLimitCenterPoses);
+
+        // replace the feet animation with the default pose, this is to prevent unexpected toe wiggling.
+        _animVars.set("defaultPoseOverlayAlpha", 1.0f);
+        _animVars.set("defaultPoseOverlayBoneSet", (int)AnimOverlay::BothFeetBoneSet);
+    } else {
+        // augment the IK with the underPose.
+        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToUnderPoses);
+
+        // feet should follow source animation
+        _animVars.unset("defaultPoseOverlayAlpha");
+        _animVars.unset("defaultPoseOverlayBoneSet");
+    }
+
+    if (hipsEnabled) {
         _animVars.set("hipsType", (int)IKTarget::Type::RotationAndPosition);
         _animVars.set("hipsPosition", params.controllerPoses[ControllerType_Hips].trans());
         _animVars.set("hipsRotation", params.controllerPoses[ControllerType_Hips].rot());
     } else {
-        _animVars.set("solutionSource", (int)AnimInverseKinematics::SolutionSource::RelaxToUnderPoses);
         _animVars.set("hipsType", (int)IKTarget::Type::Unknown);
     }
 

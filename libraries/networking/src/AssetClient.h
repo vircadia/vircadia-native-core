@@ -109,6 +109,8 @@ private:
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetInfoCallback>> _pendingInfoRequests;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, UploadResultCallback>> _pendingUploads;
 
+    QString _cacheDir;
+
     friend class AssetRequest;
     friend class AssetUpload;
     friend class MappingRequest;

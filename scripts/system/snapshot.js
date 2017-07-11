@@ -377,18 +377,14 @@ function fillImageDataFromPrevious() {
 
 var SNAPSHOT_REVIEW_URL = Script.resolvePath("html/SnapshotReview.html");
 var isInSnapshotReview = false;
-var shouldActivateButton = false;
 function onButtonClicked() {
     if (isInSnapshotReview){
         // for toolbar-mode: go back to home screen, this will close the window.
         tablet.gotoHomeScreen();
     } else {
-        shouldActivateButton = true;
         fillImageDataFromPrevious();
         tablet.gotoWebScreen(SNAPSHOT_REVIEW_URL);
-        tablet.webEventReceived.connect(onMessage);
         HMD.openTablet();
-        isInSnapshotReview = true;
     }
 }
 
@@ -507,8 +503,9 @@ function takeSnapshot() {
             Window.takeSnapshot(false, includeAnimated, 1.91);
         }, SNAPSHOT_DELAY);
     }, FINISH_SOUND_DELAY);
+    UserActivityLogger.logAction("snaphshot_taken", { location: location.href });
 }
-
+    
 function isDomainOpen(id, callback) {
     print("Checking open status of domain with ID:", id);
     var status = false;
@@ -662,11 +659,15 @@ function maybeDeleteSnapshotStories() {
     storyIDsToMaybeDelete = [];
 }
 function onTabletScreenChanged(type, url) {
-    button.editProperties({ isActive: shouldActivateButton });
-    shouldActivateButton = false;
-    if (isInSnapshotReview) {
-        tablet.webEventReceived.disconnect(onMessage);
-        isInSnapshotReview = false;
+    var wasInSnapshotReview = isInSnapshotReview; 
+    isInSnapshotReview = (type === "Web" && url === SNAPSHOT_REVIEW_URL);
+    button.editProperties({ isActive: isInSnapshotReview });
+    if (isInSnapshotReview !== wasInSnapshotReview) {
+        if (isInSnapshotReview) {
+            tablet.webEventReceived.connect(onMessage);
+        } else {
+            tablet.webEventReceived.disconnect(onMessage);
+        }
     }
 }
 function onUsernameChanged() {

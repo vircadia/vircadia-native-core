@@ -627,6 +627,7 @@ public:
     void markIdentityDataChanged() { _identityDataChanged = true; }
 
     void pushIdentitySequenceNumber() { ++_identitySequenceNumber; };
+    bool hasProcessedFirstIdentity() const { return _hasProcessedFirstIdentity; }
 
     float getDensity() const { return _density; }
 
@@ -703,8 +704,8 @@ protected:
     QString _displayName;
     QString _sessionDisplayName { };
 
-    QHash<QString, int> _jointIndices; ///< 1-based, since zero is returned for missing keys
-    QStringList _jointNames; ///< in order of depth-first traversal
+    QHash<QString, int> _fstJointIndices; ///< 1-based, since zero is returned for missing keys
+    QStringList _fstJointNames; ///< in order of depth-first traversal
 
     quint64 _errorLogExpiry; ///< time in future when to log an error
 

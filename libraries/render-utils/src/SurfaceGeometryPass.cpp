@@ -459,7 +459,7 @@ void SurfaceGeometryPass::run(const render::RenderContextPointer& renderContext,
     auto diffuseVPipeline = _diffusePass.getBlurVPipeline();
     auto diffuseHPipeline = _diffusePass.getBlurHPipeline();
 
-    _diffusePass.getParameters()->setWidthHeight(curvatureViewport.z, curvatureViewport.w, args->_context->isStereo());
+    _diffusePass.getParameters()->setWidthHeight(curvatureViewport.z, curvatureViewport.w, args->isStereo());
     glm::ivec2 textureSize(curvatureTexture->getDimensions());
     _diffusePass.getParameters()->setTexcoordTransform(gpu::Framebuffer::evalSubregionTexcoordTransformCoefficients(textureSize, curvatureViewport));
     _diffusePass.getParameters()->setDepthPerspective(args->getViewFrustum().getProjection()[1][1]);

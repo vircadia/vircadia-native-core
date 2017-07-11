@@ -18,6 +18,8 @@
 #include <QtScript/QScriptValue>
 #include <QtWidgets/QMessageBox>
 
+#include <DependencyManager.h>
+
 class CustomPromptResult {
 public:
     QVariant value;

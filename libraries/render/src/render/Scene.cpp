@@ -237,3 +237,26 @@ void Scene::resetSelections(const Selections& selections) {
         }
     }
 }
+
+// Access a particular Stage (empty if doesn't exist)
+// Thread safe
+StagePointer Scene::getStage(const Stage::Name& name) const {
+    std::unique_lock<std::mutex> lock(_stagesMutex);
+    auto found = _stages.find(name);
+    if (found == _stages.end()) {
+        return StagePointer();
+    } else {
+        return (*found).second;
+    }
+
+}
+
+void Scene::resetStage(const Stage::Name& name, const StagePointer& stage) {
+    std::unique_lock<std::mutex> lock(_stagesMutex);
+    auto found = _stages.find(name);
+    if (found == _stages.end()) {
+        _stages.insert(StageMap::value_type(name, stage));
+    } else {
+        (*found).second = stage;
+    }
+}

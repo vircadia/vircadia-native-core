@@ -11,6 +11,8 @@
 
 #include <map>
 
+#include <shared/QtHelpers.h>
+
 #include "AudioDevices.h"
 
 #include "Application.h"
@@ -87,12 +89,12 @@ bool AudioDeviceList::setData(const QModelIndex& index, const QVariant& value, i
 bool AudioDeviceList::setDevice(int row, bool fromUser) {
     bool success = false;
     auto& device = _devices[row];
+    _userSelection = fromUser;
 
     // skip if already selected
     if (!device->selected) {
         auto client = DependencyManager::get<AudioClient>();
-        QMetaObject::invokeMethod(client.data(), "switchAudioDevice", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(bool, success),
+        QMetaObject::invokeMethod(client.data(), "switchAudioDevice",
             Q_ARG(QAudio::Mode, _mode),
             Q_ARG(const QAudioDeviceInfo&, device->info));
 
@@ -151,6 +153,7 @@ void AudioDeviceList::resetDevice(bool contextIsHMD, const QString& device) {
 }
 
 void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device) {
+    auto oldDevice = _selectedDevice;
     _selectedDevice = device;
     QModelIndex index;
 
@@ -163,6 +166,11 @@ void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device) {
             device.selected = true;
             index = createIndex(i, 0);
         }
+    }
+
+    if (_userSelection) {
+        _userSelection = false;
+        emit deviceSelected(_selectedDevice, oldDevice);
     }
 
     emit deviceChanged(_selectedDevice);

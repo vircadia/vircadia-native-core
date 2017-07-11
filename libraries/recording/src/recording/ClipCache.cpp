@@ -8,6 +8,8 @@
 
 #include <QThread>
 
+#include <shared/QtHelpers.h>
+
 #include "ClipCache.h"
 #include "impl/PointerClip.h"
 #include "Logging.h"
@@ -37,7 +39,7 @@ ClipCache::ClipCache(QObject* parent) :
 NetworkClipLoaderPointer ClipCache::getClipLoader(const QUrl& url) {
     if (QThread::currentThread() != thread()) {
         NetworkClipLoaderPointer result;
-        QMetaObject::invokeMethod(this, "getClipLoader", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "getClipLoader",
                                   Q_RETURN_ARG(NetworkClipLoaderPointer, result), Q_ARG(const QUrl&, url));
         return result;
     }

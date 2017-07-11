@@ -103,7 +103,7 @@ bool Procedural::parseVersion(const QJsonValue& version) {
 }
 
 bool Procedural::parseShader(const QUrl& shaderPath) {
-    auto shaderUrl = ResourceManager::normalizeURL(shaderPath);
+    auto shaderUrl = DependencyManager::get<ResourceManager>()->normalizeURL(shaderPath);
 
     if (!shaderUrl.isValid()) {
         if (!shaderUrl.isEmpty()) {

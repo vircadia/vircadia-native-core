@@ -107,26 +107,5 @@ private:
     QByteArray _data;
 };
 
-class AnimationDetails {
-public:
-    AnimationDetails();
-    AnimationDetails(QString role, QUrl url, float fps, float priority, bool loop,
-        bool hold, bool startAutomatically, float firstFrame, float lastFrame, bool running, float currentFrame);
-
-    QString role;
-    QUrl url;
-    float fps;
-    float priority;
-    bool loop;
-    bool hold;
-    bool startAutomatically;
-    float firstFrame;
-    float lastFrame;
-    bool running;
-    float currentFrame;
-};
-Q_DECLARE_METATYPE(AnimationDetails);
-QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const AnimationDetails& event);
-void animationDetailsFromScriptValue(const QScriptValue& object, AnimationDetails& event);
 
 #endif // hifi_AnimationCache_h

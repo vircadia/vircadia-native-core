@@ -99,9 +99,11 @@ namespace render {
         void pushViewFrustum(const ViewFrustum& viewFrustum) { _viewFrustums.push(viewFrustum); }
         void popViewFrustum() { _viewFrustums.pop(); }
 
+        bool isStereo() const { return _displayMode != MONO; }
+
         std::shared_ptr<gpu::Context> _context;
         std::shared_ptr<gpu::Framebuffer> _blitFramebuffer;
-        std::shared_ptr<render::ShapePipeline> _pipeline;
+        std::shared_ptr<render::ShapePipeline> _shapePipeline;
         QSharedPointer<QObject> _renderData;
         std::stack<ViewFrustum> _viewFrustums;
         glm::ivec4 _viewport { 0.0f, 0.0f, 1.0f, 1.0f };

@@ -137,8 +137,8 @@ void Text3DOverlay::render(RenderArgs* args) {
     //        Text renderer sets its own pipeline,
     _textRenderer->draw(batch, 0, 0, getText(), textColor, glm::vec2(-1.0f), getDrawInFront());
     //        so before we continue, we must reset the pipeline
-    batch.setPipeline(args->_pipeline->pipeline);
-    args->_pipeline->prepare(batch);
+    batch.setPipeline(args->_shapePipeline->pipeline);
+    args->_shapePipeline->prepare(batch, args);
 }
 
 const render::ShapeKey Text3DOverlay::getShapeKey() {

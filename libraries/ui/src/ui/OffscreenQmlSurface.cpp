@@ -25,6 +25,8 @@
 #include <QtCore/QWaitCondition>
 
 #include <shared/NsightHelpers.h>
+#include <shared/GlobalAppProperties.h>
+#include <shared/QtHelpers.h>
 #include <PerfStat.h>
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
@@ -34,7 +36,6 @@
 #include <AccountManager.h>
 #include <NetworkAccessManager.h>
 #include <GLMHelpers.h>
-#include <shared/GlobalAppProperties.h>
 
 #include <gl/OffscreenGLCanvas.h>
 #include <gl/GLHelpers.h>
@@ -830,7 +831,9 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
                     mouseEvent->screenPos(), mouseEvent->button(),
                     mouseEvent->buttons(), mouseEvent->modifiers());
             if (event->type() == QEvent::MouseMove) {
-                _qmlContext->setContextProperty("lastMousePosition", transformedPos);
+                // TODO - this line necessary for the QML Tooltop to work (which is not currently being used), but it causes interface to crash on launch on a fresh install
+                // need to investigate into why this crash is happening.
+                //_qmlContext->setContextProperty("lastMousePosition", transformedPos);
             }
             mappedEvent.ignore();
             if (QCoreApplication::sendEvent(_quickWindow, &mappedEvent)) {
@@ -884,34 +887,6 @@ QSize OffscreenQmlSurface::size() const {
 
 QQmlContext* OffscreenQmlSurface::getSurfaceContext() {
     return _qmlContext;
-}
-
-Q_DECLARE_METATYPE(std::function<void()>);
-auto VoidLambdaType = qRegisterMetaType<std::function<void()>>();
-Q_DECLARE_METATYPE(std::function<QVariant()>);
-auto VariantLambdaType = qRegisterMetaType<std::function<QVariant()>>();
-
-
-void OffscreenQmlSurface::executeOnUiThread(std::function<void()> function, bool blocking ) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "executeOnUiThread", blocking ? Qt::BlockingQueuedConnection : Qt::QueuedConnection,
-            Q_ARG(std::function<void()>, function));
-        return;
-    }
-
-    function();
-}
-
-QVariant OffscreenQmlSurface::returnFromUiThread(std::function<QVariant()> function) {
-    if (QThread::currentThread() != thread()) {
-        QVariant result;
-        QMetaObject::invokeMethod(this, "returnFromUiThread", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(QVariant, result),
-            Q_ARG(std::function<QVariant()>, function));
-        return result;
-    }
-
-    return function();
 }
 
 void OffscreenQmlSurface::focusDestroyed(QObject *obj) {

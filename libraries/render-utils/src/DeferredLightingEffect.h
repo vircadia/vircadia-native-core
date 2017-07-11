@@ -47,29 +47,15 @@ class DeferredLightingEffect : public Dependency {
 public:
     void init();
  
-    void setupKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit);
+    void setupKeyLightBatch(const RenderArgs* args, gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit);
     void unsetKeyLightBatch(gpu::Batch& batch, int lightBufferUnit, int ambientBufferUnit, int skyboxCubemapUnit);
-
-    // update global lighting
-    void setGlobalLight(const model::LightPointer& light);
-    const model::LightPointer& getGlobalLight() const;
-
-    const LightStagePointer& getLightStage() { return _lightStage; }
-    const BackgroundStagePointer& getBackgroundStage() { return _backgroundStage; }
 
     void setShadowMapEnabled(bool enable) { _shadowMapEnabled = enable; };
     void setAmbientOcclusionEnabled(bool enable) { _ambientOcclusionEnabled = enable; }
     bool isAmbientOcclusionEnabled() const { return _ambientOcclusionEnabled; }
 
-    model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
-    gpu::TexturePointer getDefaultSkyboxTexture() const { return _defaultSkyboxTexture; }
-    gpu::TexturePointer getDefaultSkyboxAmbientTexture() const { return _defaultSkyboxAmbientTexture; }
-
 private:
     DeferredLightingEffect() = default;
-
-    LightStagePointer _lightStage;
-    BackgroundStagePointer _backgroundStage;
 
     bool _shadowMapEnabled{ false };
     bool _ambientOcclusionEnabled{ false };
@@ -96,15 +82,6 @@ private:
 
     LightLocationsPtr _localLightLocations;
     LightLocationsPtr _localLightOutlineLocations;
-
-    using Lights = std::vector<model::LightPointer>;
-
-    Lights _allocatedLights;
-    std::vector<int> _globalLights;
-
-    model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() };
-    gpu::TexturePointer _defaultSkyboxTexture;
-    gpu::TexturePointer _defaultSkyboxAmbientTexture;
 
     friend class LightClusteringPass;
     friend class RenderDeferredSetup;
@@ -195,6 +172,20 @@ protected:
     gpu::RangeTimerPointer _gpuTimer;
 };
 
+class DefaultLightingSetup {
+public:
+    using JobModel = render::Job::Model<DefaultLightingSetup>;
 
+    void run(const render::RenderContextPointer& renderContext);
+
+protected:
+    model::LightPointer _defaultLight;
+    LightStage::Index _defaultLightID{ LightStage::INVALID_INDEX };
+    model::SunSkyStagePointer _defaultBackground;
+    BackgroundStage::Index _defaultBackgroundID{ BackgroundStage::INVALID_INDEX };
+    model::SkyboxPointer _defaultSkybox { new ProceduralSkybox() };
+    gpu::TexturePointer _defaultSkyboxTexture;
+    gpu::TexturePointer _defaultSkyboxAmbientTexture;
+};
 
 #endif // hifi_DeferredLightingEffect_h

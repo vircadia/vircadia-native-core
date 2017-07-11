@@ -223,7 +223,7 @@ Menu::Menu() {
 
     // View > First Person
     cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
-        MenuOption::FirstPerson, 0, // QML Qt:: Key_P
+        MenuOption::FirstPerson, 0,
         true, qApp, SLOT(cameraMenuChanged())));
 
     // View > Third Person
@@ -233,7 +233,7 @@ Menu::Menu() {
 
     // View > Mirror
     cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
-        MenuOption::FullscreenMirror, 0, // QML Qt::Key_H,
+        MenuOption::FullscreenMirror, 0,
         false, qApp, SLOT(cameraMenuChanged())));
 
     // View > Independent [advanced]
@@ -257,6 +257,9 @@ Menu::Menu() {
 
     // View > Overlays
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Overlays, 0, true);
+
+    // View > Enter First Person Mode in HMD
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPersonHMD, 0, true);
 
     // Navigate menu ----------------------------------
     MenuWrapper* navigateMenu = addMenu("Navigate");
@@ -319,7 +322,7 @@ Menu::Menu() {
             QString("../../hifi/tablet/TabletLodPreferences.qml"), "LodPreferencesDialog");
     });
 
-    action = addActionToQMenuAndActionHash(settingsMenu, "Controller Settings");
+    action = addActionToQMenuAndActionHash(settingsMenu, "Controller Settings...");
     connect(action, &QAction::triggered, [] {
             auto tablet = DependencyManager::get<TabletScriptingInterface>()->getTablet("com.highfidelity.interface.tablet.system");
             auto hmd = DependencyManager::get<HMDScriptingInterface>();
@@ -565,9 +568,6 @@ Menu::Menu() {
     MenuWrapper* handOptionsMenu = developerMenu->addMenu("Hands");
     addCheckableActionToQMenuAndActionHash(handOptionsMenu, MenuOption::DisplayHandTargets, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawHandControllers(bool)));
-
-    MenuWrapper* leapOptionsMenu = handOptionsMenu->addMenu("Leap Motion");
-    addCheckableActionToQMenuAndActionHash(leapOptionsMenu, MenuOption::LeapMotionOnHMD, 0, false);
 
     // Developer > Entities >>>
     MenuWrapper* entitiesOptionsMenu = developerMenu->addMenu("Entities");

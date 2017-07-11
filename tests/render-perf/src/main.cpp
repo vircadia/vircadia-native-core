@@ -47,6 +47,7 @@
 #include <gpu/gl/GLTexture.h>
 #include <gpu/StandardShaderLib.h>
 
+#include <AnimationCache.h>
 #include <SimpleEntitySimulation.h>
 #include <EntityDynamicInterface.h>
 #include <EntityDynamicFactoryInterface.h>
@@ -519,7 +520,7 @@ public:
             _entitySimulation = simpleSimulation;
         }
 
-        ResourceManager::init();
+        DependencyManager::set<ResourceManager>();
 
         setFlags(Qt::MSWindowsOwnDC | Qt::Window | Qt::Dialog | Qt::WindowMinMaxButtonsHint | Qt::WindowTitleHint);
         _size = QSize(800, 600);
@@ -574,7 +575,7 @@ public:
         DependencyManager::destroy<ModelCache>();
         DependencyManager::destroy<GeometryCache>();
         DependencyManager::destroy<ScriptCache>();
-        ResourceManager::cleanup();
+        DependencyManager::get<ResourceManager>()->cleanup();
         // remove the NodeList from the DependencyManager
         DependencyManager::destroy<NodeList>();
     }
@@ -888,11 +889,6 @@ private:
             BackgroundRenderData::_item = _main3DScene->allocateID();
             transaction.resetItem(BackgroundRenderData::_item, backgroundRenderPayload);
         }
-        // Setup the current Zone Entity lighting
-        {
-            auto stage = DependencyManager::get<SceneScriptingInterface>()->getSkyStage();
-            DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(stage->getSunLight());
-        }
 
         {
             PerformanceTimer perfTimer("SceneProcessTransaction");
@@ -913,8 +909,6 @@ private:
         PerformanceTimer perfTimer("draw");
         // The pending changes collecting the changes here
         render::Transaction transaction;
-        // Setup the current Zone Entity lighting
-        DependencyManager::get<DeferredLightingEffect>()->setGlobalLight(_sunSkyStage.getSunLight());
         {
             PerformanceTimer perfTimer("SceneProcessTransaction");
             _main3DScene->enqueueTransaction(transaction);
@@ -997,7 +991,7 @@ private:
         QFileInfo atpPathInfo(atpPath);
         if (atpPathInfo.exists()) {
             QString atpUrl = QUrl::fromLocalFile(atpPath).toString();
-            ResourceManager::setUrlPrefixOverride("atp:/", atpUrl + "/");
+            DependencyManager::get<ResourceManager>()->setUrlPrefixOverride("atp:/", atpUrl + "/");
         }
         _octree->clear();
         _octree->getTree()->readFromURL(fileName);

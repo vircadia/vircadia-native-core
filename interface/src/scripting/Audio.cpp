@@ -11,6 +11,8 @@
 
 #include "Audio.h"
 
+#include <shared/QtHelpers.h>
+
 #include "Application.h"
 #include "AudioClient.h"
 #include "ui/AvatarInputs.h"
@@ -49,27 +51,22 @@ float Audio::loudnessToLevel(float loudness) {
 Audio::Audio() : _devices(_contextIsHMD) {
     auto client = DependencyManager::get<AudioClient>().data();
     connect(client, &AudioClient::muteToggled, this, &Audio::onMutedChanged);
+    connect(client, &AudioClient::noiseReductionChanged, this, &Audio::onNoiseReductionChanged);
     connect(client, &AudioClient::inputLoudnessChanged, this, &Audio::onInputLoudnessChanged);
+    connect(client, &AudioClient::inputVolumeChanged, this, &Audio::onInputVolumeChanged);
     connect(this, &Audio::contextChanged, &_devices, &AudioDevices::onContextChanged);
-    connect(&_devices._inputs, &AudioDeviceList::deviceChanged, this, &Audio::onInputChanged);
     enableNoiseReduction(enableNoiseReductionSetting.get());
 }
 
 void Audio::setMuted(bool isMuted) {
     if (_isMuted != isMuted) {
         auto client = DependencyManager::get<AudioClient>().data();
-        QMetaObject::invokeMethod(client, "toggleMute", Qt::BlockingQueuedConnection);
-
-        _isMuted = isMuted;
-        emit mutedChanged(_isMuted);
+        QMetaObject::invokeMethod(client, "toggleMute");
     }
 }
 
 void Audio::onMutedChanged() {
-    auto client = DependencyManager::get<AudioClient>().data();
-    bool isMuted;
-    QMetaObject::invokeMethod(client, "isMuted", Qt::BlockingQueuedConnection, Q_RETURN_ARG(bool, isMuted));
-
+    bool isMuted = DependencyManager::get<AudioClient>()->isMuted();
     if (_isMuted != isMuted) {
         _isMuted = isMuted;
         emit mutedChanged(_isMuted);
@@ -79,11 +76,16 @@ void Audio::onMutedChanged() {
 void Audio::enableNoiseReduction(bool enable) {
     if (_enableNoiseReduction != enable) {
         auto client = DependencyManager::get<AudioClient>().data();
-        QMetaObject::invokeMethod(client, "setNoiseReduction", Qt::BlockingQueuedConnection, Q_ARG(bool, enable));
-
+        QMetaObject::invokeMethod(client, "setNoiseReduction", Q_ARG(bool, enable));
         enableNoiseReductionSetting.set(enable);
-        _enableNoiseReduction = enable;
-        emit noiseReductionChanged(enable);
+    }
+}
+
+void Audio::onNoiseReductionChanged() {
+    bool noiseReductionEnabled = DependencyManager::get<AudioClient>()->isNoiseReductionEnabled();
+    if (_enableNoiseReduction != noiseReductionEnabled) {
+        _enableNoiseReduction = noiseReductionEnabled;
+        emit noiseReductionChanged(_enableNoiseReduction);
     }
 }
 
@@ -93,19 +95,11 @@ void Audio::setInputVolume(float volume) {
 
     if (_inputVolume != volume) {
         auto client = DependencyManager::get<AudioClient>().data();
-        QMetaObject::invokeMethod(client, "setInputVolume", Qt::BlockingQueuedConnection, Q_ARG(float, volume));
-
-        _inputVolume = volume;
-        emit inputVolumeChanged(_inputVolume);
+        QMetaObject::invokeMethod(client, "setInputVolume", Q_ARG(float, volume));
     }
 }
 
-// different audio input devices may have different volumes
-void Audio::onInputChanged() {
-    auto client = DependencyManager::get<AudioClient>().data();
-    float volume;
-    QMetaObject::invokeMethod(client, "getInputVolume", Qt::BlockingQueuedConnection, Q_RETURN_ARG(float, volume));
-
+void Audio::onInputVolumeChanged(float volume) {
     if (_inputVolume != volume) {
         _inputVolume = volume;
         emit inputVolumeChanged(_inputVolume);
