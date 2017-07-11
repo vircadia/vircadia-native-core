@@ -2266,31 +2266,31 @@ void MyAvatar::restrictScaleFromDomainSettings(const QJsonObject& domainSettings
     static const QString MAX_SCALE_OPTION = "max_avatar_scale";
     float settingMaxScale = avatarsObject[MAX_SCALE_OPTION].toDouble(MAX_AVATAR_SCALE);
     setDomainMaximumScale(settingMaxScale);
-    
-    // Set avatar scale. The current avatar scale should not be more than domain's max_avatar_scale.
-    Settings settings;
-    settings.beginGroup("Avatar");
-    _targetScale = loadSetting(settings, "scale", 1.0f);
-    qCDebug(interfaceapp, "Current avatar scale is %f. Receive max_avatar_scale %f from this domain settings. Selecting the minimum value to set the scale of an avatar.", _targetScale, _domainMaximumScale);
-    _targetScale = (_targetScale > _domainMaximumScale) ? _domainMaximumScale : _targetScale;
-    qCDebug(interfaceapp) << "Avatar scale " << _targetScale;
-    setScale(glm::vec3(_targetScale));
-    settings.endGroup();
+
     // make sure that the domain owner didn't flip min and max
     if (_domainMinimumScale > _domainMaximumScale) {
         std::swap(_domainMinimumScale, _domainMaximumScale);
     }
+    // Set avatar current scale
+    Settings settings;
+    settings.beginGroup("Avatar");
+    _targetScale = loadSetting(settings, "scale", 1.0f);
 
-    qCDebug(interfaceapp, "This domain requires a minimum avatar scale of %f and a maximum avatar scale of %f",
-            (double)_domainMinimumScale, (double)_domainMaximumScale);
+    qCDebug(interfaceapp, "This domain requires a minimum avatar scale of %f and a maximum avatar scale of %f. Current avatar scale is %f",
+        (double)_domainMinimumScale, (double)_domainMaximumScale, (double)_targetScale);
 
     // debug to log if this avatar's scale in this domain will be clamped
-    auto clampedScale = glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale);
+    float clampedScale = glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale);
 
     if (_targetScale != clampedScale) {
-        qCDebug(interfaceapp, "Avatar scale will be clamped to %f because %f is not allowed by current domain",
-                (double)clampedScale, (double)_targetScale);
+        qCDebug(interfaceapp, "Current avatar scale is clamped to %f because %f is not allowed by current domain",
+                clampedScale, _targetScale);
+        // The current scale of avatar should not be more than domain's max_avatar_scale and not less than domain's min_avatar_scale .
+        _targetScale = clampedScale;
     }
+
+    setScale(glm::vec3(_targetScale));
+    settings.endGroup();
 }
 
 void MyAvatar::clearScaleRestriction() {
