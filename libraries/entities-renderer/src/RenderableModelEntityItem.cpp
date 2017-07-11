@@ -244,7 +244,7 @@ bool RenderableModelEntityItem::addToScene(const EntityItemPointer& self, const 
         _model->addToScene(scene, transaction, statusGetters);
 
         if (!_hasTransitioned) {
-            transaction.transitionItem(_myMetaItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+            transaction.addTransitionToItem(_myMetaItem, render::Transition::ELEMENT_ENTER_DOMAIN);
             _hasTransitioned = true;
         }
     }
@@ -482,7 +482,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             _model->addToScene(scene, transaction, statusGetters);
 
             if (!_hasTransitioned) {
-                transaction.transitionItem(_myMetaItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+                transaction.addTransitionToItem(_myMetaItem, render::Transition::ELEMENT_ENTER_DOMAIN);
                 _hasTransitioned = true;
             }
 

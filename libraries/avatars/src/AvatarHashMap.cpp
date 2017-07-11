@@ -180,7 +180,14 @@ void AvatarHashMap::processExitingSpaceBubble(QSharedPointer<ReceivedMessage> me
 void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason) {
     QWriteLocker locker(&_hashLock);
 
-    auto removedAvatar = _avatarHash.take(sessionUUID);
+    AvatarSharedPointer removedAvatar;
+    
+    if (removalReason != KillAvatarReason::TheirAvatarEnteredYourBubble && removalReason != KillAvatarReason::YourAvatarEnteredTheirBubble) {
+        removedAvatar = _avatarHash.take(sessionUUID);
+    }
+    else {
+        removedAvatar = _avatarHash[sessionUUID];
+    }
 
     if (removedAvatar) {
         handleRemovedAvatar(removedAvatar, removalReason);

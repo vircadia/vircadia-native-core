@@ -251,7 +251,7 @@ public:
     bool isInPhysicsSimulation() const { return _physicsCallback != nullptr; }
 
     void fadeIn(render::ScenePointer scene);
-    void fadeOut(render::ScenePointer scene);
+    void fadeOut(render::ScenePointer scene, KillAvatarReason reason);
     bool isFading(render::ScenePointer scene) const;
 
 public slots:

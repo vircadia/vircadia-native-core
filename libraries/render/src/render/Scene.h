@@ -40,7 +40,8 @@ public:
     void resetItem(ItemID id, const PayloadPointer& payload);
     void removeItem(ItemID id);
 
-    void transitionItem(ItemID id, Transition::Type transition, ItemID boundId = render::Item::INVALID_ITEM_ID);
+    void addTransitionToItem(ItemID id, Transition::Type transition, ItemID boundId = render::Item::INVALID_ITEM_ID);
+    void removeTransitionFromItem(ItemID id);
 
     template <class T> void updateItem(ItemID id, std::function<void(T&)> func) {
         updateItem(id, std::make_shared<UpdateFunctor<T>>(func));

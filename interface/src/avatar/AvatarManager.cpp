@@ -330,7 +330,7 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
         DependencyManager::get<UsersScriptingInterface>()->avatarDisconnected(avatar->getSessionUUID());
     }
     _avatarsToFade.push_back(removedAvatar);
-    avatar->fadeOut(qApp->getMain3DScene());
+    avatar->fadeOut(qApp->getMain3DScene(), removalReason);
 }
 
 void AvatarManager::clearOtherAvatars() {

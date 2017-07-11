@@ -513,17 +513,25 @@ void Avatar::fadeIn(render::ScenePointer scene) {
     scene->enqueueTransaction(transaction);
 }
 
-void Avatar::fadeOut(render::ScenePointer scene) {
+void Avatar::fadeOut(render::ScenePointer scene, KillAvatarReason reason) {
+    render::Transition::Type transitionType = render::Transition::USER_LEAVE_DOMAIN;
     render::Transaction transaction;
-    fade(transaction, render::Transition::USER_LEAVE_DOMAIN);
+
+    if (reason == KillAvatarReason::YourAvatarEnteredTheirBubble) {
+        transitionType = render::Transition::BUBBLE_ISECT_TRESPASSER;
+    }
+    else if (reason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
+        transitionType = render::Transition::BUBBLE_ISECT_OWNER;
+    }
+    fade(transaction, transitionType);
     scene->enqueueTransaction(transaction);
 }
 
 void Avatar::fade(render::Transaction& transaction, render::Transition::Type type) {
-    transaction.transitionItem(_renderItemID, type);
+    transaction.addTransitionToItem(_renderItemID, type);
     for (auto& attachmentModel : _attachmentModels) {
         for (auto itemId : attachmentModel->fetchRenderItemIDs()) {
-            transaction.transitionItem(itemId, type, _renderItemID);
+            transaction.addTransitionToItem(itemId, type, _renderItemID);
         }
     }
     _isWaitingForFade = true;

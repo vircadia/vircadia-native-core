@@ -31,10 +31,16 @@ void Transaction::removeItem(ItemID id) {
     _removedItems.emplace_back(id);
 }
 
-void Transaction::transitionItem(ItemID id, Transition::Type transition, ItemID boundId) {
+void Transaction::addTransitionToItem(ItemID id, Transition::Type transition, ItemID boundId) {
     _transitioningItems.emplace_back(id);
     _transitioningItemBounds.emplace_back(boundId);
     _transitionTypes.emplace_back(transition);
+}
+
+void Transaction::removeTransitionFromItem(ItemID id) {
+    _transitioningItems.emplace_back(id);
+    _transitioningItemBounds.emplace_back(render::Item::INVALID_ITEM_ID);
+    _transitionTypes.emplace_back(render::Transition::NONE);
 }
 
 void Transaction::updateItem(ItemID id, const UpdateFunctorPointer& functor) {
