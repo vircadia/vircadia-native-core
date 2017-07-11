@@ -130,6 +130,7 @@
             if (isChangingDomains) {
                 Script.setTimeout(function () {
                     deleteCamera();
+                    spectatorCameraOn();
                 }, 1 * 1000);
             } else {
                 deleteCamera();
