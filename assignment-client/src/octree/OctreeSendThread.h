@@ -66,7 +66,6 @@ private:
 
     OctreePacketData _packetData;
 
-    int _nodeMissingCount { 0 };
     bool _isShuttingDown { false };
 };
 

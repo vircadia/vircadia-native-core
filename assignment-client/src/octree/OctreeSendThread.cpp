@@ -81,7 +81,6 @@ bool OctreeSendThread::process() {
     // don't do any send processing until the initial load of the octree is complete...
     if (_myServer->isInitialLoadComplete()) {
         if (auto node = _node.lock()) {
-            _nodeMissingCount = 0;
             OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(node->getLinkedData());
 
             // Sometimes the node data has not yet been linked, in which case we can't really do anything
