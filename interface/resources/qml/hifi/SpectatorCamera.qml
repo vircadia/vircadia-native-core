@@ -225,13 +225,11 @@ Rectangle {
             anchors.topMargin: 20;
             anchors.right: parent.right;
             height: 250;
-            color: spectatorCameraPreview.visible ? "transparent" : "black";
-
-
+            color: cameraToggleCheckBox.checked ? "transparent" : "black";
 
             AnimatedImage {
                 source: "../../images/static.gif"
-                visible: !spectatorCameraPreview.visible;
+                visible: !cameraToggleCheckBox.checked;
                 anchors.fill: parent;
                 opacity: 0.15;
             }
@@ -242,7 +240,7 @@ Rectangle {
                 text: "Turn on Spectator Camera for a preview\nof what your monitor shows.";
                 size: 16;
                 color: hifi.colors.lightGrayText;
-                visible: !spectatorCameraPreview.visible;
+                visible: !cameraToggleCheckBox.checked;
                 anchors.fill: parent;
                 horizontalAlignment: Text.AlignHCenter;
                 verticalAlignment: Text.AlignVCenter;
