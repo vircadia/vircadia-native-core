@@ -514,8 +514,14 @@ void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::Textur
     batch.setPipeline(_presentPipeline);
     batch.draw(gpu::TRIANGLE_STRIP, 4);
     if (copyFbo) {
-        gpu::Vec4i rect {0, 0, scissor.z, scissor.w};
-        batch.blit(fbo, rect, copyFbo, rect);
+        gpu::Vec4i sourceRect(scissor.x, scissor.y, scissor.x + scissor.z, scissor.y + scissor.w);
+        gpu::Vec4i copyRect(0, 0, copyFbo->getWidth(), copyFbo->getHeight());
+        batch.setFramebuffer(copyFbo);
+        batch.resetViewTransform();
+        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
+        batch.setViewportTransform(copyRect);
+        batch.setStateScissorRect(copyRect);
+        batch.blit(fbo, sourceRect, copyFbo, copyRect);
     }
 }
 
@@ -849,9 +855,9 @@ void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer ne
         // setup source fbo
         glBindFramebuffer(GL_FRAMEBUFFER, fbo[0]);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, sourceTexture, 0);
-        GLint texWidth, texHeight;
-        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &texWidth);
-        glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &texHeight);
+
+        GLint texWidth = networkTexture->getWidth();
+        GLint texHeight = networkTexture->getHeight();
 
         // setup destination fbo
         glBindFramebuffer(GL_FRAMEBUFFER, fbo[1]);

@@ -170,7 +170,7 @@ public:
     NetworkTexturePointer getResourceTexture(QUrl resourceTextureUrl);
     const gpu::FramebufferPointer& getSpectatorCameraFramebuffer();
     void resetSpectatorCameraFramebuffer(int width, int height);
-    const gpu::FramebufferPointer& getHmdPreviewFramebuffer();
+    const gpu::FramebufferPointer& getHmdPreviewFramebuffer(int width, int height);
 
 protected:
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
