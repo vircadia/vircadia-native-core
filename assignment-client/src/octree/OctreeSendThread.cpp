@@ -332,13 +332,7 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
              && ((!viewFrustumChanged && nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged()));
     }
 
-    // If our packet already has content in it, then we must use the color choice of the waiting packet.
-    // If we're starting a fresh packet, then...
-    //     If we're moving, and the client asked for low res, then we force monochrome, otherwise, use
-    //     the clients requested color state.
-
-    // If we have a packet waiting, and our desired want color, doesn't match the current waiting packets color
-    // then let's just send that waiting packet.
+    // send any waiting packet
     if (nodeData->isPacketWaiting()) {
         int numPackets = handlePacketSend(node, nodeData, trueBytesSent);
         truePacketsSent += numPackets;
