@@ -504,8 +504,8 @@ void OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, Octre
 
                 // Our trackSend() function is implemented by the server subclass, and will be called back
                 // during the encodeTreeBitstream() as new entities/data elements are sent
-                params.trackSend = [this, node](const QUuid& dataID, quint64 dataEdited) {
-                    _myServer->trackSend(dataID, dataEdited, node->getUUID());
+                params.trackSend = [this](const QUuid& dataID, quint64 dataEdited) {
+                    _myServer->trackSend(dataID, dataEdited, _nodeUuid);
                 };
 
                 // TODO: should this include the lock time or not? This stat is sent down to the client,
