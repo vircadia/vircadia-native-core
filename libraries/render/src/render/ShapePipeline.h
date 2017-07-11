@@ -240,14 +240,14 @@ public:
     };
     using LocationsPointer = std::shared_ptr<Locations>;
 
-    using BatchSetter = std::function<void(const ShapePipeline&, gpu::Batch&)>;
+    using BatchSetter = std::function<void(const ShapePipeline&, gpu::Batch&, RenderArgs* args)>;
 
     ShapePipeline(gpu::PipelinePointer pipeline, LocationsPointer locations, BatchSetter batchSetter) :
         pipeline(pipeline), locations(locations), batchSetter(batchSetter) {}
 
     // Normally, a pipeline is accessed thorugh pickPipeline. If it needs to be set manually,
     // after calling setPipeline this method should be called to prepare the pipeline with default buffers.
-    void prepare(gpu::Batch& batch);
+    void prepare(gpu::Batch& batch, RenderArgs* args);
 
     gpu::PipelinePointer pipeline;
     std::shared_ptr<Locations> locations;
