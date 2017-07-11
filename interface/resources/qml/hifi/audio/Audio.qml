@@ -166,7 +166,7 @@ Rectangle {
 
         ListView {
             anchors { left: parent.left; right: parent.right; leftMargin: 70 }
-            height: 125;
+            height: Math.min(250, contentHeight);
             spacing: 0;
             snapMode: ListView.SnapToItem;
             clip: true;

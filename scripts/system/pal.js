@@ -862,6 +862,9 @@ function avatarDisconnected(nodeID) {
 
 function clearLocalQMLDataAndClosePAL() {
     sendToQml({ method: 'clearLocalQMLData' });
+    if (onPalScreen) {
+        tablet.gotoHomeScreen();
+    }
 }
 
 function avatarAdded(avatarID) {

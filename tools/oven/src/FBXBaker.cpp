@@ -354,8 +354,8 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                             FbxFileTexture* fileTexture = property.GetSrcObject<FbxFileTexture>(j);
 
                             // use QFileInfo to easily split up the existing texture filename into its components
-                            QString fbxFileName { fileTexture->GetFileName() };
-                            QFileInfo textureFileInfo { fbxFileName.replace("\\", "/") };
+                            QString fbxTextureFileName { fileTexture->GetFileName() };
+                            QFileInfo textureFileInfo { fbxTextureFileName.replace("\\", "/") };
 
                             // make sure this texture points to something and isn't one we've already re-mapped
                             if (!textureFileInfo.filePath().isEmpty()
@@ -372,15 +372,15 @@ void FBXBaker::rewriteAndBakeSceneTextures() {
                                 qCDebug(model_baking).noquote() << "Re-mapping" << fileTexture->GetFileName()
                                     << "to" << bakedTextureFilePath;
 
+                                // figure out the URL to this texture, embedded or external
+                                auto urlToTexture = getTextureURL(textureFileInfo, fileTexture);
+
                                 // write the new filename into the FBX scene
                                 fileTexture->SetFileName(bakedTextureFilePath.toLocal8Bit());
 
                                 // write the relative filename to be the baked texture file name since it will
                                 // be right beside the FBX
                                 fileTexture->SetRelativeFileName(bakedTextureFileName.toLocal8Bit().constData());
-
-                                // figure out the URL to this texture, embedded or external
-                                auto urlToTexture = getTextureURL(textureFileInfo, fileTexture);
 
                                 if (!_bakingTextures.contains(urlToTexture)) {
                                     // bake this texture asynchronously
