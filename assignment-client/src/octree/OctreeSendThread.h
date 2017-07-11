@@ -53,12 +53,13 @@ protected:
 
     /// Called before a packetDistributor pass to allow for pre-distribution processing
     virtual void preDistributionProcessing() {};
+    virtual void traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData, bool viewFrustumChanged, bool isFullScene);
 
     OctreeServer* _myServer { nullptr };
     QWeakPointer<Node> _node;
 
 private:
-    int handlePacketSend(SharedNodePointer node, OctreeQueryNode* nodeData, int& trueBytesSent, bool dontSuppressDuplicate = false);
+    int handlePacketSend(SharedNodePointer node, OctreeQueryNode* nodeData, bool dontSuppressDuplicate = false);
     int packetDistributor(SharedNodePointer node, OctreeQueryNode* nodeData, bool viewFrustumChanged);
 
 
@@ -66,6 +67,9 @@ private:
 
     OctreePacketData _packetData;
 
+    int _truePacketsSent { 0 }; // available for debug stats
+    int _trueBytesSent { 0 }; // available for debug stats
+    int _packetsSentThisInterval { 0 }; // used for bandwidth throttle condition
     bool _isShuttingDown { false };
 };
 
