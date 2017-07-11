@@ -177,7 +177,9 @@
 
             children = Entities.getChildrenIDs(id);
             for (i = 0, length = children.length; i < length; i += 1) {
-                traverseEntityTree(children[i], result);
+                if (Entities.getNestableType(children[i]) === ENTITY_TYPE) {
+                    traverseEntityTree(children[i], result);
+                }
             }
         }
 
