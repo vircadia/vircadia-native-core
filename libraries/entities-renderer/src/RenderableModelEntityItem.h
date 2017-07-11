@@ -134,6 +134,7 @@ private:
     QVariantMap _originalTextures;
     bool _originalTexturesRead = false;
     bool _dimensionsInitialized = true;
+    bool _hasTransitioned{ false };
 
     AnimationPropertyGroup _renderAnimationProperties;
 

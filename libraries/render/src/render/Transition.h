@@ -20,18 +20,20 @@ namespace render {
     public:
 
         enum Type {
-            ELEMENT_ENTER_LEAVE_DOMAIN = 0,
+            ELEMENT_ENTER_DOMAIN = 0,
+            ELEMENT_LEAVE_DOMAIN,
             BUBBLE_ISECT_OWNER,
             BUBBLE_ISECT_TRESPASSER,
-            USER_ENTER_LEAVE_DOMAIN,
+            USER_ENTER_DOMAIN,
+            USER_LEAVE_DOMAIN,
             AVATAR_CHANGE,
 
             // Don't forget to modify Fade.slh to reflect the change in number of categories
-            EVENT_CATEGORY_COUNT,
-            NONE = EVENT_CATEGORY_COUNT
+            TYPE_COUNT,
+            NONE = TYPE_COUNT
         };
 
-        Type eventType{ ELEMENT_ENTER_LEAVE_DOMAIN };
+        Type eventType{ ELEMENT_ENTER_DOMAIN };
         ItemID itemId{ Item::INVALID_ITEM_ID };
         double time{ 0.0 };
         glm::vec3 noiseOffset{ 0.f, 0.f, 0.f };

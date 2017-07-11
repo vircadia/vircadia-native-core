@@ -22,7 +22,7 @@ inline float valueToParameterPow(float value, const double minValue, const doubl
     return (float)(log(double(value) / minValue) / log(maxOverMinValue));
 }
 
-void FadeEditJob::run(const render::RenderContextPointer& renderContext, const Input& inputs) {
+void FadeEditJob::run(const render::RenderContextPointer& renderContext, const FadeEditJob::Input& inputs) {
     auto jobConfig = static_cast<const FadeEditConfig*>(renderContext->jobConfig.get());
     auto& itemBounds = inputs.get0();
 
@@ -34,9 +34,17 @@ void FadeEditJob::run(const render::RenderContextPointer& renderContext, const I
             const auto& item = renderContext->_scene->getItem(itemId);
 
             if (item.getTransitionId() == render::TransitionStage::INVALID_INDEX) {
+                static const render::Transition::Type categoryToTransition[FadeConfig::CATEGORY_COUNT] = {
+                    render::Transition::ELEMENT_ENTER_DOMAIN,
+                    render::Transition::BUBBLE_ISECT_OWNER,
+                    render::Transition::BUBBLE_ISECT_TRESPASSER,
+                    render::Transition::USER_ENTER_DOMAIN,
+                    render::Transition::AVATAR_CHANGE
+                };
+
                 // Relaunch transition
                 render::Transaction transaction;
-                transaction.transitionItem(itemId, inputs.get1());
+                transaction.transitionItem(itemId, categoryToTransition[inputs.get1()]);
                 renderContext->_scene->enqueueTransaction(transaction);
             }
         }
@@ -70,70 +78,70 @@ render::ItemID FadeEditJob::findNearestItem(const render::RenderContextPointer& 
 
 FadeConfig::FadeConfig() 
 {
-    events[render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN].noiseSize = glm::vec3{ 0.75f, 0.75f, 0.75f };
-    events[render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN].noiseLevel = 1.f;
-    events[render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN].noiseSpeed = glm::vec3{ 0.0f, 0.0f, 0.0f };
-    events[render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN].timing = FadeConfig::LINEAR;
-    events[render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN].baseSize = glm::vec3{ 1.0f, 1.0f, 1.0f };
-    events[render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN].baseLevel = 0.f;
-    events[render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN].isInverted = false;
-    events[render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN].duration = 4.f;
-    events[render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN].edgeWidth = 0.1f;
-    events[render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN].edgeInnerColor = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.0f };
-    events[render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN].edgeOuterColor = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f };
+    events[ELEMENT_ENTER_LEAVE_DOMAIN].noiseSize = glm::vec3{ 0.75f, 0.75f, 0.75f };
+    events[ELEMENT_ENTER_LEAVE_DOMAIN].noiseLevel = 1.f;
+    events[ELEMENT_ENTER_LEAVE_DOMAIN].noiseSpeed = glm::vec3{ 0.0f, 0.0f, 0.0f };
+    events[ELEMENT_ENTER_LEAVE_DOMAIN].timing = FadeConfig::LINEAR;
+    events[ELEMENT_ENTER_LEAVE_DOMAIN].baseSize = glm::vec3{ 1.0f, 1.0f, 1.0f };
+    events[ELEMENT_ENTER_LEAVE_DOMAIN].baseLevel = 0.f;
+    events[ELEMENT_ENTER_LEAVE_DOMAIN].isInverted = false;
+    events[ELEMENT_ENTER_LEAVE_DOMAIN].duration = 4.f;
+    events[ELEMENT_ENTER_LEAVE_DOMAIN].edgeWidth = 0.1f;
+    events[ELEMENT_ENTER_LEAVE_DOMAIN].edgeInnerColor = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.0f };
+    events[ELEMENT_ENTER_LEAVE_DOMAIN].edgeOuterColor = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f };
 
-    events[render::Transition::BUBBLE_ISECT_OWNER].noiseSize = glm::vec3{ 1.5f, 1.0f/25.f, 0.5f };
-    events[render::Transition::BUBBLE_ISECT_OWNER].noiseLevel = 0.37f;
-    events[render::Transition::BUBBLE_ISECT_OWNER].noiseSpeed = glm::vec3{ 1.0f, 0.2f, 1.0f };
-    events[render::Transition::BUBBLE_ISECT_OWNER].timing = FadeConfig::LINEAR;
-    events[render::Transition::BUBBLE_ISECT_OWNER].baseSize = glm::vec3{ 2.0f, 2.0f, 2.0f };
-    events[render::Transition::BUBBLE_ISECT_OWNER].baseLevel = 1.f;
-    events[render::Transition::BUBBLE_ISECT_OWNER].isInverted = false;
-    events[render::Transition::BUBBLE_ISECT_OWNER].duration = 4.f;
-    events[render::Transition::BUBBLE_ISECT_OWNER].edgeWidth = 0.02f;
-    events[render::Transition::BUBBLE_ISECT_OWNER].edgeInnerColor = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f };
-    events[render::Transition::BUBBLE_ISECT_OWNER].edgeOuterColor = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 2.0f };
+    events[BUBBLE_ISECT_OWNER].noiseSize = glm::vec3{ 1.5f, 1.0f/25.f, 0.5f };
+    events[BUBBLE_ISECT_OWNER].noiseLevel = 0.37f;
+    events[BUBBLE_ISECT_OWNER].noiseSpeed = glm::vec3{ 1.0f, 0.2f, 1.0f };
+    events[BUBBLE_ISECT_OWNER].timing = FadeConfig::LINEAR;
+    events[BUBBLE_ISECT_OWNER].baseSize = glm::vec3{ 2.0f, 2.0f, 2.0f };
+    events[BUBBLE_ISECT_OWNER].baseLevel = 1.f;
+    events[BUBBLE_ISECT_OWNER].isInverted = false;
+    events[BUBBLE_ISECT_OWNER].duration = 4.f;
+    events[BUBBLE_ISECT_OWNER].edgeWidth = 0.02f;
+    events[BUBBLE_ISECT_OWNER].edgeInnerColor = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f };
+    events[BUBBLE_ISECT_OWNER].edgeOuterColor = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 2.0f };
 
-    events[render::Transition::BUBBLE_ISECT_TRESPASSER].noiseSize = glm::vec3{ 0.5f, 1.0f / 25.f, 0.5f };
-    events[render::Transition::BUBBLE_ISECT_TRESPASSER].noiseLevel = 1.f;
-    events[render::Transition::BUBBLE_ISECT_TRESPASSER].noiseSpeed = glm::vec3{ 1.0f, 0.2f, 1.0f };
-    events[render::Transition::BUBBLE_ISECT_TRESPASSER].timing = FadeConfig::LINEAR;
-    events[render::Transition::BUBBLE_ISECT_TRESPASSER].baseSize = glm::vec3{ 2.0f, 2.0f, 2.0f };
-    events[render::Transition::BUBBLE_ISECT_TRESPASSER].baseLevel = 0.f;
-    events[render::Transition::BUBBLE_ISECT_TRESPASSER].isInverted = false;
-    events[render::Transition::BUBBLE_ISECT_TRESPASSER].duration = 4.f;
-    events[render::Transition::BUBBLE_ISECT_TRESPASSER].edgeWidth = 0.025f;
-    events[render::Transition::BUBBLE_ISECT_TRESPASSER].edgeInnerColor = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f };
-    events[render::Transition::BUBBLE_ISECT_TRESPASSER].edgeOuterColor = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 2.0f };
+    events[BUBBLE_ISECT_TRESPASSER].noiseSize = glm::vec3{ 0.5f, 1.0f / 25.f, 0.5f };
+    events[BUBBLE_ISECT_TRESPASSER].noiseLevel = 1.f;
+    events[BUBBLE_ISECT_TRESPASSER].noiseSpeed = glm::vec3{ 1.0f, 0.2f, 1.0f };
+    events[BUBBLE_ISECT_TRESPASSER].timing = FadeConfig::LINEAR;
+    events[BUBBLE_ISECT_TRESPASSER].baseSize = glm::vec3{ 2.0f, 2.0f, 2.0f };
+    events[BUBBLE_ISECT_TRESPASSER].baseLevel = 0.f;
+    events[BUBBLE_ISECT_TRESPASSER].isInverted = false;
+    events[BUBBLE_ISECT_TRESPASSER].duration = 4.f;
+    events[BUBBLE_ISECT_TRESPASSER].edgeWidth = 0.025f;
+    events[BUBBLE_ISECT_TRESPASSER].edgeInnerColor = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 1.0f };
+    events[BUBBLE_ISECT_TRESPASSER].edgeOuterColor = glm::vec4{ 31.f / 255.f, 198.f / 255.f, 166.f / 255.f, 2.0f };
 
-    events[render::Transition::USER_ENTER_LEAVE_DOMAIN].noiseSize = glm::vec3{ 10.f, 0.01f, 10.0f };
-    events[render::Transition::USER_ENTER_LEAVE_DOMAIN].noiseLevel = 0.7f;
-    events[render::Transition::USER_ENTER_LEAVE_DOMAIN].noiseSpeed = glm::vec3{ 0.0f, -0.5f, 0.0f };
-    events[render::Transition::USER_ENTER_LEAVE_DOMAIN].timing = FadeConfig::LINEAR;
-    events[render::Transition::USER_ENTER_LEAVE_DOMAIN].baseSize = glm::vec3{ 10000.f, 1.0f, 10000.0f };
-    events[render::Transition::USER_ENTER_LEAVE_DOMAIN].baseLevel = 1.f;
-    events[render::Transition::USER_ENTER_LEAVE_DOMAIN].isInverted = true;
-    events[render::Transition::USER_ENTER_LEAVE_DOMAIN].duration = 5.f;
-    events[render::Transition::USER_ENTER_LEAVE_DOMAIN].edgeWidth = 0.229f;
-    events[render::Transition::USER_ENTER_LEAVE_DOMAIN].edgeInnerColor = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.25f };
-    events[render::Transition::USER_ENTER_LEAVE_DOMAIN].edgeOuterColor = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 1.0f };
+    events[USER_ENTER_LEAVE_DOMAIN].noiseSize = glm::vec3{ 10.f, 0.01f, 10.0f };
+    events[USER_ENTER_LEAVE_DOMAIN].noiseLevel = 0.7f;
+    events[USER_ENTER_LEAVE_DOMAIN].noiseSpeed = glm::vec3{ 0.0f, -0.5f, 0.0f };
+    events[USER_ENTER_LEAVE_DOMAIN].timing = FadeConfig::LINEAR;
+    events[USER_ENTER_LEAVE_DOMAIN].baseSize = glm::vec3{ 10000.f, 1.0f, 10000.0f };
+    events[USER_ENTER_LEAVE_DOMAIN].baseLevel = 1.f;
+    events[USER_ENTER_LEAVE_DOMAIN].isInverted = true;
+    events[USER_ENTER_LEAVE_DOMAIN].duration = 5.f;
+    events[USER_ENTER_LEAVE_DOMAIN].edgeWidth = 0.229f;
+    events[USER_ENTER_LEAVE_DOMAIN].edgeInnerColor = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.25f };
+    events[USER_ENTER_LEAVE_DOMAIN].edgeOuterColor = glm::vec4{ 1.f, 1.f, 1.f, 1.0f };
 
-    events[render::Transition::AVATAR_CHANGE].noiseSize = glm::vec3{ 0.4f, 0.4f, 0.4f };
-    events[render::Transition::AVATAR_CHANGE].noiseLevel = 1.f;
-    events[render::Transition::AVATAR_CHANGE].noiseSpeed = glm::vec3{ 0.0f, 0.0f, 0.0f };
-    events[render::Transition::AVATAR_CHANGE].timing = FadeConfig::LINEAR;
-    events[render::Transition::AVATAR_CHANGE].baseSize = glm::vec3{ 0.4f, 0.4f, 0.4f };
-    events[render::Transition::AVATAR_CHANGE].baseLevel = 1.f;
-    events[render::Transition::AVATAR_CHANGE].isInverted = false;
-    events[render::Transition::AVATAR_CHANGE].duration = 3.f;
-    events[render::Transition::AVATAR_CHANGE].edgeWidth = 0.05f;
-    events[render::Transition::AVATAR_CHANGE].edgeInnerColor = glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
-    events[render::Transition::AVATAR_CHANGE].edgeOuterColor = glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+    events[AVATAR_CHANGE].noiseSize = glm::vec3{ 0.4f, 0.4f, 0.4f };
+    events[AVATAR_CHANGE].noiseLevel = 1.f;
+    events[AVATAR_CHANGE].noiseSpeed = glm::vec3{ 0.0f, 0.0f, 0.0f };
+    events[AVATAR_CHANGE].timing = FadeConfig::LINEAR;
+    events[AVATAR_CHANGE].baseSize = glm::vec3{ 0.4f, 0.4f, 0.4f };
+    events[AVATAR_CHANGE].baseLevel = 1.f;
+    events[AVATAR_CHANGE].isInverted = false;
+    events[AVATAR_CHANGE].duration = 3.f;
+    events[AVATAR_CHANGE].edgeWidth = 0.05f;
+    events[AVATAR_CHANGE].edgeInnerColor = glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
+    events[AVATAR_CHANGE].edgeOuterColor = glm::vec4{ 1.0f, 1.0f, 1.0f, 1.0f };
 }
 
 void FadeConfig::setEditedCategory(int value) {
-    assert(value < render::Transition::EVENT_CATEGORY_COUNT);
-    editedCategory = std::min<int>(render::Transition::EVENT_CATEGORY_COUNT, value);
+    assert(value < CATEGORY_COUNT);
+    editedCategory = std::min<int>(CATEGORY_COUNT, value);
     emit dirtyCategory();
     emit dirty();
 }
@@ -302,7 +310,7 @@ void FadeConfig::setTiming(int value) {
     emit dirty();
 }
 
-QString FadeConfig::eventNames[render::Transition::EVENT_CATEGORY_COUNT] = {
+QString FadeConfig::eventNames[FadeConfig::CATEGORY_COUNT] = {
     "element_enter_leave_domain",
     "bubble_isect_owner",
     "bubble_isect_trespasser",
@@ -311,7 +319,7 @@ QString FadeConfig::eventNames[render::Transition::EVENT_CATEGORY_COUNT] = {
 };
 
 void FadeConfig::save() const {
-    assert(editedCategory < render::Transition::EVENT_CATEGORY_COUNT);
+    assert(editedCategory < FadeConfig::CATEGORY_COUNT);
     QJsonObject lProperties;
     const QString configFile = "config/" + eventNames[editedCategory] + ".json";
     QUrl path(PathUtils::resourcesPath() + configFile);
@@ -516,7 +524,7 @@ FadeJob::FadeJob()
 void FadeJob::configure(const Config& config) {
     auto& configurations = _configurations.edit();
 
-    for (auto i = 0; i < render::Transition::EVENT_CATEGORY_COUNT; i++) {
+    for (auto i = 0; i < FadeConfig::CATEGORY_COUNT; i++) {
         auto& eventParameters = configurations.parameters[i];
         const auto& eventConfig = config.events[i];
 
@@ -534,7 +542,7 @@ void FadeJob::configure(const Config& config) {
     }
 }
 
-void FadeJob::run(const render::RenderContextPointer& renderContext, Output& output) {
+void FadeJob::run(const render::RenderContextPointer& renderContext, FadeJob::Output& output) {
     Config* jobConfig = static_cast<Config*>(renderContext->jobConfig.get());
     auto scene = renderContext->args->_scene;
     auto transitionStage = scene->getStage<render::TransitionStage>(render::TransitionStage::getName());
@@ -542,8 +550,9 @@ void FadeJob::run(const render::RenderContextPointer& renderContext, Output& out
     const double deltaTime = (int64_t(now) - int64_t(_previousTime)) / double(USECS_PER_SECOND);
     render::Transaction transaction;
     bool hasTransactions = false;
+    bool isFirstItem = true;
     
-    output = (render::Transition::Type) jobConfig->editedCategory;
+    output = (FadeConfig::Category) jobConfig->editedCategory;
 
     // And now update fade effect
     for (auto transitionId : *transitionStage) {
@@ -554,7 +563,10 @@ void FadeJob::run(const render::RenderContextPointer& renderContext, Output& out
             hasTransactions = true;
         }
 
-        jobConfig->setProperty("threshold", state.threshold);
+        if (isFirstItem) {
+            jobConfig->setProperty("threshold", state.threshold);
+            isFirstItem = false;
+        }
     }
 
     if (hasTransactions) {
@@ -563,8 +575,19 @@ void FadeJob::run(const render::RenderContextPointer& renderContext, Output& out
     _previousTime = now;
 }
 
+const FadeConfig::Category FadeJob::transitionToCategory[render::Transition::TYPE_COUNT] = {
+    FadeConfig::ELEMENT_ENTER_LEAVE_DOMAIN,
+    FadeConfig::ELEMENT_ENTER_LEAVE_DOMAIN,
+    FadeConfig::BUBBLE_ISECT_OWNER,
+    FadeConfig::BUBBLE_ISECT_TRESPASSER,
+    FadeConfig::USER_ENTER_LEAVE_DOMAIN,
+    FadeConfig::USER_ENTER_LEAVE_DOMAIN,
+    FadeConfig::AVATAR_CHANGE
+};
+
 bool FadeJob::update(const Config& config, const render::ScenePointer& scene, render::Transition& transition, const double deltaTime) const {
-    auto& eventConfig = config.events[transition.eventType];
+    const auto fadeCategory = transitionToCategory[transition.eventType];
+    auto& eventConfig = config.events[fadeCategory];
     auto& item = scene->getItem(transition.itemId);
     const double eventDuration = (double)eventConfig.duration;
     const FadeConfig::Timing timing = (FadeConfig::Timing) eventConfig.timing;
@@ -574,19 +597,24 @@ bool FadeJob::update(const Config& config, const render::ScenePointer& scene, re
         auto& aabb = item.getBound();
         auto& dimensions = aabb.getDimensions();
 
-        assert(timing < render::Transition::EVENT_CATEGORY_COUNT);
+        assert(timing < FadeConfig::TIMING_COUNT);
 
         switch (transition.eventType) {
-        case render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN:
-            transition.threshold = 1.f - computeElementEnterRatio(transition.time, eventConfig.duration, timing);
-            transition.threshold = (transition.threshold - 0.5f)*_thresholdScale[transition.eventType] + 0.5f;
+        case render::Transition::ELEMENT_ENTER_DOMAIN:
+        case render::Transition::ELEMENT_LEAVE_DOMAIN:
+        {
+            transition.threshold = computeElementEnterRatio(transition.time, eventConfig.duration, timing);
             transition.noiseOffset = aabb.calcCenter();
-            transition.baseOffset = transition.noiseOffset - dimensions.y;
+            transition.baseOffset = transition.noiseOffset;
             transition.baseInvSize.x = 1.f / dimensions.x;
             transition.baseInvSize.y = 1.f / dimensions.y;
             transition.baseInvSize.z = 1.f / dimensions.z;
-            continueTransition = transition.threshold > 0.f;
-            break;
+            continueTransition = transition.threshold < 1.f;
+            if (transition.eventType == render::Transition::ELEMENT_ENTER_DOMAIN) {
+                transition.threshold = 1.f - transition.threshold;
+            }
+        }
+        break;
 
         case render::Transition::BUBBLE_ISECT_OWNER:
         {
@@ -607,10 +635,19 @@ bool FadeJob::update(const Config& config, const render::ScenePointer& scene, re
         }
         break;
 
-        case render::Transition::USER_ENTER_LEAVE_DOMAIN:
+        case render::Transition::USER_ENTER_DOMAIN:
+        case render::Transition::USER_LEAVE_DOMAIN:
         {
-            /*        _editBaseOffset = itemBounds.bound.calcCenter();
-            _editBaseOffset.y -= itemBounds.bound.getDimensions().y / 2.f;*/
+            transition.threshold = computeElementEnterRatio(transition.time, eventConfig.duration, timing);
+            transition.noiseOffset = aabb.calcCenter();
+            transition.baseOffset = transition.noiseOffset - dimensions.y / 2.f;
+            transition.baseInvSize.x = 1.f / eventConfig.baseSize.x;
+            transition.baseInvSize.y = 1.f / dimensions.y;
+            transition.baseInvSize.z = 1.f / eventConfig.baseSize.z;
+            continueTransition = transition.threshold < 1.f;
+            if (transition.eventType == render::Transition::USER_ENTER_DOMAIN) {
+                transition.threshold = 1.f - transition.threshold;
+            }
         }
         break;
 
@@ -622,6 +659,7 @@ bool FadeJob::update(const Config& config, const render::ScenePointer& scene, re
         }
     }
 
+    transition.threshold = (transition.threshold - 0.5f)*_thresholdScale[fadeCategory] + 0.5f;
     transition.time += deltaTime;
 
     return continueTransition;
@@ -684,7 +722,9 @@ render::ShapePipeline::ItemSetter FadeJob::getItemSetter() const {
                 auto fadeCategoryLocation = uniforms.findLocation("fadeCategory");
 
                 if (fadeNoiseOffsetLocation >= 0 || fadeBaseInvSizeLocation >= 0 || fadeBaseOffsetLocation >= 0 || fadeThresholdLocation >= 0 || fadeCategoryLocation >= 0) {
-                    batch->_glUniform1i(fadeCategoryLocation, transitionState.eventType);
+                    const auto fadeCategory = transitionToCategory[transitionState.eventType];
+
+                    batch->_glUniform1i(fadeCategoryLocation, fadeCategory);
                     batch->_glUniform1f(fadeThresholdLocation, transitionState.threshold);
                     batch->_glUniform3f(fadeNoiseOffsetLocation, transitionState.noiseOffset.x, transitionState.noiseOffset.y, transitionState.noiseOffset.z);
                     batch->_glUniform3f(fadeBaseOffsetLocation, transitionState.baseOffset.x, transitionState.baseOffset.y, transitionState.baseOffset.z);

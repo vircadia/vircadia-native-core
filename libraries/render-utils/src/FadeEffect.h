@@ -33,24 +33,6 @@ signals:
     void dirty();
 };
 
-class FadeEditJob {
-
-public:
-
-    using Config = FadeEditConfig;
-    using Input = render::VaryingSet2<render::ItemBounds, render::Transition::Type>;
-    using JobModel = render::Job::ModelI<FadeEditJob, Input, Config>;
-
-    FadeEditJob() {}
-
-    void configure(const Config& config) {}
-    void run(const render::RenderContextPointer& renderContext, const Input& inputs);
-
-private:
-
-    render::ItemID findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const;
-};
-
 class FadeConfig : public render::Job::Config {
     Q_OBJECT
         Q_PROPERTY(int editedCategory MEMBER editedCategory WRITE setEditedCategory NOTIFY dirtyCategory)
@@ -80,6 +62,17 @@ class FadeConfig : public render::Job::Config {
         Q_PROPERTY(float threshold MEMBER threshold NOTIFY dirty)
 
 public:
+
+    enum Category {
+        ELEMENT_ENTER_LEAVE_DOMAIN = 0,
+        BUBBLE_ISECT_OWNER,
+        BUBBLE_ISECT_TRESPASSER,
+        USER_ENTER_LEAVE_DOMAIN,
+        AVATAR_CHANGE,
+
+        // Don't forget to modify Fade.slh to reflect the change in number of categories
+        CATEGORY_COUNT,
+    };
 
     enum Timing {
         LINEAR,
@@ -177,14 +170,14 @@ public:
         bool isInverted;
     };
 
-    Event events[render::Transition::EVENT_CATEGORY_COUNT];
-    int editedCategory{ render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN };
+    Event events[CATEGORY_COUNT];
+    int editedCategory{ ELEMENT_ENTER_LEAVE_DOMAIN };
     float threshold{ 0.f };
 
     Q_INVOKABLE void save() const;
     Q_INVOKABLE void load();
 
-    static QString eventNames[render::Transition::EVENT_CATEGORY_COUNT];
+    static QString eventNames[CATEGORY_COUNT];
 
 signals:
 
@@ -193,34 +186,54 @@ signals:
 
 };
 
+class FadeEditJob {
+
+public:
+
+    using Config = FadeEditConfig;
+    using Input = render::VaryingSet2<render::ItemBounds, FadeConfig::Category>;
+    using JobModel = render::Job::ModelI<FadeEditJob, Input, Config>;
+
+    FadeEditJob() {}
+
+    void configure(const Config& config) {}
+    void run(const render::RenderContextPointer& renderContext, const FadeEditJob::Input& inputs);
+
+private:
+
+    render::ItemID findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const;
+};
+
 class FadeJob {
 
 public:
 
     using Config = FadeConfig;
-    using Output = render::Transition::Type;
+    using Output = FadeConfig::Category;
     using JobModel = render::Job::ModelO<FadeJob, Output, Config>;
 
     FadeJob();
 
     void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, Output& output);
+    void run(const render::RenderContextPointer& renderContext, FadeJob::Output& output);
 
     render::ShapePipeline::BatchSetter getBatchSetter() const;
     render::ShapePipeline::ItemSetter getItemSetter() const;
 
 private:
 
+    static const FadeConfig::Category transitionToCategory[render::Transition::TYPE_COUNT];
+
 #include "Fade_shared.slh"
 
     struct FadeConfiguration
     {
-        FadeParameters  parameters[render::Transition::EVENT_CATEGORY_COUNT];
+        FadeParameters  parameters[FadeConfig::CATEGORY_COUNT];
     };
 
     gpu::StructBuffer<FadeConfiguration> _configurations;
     gpu::TexturePointer _fadeMaskMap;
-    float _thresholdScale[render::Transition::EVENT_CATEGORY_COUNT];
+    float _thresholdScale[FadeConfig::CATEGORY_COUNT];
     uint64_t _previousTime{ 0 };
 
     bool update(const Config& config, const render::ScenePointer& scene, render::Transition& transition, const double deltaTime) const;

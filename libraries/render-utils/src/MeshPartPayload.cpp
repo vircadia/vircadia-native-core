@@ -484,9 +484,6 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     if (wireframe) {
         builder.withWireframe();
     }
-/*    if (_fadeState != STATE_COMPLETE) {
-        builder.withFade();
-    }*/
     return builder.build();
 }
 
@@ -529,7 +526,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
     ModelPointer model = _model.lock();
-    if (!model || !model->addedToScene() || !model->isVisible()) {
+    if (!model || !model->isAddedToScene() || !model->isVisible()) {
         return; // bail asap
     }
 

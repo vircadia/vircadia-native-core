@@ -243,7 +243,10 @@ bool RenderableModelEntityItem::addToScene(const EntityItemPointer& self, const 
         // note: we don't mind if the model fails to add, we'll retry (in render()) until it succeeds
         _model->addToScene(scene, transaction, statusGetters);
 
-        transaction.transitionItem(_myMetaItem, render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN);
+        if (!_hasTransitioned) {
+            transaction.transitionItem(_myMetaItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+            _hasTransitioned = true;
+        }
     }
 
     // we've successfully added _myMetaItem so we always return true
@@ -366,6 +369,7 @@ void RenderableModelEntityItem::updateModelBounds() {
 // the per frame simulation/update that might be required if the models properties changed.
 void RenderableModelEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RMEIrender");
+
     assert(getType() == EntityTypes::Model);
 
     // When the individual mesh parts of a model finish fading, they will mark their Model as needing updating
@@ -477,7 +481,10 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             makeEntityItemStatusGetters(getThisPointer(), statusGetters);
             _model->addToScene(scene, transaction, statusGetters);
 
-            transaction.transitionItem(_myMetaItem, render::Transition::ELEMENT_ENTER_LEAVE_DOMAIN);
+            if (!_hasTransitioned) {
+                transaction.transitionItem(_myMetaItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+                _hasTransitioned = true;
+            }
 
             scene->enqueueTransaction(transaction);
         }
