@@ -190,9 +190,7 @@
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         addOrRemoveButton(false, HMD.active);
         tablet.screenChanged.connect(onTabletScreenChanged);
-        Window.domainChanged.connect(function () {
-            spectatorCameraOff(true);
-        });
+        Window.domainChanged.connect(onDomainChanged);
         Window.geometryChanged.connect(resizeViewFinderOverlay);
         Controller.keyPressEvent.connect(keyPressEvent);
         HMD.displayModeChanged.connect(onHMDChanged);
@@ -483,9 +481,7 @@
     //   -shutdown() will be called when the script ends (i.e. is stopped).
     function shutdown() {
         spectatorCameraOff();
-        Window.domainChanged.disconnect(function () {
-            spectatorCameraOff(true);
-        });
+        Window.domainChanged.disconnect(onDomainChanged);
         Window.geometryChanged.disconnect(resizeViewFinderOverlay);
         addOrRemoveButton(true, HMD.active);
         if (tablet) {
@@ -499,6 +495,14 @@
         if (controllerMapping) {
             controllerMapping.disable();
         }
+    }
+
+    // Function Name: onDomainChanged()
+    //
+    // Description:
+    //   -A small utility function used when the Window.domainChanged() signal is fired.
+    function onDomainChanged() {
+        spectatorCameraOff(true);
     }
 
     // These functions will be called when the script is loaded.
