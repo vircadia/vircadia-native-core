@@ -399,10 +399,6 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
     if (!nodeData->elementBag.isEmpty()) {
         quint64 start = usecTimestampNow();
 
-        // TODO: add these to stats page
-        //quint64 startCompressTimeMsecs = OctreePacketData::getCompressContentTime() / 1000;
-        //quint64 startCompressCalls = OctreePacketData::getCompressContentCalls();
-
         int extraPackingAttempts = 0;
         bool completedScene = false;
 
@@ -569,12 +565,6 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
         quint64 end = usecTimestampNow();
         int elapsedmsec = (end - start) / USECS_PER_MSEC;
         OctreeServer::trackLoopTime(elapsedmsec);
-
-        // TODO: add these to stats page
-        //quint64 endCompressCalls = OctreePacketData::getCompressContentCalls();
-        //int elapsedCompressCalls = endCompressCalls - startCompressCalls;
-        //quint64 endCompressTimeMsecs = OctreePacketData::getCompressContentTime() / 1000;
-        //int elapsedCompressTimeMsecs = endCompressTimeMsecs - startCompressTimeMsecs;
 
         // if after sending packets we've emptied our bag, then we want to remember that we've sent all
         // the octree elements from the current view frustum
