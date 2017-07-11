@@ -612,7 +612,7 @@ private:
 
     bool requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& positionOut);
 
-    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail) override;
+    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) override;
 
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);
