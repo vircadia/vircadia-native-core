@@ -20,8 +20,6 @@
 
 #include "RenderableParticleEffectEntityItem.h"
 
-#include "untextured_particle_vert.h"
-#include "untextured_particle_frag.h"
 #include "textured_particle_vert.h"
 #include "textured_particle_frag.h"
 
@@ -32,13 +30,13 @@ public:
 
     static uint8_t CUSTOM_PIPELINE_NUMBER;
     static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key);
-    static std::weak_ptr<gpu::Pipeline> _texturedPipeline;
-
     static void registerShapePipeline() {
         if (!CUSTOM_PIPELINE_NUMBER) {
-            ParticlePayloadData::CUSTOM_PIPELINE_NUMBER = render::ShapePipeline::registerCustomShapePipelineFactory(ParticlePayloadData::shapePipelineFactory);
+            CUSTOM_PIPELINE_NUMBER = render::ShapePipeline::registerCustomShapePipelineFactory(shapePipelineFactory);
         }
     }
+
+    static std::weak_ptr<gpu::Pipeline> _texturedPipeline;
 
     template<typename T>
     struct InterpolationData {
@@ -100,7 +98,6 @@ public:
     void setVisibleFlag(bool visibleFlag) { _visibleFlag = visibleFlag; }
 
     void render(RenderArgs* args) const {
-        assert(_pipeline);
 
         gpu::Batch& batch = *args->_batch;
 
@@ -122,7 +119,6 @@ public:
 protected:
     Transform _modelTransform;
     AABox _bound;
-    PipelinePointer _pipeline;
     FormatPointer _vertexFormat { std::make_shared<Format>() };
     BufferPointer _particleBuffer { std::make_shared<Buffer>() };
     BufferView _uniformBuffer;
