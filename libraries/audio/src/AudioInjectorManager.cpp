@@ -159,7 +159,7 @@ bool AudioInjectorManager::threadInjector(const AudioInjectorPointer& injector) 
         injector->moveToThread(_thread);
 
         // add the injector to the queue with a send timestamp of now
-        _injectors.emplace(usecTimestampNow(), AudioInjectorPointer { injector });
+        _injectors.emplace(usecTimestampNow(), injector);
 
         // notify our wait condition so we can inject two frames for this injector immediately
         _injectorReady.notify_one();
