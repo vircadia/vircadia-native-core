@@ -22,10 +22,10 @@
 #include <SimpleMovingAverage.h>
 #include <shared/RateCounter.h>
 #include <avatars-renderer/ScriptAvatar.h>
+#include <AudioInjector.h>
 
 #include "AvatarMotionState.h"
 #include "MyAvatar.h"
-#include "AudioInjector.h"
 
 
 class AvatarManager : public AvatarHashMap {
