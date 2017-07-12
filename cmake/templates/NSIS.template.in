@@ -49,7 +49,7 @@
     Var STR_CONTAINS_VAR_3
     Var STR_CONTAINS_VAR_4
     Var STR_RETURN_VAR
- 
+    
     Function StrContains
       Exch $STR_NEEDLE
       Exch 1
@@ -267,7 +267,6 @@ Var substringResult
 
   "${SecName}_unchanged:"
 !macroend
-
 ;--- End of Add/Remove macros ---
 
 ;--------------------------------
@@ -477,7 +476,7 @@ Function PostInstallOptionsPage
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @INTERFACE_HF_SHORTCUT_NAME@"
     Pop $DesktopClientCheckbox
     IntOp $CurrentOffset $CurrentOffset + 15
-
+    
     ; set the checkbox state depending on what is present in the registry
     !insertmacro SetPostInstallOption $DesktopClientCheckbox @CLIENT_DESKTOP_SHORTCUT_REG_KEY@ ${BST_CHECKED}
   ${EndIf}
@@ -486,7 +485,7 @@ Function PostInstallOptionsPage
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @CONSOLE_HF_SHORTCUT_NAME@"
     Pop $DesktopServerCheckbox
     IntOp $CurrentOffset $CurrentOffset + 15
-
+    
     ; set the checkbox state depending on what is present in the registry
     !insertmacro SetPostInstallOption $DesktopServerCheckbox @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ ${BST_UNCHECKED}
   ${EndIf}
@@ -504,7 +503,7 @@ Function PostInstallOptionsPage
 
     IntOp $CurrentOffset $CurrentOffset + 15
   ${EndIf}
-
+  
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @INTERFACE_HF_SHORTCUT_NAME@ after install"
     Pop $LaunchClientNowCheckbox
@@ -595,7 +594,7 @@ Function ReadPostInstallOptions
     ; check if we need to launch the server post-install
     ${NSD_GetState} $LaunchServerNowCheckbox $LaunchServerNowState
   ${EndIf}
-
+  
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
     ; check if we need to launch the client post-install
     ${NSD_GetState} $LaunchClientNowCheckbox $LaunchClientNowState
@@ -710,7 +709,6 @@ Function HandlePostInstallOptions
     ${EndIf}
 
   ${EndIf}
-  
 FunctionEnd
 
 ;--------------------------------
