@@ -211,7 +211,7 @@
         }
 
 
-        function display(rootEntityID, boundingBox) {
+        function display(rootEntityID, boundingBox, isMultiple) {
             var boundingBoxDimensions = boundingBox.dimensions,
                 boundingBoxLocalCenter = boundingBox.localCenter,
                 i;
@@ -226,15 +226,23 @@
             });
 
             // Face scale handles.
-            for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
-                Overlays.editOverlay(faceHandleOverlays[i], {
-                    parentID: rootEntityID,
-                    localPosition: Vec3.sum(boundingBoxLocalCenter,
-                        Vec3.multiplyVbyV(FACE_HANDLE_OVERLAY_AXES[i],
-                            Vec3.sum(boundingBoxDimensions, { x: 0.12, y: 0.12, z: 0.12 }))),
-                    localRotation: FACE_HANDLE_OVERLAY_ROTATIONS[i],
-                    visible: true
-                });
+            // Only valid for a single entity because for multiple entities, some may be at an angle relative to the root entity
+            // which would necessitate a (non-existent) shear transform be applied to them when scaling a face of the set.
+            if (!isMultiple) {
+                for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
+                    Overlays.editOverlay(faceHandleOverlays[i], {
+                        parentID: rootEntityID,
+                        localPosition: Vec3.sum(boundingBoxLocalCenter,
+                            Vec3.multiplyVbyV(FACE_HANDLE_OVERLAY_AXES[i],
+                                Vec3.sum(boundingBoxDimensions, { x: 0.12, y: 0.12, z: 0.12 }))),
+                        localRotation: FACE_HANDLE_OVERLAY_ROTATIONS[i],
+                        visible: true
+                    });
+                }
+            } else {
+                for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
+                    Overlays.editOverlay(faceHandleOverlays[i], { visible: false });
+                }
             }
         }
 
@@ -330,6 +338,10 @@
 
         function getSelection() {
             return selection;
+        }
+
+        function count() {
+            return selection.length;
         }
 
         function getBoundingBox() {
@@ -478,6 +490,7 @@
         return {
             select: select,
             selection: getSelection,
+            count: count,
             rootEntityID: getRootEntityID,
             boundingBox: getBoundingBox,
             getPositionAndOrientation: getPositionAndOrientation,
@@ -916,7 +929,7 @@
                     }
                     startEditing();
                     if (isScaleWithHandles) {
-                        handles.display(selection.rootEntityID(), selection.boundingBox());
+                        handles.display(selection.rootEntityID(), selection.boundingBox(), selection.count() > 1);
                     }
                 }
             } else {
