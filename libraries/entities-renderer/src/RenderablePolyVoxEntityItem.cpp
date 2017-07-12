@@ -65,7 +65,6 @@
 
 const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
 
-
 /*
   A PolyVoxEntity has several interdependent parts:
 
@@ -737,39 +736,6 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         !mesh->getIndexBuffer()._buffer) {
         return;
     }
-    
-/*    if (!_pipelines[0]) {
-        gpu::ShaderPointer vertexShaders[2] = { gpu::Shader::createVertex(std::string(polyvox_vert)), gpu::Shader::createVertex(std::string(polyvox_fade_vert)) };
-        gpu::ShaderPointer pixelShaders[2] = { gpu::Shader::createPixel(std::string(polyvox_frag)), gpu::Shader::createPixel(std::string(polyvox_fade_frag)) };
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
-        slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), render::ShapePipeline::Slot::BUFFER::FADE_PARAMETERS));
-        slotBindings.insert(gpu::Shader::Binding(std::string("xMap"), 0));
-        slotBindings.insert(gpu::Shader::Binding(std::string("yMap"), 1));
-        slotBindings.insert(gpu::Shader::Binding(std::string("zMap"), 2));
-        slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), render::ShapePipeline::Slot::MAP::FADE_MASK));
-
-        auto state = std::make_shared<gpu::State>();
-        state->setCullMode(gpu::State::CULL_BACK);
-        state->setDepthTest(true, true, gpu::LESS_EQUAL);
-        PrepareStencil::testMaskDrawShape(*state);
-
-        auto wireframeState = std::make_shared<gpu::State>();
-        wireframeState->setCullMode(gpu::State::CULL_BACK);
-        wireframeState->setDepthTest(true, true, gpu::LESS_EQUAL);
-        wireframeState->setFillMode(gpu::State::FILL_LINE);
-        PrepareStencil::testMaskDrawShape(*wireframeState);
-
-        // Two sets of pipelines: normal and fading
-        for (auto i = 0; i < 2; i++) {
-            gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShaders[i], pixelShaders[i]);
-            gpu::Shader::makeProgram(*program, slotBindings);
-
-            _pipelines[i] = gpu::Pipeline::create(program, state);
-            _wireframePipelines[i] = gpu::Pipeline::create(program, wireframeState);
-        }
-    }*/
 
     if (!_vertexFormat) {
         auto vf = std::make_shared<gpu::Stream::Format>();
@@ -779,12 +745,6 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     }
 
     gpu::Batch& batch = *args->_batch;
-
-    // Pick correct Pipeline
-//    bool wireframe = (render::ShapeKey(args->_globalShapeKey).isWireframe());
-//    auto pipelineVariation = isFading() & 1;
-//    auto pipeline = (wireframe ? _wireframePipelines[pipelineVariation]: _pipelines[pipelineVariation]);
-//    batch.setPipeline(pipeline);
 
     Transform transform(voxelToWorldMatrix());
     batch.setModelTransform(transform);
@@ -1691,7 +1651,7 @@ void RenderablePolyVoxEntityItem::bonkNeighbors() {
 void RenderablePolyVoxEntityItem::locationChanged(bool tellPhysics) {
     EntityItem::locationChanged(tellPhysics);
 
-    if (/*!_pipelines[0] ||*/ !render::Item::isValidID(_myItem)) {
+    if (!render::Item::isValidID(_myItem)) {
         return;
     }
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
