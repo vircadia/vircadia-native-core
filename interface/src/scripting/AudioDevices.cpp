@@ -131,7 +131,6 @@ void AudioDeviceList::resetDevice(bool contextIsHMD, const QString& device) {
 void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device) {
     auto oldDevice = _selectedDevice;
     _selectedDevice = device;
-    QModelIndex index;
 
     for (auto i = 0; i < _devices.size(); ++i) {
         AudioDevice& device = _devices[i];
@@ -139,7 +138,6 @@ void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device) {
             device.selected = false;
         } else if (device.info == _selectedDevice) {
             device.selected = true;
-            index = createIndex(i, 0);
         }
     }
 
