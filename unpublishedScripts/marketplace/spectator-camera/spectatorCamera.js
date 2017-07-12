@@ -46,11 +46,7 @@
     //      -Far clip plane distance
     //   -viewFinderOverlay: The in-world overlay that displays the spectator camera's view.
     //   -camera: The in-world entity that corresponds to the spectator camera.
-    //   -cameraIsDynamic: "false" for now while we figure out why dynamic, parented overlays
-    //    drift with respect to their parent.
-    //   -vFoV: The vertical field of view of the spectator camera.
-    //   -nearClipPlaneDistance: The near clip plane distance of the spectator camera (aka "camera").
-    //   -farClipPlaneDistance: The far clip plane distance of the spectator camera.
+    //   -cameraIsDynamic: "false" for now - maybe it shouldn't be? False means that the camera won't drift when you let go...
     //   -cameraRotation: The rotation of the spectator camera.
     //   -cameraPosition: The position of the spectator camera.
     //   -glassPaneWidth: The width of the glass pane above the spectator camera that holds the viewFinderOverlay.
@@ -61,9 +57,6 @@
     var viewFinderOverlay = false;
     var camera = false;
     var cameraIsDynamic = false;
-    var vFoV = 45.0;
-    var nearClipPlaneDistance = 0.1;
-    var farClipPlaneDistance = 100.0;
     var cameraRotation;
     var cameraPosition;
     var glassPaneWidth = 0.16;
@@ -75,9 +68,6 @@
         // Sets the special texture size based on the window it is displayed in, which doesn't include the menu bar
         spectatorCameraConfig.enableSecondaryCameraRenderConfigs(true);
         spectatorCameraConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
-        spectatorCameraConfig.vFoV = vFoV;
-        spectatorCameraConfig.nearClipPlaneDistance = nearClipPlaneDistance;
-        spectatorCameraConfig.farClipPlaneDistance = farClipPlaneDistance;
         cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
         camera = Entities.addEntity({
             "angularDamping": 1,
@@ -85,11 +75,11 @@
             "collidesWith": "static,dynamic,kinematic,",
             "collisionMask": 7,
             "dynamic": cameraIsDynamic,
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/spectator-camera.fbx?7",
+            "modelURL": Script.resolvePath("spectator-camera.fbx"),
             "registrationPoint": {
-                "x": 0.53,
+                "x": 0.56,
                 "y": 0.545,
-                "z": 0.16
+                "z": 0.23
             },
             "rotation": cameraRotation,
             "position": cameraPosition,
@@ -354,9 +344,9 @@
     function registerButtonMappings() {
         var VRDevices = Controller.getDeviceNames().toString();
         if (VRDevices) {
-            if (VRDevices.includes("Vive")) {
+            if (VRDevices.indexOf("Vive") !== -1) {
                 controllerType = "Vive";
-            } else if (VRDevices.includes("OculusTouch")) {
+            } else if (VRDevices.indexOf("OculusTouch") !== -1) {
                 controllerType = "OculusTouch";
             } else {
                 sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
@@ -393,7 +383,7 @@
     // Relevant Variables:
     //   -SPECTATOR_CAMERA_QML_SOURCE: The path to the SpectatorCamera QML
     //   -onSpectatorCameraScreen: true/false depending on whether we're looking at the spectator camera app.
-    var SPECTATOR_CAMERA_QML_SOURCE = "../SpectatorCamera.qml";
+    var SPECTATOR_CAMERA_QML_SOURCE = Script.resourcesPath() + "qml/hifi/SpectatorCamera.qml";
     var onSpectatorCameraScreen = false;
     function onTabletButtonClicked() {
         if (!tablet) {
