@@ -1002,7 +1002,7 @@ NetworkTexturePointer TextureCache::getResourceTexture(QUrl resourceTextureUrl) 
 }
 
 const gpu::FramebufferPointer& TextureCache::getHmdPreviewFramebuffer(int width, int height) {
-    if (!_hmdPreviewFramebuffer) {
+    if (!_hmdPreviewFramebuffer || _hmdPreviewFramebuffer->getWidth() != width || _hmdPreviewFramebuffer->getHeight() != height) {
         _hmdPreviewFramebuffer.reset(gpu::Framebuffer::create("hmdPreview",gpu::Element::COLOR_SRGBA_32, width, height));
     }
     return _hmdPreviewFramebuffer;
@@ -1018,4 +1018,5 @@ const gpu::FramebufferPointer& TextureCache::getSpectatorCameraFramebuffer() {
 void TextureCache::resetSpectatorCameraFramebuffer(int width, int height) {
     _spectatorCameraFramebuffer.reset(gpu::Framebuffer::create("spectatorCamera", gpu::Element::COLOR_SRGBA_32, width, height));
     _spectatorCameraNetworkTexture.reset();
+    emit spectatorCameraFramebufferReset();
 }
