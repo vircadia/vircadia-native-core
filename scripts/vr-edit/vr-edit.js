@@ -51,6 +51,21 @@
         };
     }
 
+    if (typeof Entities.rootOf !== "function") {
+        Entities.rootOf = function (entityID) {
+            var rootEntityID,
+                entityProperties,
+                PARENT_PROPERTIES = ["parentID"];
+            rootEntityID = entityID;
+            entityProperties = Entities.getEntityProperties(rootEntityID, PARENT_PROPERTIES);
+            while (entityProperties.parentID !== NULL_UUID) {
+                rootEntityID = entityProperties.parentID;
+                entityProperties = Entities.getEntityProperties(rootEntityID, PARENT_PROPERTIES);
+            }
+            return rootEntityID;
+        };
+    }
+
     Highlights = function (hand) {
         // Draws highlights on selected entities.
 
@@ -407,14 +422,10 @@
                 PARENT_PROPERTIES = ["parentID", "position", "rotation"];
 
             // Find root parent.
-            rootEntityID = entityID;
-            entityProperties = Entities.getEntityProperties(rootEntityID, PARENT_PROPERTIES);
-            while (entityProperties.parentID !== NULL_UUID) {
-                rootEntityID = entityProperties.parentID;
-                entityProperties = Entities.getEntityProperties(rootEntityID, PARENT_PROPERTIES);
-            }
+            rootEntityID = Entities.rootOf(entityID);
 
             // Selection position and orientation is that of the root entity.
+            entityProperties = Entities.getEntityProperties(rootEntityID, PARENT_PROPERTIES);
             rootPosition = entityProperties.position;
             rootOrientation = entityProperties.rotation;
 
@@ -1010,7 +1021,8 @@
                 if (isEditing) {
                     // Perform edit.
                     doEdit = true;
-                } else if (intersection.intersects && (!isScaleWithHandles || !otherHand.isEditing(intersection.entityID))) {
+                } else if (intersection.intersects && (!isScaleWithHandles
+                        || !otherHand.isEditing(Entities.rootOf(intersection.entityID)))) {
                     // Start editing.
                     if (intersection.entityID !== hoveredEntityID) {
                         hoveredEntityID = intersection.entityID;
