@@ -92,11 +92,6 @@ void AudioInjector::finish() {
     emit finished();
 
     deleteLocalBuffer();
-
-    if (stateHas(AudioInjectorState::PendingDelete)) {
-        // we've been asked to delete after finishing, trigger a deleteLater here
-        deleteLater();
-    }
 }
 
 void AudioInjector::restart() {
