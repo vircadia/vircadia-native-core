@@ -140,35 +140,41 @@ namespace AvatarDataPacket {
     const HasFlags PACKET_HAS_JOINT_DATA             = 1U << 11;
     const size_t AVATAR_HAS_FLAGS_SIZE = 2;
 
+    using SixByteQuat = uint8_t[6];
+    using SixByteTrans = uint8_t[6];
+
     // NOTE: AvatarDataPackets start with a uint16_t sequence number that is not reflected in the Header structure.
 
     PACKED_BEGIN struct Header {
         HasFlags packetHasFlags;        // state flags, indicated which additional records are included in the packet
     } PACKED_END;
     const size_t HEADER_SIZE = 2;
+    static_assert(sizeof(Header) == HEADER_SIZE, "AvatarDataPacket::Header size doesn't match.");
 
     PACKED_BEGIN struct AvatarGlobalPosition {
         float globalPosition[3];          // avatar's position
     } PACKED_END;
     const size_t AVATAR_GLOBAL_POSITION_SIZE = 12;
+    static_assert(sizeof(AvatarGlobalPosition) == AVATAR_GLOBAL_POSITION_SIZE, "AvatarDataPacket::AvatarGlobalPosition size doesn't match.");
 
     PACKED_BEGIN struct AvatarBoundingBox {
         float avatarDimensions[3];        // avatar's bounding box in world space units, but relative to the position.
         float boundOriginOffset[3];       // offset from the position of the avatar to the origin of the bounding box
     } PACKED_END;
     const size_t AVATAR_BOUNDING_BOX_SIZE = 24;
+    static_assert(sizeof(AvatarBoundingBox) == AVATAR_BOUNDING_BOX_SIZE, "AvatarDataPacket::AvatarBoundingBox size doesn't match.");
 
-
-    using SixByteQuat = uint8_t[6];
     PACKED_BEGIN struct AvatarOrientation {
         SixByteQuat avatarOrientation;      // encodeded and compressed by packOrientationQuatToSixBytes()
     } PACKED_END;
     const size_t AVATAR_ORIENTATION_SIZE = 6;
+    static_assert(sizeof(AvatarOrientation) == AVATAR_ORIENTATION_SIZE, "AvatarDataPacket::AvatarOrientation size doesn't match.");
 
     PACKED_BEGIN struct AvatarScale {
         SmallFloat scale;                 // avatar's scale, compressed by packFloatRatioToTwoByte()
     } PACKED_END;
     const size_t AVATAR_SCALE_SIZE = 2;
+    static_assert(sizeof(AvatarScale) == AVATAR_SCALE_SIZE, "AvatarDataPacket::AvatarScale size doesn't match.");
 
     PACKED_BEGIN struct LookAtPosition {
         float lookAtPosition[3];          // world space position that eyes are focusing on.
@@ -180,11 +186,13 @@ namespace AvatarDataPacket {
                                           // POTENTIAL SAVINGS - 12 bytes
     } PACKED_END;
     const size_t LOOK_AT_POSITION_SIZE = 12;
+    static_assert(sizeof(LookAtPosition) == LOOK_AT_POSITION_SIZE, "AvatarDataPacket::LookAtPosition size doesn't match.");
 
     PACKED_BEGIN struct AudioLoudness {
         uint8_t audioLoudness;            // current loudness of microphone compressed with packFloatGainToByte()
     } PACKED_END;
     const size_t AUDIO_LOUDNESS_SIZE = 1;
+    static_assert(sizeof(AudioLoudness) == AUDIO_LOUDNESS_SIZE, "AvatarDataPacket::AudioLoudness size doesn't match.");
 
     PACKED_BEGIN struct SensorToWorldMatrix {
         // FIXME - these 20 bytes are only used by viewers if my avatar has "attachments"
@@ -199,11 +207,13 @@ namespace AvatarDataPacket {
                                           // relative to the avatar position.
     } PACKED_END;
     const size_t SENSOR_TO_WORLD_SIZE = 20;
+    static_assert(sizeof(SensorToWorldMatrix) == SENSOR_TO_WORLD_SIZE, "AvatarDataPacket::SensorToWorldMatrix size doesn't match.");
 
     PACKED_BEGIN struct AdditionalFlags {
         uint8_t flags;                    // additional flags: hand state, key state, eye tracking
     } PACKED_END;
     const size_t ADDITIONAL_FLAGS_SIZE = 1;
+    static_assert(sizeof(AdditionalFlags) == ADDITIONAL_FLAGS_SIZE, "AvatarDataPacket::AdditionalFlags size doesn't match.");
 
     // only present if HAS_REFERENTIAL flag is set in AvatarInfo.flags
     PACKED_BEGIN struct ParentInfo {
@@ -211,6 +221,7 @@ namespace AvatarDataPacket {
         uint16_t parentJointIndex;
     } PACKED_END;
     const size_t PARENT_INFO_SIZE = 18;
+    static_assert(sizeof(ParentInfo) == PARENT_INFO_SIZE, "AvatarDataPacket::ParentInfo size doesn't match.");
 
     // will only ever be included if the avatar has a parent but can change independent of changes to parent info
     // and so we keep it a separate record
@@ -218,6 +229,22 @@ namespace AvatarDataPacket {
         float localPosition[3];           // parent frame translation of the avatar
     } PACKED_END;
     const size_t AVATAR_LOCAL_POSITION_SIZE = 12;
+    static_assert(sizeof(AvatarLocalPosition) == AVATAR_LOCAL_POSITION_SIZE, "AvatarDataPacket::AvatarLocalPosition size doesn't match.");
+
+    const size_t MAX_CONSTANT_HEADER_SIZE = HEADER_SIZE +
+        AVATAR_GLOBAL_POSITION_SIZE +
+        AVATAR_BOUNDING_BOX_SIZE +
+        AVATAR_ORIENTATION_SIZE +
+        AVATAR_SCALE_SIZE +
+        LOOK_AT_POSITION_SIZE +
+        AUDIO_LOUDNESS_SIZE +
+        SENSOR_TO_WORLD_SIZE +
+        ADDITIONAL_FLAGS_SIZE +
+        PARENT_INFO_SIZE +
+        AVATAR_LOCAL_POSITION_SIZE;
+
+
+    // variable length structure follows
 
     // only present if IS_FACE_TRACKER_CONNECTED flag is set in AvatarInfo.flags
     PACKED_BEGIN struct FaceTrackerInfo {
@@ -229,8 +256,9 @@ namespace AvatarDataPacket {
         // float blendshapeCoefficients[numBlendshapeCoefficients];
     } PACKED_END;
     const size_t FACE_TRACKER_INFO_SIZE = 17;
+    static_assert(sizeof(FaceTrackerInfo) == FACE_TRACKER_INFO_SIZE, "AvatarDataPacket::FaceTrackerInfo size doesn't match.");
+    size_t maxFaceTrackerInfoSize(size_t numBlendshapeCoefficients);
 
-    // variable length structure follows
     /*
     struct JointData {
         uint8_t numJoints;
@@ -240,6 +268,7 @@ namespace AvatarDataPacket {
         SixByteTrans translation[numValidTranslations];        // encodeded and compressed by packFloatVec3ToSignedTwoByteFixed()
     };
     */
+    size_t maxJointDataSize(size_t numJoints);
 }
 
 static const float MAX_AVATAR_SCALE = 1000.0f;
@@ -387,7 +416,7 @@ public:
         SendAllData
     } AvatarDataDetail;
 
-    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail);
+    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking = false);
 
     virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
         AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust, glm::vec3 viewerPosition,
