@@ -17,6 +17,15 @@
 
 using namespace render;
 
+ShapePipeline::CustomFactoryMap ShapePipeline::_globalCustomFactoryMap;
+
+ShapePipeline::CustomKey ShapePipeline::registerCustomShapePipelineFactory(CustomFactory factory) {  
+    ShapePipeline::CustomKey custom = (ShapePipeline::CustomKey) _globalCustomFactoryMap.size() + 1;
+    _globalCustomFactoryMap[custom] = factory;
+    return custom;  
+}
+
+
 void ShapePipeline::prepare(gpu::Batch& batch, RenderArgs* args) {
     if (_batchSetter) {
         _batchSetter(*this, batch, args);
@@ -35,7 +44,7 @@ ShapeKey::Filter::Builder::Builder() {
     _mask.set(INVALID);
 }
 
-void ShapePlumber::addPipelineHelper(const Filter& filter, ShapeKey key, int bit, const PipelinePointer& pipeline) {
+void ShapePlumber::addPipelineHelper(const Filter& filter, ShapeKey key, int bit, const PipelinePointer& pipeline) const {
     // Iterate over all keys
     if (bit < (int)ShapeKey::FlagBit::NUM_FLAGS) {
         addPipelineHelper(filter, key, bit + 1, pipeline);
@@ -114,10 +123,22 @@ const ShapePipelinePointer ShapePlumber::pickPipeline(RenderArgs* args, const Ke
 
     auto pipelineIterator = _pipelineMap.find(key);
     if (pipelineIterator == _pipelineMap.end()) {
-        // The first time we can't find a pipeline, we should log it
+        // The first time we can't find a pipeline, we should try things to solve that
         if (_missingKeys.find(key) == _missingKeys.end()) {
-            _missingKeys.insert(key);
-            qCDebug(renderlogging) << "Couldn't find a pipeline for" << key;
+            if (key.isCustom()) {
+                auto factoryIt = ShapePipeline::_globalCustomFactoryMap.find(key.getCustom());
+                if ((factoryIt != ShapePipeline::_globalCustomFactoryMap.end()) && (factoryIt)->second) {
+                    // found a factory for the custom key, can now generate a shape pipeline for this case:
+                    addPipelineHelper(Filter(key), key, 0, (factoryIt)->second(*this, key));
+
+                    return pickPipeline(args, key);
+                } else {
+                    qCDebug(renderlogging) << "ShapePlumber::Couldn't find a custom pipeline factory for " << key.getCustom() << " key is: " << key;
+                }
+            }
+
+           _missingKeys.insert(key);
+            qCDebug(renderlogging) << "ShapePlumber::Couldn't find a pipeline for" << key;
         }
         return PipelinePointer(nullptr);
     }

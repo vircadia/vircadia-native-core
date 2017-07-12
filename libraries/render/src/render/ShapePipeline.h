@@ -40,7 +40,19 @@ public:
         OWN_PIPELINE,
         INVALID,
 
+        CUSTOM_0,
+        CUSTOM_1,
+        CUSTOM_2,
+        CUSTOM_3,
+        CUSTOM_4,
+        CUSTOM_5,
+        CUSTOM_6,
+        CUSTOM_7,
+
         NUM_FLAGS, // Not a valid flag
+
+        CUSTOM_MASK = (0xFF << CUSTOM_0),
+
     };
     using Flags = std::bitset<NUM_FLAGS>;
 
@@ -76,6 +88,8 @@ public:
         Builder& withOwnPipeline() { _flags.set(OWN_PIPELINE); return (*this); }
         Builder& invalidate() { _flags.set(INVALID); return (*this); }
 
+        Builder& withCustom(uint8_t custom) {  _flags &= (~CUSTOM_MASK); _flags |= (custom << CUSTOM_0); return (*this); }
+        
         static const ShapeKey ownPipeline() { return Builder().withOwnPipeline(); }
         static const ShapeKey invalid() { return Builder().invalidate(); }
 
@@ -133,6 +147,9 @@ public:
             Builder& withFade() { _flags.set(FADE); _mask.set(FADE); return (*this); }
             Builder& withoutFade() { _flags.reset(FADE); _mask.set(FADE); return (*this); }
 
+            Builder& withCustom(uint8_t custom) { _flags &= (~CUSTOM_MASK); _flags |= (custom << CUSTOM_0); _mask |= (CUSTOM_MASK); return (*this); }
+            Builder& withoutCustom() { _flags &= (~CUSTOM_MASK);  _mask |= (CUSTOM_MASK); return (*this); }
+
         protected:
             friend class Filter;
             Flags _flags{0};
@@ -161,6 +178,9 @@ public:
 
     bool hasOwnPipeline() const { return _flags[OWN_PIPELINE]; }
     bool isValid() const { return !_flags[INVALID]; }
+
+    uint8_t getCustom() const { return (_flags.to_ulong() & CUSTOM_MASK) >> CUSTOM_0; }
+    bool isCustom() const { return (_flags.to_ulong() & CUSTOM_MASK); }
 
     // Comparator for use in stl containers
     class Hash {
@@ -276,6 +296,15 @@ protected:
 
     BatchSetter _batchSetter;
     ItemSetter _itemSetter;
+public:
+    using CustomKey = uint8_t;
+    using CustomFactory = std::function<std::shared_ptr<ShapePipeline> (const ShapePlumber& plumber, const ShapeKey& key)>;
+    using CustomFactoryMap = std::map<CustomKey, CustomFactory>;
+
+    static CustomFactoryMap _globalCustomFactoryMap;
+
+    static CustomKey registerCustomShapePipelineFactory(CustomFactory factory);
+
 };
 using ShapePipelinePointer = std::shared_ptr<ShapePipeline>;
 
@@ -300,12 +329,13 @@ public:
     const PipelinePointer pickPipeline(RenderArgs* args, const Key& key) const;
 
 protected:
-    void addPipelineHelper(const Filter& filter, Key key, int bit, const PipelinePointer& pipeline);
-    PipelineMap _pipelineMap;
+    void addPipelineHelper(const Filter& filter, Key key, int bit, const PipelinePointer& pipeline) const;
+    mutable PipelineMap _pipelineMap;
 
 private:
     mutable std::unordered_set<Key, Key::Hash, Key::KeyEqual> _missingKeys;
 };
+
 
 using ShapePlumberPointer = std::shared_ptr<ShapePlumber>;
 

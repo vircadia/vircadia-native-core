@@ -1067,49 +1067,60 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
     }
 }
 
-int Avatar::getJointIndex(const QString& name) const {
-    if (QThread::currentThread() != thread()) {
-        int result;
-        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getJointIndex",
-            Q_RETURN_ARG(int, result), Q_ARG(const QString&, name));
-        return result;
+void Avatar::invalidateJointIndicesCache() const {
+    QWriteLocker writeLock(&_modelJointIndicesCacheLock);
+    _modelJointsCached = false;
+}
+
+void Avatar::withValidJointIndicesCache(std::function<void()> const& worker) const {
+    QReadLocker readLock(&_modelJointIndicesCacheLock);
+    if (_modelJointsCached) {
+        worker();
+    } else {
+        readLock.unlock();
+        {
+            QWriteLocker writeLock(&_modelJointIndicesCacheLock);
+            if (!_modelJointsCached) {
+                _modelJointIndicesCache.clear();
+                if (_skeletonModel && _skeletonModel->isActive()) {
+                    _modelJointIndicesCache = _skeletonModel->getFBXGeometry().jointIndices;
+                    _modelJointsCached = true;
+                }
+            }
+            worker();
+        }
     }
+}
+
+int Avatar::getJointIndex(const QString& name) const {
     int result = getFauxJointIndex(name);
     if (result != -1) {
         return result;
     }
-    return _skeletonModel->isActive() ? _skeletonModel->getFBXGeometry().getJointIndex(name) : -1;
+
+    withValidJointIndicesCache([&]() {
+        if (_modelJointIndicesCache.contains(name)) {
+            result = _modelJointIndicesCache[name] - 1;
+        }
+    });
+    return result;
 }
 
 QStringList Avatar::getJointNames() const {
-    if (QThread::currentThread() != thread()) {
-        QStringList result;
-        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getJointNames",
-            Q_RETURN_ARG(QStringList, result));
-        return result;
-    }
-    return _skeletonModel->isActive() ? _skeletonModel->getFBXGeometry().getJointNames() : QStringList();
+    QStringList result;
+    withValidJointIndicesCache([&]() {
+        result = _modelJointIndicesCache.keys();
+    });
+    return result;
 }
 
 glm::vec3 Avatar::getJointPosition(int index) const {
-    if (QThread::currentThread() != thread()) {
-        glm::vec3 position;
-        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getJointPosition",
-                                  Q_RETURN_ARG(glm::vec3, position), Q_ARG(const int, index));
-        return position;
-    }
     glm::vec3 position;
     _skeletonModel->getJointPositionInWorldFrame(index, position);
     return position;
 }
 
 glm::vec3 Avatar::getJointPosition(const QString& name) const {
-    if (QThread::currentThread() != thread()) {
-        glm::vec3 position;
-        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getJointPosition",
-                                  Q_RETURN_ARG(glm::vec3, position), Q_ARG(const QString&, name));
-        return position;
-    }
     glm::vec3 position;
     _skeletonModel->getJointPositionInWorldFrame(getJointIndex(name), position);
     return position;
@@ -1130,6 +1141,8 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 }
 
 void Avatar::setModelURLFinished(bool success) {
+    invalidateJointIndicesCache();
+
     if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
         const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: we don't want to be as generous as ResourceCache is, we only want 4 attempts
         if (_skeletonModel->getResourceDownloadAttemptsRemaining() <= 0 ||

@@ -604,6 +604,24 @@ void Agent::processAgentAvatar() {
 
         AvatarData::AvatarDataDetail dataDetail = (randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO) ? AvatarData::SendAllData : AvatarData::CullSmallData;
         QByteArray avatarByteArray = scriptedAvatar->toByteArrayStateful(dataDetail);
+
+        int maximumByteArraySize = NLPacket::maxPayloadSize(PacketType::AvatarData) - sizeof(AvatarDataSequenceNumber);
+
+        if (avatarByteArray.size() > maximumByteArraySize) {
+            qWarning() << " scriptedAvatar->toByteArrayStateful() resulted in very large buffer:" << avatarByteArray.size() << "... attempt to drop facial data";
+            avatarByteArray = scriptedAvatar->toByteArrayStateful(dataDetail, true);
+
+            if (avatarByteArray.size() > maximumByteArraySize) {
+                qWarning() << " scriptedAvatar->toByteArrayStateful() without facial data resulted in very large buffer:" << avatarByteArray.size() << "... reduce to MinimumData";
+                avatarByteArray = scriptedAvatar->toByteArrayStateful(AvatarData::MinimumData, true);
+
+                if (avatarByteArray.size() > maximumByteArraySize) {
+                    qWarning() << " scriptedAvatar->toByteArrayStateful() MinimumData resulted in very large buffer:" << avatarByteArray.size() << "... FAIL!!";
+                    return;
+                }
+            }
+        }
+
         scriptedAvatar->doneEncoding(true);
 
         static AvatarDataSequenceNumber sequenceNumber = 0;

@@ -28,6 +28,19 @@
 
 class PolyVoxPayload {
 public:
+
+    static uint8_t CUSTOM_PIPELINE_NUMBER;
+    static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key);
+    static void registerShapePipeline() {
+        if (!CUSTOM_PIPELINE_NUMBER) {
+            CUSTOM_PIPELINE_NUMBER = render::ShapePipeline::registerCustomShapePipelineFactory(shapePipelineFactory);
+        }
+    }
+    
+    static const int MATERIAL_GPU_SLOT = 3;
+    static gpu::PipelinePointer _pipelines[2];
+    static gpu::PipelinePointer _wireframePipelines[2];
+
     PolyVoxPayload(EntityItemPointer owner) : _owner(owner), _bounds(AABox()) { }
     typedef render::Payload<PolyVoxPayload> Payload;
     typedef Payload::DataPointer Pointer;
@@ -40,6 +53,7 @@ namespace render {
    template <> const ItemKey payloadGetKey(const PolyVoxPayload::Pointer& payload);
    template <> const Item::Bound payloadGetBound(const PolyVoxPayload::Pointer& payload);
    template <> void payloadRender(const PolyVoxPayload::Pointer& payload, RenderArgs* args);
+   template <> const ShapeKey shapeGetShapeKey(const PolyVoxPayload::Pointer& payload);
 }
 
 
@@ -168,11 +182,7 @@ private:
     NetworkTexturePointer _yTexture;
     NetworkTexturePointer _zTexture;
 
-    const int MATERIAL_GPU_SLOT = 3;
     render::ItemID _myItem{ render::Item::INVALID_ITEM_ID };
-
-    static gpu::PipelinePointer _pipelines[2];
-    static gpu::PipelinePointer _wireframePipelines[2];
 
     ShapeInfo _shapeInfo;
 
