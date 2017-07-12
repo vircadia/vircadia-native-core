@@ -59,11 +59,7 @@
 #include "EntityEditPacketSender.h"
 #include "PhysicalEntitySimulation.h"
 
-//gpu::PipelinePointer RenderablePolyVoxEntityItem::_pipeline = nullptr;
-//gpu::PipelinePointer RenderablePolyVoxEntityItem::_wireframePipeline = nullptr;
-
 const float MARCHING_CUBE_COLLISION_HULL_OFFSET = 0.5;
-
 
 /*
   A PolyVoxEntity has several interdependent parts:
@@ -736,35 +732,6 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
         !mesh->getIndexBuffer()._buffer) {
         return;
     }
-    
- /*   if (!_pipeline) {
-        gpu::ShaderPointer vertexShader = gpu::Shader::createVertex(std::string(polyvox_vert));
-        gpu::ShaderPointer pixelShader = gpu::Shader::createPixel(std::string(polyvox_frag));
-
-        gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
-        slotBindings.insert(gpu::Shader::Binding(std::string("xMap"), 0));
-        slotBindings.insert(gpu::Shader::Binding(std::string("yMap"), 1));
-        slotBindings.insert(gpu::Shader::Binding(std::string("zMap"), 2));
-
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
-        gpu::Shader::makeProgram(*program, slotBindings);
-
-        auto state = std::make_shared<gpu::State>();
-        state->setCullMode(gpu::State::CULL_BACK);
-        state->setDepthTest(true, true, gpu::LESS_EQUAL);
-        PrepareStencil::testMaskDrawShape(*state);
-
-        _pipeline = gpu::Pipeline::create(program, state);
-
-        auto wireframeState = std::make_shared<gpu::State>();
-        wireframeState->setCullMode(gpu::State::CULL_BACK);
-        wireframeState->setDepthTest(true, true, gpu::LESS_EQUAL);
-        wireframeState->setFillMode(gpu::State::FILL_LINE);
-        PrepareStencil::testMaskDrawShape(*wireframeState);
-
-        _wireframePipeline = gpu::Pipeline::create(program, wireframeState);
-    }*/
 
     if (!_vertexFormat) {
         auto vf = std::make_shared<gpu::Stream::Format>();
@@ -774,11 +741,6 @@ void RenderablePolyVoxEntityItem::render(RenderArgs* args) {
     }
 
     gpu::Batch& batch = *args->_batch;
-
-    // Pick correct Pipeline
- //   bool wireframe = (render::ShapeKey(args->_globalShapeKey).isWireframe());
- //   auto pipeline = (wireframe ? _wireframePipeline : _pipeline);
- //   batch.setPipeline(pipeline);
 
     Transform transform(voxelToWorldMatrix());
     batch.setModelTransform(transform);
@@ -1669,7 +1631,7 @@ void RenderablePolyVoxEntityItem::bonkNeighbors() {
 
 void RenderablePolyVoxEntityItem::locationChanged(bool tellPhysics) {
     EntityItem::locationChanged(tellPhysics);
-    if (/*!_pipeline || */!render::Item::isValidID(_myItem)) {
+    if (!render::Item::isValidID(_myItem)) {
         return;
     }
     render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
