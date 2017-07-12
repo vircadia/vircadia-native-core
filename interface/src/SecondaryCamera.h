@@ -42,7 +42,7 @@ public:
     glm::quat orientation{};
     float vFoV{ 45.0f };
     float nearClipPlaneDistance{ 0.1f };
-    float farClipPlaneDistance{ 100.0f };
+    float farClipPlaneDistance{ 16384.0f };
     SecondaryCameraJobConfig() : render::Task::Config(false) {}
 signals:
     void dirty();
