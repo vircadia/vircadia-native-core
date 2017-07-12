@@ -68,7 +68,7 @@
         // Sets the special texture size based on the window it is displayed in, which doesn't include the menu bar
         spectatorCameraConfig.enableSecondaryCameraRenderConfigs(true);
         spectatorCameraConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
-        cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
+        cameraRotation = Quat.multiply(MyAvatar.orientation, Quat.fromPitchYawRollDegrees(15, -155, 0)), cameraPosition = inFrontOf(0.85, Vec3.sum(MyAvatar.position, { x: 0, y: 0.28, z: 0 }));
         camera = Entities.addEntity({
             "angularDamping": 1,
             "damping": 1,
@@ -94,6 +94,11 @@
         if (button) {
             button.editProperties({ isActive: onSpectatorCameraScreen || camera });
         }
+        Audio.playSound(CAMERA_ON_SOUND, {
+            volume: 0.15,
+            position: cameraPosition,
+            localOnly: true
+        });
     }
 
     // Function Name: spectatorCameraOff()
@@ -157,7 +162,8 @@
             if ((isHMDMode || showSpectatorInDesktop) && !isShuttingDown) {
                 button = tablet.addButton({
                     text: buttonName,
-                    icon: "icons/tablet-icons/spectator-i.svg"
+                    icon: "icons/tablet-icons/spectator-i.svg",
+                    activeIcon: "icons/tablet-icons/spectator-a.svg"
                 });
                 button.clicked.connect(onTabletButtonClicked);
             }
@@ -500,6 +506,7 @@
     }
 
     // These functions will be called when the script is loaded.
+    var CAMERA_ON_SOUND = SoundCache.getSound(Script.resolvePath("cameraOn.wav"));
     startup();
     Script.scriptEnding.connect(shutdown);
 
