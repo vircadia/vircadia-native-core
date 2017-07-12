@@ -157,7 +157,7 @@
             if ((isHMDMode || showSpectatorInDesktop) && !isShuttingDown) {
                 button = tablet.addButton({
                     text: buttonName,
-                    icon: Script.resourcesPath() + "icons/tablet-icons/spectator-i.svg"
+                    icon: "icons/tablet-icons/spectator-i.svg"
                 });
                 button.clicked.connect(onTabletButtonClicked);
             }
@@ -344,9 +344,9 @@
     function registerButtonMappings() {
         var VRDevices = Controller.getDeviceNames().toString();
         if (VRDevices) {
-            if (VRDevices.includes("Vive")) {
+            if (VRDevices.indexOf("Vive") != -1) {
                 controllerType = "Vive";
-            } else if (VRDevices.includes("OculusTouch")) {
+            } else if (VRDevices.indexOf("OculusTouch") != -1) {
                 controllerType = "OculusTouch";
             } else {
                 sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
