@@ -426,7 +426,6 @@ void AudioInjector::triggerDeleteAfterFinish() {
 
 void AudioInjector::stopAndDeleteLater() {
     stop();
-    QMetaObject::invokeMethod(this, "deleteLater", Qt::QueuedConnection);
 }
 
 AudioInjectorPointer AudioInjector::playSound(SharedSoundPointer sound, const float volume,
