@@ -1,6 +1,6 @@
 //
 //  LaserPointerManager.h
-//  libraries/controllers/src
+//  interface/src/raypick
 //
 //  Created by Sam Gondelman 7/11/2017
 //  Copyright 2017 High Fidelity, Inc.
@@ -14,7 +14,7 @@
 #include <QHash>
 #include <QString>
 #include <memory>
-#include "Transform.h"
+#include <glm/glm.hpp>
 
 class LaserPointer;
 
@@ -23,7 +23,7 @@ class LaserPointerManager {
 public:
     static LaserPointerManager& getInstance();
 
-    unsigned int createLaserPointer(const QString& jointName, const Transform& offsetTransform, const uint16_t filter, const float maxDistance, bool enabled);
+    unsigned int createLaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance, bool enabled);
     void removeLaserPointer(const unsigned int uid) { _laserPointers.remove(uid); }
     void enableLaserPointer(const unsigned int uid);
     void disableLaserPointer(const unsigned int uid);

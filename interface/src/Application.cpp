@@ -190,8 +190,8 @@
 #include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
-#include "LaserPointerScriptingInterface.h"
-#include <RayPickManager.h>
+#include <raypick/LaserPointerScriptingInterface.h>
+#include <raypick/RayPickManager.h>
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -5820,6 +5820,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     auto entityScriptServerLog = DependencyManager::get<EntityScriptServerLogClient>();
     scriptEngine->registerGlobalObject("EntityScriptServerLog", entityScriptServerLog.data());
     scriptEngine->registerGlobalObject("AvatarInputs", AvatarInputs::getInstance());
+
+    scriptEngine->registerGlobalObject("RayPick", &RayPickManager::getInstance());
 
     qScriptRegisterMetaType(scriptEngine, OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 

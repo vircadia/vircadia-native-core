@@ -1,6 +1,6 @@
 //
 //  LaserPointer.h
-//  libraries/controllers/src
+//  interface/src/raypick
 //
 //  Created by Sam Gondelman 7/11/2017
 //  Copyright 2017 High Fidelity, Inc.
@@ -12,12 +12,12 @@
 #define hifi_LaserPointer_h
 
 #include <QString>
-#include "Transform.h"
+#include "glm/glm.hpp"
 
 class LaserPointer {
 
 public:
-    LaserPointer(const QString& jointName, const Transform& offsetTransform, const uint16_t filter, const float maxDistance, bool enabled);
+    LaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance, bool enabled);
     ~LaserPointer();
 
     unsigned int getUID() { return _rayPickUID; }

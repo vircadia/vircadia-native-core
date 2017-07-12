@@ -1,6 +1,6 @@
 //
 //  LaserPointerScriptingInterface.h
-//  interface/src
+//  interface/src/raypick
 //
 //  Created by Sam Gondelman 7/11/2017
 //  Copyright 2017 High Fidelity, Inc.
@@ -13,7 +13,7 @@
 
 #include <QtCore/QObject>
 
-#include "controllers\LaserPointerManager.h"
+#include "LaserPointerManager.h"
 
 class LaserPointerScriptingInterface : public QObject {
     Q_OBJECT

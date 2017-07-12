@@ -1,6 +1,6 @@
 //
 //  LaserPointer.cpp
-//  libraries/controllers/src
+//  interface/src/raypick
 //
 //  Created by Sam Gondelman 7/11/2017
 //  Copyright 2017 High Fidelity, Inc.
@@ -13,9 +13,9 @@
 #include "RayPickManager.h"
 #include "JointRayPick.h"
 
-LaserPointer::LaserPointer(const QString& jointName, const Transform& offsetTransform, const uint16_t filter, const float maxDistance, const bool enabled)
+LaserPointer::LaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance, const bool enabled)
 {
-    _rayPickUID = RayPickManager::getInstance().addRayPick(std::make_shared<JointRayPick>(jointName, offsetTransform, filter, maxDistance, enabled));
+    _rayPickUID = RayPickManager::getInstance().addRayPick(std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled));
 }
 
 LaserPointer::~LaserPointer() {
