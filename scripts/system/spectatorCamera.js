@@ -63,7 +63,7 @@
     var cameraIsDynamic = false;
     var vFoV = 45.0;
     var nearClipPlaneDistance = 0.1;
-    var farClipPlaneDistance = 16513.0;
+    var farClipPlaneDistance = 16384.0;
     var cameraRotation;
     var cameraPosition;
     var glassPaneWidth = 0.16;
