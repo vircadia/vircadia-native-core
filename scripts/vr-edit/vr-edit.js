@@ -159,12 +159,37 @@
 
     Handles = function () {
         var boundingBoxOverlay,
-            //HIGHLIGHT_COLOR = { red: 0, green: 240, blue: 240 },
-            HIGHLIGHT_COLOR = { red: 255, green: 0, blue: 255 },
-            BOUNDING_BOX_ALPHA = 0.8;
+            faceHandleOverlays = [],
+            BOUNDING_BOX_COLOR = { red: 0, green: 240, blue: 240 },
+            BOUNDING_BOX_ALPHA = 0.8,
+            HANDLE_NORMAL_COLOR = { red: 0, green: 240, blue: 240 },
+            HANDLE_ALPHA = 0.7,
+            NUM_FACE_HANDLES = 6,
+            FACE_HANDLE_OVERLAY_AXES,
+            FACE_HANDLE_OVERLAY_ROTATIONS,
+            ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO),
+            i;
+
+        FACE_HANDLE_OVERLAY_AXES = [
+            { x: -0.5, y:    0, z:    0 },
+            { x:  0.5, y:    0, z:    0 },
+            { x:    0, y: -0.5, z:    0 },
+            { x:    0, y:  0.5, z:    0 },
+            { x:    0, y:    0, z: -0.5 },
+            { x:    0, y:    0, z:  0.5 }
+        ];
+
+        FACE_HANDLE_OVERLAY_ROTATIONS = [
+            Quat.fromVec3Degrees({ x:   0, y: 0, z:  90 }),
+            Quat.fromVec3Degrees({ x:   0, y: 0, z: -90 }),
+            Quat.fromVec3Degrees({ x: 180, y: 0, z:   0 }),
+            Quat.fromVec3Degrees({ x:   0, y: 0, z:   0 }),
+            Quat.fromVec3Degrees({ x: -90, y: 0, z:   0 }),
+            Quat.fromVec3Degrees({ x:  90, y: 0, z:   0 })
+        ];
 
         boundingBoxOverlay = Overlays.addOverlay("cube", {
-            color: HIGHLIGHT_COLOR,
+            color: BOUNDING_BOX_COLOR,
             alpha: BOUNDING_BOX_ALPHA,
             solid: false,
             drawInFront: true,
@@ -172,19 +197,54 @@
             visible: false
         });
 
-        function display(rootEntityID, boundingBox) {
-            // Selection bounding box.
-            Overlays.editOverlay(boundingBoxOverlay, {
-                parentID: rootEntityID,
-                position: boundingBox.center,
-                rotation: boundingBox.orientation,
-                dimensions: boundingBox.dimensions,
-                visible: true
+        for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
+            faceHandleOverlays[i] = Overlays.addOverlay("shape", {
+                shape: "Cone",
+                color: HANDLE_NORMAL_COLOR,
+                alpha: HANDLE_ALPHA,
+                solid: true,
+                drawInFront: true,
+                ignoreRayIntersection: true,
+                dimensions: { x: 0.1, y: 0.12, z: 0.1 },
+                visible: false
             });
         }
 
+
+        function display(rootEntityID, boundingBox) {
+            var boundingBoxDimensions = boundingBox.dimensions,
+                boundingBoxLocalCenter = boundingBox.localCenter,
+                i;
+
+            // Selection bounding box.
+            Overlays.editOverlay(boundingBoxOverlay, {
+                parentID: rootEntityID,
+                localPosition: boundingBoxLocalCenter,
+                localRotation: ZERO_ROTATION,
+                dimensions: boundingBoxDimensions,
+                visible: true
+            });
+
+            // Face scale handles.
+            for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
+                Overlays.editOverlay(faceHandleOverlays[i], {
+                    parentID: rootEntityID,
+                    localPosition: Vec3.sum(boundingBoxLocalCenter,
+                        Vec3.multiplyVbyV(FACE_HANDLE_OVERLAY_AXES[i],
+                            Vec3.sum(boundingBoxDimensions, { x: 0.12, y: 0.12, z: 0.12 }))),
+                    localRotation: FACE_HANDLE_OVERLAY_ROTATIONS[i],
+                    visible: true
+                });
+            }
+        }
+
         function clear() {
+            var i;
+
             Overlays.editOverlay(boundingBoxOverlay, { visible: false });
+            for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
+                Overlays.editOverlay(faceHandleOverlays[i], { visible: false });
+            }
         }
 
         function destroy() {
@@ -274,6 +334,7 @@
 
         function getBoundingBox() {
             var center,
+                localCenter,
                 orientation,
                 inverseOrientation,
                 dimensions,
@@ -297,6 +358,7 @@
                             Vec3.multiplyVbyV(selection[0].dimensions,
                                 Vec3.subtract(Vec3.HALF, selection[0].registrationPoint))));
                 }
+                localCenter = Vec3.multiplyQbyV(Quat.inverse(rootOrientation), Vec3.subtract(center, rootPosition));
                 orientation = rootOrientation;
                 dimensions = selection[0].dimensions;
             } else if (selection.length > 1) {
@@ -336,12 +398,14 @@
                 // Calculate bounding box.
                 center = Vec3.sum(rootPosition,
                     Vec3.multiplyQbyV(rootOrientation, Vec3.multiply(0.5, Vec3.sum(min, max))));
+                localCenter = Vec3.multiply(0.5, Vec3.sum(min, max));
                 orientation = rootOrientation;
                 dimensions = Vec3.subtract(max, min);
             }
 
             return {
                 center: center,
+                localCenter: localCenter,
                 orientation: orientation,
                 dimensions: dimensions
             };
