@@ -840,7 +840,7 @@
                 if (isEditing) {
                     // Perform edit.
                     doEdit = true;
-                } else if (intersection.intersects) {
+                } else if (intersection.intersects && (!isScaleWithHandles || !otherHand.isEditing(intersection.entityID))) {
                     // Start editing.
                     if (intersection.entityID !== hoveredEntityID) {
                         hoveredEntityID = intersection.entityID;
