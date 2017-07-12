@@ -40,9 +40,9 @@ public:
     QUuid attachedEntityId{};
     glm::vec3 position{};
     glm::quat orientation{};
-    float vFoV{ 45.0f };
-    float nearClipPlaneDistance{ 0.1f };
-    float farClipPlaneDistance{ 16384.0f };
+    float vFoV{ DEFAULT_FIELD_OF_VIEW_DEGREES };
+    float nearClipPlaneDistance{ DEFAULT_NEAR_CLIP };
+    float farClipPlaneDistance{ DEFAULT_FAR_CLIP };
     SecondaryCameraJobConfig() : render::Task::Config(false) {}
 signals:
     void dirty();
