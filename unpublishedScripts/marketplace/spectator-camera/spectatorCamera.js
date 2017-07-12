@@ -94,6 +94,11 @@
         if (button) {
             button.editProperties({ isActive: onSpectatorCameraScreen || camera });
         }
+        Audio.playSound(CAMERA_ON_SOUND, {
+            volume: 0.15,
+            position: cameraPosition,
+            localOnly: true
+        });
     }
 
     // Function Name: spectatorCameraOff()
@@ -500,6 +505,7 @@
     }
 
     // These functions will be called when the script is loaded.
+    var CAMERA_ON_SOUND = SoundCache.getSound(Script.resolvePath("cameraOn.wav"));
     startup();
     Script.scriptEnding.connect(shutdown);
 
