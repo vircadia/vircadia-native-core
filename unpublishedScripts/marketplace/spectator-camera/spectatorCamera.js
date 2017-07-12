@@ -75,7 +75,7 @@
             "collidesWith": "static,dynamic,kinematic,",
             "collisionMask": 7,
             "dynamic": cameraIsDynamic,
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/spectator-camera.fbx?7",
+            "modelURL": Script.resolvePath("spectator-camera.fbx"),
             "registrationPoint": {
                 "x": 0.53,
                 "y": 0.545,
