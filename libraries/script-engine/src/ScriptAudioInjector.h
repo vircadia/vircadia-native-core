@@ -23,7 +23,7 @@ class ScriptAudioInjector : public QObject {
     Q_PROPERTY(float loudness READ getLoudness)
     Q_PROPERTY(AudioInjectorOptions options WRITE setOptions READ getOptions)
 public:
-    ScriptAudioInjector(AudioInjectorPointer injector);
+    ScriptAudioInjector(const AudioInjectorPointer& injector);
     ~ScriptAudioInjector();
 public slots:
     void restart() { _injector->restart(); }

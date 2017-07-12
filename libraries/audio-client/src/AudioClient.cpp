@@ -1278,7 +1278,7 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
         }
     }
 
-    for (AudioInjectorPointer injector : injectorsToRemove) {
+    for (const AudioInjectorPointer& injector : injectorsToRemove) {
         qCDebug(audioclient) << "removing injector";
         _activeLocalAudioInjectors.removeOne(injector);
     }
@@ -1369,7 +1369,7 @@ void AudioClient::setIsStereoInput(bool isStereoInput) {
     }
 }
 
-bool AudioClient::outputLocalInjector(AudioInjectorPointer injector) {
+bool AudioClient::outputLocalInjector(const AudioInjectorPointer& injector) {
     AudioInjectorLocalBuffer* injectorBuffer = injector->getLocalBuffer();
     if (injectorBuffer) {
         // local injectors are on the AudioInjectorsThread, so we must guard access
