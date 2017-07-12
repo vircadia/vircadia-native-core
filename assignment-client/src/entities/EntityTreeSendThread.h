@@ -23,7 +23,9 @@ public:
     EntityTreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) : OctreeSendThread(myServer, node) {};
 
 protected:
-    virtual void preDistributionProcessing() override;
+    void preDistributionProcessing() override;
+    void traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
+            bool viewFrustumChanged, bool isFullScene) override;
 
 private:
     // the following two methods return booleans to indicate if any extra flagged entities were new additions to set

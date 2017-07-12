@@ -80,6 +80,11 @@ void EntityTreeSendThread::preDistributionProcessing() {
     }
 }
 
+void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
+            bool viewFrustumChanged, bool isFullScene) {
+    OctreeSendThread::traverseTreeAndSendContents(node, nodeData, viewFrustumChanged, isFullScene);
+}
+
 bool EntityTreeSendThread::addAncestorsToExtraFlaggedEntities(const QUuid& filteredEntityID,
                                                               EntityItem& entityItem, EntityNodeData& nodeData) {
     // check if this entity has a parent that is also an entity
