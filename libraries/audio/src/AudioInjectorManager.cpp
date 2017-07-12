@@ -139,7 +139,7 @@ bool AudioInjectorManager::wouldExceedLimits() { // Should be called inside of a
     return false;
 }
 
-bool AudioInjectorManager::threadInjector(AudioInjectorPointer injector) {
+bool AudioInjectorManager::threadInjector(const AudioInjectorPointer& injector) {
     if (_shouldStop) {
         qCDebug(audio)  << "AudioInjectorManager::threadInjector asked to thread injector but is shutting down.";
         return false;
@@ -168,7 +168,7 @@ bool AudioInjectorManager::threadInjector(AudioInjectorPointer injector) {
     }
 }
 
-bool AudioInjectorManager::restartFinishedInjector(AudioInjectorPointer injector) {
+bool AudioInjectorManager::restartFinishedInjector(const AudioInjectorPointer& injector) {
     if (_shouldStop) {
         qCDebug(audio)  << "AudioInjectorManager::threadInjector asked to thread injector but is shutting down.";
         return false;

@@ -101,7 +101,7 @@ signals:
 
 private:
     int64_t injectNextFrame();
-    bool inject(bool(AudioInjectorManager::*injection)(AudioInjectorPointer));
+    bool inject(bool(AudioInjectorManager::*injection)(const AudioInjectorPointer&));
     bool injectLocally();
     void deleteLocalBuffer();
 

@@ -132,7 +132,7 @@ void AudioInjector::restart() {
     }
 }
 
-bool AudioInjector::inject(bool(AudioInjectorManager::*injection)(AudioInjectorPointer)) {
+bool AudioInjector::inject(bool(AudioInjectorManager::*injection)(const AudioInjectorPointer&)) {
     _state = AudioInjectorState::NotFinished;
 
     int byteOffset = 0;
@@ -474,7 +474,7 @@ AudioInjectorPointer AudioInjector::playSoundAndDelete(const QByteArray& buffer,
 
 
 AudioInjectorPointer AudioInjector::playSound(const QByteArray& buffer, const AudioInjectorOptions options) {
-    AudioInjectorPointer injector = AudioInjectorPointer(new AudioInjector(buffer, options));
+    AudioInjectorPointer injector = AudioInjectorPointer::create<>(buffer, options);
 
     if (!injector->inject(&AudioInjectorManager::threadInjector)) {
         qWarning() << "AudioInjector::playSound failed to thread injector";

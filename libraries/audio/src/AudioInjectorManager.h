@@ -48,8 +48,8 @@ private:
     using Mutex = std::mutex;
     using Lock = std::unique_lock<Mutex>;
 
-    bool threadInjector(AudioInjectorPointer injector);
-    bool restartFinishedInjector(AudioInjectorPointer injector);
+    bool threadInjector(const AudioInjectorPointer& injector);
+    bool restartFinishedInjector(const AudioInjectorPointer& injector);
     void notifyInjectorReadyCondition() { _injectorReady.notify_one(); }
     bool wouldExceedLimits();
 

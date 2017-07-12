@@ -1207,7 +1207,7 @@ bool AudioClient::mixLocalAudioInjectors(float* mixBuffer) {
 
     memset(mixBuffer, 0, AudioConstants::NETWORK_FRAME_SAMPLES_STEREO * sizeof(float));
 
-    for (AudioInjectorPointer injector : _activeLocalAudioInjectors) {
+    for (const AudioInjectorPointer& injector : _activeLocalAudioInjectors) {
         // the lock guarantees that injectorBuffer, if found, is invariant
         AudioInjectorLocalBuffer* injectorBuffer = injector->getLocalBuffer();
         if (injectorBuffer) {
