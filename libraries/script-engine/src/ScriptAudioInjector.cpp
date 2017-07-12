@@ -44,5 +44,5 @@ ScriptAudioInjector::~ScriptAudioInjector() {
 
 void ScriptAudioInjector::stopInjectorImmediately() {
     qCDebug(scriptengine) << "ScriptAudioInjector::stopInjectorImmediately called to stop audio injector immediately.";
-    _injector->stopAndDeleteLater();
+    _injector->stop();
 }

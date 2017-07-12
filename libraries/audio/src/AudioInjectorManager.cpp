@@ -30,7 +30,7 @@ AudioInjectorManager::~AudioInjectorManager() {
         auto& timePointerPair = _injectors.top();
 
         // ask it to stop and be deleted
-        timePointerPair.second->stopAndDeleteLater();
+        timePointerPair.second->stop();
 
         _injectors.pop();
     }

@@ -84,7 +84,6 @@ public slots:
 
     void stop();
     void triggerDeleteAfterFinish();
-    void stopAndDeleteLater();
 
     const AudioInjectorOptions& getOptions() const { return _options; }
     void setOptions(const AudioInjectorOptions& options);

@@ -413,14 +413,10 @@ void AudioInjector::triggerDeleteAfterFinish() {
     }
 
     if (stateHas(AudioInjectorState::Finished)) {
-        stopAndDeleteLater();
+        stop();
     } else {
         _state |= AudioInjectorState::PendingDelete;
     }
-}
-
-void AudioInjector::stopAndDeleteLater() {
-    stop();
 }
 
 AudioInjectorPointer AudioInjector::playSound(SharedSoundPointer sound, const float volume,
