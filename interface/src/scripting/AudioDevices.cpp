@@ -73,7 +73,7 @@ QVariant AudioInputDeviceList::data(const QModelIndex& index, int role) const {
 }
 
 bool AudioDeviceList::setData(const QModelIndex& index, const QVariant& value, int role) {
-	if (!index.isValid() || index.row() >= rowCount() || role != CheckStateRole) {
+    if (!index.isValid() || index.row() >= rowCount() || role != CheckStateRole) {
         return false;
     }
 
