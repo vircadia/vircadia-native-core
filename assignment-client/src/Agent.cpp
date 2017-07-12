@@ -81,7 +81,8 @@ Agent::Agent(ReceivedMessage& message) :
 
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<UsersScriptingInterface>();
-    
+
+    // Needed to ensure the creation of the DebugDraw instance on the main thread
     DebugDraw::getInstance();
 
 

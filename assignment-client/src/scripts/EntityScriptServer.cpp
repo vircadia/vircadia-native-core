@@ -68,6 +68,7 @@ EntityScriptServer::EntityScriptServer(ReceivedMessage& message) : ThreadedAssig
     DependencyManager::set<ScriptCache>();
     DependencyManager::set<ScriptEngines>(ScriptEngine::ENTITY_SERVER_SCRIPT);
 
+    // Needed to ensure the creation of the DebugDraw instance on the main thread
     DebugDraw::getInstance();
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
