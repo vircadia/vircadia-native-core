@@ -165,9 +165,12 @@
             HANDLE_NORMAL_COLOR = { red: 0, green: 240, blue: 240 },
             HANDLE_ALPHA = 0.7,
             NUM_FACE_HANDLES = 6,
+            FACE_HANDLE_OVERLAY_DIMENSIONS = { x: 0.1, y: 0.12, z: 0.1 },
             FACE_HANDLE_OVERLAY_AXES,
+            FACE_HANDLE_OVERLAY_OFFSETS,
             FACE_HANDLE_OVERLAY_ROTATIONS,
             ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO),
+            DISTANCE_MULTIPLIER_MULTIPLIER = 0.5,
             i;
 
         FACE_HANDLE_OVERLAY_AXES = [
@@ -178,6 +181,12 @@
             { x:    0, y:    0, z: -0.5 },
             { x:    0, y:    0, z:  0.5 }
         ];
+
+        FACE_HANDLE_OVERLAY_OFFSETS = {
+            x: FACE_HANDLE_OVERLAY_DIMENSIONS.y,
+            y: FACE_HANDLE_OVERLAY_DIMENSIONS.y,
+            z: FACE_HANDLE_OVERLAY_DIMENSIONS.y
+        };
 
         FACE_HANDLE_OVERLAY_ROTATIONS = [
             Quat.fromVec3Degrees({ x:   0, y: 0, z:  90 }),
@@ -205,7 +214,6 @@
                 solid: true,
                 drawInFront: true,
                 ignoreRayIntersection: true,
-                dimensions: { x: 0.1, y: 0.12, z: 0.1 },
                 visible: false
             });
         }
@@ -214,6 +222,10 @@
         function display(rootEntityID, boundingBox, isMultiple) {
             var boundingBoxDimensions = boundingBox.dimensions,
                 boundingBoxLocalCenter = boundingBox.localCenter,
+                faceHandleDimensions,
+                faceHandleOffsets,
+                boundingBoxVector,
+                distanceMultiplier,
                 i;
 
             // Selection bounding box.
@@ -225,17 +237,26 @@
                 visible: true
             });
 
+            // Somewhat maintain general angular size of scale handles per bounding box center but make more distance ones 
+            // display smaller in order to give comfortable depth cue.
+            boundingBoxVector = Vec3.subtract(boundingBox.center, Camera.position);
+            distanceMultiplier = DISTANCE_MULTIPLIER_MULTIPLIER
+                * Vec3.dot(Quat.getForward(Camera.orientation), boundingBoxVector)
+                / Math.sqrt(Vec3.length(boundingBoxVector));
+
             // Face scale handles.
             // Only valid for a single entity because for multiple entities, some may be at an angle relative to the root entity
             // which would necessitate a (non-existent) shear transform be applied to them when scaling a face of the set.
             if (!isMultiple) {
+                faceHandleDimensions = Vec3.multiply(distanceMultiplier, FACE_HANDLE_OVERLAY_DIMENSIONS);
+                faceHandleOffsets = Vec3.multiply(distanceMultiplier, FACE_HANDLE_OVERLAY_OFFSETS);
                 for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
                     Overlays.editOverlay(faceHandleOverlays[i], {
                         parentID: rootEntityID,
                         localPosition: Vec3.sum(boundingBoxLocalCenter,
-                            Vec3.multiplyVbyV(FACE_HANDLE_OVERLAY_AXES[i],
-                                Vec3.sum(boundingBoxDimensions, { x: 0.12, y: 0.12, z: 0.12 }))),
+                            Vec3.multiplyVbyV(FACE_HANDLE_OVERLAY_AXES[i], Vec3.sum(boundingBoxDimensions, faceHandleOffsets))),
                         localRotation: FACE_HANDLE_OVERLAY_ROTATIONS[i],
+                        dimensions: faceHandleDimensions,
                         visible: true
                     });
                 }
