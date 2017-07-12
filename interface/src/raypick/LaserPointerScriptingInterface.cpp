@@ -1,6 +1,6 @@
 //
 //  LaserPointerScriptingInterface.cpp
-//  interface/src
+//  interface/src/raypick
 //
 //  Created by Sam Gondelman 7/11/2017
 //  Copyright 2017 High Fidelity, Inc.
@@ -12,7 +12,8 @@
 #include "LaserPointerScriptingInterface.h"
 
 #include <QVariant>
-#include "Transform.h"
+#include "RegisteredMetaTypes.h"
+#include "GLMHelpers.h"
 
 LaserPointerScriptingInterface* LaserPointerScriptingInterface::getInstance() {
     static LaserPointerScriptingInterface instance;
@@ -25,10 +26,14 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
     if (propertyMap["joint"].isValid()) {
         QString jointName = propertyMap["joint"].toString();
 
-        Transform offsetTransform;
-        if (propertyMap["offsetTransform"].isValid()) {
-            // TODO:
-            // convert transform
+        glm::vec3 posOffset = Vectors::ZERO;
+        if (propertyMap["posOffset"].isValid()) {
+            posOffset = vec3FromVariant(propertyMap["posOffset"]);
+        }
+
+        glm::vec3 dirOffset = Vectors::FRONT;
+        if (propertyMap["dirOffset"].isValid()) {
+            posOffset = vec3FromVariant(propertyMap["dirOffset"]);
         }
 
         uint16_t filter = 0;
@@ -49,7 +54,7 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
         // TODO:
         // handle render state properties
 
-        return LaserPointerManager::getInstance().createLaserPointer(jointName, offsetTransform, filter, maxDistance, enabled);
+        return LaserPointerManager::getInstance().createLaserPointer(jointName, posOffset, dirOffset, filter, maxDistance, enabled);
     } else {
         return 0;
     }

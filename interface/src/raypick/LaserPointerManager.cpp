@@ -1,6 +1,6 @@
 //
 //  LaserPointerManager.cpp
-//  libraries/controllers/src
+//  interface/src/raypick
 //
 //  Created by Sam Gondelman 7/11/2017
 //  Copyright 2017 High Fidelity, Inc.
@@ -16,8 +16,8 @@ LaserPointerManager& LaserPointerManager::getInstance() {
     return instance;
 }
 
-unsigned int LaserPointerManager::createLaserPointer(const QString& jointName, const Transform& offsetTransform, const uint16_t filter, const float maxDistance, bool enabled) {
-    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(jointName, offsetTransform, filter, maxDistance, enabled);
+unsigned int LaserPointerManager::createLaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance, bool enabled) {
+    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(jointName, posOffset, dirOffset, filter, maxDistance, enabled);
     unsigned int uid = laserPointer->getUID();
     _laserPointers[uid] = laserPointer;
     return uid;
