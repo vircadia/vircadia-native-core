@@ -157,7 +157,7 @@
             if ((isHMDMode || showSpectatorInDesktop) && !isShuttingDown) {
                 button = tablet.addButton({
                     text: buttonName,
-                    icon: "icons/tablet-icons/spectator-i.svg"
+                    icon: Script.resourcesPath() + "icons/tablet-icons/spectator-i.svg"
                 });
                 button.clicked.connect(onTabletButtonClicked);
             }
@@ -383,7 +383,7 @@
     // Relevant Variables:
     //   -SPECTATOR_CAMERA_QML_SOURCE: The path to the SpectatorCamera QML
     //   -onSpectatorCameraScreen: true/false depending on whether we're looking at the spectator camera app.
-    var SPECTATOR_CAMERA_QML_SOURCE = "../SpectatorCamera.qml";
+    var SPECTATOR_CAMERA_QML_SOURCE = Script.resourcesPath() + "qml/hifi/SpectatorCamera.qml";
     var onSpectatorCameraScreen = false;
     function onTabletButtonClicked() {
         if (!tablet) {
