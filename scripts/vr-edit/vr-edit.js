@@ -159,11 +159,17 @@
 
     Handles = function () {
         var boundingBoxOverlay,
+            cornerIndexes = [],
+            cornerHandleOverlays = [],
             faceHandleOverlays = [],
             BOUNDING_BOX_COLOR = { red: 0, green: 240, blue: 240 },
             BOUNDING_BOX_ALPHA = 0.8,
             HANDLE_NORMAL_COLOR = { red: 0, green: 240, blue: 240 },
             HANDLE_ALPHA = 0.7,
+            NUM_CORNERS = 8,
+            NUM_CORNER_HANDLES = 2,
+            CORNER_HANDLE_OVERLAY_DIMENSIONS = { x: 0.1, y: 0.1, z: 0.1 },
+            CORNER_HANDLE_OVERLAY_AXES,
             NUM_FACE_HANDLES = 6,
             FACE_HANDLE_OVERLAY_DIMENSIONS = { x: 0.1, y: 0.12, z: 0.1 },
             FACE_HANDLE_OVERLAY_AXES,
@@ -172,6 +178,18 @@
             ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO),
             DISTANCE_MULTIPLIER_MULTIPLIER = 0.5,
             i;
+
+        CORNER_HANDLE_OVERLAY_AXES = [
+            // Ordered such that items 4 apart are opposite corners - used in display().
+            { x: -0.5, y: -0.5, z: -0.5 },
+            { x: -0.5, y: -0.5, z:  0.5 },
+            { x: -0.5, y:  0.5, z: -0.5 },
+            { x: -0.5, y:  0.5, z:  0.5 },
+            { x:  0.5, y:  0.5, z:  0.5 },
+            { x:  0.5, y:  0.5, z: -0.5 },
+            { x:  0.5, y: -0.5, z:  0.5 },
+            { x:  0.5, y: -0.5, z: -0.5 }
+        ];
 
         FACE_HANDLE_OVERLAY_AXES = [
             { x: -0.5, y:    0, z:    0 },
@@ -206,6 +224,17 @@
             visible: false
         });
 
+        for (i = 0; i < NUM_CORNER_HANDLES; i += 1) {
+            cornerHandleOverlays[i] = Overlays.addOverlay("sphere", {
+                color: HANDLE_NORMAL_COLOR,
+                alpha: HANDLE_ALPHA,
+                solid: true,
+                drawInFront: true,
+                ignoreRayIntersection: true,
+                visible: false
+            });
+        }
+
         for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
             faceHandleOverlays[i] = Overlays.addOverlay("shape", {
                 shape: "Cone",
@@ -218,14 +247,24 @@
             });
         }
 
-
         function display(rootEntityID, boundingBox, isMultiple) {
             var boundingBoxDimensions = boundingBox.dimensions,
+                boundingBoxCenter = boundingBox.center,
                 boundingBoxLocalCenter = boundingBox.localCenter,
-                faceHandleDimensions,
-                faceHandleOffsets,
+                boundingBoxOrientation = boundingBox.orientation,
+                cameraPosition,
                 boundingBoxVector,
                 distanceMultiplier,
+                cameraUp,
+                cornerPosition,
+                cornerVector,
+                crossProductScale,
+                maxCrossProductScale,
+                rightCornerIndex,
+                leftCornerIndex,
+                cornerHandleDimensions,
+                faceHandleDimensions,
+                faceHandleOffsets,
                 i;
 
             // Selection bounding box.
@@ -239,10 +278,40 @@
 
             // Somewhat maintain general angular size of scale handles per bounding box center but make more distance ones 
             // display smaller in order to give comfortable depth cue.
+            cameraPosition = Camera.position;
             boundingBoxVector = Vec3.subtract(boundingBox.center, Camera.position);
             distanceMultiplier = DISTANCE_MULTIPLIER_MULTIPLIER
                 * Vec3.dot(Quat.getForward(Camera.orientation), boundingBoxVector)
                 / Math.sqrt(Vec3.length(boundingBoxVector));
+
+            // Corner scale handles.
+            // At right-most and opposite corners of bounding box.
+            cameraUp = Quat.getUp(Camera.orientation);
+            maxCrossProductScale = 0;
+            for (i = 0; i < NUM_CORNERS; i += 1) {
+                cornerPosition = Vec3.sum(boundingBoxCenter,
+                    Vec3.multiplyQbyV(boundingBoxOrientation,
+                        Vec3.multiplyVbyV(CORNER_HANDLE_OVERLAY_AXES[i], boundingBoxDimensions)));
+                cornerVector = Vec3.subtract(cornerPosition, cameraPosition);
+                crossProductScale = Vec3.dot(Vec3.cross(cornerVector, boundingBoxVector), cameraUp);
+                if (crossProductScale > maxCrossProductScale) {
+                    maxCrossProductScale = crossProductScale;
+                    rightCornerIndex = i;
+                }
+            }
+            leftCornerIndex = (rightCornerIndex + 4) % NUM_CORNERS;
+            cornerIndexes[0] = leftCornerIndex;
+            cornerIndexes[1] = rightCornerIndex;
+            cornerHandleDimensions = Vec3.multiply(distanceMultiplier, CORNER_HANDLE_OVERLAY_DIMENSIONS);
+            for (i = 0; i < NUM_CORNER_HANDLES; i += 1) {
+                Overlays.editOverlay(cornerHandleOverlays[i], {
+                    parentID: rootEntityID,
+                    localPosition: Vec3.sum(boundingBoxLocalCenter,
+                        Vec3.multiplyVbyV(CORNER_HANDLE_OVERLAY_AXES[cornerIndexes[i]], boundingBoxDimensions)),
+                    dimensions: cornerHandleDimensions,
+                    visible: true
+                });
+            }
 
             // Face scale handles.
             // Only valid for a single entity because for multiple entities, some may be at an angle relative to the root entity
@@ -271,6 +340,9 @@
             var i;
 
             Overlays.editOverlay(boundingBoxOverlay, { visible: false });
+            for (i = 0; i < NUM_CORNER_HANDLES; i += 1) {
+                Overlays.editOverlay(cornerHandleOverlays[i], { visible: false });
+            }
             for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
                 Overlays.editOverlay(faceHandleOverlays[i], { visible: false });
             }
