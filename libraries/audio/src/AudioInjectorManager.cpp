@@ -181,7 +181,7 @@ bool AudioInjectorManager::restartFinishedInjector(AudioInjectorPointer injector
         return false;
     } else {
         // add the injector to the queue with a send timestamp of now
-        _injectors.emplace(usecTimestampNow(), injector->getThisPointer());
+        _injectors.emplace(usecTimestampNow(), injector);
 
         // notify our wait condition so we can inject two frames for this injector immediately
         _injectorReady.notify_one();

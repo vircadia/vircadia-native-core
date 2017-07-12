@@ -150,7 +150,7 @@ bool AudioInjector::inject(bool(AudioInjectorManager::*injection)(AudioInjectorP
     bool success = true;
     if (!_options.localOnly) {
         auto injectorManager = DependencyManager::get<AudioInjectorManager>();
-        if (!(*injectorManager.*injection)(getThisPointer())) {
+        if (!(*injectorManager.*injection)(sharedFromThis())) {
             success = false;
             finishNetworkInjection();
         }
@@ -173,7 +173,7 @@ bool AudioInjector::injectLocally() {
 
             // call this function on the AudioClient's thread
             // this will move the local buffer's thread to the LocalInjectorThread
-            success = _localAudioInterface->outputLocalInjector(getThisPointer());
+            success = _localAudioInterface->outputLocalInjector(sharedFromThis());
 
             if (!success) {
                 qCDebug(audio) << "AudioInjector::injectLocally could not output locally via _localAudioInterface";
@@ -475,25 +475,9 @@ AudioInjectorPointer AudioInjector::playSoundAndDelete(const QByteArray& buffer,
 
 AudioInjectorPointer AudioInjector::playSound(const QByteArray& buffer, const AudioInjectorOptions options) {
     AudioInjectorPointer injector = AudioInjectorPointer(new AudioInjector(buffer, options));
-    injector->setThisPointer(injector);
 
     if (!injector->inject(&AudioInjectorManager::threadInjector)) {
         qWarning() << "AudioInjector::playSound failed to thread injector";
     }
     return injector;
-}
-
-AudioInjectorPointer AudioInjector::getThisPointer() {
-    std::lock_guard<std::mutex> lock(_refLock);
-    QSharedPointer<AudioInjector> this_ref(_self);
-    if (this_ref.isNull()) {
-        this_ref = QSharedPointer<AudioInjector>(this);
-        _self = this_ref.toWeakRef();
-    }
-    return this_ref;
-}
-
-void AudioInjector::setThisPointer(AudioInjectorPointer self) {
-    std::lock_guard<std::mutex> lock(_refLock);
-    _self = self.toWeakRef();
 }

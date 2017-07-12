@@ -49,7 +49,7 @@ AudioInjectorState& operator|= (AudioInjectorState& lhs, AudioInjectorState rhs)
 
 // In order to make scripting cleaner for the AudioInjector, the script now holds on to the AudioInjector object
 // until it dies.
-class AudioInjector : public QObject {
+class AudioInjector : public QObject, public QEnableSharedFromThis<AudioInjector> {
     Q_OBJECT
 public:
     AudioInjector(const Sound& sound, const AudioInjectorOptions& injectorOptions);
@@ -78,9 +78,6 @@ public:
     static AudioInjectorPointer playSound(const QByteArray& buffer, const AudioInjectorOptions options);
     static AudioInjectorPointer playSound(SharedSoundPointer sound, const float volume,
                                           const float stretchFactor, const glm::vec3 position);
-
-    AudioInjectorPointer getThisPointer();
-    void setThisPointer(AudioInjectorPointer self);
 
 public slots:
     void restart();
@@ -127,9 +124,6 @@ private:
     AudioHRTF _localHRTF;
     AudioFOA _localFOA;
     friend class AudioInjectorManager;
-
-    QWeakPointer<AudioInjector> _self;
-    mutable std::mutex _refLock;
 };
 
 Q_DECLARE_METATYPE(AudioInjectorPointer)
