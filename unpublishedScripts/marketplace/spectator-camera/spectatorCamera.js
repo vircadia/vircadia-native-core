@@ -77,9 +77,9 @@
             "dynamic": cameraIsDynamic,
             "modelURL": Script.resolvePath("spectator-camera.fbx"),
             "registrationPoint": {
-                "x": 0.53,
+                "x": 0.56,
                 "y": 0.545,
-                "z": 0.16
+                "z": 0.23
             },
             "rotation": cameraRotation,
             "position": cameraPosition,
