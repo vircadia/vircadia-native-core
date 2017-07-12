@@ -1,8 +1,7 @@
 name = mannequinHipFixed
 type = body+head
 scale = 1
-filename = mannequinHipFixed/mannequinHipFixed.fbx
-texdir = mannequinHipFixed/textures
+filename = mannequin/mannequin.baked.fbx
 joint = jointRoot = Hips
 joint = jointLean = Spine
 joint = jointLeftHand = LeftHand
