@@ -1,4 +1,4 @@
-name = mannequinHipFixed
+name = mannequin
 type = body+head
 scale = 1
 filename = mannequin/mannequin.baked.fbx
