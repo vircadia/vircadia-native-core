@@ -52,6 +52,7 @@ public:
         Browsable,
         Slider,
         Spinner,
+		SpinnerSlider,
         Checkbox,
         Button,
         ComboBox,
@@ -252,6 +253,15 @@ public:
         : FloatPreference(category, name, getter, setter) { }
 
     Type getType() override { return Spinner; }
+};
+
+class SpinnerSliderPreference : public FloatPreference {
+	Q_OBJECT
+public:
+	SpinnerSliderPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+		: FloatPreference(category, name, getter, setter) { }
+
+	Type getType() override { return SpinnerSlider; }
 };
 
 class IntSpinnerPreference : public IntPreference {

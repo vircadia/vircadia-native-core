@@ -72,6 +72,7 @@ Preference {
         property var avatarBuilder: Component { AvatarPreference { } }
         property var buttonBuilder: Component { ButtonPreference { } }
         property var comboBoxBuilder: Component { ComboBoxPreference { } }
+		property var spinnerSliderBuilder: Component { SpinnerSliderPreference { } }
         property var preferences: []
         property int checkBoxCount: 0
 
@@ -128,6 +129,11 @@ Preference {
                     checkBoxCount = 0;
                     builder = comboBoxBuilder;
                     break;
+
+				case Preference.SpinnerSlider:
+					checkBoxCount = 0;
+					builder = spinnerSliderBuilder;
+					break;
             };
 
             if (builder) {
