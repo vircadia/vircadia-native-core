@@ -465,7 +465,7 @@ AudioInjectorPointer AudioInjector::playSoundAndDelete(const QByteArray& buffer,
 
 
 AudioInjectorPointer AudioInjector::playSound(const QByteArray& buffer, const AudioInjectorOptions options) {
-    AudioInjectorPointer injector = AudioInjectorPointer::create<>(buffer, options);
+    AudioInjectorPointer injector = AudioInjectorPointer::create(buffer, options);
 
     if (!injector->inject(&AudioInjectorManager::threadInjector)) {
         qWarning() << "AudioInjector::playSound failed to thread injector";
