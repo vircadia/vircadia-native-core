@@ -344,9 +344,9 @@
     function registerButtonMappings() {
         var VRDevices = Controller.getDeviceNames().toString();
         if (VRDevices) {
-            if (VRDevices.indexOf("Vive") != -1) {
+            if (VRDevices.indexOf("Vive") !== -1) {
                 controllerType = "Vive";
-            } else if (VRDevices.indexOf("OculusTouch") != -1) {
+            } else if (VRDevices.indexOf("OculusTouch") !== -1) {
                 controllerType = "OculusTouch";
             } else {
                 sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
