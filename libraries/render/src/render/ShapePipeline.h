@@ -285,6 +285,15 @@ protected:
 
     BatchSetter _batchSetter;
     ItemSetter _itemSetter;
+public:
+    using CustomKey = uint8_t;
+    using CustomFactory = std::function<std::shared_ptr<ShapePipeline> (const ShapePlumber& plumber, const ShapeKey& key)>;
+    using CustomFactoryMap = std::map<CustomKey, CustomFactory>;
+
+    static CustomFactoryMap _globalCustomFactoryMap;
+
+    static CustomKey registerCustomShapePipelineFactory(CustomFactory factory);
+
 };
 using ShapePipelinePointer = std::shared_ptr<ShapePipeline>;
 
@@ -309,12 +318,13 @@ public:
     const PipelinePointer pickPipeline(RenderArgs* args, const Key& key) const;
 
 protected:
-    void addPipelineHelper(const Filter& filter, Key key, int bit, const PipelinePointer& pipeline);
-    PipelineMap _pipelineMap;
+    void addPipelineHelper(const Filter& filter, Key key, int bit, const PipelinePointer& pipeline) const;
+    mutable PipelineMap _pipelineMap;
 
 private:
     mutable std::unordered_set<Key, Key::Hash, Key::KeyEqual> _missingKeys;
 };
+
 
 using ShapePlumberPointer = std::shared_ptr<ShapePlumber>;
 

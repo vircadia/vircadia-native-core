@@ -9,10 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-in vec4 _color;
+in vec4 varColor;
+in vec2 varTexcoord;
 
 out vec4 outFragColor;
 
 void main(void) {
-    outFragColor = _color;
+    outFragColor = varColor;
 }

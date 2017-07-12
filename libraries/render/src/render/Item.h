@@ -320,7 +320,6 @@ public:
         virtual void render(RenderArgs* args) = 0;
 
         virtual const ShapeKey getShapeKey() const = 0;
-        virtual bool defineCustomShapePipeline(ShapePlumber& plumber, const ShapeKey& key) const = 0;
 
         virtual uint32_t fetchMetaSubItems(ItemIDs& subItems) const = 0;
 
@@ -370,7 +369,6 @@ public:
 
     // Shape Type Interface
     const ShapeKey getShapeKey() const { return _payload->getShapeKey(); }
-    bool defineCustomShapePipeline(ShapePlumber& plumber, const ShapeKey& key) const { return _payload->defineCustomShapePipeline(plumber, key); }
 
     // Meta Type Interface
     uint32_t fetchMetaSubItems(ItemIDs& subItems) const { return _payload->fetchMetaSubItems(subItems); }
@@ -417,7 +415,6 @@ template <class T> void payloadRender(const std::shared_ptr<T>& payloadData, Ren
 // When creating a new shape payload you need to create a specialized version, or the ShapeKey will be ownPipeline,
 // implying that the shape will setup its own pipeline without the use of the ShapeKey.
 template <class T> const ShapeKey shapeGetShapeKey(const std::shared_ptr<T>& payloadData) { return ShapeKey::Builder::ownPipeline(); }
-template <class T> bool shapeDefineCustomShapePipeline(const std::shared_ptr<T>& payloadData, ShapePlumber& plumber, const ShapeKey& key) { return false; }
 
 // Meta Type Interface
 // Meta items act as the grouping object for several sub items (typically shapes).
@@ -444,7 +441,6 @@ public:
 
     // Shape Type interface
     virtual const ShapeKey getShapeKey() const override { return shapeGetShapeKey<T>(_data); }
-    virtual bool defineCustomShapePipeline(ShapePlumber& plumber, const ShapeKey& key) const override { return shapeDefineCustomShapePipeline<T>(_data, plumber, key); }
 
     // Meta Type Interface
     virtual uint32_t fetchMetaSubItems(ItemIDs& subItems) const override { return metaFetchMetaSubItems<T>(_data, subItems); }
