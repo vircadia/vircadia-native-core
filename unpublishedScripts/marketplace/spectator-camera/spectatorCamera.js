@@ -75,11 +75,11 @@
             "collidesWith": "static,dynamic,kinematic,",
             "collisionMask": 7,
             "dynamic": cameraIsDynamic,
-            "modelURL": "http://hifi-content.s3.amazonaws.com/alan/dev/spectator-camera.fbx?7",
+            "modelURL": Script.resolvePath("spectator-camera.fbx"),
             "registrationPoint": {
-                "x": 0.53,
+                "x": 0.56,
                 "y": 0.545,
-                "z": 0.16
+                "z": 0.23
             },
             "rotation": cameraRotation,
             "position": cameraPosition,
@@ -344,9 +344,9 @@
     function registerButtonMappings() {
         var VRDevices = Controller.getDeviceNames().toString();
         if (VRDevices) {
-            if (VRDevices.includes("Vive")) {
+            if (VRDevices.indexOf("Vive") !== -1) {
                 controllerType = "Vive";
-            } else if (VRDevices.includes("OculusTouch")) {
+            } else if (VRDevices.indexOf("OculusTouch") !== -1) {
                 controllerType = "OculusTouch";
             } else {
                 sendToQml({ method: 'updateControllerMappingCheckbox', setting: switchViewFromController, controller: controllerType });
@@ -383,7 +383,7 @@
     // Relevant Variables:
     //   -SPECTATOR_CAMERA_QML_SOURCE: The path to the SpectatorCamera QML
     //   -onSpectatorCameraScreen: true/false depending on whether we're looking at the spectator camera app.
-    var SPECTATOR_CAMERA_QML_SOURCE = "../SpectatorCamera.qml";
+    var SPECTATOR_CAMERA_QML_SOURCE = Script.resourcesPath() + "qml/hifi/SpectatorCamera.qml";
     var onSpectatorCameraScreen = false;
     function onTabletButtonClicked() {
         if (!tablet) {
