@@ -68,7 +68,7 @@
         // Sets the special texture size based on the window it is displayed in, which doesn't include the menu bar
         spectatorCameraConfig.enableSecondaryCameraRenderConfigs(true);
         spectatorCameraConfig.resetSizeSpectatorCamera(Window.innerWidth, Window.innerHeight);
-        cameraRotation = MyAvatar.orientation, cameraPosition = inFrontOf(1, Vec3.sum(MyAvatar.position, { x: 0, y: 0.3, z: 0 }));
+        cameraRotation = Quat.multiply(MyAvatar.orientation, Quat.fromPitchYawRollDegrees(15, -155, 0)), cameraPosition = inFrontOf(0.85, Vec3.sum(MyAvatar.position, { x: 0, y: 0.28, z: 0 }));
         camera = Entities.addEntity({
             "angularDamping": 1,
             "damping": 1,
