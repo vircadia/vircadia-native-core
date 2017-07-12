@@ -190,6 +190,8 @@
 #include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
+#include "LaserPointerScriptingInterface.h"
+#include <RayPickManager.h>
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -4916,6 +4918,11 @@ void Application::update(float deltaTime) {
         _overlays.update(deltaTime);
     }
 
+    {
+        PROFILE_RANGE(app, "RayPick");
+        RayPickManager::getInstance().update();
+    }
+
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
     // loadViewFrumstum() method will get the correct details from the camera
@@ -5761,6 +5768,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
     scriptEngine->registerGlobalObject("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
     scriptEngine->registerGlobalObject("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
+    scriptEngine->registerGlobalObject("LaserPointers", LaserPointerScriptingInterface::getInstance());
 
     // Caches
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
