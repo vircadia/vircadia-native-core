@@ -1,6 +1,15 @@
 {
     "name": "Vive to Standard",
     "channels": [
+        { "from": "Vive.LY", "to": "Standard.LeftIndexPoint",
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.7, "max": 0.75 } ]
+        },
+        { "from": "Vive.RY", "to": "Standard.RightIndexPoint",
+            "peek": true,
+            "filters": [ { "type": "hysteresis", "min": 0.7, "max": 0.75 } ]
+        },
+
         { "from": "Vive.LY", "when": "Vive.LSY", "filters": ["invert"], "to": "Standard.LY" },
         { "from": "Vive.LX", "when": "Vive.LSX", "to": "Standard.LX" },
         {
@@ -62,8 +71,6 @@
         { "from": "Vive.RightArm", "to" : "Standard.RightArm" },
         { "from": "Vive.LeftArm", "to" : "Standard.LeftArm" },
         { "from": "Vive.LeftThumbUp", "to": "Standard.LeftThumbUp" },
-        { "from": "Vive.RightThumbUp", "to": "Standard.RightThumbUp" },
-        { "from": "Vive.LeftIndexPoint", "to": "Standard.LeftIndexPoint" },
-        { "from": "Vive.RightIndexPoint", "to": "Standard.RightIndexPoint" }
+        { "from": "Vive.RightThumbUp", "to": "Standard.RightThumbUp" }
     ]
 }

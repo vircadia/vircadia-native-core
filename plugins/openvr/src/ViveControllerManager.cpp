@@ -62,8 +62,6 @@ static const int SECOND_FOOT = 1;
 static const int HIP = 2;
 static const int CHEST = 3;
 
-static const float POINTING_THRESHOLD = 0.75f;
-
 const char* ViveControllerManager::NAME { "OpenVR" };
 
 const std::map<vr::ETrackingResult, QString> TRACKING_RESULT_TO_STRING = {
@@ -811,11 +809,6 @@ void ViveControllerManager::InputDevice::handleAxisEvent(float deltaTime, uint32
         }
         _axisStateMap[isLeftHand ? LX : RX] = stick.x;
         _axisStateMap[isLeftHand ? LY : RY] = stick.y;
-
-        if (stick.y > POINTING_THRESHOLD) {
-            // Simulate pointing gesture from the oculus controller
-            _buttonPressedMap.insert(isLeftHand ? LEFT_INDEX_POINT : RIGHT_INDEX_POINT);
-        }
     } else if (axis == vr::k_EButton_SteamVR_Trigger) {
         _axisStateMap[isLeftHand ? LT : RT] = x;
         // The click feeling on the Vive controller trigger represents a value of *precisely* 1.0,
@@ -1182,8 +1175,6 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
 
         makePair(LEFT_THUMB_UP, "LeftThumbUp"),
         makePair(RIGHT_THUMB_UP, "RightThumbUp"),
-        makePair(LEFT_INDEX_POINT, "LeftIndexPoint"),
-        makePair(RIGHT_INDEX_POINT, "RightIndexPoint"),
     };
 
     return availableInputs;
