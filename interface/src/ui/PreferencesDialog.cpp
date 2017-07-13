@@ -182,9 +182,9 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
 	{
-		auto getter = [=]()->float { return myAvatar->getUniformScale(); };
-		auto setter = [=](float value) { myAvatar->setTargetScale(value); };
-		auto preference = new SpinnerSliderPreference(AVATAR_TUNING, "Avatar Scale", getter, setter);
+        auto getter = [=]()->float { return myAvatar->getUniformScale(); };
+        auto setter = [=](float value) { myAvatar->setTargetScale(value); };
+        auto preference = new SpinnerSliderPreference(AVATAR_TUNING, "Avatar Scale", getter, setter);
         preference->setStep(0.1);
         preference->setDecimals(2);
         preferences->addPreference(preference);

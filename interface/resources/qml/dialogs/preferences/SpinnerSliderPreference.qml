@@ -60,7 +60,7 @@ Preference {
             width: 100
             minimumValue: MyAvatar.getDomainMinScale()
             maximumValue: MyAvatar.getDomainMaxScale()
-			stepSize: preference.step
+            stepSize: preference.step
             onValueChanged: {
                 spinner.value = value
             }
@@ -72,7 +72,7 @@ Preference {
         SpinBox {
             id: spinner
             decimals: preference.decimals
-			value: preference.value
+            value: preference.value
             minimumValue: MyAvatar.getDomainMinScale()
             maximumValue: MyAvatar.getDomainMaxScale()
             width: 100
