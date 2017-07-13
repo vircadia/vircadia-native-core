@@ -430,8 +430,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                 // but most avatars are roughly the same size, so let's not be so fancy yet.
                 const float AVATAR_STRETCH_FACTOR = 1.0f;
 
-
-                _collisionInjectors.remove_if([](QPointer<AudioInjector>& injector) {
+                _collisionInjectors.remove_if([](const AudioInjectorPointer& injector) {
                     return !injector || injector->isFinished();
                 });
 
