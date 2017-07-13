@@ -915,6 +915,10 @@
         function update() {
             var gripValue,
                 palmPosition,
+                overlayID,
+                overlayIDs,
+                overlayDistance,
+                distance,
                 entityID,
                 entityIDs,
                 entitySize,
@@ -963,11 +967,34 @@
                 }
             }
 
+            // Hand-overlay intersection, if any.
+            overlayID = null;
+            palmPosition = hand === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
+            overlayIDs = Overlays.findOverlays(palmPosition, NEAR_HOVER_RADIUS);
+            if (overlayIDs.length > 0) {
+                // Typically, there will be only one overlay; optimize for that case.
+                overlayID = overlayIDs[0];
+                if (overlayIDs.length > 1) {
+                    // Find closest overlay.
+                    overlayDistance = Vec3.length(Vec3.subtract(Overlays.getProperty(overlayID, "position"), palmPosition));
+                    for (i = 1, length = overlayIDs.length; i < length; i += 1) {
+                        distance =
+                            Vec3.length(Vec3.subtract(Overlays.getProperty(overlayIDs[i], "position"), palmPosition));
+                        if (distance > overlayDistance) {
+                            overlayID = overlayIDs[i];
+                            overlayDistance = distance;
+                        }
+                    }
+                }
+            }
+
             // Hand-entity intersection, if any.
+            // TODO: Only test intersection if overlay not intersected?
             entityID = null;
             palmPosition = hand === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
             entityIDs = Entities.findEntities(palmPosition, NEAR_GRAB_RADIUS);
             if (entityIDs.length > 0) {
+                // TODO: If number of entities is often 1 in practice, optimize code for this case.
                 // Find smallest, editable entity.
                 entitySize = HALF_TREE_SCALE;
                 for (i = 0, length = entityIDs.length; i < length; i += 1) {
@@ -980,13 +1007,15 @@
                     }
                 }
             }
+
             intersection = {
-                intersects: entityID !== null,
+                intersects: overlayID !== null || entityID !== null,
+                overlayID: overlayID,
                 entityID: entityID,
                 handSelected: true
             };
 
-            // Laser-entity intersection, if any.
+            // Laser-entity intersection, if any, if hand not intersected.
             if (!intersection.intersects && isTriggerPressed) {
                 handPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, handPose.translation), MyAvatar.position);
                 handOrientation = Quat.multiply(MyAvatar.orientation, handPose.rotation);
