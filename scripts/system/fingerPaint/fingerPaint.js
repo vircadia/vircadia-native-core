@@ -7,7 +7,6 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-
 (function () {
     var tablet,
         button,
@@ -18,20 +17,15 @@
         isFingerPainting = false,
         isTabletFocused = false, //starts with true cause you need to be hovering the tablet in order to open the app
         tabletDebugFocusLine = null,
-        //dynamic brush vars
-        /*9isDynamicBrushEnabled = false,
-        isDynamicBrushRunning = false,
-        DYNAMIC_BRUSH_UPDATE_TIME = 100,
+        //animated brush vars
         lastFrameTime = Date.now(),
-        frameDeltaSeconds = null, //time that passed between frames in milliseconds
-        stopDynamicBrush = false,
-        prevBrushWidth = 0,
-        DYNAMIC_BRUSH_TIME = 50, //inteval in milliseconds to update the brush width
-        DYNAMIC_BRUSH_INCREMENT = 0.01, //linear increment of brush size */
+        frameDeltaSeconds = null, //time that passed between frames in ms;
+        //end of dynamic brush vars
         leftHand = null,
         rightHand = null,
         leftBrush = null,
         rightBrush = null,
+        isBrushColored = false,
         isLeftHandDominant = false,
         CONTROLLER_MAPPING_NAME = "com.highfidelity.fingerPaint",
         isTabletDisplayed = false,
@@ -40,13 +34,15 @@
         HIFI_POINTER_DISABLE_MESSAGE_CHANNEL = "Hifi-Pointer-Disable",
         SCRIPT_PATH = Script.resolvePath('')
         CONTENT_PATH = SCRIPT_PATH.substr(0, SCRIPT_PATH.lastIndexOf('/')),
+        ANIMATION_SCRIPT_PATH = Script.resolvePath("content/brushes/dynamicBrushes/dynamicBrushScript.js"),
         APP_URL = CONTENT_PATH + "/html/main.html";
 
     // Set up the qml ui
-    var qml = Script.resolvePath('PaintWindow.qml');
+    //var qml = Script.resolvePath('PaintWindow.qml');
     Script.include("../libraries/controllers.js");
-    var window = null;
-    
+    Script.include("content/brushes/dynamicBrushes/dynamicBrushesList.js");
+    //var window = null;
+
     //var inkSource = null;
 	var inkSourceOverlay = null;
 	// Set path for finger paint hand animations 
@@ -54,7 +50,7 @@
     var LEFT_ANIM_URL = Script.resourcesPath() + 'avatar/animations/touch_point_closed_left.fbx';
 	var RIGHT_ANIM_URL_OPEN = Script.resourcesPath() + 'avatar/animations/touch_point_open_right.fbx';
     var LEFT_ANIM_URL_OPEN = Script.resourcesPath() + 'avatar/animations/touch_point_open_left.fbx'; 
-    
+
     function paintBrush(name) {
         // Paints in 3D.
         var brushName = name,
@@ -105,6 +101,10 @@
         function getStrokeWidth() {
             return strokeWidthMultiplier;
         }
+
+        function getEntityID() {
+            return entityID;
+        }
 		        
         function changeTexture(textureURL) {
             texture = textureURL;
@@ -119,12 +119,6 @@
 
         function startLine(position, width) {
             // Start drawing a polyline.
-            /*if (isDynamicBrushEnabled) {
-                print("start running the dynamic brush");
-                prevBrushWidth = getStrokeWidth();
-                changeStrokeWidthMultiplier(0.1);
-                isDynamicBrushRunning = true;
-            }*/
             if (isTabletFocused)
                 return;
 
@@ -152,14 +146,15 @@
                 strokeWidths: strokeWidths,
                 textures: texture, // Daantje
 				isUVModeStretch: IS_UV_MODE_STRETCH,
-                dimensions: STROKE_DIMENSIONS
+                dimensions: STROKE_DIMENSIONS,
+                shapeType: "box",
+                collisionless: true,
             });
-
             isDrawingLine = true;
+            addAnimationToBrush(entityID);
         }
 
         function drawLine(position, width) {
-            print("current brush width" + getStrokeWidth());
             // Add a stroke to the polyline if stroke is a sufficient length.
             var localPosition,
                 distanceToPrevious,
@@ -184,11 +179,13 @@
                     && (Date.now() - timeOfLastPoint) >= MIN_STROKE_INTERVAL
                     && strokePoints.length < MAX_POINTS_PER_LINE) {
                 strokePoints.push(localPosition);
+
                 strokeNormals.push(strokeNormal());
                 strokeWidths.push(width);
                 timeOfLastPoint = Date.now();
 
                 Entities.editEntity(entityID, {
+                    color: STROKE_COLOR,
                     linePoints: strokePoints,
                     normals: strokeNormals,
                     strokeWidths: strokeWidths
@@ -199,6 +196,15 @@
         function finishLine(position, width) {
             // Finish drawing polyline; delete if it has only 1 point.
             //stopDynamicBrush = true;
+            print("Before adding script: " + JSON.stringify(Entities.getEntityProperties(entityID)));
+            var userData = Entities.getEntityProperties(entityID).userData;
+            if (userData && JSON.parse(userData).animations) {
+                Entities.editEntity(entityID, {
+                    script: ANIMATION_SCRIPT_PATH,
+                });    
+            }
+            print("After adding script: " + JSON.stringify(Entities.getEntityProperties(entityID)));
+            //setIsDrawingFingerPaint(entityID, false);
             print("already stopped drawing");
             width = width * strokeWidthMultiplier;
             
@@ -213,6 +219,7 @@
             }
 
             isDrawingLine = false;
+            print("After adding script 3: " + JSON.stringify(Entities.getEntityProperties(entityID)));
         }
 
         function cancelLine() {
@@ -259,6 +266,11 @@
             if (found) {
                 addElementToUndoStack(Entities.getEntityProperties(foundID));
                 Entities.deleteEntity(foundID);
+                /*Entities.editEntity(entityID, {
+                    color: «,
+                    normals: strokeNormals,
+                    strokeWidths: strokeWidths
+                });*/
             }
         }
 
@@ -280,6 +292,7 @@
             undoErasing: undoErasing,
             getStrokeColor: getStrokeColor,
             getStrokeWidth: getStrokeWidth,
+            getEntityID: getEntityID,
 			changeUVMode: changeUVMode
         };
     }
@@ -465,29 +478,6 @@
             };
         }
 
-        /*function runDynamicBrush() {
-            if (isDynamicBrushRunning) {
-                var currentBrush = isLeftHandDominant ? leftBrush : rightBrush;
-            
-                if (currentBrush.getStrokeWidth() < 2.1 && !stopDynamicBrush) {
-                    currentBrush.changeStrokeWidthMultiplier(currentBrush.getStrokeWidth() + ((frameDeltaSeconds * DYNAMIC_BRUSH_INCREMENT)/DYNAMIC_BRUSH_TIME));
-                    print("going up: " + currentBrush.getStrokeWidth());
-                }
-                if (stopDynamicBrush) {
-                    currentBrush.changeStrokeWidthMultiplier(currentBrush.getStrokeWidth() - ((frameDeltaSeconds * DYNAMIC_BRUSH_INCREMENT)/DYNAMIC_BRUSH_TIME));
-                    print("going down: " + currentBrush.getStrokeWidth());
-                }
-                if (currentBrush.getStrokeWidth() <= 0) {
-                    print("stopped: " + currentBrush.getStrokeWidth());
-                    stopDynamicBrush = false;
-                    isDynamicBrushRunning = false;
-                    print("putting back the brush width: " + prevBrushWidth);
-                    currentBrush.changeStrokeWidthMultiplier(prevBrushWidth);
-                    currentBrush.finishLine();
-                }
-            }
-        }*/
-
         function onUpdate() {
             
             //update ink Source
@@ -519,9 +509,20 @@
                 // }
                 // inkSource = Entities.addEntity(inkSourceProps);
             // }
+
             /*frameDeltaSeconds = Date.now() - lastFrameTime;
             lastFrameTime = Date.now();
-            runDynamicBrush();     */   
+            var nearbyEntities = Entities.findEntities(MyAvatar.position, 5.0);
+            for (var i = 0; i < nearbyEntities.length; i++) {
+                //Entities.editEntity(nearbyEntities[i], {userData: ""}); //clear user data (good to use in case we need to clear it)
+
+                var userData = Entities.getEntityProperties(nearbyEntities[i]).userData;
+                if (userData != "") {
+                    playAnimations(nearbyEntities[i], JSON.parse(userData).animations);
+                }
+            }*/
+            /*if (Entities.getEntityProperties(nearbyEntities[i]).name == "fingerPainting")
+                    Entities.deleteEntity(nearbyEntities[i]);*/
             if ((leftBrush == null || rightBrush == null) || (!leftBrush.isDrawing() && !rightBrush.isDrawing()))  {
                 checkTabletHasFocus();
             }
@@ -875,12 +876,15 @@
         }
         switch (event.type) {
             case "changeColor":
-                print("changing color...");
-                leftBrush.changeStrokeColor(event.red, event.green, event.blue);
-                rightBrush.changeStrokeColor(event.red, event.green, event.blue);
-                Overlays.editOverlay(inkSourceOverlay, {
-                    color: {red: event.red, green: event.green, blue: event.blue} 
-                });
+                if (!isBrushColored) {
+                    print("changing color...");
+                    leftBrush.changeStrokeColor(event.red, event.green, event.blue);
+                    rightBrush.changeStrokeColor(event.red, event.green, event.blue);
+                    Overlays.editOverlay(inkSourceOverlay, {
+                        color: {red: event.red, green: event.green, blue: event.blue} 
+                    });
+                    
+                } 
                 break;
 
             case "changeBrush":
@@ -894,6 +898,14 @@
                     leftBrush.changeUVMode(true);
                     rightBrush.changeUVMode(true);
                 } 
+                isBrushColored = event.isColored;
+                if (event.isColored) {
+                    leftBrush.changeStrokeColor(255, 255, 255);
+                    rightBrush.changeStrokeColor(255, 255, 255);
+                    Overlays.editOverlay(inkSourceOverlay, {
+                        color: {red: 255, green: 255, blue: 255} 
+                    });
+                }
                 /*leftBrush.changeUVMode(false);
                 rightBrush.changeUVMode(false);
                 if (event.brushName.indexOf("256x256") != -1) {
@@ -932,14 +944,33 @@
                 updateHandAnimations();
                 break;
 
-            /*case "switchDynamicBrush":
-                isDynamicBrushEnabled = event.isDynamicBrushEnabled;
-                break;*/
+            case "switchDynamicBrush":
+                DynamicBrushesInfo[event.dynamicBrushName].isEnabled = event.enabled;
+                DynamicBrushesInfo[event.dynamicBrushName].settings = event.settings;
+                break;
 
             default:
                 break;
         }
     }    
+
+    function addAnimationToBrush(entityID) {
+            print("Brushes INfo 0" + JSON.stringify(DynamicBrushesInfo));
+            Object.keys(DynamicBrushesInfo).forEach(function(animationName) {
+                print(animationName + "Brushes INfo 0" + JSON.stringify(DynamicBrushesInfo));
+                if (DynamicBrushesInfo[animationName].isEnabled) {
+                    var prevUserData = Entities.getEntityProperties(entityID).userData;
+                    prevUserData = prevUserData == "" ? new Object() : JSON.parse(prevUserData); //preserve other possible user data
+                    if (prevUserData.animations == null) {
+                        prevUserData.animations = {};
+                    }
+                    prevUserData.animations[animationName] = dynamicBrushFactory(animationName, DynamicBrushesInfo[animationName].settings);
+                    Entities.editEntity(entityID, {userData: JSON.stringify(prevUserData)});    
+                    //Entities.editEntity(entityID, {script: Script.resolvePath("content/brushes/dynamicBrushes/dynamicBrushScript.js")});    
+                }
+            });
+            print("Brushes INfo 1" + JSON.stringify(DynamicBrushesInfo));
+    }
 
     function addElementToUndoStack(item)
     {
@@ -986,10 +1017,5 @@
     }
 
     setUp();
-    Script.scriptEnding.connect(tearDown);
-    
-    
-
-    
-    
+    Script.scriptEnding.connect(tearDown);    
 }());

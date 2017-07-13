@@ -6,7 +6,7 @@
     background-color: #666666
 }
 .BrushIcon {
-    padding: 10px,
+<div class="brushLabel"></div>    padding: 10px,
     width: 130px,
 }
 #dynamicBrush {
@@ -15,72 +15,103 @@
 .selectedBrush {
     background-color: #f4e842
 }
+#brushesCointainer {
+    margin-bottom: 200px;
+}
+.brushLabel {
+    background-color: rgba(0, 0, 0, 0.3);
+    color: white;
+    width: 100%;
+}
 </style>
-<!--<input onchange="setDynamicBrush(this)" type="checkbox" id="dynamicBrush"> Use Dynamic brush </input>-->
-<div id="brushesCointainer">
-<button class="brushButton" brushType="stretch" id="content/brushes/256x256/basic.png" onclick="changePaintBrush(0)"><img width="130px" src="../content/brushes/256x256/basic.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/256x256/basic.png" onclick="changePaintBrush(1)"><img width="130px" src="../content/brushes/256x256/basic.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/256x256/bristle.png" onclick="changePaintBrush(2)"><img width="130px" src="../content/brushes/256x256/bristle.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/256x256/bristle.png" onclick="changePaintBrush(3)"><img width="130px" src="../content/brushes/256x256/bristle.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/256x256/dupuiz.png" onclick="changePaintBrush(4)"><img width="130px" src="../content/brushes/256x256/dupuiz.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/256x256/dupuiz.png" onclick="changePaintBrush(5)"><img width="130px" src="../content/brushes/256x256/dupuiz.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/256x256/gouache.png" onclick="changePaintBrush(6)"><img width="130px" src="../content/brushes/256x256/gouache.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/256x256/gouache.png" onclick="changePaintBrush(7)"><img width="130px" src="../content/brushes/256x256/gouache.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/256x256/graphite.png" onclick="changePaintBrush(8)"><img width="130px" src="../content/brushes/256x256/graphite.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/256x256/graphite.png" onclick="changePaintBrush(9)"><img width="130px" src="../content/brushes/256x256/graphite.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/256x256/hair.png" onclick="changePaintBrush(10)"><img width="130px" src="../content/brushes/256x256/hair.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/256x256/hair.png" onclick="changePaintBrush(11)"><img width="130px" src="../content/brushes/256x256/hair.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/256x256/spat-fine.png" onclick="changePaintBrush(12)"><img width="130px" src="../content/brushes/256x256/spat-fine.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/256x256/spat-fine.png" onclick="changePaintBrush(13)"><img width="130px" src="../content/brushes/256x256/spat-fine.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/256x256/spat-medium.png" onclick="changePaintBrush(14)"><img width="130px" src="../content/brushes/256x256/spat-medium.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/256x256/spat-medium.png" onclick="changePaintBrush(15)"><img width="130px" src="../content/brushes/256x256/spat-medium.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/256x256/sponge.png" onclick="changePaintBrush(16)"><img width="130px" src="../content/brushes/256x256/sponge.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/256x256/sponge.png" onclick="changePaintBrush(17)"><img width="130px" src="../content/brushes/256x256/sponge.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/256x256stretched/basic.png" onclick="changePaintBrush(18)"><img width="130px" src="../content/brushes/256x256stretched/basic.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/256x256stretched/basic.png" onclick="changePaintBrush(19)"><img width="130px" src="../content/brushes/256x256stretched/basic.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/256x256stretched/bristle.png" onclick="changePaintBrush(20)"><img width="130px" src="../content/brushes/256x256stretched/bristle.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/256x256stretched/bristle.png" onclick="changePaintBrush(21)"><img width="130px" src="../content/brushes/256x256stretched/bristle.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/256x256stretched/gouache.png" onclick="changePaintBrush(22)"><img width="130px" src="../content/brushes/256x256stretched/gouache.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/256x256stretched/gouache.png" onclick="changePaintBrush(23)"><img width="130px" src="../content/brushes/256x256stretched/gouache.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/256x256stretched/sponge.png" onclick="changePaintBrush(24)"><img width="130px" src="../content/brushes/256x256stretched/sponge.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/256x256stretched/sponge.png" onclick="changePaintBrush(25)"><img width="130px" src="../content/brushes/256x256stretched/sponge.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/basic.png" onclick="changePaintBrush(26)"><img width="130px" src="../content/brushes/basic.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/basic.png" onclick="changePaintBrush(27)"><img width="130px" src="../content/brushes/basic.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/bristle.png" onclick="changePaintBrush(28)"><img width="130px" src="../content/brushes/bristle.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/bristle.png" onclick="changePaintBrush(29)"><img width="130px" src="../content/brushes/bristle.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/gouache.png" onclick="changePaintBrush(30)"><img width="130px" src="../content/brushes/gouache.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/gouache.png" onclick="changePaintBrush(31)"><img width="130px" src="../content/brushes/gouache.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/gradient.png" onclick="changePaintBrush(32)"><img width="130px" src="../content/brushes/gradient.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/gradient.png" onclick="changePaintBrush(33)"><img width="130px" src="../content/brushes/gradient.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/gradient2.png" onclick="changePaintBrush(34)"><img width="130px" src="../content/brushes/gradient2.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/gradient2.png" onclick="changePaintBrush(35)"><img width="130px" src="../content/brushes/gradient2.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/gradient3.png" onclick="changePaintBrush(36)"><img width="130px" src="../content/brushes/gradient3.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/gradient3.png" onclick="changePaintBrush(37)"><img width="130px" src="../content/brushes/gradient3.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/koons.png" onclick="changePaintBrush(38)"><img width="130px" src="../content/brushes/koons.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/koons.png" onclick="changePaintBrush(39)"><img width="130px" src="../content/brushes/koons.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/oil.png" onclick="changePaintBrush(40)"><img width="130px" src="../content/brushes/oil.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/oil.png" onclick="changePaintBrush(41)"><img width="130px" src="../content/brushes/oil.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/paintbrush1.png" onclick="changePaintBrush(42)"><img width="130px" src="../content/brushes/paintbrush1.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/paintbrush1.png" onclick="changePaintBrush(43)"><img width="130px" src="../content/brushes/paintbrush1.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/paintbrush2.png" onclick="changePaintBrush(44)"><img width="130px" src="../content/brushes/paintbrush2.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/paintbrush2.png" onclick="changePaintBrush(45)"><img width="130px" src="../content/brushes/paintbrush2.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/paintbrush3.png" onclick="changePaintBrush(46)"><img width="130px" src="../content/brushes/paintbrush3.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/paintbrush3.png" onclick="changePaintBrush(47)"><img width="130px" src="../content/brushes/paintbrush3.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/paintbrush4.png" onclick="changePaintBrush(48)"><img width="130px" src="../content/brushes/paintbrush4.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/paintbrush4.png" onclick="changePaintBrush(49)"><img width="130px" src="../content/brushes/paintbrush4.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/paintbrush5.png" onclick="changePaintBrush(50)"><img width="130px" src="../content/brushes/paintbrush5.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/paintbrush5.png" onclick="changePaintBrush(51)"><img width="130px" src="../content/brushes/paintbrush5.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/paintbrush6.png" onclick="changePaintBrush(52)"><img width="130px" src="../content/brushes/paintbrush6.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/paintbrush6.png" onclick="changePaintBrush(53)"><img width="130px" src="../content/brushes/paintbrush6.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/pastel.png" onclick="changePaintBrush(54)"><img width="130px" src="../content/brushes/pastel.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/pastel.png" onclick="changePaintBrush(55)"><img width="130px" src="../content/brushes/pastel.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/soft.png" onclick="changePaintBrush(56)"><img width="130px" src="../content/brushes/soft.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/soft.png" onclick="changePaintBrush(57)"><img width="130px" src="../content/brushes/soft.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/sponge.png" onclick="changePaintBrush(58)"><img width="130px" src="../content/brushes/sponge.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/sponge.png" onclick="changePaintBrush(59)"><img width="130px" src="../content/brushes/sponge.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="stretch" id="content/brushes/square.png" onclick="changePaintBrush(60)"><img width="130px" src="../content/brushes/square.png" class="BrushIcon" ></button>
-<button class="brushButton" brushType="repeat" id="content/brushes/square.png" onclick="changePaintBrush(61)"><img width="130px" src="../content/brushes/square.png" class="BrushIcon" ></button>
+<div><input onchange="setDynamicBrush(this)" animationType="DynamicHueBrush" type="checkbox" id="dynamicBrush"> Use Dynamic Hue </input></div>
+<div>
+    <div style="float: left; margin-right: 20px">
+        <div><input onchange="setDynamicBrush(this)" settings='{"axis": "yaw"}'   animationType="DynamicRotationBrush" type="checkbox" id="dynamicBrush"> Use Yaw Rotation </input></div>
+        <div><input onchange="setDynamicBrush(this)" settings='{"axis": "pitch"}' animationType="DynamicRotationBrush" type="checkbox" id="dynamicBrush"> Use Pitch Rotation </input></div>
+        <div><input onchange="setDynamicBrush(this)" settings='{"axis": "roll"}'  animationType="DynamicRotationBrush" type="checkbox" id="dynamicBrush"> Use Roll Rotation </input></div>
+    </div>
+    <div >
+        <div><input onchange="setDynamicBrush(this)" settings='{"axis": "x"}' animationType="DynamicTranslationBrush" type="checkbox" id="dynamicBrush"> Use Translation x</input></div>
+        <div><input onchange="setDynamicBrush(this)" settings='{"axis": "y"}' animationType="DynamicTranslationBrush" type="checkbox" id="dynamicBrush"> Use Translation y</input></div>
+        <div><input onchange="setDynamicBrush(this)" settings='{"axis": "z"}' animationType="DynamicTranslationBrush" type="checkbox" id="dynamicBrush"> Use Translation z</input></div>
+    </div>
+</div>
 
+
+<div id="brushesCointainer">
+    <button class="brushButton"  brushType="stretch" id="content/brushes/256x256/basic.png" onclick="changePaintBrush(0)"><img width="130px" src="../content/brushes/256x256/basic.png" class="BrushIcon" ><div class="brushLabel">basic A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/256x256/basic.png" onclick="changePaintBrush(1)"><img width="130px" src="../content/brushes/256x256/basic.png" class="BrushIcon" ><div class="brushLabel">basic B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/256x256/bristle.png" onclick="changePaintBrush(2)"><img width="130px" src="../content/brushes/256x256/bristle.png" class="BrushIcon" ><div class="brushLabel">bristle A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/256x256/bristle.png" onclick="changePaintBrush(3)"><img width="130px" src="../content/brushes/256x256/bristle.png" class="BrushIcon" ><div class="brushLabel">bristle B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/256x256/dupuiz.png" onclick="changePaintBrush(4)"><img width="130px" src="../content/brushes/256x256/dupuiz.png" class="BrushIcon" ><div class="brushLabel">dupuiz A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/256x256/dupuiz.png" onclick="changePaintBrush(5)"><img width="130px" src="../content/brushes/256x256/dupuiz.png" class="BrushIcon" ><div class="brushLabel">dupuiz B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/256x256/gouache.png" onclick="changePaintBrush(6)"><img width="130px" src="../content/brushes/256x256/gouache.png" class="BrushIcon" ><div class="brushLabel">gouache A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/256x256/gouache.png" onclick="changePaintBrush(7)"><img width="130px" src="../content/brushes/256x256/gouache.png" class="BrushIcon" ><div class="brushLabel">gouache B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/256x256/graphite.png" onclick="changePaintBrush(8)"><img width="130px" src="../content/brushes/256x256/graphite.png" class="BrushIcon" ><div class="brushLabel">graphite A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/256x256/graphite.png" onclick="changePaintBrush(9)"><img width="130px" src="../content/brushes/256x256/graphite.png" class="BrushIcon" ><div class="brushLabel">graphite B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/256x256/spat-fine.png" onclick="changePaintBrush(10)"><img width="130px" src="../content/brushes/256x256/spat-fine.png" class="BrushIcon" ><div class="brushLabel">spat-fine A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/256x256/spat-fine.png" onclick="changePaintBrush(11)"><img width="130px" src="../content/brushes/256x256/spat-fine.png" class="BrushIcon" ><div class="brushLabel">spat-fine B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/256x256/spat-medium.png" onclick="changePaintBrush(12)"><img width="130px" src="../content/brushes/256x256/spat-medium.png" class="BrushIcon" ><div class="brushLabel">spat-medium A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/256x256/spat-medium.png" onclick="changePaintBrush(13)"><img width="130px" src="../content/brushes/256x256/spat-medium.png" class="BrushIcon" ><div class="brushLabel">spat-medium B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/256x256/sponge.png" onclick="changePaintBrush(14)"><img width="130px" src="../content/brushes/256x256/sponge.png" class="BrushIcon" ><div class="brushLabel">sponge A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/256x256/sponge.png" onclick="changePaintBrush(15)"><img width="130px" src="../content/brushes/256x256/sponge.png" class="BrushIcon" ><div class="brushLabel">sponge B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/256x256stretched/basic.png" onclick="changePaintBrush(16)"><img width="130px" src="../content/brushes/256x256stretched/basic.png" class="BrushIcon" ><div class="brushLabel">basic A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/256x256stretched/basic.png" onclick="changePaintBrush(17)"><img width="130px" src="../content/brushes/256x256stretched/basic.png" class="BrushIcon" ><div class="brushLabel">basic B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/256x256stretched/bristle.png" onclick="changePaintBrush(18)"><img width="130px" src="../content/brushes/256x256stretched/bristle.png" class="BrushIcon" ><div class="brushLabel">bristle A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/256x256stretched/bristle.png" onclick="changePaintBrush(19)"><img width="130px" src="../content/brushes/256x256stretched/bristle.png" class="BrushIcon" ><div class="brushLabel">bristle B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/256x256stretched/gouache.png" onclick="changePaintBrush(20)"><img width="130px" src="../content/brushes/256x256stretched/gouache.png" class="BrushIcon" ><div class="brushLabel">gouache A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/256x256stretched/gouache.png" onclick="changePaintBrush(21)"><img width="130px" src="../content/brushes/256x256stretched/gouache.png" class="BrushIcon" ><div class="brushLabel">gouache B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/256x256stretched/sponge.png" onclick="changePaintBrush(22)"><img width="130px" src="../content/brushes/256x256stretched/sponge.png" class="BrushIcon" ><div class="brushLabel">sponge A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/256x256stretched/sponge.png" onclick="changePaintBrush(23)"><img width="130px" src="../content/brushes/256x256stretched/sponge.png" class="BrushIcon" ><div class="brushLabel">sponge B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/basic.png" onclick="changePaintBrush(24)"><img width="130px" src="../content/brushes/basic.png" class="BrushIcon" ><div class="brushLabel">basic A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/basic.png" onclick="changePaintBrush(25)"><img width="130px" src="../content/brushes/basic.png" class="BrushIcon" ><div class="brushLabel">basic B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/bristle.png" onclick="changePaintBrush(26)"><img width="130px" src="../content/brushes/bristle.png" class="BrushIcon" ><div class="brushLabel">bristle A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/bristle.png" onclick="changePaintBrush(27)"><img width="130px" src="../content/brushes/bristle.png" class="BrushIcon" ><div class="brushLabel">bristle B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/gouache.png" onclick="changePaintBrush(28)"><img width="130px" src="../content/brushes/gouache.png" class="BrushIcon" ><div class="brushLabel">gouache A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/gouache.png" onclick="changePaintBrush(29)"><img width="130px" src="../content/brushes/gouache.png" class="BrushIcon" ><div class="brushLabel">gouache B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/gradient.png" onclick="changePaintBrush(30)"><img width="130px" src="../content/brushes/gradient.png" class="BrushIcon" ><div class="brushLabel">gradient A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/gradient.png" onclick="changePaintBrush(31)"><img width="130px" src="../content/brushes/gradient.png" class="BrushIcon" ><div class="brushLabel">gradient B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/gradient2.png" onclick="changePaintBrush(32)"><img width="130px" src="../content/brushes/gradient2.png" class="BrushIcon" ><div class="brushLabel">gradient2 A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/gradient2.png" onclick="changePaintBrush(33)"><img width="130px" src="../content/brushes/gradient2.png" class="BrushIcon" ><div class="brushLabel">gradient2 B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/gradient3.png" onclick="changePaintBrush(34)"><img width="130px" src="../content/brushes/gradient3.png" class="BrushIcon" ><div class="brushLabel">gradient3 A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/gradient3.png" onclick="changePaintBrush(35)"><img width="130px" src="../content/brushes/gradient3.png" class="BrushIcon" ><div class="brushLabel">gradient3 B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/koons.png" onclick="changePaintBrush(36)"><img width="130px" src="../content/brushes/koons.png" class="BrushIcon" ><div class="brushLabel">koons A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/koons.png" onclick="changePaintBrush(37)"><img width="130px" src="../content/brushes/koons.png" class="BrushIcon" ><div class="brushLabel">koons B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/oil.png" onclick="changePaintBrush(38)"><img width="130px" src="../content/brushes/oil.png" class="BrushIcon" ><div class="brushLabel">oil A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/oil.png" onclick="changePaintBrush(39)"><img width="130px" src="../content/brushes/oil.png" class="BrushIcon" ><div class="brushLabel">oil B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/paintbrush1.png" onclick="changePaintBrush(40)"><img width="130px" src="../content/brushes/paintbrush1.png" class="BrushIcon" ><div class="brushLabel">paintbrush1 A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/paintbrush1.png" onclick="changePaintBrush(41)"><img width="130px" src="../content/brushes/paintbrush1.png" class="BrushIcon" ><div class="brushLabel">paintbrush1 B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/paintbrush2.png" onclick="changePaintBrush(42)"><img width="130px" src="../content/brushes/paintbrush2.png" class="BrushIcon" ><div class="brushLabel">paintbrush2 A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/paintbrush2.png" onclick="changePaintBrush(43)"><img width="130px" src="../content/brushes/paintbrush2.png" class="BrushIcon" ><div class="brushLabel">paintbrush2 B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/paintbrush3.png" onclick="changePaintBrush(44)"><img width="130px" src="../content/brushes/paintbrush3.png" class="BrushIcon" ><div class="brushLabel">paintbrush3 A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/paintbrush3.png" onclick="changePaintBrush(45)"><img width="130px" src="../content/brushes/paintbrush3.png" class="BrushIcon" ><div class="brushLabel">paintbrush3 B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/paintbrush4.png" onclick="changePaintBrush(46)"><img width="130px" src="../content/brushes/paintbrush4.png" class="BrushIcon" ><div class="brushLabel">paintbrush4 A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/paintbrush4.png" onclick="changePaintBrush(47)"><img width="130px" src="../content/brushes/paintbrush4.png" class="BrushIcon" ><div class="brushLabel">paintbrush4 B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/paintbrush5.png" onclick="changePaintBrush(48)"><img width="130px" src="../content/brushes/paintbrush5.png" class="BrushIcon" ><div class="brushLabel">paintbrush5 A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/paintbrush5.png" onclick="changePaintBrush(49)"><img width="130px" src="../content/brushes/paintbrush5.png" class="BrushIcon" ><div class="brushLabel">paintbrush5 B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/paintbrush6.png" onclick="changePaintBrush(50)"><img width="130px" src="../content/brushes/paintbrush6.png" class="BrushIcon" ><div class="brushLabel">paintbrush6 A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/paintbrush6.png" onclick="changePaintBrush(51)"><img width="130px" src="../content/brushes/paintbrush6.png" class="BrushIcon" ><div class="brushLabel">paintbrush6 B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/pastel.png" onclick="changePaintBrush(52)"><img width="130px" src="../content/brushes/pastel.png" class="BrushIcon" ><div class="brushLabel">pastel A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/pastel.png" onclick="changePaintBrush(53)"><img width="130px" src="../content/brushes/pastel.png" class="BrushIcon" ><div class="brushLabel">pastel B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/soft.png" onclick="changePaintBrush(54)"><img width="130px" src="../content/brushes/soft.png" class="BrushIcon" ><div class="brushLabel">soft A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/soft.png" onclick="changePaintBrush(55)"><img width="130px" src="../content/brushes/soft.png" class="BrushIcon" ><div class="brushLabel">soft B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/sponge.png" onclick="changePaintBrush(56)"><img width="130px" src="../content/brushes/sponge.png" class="BrushIcon" ><div class="brushLabel">sponge A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/sponge.png" onclick="changePaintBrush(57)"><img width="130px" src="../content/brushes/sponge.png" class="BrushIcon" ><div class="brushLabel">sponge B</div></button></button>
+<button class="brushButton"  brushType="stretch" id="content/brushes/square.png" onclick="changePaintBrush(58)"><img width="130px" src="../content/brushes/square.png" class="BrushIcon" ><div class="brushLabel">square A</div></button></button>
+<button class="brushButton"  brushType="repeat" id="content/brushes/square.png" onclick="changePaintBrush(59)"><img width="130px" src="../content/brushes/square.png" class="BrushIcon" ><div class="brushLabel">square B</div></button></button>
+<button class="brushButton" colored="true" brushType="stretch" id="content/brushes/colored/breakfast.png" onclick="changePaintBrush(60)"><img width="130px" src="../content/brushes/colored/breakfast.png" class="BrushIcon" ><div class="brushLabel">breakfast A</div></button></button>
+<button class="brushButton" colored="true" brushType="repeat" id="content/brushes/colored/breakfast.png" onclick="changePaintBrush(61)"><img width="130px" src="../content/brushes/colored/breakfast.png" class="BrushIcon" ><div class="brushLabel">breakfast B</div></button></button>
+<button class="brushButton" colored="true" brushType="stretch" id="content/brushes/colored/chique.png" onclick="changePaintBrush(62)"><img width="130px" src="../content/brushes/colored/chique.png" class="BrushIcon" ><div class="brushLabel">chique A</div></button></button>
+<button class="brushButton" colored="true" brushType="repeat" id="content/brushes/colored/chique.png" onclick="changePaintBrush(63)"><img width="130px" src="../content/brushes/colored/chique.png" class="BrushIcon" ><div class="brushLabel">chique B</div></button></button>
+<button class="brushButton" colored="true" brushType="stretch" id="content/brushes/colored/hawaii.png" onclick="changePaintBrush(64)"><img width="130px" src="../content/brushes/colored/hawaii.png" class="BrushIcon" ><div class="brushLabel">hawaii A</div></button></button>
+<button class="brushButton" colored="true" brushType="repeat" id="content/brushes/colored/hawaii.png" onclick="changePaintBrush(65)"><img width="130px" src="../content/brushes/colored/hawaii.png" class="BrushIcon" ><div class="brushLabel">hawaii B</div></button></button>
+<button class="brushButton" colored="true" brushType="stretch" id="content/brushes/colored/newton.png" onclick="changePaintBrush(66)"><img width="130px" src="../content/brushes/colored/newton.png" class="BrushIcon" ><div class="brushLabel">newton A</div></button></button>
+<button class="brushButton" colored="true" brushType="repeat" id="content/brushes/colored/newton.png" onclick="changePaintBrush(67)"><img width="130px" src="../content/brushes/colored/newton.png" class="BrushIcon" ><div class="brushLabel">newton B</div></button></button>
+<button class="brushButton" colored="true" brushType="stretch" id="content/brushes/colored/pastels.png" onclick="changePaintBrush(68)"><img width="130px" src="../content/brushes/colored/pastels.png" class="BrushIcon" ><div class="brushLabel">pastels A</div></button></button>
+<button class="brushButton" colored="true" brushType="repeat" id="content/brushes/colored/pastels.png" onclick="changePaintBrush(69)"><img width="130px" src="../content/brushes/colored/pastels.png" class="BrushIcon" ><div class="brushLabel">pastels B</div></button></button>
+<button class="brushButton" colored="true" brushType="stretch" id="content/brushes/colored/softy.png" onclick="changePaintBrush(70)"><img width="130px" src="../content/brushes/colored/softy.png" class="BrushIcon" ><div class="brushLabel">softy A</div></button></button>
+<button class="brushButton" colored="true" brushType="repeat" id="content/brushes/colored/softy.png" onclick="changePaintBrush(71)"><img width="130px" src="../content/brushes/colored/softy.png" class="BrushIcon" ><div class="brushLabel">softy B</div></button></button>
 
 </div>
 
@@ -94,20 +125,23 @@
         bruhes[currentBrush].classList.remove("selectedBrush");
         currentBrush = brushIndex;
         bruhes[currentBrush].classList.add("selectedBrush");
-        debugger;
+        console.log(bruhes[currentBrush].getAttribute("colored"));
         var changedBrushEvent = {
             "type"     : "changeBrush",
             "brushName":  bruhes[currentBrush].id,
-            "brushType": bruhes[currentBrush].getAttribute("brushType")
+            "brushType": bruhes[currentBrush].getAttribute("brushType"),
+            "isColored": bruhes[currentBrush].getAttribute("colored"),
         };
         parent.postMessage(JSON.stringify(changedBrushEvent), "*");
     }
 
-    /*function setDynamicBrush(checkbox) {
-        var switchBrushEvent = {
-            "type"                 : "switchDynamicBrush",
-            "isDynamicBrushEnabled":  checkbox.checked
+    function setDynamicBrush(checkbox) {
+        var switchDynamicBrushEvent = {
+            "type"            : "switchDynamicBrush",
+            "dynamicBrushName": checkbox.getAttribute("animationType"),
+            "enabled"         : checkbox.checked,
+            "settings"        : JSON.parse(checkbox.getAttribute("settings")),
         };
-        parent.postMessage(JSON.stringify(switchBrushEvent), "*");
-    }*/
+        parent.postMessage(JSON.stringify(switchDynamicBrushEvent), "*");
+    }
 </script>
