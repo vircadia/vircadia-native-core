@@ -23,6 +23,7 @@
 #include <AvatarHashMap.h>
 #include <AudioInjectorManager.h>
 #include <AssetClient.h>
+#include <DebugDraw.h>
 #include <LocationScriptingInterface.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
@@ -80,6 +81,9 @@ Agent::Agent(ReceivedMessage& message) :
 
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<UsersScriptingInterface>();
+
+    // Needed to ensure the creation of the DebugDraw instance on the main thread
+    DebugDraw::getInstance();
 
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
@@ -816,6 +820,7 @@ void Agent::aboutToFinish() {
 
     emit stopAvatarAudioTimer();
     _avatarAudioTimerThread.quit();
+    _avatarAudioTimerThread.wait();
 
     // cleanup codec & encoder
     if (_codec && _encoder) {
