@@ -530,9 +530,6 @@ Function PostInstallOptionsPage
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Perform a clean install (Delete older settings and content)"
     Pop $CleanInstallCheckbox
     IntOp $CurrentOffset $CurrentOffset + 15
-    
-    ; not saving checkbox state in registry
-    !insertmacro SetPostInstallOption $CleanInstallCheckbox @@ ${BST_UNCHECKED}
   ${EndIf}
 
   ${If} @PR_BUILD@ == 1
