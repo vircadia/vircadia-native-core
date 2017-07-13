@@ -273,17 +273,11 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
         return;
     }
 
-    //const float SHRINK_RATE = 0.15f;
-    //const float MIN_FADE_SCALE = MIN_AVATAR_SCALE;
-
     QReadLocker locker(&_hashLock);
     QVector<AvatarSharedPointer>::iterator avatarItr = _avatarsToFade.begin();
     const render::ScenePointer& scene = qApp->getMain3DScene();
     while (avatarItr != _avatarsToFade.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*avatarItr);
-        // avatar->setTargetScale(avatar->getUniformScale() * SHRINK_RATE);
-        // avatar->animateScaleChanges(deltaTime);
-        // if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
         avatar->updateFadingStatus(scene);
         if (!avatar->isFading()) {
             // fading to zero is such a rare event we push a unique transaction for each
