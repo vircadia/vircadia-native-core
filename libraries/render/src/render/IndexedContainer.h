@@ -14,6 +14,7 @@
 
 #include <cassert>
 #include <vector>
+#include <algorithm>
 
 namespace render {
 namespace indexed_container {

@@ -23,6 +23,7 @@
 #include <PerfStat.h>
 #include <render/Scene.h>
 #include <DependencyManager.h>
+#include <AnimationCache.h>
 
 #include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
