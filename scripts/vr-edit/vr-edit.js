@@ -945,6 +945,8 @@
                 entityIDs,
                 entitySize,
                 size,
+                isHandSelected,
+                laserIntersection,
                 wasLaserOn,
                 handPosition,
                 handOrientation,
@@ -1012,7 +1014,7 @@
             // Hand-entity intersection, if any.
             // TODO: Only test intersection if overlay not intersected?
             entityID = null;
-            palmPosition = hand === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
+            // palmPosition is set above.
             entityIDs = Entities.findEntities(palmPosition, NEAR_GRAB_RADIUS);
             if (entityIDs.length > 0) {
                 // TODO: If number of entities is often 1 in practice, optimize code for this case.
@@ -1029,15 +1031,10 @@
                 }
             }
 
-            intersection = {
-                intersects: overlayID !== null || entityID !== null,
-                overlayID: overlayID,
-                entityID: entityID,
-                handSelected: true
-            };
+            isHandSelected = overlayID !== null || entityID !== null;
 
-            // Laser-entity intersection, if any, if hand not intersected.
-            if (!intersection.intersects && isTriggerPressed) {
+            // Laser-overlay or -entity intersection if not already intersected.
+            if (!isHandSelected && isTriggerPressed) {
                 handPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, handPose.translation), MyAvatar.position);
                 handOrientation = Quat.multiply(MyAvatar.orientation, handPose.rotation);
                 deltaOrigin = Vec3.multiplyQbyV(handOrientation, GRAB_POINT_SPHERE_OFFSET);
@@ -1046,16 +1043,35 @@
                     direction: Quat.getUp(handOrientation),
                     length: PICK_MAX_DISTANCE
                 };
-                intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
+
+                laserIntersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
                     VISIBLE_ONLY);
+                if (laserIntersection.intersects) {
+                    overlayID = laserIntersection.overlayID;
+                }
+                if (!laserIntersection.intersects) {
+                    laserIntersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
+                        VISIBLE_ONLY);
+                    if (laserIntersection.intersects && isEditableEntity(laserIntersection.entityID)) {
+                        entityID = laserIntersection.entityID;
+                    } else {
+                        laserIntersection.intersects = false;
+                    }
+                }
                 laserLength = isEditing
                     ? laserEditingDistance
-                    : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
-                intersection.intersects = isEditableEntity(intersection.entityID);
+                    : (laserIntersection.intersects ? laserIntersection.distance : PICK_MAX_DISTANCE);
                 isLaserOn = true;
             } else {
                 isLaserOn = false;
             }
+
+            intersection = {
+                intersects: overlayID !== null || entityID !== null,
+                overlayID: overlayID,
+                entityID: entityID,
+                handSelected: isHandSelected
+            };
 
             // Laser update.
             if (isLaserOn) {
@@ -1071,7 +1087,7 @@
                 if (isEditing) {
                     // Perform edit.
                     doEdit = true;
-                } else if (intersection.intersects && (!isScaleWithHandles
+                } else if (intersection.intersects && intersection.entityID && (!isScaleWithHandles
                         || !otherHand.isEditing(Entities.rootOf(intersection.entityID)))) {
                     // Start editing.
                     if (intersection.entityID !== hoveredEntityID) {
@@ -1096,7 +1112,7 @@
                 if (isScaleWithHandles) {
                     otherHand.hoverHandle(intersection.overlayID);
                 }
-                if (intersection.intersects) {
+                if (intersection.intersects && intersection.entityID) {
                     // Hover entities.
                     if (wasEditing || intersection.entityID !== hoveredEntityID) {
                         hoveredEntityID = intersection.entityID;
