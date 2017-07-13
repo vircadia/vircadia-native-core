@@ -91,12 +91,8 @@ render::ItemID FadeEditJob::findNearestItem(const render::RenderContextPointer& 
     for (const auto& itemBound : inputs) {
         if (!itemBound.bound.contains(rayOrigin) && itemBound.bound.findRayIntersection(rayOrigin, rayDirection, isectDistance, face, normal)) {
             if (isectDistance>minDistance && isectDistance < minIsectDistance) {
-                auto& item = scene->getItem(itemBound.id);
-
- //               if (!item.getKey().isMeta()) {
-                    nearestItem = itemBound.id;
-                    minIsectDistance = isectDistance;
- //               }
+                nearestItem = itemBound.id;
+                minIsectDistance = isectDistance;
             }
         }
     }
@@ -629,7 +625,7 @@ void FadeJob::update(const Config& config, const render::ScenePointer& scene, re
         case render::Transition::ELEMENT_ENTER_DOMAIN:
         case render::Transition::ELEMENT_LEAVE_DOMAIN:
         {
-            transition.threshold = computeElementEnterRatio(transition.time, eventConfig.duration, timing);
+            transition.threshold = computeElementEnterRatio(transition.time, eventDuration, timing);
             transition.baseOffset = transition.noiseOffset;
             transition.baseInvSize.x = 1.f / dimensions.x;
             transition.baseInvSize.y = 1.f / dimensions.y;
@@ -658,7 +654,7 @@ void FadeJob::update(const Config& config, const render::ScenePointer& scene, re
         case render::Transition::USER_ENTER_DOMAIN:
         case render::Transition::USER_LEAVE_DOMAIN:
         {
-            transition.threshold = computeElementEnterRatio(transition.time, eventConfig.duration, timing);
+            transition.threshold = computeElementEnterRatio(transition.time, eventDuration, timing);
             transition.baseOffset = transition.noiseOffset - dimensions.y / 2.f;
             transition.baseInvSize.y = 1.f / dimensions.y;
             transition.isFinished += (transition.threshold >= 1.f) & 1;
