@@ -64,12 +64,12 @@ Preference {
             }
             anchors {
                 right: spinner.left
-				rightMargin: 10
+                rightMargin: 10
                 verticalCenter: parent.verticalCenter
             }
             colorScheme: hifi.colorSchemes.dark
         }
-		
+        
         SpinBox {
             id: spinner
             decimals: preference.decimals
@@ -82,7 +82,7 @@ Preference {
             }
             anchors {
                 right: button.left
-				rightMargin: 10
+                rightMargin: 10
                 verticalCenter: parent.verticalCenter
             }
             colorScheme: hifi.colorSchemes.dark
