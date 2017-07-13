@@ -23,14 +23,14 @@
 
 #include <EntityEditPacketSender.h>
 #include <EntityTree.h>
-#include <EntityTreeHeadlessViewer.h>
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
 
 #include <plugins/CodecPlugin.h>
 
-#include "AudioNoiseGate.h"
+#include "AudioGate.h"
 #include "MixedAudioStream.h"
+#include "entities/EntityTreeHeadlessViewer.h"
 #include "avatars/ScriptableAvatar.h"
 
 class Agent : public ThreadedAssignment {
@@ -111,7 +111,8 @@ private:
     QTimer* _avatarIdentityTimer = nullptr;
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
 
-    AudioNoiseGate _noiseGate;
+    AudioGate _audioGate;
+    bool _audioGateOpen { false };
     bool _isNoiseGateEnabled { false };
 
     CodecPluginPointer _codec;

@@ -29,6 +29,8 @@ public:
     ObjectDynamic(EntityDynamicType type, const QUuid& id, EntityItemPointer ownerEntity);
     virtual ~ObjectDynamic();
 
+    virtual void remapIDs(QHash<EntityItemID, EntityItemID>& map) override;
+
     virtual void removeFromSimulation(EntitySimulationPointer simulation) const override;
     virtual EntityItemWeakPointer getOwnerEntity() const override { return _ownerEntity; }
     virtual void setOwnerEntity(const EntityItemPointer ownerEntity) override { _ownerEntity = ownerEntity; }
@@ -54,18 +56,16 @@ protected:
     btRigidBody* getOtherRigidBody(EntityItemID otherEntityID);
     EntityItemPointer getEntityByID(EntityItemID entityID) const;
     virtual btRigidBody* getRigidBody();
-    virtual glm::vec3 getPosition() override;
-    virtual glm::quat getRotation() override;
-    virtual glm::vec3 getLinearVelocity() override;
-    virtual void setLinearVelocity(glm::vec3 linearVelocity) override;
-    virtual glm::vec3 getAngularVelocity() override;
-    virtual void setAngularVelocity(glm::vec3 angularVelocity) override;
     virtual void activateBody(bool forceActivation = false);
     virtual void forceBodyNonStatic();
 
     EntityItemWeakPointer _ownerEntity;
     QString _tag;
     quint64 _expires { 0 }; // in seconds since epoch
+
+    EntityItemID _otherID;
+    SpatiallyNestableWeakPointer _other;
+    SpatiallyNestablePointer getOther();
 
 private:
     qint64 getEntityServerClockSkew() const;

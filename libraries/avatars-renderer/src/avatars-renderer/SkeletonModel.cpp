@@ -22,8 +22,8 @@
 #include "Avatar.h"
 #include "Logging.h"
 
-SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer rig) :
-    CauterizedModel(rig, parent),
+SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent) :
+    CauterizedModel(parent),
     _owningAvatar(owningAvatar),
     _boundingCapsuleLocalOffset(0.0f),
     _boundingCapsuleRadius(0.0f),
@@ -31,7 +31,6 @@ SkeletonModel::SkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer r
     _defaultEyeModelPosition(glm::vec3(0.0f, 0.0f, 0.0f)),
     _headClipDistance(DEFAULT_NEAR_CLIP)
 {
-    assert(_rig);
     assert(_owningAvatar);
 }
 
@@ -41,12 +40,12 @@ SkeletonModel::~SkeletonModel() {
 void SkeletonModel::initJointStates() {
     const FBXGeometry& geometry = getFBXGeometry();
     glm::mat4 modelOffset = glm::scale(_scale) * glm::translate(_offset);
-    _rig->initJointStates(geometry, modelOffset);
+    _rig.initJointStates(geometry, modelOffset);
 
     // Determine the default eye position for avatar scale = 1.0
     int headJointIndex = geometry.headJointIndex;
-    if (0 > headJointIndex || headJointIndex >= _rig->getJointStateCount()) {
-        qCWarning(avatars_renderer) << "Bad head joint! Got:" << headJointIndex << "jointCount:" << _rig->getJointStateCount();
+    if (0 > headJointIndex || headJointIndex >= _rig.getJointStateCount()) {
+        qCWarning(avatars_renderer) << "Bad head joint! Got:" << headJointIndex << "jointCount:" << _rig.getJointStateCount();
     }
     glm::vec3 leftEyePosition, rightEyePosition;
     getEyeModelPositions(leftEyePosition, rightEyePosition);
@@ -102,7 +101,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
     // If the head is not positioned, updateEyeJoints won't get the math right
     glm::quat headOrientation;
-    _rig->getJointRotation(geometry.headJointIndex, headOrientation);
+    _rig.getJointRotation(geometry.headJointIndex, headOrientation);
     glm::vec3 eulers = safeEulerAngles(headOrientation);
     head->setBasePitch(glm::degrees(-eulers.x));
     head->setBaseYaw(glm::degrees(eulers.y));
@@ -116,7 +115,7 @@ void SkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
     eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
-    _rig->updateFromEyeParameters(eyeParams);
+    _rig.updateFromEyeParameters(eyeParams);
 }
 
 void SkeletonModel::updateAttitude() {
@@ -136,7 +135,7 @@ void SkeletonModel::simulate(float deltaTime, bool fullUpdate) {
 
         // let rig compute the model offset
         glm::vec3 registrationPoint;
-        if (_rig->getModelRegistrationPoint(registrationPoint)) {
+        if (_rig.getModelRegistrationPoint(registrationPoint)) {
             setOffset(registrationPoint);
         }
     } else {
@@ -164,8 +163,8 @@ bool operator<(const IndexValue& firstIndex, const IndexValue& secondIndex) {
 }
 
 bool SkeletonModel::getLeftGrabPosition(glm::vec3& position) const {
-    int knuckleIndex = _rig->indexOfJoint("LeftHandMiddle1");
-    int handIndex = _rig->indexOfJoint("LeftHand");
+    int knuckleIndex = _rig.indexOfJoint("LeftHandMiddle1");
+    int handIndex = _rig.indexOfJoint("LeftHand");
     if (knuckleIndex >= 0 && handIndex >= 0) {
         glm::quat handRotation;
         glm::vec3 knucklePosition;
@@ -189,8 +188,8 @@ bool SkeletonModel::getLeftGrabPosition(glm::vec3& position) const {
 }
 
 bool SkeletonModel::getRightGrabPosition(glm::vec3& position) const {
-    int knuckleIndex = _rig->indexOfJoint("RightHandMiddle1");
-    int handIndex = _rig->indexOfJoint("RightHand");
+    int knuckleIndex = _rig.indexOfJoint("RightHandMiddle1");
+    int handIndex = _rig.indexOfJoint("RightHand");
     if (knuckleIndex >= 0 && handIndex >= 0) {
         glm::quat handRotation;
         glm::vec3 knucklePosition;
@@ -304,7 +303,7 @@ float VERY_BIG_MASS = 1.0e6f;
 
 // virtual
 void SkeletonModel::computeBoundingShape() {
-    if (!isLoaded() || _rig->jointStatesEmpty()) {
+    if (!isLoaded() || _rig.jointStatesEmpty()) {
         return;
     }
 
@@ -316,27 +315,27 @@ void SkeletonModel::computeBoundingShape() {
 
     float radius, height;
     glm::vec3 offset;
-    _rig->computeAvatarBoundingCapsule(geometry, radius, height, offset);
+    _rig.computeAvatarBoundingCapsule(geometry, radius, height, offset);
     float invScale = 1.0f / _owningAvatar->getUniformScale();
     _boundingCapsuleRadius = invScale * radius;
     _boundingCapsuleHeight = invScale * height;
     _boundingCapsuleLocalOffset = invScale * offset;
 }
 
-void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float scale, float alpha) {
+void SkeletonModel::renderBoundingCollisionShapes(RenderArgs* args, gpu::Batch& batch, float scale, float alpha) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     // draw a blue sphere at the capsule top point
     glm::vec3 topPoint = _translation + getRotation() * (scale * (_boundingCapsuleLocalOffset + (0.5f * _boundingCapsuleHeight) * Vectors::UNIT_Y));
 
     batch.setModelTransform(Transform().setTranslation(topPoint).postScale(scale * _boundingCapsuleRadius));
-    geometryCache->renderSolidSphereInstance(batch, glm::vec4(0.6f, 0.6f, 0.8f, alpha));
+    geometryCache->renderSolidSphereInstance(args, batch, glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
     // draw a yellow sphere at the capsule bottom point
     glm::vec3 bottomPoint = topPoint - glm::vec3(0.0f, scale * _boundingCapsuleHeight, 0.0f);
     glm::vec3 axis = topPoint - bottomPoint;
 
     batch.setModelTransform(Transform().setTranslation(bottomPoint).postScale(scale * _boundingCapsuleRadius));
-    geometryCache->renderSolidSphereInstance(batch, glm::vec4(0.8f, 0.8f, 0.6f, alpha));
+    geometryCache->renderSolidSphereInstance(args, batch, glm::vec4(0.8f, 0.8f, 0.6f, alpha));
 
     // draw a green cylinder between the two points
     glm::vec3 origin(0.0f);

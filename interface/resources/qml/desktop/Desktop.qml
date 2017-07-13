@@ -353,6 +353,14 @@ FocusScope {
         showDesktop();
     }
 
+    function ensureTitleBarVisible(targetWindow) {
+        // Reposition window to ensure that title bar is vertically inside window.
+        if (targetWindow.frame && targetWindow.frame.decoration) {
+            var topMargin = -targetWindow.frame.decoration.anchors.topMargin;  // Frame's topMargin is a negative value.
+            targetWindow.y = Math.max(targetWindow.y, topMargin);
+        }
+    }
+
     function centerOnVisible(item) {
         var targetWindow = d.getDesktopWindow(item);
         if (!targetWindow) {
@@ -375,11 +383,12 @@ FocusScope {
         targetWindow.x = newX;
         targetWindow.y = newY;
 
+        ensureTitleBarVisible(targetWindow);
+
         // If we've noticed that our recommended desktop rect has changed, record that change here.
         if (recommendedRect != newRecommendedRect) {
             recommendedRect = newRecommendedRect;
         }
-
     }
 
     function repositionOnVisible(item) {
@@ -393,7 +402,6 @@ FocusScope {
             console.warn("Controller not yet available... can't reposition targetWindow:" + targetWindow);
             return;
         }
-
 
         var oldRecommendedRect = recommendedRect;
         var oldRecommendedDimmensions = { x: oldRecommendedRect.width, y: oldRecommendedRect.height };
@@ -426,7 +434,6 @@ FocusScope {
             newPosition.y = -1
         }
 
-
         if (newPosition.x === -1 && newPosition.y === -1) {
             var originRelativeX = (targetWindow.x - oldRecommendedRect.x);
             var originRelativeY = (targetWindow.y - oldRecommendedRect.y);
@@ -444,6 +451,8 @@ FocusScope {
         }
         targetWindow.x = newPosition.x;
         targetWindow.y = newPosition.y;
+
+        ensureTitleBarVisible(targetWindow);
     }
 
     Component { id: messageDialogBuilder; MessageDialog { } }

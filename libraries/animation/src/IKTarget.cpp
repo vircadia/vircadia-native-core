@@ -14,6 +14,22 @@ void IKTarget::setPose(const glm::quat& rotation, const glm::vec3& translation) 
     _pose.trans() = translation;
 }
 
+void IKTarget::setFlexCoefficients(size_t numFlexCoefficientsIn, const float* flexCoefficientsIn) {
+    _numFlexCoefficients = std::min(numFlexCoefficientsIn, (size_t)MAX_FLEX_COEFFICIENTS);
+    for (size_t i = 0; i < _numFlexCoefficients; i++) {
+        _flexCoefficients[i] = flexCoefficientsIn[i];
+    }
+}
+
+float IKTarget::getFlexCoefficient(size_t chainDepth) const {
+    const float DEFAULT_FLEX_COEFFICIENT = 0.5f;
+    if (chainDepth < _numFlexCoefficients) {
+        return _flexCoefficients[chainDepth];
+    } else {
+        return DEFAULT_FLEX_COEFFICIENT;
+    }
+}
+
 void IKTarget::setType(int type) {
     switch (type) {
         case (int)Type::RotationAndPosition:
@@ -27,6 +43,9 @@ void IKTarget::setType(int type) {
             break;
         case (int)Type::HipsRelativeRotationAndPosition:
             _type = Type::HipsRelativeRotationAndPosition;
+            break;
+        case (int)Type::Spline:
+            _type = Type::Spline;
             break;
         default:
             _type = Type::Unknown;

@@ -114,6 +114,11 @@ GLBackend::CommandCall GLBackend::_commandCalls[Batch::NUM_COMMANDS] =
     (&::gpu::gl::GLBackend::do_getQuery),
 
     (&::gpu::gl::GLBackend::do_resetStages),
+    
+    (&::gpu::gl::GLBackend::do_disableContextViewCorrection),
+    (&::gpu::gl::GLBackend::do_restoreContextViewCorrection),
+    (&::gpu::gl::GLBackend::do_disableContextStereo),
+    (&::gpu::gl::GLBackend::do_restoreContextStereo),
 
     (&::gpu::gl::GLBackend::do_runLambda),
 
@@ -176,6 +181,11 @@ void GLBackend::init() {
             qCDebug(gpugllogging, "V-Sync is %s\n", (swapInterval > 0 ? "ON" : "OFF"));
         }*/
 #endif
+#if THREADED_TEXTURE_BUFFERING
+        // This has to happen on the main thread in order to give the thread 
+        // pool a reasonable parent object
+        GLVariableAllocationSupport::TransferJob::startBufferingThread();
+#endif
     });
 }
 
@@ -222,6 +232,14 @@ void GLBackend::renderPassTransfer(const Batch& batch) {
                 case Batch::COMMAND_multiDrawIndirect:
                 case Batch::COMMAND_multiDrawIndexedIndirect:
                     _transform.preUpdate(_commandIndex, _stereo);
+                    break;
+
+                case Batch::COMMAND_disableContextStereo:
+                    _stereo._contextDisable = true;
+                    break;
+
+                case Batch::COMMAND_restoreContextStereo:
+                    _stereo._contextDisable = false;
                     break;
 
                 case Batch::COMMAND_setViewportTransform:
@@ -308,16 +326,16 @@ void GLBackend::render(const Batch& batch) {
     }
 
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
-    if (_stereo._enable) {
+    if (_stereo.isStereo()) {
         glEnable(GL_CLIP_DISTANCE0);
     }
 #endif
     {
-        PROFILE_RANGE(render_gpu_gl_detail, _stereo._enable ? "Render Stereo" : "Render");
+        PROFILE_RANGE(render_gpu_gl_detail, _stereo.isStereo() ? "Render Stereo" : "Render");
         renderPassDraw(batch);
     }
 #ifdef GPU_STEREO_DRAWCALL_INSTANCED
-    if (_stereo._enable) {
+    if (_stereo.isStereo()) {
         glDisable(GL_CLIP_DISTANCE0);
     }
 #endif
@@ -356,6 +374,22 @@ void GLBackend::setupStereoSide(int side) {
 
 void GLBackend::do_resetStages(const Batch& batch, size_t paramOffset) {
     resetStages();
+}
+
+void GLBackend::do_disableContextViewCorrection(const Batch& batch, size_t paramOffset) {
+    _transform._viewCorrectionEnabled = false;
+}
+
+void GLBackend::do_restoreContextViewCorrection(const Batch& batch, size_t paramOffset) {
+    _transform._viewCorrectionEnabled = true;
+}
+
+void GLBackend::do_disableContextStereo(const Batch& batch, size_t paramOffset) {
+
+}
+
+void GLBackend::do_restoreContextStereo(const Batch& batch, size_t paramOffset) {
+
 }
 
 void GLBackend::do_runLambda(const Batch& batch, size_t paramOffset) {
@@ -644,8 +678,6 @@ void GLBackend::recycle() const {
         ids.reserve(buffersTrash.size());
         for (auto pair : buffersTrash) {
             ids.push_back(pair.first);
-            decrementBufferGPUCount();
-            updateBufferGPUMemoryUsage(pair.second, 0);
         }
         if (!ids.empty()) {
             glDeleteBuffers((GLsizei)ids.size(), ids.data());
@@ -678,8 +710,6 @@ void GLBackend::recycle() const {
         ids.reserve(texturesTrash.size());
         for (auto pair : texturesTrash) {
             ids.push_back(pair.first);
-            decrementTextureGPUCount();
-            updateTextureGPUMemoryUsage(pair.second, 0);
         }
         if (!ids.empty()) {
             glDeleteTextures((GLsizei)ids.size(), ids.data());

@@ -102,11 +102,12 @@ public:
     virtual glm::vec3 getParentAngularVelocity(bool& success) const;
 
     virtual AACube getMaximumAACube(bool& success) const;
-    virtual void checkAndAdjustQueryAACube();
+    virtual bool checkAndAdjustQueryAACube();
     virtual bool computePuffedQueryAACube();
 
     virtual void setQueryAACube(const AACube& queryAACube);
     virtual bool queryAABoxNeedsUpdate() const;
+    void forceQueryAACubeUpdate() { _queryAACubeSet = false; }
     virtual AACube getQueryAACube(bool& success) const;
     virtual AACube getQueryAACube() const;
 
@@ -157,9 +158,6 @@ public:
 
     SpatiallyNestablePointer getThisPointer() const;
 
-    void markAncestorMissing(bool value) { _missingAncestor = value; }
-    bool getAncestorMissing() { return _missingAncestor; }
-
     void forEachChild(std::function<void(SpatiallyNestablePointer)> actor);
     void forEachDescendant(std::function<void(SpatiallyNestablePointer)> actor);
 
@@ -206,7 +204,6 @@ protected:
     mutable AACube _queryAACube;
     mutable bool _queryAACubeSet { false };
 
-    bool _missingAncestor { false };
     quint64 _scaleChanged { 0 };
     quint64 _translationChanged { 0 };
     quint64 _rotationChanged { 0 };

@@ -92,11 +92,6 @@ void AudioInjector::finish() {
     emit finished();
 
     deleteLocalBuffer();
-
-    if (stateHas(AudioInjectorState::PendingDelete)) {
-        // we've been asked to delete after finishing, trigger a deleteLater here
-        deleteLater();
-    }
 }
 
 void AudioInjector::restart() {
@@ -132,14 +127,14 @@ void AudioInjector::restart() {
     }
 }
 
-bool AudioInjector::inject(bool(AudioInjectorManager::*injection)(AudioInjector*)) {
+bool AudioInjector::inject(bool(AudioInjectorManager::*injection)(const AudioInjectorPointer&)) {
     _state = AudioInjectorState::NotFinished;
 
     int byteOffset = 0;
     if (_options.secondOffset > 0.0f) {
         int numChannels = _options.ambisonic ? 4 : (_options.stereo ? 2 : 1);
         byteOffset = (int)(AudioConstants::SAMPLE_RATE * _options.secondOffset * numChannels);
-        byteOffset *= sizeof(AudioConstants::SAMPLE_SIZE);
+        byteOffset *= AudioConstants::SAMPLE_SIZE;
     }
     _currentSendOffset = byteOffset;
 
@@ -150,7 +145,7 @@ bool AudioInjector::inject(bool(AudioInjectorManager::*injection)(AudioInjector*
     bool success = true;
     if (!_options.localOnly) {
         auto injectorManager = DependencyManager::get<AudioInjectorManager>();
-        if (!(*injectorManager.*injection)(this)) {
+        if (!(*injectorManager.*injection)(sharedFromThis())) {
             success = false;
             finishNetworkInjection();
         }
@@ -173,7 +168,7 @@ bool AudioInjector::injectLocally() {
 
             // call this function on the AudioClient's thread
             // this will move the local buffer's thread to the LocalInjectorThread
-            success = _localAudioInterface->outputLocalInjector(this);
+            success = _localAudioInterface->outputLocalInjector(sharedFromThis());
 
             if (!success) {
                 qCDebug(audio) << "AudioInjector::injectLocally could not output locally via _localAudioInterface";
@@ -418,20 +413,16 @@ void AudioInjector::triggerDeleteAfterFinish() {
     }
 
     if (stateHas(AudioInjectorState::Finished)) {
-        stopAndDeleteLater();
+        stop();
     } else {
         _state |= AudioInjectorState::PendingDelete;
     }
 }
 
-void AudioInjector::stopAndDeleteLater() {
-    stop();
-    QMetaObject::invokeMethod(this, "deleteLater", Qt::QueuedConnection);
-}
-
-AudioInjector* AudioInjector::playSound(SharedSoundPointer sound, const float volume, const float stretchFactor, const glm::vec3 position) {
+AudioInjectorPointer AudioInjector::playSound(SharedSoundPointer sound, const float volume,
+                                              const float stretchFactor, const glm::vec3 position) {
     if (!sound || !sound->isReady()) {
-        return nullptr;
+        return AudioInjectorPointer();
     }
 
     AudioInjectorOptions options;
@@ -462,8 +453,8 @@ AudioInjector* AudioInjector::playSound(SharedSoundPointer sound, const float vo
     return playSoundAndDelete(resampled, options);
 }
 
-AudioInjector* AudioInjector::playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options) {
-    AudioInjector* sound = playSound(buffer, options);
+AudioInjectorPointer AudioInjector::playSoundAndDelete(const QByteArray& buffer, const AudioInjectorOptions options) {
+    AudioInjectorPointer sound = playSound(buffer, options);
 
     if (sound) {
         sound->_state |= AudioInjectorState::PendingDelete;
@@ -473,8 +464,9 @@ AudioInjector* AudioInjector::playSoundAndDelete(const QByteArray& buffer, const
 }
 
 
-AudioInjector* AudioInjector::playSound(const QByteArray& buffer, const AudioInjectorOptions options) {
-    AudioInjector* injector = new AudioInjector(buffer, options);
+AudioInjectorPointer AudioInjector::playSound(const QByteArray& buffer, const AudioInjectorOptions options) {
+    AudioInjectorPointer injector = AudioInjectorPointer::create(buffer, options);
+
     if (!injector->inject(&AudioInjectorManager::threadInjector)) {
         qWarning() << "AudioInjector::playSound failed to thread injector";
     }

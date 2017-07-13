@@ -1,0 +1,28 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  Draw and transform the fed vertex position with the standard MVP stack
+// Output the clip position
+//
+//  Created by Sam Gateau on 5/30/2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Transform.slh@>
+
+<$declareStandardTransform()$>
+
+layout(location = 0) in vec4 inPosition;
+
+out vec3 varWorldPos;
+
+void main(void) {
+    // standard transform
+    TransformCamera cam = getTransformCamera();
+    TransformObject obj = getTransformObject();
+    <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
+}

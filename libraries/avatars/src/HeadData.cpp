@@ -28,12 +28,6 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _basePitch(0.0f),
     _baseRoll(0.0f),
     _lookAtPosition(0.0f, 0.0f, 0.0f),
-    _isFaceTrackerConnected(false),
-    _isEyeTrackerConnected(false),
-    _leftEyeBlink(0.0f),
-    _rightEyeBlink(0.0f),
-    _averageLoudness(0.0f),
-    _browAudioLift(0.0f),
     _blendshapeCoefficients(QVector<float>(0, 0.0f)),
     _transientBlendshapeCoefficients(QVector<float>(0, 0.0f)),
     _summedBlendshapeCoefficients(QVector<float>(0, 0.0f)),
@@ -58,6 +52,13 @@ glm::quat HeadData::getOrientation() const {
     return _owningAvatar->getOrientation() * getRawOrientation();
 }
 
+void HeadData::setHeadOrientation(const glm::quat& orientation) {
+    glm::quat bodyOrientation = _owningAvatar->getOrientation();
+    glm::vec3 eulers = glm::degrees(safeEulerAngles(glm::inverse(bodyOrientation) * orientation));
+    _basePitch = eulers.x;
+    _baseYaw = eulers.y;
+    _baseRoll = eulers.z;
+}
 
 void HeadData::setOrientation(const glm::quat& orientation) {
     // rotate body about vertical axis
@@ -67,10 +68,7 @@ void HeadData::setOrientation(const glm::quat& orientation) {
     _owningAvatar->setOrientation(bodyOrientation);
 
     // the rest goes to the head
-    glm::vec3 eulers = glm::degrees(safeEulerAngles(glm::inverse(bodyOrientation) * orientation));
-    _basePitch = eulers.x;
-    _baseYaw = eulers.y;
-    _baseRoll = eulers.z;
+    setHeadOrientation(orientation);
 }
 
 //Lazily construct a lookup map from the blendshapes
@@ -83,6 +81,11 @@ static const QMap<QString, int>& getBlendshapesLookupMap() {
         }
     });
     return blendshapeLookupMap;
+}
+
+int HeadData::getNumSummedBlendshapeCoefficients() const {
+    int maxSize = std::max(_blendshapeCoefficients.size(), _transientBlendshapeCoefficients.size());
+    return maxSize;
 }
 
 const QVector<float>& HeadData::getSummedBlendshapeCoefficients() {
@@ -179,14 +182,14 @@ void HeadData::fromJson(const QJsonObject& json) {
         }
     }
 
-    if (json.contains(JSON_AVATAR_HEAD_ROTATION)) {
-        setOrientation(quatFromJsonValue(json[JSON_AVATAR_HEAD_ROTATION]));
-    }
-
     if (json.contains(JSON_AVATAR_HEAD_LOOKAT)) {
         auto relativeLookAt = vec3FromJsonValue(json[JSON_AVATAR_HEAD_LOOKAT]);
         if (glm::length2(relativeLookAt) > 0.01f) {
             setLookAtPosition((_owningAvatar->getOrientation() * relativeLookAt) + _owningAvatar->getPosition());
         }
+    }
+
+    if (json.contains(JSON_AVATAR_HEAD_ROTATION)) {
+        setHeadOrientation(quatFromJsonValue(json[JSON_AVATAR_HEAD_ROTATION]));
     }
 }

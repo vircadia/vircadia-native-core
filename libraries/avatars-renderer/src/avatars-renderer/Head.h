@@ -71,9 +71,6 @@ public:
     void setDeltaRoll(float roll) { _deltaRoll = roll; }
     float getDeltaRoll() const { return _deltaRoll; }
 
-    virtual void setFinalYaw(float finalYaw) override;
-    virtual void setFinalPitch(float finalPitch) override;
-    virtual void setFinalRoll(float finalRoll) override;
     virtual float getFinalPitch() const override;
     virtual float getFinalYaw() const override;
     virtual float getFinalRoll() const override;
@@ -83,8 +80,6 @@ public:
     float getTimeWithoutTalking() const { return _timeWithoutTalking; }
 
 protected:
-    glm::vec3 calculateAverageEyePosition() const { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * 0.5f; }
-
     // disallow copies of the Head, copy of owning Avatar is disallowed too
     Head(const Head&);
     Head& operator= (const Head&);

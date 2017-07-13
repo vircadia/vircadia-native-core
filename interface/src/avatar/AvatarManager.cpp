@@ -25,6 +25,7 @@
 #endif
 
 
+#include <shared/QtHelpers.h>
 #include <AvatarData.h>
 #include <PerfStat.h>
 #include <RegisteredMetaTypes.h>
@@ -52,7 +53,7 @@ const QUuid MY_AVATAR_KEY;  // NULL key
 
 AvatarManager::AvatarManager(QObject* parent) :
     _avatarsToFade(),
-    _myAvatar(std::make_shared<MyAvatar>(qApp->thread(), std::make_shared<Rig>()))
+    _myAvatar(std::make_shared<MyAvatar>(qApp->thread()))
 {
     // register a meta type for the weak pointer we'll use for the owning avatar mixer for each avatar
     qRegisterMetaType<QWeakPointer<Node> >("NodeWeakPointer");
@@ -62,7 +63,6 @@ AvatarManager::AvatarManager(QObject* parent) :
     packetReceiver.registerListener(PacketType::BulkAvatarData, this, "processAvatarDataPacket");
     packetReceiver.registerListener(PacketType::KillAvatar, this, "processKillAvatar");
     packetReceiver.registerListener(PacketType::AvatarIdentity, this, "processAvatarIdentityPacket");
-    packetReceiver.registerListener(PacketType::ExitingSpaceBubble, this, "processExitingSpaceBubble");
 
     // when we hear that the user has ignored an avatar by session UUID
     // immediately remove that avatar instead of waiting for the absence of packets from avatar mixer
@@ -189,6 +189,7 @@ void AvatarManager::updateOtherAvatars(float deltaTime) {
             btCollisionShape* shape = const_cast<btCollisionShape*>(ObjectMotionState::getShapeManager()->getShape(shapeInfo));
             if (shape) {
                 AvatarMotionState* motionState = new AvatarMotionState(avatar, shape);
+                motionState->setMass(avatar->computeMass());
                 avatar->setPhysicsCallback([=] (uint32_t flags) { motionState->addDirtyFlags(flags); });
                 _motionStates.insert(avatar.get(), motionState);
                 _motionStatesToAddToPhysics.insert(motionState);
@@ -299,7 +300,7 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
 }
 
 AvatarSharedPointer AvatarManager::newSharedAvatar() {
-    return std::make_shared<OtherAvatar>(qApp->thread(), std::make_shared<Rig>());
+    return std::make_shared<OtherAvatar>(qApp->thread());
 }
 
 void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar, KillAvatarReason removalReason) {
@@ -318,9 +319,6 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
 
     if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble) {
         emit DependencyManager::get<UsersScriptingInterface>()->enteredIgnoreRadius();
-    }
-    if (removalReason == KillAvatarReason::TheirAvatarEnteredYourBubble || removalReason == YourAvatarEnteredTheirBubble) {
-        DependencyManager::get<NodeList>()->radiusIgnoreNodeBySessionID(avatar->getSessionUUID(), true);
     } else if (removalReason == KillAvatarReason::AvatarDisconnected) {
         // remove from node sets, if present
         DependencyManager::get<NodeList>()->removeFromIgnoreMuteSets(avatar->getSessionUUID());
@@ -432,8 +430,7 @@ void AvatarManager::handleCollisionEvents(const CollisionEvents& collisionEvents
                 // but most avatars are roughly the same size, so let's not be so fancy yet.
                 const float AVATAR_STRETCH_FACTOR = 1.0f;
 
-
-                _collisionInjectors.remove_if([](QPointer<AudioInjector>& injector) {
+                _collisionInjectors.remove_if([](const AudioInjectorPointer& injector) {
                     return !injector || injector->isFinished();
                 });
 
@@ -481,7 +478,7 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& 
                                                                  const QScriptValue& avatarIdsToDiscard) {
     RayToAvatarIntersectionResult result;
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(const_cast<AvatarManager*>(this), "findRayIntersection", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarManager*>(this), "findRayIntersection",
                                   Q_RETURN_ARG(RayToAvatarIntersectionResult, result),
                                   Q_ARG(const PickRay&, ray),
                                   Q_ARG(const QScriptValue&, avatarIdsToInclude),

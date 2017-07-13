@@ -10,12 +10,9 @@
 
 import QtQuick 2.5
 import QtWebEngine 1.2
-import HFWebEngineProfile 1.0
 
 WebEngineView {
     id: root
-
-    // profile: desktop.browserProfile
 
     Component.onCompleted: {
         console.log("Connecting JS messaging to Hifi Logging")
@@ -36,4 +33,6 @@ WebEngineView {
             }
         }
     }
+
+    WebSpinner { }
 }

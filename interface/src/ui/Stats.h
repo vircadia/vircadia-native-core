@@ -9,10 +9,11 @@
 #ifndef hifi_Stats_h
 #define hifi_Stats_h
 
+#include <QtGui/QVector3D>
+
 #include <OffscreenQmlElement.h>
-#include <RenderArgs.h>
-#include <QVector3D>
 #include <AudioIOStats.h>
+#include <render/Args.h>
 
 #define STATS_PROPERTY(type, name, initialValue) \
     Q_PROPERTY(type name READ name NOTIFY name##Changed) \
@@ -117,15 +118,15 @@ class Stats : public QQuickItem {
     STATS_PROPERTY(int, gpuBuffers, 0)
     STATS_PROPERTY(int, gpuBufferMemory, 0)
     STATS_PROPERTY(int, gpuTextures, 0)
-    STATS_PROPERTY(int, gpuTexturesSparse, 0)
     STATS_PROPERTY(int, glContextSwapchainMemory, 0)
     STATS_PROPERTY(int, qmlTextureMemory, 0)
     STATS_PROPERTY(int, texturePendingTransfers, 0)
     STATS_PROPERTY(int, gpuTextureMemory, 0)
-    STATS_PROPERTY(int, gpuTextureVirtualMemory, 0)
+    STATS_PROPERTY(int, gpuTextureResidentMemory, 0)
     STATS_PROPERTY(int, gpuTextureFramebufferMemory, 0)
-    STATS_PROPERTY(int, gpuTextureSparseMemory, 0)
-    STATS_PROPERTY(int, gpuSparseTextureEnabled, 0)
+    STATS_PROPERTY(int, gpuTextureResourceMemory, 0)
+    STATS_PROPERTY(int, gpuTextureResourcePopulatedMemory, 0)
+    STATS_PROPERTY(int, gpuTextureExternalMemory, 0)
     STATS_PROPERTY(QString, gpuTextureMemoryPressureState, QString())
     STATS_PROPERTY(int, gpuFreeMemory, 0)
     STATS_PROPERTY(float, gpuFrameTime, 0)
@@ -138,7 +139,7 @@ public:
 
     Stats(QQuickItem* parent = nullptr);
     bool includeTimingRecord(const QString& name);
-    void setRenderDetails(const RenderDetails& details);
+    void setRenderDetails(const render::RenderDetails& details);
     const QString& monospaceFont() {
         return _monospaceFont;
     }
@@ -245,13 +246,13 @@ signals:
     void gpuBuffersChanged();
     void gpuBufferMemoryChanged();
     void gpuTexturesChanged();
-    void gpuTexturesSparseChanged();
     void gpuTextureMemoryChanged();
-    void gpuTextureVirtualMemoryChanged();
+    void gpuTextureResidentMemoryChanged();
     void gpuTextureFramebufferMemoryChanged();
-    void gpuTextureSparseMemoryChanged();
+    void gpuTextureResourceMemoryChanged();
+    void gpuTextureResourcePopulatedMemoryChanged();
+    void gpuTextureExternalMemoryChanged();
     void gpuTextureMemoryPressureStateChanged();
-    void gpuSparseTextureEnabledChanged();
     void gpuFreeMemoryChanged();
     void gpuFrameTimeChanged();
     void batchFrameTimeChanged();

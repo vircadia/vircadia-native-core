@@ -105,7 +105,6 @@ public:
         UsernameFromIDReply,
         ViewFrustum,
         RequestsDomainListData,
-        ExitingSpaceBubble,
         PerAvatarGainSet,
         EntityScriptGetStatus,
         EntityScriptGetStatusReply,
@@ -114,11 +113,21 @@ public:
         EntityServerScriptLog,
         AdjustAvatarSorting,
         OctreeFileReplacement,
-        LAST_PACKET_TYPE = OctreeFileReplacement
+        CollisionEventChanges,
+        ReplicatedMicrophoneAudioNoEcho,
+        ReplicatedMicrophoneAudioWithEcho,
+        ReplicatedInjectAudio,
+        ReplicatedSilentAudioFrame,
+        ReplicatedAvatarIdentity,
+        ReplicatedKillAvatar,
+        ReplicatedBulkAvatarData,
+        NUM_PACKET_TYPE
     };
 };
 
 using PacketType = PacketTypeEnum::Value;
+
+extern const QHash<PacketType, PacketType> REPLICATED_PACKET_MAPPING;
 
 const int NUM_BYTES_MD5_HASH = 16;
 
@@ -234,7 +243,11 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     VariableAvatarData,
     AvatarAsChildFixes,
     StickAndBallDefaultAvatar,
-    IdentityPacketsIncludeUpdateTime
+    IdentityPacketsIncludeUpdateTime,
+    AvatarIdentitySequenceId,
+    MannequinDefaultAvatar,
+    AvatarIdentitySequenceFront,
+    IsReplicatedInAvatarIdentity
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

@@ -89,6 +89,8 @@ public:
     const DoubleHashKey& getHash() const;
 
 protected:
+    void setHalfExtents(const glm::vec3& halfExtents);
+
     QUrl _url; // url for model of convex collision hulls
     PointCollection _pointCollection;
     TriangleIndices _triangleIndices;

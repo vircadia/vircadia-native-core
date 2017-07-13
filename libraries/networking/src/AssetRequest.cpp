@@ -15,11 +15,13 @@
 
 #include <QtCore/QThread>
 
+#include <StatTracker.h>
+#include <Trace.h>
+
 #include "AssetClient.h"
 #include "NetworkLogging.h"
 #include "NodeList.h"
 #include "ResourceCache.h"
-#include <Trace.h>
 
 static int requestID = 0;
 
@@ -62,9 +64,12 @@ void AssetRequest::start() {
     _data = loadFromCache(getUrl());
     if (!_data.isNull()) {
         _error = NoError;
-        
+
+        _loadedFromCache = true;
+
         _state = Finished;
         emit finished(this);
+
         return;
     }
 
@@ -99,12 +104,7 @@ void AssetRequest::start() {
                     break;
             }
         } else {
-            if (_byteRange.isSet()) {
-                // we had a byte range, the size of the data does not match what we expect, so we return an error
-                if (data.size() != _byteRange.size()) {
-                    _error = SizeVerificationFailed;
-                }
-            } else if (hashData(data).toHex() != _hash) {
+            if (!_byteRange.isSet() && hashData(data).toHex() != _hash) {
                 // the hash of the received data does not match what we expect, so we return an error
                 _error = HashVerificationFailed;
             }

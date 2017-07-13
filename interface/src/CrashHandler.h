@@ -17,12 +17,12 @@
 class CrashHandler {
 
 public:
-    static bool checkForResetSettings(bool suppressPrompt = false);
+    static bool checkForResetSettings(bool wasLikelyCrash, bool suppressPrompt = false);
 
 private:
     enum Action {
         DELETE_INTERFACE_INI,
-        RETAIN_AVATAR_INFO,
+        RETAIN_IMPORTANT_INFO,
         DO_NOTHING
     };
 

@@ -16,17 +16,20 @@
 #include <QStringList>
 
 #include <ModelEntityItem.h>
+#include <AnimationCache.h>
 
 class Model;
 class EntityTreeRenderer;
 
-class RenderableModelEntityItem : public ModelEntityItem {
+class RenderableModelEntityItem : public ModelEntityItem, RenderableEntityInterface {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
 
     RenderableModelEntityItem(const EntityItemID& entityItemID, bool dimensionsInitialized);
 
     virtual ~RenderableModelEntityItem();
+
+    RenderableEntityInterface* getRenderableInterface() override { return this; }
 
     virtual void setDimensions(const glm::vec3& value) override;
     virtual void setModelURL(const QString& url) override;
@@ -40,8 +43,8 @@ public:
 
     void doInitialModelSimulation();
 
-    virtual bool addToScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
-    virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    virtual bool addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    virtual void removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
 
 
     void updateModelBounds();
@@ -51,7 +54,7 @@ public:
                         bool& keepSearching, OctreeElementPointer& element, float& distance,
                         BoxFace& face, glm::vec3& surfaceNormal,
                         void** intersectedObject, bool precisionPicking) const override;
-    ModelPointer getModel(QSharedPointer<EntityTreeRenderer> renderer);
+    ModelPointer getModel();
     ModelPointer getModelNotSafe();
 
     virtual bool needsToCallUpdate() const override;
@@ -104,6 +107,15 @@ public:
     // Transparency is handled in ModelMeshPartPayload
     bool isTransparent() override { return false; }
 
+    void mapJoints(const QStringList& modelJointNames);
+    bool jointsMapped() const {
+        return _jointMappingURL == getAnimationURL() && _jointMappingCompleted;
+    }
+
+    AnimationPointer getAnimation() const {
+        return _animation;
+    }
+
 private:
     QVariantMap parseTexturesToMap(QString textures);
     void remapTextures();
@@ -129,6 +141,12 @@ private:
     bool _needsJointSimulation { false };
     bool _showCollisionGeometry { false };
     const void* _collisionMeshKey { nullptr };
+
+    // used on client side
+    bool _jointMappingCompleted { false };
+    QVector<int> _jointMapping; // domain is index into model-joints, range is index into animation-joints
+    QString _jointMappingURL;
+    AnimationPointer _animation;
 };
 
 #endif // hifi_RenderableModelEntityItem_h

@@ -43,13 +43,47 @@ var minuteHandID = Entities.addEntity({
     modelURL: Script.resolvePath("models/Stopwatch-min-hand.fbx"),
 });
 
+var startStopButtonID = Entities.addEntity({
+    type: "Model",
+    name: "stopwatch/startStop",
+    parentID: stopwatchID,
+    dimensions: Vec3.multiply(scale, { x: 0.8, y: 0.8, z: 1.0 }),
+    localPosition: Vec3.multiply(scale, { x: 0, y: -0.1, z: -2.06 }),
+    modelURL: Script.resolvePath("models/transparent-box.fbx")
+});
+
+var resetButtonID = Entities.addEntity({
+    type: "Model",
+    name: "stopwatch/startStop",
+    parentID: stopwatchID,
+    dimensions: Vec3.multiply(scale, { x: 0.6, y: 0.6, z: 0.8 }),
+    localPosition: Vec3.multiply(scale, { x: -1.5, y: -0.1, z: -1.2 }),
+    localRotation: Quat.fromVec3Degrees({ x: 0, y: 36, z: 0 }),
+    modelURL: Script.resolvePath("models/transparent-box.fbx")
+});
+
 Entities.editEntity(stopwatchID, {
     userData: JSON.stringify({
         secondHandID: secondHandID,
-        minuteHandID: minuteHandID,
+        minuteHandID: minuteHandID
     }),
-    script: Script.resolvePath("stopwatchClient.js"),
     serverScripts: Script.resolvePath("stopwatchServer.js")
+});
+
+Entities.editEntity(startStopButtonID, {
+    userData: JSON.stringify({
+        stopwatchID: stopwatchID,
+        grabbableKey: { wantsTrigger: true }
+    }),
+    script: Script.resolvePath("stopwatchStartStop.js")
+});
+
+Entities.editEntity(resetButtonID, {
+    userData: JSON.stringify({
+        stopwatchID: stopwatchID,
+        grabbableKey: { wantsTrigger: true }
+    }),
+    script: Script.resolvePath("stopwatchReset.js")
 });
 
 Script.stop()

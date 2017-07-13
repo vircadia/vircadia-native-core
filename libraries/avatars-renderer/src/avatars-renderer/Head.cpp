@@ -25,7 +25,6 @@
 
 using namespace std;
 
-static bool fixGaze { false };
 static bool disableEyelidAdjustment { false };
 
 Head::Head(Avatar* owningAvatar) :
@@ -46,13 +45,9 @@ void Head::simulate(float deltaTime) {
     const float NORMAL_HZ = 60.0f; // the update rate the constant values were tuned for
 
     // grab the audio loudness from the owning avatar, if we have one
-    float audioLoudness = 0.0f;
+    float audioLoudness = _owningAvatar ? _owningAvatar->getAudioLoudness() : 0.0f;
 
-    if (_owningAvatar) {
-        audioLoudness = _owningAvatar->getAudioLoudness();
-    }
-
-    //  Update audio trailing average for rendering facial animations
+    // Update audio trailing average for rendering facial animations
     const float AUDIO_AVERAGING_SECS = 0.05f;
     const float AUDIO_LONG_TERM_AVERAGING_SECS = 30.0f;
     _averageLoudness = glm::mix(_averageLoudness, audioLoudness, glm::min(deltaTime / AUDIO_AVERAGING_SECS, 1.0f));
@@ -82,7 +77,7 @@ void Head::simulate(float deltaTime) {
             _saccade = glm::vec3();
         }
 
-        //  Detect transition from talking to not; force blink after that and a delay
+        // Detect transition from talking to not; force blink after that and a delay
         bool forceBlink = false;
         const float TALKING_LOUDNESS = 100.0f;
         const float BLINK_AFTER_TALKING = 0.25f;
@@ -93,7 +88,7 @@ void Head::simulate(float deltaTime) {
             forceBlink = true;
         }
 
-        //  Update audio attack data for facial animation (eyebrows and mouth)
+        // Update audio attack data for facial animation (eyebrows and mouth)
         float audioAttackAveragingRate = (10.0f - deltaTime * NORMAL_HZ) / 10.0f; // --> 0.9 at 60 Hz
         _audioAttack = audioAttackAveragingRate * _audioAttack +
             (1.0f - audioAttackAveragingRate) * fabs((audioLoudness - _longTermAverageLoudness) - _lastLoudness);
@@ -158,21 +153,15 @@ void Head::simulate(float deltaTime) {
     } else {
         _saccade = glm::vec3();
     }
-    if (fixGaze) { // if debug menu turns off, use no saccade
-        _saccade = glm::vec3();
-    }
 
     _leftEyePosition = _rightEyePosition = getPosition();
-    _eyePosition = getPosition();
-
     if (_owningAvatar) {
         auto skeletonModel = static_cast<Avatar*>(_owningAvatar)->getSkeletonModel();
         if (skeletonModel) {
             skeletonModel->getEyePositions(_leftEyePosition, _rightEyePosition);
         }
     }
-
-    _eyePosition = calculateAverageEyePosition();
+    _eyePosition = 0.5f * (_leftEyePosition + _rightEyePosition);
 }
 
 void Head::calculateMouthShapes(float deltaTime) {
@@ -313,18 +302,6 @@ glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
     glm::quat orientation = getOrientation();
     glm::vec3 lookAtDelta = _lookAtPosition - eyePosition;
     return rotationBetween(orientation * IDENTITY_FORWARD, lookAtDelta + glm::length(lookAtDelta) * _saccade) * orientation;
-}
-
-void Head::setFinalPitch(float finalPitch) {
-    _deltaPitch = glm::clamp(finalPitch, MIN_HEAD_PITCH, MAX_HEAD_PITCH) - _basePitch;
-}
-
-void Head::setFinalYaw(float finalYaw) {
-    _deltaYaw = glm::clamp(finalYaw, MIN_HEAD_YAW, MAX_HEAD_YAW) - _baseYaw;
-}
-
-void Head::setFinalRoll(float finalRoll) {
-    _deltaRoll = glm::clamp(finalRoll, MIN_HEAD_ROLL, MAX_HEAD_ROLL) - _baseRoll;
 }
 
 float Head::getFinalYaw() const {

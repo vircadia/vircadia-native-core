@@ -69,11 +69,9 @@ void RenderableModelEntityItem::setModelURL(const QString& url) {
 
 void RenderableModelEntityItem::loader() {
     _needsModelReload = true;
-    auto renderer = DependencyManager::get<EntityTreeRenderer>();
-    assert(renderer);
     {
         PerformanceTimer perfTimer("getModel");
-        getModel(renderer);
+        getModel();
     }
 }
 
@@ -213,7 +211,7 @@ namespace render {
         if (args) {
             if (payload && payload->entity) {
                 PROFILE_RANGE(render_detail, "MetaModelRender");
-                payload->entity->render(args);
+                payload->entity->getRenderableInterface()->render(args);
             }
         }
     }
@@ -228,7 +226,7 @@ namespace render {
     }
 }
 
-bool RenderableModelEntityItem::addToScene(EntityItemPointer self, const render::ScenePointer& scene,
+bool RenderableModelEntityItem::addToScene(const EntityItemPointer& self, const render::ScenePointer& scene,
                                             render::Transaction& transaction) {
     _myMetaItem = scene->allocateID();
 
@@ -249,7 +247,7 @@ bool RenderableModelEntityItem::addToScene(EntityItemPointer self, const render:
     return true;
 }
 
-void RenderableModelEntityItem::removeFromScene(EntityItemPointer self, const render::ScenePointer& scene,
+void RenderableModelEntityItem::removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene,
                                                 render::Transaction& transaction) {
     transaction.removeItem(_myMetaItem);
     render::Item::clearID(_myMetaItem);
@@ -380,7 +378,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         auto shapeTransform = getTransformToCenter(success);
         if (success) {
             batch.setModelTransform(shapeTransform); // we want to include the scale as well
-            DependencyManager::get<GeometryCache>()->renderWireCubeInstance(batch, greenColor);
+            DependencyManager::get<GeometryCache>()->renderWireCubeInstance(args, batch, greenColor);
         }
         return;
     }
@@ -390,8 +388,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         if (!_model || _needsModelReload) {
             // TODO: this getModel() appears to be about 3% of model render time. We should optimize
             PerformanceTimer perfTimer("getModel");
-            auto renderer = qSharedPointerCast<EntityTreeRenderer>(args->_renderer);
-            getModel(renderer);
+            getModel();
 
             // Remap textures immediately after loading to avoid flicker
             remapTextures();
@@ -483,7 +480,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         auto& currentURL = getParsedModelURL();
         if (currentURL != _model->getURL()) {
             // Defer setting the url to the render thread
-            getModel(_myRenderer);
+            getModel();
         }
     }
 }
@@ -492,16 +489,11 @@ ModelPointer RenderableModelEntityItem::getModelNotSafe() {
     return _model;
 }
 
-ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRenderer> renderer) {
-    if (!renderer) {
-        return nullptr;
-    }
-
+ModelPointer RenderableModelEntityItem::getModel() {
     // make sure our renderer is setup
     if (!_myRenderer) {
-        _myRenderer = renderer;
+        _myRenderer = DependencyManager::get<EntityTreeRenderer>();
     }
-    assert(_myRenderer == renderer); // you should only ever render on one renderer
 
     if (!_myRenderer || QThread::currentThread() != _myRenderer->thread()) {
         return _model;
@@ -513,7 +505,7 @@ ModelPointer RenderableModelEntityItem::getModel(QSharedPointer<EntityTreeRender
     if (!getModelURL().isEmpty()) {
         // If we don't have a model, allocate one *immediately*
         if (!_model) {
-            _model = _myRenderer->allocateModel(getModelURL(), renderer->getEntityLoadingPriority(*this), this);
+            _model = _myRenderer->allocateModel(getModelURL(), _myRenderer->getEntityLoadingPriority(*this), this);
             _needsInitialSimulation = true;
         // If we need to change URLs, update it *after rendering* (to avoid access violations)
         } else if (QUrl(getModelURL()) != _model->getURL()) {
@@ -587,6 +579,17 @@ EntityItemProperties RenderableModelEntityItem::getProperties(EntityPropertyFlag
         properties.setRenderInfoHasTransparent(_model->getRenderInfoHasTransparent());
     }
 
+
+    if (_model && _model->isLoaded()) {
+        // TODO: improve naturalDimensions in the future,
+        //       for now we've added this hack for setting natural dimensions of models
+        Extents meshExtents = _model->getFBXGeometry().getUnscaledMeshExtents();
+        properties.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
+        properties.calculateNaturalPosition(meshExtents.minimum, meshExtents.maximum);
+    }
+
+
+
     return properties;
 }
 
@@ -605,7 +608,7 @@ bool RenderableModelEntityItem::findDetailedRayIntersection(const glm::vec3& ori
 
     QString extraInfo;
     return _model->findRayIntersectionAgainstSubMeshes(origin, direction, distance,
-                                                       face, surfaceNormal, extraInfo, precisionPicking);
+                                                       face, surfaceNormal, extraInfo, precisionPicking, false);
 }
 
 void RenderableModelEntityItem::getCollisionGeometryResource() {
@@ -807,7 +810,7 @@ void RenderableModelEntityItem::computeShapeInfo(ShapeInfo& shapeInfo) {
             const FBXMesh& mesh = fbxGeometry.meshes.at(i);
             if (mesh.clusters.size() > 0) {
                 const FBXCluster& cluster = mesh.clusters.at(0);
-                auto jointMatrix = _model->getRig()->getJointTransform(cluster.jointIndex);
+                auto jointMatrix = _model->getRig().getJointTransform(cluster.jointIndex);
                 // we backtranslate by the registration offset so we can apply that offset to the shapeInfo later
                 localTransforms.push_back(invRegistraionOffset * jointMatrix * cluster.inverseBindMatrix);
             } else {
@@ -1080,26 +1083,22 @@ bool RenderableModelEntityItem::setAbsoluteJointRotationInObjectFrame(int index,
     if (!_model) {
         return false;
     }
-    RigPointer rig = _model->getRig();
-    if (!rig) {
-        return false;
-    }
-
-    int jointParentIndex = rig->getJointParentIndex(index);
+    const Rig& rig = _model->getRig();
+    int jointParentIndex = rig.getJointParentIndex(index);
     if (jointParentIndex == -1) {
         return setLocalJointRotation(index, rotation);
     }
 
     bool success;
     AnimPose jointParentPose;
-    success = rig->getAbsoluteJointPoseInRigFrame(jointParentIndex, jointParentPose);
+    success = rig.getAbsoluteJointPoseInRigFrame(jointParentIndex, jointParentPose);
     if (!success) {
         return false;
     }
     AnimPose jointParentInversePose = jointParentPose.inverse();
 
     AnimPose jointAbsolutePose; // in rig frame
-    success = rig->getAbsoluteJointPoseInRigFrame(index, jointAbsolutePose);
+    success = rig.getAbsoluteJointPoseInRigFrame(index, jointAbsolutePose);
     if (!success) {
         return false;
     }
@@ -1113,26 +1112,23 @@ bool RenderableModelEntityItem::setAbsoluteJointTranslationInObjectFrame(int ind
     if (!_model) {
         return false;
     }
-    RigPointer rig = _model->getRig();
-    if (!rig) {
-        return false;
-    }
+    const Rig& rig = _model->getRig();
 
-    int jointParentIndex = rig->getJointParentIndex(index);
+    int jointParentIndex = rig.getJointParentIndex(index);
     if (jointParentIndex == -1) {
         return setLocalJointTranslation(index, translation);
     }
 
     bool success;
     AnimPose jointParentPose;
-    success = rig->getAbsoluteJointPoseInRigFrame(jointParentIndex, jointParentPose);
+    success = rig.getAbsoluteJointPoseInRigFrame(jointParentIndex, jointParentPose);
     if (!success) {
         return false;
     }
     AnimPose jointParentInversePose = jointParentPose.inverse();
 
     AnimPose jointAbsolutePose; // in rig frame
-    success = rig->getAbsoluteJointPoseInRigFrame(index, jointAbsolutePose);
+    success = rig.getAbsoluteJointPoseInRigFrame(index, jointAbsolutePose);
     if (!success) {
         return false;
     }
@@ -1248,21 +1244,41 @@ void RenderableModelEntityItem::locationChanged(bool tellPhysics) {
 }
 
 int RenderableModelEntityItem::getJointIndex(const QString& name) const {
-    if (_model && _model->isActive()) {
-        RigPointer rig = _model->getRig();
-        return rig->indexOfJoint(name);
-    }
-    return -1;
+    return (_model && _model->isActive()) ? _model->getRig().indexOfJoint(name) : -1;
 }
 
 QStringList RenderableModelEntityItem::getJointNames() const {
     QStringList result;
     if (_model && _model->isActive()) {
-        RigPointer rig = _model->getRig();
-        int jointCount = rig->getJointStateCount();
+        const Rig& rig = _model->getRig();
+        int jointCount = rig.getJointStateCount();
         for (int jointIndex = 0; jointIndex < jointCount; jointIndex++) {
-            result << rig->nameOfJoint(jointIndex);
+            result << rig.nameOfJoint(jointIndex);
         }
     }
     return result;
+}
+
+void RenderableModelEntityItem::mapJoints(const QStringList& modelJointNames) {
+    // if we don't have animation, or we're already joint mapped then bail early
+    if (!hasAnimation() || jointsMapped()) {
+        return;
+    }
+
+    if (!_animation || _animation->getURL().toString() != getAnimationURL()) {
+        _animation = DependencyManager::get<AnimationCache>()->getAnimation(getAnimationURL());
+    }
+
+    if (_animation && _animation->isLoaded()) {
+        QStringList animationJointNames = _animation->getJointNames();
+
+        if (modelJointNames.size() > 0 && animationJointNames.size() > 0) {
+            _jointMapping.resize(modelJointNames.size());
+            for (int i = 0; i < modelJointNames.size(); i++) {
+                _jointMapping[i] = animationJointNames.indexOf(modelJointNames[i]);
+            }
+            _jointMappingCompleted = true;
+            _jointMappingURL = _animationProperties.getURL();
+        }
+    }
 }

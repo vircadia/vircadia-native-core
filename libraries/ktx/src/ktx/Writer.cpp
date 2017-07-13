@@ -70,8 +70,7 @@ namespace ktx {
         for (uint32_t l = 0; l < numMips; l++) {
             if (images.size() > l) {
                 storageSize += sizeof(uint32_t);
-                storageSize += images[l]._imageSize;
-                storageSize += Header::evalPadding(images[l]._imageSize);
+                storageSize += evalPaddedSize(images[l]._imageSize);
             }
         }
         return storageSize;
@@ -89,8 +88,7 @@ namespace ktx {
         for (uint32_t l = 0; l < numMips; l++) {
             if (imageDescriptors.size() > l) {
                 storageSize += sizeof(uint32_t);
-                storageSize += imageDescriptors[l]._imageSize;
-                storageSize += Header::evalPadding(imageDescriptors[l]._imageSize);
+                storageSize += evalPaddedSize(imageDescriptors[l]._imageSize);
             }
         }
         return storageSize;
@@ -127,6 +125,7 @@ namespace ktx {
     size_t KTX::writeWithoutImages(Byte* destBytes, size_t destByteSize, const Header& header, const ImageDescriptors& descriptors, const KeyValues& keyValues) {
         // Check again that we have enough destination capacity
         if (!destBytes || (destByteSize < evalStorageSize(header, descriptors, keyValues))) {
+            qWarning() << "Destination capacity is insufficient to write KTX without images";
             return 0;
         }
 
@@ -148,14 +147,17 @@ namespace ktx {
 
         for (size_t i = 0; i < descriptors.size(); ++i) {
             auto ptr = reinterpret_cast<uint32_t*>(currentDestPtr);
-            *ptr = descriptors[i]._imageSize;
-            ptr++;
+            uint32_t imageFaceSize = descriptors[i]._faceSize;
+            *ptr = imageFaceSize; // the imageSize written in the ktx is the FACE size
+
 #ifdef DEBUG
+            ptr++;
             for (size_t k = 0; k < descriptors[i]._imageSize/4; k++) {
                 *(ptr + k) = 0xFFFFFFFF;
             }
 #endif
-            currentDestPtr += descriptors[i]._imageSize + sizeof(uint32_t);
+            currentDestPtr += sizeof(uint32_t);
+            currentDestPtr += descriptors[i]._imageSize;
         }
 
         return destByteSize;
@@ -210,13 +212,14 @@ namespace ktx {
             if (currentDataSize + sizeof(uint32_t) < allocatedImagesDataSize) {
                 uint32_t imageOffset = currentPtr - destBytes;
                 size_t imageSize = srcImages[l]._imageSize;
-                *(reinterpret_cast<uint32_t*> (currentPtr)) = (uint32_t) imageSize;
+                size_t imageFaceSize = srcImages[l]._faceSize;
+                *(reinterpret_cast<uint32_t*> (currentPtr)) = (uint32_t)imageFaceSize; // the imageSize written in the ktx is the FACE size
                 currentPtr += sizeof(uint32_t);
                 currentDataSize += sizeof(uint32_t);
 
                 // If enough data ahead then capture the copy source pointer
                 if (currentDataSize + imageSize <= (allocatedImagesDataSize)) {
-                    auto padding = Header::evalPadding(imageSize);
+                    auto padding = evalPadding(imageSize);
 
                     // Single face vs cubes
                     if (srcImages[l]._numFaces == 1) {
@@ -226,7 +229,7 @@ namespace ktx {
                     } else {
                         Image::FaceBytes faceBytes(NUM_CUBEMAPFACES);
                         auto faceSize = srcImages[l]._faceSize;
-                        for (int face = 0; face < NUM_CUBEMAPFACES; face++) {
+                        for (uint32_t face = 0; face < NUM_CUBEMAPFACES; face++) {
                              memcpy(currentPtr, srcImages[l]._faceBytes[face], faceSize);
                              faceBytes[face] = currentPtr;
                              currentPtr += faceSize;

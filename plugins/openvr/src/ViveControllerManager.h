@@ -23,8 +23,9 @@
 #include <gpu/Texture.h>
 #include <controllers/InputDevice.h>
 #include <plugins/InputPlugin.h>
-#include <RenderArgs.h>
-#include <render/Scene.h>
+#include "OpenVrHelpers.h"
+
+using PuckPosePair = std::pair<uint32_t, controller::Pose>;
 
 namespace vr {
     class IVRSystem;
@@ -38,6 +39,15 @@ public:
     const QString getName() const override { return NAME; }
 
     bool isHandController() const override { return true; }
+    bool configurable() override { return true; }
+
+    QString configurationLayout() override;
+    void setConfigurationSettings(const QJsonObject configurationSettings) override;
+    QJsonObject configurationSettings() override;
+    void calibrate() override;
+    bool uncalibrate() override;
+    bool isHeadController() const override { return true; }
+    bool isHeadControllerMounted() const;
 
     bool activate() override;
     void deactivate() override;
@@ -50,20 +60,25 @@ public:
 private:
     class InputDevice : public controller::InputDevice {
     public:
-        InputDevice(vr::IVRSystem*& system) : controller::InputDevice("Vive"), _system(system) { createPreferences(); }
+        InputDevice(vr::IVRSystem*& system);
+        bool isHeadControllerMounted() const { return _overrideHead; }
     private:
         // Device functions
         controller::Input::NamedVector getAvailableInputs() const override;
         QString getDefaultMappingConfig() const override;
         void update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) override;
         void focusOutEvent() override;
-        void createPreferences();
         bool triggerHapticPulse(float strength, float duration, controller::Hand hand) override;
         void hapticsHelper(float deltaTime, bool leftHand);
         void calibrateOrUncalibrate(const controller::InputCalibrationData& inputCalibration);
         void calibrate(const controller::InputCalibrationData& inputCalibration);
         void uncalibrate();
+        void sendUserActivityData(QString activity);
+        void configureCalibrationSettings(const QJsonObject configurationSettings);
+        QJsonObject configurationSettings();
         controller::Pose addOffsetToPuckPose(int joint) const;
+        glm::mat4 calculateDefaultToReferenceForHeadPuck(const controller::InputCalibrationData& inputCalibration);
+        glm::mat4 calculateDefaultToReferenceForHmd(const controller::InputCalibrationData& inputCalibration);
         void updateCalibratedLimbs();
         bool checkForCalibrationEvent();
         void handleHandController(float deltaTime, uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData, bool isLeftHand);
@@ -76,6 +91,25 @@ private:
         void handleHeadPoseEvent(const controller::InputCalibrationData& inputCalibrationData, const mat4& mat, const vec3& linearVelocity,
                                  const vec3& angularVelocity);
         void partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPsuedoButton, int xPseudoButton, int yPseudoButton);
+        void printDeviceTrackingResultChange(uint32_t deviceIndex);
+        void setConfigFromString(const QString& value);
+        bool configureHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        bool configureHands(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        bool configureBody(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateLeftHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair);
+        void calibrateRightHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair);
+        void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateFoot(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& footPair, bool isLeftFoot);
+        void calibrateHips(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateChest(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
+                                int firstShoulderIndex, int secondShoulderIndex);
+        void calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateFromHandController(const controller::InputCalibrationData& inputCalibrationData);
+        void calibrateFromUI(const controller::InputCalibrationData& inputCalibrationData);
+        void emitCalibrationStatus();
+        void calibrateNextFrame();
+
 
         class FilteredStick {
         public:
@@ -100,15 +134,37 @@ private:
             float _timer { 0.0f };
             glm::vec2 _stick { 0.0f, 0.0f };
         };
-        enum class Config { Feet, FeetAndHips, FeetHipsAndChest, Auto };
-        Config _config { Config::Auto };
-        Config _preferedConfig { Config::Auto };
+        enum class Config {
+            None,
+            Feet,
+            FeetAndHips,
+            FeetHipsAndChest,
+            FeetHipsAndShoulders,
+            FeetHipsChestAndShoulders
+        };
+
+        enum class HeadConfig {
+            HMD,
+            Puck
+        };
+
+        enum class HandConfig {
+            HandController,
+            Pucks
+        };
+
+        Config _config { Config::None };
+        Config _preferedConfig { Config::None };
+        HeadConfig _headConfig { HeadConfig::HMD };
+        HandConfig _handConfig { HandConfig::HandController };
         FilteredStick _filteredLeftStick;
         FilteredStick _filteredRightStick;
 
-        std::vector<std::pair<uint32_t, controller::Pose>> _validTrackedObjects;
+        std::vector<PuckPosePair> _validTrackedObjects;
         std::map<uint32_t, glm::mat4> _pucksOffset;
         std::map<int, uint32_t> _jointToPuckMap;
+        std::map<Config, QString> _configStringMap;
+        PoseData _lastSimPoseData;
         // perform an action when the InputDevice mutex is acquired.
         using Locker = std::unique_lock<std::recursive_mutex>;
         template <typename F>
@@ -116,27 +172,34 @@ private:
 
         int _trackedControllers { 0 };
         vr::IVRSystem*& _system;
-        quint64 _timeTilCalibration { 0.0f };
+        quint64 _timeTilCalibration { 0 };
         float _leftHapticStrength { 0.0f };
         float _leftHapticDuration { 0.0f };
         float _rightHapticStrength { 0.0f };
         float _rightHapticDuration { 0.0f };
+        float _headPuckYOffset { -0.05f };
+        float _headPuckZOffset { -0.05f };
+        float _handPuckYOffset { 0.0f };
+        float _handPuckZOffset { 0.0f };
         bool _triggersPressedHandled { false };
         bool _calibrated { false };
         bool _timeTilCalibrationSet { false };
+        bool _calibrate { false };
+        bool _overrideHead { false };
+        bool _overrideHands { false };
         mutable std::recursive_mutex _lock;
 
-        QString configToString();
-        void setConfigFromString(const QString& value);
-        void loadSettings();
-        void saveSettings() const;
+        QString configToString(Config config);
         friend class ViveControllerManager;
     };
 
     void renderHand(const controller::Pose& pose, gpu::Batch& batch, int sign);
-
+    bool isDesktopMode();
     bool _registeredWithInputMapper { false };
     bool _modelLoaded { false };
+    bool _resetMatCalculated { false };
+    bool _desktopMode { false };
+    glm::mat4 _resetMat { glm::mat4() };
     model::Geometry _modelGeometry;
     gpu::TexturePointer _texture;
 

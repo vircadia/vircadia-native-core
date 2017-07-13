@@ -49,7 +49,7 @@ const mat4 Matrices::Z_180 { createMatFromQuatAndPos(Quaternions::Z_180, Vectors
 glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float proportion) {
     float cosa = q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w;
     float ox = q2.x, oy = q2.y, oz = q2.z, ow = q2.w, s0, s1;
-    
+
     // adjust signs if necessary
     if (cosa < 0.0f) {
         cosa = -cosa;
@@ -58,19 +58,19 @@ glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float proportion) {
         oz = -oz;
         ow = -ow;
     }
-    
+
     // calculate coefficients; if the angle is too close to zero, we must fall back
     // to linear interpolation
     if ((1.0f - cosa) > EPSILON) {
         float angle = acosf(cosa), sina = sinf(angle);
         s0 = sinf((1.0f - proportion) * angle) / sina;
         s1 = sinf(proportion * angle) / sina;
-        
+
     } else {
         s0 = 1.0f - proportion;
         s1 = proportion;
     }
-    
+
     return glm::normalize(glm::quat(s0 * q1.w + s1 * ow, s0 * q1.x + s1 * ox, s0 * q1.y + s1 * oy, s0 * q1.z + s1 * oz));
 }
 
@@ -105,10 +105,10 @@ int unpackFloatVec3FromSignedTwoByteFixed(const unsigned char* sourceBuffer, glm
 
 int packFloatAngleToTwoByte(unsigned char* buffer, float degrees) {
     const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0f);
-    
+
     uint16_t angleHolder = floorf((degrees + 180.0f) * ANGLE_CONVERSION_RATIO);
     memcpy(buffer, &angleHolder, sizeof(uint16_t));
-    
+
     return sizeof(uint16_t);
 }
 
@@ -125,7 +125,7 @@ int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput
     quatParts[1] = floorf((quatNormalized.y + 1.0f) * QUAT_PART_CONVERSION_RATIO);
     quatParts[2] = floorf((quatNormalized.z + 1.0f) * QUAT_PART_CONVERSION_RATIO);
     quatParts[3] = floorf((quatNormalized.w + 1.0f) * QUAT_PART_CONVERSION_RATIO);
-    
+
     memcpy(buffer, &quatParts, sizeof(quatParts));
     return sizeof(quatParts);
 }
@@ -133,12 +133,12 @@ int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput
 int unpackOrientationQuatFromBytes(const unsigned char* buffer, glm::quat& quatOutput) {
     uint16_t quatParts[4];
     memcpy(&quatParts, buffer, sizeof(quatParts));
-    
+
     quatOutput.x = ((quatParts[0] / (float) std::numeric_limits<uint16_t>::max()) * 2.0f) - 1.0f;
     quatOutput.y = ((quatParts[1] / (float) std::numeric_limits<uint16_t>::max()) * 2.0f) - 1.0f;
     quatOutput.z = ((quatParts[2] / (float) std::numeric_limits<uint16_t>::max()) * 2.0f) - 1.0f;
     quatOutput.w = ((quatParts[3] / (float) std::numeric_limits<uint16_t>::max()) * 2.0f) - 1.0f;
-    
+
     return sizeof(quatParts);
 }
 
@@ -235,7 +235,7 @@ glm::vec3 safeEulerAngles(const glm::quat& q) {
                                atan2f(q.y * q.z + q.x * q.w, 0.5f - (q.x * q.x + q.y * q.y)),
                                asinf(sy),
                                atan2f(q.x * q.y + q.z * q.w, 0.5f - (q.y * q.y + q.z * q.z)));
-            
+
         } else {
             // not a unique solution; x + z = atan2(-m21, m11)
             eulers = glm::vec3(
@@ -250,7 +250,7 @@ glm::vec3 safeEulerAngles(const glm::quat& q) {
                            PI_OVER_TWO,
                            -atan2f(q.x * q.w - q.y * q.z, 0.5f - (q.x * q.x + q.z * q.z)));
     }
-    
+
     // adjust so that z, rather than y, is in [-pi/2, pi/2]
     if (eulers.z < -PI_OVER_TWO) {
         if (eulers.x < 0.0f) {
@@ -265,7 +265,7 @@ glm::vec3 safeEulerAngles(const glm::quat& q) {
             eulers.y -= PI;
         }
         eulers.z += PI;
-        
+
     } else if (eulers.z > PI_OVER_TWO) {
         if (eulers.x < 0.0f) {
             eulers.x += PI;
@@ -320,7 +320,7 @@ glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
         for (int i = 0; i < 10; i++) {
             // store the results of the previous iteration
             glm::mat3 previous = upper;
-            
+
             // compute average of the matrix with its inverse transpose
             float sd00 = previous[1][1] * previous[2][2] - previous[2][1] * previous[1][2];
             float sd10 = previous[0][1] * previous[2][2] - previous[2][1] * previous[0][2];
@@ -334,15 +334,15 @@ glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
             upper[0][0] = +sd00 * hrdet + previous[0][0] * 0.5f;
             upper[1][0] = -sd10 * hrdet + previous[1][0] * 0.5f;
             upper[2][0] = +sd20 * hrdet + previous[2][0] * 0.5f;
-            
+
             upper[0][1] = -(previous[1][0] * previous[2][2] - previous[2][0] * previous[1][2]) * hrdet + previous[0][1] * 0.5f;
             upper[1][1] = +(previous[0][0] * previous[2][2] - previous[2][0] * previous[0][2]) * hrdet + previous[1][1] * 0.5f;
             upper[2][1] = -(previous[0][0] * previous[1][2] - previous[1][0] * previous[0][2]) * hrdet + previous[2][1] * 0.5f;
-            
+
             upper[0][2] = +(previous[1][0] * previous[2][1] - previous[2][0] * previous[1][1]) * hrdet + previous[0][2] * 0.5f;
             upper[1][2] = -(previous[0][0] * previous[2][1] - previous[2][0] * previous[0][1]) * hrdet + previous[1][2] * 0.5f;
             upper[2][2] = +(previous[0][0] * previous[1][1] - previous[1][0] * previous[0][1]) * hrdet + previous[2][2] * 0.5f;
-            
+
             // compute the difference; if it's small enough, we're done
             glm::mat3 diff = upper - previous;
             if (diff[0][0] * diff[0][0] + diff[1][0] * diff[1][0] + diff[2][0] * diff[2][0] + diff[0][1] * diff[0][1] +
@@ -352,7 +352,7 @@ glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
             }
         }
     }
-    
+
     // now that we have a nice orthogonal matrix, we can extract the rotation quaternion
     // using the method described in http://en.wikipedia.org/wiki/Rotation_matrix#Conversions
     float x2 = fabs(1.0f + upper[0][0] - upper[1][1] - upper[2][2]);
@@ -473,7 +473,7 @@ glm::mat4 createMatFromScaleQuatAndPos(const glm::vec3& scale, const glm::quat& 
                      glm::vec4(zAxis, 0.0f), glm::vec4(trans, 1.0f));
 }
 
-// cancel out roll 
+// cancel out roll
 glm::quat cancelOutRoll(const glm::quat& q) {
     glm::vec3 forward = q * Vectors::FRONT;
     return glm::quat_cast(glm::inverse(glm::lookAt(Vectors::ZERO, forward, Vectors::UP)));
@@ -538,17 +538,16 @@ void generateBasisVectors(const glm::vec3& primaryAxis, const glm::vec3& seconda
     uAxisOut = glm::normalize(primaryAxis);
     glm::vec3 normSecondary = glm::normalize(secondaryAxis);
 
-    // if secondaryAxis is parallel with the primaryAxis, pick another axis.
+    // if normSecondary is parallel with the primaryAxis, pick another secondary.
     const float EPSILON = 1.0e-4f;
-    if (fabsf(fabsf(glm::dot(uAxisOut, secondaryAxis)) - 1.0f) > EPSILON) {
-        // pick a better secondaryAxis.
-        normSecondary = glm::vec3(1.0f, 0.0f, 0.0f);
-        if (fabsf(fabsf(glm::dot(uAxisOut, secondaryAxis)) - 1.0f) > EPSILON) {
-            normSecondary = glm::vec3(0.0f, 1.0f, 0.0f);
+    if (fabsf(fabsf(glm::dot(uAxisOut, normSecondary)) - 1.0f) < EPSILON) {
+        normSecondary = Vectors::UNIT_X;
+        if (fabsf(fabsf(glm::dot(uAxisOut, normSecondary)) - 1.0f) < EPSILON) {
+            normSecondary = Vectors::UNIT_Y;
         }
     }
 
-    wAxisOut = glm::normalize(glm::cross(uAxisOut, secondaryAxis));
+    wAxisOut = glm::normalize(glm::cross(uAxisOut, normSecondary));
     vAxisOut = glm::cross(wAxisOut, uAxisOut);
 }
 

@@ -12,21 +12,16 @@
 #ifndef hifi_SandboxUtils_h
 #define hifi_SandboxUtils_h
 
-#include <functional>
-#include <QtCore/QObject>
+#include <QtCore/QString>
 
+class QNetworkReply;
 
-const QString SANDBOX_STATUS_URL = "http://localhost:60332/status";
+namespace SandboxUtils {
+    const QString SANDBOX_STATUS_URL = "http://localhost:60332/status";
 
-class SandboxUtils : public QObject {
-    Q_OBJECT
-public:
-    /// determines if the local sandbox is likely running. It does not account for custom setups, and is only 
-    /// intended to detect the standard local sandbox install.
-    void ifLocalSandboxRunningElse(std::function<void()> localSandboxRunningDoThis,
-                                   std::function<void()> localSandboxNotRunningDoThat);
-
-    static void runLocalSandbox(QString contentPath, bool autoShutdown, QString runningMarkerName, bool noUpdater);
+    QNetworkReply* getStatus();
+    bool readStatus(QByteArray statusData);
+    void runLocalSandbox(QString contentPath, bool autoShutdown, bool noUpdater);
 };
 
 #endif // hifi_SandboxUtils_h

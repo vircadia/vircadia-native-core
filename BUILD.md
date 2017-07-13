@@ -1,4 +1,4 @@
-###Dependencies
+### Dependencies
 
 * [cmake](https://cmake.org/download/) ~> 3.3.2
 * [Qt](https://www.qt.io/download-open-source) ~> 5.6.2
@@ -6,7 +6,7 @@
   * IMPORTANT: Use the latest available version of OpenSSL to avoid security vulnerabilities.
 * [VHACD](https://github.com/virneo/v-hacd)(clone this repository)(Optional)
 
-####CMake External Project Dependencies
+#### CMake External Project Dependencies
 
 * [boostconfig](https://github.com/boostorg/config) ~> 1.58
 * [Bullet Physics Engine](https://github.com/bulletphysics/bullet3/releases) ~> 2.83
@@ -30,16 +30,19 @@ These are not placed in your normal build tree when doing an out of source build
 
 If you would like to use a specific install of a dependency instead of the version that would be grabbed as a CMake ExternalProject, you can pass -DUSE_LOCAL_$NAME=0 (where $NAME is the name of the subfolder in [cmake/externals](cmake/externals)) when you run CMake to tell it not to get that dependency as an external project.
 
-###OS Specific Build Guides
+### OS Specific Build Guides
+
 * [BUILD_OSX.md](BUILD_OSX.md) - additional instructions for OS X.
 * [BUILD_LINUX.md](BUILD_LINUX.md) - additional instructions for Linux.
 * [BUILD_WIN.md](BUILD_WIN.md) - additional instructions for Windows.
 * [BUILD_ANDROID.md](BUILD_ANDROID.md) - additional instructions for Android
 
-###CMake
+### CMake
+
 Hifi uses CMake to generate build files and project files for your platform.
 
-####Qt
+#### Qt
+
 In order for CMake to find the Qt5 find modules, you will need to set a QT_CMAKE_PREFIX_PATH environment variable pointing to your Qt installation.
 
 This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).
@@ -50,7 +53,8 @@ The path it needs to be set to will depend on where and how Qt5 was installed. e
     export QT_CMAKE_PREFIX_PATH=/usr/local/Cellar/qt5/5.6.2/lib/cmake
     export QT_CMAKE_PREFIX_PATH=/usr/local/opt/qt5/lib/cmake
 
-####Generating build files
+#### Generating build files
+
 Create a build directory in the root of your checkout and then run the CMake build from there. This will keep the rest of the directory clean.
 
     mkdir build
@@ -59,14 +63,15 @@ Create a build directory in the root of your checkout and then run the CMake bui
 
 If cmake gives you the same error message repeatedly after the build fails (e.g. you had a typo in the QT_CMAKE_PREFIX_PATH that you fixed but the `.cmake` files still cannot be found), try removing `CMakeCache.txt`.
 
-####Variables
+#### Variables
+
 Any variables that need to be set for CMake to find dependencies can be set as ENV variables in your shell profile, or passed directly to CMake with a `-D` flag appended to the `cmake ..` command.
 
 For example, to pass the QT_CMAKE_PREFIX_PATH variable during build file generation:
 
     cmake .. -DQT_CMAKE_PREFIX_PATH=/usr/local/qt/5.6.2/lib/cmake
 
-####Finding Dependencies
+#### Finding Dependencies
 
 The following applies for dependencies we do not grab via CMake ExternalProject (OpenSSL is an example), or for dependencies you have opted not to grab as a CMake ExternalProject (via -DUSE_LOCAL_$NAME=0). The list of dependencies we grab by default as external projects can be found in [the CMake External Project Dependencies section](#cmake-external-project-dependencies).
 
@@ -78,8 +83,8 @@ In the examples below the variable $NAME would be replaced by the name of the de
 * $NAME_ROOT_DIR - set this variable in your ENV
 * HIFI_LIB_DIR - set this variable in your ENV to your High Fidelity lib folder, should contain a folder '$name'
 
-###Optional Components
+### Optional Components
 
-####Devices
+#### Devices
 
 You can support external input/output devices such as Leap Motion, MIDI, and more by adding each individual SDK in the visible building path. Refer to the readme file available in each device folder in [interface/external/](interface/external) for the detailed explanation of the requirements to use the device.

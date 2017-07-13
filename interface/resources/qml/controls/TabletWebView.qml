@@ -2,7 +2,6 @@ import QtQuick 2.5
 import QtQuick.Controls 1.4
 import QtWebEngine 1.2
 import QtWebChannel 1.0
-import HFTabletWebEngineProfile 1.0
 import "../controls-uit" as HiFiControls
 import "../styles" as HifiStyles
 import "../styles-uit"
@@ -18,7 +17,6 @@ Item {
     property int headerHeight: 70
     property string url
     property string scriptURL
-    property alias eventBridge: eventBridgeWrapper.eventBridge
     property bool keyboardEnabled: false
     property bool keyboardRaised: false
     property bool punctuationMode: false
@@ -136,12 +134,6 @@ Item {
         loadUrl(url);
     }
 
-    QtObject {
-        id: eventBridgeWrapper
-        WebChannel.id: "eventBridgeWrapper"
-        property var eventBridge;
-    }
-    
     WebEngineView {
         id: webview
         objectName: "webEngineView"
@@ -150,10 +142,7 @@ Item {
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height - web.headerHeight : parent.height - web.headerHeight
         anchors.top: buttons.bottom
-        profile: HFTabletWebEngineProfile {
-            id: webviewTabletProfile
-            storageName: "qmlTabletWebEngine"
-        }
+        profile: HFTabletWebEngineProfile;
 
         property string userScriptUrl: ""
 
@@ -186,9 +175,9 @@ Item {
 
         property string newUrl: ""
 
-        webChannel.registeredObjects: [eventBridgeWrapper]
-
         Component.onCompleted: {
+            webChannel.registerObject("eventBridge", eventBridge);
+            webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
             // Ensure the JS from the web-engine makes it to our logging
             webview.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
                 console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
@@ -238,6 +227,8 @@ Item {
         onNewViewRequested: {
             request.openIn(webview);
         }
+
+        HiFiControls.WebSpinner { }
     }
 
     HiFiControls.Keyboard {

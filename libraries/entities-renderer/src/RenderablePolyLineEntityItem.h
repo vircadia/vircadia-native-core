@@ -22,7 +22,7 @@
 #include <QReadWriteLock>
 
 
-class RenderablePolyLineEntityItem : public PolyLineEntityItem {
+class RenderablePolyLineEntityItem : public PolyLineEntityItem, public SimplerRenderableEntitySupport {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     static void createPipeline();

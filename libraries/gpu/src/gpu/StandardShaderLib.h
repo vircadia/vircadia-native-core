@@ -37,6 +37,15 @@ public:
     // Shader draws the unit quad in the full viewport clipPos = ([(-1,-1),(1,1)]) and transform the texcoord = [(0,0),(1,1)] by the model transform.
     static ShaderPointer getDrawViewportQuadTransformTexcoordVS();
 
+    // Shader draw the fed vertex position and transform it by the full model transform stack (Model, View, Proj).
+    // simply output the world pos and the clip pos to the next stage
+    static ShaderPointer getDrawVertexPositionVS();
+    static ShaderPointer getDrawTransformVertexPositionVS();
+
+    // PShader does nothing, no really nothing, but still needed for defining a program triggering rasterization
+    static ShaderPointer getDrawNadaPS();
+
+    static ShaderPointer getDrawWhitePS();
     static ShaderPointer getDrawTexturePS();
     static ShaderPointer getDrawTextureOpaquePS();
     static ShaderPointer getDrawColoredTexturePS();
@@ -51,6 +60,12 @@ protected:
     static ShaderPointer _drawTransformUnitQuadVS;
     static ShaderPointer _drawTexcoordRectTransformUnitQuadVS;
     static ShaderPointer _drawViewportQuadTransformTexcoordVS;
+
+    static ShaderPointer _drawVertexPositionVS;
+    static ShaderPointer _drawTransformVertexPositionVS;
+
+    static ShaderPointer _drawNadaPS;
+    static ShaderPointer _drawWhitePS;
     static ShaderPointer _drawTexturePS;
     static ShaderPointer _drawTextureOpaquePS;
     static ShaderPointer _drawColoredTexturePS;

@@ -28,7 +28,7 @@ class SkeletonModel : public CauterizedModel {
 
 public:
 
-    SkeletonModel(Avatar* owningAvatar, QObject* parent = nullptr, RigPointer rig = nullptr);
+    SkeletonModel(Avatar* owningAvatar, QObject* parent = nullptr);
     ~SkeletonModel();
 
     void initJointStates() override;
@@ -96,7 +96,7 @@ public:
     /// \return whether or not the head was found.
     glm::vec3 getDefaultEyeModelPosition() const;
 
-    void renderBoundingCollisionShapes(gpu::Batch& batch, float scale, float alpha);
+    void renderBoundingCollisionShapes(RenderArgs* args, gpu::Batch& batch, float scale, float alpha);
     float getBoundingCapsuleRadius() const { return _boundingCapsuleRadius; }
     float getBoundingCapsuleHeight() const { return _boundingCapsuleHeight; }
     const glm::vec3 getBoundingCapsuleOffset() const { return _boundingCapsuleLocalOffset; }

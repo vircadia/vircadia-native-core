@@ -47,8 +47,8 @@
 
 namespace controller {
     const uint16_t UserInputMapper::STANDARD_DEVICE = 0;
-    const uint16_t UserInputMapper::ACTIONS_DEVICE = Input::INVALID_DEVICE - 0x00FF;
-    const uint16_t UserInputMapper::STATE_DEVICE = Input::INVALID_DEVICE - 0x0100;
+    const uint16_t UserInputMapper::ACTIONS_DEVICE = Input::invalidInput().device - 0x00FF;
+    const uint16_t UserInputMapper::STATE_DEVICE = Input::invalidInput().device - 0x0100;
 }
 
 // Default contruct allocate the poutput size with the current hardcoded action channels
@@ -328,6 +328,16 @@ QString UserInputMapper::getActionName(Action action) const {
     }
     return QString();
 }
+
+QString UserInputMapper::getStandardPoseName(uint16_t pose) {
+    Locker locker(_lock);
+    for (auto posePair : getStandardInputs()) {
+        if (posePair.first.channel == pose && posePair.first.getType() == ChannelType::POSE) {
+            return posePair.second;
+        }
+    }
+    return QString();
+}    
 
 QVector<QString> UserInputMapper::getActionNames() const {
     Locker locker(_lock);

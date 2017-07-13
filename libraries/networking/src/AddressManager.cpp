@@ -30,9 +30,9 @@
 #include "udt/PacketHeaders.h"
 
 #if USE_STABLE_GLOBAL_SERVICES
-const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome";
+const QString DEFAULT_HIFI_ADDRESS = "hifi://welcome/hello";
 #else
-const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome";
+const QString DEFAULT_HIFI_ADDRESS = "hifi://dev-welcome/hello";
 #endif
 
 const QString ADDRESS_MANAGER_SETTINGS_GROUP = "AddressManager";
@@ -136,7 +136,13 @@ void AddressManager::goForward() {
 }
 
 void AddressManager::storeCurrentAddress() {
-    currentAddressHandle.set(currentAddress());
+    auto url = currentAddress();
+    
+    if (!url.host().isEmpty()) {
+        currentAddressHandle.set(url);
+    } else {
+        qCWarning(networking) << "Ignoring attempt to save current address with an empty host" << url;
+    }
 }
 
 QString AddressManager::currentPath(bool withOrientation) const {
@@ -312,6 +318,9 @@ const QString DATA_OBJECT_DOMAIN_KEY = "domain";
 void AddressManager::handleAPIResponse(QNetworkReply& requestReply) {
     QJsonObject responseObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     QJsonObject dataObject = responseObject["data"].toObject();
+
+    // Lookup succeeded, don't keep re-trying it (especially on server restarts)
+    _previousLookup.clear();
 
     if (!dataObject.isEmpty()) {
         goToAddressFromObject(dataObject.toVariantMap(), requestReply);
@@ -739,6 +748,8 @@ void AddressManager::refreshPreviousLookup() {
     // if we have a non-empty previous lookup, fire it again now (but don't re-store it in the history)
     if (!_previousLookup.isEmpty()) {
         handleUrl(_previousLookup, LookupTrigger::AttemptedRefresh);
+    } else {
+        handleUrl(currentAddress(), LookupTrigger::AttemptedRefresh);
     }
 }
 

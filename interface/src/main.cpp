@@ -11,6 +11,7 @@
 #include <thread>
 
 #include <QCommandLineParser>
+#include <QtCore/QProcess>
 #include <QDebug>
 #include <QDir>
 #include <QLocalSocket>
@@ -20,15 +21,15 @@
 
 #include <BuildInfo.h>
 #include <gl/OpenGLVersionChecker.h>
+#include <SandboxUtils.h>
 #include <SharedUtil.h>
-
+#include <NetworkAccessManager.h>
 
 #include "AddressManager.h"
 #include "Application.h"
 #include "InterfaceLogging.h"
 #include "UserActivityLogger.h"
 #include "MainWindow.h"
-#include <QtCore/QProcess>
 
 #ifdef HAS_BUGSPLAT
 #include <BugSplat.h>
@@ -50,52 +51,64 @@ int main(int argc, const char* argv[]) {
 
     disableQtBearerPoll(); // Fixes wifi ping spikes
 
+    QElapsedTimer startupTime;
+    startupTime.start();
+
     // Set application infos
     QCoreApplication::setApplicationName(BuildInfo::INTERFACE_NAME);
     QCoreApplication::setOrganizationName(BuildInfo::MODIFIED_ORGANIZATION);
     QCoreApplication::setOrganizationDomain(BuildInfo::ORGANIZATION_DOMAIN);
     QCoreApplication::setApplicationVersion(BuildInfo::VERSION);
 
-    const QString& applicationName = getInterfaceSharedMemoryName();
-
-    bool instanceMightBeRunning = true;
-
     QStringList arguments;
     for (int i = 0; i < argc; ++i) {
         arguments << argv[i];
     }
 
-
-#ifdef Q_OS_WIN
-    // Try to create a shared memory block - if it can't be created, there is an instance of
-    // interface already running. We only do this on Windows for now because of the potential
-    // for crashed instances to leave behind shared memory instances on unix.
-    QSharedMemory sharedMemory { applicationName };
-    instanceMightBeRunning = !sharedMemory.create(1, QSharedMemory::ReadOnly);
-#endif
-
-    // allow multiple interfaces to run if this environment variable is set.
-    if (QProcessEnvironment::systemEnvironment().contains("HIFI_ALLOW_MULTIPLE_INSTANCES")) {
-        instanceMightBeRunning = false;
-    }
-
     QCommandLineParser parser;
+    QCommandLineOption urlOption("url", "", "value");
+    QCommandLineOption noUpdaterOption("no-updater", "Do not show auto-updater");
     QCommandLineOption checkMinSpecOption("checkMinSpec", "Check if machine meets minimum specifications");
     QCommandLineOption runServerOption("runServer", "Whether to run the server");
     QCommandLineOption serverContentPathOption("serverContentPath", "Where to find server content", "serverContentPath");
     QCommandLineOption allowMultipleInstancesOption("allowMultipleInstances", "Allow multiple instances to run");
+    QCommandLineOption overrideAppLocalDataPathOption("cache", "set test cache <dir>", "dir");
+    QCommandLineOption overrideScriptsPathOption(SCRIPTS_SWITCH, "set scripts <path>", "path");
+    parser.addOption(urlOption);
+    parser.addOption(noUpdaterOption);
     parser.addOption(checkMinSpecOption);
     parser.addOption(runServerOption);
     parser.addOption(serverContentPathOption);
+    parser.addOption(overrideAppLocalDataPathOption);
+    parser.addOption(overrideScriptsPathOption);
     parser.addOption(allowMultipleInstancesOption);
     parser.parse(arguments);
-    bool runServer = parser.isSet(runServerOption);
-    bool serverContentPathOptionIsSet = parser.isSet(serverContentPathOption);
-    QString serverContentPathOptionValue = serverContentPathOptionIsSet ? parser.value(serverContentPathOption) : QString();
-    bool allowMultipleInstances = parser.isSet(allowMultipleInstancesOption);
 
+
+    const QString& applicationName = getInterfaceSharedMemoryName();
+    bool instanceMightBeRunning = true;
+#ifdef Q_OS_WIN
+    // Try to create a shared memory block - if it can't be created, there is an instance of
+    // interface already running. We only do this on Windows for now because of the potential
+    // for crashed instances to leave behind shared memory instances on unix.
+    QSharedMemory sharedMemory{ applicationName };
+    instanceMightBeRunning = !sharedMemory.create(1, QSharedMemory::ReadOnly);
+#endif
+
+    // allow multiple interfaces to run if this environment variable is set.
+    bool allowMultipleInstances = parser.isSet(allowMultipleInstancesOption) ||
+                                  QProcessEnvironment::systemEnvironment().contains("HIFI_ALLOW_MULTIPLE_INSTANCES");
     if (allowMultipleInstances) {
         instanceMightBeRunning = false;
+    }
+    // this needs to be done here in main, as the mechanism for setting the
+    // scripts directory appears not to work.  See the bug report
+    // https://highfidelity.fogbugz.com/f/cases/5759/Issues-changing-scripts-directory-in-ScriptsEngine
+    if (parser.isSet(overrideScriptsPathOption)) {
+        QDir scriptsPath(parser.value(overrideScriptsPathOption));
+        if (scriptsPath.exists()) {
+            PathUtils::defaultScriptsLocation(scriptsPath.path());
+        }
     }
 
     if (instanceMightBeRunning) {
@@ -108,11 +121,6 @@ int main(int argc, const char* argv[]) {
 
         // Try to connect - if we can't connect, interface has probably just gone down
         if (socket.waitForConnected(LOCAL_SERVER_TIMEOUT_MS)) {
-            QCommandLineParser parser;
-            QCommandLineOption urlOption("url", "", "value");
-            parser.addOption(urlOption);
-            parser.process(arguments);
-
             if (parser.isSet(urlOption)) {
                 QUrl url = QUrl(parser.value(urlOption));
                 if (url.isValid() && url.scheme() == HIFI_URL_SCHEME) {
@@ -156,9 +164,6 @@ int main(int argc, const char* argv[]) {
         }
     }
 
-    QElapsedTimer startupTime;
-    startupTime.start();
-
     // Debug option to demonstrate that the client's local time does not
     // need to be in sync with any other network node. This forces clock
     // skew for the individual client
@@ -188,7 +193,7 @@ int main(int argc, const char* argv[]) {
         QString openvrDllPath = appPath + "/plugins/openvr.dll";
         HMODULE openvrDll;
         CHECKMINSPECPROC checkMinSpecPtr;
-        if ((openvrDll = LoadLibrary(openvrDllPath.toLocal8Bit().data())) && 
+        if ((openvrDll = LoadLibrary(openvrDllPath.toLocal8Bit().data())) &&
             (checkMinSpecPtr = (CHECKMINSPECPROC)GetProcAddress(openvrDll, "CheckMinSpec"))) {
             if (!checkMinSpecPtr()) {
                 return -1;
@@ -199,7 +204,19 @@ int main(int argc, const char* argv[]) {
 
     int exitCode;
     {
-        Application app(argc, const_cast<char**>(argv), startupTime, runServer, serverContentPathOptionValue);
+        RunningMarker runningMarker(RUNNING_MARKER_FILENAME);
+        bool runningMarkerExisted = runningMarker.fileExists();
+        runningMarker.writeRunningMarkerFile();
+
+        bool noUpdater = parser.isSet(noUpdaterOption);
+        bool runServer = parser.isSet(runServerOption);
+        bool serverContentPathOptionIsSet = parser.isSet(serverContentPathOption);
+        QString serverContentPath = serverContentPathOptionIsSet ? parser.value(serverContentPathOption) : QString();
+        if (runServer) {
+            SandboxUtils::runLocalSandbox(serverContentPath, true, noUpdater);
+        }
+
+        Application app(argc, const_cast<char**>(argv), startupTime, runningMarkerExisted);
 
         // If we failed the OpenGLVersion check, log it.
         if (override) {

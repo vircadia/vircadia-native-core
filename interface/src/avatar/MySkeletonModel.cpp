@@ -13,7 +13,7 @@
 #include "Application.h"
 #include "InterfaceLogging.h"
 
-MySkeletonModel::MySkeletonModel(Avatar* owningAvatar, QObject* parent, RigPointer rig) : SkeletonModel(owningAvatar, parent, rig) {
+MySkeletonModel::MySkeletonModel(Avatar* owningAvatar, QObject* parent) : SkeletonModel(owningAvatar, parent) {
 }
 
 Rig::CharacterControllerState convertCharacterControllerState(CharacterController::State state) {
@@ -47,105 +47,120 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
 
     MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
 
-    Rig::HeadParameters headParams;
+    Rig::ControllerParameters params;
+
+    AnimPose avatarToRigPose(glm::vec3(1.0f), Quaternions::Y_180, glm::vec3(0.0f));
 
     // input action is the highest priority source for head orientation.
     auto avatarHeadPose = myAvatar->getHeadControllerPoseInAvatarFrame();
     if (avatarHeadPose.isValid()) {
-        glm::mat4 rigHeadMat = Matrices::Y_180 * createMatFromQuatAndPos(avatarHeadPose.getRotation(), avatarHeadPose.getTranslation());
-        headParams.rigHeadPosition = extractTranslation(rigHeadMat);
-        headParams.rigHeadOrientation = glmExtractRotation(rigHeadMat);
-        headParams.headEnabled = true;
+        AnimPose pose(avatarHeadPose.getRotation(), avatarHeadPose.getTranslation());
+        params.controllerPoses[Rig::ControllerType_Head] = avatarToRigPose * pose;
+        params.controllerActiveFlags[Rig::ControllerType_Head] = true;
     } else {
-        if (qApp->isHMDMode()) {
-            // get HMD position from sensor space into world space, and back into rig space
-            glm::mat4 worldHMDMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-            glm::mat4 rigToWorld = createMatFromQuatAndPos(getRotation(), getTranslation());
-            glm::mat4 worldToRig = glm::inverse(rigToWorld);
-            glm::mat4 rigHMDMat = worldToRig * worldHMDMat;
-            _rig->computeHeadFromHMD(AnimPose(rigHMDMat), headParams.rigHeadPosition, headParams.rigHeadOrientation);
-            headParams.headEnabled = true;
-        } else {
-            // even though full head IK is disabled, the rig still needs the head orientation to rotate the head up and down in desktop mode.
-            // preMult 180 is necessary to convert from avatar to rig coordinates.
-            // postMult 180 is necessary to convert head from -z forward to z forward.
-            headParams.rigHeadOrientation = Quaternions::Y_180 * head->getFinalOrientationInLocalFrame() * Quaternions::Y_180;
-            headParams.headEnabled = false;
-        }
+        // even though full head IK is disabled, the rig still needs the head orientation to rotate the head up and
+        // down in desktop mode.
+        // preMult 180 is necessary to convert from avatar to rig coordinates.
+        // postMult 180 is necessary to convert head from -z forward to z forward.
+        glm::quat headRot = Quaternions::Y_180 * head->getFinalOrientationInLocalFrame() * Quaternions::Y_180;
+        params.controllerPoses[Rig::ControllerType_Head] = AnimPose(glm::vec3(1.0f), headRot, glm::vec3(0.0f));
+        params.controllerActiveFlags[Rig::ControllerType_Head] = false;
     }
 
     auto avatarHipsPose = myAvatar->getHipsControllerPoseInAvatarFrame();
     if (avatarHipsPose.isValid()) {
-        glm::mat4 rigHipsMat = Matrices::Y_180 * createMatFromQuatAndPos(avatarHipsPose.getRotation(), avatarHipsPose.getTranslation());
-        headParams.hipsMatrix = rigHipsMat;
-        headParams.hipsEnabled = true;
+        AnimPose pose(avatarHipsPose.getRotation(), avatarHipsPose.getTranslation());
+        params.controllerPoses[Rig::ControllerType_Hips] = avatarToRigPose * pose;
+        params.controllerActiveFlags[Rig::ControllerType_Hips] = true;
     } else {
-        headParams.hipsEnabled = false;
+        params.controllerPoses[Rig::ControllerType_Hips] = AnimPose::identity;
+        params.controllerActiveFlags[Rig::ControllerType_Hips] = false;
     }
 
     auto avatarSpine2Pose = myAvatar->getSpine2ControllerPoseInAvatarFrame();
     if (avatarSpine2Pose.isValid()) {
-        glm::mat4 rigSpine2Mat = Matrices::Y_180 * createMatFromQuatAndPos(avatarSpine2Pose.getRotation(), avatarSpine2Pose.getTranslation());
-        headParams.spine2Matrix = rigSpine2Mat;
-        headParams.spine2Enabled = true;
+        AnimPose pose(avatarSpine2Pose.getRotation(), avatarSpine2Pose.getTranslation());
+        params.controllerPoses[Rig::ControllerType_Spine2] = avatarToRigPose * pose;
+        params.controllerActiveFlags[Rig::ControllerType_Spine2] = true;
     } else {
-        headParams.spine2Enabled = false;
+        params.controllerPoses[Rig::ControllerType_Spine2] = AnimPose::identity;
+        params.controllerActiveFlags[Rig::ControllerType_Spine2] = false;
     }
 
-    headParams.isTalking = head->getTimeWithoutTalking() <= 1.5f;
-
-    _rig->updateFromHeadParameters(headParams, deltaTime);
-
-    Rig::HandAndFeetParameters handAndFeetParams;
-
-    auto leftPose = myAvatar->getLeftHandControllerPoseInAvatarFrame();
-    if (leftPose.isValid()) {
-        handAndFeetParams.isLeftEnabled = true;
-        handAndFeetParams.leftPosition = Quaternions::Y_180 * leftPose.getTranslation();
-        handAndFeetParams.leftOrientation = Quaternions::Y_180 * leftPose.getRotation();
+    auto avatarRightArmPose = myAvatar->getRightArmControllerPoseInAvatarFrame();
+    if (avatarRightArmPose.isValid()) {
+        AnimPose pose(avatarRightArmPose.getRotation(), avatarRightArmPose.getTranslation());
+        params.controllerPoses[Rig::ControllerType_RightArm] = avatarToRigPose * pose;
+        params.controllerActiveFlags[Rig::ControllerType_RightArm] = true;
     } else {
-        handAndFeetParams.isLeftEnabled = false;
+        params.controllerPoses[Rig::ControllerType_RightArm] = AnimPose::identity;
+        params.controllerActiveFlags[Rig::ControllerType_RightArm] = false;
+    }
+    
+    auto avatarLeftArmPose = myAvatar->getLeftArmControllerPoseInAvatarFrame();
+    if (avatarLeftArmPose.isValid()) {
+        AnimPose pose(avatarLeftArmPose.getRotation(), avatarLeftArmPose.getTranslation());
+        params.controllerPoses[Rig::ControllerType_LeftArm] = avatarToRigPose * pose;
+        params.controllerActiveFlags[Rig::ControllerType_LeftArm] = true;
+    } else {
+        params.controllerPoses[Rig::ControllerType_LeftArm] = AnimPose::identity;
+        params.controllerActiveFlags[Rig::ControllerType_LeftArm] = false;
     }
 
-    auto rightPose = myAvatar->getRightHandControllerPoseInAvatarFrame();
-    if (rightPose.isValid()) {
-        handAndFeetParams.isRightEnabled = true;
-        handAndFeetParams.rightPosition = Quaternions::Y_180 * rightPose.getTranslation();
-        handAndFeetParams.rightOrientation = Quaternions::Y_180 * rightPose.getRotation();
+    auto avatarLeftHandPose = myAvatar->getLeftHandControllerPoseInAvatarFrame();
+    if (avatarLeftHandPose.isValid()) {
+        AnimPose pose(avatarLeftHandPose.getRotation(), avatarLeftHandPose.getTranslation());
+        params.controllerPoses[Rig::ControllerType_LeftHand] = avatarToRigPose * pose;
+        params.controllerActiveFlags[Rig::ControllerType_LeftHand] = true;
     } else {
-        handAndFeetParams.isRightEnabled = false;
+        params.controllerPoses[Rig::ControllerType_LeftHand] = AnimPose::identity;
+        params.controllerActiveFlags[Rig::ControllerType_LeftHand] = false;
     }
 
-    auto leftFootPose = myAvatar->getLeftFootControllerPoseInAvatarFrame();
-    if (leftFootPose.isValid()) {
-        handAndFeetParams.isLeftFootEnabled = true;
-        handAndFeetParams.leftFootPosition = Quaternions::Y_180 * leftFootPose.getTranslation();
-        handAndFeetParams.leftFootOrientation = Quaternions::Y_180 * leftFootPose.getRotation();
+    auto avatarRightHandPose = myAvatar->getRightHandControllerPoseInAvatarFrame();
+    if (avatarRightHandPose.isValid()) {
+        AnimPose pose(avatarRightHandPose.getRotation(), avatarRightHandPose.getTranslation());
+        params.controllerPoses[Rig::ControllerType_RightHand] = avatarToRigPose * pose;
+        params.controllerActiveFlags[Rig::ControllerType_RightHand] = true;
     } else {
-        handAndFeetParams.isLeftFootEnabled = false;
+        params.controllerPoses[Rig::ControllerType_RightHand] = AnimPose::identity;
+        params.controllerActiveFlags[Rig::ControllerType_RightHand] = false;
     }
 
-    auto rightFootPose = myAvatar->getRightFootControllerPoseInAvatarFrame();
-    if (rightFootPose.isValid()) {
-        handAndFeetParams.isRightFootEnabled = true;
-        handAndFeetParams.rightFootPosition = Quaternions::Y_180 * rightFootPose.getTranslation();
-        handAndFeetParams.rightFootOrientation = Quaternions::Y_180 * rightFootPose.getRotation();
+    auto avatarLeftFootPose = myAvatar->getLeftFootControllerPoseInAvatarFrame();
+    if (avatarLeftFootPose.isValid()) {
+        AnimPose pose(avatarLeftFootPose.getRotation(), avatarLeftFootPose.getTranslation());
+        params.controllerPoses[Rig::ControllerType_LeftFoot] = avatarToRigPose * pose;
+        params.controllerActiveFlags[Rig::ControllerType_LeftFoot] = true;
     } else {
-        handAndFeetParams.isRightFootEnabled = false;
+        params.controllerPoses[Rig::ControllerType_LeftFoot] = AnimPose::identity;
+        params.controllerActiveFlags[Rig::ControllerType_LeftFoot] = false;
     }
 
-    handAndFeetParams.bodyCapsuleRadius = myAvatar->getCharacterController()->getCapsuleRadius();
-    handAndFeetParams.bodyCapsuleHalfHeight = myAvatar->getCharacterController()->getCapsuleHalfHeight();
-    handAndFeetParams.bodyCapsuleLocalOffset = myAvatar->getCharacterController()->getCapsuleLocalOffset();
+    auto avatarRightFootPose = myAvatar->getRightFootControllerPoseInAvatarFrame();
+    if (avatarRightFootPose.isValid()) {
+        AnimPose pose(avatarRightFootPose.getRotation(), avatarRightFootPose.getTranslation());
+        params.controllerPoses[Rig::ControllerType_RightFoot] = avatarToRigPose * pose;
+        params.controllerActiveFlags[Rig::ControllerType_RightFoot] = true;
+    } else {
+        params.controllerPoses[Rig::ControllerType_RightFoot] = AnimPose::identity;
+        params.controllerActiveFlags[Rig::ControllerType_RightFoot] = false;
+    }
 
-    _rig->updateFromHandAndFeetParameters(handAndFeetParams, deltaTime);
+    params.bodyCapsuleRadius = myAvatar->getCharacterController()->getCapsuleRadius();
+    params.bodyCapsuleHalfHeight = myAvatar->getCharacterController()->getCapsuleHalfHeight();
+    params.bodyCapsuleLocalOffset = myAvatar->getCharacterController()->getCapsuleLocalOffset();
+
+    params.isTalking = head->getTimeWithoutTalking() <= 1.5f;
+
+    _rig.updateFromControllerParameters(params, deltaTime);
 
     Rig::CharacterControllerState ccState = convertCharacterControllerState(myAvatar->getCharacterController()->getState());
 
     auto velocity = myAvatar->getLocalVelocity();
     auto position = myAvatar->getLocalPosition();
     auto orientation = myAvatar->getLocalOrientation();
-    _rig->computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState);
+    _rig.computeMotionAnimationState(deltaTime, position, velocity, orientation, ccState);
 
     // evaluate AnimGraph animation and update jointStates.
     Model::updateRig(deltaTime, parentTransform);
@@ -158,6 +173,51 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     eyeParams.leftEyeJointIndex = geometry.leftEyeJointIndex;
     eyeParams.rightEyeJointIndex = geometry.rightEyeJointIndex;
 
-    _rig->updateFromEyeParameters(eyeParams);
+    _rig.updateFromEyeParameters(eyeParams);
+
+    updateFingers(myAvatar->getLeftHandFingerControllerPosesInSensorFrame());
+    updateFingers(myAvatar->getRightHandFingerControllerPosesInSensorFrame());
 }
 
+
+void MySkeletonModel::updateFingers(const MyAvatar::FingerPosesMap& fingerPoses) {
+    // Assumes that finger poses are kept in order in the poses map.
+
+    if (fingerPoses.size() == 0) {
+        return;
+}
+
+    auto posesMapItr = fingerPoses.begin();
+
+    bool isLeftHand = posesMapItr->first < (int)controller::Action::RIGHT_HAND_THUMB1;
+
+    MyAvatar* myAvatar = static_cast<MyAvatar*>(_owningAvatar);
+    auto handPose = isLeftHand 
+        ? myAvatar->getLeftHandControllerPoseInSensorFrame() 
+        : myAvatar->getRightHandControllerPoseInSensorFrame();
+    auto handJointRotation = handPose.getRotation();
+
+    bool isHandValid = handPose.isValid();
+    bool isFingerValid = false;
+    glm::quat previousJointRotation;
+
+    while (posesMapItr != fingerPoses.end()) {
+        auto jointName = posesMapItr->second.second;
+        if (isHandValid && jointName.right(1) == "1") {
+            isFingerValid = posesMapItr->second.first.isValid();
+            previousJointRotation = handJointRotation;
+        }
+
+        if (isHandValid && isFingerValid) {
+            auto thisJointRotation = posesMapItr->second.first.getRotation();
+            const float CONTROLLER_PRIORITY = 2.0f;
+            _rig.setJointRotation(_rig.indexOfJoint(jointName), true, glm::inverse(previousJointRotation) * thisJointRotation, 
+                CONTROLLER_PRIORITY);
+            previousJointRotation = thisJointRotation;
+        } else {
+            _rig.clearJointAnimationPriority(_rig.indexOfJoint(jointName));
+        }
+
+        posesMapItr++;
+    }
+}

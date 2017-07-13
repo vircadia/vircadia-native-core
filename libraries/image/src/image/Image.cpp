@@ -344,7 +344,7 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
 
     nvtt::TextureType textureType = nvtt::TextureType_2D;
     nvtt::InputFormat inputFormat = nvtt::InputFormat_BGRA_8UB;
-    nvtt::WrapMode wrapMode = nvtt::WrapMode_Repeat;
+    nvtt::WrapMode wrapMode = nvtt::WrapMode_Mirror;
     nvtt::RoundMode roundMode = nvtt::RoundMode_None;
     nvtt::AlphaMode alphaMode = nvtt::AlphaMode_None;
 
@@ -380,9 +380,13 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
         compressionOptions.setFormat(nvtt::Format_BC4);
     } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_XY) {
         compressionOptions.setFormat(nvtt::Format_BC5);
+    } else if (mipFormat == gpu::Element::COLOR_COMPRESSED_SRGBA_HIGH) {
+        alphaMode = nvtt::AlphaMode_Transparency;
+        compressionOptions.setFormat(nvtt::Format_BC7);
     } else if (mipFormat == gpu::Element::COLOR_RGBA_32) {
         compressionOptions.setFormat(nvtt::Format_RGBA);
         compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
+        compressionOptions.setPitchAlignment(4);
         compressionOptions.setPixelFormat(32,
                                           0x000000FF,
                                           0x0000FF00,
@@ -393,6 +397,7 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
     } else if (mipFormat == gpu::Element::COLOR_BGRA_32) {
         compressionOptions.setFormat(nvtt::Format_RGBA);
         compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
+        compressionOptions.setPitchAlignment(4);
         compressionOptions.setPixelFormat(32,
                                           0x00FF0000,
                                           0x0000FF00,
@@ -403,6 +408,7 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
     } else if (mipFormat == gpu::Element::COLOR_SRGBA_32) {
         compressionOptions.setFormat(nvtt::Format_RGBA);
         compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
+        compressionOptions.setPitchAlignment(4);
         compressionOptions.setPixelFormat(32,
                                           0x000000FF,
                                           0x0000FF00,
@@ -411,6 +417,7 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
     } else if (mipFormat == gpu::Element::COLOR_SBGRA_32) {
         compressionOptions.setFormat(nvtt::Format_RGBA);
         compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
+        compressionOptions.setPitchAlignment(4);
         compressionOptions.setPixelFormat(32,
                                           0x00FF0000,
                                           0x0000FF00,
@@ -419,11 +426,13 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
     } else if (mipFormat == gpu::Element::COLOR_R_8) {
         compressionOptions.setFormat(nvtt::Format_RGB);
         compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
+        compressionOptions.setPitchAlignment(4);
         compressionOptions.setPixelFormat(8, 0, 0, 0);
     } else if (mipFormat == gpu::Element::VEC2NU8_XY) {
         inputOptions.setNormalMap(true);
         compressionOptions.setFormat(nvtt::Format_RGBA);
         compressionOptions.setPixelType(nvtt::PixelType_UnsignedNorm);
+        compressionOptions.setPitchAlignment(4);
         compressionOptions.setPixelFormat(8, 8, 0, 0);
     } else {
         qCWarning(imagelogging) << "Unknown mip format";
@@ -493,7 +502,9 @@ gpu::TexturePointer TextureUsage::process2DTextureColorFromImage(const QImage& s
         gpu::Element formatGPU;
         if (isColorTexturesCompressionEnabled()) {
             if (validAlpha) {
-                formatGPU = alphaAsMask ? gpu::Element::COLOR_COMPRESSED_SRGBA_MASK : gpu::Element::COLOR_COMPRESSED_SRGBA;
+                // NOTE: This disables BC1a compression because it was producing odd artifacts on text textures
+                // for the tutorial. Instead we use BC3 (which is larger) but doesn't produce the same artifacts).
+                formatGPU = gpu::Element::COLOR_COMPRESSED_SRGBA;
             } else {
                 formatGPU = gpu::Element::COLOR_COMPRESSED_SRGB;
             }
@@ -928,8 +939,8 @@ gpu::TexturePointer TextureUsage::processCubeTextureColorFromImage(const QImage&
         gpu::Element formatMip;
         gpu::Element formatGPU;
         if (isCubeTexturesCompressionEnabled()) {
-            formatMip = gpu::Element::COLOR_COMPRESSED_SRGBA;
-            formatGPU = gpu::Element::COLOR_COMPRESSED_SRGBA;
+            formatMip = gpu::Element::COLOR_COMPRESSED_SRGBA_HIGH;
+            formatGPU = gpu::Element::COLOR_COMPRESSED_SRGBA_HIGH;
         } else {
             formatMip = gpu::Element::COLOR_SRGBA_32;
             formatGPU = gpu::Element::COLOR_SRGBA_32;

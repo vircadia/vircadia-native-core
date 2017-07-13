@@ -19,14 +19,13 @@
 
 #include <QtGui/QWindow>
 
-#include <AnimationCache.h> // for Animation, AnimationCache, and AnimationPointer classes
+#include <shared/types/AnimationLoop.h> // for Animation, AnimationCache, and AnimationPointer classes
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
 #include <PhysicsCollisionGroups.h>
 #include <ShapeInfo.h>
 #include <Transform.h>
-#include <Sound.h>
 #include <SpatiallyNestable.h>
 #include <Interpolate.h>
 
@@ -51,10 +50,6 @@ typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
 using EntityTreeElementExtraEncodeDataPointer = std::shared_ptr<EntityTreeElementExtraEncodeData>;
 
 
-namespace render {
-    class Scene;
-    class Transaction;
-}
 
 #define DONT_ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() = 0;
 #define ALLOW_INSTANTIATION virtual void pureVirtualFunctionPlaceHolder() override { };
@@ -64,6 +59,8 @@ namespace render {
 #define debugTreeVector(V) V << "[" << V << " in meters ]"
 
 class MeshProxyList;
+
+class RenderableEntityInterface;
 
 
 /// EntityItem class this is the base class for all entity types. It handles the basic properties and functionality available
@@ -82,6 +79,8 @@ public:
 
     EntityItem(const EntityItemID& entityItemID);
     virtual ~EntityItem();
+
+    virtual RenderableEntityInterface* getRenderableInterface() { return nullptr; }
 
     inline EntityItemPointer getThisPointer() const {
         return std::static_pointer_cast<EntityItem>(std::const_pointer_cast<SpatiallyNestable>(shared_from_this()));
@@ -150,13 +149,6 @@ public:
                                                 EntityPropertyFlags& propertyFlags, bool overwriteLocalData,
                                                 bool& somethingChanged)
                                                 { somethingChanged = false; return 0; }
-
-    virtual bool addToScene(EntityItemPointer self, const render::ScenePointer& scene,
-                            render::Transaction& transaction) { return false; } // by default entity items don't add to scene
-    virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene,
-                                render::Transaction& transaction) { } // by default entity items don't add to scene
-    virtual void render(RenderArgs* args) { } // by default entity items don't know how to render
-
     static int expectedBytes();
 
     static void adjustEditPacketForClockSkew(QByteArray& buffer, qint64 clockSkew);
@@ -187,7 +179,7 @@ public:
 
     const Transform getTransformToCenter(bool& success) const;
 
-    inline void requiresRecalcBoxes();
+    void requiresRecalcBoxes();
 
     // Hyperlink related getters and setters
     QString getHref() const;
@@ -267,9 +259,6 @@ public:
     QString getCollisionSoundURL() const;
     void setCollisionSoundURL(const QString& value);
 
-    SharedSoundPointer getCollisionSound();
-    void setCollisionSound(SharedSoundPointer sound);
-
     glm::vec3 getRegistrationPoint() const; /// registration point as ratio of entity
 
     /// registration point as ratio of entity
@@ -305,6 +294,7 @@ public:
 
     bool getLocked() const;
     void setLocked(bool value);
+    void updateLocked(bool value);
 
     QString getUserData() const;
     virtual void setUserData(const QString& value);
@@ -320,6 +310,7 @@ public:
     void updateSimulationOwner(const SimulationOwner& owner);
     void clearSimulationOwnership();
     void setPendingOwnershipPriority(quint8 priority, const quint64& timestamp);
+    uint8_t getPendingOwnershipPriority() const { return _simulationOwner.getPendingPriority(); }
     void rememberHasSimulationOwnershipBid() const;
 
     QString getMarketplaceID() const;
@@ -393,8 +384,7 @@ public:
 
     void getAllTerseUpdateProperties(EntityItemProperties& properties) const;
 
-    void pokeSimulationOwnership();
-    void grabSimulationOwnership();
+    void flagForOwnershipBid(uint8_t priority);
     void flagForMotionStateChange() { _dirtyFlags |= Simulation::DIRTY_MOTION_TYPE; }
 
     QString actionsToDebugString();
@@ -475,6 +465,8 @@ public:
 
     virtual bool getMeshes(MeshProxyList& result) { return true; }
 
+    virtual void locationChanged(bool tellPhysics = true) override;
+
 protected:
 
     void setSimulated(bool simulated) { _simulated = simulated; }
@@ -482,7 +474,6 @@ protected:
     const QByteArray getDynamicDataInternal() const;
     void setDynamicDataInternal(QByteArray dynamicData);
 
-    virtual void locationChanged(bool tellPhysics = true) override;
     virtual void dimensionsChanged() override;
 
     EntityTypes::EntityType _type;
@@ -531,7 +522,6 @@ protected:
     quint64 _loadedScriptTimestamp { ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP + 1 };
 
     QString _collisionSoundURL;
-    SharedSoundPointer _collisionSound;
     glm::vec3 _registrationPoint;
     float _angularDamping;
     bool _visible;

@@ -16,7 +16,14 @@
 
 #include "AvatarMixerClientData.h"
 
+AvatarMixerClientData::AvatarMixerClientData(const QUuid& nodeID) :
+    NodeData(nodeID)
+{
+    _currentViewFrustum.invalidate();
 
+    // in case somebody calls getSessionUUID on the AvatarData instance, make sure it has the right ID
+    _avatar->setID(nodeID);
+}
 
 void AvatarMixerClientData::queuePacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer node) {
     if (!_packetQueue.node) {
@@ -101,9 +108,6 @@ void AvatarMixerClientData::ignoreOther(SharedNodePointer self, SharedNodePointe
 void AvatarMixerClientData::removeFromRadiusIgnoringSet(SharedNodePointer self, const QUuid& other) {
     if (isRadiusIgnoring(other)) {
         _radiusIgnoredOthers.erase(other);
-        auto exitingSpaceBubblePacket = NLPacket::create(PacketType::ExitingSpaceBubble, NUM_BYTES_RFC4122_UUID);
-        exitingSpaceBubblePacket->write(other.toRfc4122());
-        DependencyManager::get<NodeList>()->sendUnreliablePacket(*exitingSpaceBubblePacket, *self);
     }
 }
 

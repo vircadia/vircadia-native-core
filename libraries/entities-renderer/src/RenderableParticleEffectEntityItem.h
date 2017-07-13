@@ -15,33 +15,32 @@
 #include <TextureCache.h>
 #include "RenderableEntityItem.h"
 
-class RenderableParticleEffectEntityItem : public ParticleEffectEntityItem  {
+class RenderableParticleEffectEntityItem : public ParticleEffectEntityItem, public RenderableEntityInterface {
     friend class ParticlePayloadData;
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
     RenderableParticleEffectEntityItem(const EntityItemID& entityItemID);
 
+    RenderableEntityInterface* getRenderableInterface() override { return this; }
+
     virtual void update(const quint64& now) override;
 
     void updateRenderItem();
 
-    virtual bool addToScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
-    virtual void removeFromScene(EntityItemPointer self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    virtual bool addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    virtual void removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
 
 protected:
     virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); notifyBoundChanged(); }
     virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); notifyBoundChanged(); }
 
-    void notifyBoundChanged();
+    void notifyBoundChanged();    
 
-    void createPipelines();
-    
     render::ScenePointer _scene;
     render::ItemID _renderItemId{ render::Item::INVALID_ITEM_ID };
     
     NetworkTexturePointer _texture;
-    gpu::PipelinePointer _untexturedPipeline;
-    gpu::PipelinePointer _texturedPipeline;
+
 };
 
 

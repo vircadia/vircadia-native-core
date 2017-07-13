@@ -25,6 +25,7 @@
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QUndoStack>
 
+#include <ThreadHelpers.h>
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
 #include <EntityEditPacketSender.h>
@@ -95,6 +96,7 @@ static const UINT UWM_SHOW_APPLICATION =
 #endif
 
 static const QString RUNNING_MARKER_FILENAME = "Interface.running";
+static const QString SCRIPTS_SWITCH = "scripts";
 
 class Application;
 #if defined(qApp)
@@ -102,9 +104,9 @@ class Application;
 #endif
 #define qApp (static_cast<Application*>(QCoreApplication::instance()))
 
-class Application : public QApplication, 
-                    public AbstractViewStateInterface, 
-                    public AbstractScriptingServicesInterface, 
+class Application : public QApplication,
+                    public AbstractViewStateInterface,
+                    public AbstractScriptingServicesInterface,
                     public AbstractUriHandler,
                     public PluginContainer {
     Q_OBJECT
@@ -112,17 +114,7 @@ class Application : public QApplication,
     // TODO? Get rid of those
     friend class OctreePacketProcessor;
 
-private:
-    bool _shouldRunServer { false };
-    QString _runServerPath;
-    RunningMarker _runningMarker;
-
 public:
-    // startup related getter/setters
-    bool shouldRunServer() const { return _shouldRunServer; }
-    bool hasRunServerPath() const { return !_runServerPath.isEmpty(); }
-    QString getRunServerPath() const { return _runServerPath; }
-
     // virtual functions required for PluginContainer
     virtual ui::Menu* getPrimaryMenu() override;
     virtual void requestReset() override { resetSensors(true); }
@@ -146,7 +138,7 @@ public:
     static void initPlugins(const QStringList& arguments);
     static void shutdownPlugins();
 
-    Application(int& argc, char** argv, QElapsedTimer& startup_time, bool runServer, QString runServerPathOption);
+    Application(int& argc, char** argv, QElapsedTimer& startup_time, bool runningMarkerExisted);
     ~Application();
 
     void postLambdaEvent(std::function<void()> f) override;
@@ -191,7 +183,6 @@ public:
     QUndoStack* getUndoStack() { return &_undoStack; }
     MainWindow* getWindow() const { return _window; }
     EntityTreePointer getEntityClipboard() const { return _entityClipboard; }
-    EntityTreeRenderer* getEntityClipboardRenderer() { return &_entityClipboardRenderer; }
     EntityEditPacketSender* getEntityEditPacketSender() { return &_entityEditSender; }
 
     ivec2 getMouse() const;
@@ -305,6 +296,10 @@ public:
     OverlayID getTabletHomeButtonID() const;
     QUuid getTabletFrameID() const; // may be an entity or an overlay
 
+    void setAvatarOverrideUrl(const QUrl& url, bool save);
+    QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
+    bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
+
 signals:
     void svoImportRequested(const QString& url);
 
@@ -324,16 +319,14 @@ public slots:
     void updateThreadPoolCount() const;
     void updateSystemTabletMode();
 
-    static void setLowVelocityFilter(bool lowVelocityFilter);
     Q_INVOKABLE void loadDialog();
     Q_INVOKABLE void loadScriptURLDialog() const;
     void toggleLogDialog();
     void toggleEntityScriptServerLogDialog();
-    void toggleRunningScriptsWidget() const;
     Q_INVOKABLE void showAssetServerWidget(QString filePath = "");
     Q_INVOKABLE void loadAddAvatarBookmarkDialog() const;
 
-    void showDialog(const QString& desktopURL, const QString& tabletURL, const QString& name) const;
+    void showDialog(const QUrl& widgetUrl, const QUrl& tabletUrl, const QString& name) const;
 
     // FIXME: Move addAssetToWorld* methods to own class?
     void addAssetToWorldFromURL(QString url);
@@ -402,7 +395,6 @@ public slots:
 
     void addAssetToWorldMessageClose();
 
-    Q_INVOKABLE void toggleMuteAudio();
     void loadLODToolsDialog();
     void loadEntityStatisticsDialog();
     void loadDomainConnectionDialog();
@@ -412,11 +404,10 @@ private slots:
     void showDesktop();
     void clearDomainOctreeDetails();
     void clearDomainAvatars();
-    void aboutToQuit();
+    void onAboutToQuit();
 
     void resettingDomain();
 
-    void audioMuteToggled() const;
     void faceTrackerMuteToggled();
 
     void activeChanged(Qt::ApplicationState state);
@@ -452,6 +443,8 @@ private slots:
     void addAssetToWorldInfoTimeout();
     void addAssetToWorldErrorTimeout();
 
+    void handleSandboxStatus(QNetworkReply* reply);
+    void switchDisplayMode();
 private:
     static void initDisplay();
     void init();
@@ -468,8 +461,6 @@ private:
     void updateDialogs(float deltaTime) const;
 
     void queryOctree(NodeType_t serverType, PacketType packetType, NodeToJurisdictionMap& jurisdictions, bool forceResend = false);
-
-    glm::vec3 getSunDirection() const;
 
     void renderRearViewMirror(RenderArgs* renderArgs, const QRect& region, bool isZoomed);
 
@@ -514,7 +505,7 @@ private:
     static void dragEnterEvent(QDragEnterEvent* event);
 
     void maybeToggleMenuVisible(QMouseEvent* event) const;
-    void toggleTabletUI() const;
+    void toggleTabletUI(bool shouldOpen = false) const;
 
     MainWindow* _window;
     QElapsedTimer& _sessionRunTimer;
@@ -546,7 +537,6 @@ private:
     PhysicalEntitySimulationPointer _entitySimulation;
     PhysicsEnginePointer _physicsEngine;
 
-    EntityTreeRenderer _entityClipboardRenderer;
     EntityTreePointer _entityClipboard;
 
     mutable QMutex _viewMutex { QMutex::Recursive };
@@ -606,8 +596,7 @@ private:
 
     bool _notifiedPacketVersionMismatchThisDomain;
 
-    QThread _settingsThread;
-    QTimer _settingsTimer;
+    ConditionalGuard _settingsGuard;
 
     GLCanvas* _glWidget{ nullptr };
 
@@ -689,9 +678,17 @@ private:
     QTimer _addAssetToWorldErrorTimer;
 
     FileScriptingInterface* _fileDownload;
-    AudioInjector* _snapshotSoundInjector { nullptr };
+    AudioInjectorPointer _snapshotSoundInjector;
     SharedSoundPointer _snapshotSound;
+
+    DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;
+    QString _autoSwitchDisplayModeSupportedHMDPluginName;
+    bool _previousHMDWornStatus;
+    void startHMDStandBySession();
+    void endHMDSession();
+
+    QUrl _avatarOverrideUrl;
+    bool _saveAvatarOverrideUrl { false };
+
 };
-
-
 #endif // hifi_Application_h

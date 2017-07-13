@@ -31,8 +31,9 @@ using namespace gpu;
 
 int TexturePointerMetaTypeId = qRegisterMetaType<TexturePointer>();
 
-std::atomic<uint32_t> Texture::_textureCPUCount{ 0 };
-std::atomic<Texture::Size> Texture::_textureCPUMemoryUsage{ 0 };
+
+ContextMetricCount Texture::_textureCPUCount;
+ContextMetricSize Texture::_textureCPUMemSize;
 std::atomic<Texture::Size> Texture::_allowedCPUMemoryUsage { 0 };
 
 
@@ -58,61 +59,18 @@ void Texture::setEnableSparseTextures(bool enabled) {
 #endif
 }
 
-void Texture::updateTextureCPUMemoryUsage(Size prevObjectSize, Size newObjectSize) {
-    if (prevObjectSize == newObjectSize) {
-        return;
-    }
-    if (prevObjectSize > newObjectSize) {
-        _textureCPUMemoryUsage.fetch_sub(prevObjectSize - newObjectSize);
-    } else {
-        _textureCPUMemoryUsage.fetch_add(newObjectSize - prevObjectSize);
-    }
-}
-
 bool Texture::getEnableSparseTextures() { 
     return _enableSparseTextures.load(); 
 }
 
 uint32_t Texture::getTextureCPUCount() {
-    return _textureCPUCount.load();
+    return _textureCPUCount.getValue();
 }
 
-Texture::Size Texture::getTextureCPUMemoryUsage() {
-    return _textureCPUMemoryUsage.load();
+Texture::Size Texture::getTextureCPUMemSize() {
+    return _textureCPUMemSize.getValue();
 }
 
-uint32_t Texture::getTextureGPUCount() {
-    return Context::getTextureGPUCount();
-}
-
-uint32_t Texture::getTextureGPUSparseCount() {
-    return Context::getTextureGPUSparseCount();
-}
-
-Texture::Size Texture::getTextureTransferPendingSize() {
-    return Context::getTextureTransferPendingSize();
-}
-
-Texture::Size Texture::getTextureGPUMemoryUsage() {
-    return Context::getTextureGPUMemoryUsage();
-}
-
-Texture::Size Texture::getTextureGPUVirtualMemoryUsage() {
-    return Context::getTextureGPUVirtualMemoryUsage();
-}
-
-
-Texture::Size Texture::getTextureGPUFramebufferMemoryUsage() {
-    return Context::getTextureGPUFramebufferMemoryUsage();
-}
-
-Texture::Size Texture::getTextureGPUSparseMemoryUsage() {
-    return Context::getTextureGPUSparseMemoryUsage();
-}
-
-uint32_t Texture::getTextureGPUTransferCount() {
-    return Context::getTextureGPUTransferCount();
-}
 
 Texture::Size Texture::getAllowedGPUMemoryUsage() {
     return _allowedCPUMemoryUsage;
@@ -165,42 +123,40 @@ bool MemoryStorage::isMipAvailable(uint16 level, uint8 face) const {
     return (mipFace && mipFace->getSize());
 }
 
-bool MemoryStorage::allocateMip(uint16 level) {
-    bool changed = false;
+void MemoryStorage::allocateMip(uint16 level) {
+    auto faceCount = Texture::NUM_FACES_PER_TYPE[getType()];
     if (level >= _mips.size()) {
-        _mips.resize(level+1, std::vector<PixelsPointer>(Texture::NUM_FACES_PER_TYPE[getType()]));
-        changed = true;
+        _mips.resize(level + 1, std::vector<PixelsPointer>(faceCount));
     }
 
     auto& mip = _mips[level];
-    for (auto& face : mip) {
-        if (!face) {
-            changed = true;
-        }
+    if (mip.size() != faceCount) {
+        mip.resize(faceCount);
     }
-
     bumpStamp();
-
-    return changed;
 }
 
 void MemoryStorage::assignMipData(uint16 level, const storage::StoragePointer& storagePointer) {
-
     allocateMip(level);
     auto& mip = _mips[level];
+
+    auto faceCount = Texture::NUM_FACES_PER_TYPE[getType()];
 
     // here we grabbed an array of faces
     // The bytes assigned here are supposed to contain all the faces bytes of the mip.
     // For tex1D, 2D, 3D there is only one face
     // For Cube, we expect the 6 faces in the order X+, X-, Y+, Y-, Z+, Z-
-    auto sizePerFace = storagePointer->size() / mip.size();
-    size_t offset = 0;
-    for (auto& face : mip) {
-        face = storagePointer->createView(sizePerFace, offset);
-        offset += sizePerFace;
-    }
+    auto sizePerFace = storagePointer->size() / faceCount;
 
-    bumpStamp();
+    if (sizePerFace > 0) {
+        size_t offset = 0;
+        for (auto& face : mip) {
+            face = storagePointer->createView(sizePerFace, offset);
+            offset += sizePerFace;
+        }
+
+        bumpStamp();
+    }
 }
 
 
@@ -262,11 +218,11 @@ TexturePointer Texture::create(TextureUsageType usageType, Type type, const Elem
 
 Texture::Texture(TextureUsageType usageType) :
     Resource(), _usageType(usageType) {
-    _textureCPUCount++;
+    _textureCPUCount.increment();
 }
 
 Texture::~Texture() {
-    _textureCPUCount--;
+    _textureCPUCount.decrement();
     if (_usageType == TextureUsageType::EXTERNAL) {
         Texture::ExternalUpdates externalUpdates;
         {
@@ -441,7 +397,11 @@ void Texture::assignStoredMip(uint16 level, storage::StoragePointer& storage) {
     // THen check that the mem texture passed make sense with its format
     Size expectedSize = evalStoredMipSize(level, getStoredMipFormat());
     auto size = storage->size();
-    if (storage->size() <= expectedSize) {
+    // NOTE: doing the same thing in all the next block but beeing able to breakpoint with more accuracy
+    if (storage->size() < expectedSize) {
+        _storage->assignMipData(level, storage);
+        _stamp++;
+    } else if (size == expectedSize) {
         _storage->assignMipData(level, storage);
         _stamp++;
     } else if (size > expectedSize) {
@@ -468,7 +428,11 @@ void Texture::assignStoredMipFace(uint16 level, uint8 face, storage::StoragePoin
     // THen check that the mem texture passed make sense with its format
     Size expectedSize = evalStoredMipFaceSize(level, getStoredMipFormat());
     auto size = storage->size();
-    if (size <= expectedSize) {
+    // NOTE: doing the same thing in all the next block but beeing able to breakpoint with more accuracy
+    if (size < expectedSize) {
+        _storage->assignMipFaceData(level, face, storage);
+        _stamp++;
+    } else if (size == expectedSize) {
         _storage->assignMipFaceData(level, face, storage);
         _stamp++;
     } else if (size > expectedSize) {

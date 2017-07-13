@@ -10,6 +10,7 @@
 #define hifi_MySkeletonModel_h
 
 #include <avatars-renderer/SkeletonModel.h>
+#include "MyAvatar.h"
 
 /// A skeleton loaded from a model.
 class MySkeletonModel : public SkeletonModel {
@@ -19,8 +20,11 @@ private:
     using Parent = SkeletonModel;
 
 public:
-    MySkeletonModel(Avatar* owningAvatar, QObject* parent = nullptr, RigPointer rig = nullptr);
+    MySkeletonModel(Avatar* owningAvatar, QObject* parent = nullptr);
     void updateRig(float deltaTime, glm::mat4 parentTransform) override;
+
+private:
+    void updateFingers(const MyAvatar::FingerPosesMap& fingerPoses);
 };
 
 #endif // hifi_MySkeletonModel_h

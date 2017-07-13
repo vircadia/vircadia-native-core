@@ -14,17 +14,23 @@
 
 #include <set>
 #include <unordered_map>
+
+#include <gpu/Framebuffer.h>
+
+#include <model/Light.h>
+
 #include <render/IndexedContainer.h>
-
-#include "gpu/Framebuffer.h"
-
-#include "model/Light.h"
+#include <render/Stage.h>
+#include <render/Engine.h>
 
 class ViewFrustum;
 
 // Light stage to set up light-related rendering tasks
-class LightStage {
+class LightStage : public render::Stage {
 public:
+    static std::string _stageName;
+    static const std::string& getName() { return _stageName; }
+
     using Index = render::indexed_container::Index;
     static const Index INVALID_INDEX { render::indexed_container::INVALID_INDEX };
     static bool isIndexInvalid(Index index) { return index == INVALID_INDEX; }
@@ -77,7 +83,6 @@ public:
     };
     using Descs = std::vector<Desc>;
 
-
     Index findLight(const LightPointer& light) const;
     Index addLight(const LightPointer& light);
 
@@ -94,6 +99,7 @@ public:
     LightPointer getLight(Index lightId) const {
         return _lights.get(lightId);
     }
+
     Index getShadowId(Index lightId) const {
         if (checkLightId(lightId)) {
             return _descs[lightId].shadowId;
@@ -110,6 +116,7 @@ public:
         return LightAndShadow(getLight(lightId), getShadow(lightId));
     }
 
+    LightStage();
     Lights _lights;
     LightMap _lightMap;
     Descs _descs;
@@ -118,19 +125,25 @@ public:
     public:
         Frame() {}
         
-        void clear() { _pointLights.clear(); _spotLights.clear(); }
+        void clear() { _pointLights.clear(); _spotLights.clear(); _sunLights.clear(); _ambientLights.clear(); }
         void pushLight(LightStage::Index index, model::Light::Type type) {
             switch (type) {
                 case model::Light::POINT: { pushPointLight(index); break; }
                 case model::Light::SPOT: { pushSpotLight(index); break; }
+                case model::Light::SUN: { pushSunLight(index); break; }
+                case model::Light::AMBIENT: { pushAmbientLight(index); break; }
                 default: { break; }
             }
         }
         void pushPointLight(LightStage::Index index) { _pointLights.emplace_back(index); }
         void pushSpotLight(LightStage::Index index) { _spotLights.emplace_back(index); }
-        
+        void pushSunLight(LightStage::Index index) { _sunLights.emplace_back(index); }
+        void pushAmbientLight(LightStage::Index index) { _ambientLights.emplace_back(index); }
+
         LightStage::LightIndices _pointLights;
         LightStage::LightIndices _spotLights;
+        LightStage::LightIndices _sunLights;
+        LightStage::LightIndices _ambientLights;
     };
     
     Frame _currentFrame;
@@ -143,6 +156,16 @@ public:
 using LightStagePointer = std::shared_ptr<LightStage>;
 
 
+
+class LightStageSetup {
+public:
+    using JobModel = render::Job::Model<LightStageSetup>;
+
+    LightStageSetup();
+    void run(const render::RenderContextPointer& renderContext);
+
+protected:
+};
 
 
 #endif

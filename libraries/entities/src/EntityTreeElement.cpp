@@ -9,17 +9,18 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityTreeElement.h"
+
 #include <glm/gtx/transform.hpp>
 
-#include <FBXReader.h>
 #include <GeometryUtil.h>
 #include <OctreeUtils.h>
+#include <Extents.h>
 
 #include "EntitiesLogging.h"
 #include "EntityNodeData.h"
 #include "EntityItemProperties.h"
 #include "EntityTree.h"
-#include "EntityTreeElement.h"
 #include "EntityTypes.h"
 
 EntityTreeElement::EntityTreeElement(unsigned char* octalCode) : OctreeElement() {
@@ -208,7 +209,7 @@ void EntityTreeElement::elementEncodeComplete(EncodeBitstreamParams& params) con
 
             // why would this ever fail???
             // If we've encoding this element before... but we're coming back a second time in an attempt to
-            // encoud our parent... this might happen.
+            // encode our parent... this might happen.
             if (extraEncodeData->contains(childElement.get())) {
                 EntityTreeElementExtraEncodeDataPointer childExtraEncodeData
                     = std::static_pointer_cast<EntityTreeElementExtraEncodeData>((*extraEncodeData)[childElement.get()]);
@@ -981,6 +982,7 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                 //    3) remember the old cube for the entity so we can mark it as dirty
                 if (entityItem) {
                     QString entityScriptBefore = entityItem->getScript();
+                    QUuid parentIDBefore = entityItem->getParentID();
                     QString entityServerScriptsBefore = entityItem->getServerScripts();
                     quint64 entityScriptTimestampBefore = entityItem->getScriptTimestamp();
                     bool bestFitBefore = bestFitEntityBounds(entityItem);
@@ -1016,6 +1018,11 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                     }
                     if (entityServerScriptsBefore != entityServerScriptsAfter || reload) {
                         _myTree->emitEntityServerScriptChanging(entityItemID, reload); // the entity server script has changed
+                    }
+
+                    QUuid parentIDAfter = entityItem->getParentID();
+                    if (parentIDBefore != parentIDAfter) {
+                        _myTree->addToNeedsParentFixupList(entityItem);
                     }
 
                 } else {

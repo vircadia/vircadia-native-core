@@ -2,550 +2,410 @@
 //  particleExplorer.js
 //
 //  Created by James B. Pollack @imgntn on 9/26/2015
-//  Copyright 2015 High Fidelity, Inc.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Reworked by Menithal on 20/5/2017
+//
 //  Web app side of the App - contains GUI.
-//  This is an example of a new, easy way to do two way bindings between dynamically created GUI and in-world entities.  
+//  This is an example of a new, easy way to do two way bindings between dynamically created GUI and in-world entities.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
-/* global window, alert, EventBridge, dat, listenForSettingsUpdates, createVec3Folder, createQuatFolder, writeVec3ToInterface, writeDataToInterface, 
-   $, document, _, openEventBridge */
+/* global HifiEntityUI, openEventBridge, console, EventBridge, document, window */
+/* eslint no-console: 0, no-global-assign: 0 */
 
-var Settings = function () {
-    this.exportSettings = function () {
-        // copyExportSettingsToClipboard();
-        showPreselectedPrompt();
-    };
-    this.importSettings = function () {
-        importSettings();
-    };
-};
+(function () {
 
-// 2-way bindings-aren't quite ready yet.  see bottom of file.
-var AUTO_UPDATE = false;
-var UPDATE_ALL_FREQUENCY = 100;
+    var root = document.getElementById("particle-explorer");
 
-var controllers = [];
-var colpickKeys = [];
-var folders = [];
-var gui = null;
-var settings = new Settings();
-var updateInterval;
-
-var active = false;
-
-var currentInputField;
-var storedController;
-// CHANGE TO WHITELIST
-var keysToAllow = [
-    'isEmitting',
-    'maxParticles',
-    'lifespan',
-    'emitRate',
-    'emitSpeed',
-    'speedSpread',
-    'emitOrientation',
-    'emitDimensions',
-    'polarStart',
-    'polarFinish',
-    'azimuthStart',
-    'azimuthFinish',
-    'emitAcceleration',
-    'accelerationSpread',
-    'particleRadius',
-    'radiusSpread',
-    'radiusStart',
-    'radiusFinish',
-    'color',
-    'colorSpread',
-    'colorStart',
-    'colorFinish',
-    'alpha',
-    'alphaSpread',
-    'alphaStart',
-    'alphaFinish',
-    'emitterShouldTrail',
-    'textures'
-];
-
-var individualKeys = [];
-var vec3Keys = [];
-var quatKeys = [];
-var colorKeys = [];
-
-window.onload = function () {
-    openEventBridge(function () {
-        var stringifiedData = JSON.stringify({
-            messageType: 'page_loaded'
+    window.onload = function () {
+        var ui = new HifiEntityUI(root);
+        var textarea = document.createElement("textarea");
+        var properties = "";
+        var menuStructure = {
+            General: [
+                {
+                    type: "Row",
+                    id: "export-import-field"
+                },
+                {
+                    id: "show-properties-button",
+                    name: "Show Properties",
+                    type: "Button",
+                    class: "blue",
+                    disabled: true,
+                    callback: function (event) {
+                        var insertZone = document.getElementById("export-import-field");
+                        var json = ui.getSettings();
+                        properties = JSON.stringify(json);
+                        textarea.value = properties;
+                        if (!insertZone.contains(textarea)) {
+                            insertZone.appendChild(textarea);
+                            insertZone.parentNode.parentNode.style.maxHeight =
+                                insertZone.parentNode.clientHeight + "px";
+                            document.getElementById("export-properties-button").removeAttribute("disabled");
+                            textarea.onchange = function (e) {
+                                if (e.target.value !== properties) {
+                                    document.getElementById("import-properties-button").removeAttribute("disabled");
+                                }
+                            };
+                            textarea.oninput = textarea.onchange;
+                        } else {
+                            textarea.onchange = function () {};
+                            textarea.oninput = textarea.onchange;
+                            textarea.value = "";
+                            textarea.remove();
+                            insertZone.parentNode.parentNode.style.maxHeight =
+                                insertZone.parentNode.clientHeight + "px";
+                            document.getElementById("export-properties-button").setAttribute("disabled", true);
+                            document.getElementById("import-properties-button").setAttribute("disabled", true);
+                        }
+                    }
+                },
+                {
+                    id: "import-properties-button",
+                    name: "Import",
+                    type: "Button",
+                    class: "blue",
+                    disabled: true,
+                    callback: function (event) {
+                        ui.fillFields(JSON.parse(textarea.value));
+                        ui.submitChanges(JSON.parse(textarea.value));
+                    }
+                },
+                {
+                    id: "export-properties-button",
+                    name: "Export",
+                    type: "Button",
+                    class: "red",
+                    disabled: true,
+                    callback: function (event) {
+                        textarea.select();
+                        try {
+                            var success = document.execCommand('copy');
+                            if (!success) {
+                                throw "Not success :(";
+                            }
+                        } catch (e) {
+                            print("couldnt copy field");
+                        }
+                    }
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "isEmitting",
+                    name: "Is Emitting",
+                    type: "Boolean"
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "lifespan",
+                    name: "Lifespan",
+                    type: "SliderFloat",
+                    min: 0.01,
+                    max: 10
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "maxParticles",
+                    name: "Max Particles",
+                    type: "SliderInteger",
+                    min: 1,
+                    max: 10000
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "textures",
+                    name: "Textures",
+                    type: "Texture"
+                },
+                {
+                    type: "Row"
+                }
+            ],
+            Emit: [
+                {
+                    id: "emitRate",
+                    name: "Emit Rate",
+                    type: "SliderInteger",
+                    max: 1000,
+                    min: 1
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "emitSpeed",
+                    name: "Emit Speed",
+                    type: "SliderFloat",
+                    max: 5
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "emitDimensions",
+                    name: "Emit Dimension",
+                    type: "Vector",
+                    defaultRange: {
+                        min: 0,
+                        step: 0.01
+                    }
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "emitOrientation",
+                    unit: "deg",
+                    name: "Emit Orientation",
+                    type: "VectorQuaternion",
+                    defaultRange: {
+                        min: 0,
+                        step: 0.01
+                    }
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "emitShouldTrail",
+                    name: "Emit Should Trail",
+                    type: "Boolean"
+                },
+                {
+                    type: "Row"
+                }
+            ],
+            Radius: [
+                {
+                    id: "particleRadius",
+                    name: "Particle Radius",
+                    type: "SliderFloat",
+                    max: 4.0
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "radiusSpread",
+                    name: "Radius Spread",
+                    type: "SliderFloat",
+                    max: 4.0
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "radiusStart",
+                    name: "Radius Start",
+                    type: "SliderFloat",
+                    max: 4.0
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "radiusFinish",
+                    name: "Radius Finish",
+                    type: "SliderFloat",
+                    max: 4.0
+                },
+                {
+                    type: "Row"
+                }
+            ],
+            Color: [
+                {
+                    id: "color",
+                    name: "Color",
+                    type: "Color",
+                    defaultColor: {
+                        red: 255,
+                        green: 255,
+                        blue: 255
+                    }
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "colorSpread",
+                    name: "Color Spread",
+                    type: "Color",
+                    defaultColor: {
+                        red: 0,
+                        green: 0,
+                        blue: 0
+                    }
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "colorStart",
+                    name: "Color Start",
+                    type: "Color",
+                    defaultColor: {
+                        red: 255,
+                        green: 255,
+                        blue: 255
+                    }
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "colorFinish",
+                    name: "Color Finish",
+                    type: "Color",
+                    defaultColor: {
+                        red: 255,
+                        green: 255,
+                        blue: 255
+                    }
+                },
+                {
+                    type: "Row"
+                }
+            ],
+            Acceleration: [
+                {
+                    id: "emitAcceleration",
+                    name: "Emit Acceleration",
+                    type: "Vector",
+                    defaultRange: {
+                        step: 0.01
+                    }
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "accelerationSpread",
+                    name: "Acceleration Spread",
+                    type: "Vector",
+                    defaultRange: {
+                        step: 0.01
+                    }
+                },
+                {
+                    type: "Row"
+                }
+            ],
+            Alpha: [
+                {
+                    id: "alpha",
+                    name: "Alpha",
+                    type: "SliderFloat"
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "alphaSpread",
+                    name: "Alpha Spread",
+                    type: "SliderFloat"
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "alphaStart",
+                    name: "Alpha Start",
+                    type: "SliderFloat"
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "alphaFinish",
+                    name: "Alpha Finish",
+                    type: "SliderFloat"
+                },
+                {
+                    type: "Row"
+                }
+            ],
+            Polar: [
+                {
+                    id: "polarStart",
+                    name: "Polar Start",
+                    unit: "deg",
+                    type: "SliderRadian"
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "polarFinish",
+                    name: "Polar Finish",
+                    unit: "deg",
+                    type: "SliderRadian"
+                },
+                {
+                    type: "Row"
+                }
+            ],
+            Azimuth: [
+                {
+                    id: "azimuthStart",
+                    name: "Azimuth Start",
+                    unit: "deg",
+                    type: "SliderRadian",
+                    min: -180,
+                    max: 0
+                },
+                {
+                    type: "Row"
+                },
+                {
+                    id: "azimuthFinish",
+                    name: "Azimuth Finish",
+                    unit: "deg",
+                    type: "SliderRadian"
+                },
+                {
+                    type: "Row"
+                }
+            ]
+        };
+        ui.setUI(menuStructure);
+        ui.setOnSelect(function () {
+            document.getElementById("show-properties-button").removeAttribute("disabled");
+            document.getElementById("export-properties-button").setAttribute("disabled", true);
+            document.getElementById("import-properties-button").setAttribute("disabled", true);
         });
+        ui.build();
+        var overrideLoad = false;
+        if (openEventBridge === undefined) {
+            overrideLoad = true,
+                openEventBridge = function (callback) {
+                    callback({
+                        emitWebEvent: function () {},
+                        submitChanges: function () {},
+                        scriptEventReceived: {
+                            connect: function () {
 
-        EventBridge.emitWebEvent(
-            stringifiedData
-        );
-
-        listenForSettingsUpdates();
-        window.onresize = setGUIWidthToWindowWidth;
-    });
-
-};
-
-function loadGUI() {
-    // whether or not to autoplace
-    gui = new dat.GUI({
-        autoPlace: false
-    });
-
-    // if not autoplacing, put gui in a custom container
-    if (gui.autoPlace === false) {
-        var customContainer = document.getElementById('my-gui-container');
-        customContainer.appendChild(gui.domElement);
-    }
-
-    // presets for the GUI itself.   a little confusing and import/export is mostly what we want to do at the moment.
-    // gui.remember(settings);
-
-    colpickKeys = [];
-    var keys = _.keys(settings);
-
-    _.each(keys, function(key) {
-        var shouldAllow = _.contains(keysToAllow, key);
-
-        if (shouldAllow) {
-            var subKeys = _.keys(settings[key]);
-            var hasX = _.contains(subKeys, 'x');
-            var hasY = _.contains(subKeys, 'y');
-            var hasZ = _.contains(subKeys, 'z');
-            var hasW = _.contains(subKeys, 'w');
-            var hasRed = _.contains(subKeys, 'red');
-            var hasGreen = _.contains(subKeys, 'green');
-            var hasBlue = _.contains(subKeys, 'blue');
-
-            if ((hasX && hasY && hasZ) && hasW === false) {
-                vec3Keys.push(key);
-            } else if (hasX && hasY && hasZ && hasW) {
-                quatKeys.push(key);
-            } else if (hasRed || hasGreen || hasBlue) {
-                colorKeys.push(key);
-
-            } else {
-                individualKeys.push(key);
-            }
+                            }
+                        }
+                    });
+                };
         }
-    });
-
-    // alphabetize our keys
-    individualKeys.sort();
-    vec3Keys.sort();
-    quatKeys.sort();
-    colorKeys.sort();
-
-    // add to gui in the order they should appear
-    gui.add(settings, 'importSettings');
-    gui.add(settings, 'exportSettings');
-    addIndividualKeys();
-    addFolders();
-
-    // set the gui width to match the web window width
-    gui.width = window.innerWidth;
-
-    // 2-way binding stuff
-    // if (AUTO_UPDATE) {
-    //     setInterval(manuallyUpdateDisplay, UPDATE_ALL_FREQUENCY);
-    //     registerDOMElementsForListenerBlocking();
-    // }
-
-}
-
-function addIndividualKeys() {
-    _.each(individualKeys, function(key) {
-        // temporary patch for not crashing when this goes below 0
-        var controller;
-
-        if (key.indexOf('emitRate') > -1) {
-            controller = gui.add(settings, key).min(0);
-        } else {
-            controller = gui.add(settings, key);
-        }
-
-        // 2-way - need to fix not being able to input exact values if constantly listening
-        // controller.listen();
-
-        // keep track of our controller
-        controllers.push(controller);
-
-        // hook into change events for this gui controller
-        controller.onChange(function(value) {
-            // Fires on every change, drag, keypress, etc.
-            writeDataToInterface(this.property, value);
+        openEventBridge(function (EventBridge) {
+            ui.connect(EventBridge);
         });
-
-    });
-}
-
-function addFolders() {
-    _.each(colorKeys, function(key) {
-        createColorPicker(key);
-    });
-    _.each(vec3Keys, function(key) {
-        createVec3Folder(key);
-    });
-    _.each(quatKeys, function(key) {
-        createQuatFolder(key);
-    });
-}
-
-function createColorPicker(key) {
-    var colorObject = settings[key];
-
-    // Embed colpick's color picker into dat.GUI
-    var name = document.createElement('span');
-    name.className = 'property-name';
-    name.innerHTML = key;
-
-    var container = document.createElement('div');
-    container.appendChild(name);
-
-    var $colPickContainer = $('<div>', {
-        id: key.toString(), 
-        class: "color-box"        
-    });
-    $colPickContainer.css('background-color', "rgb(" + colorObject.red + "," + colorObject.green + "," + colorObject.blue + ")");
-    container.appendChild($colPickContainer[0]);
-
-    var $li = $('<li>', { class: 'cr object color' });    
-    $li.append(container);
-    gui.__ul.appendChild($li[0]);
-    gui.onResize();
-
-    $colPickContainer.colpick({
-        colorScheme: 'dark',
-        layout: 'hex',
-        color: { r: colorObject.red, g: colorObject.green, b: colorObject.blue },
-        onSubmit: function (hsb, hex, rgb, el) {
-            $(el).css('background-color', '#' + hex);
-            $(el).colpickHide();
-
-            var obj = {};
-            obj[key] = { red: rgb.r, green: rgb.g, blue: rgb.b };
-            writeVec3ToInterface(obj);
+        if (overrideLoad) {
+            openEventBridge();
         }
-    });
-
-    colpickKeys.push(key);    
-}
-
-function createVec3Folder(category) {
-    var folder = gui.addFolder(category);
-
-    folder.add(settings[category], 'x').step(0.1).onChange(function(value) {
-        // Fires when a controller loses focus.
-        var obj = {};
-        obj[category] = {};
-        obj[category][this.property] = value;
-        obj[category].y = settings[category].y;
-        obj[category].z = settings[category].z;
-        writeVec3ToInterface(obj);
-    });
-
-    folder.add(settings[category], 'y').step(0.1).onChange(function(value) {
-        // Fires when a controller loses focus.
-        var obj = {};
-        obj[category] = {};
-        obj[category].x = settings[category].x;
-        obj[category][this.property] = value;
-        obj[category].z = settings[category].z;
-        writeVec3ToInterface(obj);
-    });
-
-    folder.add(settings[category], 'z').step(0.1).onChange(function(value) {
-        // Fires when a controller loses focus.
-        var obj = {};
-        obj[category] = {};
-        obj[category].y = settings[category].y;
-        obj[category].x = settings[category].x;
-        obj[category][this.property] = value;
-        writeVec3ToInterface(obj);
-    });
-
-    folders.push(folder);
-    folder.open();
-}
-
-function createQuatFolder(category) {
-    var folder = gui.addFolder(category);
-
-    folder.add(settings[category], 'x').step(0.1).onChange(function(value) {
-        // Fires when a controller loses focus.
-        var obj = {};
-        obj[category] = {};
-        obj[category][this.property] = value;
-        obj[category].y = settings[category].y;
-        obj[category].z = settings[category].z;
-        obj[category].w = settings[category].w;
-        writeVec3ToInterface(obj);
-    });
-
-    folder.add(settings[category], 'y').step(0.1).onChange(function(value) {
-        // Fires when a controller loses focus.
-        var obj = {};
-        obj[category] = {};
-        obj[category].x = settings[category].x;
-        obj[category][this.property] = value;
-        obj[category].z = settings[category].z;
-        obj[category].w = settings[category].w;
-        writeVec3ToInterface(obj);
-    });
-
-    folder.add(settings[category], 'z').step(0.1).onChange(function(value) {
-        // Fires when a controller loses focus.
-        var obj = {};
-        obj[category] = {};
-        obj[category].x = settings[category].x;
-        obj[category].y = settings[category].y;
-        obj[category][this.property] = value;
-        obj[category].w = settings[category].w;
-        writeVec3ToInterface(obj);
-    });
-
-    folder.add(settings[category], 'w').step(0.1).onChange(function(value) {
-        // Fires when a controller loses focus.
-        var obj = {};
-        obj[category] = {};
-        obj[category].x = settings[category].x;
-        obj[category].y = settings[category].y;
-        obj[category].z = settings[category].z;
-        obj[category][this.property] = value;
-        writeVec3ToInterface(obj);
-    });
-
-    folders.push(folder);
-    folder.open();
-}
-
-function convertColorObjectToArray(colorObject) {
-    var colorArray = [];
-
-    _.each(colorObject, function(singleColor) {
-        colorArray.push(singleColor);
-    });
-
-    return colorArray;
-}
-
-function convertColorArrayToObject(colorArray) {
-    var colorObject = {
-        red: colorArray[0],
-        green: colorArray[1],
-        blue: colorArray[2]
     };
-
-    return colorObject;
-}
-
-function writeDataToInterface(property, value) {
-    var data = {};
-    data[property] = value;
-
-    var sendData = {
-        messageType: "settings_update",
-        updatedSettings: data
-    };
-
-    var stringifiedData = JSON.stringify(sendData);
-
-    EventBridge.emitWebEvent(stringifiedData);
-}
-
-function writeVec3ToInterface(obj) {
-    var sendData = {
-        messageType: "settings_update",
-        updatedSettings: obj
-    };
-
-    var stringifiedData = JSON.stringify(sendData);
-
-    EventBridge.emitWebEvent(stringifiedData);
-}
-
-function listenForSettingsUpdates() {
-    EventBridge.scriptEventReceived.connect(function(data) {
-        data = JSON.parse(data);
-        if (data.messageType === 'particle_settings') {
-            _.each(data.currentProperties, function(value, key) {
-                settings[key] = {};
-                settings[key] = value;
-            });
-
-            if (gui) {
-                manuallyUpdateDisplay();
-            } else {
-                loadGUI();
-            }
-            if (!active) {
-                // gui.toggleHide();
-                gui.closed = false;
-            }
-            active = true;
-
-        } else if (data.messageType === "particle_close") {
-            // none of this seems to work.
-            // if (active) {
-            //     gui.toggleHide();
-            // }
-            active = false;
-            gui.closed = true;
-        }
-    });
-}
-
-function manuallyUpdateDisplay() {
-    // Iterate over all controllers
-    // this is expensive, write a method for indiviudal controllers and use it when the value is different than a cached value, perhaps.
-    var i;
-    for (i in gui.__controllers) {
-        gui.__controllers[i].updateDisplay();
-    }
-
-    // Update color pickers
-    for (i in colpickKeys) {       
-        var color = settings[colpickKeys[i]];
-        var $object = $('#' + colpickKeys[i]);
-        $object.css('background-color', "rgb(" + color.red + "," + color.green + "," + color.blue + ")");
-        $object.colpickSetColor({ r: color.red, g: color.green, b: color.blue }, true);
-    }
-}
-
-function setGUIWidthToWindowWidth() {
-    if (gui !== null) {
-        gui.width = window.innerWidth;
-    }
-}
-
-function handleInputKeyPress(e) {
-    if (e.keyCode === 13) {
-        importSettings();
-    }
-    return false;
-}
-
-function importSettings() {
-    var importInput = document.getElementById('importer-input');
-
-    try {
-        var importedSettings = JSON.parse(importInput.value);
-
-        var keys = _.keys(importedSettings);
-
-        _.each(keys, function(key) {
-            var shouldAllow = _.contains(keysToAllow, key);
-
-            if (!shouldAllow) {
-                return;
-            }
-
-            settings[key] = importedSettings[key];
-        });
-
-        writeVec3ToInterface(settings);
-
-        manuallyUpdateDisplay();
-    } catch (e) {
-        alert('Not properly formatted JSON');
-    }
-}
-
-function prepareSettingsForExport() {
-    var keys = _.keys(settings);
-
-    var exportSettings = {};
-
-    _.each(keys, function(key) {
-        var shouldAllow = _.contains(keysToAllow, key);
-
-        if (!shouldAllow) {
-            return;
-        }
-
-        if (key.indexOf('color') > -1) {
-            var colorObject = convertColorArrayToObject(settings[key]);
-            settings[key] = colorObject;
-        }
-
-        exportSettings[key] = settings[key];
-    });
-
-    return JSON.stringify(exportSettings, null, 4);
-}
-
-function showPreselectedPrompt() {
-    var elem = document.getElementById("exported-props");
-    var exportSettings = prepareSettingsForExport();
-    elem.innerHTML = "";
-    var buttonnode = document.createElement('input');
-    buttonnode.setAttribute('type', 'button');
-    buttonnode.setAttribute('value', 'close');
-    elem.appendChild(document.createTextNode("COPY THE BELOW FIELD TO CLIPBOARD:"));
-    elem.appendChild(document.createElement("br"));
-    var textAreaNode = document.createElement("textarea");
-    textAreaNode.value = exportSettings;
-    elem.appendChild(textAreaNode);
-    elem.appendChild(document.createElement("br"));
-    elem.appendChild(buttonnode);
-
-    buttonnode.onclick = function() {
-        console.log("click");
-        elem.innerHTML = "";
-    };
-
-    // window.alert("Ctrl-C to copy, then Enter.", prepareSettingsForExport());
-}
-
-function removeContainerDomElement() {
-    var elem = document.getElementById("my-gui-container");
-    elem.parentNode.removeChild(elem);
-}
-
-function removeListenerFromGUI(key) {
-    _.each(gui.__listening, function(controller, index) {
-        if (controller.property === key) {
-            storedController = controller;
-            gui.__listening.splice(index, 1);
-        }
-    });
-}
-
-// the section below is to try to work at achieving two way bindings;
-
-function addListenersBackToGUI() {
-    gui.__listening.push(storedController);
-    storedController = null;
-}
-
-function registerDOMElementsForListenerBlocking() {
-    _.each(gui.__controllers, function(controller) {
-        var input = controller.domElement.childNodes[0];
-        input.addEventListener('focus', function() {
-            console.log('INPUT ELEMENT GOT FOCUS!' + controller.property);
-            removeListenerFromGUI(controller.property);
-        });
-    });
-
-    _.each(gui.__controllers, function(controller) {
-        var input = controller.domElement.childNodes[0];
-        input.addEventListener('blur', function() {
-            console.log('INPUT ELEMENT GOT BLUR!' + controller.property);
-            addListenersBackToGUI();
-        });
-    });
-
-    // also listen to inputs inside of folders
-    _.each(gui.__folders, function(folder) {
-        _.each(folder.__controllers, function(controller) {
-            var input = controller.__input;
-            input.addEventListener('focus', function() {
-                console.log('FOLDER ELEMENT GOT FOCUS!' + controller.property);
-            });
-        });
-    });
-}
+})();

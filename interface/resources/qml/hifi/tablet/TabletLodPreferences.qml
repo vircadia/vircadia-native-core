@@ -19,7 +19,6 @@ StackView {
     objectName: "stack"
     property string title: "LOD Settings"
 
-    property var eventBridge;
     signal sendToScript(var message);
 
     function pushSource(path) {

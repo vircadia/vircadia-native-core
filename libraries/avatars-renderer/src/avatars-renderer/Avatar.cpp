@@ -15,6 +15,7 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/vector_query.hpp>
 
+#include <shared/QtHelpers.h>
 #include <DeferredLightingEffect.h>
 #include <EntityTreeRenderer.h>
 #include <NodeList.h>
@@ -98,7 +99,7 @@ void Avatar::setShowNamesAboveHeads(bool show) {
     showNamesAboveHeads = show;
 }
 
-Avatar::Avatar(QThread* thread, RigPointer rig) :
+Avatar::Avatar(QThread* thread) :
     _voiceSphereID(GeometryCache::UNKNOWN_ID)
 {
     // we may have been created in the network thread, but we live in the main thread
@@ -288,6 +289,13 @@ void Avatar::updateAvatarEntities() {
                 properties.setScript(noScript);
             }
 
+            // When grabbing avatar entities, they are parented to the joint moving them, then when un-grabbed
+            // they go back to the default parent (null uuid).  When un-gripped, others saw the entity disappear.
+            // The thinking here is the local position was noticed as changing, but not the parentID (since it is now
+            // back to the default), and the entity flew off somewhere.  Marking all changed definitely fixes this,
+            // and seems safe (per Seth).
+            properties.markAllChanged();
+
             // try to build the entity
             EntityItemPointer entity = entityTree->findEntityByEntityItemID(EntityItemID(entityID));
             bool success = true;
@@ -338,43 +346,15 @@ void Avatar::simulate(float deltaTime, bool inView) {
         _simulationInViewRate.increment();
     }
 
-    if (!isMyAvatar()) {
-        if (_smoothPositionTimer < _smoothPositionTime) {
-            // Smooth the remote avatar movement.
-            _smoothPositionTimer += deltaTime;
-            if (_smoothPositionTimer < _smoothPositionTime) {
-                AvatarData::setPosition(
-                    lerp(_smoothPositionInitial,
-                        _smoothPositionTarget,
-                        easeInOutQuad(glm::clamp(_smoothPositionTimer / _smoothPositionTime, 0.0f, 1.0f)))
-                );
-                updateAttitude();
-            }
-        }
-
-        if (_smoothOrientationTimer < _smoothOrientationTime) {
-            // Smooth the remote avatar movement.
-            _smoothOrientationTimer += deltaTime;
-            if (_smoothOrientationTimer < _smoothOrientationTime) {
-                AvatarData::setOrientation(
-                    slerp(_smoothOrientationInitial,
-                        _smoothOrientationTarget,
-                        easeInOutQuad(glm::clamp(_smoothOrientationTimer / _smoothOrientationTime, 0.0f, 1.0f)))
-                );
-                updateAttitude();
-            }
-        }
-    }
-
     PerformanceTimer perfTimer("simulate");
     {
         PROFILE_RANGE(simulation, "updateJoints");
         if (inView) {
             Head* head = getHead();
             if (_hasNewJointData) {
-                _skeletonModel->getRig()->copyJointsFromJointData(_jointData);
+                _skeletonModel->getRig().copyJointsFromJointData(_jointData);
                 glm::mat4 rootTransform = glm::scale(_skeletonModel->getScale()) * glm::translate(_skeletonModel->getOffset());
-                _skeletonModel->getRig()->computeExternalPoses(rootTransform);
+                _skeletonModel->getRig().computeExternalPoses(rootTransform);
                 _jointDataSimulationRate.increment();
 
                 _skeletonModel->simulate(deltaTime, true);
@@ -630,7 +610,7 @@ void Avatar::render(RenderArgs* renderArgs) {
     if (showCollisionShapes && shouldRenderHead(renderArgs) && _skeletonModel->isRenderable()) {
         PROFILE_RANGE_BATCH(batch, __FUNCTION__":skeletonBoundingCollisionShapes");
         const float BOUNDING_SHAPE_ALPHA = 0.7f;
-        _skeletonModel->renderBoundingCollisionShapes(*renderArgs->_batch, getUniformScale(), BOUNDING_SHAPE_ALPHA);
+        _skeletonModel->renderBoundingCollisionShapes(renderArgs, *renderArgs->_batch, getUniformScale(), BOUNDING_SHAPE_ALPHA);
     }
 
     if (showReceiveStats || showNamesAboveHeads) {
@@ -712,7 +692,8 @@ void Avatar::simulateAttachments(float deltaTime) {
                 _skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRotation)) {
                 model->setTranslation(jointPosition + jointRotation * attachment.translation * getUniformScale());
                 model->setRotation(jointRotation * attachment.rotation);
-                model->setScaleToFit(true, getUniformScale() * attachment.scale, true); // hack to force rescale
+                float scale = getUniformScale() * attachment.scale;
+                model->setScaleToFit(true, model->getNaturalDimensions() * scale, true); // hack to force rescale
                 model->setSnapModelToCenter(false); // hack to force resnap
                 model->setSnapModelToCenter(true);
                 model->simulate(deltaTime);
@@ -935,17 +916,16 @@ glm::vec3 Avatar::getDefaultJointTranslation(int index) const {
 
 glm::quat Avatar::getAbsoluteDefaultJointRotationInObjectFrame(int index) const {
     glm::quat rotation;
-    auto rig = _skeletonModel->getRig();
-    glm::quat rot = rig->getAnimSkeleton()->getAbsoluteDefaultPose(index).rot();
+    glm::quat rot = _skeletonModel->getRig().getAnimSkeleton()->getAbsoluteDefaultPose(index).rot();
     return Quaternions::Y_180 * rot;
 }
 
 glm::vec3 Avatar::getAbsoluteDefaultJointTranslationInObjectFrame(int index) const {
     glm::vec3 translation;
-    auto rig = _skeletonModel->getRig();
-    glm::vec3 trans = rig->getAnimSkeleton()->getAbsoluteDefaultPose(index).trans();
+    const Rig& rig = _skeletonModel->getRig();
+    glm::vec3 trans = rig.getAnimSkeleton()->getAbsoluteDefaultPose(index).trans();
     glm::mat4 y180Mat = createMatFromQuatAndPos(Quaternions::Y_180, glm::vec3());
-    return transformPoint(y180Mat * rig->getGeometryToRigTransform(), trans);
+    return transformPoint(y180Mat * rig.getGeometryToRigTransform(), trans);
 }
 
 glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
@@ -1028,49 +1008,87 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
     }
 }
 
-int Avatar::getJointIndex(const QString& name) const {
-    if (QThread::currentThread() != thread()) {
-        int result;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointIndex", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(int, result), Q_ARG(const QString&, name));
-        return result;
+void Avatar::invalidateJointIndicesCache() const {
+    QWriteLocker writeLock(&_modelJointIndicesCacheLock);
+    _modelJointsCached = false;
+}
+
+void Avatar::withValidJointIndicesCache(std::function<void()> const& worker) const {
+    QReadLocker readLock(&_modelJointIndicesCacheLock);
+    if (_modelJointsCached) {
+        worker();
+    } else {
+        readLock.unlock();
+        {
+            QWriteLocker writeLock(&_modelJointIndicesCacheLock);
+            if (!_modelJointsCached) {
+                _modelJointIndicesCache.clear();
+                if (_skeletonModel && _skeletonModel->isActive()) {
+                    _modelJointIndicesCache = _skeletonModel->getFBXGeometry().jointIndices;
+                    _modelJointsCached = true;
+                }
+            }
+            worker();
+        }
     }
+}
+
+int Avatar::getJointIndex(const QString& name) const {
     int result = getFauxJointIndex(name);
     if (result != -1) {
         return result;
     }
-    return _skeletonModel->isActive() ? _skeletonModel->getFBXGeometry().getJointIndex(name) : -1;
+
+    withValidJointIndicesCache([&]() {
+        if (_modelJointIndicesCache.contains(name)) {
+            result = _modelJointIndicesCache[name] - 1;
+        }
+    });
+    return result;
 }
 
 QStringList Avatar::getJointNames() const {
-    if (QThread::currentThread() != thread()) {
-        QStringList result;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointNames", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(QStringList, result));
-        return result;
-    }
-    return _skeletonModel->isActive() ? _skeletonModel->getFBXGeometry().getJointNames() : QStringList();
+    QStringList result;
+    withValidJointIndicesCache([&]() {
+        // find out how large the vector needs to be
+        int maxJointIndex = -1;
+        QHashIterator<QString, int> k(_modelJointIndicesCache);
+        while (k.hasNext()) {
+            k.next();
+            int index = k.value();
+            if (index > maxJointIndex) {
+                maxJointIndex = index;
+            }
+        }
+        // iterate through the hash and put joint names
+        // into the vector at their indices
+        QVector<QString> resultVector(maxJointIndex+1);
+        QHashIterator<QString, int> i(_modelJointIndicesCache);
+        while (i.hasNext()) {
+            i.next();
+            int index = i.value();
+            resultVector[index] = i.key();
+        }
+        // convert to QList and drop out blanks
+        result = resultVector.toList();
+        QMutableListIterator<QString> j(result);
+        while (j.hasNext()) {
+            QString jointName = j.next();
+            if (jointName.isEmpty()) {
+                j.remove();
+            }
+        }
+    });
+    return result;
 }
 
 glm::vec3 Avatar::getJointPosition(int index) const {
-    if (QThread::currentThread() != thread()) {
-        glm::vec3 position;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(glm::vec3, position), Q_ARG(const int, index));
-        return position;
-    }
     glm::vec3 position;
     _skeletonModel->getJointPositionInWorldFrame(index, position);
     return position;
 }
 
 glm::vec3 Avatar::getJointPosition(const QString& name) const {
-    if (QThread::currentThread() != thread()) {
-        glm::vec3 position;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(glm::vec3, position), Q_ARG(const QString&, name));
-        return position;
-    }
     glm::vec3 position;
     _skeletonModel->getJointPositionInWorldFrame(getJointIndex(name), position);
     return position;
@@ -1091,19 +1109,21 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 }
 
 void Avatar::setModelURLFinished(bool success) {
+    invalidateJointIndicesCache();
+
     if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
         const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: we don't want to be as generous as ResourceCache is, we only want 4 attempts
         if (_skeletonModel->getResourceDownloadAttemptsRemaining() <= 0 ||
             _skeletonModel->getResourceDownloadAttempts() > MAX_SKELETON_DOWNLOAD_ATTEMPTS) {
-            qCWarning(avatars_renderer) << "Using default after failing to load Avatar model: " << _skeletonModelURL 
+            qCWarning(avatars_renderer) << "Using default after failing to load Avatar model: " << _skeletonModelURL
                                     << "after" << _skeletonModel->getResourceDownloadAttempts() << "attempts.";
             // call _skeletonModel.setURL, but leave our copy of _skeletonModelURL alone.  This is so that
             // we don't redo this every time we receive an identity packet from the avatar with the bad url.
             QMetaObject::invokeMethod(_skeletonModel.get(), "setURL",
                 Qt::QueuedConnection, Q_ARG(QUrl, AvatarData::defaultFullAvatarModelUrl()));
         } else {
-            qCWarning(avatars_renderer) << "Avatar model: " << _skeletonModelURL 
-                    << "failed to load... attempts:" << _skeletonModel->getResourceDownloadAttempts() 
+            qCWarning(avatars_renderer) << "Avatar model: " << _skeletonModelURL
+                    << "failed to load... attempts:" << _skeletonModel->getResourceDownloadAttempts()
                     << "out of:" << MAX_SKELETON_DOWNLOAD_ATTEMPTS;
         }
     }
@@ -1111,22 +1131,22 @@ void Avatar::setModelURLFinished(bool success) {
 
 
 // create new model, can return an instance of a SoftAttachmentModel rather then Model
-static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, RigPointer rigOverride, bool isCauterized) {
+static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, const Rig& rigOverride, bool isCauterized) {
     if (isSoft) {
         // cast to std::shared_ptr<Model>
-        std::shared_ptr<SoftAttachmentModel> softModel = std::make_shared<SoftAttachmentModel>(std::make_shared<Rig>(), nullptr, rigOverride);
+        std::shared_ptr<SoftAttachmentModel> softModel = std::make_shared<SoftAttachmentModel>(nullptr, rigOverride);
         if (isCauterized) {
             softModel->flagAsCauterized();
         }
         return std::dynamic_pointer_cast<Model>(softModel);
     } else {
-        return std::make_shared<Model>(std::make_shared<Rig>());
+        return std::make_shared<Model>();
     }
 }
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setAttachmentData", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "setAttachmentData",
                                   Q_ARG(const QVector<AttachmentData>, attachmentData));
         return;
     }
@@ -1293,6 +1313,17 @@ void Avatar::getCapsule(glm::vec3& start, glm::vec3& end, float& radius) {
     radius = halfExtents.x;
 }
 
+float Avatar::computeMass() {
+    float radius;
+    glm::vec3 start, end;
+    getCapsule(start, end, radius);
+    // NOTE:
+    // volumeOfCapsule = volumeOfCylinder + volumeOfSphere
+    // volumeOfCapsule = (2PI * R^2 * H) + (4PI * R^3 / 3)
+    // volumeOfCapsule = 2PI * R^2 * (H + 2R/3)
+    return _density * TWO_PI * radius * radius * (glm::length(end - start) + 2.0f * radius / 3.0f);
+}
+
 // virtual
 void Avatar::rebuildCollisionShape() {
     addPhysicsFlags(Simulation::DIRTY_SHAPE);
@@ -1371,31 +1402,13 @@ glm::quat Avatar::getUncachedRightPalmRotation() const {
 }
 
 void Avatar::setPosition(const glm::vec3& position) {
-    if (isMyAvatar()) {
-        // This is the local avatar, no need to handle any position smoothing.
-        AvatarData::setPosition(position);
-        updateAttitude();
-        return;
-    }
-
-    // Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
-    _smoothPositionInitial = getPosition();
-    _smoothPositionTarget = position;
-    _smoothPositionTimer = 0.0f;
+    AvatarData::setPosition(position);
+    updateAttitude();
 }
 
 void Avatar::setOrientation(const glm::quat& orientation) {
-    if (isMyAvatar()) {
-        // This is the local avatar, no need to handle any position smoothing.
-        AvatarData::setOrientation(orientation);
-        updateAttitude();
-        return;
-    }
-
-    // Whether or not there is an existing smoothing going on, just reset the smoothing timer and set the starting position as the avatar's current position, then smooth to the new position.
-    _smoothOrientationInitial = getOrientation();
-    _smoothOrientationTarget = orientation;
-    _smoothOrientationTimer = 0.0f;
+    AvatarData::setOrientation(orientation);
+    updateAttitude();
 }
 
 void Avatar::updatePalms() {
@@ -1444,21 +1457,19 @@ void Avatar::setParentJointIndex(quint16 parentJointIndex) {
 QList<QVariant> Avatar::getSkeleton() {
     SkeletonModelPointer skeletonModel = _skeletonModel;
     if (skeletonModel) {
-        RigPointer rig = skeletonModel->getRig();
-        if (rig) {
-            AnimSkeleton::ConstPointer skeleton = rig->getAnimSkeleton();
-            if (skeleton) {
-                QList<QVariant> list;
-                list.reserve(skeleton->getNumJoints());
-                for (int i = 0; i < skeleton->getNumJoints(); i++) {
-                    QVariantMap obj;
-                    obj["name"] = skeleton->getJointName(i);
-                    obj["index"] = i;
-                    obj["parentIndex"] = skeleton->getParentIndex(i);
-                    list.push_back(obj);
-                }
-                return list;
+        const Rig& rig = skeletonModel->getRig();
+        AnimSkeleton::ConstPointer skeleton = rig.getAnimSkeleton();
+        if (skeleton) {
+            QList<QVariant> list;
+            list.reserve(skeleton->getNumJoints());
+            for (int i = 0; i < skeleton->getNumJoints(); i++) {
+                QVariantMap obj;
+                obj["name"] = skeleton->getJointName(i);
+                obj["index"] = i;
+                obj["parentIndex"] = skeleton->getParentIndex(i);
+                list.push_back(obj);
             }
+            return list;
         }
     }
 
@@ -1469,8 +1480,7 @@ void Avatar::addToScene(AvatarSharedPointer myHandle, const render::ScenePointer
     if (scene) {
         auto nodelist = DependencyManager::get<NodeList>();
         if (showAvatars
-            && !nodelist->isIgnoringNode(getSessionUUID())
-            && !nodelist->isRadiusIgnoringNode(getSessionUUID())) {
+            && !nodelist->isIgnoringNode(getSessionUUID())) {
             render::Transaction transaction;
             addToScene(myHandle, scene, transaction);
             scene->enqueueTransaction(transaction);

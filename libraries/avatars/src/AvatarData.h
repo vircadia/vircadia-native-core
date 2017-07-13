@@ -52,15 +52,16 @@ typedef unsigned long long quint64;
 #include <JointData.h>
 #include <NLPacket.h>
 #include <Node.h>
-#include <RegisteredMetaTypes.h>
-#include <SimpleMovingAverage.h>
-#include <SpatiallyNestable.h>
 #include <NumericalConstants.h>
 #include <Packed.h>
-#include <ThreadSafeValueCache.h>
+#include <RegisteredMetaTypes.h>
 #include <SharedUtil.h>
-#include <shared/RateCounter.h>
+#include <SimpleMovingAverage.h>
+#include <SpatiallyNestable.h>
+#include <ThreadSafeValueCache.h>
 #include <ViewFrustum.h>
+#include <shared/RateCounter.h>
+#include <udt/SequenceNumber.h>
 
 #include "AABox.h"
 #include "HeadData.h"
@@ -139,51 +140,59 @@ namespace AvatarDataPacket {
     const HasFlags PACKET_HAS_JOINT_DATA             = 1U << 11;
     const size_t AVATAR_HAS_FLAGS_SIZE = 2;
 
+    using SixByteQuat = uint8_t[6];
+    using SixByteTrans = uint8_t[6];
+
     // NOTE: AvatarDataPackets start with a uint16_t sequence number that is not reflected in the Header structure.
 
     PACKED_BEGIN struct Header {
         HasFlags packetHasFlags;        // state flags, indicated which additional records are included in the packet
     } PACKED_END;
     const size_t HEADER_SIZE = 2;
+    static_assert(sizeof(Header) == HEADER_SIZE, "AvatarDataPacket::Header size doesn't match.");
 
     PACKED_BEGIN struct AvatarGlobalPosition {
         float globalPosition[3];          // avatar's position
     } PACKED_END;
     const size_t AVATAR_GLOBAL_POSITION_SIZE = 12;
+    static_assert(sizeof(AvatarGlobalPosition) == AVATAR_GLOBAL_POSITION_SIZE, "AvatarDataPacket::AvatarGlobalPosition size doesn't match.");
 
     PACKED_BEGIN struct AvatarBoundingBox {
         float avatarDimensions[3];        // avatar's bounding box in world space units, but relative to the position.
         float boundOriginOffset[3];       // offset from the position of the avatar to the origin of the bounding box
     } PACKED_END;
     const size_t AVATAR_BOUNDING_BOX_SIZE = 24;
+    static_assert(sizeof(AvatarBoundingBox) == AVATAR_BOUNDING_BOX_SIZE, "AvatarDataPacket::AvatarBoundingBox size doesn't match.");
 
-
-    using SixByteQuat = uint8_t[6];
     PACKED_BEGIN struct AvatarOrientation {
         SixByteQuat avatarOrientation;      // encodeded and compressed by packOrientationQuatToSixBytes()
     } PACKED_END;
     const size_t AVATAR_ORIENTATION_SIZE = 6;
+    static_assert(sizeof(AvatarOrientation) == AVATAR_ORIENTATION_SIZE, "AvatarDataPacket::AvatarOrientation size doesn't match.");
 
     PACKED_BEGIN struct AvatarScale {
-        SmallFloat scale;                 // avatar's scale, compressed by packFloatRatioToTwoByte() 
+        SmallFloat scale;                 // avatar's scale, compressed by packFloatRatioToTwoByte()
     } PACKED_END;
     const size_t AVATAR_SCALE_SIZE = 2;
+    static_assert(sizeof(AvatarScale) == AVATAR_SCALE_SIZE, "AvatarDataPacket::AvatarScale size doesn't match.");
 
     PACKED_BEGIN struct LookAtPosition {
         float lookAtPosition[3];          // world space position that eyes are focusing on.
-                                          // FIXME - unless the person has an eye tracker, this is simulated... 
+                                          // FIXME - unless the person has an eye tracker, this is simulated...
                                           //    a) maybe we can just have the client calculate this
-                                          //    b) at distance this will be hard to discern and can likely be 
+                                          //    b) at distance this will be hard to discern and can likely be
                                           //       descimated or dropped completely
                                           //
                                           // POTENTIAL SAVINGS - 12 bytes
     } PACKED_END;
     const size_t LOOK_AT_POSITION_SIZE = 12;
+    static_assert(sizeof(LookAtPosition) == LOOK_AT_POSITION_SIZE, "AvatarDataPacket::LookAtPosition size doesn't match.");
 
     PACKED_BEGIN struct AudioLoudness {
         uint8_t audioLoudness;            // current loudness of microphone compressed with packFloatGainToByte()
     } PACKED_END;
     const size_t AUDIO_LOUDNESS_SIZE = 1;
+    static_assert(sizeof(AudioLoudness) == AUDIO_LOUDNESS_SIZE, "AvatarDataPacket::AudioLoudness size doesn't match.");
 
     PACKED_BEGIN struct SensorToWorldMatrix {
         // FIXME - these 20 bytes are only used by viewers if my avatar has "attachments"
@@ -198,11 +207,13 @@ namespace AvatarDataPacket {
                                           // relative to the avatar position.
     } PACKED_END;
     const size_t SENSOR_TO_WORLD_SIZE = 20;
+    static_assert(sizeof(SensorToWorldMatrix) == SENSOR_TO_WORLD_SIZE, "AvatarDataPacket::SensorToWorldMatrix size doesn't match.");
 
     PACKED_BEGIN struct AdditionalFlags {
         uint8_t flags;                    // additional flags: hand state, key state, eye tracking
     } PACKED_END;
     const size_t ADDITIONAL_FLAGS_SIZE = 1;
+    static_assert(sizeof(AdditionalFlags) == ADDITIONAL_FLAGS_SIZE, "AvatarDataPacket::AdditionalFlags size doesn't match.");
 
     // only present if HAS_REFERENTIAL flag is set in AvatarInfo.flags
     PACKED_BEGIN struct ParentInfo {
@@ -210,6 +221,7 @@ namespace AvatarDataPacket {
         uint16_t parentJointIndex;
     } PACKED_END;
     const size_t PARENT_INFO_SIZE = 18;
+    static_assert(sizeof(ParentInfo) == PARENT_INFO_SIZE, "AvatarDataPacket::ParentInfo size doesn't match.");
 
     // will only ever be included if the avatar has a parent but can change independent of changes to parent info
     // and so we keep it a separate record
@@ -217,6 +229,22 @@ namespace AvatarDataPacket {
         float localPosition[3];           // parent frame translation of the avatar
     } PACKED_END;
     const size_t AVATAR_LOCAL_POSITION_SIZE = 12;
+    static_assert(sizeof(AvatarLocalPosition) == AVATAR_LOCAL_POSITION_SIZE, "AvatarDataPacket::AvatarLocalPosition size doesn't match.");
+
+    const size_t MAX_CONSTANT_HEADER_SIZE = HEADER_SIZE +
+        AVATAR_GLOBAL_POSITION_SIZE +
+        AVATAR_BOUNDING_BOX_SIZE +
+        AVATAR_ORIENTATION_SIZE +
+        AVATAR_SCALE_SIZE +
+        LOOK_AT_POSITION_SIZE +
+        AUDIO_LOUDNESS_SIZE +
+        SENSOR_TO_WORLD_SIZE +
+        ADDITIONAL_FLAGS_SIZE +
+        PARENT_INFO_SIZE +
+        AVATAR_LOCAL_POSITION_SIZE;
+
+
+    // variable length structure follows
 
     // only present if IS_FACE_TRACKER_CONNECTED flag is set in AvatarInfo.flags
     PACKED_BEGIN struct FaceTrackerInfo {
@@ -228,8 +256,9 @@ namespace AvatarDataPacket {
         // float blendshapeCoefficients[numBlendshapeCoefficients];
     } PACKED_END;
     const size_t FACE_TRACKER_INFO_SIZE = 17;
+    static_assert(sizeof(FaceTrackerInfo) == FACE_TRACKER_INFO_SIZE, "AvatarDataPacket::FaceTrackerInfo size doesn't match.");
+    size_t maxFaceTrackerInfoSize(size_t numBlendshapeCoefficients);
 
-    // variable length structure follows
     /*
     struct JointData {
         uint8_t numJoints;
@@ -239,6 +268,7 @@ namespace AvatarDataPacket {
         SixByteTrans translation[numValidTranslations];        // encodeded and compressed by packFloatVec3ToSignedTwoByteFixed()
     };
     */
+    size_t maxJointDataSize(size_t numJoints);
 }
 
 static const float MAX_AVATAR_SCALE = 1000.0f;
@@ -368,6 +398,7 @@ public:
     virtual ~AvatarData();
 
     static const QUrl& defaultFullAvatarModelUrl();
+    QUrl cannonicalSkeletonModelURL(const QUrl& empty) const;
 
     virtual bool isMyAvatar() const { return false; }
 
@@ -376,19 +407,19 @@ public:
     glm::vec3 getHandPosition() const;
     void setHandPosition(const glm::vec3& handPosition);
 
-    typedef enum { 
+    typedef enum {
         NoData,
         PALMinimum,
-        MinimumData, 
+        MinimumData,
         CullSmallData,
         IncludeSmallData,
         SendAllData
     } AvatarDataDetail;
 
-    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail);
+    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking = false);
 
     virtual QByteArray toByteArray(AvatarDataDetail dataDetail, quint64 lastSentTime, const QVector<JointData>& lastSentJointData,
-        AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust, glm::vec3 viewerPosition, 
+        AvatarDataPacket::HasFlags& hasFlagsOut, bool dropFaceTracking, bool distanceAdjust, glm::vec3 viewerPosition,
         QVector<JointData>* sentJointDataOut, AvatarDataRate* outboundDataRateOut = nullptr) const;
 
     virtual void doneEncoding(bool cullSmallChanges);
@@ -417,23 +448,23 @@ public:
     void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
     virtual void updateAttitude() {} // Tell skeleton mesh about changes
 
-    glm::quat getHeadOrientation() const { 
+    glm::quat getHeadOrientation() const {
         lazyInitHeadData();
-        return _headData->getOrientation(); 
+        return _headData->getOrientation();
     }
-    void setHeadOrientation(const glm::quat& orientation) { 
+    void setHeadOrientation(const glm::quat& orientation) {
         if (_headData) {
             _headData->setOrientation(orientation);
         }
     }
 
-    void setLookAtPosition(const glm::vec3& lookAtPosition) { 
+    void setLookAtPosition(const glm::vec3& lookAtPosition) {
         if (_headData) {
-            _headData->setLookAtPosition(lookAtPosition); 
+            _headData->setLookAtPosition(lookAtPosition);
         }
     }
 
-    void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) { 
+    void setBlendshapeCoefficients(const QVector<float>& blendshapeCoefficients) {
         if (_headData) {
             _headData->setBlendshapeCoefficients(blendshapeCoefficients);
         }
@@ -470,7 +501,7 @@ public:
 
     void setDomainMinimumScale(float domainMinimumScale)
         { _domainMinimumScale = glm::clamp(domainMinimumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); _scaleChanged = usecTimestampNow(); }
-    void setDomainMaximumScale(float domainMaximumScale) 
+    void setDomainMaximumScale(float domainMaximumScale)
         { _domainMaximumScale = glm::clamp(domainMaximumScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE); _scaleChanged = usecTimestampNow(); }
 
     //  Hand State
@@ -525,22 +556,20 @@ public:
     const HeadData* getHeadData() const { return _headData; }
 
     struct Identity {
-        QUuid uuid;
         QUrl skeletonModelURL;
         QVector<AttachmentData> attachmentData;
         QString displayName;
         QString sessionDisplayName;
+        bool isReplicated;
         AvatarEntityMap avatarEntityData;
-        quint64 updatedAt;
     };
 
-    static void parseAvatarIdentityPacket(const QByteArray& data, Identity& identityOut);
-
     // identityChanged returns true if identity has changed, false otherwise.
-    // displayNameChanged returns true if displayName has changed, false otherwise.
-    void processAvatarIdentity(const Identity& identity, bool& identityChanged, bool& displayNameChanged, const qint64 clockSkew);
+    // identityChanged returns true if identity has changed, false otherwise. Similarly for displayNameChanged and skeletonModelUrlChange.
+    void processAvatarIdentity(const QByteArray& identityData, bool& identityChanged,
+                               bool& displayNameChanged, bool& skeletonModelUrlChanged);
 
-    QByteArray identityByteArray() const;
+    QByteArray identityByteArray(bool setIsReplicated = false) const;
 
     const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
     const QString& getDisplayName() const { return _displayName; }
@@ -548,8 +577,8 @@ public:
     virtual void setSkeletonModelURL(const QUrl& skeletonModelURL);
 
     virtual void setDisplayName(const QString& displayName);
-    virtual void setSessionDisplayName(const QString& sessionDisplayName) { 
-        _sessionDisplayName = sessionDisplayName; 
+    virtual void setSessionDisplayName(const QString& sessionDisplayName) {
+        _sessionDisplayName = sessionDisplayName;
         markIdentityDataChanged();
     }
 
@@ -604,6 +633,9 @@ public:
         return _lastSentJointData;
     }
 
+    // A method intended to be overriden by MyAvatar for polling orientation for network transmission.
+    virtual glm::quat getOrientationOutbound() const;
+
     static const float OUT_OF_VIEW_PENALTY;
 
     static void sortAvatars(
@@ -621,10 +653,14 @@ public:
     static float _avatarSortCoefficientAge;
 
     bool getIdentityDataChanged() const { return _identityDataChanged; } // has the identity data changed since the last time sendIdentityPacket() was called
-    void markIdentityDataChanged() {
-        _identityDataChanged = true;
-        _identityUpdatedAt = usecTimestampNow();
-    }
+    void markIdentityDataChanged() { _identityDataChanged = true; }
+
+    void pushIdentitySequenceNumber() { ++_identitySequenceNumber; };
+    bool hasProcessedFirstIdentity() const { return _hasProcessedFirstIdentity; }
+
+    float getDensity() const { return _density; }
+
+    bool getIsReplicated() const { return _isReplicated; }
 
 signals:
     void displayNameChanged();
@@ -662,6 +698,10 @@ protected:
     bool hasParent() const { return !getParentID().isNull(); }
     bool hasFaceTracker() const { return _headData ? _headData->_isFaceTrackerConnected : false; }
 
+    // isReplicated will be true on downstream Avatar Mixers and their clients, but false on the upstream "master"
+    // Audio Mixer that the replicated avatar is connected to.
+    bool _isReplicated{ false };
+
     glm::vec3 _handPosition;
     virtual const QString& getSessionDisplayNameForTransport() const { return _sessionDisplayName; }
     virtual void maybeUpdateSessionDisplayNameFromTransport(const QString& sessionDisplayName) { } // No-op in AvatarMixer
@@ -692,10 +732,9 @@ protected:
     QVector<AttachmentData> _attachmentData;
     QString _displayName;
     QString _sessionDisplayName { };
-    QUrl cannonicalSkeletonModelURL(const QUrl& empty) const;
 
-    QHash<QString, int> _jointIndices; ///< 1-based, since zero is returned for missing keys
-    QStringList _jointNames; ///< in order of depth-first traversal
+    QHash<QString, int> _fstJointIndices; ///< 1-based, since zero is returned for missing keys
+    QStringList _fstJointNames; ///< in order of depth-first traversal
 
     quint64 _errorLogExpiry; ///< time in future when to log an error
 
@@ -781,7 +820,9 @@ protected:
     float _audioAverageLoudness { 0.0f };
 
     bool _identityDataChanged { false };
-    quint64 _identityUpdatedAt { 0 };
+    udt::SequenceNumber _identitySequenceNumber { 0 };
+    bool _hasProcessedFirstIdentity { false };
+    float _density;
 
 private:
     friend void avatarStateFromFrame(const QByteArray& frameData, AvatarData* _avatar);

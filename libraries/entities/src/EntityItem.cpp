@@ -23,8 +23,8 @@
 #include <PhysicsHelpers.h>
 #include <RegisteredMetaTypes.h>
 #include <SharedUtil.h> // usecTimestampNow()
-#include <SoundCache.h>
 #include <LogHandler.h>
+#include <Extents.h>
 
 #include "EntityScriptingInterface.h"
 #include "EntitiesLogging.h"
@@ -386,7 +386,13 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
         return 0;
     }
 
-    qint64 clockSkew = args.sourceNode ? args.sourceNode->getClockSkewUsec() : 0;
+    int64_t clockSkew = 0;
+    uint64_t maxPingRoundTrip = 33333; // two frames periods at 60 fps
+    if (args.sourceNode) {
+        clockSkew = args.sourceNode->getClockSkewUsec();
+        const float MSECS_PER_USEC = 1000;
+        maxPingRoundTrip += args.sourceNode->getPingMs() * MSECS_PER_USEC;
+    }
 
     BufferParser parser(data, bytesLeftToRead);
 
@@ -653,7 +659,6 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     const QUuid& myNodeID = nodeList->getSessionUUID();
     bool weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
 
-
     // pack SimulationOwner and terse update properties near each other
     // NOTE: the server is authoritative for changes to simOwnerID so we always unpack ownership data
     // even when we would otherwise ignore the rest of the packet.
@@ -678,26 +683,31 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
             if (newSimOwner.getID().isNull() && !_simulationOwner.pendingRelease(lastEditedFromBufferAdjusted)) {
                 // entity-server is trying to clear our ownership (probably at our own request)
                 // but we actually want to own it, therefore we ignore this clear event
-                // and pretend that we own it (we assume we'll recover it soon)
+                // and pretend that we own it (e.g. we assume we'll receive ownership soon)
 
                 // However, for now, when the server uses a newer time than what we sent, listen to what we're told.
-                if (overwriteLocalData) weOwnSimulation = false;
+                if (overwriteLocalData) {
+                    weOwnSimulation = false;
+                }
             } else if (_simulationOwner.set(newSimOwner)) {
                 markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
                 somethingChanged = true;
                 // recompute weOwnSimulation for later
                 weOwnSimulation = _simulationOwner.matchesValidID(myNodeID);
             }
-        } else if (newSimOwner.getID().isNull() && _simulationOwner.pendingTake(lastEditedFromBufferAdjusted)) {
-            // entity-server is trying to clear someone  else's ownership
-            // but we want to own it, therefore we ignore this clear event
-            // and pretend that we own it (we assume we'll get it soon)
+        } else if (_simulationOwner.pendingTake(now - maxPingRoundTrip)) {
+            // we sent a bid before this packet could have been sent from the server
+            // so we ignore it and pretend we own the object's simulation
             weOwnSimulation = true;
-            if (!_simulationOwner.isNull()) {
-                // someone else really did own it
-                markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
-                somethingChanged = true;
-                _simulationOwner.clearCurrentOwner();
+            if (newSimOwner.getID().isNull()) {
+                // entity-server is trying to clear someone  else's ownership
+                // but we want to own it, therefore we ignore this clear event
+                if (!_simulationOwner.isNull()) {
+                    // someone else really did own it
+                    markDirtyFlags(Simulation::DIRTY_SIMULATOR_ID);
+                    somethingChanged = true;
+                    _simulationOwner.clearCurrentOwner();
+                }
             }
         } else if (newSimOwner.matchesValidID(myNodeID) && !_hasBidOnSimulation) {
             // entity-server tells us that we have simulation ownership while we never requested this for this EntityItem,
@@ -810,7 +820,7 @@ int EntityItem::readEntityDataFromBuffer(const unsigned char* data, int bytesLef
     READ_ENTITY_PROPERTY(PROP_COLLISIONLESS, bool, updateCollisionless);
     READ_ENTITY_PROPERTY(PROP_COLLISION_MASK, uint8_t, updateCollisionMask);
     READ_ENTITY_PROPERTY(PROP_DYNAMIC, bool, updateDynamic);
-    READ_ENTITY_PROPERTY(PROP_LOCKED, bool, setLocked);
+    READ_ENTITY_PROPERTY(PROP_LOCKED, bool, updateLocked);
     READ_ENTITY_PROPERTY(PROP_USER_DATA, QString, setUserData);
 
     if (args.bitstreamVersion >= VERSION_ENTITIES_HAS_MARKETPLACE_ID) {
@@ -976,21 +986,6 @@ void EntityItem::setCollisionSoundURL(const QString& value) {
             myTree->notifyNewCollisionSoundURL(value, getEntityItemID());
         }
     }
-}
-
-SharedSoundPointer EntityItem::getCollisionSound() {
-    SharedSoundPointer result;
-    withReadLock([&] {
-        result = _collisionSound;
-    });
-
-    if (!result) {
-        result = DependencyManager::get<SoundCache>()->getSound(_collisionSoundURL);
-        withWriteLock([&] {
-            _collisionSound = result;
-        });
-    }
-    return result;
 }
 
 void EntityItem::simulate(const quint64& now) {
@@ -1293,27 +1288,15 @@ void EntityItem::getAllTerseUpdateProperties(EntityItemProperties& properties) c
     properties._accelerationChanged = true;
 }
 
-void EntityItem::pokeSimulationOwnership() {
-    markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_POKE);
+void EntityItem::flagForOwnershipBid(uint8_t priority) {
+    markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_PRIORITY);
     auto nodeList = DependencyManager::get<NodeList>();
     if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
         // we already own it
-        _simulationOwner.promotePriority(SCRIPT_POKE_SIMULATION_PRIORITY);
+        _simulationOwner.promotePriority(priority);
     } else {
         // we don't own it yet
-        _simulationOwner.setPendingPriority(SCRIPT_POKE_SIMULATION_PRIORITY, usecTimestampNow());
-    }
-}
-
-void EntityItem::grabSimulationOwnership() {
-    markDirtyFlags(Simulation::DIRTY_SIMULATION_OWNERSHIP_FOR_GRAB);
-    auto nodeList = DependencyManager::get<NodeList>();
-    if (_simulationOwner.matchesValidID(nodeList->getSessionUUID())) {
-        // we already own it
-        _simulationOwner.promotePriority(SCRIPT_GRAB_SIMULATION_PRIORITY);
-    } else {
-        // we don't own it yet
-        _simulationOwner.setPendingPriority(SCRIPT_GRAB_SIMULATION_PRIORITY, usecTimestampNow());
+        _simulationOwner.setPendingPriority(priority, usecTimestampNow());
     }
 }
 
@@ -1344,6 +1327,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(dynamic, updateDynamic);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(created, updateCreated);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lifetime, updateLifetime);
+    SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, updateLocked);
 
     // non-simulation properties below
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(script, setScript);
@@ -1352,7 +1336,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(collisionSoundURL, setCollisionSoundURL);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(localRenderAlpha, setLocalRenderAlpha);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(visible, setVisible);
-    SET_ENTITY_PROPERTY_FROM_PROPERTIES(locked, setLocked);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(userData, setUserData);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(marketplaceID, setMarketplaceID);
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(name, setName);
@@ -1374,7 +1357,7 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
         somethingChanged = true;
     }
 
-    // Now check the sub classes 
+    // Now check the sub classes
     somethingChanged |= setSubClassProperties(properties);
 
     // Finally notify if change detected
@@ -1606,11 +1589,19 @@ void EntityItem::updateRegistrationPoint(const glm::vec3& value) {
 void EntityItem::updatePosition(const glm::vec3& value) {
     if (getLocalPosition() != value) {
         setLocalPosition(value);
+
+        EntityTreePointer tree = getTree();
         markDirtyFlags(Simulation::DIRTY_POSITION);
+        if (tree) {
+            tree->entityChanged(getThisPointer());
+        }
         forEachDescendant([&](SpatiallyNestablePointer object) {
             if (object->getNestableType() == NestableType::Entity) {
                 EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                 entity->markDirtyFlags(Simulation::DIRTY_POSITION);
+                if (tree) {
+                    tree->entityChanged(entity);
+                }
             }
         });
     }
@@ -1622,6 +1613,11 @@ void EntityItem::updateParentID(const QUuid& value) {
         // children are forced to be kinematic
         // may need to not collide with own avatar
         markDirtyFlags(Simulation::DIRTY_MOTION_TYPE | Simulation::DIRTY_COLLISION_GROUP);
+
+        EntityTreePointer tree = getTree();
+        if (tree) {
+            tree->addToNeedsParentFixupList(getThisPointer());
+        }
     }
 }
 
@@ -1691,14 +1687,20 @@ void EntityItem::updateVelocity(const glm::vec3& value) {
                 setLocalVelocity(Vectors::ZERO);
             }
         } else {
-            const float MIN_LINEAR_SPEED = 0.001f;
-            if (glm::length(value) < MIN_LINEAR_SPEED) {
-                velocity = ENTITY_ITEM_ZERO_VEC3;
-            } else {
-                velocity = value;
+            float speed = glm::length(value);
+            if (!glm::isnan(speed)) {
+                const float MIN_LINEAR_SPEED = 0.001f;
+                const float MAX_LINEAR_SPEED = 270.0f; // 3m per step at 90Hz
+                if (speed < MIN_LINEAR_SPEED) {
+                    velocity = ENTITY_ITEM_ZERO_VEC3;
+                } else if (speed > MAX_LINEAR_SPEED) {
+                    velocity = (MAX_LINEAR_SPEED / speed) * value;
+                } else {
+                    velocity = value;
+                }
+                setLocalVelocity(velocity);
+                _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
             }
-            setLocalVelocity(velocity);
-            _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
         }
     }
 }
@@ -1723,8 +1725,16 @@ void EntityItem::updateGravity(const glm::vec3& value) {
         if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
             _gravity = Vectors::ZERO;
         } else {
-            _gravity = value;
-            _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
+            float magnitude = glm::length(value);
+            if (!glm::isnan(magnitude)) {
+                const float MAX_ACCELERATION_OF_GRAVITY = 10.0f * 9.8f; // 10g
+                if (magnitude > MAX_ACCELERATION_OF_GRAVITY) {
+                    _gravity = (MAX_ACCELERATION_OF_GRAVITY / magnitude) * value;
+                } else {
+                    _gravity = value;
+                }
+                _dirtyFlags |= Simulation::DIRTY_LINEAR_VELOCITY;
+            }
         }
     }
 }
@@ -1735,14 +1745,20 @@ void EntityItem::updateAngularVelocity(const glm::vec3& value) {
         if (getShapeType() == SHAPE_TYPE_STATIC_MESH) {
             setLocalAngularVelocity(Vectors::ZERO);
         } else {
-            const float MIN_ANGULAR_SPEED = 0.0002f;
-            if (glm::length(value) < MIN_ANGULAR_SPEED) {
-                angularVelocity = ENTITY_ITEM_ZERO_VEC3;
-            } else {
-                angularVelocity = value;
+            float speed = glm::length(value);
+            if (!glm::isnan(speed)) {
+                const float MIN_ANGULAR_SPEED = 0.0002f;
+                const float MAX_ANGULAR_SPEED = 9.0f * TWO_PI; // 1/10 rotation per step at 90Hz
+                if (speed < MIN_ANGULAR_SPEED) {
+                    angularVelocity = ENTITY_ITEM_ZERO_VEC3;
+                } else if (speed > MAX_ANGULAR_SPEED) {
+                    angularVelocity = (MAX_ANGULAR_SPEED / speed) * value;
+                } else {
+                    angularVelocity = value;
+                }
+                setLocalAngularVelocity(angularVelocity);
+                _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
             }
-            setLocalAngularVelocity(angularVelocity);
-            _dirtyFlags |= Simulation::DIRTY_ANGULAR_VELOCITY;
         }
     }
 }
@@ -2619,12 +2635,6 @@ QString EntityItem::getCollisionSoundURL() const {
     return result;
 }
 
-void EntityItem::setCollisionSound(SharedSoundPointer sound) { 
-    withWriteLock([&] {
-        _collisionSound = sound;
-    });
-}
-
 glm::vec3 EntityItem::getRegistrationPoint() const { 
     glm::vec3 result;
     withReadLock([&] {
@@ -2747,6 +2757,23 @@ void EntityItem::setLocked(bool value) {
     withWriteLock([&] {
         _locked = value;
     });
+}
+
+void EntityItem::updateLocked(bool value) {
+    bool changed { false };
+    withWriteLock([&] {
+        if (_locked != value) {
+            _locked = value;
+            changed = true;
+        }
+    });
+    if (changed) {
+        markDirtyFlags(Simulation::DIRTY_MOTION_TYPE);
+        EntityTreePointer tree = getTree();
+        if (tree) {
+            tree->entityChanged(getThisPointer());
+        }
+    }
 }
 
 QString EntityItem::getUserData() const { 

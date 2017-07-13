@@ -26,7 +26,7 @@
 #include "SimpleMovingAverage.h"
 
 class Rig;
-typedef std::shared_ptr<Rig> RigPointer;
+class AnimInverseKinematics;
 
 // Rig instances are reentrant.
 // However only specific methods thread-safe.  Noted below.
@@ -41,15 +41,26 @@ public:
         bool useNames;
     };
 
-    struct HeadParameters {
-        glm::mat4 hipsMatrix = glm::mat4();           // rig space
-        glm::mat4 spine2Matrix = glm::mat4();         // rig space
-        glm::quat rigHeadOrientation = glm::quat();   // rig space (-z forward)
-        glm::vec3 rigHeadPosition = glm::vec3();      // rig space
-        bool hipsEnabled = false;
-        bool headEnabled = false;
-        bool spine2Enabled = false;
-        bool isTalking = false;
+    enum ControllerType {
+        ControllerType_Head = 0,
+        ControllerType_LeftHand,
+        ControllerType_RightHand,
+        ControllerType_Hips,
+        ControllerType_LeftFoot,
+        ControllerType_RightFoot,
+        ControllerType_LeftArm,
+        ControllerType_RightArm,
+        ControllerType_Spine2,
+        NumControllerTypes
+    };
+
+    struct ControllerParameters {
+        AnimPose controllerPoses[NumControllerTypes];  // rig space
+        bool controllerActiveFlags[NumControllerTypes];
+        bool isTalking;
+        float bodyCapsuleRadius;
+        float bodyCapsuleHalfHeight;
+        glm::vec3 bodyCapsuleLocalOffset;
     };
 
     struct EyeParameters {
@@ -59,25 +70,6 @@ public:
         glm::quat modelRotation = glm::quat();
         int leftEyeJointIndex = -1;
         int rightEyeJointIndex = -1;
-    };
-
-    struct HandAndFeetParameters {
-        bool isLeftEnabled;
-        bool isRightEnabled;
-        float bodyCapsuleRadius;
-        float bodyCapsuleHalfHeight;
-        glm::vec3 bodyCapsuleLocalOffset;
-        glm::vec3 leftPosition = glm::vec3();     // rig space
-        glm::quat leftOrientation = glm::quat();  // rig space (z forward)
-        glm::vec3 rightPosition = glm::vec3();    // rig space
-        glm::quat rightOrientation = glm::quat(); // rig space (z forward)
-
-        bool isLeftFootEnabled;
-        bool isRightFootEnabled;
-        glm::vec3 leftFootPosition = glm::vec3();     // rig space
-        glm::quat leftFootOrientation = glm::quat();  // rig space (z forward)
-        glm::vec3 rightFootPosition = glm::vec3();    // rig space
-        glm::quat rightFootOrientation = glm::quat(); // rig space (z forward)
     };
 
     enum class CharacterControllerState {
@@ -111,6 +103,8 @@ public:
     void clearJointStates();
     void clearJointAnimationPriority(int index);
 
+    std::shared_ptr<AnimInverseKinematics> getAnimInverseKinematicsNode() const;
+
     void clearIKJointLimitHistory();
     void setMaxHipsOffsetLength(float maxLength);
     float getMaxHipsOffsetLength() const;
@@ -125,10 +119,6 @@ public:
     // geometry space
     void setJointTranslation(int index, bool valid, const glm::vec3& translation, float priority);
     void setJointRotation(int index, bool valid, const glm::quat& rotation, float priority);
-
-    // legacy
-    void restoreJointRotation(int index, float fraction, float priority);
-    void restoreJointTranslation(int index, float fraction, float priority);
 
     // if translation and rotation is identity, position will be in rig space
     bool getJointPositionInWorldFrame(int jointIndex, glm::vec3& position,
@@ -149,9 +139,6 @@ public:
     bool getAbsoluteJointTranslationInRigFrame(int jointIndex, glm::vec3& translation) const;
     bool getAbsoluteJointPoseInRigFrame(int jointIndex, AnimPose& returnPose) const;
 
-    // legacy
-    bool getJointCombinedRotation(int jointIndex, glm::quat& result, const glm::quat& rotation) const;
-
     // rig space
     glm::mat4 getJointTransform(int jointIndex) const;
 
@@ -159,7 +146,7 @@ public:
     void computeMotionAnimationState(float deltaTime, const glm::vec3& worldPosition, const glm::vec3& worldVelocity, const glm::quat& worldRotation, CharacterControllerState ccState);
 
     // Regardless of who started the animations or how many, update the joints.
-    void updateAnimations(float deltaTime, glm::mat4 rootTransform);
+    void updateAnimations(float deltaTime, const glm::mat4& rootTransform, const glm::mat4& rigToWorldTransform);
 
     // legacy
     void inverseKinematics(int endIndex, glm::vec3 targetPosition, const glm::quat& targetRotation, float priority,
@@ -191,9 +178,8 @@ public:
     // legacy
     void clearJointStatePriorities();
 
-    void updateFromHeadParameters(const HeadParameters& params, float dt);
+    void updateFromControllerParameters(const ControllerParameters& params, float dt);
     void updateFromEyeParameters(const EyeParameters& params);
-    void updateFromHandAndFeetParameters(const HandAndFeetParameters& params, float dt);
 
     void initAnimGraph(const QUrl& url);
 
@@ -228,6 +214,8 @@ public:
     const glm::mat4& getGeometryToRigTransform() const { return _geometryToRigTransform; }
 
     void setEnableDebugDrawIKTargets(bool enableDebugDrawIKTargets) { _enableDebugDrawIKTargets = enableDebugDrawIKTargets; }
+    void setEnableDebugDrawIKConstraints(bool enableDebugDrawIKConstraints) { _enableDebugDrawIKConstraints = enableDebugDrawIKConstraints; }
+    void setEnableDebugDrawIKChains(bool enableDebugDrawIKChains) { _enableDebugDrawIKChains = enableDebugDrawIKChains; }
 
     // input assumed to be in rig space
     void computeHeadFromHMD(const AnimPose& hmdPose, glm::vec3& headPositionOut, glm::quat& headOrientationOut) const;
@@ -241,10 +229,17 @@ protected:
     void applyOverridePoses();
     void buildAbsoluteRigPoses(const AnimPoseVec& relativePoses, AnimPoseVec& absolutePosesOut);
 
-    void updateHeadAnimVars(const HeadParameters& params);
+    void updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headMatrix);
+    void updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool leftArmEnabled, bool rightArmEnabled, float dt,
+                     const AnimPose& leftHandPose, const AnimPose& rightHandPose,
+                     float bodyCapsuleRadius, float bodyCapsuleHalfHeight, const glm::vec3& bodyCapsuleLocalOffset);
+    void updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose& leftFootPose, const AnimPose& rightFootPose);
 
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::vec3& lookAt, const glm::vec3& saccade);
     void calcAnimAlpha(float speed, const std::vector<float>& referenceSpeeds, float* alphaOut) const;
+
+    glm::vec3 calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, int hipsIndex, bool isLeft) const;
+    glm::vec3 calculateKneePoleVector(int footJointIndex, int kneeJoint, int upLegIndex, int hipsIndex, const AnimPose& targetFootPose) const;
 
     AnimPose _modelOffset;  // model to rig space
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)
@@ -338,11 +333,36 @@ protected:
     float _maxHipsOffsetLength { 1.0f };
 
     bool _enableDebugDrawIKTargets { false };
+    bool _enableDebugDrawIKConstraints { false };
+    bool _enableDebugDrawIKChains { false };
 
-private:
     QMap<int, StateHandler> _stateHandlers;
     int _nextStateHandlerId { 0 };
     QMutex _stateMutex;
+
+    bool transitionHandPose(float deltaTime, float totalDuration, AnimPose& controlledHandPose, bool isLeftHand,
+                            bool isToControlled, AnimPose& returnHandPose);
+
+    bool _isLeftHandControlled { false };
+    bool _isRightHandControlled { false };
+    float _leftHandControlTimeRemaining { 0.0f };
+    float _rightHandControlTimeRemaining { 0.0f };
+    float _leftHandRelaxTimeRemaining { 0.0f };
+    float _rightHandRelaxTimeRemaining { 0.0f };
+    AnimPose _lastLeftHandControlledPose;
+    AnimPose _lastRightHandControlledPose;
+
+    glm::vec3 _prevRightFootPoleVector { Vectors::UNIT_Z };
+    bool _prevRightFootPoleVectorValid { false };
+
+    glm::vec3 _prevLeftFootPoleVector { Vectors::UNIT_Z };
+    bool _prevLeftFootPoleVectorValid { false };
+
+    glm::vec3 _prevRightHandPoleVector { -Vectors::UNIT_Z };
+    bool _prevRightHandPoleVectorValid { false };
+
+    glm::vec3 _prevLeftHandPoleVector { -Vectors::UNIT_Z };
+    bool _prevLeftHandPoleVectorValid { false };
 };
 
 #endif /* defined(__hifi__Rig__) */
