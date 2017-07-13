@@ -16,8 +16,9 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include <gpu/Batch.h>
+#include <render/Forward.h>
 
-void renderWorldBox(gpu::Batch& batch);
+void renderWorldBox(RenderArgs* args, gpu::Batch& batch);
 
 void runTimingTests();
 void runUnitTests();

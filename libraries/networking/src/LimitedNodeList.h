@@ -197,8 +197,12 @@ public:
                 *lockWaitOut = (endLock - start);
             }
 
-            std::vector<SharedNodePointer> nodes(_nodeHash.size());
-            std::transform(_nodeHash.cbegin(), _nodeHash.cend(), nodes.begin(), [](const NodeHash::value_type& it) {
+            // Size of _nodeHash could change at any time,
+            // so reserve enough memory for the current size
+            // and then back insert all the nodes found
+            std::vector<SharedNodePointer> nodes;
+            nodes.reserve(_nodeHash.size());
+            std::transform(_nodeHash.cbegin(), _nodeHash.cend(), std::back_inserter(nodes), [&](const NodeHash::value_type& it) {
                 return it.second;
             });
             auto endTransform = usecTimestampNow();
