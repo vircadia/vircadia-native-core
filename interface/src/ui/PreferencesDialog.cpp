@@ -188,6 +188,9 @@ void setupPreferences() {
         preference->setStep(0.1f);
         preference->setDecimals(2);
         preferences->addPreference(preference);
+        
+        // When the Interface is first loaded, this section setupPreferences(); is loaded - causing the myAvatar->getDomainMinScale() and myAvatar->getDomainMaxScale() to get set to incorrect values which can't be changed across domain switches.
+        // Having these values loaded up when you load the Dialog each time is a way around this, therefore they're not specified here but in the QML.
     }
     {
         auto getter = []()->float { return DependencyManager::get<DdeFaceTracker>()->getEyeClosingThreshold(); };

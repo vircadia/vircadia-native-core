@@ -16,20 +16,18 @@ import "../../controls-uit"
 Preference {
     id: root
     property alias slider: slider
+    property alias spinner: spinner
     height: control.height + hifi.dimensions.controlInterlineHeight
 
     Component.onCompleted: {
         slider.value = preference.value;
+        spinner.value = preference.value;
     }
 
     function save() {
         preference.value = slider.value;
         preference.save();
     }
-
-	function sliderToAvatarScale(sliderValue) {
-		return MyAvatar.getDomainMinScale() + (MyAvatar.getDomainMaxScale()-MyAvatar.getDomainMinScale())*value;
-	}
 
     Item {
         id: control
@@ -38,7 +36,7 @@ Preference {
             right: parent.right
             bottom: parent.bottom
         }
-        height: Math.max(labelText.height, slider.height)
+        height: Math.max(labelText.height, slider.height, spinner.height, button.height)
 
         Label {
             id: labelText
@@ -67,9 +65,11 @@ Preference {
             anchors {
                 right: spinner.left
 				rightMargin: 10
+                verticalCenter: parent.verticalCenter
             }
             colorScheme: hifi.colorSchemes.dark
         }
+		
         SpinBox {
             id: spinner
             decimals: preference.decimals
@@ -83,26 +83,29 @@ Preference {
             anchors {
                 right: button.left
 				rightMargin: 10
+                verticalCenter: parent.verticalCenter
             }
             colorScheme: hifi.colorSchemes.dark
         }
-		GlyphButton {
-			id: button
-			onClicked: {
-				if(spinner.maximumValue >= 1) {
-					spinner.value = 1
-					slider.value = 1
-				} else {
-					spinner.value = spinner.maximumValue
-					slider.value = spinner.maximumValue
-				}
-			}
-			width: 30
-			glyph: hifi.glyphs.reload
-			anchors {
-				right: parent.right
-			}
+
+        GlyphButton {
+            id: button
+            onClicked: {
+                if (spinner.maximumValue >= 1) {
+                    spinner.value = 1
+                    slider.value = 1
+                } else {
+                    spinner.value = spinner.maximumValue
+                    slider.value = spinner.maximumValue
+                }
+            }
+            width: 30
+            glyph: hifi.glyphs.reload
+            anchors {
+                right: parent.right
+                verticalCenter: parent.verticalCenter
+            }
             colorScheme: hifi.colorSchemes.dark
-		}
+        }
     }
 }

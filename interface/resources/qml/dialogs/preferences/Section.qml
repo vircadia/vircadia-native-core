@@ -130,10 +130,10 @@ Preference {
                     builder = comboBoxBuilder;
                     break;
 
-				case Preference.SpinnerSlider:
-					checkBoxCount = 0;
-					builder = spinnerSliderBuilder;
-					break;
+                case Preference.SpinnerSlider:
+                    checkBoxCount = 0;
+                    builder = spinnerSliderBuilder;
+                    break;
             };
 
             if (builder) {
