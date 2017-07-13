@@ -72,7 +72,7 @@ Preference {
         property var avatarBuilder: Component { AvatarPreference { } }
         property var buttonBuilder: Component { ButtonPreference { } }
         property var comboBoxBuilder: Component { ComboBoxPreference { } }
-		property var spinnerSliderBuilder: Component { SpinnerSliderPreference { } }
+        property var spinnerSliderBuilder: Component { SpinnerSliderPreference { } }
         property var preferences: []
         property int checkBoxCount: 0
 
@@ -87,7 +87,7 @@ Preference {
         }
 
         function buildPreference(preference) {
-            console.log("\tPreference type " + preference.type + " name " + preference.name)
+            console.log("\tPreference type " + preference.type + " name " + preference.name);
             var builder;
             switch (preference.type) {
                 case Preference.Editable:
@@ -128,11 +128,13 @@ Preference {
                 case Preference.ComboBox:
                     checkBoxCount = 0;
                     builder = comboBoxBuilder;
+					console.log("Built COMBOBOX");
                     break;
 
 				case Preference.SpinnerSlider:
 					checkBoxCount = 0;
 					builder = spinnerSliderBuilder;
+					console.log("Built SPINNERSLIDER");
 					break;
             };
 

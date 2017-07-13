@@ -1,7 +1,7 @@
 //
-//  SpinBoxPreference.qml
+//  SpinnerSliderPreference.qml
 //
-//  Created by Bradley Austin Davis on 18 Jan 2016
+//  Created by Cain Kilgore on 11th July 2017
 //  Copyright 2016 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -26,6 +26,10 @@ Preference {
         preference.value = slider.value;
         preference.save();
     }
+
+	function sliderToAvatarScale(sliderValue) {
+		return MyAvatar.getDomainMinScale() + (MyAvatar.getDomainMaxScale()-MyAvatar.getDomainMinScale())*value;
+	}
 
     Item {
         id: control
@@ -53,12 +57,50 @@ Preference {
         Slider {
             id: slider
             value: preference.value
-            width: 130
+            width: 100
+            minimumValue: MyAvatar.getDomainMinScale()
+            maximumValue: MyAvatar.getDomainMaxScale()
+			stepSize: preference.step
+            onValueChanged: {
+                spinner.value = value
+            }
             anchors {
-                right: parent.right
-                verticalCenter: parent.verticalCenter
+                right: spinner.left
+				rightMargin: 10
+            }
+        }
+        SpinBox {
+            id: spinner
+            decimals: preference.decimals
+			value: preference.value
+            minimumValue: MyAvatar.getDomainMinScale()
+            maximumValue: MyAvatar.getDomainMaxScale()
+            width: 100
+            onValueChanged: {
+                slider.value = value;
+            }
+            anchors {
+                right: button.left
+				rightMargin: 10
             }
             colorScheme: hifi.colorSchemes.dark
         }
+		Button {
+			id: button
+			onClicked: {
+				if(spinner.maximumValue >= 1) {
+					spinner.value = 1
+					slider.value = 1
+				} else {
+					spinner.value = spinner.maximumValue
+					slider.value = spinner.maximumValue
+				}
+			}
+			width: 50
+			text: "Reset"
+			anchors {
+				right: parent.right
+			}
+		}
     }
 }

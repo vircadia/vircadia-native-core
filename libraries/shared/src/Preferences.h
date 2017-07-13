@@ -52,7 +52,7 @@ public:
         Browsable,
         Slider,
         Spinner,
-		SpinnerSlider,
+        SpinnerSlider,
         Checkbox,
         Button,
         ComboBox,

@@ -184,14 +184,10 @@ void setupPreferences() {
 	{
 		auto getter = [=]()->float { return myAvatar->getUniformScale(); };
 		auto setter = [=](float value) { myAvatar->setTargetScale(value); };
-
-		auto scaleSpinner = new SpinnerSliderPreference(AVATAR_TUNING, "Avatar Scale", getter, setter);
-		scaleSpinner->setMin(0.01f);
-		scaleSpinner->setMax(99.9f);
-		scaleSpinner->setDecimals(2);
-		scaleSpinner->setStep(1);
-
-		preferences->addPreference(scaleSpinner);
+		auto preference = new SpinnerSliderPreference(AVATAR_TUNING, "Avatar Scale", getter, setter);
+        preference->setStep(0.1);
+        preference->setDecimals(2);
+        preferences->addPreference(preference);
 	}
     {
         auto getter = []()->float { return DependencyManager::get<DdeFaceTracker>()->getEyeClosingThreshold(); };
