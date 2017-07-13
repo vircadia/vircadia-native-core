@@ -1048,11 +1048,17 @@ int Avatar::getJointIndex(const QString& name) const {
 }
 
 QStringList Avatar::getJointNames() const {
-    QStringList result;
+    QVector<QString> result;
     withValidJointIndicesCache([&]() {
-        result = _modelJointIndicesCache.keys();
+        QHashIterator<QString, int> i(_modelJointIndicesCache);
+        while (i.hasNext()) {
+            i.next();
+            int index = _modelJointIndicesCache[i.key()];
+            result.resize(index);
+            result[index] = i.value();
+        }
     });
-    return result;
+    return result.toList();
 }
 
 glm::vec3 Avatar::getJointPosition(int index) const {
