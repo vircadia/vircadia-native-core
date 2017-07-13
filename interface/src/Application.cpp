@@ -4335,10 +4335,9 @@ void Application::updateMyAvatarLookAtPosition() {
             }
         } else {
             //  I am not looking at anyone else, so just look forward
-            auto headPose = myAvatar->getHeadControllerPoseInSensorFrame();
+            auto headPose = myAvatar->getControllerPoseInWorldFrame(controller::Action::HEAD);
             if (headPose.isValid()) {
-                glm::mat4 worldHeadMat = myAvatar->getSensorToWorldMatrix() * headPose.getMatrix();
-                lookAtSpot = transformPoint(worldHeadMat, glm::vec3(0.0f, 0.0f, TREE_SCALE));
+                lookAtSpot = transformPoint(headPose.getMatrix(), glm::vec3(0.0f, 0.0f, TREE_SCALE));
             } else {
                 lookAtSpot = myAvatar->getHead()->getEyePosition() +
                     (myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
@@ -4750,52 +4749,64 @@ void Application::update(float deltaTime) {
         myAvatar->setDriveKey(MyAvatar::ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
     }
 
-    controller::Pose leftHandPose = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
-    controller::Pose rightHandPose = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
-    auto myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
-    auto worldToSensorMatrix = glm::inverse(myAvatar->getSensorToWorldMatrix());
-    auto avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
-    myAvatar->setHandControllerPosesInSensorFrame(leftHandPose.transform(avatarToSensorMatrix), rightHandPose.transform(avatarToSensorMatrix));
+    static std::vector<controller::Action> avatarControllerActions = {
+        controller::Action::LEFT_HAND,
+        controller::Action::RIGHT_HAND,
+        controller::Action::LEFT_FOOT,
+        controller::Action::RIGHT_FOOT,
+        controller::Action::HIPS,
+        controller::Action::SPINE2,
+        controller::Action::HEAD,
+        controller::Action::LEFT_HAND_THUMB1,
+        controller::Action::LEFT_HAND_THUMB2,
+        controller::Action::LEFT_HAND_THUMB3,
+        controller::Action::LEFT_HAND_THUMB4,
+        controller::Action::LEFT_HAND_INDEX1,
+        controller::Action::LEFT_HAND_INDEX2,
+        controller::Action::LEFT_HAND_INDEX3,
+        controller::Action::LEFT_HAND_INDEX4,
+        controller::Action::LEFT_HAND_MIDDLE1,
+        controller::Action::LEFT_HAND_MIDDLE2,
+        controller::Action::LEFT_HAND_MIDDLE3,
+        controller::Action::LEFT_HAND_MIDDLE4,
+        controller::Action::LEFT_HAND_RING1,
+        controller::Action::LEFT_HAND_RING2,
+        controller::Action::LEFT_HAND_RING3,
+        controller::Action::LEFT_HAND_RING4,
+        controller::Action::LEFT_HAND_PINKY1,
+        controller::Action::LEFT_HAND_PINKY2,
+        controller::Action::LEFT_HAND_PINKY3,
+        controller::Action::LEFT_HAND_PINKY4,
+        controller::Action::RIGHT_HAND_THUMB1,
+        controller::Action::RIGHT_HAND_THUMB2,
+        controller::Action::RIGHT_HAND_THUMB3,
+        controller::Action::RIGHT_HAND_THUMB4,
+        controller::Action::RIGHT_HAND_INDEX1,
+        controller::Action::RIGHT_HAND_INDEX2,
+        controller::Action::RIGHT_HAND_INDEX3,
+        controller::Action::RIGHT_HAND_INDEX4,
+        controller::Action::RIGHT_HAND_MIDDLE1,
+        controller::Action::RIGHT_HAND_MIDDLE2,
+        controller::Action::RIGHT_HAND_MIDDLE3,
+        controller::Action::RIGHT_HAND_MIDDLE4,
+        controller::Action::RIGHT_HAND_RING1,
+        controller::Action::RIGHT_HAND_RING2,
+        controller::Action::RIGHT_HAND_RING3,
+        controller::Action::RIGHT_HAND_RING4,
+        controller::Action::RIGHT_HAND_PINKY1,
+        controller::Action::RIGHT_HAND_PINKY2,
+        controller::Action::RIGHT_HAND_PINKY3,
+        controller::Action::RIGHT_HAND_PINKY4
+    };
 
-    // If have previously done finger poses or there are new valid finger poses, update finger pose values. This so that if
-    // fingers are not being controlled, finger joints are not updated in MySkeletonModel.
-    // Assumption: Finger poses are either all present and valid or not present at all; thus can test just one joint.
-    MyAvatar::FingerPosesMap leftHandFingerPoses;
-    if (myAvatar->getLeftHandFingerControllerPosesInSensorFrame().size() > 0
-            || userInputMapper->getPoseState(controller::Action::LEFT_HAND_THUMB1).isValid()) {
-        for (int i = (int)controller::Action::LEFT_HAND_THUMB1; i <= (int)controller::Action::LEFT_HAND_PINKY4; i++) {
-            leftHandFingerPoses[i] = {
-                userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix),
-                userInputMapper->getActionName((controller::Action)i)
-            };
-        }
+    glm::mat4 myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
+    glm::mat4 worldToSensorMatrix = glm::inverse(myAvatar->getSensorToWorldMatrix());
+    glm::mat4 avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
+
+    for (auto& action : avatarControllerActions) {
+        controller::Pose pose = userInputMapper->getPoseState(action);
+        myAvatar->setControllerPoseInSensorFrame(action, pose.transform(avatarToSensorMatrix));
     }
-    MyAvatar::FingerPosesMap rightHandFingerPoses;
-    if (myAvatar->getRightHandFingerControllerPosesInSensorFrame().size() > 0
-        || userInputMapper->getPoseState(controller::Action::RIGHT_HAND_THUMB1).isValid()) {
-        for (int i = (int)controller::Action::RIGHT_HAND_THUMB1; i <= (int)controller::Action::RIGHT_HAND_PINKY4; i++) {
-            rightHandFingerPoses[i] = {
-                userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix),
-                userInputMapper->getActionName((controller::Action)i)
-            };
-        }
-    }
-    myAvatar->setFingerControllerPosesInSensorFrame(leftHandFingerPoses, rightHandFingerPoses);
-
-    controller::Pose leftFootPose = userInputMapper->getPoseState(controller::Action::LEFT_FOOT);
-    controller::Pose rightFootPose = userInputMapper->getPoseState(controller::Action::RIGHT_FOOT);
-    myAvatar->setFootControllerPosesInSensorFrame(leftFootPose.transform(avatarToSensorMatrix), rightFootPose.transform(avatarToSensorMatrix));
-
-    controller::Pose hipsPose = userInputMapper->getPoseState(controller::Action::HIPS);
-    controller::Pose spine2Pose = userInputMapper->getPoseState(controller::Action::SPINE2);
-    myAvatar->setSpineControllerPosesInSensorFrame(hipsPose.transform(avatarToSensorMatrix), spine2Pose.transform(avatarToSensorMatrix));
-
-    controller::Pose headPose = userInputMapper->getPoseState(controller::Action::HEAD);
-    myAvatar->setHeadControllerPoseInSensorFrame(headPose.transform(avatarToSensorMatrix));
-
-    controller::Pose leftArmPose = userInputMapper->getPoseState(controller::Action::LEFT_ARM);
-    controller::Pose rightArmPose = userInputMapper->getPoseState(controller::Action::RIGHT_ARM);
-    myAvatar->setArmControllerPosesInSensorFrame(leftArmPose.transform(avatarToSensorMatrix), rightArmPose.transform(avatarToSensorMatrix));
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
