@@ -20,7 +20,7 @@ class JointRayPick : public RayPick {
 public:
     JointRayPick(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance = 0.0f, const bool enabled = false);
 
-    const PickRay getPickRay() override;
+    const PickRay getPickRay(bool& valid) override;
 
 private:
     QString _jointName;

@@ -54,7 +54,13 @@ void RayPickManager::update() {
             continue;
         }
 
-        PickRay ray = rayPick->getPickRay();
+        bool valid;
+        PickRay ray = rayPick->getPickRay(valid);
+
+        if (!valid) {
+            continue;
+        }
+
         // TODO:
         // get rid of this and make PickRay hashable
         QPair<glm::vec3, glm::vec3> rayKey = QPair<glm::vec3, glm::vec3>(ray.origin, ray.direction);
@@ -139,7 +145,7 @@ void RayPickManager::update() {
             }
         }
 
-        if (res.distance < rayPick->getMaxDistance()) {
+        if (rayPick->getMaxDistance() == 0.0f ||  (rayPick->getMaxDistance() > 0.0f && res.distance < rayPick->getMaxDistance())) {
             rayPick->setRayPickResult(res);
         } else {
             rayPick->setRayPickResult(RayPickResult());

@@ -26,12 +26,13 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
     if (propertyMap["joint"].isValid()) {
         QString jointName = propertyMap["joint"].toString();
 
+        // x = upward, y = forward, z = lateral
         glm::vec3 posOffset = Vectors::ZERO;
         if (propertyMap["posOffset"].isValid()) {
             posOffset = vec3FromVariant(propertyMap["posOffset"]);
         }
 
-        glm::vec3 dirOffset = Vectors::FRONT;
+        glm::vec3 dirOffset = Vectors::UP;
         if (propertyMap["dirOffset"].isValid()) {
             posOffset = vec3FromVariant(propertyMap["dirOffset"]);
         }
