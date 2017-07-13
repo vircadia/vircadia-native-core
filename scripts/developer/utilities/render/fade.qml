@@ -54,15 +54,15 @@ Column {
 
 		CheckBox {
 			text: "Manual"
-			checked: root.configEdit["manualFade"]
+			checked: root.config["manualFade"]
 			onCheckedChanged: { 
-				root.configEdit["manualFade"] = checked; 
+				root.config["manualFade"] = checked; 
 			}
 		}
 		ConfigSlider {
 			label: "Threshold"
 			integral: false
-			config: root.configEdit
+			config: root.config
 			property: "manualThreshold"
 			max: 1.0
 			min: 0.0

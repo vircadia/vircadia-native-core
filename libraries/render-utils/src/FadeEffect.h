@@ -18,15 +18,11 @@
 
 class FadeEditConfig : public render::Job::Config {
     Q_OBJECT
-        Q_PROPERTY(bool manualFade MEMBER manualFade NOTIFY dirty)
-        Q_PROPERTY(float manualThreshold MEMBER manualThreshold NOTIFY dirty)
         Q_PROPERTY(bool editFade MEMBER editFade NOTIFY dirty)
 
 public:
 
-    float manualThreshold{ 0.f };
     bool editFade{ false };
-    bool manualFade{ false };
 
 signals:
 
@@ -60,6 +56,8 @@ class FadeConfig : public render::Job::Config {
         Q_PROPERTY(float noiseSpeedY READ getNoiseSpeedY WRITE setNoiseSpeedY NOTIFY dirty)
         Q_PROPERTY(float noiseSpeedZ READ getNoiseSpeedZ WRITE setNoiseSpeedZ NOTIFY dirty)
         Q_PROPERTY(float threshold MEMBER threshold NOTIFY dirty)
+        Q_PROPERTY(bool manualFade MEMBER manualFade NOTIFY dirty)
+        Q_PROPERTY(float manualThreshold MEMBER manualThreshold NOTIFY dirty)
 
 public:
 
@@ -173,6 +171,8 @@ public:
     Event events[CATEGORY_COUNT];
     int editedCategory{ ELEMENT_ENTER_LEAVE_DOMAIN };
     float threshold{ 0.f };
+    float manualThreshold{ 0.f };
+    bool manualFade{ false };
 
     Q_INVOKABLE void save() const;
     Q_INVOKABLE void load();
@@ -196,10 +196,13 @@ public:
 
     FadeEditJob() {}
 
-    void configure(const Config& config) {}
+    void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext, const FadeEditJob::Input& inputs);
 
 private:
+
+    bool _isEditEnabled{ false };
+    render::ItemID _editedItem{ render::Item::INVALID_ITEM_ID };
 
     render::ItemID findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const;
 };

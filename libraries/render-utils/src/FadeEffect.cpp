@@ -22,32 +22,59 @@ inline float valueToParameterPow(float value, const double minValue, const doubl
     return (float)(log(double(value) / minValue) / log(maxOverMinValue));
 }
 
+void FadeEditJob::configure(const Config& config) {
+    _isEditEnabled = config.editFade;
+}
+
 void FadeEditJob::run(const render::RenderContextPointer& renderContext, const FadeEditJob::Input& inputs) {
-    auto jobConfig = static_cast<const FadeEditConfig*>(renderContext->jobConfig.get());
-    auto& itemBounds = inputs.get0();
+    auto scene = renderContext->_scene;
 
-    if (jobConfig->editFade) {
+    if (_isEditEnabled) {
         float minIsectDistance = std::numeric_limits<float>::max();
-        auto itemId = findNearestItem(renderContext, itemBounds, minIsectDistance);
+        auto& itemBounds = inputs.get0();
+        auto editedItem = findNearestItem(renderContext, itemBounds, minIsectDistance);
+        render::Transaction transaction;
+        bool hasTransaction{ false };
 
-        if (itemId != render::Item::INVALID_ITEM_ID) {
-            const auto& item = renderContext->_scene->getItem(itemId);
-
-            if (item.getTransitionId() == render::TransitionStage::INVALID_INDEX) {
-                static const render::Transition::Type categoryToTransition[FadeConfig::CATEGORY_COUNT] = {
-                    render::Transition::ELEMENT_ENTER_DOMAIN,
-                    render::Transition::BUBBLE_ISECT_OWNER,
-                    render::Transition::BUBBLE_ISECT_TRESPASSER,
-                    render::Transition::USER_ENTER_DOMAIN,
-                    render::Transition::AVATAR_CHANGE
-                };
-
-                // Relaunch transition
-                render::Transaction transaction;
-                transaction.addTransitionToItem(itemId, categoryToTransition[inputs.get1()]);
-                renderContext->_scene->enqueueTransaction(transaction);
-            }
+        if (editedItem != _editedItem && _editedItem != render::Item::INVALID_ITEM_ID) {
+            // Remove transition from previously edited item as we've changed edited item
+            hasTransaction = true;
+            transaction.removeTransitionFromItem(_editedItem);
         }
+        _editedItem = editedItem;
+
+        if (_editedItem != render::Item::INVALID_ITEM_ID) {
+            static const render::Transition::Type categoryToTransition[FadeConfig::CATEGORY_COUNT] = {
+                render::Transition::ELEMENT_ENTER_DOMAIN,
+                render::Transition::BUBBLE_ISECT_OWNER,
+                render::Transition::BUBBLE_ISECT_TRESPASSER,
+                render::Transition::USER_ENTER_DOMAIN,
+                render::Transition::AVATAR_CHANGE
+            };
+
+            auto transitionType = categoryToTransition[inputs.get1()];
+
+            transaction.queryTransitionOnItem(_editedItem, [transitionType, scene](render::ItemID id, const render::Transition* transition) {
+                if (transition == nullptr || transition->isFinished || transition->eventType!=transitionType) {
+                    // Relaunch transition
+                    render::Transaction transaction;
+                    transaction.addTransitionToItem(id, transitionType);
+                    scene->enqueueTransaction(transaction);
+                }
+            });
+            hasTransaction = true;
+        }
+
+        if (hasTransaction) {
+            scene->enqueueTransaction(transaction);
+        }
+    }
+    else if (_editedItem != render::Item::INVALID_ITEM_ID) {
+        // Remove transition from previously edited item as we've disabled fade edition
+        render::Transaction transaction;
+        transaction.removeTransitionFromItem(_editedItem);
+        scene->enqueueTransaction(transaction);
+        _editedItem = render::Item::INVALID_ITEM_ID;
     }
 }
 
@@ -66,10 +93,10 @@ render::ItemID FadeEditJob::findNearestItem(const render::RenderContextPointer& 
             if (isectDistance>minDistance && isectDistance < minIsectDistance) {
                 auto& item = scene->getItem(itemBound.id);
 
-                if (item.getKey().isShape() && !item.getKey().isMeta()) {
+ //               if (!item.getKey().isMeta()) {
                     nearestItem = itemBound.id;
                     minIsectDistance = isectDistance;
-                }
+ //               }
             }
         }
     }
@@ -607,7 +634,7 @@ void FadeJob::update(const Config& config, const render::ScenePointer& scene, re
             transition.baseInvSize.x = 1.f / dimensions.x;
             transition.baseInvSize.y = 1.f / dimensions.y;
             transition.baseInvSize.z = 1.f / dimensions.z;
-            transition.isFinished = transition.threshold >= 1.f;
+            transition.isFinished += (transition.threshold >= 1.f) & 1;
             if (transition.eventType == render::Transition::ELEMENT_ENTER_DOMAIN) {
                 transition.threshold = 1.f - transition.threshold;
             }
@@ -618,15 +645,6 @@ void FadeJob::update(const Config& config, const render::ScenePointer& scene, re
         {
             transition.threshold = 0.5f;
             transition.baseOffset = transition.noiseOffset;
-
-            /*       const glm::vec3 cameraPos = renderContext->args->getViewFrustum().getPosition();
-            glm::vec3 delta = itemBounds.bound.calcCenter() - cameraPos;
-            float distance = glm::length(delta);
-
-            delta = glm::normalize(delta) * std::max(0.f, distance - 0.5f);
-
-            _editBaseOffset = cameraPos + delta*_editThreshold;
-            _editThreshold = 0.33f;*/
         }
         break;
 
@@ -643,7 +661,7 @@ void FadeJob::update(const Config& config, const render::ScenePointer& scene, re
             transition.threshold = computeElementEnterRatio(transition.time, eventConfig.duration, timing);
             transition.baseOffset = transition.noiseOffset - dimensions.y / 2.f;
             transition.baseInvSize.y = 1.f / dimensions.y;
-            transition.isFinished = transition.threshold >= 1.f;
+            transition.isFinished += (transition.threshold >= 1.f) & 1;
             if (transition.eventType == render::Transition::USER_LEAVE_DOMAIN) {
                 transition.threshold = 1.f - transition.threshold;
             }
@@ -659,9 +677,19 @@ void FadeJob::update(const Config& config, const render::ScenePointer& scene, re
     }
 
     transition.noiseOffset += eventConfig.noiseSpeed * (float)transition.time;
+    if (config.manualFade) {
+        transition.threshold = config.manualThreshold;
+    }
     transition.threshold = std::max(0.f, std::min(1.f, transition.threshold));
     transition.threshold = (transition.threshold - 0.5f)*_thresholdScale[fadeCategory] + 0.5f;
     transition.time += deltaTime;
+
+    // If the transition is finished for more than a number of frames (here 3), garbage collect it.
+    if (transition.isFinished > 3) {
+        render::Transaction transaction;
+        transaction.removeTransitionFromItem(transition.itemId);
+        scene->enqueueTransaction(transaction);
+    }
 }
 
 float FadeJob::computeElementEnterRatio(double time, const double period, FadeConfig::Timing timing) {

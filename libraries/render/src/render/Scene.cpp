@@ -242,7 +242,7 @@ void Scene::transitionItems(const Transaction::TransitionAdds& transactions) {
             auto boundId = std::get<2>(add);
 
             // Remove pre-existing transition, if need be
-            if (TransitionStage::isIndexInvalid(item.getTransitionId())) {
+            if (!TransitionStage::isIndexInvalid(item.getTransitionId())) {
                 transitionStage->removeTransition(item.getTransitionId());
             }
             // Add a new one.
@@ -266,7 +266,7 @@ void Scene::queryTransitionItems(const Transaction::TransitionQueries& transacti
         if (item.exist() && func != nullptr) {
             auto transitionId = item.getTransitionId();
 
-            if (TransitionStage::isIndexInvalid(transitionId)) {
+            if (!TransitionStage::isIndexInvalid(transitionId)) {
                 auto& transition = transitionStage->getTransition(transitionId);
                 func(itemId, &transition);
             }
