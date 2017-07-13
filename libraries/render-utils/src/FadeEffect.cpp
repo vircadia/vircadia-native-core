@@ -81,7 +81,6 @@ void FadeEditJob::run(const render::RenderContextPointer& renderContext, const F
 render::ItemID FadeEditJob::findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const {
     const glm::vec3 rayOrigin = renderContext->args->getViewFrustum().getPosition();
     const glm::vec3 rayDirection = renderContext->args->getViewFrustum().getDirection();
-    auto& scene = renderContext->_scene;
     BoxFace face;
     glm::vec3 normal;
     float isectDistance;
