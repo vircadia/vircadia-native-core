@@ -17,6 +17,7 @@
 #include <glm/glm.hpp>
 
 class LaserPointer;
+class RayPickResult;
 
 class LaserPointerManager {
 
@@ -27,6 +28,7 @@ public:
     void removeLaserPointer(const unsigned int uid) { _laserPointers.remove(uid); }
     void enableLaserPointer(const unsigned int uid);
     void disableLaserPointer(const unsigned int uid);
+    const RayPickResult& getPrevRayPickResult(const unsigned int uid);
 
 private:
     QHash<unsigned int, std::shared_ptr<LaserPointer>> _laserPointers;

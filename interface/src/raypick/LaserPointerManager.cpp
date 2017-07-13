@@ -10,6 +10,7 @@
 //
 #include "LaserPointerManager.h"
 #include "LaserPointer.h"
+#include "RayPick.h"
 
 LaserPointerManager& LaserPointerManager::getInstance() {
     static LaserPointerManager instance;
@@ -33,4 +34,11 @@ void LaserPointerManager::disableLaserPointer(const unsigned int uid) {
     if (_laserPointers.contains(uid)) {
         _laserPointers[uid]->disable();
     }
+}
+
+const RayPickResult& LaserPointerManager::getPrevRayPickResult(const unsigned int uid) {
+    if (_laserPointers.contains(uid)) {
+        return _laserPointers[uid]->getPrevRayPickResult();
+    }
+    return RayPickResult();
 }

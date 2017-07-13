@@ -14,6 +14,8 @@
 #include <QString>
 #include "glm/glm.hpp"
 
+class RayPickResult;
+
 class LaserPointer {
 
 public:
@@ -26,6 +28,8 @@ public:
 
     // void setRenderState(const QString& stateName);
     // void setRenderStateProperties(const QHash<QString, triplet of properties>& renderStateProperties);
+
+    const RayPickResult& getPrevRayPickResult();
 
 private:
     unsigned int _rayPickUID;

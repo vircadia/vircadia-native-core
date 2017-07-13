@@ -18,6 +18,7 @@
 #include <QtCore/QObject>
 
 class RayPick;
+class RayPickResult;
 
 enum RayPickMask {
     PICK_NOTHING = 0,
@@ -32,28 +33,6 @@ enum RayPickMask {
     PICK_INCLUDE_NONCOLLIDABLE = 64, // if not set, will not intersect noncollidable elements, otherwise, intersects both collidable and noncollidable elements
 
     PICK_ALL_INTERSECTIONS = 128 // if not set, returns closest intersection, otherwise, returns list of all intersections
-};
-
-// TODO:
-// move/improve this and register it as a meta type
-class RayPickResult {
-
-public:
-    RayPickResult() {}
-    RayPickResult(const QUuid& objectID, const float distance, const glm::vec3& intersection, const glm::vec3& surfaceNormal = glm::vec3(NAN)) :
-        _objectID(objectID), _distance(distance), _intersection(intersection), _surfaceNormal(surfaceNormal) {}
-
-    const QUuid& getUID() { return _objectID; }
-    const float getDistance() { return _distance; }
-    const glm::vec3& getIntersection() { return _intersection; }
-    const glm::vec3& getSurfaceNormal() { return _surfaceNormal; }
-
-private:
-    //Type type;
-    QUuid _objectID { 0 };
-    float _distance { FLT_MAX };
-    glm::vec3 _intersection { NAN };
-    glm::vec3 _surfaceNormal { NAN };
 };
 
 class RayPickManager : public QObject {
@@ -72,11 +51,14 @@ public:
     static RayPickManager& getInstance();
 
     void update();
-    bool RayPickManager::checkAndCompareCachedResults(std::shared_ptr<RayPick> rayPick, QPair<glm::vec3, glm::vec3>& ray, QHash<QPair<glm::vec3, glm::vec3>, QHash<unsigned int, RayPickResult>> cache, RayPickResult& res, unsigned int mask);
+    bool checkAndCompareCachedResults(QPair<glm::vec3, glm::vec3>& ray, QHash<QPair<glm::vec3, glm::vec3>, QHash<unsigned int, RayPickResult>>& cache, RayPickResult& res, unsigned int mask);
+    void cacheResult(const bool intersects, const RayPickResult& resTemp, unsigned int mask, RayPickResult& res,
+        QPair<glm::vec3, glm::vec3>& ray, QHash<QPair<glm::vec3, glm::vec3>, QHash<unsigned int, RayPickResult>>& cache);
     unsigned int addRayPick(std::shared_ptr<RayPick> rayPick);
     void removeRayPick(const unsigned int uid);
     void enableRayPick(const unsigned int uid);
     void disableRayPick(const unsigned int uid);
+    const RayPickResult& getPrevRayPickResult(const unsigned int uid);
 
 private:
     QHash<unsigned int, std::shared_ptr<RayPick>> _rayPicks;

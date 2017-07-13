@@ -33,3 +33,7 @@ void LaserPointer::disable() {
     // TODO:
     // turn off rendering
 }
+
+const RayPickResult& LaserPointer::getPrevRayPickResult() {
+    return RayPickManager::getInstance().getPrevRayPickResult(_rayPickUID);
+}
