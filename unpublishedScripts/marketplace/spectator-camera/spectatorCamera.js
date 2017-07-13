@@ -109,12 +109,13 @@
     //    from the "Window.domainChanged()" signal.
     var WAIT_AFTER_DOMAIN_SWITCH_BEFORE_CAMERA_DELETE_MS = 1 * 1000;
     function spectatorCameraOff(isChangingDomains) {
-
         function deleteCamera() {
             Entities.deleteEntity(camera);
             camera = false;
-            // Change button to active when window is first openend OR if the camera is on, false otherwise.
-            button.editProperties({ isActive: onSpectatorCameraScreen || camera });
+            if (button) {
+                // Change button to active when window is first openend OR if the camera is on, false otherwise.
+                button.editProperties({ isActive: onSpectatorCameraScreen || camera });
+            }
         }
 
         spectatorCameraConfig.attachedEntityId = false;
