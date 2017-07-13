@@ -15,6 +15,9 @@
 #include "Logging.h"
 #include "TransitionStage.h"
 
+// Comment this to disable transitions (fades)
+#define SCENE_ENABLE_TRANSITIONS
+
 using namespace render;
 
 void Transaction::resetItem(ItemID id, const PayloadPointer& payload) {
@@ -126,11 +129,12 @@ void Scene::processTransactionQueue() {
         // removes
         removeItems(consolidatedTransaction._removedItems);
 
+#ifdef SCENE_ENABLE_TRANSITIONS
         // add transitions
         transitionItems(consolidatedTransaction._addedTransitions);
 
         queryTransitionItems(consolidatedTransaction._queriedTransitions);
-
+#endif
         // Update the numItemsAtomic counter AFTER the pending changes went through
         _numAllocatedItems.exchange(maxID);
     }
