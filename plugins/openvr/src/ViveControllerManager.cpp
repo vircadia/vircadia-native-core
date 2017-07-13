@@ -716,7 +716,7 @@ void ViveControllerManager::InputDevice::handleHandController(float deltaTime, u
             // pseudo buttons the depend on both of the above for-loops
             partitionTouchpad(controller::LS, controller::LX, controller::LY, controller::LS_CENTER, controller::LS_X, controller::LS_Y);
             partitionTouchpad(controller::RS, controller::RX, controller::RY, controller::RS_CENTER, controller::RS_X, controller::RS_Y);
-         }
+        }
     }
 }
 
@@ -1073,7 +1073,7 @@ void ViveControllerManager::InputDevice::calibrateShoulders(glm::mat4& defaultTo
     glm::mat4 refRightArm = defaultToReferenceMat * inputCalibration.defaultRightArm;
     glm::mat4 userRefLeftArm = refLeftArm;
     glm::mat4 userRefRightArm = refRightArm;
-    const float PUCK_TO_USER_REF_ARM_Y_OFFSET = -0.06;
+    const float PUCK_TO_USER_REF_ARM_Y_OFFSET = -0.06f;
 
     if (firstShoulderPose.translation.x < secondShoulderPose.translation.x) {
         _jointToPuckMap[controller::LEFT_ARM] = firstShoulder.first;
