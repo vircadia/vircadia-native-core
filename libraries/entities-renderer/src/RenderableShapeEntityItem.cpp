@@ -82,6 +82,27 @@ bool RenderableShapeEntityItem::isTransparent() {
     }
 }
 
+namespace render {
+    template <> const ShapeKey shapeGetShapeKey(const ShapePayload::Pointer& payload) {
+        return ShapeKey::Builder().withCustom(GeometryCache::CUSTOM_PIPELINE_NUMBER).build();
+    }
+}
+
+bool RenderableShapeEntityItem::addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) {
+    _myItem = scene->allocateID();
+
+    auto renderData = std::make_shared<ShapePayload>(self, _myItem);
+    auto renderPayload = std::make_shared<ShapePayload::Payload>(renderData);
+
+    render::Item::Status::Getters statusGetters;
+    makeEntityItemStatusGetters(self, statusGetters);
+    renderPayload->addStatusGetters(statusGetters);
+
+    transaction.resetItem(_myItem, renderPayload);
+
+    return true;
+}
+
 void RenderableShapeEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableShapeEntityItem::render");
     //Q_ASSERT(getType() == EntityTypes::Shape);

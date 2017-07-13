@@ -147,6 +147,14 @@ public:
         NUM_SHAPES,
     };
 
+    static uint8_t CUSTOM_PIPELINE_NUMBER;
+    static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key);
+    static void registerShapePipeline() {
+        if (!CUSTOM_PIPELINE_NUMBER) {
+            CUSTOM_PIPELINE_NUMBER = render::ShapePipeline::registerCustomShapePipelineFactory(shapePipelineFactory);
+        }
+    }
+
     int allocateID() { return _nextID++; }
     void releaseID(int id);
     static const int UNKNOWN_ID;
@@ -155,7 +163,7 @@ public:
     void bindSimpleProgram(gpu::Batch& batch, bool textured = false, bool transparent = false, bool culled = true,
                                           bool unlit = false, bool depthBias = false);
     // Get the pipeline to render static geometry
-    gpu::PipelinePointer getSimplePipeline(bool textured = false, bool transparent = false, bool culled = true,
+    static gpu::PipelinePointer getSimplePipeline(bool textured = false, bool transparent = false, bool culled = true,
                                           bool unlit = false, bool depthBias = false, bool fading = false);
 
     void bindOpaqueWebBrowserProgram(gpu::Batch& batch, bool isAA);
@@ -164,9 +172,9 @@ public:
     void bindTransparentWebBrowserProgram(gpu::Batch& batch, bool isAA);
     gpu::PipelinePointer getTransparentWebBrowserProgram(bool isAA);
 
-    void initializeShapePipelines();
+    static void initializeShapePipelines();
 
-    render::ShapePipelinePointer getShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
+    static render::ShapePipelinePointer getShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
         bool unlit = false, bool depthBias = false, bool fading = false);
 
     render::ShapePipelinePointer getOpaqueShapePipeline() { assert(_simpleOpaquePipeline != nullptr); return _simpleOpaquePipeline; }
@@ -426,10 +434,10 @@ private:
     QHash<int, Vec2FloatPairPair> _lastRegisteredGridBuffer;
     QHash<int, GridBuffer> _registeredGridBuffers;
 
-    gpu::ShaderPointer _simpleShader;
-    gpu::ShaderPointer _unlitShader;
-    gpu::ShaderPointer _simpleFadeShader;
-    gpu::ShaderPointer _unlitFadeShader;
+    static gpu::ShaderPointer _simpleShader;
+    static gpu::ShaderPointer _unlitShader;
+    static gpu::ShaderPointer _simpleFadeShader;
+    static gpu::ShaderPointer _unlitFadeShader;
     static render::ShapePipelinePointer _simpleOpaquePipeline;
     static render::ShapePipelinePointer _simpleTransparentPipeline;
     static render::ShapePipelinePointer _simpleOpaqueFadePipeline;
@@ -438,7 +446,8 @@ private:
     static render::ShapePipelinePointer _simpleTransparentOverlayPipeline;
     static render::ShapePipelinePointer _simpleWirePipeline;
     gpu::PipelinePointer _glowLinePipeline;
-    QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
+
+    static QHash<SimpleProgramKey, gpu::PipelinePointer> _simplePrograms;
 
     gpu::ShaderPointer _simpleOpaqueWebBrowserShader;
     gpu::PipelinePointer _simpleOpaqueWebBrowserPipeline;

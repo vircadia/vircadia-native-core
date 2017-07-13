@@ -71,6 +71,7 @@ public:
         Flags _flags{ 0 };
     public:
         Builder() {}
+        Builder(const ItemKey& key) : _flags{ key._flags } {}
 
         ItemKey build() const { return ItemKey(_flags); }
 

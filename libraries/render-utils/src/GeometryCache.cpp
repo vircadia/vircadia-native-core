@@ -450,14 +450,50 @@ gpu::Stream::FormatPointer& getInstancedSolidStreamFormat() {
     return INSTANCED_SOLID_STREAM_FORMAT;
 }
 
+QHash<SimpleProgramKey, gpu::PipelinePointer> GeometryCache::_simplePrograms;
+
+gpu::ShaderPointer GeometryCache::_simpleShader;
+gpu::ShaderPointer GeometryCache::_unlitShader;
+gpu::ShaderPointer GeometryCache::_simpleFadeShader;
+gpu::ShaderPointer GeometryCache::_unlitFadeShader;
+
 render::ShapePipelinePointer GeometryCache::_simpleOpaquePipeline;
 render::ShapePipelinePointer GeometryCache::_simpleTransparentPipeline;
 render::ShapePipelinePointer GeometryCache::_simpleOpaqueFadePipeline;
 render::ShapePipelinePointer GeometryCache::_simpleTransparentFadePipeline;
 render::ShapePipelinePointer GeometryCache::_simpleWirePipeline;
 
+uint8_t GeometryCache::CUSTOM_PIPELINE_NUMBER = 0;
+
+render::ShapePipelinePointer GeometryCache::shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key) {
+    initializeShapePipelines();
+
+    if (key.isWireframe()) {
+        return _simpleWirePipeline;
+    }
+
+    if (key.isFaded()) {
+        if (key.isTranslucent()) {
+            return _simpleTransparentFadePipeline;
+        }
+        else {
+            return _simpleOpaqueFadePipeline;
+        }
+    }
+    else {
+        if (key.isTranslucent()) {
+            return _simpleTransparentPipeline;
+        }
+        else {
+            return _simpleOpaquePipeline;
+        }
+    }
+}
+
 GeometryCache::GeometryCache() :
 _nextID(0) {
+    // Let's register its special shapePipeline factory:
+    registerShapePipeline();
     buildShapes();
 }
 
@@ -504,11 +540,13 @@ void setupBatchInstance(gpu::Batch& batch, gpu::BufferPointer colorBuffer) {
 }
 
 void GeometryCache::initializeShapePipelines() {
-    GeometryCache::_simpleOpaquePipeline = getShapePipeline(false, false, true, false);
-    GeometryCache::_simpleTransparentPipeline = getShapePipeline(false, true, true, false);
-    GeometryCache::_simpleOpaqueFadePipeline = getShapePipeline(false, false, true, false, false, true);
-    GeometryCache::_simpleTransparentFadePipeline = getShapePipeline(false, true, true, false, false, true);
-    GeometryCache::_simpleWirePipeline = getShapePipeline(false, false, true, true);
+    if (!_simpleOpaquePipeline) {
+        _simpleOpaquePipeline = getShapePipeline(false, false, true, false);
+        _simpleTransparentPipeline = getShapePipeline(false, true, true, false);
+        _simpleOpaqueFadePipeline = getShapePipeline(false, false, true, false, false, true);
+        _simpleTransparentFadePipeline = getShapePipeline(false, true, true, false, false, true);
+        _simpleWirePipeline = getShapePipeline(false, false, true, true);
+    }
 }
 
 render::ShapePipelinePointer GeometryCache::getShapePipeline(bool textured, bool transparent, bool culled,
