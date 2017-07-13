@@ -1048,17 +1048,38 @@ int Avatar::getJointIndex(const QString& name) const {
 }
 
 QStringList Avatar::getJointNames() const {
-    QVector<QString> result;
+    QStringList result;
     withValidJointIndicesCache([&]() {
+        // find out how large the vector needs to be
+        int maxJointIndex = -1;
+        QHashIterator<QString, int> k(_modelJointIndicesCache);
+        while (k.hasNext()) {
+            k.next();
+            int index = k.value();
+            if (index > maxJointIndex) {
+                maxJointIndex = index;
+            }
+        }
+        // iterate through the hash and put joint names
+        // into the vector at their indices
+        QVector<QString> resultVector(maxJointIndex+1);
         QHashIterator<QString, int> i(_modelJointIndicesCache);
         while (i.hasNext()) {
             i.next();
-            int index = _modelJointIndicesCache[i.key()];
-            result.resize(index);
-            result[index] = i.value();
+            int index = i.value();
+            resultVector[index] = i.key();
+        }
+        // convert to QList and drop out blanks
+        result = resultVector.toList();
+        QMutableListIterator<QString> j(result);
+        while (j.hasNext()) {
+            QString jointName = j.next();
+            if (jointName.isEmpty()) {
+                j.remove();
+            }
         }
     });
-    return result.toList();
+    return result;
 }
 
 glm::vec3 Avatar::getJointPosition(int index) const {
