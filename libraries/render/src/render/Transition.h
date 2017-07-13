@@ -41,7 +41,7 @@ namespace render {
         glm::vec3 baseOffset{ 0.f, 0.f, 0.f };
         glm::vec3 baseInvSize{ 1.f, 1.f, 1.f };
         float threshold{ 0.f };
-
+        bool isFinished{ false };
     };
 
     typedef std::shared_ptr<Transition> TransitionPointer;

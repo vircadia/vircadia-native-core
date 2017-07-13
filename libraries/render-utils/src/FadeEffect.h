@@ -236,7 +236,7 @@ private:
     float _thresholdScale[FadeConfig::CATEGORY_COUNT];
     uint64_t _previousTime{ 0 };
 
-    bool update(const Config& config, const render::ScenePointer& scene, render::Transition& transition, const double deltaTime) const;
+    void update(const Config& config, const render::ScenePointer& scene, render::Transition& transition, const double deltaTime) const;
     static float computeElementEnterRatio(double time, const double period, FadeConfig::Timing timing);
 
     const render::Item* findNearestItem(const render::RenderContextPointer& renderContext, const render::Varying& input, float& minIsectDistance) const;

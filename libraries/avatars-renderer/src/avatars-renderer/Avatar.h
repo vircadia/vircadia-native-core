@@ -252,7 +252,8 @@ public:
 
     void fadeIn(render::ScenePointer scene);
     void fadeOut(render::ScenePointer scene, KillAvatarReason reason);
-    bool isFading(render::ScenePointer scene) const;
+    bool isFading() const { return _isFading; }
+    void updateFadingStatus(render::ScenePointer scene);
 
 public slots:
 
@@ -356,7 +357,7 @@ private:
     bool _isLookAtTarget { false };
     bool _isAnimatingScale { false };
     bool _mustFadeIn{ false };
-    bool _isWaitingForFade{ false };
+    bool _isFading{ false };
 
     static int _jointConesID;
 

@@ -19,8 +19,7 @@ using namespace render;
 
 void Transaction::resetItem(ItemID id, const PayloadPointer& payload) {
     if (payload) {
-        _resetItems.emplace_back(id);
-        _resetPayloads.emplace_back(payload);
+        _resetItems.emplace_back(Reset{ id, payload });
     } else {
         qCDebug(renderlogging) << "WARNING: Transaction::resetItem with a null payload!";
         removeItem(id);
@@ -32,20 +31,19 @@ void Transaction::removeItem(ItemID id) {
 }
 
 void Transaction::addTransitionToItem(ItemID id, Transition::Type transition, ItemID boundId) {
-    _transitioningItems.emplace_back(id);
-    _transitioningItemBounds.emplace_back(boundId);
-    _transitionTypes.emplace_back(transition);
+    _addedTransitions.emplace_back(TransitionAdd{ id, transition, boundId });
 }
 
 void Transaction::removeTransitionFromItem(ItemID id) {
-    _transitioningItems.emplace_back(id);
-    _transitioningItemBounds.emplace_back(render::Item::INVALID_ITEM_ID);
-    _transitionTypes.emplace_back(render::Transition::NONE);
+    _addedTransitions.emplace_back(TransitionAdd{ id, Transition::NONE, render::Item::INVALID_ITEM_ID });
+}
+
+void Transaction::queryTransitionOnItem(ItemID id, TransitionQueryFunc func) {
+    _queriedTransitions.emplace_back(TransitionQuery{ id, func });
 }
 
 void Transaction::updateItem(ItemID id, const UpdateFunctorPointer& functor) {
-    _updatedItems.emplace_back(id);
-    _updateFunctors.emplace_back(functor);
+    _updatedItems.emplace_back(Update{ id, functor });
 }
 
 void Transaction::resetSelection(const Selection& selection) {
@@ -54,14 +52,11 @@ void Transaction::resetSelection(const Selection& selection) {
 
 void Transaction::merge(const Transaction& transaction) {
     _resetItems.insert(_resetItems.end(), transaction._resetItems.begin(), transaction._resetItems.end());
-    _resetPayloads.insert(_resetPayloads.end(), transaction._resetPayloads.begin(), transaction._resetPayloads.end());
     _removedItems.insert(_removedItems.end(), transaction._removedItems.begin(), transaction._removedItems.end());
     _updatedItems.insert(_updatedItems.end(), transaction._updatedItems.begin(), transaction._updatedItems.end());
-    _updateFunctors.insert(_updateFunctors.end(), transaction._updateFunctors.begin(), transaction._updateFunctors.end());
     _resetSelections.insert(_resetSelections.end(), transaction._resetSelections.begin(), transaction._resetSelections.end());
-    _transitioningItems.insert(_transitioningItems.end(), transaction._transitioningItems.begin(), transaction._transitioningItems.end());
-    _transitioningItemBounds.insert(_transitioningItemBounds.end(), transaction._transitioningItemBounds.begin(), transaction._transitioningItemBounds.end());
-    _transitionTypes.insert(_transitionTypes.end(), transaction._transitionTypes.begin(), transaction._transitionTypes.end());
+    _addedTransitions.insert(_addedTransitions.end(), transaction._addedTransitions.begin(), transaction._addedTransitions.end());
+    _queriedTransitions.insert(_queriedTransitions.end(), transaction._queriedTransitions.begin(), transaction._queriedTransitions.end());
 }
 
 
@@ -120,19 +115,21 @@ void Scene::processTransactionQueue() {
         // capture anything coming from the transaction
 
         // resets and potential NEW items
-        resetItems(consolidatedTransaction._resetItems, consolidatedTransaction._resetPayloads);
+        resetItems(consolidatedTransaction._resetItems);
 
         // Update the numItemsAtomic counter AFTER the reset changes went through
         _numAllocatedItems.exchange(maxID);
 
         // updates
-        updateItems(consolidatedTransaction._updatedItems, consolidatedTransaction._updateFunctors);
+        updateItems(consolidatedTransaction._updatedItems);
 
         // removes
         removeItems(consolidatedTransaction._removedItems);
 
-        // Transitions
-        transitionItems(consolidatedTransaction._transitioningItems, consolidatedTransaction._transitionTypes, consolidatedTransaction._transitioningItemBounds);
+        // add transitions
+        transitionItems(consolidatedTransaction._addedTransitions);
+
+        queryTransitionItems(consolidatedTransaction._queriedTransitions);
 
         // Update the numItemsAtomic counter AFTER the pending changes went through
         _numAllocatedItems.exchange(maxID);
@@ -146,34 +143,31 @@ void Scene::processTransactionQueue() {
     }
 }
 
-void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
-    auto resetPayload = payloads.begin();
-    for (auto resetID : ids) {
+void Scene::resetItems(const Transaction::Resets& transactions) {
+    for (auto& reset : transactions) {
         // Access the true item
-        auto& item = _items[resetID];
+        auto itemId = std::get<0>(reset);
+        auto& item = _items[itemId];
         auto oldKey = item.getKey();
         auto oldCell = item.getCell();
 
         // Reset the item with a new payload
-        item.resetPayload(*resetPayload);
+        item.resetPayload(std::get<1>(reset));
         auto newKey = item.getKey();
 
         // Update the item's container
         assert((oldKey.isSpatial() == newKey.isSpatial()) || oldKey._flags.none());
         if (newKey.isSpatial()) {
-            auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), resetID, newKey);
+            auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), itemId, newKey);
             item.resetCell(newCell, newKey.isSmall());
         } else {
-            _masterNonspatialSet.insert(resetID);
+            _masterNonspatialSet.insert(itemId);
         }
-
-        // next loop
-        resetPayload++;
     }
 }
 
-void Scene::removeItems(const ItemIDs& ids) {
-    for (auto removedID :ids) {
+void Scene::removeItems(const Transaction::Removes& transactions) {
+    for (auto removedID : transactions) {
         // Access the true item
         auto& item = _items[removedID];
         auto oldCell = item.getCell();
@@ -197,12 +191,10 @@ void Scene::removeItems(const ItemIDs& ids) {
     }
 }
 
-void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
-
-    auto updateFunctor = functors.begin();
-    for (auto updateID : ids) {
+void Scene::updateItems(const Transaction::Updates& transactions) {
+    for (auto& update : transactions) {
+        auto updateID = std::get<0>(update);
         if (updateID == Item::INVALID_ITEM_ID) {
-            updateFunctor++;
             continue;
         }
 
@@ -212,7 +204,7 @@ void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
         auto oldKey = item.getKey();
 
         // Update the item
-        item.update((*updateFunctor));
+        item.update(std::get<1>(update));
         auto newKey = item.getKey();
 
         // Update the item's container
@@ -234,39 +226,54 @@ void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
                 _masterNonspatialSet.insert(updateID);
             }
         }
-
-
-        // next loop
-        updateFunctor++;
     }
 }
 
-void Scene::transitionItems(const ItemIDs& ids, const TransitionTypes& types, const ItemIDs& boundIds) {
-    auto transitionType = types.begin();
-    auto boundId = boundIds.begin();
+void Scene::transitionItems(const Transaction::TransitionAdds& transactions) {
     auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
 
-    for (auto itemId : ids) {
+    for (auto& add : transactions) {
+        auto itemId = std::get<0>(add);
         // Access the true item
         const auto& item = _items[itemId];
         if (item.exist()) {
             auto transitionId = INVALID_INDEX;
+            auto transitionType = std::get<1>(add);
+            auto boundId = std::get<2>(add);
 
             // Remove pre-existing transition, if need be
-            if (item.getTransitionId() != render::TransitionStage::INVALID_INDEX) {
+            if (TransitionStage::isIndexInvalid(item.getTransitionId())) {
                 transitionStage->removeTransition(item.getTransitionId());
             }
             // Add a new one.
-            if (*transitionType != Transition::NONE) {
-                transitionId = transitionStage->addTransition(itemId, *transitionType, *boundId);
+            if (transitionType != Transition::NONE) {
+                transitionId = transitionStage->addTransition(itemId, transitionType, boundId);
             }
 
             setItemTransition(itemId, transitionId);
         }
+    }
+}
 
-        // next loop
-        transitionType++;
-        boundId++;
+void Scene::queryTransitionItems(const Transaction::TransitionQueries& transactions) {
+    auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
+
+    for (auto& query : transactions) {
+        auto itemId = std::get<0>(query);
+        // Access the true item
+        const auto& item = _items[itemId];
+        auto func = std::get<1>(query);
+        if (item.exist() && func != nullptr) {
+            auto transitionId = item.getTransitionId();
+
+            if (TransitionStage::isIndexInvalid(transitionId)) {
+                auto& transition = transitionStage->getTransition(transitionId);
+                func(itemId, &transition);
+            }
+            else {
+                func(itemId, nullptr);
+            }
+        }
     }
 }
 
@@ -325,8 +332,8 @@ Selection Scene::getSelection(const Selection::Name& name) const {
     }
 }
 
-void Scene::resetSelections(const Selections& selections) {
-    for (auto selection : selections) {
+void Scene::resetSelections(const Transaction::SelectionResets& transactions) {
+    for (auto selection : transactions) {
         auto found = _selections.find(selection.getName());
         if (found == _selections.end()) {
             _selections.insert(SelectionMap::value_type(selection.getName(), selection));

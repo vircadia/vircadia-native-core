@@ -548,8 +548,6 @@ void FadeJob::run(const render::RenderContextPointer& renderContext, FadeJob::Ou
     auto transitionStage = scene->getStage<render::TransitionStage>(render::TransitionStage::getName());
     uint64_t now = usecTimestampNow();
     const double deltaTime = (int64_t(now) - int64_t(_previousTime)) / double(USECS_PER_SECOND);
-    render::Transaction transaction;
-    bool hasTransactions = false;
     bool isFirstItem = true;
     
     output = (FadeConfig::Category) jobConfig->editedCategory;
@@ -557,20 +555,11 @@ void FadeJob::run(const render::RenderContextPointer& renderContext, FadeJob::Ou
     // And now update fade effect
     for (auto transitionId : *transitionStage) {
         auto& state = transitionStage->editTransition(transitionId);
-        if (!update(*jobConfig, scene, state, deltaTime)) {
-            // Remove transition for this item
-            transaction.addTransitionToItem(state.itemId, render::Transition::NONE);
-            hasTransactions = true;
-        }
-
+        update(*jobConfig, scene, state, deltaTime);
         if (isFirstItem) {
             jobConfig->setProperty("threshold", state.threshold);
             isFirstItem = false;
         }
-    }
-
-    if (hasTransactions) {
-        scene->enqueueTransaction(transaction);
     }
     _previousTime = now;
 }
@@ -585,13 +574,12 @@ const FadeConfig::Category FadeJob::transitionToCategory[render::Transition::TYP
     FadeConfig::AVATAR_CHANGE
 };
 
-bool FadeJob::update(const Config& config, const render::ScenePointer& scene, render::Transition& transition, const double deltaTime) const {
+void FadeJob::update(const Config& config, const render::ScenePointer& scene, render::Transition& transition, const double deltaTime) const {
     const auto fadeCategory = transitionToCategory[transition.eventType];
     auto& eventConfig = config.events[fadeCategory];
     auto& item = scene->getItem(transition.itemId);
     const double eventDuration = (double)eventConfig.duration;
     const FadeConfig::Timing timing = (FadeConfig::Timing) eventConfig.timing;
-    bool continueTransition = true;
 
     if (item.exist()) {
         auto aabb = item.getBound();
@@ -619,7 +607,7 @@ bool FadeJob::update(const Config& config, const render::ScenePointer& scene, re
             transition.baseInvSize.x = 1.f / dimensions.x;
             transition.baseInvSize.y = 1.f / dimensions.y;
             transition.baseInvSize.z = 1.f / dimensions.z;
-            continueTransition = transition.threshold < 1.f;
+            transition.isFinished = transition.threshold >= 1.f;
             if (transition.eventType == render::Transition::ELEMENT_ENTER_DOMAIN) {
                 transition.threshold = 1.f - transition.threshold;
             }
@@ -655,7 +643,7 @@ bool FadeJob::update(const Config& config, const render::ScenePointer& scene, re
             transition.threshold = computeElementEnterRatio(transition.time, eventConfig.duration, timing);
             transition.baseOffset = transition.noiseOffset - dimensions.y / 2.f;
             transition.baseInvSize.y = 1.f / dimensions.y;
-            continueTransition = transition.threshold < 1.f;
+            transition.isFinished = transition.threshold >= 1.f;
             if (transition.eventType == render::Transition::USER_LEAVE_DOMAIN) {
                 transition.threshold = 1.f - transition.threshold;
             }
@@ -671,10 +659,9 @@ bool FadeJob::update(const Config& config, const render::ScenePointer& scene, re
     }
 
     transition.noiseOffset += eventConfig.noiseSpeed * (float)transition.time;
+    transition.threshold = std::max(0.f, std::min(1.f, transition.threshold));
     transition.threshold = (transition.threshold - 0.5f)*_thresholdScale[fadeCategory] + 0.5f;
     transition.time += deltaTime;
-
-    return continueTransition;
 }
 
 float FadeJob::computeElementEnterRatio(double time, const double period, FadeConfig::Timing timing) {

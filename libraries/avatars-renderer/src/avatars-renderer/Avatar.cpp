@@ -498,15 +498,6 @@ void Avatar::addToScene(AvatarSharedPointer self, const render::ScenePointer& sc
     _mustFadeIn = true;
 }
 
-bool Avatar::isFading(render::ScenePointer scene) const {
-    if (isInScene()) {
-        const auto& item = scene->getItem(_renderItemID);
-        auto transitionId = item.getTransitionId();
-        return _isWaitingForFade || transitionId!= render::TransitionStage::INVALID_INDEX;
-    }
-    return _isWaitingForFade;
-}
-
 void Avatar::fadeIn(render::ScenePointer scene) {
     render::Transaction transaction;
     fade(transaction, render::Transition::USER_ENTER_DOMAIN);
@@ -534,7 +525,17 @@ void Avatar::fade(render::Transaction& transaction, render::Transition::Type typ
             transaction.addTransitionToItem(itemId, type, _renderItemID);
         }
     }
-    _isWaitingForFade = true;
+    _isFading = true;
+}
+
+void Avatar::updateFadingStatus(render::ScenePointer scene) {
+    render::Transaction transaction;
+    transaction.queryTransitionOnItem(_renderItemID, [this](render::ItemID id, const render::Transition* transition) {
+        if (transition == nullptr || transition->isFinished) {
+            _isFading = false;
+        }
+    });
+    scene->enqueueTransaction(transaction);
 }
 
 void Avatar::removeFromScene(AvatarSharedPointer self, const render::ScenePointer& scene, render::Transaction& transaction) {
@@ -710,14 +711,6 @@ void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
         // Do it now to be sure all the sub items are ready and the fade is sent to them too
         fade(transaction, render::Transition::USER_ENTER_DOMAIN);
         _mustFadeIn = false;
-    }
-
-    if (isInScene()) {
-        const auto& item = scene->getItem(_renderItemID);
-        auto transitionId = item.getTransitionId();
-        if (_isWaitingForFade && transitionId != render::TransitionStage::INVALID_INDEX) {
-            _isWaitingForFade = false;
-        }
     }
 
     for (auto attachmentModelToRemove : _attachmentsToRemove) {

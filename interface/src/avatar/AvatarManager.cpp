@@ -282,10 +282,11 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
     const render::ScenePointer& scene = qApp->getMain3DScene();
     while (avatarItr != _avatarsToFade.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*avatarItr);
-        // TEMP OP avatar->setTargetScale(avatar->getUniformScale() * SHRINK_RATE);
-        // TEMP OP avatar->animateScaleChanges(deltaTime);
-        // TEMP OP if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
-        if (!avatar->isFading(scene)) {
+        // avatar->setTargetScale(avatar->getUniformScale() * SHRINK_RATE);
+        // avatar->animateScaleChanges(deltaTime);
+        // if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
+        avatar->updateFadingStatus(scene);
+        if (!avatar->isFading()) {
             // fading to zero is such a rare event we push a unique transaction for each
             if (avatar->isInScene()) {
                 render::Transaction transaction;
