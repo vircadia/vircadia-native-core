@@ -2277,7 +2277,7 @@ void MyAvatar::restrictScaleFromDomainSettings(const QJsonObject& domainSettings
     _targetScale = loadSetting(settings, "scale", 1.0f);
 
     qCDebug(interfaceapp, "This domain requires a minimum avatar scale of %f and a maximum avatar scale of %f. Current avatar scale is %f",
-        (double)_domainMinimumScale, (double)_domainMaximumScale, (double)_targetScale);
+        _domainMinimumScale, _domainMaximumScale, _targetScale);
 
     // debug to log if this avatar's scale in this domain will be clamped
     float clampedScale = glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale);
