@@ -50,6 +50,12 @@ EntityServer::~EntityServer() {
     tree->removeNewlyCreatedHook(this);
 }
 
+void EntityServer::aboutToFinish() {
+    DependencyManager::get<ResourceManager>()->cleanup();
+
+    OctreeServer::aboutToFinish();
+}
+
 void EntityServer::handleEntityPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
     if (_octreeInboundPacketProcessor) {
         _octreeInboundPacketProcessor->queueReceivedPacket(message, senderNode);
