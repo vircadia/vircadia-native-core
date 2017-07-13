@@ -180,6 +180,7 @@
             BOUNDING_BOX_COLOR = { red: 0, green: 240, blue: 240 },
             BOUNDING_BOX_ALPHA = 0.8,
             HANDLE_NORMAL_COLOR = { red: 0, green: 240, blue: 240 },
+            HANDLE_HOVER_COLOR = { red: 0, green: 255, blue: 120 },
             HANDLE_ALPHA = 0.7,
             NUM_CORNERS = 8,
             NUM_CORNER_HANDLES = 2,
@@ -192,6 +193,7 @@
             FACE_HANDLE_OVERLAY_ROTATIONS,
             ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO),
             DISTANCE_MULTIPLIER_MULTIPLIER = 0.5,
+            hoveredOverlayID = null,
             i;
 
         CORNER_HANDLE_OVERLAY_AXES = [
@@ -245,7 +247,7 @@
                 alpha: HANDLE_ALPHA,
                 solid: true,
                 drawInFront: true,
-                ignoreRayIntersection: true,
+                ignoreRayIntersection: false,
                 visible: false
             });
         }
@@ -257,7 +259,7 @@
                 alpha: HANDLE_ALPHA,
                 solid: true,
                 drawInFront: true,
-                ignoreRayIntersection: true,
+                ignoreRayIntersection: false,
                 visible: false
             });
         }
@@ -351,6 +353,21 @@
             }
         }
 
+        function hover(overlayID) {
+            if (overlayID !== hoveredOverlayID) {
+                if (hoveredOverlayID !== null) {
+                    Overlays.editOverlay(hoveredOverlayID, { color: HANDLE_NORMAL_COLOR });
+                    hoveredOverlayID = null;
+                }
+
+                if (overlayID !== null
+                        && (faceHandleOverlays.indexOf(overlayID) !== -1 || cornerHandleOverlays.indexOf(overlayID) !== -1)) {
+                    Overlays.editOverlay(overlayID, { color: HANDLE_HOVER_COLOR });
+                    hoveredOverlayID = overlayID;
+                }
+            }
+        }
+
         function clear() {
             var i;
 
@@ -374,6 +391,7 @@
 
         return {
             display: display,
+            hover: hover,
             clear: clear,
             destroy: destroy
         };
@@ -737,6 +755,7 @@
             GRAB_POINT_SPHERE_OFFSET = { x: 0.04, y: 0.13, z: 0.039 },  // Per HmdDisplayPlugin.cpp and controllers.js.
 
             NEAR_GRAB_RADIUS = 0.1,  // Per handControllerGrab.js.
+            NEAR_HOVER_RADIUS = 0.025,
 
             PICK_MAX_DISTANCE = 500,  // Per handControllerGrab.js.
             PRECISION_PICKING = true,
@@ -772,7 +791,6 @@
             doHighlight,
 
             otherHand,
-            otherHandWasEditing,
 
             laser,
             selection,
@@ -912,6 +930,10 @@
             return properties.visible && !properties.locked && NONEDITABLE_ENTITY_TYPES.indexOf(properties.type) === -1;
         }
 
+        function hoverHandle(overlayID) {
+            handles.hover(overlayID);
+        }
+
         function update() {
             var gripValue,
                 palmPosition,
@@ -932,7 +954,6 @@
                 isTriggerPressed,
                 isTriggerClicked,
                 wasEditing,
-                otherHandIsEditing,
                 i,
                 length;
 
@@ -1072,13 +1093,14 @@
                     // Stop editing.
                     stopEditing();
                 }
+                if (isScaleWithHandles) {
+                    otherHand.hoverHandle(intersection.overlayID);
+                }
                 if (intersection.intersects) {
                     // Hover entities.
-                    otherHandIsEditing = otherHand.isEditing(selection.rootEntityID());
-                    if (wasEditing || intersection.entityID !== hoveredEntityID || otherHandIsEditing !== otherHandWasEditing) {
+                    if (wasEditing || intersection.entityID !== hoveredEntityID) {
                         hoveredEntityID = intersection.entityID;
                         selection.select(hoveredEntityID);
-                        otherHandWasEditing = otherHandIsEditing;
                         doHighlight = true;
                     }
                 } else {
@@ -1096,15 +1118,17 @@
         function apply() {
             if (doEdit) {
                 if (otherHand.isEditing(selection.rootEntityID())) {
-                    if (isScaling) {
+                    if (isScaling && !isScaleWithHandles) {
                         applyScale();
                     }
                 } else {
                     applyGrab();
                 }
             } else if (doHighlight) {
-                highlights.display(intersection.handSelected, selection.selection(),
-                    otherHand.isEditing(selection.rootEntityID()) || isScaleWithHandles);
+                if (!isScaleWithHandles || !otherHand.isEditing(selection.rootEntityID())) {
+                    highlights.display(intersection.handSelected, selection.selection(),
+                        otherHand.isEditing(selection.rootEntityID()) || isScaleWithHandles);
+                }
             }
         }
 
@@ -1135,6 +1159,7 @@
             setOtherHand: setOtherHand,
             setScaleWithHandles: setScaleWithHandles,
             isEditing: getIsEditing,
+            hoverHandle: hoverHandle,
             getTargetPosition: getTargetPosition,
             updateGrabOffset: updateGrabOffset,
             update: update,
