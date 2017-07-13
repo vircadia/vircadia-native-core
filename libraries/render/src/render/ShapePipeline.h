@@ -20,6 +20,7 @@
 
 namespace render {
 class Item;
+class ShapePlumber;
 
 class ShapeKey {
 public:
