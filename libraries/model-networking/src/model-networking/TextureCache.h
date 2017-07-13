@@ -172,6 +172,9 @@ public:
     void resetSpectatorCameraFramebuffer(int width, int height);
     const gpu::FramebufferPointer& getHmdPreviewFramebuffer(int width, int height);
 
+signals:
+    void spectatorCameraFramebufferReset();
+
 protected:
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
     Q_INVOKABLE ScriptableResource* prefetch(const QUrl& url, int type, int maxNumPixels = ABSOLUTE_MAX_TEXTURE_NUM_PIXELS);

@@ -242,6 +242,9 @@ void HmdDisplayPlugin::internalPresent() {
 
         glm::ivec4 viewport = getViewportForSourceSize(sourceSize);
         glm::ivec4 scissor = viewport;
+
+        auto fbo = gpu::FramebufferPointer();
+
         render([&](gpu::Batch& batch) {
 
             if (_monoPreview) {
@@ -284,10 +287,11 @@ void HmdDisplayPlugin::internalPresent() {
                     viewport = ivec4(scissorOffset - scaledShiftLeftBy, viewportOffset, viewportSizeX, viewportSizeY);
                 }
 
+                // TODO: only bother getting and passing in the hmdPreviewFramebuffer if the camera is on
+                fbo = DependencyManager::get<TextureCache>()->getHmdPreviewFramebuffer(windowSize.x, windowSize.y);
+
                 viewport.z *= 2;
             }
-            // TODO: only bother getting and passing in the hmdPreviewFramebuffer if the camera is on
-            auto fbo = DependencyManager::get<TextureCache>()->getHmdPreviewFramebuffer(scissor.z, scissor.w);
             renderFromTexture(batch, _compositeFramebuffer->getRenderBuffer(0), viewport, scissor, fbo);
         });
         swapBuffers();

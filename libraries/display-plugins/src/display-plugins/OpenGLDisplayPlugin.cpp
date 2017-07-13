@@ -514,13 +514,29 @@ void OpenGLDisplayPlugin::renderFromTexture(gpu::Batch& batch, const gpu::Textur
     batch.setPipeline(_presentPipeline);
     batch.draw(gpu::TRIANGLE_STRIP, 4);
     if (copyFbo) {
+        gpu::Vec4i copyFboRect(0, 0, copyFbo->getWidth(), copyFbo->getHeight());
         gpu::Vec4i sourceRect(scissor.x, scissor.y, scissor.x + scissor.z, scissor.y + scissor.w);
-        gpu::Vec4i copyRect(0, 0, copyFbo->getWidth(), copyFbo->getHeight());
+        float aspectRatio = (float)scissor.w / (float) scissor.z; // height/width
+        // scale width first
+        int xOffset = 0;
+        int yOffset = 0;
+        int newWidth = copyFbo->getWidth();
+        int newHeight = std::round(aspectRatio * (float) copyFbo->getWidth());
+        if (newHeight > copyFbo->getHeight()) {
+            // ok, so now fill height instead
+            newHeight = copyFbo->getHeight();
+            newWidth = std::round((float)copyFbo->getHeight() / aspectRatio);
+            xOffset = (copyFbo->getWidth() - newWidth) / 2;
+        } else {
+            yOffset = (copyFbo->getHeight() - newHeight) / 2;
+        }
+        gpu::Vec4i copyRect(xOffset, yOffset, xOffset + newWidth, yOffset + newHeight);
         batch.setFramebuffer(copyFbo);
+
         batch.resetViewTransform();
-        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, vec4(0));
-        batch.setViewportTransform(copyRect);
-        batch.setStateScissorRect(copyRect);
+        batch.setViewportTransform(copyFboRect);
+        batch.setStateScissorRect(copyFboRect);
+        batch.clearColorFramebuffer(gpu::Framebuffer::BUFFER_COLOR0, {0.0f, 0.0f, 0.0f, 1.0f});
         batch.blit(fbo, sourceRect, copyFbo, copyRect);
     }
 }
@@ -862,6 +878,8 @@ void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer ne
         // setup destination fbo
         glBindFramebuffer(GL_FRAMEBUFFER, fbo[1]);
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, targetTexture, 0);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
 
 
         // maintain aspect ratio, filling the width first if possible.  If that makes the height too
@@ -878,7 +896,7 @@ void OpenGLDisplayPlugin::copyTextureToQuickFramebuffer(NetworkTexturePointer ne
         } else {
             newY = (target->height() - newHeight) / 2;
         }
-        glBlitNamedFramebuffer(fbo[0], fbo[1], 0, 0, texWidth, texHeight, newX, newY, newWidth, newHeight, GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        glBlitNamedFramebuffer(fbo[0], fbo[1], 0, 0, texWidth, texHeight, newX, newY, newX + newWidth, newY + newHeight, GL_DEPTH_BUFFER_BIT|GL_COLOR_BUFFER_BIT, GL_NEAREST);
 
         // don't delete the textures!
         glDeleteFramebuffers(2, fbo);

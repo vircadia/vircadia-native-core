@@ -16,6 +16,10 @@
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLContext>
 
+ResourceImageItem::ResourceImageItem() : QQuickFramebufferObject() {
+    auto textureCache = DependencyManager::get<TextureCache>();
+    connect(textureCache.data(), SIGNAL(spectatorCameraFramebufferReset()), this, SLOT(update()));
+}
 
 void ResourceImageItem::setUrl(const QString& url) {
     if (url != m_url) {
@@ -50,32 +54,20 @@ void ResourceImageItemRenderer::onUpdateTimer() {
 
 ResourceImageItemRenderer::ResourceImageItemRenderer() : QQuickFramebufferObject::Renderer() {
     connect(&_updateTimer, SIGNAL(timeout()), this, SLOT(onUpdateTimer()));
+    auto textureCache = DependencyManager::get<TextureCache>();
 }
 
 void ResourceImageItemRenderer::synchronize(QQuickFramebufferObject* item) {
     ResourceImageItem* resourceImageItem = static_cast<ResourceImageItem*>(item);
 
     resourceImageItem->setFlag(QQuickItem::ItemHasContents);
-    bool urlChanged = false;
-    if (_url != resourceImageItem->getUrl()) {
-        _url = resourceImageItem->getUrl();
-        urlChanged = true;
-    }
-    bool readyChanged = false;
-    if (_ready != resourceImageItem->getReady()) {
-        _ready = resourceImageItem->getReady();
-        readyChanged = true;
-    }
-    bool visibleChanged = false;
-    if (_visible != resourceImageItem->isVisible()) {
-        _visible = resourceImageItem->isVisible();
-        visibleChanged = true;
-    }
+
+    _url = resourceImageItem->getUrl();
+    _ready = resourceImageItem->getReady();
+    _visible = resourceImageItem->isVisible();
     _window = resourceImageItem->window();
 
-    if (_ready && _visible && !_url.isNull() && !_url.isEmpty() && (visibleChanged || urlChanged || readyChanged || !_networkTexture)) {
-        _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_url);
-    }
+    _networkTexture = DependencyManager::get<TextureCache>()->getTexture(_url);
     static const int UPDATE_TIMER_DELAY_IN_MS = 100; // 100 ms = 10 hz for now
     if (_ready && _visible && !_updateTimer.isActive()) {
         _updateTimer.start(UPDATE_TIMER_DELAY_IN_MS);
