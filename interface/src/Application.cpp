@@ -1,4 +1,3 @@
-
 //
 //  Application.cpp
 //  interface/src
