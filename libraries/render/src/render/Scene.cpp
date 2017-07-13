@@ -290,7 +290,11 @@ void Scene::collectSubItems(ItemID parentId, ItemIDs& subItems) const {
         auto subItemBeginIndex = subItems.size();
         auto subItemCount = item.fetchMetaSubItems(subItems);
         for (auto i = subItemBeginIndex; i < (subItemBeginIndex + subItemCount); i++) {
-            collectSubItems(subItems[i], subItems);
+            auto subItemId = subItems[i];
+            // Bizarrely, subItemId == parentId can happen for metas... See metaFetchMetaSubItems in RenderableEntityItem.cpp
+            if (subItemId != parentId) {
+                collectSubItems(subItemId, subItems);
+            }
         }
     }
 }

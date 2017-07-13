@@ -36,14 +36,14 @@ void FadeEditJob::run(const render::RenderContextPointer& renderContext, const F
         render::Transaction transaction;
         bool hasTransaction{ false };
 
-        if (editedItem != _editedItem && _editedItem != render::Item::INVALID_ITEM_ID) {
+        if (editedItem != _editedItem && render::Item::isValidID(_editedItem)) {
             // Remove transition from previously edited item as we've changed edited item
             hasTransaction = true;
             transaction.removeTransitionFromItem(_editedItem);
         }
         _editedItem = editedItem;
 
-        if (_editedItem != render::Item::INVALID_ITEM_ID) {
+        if (render::Item::isValidID(_editedItem)) {
             static const render::Transition::Type categoryToTransition[FadeConfig::CATEGORY_COUNT] = {
                 render::Transition::ELEMENT_ENTER_DOMAIN,
                 render::Transition::BUBBLE_ISECT_OWNER,
@@ -69,7 +69,7 @@ void FadeEditJob::run(const render::RenderContextPointer& renderContext, const F
             scene->enqueueTransaction(transaction);
         }
     }
-    else if (_editedItem != render::Item::INVALID_ITEM_ID) {
+    else if (render::Item::isValidID(_editedItem)) {
         // Remove transition from previously edited item as we've disabled fade edition
         render::Transaction transaction;
         transaction.removeTransitionFromItem(_editedItem);
@@ -131,7 +131,7 @@ FadeConfig::FadeConfig()
 
     events[BUBBLE_ISECT_TRESPASSER].noiseSize = glm::vec3{ 0.5f, 1.0f / 25.f, 0.5f };
     events[BUBBLE_ISECT_TRESPASSER].noiseLevel = 1.f;
-    events[BUBBLE_ISECT_TRESPASSER].noiseSpeed = glm::vec3{ 1.0f, 0.2f, 1.0f };
+    events[BUBBLE_ISECT_TRESPASSER].noiseSpeed = glm::vec3{ 1.0f, -5.f, 1.0f };
     events[BUBBLE_ISECT_TRESPASSER].timing = FadeConfig::LINEAR;
     events[BUBBLE_ISECT_TRESPASSER].baseSize = glm::vec3{ 2.0f, 2.0f, 2.0f };
     events[BUBBLE_ISECT_TRESPASSER].baseLevel = 0.f;
@@ -150,7 +150,7 @@ FadeConfig::FadeConfig()
     events[USER_ENTER_LEAVE_DOMAIN].isInverted = true;
     events[USER_ENTER_LEAVE_DOMAIN].duration = 2.f;
     events[USER_ENTER_LEAVE_DOMAIN].edgeWidth = 0.229f;
-    events[USER_ENTER_LEAVE_DOMAIN].edgeInnerColor = glm::vec4{ 78.f / 255.f, 215.f / 255.f, 255.f / 255.f, 0.25f };
+    events[USER_ENTER_LEAVE_DOMAIN].edgeInnerColor = glm::vec4{ 1.f, 0.63f, 0.13f, 0.5f };
     events[USER_ENTER_LEAVE_DOMAIN].edgeOuterColor = glm::vec4{ 1.f, 1.f, 1.f, 1.0f };
 
     events[AVATAR_CHANGE].noiseSize = glm::vec3{ 0.4f, 0.4f, 0.4f };
