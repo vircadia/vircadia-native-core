@@ -807,6 +807,10 @@ bool RenderablePolyVoxEntityItem::addToScene(const EntityItemPointer& self,
     renderPayload->addStatusGetters(statusGetters);
 
     transaction.resetItem(_myItem, renderPayload);
+    if (_mesh && _mesh->getIndexBuffer()._buffer) {
+        transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+        _hasTransitioned = true;
+    }
 
     return true;
 }
@@ -830,11 +834,9 @@ render::ShapePipelinePointer PolyVoxPayload::shapePipelineFactory(const render::
 
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
-        slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), render::ShapePipeline::Slot::BUFFER::FADE_PARAMETERS));
         slotBindings.insert(gpu::Shader::Binding(std::string("xMap"), 0));
         slotBindings.insert(gpu::Shader::Binding(std::string("yMap"), 1));
         slotBindings.insert(gpu::Shader::Binding(std::string("zMap"), 2));
-        slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), render::ShapePipeline::Slot::MAP::FADE_MASK));
 
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
@@ -1386,6 +1388,14 @@ void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
     });
     if (neighborsNeedUpdate) {
         bonkNeighbors();
+    }
+
+    if (!_hasTransitioned) {
+        render::Transaction transaction;
+        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+        transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+        scene->enqueueTransaction(transaction);
+        _hasTransitioned = true;
     }
 }
 

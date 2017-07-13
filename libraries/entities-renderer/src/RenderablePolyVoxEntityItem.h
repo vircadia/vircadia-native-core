@@ -177,6 +177,7 @@ private:
     gpu::Stream::FormatPointer _vertexFormat;
     bool _meshDirty { true }; // does collision-shape need to be recomputed?
     bool _meshReady { false };
+    bool _hasTransitioned{ false };
 
     NetworkTexturePointer _xTexture;
     NetworkTexturePointer _yTexture;
