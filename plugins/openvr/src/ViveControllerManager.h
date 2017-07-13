@@ -161,7 +161,8 @@ private:
         FilteredStick _filteredRightStick;
 
         std::vector<PuckPosePair> _validTrackedObjects;
-        std::map<uint32_t, glm::mat4> _pucksOffset;
+        std::map<uint32_t, glm::mat4> _pucksPostOffset;
+        std::map<uint32_t, glm::mat4> _pucksPreOffset;
         std::map<int, uint32_t> _jointToPuckMap;
         std::map<Config, QString> _configStringMap;
         PoseData _lastSimPoseData;
