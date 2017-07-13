@@ -68,6 +68,7 @@ Preference {
                 right: spinner.left
 				rightMargin: 10
             }
+            colorScheme: hifi.colorSchemes.dark
         }
         SpinBox {
             id: spinner
@@ -85,7 +86,7 @@ Preference {
             }
             colorScheme: hifi.colorSchemes.dark
         }
-		Button {
+		GlyphButton {
 			id: button
 			onClicked: {
 				if(spinner.maximumValue >= 1) {
@@ -96,12 +97,12 @@ Preference {
 					slider.value = spinner.maximumValue
 				}
 			}
-			width: 50
-            font.family: hiFiGlyphs.name
-			text: "a"
+			width: 30
+			glyph: hifi.glyphs.reload
 			anchors {
 				right: parent.right
 			}
+            colorScheme: hifi.colorSchemes.dark
 		}
     }
 }
