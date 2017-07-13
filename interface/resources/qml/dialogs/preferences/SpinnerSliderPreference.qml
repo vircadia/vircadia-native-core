@@ -97,7 +97,8 @@ Preference {
 				}
 			}
 			width: 50
-			text: "Reset"
+            font.family: hiFiGlyphs.name
+			text: "a"
 			anchors {
 				right: parent.right
 			}
