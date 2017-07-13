@@ -1,3 +1,4 @@
+
 //
 //  Application.cpp
 //  interface/src
@@ -1705,7 +1706,6 @@ void Application::toggleTabletUI(bool shouldOpen) const {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
     TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
-    bool messageOpen = tablet->isMessageDialogOpen();
     if (!(shouldOpen && hmd->getShouldShowTablet())) {
         auto HMD = DependencyManager::get<HMDScriptingInterface>();
         HMD->toggleShouldShowTablet();
