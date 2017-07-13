@@ -34,7 +34,7 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
 
         glm::vec3 dirOffset = Vectors::UP;
         if (propertyMap["dirOffset"].isValid()) {
-            posOffset = vec3FromVariant(propertyMap["dirOffset"]);
+            dirOffset = vec3FromVariant(propertyMap["dirOffset"]);
         }
 
         uint16_t filter = 0;

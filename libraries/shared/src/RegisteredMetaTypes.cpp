@@ -755,6 +755,7 @@ void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay) {
 
 QScriptValue rayPickResultToScriptValue(QScriptEngine* engine, const RayPickResult& rayPickResult) {
     QScriptValue obj = engine->newObject();
+    obj.setProperty("type", rayPickResult.type);
     QScriptValue objectID = quuidToScriptValue(engine, rayPickResult.objectID);
     obj.setProperty("objectID", objectID);
     obj.setProperty("distance", rayPickResult.distance);

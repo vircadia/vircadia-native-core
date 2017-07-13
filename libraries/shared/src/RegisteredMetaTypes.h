@@ -136,12 +136,20 @@ Q_DECLARE_METATYPE(PickRay)
 QScriptValue pickRayToScriptValue(QScriptEngine* engine, const PickRay& pickRay);
 void pickRayFromScriptValue(const QScriptValue& object, PickRay& pickRay);
 
+enum IntersectionType {
+    NONE,
+    ENTITY,
+    OVERLAY,
+    AVATAR,
+    HUD
+};
+
 class RayPickResult {
 public:
     RayPickResult() {}
-    RayPickResult(const QUuid& objectID, const float distance, const glm::vec3& intersection, const glm::vec3& surfaceNormal = glm::vec3(NAN)) :
-        objectID(objectID), distance(distance), intersection(intersection), surfaceNormal(surfaceNormal) {}
-    //Type type;
+    RayPickResult(const IntersectionType type, const QUuid& objectID, const float distance, const glm::vec3& intersection, const glm::vec3& surfaceNormal = glm::vec3(NAN)) :
+        type(type), objectID(objectID), distance(distance), intersection(intersection), surfaceNormal(surfaceNormal) {}
+    IntersectionType type { NONE };
     QUuid objectID { 0 };
     float distance { FLT_MAX };
     glm::vec3 intersection { NAN };

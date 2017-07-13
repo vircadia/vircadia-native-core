@@ -46,6 +46,11 @@ class RayPickManager : public QObject {
     Q_PROPERTY(unsigned int PICK_INCLUDE_INVISIBLE READ PICK_INCLUDE_INVISIBLE CONSTANT)
     Q_PROPERTY(unsigned int PICK_INCLUDE_NONCOLLIDABLE READ PICK_INCLUDE_NONCOLLIDABLE CONSTANT)
     Q_PROPERTY(unsigned int PICK_ALL_INTERSECTIONS READ PICK_ALL_INTERSECTIONS CONSTANT)
+    Q_PROPERTY(unsigned int INTERSECTED_NONE READ INTERSECTED_NONE CONSTANT)
+    Q_PROPERTY(unsigned int INTERSECTED_ENTITY READ INTERSECTED_ENTITY CONSTANT)
+    Q_PROPERTY(unsigned int INTERSECTED_OVERLAY READ INTERSECTED_OVERLAY CONSTANT)
+    Q_PROPERTY(unsigned int INTERSECTED_AVATAR READ INTERSECTED_AVATAR CONSTANT)
+    Q_PROPERTY(unsigned int INTERSECTED_HUD READ INTERSECTED_HUD CONSTANT)
 
 public:
     static RayPickManager& getInstance();
@@ -73,6 +78,11 @@ private:
     const unsigned int PICK_INCLUDE_INVISIBLE() { return RayPickMask::PICK_INCLUDE_INVISIBLE; }
     const unsigned int PICK_INCLUDE_NONCOLLIDABLE() { return RayPickMask::PICK_INCLUDE_NONCOLLIDABLE; }
     const unsigned int PICK_ALL_INTERSECTIONS() { return RayPickMask::PICK_ALL_INTERSECTIONS; }
+    const unsigned int INTERSECTED_NONE() { return IntersectionType::NONE; }
+    const unsigned int INTERSECTED_ENTITY() { return IntersectionType::ENTITY; }
+    const unsigned int INTERSECTED_OVERLAY() { return IntersectionType::OVERLAY; }
+    const unsigned int INTERSECTED_AVATAR() { return IntersectionType::AVATAR; }
+    const unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
 
 };
 

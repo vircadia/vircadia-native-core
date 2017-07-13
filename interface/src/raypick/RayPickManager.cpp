@@ -93,7 +93,7 @@ void RayPickManager::update() {
 
             if (!fromCache) {
                 unsigned int mask = (rayPick->getFilter() & RayPickMask::PICK_INCLUDE_INVISIBLE) | (rayPick->getFilter() & RayPickMask::PICK_INCLUDE_NONCOLLIDABLE);
-                cacheResult(entityRes.intersects, RayPickResult(entityRes.entityID, entityRes.distance, entityRes.intersection, entityRes.surfaceNormal),
+                cacheResult(entityRes.intersects, RayPickResult(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.intersection, entityRes.surfaceNormal),
                     RayPickMask::PICK_ENTITIES | mask, res, rayKey, results);
             }
         }
@@ -125,7 +125,7 @@ void RayPickManager::update() {
 
             if (!fromCache) {
                 unsigned int mask = (rayPick->getFilter() & RayPickMask::PICK_INCLUDE_INVISIBLE) | (rayPick->getFilter() & RayPickMask::PICK_INCLUDE_NONCOLLIDABLE);
-                cacheResult(overlayRes.intersects, RayPickResult(overlayRes.overlayID, overlayRes.distance, overlayRes.intersection, overlayRes.surfaceNormal),
+                cacheResult(overlayRes.intersects, RayPickResult(IntersectionType::OVERLAY, overlayRes.overlayID, overlayRes.distance, overlayRes.intersection, overlayRes.surfaceNormal),
                     RayPickMask::PICK_OVERLAYS | mask, res, rayKey, results);
             }
         }
@@ -133,7 +133,7 @@ void RayPickManager::update() {
         if (rayPick->getFilter() & RayPickMask::PICK_AVATARS) {
             if (!checkAndCompareCachedResults(rayKey, results, res, RayPickMask::PICK_AVATARS)) {
                 RayToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findRayIntersection(ray, QScriptValue(), QScriptValue());
-                cacheResult(avatarRes.intersects, RayPickResult(avatarRes.avatarID, avatarRes.distance, avatarRes.intersection), RayPickMask::PICK_AVATARS, res, rayKey, results);
+                cacheResult(avatarRes.intersects, RayPickResult(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.intersection), RayPickMask::PICK_AVATARS, res, rayKey, results);
             }
         }
 
@@ -141,7 +141,7 @@ void RayPickManager::update() {
         if (rayPick->getFilter() & RayPickMask::PICK_HUD && DependencyManager::get<HMDScriptingInterface>()->isHMDMode()) {
             if (!checkAndCompareCachedResults(rayKey, results, res, RayPickMask::PICK_HUD)) {
                 glm::vec3 hudRes = DependencyManager::get<HMDScriptingInterface>()->calculateRayUICollisionPoint(ray.origin, ray.direction);
-                cacheResult(true, RayPickResult(0, glm::distance(ray.origin, hudRes), hudRes), RayPickMask::PICK_HUD, res, rayKey, results);
+                cacheResult(true, RayPickResult(IntersectionType::HUD, 0, glm::distance(ray.origin, hudRes), hudRes), RayPickMask::PICK_HUD, res, rayKey, results);
             }
         }
 
