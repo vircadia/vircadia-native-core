@@ -5427,6 +5427,10 @@ void Application::updateWindowTitle() const {
     qCDebug(interfaceapp, "Application title set to: %s", title.toStdString().c_str());
 #endif
     _window->setWindowTitle(title);
+
+	// updateTitleWindow gets called whenever there's a change regarding the domain, so rather
+	// than placing this within domainChanged, it's placed here to cover the other potential cases.
+	DependencyManager::get< MessagesClient >()->sendLocalMessage("Toolbar-DomainChanged", "");
 }
 
 void Application::clearDomainOctreeDetails() {
