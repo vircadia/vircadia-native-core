@@ -15,6 +15,8 @@
 #include "RegisteredMetaTypes.h"
 #include "GLMHelpers.h"
 
+#include "Application.h"
+
 LaserPointerScriptingInterface* LaserPointerScriptingInterface::getInstance() {
     static LaserPointerScriptingInterface instance;
     return &instance;
@@ -52,10 +54,46 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
             enabled = propertyMap["enabled"].toBool();
         }
 
-        // TODO:
-        // handle render state properties
+        QHash<QString, RenderState> renderStates;
+        if (propertyMap["renderStates"].isValid()) {
+            QList<QVariant> renderStateVariants = propertyMap["renderStates"].toList();
+            for (QVariant& renderStateVariant : renderStateVariants) {
+                if (renderStateVariant.isValid()) {
+                    QVariantMap renderStateMap = renderStateVariant.toMap();
+                    if (renderStateMap["name"].isValid()) {
+                        QString name = renderStateMap["name"].toString();
 
-        return LaserPointerManager::getInstance().createLaserPointer(jointName, posOffset, dirOffset, filter, maxDistance, enabled);
+                        QUuid startID;
+                        if (renderStateMap["start"].isValid()) {
+                            QVariantMap startMap = renderStateMap["start"].toMap();
+                            if (startMap["type"].isValid()) {
+                                startID = qApp->getOverlays().addOverlay(startMap["type"].toString(), startMap);
+                            }
+                        }
+
+                        QUuid pathID;
+                        if (renderStateMap["path"].isValid()) {
+                            QVariantMap pathMap = renderStateMap["path"].toMap();
+                            if (pathMap["type"].isValid()) {
+                                pathID = qApp->getOverlays().addOverlay(pathMap["type"].toString(), pathMap);
+                            }
+                        }
+
+                        QUuid endID;
+                        if (renderStateMap["end"].isValid()) {
+                            QVariantMap endMap = renderStateMap["end"].toMap();
+                            if (endMap["type"].isValid()) {
+                                endID = qApp->getOverlays().addOverlay(endMap["type"].toString(), endMap);
+                            }
+                        }
+
+                        renderStates[name] = RenderState(startID, pathID, endID);
+                    }
+                }
+            }
+        }
+
+        return LaserPointerManager::getInstance().createLaserPointer(jointName, posOffset, dirOffset, filter, maxDistance, renderStates, enabled);
     } else {
         return 0;
     }

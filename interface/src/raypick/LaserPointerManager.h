@@ -16,7 +16,8 @@
 #include <memory>
 #include <glm/glm.hpp>
 
-class LaserPointer;
+#include "LaserPointer.h"
+
 class RayPickResult;
 
 class LaserPointerManager {
@@ -24,7 +25,8 @@ class LaserPointerManager {
 public:
     static LaserPointerManager& getInstance();
 
-    unsigned int createLaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance, bool enabled);
+    unsigned int createLaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance,
+        const QHash<QString, RenderState>& renderStates, const bool enabled);
     void removeLaserPointer(const unsigned int uid) { _laserPointers.remove(uid); }
     void enableLaserPointer(const unsigned int uid);
     void disableLaserPointer(const unsigned int uid);

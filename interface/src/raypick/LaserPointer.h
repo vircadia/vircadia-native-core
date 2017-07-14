@@ -13,25 +13,49 @@
 
 #include <QString>
 #include "glm/glm.hpp"
+#include <render/Scene.h>
+#include "ui/overlays/Overlay.h"
 
 class RayPickResult;
+
+class RenderState {
+
+public:
+    RenderState() {}
+    RenderState(const OverlayID& startID, const OverlayID& pathID, const OverlayID& endID) :
+        _startID(startID), _pathID(pathID), _endID(endID) {}
+
+    void render(RenderArgs* args);
+
+private:
+    OverlayID _startID;
+    OverlayID _pathID;
+    OverlayID _endID;
+};
+
 
 class LaserPointer {
 
 public:
-    LaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance, bool enabled);
+    LaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance,
+        const QHash<QString, RenderState>& renderStates, const bool enabled);
     ~LaserPointer();
 
     unsigned int getUID() { return _rayPickUID; }
     void enable();
     void disable();
 
-    // void setRenderState(const QString& stateName);
-    // void setRenderStateProperties(const QHash<QString, triplet of properties>& renderStateProperties);
+    void setRenderState(const QString& state) { _currentRenderState = state; }
 
     const RayPickResult& getPrevRayPickResult();
 
+    void render(RenderArgs* args);
+    const render::ShapeKey getShapeKey() { return render::ShapeKey::Builder::ownPipeline(); }
+
 private:
+    bool _renderingEnabled;
+    QString _currentRenderState { "" };
+    QHash<QString, RenderState> _renderStates;
     unsigned int _rayPickUID;
 };
 

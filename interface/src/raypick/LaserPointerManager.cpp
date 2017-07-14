@@ -17,8 +17,9 @@ LaserPointerManager& LaserPointerManager::getInstance() {
     return instance;
 }
 
-unsigned int LaserPointerManager::createLaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance, bool enabled) {
-    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(jointName, posOffset, dirOffset, filter, maxDistance, enabled);
+unsigned int LaserPointerManager::createLaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance,
+        const QHash<QString, RenderState>& renderStates, const bool enabled) {
+    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(jointName, posOffset, dirOffset, filter, maxDistance, renderStates, enabled);
     unsigned int uid = laserPointer->getUID();
     _laserPointers[uid] = laserPointer;
     return uid;

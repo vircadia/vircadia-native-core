@@ -49,7 +49,7 @@ void RayPickManager::cacheResult(const bool intersects, const RayPickResult& res
 
 void RayPickManager::update() {
     QHash<QPair<glm::vec3, glm::vec3>, QHash<unsigned int, RayPickResult>> results;
-    for (auto &rayPick : _rayPicks) {
+    for (auto& rayPick : _rayPicks) {
         if (!rayPick->isEnabled() || rayPick->getFilter() == RayPickMask::PICK_NOTHING || rayPick->getMaxDistance() < 0.0f) {
             continue;
         }

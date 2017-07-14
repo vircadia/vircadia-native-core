@@ -13,7 +13,12 @@
 #include "RayPickManager.h"
 #include "JointRayPick.h"
 
-LaserPointer::LaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance, const bool enabled)
+#include "Application.h"
+
+LaserPointer::LaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance,
+    const QHash<QString, RenderState>& renderStates, const bool enabled) :
+    _renderingEnabled(enabled),
+    _renderStates(renderStates)
 {
     _rayPickUID = RayPickManager::getInstance().addRayPick(std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled));
 }
@@ -24,16 +29,26 @@ LaserPointer::~LaserPointer() {
 
 void LaserPointer::enable() {
     RayPickManager::getInstance().enableRayPick(_rayPickUID);
-    // TODO:
-    // turn on rendering
+    _renderingEnabled = true;
 }
 
 void LaserPointer::disable() {
     RayPickManager::getInstance().disableRayPick(_rayPickUID);
-    // TODO:
-    // turn off rendering
+    _renderingEnabled = false;
 }
 
 const RayPickResult& LaserPointer::getPrevRayPickResult() {
     return RayPickManager::getInstance().getPrevRayPickResult(_rayPickUID);
+}
+
+void LaserPointer::render(RenderArgs* args) {
+    if (_renderingEnabled && !_currentRenderState.isEmpty() && _renderStates.contains(_currentRenderState)) {
+        _renderStates[_currentRenderState].render(args);
+    }
+}
+
+void RenderState::render(RenderArgs * args) {
+    if (!_startID.isNull()) qApp->getOverlays().getOverlay(_startID)->render(args);
+    if (!_pathID.isNull()) qApp->getOverlays().getOverlay(_pathID)->render(args);
+    if (!_endID.isNull()) qApp->getOverlays().getOverlay(_endID)->render(args);
 }
