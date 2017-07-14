@@ -646,7 +646,9 @@
         // Draws hand lasers.
         // May intersect with entities or bounding box of other hand's selection.
 
-        var laserLine = null,
+        var isLaserOn = false,
+
+            laserLine = null,
             laserSphere = null,
 
             searchDistance = 0.0,
@@ -657,7 +659,20 @@
             COLORS_GRAB_SEARCHING_FULL_SQUEEZE = { red: 250, green: 10, blue: 10 },  // Per handControllgerGrab.js.
             COLORS_GRAB_SEARCHING_HALF_SQUEEZE_BRIGHT,
             COLORS_GRAB_SEARCHING_FULL_SQUEEZE_BRIGHT,
-            BRIGHT_POW = 0.06;  // Per handControllgerGrab.js.
+            BRIGHT_POW = 0.06,  // Per handControllgerGrab.js.
+
+            GRAB_POINT_SPHERE_OFFSET = { x: 0.04, y: 0.13, z: 0.039 },  // Per HmdDisplayPlugin.cpp and controllers.js.
+
+            PICK_MAX_DISTANCE = 500,  // Per handControllerGrab.js.
+            PRECISION_PICKING = true,
+            NO_INCLUDE_IDS = [],
+            NO_EXCLUDE_IDS = [],
+            VISIBLE_ONLY = true,
+
+            laserLength,
+            specifiedLaserLength = null,
+
+            intersection;
 
         function colorPow(color, power) {  // Per handControllerGrab.js.
             return {
@@ -669,6 +684,10 @@
 
         COLORS_GRAB_SEARCHING_HALF_SQUEEZE_BRIGHT = colorPow(COLORS_GRAB_SEARCHING_HALF_SQUEEZE, BRIGHT_POW);
         COLORS_GRAB_SEARCHING_FULL_SQUEEZE_BRIGHT = colorPow(COLORS_GRAB_SEARCHING_FULL_SQUEEZE, BRIGHT_POW);
+
+        if (side === LEFT_HAND) {
+            GRAB_POINT_SPHERE_OFFSET.x = -GRAB_POINT_SPHERE_OFFSET.x;
+        }
 
         laserLine = Overlays.addOverlay("line3d", {
             lineWidth: 5,
@@ -715,7 +734,7 @@
             });
         }
 
-        function update(origin, direction, distance, isClicked) {
+        function display(origin, direction, distance, isClicked) {
             var searchTarget,
                 sphereSize,
                 color,
@@ -731,9 +750,73 @@
             updateSphere(searchTarget, sphereSize, color, brightColor);
         }
 
-        function clear() {
+        function hide() {
             Overlays.editOverlay(laserLine, { visible: false });
             Overlays.editOverlay(laserSphere, { visible: false });
+        }
+
+        function update(hand) {
+            var handPosition,
+                handOrientation,
+                deltaOrigin,
+                pickRay;
+
+            if (!hand.intersection().intersects && hand.triggerPressed()) {
+                handPosition = hand.position();
+                handOrientation = hand.orientation();
+                deltaOrigin = Vec3.multiplyQbyV(handOrientation, GRAB_POINT_SPHERE_OFFSET);
+                pickRay = {
+                    origin: Vec3.sum(handPosition, deltaOrigin),
+                    direction: Quat.getUp(handOrientation),
+                    length: PICK_MAX_DISTANCE
+                };
+
+                intersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
+                    VISIBLE_ONLY);
+                if (!intersection.intersects) {
+                    intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
+                        VISIBLE_ONLY);
+                    if (intersection.intersects && !isEditableRoot(intersection.entityID)) {
+                        intersection.intersects = false;
+                    }
+                }
+                laserLength = (specifiedLaserLength !== null)
+                    ? specifiedLaserLength
+                    : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
+
+                isLaserOn = true;
+                display(pickRay.origin, pickRay.direction, laserLength, hand.triggerClicked());
+            } else {
+                intersection = {
+                    intersects: false
+                };
+                if (isLaserOn) {
+                    isLaserOn = false;
+                    hide();
+                }
+            }
+        }
+
+        function getIntersection() {
+            return intersection;
+        }
+
+        function setLength(length) {
+            specifiedLaserLength = length;
+            laserLength = length;
+        }
+
+        function clearLength() {
+            specifiedLaserLength = null;
+        }
+
+        function getLength() {
+            return laserLength;
+        }
+
+        function clear() {
+            isLaserOn = false;
+            hide();
         }
 
         function destroy() {
@@ -747,6 +830,10 @@
 
         return {
             update: update,
+            intersection: getIntersection,
+            setLength: setLength,
+            clearLength: clearLength,
+            length: getLength,
             clear: clear,
             destroy: destroy
         };
@@ -933,21 +1020,10 @@
     Editor = function (side, gripPressedCallback) {
         // Each controller has a hand, laser, an entity selection, entity highlighter, and entity handles.
 
-        var intersection = {},
-
-            GRAB_POINT_SPHERE_OFFSET = { x: 0.04, y: 0.13, z: 0.039 },  // Per HmdDisplayPlugin.cpp and controllers.js.
-
-            //NEAR_GRAB_RADIUS = 0.1,  // Per handControllerGrab.js.
-            //NEAR_HOVER_RADIUS = 0.025,
-
-            PICK_MAX_DISTANCE = 500,  // Per handControllerGrab.js.
-            PRECISION_PICKING = true,
-            NO_INCLUDE_IDS = [],
-            NO_EXCLUDE_IDS = [],
-            VISIBLE_ONLY = true,
-
-            isLaserOn = false,
+        var isUpdating = false,
             hoveredEntityID = null,
+
+            intersection,
 
             isEditing = false,
             isEditingWithHand = false,
@@ -972,10 +1048,6 @@
             selection,
             highlights,
             handles;
-
-        if (side === LEFT_HAND) {
-            GRAB_POINT_SPHERE_OFFSET.x = -GRAB_POINT_SPHERE_OFFSET.x;
-        }
 
         hand = new Hand(side, gripPressedCallback);
         laser = new Laser(side);
@@ -1085,69 +1157,33 @@
 
         function update() {
             var isHandSelected,
-                wasLaserOn,
-                handPosition,
-                handOrientation,
-                deltaOrigin,
-                pickRay,
-                laserLength,
                 wasEditing;
 
-            // Hand position and orientation.
+            // Hand update.
+            // Early return if it's not present.
             hand.update();
-            wasLaserOn = isLaserOn;
             if (!hand.valid()) {
-                isLaserOn = false;
-                if (wasLaserOn) {
+                if (isUpdating) {
                     laser.clear();
                     selection.clear();
                     highlights.clear();
                     handles.clear();
                     hoveredEntityID = null;
+                    isUpdating = false;
                 }
                 return;
             }
-
-            // Hand-overlay or -entity intersection.
+            isUpdating = true;
             intersection = hand.intersection();
             isHandSelected = intersection.intersects;
 
-            // Laser-overlay or -entity intersection if no hand intersection.
-            if (!isHandSelected && hand.triggerPressed()) {
-                handPosition = hand.position();
-                handOrientation = hand.orientation();
-                deltaOrigin = Vec3.multiplyQbyV(handOrientation, GRAB_POINT_SPHERE_OFFSET);
-                pickRay = {
-                    origin: Vec3.sum(handPosition, deltaOrigin),
-                    direction: Quat.getUp(handOrientation),
-                    length: PICK_MAX_DISTANCE
-                };
-
-                intersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
-                    VISIBLE_ONLY);
-                if (!intersection.intersects) {
-                    intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
-                        VISIBLE_ONLY);
-                    if (intersection.intersects && !isEditableRoot(intersection.entityID)) {
-                        intersection.intersects = false;
-                    }
-                }
-                laserLength = isEditing
-                    ? laserEditingDistance
-                    : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
-                isLaserOn = true;
-            } else {
-                isLaserOn = false;
-            }
-
-            intersection.handSelected = isHandSelected;
-
             // Laser update.
-            if (isLaserOn) {
-                laser.update(pickRay.origin, pickRay.direction, laserLength, hand.triggerClicked());
-            } else if (wasLaserOn) {
-                laser.clear();
+            // Displays laser if hand has no intersection and trigger is pressed.
+            laser.update(hand);
+            if (!isHandSelected) {
+                intersection = laser.intersection();
             }
+            intersection.handSelected = isHandSelected;
 
             // Highlight / edit.
             doEdit = false;
@@ -1164,8 +1200,9 @@
                         selection.select(hoveredEntityID);
                     }
                     highlights.clear();
-                    if (isLaserOn) {
-                        laserEditingDistance = laserLength;
+                    if (!intersection.handSelected) {
+                        laserEditingDistance = laser.length();
+                        laser.setLength(laserEditingDistance);
                     }
                     startEditing();
                     if (isAppScaleWithHandles) {
@@ -1177,6 +1214,7 @@
                 if (isEditing) {
                     // Stop editing.
                     stopEditing();
+                    laser.clearLength();
                 }
                 if (isAppScaleWithHandles) {
                     otherEditor.hoverHandle(intersection.overlayID);
@@ -1223,7 +1261,6 @@
             selection.clear();
             highlights.clear();
             handles.clear();
-            isLaserOn = false;
             isEditing = false;
             isEditingWithHand = false;
             isScaling = false;
