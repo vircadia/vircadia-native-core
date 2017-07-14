@@ -17,6 +17,8 @@
         APP_ICON_ACTIVE = "icons/tablet-icons/edit-a.svg",
         tablet,
         button,
+
+        // Application state
         isAppActive = false,
         isScaleWithHandles = false,
 
@@ -1148,6 +1150,18 @@
             }
         }
 
+        function clear() {
+            laser.clear();
+            selection.clear();
+            highlights.clear();
+            handles.clear();
+            isLaserOn = false;
+            isEditing = false;
+            isEditingWithHand = false;
+            isScaling = false;
+            hoveredEntityID = null;
+        }
+
         function destroy() {
             if (laser) {
                 laser.destroy();
@@ -1180,6 +1194,7 @@
             updateGrabOffset: updateGrabOffset,
             update: update,
             apply: apply,
+            clear: clear,
             destroy: destroy
         };
     };
@@ -1202,7 +1217,8 @@
         Settings.setValue(VR_EDIT_SETTING, isAppActive);
     }
 
-    function onButtonClicked() {
+    function onAppButtonClicked() {
+        // Application tablet/toolbar button clicked.
         isAppActive = !isAppActive;
         updateHandControllerGrab();
         button.editProperties({ isActive: isAppActive });
@@ -1212,6 +1228,8 @@
         } else {
             Script.clearTimeout(updateTimer);
             updateTimer = null;
+            hands[LEFT_HAND].clear();
+            hands[RIGHT_HAND].clear();
         }
     }
 
@@ -1237,7 +1255,7 @@
             isActive: isAppActive
         });
         if (button) {
-            button.clicked.connect(onButtonClicked);
+            button.clicked.connect(onAppButtonClicked);
         }
 
         // Hands, each with a laser, selection, etc.
@@ -1264,7 +1282,7 @@
         }
 
         if (button) {
-            button.clicked.disconnect(onButtonClicked);
+            button.clicked.disconnect(onAppButtonClicked);
             tablet.removeButton(button);
             button = null;
         }
