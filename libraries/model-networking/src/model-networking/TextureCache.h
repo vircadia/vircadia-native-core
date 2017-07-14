@@ -74,7 +74,7 @@ protected:
     virtual bool isCacheable() const override { return _loaded; }
 
     virtual void downloadFinished(const QByteArray& data) override;
-    
+
     Q_INVOKABLE void loadContent(const QByteArray& content);
     Q_INVOKABLE void setImage(gpu::TexturePointer texture, int originalWidth, int originalHeight);
 
@@ -170,6 +170,10 @@ public:
     NetworkTexturePointer getResourceTexture(QUrl resourceTextureUrl);
     const gpu::FramebufferPointer& getSpectatorCameraFramebuffer();
     void resetSpectatorCameraFramebuffer(int width, int height);
+    const gpu::FramebufferPointer& getHmdPreviewFramebuffer(int width, int height);
+
+signals:
+    void spectatorCameraFramebufferReset();
 
 protected:
     // Overload ResourceCache::prefetch to allow specifying texture type for loads
@@ -202,6 +206,9 @@ private:
 
     NetworkTexturePointer _spectatorCameraNetworkTexture;
     gpu::FramebufferPointer _spectatorCameraFramebuffer;
+
+    NetworkTexturePointer _hmdPreviewNetworkTexture;
+    gpu::FramebufferPointer _hmdPreviewFramebuffer;
 };
 
 #endif // hifi_TextureCache_h
