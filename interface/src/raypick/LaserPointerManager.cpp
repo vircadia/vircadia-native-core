@@ -37,9 +37,21 @@ void LaserPointerManager::disableLaserPointer(const unsigned int uid) {
     }
 }
 
+void LaserPointerManager::setRenderState(unsigned int uid, const QString & renderState) {
+    if (_laserPointers.contains(uid)) {
+        _laserPointers[uid]->setRenderState(renderState);
+    }
+}
+
 const RayPickResult& LaserPointerManager::getPrevRayPickResult(const unsigned int uid) {
     if (_laserPointers.contains(uid)) {
         return _laserPointers[uid]->getPrevRayPickResult();
     }
     return RayPickResult();
+}
+
+void LaserPointerManager::update() {
+    for (auto& laserPointer : _laserPointers) {
+        laserPointer->update();
+    }
 }

@@ -4925,6 +4925,11 @@ void Application::update(float deltaTime) {
         RayPickManager::getInstance().update();
     }
 
+    {
+        PROFILE_RANGE(app, "LaserPointerManager");
+        LaserPointerManager::getInstance().update();
+    }
+
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
     // loadViewFrumstum() method will get the correct details from the camera

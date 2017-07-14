@@ -22,15 +22,24 @@ class RenderState {
 
 public:
     RenderState() {}
-    RenderState(const OverlayID& startID, const OverlayID& pathID, const OverlayID& endID) :
-        _startID(startID), _pathID(pathID), _endID(endID) {}
+    RenderState(const OverlayID& startID, const OverlayID& pathID, const OverlayID& endID);
 
     void render(RenderArgs* args);
+
+    const OverlayID& getStartID() { return _startID; }
+    const OverlayID& getPathID() { return _pathID; }
+    const OverlayID& getEndID() { return _endID; }
+    const bool& doesStartIgnoreRays() { return _startIgnoreRays; }
+    const bool& doesPathIgnoreRays() { return _pathIgnoreRays; }
+    const bool& doesEndIgnoreRays() { return _endIgnoreRays; }
 
 private:
     OverlayID _startID;
     OverlayID _pathID;
     OverlayID _endID;
+    bool _startIgnoreRays;
+    bool _pathIgnoreRays;
+    bool _endIgnoreRays;
 };
 
 
@@ -45,10 +54,13 @@ public:
     void enable();
     void disable();
 
-    void setRenderState(const QString& state) { _currentRenderState = state; }
+    void setRenderState(const QString& state);
 
     const RayPickResult& getPrevRayPickResult();
 
+    void disableCurrentRenderState();
+
+    void update();
     void render(RenderArgs* args);
     const render::ShapeKey getShapeKey() { return render::ShapeKey::Builder::ownPipeline(); }
 

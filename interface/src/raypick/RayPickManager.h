@@ -63,6 +63,7 @@ public:
     void removeRayPick(const unsigned int uid);
     void enableRayPick(const unsigned int uid);
     void disableRayPick(const unsigned int uid);
+    const PickRay& getPickRay(const unsigned int uid);
     const RayPickResult& getPrevRayPickResult(const unsigned int uid);
 
 private:

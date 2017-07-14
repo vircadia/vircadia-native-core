@@ -178,6 +178,17 @@ void RayPickManager::disableRayPick(const unsigned int uid) {
     }
 }
 
+const PickRay& RayPickManager::getPickRay(const unsigned int uid) {
+    if (_rayPicks.contains(uid)) {
+        bool valid;
+        PickRay pickRay = _rayPicks[uid]->getPickRay(valid);
+        if (valid) {
+            return pickRay;
+        }
+    }
+    return PickRay();
+}
+
 const RayPickResult& RayPickManager::getPrevRayPickResult(const unsigned int uid) {
     // TODO:
     // does this need to lock the individual ray?  what happens with concurrent set/get?

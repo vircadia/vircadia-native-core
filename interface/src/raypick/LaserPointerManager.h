@@ -30,7 +30,10 @@ public:
     void removeLaserPointer(const unsigned int uid) { _laserPointers.remove(uid); }
     void enableLaserPointer(const unsigned int uid);
     void disableLaserPointer(const unsigned int uid);
+    void setRenderState(unsigned int uid, const QString& renderState);
     const RayPickResult& getPrevRayPickResult(const unsigned int uid);
+
+    void update();
 
 private:
     QHash<unsigned int, std::shared_ptr<LaserPointer>> _laserPointers;

@@ -74,7 +74,8 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
                         QUuid pathID;
                         if (renderStateMap["path"].isValid()) {
                             QVariantMap pathMap = renderStateMap["path"].toMap();
-                            if (pathMap["type"].isValid()) {
+                            // right now paths must be line3ds
+                            if (pathMap["type"].isValid() && pathMap["type"].toString() == "line3d") {
                                 pathID = qApp->getOverlays().addOverlay(pathMap["type"].toString(), pathMap);
                             }
                         }
