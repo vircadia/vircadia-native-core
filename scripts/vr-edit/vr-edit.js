@@ -24,7 +24,7 @@
 
         VR_EDIT_SETTING = "io.highfidelity.isVREditing",  // Note: This constant is duplicated in utils.js.
 
-        hands = [],
+        editors = [],
         LEFT_HAND = 0,
         RIGHT_HAND = 1,
 
@@ -35,11 +35,12 @@
         Handles,
         Selection,
         Laser,
-        Hand,
+        Editor,
 
         AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
         NULL_UUID = "{00000000-0000-0000-0000-000000000000}",
         HALF_TREE_SCALE = 16384;
+
 
     if (typeof Vec3.min !== "function") {
         Vec3.min = function (a, b) {
@@ -173,6 +174,7 @@
             destroy: destroy
         };
     };
+
 
     Handles = function () {
         var boundingBoxOverlay,
@@ -398,6 +400,7 @@
             destroy: destroy
         };
     };
+
 
     Selection = function () {
         // Manages set of selected entities. Currently supports just one set of linked entities.
@@ -626,6 +629,7 @@
         };
     };
 
+
     Laser = function (side) {
         // Draws hand lasers.
         // May intersect with entities or bounding box of other hand's selection.
@@ -736,7 +740,8 @@
         };
     };
 
-    Hand = function (side, gripPressedCallback) {
+
+    Editor = function (side, gripPressedCallback) {
         // Hand controller input.
         // Each hand has a laser, an entity selection, and entity highlighter.
 
@@ -787,7 +792,7 @@
             doEdit,
             doHighlight,
 
-            otherHand,
+            otherEditor,
 
             laser,
             selection,
@@ -812,8 +817,8 @@
         highlights = new Highlights(side);
         handles = new Handles();
 
-        function setOtherHand(hand) {
-            otherHand = hand;
+        function setOtherEditor(editor) {
+            otherEditor = editor;
         }
 
         function getIsEditing(rootEntityID) {
@@ -845,10 +850,10 @@
 
             isEditingWithHand = intersection.handSelected;
 
-            if (otherHand.isEditing(selection.rootEntityID())) {
+            if (otherEditor.isEditing(selection.rootEntityID())) {
                 // Store initial values for use in scaling.
                 initialTargetPosition = getTargetPosition();
-                initialOtherTargetPosition = otherHand.getTargetPosition();
+                initialOtherTargetPosition = otherEditor.getTargetPosition();
                 initialTargetsCenter = Vec3.multiply(0.5, Vec3.sum(initialTargetPosition, initialOtherTargetPosition));
                 initialTargetsSeparation = Vec3.distance(initialTargetPosition, initialOtherTargetPosition);
                 initialtargetsDirection = Vec3.subtract(initialOtherTargetPosition, initialTargetPosition);
@@ -895,7 +900,7 @@
 
             // Scale selection.
             targetPosition = getTargetPosition();
-            otherTargetPosition = otherHand.getTargetPosition();
+            otherTargetPosition = otherEditor.getTargetPosition();
             targetsSeparation = Vec3.distance(targetPosition, otherTargetPosition);
             scale = targetsSeparation / initialTargetsSeparation;
             rotation = Quat.rotationBetween(initialtargetsDirection, Vec3.subtract(otherTargetPosition, targetPosition));
@@ -905,7 +910,7 @@
             // Update grab offsets.
             selectionPositionAndOrientation = selection.getPositionAndOrientation();
             updateGrabOffset(selectionPositionAndOrientation);
-            otherHand.updateGrabOffset(selectionPositionAndOrientation);
+            otherEditor.updateGrabOffset(selectionPositionAndOrientation);
         }
 
         function stopEditing() {
@@ -1080,7 +1085,7 @@
                     // Perform edit.
                     doEdit = true;
                 } else if (intersection.intersects && intersection.entityID && (!isAppScaleWithHandles
-                        || !otherHand.isEditing(Entities.rootOf(intersection.entityID)))) {
+                        || !otherEditor.isEditing(Entities.rootOf(intersection.entityID)))) {
                     // Start editing.
                     if (intersection.entityID !== hoveredEntityID) {
                         hoveredEntityID = intersection.entityID;
@@ -1102,7 +1107,7 @@
                     stopEditing();
                 }
                 if (isAppScaleWithHandles) {
-                    otherHand.hoverHandle(intersection.overlayID);
+                    otherEditor.hoverHandle(intersection.overlayID);
                 }
                 if (intersection.intersects && intersection.entityID) {
                     // Hover entities.
@@ -1125,7 +1130,7 @@
 
         function apply() {
             if (doEdit) {
-                if (otherHand.isEditing(selection.rootEntityID())) {
+                if (otherEditor.isEditing(selection.rootEntityID())) {
                     if (isScaling && !isAppScaleWithHandles) {
                         applyScale();
                     }
@@ -1133,9 +1138,9 @@
                     applyGrab();
                 }
             } else if (doHighlight) {
-                if (!isAppScaleWithHandles || !otherHand.isEditing(selection.rootEntityID())) {
+                if (!isAppScaleWithHandles || !otherEditor.isEditing(selection.rootEntityID())) {
                     highlights.display(intersection.handSelected, selection.selection(),
-                        otherHand.isEditing(selection.rootEntityID()) || isAppScaleWithHandles);
+                        otherEditor.isEditing(selection.rootEntityID()) || isAppScaleWithHandles);
                 }
             }
         }
@@ -1171,12 +1176,12 @@
             }
         }
 
-        if (!this instanceof Hand) {
-            return new Hand();
+        if (!this instanceof Editor) {
+            return new Editor();
         }
 
         return {
-            setOtherHand: setOtherHand,
+            setOtherEditor: setOtherEditor,
             isEditing: getIsEditing,
             hoverHandle: hoverHandle,
             getTargetPosition: getTargetPosition,
@@ -1188,15 +1193,16 @@
         };
     };
 
+
     function update() {
         // Main update loop.
         updateTimer = null;
 
         // Each hand's action depends on the state of the other hand, so update the states first then apply in actions.
-        hands[LEFT_HAND].update();
-        hands[RIGHT_HAND].update();
-        hands[LEFT_HAND].apply();
-        hands[RIGHT_HAND].apply();
+        editors[LEFT_HAND].update();
+        editors[RIGHT_HAND].update();
+        editors[LEFT_HAND].apply();
+        editors[RIGHT_HAND].apply();
 
         updateTimer = Script.setTimeout(update, UPDATE_LOOP_TIMEOUT);
     }
@@ -1217,14 +1223,15 @@
         } else {
             Script.clearTimeout(updateTimer);
             updateTimer = null;
-            hands[LEFT_HAND].clear();
-            hands[RIGHT_HAND].clear();
+            editors[LEFT_HAND].clear();
+            editors[RIGHT_HAND].clear();
         }
     }
 
     function onGripClicked() {
         isAppScaleWithHandles = !isAppScaleWithHandles;
     }
+
 
     function setUp() {
         updateHandControllerGrab();
@@ -1246,10 +1253,10 @@
         }
 
         // Hands, each with a laser, selection, etc.
-        hands[LEFT_HAND] = new Hand(LEFT_HAND, onGripClicked);
-        hands[RIGHT_HAND] = new Hand(RIGHT_HAND, onGripClicked);
-        hands[LEFT_HAND].setOtherHand(hands[RIGHT_HAND]);
-        hands[RIGHT_HAND].setOtherHand(hands[LEFT_HAND]);
+        editors[LEFT_HAND] = new Editor(LEFT_HAND, onGripClicked);
+        editors[RIGHT_HAND] = new Editor(RIGHT_HAND, onGripClicked);
+        editors[LEFT_HAND].setOtherEditor(editors[RIGHT_HAND]);
+        editors[RIGHT_HAND].setOtherEditor(editors[LEFT_HAND]);
 
         if (isAppActive) {
             update();
@@ -1274,13 +1281,13 @@
             button = null;
         }
 
-        if (hands[LEFT_HAND]) {
-            hands[LEFT_HAND].destroy();
-            hands[LEFT_HAND] = null;
+        if (editors[LEFT_HAND]) {
+            editors[LEFT_HAND].destroy();
+            editors[LEFT_HAND] = null;
         }
-        if (hands[RIGHT_HAND]) {
-            hands[RIGHT_HAND].destroy();
-            hands[RIGHT_HAND] = null;
+        if (editors[RIGHT_HAND]) {
+            editors[RIGHT_HAND].destroy();
+            editors[RIGHT_HAND] = null;
         }
 
         tablet = null;
