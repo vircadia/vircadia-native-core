@@ -70,6 +70,17 @@
         };
     }
 
+    function isEditableRoot(entityID) {
+        var EDITIBLE_ENTITY_QUERY_PROPERTYES = ["parentID", "visible", "locked", "type"],
+            NONEDITABLE_ENTITY_TYPES = ["Unknown", "Zone", "Light"],
+            properties;
+        properties = Entities.getEntityProperties(entityID, EDITIBLE_ENTITY_QUERY_PROPERTYES);
+        while (properties.parentID && properties.parentID !== NULL_UUID) {
+            properties = Entities.getEntityProperties(properties.parentID, EDITIBLE_ENTITY_QUERY_PROPERTYES);
+        }
+        return properties.visible && !properties.locked && NONEDITABLE_ENTITY_TYPES.indexOf(properties.type) === -1;
+    }
+
 
     Highlights = function (side) {
         // Draws highlights on selected entities.
@@ -758,9 +769,14 @@
             TRIGGER_ON_VALUE = 0.15,  // Per handControllerGrab.js.
             TRIGGER_OFF_VALUE = 0.1,  // Per handControllerGrab.js.
 
+            NEAR_GRAB_RADIUS = 0.1,  // Per handControllerGrab.js.
+            NEAR_HOVER_RADIUS = 0.025,
+
             handPose,
             handPosition,
-            handOrientation;
+            handOrientation,
+
+            intersection;
 
         if (side === LEFT_HAND) {
             handController = Controller.Standard.LeftHand;
@@ -794,8 +810,24 @@
             return isTriggerClicked;
         }
 
+        function getIntersection() {
+            return intersection;
+        }
+
         function update() {
-            var gripValue;
+            var gripValue,
+                palmPosition,
+                overlayID,
+                overlayIDs,
+                overlayDistance,
+                distance,
+                entityID,
+                entityIDs,
+                entitySize,
+                size,
+                i,
+                length;
+
 
             // Hand pose.
             handPose = Controller.getPoseValue(handController);
@@ -817,6 +849,59 @@
                     gripPressedCallback();
                 }
             }
+
+            // Hand-overlay intersection, if any.
+            overlayID = null;
+            palmPosition = side === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
+            overlayIDs = Overlays.findOverlays(palmPosition, NEAR_HOVER_RADIUS);
+            if (overlayIDs.length > 0) {
+                // Typically, there will be only one overlay; optimize for that case.
+                overlayID = overlayIDs[0];
+                if (overlayIDs.length > 1) {
+                    // Find closest overlay.
+                    overlayDistance = Vec3.length(Vec3.subtract(Overlays.getProperty(overlayID, "position"), palmPosition));
+                    for (i = 1, length = overlayIDs.length; i < length; i += 1) {
+                        distance =
+                            Vec3.length(Vec3.subtract(Overlays.getProperty(overlayIDs[i], "position"), palmPosition));
+                        if (distance > overlayDistance) {
+                            overlayID = overlayIDs[i];
+                            overlayDistance = distance;
+                        }
+                    }
+                }
+            }
+
+            // Hand-entity intersection, if any, if overlay not intersected.
+            entityID = null;
+            if (overlayID === null) {
+                // palmPosition is set above.
+                entityIDs = Entities.findEntities(palmPosition, NEAR_GRAB_RADIUS);
+                if (entityIDs.length > 0) {
+                    // Typically, there will be only one entity; optimize for that case.
+                    if (isEditableRoot(entityIDs[0])) {
+                        entityID = entityIDs[0];
+                    }
+                    if (entityIDs.length > 1) {
+                        // Find smallest, editable entity.
+                        entitySize = HALF_TREE_SCALE;
+                        for (i = 0, length = entityIDs.length; i < length; i += 1) {
+                            if (isEditableRoot(entityIDs[i])) {
+                                size = Vec3.length(Entities.getEntityProperties(entityIDs[i], "dimensions").dimensions);
+                                if (size < entitySize) {
+                                    entityID = entityIDs[i];
+                                    entitySize = size;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            intersection = {
+                intersects: overlayID !== null || entityID !== null,
+                overlayID: overlayID,
+                entityID: entityID
+            };
         }
 
         function clear() {
@@ -837,6 +922,7 @@
             orientation: orientation,
             triggerPressed: triggerPressed,
             triggerClicked: triggerClicked,
+            intersection: getIntersection,
             update: update,
             clear: clear,
             destroy: destroy
@@ -851,8 +937,8 @@
 
             GRAB_POINT_SPHERE_OFFSET = { x: 0.04, y: 0.13, z: 0.039 },  // Per HmdDisplayPlugin.cpp and controllers.js.
 
-            NEAR_GRAB_RADIUS = 0.1,  // Per handControllerGrab.js.
-            NEAR_HOVER_RADIUS = 0.025,
+            //NEAR_GRAB_RADIUS = 0.1,  // Per handControllerGrab.js.
+            //NEAR_HOVER_RADIUS = 0.025,
 
             PICK_MAX_DISTANCE = 500,  // Per handControllerGrab.js.
             PRECISION_PICKING = true,
@@ -862,9 +948,6 @@
 
             isLaserOn = false,
             hoveredEntityID = null,
-
-            EDITIBLE_ENTITY_QUERY_PROPERTYES = ["parentID", "visible", "locked", "type"],
-            NONEDITABLE_ENTITY_TYPES = ["Unknown", "Zone", "Light"],
 
             isEditing = false,
             isEditingWithHand = false,
@@ -996,40 +1079,19 @@
             isEditing = false;
         }
 
-        function isEditableEntity(entityID) {
-            // Entity trees are moved as a group so check the root entity.
-            var properties = Entities.getEntityProperties(entityID, EDITIBLE_ENTITY_QUERY_PROPERTYES);
-            while (properties.parentID && properties.parentID !== NULL_UUID) {
-                properties = Entities.getEntityProperties(properties.parentID, EDITIBLE_ENTITY_QUERY_PROPERTYES);
-            }
-            return properties.visible && !properties.locked && NONEDITABLE_ENTITY_TYPES.indexOf(properties.type) === -1;
-        }
-
         function hoverHandle(overlayID) {
             handles.hover(overlayID);
         }
 
         function update() {
-            var palmPosition,
-                overlayID,
-                overlayIDs,
-                overlayDistance,
-                distance,
-                entityID,
-                entityIDs,
-                entitySize,
-                size,
-                isHandSelected,
-                laserIntersection,
+            var isHandSelected,
                 wasLaserOn,
                 handPosition,
                 handOrientation,
                 deltaOrigin,
                 pickRay,
                 laserLength,
-                wasEditing,
-                i,
-                length;
+                wasEditing;
 
             // Hand position and orientation.
             hand.update();
@@ -1046,88 +1108,39 @@
                 return;
             }
 
-            // Hand-overlay intersection, if any.
-            overlayID = null;
-            palmPosition = side === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
-            overlayIDs = Overlays.findOverlays(palmPosition, NEAR_HOVER_RADIUS);
-            if (overlayIDs.length > 0) {
-                // Typically, there will be only one overlay; optimize for that case.
-                overlayID = overlayIDs[0];
-                if (overlayIDs.length > 1) {
-                    // Find closest overlay.
-                    overlayDistance = Vec3.length(Vec3.subtract(Overlays.getProperty(overlayID, "position"), palmPosition));
-                    for (i = 1, length = overlayIDs.length; i < length; i += 1) {
-                        distance =
-                            Vec3.length(Vec3.subtract(Overlays.getProperty(overlayIDs[i], "position"), palmPosition));
-                        if (distance > overlayDistance) {
-                            overlayID = overlayIDs[i];
-                            overlayDistance = distance;
-                        }
-                    }
-                }
-            }
+            // Hand-overlay or -entity intersection.
+            intersection = hand.intersection();
+            isHandSelected = intersection.intersects;
 
-            // Hand-entity intersection, if any.
-            // TODO: Only test intersection if overlay not intersected?
-            entityID = null;
-            // palmPosition is set above.
-            entityIDs = Entities.findEntities(palmPosition, NEAR_GRAB_RADIUS);
-            if (entityIDs.length > 0) {
-                // TODO: If number of entities is often 1 in practice, optimize code for this case.
-                // Find smallest, editable entity.
-                entitySize = HALF_TREE_SCALE;
-                for (i = 0, length = entityIDs.length; i < length; i += 1) {
-                    if (isEditableEntity(entityIDs[i])) {
-                        size = Vec3.length(Entities.getEntityProperties(entityIDs[i], "dimensions").dimensions);
-                        if (size < entitySize) {
-                            entityID = entityIDs[i];
-                            entitySize = size;
-                        }
-                    }
-                }
-            }
-
-            isHandSelected = overlayID !== null || entityID !== null;
-
-            // Laser-overlay or -entity intersection if not already intersected.
+            // Laser-overlay or -entity intersection if no hand intersection.
             if (!isHandSelected && hand.triggerPressed()) {
                 handPosition = hand.position();
                 handOrientation = hand.orientation();
                 deltaOrigin = Vec3.multiplyQbyV(handOrientation, GRAB_POINT_SPHERE_OFFSET);
                 pickRay = {
-                    origin: Vec3.sum(handPosition, deltaOrigin),  // Add a bit to ...
+                    origin: Vec3.sum(handPosition, deltaOrigin),
                     direction: Quat.getUp(handOrientation),
                     length: PICK_MAX_DISTANCE
                 };
 
-                laserIntersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
+                intersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
                     VISIBLE_ONLY);
-                if (laserIntersection.intersects) {
-                    overlayID = laserIntersection.overlayID;
-                }
-                if (!laserIntersection.intersects) {
-                    laserIntersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
+                if (!intersection.intersects) {
+                    intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
                         VISIBLE_ONLY);
-                    if (laserIntersection.intersects && isEditableEntity(laserIntersection.entityID)) {
-                        entityID = laserIntersection.entityID;
-                    } else {
-                        laserIntersection.intersects = false;
+                    if (intersection.intersects && !isEditableRoot(intersection.entityID)) {
+                        intersection.intersects = false;
                     }
                 }
                 laserLength = isEditing
                     ? laserEditingDistance
-                    : (laserIntersection.intersects ? laserIntersection.distance : PICK_MAX_DISTANCE);
+                    : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
                 isLaserOn = true;
             } else {
                 isLaserOn = false;
             }
 
-            intersection = {
-                intersects: overlayID !== null || entityID !== null,
-                overlayID: overlayID,
-                entityID: entityID,
-                handSelected: isHandSelected
-            };
+            intersection.handSelected = isHandSelected;
 
             // Laser update.
             if (isLaserOn) {
