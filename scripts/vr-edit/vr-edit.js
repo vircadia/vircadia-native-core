@@ -68,9 +68,9 @@
         };
     }
 
-    Highlights = function (hand) {
-        // Draws highlights on selected entities.
 
+    Highlights = function (side) {
+        // Draws highlights on selected entities.
         var handOverlay,
             entityOverlays = [],
             GRAB_HIGHLIGHT_COLOR = { red: 240, green: 240, blue: 0 },
@@ -83,7 +83,7 @@
         handOverlay = Overlays.addOverlay("sphere", {
             dimensions: HAND_HIGHLIGHT_DIMENSIONS,
             parentID: AVATAR_SELF_ID,
-            parentJointIndex: MyAvatar.getJointIndex(hand === LEFT_HAND
+            parentJointIndex: MyAvatar.getJointIndex(side === LEFT_HAND
                 ? "_CONTROLLER_LEFTHAND"
                 : "_CONTROLLER_RIGHTHAND"),
             localPosition: HAND_HIGHLIGHT_OFFSET,
@@ -630,8 +630,7 @@
         // Draws hand lasers.
         // May intersect with entities or bounding box of other hand's selection.
 
-        var hand,
-            laserLine = null,
+        var laserLine = null,
             laserSphere = null,
 
             searchDistance = 0.0,
@@ -655,7 +654,6 @@
         COLORS_GRAB_SEARCHING_HALF_SQUEEZE_BRIGHT = colorPow(COLORS_GRAB_SEARCHING_HALF_SQUEEZE, BRIGHT_POW);
         COLORS_GRAB_SEARCHING_FULL_SQUEEZE_BRIGHT = colorPow(COLORS_GRAB_SEARCHING_FULL_SQUEEZE, BRIGHT_POW);
 
-        hand = side;
         laserLine = Overlays.addOverlay("line3d", {
             lineWidth: 5,
             alpha: 1.0,
@@ -663,7 +661,7 @@
             ignoreRayIntersection: true,
             drawInFront: true,
             parentID: AVATAR_SELF_ID,
-            parentJointIndex: MyAvatar.getJointIndex(hand === LEFT_HAND
+            parentJointIndex: MyAvatar.getJointIndex(side === LEFT_HAND
                 ? "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND"
                 : "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND"),
             visible: false
@@ -742,8 +740,7 @@
         // Hand controller input.
         // Each hand has a laser, an entity selection, and entity highlighter.
 
-        var hand,
-            handController,
+        var handController,
             controllerTrigger,
             controllerTriggerClicked,
             controllerGrip,
@@ -797,8 +794,7 @@
             highlights,
             handles;
 
-        hand = side;
-        if (hand === LEFT_HAND) {
+        if (side === LEFT_HAND) {
             handController = Controller.Standard.LeftHand;
             controllerTrigger = Controller.Standard.LT;
             controllerTriggerClicked = Controller.Standard.LTClick;
@@ -811,9 +807,9 @@
             controllerGrip = Controller.Standard.RightGrip;
         }
 
-        laser = new Laser(hand);
+        laser = new Laser(side);
         selection = new Selection();
-        highlights = new Highlights(hand);
+        highlights = new Highlights(side);
         handles = new Handles();
 
         function setOtherHand(hand) {
@@ -830,7 +826,7 @@
 
         function getTargetPosition() {
             if (isEditingWithHand) {
-                return hand === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
+                return side === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
             }
             return Vec3.sum(getHandPosition(), Vec3.multiply(laserEditingDistance,
                 Quat.getUp(Quat.multiply(MyAvatar.orientation, handPose.rotation))));
@@ -988,7 +984,7 @@
 
             // Hand-overlay intersection, if any.
             overlayID = null;
-            palmPosition = hand === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
+            palmPosition = side === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
             overlayIDs = Overlays.findOverlays(palmPosition, NEAR_HOVER_RADIUS);
             if (overlayIDs.length > 0) {
                 // Typically, there will be only one overlay; optimize for that case.
