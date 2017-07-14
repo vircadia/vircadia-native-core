@@ -35,6 +35,7 @@
         Handles,
         Selection,
         Laser,
+        Hand,
         Editor,
 
         AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
@@ -741,11 +742,9 @@
     };
 
 
-    Editor = function (side, gripPressedCallback) {
+    Hand = function (side, gripPressedCallback) {
         // Hand controller input.
-        // Each hand has a laser, an entity selection, and entity highlighter.
-
-        var handController,
+        var handController,  // ####### Rename to "controller".
             controllerTrigger,
             controllerTriggerClicked,
             controllerGrip,
@@ -754,8 +753,102 @@
             GRIP_ON_VALUE = 0.99,
             GRIP_OFF_VALUE = 0.95,
 
+            isTriggerPressed,
+            isTriggerClicked,
             TRIGGER_ON_VALUE = 0.15,  // Per handControllerGrab.js.
             TRIGGER_OFF_VALUE = 0.1,  // Per handControllerGrab.js.
+
+            handPose,
+            handPosition,
+            handOrientation;
+
+        if (side === LEFT_HAND) {
+            handController = Controller.Standard.LeftHand;
+            controllerTrigger = Controller.Standard.LT;
+            controllerTriggerClicked = Controller.Standard.LTClick;
+            controllerGrip = Controller.Standard.LeftGrip;
+        } else {
+            handController = Controller.Standard.RightHand;
+            controllerTrigger = Controller.Standard.RT;
+            controllerTriggerClicked = Controller.Standard.RTClick;
+            controllerGrip = Controller.Standard.RightGrip;
+        }
+
+        function valid() {
+            return handPose.valid;
+        }
+
+        function position() {
+            return handPosition;
+        }
+
+        function orientation() {
+            return handOrientation;
+        }
+
+        function triggerPressed() {
+            return isTriggerPressed;
+        }
+
+        function triggerClicked() {
+            return isTriggerClicked;
+        }
+
+        function update() {
+            var gripValue;
+
+            // Hand pose.
+            handPose = Controller.getPoseValue(handController);
+            handPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, handPose.translation), MyAvatar.position);
+            handOrientation = Quat.multiply(MyAvatar.orientation, handPose.rotation);
+
+            // Controller trigger.
+            isTriggerPressed = Controller.getValue(controllerTrigger) > (isTriggerPressed
+                ? TRIGGER_OFF_VALUE : TRIGGER_ON_VALUE);
+            isTriggerClicked = Controller.getValue(controllerTriggerClicked);
+
+            // Controller grip.
+            gripValue = Controller.getValue(controllerGrip);
+            if (isGripPressed) {
+                isGripPressed = gripValue > GRIP_OFF_VALUE;
+            } else {
+                isGripPressed = gripValue > GRIP_ON_VALUE;
+                if (isGripPressed) {
+                    gripPressedCallback();
+                }
+            }
+        }
+
+        function clear() {
+            // Nothing to do.
+        }
+
+        function destroy() {
+            // Nothing to do.
+        }
+
+        if (!this instanceof Hand) {
+            return new Hand();
+        }
+
+        return {
+            valid: valid,
+            position: position,
+            orientation: orientation,
+            triggerPressed: triggerPressed,
+            triggerClicked: triggerClicked,
+            update: update,
+            clear: clear,
+            destroy: destroy
+        };
+    };
+
+
+    Editor = function (side, gripPressedCallback) {
+        // Each controller has a hand, laser, an entity selection, entity highlighter, and entity handles.
+
+        var intersection = {},
+
             GRAB_POINT_SPHERE_OFFSET = { x: 0.04, y: 0.13, z: 0.039 },  // Per HmdDisplayPlugin.cpp and controllers.js.
 
             NEAR_GRAB_RADIUS = 0.1,  // Per handControllerGrab.js.
@@ -766,9 +859,6 @@
             NO_INCLUDE_IDS = [],
             NO_EXCLUDE_IDS = [],
             VISIBLE_ONLY = true,
-
-            handPose,
-            intersection = {},
 
             isLaserOn = false,
             hoveredEntityID = null,
@@ -794,24 +884,17 @@
 
             otherEditor,
 
+            hand,
             laser,
             selection,
             highlights,
             handles;
 
         if (side === LEFT_HAND) {
-            handController = Controller.Standard.LeftHand;
-            controllerTrigger = Controller.Standard.LT;
-            controllerTriggerClicked = Controller.Standard.LTClick;
-            controllerGrip = Controller.Standard.LeftGrip;
             GRAB_POINT_SPHERE_OFFSET.x = -GRAB_POINT_SPHERE_OFFSET.x;
-        } else {
-            handController = Controller.Standard.RightHand;
-            controllerTrigger = Controller.Standard.RT;
-            controllerTriggerClicked = Controller.Standard.RTClick;
-            controllerGrip = Controller.Standard.RightGrip;
         }
 
+        hand = new Hand(side, gripPressedCallback);
         laser = new Laser(side);
         selection = new Selection();
         highlights = new Highlights(side);
@@ -825,27 +908,22 @@
             return isEditing && rootEntityID === selection.rootEntityID();
         }
 
-        function getHandPosition() {
-            return Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, handPose.translation), MyAvatar.position);
-        }
-
         function getTargetPosition() {
             if (isEditingWithHand) {
                 return side === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
             }
-            return Vec3.sum(getHandPosition(), Vec3.multiply(laserEditingDistance,
-                Quat.getUp(Quat.multiply(MyAvatar.orientation, handPose.rotation))));
+            return Vec3.sum(hand.position(), Vec3.multiply(laserEditingDistance, Quat.getUp(hand.orientation())));
         }
 
         function startEditing() {
             var selectionPositionAndOrientation,
                 initialOtherTargetPosition;
 
-            initialHandOrientationInverse = Quat.inverse(Quat.multiply(MyAvatar.orientation, handPose.rotation));
+            initialHandOrientationInverse = Quat.inverse(hand.orientation());
 
             selection.select(hoveredEntityID);  // Entity may have been moved by other hand so refresh position and orientation.
             selectionPositionAndOrientation = selection.getPositionAndOrientation();
-            initialHandToSelectionVector = Vec3.subtract(selectionPositionAndOrientation.position, getHandPosition());
+            initialHandToSelectionVector = Vec3.subtract(selectionPositionAndOrientation.position, hand.position());
             initialSelectionOrientation = selectionPositionAndOrientation.orientation;
 
             isEditingWithHand = intersection.handSelected;
@@ -867,8 +945,8 @@
         }
 
         function updateGrabOffset(selectionPositionAndOrientation) {
-            initialHandOrientationInverse = Quat.inverse(Quat.multiply(MyAvatar.orientation, handPose.rotation));
-            initialHandToSelectionVector = Vec3.subtract(selectionPositionAndOrientation.position, getHandPosition());
+            initialHandOrientationInverse = Quat.inverse(hand.orientation());
+            initialHandToSelectionVector = Vec3.subtract(selectionPositionAndOrientation.position, hand.position());
             initialSelectionOrientation = selectionPositionAndOrientation.orientation;
         }
 
@@ -879,8 +957,8 @@
                 selectionPosition,
                 selectionOrientation;
 
-            handPosition = getHandPosition();
-            handOrientation = Quat.multiply(MyAvatar.orientation, handPose.rotation);
+            handPosition = hand.position();
+            handOrientation = hand.orientation();
 
             deltaOrientation = Quat.multiply(handOrientation, initialHandOrientationInverse);
             selectionPosition = Vec3.sum(handPosition, Vec3.multiplyQbyV(deltaOrientation, initialHandToSelectionVector));
@@ -932,8 +1010,7 @@
         }
 
         function update() {
-            var gripValue,
-                palmPosition,
+            var palmPosition,
                 overlayID,
                 overlayIDs,
                 overlayDistance,
@@ -950,16 +1027,14 @@
                 deltaOrigin,
                 pickRay,
                 laserLength,
-                isTriggerPressed,
-                isTriggerClicked,
                 wasEditing,
                 i,
                 length;
 
             // Hand position and orientation.
-            handPose = Controller.getPoseValue(handController);
+            hand.update();
             wasLaserOn = isLaserOn;
-            if (!handPose.valid) {
+            if (!hand.valid()) {
                 isLaserOn = false;
                 if (wasLaserOn) {
                     laser.clear();
@@ -969,22 +1044,6 @@
                     hoveredEntityID = null;
                 }
                 return;
-            }
-
-            // Controller trigger.
-            isTriggerPressed = Controller.getValue(controllerTrigger) > (isTriggerPressed
-                ? TRIGGER_OFF_VALUE : TRIGGER_ON_VALUE);
-            isTriggerClicked = Controller.getValue(controllerTriggerClicked);
-
-            // Controller grip.
-            gripValue = Controller.getValue(controllerGrip);
-            if (isGripPressed) {
-                isGripPressed = gripValue > GRIP_OFF_VALUE;
-            } else {
-                isGripPressed = gripValue > GRIP_ON_VALUE;
-                if (isGripPressed) {
-                    gripPressedCallback();
-                }
             }
 
             // Hand-overlay intersection, if any.
@@ -1031,9 +1090,9 @@
             isHandSelected = overlayID !== null || entityID !== null;
 
             // Laser-overlay or -entity intersection if not already intersected.
-            if (!isHandSelected && isTriggerPressed) {
-                handPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, handPose.translation), MyAvatar.position);
-                handOrientation = Quat.multiply(MyAvatar.orientation, handPose.rotation);
+            if (!isHandSelected && hand.triggerPressed()) {
+                handPosition = hand.position();
+                handOrientation = hand.orientation();
                 deltaOrigin = Vec3.multiplyQbyV(handOrientation, GRAB_POINT_SPHERE_OFFSET);
                 pickRay = {
                     origin: Vec3.sum(handPosition, deltaOrigin),  // Add a bit to ...
@@ -1072,7 +1131,7 @@
 
             // Laser update.
             if (isLaserOn) {
-                laser.update(pickRay.origin, pickRay.direction, laserLength, isTriggerClicked);
+                laser.update(pickRay.origin, pickRay.direction, laserLength, hand.triggerClicked());
             } else if (wasLaserOn) {
                 laser.clear();
             }
@@ -1080,7 +1139,7 @@
             // Highlight / edit.
             doEdit = false;
             doHighlight = false;
-            if (isTriggerClicked) {
+            if (hand.triggerClicked()) {
                 if (isEditing) {
                     // Perform edit.
                     doEdit = true;
@@ -1146,6 +1205,7 @@
         }
 
         function clear() {
+            hand.clear();
             laser.clear();
             selection.clear();
             highlights.clear();
@@ -1158,6 +1218,10 @@
         }
 
         function destroy() {
+            if (hand) {
+                hand.destroy();
+                hand = null;
+            }
             if (laser) {
                 laser.destroy();
                 laser = null;
