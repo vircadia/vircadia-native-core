@@ -930,7 +930,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                     }
                 }
 
-                // identity joint chains that have changed types this frame.
+                // identify joint chains that have changed types this frame.
                 _prevJointChainInfoVec.resize(jointChainInfoVec.size());
                 for (size_t i = 0; i < _prevJointChainInfoVec.size(); i++) {
                     if (_prevJointChainInfoVec[i].timer <= 0.0f &&
@@ -944,7 +944,9 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             {
                 PROFILE_RANGE_EX(simulation_animation, "ik/shiftHips", 0xffff00ff, 0);
 
-                if (_hipsTargetIndex >= 0 && _hipsTargetIndex >= 0 && _hipsTargetIndex < (int)targets.size()) {
+                if (_hipsTargetIndex >= 0) {
+                    assert(_hipsTargetIndex < (int)targets.size());
+
                     // slam the hips to match the _hipsTarget
 
                     AnimPose absPose = targets[_hipsTargetIndex].getPose();
