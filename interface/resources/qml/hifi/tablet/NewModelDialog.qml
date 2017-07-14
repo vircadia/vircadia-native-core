@@ -65,7 +65,8 @@ Rectangle {
                 onClicked: {
                     newModelDialog.keyboardEnabled = HMD.active
                     parent.focus = true;
-                    parent.forceActiveFocus()
+                    parent.forceActiveFocus();
+                    modelURL.cursorPosition = modelURL.positionAt(mouseX, mouseY, TextInput.CursorBetweenCharaters);
                 }
             }
         }
