@@ -20,7 +20,7 @@
 
         // Application state
         isAppActive = false,
-        isScaleWithHandles = false,
+        isAppScaleWithHandles = false,
 
         VR_EDIT_SETTING = "io.highfidelity.isVREditing",  // Note: This constant is duplicated in utils.js.
 
@@ -768,8 +768,6 @@
             handPose,
             intersection = {},
 
-            isScaleWithHandles = false,
-
             isLaserOn = false,
             hoveredEntityID = null,
 
@@ -820,10 +818,6 @@
 
         function setOtherHand(hand) {
             otherHand = hand;
-        }
-
-        function setScaleWithHandles(value) {
-            isScaleWithHandles = value;
         }
 
         function getIsEditing(rootEntityID) {
@@ -1089,7 +1083,7 @@
                 if (isEditing) {
                     // Perform edit.
                     doEdit = true;
-                } else if (intersection.intersects && intersection.entityID && (!isScaleWithHandles
+                } else if (intersection.intersects && intersection.entityID && (!isAppScaleWithHandles
                         || !otherHand.isEditing(Entities.rootOf(intersection.entityID)))) {
                     // Start editing.
                     if (intersection.entityID !== hoveredEntityID) {
@@ -1101,7 +1095,7 @@
                         laserEditingDistance = laserLength;
                     }
                     startEditing();
-                    if (isScaleWithHandles) {
+                    if (isAppScaleWithHandles) {
                         handles.display(selection.rootEntityID(), selection.boundingBox(), selection.count() > 1);
                     }
                 }
@@ -1111,7 +1105,7 @@
                     // Stop editing.
                     stopEditing();
                 }
-                if (isScaleWithHandles) {
+                if (isAppScaleWithHandles) {
                     otherHand.hoverHandle(intersection.overlayID);
                 }
                 if (intersection.intersects && intersection.entityID) {
@@ -1136,16 +1130,16 @@
         function apply() {
             if (doEdit) {
                 if (otherHand.isEditing(selection.rootEntityID())) {
-                    if (isScaling && !isScaleWithHandles) {
+                    if (isScaling && !isAppScaleWithHandles) {
                         applyScale();
                     }
                 } else {
                     applyGrab();
                 }
             } else if (doHighlight) {
-                if (!isScaleWithHandles || !otherHand.isEditing(selection.rootEntityID())) {
+                if (!isAppScaleWithHandles || !otherHand.isEditing(selection.rootEntityID())) {
                     highlights.display(intersection.handSelected, selection.selection(),
-                        otherHand.isEditing(selection.rootEntityID()) || isScaleWithHandles);
+                        otherHand.isEditing(selection.rootEntityID()) || isAppScaleWithHandles);
                 }
             }
         }
@@ -1187,7 +1181,6 @@
 
         return {
             setOtherHand: setOtherHand,
-            setScaleWithHandles: setScaleWithHandles,
             isEditing: getIsEditing,
             hoverHandle: hoverHandle,
             getTargetPosition: getTargetPosition,
@@ -1234,9 +1227,7 @@
     }
 
     function onGripClicked() {
-        isScaleWithHandles = !isScaleWithHandles;
-        hands[LEFT_HAND].setScaleWithHandles(isScaleWithHandles);
-        hands[RIGHT_HAND].setScaleWithHandles(isScaleWithHandles);
+        isAppScaleWithHandles = !isAppScaleWithHandles;
     }
 
     function setUp() {
