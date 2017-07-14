@@ -4749,7 +4749,7 @@ void Application::update(float deltaTime) {
         myAvatar->setDriveKey(MyAvatar::ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
     }
 
-    static std::vector<controller::Action> avatarControllerActions = {
+    static const std::vector<controller::Action> avatarControllerActions = {
         controller::Action::LEFT_HAND,
         controller::Action::RIGHT_HAND,
         controller::Action::LEFT_FOOT,
@@ -4796,7 +4796,19 @@ void Application::update(float deltaTime) {
         controller::Action::RIGHT_HAND_PINKY1,
         controller::Action::RIGHT_HAND_PINKY2,
         controller::Action::RIGHT_HAND_PINKY3,
-        controller::Action::RIGHT_HAND_PINKY4
+        controller::Action::RIGHT_HAND_PINKY4,
+        controller::Action::LEFT_ARM,
+        controller::Action::RIGHT_ARM,
+        controller::Action::LEFT_SHOULDER,
+        controller::Action::RIGHT_SHOULDER,
+        controller::Action::LEFT_FORE_ARM,
+        controller::Action::RIGHT_FORE_ARM,
+        controller::Action::LEFT_LEG,
+        controller::Action::RIGHT_LEG,
+        controller::Action::LEFT_UP_LEG,
+        controller::Action::RIGHT_UP_LEG,
+        controller::Action::LEFT_TOE_BASE,
+        controller::Action::RIGHT_TOE_BASE
     };
 
     glm::mat4 myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());

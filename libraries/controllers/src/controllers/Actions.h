@@ -101,6 +101,7 @@ enum class Action {
     // Bisected aliases for TRANSLATE_CAMERA_Z
     BOOM_IN,
     BOOM_OUT,
+
     LEFT_ARM,
     RIGHT_ARM,
 
@@ -146,7 +147,18 @@ enum class Action {
     RIGHT_HAND_PINKY3,
     RIGHT_HAND_PINKY4,
 
-    NUM_ACTIONS,
+    LEFT_SHOULDER,
+    RIGHT_SHOULDER,
+    LEFT_FORE_ARM,
+    RIGHT_FORE_ARM,
+    LEFT_LEG,
+    RIGHT_LEG,
+    LEFT_UP_LEG,
+    RIGHT_UP_LEG,
+    LEFT_TOE_BASE,
+    RIGHT_TOE_BASE,
+
+    NUM_ACTIONS
 };
 
 template <typename T>

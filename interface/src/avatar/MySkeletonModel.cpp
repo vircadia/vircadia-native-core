@@ -56,96 +56,72 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     auto avatarHeadPose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::HEAD);
     if (avatarHeadPose.isValid()) {
         AnimPose pose(avatarHeadPose.getRotation(), avatarHeadPose.getTranslation());
-        params.controllerPoses[Rig::ControllerType_Head] = avatarToRigPose * pose;
-        params.controllerActiveFlags[Rig::ControllerType_Head] = true;
+        params.primaryControllerPoses[Rig::PrimaryControllerType_Head] = avatarToRigPose * pose;
+        params.primaryControllerActiveFlags[Rig::PrimaryControllerType_Head] = true;
     } else {
         // even though full head IK is disabled, the rig still needs the head orientation to rotate the head up and
         // down in desktop mode.
         // preMult 180 is necessary to convert from avatar to rig coordinates.
         // postMult 180 is necessary to convert head from -z forward to z forward.
         glm::quat headRot = Quaternions::Y_180 * head->getFinalOrientationInLocalFrame() * Quaternions::Y_180;
-        params.controllerPoses[Rig::ControllerType_Head] = AnimPose(glm::vec3(1.0f), headRot, glm::vec3(0.0f));
-        params.controllerActiveFlags[Rig::ControllerType_Head] = false;
+        params.primaryControllerPoses[Rig::PrimaryControllerType_Head] = AnimPose(glm::vec3(1.0f), headRot, glm::vec3(0.0f));
+        params.primaryControllerActiveFlags[Rig::PrimaryControllerType_Head] = false;
     }
 
-    auto avatarHipsPose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::HIPS);
-    if (avatarHipsPose.isValid()) {
-        AnimPose pose(avatarHipsPose.getRotation(), avatarHipsPose.getTranslation());
-        params.controllerPoses[Rig::ControllerType_Hips] = avatarToRigPose * pose;
-        params.controllerActiveFlags[Rig::ControllerType_Hips] = true;
-    } else {
-        params.controllerPoses[Rig::ControllerType_Hips] = AnimPose::identity;
-        params.controllerActiveFlags[Rig::ControllerType_Hips] = false;
+    //
+    // primary controller poses, control IK targets directly.
+    //
+
+    static const std::vector<std::pair<controller::Action, Rig::PrimaryControllerType>> primaryControllers = {
+        { controller::Action::LEFT_HAND, Rig::PrimaryControllerType_LeftHand },
+        { controller::Action::RIGHT_HAND, Rig::PrimaryControllerType_RightHand },
+        { controller::Action::HIPS, Rig::PrimaryControllerType_Hips },
+        { controller::Action::LEFT_FOOT, Rig::PrimaryControllerType_LeftFoot },
+        { controller::Action::RIGHT_FOOT, Rig::PrimaryControllerType_RightFoot },
+        { controller::Action::SPINE2, Rig::PrimaryControllerType_Spine2 }
+    };
+
+    for (auto pair : primaryControllers) {
+        auto pose = myAvatar->getControllerPoseInAvatarFrame(pair.first);
+        if (pose.isValid()) {
+            AnimPose pose(pose.getRotation(), pose.getTranslation());
+            params.primaryControllerPoses[pair.second] = avatarToRigPose * pose;
+            params.primaryControllerActiveFlags[pair.second] = true;
+        } else {
+            params.primaryControllerPoses[pair.second] = AnimPose::identity;
+            params.primaryControllerActiveFlags[pair.second] = false;
+        }
     }
 
-    auto avatarSpine2Pose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::SPINE2);
-    if (avatarSpine2Pose.isValid()) {
-        AnimPose pose(avatarSpine2Pose.getRotation(), avatarSpine2Pose.getTranslation());
-        params.controllerPoses[Rig::ControllerType_Spine2] = avatarToRigPose * pose;
-        params.controllerActiveFlags[Rig::ControllerType_Spine2] = true;
-    } else {
-        params.controllerPoses[Rig::ControllerType_Spine2] = AnimPose::identity;
-        params.controllerActiveFlags[Rig::ControllerType_Spine2] = false;
-    }
+    //
+    // secondary controller poses, influence the pose of the skeleton indirectly.
+    //
 
-    auto avatarRightArmPose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::RIGHT_ARM);
-    if (avatarRightArmPose.isValid()) {
-        AnimPose pose(avatarRightArmPose.getRotation(), avatarRightArmPose.getTranslation());
-        params.controllerPoses[Rig::ControllerType_RightArm] = avatarToRigPose * pose;
-        params.controllerActiveFlags[Rig::ControllerType_RightArm] = true;
-    } else {
-        params.controllerPoses[Rig::ControllerType_RightArm] = AnimPose::identity;
-        params.controllerActiveFlags[Rig::ControllerType_RightArm] = false;
-    }
+    static const std::vector<std::pair<controller::Action, Rig::SecondaryControllerType>> secondaryControllers = {
+        { controller::Action::LEFT_SHOULDER, Rig::SecondaryControllerType_LeftShoulder },
+        { controller::Action::RIGHT_SHOULDER, Rig::SecondaryControllerType_RightShoulder },
+        { controller::Action::LEFT_ARM, Rig::SecondaryControllerType_LeftArm },
+        { controller::Action::RIGHT_ARM, Rig::SecondaryControllerType_RightArm },
+        { controller::Action::LEFT_FORE_ARM, Rig::SecondaryControllerType_LeftForeArm },
+        { controller::Action::RIGHT_FORE_ARM, Rig::SecondaryControllerType_RightForeArm },
+        { controller::Action::LEFT_UP_LEG, Rig::SecondaryControllerType_LeftUpLeg },
+        { controller::Action::RIGHT_UP_LEG, Rig::SecondaryControllerType_RightUpLeg },
+        { controller::Action::LEFT_LEG, Rig::SecondaryControllerType_LeftLeg },
+        { controller::Action::RIGHT_LEG, Rig::SecondaryControllerType_RightLeg },
+        { controller::Action::LEFT_TOE_BASE, Rig::SecondaryControllerType_LeftToeBase },
+        { controller::Action::RIGHT_TOE_BASE, Rig::SecondaryControllerType_RightToeBase }
+    };
 
-    auto avatarLeftArmPose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::LEFT_ARM);
-    if (avatarLeftArmPose.isValid()) {
-        AnimPose pose(avatarLeftArmPose.getRotation(), avatarLeftArmPose.getTranslation());
-        params.controllerPoses[Rig::ControllerType_LeftArm] = avatarToRigPose * pose;
-        params.controllerActiveFlags[Rig::ControllerType_LeftArm] = true;
-    } else {
-        params.controllerPoses[Rig::ControllerType_LeftArm] = AnimPose::identity;
-        params.controllerActiveFlags[Rig::ControllerType_LeftArm] = false;
-    }
-
-    auto avatarLeftHandPose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND);
-    if (avatarLeftHandPose.isValid()) {
-        AnimPose pose(avatarLeftHandPose.getRotation(), avatarLeftHandPose.getTranslation());
-        params.controllerPoses[Rig::ControllerType_LeftHand] = avatarToRigPose * pose;
-        params.controllerActiveFlags[Rig::ControllerType_LeftHand] = true;
-    } else {
-        params.controllerPoses[Rig::ControllerType_LeftHand] = AnimPose::identity;
-        params.controllerActiveFlags[Rig::ControllerType_LeftHand] = false;
-    }
-
-    auto avatarRightHandPose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND);
-    if (avatarRightHandPose.isValid()) {
-        AnimPose pose(avatarRightHandPose.getRotation(), avatarRightHandPose.getTranslation());
-        params.controllerPoses[Rig::ControllerType_RightHand] = avatarToRigPose * pose;
-        params.controllerActiveFlags[Rig::ControllerType_RightHand] = true;
-    } else {
-        params.controllerPoses[Rig::ControllerType_RightHand] = AnimPose::identity;
-        params.controllerActiveFlags[Rig::ControllerType_RightHand] = false;
-    }
-
-    auto avatarLeftFootPose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::LEFT_FOOT);
-    if (avatarLeftFootPose.isValid()) {
-        AnimPose pose(avatarLeftFootPose.getRotation(), avatarLeftFootPose.getTranslation());
-        params.controllerPoses[Rig::ControllerType_LeftFoot] = avatarToRigPose * pose;
-        params.controllerActiveFlags[Rig::ControllerType_LeftFoot] = true;
-    } else {
-        params.controllerPoses[Rig::ControllerType_LeftFoot] = AnimPose::identity;
-        params.controllerActiveFlags[Rig::ControllerType_LeftFoot] = false;
-    }
-
-    auto avatarRightFootPose = myAvatar->getControllerPoseInAvatarFrame(controller::Action::RIGHT_FOOT);
-    if (avatarRightFootPose.isValid()) {
-        AnimPose pose(avatarRightFootPose.getRotation(), avatarRightFootPose.getTranslation());
-        params.controllerPoses[Rig::ControllerType_RightFoot] = avatarToRigPose * pose;
-        params.controllerActiveFlags[Rig::ControllerType_RightFoot] = true;
-    } else {
-        params.controllerPoses[Rig::ControllerType_RightFoot] = AnimPose::identity;
-        params.controllerActiveFlags[Rig::ControllerType_RightFoot] = false;
+    for (auto pair : secondaryControllers) {
+        auto pose = myAvatar->getControllerPoseInAvatarFrame(pair.first);
+        if (pose.isValid()) {
+            AnimPose pose(pose.getRotation(), pose.getTranslation());
+            params.secondaryControllerPoses[pair.second] = avatarToRigPose * pose;
+            params.secondaryControllerActiveFlags[pair.second] = true;
+        } else {
+            params.secondaryControllerPoses[pair.second] = AnimPose::identity;
+            params.secondaryControllerActiveFlags[pair.second] = false;
+        }
     }
 
     params.bodyCapsuleRadius = myAvatar->getCharacterController()->getCapsuleRadius();

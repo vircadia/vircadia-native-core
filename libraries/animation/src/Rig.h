@@ -41,22 +41,39 @@ public:
         bool useNames;
     };
 
-    enum ControllerType {
-        ControllerType_Head = 0,
-        ControllerType_LeftHand,
-        ControllerType_RightHand,
-        ControllerType_Hips,
-        ControllerType_LeftFoot,
-        ControllerType_RightFoot,
-        ControllerType_LeftArm,
-        ControllerType_RightArm,
-        ControllerType_Spine2,
-        NumControllerTypes
+    enum PrimaryControllerType {
+        PrimaryControllerType_Head = 0,
+        PrimaryControllerType_LeftHand,
+        PrimaryControllerType_RightHand,
+        PrimaryControllerType_Hips,
+        PrimaryControllerType_LeftFoot,
+        PrimaryControllerType_RightFoot,
+        PrimaryControllerType_Spine2,
+        NumPrimaryControllerTypes
+    };
+
+    // NOTE: These should ordered such that joint parents appear before their children.
+    enum SecondaryControllerType {
+        SecondaryControllerType_LeftShoulder = 0,
+        SecondaryControllerType_RightShoulder,
+        SecondaryControllerType_LeftArm,
+        SecondaryControllerType_RightArm,
+        SecondaryControllerType_LeftForeArm,
+        SecondaryControllerType_RightForeArm,
+        SecondaryControllerType_LeftUpLeg,
+        SecondaryControllerType_RightUpLeg,
+        SecondaryControllerType_LeftLeg,
+        SecondaryControllerType_RightLeg,
+        SecondaryControllerType_LeftToeBase,
+        SecondaryControllerType_RightToeBase,
+        NumSecondaryControllerTypes
     };
 
     struct ControllerParameters {
-        AnimPose controllerPoses[NumControllerTypes];  // rig space
-        bool controllerActiveFlags[NumControllerTypes];
+        AnimPose primaryControllerPoses[NumPrimaryControllerTypes];  // rig space
+        bool primaryControllerActiveFlags[NumPrimaryControllerTypes];
+        AnimPose secondaryControllerPoses[NumSecondaryControllerTypes];  // rig space
+        bool secondaryControllerActiveFlags[NumSecondaryControllerTypes];
         bool isTalking;
         float bodyCapsuleRadius;
         float bodyCapsuleHalfHeight;

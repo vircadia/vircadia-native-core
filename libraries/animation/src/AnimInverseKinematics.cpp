@@ -921,6 +921,7 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             {
                 PROFILE_RANGE_EX(simulation_animation, "ik/ccd", 0xffff00ff, 0);
                 preconditionRelativePosesToAvoidLimbLock(context, targets);
+                setSecondaryTargets(context);
                 solve(context, targets);
             }
 
@@ -1012,6 +1013,22 @@ void AnimInverseKinematics::setMaxHipsOffsetLength(float maxLength) {
 void AnimInverseKinematics::clearIKJointLimitHistory() {
     for (auto& pair : _constraints) {
         pair.second->clearHistory();
+    }
+}
+
+void AnimInverseKinematics::setSecondaryTargetInRigFrame(int jointIndex, const AnimPose& pose) {
+    auto iter = _secondaryTargetsInRigFrame.find(jointIndex);
+    if (iter != _secondaryTargetsInRigFrame.end()) {
+        iter->second = pose;
+    } else {
+        _secondaryTargetsInRigFrame.insert({ jointIndex, pose });
+    }
+}
+
+void AnimInverseKinematics::clearSecondaryTarget(int jointIndex) {
+    auto iter = _secondaryTargetsInRigFrame.find(jointIndex);
+    if (iter != _secondaryTargetsInRigFrame.end()) {
+        _secondaryTargetsInRigFrame.erase(iter);
     }
 }
 
@@ -1719,6 +1736,20 @@ void AnimInverseKinematics::preconditionRelativePosesToAvoidLimbLock(const AnimC
                 }
             }
         }
+    }
+}
+
+// overwrites _relativePoses with secondary poses.
+void AnimInverseKinematics::setSecondaryTargets(const AnimContext& context) {
+    AnimPose rigToGeometryPose = AnimPose(glm::inverse(context.getGeometryToRigMatrix()));
+    for (auto& iter : _secondaryTargetsInRigFrame) {
+        AnimPose absPose = rigToGeometryPose * iter.second;
+        AnimPose parentAbsPose;
+        int parentIndex = _skeleton->getParentIndex(iter.first);
+        if (parentIndex >= 0) {
+            parentAbsPose = _skeleton->getAbsolutePose(parentIndex, _relativePoses);
+        }
+        _relativePoses[iter.first] = parentAbsPose.inverse() * absPose;
     }
 }
 
