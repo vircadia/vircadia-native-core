@@ -167,6 +167,7 @@
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
+#include "ui/ResourceImageItem.h"
 #include "ui/AddressBarDialog.h"
 #include "ui/AvatarInputs.h"
 #include "ui/DialogsManager.h"
@@ -1005,7 +1006,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
             properties["processor_l2_cache_count"] = procInfo.numProcessorCachesL2;
             properties["processor_l3_cache_count"] = procInfo.numProcessorCachesL3;
         }
-        
+
         properties["first_run"] = firstRun.get();
 
         // add the user's machine ID to the launch event
@@ -1973,7 +1974,7 @@ void Application::initializeGL() {
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
     bool isDeferred = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
     _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
-    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraFrame", cullFunctor);
+    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor);
     _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, isDeferred);
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
@@ -2021,6 +2022,7 @@ void Application::initializeUi() {
     LoginDialog::registerType();
     Tooltip::registerType();
     UpdateDialog::registerType();
+    qmlRegisterType<ResourceImageItem>("Hifi", 1, 0, "ResourceImageItem");
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -2751,7 +2753,7 @@ bool Application::event(QEvent* event) {
                     idle(nsecsElapsed);
                     postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
                 }
-            } 
+            }
             return true;
 
         case Event::Paint:
@@ -3727,8 +3729,8 @@ void updateCpuInformation() {
         // Update friendly structure
         auto& myCpuInfo = myCpuInfos[i];
         myCpuInfo.update(cpuInfo);
-        PROFILE_COUNTER(app, myCpuInfo.name.c_str(), { 
-            { "kernel", myCpuInfo.kernelUsage }, 
+        PROFILE_COUNTER(app, myCpuInfo.name.c_str(), {
+            { "kernel", myCpuInfo.kernelUsage },
             { "user", myCpuInfo.userUsage }
         });
     }
@@ -3795,7 +3797,7 @@ void getCpuUsage(vec3& systemAndUser) {
 void setupCpuMonitorThread() {
     initCpuUsage();
     auto cpuMonitorThread = QThread::currentThread();
-    
+
     QTimer* timer = new QTimer();
     timer->setInterval(50);
     QObject::connect(timer, &QTimer::timeout, [] {
