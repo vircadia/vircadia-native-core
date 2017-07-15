@@ -12,6 +12,7 @@
 
 #include "RayPickManager.h"
 #include "JointRayPick.h"
+#include "StaticRayPick.h"
 
 #include "Application.h"
 
@@ -22,8 +23,22 @@ LaserPointer::LaserPointer(const QString& jointName, const glm::vec3& posOffset,
 {
     _rayPickUID = RayPickManager::getInstance().addRayPick(std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled));
 
-    if (!enabled) {
-        disableCurrentRenderState();
+    for (auto& state : _renderStates.keys()) {
+        if (!enabled || state != _currentRenderState)
+        disableRenderState(state);
+    }
+}
+
+LaserPointer::LaserPointer(const glm::vec3& position, const glm::vec3& direction, const uint16_t filter, const float maxDistance,
+        const QHash<QString, RenderState>& renderStates, const bool enabled) :
+    _renderingEnabled(enabled),
+    _renderStates(renderStates)
+{
+    _rayPickUID = RayPickManager::getInstance().addRayPick(std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled));
+
+    for (auto& state : _renderStates.keys()) {
+        if (!enabled || state != _currentRenderState)
+            disableRenderState(state);
     }
 }
 
@@ -44,11 +59,11 @@ void LaserPointer::enable() {
 void LaserPointer::disable() {
     RayPickManager::getInstance().disableRayPick(_rayPickUID);
     _renderingEnabled = false;
-    if (!_currentRenderState.isEmpty() && _renderStates.contains(_currentRenderState)) disableCurrentRenderState();
+    if (!_currentRenderState.isEmpty() && _renderStates.contains(_currentRenderState)) disableRenderState(_currentRenderState);
 }
 
 void LaserPointer::setRenderState(const QString& state) {
-    if (!_currentRenderState.isEmpty() && _renderStates.contains(_currentRenderState)) disableCurrentRenderState();
+    if (!_currentRenderState.isEmpty() && _renderStates.contains(_currentRenderState)) disableRenderState(_currentRenderState);
     _currentRenderState = state;
 }
 
@@ -56,24 +71,24 @@ const RayPickResult& LaserPointer::getPrevRayPickResult() {
     return RayPickManager::getInstance().getPrevRayPickResult(_rayPickUID);
 }
 
-void LaserPointer::disableCurrentRenderState() {
-    if (!_renderStates[_currentRenderState].getStartID().isNull()) {
+void LaserPointer::disableRenderState(const QString& renderState) {
+    if (!_renderStates[renderState].getStartID().isNull()) {
         QVariantMap startProps;
         startProps.insert("visible", false);
         startProps.insert("ignoreRayIntersection", true);
-        qApp->getOverlays().editOverlay(_renderStates[_currentRenderState].getStartID(), startProps);
+        qApp->getOverlays().editOverlay(_renderStates[renderState].getStartID(), startProps);
     }
-    if (!_renderStates[_currentRenderState].getPathID().isNull()) {
+    if (!_renderStates[renderState].getPathID().isNull()) {
         QVariantMap pathProps;
         pathProps.insert("visible", false);
         pathProps.insert("ignoreRayIntersection", true);
-        qApp->getOverlays().editOverlay(_renderStates[_currentRenderState].getPathID(), pathProps);
+        qApp->getOverlays().editOverlay(_renderStates[renderState].getPathID(), pathProps);
     }
-    if (!_renderStates[_currentRenderState].getEndID().isNull()) {
+    if (!_renderStates[renderState].getEndID().isNull()) {
         QVariantMap endProps;
         endProps.insert("visible", false);
         endProps.insert("ignoreRayIntersection", true);
-        qApp->getOverlays().editOverlay(_renderStates[_currentRenderState].getEndID(), endProps);
+        qApp->getOverlays().editOverlay(_renderStates[renderState].getEndID(), endProps);
     }
 }
 
@@ -105,13 +120,7 @@ void LaserPointer::update() {
             qApp->getOverlays().editOverlay(_renderStates[_currentRenderState].getEndID(), endProps);
         }
     } else {
-        disableCurrentRenderState();
-    }
-}
-
-void LaserPointer::render(RenderArgs* args) {
-    if (_renderingEnabled && !_currentRenderState.isEmpty() && _renderStates.contains(_currentRenderState)) {
-        _renderStates[_currentRenderState].render(args);
+        disableRenderState(_currentRenderState);
     }
 }
 
@@ -121,10 +130,4 @@ RenderState::RenderState(const OverlayID& startID, const OverlayID& pathID, cons
     if (!_startID.isNull()) _startIgnoreRays = qApp->getOverlays().getOverlay(_startID)->getProperty("ignoreRayIntersection").toBool();
     if (!_pathID.isNull()) _pathIgnoreRays = qApp->getOverlays().getOverlay(_pathID)->getProperty("ignoreRayIntersection").toBool();
     if (!_endID.isNull()) _endIgnoreRays = qApp->getOverlays().getOverlay(_endID)->getProperty("ignoreRayIntersection").toBool();
-}
-
-void RenderState::render(RenderArgs * args) {
-    if (!_startID.isNull()) qApp->getOverlays().getOverlay(_startID)->render(args);
-    if (!_pathID.isNull()) qApp->getOverlays().getOverlay(_pathID)->render(args);
-    if (!_endID.isNull()) qApp->getOverlays().getOverlay(_endID)->render(args);
 }

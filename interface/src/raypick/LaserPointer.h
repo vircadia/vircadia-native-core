@@ -13,7 +13,6 @@
 
 #include <QString>
 #include "glm/glm.hpp"
-#include <render/Scene.h>
 #include "ui/overlays/Overlay.h"
 
 class RayPickResult;
@@ -23,8 +22,6 @@ class RenderState {
 public:
     RenderState() {}
     RenderState(const OverlayID& startID, const OverlayID& pathID, const OverlayID& endID);
-
-    void render(RenderArgs* args);
 
     const OverlayID& getStartID() { return _startID; }
     const OverlayID& getPathID() { return _pathID; }
@@ -48,21 +45,19 @@ class LaserPointer {
 public:
     LaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance,
         const QHash<QString, RenderState>& renderStates, const bool enabled);
+    LaserPointer(const glm::vec3& position, const glm::vec3& direction, const uint16_t filter, const float maxDistance,
+        const QHash<QString, RenderState>& renderStates, const bool enabled);
     ~LaserPointer();
 
     unsigned int getUID() { return _rayPickUID; }
     void enable();
     void disable();
-
-    void setRenderState(const QString& state);
-
     const RayPickResult& getPrevRayPickResult();
 
-    void disableCurrentRenderState();
+    void setRenderState(const QString& state);
+    void disableRenderState(const QString& renderState);
 
     void update();
-    void render(RenderArgs* args);
-    const render::ShapeKey getShapeKey() { return render::ShapeKey::Builder::ownPipeline(); }
 
 private:
     bool _renderingEnabled;
