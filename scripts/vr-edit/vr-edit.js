@@ -40,7 +40,9 @@
 
         AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
         NULL_UUID = "{00000000-0000-0000-0000-000000000000}",
-        HALF_TREE_SCALE = 16384;
+        HALF_TREE_SCALE = 16384,
+
+        DEBUG = true;  // TODO: Set false.
 
 
     if (typeof Vec3.min !== "function") {
@@ -60,6 +62,9 @@
             var rootEntityID,
                 entityProperties,
                 PARENT_PROPERTIES = ["parentID"];
+            if (entityID === undefined || entityID === null) {
+                return null;
+            }
             rootEntityID = entityID;
             entityProperties = Entities.getEntityProperties(rootEntityID, PARENT_PROPERTIES);
             while (entityProperties.parentID !== NULL_UUID) {
@@ -68,6 +73,11 @@
             }
             return rootEntityID;
         };
+    }
+
+
+    function log(message) {
+        print(APP_NAME + ": " + message);
     }
 
     function isEditableRoot(entityID) {
@@ -1029,6 +1039,18 @@
 
         var otherEditor,  // Other hand's Editor object.
 
+            // Editor states.
+            EDITOR_IDLE = 0,
+            EDITOR_SEARCHING = 1,
+            EDITOR_HIGHLIGHTING = 2,  // Highlighting an entity (not hovering a handle).
+            editorState = EDITOR_IDLE,
+            EDITOR_STATE_STRINGS = ["EDITOR_IDLE", "EDITOR_SEARCHING", "EDITOR_HIGHLIGHTING"],
+
+            // State machine.
+            STATE_MACHINE,
+            highlightedEntityID = null,
+            wasAppScaleWithHandles = false,
+
             // Primary objects.
             hand,
             laser,
@@ -1048,7 +1070,71 @@
             otherEditor = editor;
         }
 
+
+        function enterEditorIdle() {
+            selection.clear();
+        }
+
+        function exitEditorIdle() {
+            // Nothing to do.
+        }
+
+        function enterEditorSearching() {
+            selection.clear();
+        }
+
+        function exitEditorSearching() {
+        }
+
+        function enterEditorHighlighting() {
+            selection.select(highlightedEntityID);
+            highlights.display(intersection.handIntersected, selection.selection(), isAppScaleWithHandles);
+        }
+
+        function updateEditorHighlighting() {
+            selection.select(highlightedEntityID);
+            highlights.display(intersection.handIntersected, selection.selection(), isAppScaleWithHandles);
+        }
+
+        function exitEditorHighlighting() {
+            highlights.clear();
+        }
+
+        STATE_MACHINE = {
+            EDITOR_IDLE: {
+                enter: enterEditorIdle,
+                update: null,
+                exit: exitEditorIdle
+            },
+            EDITOR_SEARCHING: {
+                enter: enterEditorSearching,
+                update: null,
+                exit: exitEditorSearching
+            },
+            EDITOR_HIGHLIGHTING: {
+                enter: enterEditorHighlighting,
+                update: updateEditorHighlighting,
+                exit: exitEditorHighlighting
+            }
+        };
+
+        function setState(state) {
+            if (state !== editorState) {
+                STATE_MACHINE[EDITOR_STATE_STRINGS[editorState]].exit();
+                STATE_MACHINE[EDITOR_STATE_STRINGS[state]].enter();
+                editorState = state;
+            } else if (DEBUG) {
+                log("ERROR: Null state transition: " + state + "!");
+            }
+        }
+
+        function updateState() {
+            STATE_MACHINE[EDITOR_STATE_STRINGS[editorState]].update();
+        }
+
         function update() {
+            var previousState = editorState;
+
             // Hand update.
             hand.update();
             intersection = hand.intersection();
@@ -1063,7 +1149,55 @@
             }
 
             // State update.
-            // TODO
+            switch (editorState) {
+            case EDITOR_IDLE:
+                if (!hand.valid()) {
+                    // No transition.
+                    break;
+                }
+                setState(EDITOR_SEARCHING);
+                break;
+            case EDITOR_SEARCHING:
+                if (hand.valid() && !intersection.entityID) {
+                    // No transition.
+                    break;
+                }
+                if (!hand.valid()) {
+                    setState(EDITOR_IDLE);
+                } else if (intersection.entityID) {
+                    highlightedEntityID = intersection.entityID;
+                    wasAppScaleWithHandles = isAppScaleWithHandles;
+                    setState(EDITOR_HIGHLIGHTING);
+                } else {
+                    DEBUG("ERROR: Unexpected condition in EDITOR_SEARCHING!");
+                }
+                break;
+            case EDITOR_HIGHLIGHTING:
+                if (hand.valid() && intersection.entityID === highlightedEntityID
+                        && isAppScaleWithHandles === wasAppScaleWithHandles) {
+                    // No transition.
+                    break;
+                }
+                if (!hand.valid()) {
+                    setState(EDITOR_IDLE);
+                } else if (intersection.entityID && intersection.entityID !== highlightedEntityID) {
+                    highlightedEntityID = intersection.entityID;
+                    wasAppScaleWithHandles = isAppScaleWithHandles;
+                    updateState();
+                } else if (intersection.entityID && isAppScaleWithHandles !== wasAppScaleWithHandles) {
+                    wasAppScaleWithHandles = isAppScaleWithHandles;
+                    updateState();
+                } else if (!intersection.entityID) {
+                    setState(EDITOR_SEARCHING);
+                } else {
+                    DEBUG("ERROR: Unexpected condition in EDITOR_HIGHLIGHTING!");
+                }
+                break;
+            }
+
+            if (DEBUG && editorState !== previousState) {
+                log((side = LEFT_HAND ? "L " : "R ") + EDITOR_STATE_STRINGS[editorState]);
+            }
         }
 
         function apply() {
