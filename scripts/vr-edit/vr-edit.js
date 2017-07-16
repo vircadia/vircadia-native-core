@@ -133,7 +133,7 @@
             });
         }
 
-        function display(handSelected, selection, isScale) {
+        function display(handIntersected, selection, isScale) {
             var overlayColor = isScale ? SCALE_HIGHLIGHT_COLOR : GRAB_HIGHLIGHT_COLOR,
                 i,
                 length;
@@ -141,7 +141,7 @@
             // Show/hide hand overlay.
             Overlays.editOverlay(handOverlay, {
                 color: overlayColor,
-                visible: handSelected
+                visible: handIntersected
             });
 
             // Add/edit entity overlay.
@@ -778,8 +778,10 @@
                         VISIBLE_ONLY);
                     if (intersection.intersects && !isEditableRoot(intersection.entityID)) {
                         intersection.intersects = false;
+                        intersection.entityID = null;
                     }
                 }
+                intersection.laserIntersected = true;
                 laserLength = (specifiedLaserLength !== null)
                     ? specifiedLaserLength
                     : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
@@ -863,7 +865,7 @@
             handPosition,
             handOrientation,
 
-            intersection;
+            intersection = {};
 
         if (side === LEFT_HAND) {
             handController = Controller.Standard.LeftHand;
@@ -918,6 +920,10 @@
 
             // Hand pose.
             handPose = Controller.getPoseValue(handController);
+            if (!handPose.valid) {
+                intersection = {};
+                return;
+            }
             handPosition = Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, handPose.translation), MyAvatar.position);
             handOrientation = Quat.multiply(MyAvatar.orientation, handPose.rotation);
 
@@ -987,7 +993,8 @@
             intersection = {
                 intersects: overlayID !== null || entityID !== null,
                 overlayID: overlayID,
-                entityID: entityID
+                entityID: entityID,
+                handIntersected: true
             };
         }
 
@@ -1020,34 +1027,16 @@
     Editor = function (side, gripPressedCallback) {
         // Each controller has a hand, laser, an entity selection, entity highlighter, and entity handles.
 
-        var isUpdating = false,
-            hoveredEntityID = null,
+        var otherEditor,  // Other hand's Editor object.
 
-            intersection,
-
-            isEditing = false,
-            isEditingWithHand = false,
-            initialHandOrientationInverse,
-            initialHandToSelectionVector,
-            initialSelectionOrientation,
-            laserEditingDistance,
-
-            isScaling = false,
-            initialTargetPosition,
-            initialTargetsCenter,
-            initialTargetsSeparation,
-            initialtargetsDirection,
-
-            doEdit,
-            doHighlight,
-
-            otherEditor,
-
+            // Primary objects.
             hand,
             laser,
             selection,
             highlights,
-            handles;
+            handles,
+
+            intersection;
 
         hand = new Hand(side, gripPressedCallback);
         laser = new Laser(side);
@@ -1059,200 +1048,26 @@
             otherEditor = editor;
         }
 
-        function getIsEditing(rootEntityID) {
-            return isEditing && rootEntityID === selection.rootEntityID();
-        }
-
-        function getTargetPosition() {
-            if (isEditingWithHand) {
-                return side === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
-            }
-            return Vec3.sum(hand.position(), Vec3.multiply(laserEditingDistance, Quat.getUp(hand.orientation())));
-        }
-
-        function startEditing() {
-            var selectionPositionAndOrientation,
-                initialOtherTargetPosition;
-
-            initialHandOrientationInverse = Quat.inverse(hand.orientation());
-
-            selection.select(hoveredEntityID);  // Entity may have been moved by other hand so refresh position and orientation.
-            selectionPositionAndOrientation = selection.getPositionAndOrientation();
-            initialHandToSelectionVector = Vec3.subtract(selectionPositionAndOrientation.position, hand.position());
-            initialSelectionOrientation = selectionPositionAndOrientation.orientation;
-
-            isEditingWithHand = intersection.handSelected;
-
-            if (otherEditor.isEditing(selection.rootEntityID())) {
-                // Store initial values for use in scaling.
-                initialTargetPosition = getTargetPosition();
-                initialOtherTargetPosition = otherEditor.getTargetPosition();
-                initialTargetsCenter = Vec3.multiply(0.5, Vec3.sum(initialTargetPosition, initialOtherTargetPosition));
-                initialTargetsSeparation = Vec3.distance(initialTargetPosition, initialOtherTargetPosition);
-                initialtargetsDirection = Vec3.subtract(initialOtherTargetPosition, initialTargetPosition);
-                selection.startScaling(initialTargetsCenter);
-                isScaling = true;
-            } else {
-                isScaling = false;
-            }
-
-            isEditing = true;
-        }
-
-        function updateGrabOffset(selectionPositionAndOrientation) {
-            initialHandOrientationInverse = Quat.inverse(hand.orientation());
-            initialHandToSelectionVector = Vec3.subtract(selectionPositionAndOrientation.position, hand.position());
-            initialSelectionOrientation = selectionPositionAndOrientation.orientation;
-        }
-
-        function applyGrab() {
-            var handPosition,
-                handOrientation,
-                deltaOrientation,
-                selectionPosition,
-                selectionOrientation;
-
-            handPosition = hand.position();
-            handOrientation = hand.orientation();
-
-            deltaOrientation = Quat.multiply(handOrientation, initialHandOrientationInverse);
-            selectionPosition = Vec3.sum(handPosition, Vec3.multiplyQbyV(deltaOrientation, initialHandToSelectionVector));
-            selectionOrientation = Quat.multiply(deltaOrientation, initialSelectionOrientation);
-
-            selection.setPositionAndOrientation(selectionPosition, selectionOrientation);
-        }
-
-        function applyScale() {
-            var targetPosition,
-                otherTargetPosition,
-                targetsSeparation,
-                scale,
-                rotation,
-                center,
-                selectionPositionAndOrientation;
-
-            // Scale selection.
-            targetPosition = getTargetPosition();
-            otherTargetPosition = otherEditor.getTargetPosition();
-            targetsSeparation = Vec3.distance(targetPosition, otherTargetPosition);
-            scale = targetsSeparation / initialTargetsSeparation;
-            rotation = Quat.rotationBetween(initialtargetsDirection, Vec3.subtract(otherTargetPosition, targetPosition));
-            center = Vec3.multiply(0.5, Vec3.sum(targetPosition, otherTargetPosition));
-            selection.scale(scale, rotation, center);
-
-            // Update grab offsets.
-            selectionPositionAndOrientation = selection.getPositionAndOrientation();
-            updateGrabOffset(selectionPositionAndOrientation);
-            otherEditor.updateGrabOffset(selectionPositionAndOrientation);
-        }
-
-        function stopEditing() {
-            isScaling = false;
-            isEditing = false;
-        }
-
-        function hoverHandle(overlayID) {
-            handles.hover(overlayID);
-        }
-
         function update() {
-            var isHandSelected,
-                wasEditing;
-
             // Hand update.
-            // Early return if it's not present.
             hand.update();
-            if (!hand.valid()) {
-                if (isUpdating) {
-                    laser.clear();
-                    selection.clear();
-                    highlights.clear();
-                    handles.clear();
-                    hoveredEntityID = null;
-                    isUpdating = false;
-                }
-                return;
-            }
-            isUpdating = true;
             intersection = hand.intersection();
-            isHandSelected = intersection.intersects;
 
             // Laser update.
             // Displays laser if hand has no intersection and trigger is pressed.
-            laser.update(hand);
-            if (!isHandSelected) {
-                intersection = laser.intersection();
+            if (hand.valid()) {
+                laser.update(hand);
+                if (!intersection.intersects) {
+                    intersection = laser.intersection();
+                }
             }
-            intersection.handSelected = isHandSelected;
 
-            // Highlight / edit.
-            doEdit = false;
-            doHighlight = false;
-            if (hand.triggerClicked()) {
-                if (isEditing) {
-                    // Perform edit.
-                    doEdit = true;
-                } else if (intersection.intersects && intersection.entityID && (!isAppScaleWithHandles
-                        || !otherEditor.isEditing(Entities.rootOf(intersection.entityID)))) {
-                    // Start editing.
-                    if (intersection.entityID !== hoveredEntityID) {
-                        hoveredEntityID = intersection.entityID;
-                        selection.select(hoveredEntityID);
-                    }
-                    highlights.clear();
-                    if (!intersection.handSelected) {
-                        laserEditingDistance = laser.length();
-                        laser.setLength(laserEditingDistance);
-                    }
-                    startEditing();
-                    if (isAppScaleWithHandles) {
-                        handles.display(selection.rootEntityID(), selection.boundingBox(), selection.count() > 1);
-                    }
-                }
-            } else {
-                wasEditing = isEditing;
-                if (isEditing) {
-                    // Stop editing.
-                    stopEditing();
-                    laser.clearLength();
-                }
-                if (isAppScaleWithHandles) {
-                    otherEditor.hoverHandle(intersection.overlayID);
-                }
-                if (intersection.intersects && intersection.entityID) {
-                    // Hover entities.
-                    if (wasEditing || intersection.entityID !== hoveredEntityID) {
-                        hoveredEntityID = intersection.entityID;
-                        selection.select(hoveredEntityID);
-                        doHighlight = true;
-                    }
-                } else {
-                    // Unhover entities.
-                    if (hoveredEntityID) {
-                        selection.clear();
-                        highlights.clear();
-                        handles.clear();
-                        hoveredEntityID = null;
-                    }
-                }
-            }
+            // State update.
+            // TODO
         }
 
         function apply() {
-            if (doEdit) {
-                if (otherEditor.isEditing(selection.rootEntityID())) {
-                    if (isScaling && !isAppScaleWithHandles) {
-                        applyScale();
-                    }
-                } else {
-                    applyGrab();
-                }
-            } else if (doHighlight) {
-                if (!isAppScaleWithHandles || !otherEditor.isEditing(selection.rootEntityID())) {
-                    highlights.display(intersection.handSelected, selection.selection(),
-                        otherEditor.isEditing(selection.rootEntityID()) || isAppScaleWithHandles);
-                }
-            }
+            // TODO
         }
 
         function clear() {
@@ -1261,10 +1076,6 @@
             selection.clear();
             highlights.clear();
             handles.clear();
-            isEditing = false;
-            isEditingWithHand = false;
-            isScaling = false;
-            hoveredEntityID = null;
         }
 
         function destroy() {
@@ -1296,10 +1107,6 @@
 
         return {
             setOtherEditor: setOtherEditor,
-            isEditing: getIsEditing,
-            hoverHandle: hoverHandle,
-            getTargetPosition: getTargetPosition,
-            updateGrabOffset: updateGrabOffset,
             update: update,
             apply: apply,
             clear: clear,
@@ -1312,7 +1119,7 @@
         // Main update loop.
         updateTimer = null;
 
-        // Each hand's action depends on the state of the other hand, so update the states first then apply in actions.
+        // Each hand's action depends on the state of the other hand, so update the states first then apply actions.
         editors[LEFT_HAND].update();
         editors[RIGHT_HAND].update();
         editors[LEFT_HAND].apply();
