@@ -37,6 +37,7 @@ public slots:
     void destroyHoverOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
 
 private:
+    bool _verboseLogging { true };
     QUuid _currentHoveredEntity{};
 };
 

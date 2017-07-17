@@ -16,11 +16,15 @@ HoverOverlayInterface::HoverOverlayInterface() {
 }
 
 void HoverOverlayInterface::createHoverOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
-    qDebug() << "ZACH FOX HOVER ENTER" << entityItemID;
+    if (_verboseLogging) {
+        qDebug() << "Creating Hover Overlay on top of entity with ID: " << entityItemID;
+    }
     setCurrentHoveredEntity(entityItemID);
 }
 
 void HoverOverlayInterface::destroyHoverOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
-    qDebug() << "ZACH FOX HOVER LEAVE" << entityItemID;
+    if (_verboseLogging) {
+        qDebug() << "Destroying Hover Overlay on top of entity with ID: " << entityItemID;
+    }
     setCurrentHoveredEntity(QUuid());
 }
