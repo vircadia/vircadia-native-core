@@ -502,6 +502,8 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
                 AvatarSharedPointer myAvatar = avatarHashMap->getAvatarBySessionID(myNodeID);
                 if (entity->getClientOnly() && entity->getOwningAvatarID() != myNodeID) {
                     // don't delete other avatar's avatarEntities
+                    // If you actually own the entity but the onwership is not set because of a domain switch
+                    // the line below make sure the entity is deleted.
                     myAvatar->insertDetachedEntityID(id);
                     shouldDelete = false;
                     return;
