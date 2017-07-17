@@ -244,8 +244,8 @@ public:
     typedef std::vector<Item> Vector;
     typedef ItemID ID;
 
-    static const ID INVALID_ITEM_ID = 0;
-    static const ItemCell INVALID_CELL = -1;
+    static const ID INVALID_ITEM_ID;
+    static const ItemCell INVALID_CELL;
 
     // Convenient function to clear an ID or check it s valid
     static void clearID(ID& id) { id = INVALID_ITEM_ID; }

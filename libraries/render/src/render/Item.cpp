@@ -17,6 +17,9 @@
 
 using namespace render;
 
+const Item::ID Item::INVALID_ITEM_ID = 0;
+const ItemCell Item::INVALID_CELL = -1;
+
 const Item::Status::Value Item::Status::Value::INVALID = Item::Status::Value();
 
 const float Item::Status::Value::RED = 0.0f;

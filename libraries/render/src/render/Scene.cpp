@@ -273,8 +273,7 @@ void Scene::queryTransitionItems(const Transaction::TransitionQueries& transacti
             if (!TransitionStage::isIndexInvalid(transitionId)) {
                 auto& transition = transitionStage->getTransition(transitionId);
                 func(itemId, &transition);
-            }
-            else {
+            } else {
                 func(itemId, nullptr);
             }
         }
@@ -314,8 +313,7 @@ void Scene::setItemTransition(ItemID itemId, Index transitionId) {
             auto& subItem = _items[subItemId];
             subItem.setTransitionId(transitionId);
         }
-    }
-    else {
+    } else {
         qWarning() << "Collecting sub items on item without payload";
     }
 }

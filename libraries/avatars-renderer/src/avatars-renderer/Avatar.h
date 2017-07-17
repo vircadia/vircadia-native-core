@@ -356,8 +356,8 @@ private:
     bool _initialized { false };
     bool _isLookAtTarget { false };
     bool _isAnimatingScale { false };
-    bool _mustFadeIn{ false };
-    bool _isFading{ false };
+    bool _mustFadeIn { false };
+    bool _isFading { false };
 
     static int _jointConesID;
 
