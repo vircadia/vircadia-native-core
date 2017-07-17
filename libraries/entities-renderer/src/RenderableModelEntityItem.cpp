@@ -23,6 +23,7 @@
 #include <PerfStat.h>
 #include <render/Scene.h>
 #include <DependencyManager.h>
+#include <AnimationCache.h>
 
 #include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
@@ -218,7 +219,7 @@ namespace render {
     template <> uint32_t metaFetchMetaSubItems(const RenderableModelEntityItemMeta::Pointer& payload, ItemIDs& subItems) {
         auto modelEntity = std::static_pointer_cast<RenderableModelEntityItem>(payload->entity);
         auto model = modelEntity->getModelNotSafe();
-        if (modelEntity->hasModel() && model) {
+        if (model && modelEntity->hasModel()) {
             auto& metaSubItems = model->fetchRenderItemIDs();
             subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
             return (uint32_t) metaSubItems.size();

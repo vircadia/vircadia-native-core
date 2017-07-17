@@ -16,8 +16,6 @@
 #include <QStringList>
 
 #include <ModelEntityItem.h>
-#include <AnimationCache.h>
-#include <model-networking\ModelCache.h>
 
 #include "RenderableEntityItem.h"
 
