@@ -24,7 +24,7 @@
 
 const int NO_CURRENT_HISTORY_COMMAND = -1;
 const int MAX_HISTORY_SIZE = 256;
-const QString HISTORY_FILENAME = "JSConsole.history.txt";
+const QString HISTORY_FILENAME = "JSConsole.history.json";
 
 const QString COMMAND_STYLE = "color: #266a9b;";
 
@@ -38,16 +38,25 @@ const QString GUTTER_ERROR = "<span style=\"color: #d13b22;\">X</span>";
 
 const QString JSConsole::_consoleFileName { "about:console" };
 
+const QString JSON_KEY = "entries";
 QList<QString> _readLines(const QString& filename) {
     QFile file(filename);
     file.open(QFile::ReadOnly);
-    return QTextStream(&file).readAll().split("\r\n");
+    auto json = QTextStream(&file).readAll().toUtf8();
+    auto root = QJsonDocument::fromJson(json).object();
+    // TODO: check root["version"]
+    return root[JSON_KEY].toVariant().toStringList();
 }
 
 void _writeLines(const QString& filename, const QList<QString>& lines) {
     QFile file(filename);
     file.open(QFile::WriteOnly);
-    QTextStream(&file) << lines.join("\r\n");
+    auto root = QJsonObject();
+    root["version"] = 1.0;
+    root["last-modified"] = QDateTime::currentDateTime().toTimeSpec(Qt::OffsetFromUTC).toString(Qt::ISODate);
+    root[JSON_KEY] = QJsonArray::fromStringList(lines);
+    auto json = QJsonDocument(root).toJson();
+    QTextStream(&file) << json;
 }
 
 JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
