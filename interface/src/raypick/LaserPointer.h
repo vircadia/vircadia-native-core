@@ -70,4 +70,4 @@ private:
     unsigned int _rayPickUID;
 };
 
-#endif hifi_LaserPointer_h
+#endif // hifi_LaserPointer_h

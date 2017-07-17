@@ -39,4 +39,4 @@ private:
 
 };
 
-#endif hifi_RayPick_h
+#endif // hifi_RayPick_h

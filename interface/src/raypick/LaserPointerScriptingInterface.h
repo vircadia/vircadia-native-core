@@ -32,4 +32,4 @@ public slots:
 
 };
 
-#endif hifi_LaserPointerScriptingInterface_h
+#endif // hifi_LaserPointerScriptingInterface_h

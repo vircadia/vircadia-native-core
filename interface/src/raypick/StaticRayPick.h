@@ -25,4 +25,4 @@ private:
 
 };
 
-#endif hifi_StaticRayPick_h
+#endif // hifi_StaticRayPick_h

@@ -87,4 +87,4 @@ private:
 
 };
 
-#endif hifi_RayPickManager_h
+#endif // hifi_RayPickManager_h

@@ -29,4 +29,4 @@ private:
 
 };
 
-#endif hifi_JointRayPick_h
+#endif // hifi_JointRayPick_h

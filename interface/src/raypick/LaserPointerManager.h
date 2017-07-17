@@ -42,4 +42,4 @@ private:
 
 };
 
-#endif hifi_LaserPointerManager_h
+#endif // hifi_LaserPointerManager_h
