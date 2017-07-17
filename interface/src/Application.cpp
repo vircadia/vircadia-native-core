@@ -1752,9 +1752,7 @@ QString Application::getUserAgent() {
 void Application::toggleTabletUI(bool shouldOpen) const {
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     auto hmd = DependencyManager::get<HMDScriptingInterface>();
-    TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet(SYSTEM_TABLET));
-    bool messageOpen = tablet->isMessageDialogOpen();
-    if ((!messageOpen || (messageOpen && !hmd->getShouldShowTablet())) && !(shouldOpen && hmd->getShouldShowTablet())) {
+    if (!(shouldOpen && hmd->getShouldShowTablet())) {
         auto HMD = DependencyManager::get<HMDScriptingInterface>();
         HMD->toggleShouldShowTablet();
     }
@@ -5476,6 +5474,10 @@ void Application::updateWindowTitle() const {
     qCDebug(interfaceapp, "Application title set to: %s", title.toStdString().c_str());
 #endif
     _window->setWindowTitle(title);
+
+	// updateTitleWindow gets called whenever there's a change regarding the domain, so rather
+	// than placing this within domainChanged, it's placed here to cover the other potential cases.
+	DependencyManager::get< MessagesClient >()->sendLocalMessage("Toolbar-DomainChanged", "");
 }
 
 void Application::clearDomainOctreeDetails() {
