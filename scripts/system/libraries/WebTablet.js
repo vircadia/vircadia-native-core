@@ -76,7 +76,7 @@ function calcSpawnInfo(hand, tabletHeight) {
         var TABLET_RAKE_ANGLE = 30;
         rotation = Quat.multiply(Quat.angleAxis(TABLET_RAKE_ANGLE, Vec3.multiplyQbyV(lookAt, Vec3.UNIT_X)), lookAt);
 
-        var RELATIVE_SPAWN_OFFSET = { x: 0, y: 0.4, z: 0.05 };
+        var RELATIVE_SPAWN_OFFSET = { x: 0, y: 0.6, z: 0.1 };
         position = Vec3.sum(position, Vec3.multiplyQbyV(rotation, Vec3.multiply(tabletHeight, RELATIVE_SPAWN_OFFSET)));
 
         return {
