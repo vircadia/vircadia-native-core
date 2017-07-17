@@ -3774,6 +3774,11 @@ function MyController(hand) {
     this.release = function() {
         this.turnOffVisualizations();
 
+        entitiesWithHoverOverlays.forEach(function (element) {
+            HoverOverlay.destroyHoverOverlay(element);
+        });
+        entitiesWithHoverOverlays = [];
+
         if (this.grabbedThingID !== null) {
 
             Messages.sendMessage('Hifi-Teleport-Ignore-Remove', this.grabbedThingID);
