@@ -1043,8 +1043,9 @@
             EDITOR_IDLE = 0,
             EDITOR_SEARCHING = 1,
             EDITOR_HIGHLIGHTING = 2,  // Highlighting an entity (not hovering a handle).
+            EDITOR_GRABBING = 3,
             editorState = EDITOR_IDLE,
-            EDITOR_STATE_STRINGS = ["EDITOR_IDLE", "EDITOR_SEARCHING", "EDITOR_HIGHLIGHTING"],
+            EDITOR_STATE_STRINGS = ["EDITOR_IDLE", "EDITOR_SEARCHING", "EDITOR_HIGHLIGHTING", "EDITOR_GRABBING"],
 
             // State machine.
             STATE_MACHINE,
@@ -1058,6 +1059,11 @@
             highlights,
             handles,
 
+            // Position values.
+            initialHandOrientationInverse,
+            initialHandToSelectionVector,
+            initialSelectionOrientation,
+
             intersection;
 
         hand = new Hand(side, gripPressedCallback);
@@ -1068,6 +1074,36 @@
 
         function setOtherEditor(editor) {
             otherEditor = editor;
+        }
+
+        function startEditing() {
+            var selectionPositionAndOrientation;
+
+            initialHandOrientationInverse = Quat.inverse(hand.orientation());
+            selectionPositionAndOrientation = selection.getPositionAndOrientation();
+            initialHandToSelectionVector = Vec3.subtract(selectionPositionAndOrientation.position, hand.position());
+            initialSelectionOrientation = selectionPositionAndOrientation.orientation;
+        }
+
+        function stopEditing() {
+            // Nothing to do.
+        }
+
+        function applyGrab() {
+            var handPosition,
+                handOrientation,
+                deltaOrientation,
+                selectionPosition,
+                selectionOrientation;
+
+            handPosition = hand.position();
+            handOrientation = hand.orientation();
+
+            deltaOrientation = Quat.multiply(handOrientation, initialHandOrientationInverse);
+            selectionPosition = Vec3.sum(handPosition, Vec3.multiplyQbyV(deltaOrientation, initialHandToSelectionVector));
+            selectionOrientation = Quat.multiply(deltaOrientation, initialSelectionOrientation);
+
+            selection.setPositionAndOrientation(selectionPosition, selectionOrientation);
         }
 
 
@@ -1100,6 +1136,19 @@
             highlights.clear();
         }
 
+        function enterEditorGrabbing() {
+            selection.select(highlightedEntityID);  // For when transitioning from EDITOR_SEARCHING.
+            if (intersection.laserIntersected) {
+                laser.setLength(laser.length());
+            }
+            startEditing();
+        }
+
+        function exitEditorGrabbing() {
+            stopEditing();
+            laser.clearLength();
+        }
+
         STATE_MACHINE = {
             EDITOR_IDLE: {
                 enter: enterEditorIdle,
@@ -1115,6 +1164,11 @@
                 enter: enterEditorHighlighting,
                 update: updateEditorHighlighting,
                 exit: exitEditorHighlighting
+            },
+            EDITOR_GRABBING: {
+                enter: enterEditorGrabbing,
+                update: null,
+                exit: exitEditorGrabbing
             }
         };
 
@@ -1131,6 +1185,7 @@
         function updateState() {
             STATE_MACHINE[EDITOR_STATE_STRINGS[editorState]].update();
         }
+
 
         function update() {
             var previousState = editorState;
@@ -1164,22 +1219,28 @@
                 }
                 if (!hand.valid()) {
                     setState(EDITOR_IDLE);
-                } else if (intersection.entityID) {
+                } else if (intersection.entityID && !hand.triggerClicked()) {
                     highlightedEntityID = intersection.entityID;
                     wasAppScaleWithHandles = isAppScaleWithHandles;
                     setState(EDITOR_HIGHLIGHTING);
+                } else if (intersection.entityID && hand.triggerClicked()) {
+                    highlightedEntityID = intersection.entityID;
+                    wasAppScaleWithHandles = isAppScaleWithHandles;
+                    setState(EDITOR_GRABBING);
                 } else {
                     DEBUG("ERROR: Unexpected condition in EDITOR_SEARCHING!");
                 }
                 break;
             case EDITOR_HIGHLIGHTING:
                 if (hand.valid() && intersection.entityID === highlightedEntityID
-                        && isAppScaleWithHandles === wasAppScaleWithHandles) {
+                        && !hand.triggerClicked() && isAppScaleWithHandles === wasAppScaleWithHandles) {
                     // No transition.
                     break;
                 }
                 if (!hand.valid()) {
                     setState(EDITOR_IDLE);
+                } else if (intersection.entityID && hand.triggerClicked()) {
+                    setState(EDITOR_GRABBING);
                 } else if (intersection.entityID && intersection.entityID !== highlightedEntityID) {
                     highlightedEntityID = intersection.entityID;
                     wasAppScaleWithHandles = isAppScaleWithHandles;
@@ -1193,15 +1254,39 @@
                     DEBUG("ERROR: Unexpected condition in EDITOR_HIGHLIGHTING!");
                 }
                 break;
+            case EDITOR_GRABBING:
+                if (hand.valid() && hand.triggerClicked()) {
+                    // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
+                    // No transition.
+                    break;
+                }
+                if (!hand.valid()) {
+                    setState(EDITOR_IDLE);
+                } else if (!hand.triggerClicked()) {
+                    if (intersection.entityID) {
+                        highlightedEntityID = intersection.entityID;
+                        wasAppScaleWithHandles = isAppScaleWithHandles;
+                        setState(EDITOR_HIGHLIGHTING);
+                    } else {
+                        setState(EDITOR_SEARCHING);
+                    }
+                } else {
+                    DEBUG("ERROR: Unexpected condition in EDITOR_GRABBING!");
+                }
+                break;
             }
 
             if (DEBUG && editorState !== previousState) {
-                log((side = LEFT_HAND ? "L " : "R ") + EDITOR_STATE_STRINGS[editorState]);
+                log((side === LEFT_HAND ? "L " : "R ") + EDITOR_STATE_STRINGS[editorState]);
             }
         }
 
         function apply() {
-            // TODO
+            switch (editorState) {
+            case EDITOR_GRABBING:
+                applyGrab();
+                break;
+            }
         }
 
         function clear() {
