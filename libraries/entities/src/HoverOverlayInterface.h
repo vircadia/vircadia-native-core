@@ -9,6 +9,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#pragma once
 #ifndef hifi_HoverOverlayInterface_h
 #define hifi_HoverOverlayInterface_h
 
@@ -29,7 +30,7 @@ public:
     HoverOverlayInterface();
 
     Q_INVOKABLE QUuid getCurrentHoveredEntity() { return _currentHoveredEntity; }
-    void setCurrentHoveredEntity(const QUuid entityID) { _currentHoveredEntity = entityID; }
+    void setCurrentHoveredEntity(const QUuid& entityID) { _currentHoveredEntity = entityID; }
 
 public slots:
     void createHoverOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
