@@ -17,7 +17,6 @@
         height: 50px;
     }
 </style>
-
 <div id="colorpicker"></div>
 <table id="color_picker_table">
 </table>
@@ -74,10 +73,10 @@
     function update(colorArray) {
         // 'jscolor' instance can be used as a string
         var changedColorEvent = {
-            "type" : "changeColor",
-            "red"  : colorArray[0],
-            "green": colorArray[1],
-            "blue" : colorArray[2]
+            "type"  : "changeColor",
+            "red"   : colorArray[0],
+            "green" : colorArray[1],
+            "blue"  : colorArray[2]
         };
         parent.postMessage(JSON.stringify(changedColorEvent), "*");
     }
@@ -90,11 +89,11 @@
 
     function updateColorFromCustomPicker(rgbColor) {
         var colorArray = [rgbColor.r, rgbColor.g, rgbColor.b];
-        addCustomColor(colorArray);
+        addCustomColor(colorArray, true);
         update(colorArray);
     }
 
-    function addCustomColor(colorArray) {
+    function addCustomColor(colorArray, notify) {
         var lastPickedColorsContainer = document.getElementById("last_picked_colors");
         var lastPickedColors = lastPickedColorsContainer.children;
         for (var i = 0; i < lastPickedColors.length; i++) {
@@ -107,7 +106,7 @@
                     return;
             }
         }
-        if (lastPickedColors.length >= COLUMNS) {
+        if (lastPickedColors.length + 1 >= COLUMNS) {
             lastPickedColorsContainer.removeChild(lastPickedColors[lastPickedColors.length-1]);
         }
         var colorCell = document.createElement("input");
@@ -116,5 +115,30 @@
         colorCell.className  = "color_picker_cell";
         colorCell.onclick = function() { updateColorFromTable(this) };
         lastPickedColorsContainer.insertBefore(colorCell, lastPickedColorsContainer.firstChild);
+        if (notify) {
+             var addCustomColorEvent = {
+                "type"     : "addCustomColor",
+                "maxColors": COLUMNS,
+                "red"      : colorArray[0],
+                "green"    : colorArray[1],
+                "blue"     : colorArray[2]
+            };
+            parent.postMessage(JSON.stringify(addCustomColorEvent), "*");
+        }
+    }
+
+    window.addEventListener("message", restoreLastColor, false);
+    function restoreLastColor(event) {
+        var color = JSON.parse(event.data);
+        var newColor = color.currentColor;
+        var customColors = color.customColors;
+        if (newColor) {
+            $('#colorpicker').colpickSetColor({'r': newColor.red, 'g': newColor.green, 'b': newColor.blue}, true);    
+        }
+        if (customColors) {
+            for (var i = 0; i < customColors.length; i++) {
+                addCustomColor([customColors[i].red, customColors[i].green, customColors[i].blue], false);
+            }
+        }
     }
 </script>

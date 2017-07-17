@@ -34,7 +34,7 @@
 </style>
 
 <div id="lineWidthContainer">
-    <input type="range" id="myRange" value=0.25 min=0 max=1 step=0.01 onchange="changeLineWidth(this)">
+    <input type="range" id="lineWidthRange" value=0.25 min=0 max=1 step=0.01 onchange="changeLineWidth(this)">
     <span id="lineWidthText">0.25</span>
 </div>
 
@@ -46,5 +46,12 @@
             "brushWidth":  e.value
         };
         parent.postMessage(JSON.stringify(changeLineWidthEvent), "*");
+    }
+
+    window.addEventListener("message", restoreLineWidth, false);
+    function restoreLineWidth() {
+        var width = JSON.parse(event.data);
+        document.getElementById("lineWidthRange").value = width;
+        changeLineWidth({value: width});
     }
 </script>

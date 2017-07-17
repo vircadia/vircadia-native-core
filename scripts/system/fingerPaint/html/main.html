@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-<script src="../../html/js/jquery-2.1.4.min.js"></script>
+<script type="text/javascript" src="../../html/js/jquery-2.1.4.min.js"></script>
+
 <style>
     iframe {
         height:100%;
@@ -37,19 +38,22 @@
         <span class="tabButton" onclick="selectTab(3)"><img class="tabIcon" src="../content/tabicons/linewidthBtn.png"/>Line Width</span>
         <span class="tabButton" onclick="selectTab(4)"><img class="tabIcon" src="../content/tabicons/pointingfinger128px.png"/>Hand</span>
     </div>
+    <div id="settingsLoading" style="display: none; background-color: #F44336; color: white; padding: 8px">Loading previous settings</div>
     <div id="content">
-        <iframe frameborder="0" src="colorsTab.html" seamless></iframe>
-        <iframe frameborder="0" src="brushesTab.html" seamless style="display: none"></iframe>
-        <iframe frameborder="0" src="eraserTab.html" seamless style="display: none"></iframe>
-        <iframe frameborder="0" src="lineWidthTab.html" seamless style="display: none"></iframe>
-        <iframe frameborder="0" src="chooseHandTab.html" seamless style="display: none"></iframe>
+        <iframe frameborder="0" src="colorsTab.html" onLoad="notifyFrameLoaded(this)" id="colorTab" seamless></iframe>
+        <iframe frameborder="0" src="brushesTab.html" onLoad="notifyFrameLoaded(this)" id="brushesTab" seamless style="display: none"></iframe>
+        <iframe frameborder="0" src="eraserTab.html" onLoad="notifyFrameLoaded(this)" id="eraserTab" seamless style="display: none"></iframe>
+        <iframe frameborder="0" src="lineWidthTab.html"  onLoad="notifyFrameLoaded(this)" id="lineWidthTab" seamless style="display: none"></iframe>
+        <iframe frameborder="0" src="chooseHandTab.html" onLoad="notifyFrameLoaded(this)" id="chooseHandTab" seamless style="display: none"></iframe>
     </div>
 </body>
 </html>
 
 <script type="text/javascript">
     var currentTab = 0;
-    selectTab(0);
+    var settings;
+    var iframesLoaded = 0;
+
     function selectTab(tabIndex) {
         var tabs = document.getElementById("tabs").children;
         var contentPanels = document.getElementById("content").children;
@@ -58,6 +62,11 @@
         contentPanels[tabIndex].style.display = "block";
         tabs[tabIndex].classList.add("selected");
         currentTab = tabIndex;
+        var changeTabEvent = {
+            "type"     : "changeTab",
+            "currentTab": tabIndex
+        };
+        EventBridge.emitWebEvent(JSON.stringify(changeTabEvent));
     }
 
     //Accept events from iframes
@@ -66,6 +75,57 @@
     var eventer = window[eventMethod];
     var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
 
+
+    function receiveDataSetup() { 
+        readyEvent = {"type": "ready"};
+        EventBridge.emitWebEvent(JSON.stringify(readyEvent));
+        EventBridge.scriptEventReceived.connect(function (message) {
+            //EventBridge.emitWebEvent("HTML side received message: " + message);
+            //TODO: read settings and set stuff accordingly
+            //Web Entity JS message:
+            //debugger;
+            settings = JSON.parse(message); //setup the settings so they can be added once the iframes load
+            setupSettings();
+          
+        });
+    }
+
+    function notifyFrameLoaded(e) {
+        iframesLoaded++;
+        setupSettings();
+    }
+
+    function setupSettings() {
+        //run only when all the tabs have been loaded and the settings have been received 
+        //no matter the order at which these occur
+        if (!settings || iframesLoaded != 5) {
+            return;  
+        } 
+        $("#settingsLoading").hide();
+        if (settings.currentTab) {
+            selectTab(settings.currentTab);    
+        }
+        if (settings.currentColor) {
+            document.getElementById("colorTab").contentWindow.postMessage(JSON.stringify({currentColor: settings.currentColor}), "*");
+        }
+        if (settings.customColors) {
+            document.getElementById("colorTab").contentWindow.postMessage(JSON.stringify({customColors: settings.customColors}), "*");
+        }
+        if (settings.currentTexture) {
+            document.getElementById("brushesTab").contentWindow.postMessage(JSON.stringify({currentTexture: settings.currentTexture}), "*");
+        }
+        if (settings.currentDynamicBrushes) {
+            document.getElementById("brushesTab").contentWindow.postMessage(JSON.stringify({currentDynamicBrushes: settings.currentDynamicBrushes}), "*");
+        }
+        if (settings.currentStrokeWidth) {
+            document.getElementById("lineWidthTab").contentWindow.postMessage(JSON.stringify(settings.currentStrokeWidth), "*");
+        }
+        if (settings.currentDrawingHand) {
+            document.getElementById("chooseHandTab").contentWindow.postMessage(JSON.stringify(settings.currentDrawingHand), "*");
+        }
+    }
+
+    $(document).ready(receiveDataSetup);
     // Listen to message from child window
     eventer(messageEvent,function(e) {
         EventBridge.emitWebEvent(e.data);
