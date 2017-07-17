@@ -12,6 +12,10 @@
 #include "HoverOverlayInterface.h"
 
 HoverOverlayInterface::HoverOverlayInterface() {
+    // "hover_overlay" debug log category disabled by default.
+    // Create your own "qtlogging.ini" file and set your "QT_LOGGING_CONF" environment variable
+    // if you'd like to enable/disable certain categories.
+    // More details: http://doc.qt.io/qt-5/qloggingcategory.html#configuring-categories
     QLoggingCategory::setFilterRules(QStringLiteral("hifi.hover_overlay.debug=false"));
 }
 
