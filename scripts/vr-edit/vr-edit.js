@@ -80,6 +80,12 @@
         print(APP_NAME + ": " + message);
     }
 
+    function debug(message) {
+        if (DEBUG) {
+            log(message);
+        }
+    }
+
     function isEditableRoot(entityID) {
         var EDITIBLE_ENTITY_QUERY_PROPERTYES = ["parentID", "visible", "locked", "type"],
             NONEDITABLE_ENTITY_TYPES = ["Unknown", "Zone", "Light"],
@@ -1086,6 +1092,11 @@
             otherEditor = editor;
         }
 
+        function hoverHandle(overlayID) {
+            // Highlights handle if overlayID is a handle, otherwise unhighlights currently highlighted handle if any.
+            handles.hover(overlayID);
+        }
+
         function isEditing(rootEntityID) {
             // rootEntityID is an optional parameter.
             return editorState > EDITOR_HIGHLIGHTING
@@ -1188,27 +1199,44 @@
 
         function enterEditorSearching() {
             selection.clear();
+            hoveredOverlayID = intersection.overlayID;
+            otherEditor.hoverHandle(hoveredOverlayID);
+        }
+
+        function updateEditorSearching() {
+            if (isAppScaleWithHandles && intersection.overlayID !== hoveredOverlayID && otherEditor.isEditing()) {
+                hoveredOverlayID = intersection.overlayID;
+                otherEditor.hoverHandle(hoveredOverlayID);
+            }
         }
 
         function exitEditorSearching() {
+            otherEditor.hoverHandle(null);
         }
 
         function enterEditorHighlighting() {
             selection.select(highlightedEntityID);
-            highlights.display(intersection.handIntersected, selection.selection(),
-                isAppScaleWithHandles || otherEditor.isEditing(highlightedEntityID));
+            if (!isAppScaleWithHandles || !otherEditor.isEditing(highlightedEntityID)) {
+                highlights.display(intersection.handIntersected, selection.selection(),
+                    isAppScaleWithHandles || otherEditor.isEditing(highlightedEntityID));
+            }
             isOtherEditorEditingEntityID = otherEditor.isEditing(highlightedEntityID);
         }
 
         function updateEditorHighlighting() {
             selection.select(highlightedEntityID);
-            highlights.display(intersection.handIntersected, selection.selection(),
-                isAppScaleWithHandles || otherEditor.isEditing(highlightedEntityID));
-            isOtherEditorEditingEntityID = otherEditor.isEditing(highlightedEntityID);
+            if (!isAppScaleWithHandles || !otherEditor.isEditing(highlightedEntityID)) {
+                highlights.display(intersection.handIntersected, selection.selection(),
+                    isAppScaleWithHandles || otherEditor.isEditing(highlightedEntityID));
+            } else {
+                highlights.clear();
+            }
+            isOtherEditorEditingEntityID = !isOtherEditorEditingEntityID;
         }
 
         function exitEditorHighlighting() {
             highlights.clear();
+            isOtherEditorEditingEntityID = false;
         }
 
         function enterEditorGrabbing() {
@@ -1216,11 +1244,23 @@
             if (intersection.laserIntersected) {
                 laser.setLength(laser.length());
             }
+            if (isAppScaleWithHandles) {
+                handles.display(highlightedEntityID, selection.boundingBox(), selection.count() > 1);
+            }
             startEditing();
+        }
+
+        function updateEditorGrabbing() {
+            if (isAppScaleWithHandles) {
+                handles.display(highlightedEntityID, selection.boundingBox(), selection.count() > 1);
+            } else {
+                handles.clear();
+            }
         }
 
         function exitEditorGrabbing() {
             stopEditing();
+            handles.clear();
             laser.clearLength();
         }
 
@@ -1250,7 +1290,7 @@
             },
             EDITOR_SEARCHING: {
                 enter: enterEditorSearching,
-                update: null,
+                update: updateEditorSearching,
                 exit: exitEditorSearching
             },
             EDITOR_HIGHLIGHTING: {
@@ -1260,7 +1300,7 @@
             },
             EDITOR_GRABBING: {
                 enter: enterEditorGrabbing,
-                update: null,
+                update: updateEditorGrabbing,
                 exit: exitEditorGrabbing
             },
             EDITOR_DIRECT_SCALING: {
@@ -1313,6 +1353,7 @@
             case EDITOR_SEARCHING:
                 if (hand.valid() && !intersection.entityID) {
                     // No transition.
+                    updateState();
                     break;
                 }
                 if (!hand.valid()) {
@@ -1330,7 +1371,7 @@
                         setState(EDITOR_GRABBING);
                     }
                 } else {
-                    DEBUG("ERROR: Unexpected condition in EDITOR_SEARCHING!");
+                    debug("ERROR: Unexpected condition in EDITOR_SEARCHING!");
                 }
                 break;
             case EDITOR_HIGHLIGHTING:
@@ -1362,13 +1403,17 @@
                 } else if (!intersection.entityID) {
                     setState(EDITOR_SEARCHING);
                 } else {
-                    DEBUG("ERROR: Unexpected condition in EDITOR_HIGHLIGHTING!");
+                    debug("ERROR: Unexpected condition in EDITOR_HIGHLIGHTING!");
                 }
                 break;
             case EDITOR_GRABBING:
                 if (hand.valid() && hand.triggerClicked()) {
                     // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
                     // No transition.
+                    if (isAppScaleWithHandles !== wasAppScaleWithHandles) {
+                        wasAppScaleWithHandles = isAppScaleWithHandles;
+                        updateState();
+                    }
                     break;
                 }
                 if (!hand.valid()) {
@@ -1382,7 +1427,7 @@
                         setState(EDITOR_SEARCHING);
                     }
                 } else {
-                    DEBUG("ERROR: Unexpected condition in EDITOR_GRABBING!");
+                    debug("ERROR: Unexpected condition in EDITOR_GRABBING!");
                 }
                 break;
             case EDITOR_DIRECT_SCALING:
@@ -1464,6 +1509,7 @@
 
         return {
             setOtherEditor: setOtherEditor,
+            hoverHandle: hoverHandle,
             isEditing: isEditing,
             startScaling: startScaling,
             updateScaling: updateScaling,
