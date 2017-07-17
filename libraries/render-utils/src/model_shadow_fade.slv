@@ -16,16 +16,14 @@
 
 <@include gpu/Transform.slh@>
 
-<@include Fade.slh@>
-
 <$declareStandardTransform()$>
 
-out vec4 _worldFadePosition;
+out vec4 _worldPosition;
 
 void main(void) {
     // standard transform
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
-    <$transformModelToFadePos(obj, inPosition, _worldFadePosition)$>
+    <$transformModelToWorldPos(obj, inPosition, _worldPosition)$>
 }

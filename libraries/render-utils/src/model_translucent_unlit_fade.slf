@@ -24,14 +24,14 @@
 in vec2 _texCoord0;
 in vec3 _color;
 in float _alpha;
-in vec4 _worldFadePosition;
+in vec4 _worldPosition;
 
 out vec4 _fragColor;
 
 void main(void) {
     vec3 fadeEmissive;
 
-    applyFade(_worldFadePosition.xyz, fadeEmissive);
+    applyFade(_worldPosition.xyz, fadeEmissive);
 
     Material mat = getMaterial();
     int matKey = getMaterialKey(mat);
