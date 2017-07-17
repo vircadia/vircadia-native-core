@@ -544,8 +544,8 @@ void GeometryCache::initializeShapePipelines() {
     if (!_simpleOpaquePipeline) {
         _simpleOpaquePipeline = getShapePipeline(false, false, true, false);
         _simpleTransparentPipeline = getShapePipeline(false, true, true, false);
-        _simpleOpaqueFadePipeline = getFadingShapePipeline(false, false, true, false, false);
-        _simpleTransparentFadePipeline = getFadingShapePipeline(false, true, true, false, false);
+        _simpleOpaqueFadePipeline = getFadingShapePipeline(false, false, false, false, false);
+        _simpleTransparentFadePipeline = getFadingShapePipeline(false, true, false, false, false);
         _simpleWirePipeline = getShapePipeline(false, false, true, true);
     }
 }
@@ -554,10 +554,8 @@ render::ShapePipelinePointer GeometryCache::getShapePipeline(bool textured, bool
     bool unlit, bool depthBias) {
 
     return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, false), nullptr,
-        [](const render::ShapePipeline&, gpu::Batch& batch, render::Args*) {
-        // Set the defaults needed for a simple program
-        batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
-            DependencyManager::get<TextureCache>()->getWhiteTexture());
+        [](const render::ShapePipeline& , gpu::Batch& batch, render::Args*) {
+        batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO, DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
     );
 }
@@ -568,11 +566,9 @@ render::ShapePipelinePointer GeometryCache::getFadingShapePipeline(bool textured
     auto fadeBatchSetter = fadeEffect->getBatchSetter();
     auto fadeItemSetter = fadeEffect->getItemSetter();
     return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, true), nullptr,
-        [fadeBatchSetter, fadeItemSetter](const render::ShapePipeline& pipeline, gpu::Batch& batch, render::Args* args) {
-            // Set the defaults needed for a simple program
-            batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
-                DependencyManager::get<TextureCache>()->getWhiteTexture());
-            fadeBatchSetter(pipeline, batch, args);
+        [fadeBatchSetter, fadeItemSetter](const render::ShapePipeline& shapePipeline, gpu::Batch& batch, render::Args* args) {
+            batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO, DependencyManager::get<TextureCache>()->getWhiteTexture());
+            fadeBatchSetter(shapePipeline, batch, args);
         },
         fadeItemSetter
     );
@@ -1970,6 +1966,7 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
             _unlitShader = gpu::Shader::createProgram(VS, PSUnlit);
 
             gpu::Shader::BindingSet slotBindings;
+            slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), render::ShapePipeline::Slot::MAP::ALBEDO));
             gpu::Shader::makeProgram(*_simpleShader, slotBindings);
             gpu::Shader::makeProgram(*_unlitShader, slotBindings);
         });
@@ -1984,6 +1981,8 @@ gpu::PipelinePointer GeometryCache::getSimplePipeline(bool textured, bool transp
             _unlitFadeShader = gpu::Shader::createProgram(VS, PSUnlit);
 
             gpu::Shader::BindingSet slotBindings;
+            slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), render::ShapePipeline::Slot::MAP::ALBEDO));
+            slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), render::ShapePipeline::Slot::MAP::FADE_MASK));
             gpu::Shader::makeProgram(*_simpleFadeShader, slotBindings);
             gpu::Shader::makeProgram(*_unlitFadeShader, slotBindings);
         });

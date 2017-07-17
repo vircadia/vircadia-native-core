@@ -91,7 +91,12 @@ namespace render {
     }
 
     template <> const ShapeKey shapeGetShapeKey(const ShapePayload::Pointer& payload) {
-        return ShapeKey::Builder().withCustom(GeometryCache::CUSTOM_PIPELINE_NUMBER).build();
+        auto shapeKey = ShapeKey::Builder().withCustom(GeometryCache::CUSTOM_PIPELINE_NUMBER);
+        auto entity = payload->_entity;
+        if (entity->getLocalRenderAlpha() < 1.f) {
+            shapeKey.withTranslucent();
+        }
+        return shapeKey.build();
     }
 }
 
@@ -151,14 +156,14 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
     } else {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         auto geometryCache = DependencyManager::get<GeometryCache>();
-        auto pipeline = color.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
+        auto shapeKey = render::ShapeKey(args->_globalShapeKey);
         
-        assert(pipeline != nullptr);
+        assert(args->_shapePipeline != nullptr);
 
-        if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
-            geometryCache->renderWireShapeInstance(args, batch, MAPPING[_shape], color, pipeline);
+        if (shapeKey.isWireframe()) {
+            geometryCache->renderWireShapeInstance(args, batch, MAPPING[_shape], color, args->_shapePipeline);
         } else {
-            geometryCache->renderSolidShapeInstance(args, batch, MAPPING[_shape], color, pipeline);
+            geometryCache->renderSolidShapeInstance(args, batch, MAPPING[_shape], color, args->_shapePipeline);
         }
     }
 

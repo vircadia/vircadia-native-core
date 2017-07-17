@@ -22,7 +22,6 @@
 <$declareStandardCameraTransform()$>
 
 <@include Fade.slh@>
-<$declareFadeFragment()$>
 
 // the albedo texture
 uniform sampler2D originalTexture;
@@ -33,6 +32,9 @@ in vec3 _normal;
 in vec4 _color;
 in vec2 _texCoord0;
 in vec4 _worldPosition;
+
+// Declare after all samplers to prevent sampler location mix up with originalTexture
+<$declareFadeFragment()$>
 
 void main(void) {
     vec3 fadeEmissive;

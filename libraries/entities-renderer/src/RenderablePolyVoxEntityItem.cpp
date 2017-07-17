@@ -839,6 +839,7 @@ render::ShapePipelinePointer PolyVoxPayload::shapePipelineFactory(const render::
         slotBindings.insert(gpu::Shader::Binding(std::string("xMap"), 0));
         slotBindings.insert(gpu::Shader::Binding(std::string("yMap"), 1));
         slotBindings.insert(gpu::Shader::Binding(std::string("zMap"), 2));
+        slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), 3));
 
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);

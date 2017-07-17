@@ -98,7 +98,8 @@ render::ItemID FadeEditJob::findNearestItem(const render::RenderContextPointer& 
 
     for (const auto& itemBound : inputs) {
         if (!itemBound.bound.contains(rayOrigin) && itemBound.bound.findRayIntersection(rayOrigin, rayDirection, isectDistance, face, normal)) {
-            if (isectDistance>minDistance && isectDistance < minIsectDistance) {
+            auto& item = renderContext->_scene->getItem(itemBound.id);
+            if (item.getKey().isWorldSpace() && isectDistance>minDistance && isectDistance < minIsectDistance) {
                 nearestItem = itemBound.id;
                 minIsectDistance = isectDistance;
             }

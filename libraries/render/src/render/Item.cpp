@@ -86,7 +86,8 @@ void Item::resetPayload(const PayloadPointer& payload) {
 
 const ShapeKey Item::getShapeKey() const {
     auto shapeKey = _payload->getShapeKey();
-    if (_transitionId != TransitionStage::INVALID_INDEX) {
+    if (!TransitionStage::isIndexInvalid(_transitionId)) {
+        // Objects that are fading are rendered double-sided to give a sense of volume
         return ShapeKey::Builder(shapeKey).withFade().withoutCullFace();
     }
     return shapeKey;
