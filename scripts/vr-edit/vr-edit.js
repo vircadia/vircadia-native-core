@@ -404,6 +404,30 @@
             }
         }
 
+        function grab(overlayID) {
+            var overlay,
+                isShowAll = overlayID === null,
+                color = isShowAll ? HANDLE_NORMAL_COLOR : HANDLE_HOVER_COLOR,
+                i,
+                length;
+
+            for (i = 0, length = cornerHandleOverlays.length; i < length; i += 1) {
+                overlay = cornerHandleOverlays[i];
+                Overlays.editOverlay(overlay, {
+                    visible: isShowAll || overlay === overlayID,
+                    color: color
+                });
+            }
+
+            for (i = 0, length = faceHandleOverlays.length; i < length; i += 1) {
+                overlay = faceHandleOverlays[i];
+                Overlays.editOverlay(overlay, {
+                    visible: isShowAll || overlay === overlayID,
+                    color: color
+                });
+            }
+        }
+
         function clear() {
             var i;
 
@@ -429,6 +453,7 @@
             display: display,
             isHandle: isHandle,
             hover: hover,
+            grab: grab,
             clear: clear,
             destroy: destroy
         };
@@ -1135,7 +1160,7 @@
             return Vec3.sum(hand.position(), Vec3.multiply(laser.length(), Quat.getUp(hand.orientation())));
         }
 
-        function startScaling(targetPosition) {
+        function startDirectScaling(targetPosition) {
             var initialTargetPosition,
                 initialTargetsCenter;
 
@@ -1151,12 +1176,30 @@
             isScaling = true;
         }
 
-        function updateScaling(targetPosition) {
+        function updateDirectScaling(targetPosition) {
             otherTargetPosition = targetPosition;
         }
 
-        function stopScaling() {
+        function stopDirectScaling() {
             isScaling = false;
+        }
+
+        function startHandleScaling(targetPosition, overlayID) {
+            // Keep grabbed handle highlighted and hide other handles.
+            handles.grab(overlayID);
+
+            // TODO
+        }
+
+        function updateHandleScaling(targetPosition) {
+            // TODO
+        }
+
+        function stopHandleScaling() {
+            // Stop highlighting grabbed handle and resume displaying all handles.
+            handles.grab(null);
+
+            // TODO
         }
 
 
@@ -1282,15 +1325,15 @@
             if (intersection.laserIntersected) {
                 laser.setLength(laser.length());
             }
-            otherEditor.startScaling(getScaleTargetPosition());
+            otherEditor.startDirectScaling(getScaleTargetPosition());
         }
 
         function updateEditorDirectScaling() {
-            otherEditor.updateScaling(getScaleTargetPosition());
+            otherEditor.updateDirectScaling(getScaleTargetPosition());
         }
 
         function exitEditorDirectScaling() {
-            otherEditor.stopScaling();
+            otherEditor.stopDirectScaling();
             laser.clearLength();
         }
 
@@ -1300,18 +1343,15 @@
             if (intersection.laserIntersected) {
                 laser.setLength(laser.length());
             }
-            // TODO
-            //otherEditor.startHandleScaling(getScaleTargetPosition());
+            otherEditor.startHandleScaling(getScaleTargetPosition(), intersection.overlayID);
         }
 
         function updateEditorHandleScaling() {
-            // TODO
-            //otherEditor.updateScaling(getScaleTargetPosition());
+            otherEditor.updateHandleScaling(getScaleTargetPosition());
         }
 
         function exitEditorHandleScaling() {
-            // TODO
-            //otherEditor.stopHandleScaling();
+            otherEditor.stopHandleScaling();
             laser.clearLength();
         }
 
@@ -1390,7 +1430,7 @@
                 break;
             case EDITOR_SEARCHING:
                 if (hand.valid() && !intersection.entityID
-                    && !(intersection.overlayID && hand.triggerClicked())) {
+                        && !(intersection.overlayID && hand.triggerClicked())) {
                     // No transition.
                     updateState();
                     break;
@@ -1589,9 +1629,12 @@
             hoverHandle: hoverHandle,
             isHandle: isHandle,
             isEditing: isEditing,
-            startScaling: startScaling,
-            updateScaling: updateScaling,
-            stopScaling: stopScaling,
+            startDirectScaling: startDirectScaling,
+            updateDirectScaling: updateDirectScaling,
+            stopDirectScaling: stopDirectScaling,
+            startHandleScaling: startHandleScaling,
+            updateHandleScaling: updateHandleScaling,
+            stopHandleScaling: stopHandleScaling,
             update: update,
             apply: apply,
             clear: clear,
