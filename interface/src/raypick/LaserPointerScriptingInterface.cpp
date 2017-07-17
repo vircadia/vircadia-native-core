@@ -35,6 +35,16 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
         maxDistance = propertyMap["maxDistance"].toFloat();
     }
 
+    bool faceAvatar = false;
+    if (propertyMap["faceAvatar"].isValid()) {
+        faceAvatar = propertyMap["faceAvatar"].toBool();
+    }
+
+    bool centerEndY = true;
+    if (propertyMap["centerEndY"].isValid()) {
+        centerEndY = propertyMap["centerEndY"].toBool();
+    }
+
     bool enabled = false;
     if (propertyMap["enabled"].isValid()) {
         enabled = propertyMap["enabled"].toBool();
@@ -94,7 +104,7 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
             dirOffset = vec3FromVariant(propertyMap["dirOffset"]);
         }
 
-        return LaserPointerManager::getInstance().createLaserPointer(jointName, posOffset, dirOffset, filter, maxDistance, renderStates, enabled);
+        return LaserPointerManager::getInstance().createLaserPointer(jointName, posOffset, dirOffset, filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
     } else if (propertyMap["position"].isValid()) {
         glm::vec3 position = vec3FromVariant(propertyMap["position"]);
 
@@ -103,7 +113,7 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
             direction = vec3FromVariant(propertyMap["direction"]);
         }
 
-        return LaserPointerManager::getInstance().createLaserPointer(position, direction, filter, maxDistance, renderStates, enabled);
+        return LaserPointerManager::getInstance().createLaserPointer(position, direction, filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
     }
 
     return 0;

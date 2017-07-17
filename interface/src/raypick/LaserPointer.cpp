@@ -10,44 +10,56 @@
 //
 #include "LaserPointer.h"
 
-#include "RayPickManager.h"
 #include "JointRayPick.h"
 #include "StaticRayPick.h"
 
 #include "Application.h"
+#include "avatar/AvatarManager.h"
 
 LaserPointer::LaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance,
-    const QHash<QString, RenderState>& renderStates, const bool enabled) :
+    const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled) :
     _renderingEnabled(enabled),
-    _renderStates(renderStates)
+    _renderStates(renderStates),
+    _faceAvatar(faceAvatar),
+    _centerEndY(centerEndY)
 {
     _rayPickUID = RayPickManager::getInstance().addRayPick(std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled));
 
     for (auto& state : _renderStates.keys()) {
-        if (!enabled || state != _currentRenderState)
-        disableRenderState(state);
+        if (!enabled || state != _currentRenderState) {
+            disableRenderState(state);
+        }
     }
 }
 
 LaserPointer::LaserPointer(const glm::vec3& position, const glm::vec3& direction, const uint16_t filter, const float maxDistance,
-        const QHash<QString, RenderState>& renderStates, const bool enabled) :
+        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled) :
     _renderingEnabled(enabled),
-    _renderStates(renderStates)
+    _renderStates(renderStates),
+    _faceAvatar(faceAvatar),
+    _centerEndY(centerEndY)
 {
     _rayPickUID = RayPickManager::getInstance().addRayPick(std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled));
 
     for (auto& state : _renderStates.keys()) {
-        if (!enabled || state != _currentRenderState)
+        if (!enabled || state != _currentRenderState) {
             disableRenderState(state);
+        }
     }
 }
 
 LaserPointer::~LaserPointer() {
     RayPickManager::getInstance().removeRayPick(_rayPickUID);
     for (RenderState& renderState : _renderStates) {
-        if (!renderState.getStartID().isNull()) qApp->getOverlays().deleteOverlay(renderState.getStartID());
-        if (!renderState.getPathID().isNull()) qApp->getOverlays().deleteOverlay(renderState.getPathID());
-        if (!renderState.getEndID().isNull()) qApp->getOverlays().deleteOverlay(renderState.getEndID());
+        if (!renderState.getStartID().isNull()) {
+            qApp->getOverlays().deleteOverlay(renderState.getStartID());
+        }
+        if (!renderState.getPathID().isNull()) {
+            qApp->getOverlays().deleteOverlay(renderState.getPathID());
+        }
+        if (!renderState.getEndID().isNull()) {
+            qApp->getOverlays().deleteOverlay(renderState.getEndID());
+        }
     }
 }
 
@@ -59,16 +71,16 @@ void LaserPointer::enable() {
 void LaserPointer::disable() {
     RayPickManager::getInstance().disableRayPick(_rayPickUID);
     _renderingEnabled = false;
-    if (!_currentRenderState.isEmpty() && _renderStates.contains(_currentRenderState)) disableRenderState(_currentRenderState);
+    if (!_currentRenderState.isEmpty() && _renderStates.contains(_currentRenderState)) {
+        disableRenderState(_currentRenderState);
+    }
 }
 
 void LaserPointer::setRenderState(const QString& state) {
-    if (!_currentRenderState.isEmpty() && _renderStates.contains(_currentRenderState)) disableRenderState(_currentRenderState);
+    if (!_currentRenderState.isEmpty() && _renderStates.contains(_currentRenderState)) {
+        disableRenderState(_currentRenderState);
+    }
     _currentRenderState = state;
-}
-
-const RayPickResult& LaserPointer::getPrevRayPickResult() {
-    return RayPickManager::getInstance().getPrevRayPickResult(_rayPickUID);
 }
 
 void LaserPointer::disableRenderState(const QString& renderState) {
@@ -103,7 +115,8 @@ void LaserPointer::update() {
             startProps.insert("ignoreRayIntersection", _renderStates[_currentRenderState].doesStartIgnoreRays());
             qApp->getOverlays().editOverlay(_renderStates[_currentRenderState].getStartID(), startProps);
         }
-        QVariant end = vec3toVariant(pickRay.origin + pickRay.direction * prevRayPickResult.distance);
+        glm::vec3 endVec = pickRay.origin + pickRay.direction * prevRayPickResult.distance;
+        QVariant end = vec3toVariant(endVec);
         if (!_renderStates[_currentRenderState].getPathID().isNull()) {
             QVariantMap pathProps;
             pathProps.insert("start", vec3toVariant(pickRay.origin));
@@ -114,7 +127,16 @@ void LaserPointer::update() {
         }
         if (!_renderStates[_currentRenderState].getEndID().isNull()) {
             QVariantMap endProps;
-            endProps.insert("position", end);
+            if (_centerEndY) {
+                endProps.insert("position", end);
+            } else {
+                glm::vec3 dim = vec3FromVariant(qApp->getOverlays().getProperty(_renderStates[_currentRenderState].getEndID(), "dimensions").value);
+                endProps.insert("position", vec3toVariant(endVec + glm::vec3(0, 0.5f * dim.y, 0)));
+            }
+            if (_faceAvatar) {
+                glm::quat rotation = glm::inverse(glm::quat_cast(glm::lookAt(endVec, DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), Vectors::UP)));
+                endProps.insert("rotation", quatToVariant(glm::quat(glm::radians(glm::vec3(0, glm::degrees(safeEulerAngles(rotation)).y, 0)))));
+            }
             endProps.insert("visible", true);
             endProps.insert("ignoreRayIntersection", _renderStates[_currentRenderState].doesEndIgnoreRays());
             qApp->getOverlays().editOverlay(_renderStates[_currentRenderState].getEndID(), endProps);
@@ -127,7 +149,13 @@ void LaserPointer::update() {
 RenderState::RenderState(const OverlayID& startID, const OverlayID& pathID, const OverlayID& endID) :
     _startID(startID), _pathID(pathID), _endID(endID)
 {
-    if (!_startID.isNull()) _startIgnoreRays = qApp->getOverlays().getOverlay(_startID)->getProperty("ignoreRayIntersection").toBool();
-    if (!_pathID.isNull()) _pathIgnoreRays = qApp->getOverlays().getOverlay(_pathID)->getProperty("ignoreRayIntersection").toBool();
-    if (!_endID.isNull()) _endIgnoreRays = qApp->getOverlays().getOverlay(_endID)->getProperty("ignoreRayIntersection").toBool();
+    if (!_startID.isNull()) {
+        _startIgnoreRays = qApp->getOverlays().getOverlay(_startID)->getProperty("ignoreRayIntersection").toBool();
+    }
+    if (!_pathID.isNull()) {
+        _pathIgnoreRays = qApp->getOverlays().getOverlay(_pathID)->getProperty("ignoreRayIntersection").toBool();
+    }
+    if (!_endID.isNull()) {
+        _endIgnoreRays = qApp->getOverlays().getOverlay(_endID)->getProperty("ignoreRayIntersection").toBool();
+    }
 }

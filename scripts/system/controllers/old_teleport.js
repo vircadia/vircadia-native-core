@@ -37,6 +37,12 @@ var COLORS_TELEPORT_CAN_TELEPORT = {
     blue: 255
 };
 
+var COLORS_TELEPORT_CANNOT_TELEPORT = {
+    red: 0,
+    green: 121,
+    blue: 141
+};
+
 var COLORS_TELEPORT_CANCEL = {
     red: 255,
     green: 184,
@@ -46,55 +52,14 @@ var COLORS_TELEPORT_CANCEL = {
 var TELEPORT_CANCEL_RANGE = 1;
 var COOL_IN_DURATION = 500;
 
-var cancelPath = {
-    type: "line3d",
-    color: COLORS_TELEPORT_CANCEL,
-    ignoreRayIntersection: true,
-    alpha: 1,
-    solid: true,
-    drawInFront: true,
-    glow: 1.0
+var handInfo = {
+    right: {
+        controllerInput: Controller.Standard.RightHand
+    },
+    left: {
+        controllerInput: Controller.Standard.LeftHand
+    }
 };
-var teleportPath = {
-    type: "line3d",
-    color: COLORS_TELEPORT_CAN_TELEPORT,
-    ignoreRayIntersection: true,
-    alpha: 1,
-    solid: true,
-    drawInFront: true,
-    glow: 1.0
-};
-var seatPath = {
-    type: "line3d",
-    color: COLORS_TELEPORT_SEAT,
-    ignoreRayIntersection: true,
-    alpha: 1,
-    solid: true,
-    drawInFront: true,
-    glow: 1.0
-};
-var cancelEnd = {
-    type: "model",
-    url: TOO_CLOSE_MODEL_URL,
-    dimensions: TARGET_MODEL_DIMENSIONS,
-    ignoreRayIntersection: true
-};
-var teleportEnd = {
-    type: "model",
-    url: TARGET_MODEL_URL,
-    dimensions: TARGET_MODEL_DIMENSIONS,
-    ignoreRayIntersection: true
-};
-var seatEnd = {
-    type: "model",
-    url: SEAT_MODEL_URL,
-    dimensions: TARGET_MODEL_DIMENSIONS,
-    ignoreRayIntersection: true
-}
-
-var teleportRenderStates = [{name: "cancel", path: cancelPath, end: cancelEnd},
-                            {name: "teleport", path: teleportPath, end: teleportEnd},
-                            {name: "seat", path: seatPath, end: seatEnd}];
 
 function ThumbPad(hand) {
     this.hand = hand;
@@ -143,40 +108,32 @@ function Teleporter() {
     this.state = TELEPORTER_STATES.IDLE;
     this.currentTarget = TARGET.INVALID;
 
-    this.teleportRayLeftVisible = LaserPointers.createLaserPointer({
-        joint: "LeftHand",
-        filter: RayPick.PICK_ENTITIES,
-        faceAvatar: true,
-        centerEndY: false,
-        renderStates: teleportRenderStates
-    });
-    this.teleportRayLeftInvisible = LaserPointers.createLaserPointer({
-        joint: "LeftHand",
-        filter: RayPick.PICK_ENTITIES | RayPick.PICK_INCLUDE_INVISIBLE,
-        faceAvatar: true,
-        centerEndY: false,
-        renderStates: teleportRenderStates
-    });
-    this.teleportRayRightVisible = LaserPointers.createLaserPointer({
-        joint: "RightHand",
-        filter: RayPick.PICK_ENTITIES,
-        faceAvatar: true,
-        centerEndY: false,
-        renderStates: teleportRenderStates
-    });
-    this.teleportRayRightInvisible = LaserPointers.createLaserPointer({
-        joint: "RightHand",
-        filter: RayPick.PICK_ENTITIES | RayPick.PICK_INCLUDE_INVISIBLE,
-        faceAvatar: true,
-        centerEndY: false,
-        renderStates: teleportRenderStates
-    });
-
+    this.overlayLines = {
+        left: null,
+        right: null,
+    };
     this.updateConnected = null;
     this.activeHand = null;
 
     this.teleporterMappingInternalName = 'Hifi-Teleporter-Internal-Dev-' + Math.random();
     this.teleportMappingInternal = Controller.newMapping(this.teleporterMappingInternalName);
+
+    // Setup overlays
+    this.cancelOverlay = Overlays.addOverlay("model", {
+        url: TOO_CLOSE_MODEL_URL,
+        dimensions: TARGET_MODEL_DIMENSIONS,
+        visible: false
+    });
+    this.targetOverlay = Overlays.addOverlay("model", {
+        url: TARGET_MODEL_URL,
+        dimensions: TARGET_MODEL_DIMENSIONS,
+        visible: false
+    });
+    this.seatOverlay = Overlays.addOverlay("model", {
+        url: SEAT_MODEL_URL,
+        dimensions: TARGET_MODEL_DIMENSIONS,
+        visible: false
+    });
 
     this.enableMappings = function() {
         Controller.enableMapping(this.teleporterMappingInternalName);
@@ -189,11 +146,16 @@ function Teleporter() {
     this.cleanup = function() {
         this.disableMappings();
 
-        LaserPointers.removeLaserPointer(this.teleportRayLeftVisible);
-        LaserPointers.removeLaserPointer(this.teleportRayLeftInvisible);
-        LaserPointers.removeLaserPointer(this.teleportRayRightVisible);
-        LaserPointers.removeLaserPointer(this.teleportRayRightInvisible);
+        Overlays.deleteOverlay(this.targetOverlay);
+        this.targetOverlay = null;
 
+        Overlays.deleteOverlay(this.cancelOverlay);
+        this.cancelOverlay = null;
+
+        Overlays.deleteOverlay(this.seatOverlay);
+        this.seatOverlay = null;
+
+        this.deleteOverlayBeams();
         if (this.updateConnected === true) {
             Script.update.disconnect(this, this.update);
         }
@@ -211,14 +173,6 @@ function Teleporter() {
 
         if (coolInTimeout !== null) {
             Script.clearTimeout(coolInTimeout);
-        }
-
-        if (hand === 'right') {
-            LaserPointers.enableLaserPointer(_this.teleportRayRightVisible);
-            LaserPointers.enableLaserPointer(_this.teleportRayRightInvisible);
-        } else {
-            LaserPointers.enableLaserPointer(_this.teleportRayLeftVisible);
-            LaserPointers.enableLaserPointer(_this.teleportRayLeftInvisible);
         }
 
         this.state = TELEPORTER_STATES.COOL_IN;
@@ -240,20 +194,43 @@ function Teleporter() {
         }
 
         this.disableMappings();
-        LaserPointers.disableLaserPointer(this.teleportRayLeftVisible);
-        LaserPointers.disableLaserPointer(this.teleportRayLeftInvisible);
-        LaserPointers.disableLaserPointer(this.teleportRayRightVisible);
-        LaserPointers.disableLaserPointer(this.teleportRayRightInvisible);
+        this.deleteOverlayBeams();
+        this.hideTargetOverlay();
+        this.hideCancelOverlay();
 
         this.updateConnected = null;
         this.state = TELEPORTER_STATES.IDLE;
         inTeleportMode = false;
     };
 
+    this.deleteOverlayBeams = function() {
+        for (var key in this.overlayLines) {
+            if (this.overlayLines[key] !== null) {
+                Overlays.deleteOverlay(this.overlayLines[key]);
+                this.overlayLines[key] = null;
+            }
+        }
+    };
+
     this.update = function() {
         if (_this.state === TELEPORTER_STATES.IDLE) {
             return;
         }
+
+        // Get current hand pose information so that we can get the direction of the teleport beam
+        var pose = Controller.getPoseValue(handInfo[_this.activeHand].controllerInput);
+        var handPosition = pose.valid ? Vec3.sum(Vec3.multiplyQbyV(MyAvatar.orientation, pose.translation), MyAvatar.position) : MyAvatar.getHeadPosition();
+        var handRotation = pose.valid ? Quat.multiply(MyAvatar.orientation, pose.rotation) :
+            Quat.multiply(MyAvatar.headOrientation, Quat.angleAxis(-90, {
+                x: 1,
+                y: 0,
+                z: 0
+            }));
+
+        var pickRay = {
+            origin: handPosition,
+            direction: Quat.getUp(handRotation),
+        };
 
         // We do up to 2 ray picks to find a teleport location.
         // There are 2 types of teleport locations we are interested in:
@@ -264,28 +241,48 @@ function Teleporter() {
         //    We might hit an invisible entity that is not a seat, so we need to do a second pass.
         //  * In the second pass we pick against visible entities only.
         //
-        var result = (_this.activeHand === 'right') ? LaserPointers.getPrevRayPickResult(_this.teleportRayRightInvisible) :
-                                                      LaserPointers.getPrevRayPickResult(_this.teleportRayLeftInvisible);
+        var intersection = Entities.findRayIntersection(pickRay, true, [], [this.targetEntity].concat(ignoredEntities), false, true);
 
-        var teleportLocationType = getTeleportTargetType(result);
+        var teleportLocationType = getTeleportTargetType(intersection);
         if (teleportLocationType === TARGET.INVISIBLE) {
-            result = (_this.activeHand === 'right') ? LaserPointers.getPrevRayPickResult(_this.teleportRayRightVisible) :
-                                                      LaserPointers.getPrevRayPickResult(_this.teleportRayLeftVisible);
-            teleportLocationType = getTeleportTargetType(result);
+            intersection = Entities.findRayIntersection(pickRay, true, [], [this.targetEntity].concat(ignoredEntities), true, true);
+            teleportLocationType = getTeleportTargetType(intersection);
         }
 
         if (teleportLocationType === TARGET.NONE) {
-            this.setTeleportState(_this.activeHand, "", "");
+            this.hideTargetOverlay();
+            this.hideCancelOverlay();
+            this.hideSeatOverlay();
+
+            var farPosition = Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, 50));
+            this.updateLineOverlay(_this.activeHand, pickRay.origin, farPosition, COLORS_TELEPORT_CANNOT_TELEPORT);
         } else if (teleportLocationType === TARGET.INVALID || teleportLocationType === TARGET.INVISIBLE) {
-            this.setTeleportState(_this.activeHand, "", "cancel");
+            this.hideTargetOverlay();
+            this.hideSeatOverlay();
+
+            this.updateLineOverlay(_this.activeHand, pickRay.origin, intersection.intersection, COLORS_TELEPORT_CANCEL);
+            this.updateDestinationOverlay(this.cancelOverlay, intersection);
         } else if (teleportLocationType === TARGET.SURFACE) {
             if (this.state === TELEPORTER_STATES.COOL_IN) {
-                this.setTeleportState(_this.activeHand, "cancel", "");
+                this.hideTargetOverlay();
+                this.hideSeatOverlay();
+
+                this.updateLineOverlay(_this.activeHand, pickRay.origin, intersection.intersection, COLORS_TELEPORT_CANCEL);
+                this.updateDestinationOverlay(this.cancelOverlay, intersection);
             } else {
-                this.setTeleportState(_this.activeHand, "teleport", "");
+                this.hideCancelOverlay();
+                this.hideSeatOverlay();
+
+                this.updateLineOverlay(_this.activeHand, pickRay.origin, intersection.intersection,
+                                       COLORS_TELEPORT_CAN_TELEPORT);
+                this.updateDestinationOverlay(this.targetOverlay, intersection);
             }
         } else if (teleportLocationType === TARGET.SEAT) {
-            this.setTeleportState(_this.activeHand, "", "seat");
+            this.hideCancelOverlay();
+            this.hideTargetOverlay();
+
+            this.updateLineOverlay(_this.activeHand, pickRay.origin, intersection.intersection, COLORS_TELEPORT_SEAT);
+            this.updateDestinationOverlay(this.seatOverlay, intersection);
         }
 
 
@@ -293,29 +290,78 @@ function Teleporter() {
             // remember the state before we exit teleport mode and set it back to IDLE
             var previousState = this.state;
             this.exitTeleportMode();
+            this.hideCancelOverlay();
+            this.hideTargetOverlay();
+            this.hideSeatOverlay();
 
             if (teleportLocationType === TARGET.NONE || teleportLocationType === TARGET.INVALID || previousState === TELEPORTER_STATES.COOL_IN) {
                 // Do nothing
             } else if (teleportLocationType === TARGET.SEAT) {
-                Entities.callEntityMethod(result.objectID, 'sit');
+                Entities.callEntityMethod(intersection.entityID, 'sit');
             } else if (teleportLocationType === TARGET.SURFACE) {
                 var offset = getAvatarFootOffset();
-                result.intersection.y += offset;
-                MyAvatar.goToLocation(result.intersection, false, {x: 0, y: 0, z: 0, w: 1}, false);
+                intersection.intersection.y += offset;
+                MyAvatar.goToLocation(intersection.intersection, false, {x: 0, y: 0, z: 0, w: 1}, false);
                 HMD.centerUI();
                 MyAvatar.centerBody();
             }
         }
     };
 
-    this.setTeleportState = function(hand, visibleState, invisibleState) {
-        if (hand === 'right') {
-            LaserPointers.setRenderState(_this.teleportRayRightVisible, visibleState);
-            LaserPointers.setRenderState(_this.teleportRayRightInvisible, invisibleState);
+    this.updateLineOverlay = function(hand, closePoint, farPoint, color) {
+        if (this.overlayLines[hand] === null) {
+            var lineProperties = {
+                start: closePoint,
+                end: farPoint,
+                color: color,
+                ignoreRayIntersection: true,
+                visible: true,
+                alpha: 1,
+                solid: true,
+                drawInFront: true,
+                glow: 1.0
+            };
+
+            this.overlayLines[hand] = Overlays.addOverlay("line3d", lineProperties);
+
         } else {
-            LaserPointers.setRenderState(_this.teleportRayLeftVisible, visibleState);
-            LaserPointers.setRenderState(_this.teleportRayLeftInvisible, invisibleState);
+            Overlays.editOverlay(this.overlayLines[hand], {
+                start: closePoint,
+                end: farPoint,
+                color: color
+            });
         }
+    };
+
+    this.hideCancelOverlay = function() {
+        Overlays.editOverlay(this.cancelOverlay, { visible: false });
+    };
+
+    this.hideTargetOverlay = function() {
+        Overlays.editOverlay(this.targetOverlay, { visible: false });
+    };
+
+    this.hideSeatOverlay = function() {
+        Overlays.editOverlay(this.seatOverlay, { visible: false });
+    };
+
+    this.updateDestinationOverlay = function(overlayID, intersection) {
+        var rotation = Quat.lookAt(intersection.intersection, MyAvatar.position, Vec3.UP);
+        var euler = Quat.safeEulerAngles(rotation);
+        var position = {
+            x: intersection.intersection.x,
+            y: intersection.intersection.y + TARGET_MODEL_DIMENSIONS.y / 2,
+            z: intersection.intersection.z
+        };
+
+        var towardUs = Quat.fromPitchYawRollDegrees(0, euler.y, 0);
+
+        Overlays.editOverlay(overlayID, {
+            visible: true,
+            position: position,
+            rotation: towardUs
+        });
+
     };
 }
 
@@ -372,12 +418,12 @@ function parseJSON(json) {
 // than MAX_ANGLE_FROM_UP_TO_TELEPORT degrees from <0, 1, 0> (straight up), then
 // you can't teleport there.
 var MAX_ANGLE_FROM_UP_TO_TELEPORT = 70;
-function getTeleportTargetType(result) {
-    if (result.type == RayPick.INTERSECTED_NONE) {
+function getTeleportTargetType(intersection) {
+    if (!intersection.intersects) {
         return TARGET.NONE;
     }
 
-    var props = Entities.getEntityProperties(result.objectID, ['userData', 'visible']);
+    var props = Entities.getEntityProperties(intersection.entityID, ['userData', 'visible']);
     var data = parseJSON(props.userData);
     if (data !== undefined && data.seat !== undefined) {
         var avatarUuid = Uuid.fromString(data.seat.user);
@@ -392,13 +438,13 @@ function getTeleportTargetType(result) {
         return TARGET.INVISIBLE;
     }
 
-    var surfaceNormal = result.surfaceNormal;
+    var surfaceNormal = intersection.surfaceNormal;
     var adj = Math.sqrt(surfaceNormal.x * surfaceNormal.x + surfaceNormal.z * surfaceNormal.z);
     var angleUp = Math.atan2(surfaceNormal.y, adj) * (180 / Math.PI);
 
     if (angleUp < (90 - MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
             angleUp > (90 + MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
-            Vec3.distance(MyAvatar.position, result.intersection) <= TELEPORT_CANCEL_RANGE) {
+            Vec3.distance(MyAvatar.position, intersection.intersection) <= TELEPORT_CANCEL_RANGE) {
         return TARGET.INVALID;
     } else {
         return TARGET.SURFACE;
@@ -474,8 +520,6 @@ var handleTeleportMessages = function(channel, message, sender) {
                 isDisabled = false;
             }
         } else if (channel === 'Hifi-Teleport-Ignore-Add' && !Uuid.isNull(message) && ignoredEntities.indexOf(message) === -1) {
-            // TODO:
-            // add ability to ignore entities to LaserPointers
             ignoredEntities.push(message);
         } else if (channel === 'Hifi-Teleport-Ignore-Remove' && !Uuid.isNull(message)) {
             var removeIndex = ignoredEntities.indexOf(message);

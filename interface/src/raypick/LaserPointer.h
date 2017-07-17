@@ -14,6 +14,7 @@
 #include <QString>
 #include "glm/glm.hpp"
 #include "ui/overlays/Overlay.h"
+#include "RayPickManager.h"
 
 class RayPickResult;
 
@@ -44,15 +45,15 @@ class LaserPointer {
 
 public:
     LaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance,
-        const QHash<QString, RenderState>& renderStates, const bool enabled);
+        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled);
     LaserPointer(const glm::vec3& position, const glm::vec3& direction, const uint16_t filter, const float maxDistance,
-        const QHash<QString, RenderState>& renderStates, const bool enabled);
+        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled);
     ~LaserPointer();
 
     unsigned int getUID() { return _rayPickUID; }
     void enable();
     void disable();
-    const RayPickResult& getPrevRayPickResult();
+    const RayPickResult& getPrevRayPickResult() { return RayPickManager::getInstance().getPrevRayPickResult(_rayPickUID); }
 
     void setRenderState(const QString& state);
     void disableRenderState(const QString& renderState);
@@ -63,6 +64,9 @@ private:
     bool _renderingEnabled;
     QString _currentRenderState { "" };
     QHash<QString, RenderState> _renderStates;
+    bool _faceAvatar;
+    bool _centerEndY;
+
     unsigned int _rayPickUID;
 };
 

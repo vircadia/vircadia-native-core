@@ -18,15 +18,16 @@ LaserPointerManager& LaserPointerManager::getInstance() {
 }
 
 unsigned int LaserPointerManager::createLaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance,
-        const QHash<QString, RenderState>& renderStates, const bool enabled) {
-    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(jointName, posOffset, dirOffset, filter, maxDistance, renderStates, enabled);
+        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled) {
+    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(jointName, posOffset, dirOffset, filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
     unsigned int uid = laserPointer->getUID();
     _laserPointers[uid] = laserPointer;
     return uid;
 }
 
-unsigned int LaserPointerManager::createLaserPointer(const glm::vec3& position, const glm::vec3& direction, const uint16_t filter, const float maxDistance, const QHash<QString, RenderState>& renderStates, const bool enabled) {
-    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(position, direction, filter, maxDistance, renderStates, enabled);
+unsigned int LaserPointerManager::createLaserPointer(const glm::vec3& position, const glm::vec3& direction, const uint16_t filter, const float maxDistance,
+        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled) {
+    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(position, direction, filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
     unsigned int uid = laserPointer->getUID();
     _laserPointers[uid] = laserPointer;
     return uid;
@@ -50,7 +51,7 @@ void LaserPointerManager::setRenderState(unsigned int uid, const QString & rende
     }
 }
 
-const RayPickResult& LaserPointerManager::getPrevRayPickResult(const unsigned int uid) {
+const RayPickResult LaserPointerManager::getPrevRayPickResult(const unsigned int uid) {
     if (_laserPointers.contains(uid)) {
         return _laserPointers[uid]->getPrevRayPickResult();
     }
