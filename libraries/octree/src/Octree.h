@@ -212,14 +212,14 @@ public:
     virtual bool handlesEditPacketType(PacketType packetType) const { return false; }
     virtual int processEditPacketData(ReceivedMessage& message, const unsigned char* editData, int maxLength,
                                       const SharedNodePointer& sourceNode) { return 0; }
-                    
+
     virtual bool recurseChildrenWithData() const { return true; }
     virtual bool rootElementHasData() const { return false; }
     virtual int minimumRequiredRootDataBytes() const { return 0; }
     virtual bool suppressEmptySubtrees() const { return true; }
     virtual void releaseSceneEncodeData(OctreeElementExtraEncodeData* extraEncodeData) const { }
     virtual bool mustIncludeAllChildData() const { return true; }
-    
+
     /// some versions of the SVO file will include breaks with buffer lengths between each buffer chunk in the SVO
     /// file. If the Octree subclass expects this for this particular version of the file, it should override this
     /// method and return true.
@@ -236,15 +236,15 @@ public:
     void reaverageOctreeElements(OctreeElementPointer startElement = OctreeElementPointer());
 
     void deleteOctreeElementAt(float x, float y, float z, float s);
-    
+
     /// Find the voxel at position x,y,z,s
     /// \return pointer to the OctreeElement or NULL if none at x,y,z,s.
     OctreeElementPointer getOctreeElementAt(float x, float y, float z, float s) const;
-    
+
     /// Find the voxel at position x,y,z,s
     /// \return pointer to the OctreeElement or to the smallest enclosing parent if none at x,y,z,s.
     OctreeElementPointer getOctreeEnclosingElementAt(float x, float y, float z, float s) const;
-    
+
     OctreeElementPointer getOrCreateChildElementAt(float x, float y, float z, float s);
     OctreeElementPointer getOrCreateChildElementContaining(const AACube& box);
 
@@ -261,7 +261,7 @@ public:
 
     int encodeTreeBitstream(const OctreeElementPointer& element, OctreePacketData* packetData, OctreeElementBag& bag,
                             EncodeBitstreamParams& params) ;
-                            
+
     bool isDirty() const { return _isDirty; }
     void clearDirtyBit() { _isDirty = false; }
     void setDirtyBit() { _isDirty = true; }
@@ -301,9 +301,9 @@ public:
     // Octree importers
     bool readFromFile(const char* filename);
     bool readFromURL(const QString& url); // will support file urls as well...
-    bool readFromStream(unsigned long streamLength, QDataStream& inputStream);
+    bool readFromStream(unsigned long streamLength, QDataStream& inputStream, const QString& marketplaceID="");
     bool readSVOFromStream(unsigned long streamLength, QDataStream& inputStream);
-    bool readJSONFromStream(unsigned long streamLength, QDataStream& inputStream);
+    bool readJSONFromStream(unsigned long streamLength, QDataStream& inputStream, const QString& marketplaceID="");
     bool readJSONFromGzippedFile(QString qFileName);
     virtual bool readFromMap(QVariantMap& entityDescription) = 0;
 
