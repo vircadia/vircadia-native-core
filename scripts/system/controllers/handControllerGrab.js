@@ -187,6 +187,8 @@ var DEFAULT_GRABBABLE_DATA = {
 var USE_BLACKLIST = true;
 var blacklist = [];
 
+var entitiesWithHoverOverlays = [];
+
 var FORBIDDEN_GRAB_NAMES = ["Grab Debug Entity", "grab pointer"];
 var FORBIDDEN_GRAB_TYPES = ["Unknown", "Light", "PolyLine", "Zone"];
 
@@ -2199,6 +2201,15 @@ function MyController(hand) {
 
         if (rayPickInfo.entityID) {
             entityPropertiesCache.addEntity(rayPickInfo.entityID);
+        }
+
+        if (rayPickInfo.entityID && entitiesWithHoverOverlays.indexOf(rayPickInfo.entityID) == -1) {
+            entitiesWithHoverOverlays.forEach(function (element) {
+                HoverOverlay.destroyHoverOverlay(element);
+            });
+            entitiesWithHoverOverlays = [];
+            HoverOverlay.createHoverOverlay(rayPickInfo.entityID);
+            entitiesWithHoverOverlays.push(rayPickInfo.entityID);
         }
 
         var candidateHotSpotEntities = Entities.findEntities(handPosition, MAX_EQUIP_HOTSPOT_RADIUS);
