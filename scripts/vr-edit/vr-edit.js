@@ -592,7 +592,7 @@
 
         function startScaling(center) {
             scaleCenter = center;
-            scaleRootOffset = Vec3.subtract(selection[0].position, center);
+            scaleRootOffset = Vec3.subtract(rootPosition, center);
             scaleRootOrientation = rootOrientation;
         }
 
@@ -1044,12 +1044,15 @@
             EDITOR_SEARCHING = 1,
             EDITOR_HIGHLIGHTING = 2,  // Highlighting an entity (not hovering a handle).
             EDITOR_GRABBING = 3,
+            EDITOR_DIRECT_SCALING = 4,  // Scaling data are sent to other editor's EDITOR_GRABBING state.
             editorState = EDITOR_IDLE,
-            EDITOR_STATE_STRINGS = ["EDITOR_IDLE", "EDITOR_SEARCHING", "EDITOR_HIGHLIGHTING", "EDITOR_GRABBING"],
+            EDITOR_STATE_STRINGS = ["EDITOR_IDLE", "EDITOR_SEARCHING", "EDITOR_HIGHLIGHTING", "EDITOR_GRABBING",
+                "EDITOR_DIRECT_SCALING"],
 
             // State machine.
             STATE_MACHINE,
             highlightedEntityID = null,
+            isOtherEditorEditingEntityID = false,
             wasAppScaleWithHandles = false,
 
             // Primary objects.
@@ -1064,6 +1067,13 @@
             initialHandToSelectionVector,
             initialSelectionOrientation,
 
+            // Scaling values.
+            isScaling = false,  // Modifies EDITOR_GRABBING state.
+            initialTargetsSeparation,
+            initialtargetsDirection,
+            otherTargetPosition,
+            isScalingWithHand = false,
+
             intersection;
 
         hand = new Hand(side, gripPressedCallback);
@@ -1074,6 +1084,12 @@
 
         function setOtherEditor(editor) {
             otherEditor = editor;
+        }
+
+        function isEditing(rootEntityID) {
+            // rootEntityID is an optional parameter.
+            return editorState > EDITOR_HIGHLIGHTING
+                && (rootEntityID === undefined || rootEntityID === selection.rootEntityID());
         }
 
         function startEditing() {
@@ -1088,6 +1104,38 @@
         function stopEditing() {
             // Nothing to do.
         }
+
+        function getScaleTargetPosition() {
+            if (isScalingWithHand) {
+                return side === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
+            }
+            return Vec3.sum(hand.position(), Vec3.multiply(laser.length(), Quat.getUp(hand.orientation())));
+        }
+
+        function startScaling(targetPosition) {
+            var initialTargetPosition,
+                initialTargetsCenter;
+
+            isScalingWithHand = intersection.handIntersected;
+
+            otherTargetPosition = targetPosition;
+            initialTargetPosition = getScaleTargetPosition();
+            initialTargetsCenter = Vec3.multiply(0.5, Vec3.sum(initialTargetPosition, otherTargetPosition));
+            initialTargetsSeparation = Vec3.distance(initialTargetPosition, otherTargetPosition);
+            initialtargetsDirection = Vec3.subtract(otherTargetPosition, initialTargetPosition);
+
+            selection.startScaling(initialTargetsCenter);
+            isScaling = true;
+        }
+
+        function updateScaling(targetPosition) {
+            otherTargetPosition = targetPosition;
+        }
+
+        function stopScaling() {
+            isScaling = false;
+        }
+
 
         function applyGrab() {
             var handPosition,
@@ -1104,6 +1152,29 @@
             selectionOrientation = Quat.multiply(deltaOrientation, initialSelectionOrientation);
 
             selection.setPositionAndOrientation(selectionPosition, selectionOrientation);
+        }
+
+        function applyScale() {
+            var targetPosition,
+                targetsSeparation,
+                scale,
+                rotation,
+                center,
+                selectionPositionAndOrientation;
+
+            // Scale selection.
+            targetPosition = getScaleTargetPosition();
+            targetsSeparation = Vec3.distance(targetPosition, otherTargetPosition);
+            scale = targetsSeparation / initialTargetsSeparation;
+            rotation = Quat.rotationBetween(initialtargetsDirection, Vec3.subtract(otherTargetPosition, targetPosition));
+            center = Vec3.multiply(0.5, Vec3.sum(targetPosition, otherTargetPosition));
+            selection.scale(scale, rotation, center);
+
+            // Update grab offset.
+            selectionPositionAndOrientation = selection.getPositionAndOrientation();
+            initialHandOrientationInverse = Quat.inverse(hand.orientation());
+            initialHandToSelectionVector = Vec3.subtract(selectionPositionAndOrientation.position, hand.position());
+            initialSelectionOrientation = selectionPositionAndOrientation.orientation;
         }
 
 
@@ -1124,12 +1195,16 @@
 
         function enterEditorHighlighting() {
             selection.select(highlightedEntityID);
-            highlights.display(intersection.handIntersected, selection.selection(), isAppScaleWithHandles);
+            highlights.display(intersection.handIntersected, selection.selection(),
+                isAppScaleWithHandles || otherEditor.isEditing(highlightedEntityID));
+            isOtherEditorEditingEntityID = otherEditor.isEditing(highlightedEntityID);
         }
 
         function updateEditorHighlighting() {
             selection.select(highlightedEntityID);
-            highlights.display(intersection.handIntersected, selection.selection(), isAppScaleWithHandles);
+            highlights.display(intersection.handIntersected, selection.selection(),
+                isAppScaleWithHandles || otherEditor.isEditing(highlightedEntityID));
+            isOtherEditorEditingEntityID = otherEditor.isEditing(highlightedEntityID);
         }
 
         function exitEditorHighlighting() {
@@ -1146,6 +1221,24 @@
 
         function exitEditorGrabbing() {
             stopEditing();
+            laser.clearLength();
+        }
+
+        function enterEditorDirectScaling() {
+            selection.select(highlightedEntityID);  // For when transitioning from EDITOR_SEARCHING.
+            isScalingWithHand = intersection.handIntersected;
+            if (intersection.laserIntersected) {
+                laser.setLength(laser.length());
+            }
+            otherEditor.startScaling(getScaleTargetPosition());
+        }
+
+        function updateEditorDirectScaling() {
+            otherEditor.updateScaling(getScaleTargetPosition());
+        }
+
+        function exitEditorDirectScaling() {
+            otherEditor.stopScaling();
             laser.clearLength();
         }
 
@@ -1169,6 +1262,11 @@
                 enter: enterEditorGrabbing,
                 update: null,
                 exit: exitEditorGrabbing
+            },
+            EDITOR_DIRECT_SCALING: {
+                enter: enterEditorDirectScaling,
+                update: updateEditorDirectScaling,
+                exit: exitEditorDirectScaling
             }
         };
 
@@ -1220,29 +1318,42 @@
                 if (!hand.valid()) {
                     setState(EDITOR_IDLE);
                 } else if (intersection.entityID && !hand.triggerClicked()) {
-                    highlightedEntityID = intersection.entityID;
+                    highlightedEntityID = Entities.rootOf(intersection.entityID);
                     wasAppScaleWithHandles = isAppScaleWithHandles;
                     setState(EDITOR_HIGHLIGHTING);
                 } else if (intersection.entityID && hand.triggerClicked()) {
-                    highlightedEntityID = intersection.entityID;
+                    highlightedEntityID = Entities.rootOf(intersection.entityID);
                     wasAppScaleWithHandles = isAppScaleWithHandles;
-                    setState(EDITOR_GRABBING);
+                    if (otherEditor.isEditing(highlightedEntityID)) {
+                        setState(EDITOR_DIRECT_SCALING);
+                    } else {
+                        setState(EDITOR_GRABBING);
+                    }
                 } else {
                     DEBUG("ERROR: Unexpected condition in EDITOR_SEARCHING!");
                 }
                 break;
             case EDITOR_HIGHLIGHTING:
-                if (hand.valid() && intersection.entityID === highlightedEntityID
+                if (hand.valid() && Entities.rootOf(intersection.entityID) === highlightedEntityID
                         && !hand.triggerClicked() && isAppScaleWithHandles === wasAppScaleWithHandles) {
                     // No transition.
+                    if (otherEditor.isEditing(highlightedEntityID) !== isOtherEditorEditingEntityID) {
+                        updateState();
+                    }
                     break;
                 }
                 if (!hand.valid()) {
                     setState(EDITOR_IDLE);
                 } else if (intersection.entityID && hand.triggerClicked()) {
-                    setState(EDITOR_GRABBING);
-                } else if (intersection.entityID && intersection.entityID !== highlightedEntityID) {
-                    highlightedEntityID = intersection.entityID;
+                    highlightedEntityID = Entities.rootOf(intersection.entityID);  // May be a different entityID.
+                    wasAppScaleWithHandles = isAppScaleWithHandles;
+                    if (otherEditor.isEditing(highlightedEntityID)) {
+                        setState(EDITOR_DIRECT_SCALING);
+                    } else {
+                        setState(EDITOR_GRABBING);
+                    }
+                } else if (intersection.entityID && Entities.rootOf(intersection.entityID) !== highlightedEntityID) {
+                    highlightedEntityID = Entities.rootOf(intersection.entityID);
                     wasAppScaleWithHandles = isAppScaleWithHandles;
                     updateState();
                 } else if (intersection.entityID && isAppScaleWithHandles !== wasAppScaleWithHandles) {
@@ -1264,7 +1375,7 @@
                     setState(EDITOR_IDLE);
                 } else if (!hand.triggerClicked()) {
                     if (intersection.entityID) {
-                        highlightedEntityID = intersection.entityID;
+                        highlightedEntityID = Entities.rootOf(intersection.entityID);
                         wasAppScaleWithHandles = isAppScaleWithHandles;
                         setState(EDITOR_HIGHLIGHTING);
                     } else {
@@ -1272,6 +1383,29 @@
                     }
                 } else {
                     DEBUG("ERROR: Unexpected condition in EDITOR_GRABBING!");
+                }
+                break;
+            case EDITOR_DIRECT_SCALING:
+                if (hand.valid() && hand.triggerClicked() && otherEditor.isEditing(highlightedEntityID)) {
+                    // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
+                    // No transition.
+                    updateState();
+                    break;
+                }
+                if (!hand.valid()) {
+                    setState(EDITOR_IDLE);
+                } else if (!hand.triggerClicked()) {
+                    if (!intersection.entityID) {
+                        setState(EDITOR_SEARCHING);
+                    } else {
+                        highlightedEntityID = Entities.rootOf(intersection.entityID);
+                        wasAppScaleWithHandles = isAppScaleWithHandles;
+                        setState(EDITOR_HIGHLIGHTING);
+                    }
+                } else if (!otherEditor.isEditing(highlightedEntityID)) {
+                    // Grab highlightEntityID that was scaling and has already been set.
+                    wasAppScaleWithHandles = isAppScaleWithHandles;
+                    setState(EDITOR_GRABBING);
                 }
                 break;
             }
@@ -1284,7 +1418,11 @@
         function apply() {
             switch (editorState) {
             case EDITOR_GRABBING:
-                applyGrab();
+                if (isScaling) {
+                    applyScale();
+                } else {
+                    applyGrab();
+                }
                 break;
             }
         }
@@ -1326,6 +1464,10 @@
 
         return {
             setOtherEditor: setOtherEditor,
+            isEditing: isEditing,
+            startScaling: startScaling,
+            updateScaling: updateScaling,
+            stopScaling: stopScaling,
             update: update,
             apply: apply,
             clear: clear,
