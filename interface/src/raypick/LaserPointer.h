@@ -53,7 +53,7 @@ public:
     unsigned int getUID() { return _rayPickUID; }
     void enable();
     void disable();
-    const RayPickResult& getPrevRayPickResult() { return RayPickManager::getInstance().getPrevRayPickResult(_rayPickUID); }
+    const RayPickResult getPrevRayPickResult() { return RayPickManager::getInstance().getPrevRayPickResult(_rayPickUID); }
 
     void setRenderState(const QString& state);
     void disableRenderState(const QString& renderState);

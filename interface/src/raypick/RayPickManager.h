@@ -70,20 +70,20 @@ private:
     QHash<unsigned int, std::shared_ptr<RayPick>> _rayPicks;
     unsigned int _nextUID { 1 }; // 0 is invalid
 
-    const unsigned int PICK_NOTHING() { return RayPickMask::PICK_NOTHING; }
-    const unsigned int PICK_ENTITIES() { return RayPickMask::PICK_ENTITIES; }
-    const unsigned int PICK_OVERLAYS() { return RayPickMask::PICK_OVERLAYS; }
-    const unsigned int PICK_AVATARS() { return RayPickMask::PICK_AVATARS; }
-    const unsigned int PICK_HUD() { return RayPickMask::PICK_HUD; }
-    const unsigned int PICK_BOUNDING_BOX() { return RayPickMask::PICK_BOUNDING_BOX; }
-    const unsigned int PICK_INCLUDE_INVISIBLE() { return RayPickMask::PICK_INCLUDE_INVISIBLE; }
-    const unsigned int PICK_INCLUDE_NONCOLLIDABLE() { return RayPickMask::PICK_INCLUDE_NONCOLLIDABLE; }
-    const unsigned int PICK_ALL_INTERSECTIONS() { return RayPickMask::PICK_ALL_INTERSECTIONS; }
-    const unsigned int INTERSECTED_NONE() { return IntersectionType::NONE; }
-    const unsigned int INTERSECTED_ENTITY() { return IntersectionType::ENTITY; }
-    const unsigned int INTERSECTED_OVERLAY() { return IntersectionType::OVERLAY; }
-    const unsigned int INTERSECTED_AVATAR() { return IntersectionType::AVATAR; }
-    const unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
+    unsigned int PICK_NOTHING() { return RayPickMask::PICK_NOTHING; }
+    unsigned int PICK_ENTITIES() { return RayPickMask::PICK_ENTITIES; }
+    unsigned int PICK_OVERLAYS() { return RayPickMask::PICK_OVERLAYS; }
+    unsigned int PICK_AVATARS() { return RayPickMask::PICK_AVATARS; }
+    unsigned int PICK_HUD() { return RayPickMask::PICK_HUD; }
+    unsigned int PICK_BOUNDING_BOX() { return RayPickMask::PICK_BOUNDING_BOX; }
+    unsigned int PICK_INCLUDE_INVISIBLE() { return RayPickMask::PICK_INCLUDE_INVISIBLE; }
+    unsigned int PICK_INCLUDE_NONCOLLIDABLE() { return RayPickMask::PICK_INCLUDE_NONCOLLIDABLE; }
+    unsigned int PICK_ALL_INTERSECTIONS() { return RayPickMask::PICK_ALL_INTERSECTIONS; }
+    unsigned int INTERSECTED_NONE() { return IntersectionType::NONE; }
+    unsigned int INTERSECTED_ENTITY() { return IntersectionType::ENTITY; }
+    unsigned int INTERSECTED_OVERLAY() { return IntersectionType::OVERLAY; }
+    unsigned int INTERSECTED_AVATAR() { return IntersectionType::AVATAR; }
+    unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
 
 };
 

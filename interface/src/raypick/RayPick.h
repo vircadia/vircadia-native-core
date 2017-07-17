@@ -24,9 +24,9 @@ public:
     void enable() { _enabled = true; }
     void disable() { _enabled = false; }
 
-    const uint16_t getFilter() { return _filter; }
-    const float getMaxDistance() { return _maxDistance; }
-    const bool isEnabled() { return _enabled; }
+    const uint16_t& getFilter() { return _filter; }
+    const float& getMaxDistance() { return _maxDistance; }
+    const bool& isEnabled() { return _enabled; }
     const RayPickResult& getPrevRayPickResult() { return _prevResult; }
 
     void setRayPickResult(const RayPickResult& rayPickResult) { _prevResult = rayPickResult; }
