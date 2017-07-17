@@ -21,6 +21,7 @@
 #include <VariantMapToScriptValue.h>
 #include <SharedUtil.h>
 #include <SpatialParentFinder.h>
+#include <AvatarHashMap.h>
 
 #include "EntityItemID.h"
 #include "EntitiesLogging.h"
@@ -497,8 +498,11 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
 
                 auto nodeList = DependencyManager::get<NodeList>();
                 const QUuid myNodeID = nodeList->getSessionUUID();
+                auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
+                AvatarSharedPointer myAvatar = avatarHashMap->getAvatarBySessionID(myNodeID);
                 if (entity->getClientOnly() && entity->getOwningAvatarID() != myNodeID) {
                     // don't delete other avatar's avatarEntities
+                    myAvatar->insertDetachedEntityID(id);
                     shouldDelete = false;
                     return;
                 }
