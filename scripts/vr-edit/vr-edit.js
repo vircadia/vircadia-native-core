@@ -296,6 +296,10 @@
             });
         }
 
+        function isHandle(overlayID) {
+            return cornerHandleOverlays.indexOf(overlayID) !== -1 || faceHandleOverlays.indexOf(overlayID) !== -1;
+        }
+
         function display(rootEntityID, boundingBox, isMultiple) {
             var boundingBoxDimensions = boundingBox.dimensions,
                 boundingBoxCenter = boundingBox.center,
@@ -423,6 +427,7 @@
 
         return {
             display: display,
+            isHandle: isHandle,
             hover: hover,
             clear: clear,
             destroy: destroy
@@ -1051,15 +1056,17 @@
             EDITOR_HIGHLIGHTING = 2,  // Highlighting an entity (not hovering a handle).
             EDITOR_GRABBING = 3,
             EDITOR_DIRECT_SCALING = 4,  // Scaling data are sent to other editor's EDITOR_GRABBING state.
+            EDITOR_HANDLE_SCALING = 5,  // ""
             editorState = EDITOR_IDLE,
             EDITOR_STATE_STRINGS = ["EDITOR_IDLE", "EDITOR_SEARCHING", "EDITOR_HIGHLIGHTING", "EDITOR_GRABBING",
-                "EDITOR_DIRECT_SCALING"],
+                "EDITOR_DIRECT_SCALING", "EDITOR_HANDLE_SCALING"],
 
             // State machine.
             STATE_MACHINE,
             highlightedEntityID = null,
-            isOtherEditorEditingEntityID = false,
             wasAppScaleWithHandles = false,
+            isOtherEditorEditingEntityID = false,
+            hoveredOverlayID = null,
 
             // Primary objects.
             hand,
@@ -1097,6 +1104,10 @@
             handles.hover(overlayID);
         }
 
+        function isHandle(overlayID) {
+            return handles.isHandle(overlayID);
+        }
+
         function isEditing(rootEntityID) {
             // rootEntityID is an optional parameter.
             return editorState > EDITOR_HIGHLIGHTING
@@ -1115,6 +1126,7 @@
         function stopEditing() {
             // Nothing to do.
         }
+
 
         function getScaleTargetPosition() {
             if (isScalingWithHand) {
@@ -1282,6 +1294,27 @@
             laser.clearLength();
         }
 
+        function enterEditorHandleScaling() {
+            selection.select(highlightedEntityID);  // For when transitioning from EDITOR_SEARCHING.
+            isScalingWithHand = intersection.handIntersected;
+            if (intersection.laserIntersected) {
+                laser.setLength(laser.length());
+            }
+            // TODO
+            //otherEditor.startHandleScaling(getScaleTargetPosition());
+        }
+
+        function updateEditorHandleScaling() {
+            // TODO
+            //otherEditor.updateScaling(getScaleTargetPosition());
+        }
+
+        function exitEditorHandleScaling() {
+            // TODO
+            //otherEditor.stopHandleScaling();
+            laser.clearLength();
+        }
+
         STATE_MACHINE = {
             EDITOR_IDLE: {
                 enter: enterEditorIdle,
@@ -1307,6 +1340,11 @@
                 enter: enterEditorDirectScaling,
                 update: updateEditorDirectScaling,
                 exit: exitEditorDirectScaling
+            },
+            EDITOR_HANDLE_SCALING: {
+                enter: enterEditorHandleScaling,
+                update: updateEditorHandleScaling,
+                exit: exitEditorHandleScaling
             }
         };
 
@@ -1351,13 +1389,17 @@
                 setState(EDITOR_SEARCHING);
                 break;
             case EDITOR_SEARCHING:
-                if (hand.valid() && !intersection.entityID) {
+                if (hand.valid() && !intersection.entityID
+                    && !(intersection.overlayID && hand.triggerClicked())) {
                     // No transition.
                     updateState();
                     break;
                 }
                 if (!hand.valid()) {
                     setState(EDITOR_IDLE);
+                } else if (intersection.overlayID && hand.triggerClicked()
+                        && otherEditor.isHandle(intersection.overlayID)) {
+                    setState(EDITOR_HANDLE_SCALING);
                 } else if (intersection.entityID && !hand.triggerClicked()) {
                     highlightedEntityID = Entities.rootOf(intersection.entityID);
                     wasAppScaleWithHandles = isAppScaleWithHandles;
@@ -1366,7 +1408,9 @@
                     highlightedEntityID = Entities.rootOf(intersection.entityID);
                     wasAppScaleWithHandles = isAppScaleWithHandles;
                     if (otherEditor.isEditing(highlightedEntityID)) {
-                        setState(EDITOR_DIRECT_SCALING);
+                        if (!isAppScaleWithHandles) {
+                            setState(EDITOR_DIRECT_SCALING);
+                        }
                     } else {
                         setState(EDITOR_GRABBING);
                     }
@@ -1385,11 +1429,16 @@
                 }
                 if (!hand.valid()) {
                     setState(EDITOR_IDLE);
+                } else if (intersection.overlayID && hand.triggerClicked()
+                        && otherEditor.isHandle(intersection.overlayID)) {
+                    setState(EDITOR_HANDLE_SCALING);
                 } else if (intersection.entityID && hand.triggerClicked()) {
                     highlightedEntityID = Entities.rootOf(intersection.entityID);  // May be a different entityID.
                     wasAppScaleWithHandles = isAppScaleWithHandles;
                     if (otherEditor.isEditing(highlightedEntityID)) {
-                        setState(EDITOR_DIRECT_SCALING);
+                        if (!isAppScaleWithHandles) {
+                            setState(EDITOR_DIRECT_SCALING);
+                        }
                     } else {
                         setState(EDITOR_GRABBING);
                     }
@@ -1401,6 +1450,7 @@
                     wasAppScaleWithHandles = isAppScaleWithHandles;
                     updateState();
                 } else if (!intersection.entityID) {
+                    // Note that this transition includes the case of highlighting a scaling handle.
                     setState(EDITOR_SEARCHING);
                 } else {
                     debug("ERROR: Unexpected condition in EDITOR_HIGHLIGHTING!");
@@ -1433,6 +1483,33 @@
             case EDITOR_DIRECT_SCALING:
                 if (hand.valid() && hand.triggerClicked() && otherEditor.isEditing(highlightedEntityID)) {
                     // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
+                    // Don't test isAppScaleWithHandles because this will eventually be a UI element and so not able to be 
+                    // changed while scaling with two hands.
+                    // No transition.
+                    updateState();
+                    break;
+                }
+                if (!hand.valid()) {
+                    setState(EDITOR_IDLE);
+                } else if (!hand.triggerClicked()) {
+                    if (!intersection.entityID) {
+                        setState(EDITOR_SEARCHING);
+                    } else {
+                        highlightedEntityID = Entities.rootOf(intersection.entityID);
+                        wasAppScaleWithHandles = isAppScaleWithHandles;
+                        setState(EDITOR_HIGHLIGHTING);
+                    }
+                } else if (!otherEditor.isEditing(highlightedEntityID)) {
+                    // Grab highlightEntityID that was scaling and has already been set.
+                    wasAppScaleWithHandles = isAppScaleWithHandles;
+                    setState(EDITOR_GRABBING);
+                }
+                break;
+            case EDITOR_HANDLE_SCALING:
+                if (hand.valid() && hand.triggerClicked() && otherEditor.isEditing(highlightedEntityID)) {
+                    // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
+                    // Don't test isAppScaleWithHandles because this will eventually be a UI element and so not able to be 
+                    // changed while scaling with two hands.
                     // No transition.
                     updateState();
                     break;
@@ -1456,7 +1533,7 @@
             }
 
             if (DEBUG && editorState !== previousState) {
-                log((side === LEFT_HAND ? "L " : "R ") + EDITOR_STATE_STRINGS[editorState]);
+                debug((side === LEFT_HAND ? "L " : "R ") + EDITOR_STATE_STRINGS[editorState]);
             }
         }
 
@@ -1510,6 +1587,7 @@
         return {
             setOtherEditor: setOtherEditor,
             hoverHandle: hoverHandle,
+            isHandle: isHandle,
             isEditing: isEditing,
             startScaling: startScaling,
             updateScaling: updateScaling,
