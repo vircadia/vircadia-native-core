@@ -27,14 +27,14 @@
 <div><input onchange="setDynamicBrush(this)" animationType="DynamicHueBrush" type="checkbox" id="dynamicBrush"> Use Dynamic Hue </input></div>
 <div>
     <div style="float: left; margin-right: 20px">
-        <div><input onchange="setDynamicBrush(this)" settings='{"axis": "yaw"}'   animationType="DynamicRotationBrush" type="checkbox" id="dynamicBrush"> Use Yaw Rotation </input></div>
-        <div><input onchange="setDynamicBrush(this)" settings='{"axis": "pitch"}' animationType="DynamicRotationBrush" type="checkbox" id="dynamicBrush"> Use Pitch Rotation </input></div>
-        <div><input onchange="setDynamicBrush(this)" settings='{"axis": "roll"}'  animationType="DynamicRotationBrush" type="checkbox" id="dynamicBrush"> Use Roll Rotation </input></div>
+        <div><input onchange="setDynamicBrush(this)"  animationType="DynamicRotationBrush" type="checkbox" id="yawRotationBrush"> Use Yaw Rotation </input></div>
+        <div><input onchange="setDynamicBrush(this)" animationType="DynamicRotationBrush" type="checkbox" id="pitchRotationBrush"> Use Pitch Rotation </input></div>
+        <div><input onchange="setDynamicBrush(this)"  animationType="DynamicRotationBrush" type="checkbox" id="rollRotationBrush"> Use Roll Rotation </input></div>
     </div>
     <div >
-        <div><input onchange="setDynamicBrush(this)" settings='{"axis": "x"}' animationType="DynamicTranslationBrush" type="checkbox" id="dynamicBrush"> Use Translation x</input></div>
-        <div><input onchange="setDynamicBrush(this)" settings='{"axis": "y"}' animationType="DynamicTranslationBrush" type="checkbox" id="dynamicBrush"> Use Translation y</input></div>
-        <div><input onchange="setDynamicBrush(this)" settings='{"axis": "z"}' animationType="DynamicTranslationBrush" type="checkbox" id="dynamicBrush"> Use Translation z</input></div>
+        <div><input onchange="setDynamicBrush(this)" animationType="DynamicTranslationBrush" type="checkbox" id="xTranslationBrush"> Use Translation x</input></div>
+        <div><input onchange="setDynamicBrush(this)" animationType="DynamicTranslationBrush" type="checkbox" id="yTranslationBrush"> Use Translation y</input></div>
+        <div><input onchange="setDynamicBrush(this)" animationType="DynamicTranslationBrush" type="checkbox" id="zTranslationBrush"> Use Translation z</input></div>
     </div>
 </div>
 
@@ -121,27 +121,72 @@
 <script type="text/javascript">
     var currentBrush = 5;
     function changePaintBrush(brushIndex) {
-        var bruhes = document.getElementById("brushesCointainer").children;
-        bruhes[currentBrush].classList.remove("selectedBrush");
+        var brushes = document.getElementById("brushesCointainer").children;
+        brushes[currentBrush].classList.remove("selectedBrush");
         currentBrush = brushIndex;
-        bruhes[currentBrush].classList.add("selectedBrush");
-        console.log(bruhes[currentBrush].getAttribute("colored"));
+        brushes[currentBrush].classList.add("selectedBrush");
         var changedBrushEvent = {
             "type"     : "changeBrush",
-            "brushName":  bruhes[currentBrush].id,
-            "brushType": bruhes[currentBrush].getAttribute("brushType"),
-            "isColored": bruhes[currentBrush].getAttribute("colored"),
+            "brushName": brushes[currentBrush].id,
+            "brushType": brushes[currentBrush].getAttribute("brushType"),
+            "isColored": brushes[currentBrush].getAttribute("colored"),
+            "brushID"  : brushIndex
         };
         parent.postMessage(JSON.stringify(changedBrushEvent), "*");
     }
 
+    function calculateDynamicAxis(checkbox) {
+        if (checkbox.getAttribute("animationType") == "DynamicRotationBrush") {
+            return {
+                axis: {
+                    x: document.getElementById("pitchRotationBrush").checked ? 1 : 0,
+                    y: document.getElementById("rollRotationBrush").checked ? 1 : 0,
+                    z: document.getElementById("yawRotationBrush").checked ? 1 : 0
+                }
+            }
+        }
+         if (checkbox.getAttribute("animationType") == "DynamicTranslationBrush") {
+            return {
+                axis: {
+                    x: document.getElementById("xTranslationBrush").checked ? 1 : 0,
+                    y: document.getElementById("yTranslationBrush").checked ? 1 : 0,
+                    z: document.getElementById("zTranslationBrush").checked ? 1 : 0
+                }
+            }
+        } else return null;
+    }
+
+    function calculateEnabledStatus(checkbox, settings) {        
+        if (checkbox.getAttribute("animationType") == "DynamicHueBrush") {
+            return checkbox.checked;
+        } 
+        return settings.axis.x == 1 || settings.axis.y == 1 || settings.axis.z == 1;
+    }
+
     function setDynamicBrush(checkbox) {
+        var settings = calculateDynamicAxis(checkbox);
         var switchDynamicBrushEvent = {
             "type"            : "switchDynamicBrush",
             "dynamicBrushName": checkbox.getAttribute("animationType"),
-            "enabled"         : checkbox.checked,
-            "settings"        : JSON.parse(checkbox.getAttribute("settings")),
+            "enabled"         : calculateEnabledStatus(checkbox, settings),
+            "settings"        : settings,
+            "dynamicBrushID"  : checkbox.id
         };
         parent.postMessage(JSON.stringify(switchDynamicBrushEvent), "*");
     }
+
+    window.addEventListener("message", restoreSavedBrushes, false);
+    function restoreSavedBrushes() {
+        var brush = JSON.parse(event.data);
+        var dynamicBrushes = brush.currentDynamicBrushes;
+        if (brush.currentTexture) {
+            changePaintBrush(brush.currentTexture.brushID);
+        }
+        if (dynamicBrushes) {
+            for (var i = 0; i < dynamicBrushes.length; i++) {
+                document.getElementById(dynamicBrushes[i]).checked = true;
+            }
+        }
+    }
+
 </script>

@@ -32,4 +32,14 @@
         };
         parent.postMessage(JSON.stringify(chooseHandEvent), "*");
     }
+
+    window.addEventListener("message", restoreCurrentDrawingHand, false);
+    function restoreCurrentDrawingHand() {
+        var currentHand = JSON.parse(event.data);
+        if (currentHand) {
+            chooseHand(0);
+        } else {
+            chooseHand(1);
+        }         
+    }
 </script>

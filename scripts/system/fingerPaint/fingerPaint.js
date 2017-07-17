@@ -27,12 +27,13 @@
         rightBrush = null,
         isBrushColored = false,
         isLeftHandDominant = false,
+        savedSettings = null,
         CONTROLLER_MAPPING_NAME = "com.highfidelity.fingerPaint",
         isTabletDisplayed = false,
         HIFI_POINT_INDEX_MESSAGE_CHANNEL = "Hifi-Point-Index",
         HIFI_GRAB_DISABLE_MESSAGE_CHANNEL = "Hifi-Grab-Disable",
         HIFI_POINTER_DISABLE_MESSAGE_CHANNEL = "Hifi-Pointer-Disable",
-        SCRIPT_PATH = Script.resolvePath('')
+        SCRIPT_PATH = Script.resolvePath(''),
         CONTENT_PATH = SCRIPT_PATH.substr(0, SCRIPT_PATH.lastIndexOf('/')),
         ANIMATION_SCRIPT_PATH = Script.resolvePath("content/brushes/dynamicBrushes/dynamicBrushScript.js"),
         APP_URL = CONTENT_PATH + "/html/main.html";
@@ -54,7 +55,7 @@
     function paintBrush(name) {
         // Paints in 3D.
         var brushName = name,
-            STROKE_COLOR = { red: 250, green: 0, blue: 0 },
+            STROKE_COLOR = savedSettings.currentColor,
             ERASE_SEARCH_RADIUS = 0.1,  // m
             STROKE_DIMENSIONS = { x: 10, y: 10, z: 10 },
             isDrawingLine = false,
@@ -64,9 +65,9 @@
             strokeNormals,
             strokeWidths,
             timeOfLastPoint,
-            texture = null ,
+            texture = savedSettings.currentTexture,
             //'https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Caris_Tessellation.svg/1024px-Caris_Tessellation.svg.png', // Daantje
-            strokeWidthMultiplier = 0.6,
+            strokeWidthMultiplier = savedSettings.currentStrokeWidth,
 			IS_UV_MODE_STRETCH = true,
             MIN_STROKE_LENGTH = 0.005,  // m
             MIN_STROKE_INTERVAL = 66,  // ms
@@ -442,7 +443,9 @@
         }
 
         function checkTabletHasFocus() {
-            var controllerPose = getControllerWorldLocation(Controller.Standard.RightHand, true); // note: this will return head pose if hand pose is invalid (third eye)
+            var controllerPose = isLeftHandDominant ? getControllerWorldLocation(Controller.Standard.LeftHand, true)
+                                                    : getControllerWorldLocation(Controller.Standard.RightHand, true);
+            
             var fingerTipRotation = controllerPose.rotation;//Quat.inverse(MyAvatar.orientation);
             var fingerTipPosition = controllerPose.position;//MyAvatar.getJointPosition(handName === "left" ? "LeftHandIndex4" : "RightHandIndex4");
             var pickRay = {
@@ -528,6 +531,7 @@
             }
             updateTriggerPress();
             updateGripPress();
+
         }
 
         function setUp(onTriggerPressed, onTriggerPressing, onTriggerReleased, onGripPressed) {
@@ -825,7 +829,24 @@
         //window.close(); //uncomment for qml interface
     }
 
+    //Load last fingerpaint settings
+    function restoreLastValues() {
+        savedSettings = new Object();
+        savedSettings.currentColor = Settings.getValue("currentColor", {red: 250, green: 0, blue: 0}),
+        savedSettings.currentStrokeWidth = Settings.getValue("currentStrokeWidth", 0.25);
+        savedSettings.currentTexture = Settings.getValue("currentTexture", null);
+        savedSettings.currentDrawingHand = Settings.getValue("currentDrawingHand", false);
+        savedSettings.currentDynamicBrushes = Settings.getValue("currentDynamicBrushes", []);
+        savedSettings.customColors = Settings.getValue("customColors", []);
+        savedSettings.currentTab = Settings.getValue("currentTab", 0);
+
+        print("Restoring data: " + JSON.stringify(savedSettings));
+        isLeftHandDominant = savedSettings.currentDrawingHand;
+    }
+
     function onButtonClicked() {
+        restoreLastValues();
+
         isTabletFocused = false; //should always start false so onUpdate updates this variable to true in the beggining
         var wasFingerPainting = isFingerPainting;
 
@@ -875,8 +896,16 @@
             event = JSON.parse(event);
         }
         switch (event.type) {
+            case "ready":
+                print("Setting up the tablet");
+                tablet.emitScriptEvent(JSON.stringify(savedSettings));
+                break;
+            case "changeTab":
+                Settings.setValue("currentTab", event.currentTab);
+                break;
             case "changeColor":
                 if (!isBrushColored) {
+                    Settings.setValue("currentColor", event);
                     print("changing color...");
                     leftBrush.changeStrokeColor(event.red, event.green, event.blue);
                     rightBrush.changeStrokeColor(event.red, event.green, event.blue);
@@ -886,9 +915,20 @@
                     
                 } 
                 break;
+            case "addCustomColor":
+                print("Adding custom color");
+                var customColors = Settings.getValue("customColors", []);
+                customColors.push({red: event.red, green: event.green, blue: event.blue});
+                if (customColors.length > event.maxColors) {
+                    customColors.splice(0, 1); //remove first color
+                }
+                Settings.setValue("customColors", customColors);
+                break;
+
 
             case "changeBrush":
                 print("abrushType: " + event.brushType);
+                Settings.setValue("currentTexture", event);
                 if (event.brushType === "repeat") {
                     print("brushType: " + event.brushType);
                     leftBrush.changeUVMode(false);
@@ -919,6 +959,7 @@
                 break;
 
             case "changeLineWidth":
+                Settings.setValue("currentStrokeWidth", event.brushWidth);
                 var dim = event.brushWidth*2 +0.1;
                 print("changing brush width dim to " + dim);
                 //var dim2 = Math.floor( Math.random()*40 + 5);
@@ -940,13 +981,23 @@
                 break;
 
             case "changeBrushHand":
+                Settings.setValue("currentDrawingHand", event.DrawingHand == "left");
                 isLeftHandDominant = event.DrawingHand == "left";
                 updateHandAnimations();
                 break;
 
             case "switchDynamicBrush":
+                var dynamicBrushes = Settings.getValue("currentDynamicBrushes", []);
+                var brushSettingsIndex = dynamicBrushes.indexOf(event.dynamicBrushID);
+                if (brushSettingsIndex > -1) { //already exists so we are disabling it
+                    dynamicBrushes.splice(brushSettingsIndex, 1);
+                } else { //doesn't exist yet so we are just adding it
+                    dynamicBrushes.push(event.dynamicBrushID);
+                }
+                Settings.setValue("currentDynamicBrushes", dynamicBrushes);
                 DynamicBrushesInfo[event.dynamicBrushName].isEnabled = event.enabled;
                 DynamicBrushesInfo[event.dynamicBrushName].settings = event.settings;
+                //print("SEtting dynamic brush" + JSON.stringify(DynamicBrushesInfo[event.dynamicBrushName]));
                 break;
 
             default:

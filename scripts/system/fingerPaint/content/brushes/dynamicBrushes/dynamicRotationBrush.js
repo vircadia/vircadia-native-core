@@ -6,7 +6,7 @@ function DynamicRotationBrushClass(settings) {
 	DynamicBrush.call(this);
 	print("Starting dynamic rotation brush");
 	this.angle = 0;
-    this.identityAxis = {x: settings.axis == "pitch" ? 1 : 0, y: settings.axis == "yaw" ? 1 : 0, z: settings.axis == "roll" ? 1 : 0};
+    this.activeAxis = settings.axis;
 }
 
 DynamicRotationBrushClass.prototype.constructor = DynamicRotationBrushClass;
@@ -17,10 +17,10 @@ DynamicRotationBrushClass.prototype.DYNAMIC_BRUSH_INCREMENT = 5; //linear increm
 DynamicRotationBrushClass.prototype.NAME = "DynamicRotationBrush"; //linear increment of brush size;
 
 DynamicRotationBrushClass.prototype.onUpdate = function(deltaSeconds, entityID) {
+    print("Dynamic rotation this:  " + JSON.stringify(rotation));
     this.angle = this.angle + ((deltaSeconds * this.DYNAMIC_BRUSH_INCREMENT)/this.DYNAMIC_BRUSH_TIME);
     this.angle = this.angle >= 360 ? 0 : this.angle; //restart hue cycle
-    var rotation = Vec3.multiply(this.angle, this.identityAxis);
-    //print("rotation " + JSON.stringify(rotation));
+    var rotation = Vec3.multiply(this.angle, this.activeAxis);
     Entities.editEntity(entityID, {rotation : Quat.fromPitchYawRollDegrees(rotation.x, rotation.y, rotation.z)});
     this.parent.updateUserData(entityID, this);
 }
