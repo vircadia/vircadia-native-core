@@ -83,6 +83,19 @@ bool RenderableShapeEntityItem::isTransparent() {
 }
 
 namespace render {
+    template <> const ItemKey payloadGetKey(const ShapePayload::Pointer& payload) {
+        return payloadGetKey(std::static_pointer_cast<RenderableEntityItemProxy>(payload));
+    }
+    template <> const Item::Bound payloadGetBound(const ShapePayload::Pointer& payload) {
+        return payloadGetBound(std::static_pointer_cast<RenderableEntityItemProxy>(payload));
+    }
+    template <> void payloadRender(const ShapePayload::Pointer& payload, RenderArgs* args) {
+        payloadRender(std::static_pointer_cast<RenderableEntityItemProxy>(payload), args);
+    }
+    template <> uint32_t metaFetchMetaSubItems(const ShapePayload::Pointer& payload, ItemIDs& subItems) {
+        return metaFetchMetaSubItems(std::static_pointer_cast<RenderableEntityItemProxy>(payload), subItems);
+    }
+
     template <> const ShapeKey shapeGetShapeKey(const ShapePayload::Pointer& payload) {
         return ShapeKey::Builder().withCustom(GeometryCache::CUSTOM_PIPELINE_NUMBER).build();
     }

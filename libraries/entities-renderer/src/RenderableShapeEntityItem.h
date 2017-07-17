@@ -24,6 +24,10 @@ public:
 };
 
 namespace render {
+    template <> const ItemKey payloadGetKey(const ShapePayload::Pointer& payload);
+    template <> const Item::Bound payloadGetBound(const ShapePayload::Pointer& payload);
+    template <> void payloadRender(const ShapePayload::Pointer& payload, RenderArgs* args);
+    template <> uint32_t metaFetchMetaSubItems(const ShapePayload::Pointer& payload, ItemIDs& subItems);
     template <> const ShapeKey shapeGetShapeKey(const ShapePayload::Pointer& payload);
 }
 
