@@ -185,7 +185,7 @@ public:
     using Config = RenderDeferredTaskConfig;
     using JobModel = render::Task::ModelI<RenderDeferredTask, Input, Config>;
 
-    RenderDeferredTask() {}
+    RenderDeferredTask();
 
     void configure(const Config& config);
     void build(JobModel& task, const render::Varying& inputs, render::Varying& outputs);
