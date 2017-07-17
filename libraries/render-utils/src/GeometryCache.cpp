@@ -25,6 +25,7 @@
 #include "TextureCache.h"
 #include "RenderUtilsLogging.h"
 #include "StencilMaskPass.h"
+#include "FadeEffect.h"
 
 #include "gpu/StandardShaderLib.h"
 
@@ -543,20 +544,37 @@ void GeometryCache::initializeShapePipelines() {
     if (!_simpleOpaquePipeline) {
         _simpleOpaquePipeline = getShapePipeline(false, false, true, false);
         _simpleTransparentPipeline = getShapePipeline(false, true, true, false);
-        _simpleOpaqueFadePipeline = getShapePipeline(false, false, true, false, false, true);
-        _simpleTransparentFadePipeline = getShapePipeline(false, true, true, false, false, true);
+        _simpleOpaqueFadePipeline = getFadingShapePipeline(false, false, true, false, false);
+        _simpleTransparentFadePipeline = getFadingShapePipeline(false, true, true, false, false);
         _simpleWirePipeline = getShapePipeline(false, false, true, true);
     }
 }
 
 render::ShapePipelinePointer GeometryCache::getShapePipeline(bool textured, bool transparent, bool culled,
-    bool unlit, bool depthBias, bool fading) {
-    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, fading), nullptr,
+    bool unlit, bool depthBias) {
+
+    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, false), nullptr,
         [](const render::ShapePipeline&, gpu::Batch& batch, render::Args*) {
         // Set the defaults needed for a simple program
         batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
             DependencyManager::get<TextureCache>()->getWhiteTexture());
     }
+    );
+}
+
+render::ShapePipelinePointer GeometryCache::getFadingShapePipeline(bool textured, bool transparent, bool culled,
+    bool unlit, bool depthBias) {
+    auto fadeEffect = DependencyManager::get<FadeEffect>();
+    auto fadeBatchSetter = fadeEffect->getBatchSetter();
+    auto fadeItemSetter = fadeEffect->getItemSetter();
+    return std::make_shared<render::ShapePipeline>(getSimplePipeline(textured, transparent, culled, unlit, depthBias, true), nullptr,
+        [fadeBatchSetter, fadeItemSetter](const render::ShapePipeline& pipeline, gpu::Batch& batch, render::Args* args) {
+            // Set the defaults needed for a simple program
+            batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
+                DependencyManager::get<TextureCache>()->getWhiteTexture());
+            fadeBatchSetter(pipeline, batch, args);
+        },
+        fadeItemSetter
     );
 }
 

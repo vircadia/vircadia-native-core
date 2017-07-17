@@ -174,9 +174,6 @@ public:
 
     static void initializeShapePipelines();
 
-    static render::ShapePipelinePointer getShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
-        bool unlit = false, bool depthBias = false, bool fading = false);
-
     render::ShapePipelinePointer getOpaqueShapePipeline() { assert(_simpleOpaquePipeline != nullptr); return _simpleOpaquePipeline; }
     render::ShapePipelinePointer getTransparentShapePipeline() { assert(_simpleTransparentPipeline != nullptr); return _simpleTransparentPipeline; }
     render::ShapePipelinePointer getOpaqueFadeShapePipeline() { assert(_simpleOpaqueFadePipeline != nullptr); return _simpleOpaqueFadePipeline; }
@@ -458,6 +455,11 @@ private:
     gpu::PipelinePointer _simpleOpaqueWebBrowserOverlayPipeline;
     gpu::ShaderPointer _simpleTransparentWebBrowserOverlayShader;
     gpu::PipelinePointer _simpleTransparentWebBrowserOverlayPipeline;
+
+    static render::ShapePipelinePointer getShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
+        bool unlit = false, bool depthBias = false);
+    static render::ShapePipelinePointer getFadingShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
+        bool unlit = false, bool depthBias = false);
 };
 
 #endif // hifi_GeometryCache_h

@@ -73,13 +73,7 @@ void RenderableShapeEntityItem::setUserData(const QString& value) {
 }
 
 bool RenderableShapeEntityItem::isTransparent() {
-    if (_procedural && _procedural->isFading()) {
-        float isFading = Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) < 1.0f;
-        _procedural->setIsFading(isFading);
-        return isFading;
-    } else {
-        return getLocalRenderAlpha() < 1.0f || EntityItem::isTransparent();
-    }
+    return getLocalRenderAlpha() < 1.0f || EntityItem::isTransparent();
 }
 
 namespace render {
@@ -148,7 +142,6 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
     if (_procedural->ready()) {
         _procedural->prepare(batch, getPosition(), getDimensions(), getOrientation());
         auto outColor = _procedural->getColor(color);
-        outColor.a *= _procedural->isFading() ? Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) : 1.0f;
         batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
         if (render::ShapeKey(args->_globalShapeKey).isWireframe()) {
             DependencyManager::get<GeometryCache>()->renderWireShape(batch, MAPPING[_shape]);
@@ -156,7 +149,6 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
             DependencyManager::get<GeometryCache>()->renderShape(batch, MAPPING[_shape]);
         }
     } else {
-        color.a *= _isFading ? Interpolate::calculateFadeRatio(_fadeStartTime) : 1.0f;
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         auto geometryCache = DependencyManager::get<GeometryCache>();
         auto pipeline = color.a < 1.0f ? geometryCache->getTransparentShapePipeline() : geometryCache->getOpaqueShapePipeline();
