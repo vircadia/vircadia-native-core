@@ -20,7 +20,7 @@
 #include <PointerEvent.h>
 
 #include "EntityTree.h"
-
+#include "HoverOverlayLogging.h"
 
 class HoverOverlayInterface : public QObject, public Dependency  {
     Q_OBJECT

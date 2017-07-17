@@ -12,19 +12,15 @@
 #include "HoverOverlayInterface.h"
 
 HoverOverlayInterface::HoverOverlayInterface() {
-
+    QLoggingCategory::setFilterRules(QStringLiteral("hifi.hover_overlay.debug=false"));
 }
 
 void HoverOverlayInterface::createHoverOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
-    if (_verboseLogging) {
-        qDebug() << "Creating Hover Overlay on top of entity with ID: " << entityItemID;
-    }
+    qCDebug(hover_overlay) << "Creating Hover Overlay on top of entity with ID: " << entityItemID;
     setCurrentHoveredEntity(entityItemID);
 }
 
 void HoverOverlayInterface::destroyHoverOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
-    if (_verboseLogging) {
-        qDebug() << "Destroying Hover Overlay on top of entity with ID: " << entityItemID;
-    }
+    qCDebug(hover_overlay) << "Destroying Hover Overlay on top of entity with ID: " << entityItemID;
     setCurrentHoveredEntity(QUuid());
 }

@@ -469,7 +469,7 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
     connect(this, &EntityTreeRenderer::hoverOverEntity, entityScriptingInterface, &EntityScriptingInterface::hoverOverEntity);
 
     connect(this, &EntityTreeRenderer::hoverLeaveEntity, entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity);
-    connect(this, &EntityTreeRenderer::hoverEnterEntity, hoverOverlayInterface, &HoverOverlayInterface::destroyHoverOverlay);
+    connect(this, &EntityTreeRenderer::hoverLeaveEntity, hoverOverlayInterface, &HoverOverlayInterface::destroyHoverOverlay);
 
     connect(this, &EntityTreeRenderer::enterEntity, entityScriptingInterface, &EntityScriptingInterface::enterEntity);
     connect(this, &EntityTreeRenderer::leaveEntity, entityScriptingInterface, &EntityScriptingInterface::leaveEntity);
