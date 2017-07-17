@@ -17,8 +17,6 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-<@include Fade.slh@>
-
 <@include MaterialTextures.slh@>
 <$declareMaterialTexMapArrayBuffer()$>
 
@@ -28,7 +26,7 @@ out vec2 _texCoord1;
 out vec3 _normal;
 out vec3 _tangent;
 out vec3 _color;
-out vec4 _worldFadePosition;
+out vec4 _worldPosition;
 
 void main(void) {
     // pass along the color in linear space
@@ -42,7 +40,7 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToEyeAndClipPos(cam, obj, inPosition, _position, gl_Position)$>
-    <$transformModelToFadePos(obj, inPosition, _worldFadePosition)$>
+    <$transformModelToWorldPos(obj, inPosition, _worldPosition)$>
     <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normal)$>
     <$transformModelToWorldDir(cam, obj, inTangent.xyz, _tangent)$>
 }

@@ -19,13 +19,11 @@
 <@include MaterialTextures.slh@>
 <$declareMaterialTexMapArrayBuffer()$>
 
-<@include Fade.slh@>
-
 out float _alpha;
 out vec2 _texCoord0;
 out vec2 _texCoord1;
 out vec4 _position;
-out vec4 _worldFadePosition;
+out vec4 _worldPosition;
 out vec3 _normal;
 out vec3 _color;
 
@@ -41,6 +39,6 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToEyeAndClipPos(cam, obj, inPosition, _position, gl_Position)$>
-    <$transformModelToFadePos(obj, inPosition, _worldFadePosition)$>
+    <$transformModelToWorldPos(obj, inPosition, _worldPosition)$>
     <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normal)$>
 }

@@ -16,11 +16,9 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-<@include Fade.slh@>
-
 <@include Skinning.slh@>
 
-out vec4 _worldFadePosition;
+out vec4 _worldPosition;
 
 void main(void) {
     vec4 position = vec4(0.0, 0.0, 0.0, 0.0);
@@ -30,5 +28,5 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, position, gl_Position)$>
-    <$transformModelToFadePos(obj, position, _worldFadePosition)$>
+    <$transformModelToWorldPos(obj, position, _worldPosition)$>
 }

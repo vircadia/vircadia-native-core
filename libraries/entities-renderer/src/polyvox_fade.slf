@@ -19,7 +19,6 @@
 in vec3 _normal;
 in vec4 _position;
 in vec4 _worldPosition;
-in vec4 _worldFadePosition;
 
 uniform sampler2D xMap;
 uniform sampler2D yMap;
@@ -31,7 +30,7 @@ uniform vec3 voxelVolumeSize;
 
 void main(void) {
     vec3    emissive;
-    applyFade(_worldFadePosition.xyz, emissive);
+    applyFade(_worldPosition.xyz, emissive);
 
     vec3 worldNormal = cross(dFdy(_worldPosition.xyz), dFdx(_worldPosition.xyz));
     worldNormal = normalize(worldNormal);

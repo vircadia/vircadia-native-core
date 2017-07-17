@@ -24,7 +24,7 @@ in vec3 _modelNormal;
 in vec4 _color;
 in vec2 _texCoord0;
 in vec4 _position;
-in vec4 _worldFadePosition;
+in vec4 _worldPosition;
 
 //PROCEDURAL_COMMON_BLOCK
 
@@ -35,7 +35,7 @@ in vec4 _worldFadePosition;
 void main(void) {
     vec3 fadeEmissive;
 
-    applyFade(_worldFadePosition.xyz, fadeEmissive);
+    applyFade(_worldPosition.xyz, fadeEmissive);
 
     Material material = getMaterial();
     vec3 normal = normalize(_normal.xyz); 

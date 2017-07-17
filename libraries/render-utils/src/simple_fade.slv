@@ -17,15 +17,13 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
-<@include Fade.slh@>
-
 // the interpolated normal
 out vec3 _normal;
 out vec3 _modelNormal;
 out vec4 _color;
 out vec2 _texCoord0;
 out vec4 _position;
-out vec4 _worldFadePosition;
+out vec4 _worldPosition;
 
 void main(void) {
     _color = colorToLinearRGBA(inColor);
@@ -37,6 +35,6 @@ void main(void) {
     TransformCamera cam = getTransformCamera();
     TransformObject obj = getTransformObject();
     <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
-    <$transformModelToFadePos(obj, inPosition, _worldFadePosition)$>
+    <$transformModelToWorldPos(obj, inPosition, _worldPosition)$>
     <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normal)$>
 }

@@ -15,12 +15,12 @@
 <@include Fade.slh@>
 <$declareFadeFragment()$>
 
-in vec4 _worldFadePosition;
+in vec4 _worldPosition;
 
 layout(location = 0) out vec4 _fragColor;
 
 void main(void) {
-    applyFadeClip(_worldFadePosition.xyz);
+    applyFadeClip(_worldPosition.xyz);
 
     // pass-through to set z-buffer
     _fragColor = vec4(1.0, 1.0, 1.0, 0.0);
