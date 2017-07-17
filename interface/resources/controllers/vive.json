@@ -22,6 +22,10 @@
 
         { "from": "Vive.LeftGrip", "to": "Standard.LeftGrip" },
         { "from": "Vive.LS", "to": "Standard.LS" },
+        { "from": "Vive.LSTouch", "to": "Standard.LeftThumbUp",
+            "peek": true,
+            "filters": [ { "type": "not" } ]
+        },
         { "from": "Vive.LSTouch", "to": "Standard.LSTouch" },
 
         { "from": "Vive.RY", "when": "Vive.RSY", "filters": ["invert"], "to": "Standard.RY" },
@@ -36,6 +40,10 @@
 
         { "from": "Vive.RightGrip", "to": "Standard.RightGrip" },
         { "from": "Vive.RS", "to": "Standard.RS" },
+        { "from": "Vive.RSTouch", "to": "Standard.RightThumbUp",
+            "peek": true,
+            "filters": [ { "type": "not" } ]
+        },
         { "from": "Vive.RSTouch", "to": "Standard.RSTouch" },
 
         { "from": "Vive.LSCenter", "to": "Standard.LeftPrimaryThumb" },
@@ -69,8 +77,6 @@
         { "from": "Vive.Head", "to" : "Standard.Head"},
 
         { "from": "Vive.RightArm", "to" : "Standard.RightArm" },
-        { "from": "Vive.LeftArm", "to" : "Standard.LeftArm" },
-        { "from": "Vive.LeftThumbUp", "to": "Standard.LeftThumbUp" },
-        { "from": "Vive.RightThumbUp", "to": "Standard.RightThumbUp" }
+        { "from": "Vive.LeftArm", "to" : "Standard.LeftArm" }
     ]
 }

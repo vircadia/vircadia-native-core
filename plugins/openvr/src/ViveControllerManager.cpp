@@ -863,11 +863,9 @@ void ViveControllerManager::InputDevice::handleButtonEvent(float deltaTime, uint
         }
     }
 
-    if (button == vr::k_EButton_SteamVR_Touchpad) {
-        if (touched) {
-            _buttonPressedMap.insert(isLeftHand ? LS_TOUCH : RS_TOUCH);
-        } else {
-            _buttonPressedMap.insert(isLeftHand ? LEFT_THUMB_UP : RIGHT_THUMB_UP);
+    if (touched) {
+         if (button == vr::k_EButton_SteamVR_Touchpad) {
+             _buttonPressedMap.insert(isLeftHand ? LS_TOUCH : RS_TOUCH);
         }
     }
 }
@@ -1172,9 +1170,6 @@ controller::Input::NamedVector ViveControllerManager::InputDevice::getAvailableI
         // app button above trackpad.
         Input::NamedPair(Input(_deviceID, LEFT_APP_MENU, ChannelType::BUTTON), "LeftApplicationMenu"),
         Input::NamedPair(Input(_deviceID, RIGHT_APP_MENU, ChannelType::BUTTON), "RightApplicationMenu"),
-
-        makePair(LEFT_THUMB_UP, "LeftThumbUp"),
-        makePair(RIGHT_THUMB_UP, "RightThumbUp"),
     };
 
     return availableInputs;
