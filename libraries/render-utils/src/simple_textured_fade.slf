@@ -26,12 +26,12 @@ uniform sampler2D originalTexture;
 in vec3 _normal;
 in vec4 _color;
 in vec2 _texCoord0;
-in vec4 _worldFadePosition;
+in vec4 _worldPosition;
 
 void main(void) {
     vec3 fadeEmissive;
 
-    applyFade(_worldFadePosition.xyz, fadeEmissive);
+    applyFade(_worldPosition.xyz, fadeEmissive);
 
     vec4 texel = texture(originalTexture, _texCoord0);
     float colorAlpha = _color.a;

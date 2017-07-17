@@ -20,6 +20,8 @@
 #include <model-networking/SimpleMeshProxy.h>
 #include "ModelScriptingInterface.h"
 
+#include <FadeEffect.h>
+
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
@@ -860,11 +862,12 @@ render::ShapePipelinePointer PolyVoxPayload::shapePipelineFactory(const render::
     }
 
     if (key.isFaded()) {
+        const auto& fadeEffect = DependencyManager::get<FadeEffect>();
         if (key.isWireframe()) {
-            return std::make_shared<render::ShapePipeline>(_wireframePipelines[1], nullptr, nullptr, nullptr);
+            return std::make_shared<render::ShapePipeline>(_wireframePipelines[1], nullptr, fadeEffect->getBatchSetter(), fadeEffect->getItemSetter());
         }
         else {
-            return std::make_shared<render::ShapePipeline>(_pipelines[1], nullptr, nullptr, nullptr);
+            return std::make_shared<render::ShapePipeline>(_pipelines[1], nullptr, fadeEffect->getBatchSetter(), fadeEffect->getItemSetter());
         }
     }
     else {

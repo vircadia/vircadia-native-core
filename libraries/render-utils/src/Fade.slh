@@ -9,13 +9,6 @@
 <@if not FADE_SLH@>
 <@def FADE_SLH@>
 
-<@func transformModelToFadePos(objectTransform, objectPosition, fadePosition)@>
-    {
-        vec4 objectVector = vec4(<$objectPosition$>.xyz, 1.f);
-        <$transformModelToWorldPos($objectTransform$, objectVector, $fadePosition$)$>
-    }
-<@endfunc@>
-
 <@func declareFadeFragment()@>
 
 

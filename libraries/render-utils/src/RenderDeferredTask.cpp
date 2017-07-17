@@ -48,19 +48,21 @@ using namespace render;
 extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
 extern void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 
+RenderDeferredTask::RenderDeferredTask() {
+    DependencyManager::set<FadeEffect>();
+}
+
 void RenderDeferredTask::configure(const Config& config)
 {
 }
 
 void RenderDeferredTask::build(JobModel& task, const render::Varying& input, render::Varying& output) {
     const auto& items = input.get<Input>();
-   
-    auto editedFadeCategory = task.addJob<FadeJob>("Fade");
-    auto& fadeJob = task._jobs.back().get<FadeJob>();
+    auto fadeEffect = DependencyManager::get<FadeEffect>();
 
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
-    initDeferredPipelines(*shapePlumber, fadeJob.getBatchSetter(), fadeJob.getItemSetter());
+    initDeferredPipelines(*shapePlumber, fadeEffect->getBatchSetter(), fadeEffect->getItemSetter());
 
     // Extract opaques / transparents / lights / metas / overlays / background
     const auto& opaques = items.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE];
@@ -72,8 +74,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     //const auto& background = items.get0()[RenderFetchCullSortTask::BACKGROUND];
     const auto& spatialSelection = items[1];
 
-    const auto fadeEditInput = FadeEditJob::Input(opaques, editedFadeCategory).asVarying();
-    task.addJob<FadeEditJob>("FadeEdit", fadeEditInput);
+    fadeEffect->build(task, opaques);
 
     // Filter the non antialiaased overlays
     const int LAYER_NO_AA = 3;
