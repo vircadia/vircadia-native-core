@@ -38,7 +38,8 @@ Setting::Handle<QString>& getSetting(bool contextIsHMD, QAudio::Mode mode) {
 
 QHash<int, QByteArray> AudioDeviceList::_roles {
     { Qt::DisplayRole, "display" },
-    { Qt::CheckStateRole, "selected" }
+    { Qt::CheckStateRole, "selected" },
+    { Qt::UserRole, "info" }
 };
 Qt::ItemFlags AudioDeviceList::_flags { Qt::ItemIsSelectable | Qt::ItemIsEnabled };
 
@@ -51,6 +52,8 @@ QVariant AudioDeviceList::data(const QModelIndex& index, int role) const {
         return _devices.at(index.row()).display;
     } else if (role == Qt::CheckStateRole) {
         return _devices.at(index.row()).selected;
+    } else if (role == Qt::UserRole) {
+        return QVariant::fromValue<QAudioDeviceInfo>(_devices.at(index.row()).info);
     } else {
         return QVariant();
     }
