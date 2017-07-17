@@ -16,7 +16,6 @@
 #include <QUuid>
 
 #include <DependencyManager.h>
-#include <RegisteredMetaTypes.h>
 #include <PointerEvent.h>
 
 #include "EntityTree.h"
