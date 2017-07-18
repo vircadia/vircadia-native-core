@@ -94,12 +94,13 @@ render::ItemID FadeEditJob::findNearestItem(const render::RenderContextPointer& 
     glm::vec3 normal;
     float isectDistance;
     render::ItemID nearestItem = render::Item::INVALID_ITEM_ID;
-    const float minDistance = 2.f;
+    const float minDistance = 1.f;
+    const float maxDistance = 50.f;
 
     for (const auto& itemBound : inputs) {
         if (!itemBound.bound.contains(rayOrigin) && itemBound.bound.findRayIntersection(rayOrigin, rayDirection, isectDistance, face, normal)) {
             auto& item = renderContext->_scene->getItem(itemBound.id);
-            if (item.getKey().isWorldSpace() && isectDistance>minDistance && isectDistance < minIsectDistance) {
+            if (item.getKey().isWorldSpace() && isectDistance>minDistance && isectDistance < minIsectDistance && isectDistance<maxDistance) {
                 nearestItem = itemBound.id;
                 minIsectDistance = isectDistance;
             }
@@ -148,7 +149,7 @@ FadeConfig::FadeConfig()
 
     events[FADE_USER_ENTER_LEAVE_DOMAIN].noiseSize = glm::vec3{ 10.f, 0.01f, 10.0f };
     events[FADE_USER_ENTER_LEAVE_DOMAIN].noiseLevel = 0.3f;
-    events[FADE_USER_ENTER_LEAVE_DOMAIN].noiseSpeed = glm::vec3{ 0.0f, -0.5f, 0.0f };
+    events[FADE_USER_ENTER_LEAVE_DOMAIN].noiseSpeed = glm::vec3{ 0.0f, -5.0f, 0.0f };
     events[FADE_USER_ENTER_LEAVE_DOMAIN].timing = FadeConfig::LINEAR;
     events[FADE_USER_ENTER_LEAVE_DOMAIN].baseSize = glm::vec3{ 10000.f, 1.0f, 10000.0f };
     events[FADE_USER_ENTER_LEAVE_DOMAIN].baseLevel = 1.f;

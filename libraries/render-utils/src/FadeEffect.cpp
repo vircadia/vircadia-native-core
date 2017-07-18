@@ -91,7 +91,7 @@ void FadeEffect::packToAttributes(const int category, const float threshold, con
     packedData1.x = noiseOffset.x;
     packedData1.y = noiseOffset.y;
     packedData1.z = noiseOffset.z;
-    packedData1.w = (float)category;
+    packedData1.w = (float)(category+0.1f); // GLSL hack so that casting back from float to int in fragment shader returns the correct value.
 
     packedData2.x = baseOffset.x;
     packedData2.y = baseOffset.y;

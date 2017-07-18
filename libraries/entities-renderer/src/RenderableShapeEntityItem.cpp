@@ -112,6 +112,7 @@ bool RenderableShapeEntityItem::addToScene(const EntityItemPointer& self, const 
     renderPayload->addStatusGetters(statusGetters);
 
     transaction.resetItem(_myItem, renderPayload);
+    transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
 
     return true;
 }
