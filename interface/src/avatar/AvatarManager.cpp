@@ -319,9 +319,9 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
         // remove from node sets, if present
         DependencyManager::get<NodeList>()->removeFromIgnoreMuteSets(avatar->getSessionUUID());
         DependencyManager::get<UsersScriptingInterface>()->avatarDisconnected(avatar->getSessionUUID());
+        avatar->fadeOut(qApp->getMain3DScene(), removalReason);
     }
     _avatarsToFade.push_back(removedAvatar);
-    avatar->fadeOut(qApp->getMain3DScene(), removalReason);
 }
 
 void AvatarManager::clearOtherAvatars() {

@@ -173,7 +173,7 @@ void AvatarHashMap::processKillAvatar(QSharedPointer<ReceivedMessage> message, S
 void AvatarHashMap::removeAvatar(const QUuid& sessionUUID, KillAvatarReason removalReason) {
     QWriteLocker locker(&_hashLock);
 
-    AvatarSharedPointer removedAvatar = _avatarHash.take(sessionUUID);
+    auto removedAvatar = _avatarHash.take(sessionUUID);
 
     if (removedAvatar) {
         handleRemovedAvatar(removedAvatar, removalReason);
