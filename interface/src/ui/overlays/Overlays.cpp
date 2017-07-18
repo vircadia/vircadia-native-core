@@ -705,27 +705,27 @@ bool Overlays::isAddedOverlay(OverlayID id) {
     return _overlaysHUD.contains(id) || _overlaysWorld.contains(id);
 }
 
-void Overlays::sendMousePressOnOverlay(OverlayID overlayID, const PointerEvent& event) {
+void Overlays::sendMousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
     emit mousePressOnOverlay(overlayID, event);
 }
 
-void Overlays::sendMouseReleaseOnOverlay(OverlayID overlayID, const PointerEvent& event) {
+void Overlays::sendMouseReleaseOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
     emit mouseReleaseOnOverlay(overlayID, event);
 }
 
-void Overlays::sendMouseMoveOnOverlay(OverlayID overlayID, const PointerEvent& event) {
+void Overlays::sendMouseMoveOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
     emit mouseMoveOnOverlay(overlayID, event);
 }
 
-void Overlays::sendHoverEnterOverlay(OverlayID id, PointerEvent event) {
+void Overlays::sendHoverEnterOverlay(const OverlayID& id, const PointerEvent& event) {
     emit hoverEnterOverlay(id, event);
 }
 
-void Overlays::sendHoverOverOverlay(OverlayID  id, PointerEvent event) {
+void Overlays::sendHoverOverOverlay(const OverlayID&  id, const PointerEvent& event) {
     emit hoverOverOverlay(id, event);
 }
 
-void Overlays::sendHoverLeaveOverlay(OverlayID  id, PointerEvent event) {
+void Overlays::sendHoverLeaveOverlay(const OverlayID&  id, const PointerEvent& event) {
     emit hoverLeaveOverlay(id, event);
 }
 

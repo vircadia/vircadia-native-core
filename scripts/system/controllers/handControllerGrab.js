@@ -187,7 +187,7 @@ var DEFAULT_GRABBABLE_DATA = {
 var USE_BLACKLIST = true;
 var blacklist = [];
 
-var entitiesWithHoverOverlays = [];
+var entityWithHoverOverlay = false;
 
 var FORBIDDEN_GRAB_NAMES = ["Grab Debug Entity", "grab pointer"];
 var FORBIDDEN_GRAB_TYPES = ["Unknown", "Light", "PolyLine", "Zone"];
@@ -1391,6 +1391,11 @@ function MyController(hand) {
                     color: color,
                         endParentID: farParentID
                 });
+                
+                if (entityWithHoverOverlay) {
+                    HoverOverlay.destroyHoverOverlay(entityWithHoverOverlay);
+                    entityWithHoverOverlay = false;
+                }
             } else {
                 Overlays.editOverlay(this.overlayLine, {
                     length: Vec3.distance(farPoint, closePoint),
@@ -2203,13 +2208,21 @@ function MyController(hand) {
             entityPropertiesCache.addEntity(rayPickInfo.entityID);
         }
 
-        if (rayPickInfo.entityID && entitiesWithHoverOverlays.indexOf(rayPickInfo.entityID) == -1) {
-            entitiesWithHoverOverlays.forEach(function (element) {
-                HoverOverlay.destroyHoverOverlay(element);
-            });
-            entitiesWithHoverOverlays = [];
-            HoverOverlay.createHoverOverlay(rayPickInfo.entityID);
-            entitiesWithHoverOverlays.push(rayPickInfo.entityID);
+        if (rayPickInfo.entityID)
+            if (entityWithHoverOverlay) {
+                HoverOverlay.destroyHoverOverlay(entityWithHoverOverlay);
+            }
+            var pointerEvent = {
+                type: "Move",
+                id: this.hand + 1, // 0 is reserved for hardware mouse
+                pos2D: projectOntoEntityXYPlane(entity, rayPickInfo.intersection),
+                pos3D: rayPickInfo.intersection,
+                normal: rayPickInfo.normal,
+                direction: rayPickInfo.searchRay.direction,
+                button: "None"
+            };
+            HoverOverlay.createHoverOverlay(rayPickInfo.entityID, pointerEvent);
+            entityWithHoverOverlay = rayPickInfo.entityID;
         }
 
         var candidateHotSpotEntities = Entities.findEntities(handPosition, MAX_EQUIP_HOTSPOT_RADIUS);
@@ -3484,6 +3497,8 @@ function MyController(hand) {
             Entities.sendMousePressOnEntity(this.grabbedThingID, pointerEvent);
             Entities.sendClickDownOnEntity(this.grabbedThingID, pointerEvent);
 
+            //HoverOverlay
+
             this.touchingEnterTimer = 0;
             this.touchingEnterPointerEvent = pointerEvent;
             this.touchingEnterPointerEvent.button = "None";
@@ -3774,10 +3789,10 @@ function MyController(hand) {
     this.release = function() {
         this.turnOffVisualizations();
 
-        entitiesWithHoverOverlays.forEach(function (element) {
-            HoverOverlay.destroyHoverOverlay(element);
-        });
-        entitiesWithHoverOverlays = [];
+        if (entityWithHoverOverlay) {
+            HoverOverlay.destroyHoverOverlay(entityWithHoverOverlay);
+            entityWithHoverOverlay = false;
+        }
 
         if (this.grabbedThingID !== null) {
 

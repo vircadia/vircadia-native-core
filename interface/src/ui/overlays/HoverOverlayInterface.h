@@ -44,9 +44,9 @@ public:
 
 public slots:
     void createHoverOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
-    void createHoverOverlay(const EntityItemID& entityItemID);
     void destroyHoverOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
     void destroyHoverOverlay(const EntityItemID& entityItemID);
+    void clickHoverOverlay(const OverlayID& overlayID, const PointerEvent& event);
 
 private:
     bool _verboseLogging { true };

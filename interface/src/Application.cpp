@@ -1323,12 +1323,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Keyboard focus handling for Web overlays.
     auto overlays = &(qApp->getOverlays());
 
-    connect(overlays, &Overlays::mousePressOnOverlay, [=](OverlayID overlayID, const PointerEvent& event) {
+    connect(overlays, &Overlays::mousePressOnOverlay, [=](const OverlayID& overlayID, const PointerEvent& event) {
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
         setKeyboardFocusOverlay(overlayID);
     });
 
-    connect(overlays, &Overlays::overlayDeleted, [=](OverlayID overlayID) {
+    connect(overlays, &Overlays::overlayDeleted, [=](const OverlayID& overlayID) {
         if (overlayID == _keyboardFocusedOverlay.get()) {
             setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         }
@@ -1342,6 +1342,11 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });
+
+    connect(overlays,
+            SIGNAL(mousePressOnOverlay(const OverlayID&, const PointerEvent&)),
+            DependencyManager::get<HoverOverlayInterface>().data(),
+            SLOT(clickHoverOverlay(const OverlayID&, const PointerEvent&)));
 
     // Add periodic checks to send user activity data
     static int CHECK_NEARBY_AVATARS_INTERVAL_MS = 10000;
