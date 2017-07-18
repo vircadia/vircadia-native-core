@@ -42,6 +42,20 @@ int AnimSkeleton::getNumJoints() const {
     return _jointsSize;
 }
 
+int AnimSkeleton::getChainDepth(int jointIndex) const {
+    if (jointIndex >= 0) {
+        int chainDepth = 0;
+        int index = jointIndex;
+        do {
+            chainDepth++;
+            index = _joints[index].parentIndex;
+        } while (index != -1);
+        return chainDepth;
+    } else {
+        return 0;
+    }
+}
+
 const AnimPose& AnimSkeleton::getAbsoluteBindPose(int jointIndex) const {
     return _absoluteBindPoses[jointIndex];
 }
