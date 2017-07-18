@@ -1261,12 +1261,12 @@ void MyAvatar::updateLookAtTargetAvatar() {
                  qApp->copyViewFrustum(viewFrustum);
 
                  glm::vec3 viewPosition = viewFrustum.getPosition();
-                 glm::quat viewOrientation = viewFrustum.getOrientation();
 #if DEBUG_ALWAYS_LOOKAT_EYES_NOT_CAMERA
                  viewPosition = (avatarLeftEye + avatarRightEye) / 2.0f;
 #endif
                 // scale gazeOffset by IPD, if wearing an HMD.
                 if (qApp->isHMDMode()) {
+                    glm::quat viewOrientation = viewFrustum.getOrientation();
                     glm::mat4 leftEye = qApp->getEyeOffset(Eye::Left);
                     glm::mat4 rightEye = qApp->getEyeOffset(Eye::Right);
                     glm::vec3 leftEyeHeadLocal = glm::vec3(leftEye[3]);
