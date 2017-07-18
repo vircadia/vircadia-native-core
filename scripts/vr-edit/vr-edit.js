@@ -206,6 +206,7 @@
 
     Handles = function () {
         var boundingBoxOverlay,
+            boundingBoxDimensions,
             cornerIndexes = [],
             cornerHandleOverlays = [],
             faceHandleOverlays = [],
@@ -223,6 +224,7 @@
             FACE_HANDLE_OVERLAY_AXES,
             FACE_HANDLE_OVERLAY_OFFSETS,
             FACE_HANDLE_OVERLAY_ROTATIONS,
+            FACE_HANDLE_OVERLAY_SCALE_AXES,
             ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO),
             DISTANCE_MULTIPLIER_MULTIPLIER = 0.5,
             hoveredOverlayID = null,
@@ -264,6 +266,15 @@
             Quat.fromVec3Degrees({ x:  90, y: 0, z:   0 })
         ];
 
+        FACE_HANDLE_OVERLAY_SCALE_AXES = [
+            Vec3.UNIT_X,
+            Vec3.UNIT_X,
+            Vec3.UNIT_Y,
+            Vec3.UNIT_Y,
+            Vec3.UNIT_Z,
+            Vec3.UNIT_Z
+        ];
+
         boundingBoxOverlay = Overlays.addOverlay("cube", {
             color: BOUNDING_BOX_COLOR,
             alpha: BOUNDING_BOX_ALPHA,
@@ -296,15 +307,37 @@
             });
         }
 
+        function isAxisHandle(overlayID) {
+            return faceHandleOverlays.indexOf(overlayID) !== -1;
+        }
+
+        function isCornerHandle(overlayID) {
+            return cornerHandleOverlays.indexOf(overlayID) !== -1;
+        }
+
         function isHandle(overlayID) {
-            return cornerHandleOverlays.indexOf(overlayID) !== -1 || faceHandleOverlays.indexOf(overlayID) !== -1;
+            return isAxisHandle(overlayID) || isCornerHandle(overlayID);
+        }
+
+        function scalingAxis(overlayID) {
+            if (isCornerHandle(overlayID)) {
+                return Vec3.normalize(Vec3.multiplyVbyV(CORNER_HANDLE_OVERLAY_AXES[cornerHandleOverlays.indexOf(overlayID)],
+                    boundingBoxDimensions));
+            }
+            return FACE_HANDLE_OVERLAY_SCALE_AXES[faceHandleOverlays.indexOf(overlayID)];
+        }
+
+        function scalingDirections(overlayID) {
+            if (isCornerHandle(overlayID)) {
+                return Vec3.ONE;
+            }
+            return FACE_HANDLE_OVERLAY_SCALE_AXES[faceHandleOverlays.indexOf(overlayID)];
         }
 
         function display(rootEntityID, boundingBox, isMultiple) {
-            var boundingBoxDimensions = boundingBox.dimensions,
-                boundingBoxCenter = boundingBox.center,
-                boundingBoxLocalCenter = boundingBox.localCenter,
-                boundingBoxOrientation = boundingBox.orientation,
+            var boundingBoxCenter,
+                boundingBoxLocalCenter,
+                boundingBoxOrientation,
                 cameraPosition,
                 boundingBoxVector,
                 distanceMultiplier,
@@ -319,6 +352,11 @@
                 faceHandleDimensions,
                 faceHandleOffsets,
                 i;
+
+            boundingBoxDimensions = boundingBox.dimensions;
+            boundingBoxCenter = boundingBox.center;
+            boundingBoxLocalCenter = boundingBox.localCenter;
+            boundingBoxOrientation = boundingBox.orientation;
 
             // Selection bounding box.
             Overlays.editOverlay(boundingBoxOverlay, {
@@ -452,6 +490,8 @@
         return {
             display: display,
             isHandle: isHandle,
+            scalingAxis: scalingAxis,
+            scalingDirections: scalingDirections,
             hover: hover,
             grab: grab,
             clear: clear,
@@ -467,9 +507,13 @@
             rootEntityID = null,
             rootPosition,
             rootOrientation,
+            scaleRootPosition,
+            scaleRootRegistrationPoint,
+            scaleRootRegistrationOffset,
             scaleCenter,
             scaleRootOffset,
             scaleRootOrientation,
+            isRootCenterRegistration,
             ENTITY_TYPE = "entity";
 
         function traverseEntityTree(id, result) {
@@ -626,27 +670,25 @@
             });
         }
 
-        function startScaling(center) {
+        function startDirectScaling(center) {
+            // Save initial position and orientation so that can scale relative to these without accumulating float errors.
             scaleCenter = center;
             scaleRootOffset = Vec3.subtract(rootPosition, center);
             scaleRootOrientation = rootOrientation;
         }
 
-        function scale(factor, rotation, center) {
-            var position,
-                orientation,
-                i,
+        function directScale(factor, rotation, center) {
+            // Scale, position, and rotate selection.
+            var i,
                 length;
 
-            // Position root.
-            position = Vec3.sum(center, Vec3.multiply(factor, Vec3.multiplyQbyV(rotation, scaleRootOffset)));
-            orientation = Quat.multiply(rotation, scaleRootOrientation);
-            rootPosition = position;
-            rootOrientation = orientation;
+            // Scale, position, and orient root.
+            rootPosition = Vec3.sum(center, Vec3.multiply(factor, Vec3.multiplyQbyV(rotation, scaleRootOffset)));
+            rootOrientation = Quat.multiply(rotation, scaleRootOrientation);
             Entities.editEntity(selection[0].id, {
                 dimensions: Vec3.multiply(factor, selection[0].dimensions),
-                position: position,
-                rotation: orientation
+                position: rootPosition,
+                rotation: rootOrientation
             });
 
             // Scale and position children.
@@ -656,6 +698,34 @@
                     localPosition: Vec3.multiply(factor, selection[i].localPosition)
                 });
             }
+        }
+
+        function startHandleScaling() {
+            // Save initial position data so that can scale relative to these without accumulating float errors.
+            scaleRootPosition = rootPosition;
+            scaleRootRegistrationPoint = selection[0].registrationPoint;
+            isRootCenterRegistration = Vec3.equal(scaleRootRegistrationPoint, Vec3.HALF);
+            scaleRootRegistrationOffset = Vec3.subtract(scaleRootRegistrationPoint, Vec3.HALF);
+        }
+
+        function handleScale(factor) {
+            // Scale selection about bounding box center.
+
+            // Scale and position root.
+            if (isRootCenterRegistration) {
+                Entities.editEntity(selection[0].id, {
+                    dimensions: Vec3.multiplyVbyV(factor, selection[0].dimensions)
+                });
+            } else {
+                rootPosition = Vec3.sum(scaleRootPosition, Vec3.multiplyVbyV(factor, scaleRootRegistrationOffset));
+                Entities.editEntity(selection[0].id, {
+                    dimensions: Vec3.multiplyVbyV(factor, selection[0].dimensions),
+                    position: rootPosition
+                });
+            }
+
+            // Scale and position children.
+            // TODO
         }
 
         function clear() {
@@ -680,8 +750,10 @@
             boundingBox: getBoundingBox,
             getPositionAndOrientation: getPositionAndOrientation,
             setPositionAndOrientation: setPositionAndOrientation,
-            startScaling: startScaling,
-            scale: scale,
+            startDirectScaling: startDirectScaling,
+            directScale: directScale,
+            startHandleScaling: startHandleScaling,
+            handleScale: handleScale,
             clear: clear,
             destroy: destroy
         };
@@ -1106,11 +1178,16 @@
             initialSelectionOrientation,
 
             // Scaling values.
-            isScaling = false,  // Modifies EDITOR_GRABBING state.
+            isScalingWithHand = false,
+            isDirectScaling = false,  // Modifies EDITOR_GRABBING state.
+            isHandleScaling = false,  // ""
             initialTargetsSeparation,
             initialtargetsDirection,
             otherTargetPosition,
-            isScalingWithHand = false,
+            handleUnitScaleAxis,
+            handleScaleDirections,
+            handleHandOffset,
+            initialHandleDistance,
 
             intersection;
 
@@ -1172,8 +1249,8 @@
             initialTargetsSeparation = Vec3.distance(initialTargetPosition, otherTargetPosition);
             initialtargetsDirection = Vec3.subtract(otherTargetPosition, initialTargetPosition);
 
-            selection.startScaling(initialTargetsCenter);
-            isScaling = true;
+            selection.startDirectScaling(initialTargetsCenter);
+            isDirectScaling = true;
         }
 
         function updateDirectScaling(targetPosition) {
@@ -1181,29 +1258,49 @@
         }
 
         function stopDirectScaling() {
-            isScaling = false;
+            isDirectScaling = false;
         }
 
         function startHandleScaling(targetPosition, overlayID) {
+            var boundingBox,
+                scaleAxis,
+                handDistance;
+
+            isScalingWithHand = intersection.handIntersected;
+
             // Keep grabbed handle highlighted and hide other handles.
             handles.grab(overlayID);
 
-            // TODO
+            handleUnitScaleAxis = handles.scalingAxis(overlayID);  // Unit vector in direction of scaling.
+            handleScaleDirections = handles.scalingDirections(overlayID);  // Which axes to scale the selection on.
+
+            // Distance from handle to bounding box center.
+            boundingBox = selection.boundingBox();
+            initialHandleDistance = Vec3.length(Vec3.multiplyVbyV(boundingBox.dimensions, handleScaleDirections)) / 2;
+
+            // Distance from hand to handle in direction of handle.
+            otherTargetPosition = targetPosition;
+            scaleAxis = Vec3.multiplyQbyV(selection.getPositionAndOrientation().orientation, handleUnitScaleAxis);
+            handDistance = Math.abs(Vec3.dot(Vec3.subtract(otherTargetPosition, boundingBox.center), scaleAxis));
+            handleHandOffset = handDistance - initialHandleDistance;
+
+            selection.startHandleScaling();
+            isHandleScaling = true;
         }
 
         function updateHandleScaling(targetPosition) {
-            // TODO
+            otherTargetPosition = targetPosition;
         }
 
         function stopHandleScaling() {
             // Stop highlighting grabbed handle and resume displaying all handles.
             handles.grab(null);
-
-            // TODO
+            isHandleScaling = false;
         }
 
 
         function applyGrab() {
+            // Sets position and orientation of selection per grabbing hand.
             var handPosition,
                 handOrientation,
                 deltaOrientation,
@@ -1220,7 +1317,8 @@
             selection.setPositionAndOrientation(selectionPosition, selectionOrientation);
         }
 
-        function applyScale() {
+        function applyDirectScale() {
+            // Scales, rotates, and positions selection per changing length, orientation, and position of vector between hands.
             var targetPosition,
                 targetsSeparation,
                 scale,
@@ -1234,13 +1332,41 @@
             scale = targetsSeparation / initialTargetsSeparation;
             rotation = Quat.rotationBetween(initialtargetsDirection, Vec3.subtract(otherTargetPosition, targetPosition));
             center = Vec3.multiply(0.5, Vec3.sum(targetPosition, otherTargetPosition));
-            selection.scale(scale, rotation, center);
+            selection.directScale(scale, rotation, center);
 
             // Update grab offset.
             selectionPositionAndOrientation = selection.getPositionAndOrientation();
             initialHandOrientationInverse = Quat.inverse(hand.orientation());
             initialHandToSelectionVector = Vec3.subtract(selectionPositionAndOrientation.position, hand.position());
             initialSelectionOrientation = selectionPositionAndOrientation.orientation;
+        }
+
+        function applyHandleScale() {
+            // Scales selection per changing position of scaling hand; positions and orients per grabbing hand.
+            var boundingBoxCenter,
+                scaleAxis,
+                handleDistance,
+                scale,
+                scale3D;
+
+            // Position and orient selection per grabbing hand before scaling it per scaling hand.
+            applyGrab();
+
+            // Desired distance of handle from center of bounding box.
+            boundingBoxCenter = selection.boundingBox().center;  // TODO: Too expensive for update loop?
+            scaleAxis = Vec3.multiplyQbyV(selection.getPositionAndOrientation().orientation, handleUnitScaleAxis);
+            handleDistance = Math.abs(Vec3.dot(Vec3.subtract(otherTargetPosition, boundingBoxCenter), scaleAxis));
+            handleDistance -= handleHandOffset;
+
+            // Scale selection relative to initial dimensions.
+            scale = handleDistance / initialHandleDistance;
+            scale3D = Vec3.multiply(scale, handleScaleDirections);
+            scale3D = {
+                x: scale3D.x !== 0 ? scale3D.x : 1,
+                y: scale3D.y !== 0 ? scale3D.y : 1,
+                z: scale3D.z !== 0 ? scale3D.z : 1
+            };
+            selection.handleScale(scale3D);
         }
 
 
@@ -1580,8 +1706,10 @@
         function apply() {
             switch (editorState) {
             case EDITOR_GRABBING:
-                if (isScaling) {
-                    applyScale();
+                if (isDirectScaling) {
+                    applyDirectScale();
+                } else if (isHandleScaling) {
+                    applyHandleScale();
                 } else {
                     applyGrab();
                 }
