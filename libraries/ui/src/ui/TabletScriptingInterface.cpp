@@ -226,9 +226,12 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
 
         // forward qml surface events to interface js
         connect(tabletRootWindow, &QmlWindowClass::fromQml, this, &TabletProxy::fromQml);
+        loadHomeScreen(true);
+        emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
     } else {
         removeButtonsFromToolbar();
         addButtonsToHomeScreen();
+        loadHomeScreen(true);
         emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
 
         // destroy desktop window
