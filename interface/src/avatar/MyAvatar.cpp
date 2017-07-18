@@ -2276,15 +2276,16 @@ void MyAvatar::restrictScaleFromDomainSettings(const QJsonObject& domainSettings
     settings.beginGroup("Avatar");
     _targetScale = loadSetting(settings, "scale", 1.0f);
 
-    qCDebug(interfaceapp, "This domain requires a minimum avatar scale of %f and a maximum avatar scale of %f. Current avatar scale is %f",
-        _domainMinimumScale, _domainMaximumScale, _targetScale);
+    qCDebug(interfaceapp) << "This domain requires a minimum avatar scale of " << _domainMinimumScale
+        << " and a maximum avatar scale of " << _domainMaximumScale
+        << ". Current avatar scale is " << _targetScale;
 
     // debug to log if this avatar's scale in this domain will be clamped
     float clampedScale = glm::clamp(_targetScale, _domainMinimumScale, _domainMaximumScale);
 
     if (_targetScale != clampedScale) {
-        qCDebug(interfaceapp, "Current avatar scale is clamped to %f because %f is not allowed by current domain",
-                clampedScale, _targetScale);
+        qCDebug(interfaceapp) << "Current avatar scale is clamped to " << clampedScale
+            << " because " << _targetScale << " is not allowed by current domain";
         // The current scale of avatar should not be more than domain's max_avatar_scale and not less than domain's min_avatar_scale .
         _targetScale = clampedScale;
     }
