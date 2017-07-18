@@ -207,9 +207,11 @@
     Handles = function () {
         var boundingBoxOverlay,
             boundingBoxDimensions,
+            boundingBoxLocalCenter,
             cornerIndexes = [],
             cornerHandleOverlays = [],
             faceHandleOverlays = [],
+            faceHandleOffsets,
             BOUNDING_BOX_COLOR = { red: 0, green: 240, blue: 240 },
             BOUNDING_BOX_ALPHA = 0.8,
             HANDLE_NORMAL_COLOR = { red: 0, green: 240, blue: 240 },
@@ -228,6 +230,11 @@
             ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO),
             DISTANCE_MULTIPLIER_MULTIPLIER = 0.5,
             hoveredOverlayID = null,
+
+            // Scaling.
+            scalingBoundingBoxDimensions,
+            scalingBoundingBoxLocalCenter,
+
             i;
 
         CORNER_HANDLE_OVERLAY_AXES = [
@@ -336,7 +343,6 @@
 
         function display(rootEntityID, boundingBox, isMultiple) {
             var boundingBoxCenter,
-                boundingBoxLocalCenter,
                 boundingBoxOrientation,
                 cameraPosition,
                 boundingBoxVector,
@@ -350,7 +356,6 @@
                 leftCornerIndex,
                 cornerHandleDimensions,
                 faceHandleDimensions,
-                faceHandleOffsets,
                 i;
 
             boundingBoxDimensions = boundingBox.dimensions;
@@ -427,6 +432,45 @@
             }
         }
 
+        function startScaling() {
+            // Nothing to do.
+        }
+
+        function scale(scale3D) {
+            // Scale relative to dimensions and positions at start of scaling.
+
+            // Selection bounding box.
+            scalingBoundingBoxDimensions = Vec3.multiplyVbyV(scale3D, boundingBoxLocalCenter);
+            scalingBoundingBoxLocalCenter = Vec3.multiplyVbyV(scale3D, boundingBoxDimensions);
+            Overlays.editOverlay(boundingBoxOverlay, {
+                localPosition: scalingBoundingBoxDimensions,
+                dimensions: scalingBoundingBoxLocalCenter
+            });
+
+            // Corner scale handles.
+            for (i = 0; i < NUM_CORNER_HANDLES; i += 1) {
+                Overlays.editOverlay(cornerHandleOverlays[i], {
+                    localPosition: Vec3.sum(scalingBoundingBoxDimensions,
+                        Vec3.multiplyVbyV(CORNER_HANDLE_OVERLAY_AXES[cornerIndexes[i]], scalingBoundingBoxLocalCenter))
+                });
+            }
+
+            // Face scale handles.
+            for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
+                Overlays.editOverlay(faceHandleOverlays[i], {
+                    localPosition: Vec3.sum(scalingBoundingBoxDimensions,
+                        Vec3.multiplyVbyV(FACE_HANDLE_OVERLAY_AXES[i],
+                            Vec3.sum(scalingBoundingBoxLocalCenter, faceHandleOffsets)))
+                });
+            }
+        }
+
+        function finishScaling() {
+            // Adopt final scale.
+            boundingBoxLocalCenter = scalingBoundingBoxDimensions;
+            boundingBoxDimensions = scalingBoundingBoxLocalCenter;
+        }
+
         function hover(overlayID) {
             if (overlayID !== hoveredOverlayID) {
                 if (hoveredOverlayID !== null) {
@@ -492,6 +536,9 @@
             isHandle: isHandle,
             scalingAxis: scalingAxis,
             scalingDirections: scalingDirections,
+            startScaling: startScaling,
+            scale: scale,
+            finishScaling: finishScaling,
             hover: hover,
             grab: grab,
             clear: clear,
@@ -728,6 +775,10 @@
             // TODO
         }
 
+        function finishHandleScaling() {
+            select(selectedEntityID);  // Refresh.
+        }
+
         function clear() {
             selection = [];
             selectedEntityID = null;
@@ -754,6 +805,7 @@
             directScale: directScale,
             startHandleScaling: startHandleScaling,
             handleScale: handleScale,
+            finishHandleScaling: finishHandleScaling,
             clear: clear,
             destroy: destroy
         };
@@ -1285,6 +1337,7 @@
             handleHandOffset = handDistance - initialHandleDistance;
 
             selection.startHandleScaling();
+            handles.startScaling();
             isHandleScaling = true;
         }
 
@@ -1293,8 +1346,9 @@
         }
 
         function stopHandleScaling() {
-            // Stop highlighting grabbed handle and resume displaying all handles.
-            handles.grab(null);
+            handles.finishScaling();
+            selection.finishHandleScaling();
+            handles.grab(null);  // Stop highlighting grabbed handle and resume displaying all handles.
             isHandleScaling = false;
         }
 
@@ -1366,6 +1420,7 @@
                 y: scale3D.y !== 0 ? scale3D.y : 1,
                 z: scale3D.z !== 0 ? scale3D.z : 1
             };
+            handles.scale(scale3D);
             selection.handleScale(scale3D);
         }
 
