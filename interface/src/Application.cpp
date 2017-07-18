@@ -69,7 +69,7 @@
 #include <EntityScriptClient.h>
 #include <EntityScriptServerLogClient.h>
 #include <EntityScriptingInterface.h>
-#include "ui/overlays/HoverOverlayInterface.h"
+#include "ui/overlays/ContextOverlayInterface.h"
 #include <ErrorDialog.h>
 #include <FileScriptingInterface.h>
 #include <Finally.h>
@@ -589,7 +589,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<Snapshot>();
     DependencyManager::set<CloseEventSender>();
     DependencyManager::set<ResourceManager>();
-    DependencyManager::set<HoverOverlayInterface>();
+    DependencyManager::set<ContextOverlayInterface>();
 
     return previousSessionCrashed;
 }
@@ -1325,7 +1325,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(overlays, &Overlays::mousePressOnOverlay, [=](const OverlayID& overlayID, const PointerEvent& event) {
         auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(overlays->getOverlay(overlayID));
-        // Only Web overlays can have focus.
+        // Only Web overlays can have keyboard focus.
         if (thisOverlay) {
             setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
             setKeyboardFocusOverlay(overlayID);
@@ -1349,8 +1349,8 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(overlays,
             SIGNAL(mousePressOnOverlay(const OverlayID&, const PointerEvent&)),
-            DependencyManager::get<HoverOverlayInterface>().data(),
-            SLOT(clickHoverOverlay(const OverlayID&, const PointerEvent&)));
+            DependencyManager::get<ContextOverlayInterface>().data(),
+            SLOT(clickContextOverlay(const OverlayID&, const PointerEvent&)));
 
     // Add periodic checks to send user activity data
     static int CHECK_NEARBY_AVATARS_INTERVAL_MS = 10000;
@@ -2133,7 +2133,7 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
     surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
-    surfaceContext->setContextProperty("HoverOverlay", DependencyManager::get<HoverOverlayInterface>().data());
+    surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -5836,7 +5836,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     auto entityScriptServerLog = DependencyManager::get<EntityScriptServerLogClient>();
     scriptEngine->registerGlobalObject("EntityScriptServerLog", entityScriptServerLog.data());
     scriptEngine->registerGlobalObject("AvatarInputs", AvatarInputs::getInstance());
-    scriptEngine->registerGlobalObject("HoverOverlay", DependencyManager::get<HoverOverlayInterface>().data());
+    scriptEngine->registerGlobalObject("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
 
     qScriptRegisterMetaType(scriptEngine, OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 

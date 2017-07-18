@@ -187,7 +187,7 @@ var DEFAULT_GRABBABLE_DATA = {
 var USE_BLACKLIST = true;
 var blacklist = [];
 
-var entityWithHoverOverlay = false;
+var entityWithContextOverlay = false;
 
 var FORBIDDEN_GRAB_NAMES = ["Grab Debug Entity", "grab pointer"];
 var FORBIDDEN_GRAB_TYPES = ["Unknown", "Light", "PolyLine", "Zone"];
@@ -2203,9 +2203,9 @@ function MyController(hand) {
             entityPropertiesCache.addEntity(rayPickInfo.entityID);
         }
 
-        if (rayPickInfo.entityID && (entityWithHoverOverlay !== rayPickInfo.entityID)) {
-            if (entityWithHoverOverlay) {
-                HoverOverlay.destroyHoverOverlay(entityWithHoverOverlay);
+        if (rayPickInfo.entityID && (entityWithContextOverlay !== rayPickInfo.entityID)) {
+            if (entityWithContextOverlay) {
+                ContextOverlay.destroyContextOverlay(entityWithContextOverlay);
             }
             var pointerEvent = {
                 type: "Move",
@@ -2216,8 +2216,8 @@ function MyController(hand) {
                 direction: rayPickInfo.searchRay.direction,
                 button: "None"
             };
-            HoverOverlay.createHoverOverlay(rayPickInfo.entityID, pointerEvent);
-            entityWithHoverOverlay = rayPickInfo.entityID;
+            ContextOverlay.createContextOverlay(rayPickInfo.entityID, pointerEvent);
+            entityWithContextOverlay = rayPickInfo.entityID;
         }
 
         var candidateHotSpotEntities = Entities.findEntities(handPosition, MAX_EQUIP_HOTSPOT_RADIUS);
@@ -3779,9 +3779,9 @@ function MyController(hand) {
     this.release = function() {
         this.turnOffVisualizations();
 
-        if (entityWithHoverOverlay) {
-            HoverOverlay.destroyHoverOverlay(entityWithHoverOverlay);
-            entityWithHoverOverlay = false;
+        if (entityWithContextOverlay) {
+            ContextOverlay.destroyContextOverlay(entityWithContextOverlay);
+            entityWithContextOverlay = false;
         }
 
         if (this.grabbedThingID !== null) {

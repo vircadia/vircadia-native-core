@@ -1,5 +1,5 @@
 //
-//  HoverOverlayLogging.h
+//  ContextOverlayLogging.cpp
 //  interface/src/ui/overlays
 //
 //  Created by Zach Fox on 2017-07-17
@@ -9,12 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-#pragma once
-#ifndef hifi_HoverOverlayLogging_h
-#define hifi_HoverOverlayLogging_h
+#include "ContextOverlayLogging.h"
 
-#include <QLoggingCategory>
-
-Q_DECLARE_LOGGING_CATEGORY(hover_overlay)
-
-#endif // hifi_HoverOverlayLogging_h
+Q_LOGGING_CATEGORY(context_overlay, "hifi.context_overlay")
