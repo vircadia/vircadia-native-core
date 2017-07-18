@@ -1,6 +1,6 @@
 //
 //  HoverOverlayLogging.h
-//  libraries/entities/src
+//  interface/src/ui/overlays
 //
 //  Created by Zach Fox on 2017-07-17
 //  Copyright 2017 High Fidelity, Inc.

@@ -1,6 +1,6 @@
 //
 //  HoverOverlayInterface.h
-//  libraries/entities/src
+//  interface/src/ui/overlays
 //
 //  Created by Zach Fox on 2017-07-14.
 //  Copyright 2017 High Fidelity, Inc.
@@ -18,14 +18,24 @@
 
 #include <DependencyManager.h>
 #include <PointerEvent.h>
+#include "EntityScriptingInterface.h"
+#include "ui/overlays/Cube3DOverlay.h"
+#include "ui/overlays/Overlays.h"
 
 #include "EntityTree.h"
 #include "HoverOverlayLogging.h"
 
+/**jsdoc
+* @namespace HoverOverlay
+*/
 class HoverOverlayInterface : public QObject, public Dependency  {
     Q_OBJECT
 
     Q_PROPERTY(QUuid currentHoveredEntity READ getCurrentHoveredEntity WRITE setCurrentHoveredEntity)
+    QSharedPointer<EntityScriptingInterface> _entityScriptingInterface;
+    EntityPropertyFlags _entityPropertyFlags;
+    OverlayID _hoverOverlayID { UNKNOWN_OVERLAY_ID };
+    std::shared_ptr<Cube3DOverlay> _hoverOverlay { nullptr };
 public:
     HoverOverlayInterface();
 
@@ -34,11 +44,14 @@ public:
 
 public slots:
     void createHoverOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
+    void createHoverOverlay(const EntityItemID& entityItemID);
     void destroyHoverOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
+    void destroyHoverOverlay(const EntityItemID& entityItemID);
 
 private:
     bool _verboseLogging { true };
-    QUuid _currentHoveredEntity{};
+    QUuid _currentHoveredEntity {};
+
 };
 
 #endif // hifi_HoverOverlayInterface_h
