@@ -112,6 +112,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
         const QString RESTRICTED_ACCESS_SETTINGS_KEYPATH = "security.restricted_access";
         const QString ALLOWED_EDITORS_SETTINGS_KEYPATH = "security.allowed_editors";
         const QString EDITORS_ARE_REZZERS_KEYPATH = "security.editors_are_rezzers";
+        const QString EDITORS_CAN_REPLACE_CONTENT_KEYPATH = "security.editors_can_replace_content";
 
         qDebug() << "Previous domain-server settings version was"
             << QString::number(oldVersion, 'g', 8) << "and the new version is"

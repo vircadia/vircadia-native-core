@@ -25,6 +25,7 @@ class UsersScriptingInterface : public QObject, public Dependency {
 
     Q_PROPERTY(bool canKick READ getCanKick)
     Q_PROPERTY(bool requestsDomainListData READ getRequestsDomainListData WRITE setRequestsDomainListData)
+    Q_PROPERTY(bool canReplaceContent READ getCanReplaceContent)
 
 public:
     UsersScriptingInterface();
@@ -131,6 +132,13 @@ public slots:
     */
     bool getIgnoreRadiusEnabled();
 
+    /**jsdoc
+    * Returns true if the user has permissions to replace domain content sets
+    * @function Users.getCanReplaceContent
+    * @return {bool} true if the user has permissions to replace domain content sets, false if not
+    */
+    bool getCanReplaceContent();
+
 signals:
     void canKickChanged(bool canKick);
     void ignoreRadiusEnabledChanged(bool isEnabled);
@@ -154,6 +162,7 @@ signals:
      * @param {nodeID} NodeID The session ID of the avatar that has disconnected
      */
     void avatarDisconnected(const QUuid& nodeID);
+    void canReplaceContentChanged(bool canReplaceContent);
 
 private:
     bool getRequestsDomainListData();
