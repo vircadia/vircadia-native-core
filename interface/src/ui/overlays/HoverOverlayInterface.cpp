@@ -36,16 +36,16 @@ void HoverOverlayInterface::createHoverOverlay(const EntityItemID& entityItemID,
     EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
 
     if (_hoverOverlayID == UNKNOWN_OVERLAY_ID || !qApp->getOverlays().isAddedOverlay(_hoverOverlayID)) {
-        _hoverOverlay = std::make_shared<Cube3DOverlay>();
+        _hoverOverlay = std::make_shared<Image3DOverlay>();
         _hoverOverlay->setAlpha(1.0f);
-        _hoverOverlay->setBorderSize(1.0f);
-        _hoverOverlay->setColor({ 0xFF, 0xEF, 0x00 });
-        _hoverOverlay->setIsSolid(true);
-        _hoverOverlay->setPulseMin(0.5);
-        _hoverOverlay->setPulseMax(1.0);
-        _hoverOverlay->setColorPulse(1.0);
+        _hoverOverlay->setPulseMin(0.75f);
+        _hoverOverlay->setPulseMax(1.0f);
+        _hoverOverlay->setColorPulse(1.0f);
         _hoverOverlay->setIgnoreRayIntersection(false);
-        _hoverOverlay->setDrawInFront(false);
+        _hoverOverlay->setDrawInFront(true);
+        _hoverOverlay->setURL("http://i.imgur.com/gksZygp.png");
+        _hoverOverlay->setIsFacingAvatar(true);
+        _hoverOverlay->setDimensions(glm::vec2(0.2f, 0.2f) * glm::distance(entityProperties.getPosition(), qApp->getCamera().getPosition()));
         _hoverOverlayID = qApp->getOverlays().addOverlay(_hoverOverlay);
     }
 

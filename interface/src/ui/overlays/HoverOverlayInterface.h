@@ -19,7 +19,7 @@
 #include <DependencyManager.h>
 #include <PointerEvent.h>
 #include "EntityScriptingInterface.h"
-#include "ui/overlays/Cube3DOverlay.h"
+#include "ui/overlays/Image3DOverlay.h"
 #include "ui/overlays/Overlays.h"
 
 #include "EntityTree.h"
@@ -35,7 +35,7 @@ class HoverOverlayInterface : public QObject, public Dependency  {
     QSharedPointer<EntityScriptingInterface> _entityScriptingInterface;
     EntityPropertyFlags _entityPropertyFlags;
     OverlayID _hoverOverlayID { UNKNOWN_OVERLAY_ID };
-    std::shared_ptr<Cube3DOverlay> _hoverOverlay { nullptr };
+    std::shared_ptr<Image3DOverlay> _hoverOverlay { nullptr };
 public:
     HoverOverlayInterface();
 
