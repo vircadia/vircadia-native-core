@@ -2742,6 +2742,16 @@ bool Application::event(QEvent* event) {
             static_cast<LambdaEvent*>(event)->call();
             return true;
 
+        // Explicit idle keeps the idle running at a lower interval, but without any rendering
+        // see (windowMinimizedChanged)
+        case Event::Idle:
+            {
+                float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
+                _lastTimeUpdated.start();
+                idle(nsecsElapsed);
+            }
+            return true;
+
         case Event::Present:
             if (!_renderRequested) {
                 float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
