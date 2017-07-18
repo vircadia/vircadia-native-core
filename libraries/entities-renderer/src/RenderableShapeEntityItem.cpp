@@ -16,6 +16,7 @@
 #include <StencilMaskPass.h>
 #include <GeometryCache.h>
 #include <PerfStat.h>
+#include <ShapeFactory.h>
 
 #include <render-utils/simple_vert.h>
 #include <render-utils/simple_frag.h>
@@ -48,11 +49,12 @@ RenderableShapeEntityItem::Pointer RenderableShapeEntityItem::baseFactory(const 
 }
 
 EntityItemPointer RenderableShapeEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-	auto result = baseFactory(entityID, properties);
+    auto result = baseFactory(entityID, properties);
 
-	qCDebug(entities) << "Creating RenderableShapeEntityItem( " << result->_name << " ): " << result.get() << " ID: " << result->_id;
+    //TODO_CUSACK: Remove this before final PN
+    qCDebug(entities) << "Creating RenderableShapeEntityItem( " << result->_name << " ): " << result.get() << " ID: " << result->_id;
 
-	return result;
+    return result;
 }
 
 EntityItemPointer RenderableShapeEntityItem::boxFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
@@ -84,6 +86,23 @@ bool RenderableShapeEntityItem::isTransparent() {
     } else {
         return getLocalRenderAlpha() < 1.0f || EntityItem::isTransparent();
     }
+}
+
+void RenderableShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
+
+    if (_collisionShapeType == ShapeType::SHAPE_TYPE_NONE) {
+        if (_shape == entity::Shape::NUM_SHAPES)
+        {
+            EntityItem::computeShapeInfo(info);
+
+            //--EARLY EXIT--( allow default handling to process )
+            return;
+        }
+
+        _collisionShapeType = ShapeFactory::computeShapeType(getShape(), getDimensions());
+    }
+
+    return EntityItem::computeShapeInfo(info);
 }
 
 void RenderableShapeEntityItem::render(RenderArgs* args) {
