@@ -327,9 +327,10 @@
         }
 
         function scalingAxis(overlayID) {
+            var axesIndex;
             if (isCornerHandle(overlayID)) {
-                return Vec3.normalize(Vec3.multiplyVbyV(CORNER_HANDLE_OVERLAY_AXES[cornerHandleOverlays.indexOf(overlayID)],
-                    boundingBoxDimensions));
+                axesIndex = CORNER_HANDLE_OVERLAY_AXES[cornerIndexes[cornerHandleOverlays.indexOf(overlayID)]];
+                return Vec3.normalize(Vec3.multiplyVbyV(axesIndex, boundingBoxDimensions));
             }
             return FACE_HANDLE_OVERLAY_SCALE_AXES[faceHandleOverlays.indexOf(overlayID)];
         }
