@@ -498,12 +498,12 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
 
                 auto nodeList = DependencyManager::get<NodeList>();
                 const QUuid myNodeID = nodeList->getSessionUUID();
-                auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
-                AvatarSharedPointer myAvatar = avatarHashMap->getAvatarBySessionID(myNodeID);
                 if (entity->getClientOnly() && entity->getOwningAvatarID() != myNodeID) {
                     // don't delete other avatar's avatarEntities
-                    // If you actually own the entity but the onwership is not set because of a domain switch
-                    // the line below make sure the entity is deleted.
+                    // If you actually own the entity but the onwership property is not set because of a domain switch
+                    // The lines below makes sure the entity is deleted once its properties are set.
+                    auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
+                    AvatarSharedPointer myAvatar = avatarHashMap->getAvatarBySessionID(myNodeID);
                     myAvatar->insertDetachedEntityID(id);
                     shouldDelete = false;
                     return;
