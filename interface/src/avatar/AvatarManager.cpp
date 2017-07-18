@@ -273,15 +273,19 @@ void AvatarManager::simulateAvatarFades(float deltaTime) {
         return;
     }
 
+    const float SHRINK_RATE = 0.15f;
+    const float MIN_FADE_SCALE = MIN_AVATAR_SCALE;
+
     QReadLocker locker(&_hashLock);
     QVector<AvatarSharedPointer>::iterator avatarItr = _avatarsToFade.begin();
-    const render::ScenePointer& scene = qApp->getMain3DScene();
     while (avatarItr != _avatarsToFade.end()) {
         auto avatar = std::static_pointer_cast<Avatar>(*avatarItr);
-        avatar->updateFadingStatus(scene);
-        if (!avatar->isFading()) {
+        avatar->setTargetScale(avatar->getUniformScale() * SHRINK_RATE);
+        avatar->animateScaleChanges(deltaTime);
+        if (avatar->getTargetScale() <= MIN_FADE_SCALE) {
             // fading to zero is such a rare event we push a unique transaction for each
             if (avatar->isInScene()) {
+                const render::ScenePointer& scene = qApp->getMain3DScene();
                 render::Transaction transaction;
                 avatar->removeFromScene(*avatarItr, scene, transaction);
                 scene->enqueueTransaction(transaction);
@@ -321,7 +325,6 @@ void AvatarManager::handleRemovedAvatar(const AvatarSharedPointer& removedAvatar
         DependencyManager::get<UsersScriptingInterface>()->avatarDisconnected(avatar->getSessionUUID());
     }
     _avatarsToFade.push_back(removedAvatar);
-    avatar->fadeOut(qApp->getMain3DScene(), removalReason);
 }
 
 void AvatarManager::clearOtherAvatars() {
