@@ -60,7 +60,7 @@ static const int VERTICES_PER_TRIANGLE = 3;
 static const gpu::Element POSITION_ELEMENT { gpu::VEC3, gpu::FLOAT, gpu::XYZ };
 static const gpu::Element NORMAL_ELEMENT { gpu::VEC3, gpu::FLOAT, gpu::XYZ };
 static const gpu::Element COLOR_ELEMENT { gpu::VEC4, gpu::NUINT8, gpu::RGBA };
-static const gpu::Element TEXCOORD4_ELEMENT { gpu::VEC4, gpu::HALF, gpu::XYZW };
+static const gpu::Element TEXCOORD4_ELEMENT { gpu::VEC4, gpu::FLOAT, gpu::XYZW };
 
 static gpu::Stream::FormatPointer SOLID_STREAM_FORMAT;
 static gpu::Stream::FormatPointer INSTANCED_SOLID_STREAM_FORMAT;
@@ -620,7 +620,7 @@ void GeometryCache::renderWireShapeInstances(gpu::Batch& batch, Shape shape, siz
 }
 
 void setupBatchFadeInstance(gpu::Batch& batch, gpu::BufferPointer colorBuffer, 
-    gpu::BufferPointer& fadeBuffer1, gpu::BufferPointer& fadeBuffer2, gpu::BufferPointer& fadeBuffer3) {
+    gpu::BufferPointer fadeBuffer1, gpu::BufferPointer fadeBuffer2, gpu::BufferPointer fadeBuffer3) {
     gpu::BufferView colorView(colorBuffer, COLOR_ELEMENT);
     gpu::BufferView texCoord2View(fadeBuffer1, TEXCOORD4_ELEMENT);
     gpu::BufferView texCoord3View(fadeBuffer2, TEXCOORD4_ELEMENT);
@@ -2102,7 +2102,7 @@ void renderFadeInstances(RenderArgs* args, gpu::Batch& batch, const glm::vec4& c
     const glm::vec3& fadeNoiseOffset, const glm::vec3& fadeBaseOffset, const glm::vec3& fadeBaseInvSize, bool isWire,
     const render::ShapePipelinePointer& pipeline, GeometryCache::Shape shape) {
     // Add pipeline to name
-    std::string instanceName = (isWire ? "wire_fade_shapes_" : "solid_fade_shapes_") + std::to_string(shape) + "_" + std::to_string(std::hash<render::ShapePipelinePointer>()(pipeline));
+    std::string instanceName = (isWire ? "wire_shapes_" : "solid_shapes_") + std::to_string(shape) + "_" + std::to_string(std::hash<render::ShapePipelinePointer>()(pipeline));
 
     // Add color to named buffer
     {

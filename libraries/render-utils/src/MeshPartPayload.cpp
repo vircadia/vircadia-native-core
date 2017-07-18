@@ -532,13 +532,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
 
     if (_state == WAITING_TO_START) {
         if (model->isLoaded()) {
- /*           // FIXME as far as I can tell this is the ONLY reason render-util depends on entities.
-            if (EntityItem::getEntitiesShouldFadeFunction()()) {
-                _fadeStartTime = usecTimestampNow();
-                _fadeState = STATE_IN_PROGRESS;
-            } else {
-                _fadeState = STATE_COMPLETE;
-            }*/
             _state = STARTED;
             model->setRenderItemsNeedUpdate();
         } else {
@@ -569,17 +562,6 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
 
     // apply material properties
     bindMaterial(batch, locations, args->_enableTexturing);
-
- /*   if (args->_enableFade) {
-        // Apply fade effect
-        if (!FadeRenderJob::bindPerItem(batch, args, _transform.getTranslation(), _fadeStartTime)) {
-            _fadeState = STATE_COMPLETE;
-        }
-    }*/
- /*   else {
-        // TODO : very ugly way to update the fade state. Need to improve this with global fade manager.
-        _fadeState = STATE_COMPLETE;
-    }*/
 
     args->_details._materialSwitches++;
 

@@ -155,19 +155,15 @@ in vec4 _fadeData3;
 <@endfunc@>
 
 <@func declareFadeVertexInstanced()@>
-in vec4 _texCoord2;
-in vec4 _texCoord3;
-in vec4 _texCoord4;
-
 out vec4 _fadeData1;
 out vec4 _fadeData2;
 out vec4 _fadeData3;
 <@endfunc@>
 
 <@func passThroughFadeObjectParams()@>
-    _fadeData1 = _texCoord2;
-    _fadeData2 = _texCoord3;
-    _fadeData3 = _texCoord4;    
+    _fadeData1 = inTexCoord2;
+    _fadeData2 = inTexCoord3;
+    _fadeData3 = inTexCoord4;    
 <@endfunc@>
 
 <@endif@>

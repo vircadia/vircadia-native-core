@@ -115,7 +115,8 @@ namespace render {
         DebugFlags _debugFlags { RENDER_DEBUG_NONE };
         gpu::Batch* _batch = nullptr;
 
-        uint32_t _globalShapeKey { 0 };
+        uint32_t _globalShapeKey{ 0 };
+        uint32_t _itemShapeKey{ 0 };
         bool _enableTexturing { true };
 
         bool _enableFade{ false };

@@ -157,7 +157,7 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
     } else {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         auto geometryCache = DependencyManager::get<GeometryCache>();
-        auto shapeKey = render::ShapeKey(args->_globalShapeKey);
+        auto shapeKey = render::ShapeKey(args->_itemShapeKey);
         
         assert(args->_shapePipeline != nullptr);
 
