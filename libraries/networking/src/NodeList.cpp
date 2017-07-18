@@ -930,7 +930,7 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
 
         if (_personalMutedNodeIDs.size() > 0) {
             // setup a packet list so we can send the stream of ignore IDs
-            auto personalMutePacketList = NLPacketList::create(PacketType::NodeIgnoreRequest, QByteArray(), true);
+            auto personalMutePacketList = NLPacketList::create(PacketType::NodeIgnoreRequest, QByteArray(), true, true);
 
             // Force the "enabled" flag in this packet to true
             personalMutePacketList->writePrimitive(true);
@@ -957,7 +957,7 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
 
         if (_ignoredNodeIDs.size() > 0) {
             // setup a packet list so we can send the stream of ignore IDs
-            auto ignorePacketList = NLPacketList::create(PacketType::NodeIgnoreRequest, QByteArray(), true);
+            auto ignorePacketList = NLPacketList::create(PacketType::NodeIgnoreRequest, QByteArray(), true, true);
 
             // Force the "enabled" flag in this packet to true
             ignorePacketList->writePrimitive(true);
