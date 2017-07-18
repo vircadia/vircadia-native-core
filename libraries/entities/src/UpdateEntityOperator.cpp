@@ -138,8 +138,8 @@ bool UpdateEntityOperator::preRecursion(const OctreeElementPointer& element) {
         qCDebug(entities) << "    _foundNew=" << _foundNew;
     }
 
-    // If we haven't yet found the old entity, and this subTreeContains our old
-    // entity, then we need to keep searching.
+    // If we haven't yet found the old element, and this subTreeContains our old element,
+    // then we need to keep searching.
     if (!_foundOld && subtreeContainsOld) {
 
         if (_wantDebug) {
@@ -169,7 +169,6 @@ bool UpdateEntityOperator::preRecursion(const OctreeElementPointer& element) {
                 // NOTE: we know we haven't yet added it to its new element because _removeOld is true
                 EntityTreeElementPointer oldElement = _existingEntity->getElement();
                 oldElement->removeEntityItem(_existingEntity);
-                _tree->setContainingElement(_entityItemID, NULL);
 
                 if (oldElement != _containingElement) {
                     qCDebug(entities) << "WARNING entity moved during UpdateEntityOperator recursion";
@@ -187,8 +186,8 @@ bool UpdateEntityOperator::preRecursion(const OctreeElementPointer& element) {
         }
     }
 
-    // If we haven't yet found the new entity,  and this subTreeContains our new
-    // entity, then we need to keep searching.
+    // If we haven't yet found the new element, and this subTreeContains our new element,
+    // then we need to keep searching.
     if (!_foundNew && subtreeContainsNew) {
 
         if (_wantDebug) {
@@ -221,7 +220,6 @@ bool UpdateEntityOperator::preRecursion(const OctreeElementPointer& element) {
                     }
                 }
                 entityTreeElement->addEntityItem(_existingEntity);
-                _tree->setContainingElement(_entityItemID, entityTreeElement);
             }
             _foundNew = true; // we found the new element
             _removeOld = false; // and it has already been removed from the old
