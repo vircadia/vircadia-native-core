@@ -136,15 +136,9 @@ void Audio::setReverbOptions(const AudioEffectOptions* options) {
 }
 
 void Audio::setInputDevice(const QAudioDeviceInfo& device) {
-    auto client = DependencyManager::get<AudioClient>();
-    QMetaObject::invokeMethod(client.data(), "switchAudioDevice",
-        Q_ARG(QAudio::Mode, QAudio::AudioInput),
-        Q_ARG(const QAudioDeviceInfo&, device));
+    _devices.chooseInputDevice(device);
 }
 
 void Audio::setOutputDevice(const QAudioDeviceInfo& device) {
-    auto client = DependencyManager::get<AudioClient>();
-    QMetaObject::invokeMethod(client.data(), "switchAudioDevice",
-        Q_ARG(QAudio::Mode, QAudio::AudioOutput),
-        Q_ARG(const QAudioDeviceInfo&, device));
+    _devices.chooseOutputDevice(device);
 }
