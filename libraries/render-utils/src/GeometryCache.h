@@ -187,6 +187,11 @@ public:
     void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
     void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
 
+    void renderFadeShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer,
+        gpu::BufferPointer& fadeBuffer1, gpu::BufferPointer& fadeBuffer2, gpu::BufferPointer& fadeBuffer3);
+    void renderWireFadeShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer,
+        gpu::BufferPointer& fadeBuffer1, gpu::BufferPointer& fadeBuffer2, gpu::BufferPointer& fadeBuffer3);
+
     void renderSolidShapeInstance(RenderArgs* args, gpu::Batch& batch, Shape shape, const glm::vec4& color = glm::vec4(1),
                                     const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline);
     void renderSolidShapeInstance(RenderArgs* args, gpu::Batch& batch, Shape shape, const glm::vec3& color,
@@ -200,6 +205,13 @@ public:
         const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline) {
         renderWireShapeInstance(args, batch, shape, glm::vec4(color, 1.0f), pipeline);
     }
+
+    void renderSolidFadeShapeInstance(RenderArgs* args, gpu::Batch& batch, Shape shape, const glm::vec4& color, int fadeCategory, float fadeThreshold,
+        const glm::vec3& fadeNoiseOffset, const glm::vec3& fadeBaseOffset, const glm::vec3& fadeBaseInvSize,
+        const render::ShapePipelinePointer& pipeline);
+    void renderWireFadeShapeInstance(RenderArgs* args, gpu::Batch& batch, Shape shape, const glm::vec4& color, int fadeCategory, float fadeThreshold,
+        const glm::vec3& fadeNoiseOffset, const glm::vec3& fadeBaseOffset, const glm::vec3& fadeBaseInvSize,
+        const render::ShapePipelinePointer& pipeline);
 
     void renderSolidSphereInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color,
                                     const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline);

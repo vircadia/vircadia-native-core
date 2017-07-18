@@ -32,8 +32,10 @@ in vec3 _color;
 
 void main(void) {
     vec3 fadeEmissive;
+    FadeObjectParams fadeParams;
 
-    applyFade(_worldPosition.xyz, fadeEmissive);
+    <$fetchFadeObjectParams(fadeParams)$>
+    applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
 
     Material mat = getMaterial();
     int matKey = getMaterialKey(mat);

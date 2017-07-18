@@ -16,7 +16,7 @@
 <@include model/Material.slh@>
 
 <@include Fade.slh@>
-<$declareFadeFragment()$>
+<$declareFadeFragmentInstanced()$>
 
 // the interpolated normal
 in vec3 _normal;
@@ -34,8 +34,10 @@ in vec4 _worldPosition;
 #line 2030
 void main(void) {
     vec3 fadeEmissive;
+    FadeObjectParams fadeParams;
 
-    applyFade(_worldPosition.xyz, fadeEmissive);
+    <$fetchFadeObjectParamsInstanced(fadeParams)$>
+    applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
 
     Material material = getMaterial();
     vec3 normal = normalize(_normal.xyz); 

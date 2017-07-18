@@ -30,7 +30,10 @@ uniform vec3 voxelVolumeSize;
 
 void main(void) {
     vec3    emissive;
-    applyFade(_worldPosition.xyz, emissive);
+    FadeObjectParams fadeParams;
+
+    <$fetchFadeObjectParams(fadeParams)$>
+    applyFade(fadeParams, _worldPosition.xyz, emissive);
 
     vec3 worldNormal = cross(dFdy(_worldPosition.xyz), dFdx(_worldPosition.xyz));
     worldNormal = normalize(worldNormal);

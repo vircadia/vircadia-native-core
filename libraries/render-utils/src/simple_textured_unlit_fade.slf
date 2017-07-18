@@ -27,12 +27,14 @@ in vec2 _texCoord0;
 in vec4 _worldPosition;
 
 // Declare after all samplers to prevent sampler location mix up with originalTexture
-<$declareFadeFragment()$>
+<$declareFadeFragmentInstanced()$>
 
 void main(void) {
     vec3 fadeEmissive;
+    FadeObjectParams fadeParams;
 
-    applyFade(_worldPosition.xyz, fadeEmissive);
+    <$fetchFadeObjectParamsInstanced(fadeParams)$>
+    applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
 
     vec4 texel = texture(originalTexture, _texCoord0.st);
     float colorAlpha = _color.a;

@@ -62,7 +62,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // Prepare the ShapePipelines
     ShapePlumberPointer shapePlumber = std::make_shared<ShapePlumber>();
-    initDeferredPipelines(*shapePlumber, fadeEffect->getBatchSetter(), fadeEffect->getItemSetter());
+    initDeferredPipelines(*shapePlumber, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
 
     // Extract opaques / transparents / lights / metas / overlays / background
     const auto& opaques = items.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE];

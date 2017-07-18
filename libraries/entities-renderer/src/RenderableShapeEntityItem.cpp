@@ -19,6 +19,7 @@
 
 #include <render-utils/simple_vert.h>
 #include <render-utils/simple_frag.h>
+#include <FadeEffect.h>
 
 // Sphere entities should fit inside a cube entity of the same size, so a sphere that has dimensions 1x1x1 
 // is a half unit sphere.  However, the geometry cache renders a UNIT sphere, so we need to scale down.
@@ -160,10 +161,29 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
         
         assert(args->_shapePipeline != nullptr);
 
-        if (shapeKey.isWireframe()) {
-            geometryCache->renderWireShapeInstance(args, batch, MAPPING[_shape], color, args->_shapePipeline);
+        if (shapeKey.isFaded()) {
+            auto fadeEffect = DependencyManager::get<FadeEffect>();
+            auto fadeCategory = fadeEffect->getLastCategory();
+            auto fadeThreshold = fadeEffect->getLastThreshold();
+            auto fadeNoiseOffset = fadeEffect->getLastNoiseOffset();
+            auto fadeBaseOffset = fadeEffect->getLastBaseOffset();
+            auto fadeBaseInvSize = fadeEffect->getLastBaseInvSize();
+
+            if (shapeKey.isWireframe()) {
+                geometryCache->renderWireFadeShapeInstance(args, batch, MAPPING[_shape], color, fadeCategory, fadeThreshold,
+                    fadeNoiseOffset, fadeBaseOffset, fadeBaseInvSize, args->_shapePipeline);
+            }
+            else {
+                geometryCache->renderSolidFadeShapeInstance(args, batch, MAPPING[_shape], color, fadeCategory, fadeThreshold,
+                    fadeNoiseOffset, fadeBaseOffset, fadeBaseInvSize, args->_shapePipeline);
+            }
         } else {
-            geometryCache->renderSolidShapeInstance(args, batch, MAPPING[_shape], color, args->_shapePipeline);
+            if (shapeKey.isWireframe()) {
+                geometryCache->renderWireShapeInstance(args, batch, MAPPING[_shape], color, args->_shapePipeline);
+            }
+            else {
+                geometryCache->renderSolidShapeInstance(args, batch, MAPPING[_shape], color, args->_shapePipeline);
+            }
         }
     }
 

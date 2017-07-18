@@ -17,6 +17,9 @@
 <@include gpu/Transform.slh@>
 <$declareStandardTransform()$>
 
+<@include Fade.slh@>
+<$declareFadeVertexInstanced()$>
+
 // the interpolated normal
 out vec3 _normal;
 out vec3 _modelNormal;
@@ -37,4 +40,5 @@ void main(void) {
     <$transformModelToClipPos(cam, obj, inPosition, gl_Position)$>
     <$transformModelToWorldPos(obj, inPosition, _worldPosition)$>
     <$transformModelToWorldDir(cam, obj, inNormal.xyz, _normal)$>
+    <$passThroughFadeObjectParams()$>
 }

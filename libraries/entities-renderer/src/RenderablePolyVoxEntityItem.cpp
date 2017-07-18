@@ -865,10 +865,10 @@ render::ShapePipelinePointer PolyVoxPayload::shapePipelineFactory(const render::
     if (key.isFaded()) {
         const auto& fadeEffect = DependencyManager::get<FadeEffect>();
         if (key.isWireframe()) {
-            return std::make_shared<render::ShapePipeline>(_wireframePipelines[1], nullptr, fadeEffect->getBatchSetter(), fadeEffect->getItemSetter());
+            return std::make_shared<render::ShapePipeline>(_wireframePipelines[1], nullptr, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
         }
         else {
-            return std::make_shared<render::ShapePipeline>(_pipelines[1], nullptr, fadeEffect->getBatchSetter(), fadeEffect->getItemSetter());
+            return std::make_shared<render::ShapePipeline>(_pipelines[1], nullptr, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
         }
     }
     else {
