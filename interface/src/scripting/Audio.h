@@ -50,6 +50,8 @@ public:
     void showMicMeter(bool show);
     void setInputVolume(float volume);
 
+    Q_INVOKABLE void setInputDevice(const QAudioDeviceInfo& device);
+    Q_INVOKABLE void setOutputDevice(const QAudioDeviceInfo& device);
     Q_INVOKABLE void setReverb(bool enable);
     Q_INVOKABLE void setReverbOptions(const AudioEffectOptions* options);
 
