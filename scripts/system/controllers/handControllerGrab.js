@@ -224,6 +224,7 @@ CONTROLLER_STATE_MACHINE[STATE_OFF] = {
 CONTROLLER_STATE_MACHINE[STATE_SEARCHING] = {
     name: "searching",
     enterMethod: "searchEnter",
+    exitMethod: "searchExit",
     updateMethod: "search"
 };
 CONTROLLER_STATE_MACHINE[STATE_DISTANCE_HOLDING] = {
@@ -2174,6 +2175,13 @@ function MyController(hand) {
         }
     };
 
+    this.searchExit = function () {
+        if (entityWithContextOverlay) {
+            ContextOverlay.destroyContextOverlay(entityWithContextOverlay);
+            entityWithContextOverlay = false;
+        }
+    };
+
     this.search = function(deltaTime, timestamp) {
         var _this = this;
         var name;
@@ -2206,17 +2214,22 @@ function MyController(hand) {
         if (rayPickInfo.entityID && (entityWithContextOverlay !== rayPickInfo.entityID)) {
             if (entityWithContextOverlay) {
                 ContextOverlay.destroyContextOverlay(entityWithContextOverlay);
+                entityWithContextOverlay = false;
             }
-            var pointerEvent = {
-                type: "Move",
-                id: this.hand + 1, // 0 is reserved for hardware mouse
-                pos2D: projectOntoEntityXYPlane(rayPickInfo.entityID, rayPickInfo.intersection),
-                pos3D: rayPickInfo.intersection,
-                normal: rayPickInfo.normal,
-                direction: rayPickInfo.searchRay.direction,
-                button: "None"
-            };
-            ContextOverlay.createContextOverlay(rayPickInfo.entityID, pointerEvent);
+            Script.setTimeout(function() {
+                if (rayPickInfo.entityID === entityWithContextOverlay) {
+                    var pointerEvent = {
+                        type: "Move",
+                        id: this.hand + 1, // 0 is reserved for hardware mouse
+                        pos2D: projectOntoEntityXYPlane(rayPickInfo.entityID, rayPickInfo.intersection),
+                        pos3D: rayPickInfo.intersection,
+                        normal: rayPickInfo.normal,
+                        direction: rayPickInfo.searchRay.direction,
+                        button: "None"
+                    };
+                    ContextOverlay.createContextOverlay(rayPickInfo.entityID, pointerEvent);
+                }
+            }, 500);
             entityWithContextOverlay = rayPickInfo.entityID;
         }
 
@@ -3778,11 +3791,6 @@ function MyController(hand) {
 
     this.release = function() {
         this.turnOffVisualizations();
-
-        if (entityWithContextOverlay) {
-            ContextOverlay.destroyContextOverlay(entityWithContextOverlay);
-            entityWithContextOverlay = false;
-        }
 
         if (this.grabbedThingID !== null) {
 
