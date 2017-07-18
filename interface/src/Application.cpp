@@ -1324,8 +1324,12 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     auto overlays = &(qApp->getOverlays());
 
     connect(overlays, &Overlays::mousePressOnOverlay, [=](const OverlayID& overlayID, const PointerEvent& event) {
-        setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
-        setKeyboardFocusOverlay(overlayID);
+        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(overlays->getOverlay(overlayID));
+        // Only Web overlays can have focus.
+        if (thisOverlay) {
+            setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+            setKeyboardFocusOverlay(overlayID);
+        }
     });
 
     connect(overlays, &Overlays::overlayDeleted, [=](const OverlayID& overlayID) {

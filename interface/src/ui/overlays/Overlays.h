@@ -337,7 +337,7 @@ private:
 #endif
     bool _enabled = true;
 
-    PointerEvent calculatePointerEvent(Overlay::Pointer overlay, PickRay ray, RayToOverlayIntersectionResult rayPickResult,
+    PointerEvent calculateWeb3DPointerEvent(Overlay::Pointer overlay, PickRay ray, RayToOverlayIntersectionResult rayPickResult,
         QMouseEvent* event, PointerEvent::EventType eventType);
 
     OverlayID _currentClickingOnOverlayID { UNKNOWN_OVERLAY_ID };
