@@ -1678,13 +1678,11 @@ QString getMarketplaceID(const QString& urlString) {
     // a regex for the this is a PITA as there are several valid versions of uuids, and so
     // lets strip out the uuid (if any) and try to create a UUID from the string, relying on
     // QT to parse it
-    static const QRegularExpression re("^http:\\/\\/mpassets.highfidelity.com\\/([0-9A-Fa-f\\-]+)v[\\d]+\\/.*");
+    static const QRegularExpression re("^http:\\/\\/mpassets.highfidelity.com\\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})-v[\\d]+\\/.*");
     QRegularExpressionMatch match = re.match(urlString);
     if (match.hasMatch()) {
         QString matched = match.captured(1);
-        // strip the hyphen off the end because my regex is crap
-        matched.truncate(matched.size()-1);
-        if (QUuid() == QUuid(matched)) {
+        if (QUuid(matched).isNull()) {
             qDebug() << "invalid uuid for marketplaceID";
         } else {
             return matched;
