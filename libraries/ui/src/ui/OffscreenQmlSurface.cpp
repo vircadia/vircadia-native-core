@@ -25,6 +25,8 @@
 #include <QtCore/QWaitCondition>
 
 #include <shared/NsightHelpers.h>
+#include <shared/GlobalAppProperties.h>
+#include <shared/QtHelpers.h>
 #include <PerfStat.h>
 #include <DependencyManager.h>
 #include <NumericalConstants.h>
@@ -34,7 +36,6 @@
 #include <AccountManager.h>
 #include <NetworkAccessManager.h>
 #include <GLMHelpers.h>
-#include <shared/GlobalAppProperties.h>
 
 #include <gl/OffscreenGLCanvas.h>
 #include <gl/GLHelpers.h>
@@ -263,9 +264,6 @@ QNetworkAccessManager* QmlNetworkAccessManagerFactory::create(QObject* parent) {
     return new QmlNetworkAccessManager(parent);
 }
 
-static QQmlEngine* globalEngine { nullptr };
-static size_t globalEngineRefCount { 0 };
-
 QString getEventBridgeJavascript() {
     // FIXME: Refactor with similar code in RenderableWebEntityItem
     QString javaScriptToInject;
@@ -299,9 +297,44 @@ private:
 };
 
 
+#define SINGLE_QML_ENGINE 0
+
+#if SINGLE_QML_ENGINE
+static QQmlEngine* globalEngine{ nullptr };
+static size_t globalEngineRefCount{ 0 };
+#endif
+
+void initializeQmlEngine(QQmlEngine* engine, QQuickWindow* window) {
+    engine->setNetworkAccessManagerFactory(new QmlNetworkAccessManagerFactory);
+    auto importList = engine->importPathList();
+    importList.insert(importList.begin(), PathUtils::resourcesPath());
+    engine->setImportPathList(importList);
+    for (const auto& path : importList) {
+        qDebug() << path;
+    }
+
+    if (!engine->incubationController()) {
+        engine->setIncubationController(window->incubationController());
+    }
+    auto rootContext = engine->rootContext();
+    rootContext->setContextProperty("GL", ::getGLContextData());
+    rootContext->setContextProperty("urlHandler", new UrlHandler());
+    rootContext->setContextProperty("resourceDirectoryUrl", QUrl::fromLocalFile(PathUtils::resourcesPath()));
+    rootContext->setContextProperty("pathToFonts", "../../");
+    rootContext->setContextProperty("ApplicationInterface", qApp);
+    auto javaScriptToInject = getEventBridgeJavascript();
+    if (!javaScriptToInject.isEmpty()) {
+        rootContext->setContextProperty("eventBridgeJavaScriptToInject", QVariant(javaScriptToInject));
+    }
+    rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
+    rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
+    rootContext->setContextProperty("HFTabletWebEngineProfile", new HFTabletWebEngineProfile(rootContext));
+}
 
 QQmlEngine* acquireEngine(QQuickWindow* window) {
     Q_ASSERT(QThread::currentThread() == qApp->thread());
+
+    QQmlEngine* result = nullptr;
     if (QThread::currentThread() != qApp->thread()) {
         qCWarning(uiLogging) << "Cannot acquire QML engine on any thread but the main thread";
     }
@@ -310,47 +343,34 @@ QQmlEngine* acquireEngine(QQuickWindow* window) {
         qmlRegisterType<SoundEffect>("Hifi", 1, 0, "SoundEffect");
     });
 
+
+#if SINGLE_QML_ENGINE
     if (!globalEngine) {
         Q_ASSERT(0 == globalEngineRefCount);
         globalEngine = new QQmlEngine();
-        globalEngine->setNetworkAccessManagerFactory(new QmlNetworkAccessManagerFactory);
-
-        auto importList = globalEngine->importPathList();
-        importList.insert(importList.begin(), PathUtils::resourcesPath());
-        globalEngine->setImportPathList(importList);
-        for (const auto& path : importList) {
-            qDebug() << path;
-        }
-
-        if (!globalEngine->incubationController()) {
-            globalEngine->setIncubationController(window->incubationController());
-        }
-        auto rootContext = globalEngine->rootContext();
-        rootContext->setContextProperty("GL", ::getGLContextData());
-        rootContext->setContextProperty("urlHandler", new UrlHandler());
-        rootContext->setContextProperty("resourceDirectoryUrl", QUrl::fromLocalFile(PathUtils::resourcesPath()));
-        rootContext->setContextProperty("pathToFonts", "../../");
-        rootContext->setContextProperty("ApplicationInterface", qApp);
-        auto javaScriptToInject = getEventBridgeJavascript();
-        if (!javaScriptToInject.isEmpty()) {
-            rootContext->setContextProperty("eventBridgeJavaScriptToInject", QVariant(javaScriptToInject));
-        }
-        rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
-        rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
-        rootContext->setContextProperty("HFTabletWebEngineProfile", new HFTabletWebEngineProfile(rootContext));
+        initializeQmlEngine(result, window);
+        ++globalEngineRefCount;
     }
+    result = globalEngine;
+#else
+    result = new QQmlEngine();
+    initializeQmlEngine(result, window);
+#endif
 
-    ++globalEngineRefCount;
-    return globalEngine;
+    return result;
 }
 
-void releaseEngine() {
+void releaseEngine(QQmlEngine* engine) {
     Q_ASSERT(QThread::currentThread() == qApp->thread());
+#if SINGLE_QML_ENGINE
     Q_ASSERT(0 != globalEngineRefCount);
     if (0 == --globalEngineRefCount) {
         globalEngine->deleteLater();
         globalEngine = nullptr;
     }
+#else
+    engine->deleteLater();
+#endif
 }
 
 void OffscreenQmlSurface::cleanup() {
@@ -455,11 +475,11 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
     QObject::disconnect(qApp);
 
     cleanup();
-
+    auto engine = _qmlContext->engine();
     _canvas->deleteLater();
     _rootItem->deleteLater();
     _quickWindow->deleteLater();
-    releaseEngine();
+    releaseEngine(engine);
 }
 
 void OffscreenQmlSurface::onAboutToQuit() {
@@ -830,7 +850,9 @@ bool OffscreenQmlSurface::eventFilter(QObject* originalDestination, QEvent* even
                     mouseEvent->screenPos(), mouseEvent->button(),
                     mouseEvent->buttons(), mouseEvent->modifiers());
             if (event->type() == QEvent::MouseMove) {
-                _qmlContext->setContextProperty("lastMousePosition", transformedPos);
+                // TODO - this line necessary for the QML Tooltop to work (which is not currently being used), but it causes interface to crash on launch on a fresh install
+                // need to investigate into why this crash is happening.
+                //_qmlContext->setContextProperty("lastMousePosition", transformedPos);
             }
             mappedEvent.ignore();
             if (QCoreApplication::sendEvent(_quickWindow, &mappedEvent)) {
@@ -884,28 +906,6 @@ QSize OffscreenQmlSurface::size() const {
 
 QQmlContext* OffscreenQmlSurface::getSurfaceContext() {
     return _qmlContext;
-}
-
-void OffscreenQmlSurface::executeOnUiThread(std::function<void()> function, bool blocking ) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "executeOnUiThread", blocking ? Qt::BlockingQueuedConnection : Qt::QueuedConnection,
-            Q_ARG(std::function<void()>, function));
-        return;
-    }
-
-    function();
-}
-
-QVariant OffscreenQmlSurface::returnFromUiThread(std::function<QVariant()> function) {
-    if (QThread::currentThread() != thread()) {
-        QVariant result;
-        QMetaObject::invokeMethod(this, "returnFromUiThread", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(QVariant, result),
-            Q_ARG(std::function<QVariant()>, function));
-        return result;
-    }
-
-    return function();
 }
 
 void OffscreenQmlSurface::focusDestroyed(QObject *obj) {

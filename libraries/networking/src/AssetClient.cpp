@@ -19,6 +19,8 @@
 #include <QtScript/QScriptEngine>
 #include <QtNetwork/QNetworkDiskCache>
 
+#include <shared/GlobalAppProperties.h>
+
 #include "AssetRequest.h"
 #include "AssetUpload.h"
 #include "AssetUtils.h"
@@ -31,11 +33,12 @@
 
 MessageID AssetClient::_currentID = 0;
 
-AssetClient::AssetClient(const QString& cacheDir) : _cacheDir(cacheDir) {
+AssetClient::AssetClient() {
+    _cacheDir = qApp->property(hifi::properties::APP_LOCAL_DATA_PATH).toString();
     setCustomDeleter([](Dependency* dependency){
         static_cast<AssetClient*>(dependency)->deleteLater();
     });
-    
+
     auto nodeList = DependencyManager::get<NodeList>();
     auto& packetReceiver = nodeList->getPacketReceiver();
 
@@ -105,7 +108,7 @@ void AssetClient::handleAssetMappingOperationReply(QSharedPointer<ReceivedMessag
 
     MessageID messageID;
     message->readPrimitive(&messageID);
-    
+
     AssetServerError error;
     message->readPrimitive(&error);
 
@@ -132,13 +135,13 @@ void AssetClient::handleAssetMappingOperationReply(QSharedPointer<ReceivedMessag
 bool haveAssetServer() {
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
-    
+
     if (!assetServer) {
         qCWarning(asset_client) << "Could not complete AssetClient operation "
             << "since you are not currently connected to an asset-server.";
         return false;
     }
-    
+
     return true;
 }
 
@@ -220,14 +223,14 @@ MessageID AssetClient::getAsset(const QString& hash, DataOffset start, DataOffse
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
 
     if (assetServer) {
-        
+
         auto messageID = ++_currentID;
-        
+
         auto payloadSize = sizeof(messageID) + SHA256_HASH_LENGTH + sizeof(start) + sizeof(end);
         auto packet = NLPacket::create(PacketType::AssetGet, payloadSize, true);
-        
+
         qCDebug(asset_client) << "Requesting data from" << start << "to" << end << "of" << hash << "from asset-server.";
-        
+
         packet->writePrimitive(messageID);
 
         packet->write(QByteArray::fromHex(hash.toLatin1()));
@@ -254,10 +257,10 @@ MessageID AssetClient::getAssetInfo(const QString& hash, GetInfoCallback callbac
 
     if (assetServer) {
         auto messageID = ++_currentID;
-        
+
         auto payloadSize = sizeof(messageID) + SHA256_HASH_LENGTH;
         auto packet = NLPacket::create(PacketType::AssetGetInfo, payloadSize, true);
-        
+
         packet->writePrimitive(messageID);
         packet->write(QByteArray::fromHex(hash.toLatin1()));
 
@@ -278,7 +281,7 @@ void AssetClient::handleAssetGetInfoReply(QSharedPointer<ReceivedMessage> messag
     MessageID messageID;
     message->readPrimitive(&messageID);
     auto assetHash = message->read(SHA256_HASH_LENGTH);
-    
+
     AssetServerError error;
     message->readPrimitive(&error);
 
@@ -367,7 +370,7 @@ void AssetClient::handleAssetGetReply(QSharedPointer<ReceivedMessage> message, S
             callbacks.completeCallback(true, error, message->readAll());
         }
 
-        
+
         messageCallbackMap.erase(requestIt);
     }
 }
@@ -478,7 +481,7 @@ MessageID AssetClient::getAllAssetMappings(MappingOperationCallback callback) {
 
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
-    
+
     if (assetServer) {
         auto packetList = NLPacketList::create(PacketType::AssetMappingOperation, QByteArray(), true, true);
 
@@ -501,7 +504,7 @@ MessageID AssetClient::getAllAssetMappings(MappingOperationCallback callback) {
 MessageID AssetClient::deleteAssetMappings(const AssetPathList& paths, MappingOperationCallback callback) {
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
-    
+
     if (assetServer) {
         auto packetList = NLPacketList::create(PacketType::AssetMappingOperation, QByteArray(), true, true);
 
@@ -532,7 +535,7 @@ MessageID AssetClient::setAssetMapping(const QString& path, const AssetHash& has
 
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
-    
+
     if (assetServer) {
         auto packetList = NLPacketList::create(PacketType::AssetMappingOperation, QByteArray(), true, true);
 
@@ -644,7 +647,7 @@ MessageID AssetClient::uploadAsset(const QByteArray& data, UploadResultCallback 
 
     auto nodeList = DependencyManager::get<NodeList>();
     SharedNodePointer assetServer = nodeList->soloNodeOfType(NodeType::AssetServer);
-    
+
     if (assetServer) {
         auto packetList = NLPacketList::create(PacketType::AssetUpload, QByteArray(), true, true);
 
@@ -682,7 +685,7 @@ void AssetClient::handleAssetUploadReply(QSharedPointer<ReceivedMessage> message
     } else {
         auto hash = message->read(SHA256_HASH_LENGTH);
         hashString = hash.toHex();
-        
+
         qCDebug(asset_client) << "Successfully uploaded asset to asset-server - SHA256 hash is " << hashString;
     }
 

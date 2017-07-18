@@ -370,14 +370,14 @@
     // Change the avatar size to bigger.
     function biggerSize() {
         //print("biggerSize");
-        logMessage("Increasing avatar size bigger!", null);
+        logMessage("Increasing avatar size", null);
         MyAvatar.increaseSize();
     }
 
     // Change the avatar size to smaller.
     function smallerSize() {
         //print("smallerSize");
-        logMessage("Decreasing avatar size smaler!", null);
+        logMessage("Decreasing avatar size", null);
         MyAvatar.decreaseSize();
     }
 
@@ -470,14 +470,13 @@
 
             case '?':
             case 'help':
-                logMessage('Type "/?" or "/help" for help, which is this!', null);
-                logMessage('Type "/name <name>" to set your chat name, or "/name" to use your display name, or a random name if that is not defined.', null);
-                logMessage('Type "/shutup" to shut up your overhead chat message.', null);
-                logMessage('Type "/say <something>" to say something.', null);
-                logMessage('Type "/clear" to clear your cha, nullt log.', null);
-                logMessage('Type "/who" to ask who is h, nullere to chat.', null);
-                logMessage('Type "/bigger", "/smaller" or "/normal" to change, null your avatar size.', null);
-                logMessage('(Sorry, that\'s all there is so far!)', null);
+                logMessage('Type "/?" or "/help" for help', null);
+                logMessage('Type "/name <name>" to set your chat name, or "/name" to use your display name. If your display name is not defined, a random name will be used.', null);
+                logMessage('Type "/close" to close your overhead chat message.', null);
+                logMessage('Type "/say <something>" to display a new message.', null);
+                logMessage('Type "/clear" to clear your chat log.', null);
+                logMessage('Type "/who" to ask who is in the chat session.', null);
+                logMessage('Type "/bigger", "/smaller" or "/normal" to change your avatar size.', null);
                 break;
 
             case 'name':
@@ -498,9 +497,9 @@
                 }
                 break;
 
-            case 'shutup':
+            case 'close':
                 popDownSpeechBubble();
-                logMessage('Overhead chat message shut up.', null);
+                logMessage('Overhead chat message closed.', null);
                 break;
 
             case 'say':

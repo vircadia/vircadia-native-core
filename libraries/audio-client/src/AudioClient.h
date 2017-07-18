@@ -143,7 +143,7 @@ public:
 
     Q_INVOKABLE void setAvatarBoundingBoxParameters(glm::vec3 corner, glm::vec3 scale);
 
-    bool outputLocalInjector(AudioInjector* injector) override;
+    bool outputLocalInjector(const AudioInjectorPointer& injector) override;
 
     QAudioDeviceInfo getActiveAudioDevice(QAudio::Mode mode) const;
     QList<QAudioDeviceInfo> getAudioDevices(QAudio::Mode mode) const;
@@ -180,7 +180,8 @@ public slots:
 
     virtual void setIsStereoInput(bool stereo) override;
 
-    void setNoiseReduction(bool isNoiseGateEnabled) { _isNoiseGateEnabled = isNoiseGateEnabled; }
+    void setNoiseReduction(bool isNoiseGateEnabled);
+    bool isNoiseReductionEnabled() const { return _isNoiseGateEnabled; }
 
     void toggleLocalEcho() { _shouldEchoLocally = !_shouldEchoLocally; }
     void toggleServerEcho() { _shouldEchoToServer = !_shouldEchoToServer; }
@@ -197,7 +198,7 @@ public slots:
     bool switchAudioDevice(QAudio::Mode mode, const QString& deviceName);
 
     float getInputVolume() const { return (_audioInput) ? (float)_audioInput->volume() : 0.0f; }
-    void setInputVolume(float volume) { if (_audioInput) _audioInput->setVolume(volume); }
+    void setInputVolume(float volume);
     void setReverb(bool reverb);
     void setReverbOptions(const AudioEffectOptions* options);
 
@@ -207,7 +208,9 @@ public slots:
     void saveSettings();
 
 signals:
-    bool muteToggled();
+    void inputVolumeChanged(float volume);
+    void muteToggled();
+    void noiseReductionChanged();
     void mutedByMixer();
     void inputReceived(const QByteArray& inputSamples);
     void inputLoudnessChanged(float loudness);
@@ -377,7 +380,7 @@ private:
 
     bool _hasReceivedFirstPacket { false };
 
-    QVector<AudioInjector*> _activeLocalAudioInjectors;
+    QVector<AudioInjectorPointer> _activeLocalAudioInjectors;
 
     bool _isPlayingBackRecording { false };
 

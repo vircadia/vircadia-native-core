@@ -9,22 +9,24 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "ResourceCache.h"
+
 #include <cfloat>
 #include <cmath>
+#include <assert.h>
 
 #include <QThread>
 #include <QTimer>
 
 #include <SharedUtil.h>
-#include <assert.h>
+#include <shared/QtHelpers.h>
+#include <Trace.h>
+#include <Profile.h>
 
 #include "NetworkAccessManager.h"
 #include "NetworkLogging.h"
 #include "NodeList.h"
 
-#include "ResourceCache.h"
-#include <Trace.h>
-#include <Profile.h>
 
 #define clamp(x, min, max) (((x) < (min)) ? (min) :\
                            (((x) > (max)) ? (max) :\
@@ -100,6 +102,8 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
     QSharedPointer<Resource> highestResource;
     Lock lock(_mutex);
 
+    bool currentHighestIsFile = false;
+
     for (int i = 0; i < _pendingRequests.size();) {
         // Clear any freed resources
         auto resource = _pendingRequests.at(i).lock();
@@ -110,10 +114,12 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
 
         // Check load priority
         float priority = resource->getLoadPriority();
-        if (priority >= highestPriority) {
+        bool isFile = resource->getURL().scheme() == URL_SCHEME_FILE;
+        if (priority >= highestPriority && (isFile || !currentHighestIsFile)) {
             highestPriority = priority;
             highestIndex = i;
             highestResource = resource;
+            currentHighestIsFile = isFile;
         }
         i++;
     }
@@ -178,7 +184,7 @@ ScriptableResource* ResourceCache::prefetch(const QUrl& url, void* extra) {
 
     if (QThread::currentThread() != thread()) {
         // Must be called in thread to ensure getResource returns a valid pointer
-        QMetaObject::invokeMethod(this, "prefetch", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "prefetch",
             Q_RETURN_ARG(ScriptableResource*, result),
             Q_ARG(QUrl, url), Q_ARG(void*, extra));
         return result;
@@ -301,7 +307,7 @@ QVariantList ResourceCache::getResourceList() {
     QVariantList list;
     if (QThread::currentThread() != thread()) {
         // NOTE: invokeMethod does not allow a const QObject*
-        QMetaObject::invokeMethod(this, "getResourceList", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "getResourceList",
             Q_RETURN_ARG(QVariantList, list));
     } else {
         auto resources = _resources.uniqueKeys();

@@ -15,6 +15,7 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/vector_query.hpp>
 
+#include <shared/QtHelpers.h>
 #include <DeferredLightingEffect.h>
 #include <EntityTreeRenderer.h>
 #include <NodeList.h>
@@ -609,7 +610,7 @@ void Avatar::render(RenderArgs* renderArgs) {
     if (showCollisionShapes && shouldRenderHead(renderArgs) && _skeletonModel->isRenderable()) {
         PROFILE_RANGE_BATCH(batch, __FUNCTION__":skeletonBoundingCollisionShapes");
         const float BOUNDING_SHAPE_ALPHA = 0.7f;
-        _skeletonModel->renderBoundingCollisionShapes(*renderArgs->_batch, getUniformScale(), BOUNDING_SHAPE_ALPHA);
+        _skeletonModel->renderBoundingCollisionShapes(renderArgs, *renderArgs->_batch, getUniformScale(), BOUNDING_SHAPE_ALPHA);
     }
 
     if (showReceiveStats || showNamesAboveHeads) {
@@ -1007,49 +1008,87 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
     }
 }
 
-int Avatar::getJointIndex(const QString& name) const {
-    if (QThread::currentThread() != thread()) {
-        int result;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointIndex", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(int, result), Q_ARG(const QString&, name));
-        return result;
+void Avatar::invalidateJointIndicesCache() const {
+    QWriteLocker writeLock(&_modelJointIndicesCacheLock);
+    _modelJointsCached = false;
+}
+
+void Avatar::withValidJointIndicesCache(std::function<void()> const& worker) const {
+    QReadLocker readLock(&_modelJointIndicesCacheLock);
+    if (_modelJointsCached) {
+        worker();
+    } else {
+        readLock.unlock();
+        {
+            QWriteLocker writeLock(&_modelJointIndicesCacheLock);
+            if (!_modelJointsCached) {
+                _modelJointIndicesCache.clear();
+                if (_skeletonModel && _skeletonModel->isActive()) {
+                    _modelJointIndicesCache = _skeletonModel->getFBXGeometry().jointIndices;
+                    _modelJointsCached = true;
+                }
+            }
+            worker();
+        }
     }
+}
+
+int Avatar::getJointIndex(const QString& name) const {
     int result = getFauxJointIndex(name);
     if (result != -1) {
         return result;
     }
-    return _skeletonModel->isActive() ? _skeletonModel->getFBXGeometry().getJointIndex(name) : -1;
+
+    withValidJointIndicesCache([&]() {
+        if (_modelJointIndicesCache.contains(name)) {
+            result = _modelJointIndicesCache[name] - 1;
+        }
+    });
+    return result;
 }
 
 QStringList Avatar::getJointNames() const {
-    if (QThread::currentThread() != thread()) {
-        QStringList result;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointNames", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(QStringList, result));
-        return result;
-    }
-    return _skeletonModel->isActive() ? _skeletonModel->getFBXGeometry().getJointNames() : QStringList();
+    QStringList result;
+    withValidJointIndicesCache([&]() {
+        // find out how large the vector needs to be
+        int maxJointIndex = -1;
+        QHashIterator<QString, int> k(_modelJointIndicesCache);
+        while (k.hasNext()) {
+            k.next();
+            int index = k.value();
+            if (index > maxJointIndex) {
+                maxJointIndex = index;
+            }
+        }
+        // iterate through the hash and put joint names
+        // into the vector at their indices
+        QVector<QString> resultVector(maxJointIndex+1);
+        QHashIterator<QString, int> i(_modelJointIndicesCache);
+        while (i.hasNext()) {
+            i.next();
+            int index = i.value();
+            resultVector[index] = i.key();
+        }
+        // convert to QList and drop out blanks
+        result = resultVector.toList();
+        QMutableListIterator<QString> j(result);
+        while (j.hasNext()) {
+            QString jointName = j.next();
+            if (jointName.isEmpty()) {
+                j.remove();
+            }
+        }
+    });
+    return result;
 }
 
 glm::vec3 Avatar::getJointPosition(int index) const {
-    if (QThread::currentThread() != thread()) {
-        glm::vec3 position;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(glm::vec3, position), Q_ARG(const int, index));
-        return position;
-    }
     glm::vec3 position;
     _skeletonModel->getJointPositionInWorldFrame(index, position);
     return position;
 }
 
 glm::vec3 Avatar::getJointPosition(const QString& name) const {
-    if (QThread::currentThread() != thread()) {
-        glm::vec3 position;
-        QMetaObject::invokeMethod(const_cast<Avatar*>(this), "getJointPosition", Qt::BlockingQueuedConnection,
-                                  Q_RETURN_ARG(glm::vec3, position), Q_ARG(const QString&, name));
-        return position;
-    }
     glm::vec3 position;
     _skeletonModel->getJointPositionInWorldFrame(getJointIndex(name), position);
     return position;
@@ -1070,6 +1109,8 @@ void Avatar::setSkeletonModelURL(const QUrl& skeletonModelURL) {
 }
 
 void Avatar::setModelURLFinished(bool success) {
+    invalidateJointIndicesCache();
+
     if (!success && _skeletonModelURL != AvatarData::defaultFullAvatarModelUrl()) {
         const int MAX_SKELETON_DOWNLOAD_ATTEMPTS = 4; // NOTE: we don't want to be as generous as ResourceCache is, we only want 4 attempts
         if (_skeletonModel->getResourceDownloadAttemptsRemaining() <= 0 ||
@@ -1105,7 +1146,7 @@ static std::shared_ptr<Model> allocateAttachmentModel(bool isSoft, const Rig& ri
 
 void Avatar::setAttachmentData(const QVector<AttachmentData>& attachmentData) {
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "setAttachmentData", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "setAttachmentData",
                                   Q_ARG(const QVector<AttachmentData>, attachmentData));
         return;
     }
@@ -1439,8 +1480,7 @@ void Avatar::addToScene(AvatarSharedPointer myHandle, const render::ScenePointer
     if (scene) {
         auto nodelist = DependencyManager::get<NodeList>();
         if (showAvatars
-            && !nodelist->isIgnoringNode(getSessionUUID())
-            && !nodelist->isRadiusIgnoringNode(getSessionUUID())) {
+            && !nodelist->isIgnoringNode(getSessionUUID())) {
             render::Transaction transaction;
             addToScene(myHandle, scene, transaction);
             scene->enqueueTransaction(transaction);

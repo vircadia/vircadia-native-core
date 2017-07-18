@@ -885,10 +885,10 @@ EntityItemPointer EntityTreeElement::getEntityWithEntityItemID(const EntityItemI
 void EntityTreeElement::cleanupEntities() {
     withWriteLock([&] {
         foreach(EntityItemPointer entity, _entityItems) {
+            // NOTE: only EntityTreeElement should ever be changing the value of entity->_element
             // NOTE: We explicitly don't delete the EntityItem here because since we only
             // access it by smart pointers, when we remove it from the _entityItems
             // we know that it will be deleted.
-            //delete entity;
             entity->_element = NULL;
         }
         _entityItems.clear();
@@ -903,6 +903,7 @@ bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
             EntityItemPointer& entity = _entityItems[i];
             if (entity->getEntityItemID() == id) {
                 foundEntity = true;
+                // NOTE: only EntityTreeElement should ever be changing the value of entity->_element
                 entity->_element = NULL;
                 _entityItems.removeAt(i);
                 break;
@@ -918,6 +919,7 @@ bool EntityTreeElement::removeEntityItem(EntityItemPointer entity) {
         numEntries = _entityItems.removeAll(entity);
     });
     if (numEntries > 0) {
+        // NOTE: only EntityTreeElement should ever be changing the value of entity->_element
         assert(entity->_element.get() == this);
         entity->_element = NULL;
         return true;
@@ -1001,7 +1003,6 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                             if (currentContainingElement.get() != this) {
                                 currentContainingElement->removeEntityItem(entityItem);
                                 addEntityItem(entityItem);
-                                _myTree->setContainingElement(entityItemID, getThisPointer());
                             }
                         }
                     }
@@ -1032,9 +1033,9 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
 
                         // don't add if we've recently deleted....
                         if (!_myTree->isDeletedEntity(entityItem->getID())) {
+                            _myTree->addEntityMapEntry(entityItem);
                             addEntityItem(entityItem); // add this new entity to this elements entities
                             entityItemID = entityItem->getEntityItemID();
-                            _myTree->setContainingElement(entityItemID, getThisPointer());
                             _myTree->postAddEntity(entityItem);
                             if (entityItem->getCreated() == UNKNOWN_CREATED_TIME) {
                                 entityItem->recordCreationTime();

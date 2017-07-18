@@ -11,6 +11,7 @@
 #include <QtCore/QLoggingCategory>
 #include <QtCore/QThread>
 
+#include <shared/QtHelpers.h>
 #include <DependencyManager.h>
 #include <Trace.h>
 #include <StatTracker.h>
@@ -57,20 +58,25 @@ void TestScriptingInterface::waitIdle() {
 }
 
 bool TestScriptingInterface::loadTestScene(QString scene) {
+    if (QThread::currentThread() != thread()) {
+        bool result;
+        BLOCKING_INVOKE_METHOD(this, "loadTestScene", Q_RETURN_ARG(bool, result), Q_ARG(QString, scene));
+        return result;
+    }
+
     static const QString TEST_ROOT = "https://raw.githubusercontent.com/highfidelity/hifi_tests/master/";
     static const QString TEST_BINARY_ROOT = "https://hifi-public.s3.amazonaws.com/test_scene_data/";
     static const QString TEST_SCRIPTS_ROOT = TEST_ROOT + "scripts/";
     static const QString TEST_SCENES_ROOT = TEST_ROOT + "scenes/";
-    return DependencyManager::get<OffscreenUi>()->returnFromUiThread([scene]()->QVariant {
-        DependencyManager::get<ResourceManager>()->setUrlPrefixOverride("atp:/", TEST_BINARY_ROOT + scene + ".atp/");
-        auto tree = qApp->getEntities()->getTree();
-        auto treeIsClient = tree->getIsClient();
-        // Force the tree to accept the load regardless of permissions
-        tree->setIsClient(false);
-        auto result = tree->readFromURL(TEST_SCENES_ROOT + scene + ".json");
-        tree->setIsClient(treeIsClient);
-        return result;
-    }).toBool();
+    
+    DependencyManager::get<ResourceManager>()->setUrlPrefixOverride("atp:/", TEST_BINARY_ROOT + scene + ".atp/");
+    auto tree = qApp->getEntities()->getTree();
+    auto treeIsClient = tree->getIsClient();
+    // Force the tree to accept the load regardless of permissions
+    tree->setIsClient(false);
+    auto result = tree->readFromURL(TEST_SCENES_ROOT + scene + ".json");
+    tree->setIsClient(treeIsClient);
+    return result;
 }
 
 bool TestScriptingInterface::startTracing(QString logrules) {

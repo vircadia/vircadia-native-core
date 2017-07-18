@@ -13,6 +13,8 @@
 
 #include <gpu/Context.h>
 
+std::string BackgroundStage::_stageName { "BACKGROUND_STAGE"};
+
 BackgroundStage::Index BackgroundStage::findBackground(const BackgroundPointer& background) const {
     auto found = _backgroundMap.find(background);
     if (found != _backgroundMap.end()) {
@@ -52,15 +54,15 @@ BackgroundStage::BackgroundPointer BackgroundStage::removeBackground(Index index
 
 
 void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
-  
     const auto& lightingModel = inputs;
     if (!lightingModel->isBackgroundEnabled()) {
         return;
     }
 
-
     // Background rendering decision
-    auto backgroundStage = DependencyManager::get<DeferredLightingEffect>()->getBackgroundStage();
+    auto backgroundStage = renderContext->_scene->getStage<BackgroundStage>();
+    assert(backgroundStage);
+
     model::SunSkyStagePointer background;
     model::SkyboxPointer skybox;
     if (backgroundStage->_currentFrame._backgrounds.size()) {
@@ -68,11 +70,8 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
         auto background = backgroundStage->getBackground(backgroundId);
         if (background) {
             skybox = background->getSkybox();
-        }
-    } else {
-        skybox = DependencyManager::get<DeferredLightingEffect>()->getDefaultSkybox();
+        }   
     }
-
   /*  auto backgroundMode = skyStage->getBackgroundMode();
 
     switch (backgroundMode) {
@@ -138,3 +137,14 @@ void DrawBackgroundStage::run(const render::RenderContextPointer& renderContext,
     */
 
 }
+
+BackgroundStageSetup::BackgroundStageSetup() {
+}
+
+void BackgroundStageSetup::run(const render::RenderContextPointer& renderContext) {
+    auto stage = renderContext->_scene->getStage(BackgroundStage::getName());
+    if (!stage) {
+        renderContext->_scene->resetStage(BackgroundStage::getName(), std::make_shared<BackgroundStage>());
+    }
+}
+

@@ -45,11 +45,13 @@ Image3DOverlay::~Image3DOverlay() {
 }
 
 void Image3DOverlay::update(float deltatime) {
+#if OVERLAY_PANELS
     if (usecTimestampNow() > _transformExpiry) {
         Transform transform = getTransform();
         applyTransformTo(transform);
         setTransform(transform);
     }
+#endif
 }
 
 void Image3DOverlay::render(RenderArgs* args) {
@@ -97,10 +99,14 @@ void Image3DOverlay::render(RenderArgs* args) {
     const float MAX_COLOR = 255.0f;
     xColor color = getColor();
     float alpha = getAlpha();
-
+    
     Transform transform = getTransform();
-    applyTransformTo(transform, true);
-    setTransform(transform);
+    bool transformChanged = applyTransformTo(transform, true);
+    // If the transform is not modified, setting the transform to
+    // itself will cause drift over time due to floating point errors.
+    if (transformChanged) {
+        setTransform(transform);
+    }
     transform.postScale(glm::vec3(getDimensions(), 1.0f));
 
     batch->setModelTransform(transform);

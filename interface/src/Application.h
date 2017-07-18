@@ -25,6 +25,7 @@
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QUndoStack>
 
+#include <ThreadHelpers.h>
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
 #include <EntityEditPacketSender.h>
@@ -299,7 +300,6 @@ public:
     void setAvatarOverrideUrl(const QUrl& url, bool save);
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
-    void setCacheOverrideDir(const QString& dirName) { _cacheDir = dirName; }
 
 signals:
     void svoImportRequested(const QString& url);
@@ -597,8 +597,7 @@ private:
 
     bool _notifiedPacketVersionMismatchThisDomain;
 
-    QThread _settingsThread;
-    QTimer _settingsTimer;
+    ConditionalGuard _settingsGuard;
 
     GLCanvas* _glWidget{ nullptr };
 
@@ -680,7 +679,7 @@ private:
     QTimer _addAssetToWorldErrorTimer;
 
     FileScriptingInterface* _fileDownload;
-    AudioInjector* _snapshotSoundInjector { nullptr };
+    AudioInjectorPointer _snapshotSoundInjector;
     SharedSoundPointer _snapshotSound;
 
     DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;
@@ -692,6 +691,5 @@ private:
     QUrl _avatarOverrideUrl;
     bool _saveAvatarOverrideUrl { false };
 
-    QString _cacheDir;
 };
 #endif // hifi_Application_h

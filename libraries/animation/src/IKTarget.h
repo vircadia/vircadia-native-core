@@ -56,8 +56,8 @@ private:
     glm::vec3 _poleReferenceVector;
     bool _poleVectorEnabled { false };
     int _index { -1 };
-    Type _type { Type::RotationAndPosition };
-    float _weight;
+    Type _type { Type::Unknown };
+    float _weight { 0.0f };
     float _flexCoefficients[MAX_FLEX_COEFFICIENTS];
     size_t _numFlexCoefficients;
 };

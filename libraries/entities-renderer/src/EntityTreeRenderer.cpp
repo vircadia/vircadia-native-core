@@ -17,6 +17,7 @@
 #include <QScriptSyntaxCheckResult>
 #include <QThreadPool>
 
+#include <shared/QtHelpers.h>
 #include <ColorUtils.h>
 #include <AbstractScriptingServicesInterface.h>
 #include <AbstractViewStateInterface.h>
@@ -25,6 +26,7 @@
 #include <PerfStat.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
+#include <HoverOverlayInterface.h>
 
 
 #include "RenderableEntityItem.h"
@@ -380,7 +382,7 @@ ModelPointer EntityTreeRenderer::allocateModel(const QString& url, float loading
 
     // Only create and delete models on the thread that owns the EntityTreeRenderer
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "allocateModel", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "allocateModel",
                 Q_RETURN_ARG(ModelPointer, model),
                 Q_ARG(const QString&, url));
 
@@ -397,7 +399,7 @@ ModelPointer EntityTreeRenderer::allocateModel(const QString& url, float loading
 ModelPointer EntityTreeRenderer::updateModel(ModelPointer model, const QString& newUrl) {
     // Only create and delete models on the thread that owns the EntityTreeRenderer
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "updateModel", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "updateModel",
             Q_RETURN_ARG(ModelPointer, model),
                 Q_ARG(ModelPointer, model),
                 Q_ARG(const QString&, newUrl));
@@ -451,6 +453,8 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
 
 void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityScriptingInterface) {
 
+    auto hoverOverlayInterface = DependencyManager::get<HoverOverlayInterface>().data();
+
     connect(this, &EntityTreeRenderer::mousePressOnEntity, entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity);
     connect(this, &EntityTreeRenderer::mouseMoveOnEntity, entityScriptingInterface, &EntityScriptingInterface::mouseMoveOnEntity);
     connect(this, &EntityTreeRenderer::mouseReleaseOnEntity, entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity);
@@ -460,8 +464,12 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
     connect(this, &EntityTreeRenderer::clickReleaseOnEntity, entityScriptingInterface, &EntityScriptingInterface::clickReleaseOnEntity);
 
     connect(this, &EntityTreeRenderer::hoverEnterEntity, entityScriptingInterface, &EntityScriptingInterface::hoverEnterEntity);
+    connect(this, SIGNAL(hoverEnterEntity(const EntityItemID&, const PointerEvent&)), hoverOverlayInterface, SLOT(createHoverOverlay(const EntityItemID&, const PointerEvent&)));
+
     connect(this, &EntityTreeRenderer::hoverOverEntity, entityScriptingInterface, &EntityScriptingInterface::hoverOverEntity);
+
     connect(this, &EntityTreeRenderer::hoverLeaveEntity, entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity);
+    connect(this, SIGNAL(hoverLeaveEntity(const EntityItemID&, const PointerEvent&)), hoverOverlayInterface, SLOT(destroyHoverOverlay(const EntityItemID&, const PointerEvent&)));
 
     connect(this, &EntityTreeRenderer::enterEntity, entityScriptingInterface, &EntityScriptingInterface::enterEntity);
     connect(this, &EntityTreeRenderer::leaveEntity, entityScriptingInterface, &EntityScriptingInterface::leaveEntity);

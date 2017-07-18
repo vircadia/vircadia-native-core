@@ -28,7 +28,7 @@ void blend(size_t numPoses, const AnimPose* a, const AnimPose* b, float alpha, A
         }
 
         result[i].scale() = lerp(aPose.scale(), bPose.scale(), alpha);
-        result[i].rot() = glm::normalize(glm::lerp(aPose.rot(), q2, alpha));
+        result[i].rot() = safeLerp(aPose.rot(), bPose.rot(), alpha);
         result[i].trans() = lerp(aPose.trans(), bPose.trans(), alpha);
     }
 }

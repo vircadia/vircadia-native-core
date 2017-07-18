@@ -28,7 +28,7 @@ public:
     static const QString& resourcesPath();
 
     static QString getAppDataPath();
-    static QString getAppLocalDataPath(const QString& overridePath = "");
+    static QString getAppLocalDataPath();
 
     static QString getAppDataFilePath(const QString& filename);
     static QString getAppLocalDataFilePath(const QString& filename);

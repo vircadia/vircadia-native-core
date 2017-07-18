@@ -38,7 +38,7 @@ protected:
     using Condition = std::condition_variable;
 public:
     ~OpenGLDisplayPlugin();
-    // These must be final to ensure proper ordering of operations 
+    // These must be final to ensure proper ordering of operations
     // between the main thread and the presentation thread
     bool activate() override final;
     void deactivate() override final;
@@ -79,6 +79,8 @@ public:
     // Three threads, one for rendering, one for texture transfers, one reserved for the GL driver
     int getRequiredThreadCount() const override { return 3; }
 
+    void copyTextureToQuickFramebuffer(NetworkTexturePointer source, QOpenGLFramebufferObject* target, GLsync* fenceSync) override;
+
 protected:
     friend class PresentThread;
 
@@ -103,7 +105,7 @@ protected:
     // Returns true on successful activation
     virtual bool internalActivate() { return true; }
     virtual void internalDeactivate() {}
-	
+
     // Returns true on successful activation of standby session
     virtual bool activateStandBySession() { return true; }
     virtual void deactivateSession() {}
@@ -111,6 +113,7 @@ protected:
     // Plugin specific functionality to send the composed scene to the output window or device
     virtual void internalPresent();
 
+    void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor, gpu::FramebufferPointer fbo);
     void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor);
     virtual void updateFrameData();
 

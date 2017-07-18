@@ -25,6 +25,7 @@
 #include <QtNetwork/QNetworkReply>
 #include <QtNetwork/QNetworkRequest>
 
+#include <shared/QtHelpers.h>
 #include <QVariantGLM.h>
 #include <Transform.h>
 #include <NetworkAccessManager.h>
@@ -56,6 +57,27 @@ static const float DEFAULT_AVATAR_DENSITY = 1000.0f; // density of water
 
 #define ASSERT(COND)  do { if (!(COND)) { abort(); } } while(0)
 
+size_t AvatarDataPacket::maxFaceTrackerInfoSize(size_t numBlendshapeCoefficients) {
+    return FACE_TRACKER_INFO_SIZE + numBlendshapeCoefficients * sizeof(float);
+}
+
+size_t AvatarDataPacket::maxJointDataSize(size_t numJoints) {
+    const size_t validityBitsSize = (size_t)std::ceil(numJoints / (float)BITS_IN_BYTE);
+
+    size_t totalSize = sizeof(uint8_t); // numJoints
+
+    totalSize += validityBitsSize; // Orientations mask
+    totalSize += numJoints * sizeof(SixByteQuat); // Orientations
+    totalSize += validityBitsSize; // Translations mask
+    totalSize += numJoints * sizeof(SixByteTrans); // Translations
+
+    size_t NUM_FAUX_JOINT = 2;
+    totalSize += NUM_FAUX_JOINT * (sizeof(SixByteQuat) + sizeof(SixByteTrans)); // faux joints
+
+    return totalSize;
+}
+
+
 AvatarData::AvatarData() :
     SpatiallyNestable(NestableType::Avatar, QUuid()),
     _handPosition(0.0f),
@@ -72,19 +94,6 @@ AvatarData::AvatarData() :
     setBodyPitch(0.0f);
     setBodyYaw(-90.0f);
     setBodyRoll(0.0f);
-
-    ASSERT(sizeof(AvatarDataPacket::Header) == AvatarDataPacket::HEADER_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::AvatarGlobalPosition) == AvatarDataPacket::AVATAR_GLOBAL_POSITION_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::AvatarLocalPosition) == AvatarDataPacket::AVATAR_LOCAL_POSITION_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::AvatarBoundingBox) == AvatarDataPacket::AVATAR_BOUNDING_BOX_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::AvatarOrientation) == AvatarDataPacket::AVATAR_ORIENTATION_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::AvatarScale) == AvatarDataPacket::AVATAR_SCALE_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::LookAtPosition) == AvatarDataPacket::LOOK_AT_POSITION_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::AudioLoudness) == AvatarDataPacket::AUDIO_LOUDNESS_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::SensorToWorldMatrix) == AvatarDataPacket::SENSOR_TO_WORLD_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::AdditionalFlags) == AvatarDataPacket::ADDITIONAL_FLAGS_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::ParentInfo) == AvatarDataPacket::PARENT_INFO_SIZE);
-    ASSERT(sizeof(AvatarDataPacket::FaceTrackerInfo) == AvatarDataPacket::FACE_TRACKER_INFO_SIZE);
 
     connect(this, &AvatarData::lookAtSnappingChanged, this, &AvatarData::markIdentityDataChanged);
 }
@@ -170,12 +179,12 @@ float AvatarData::getDistanceBasedMinTranslationDistance(glm::vec3 viewerPositio
 
 
 // we want to track outbound data in this case...
-QByteArray AvatarData::toByteArrayStateful(AvatarDataDetail dataDetail) {
+QByteArray AvatarData::toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) {
     AvatarDataPacket::HasFlags hasFlagsOut;
     auto lastSentTime = _lastToByteArray;
     _lastToByteArray = usecTimestampNow();
     return AvatarData::toByteArray(dataDetail, lastSentTime, getLastSentJointData(),
-                        hasFlagsOut, false, false, glm::vec3(0), nullptr,
+                        hasFlagsOut, dropFaceTracking, false, glm::vec3(0), nullptr,
                         &_outboundDataRate);
 }
 
@@ -190,15 +199,11 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 
     lazyInitHeadData();
 
-    QByteArray avatarDataByteArray(udt::MAX_PACKET_SIZE, 0);
-    unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
-    unsigned char* startPosition = destinationBuffer;
-
     // special case, if we were asked for no data, then just include the flags all set to nothing
     if (dataDetail == NoData) {
         AvatarDataPacket::HasFlags packetStateFlags = 0;
-        memcpy(destinationBuffer, &packetStateFlags, sizeof(packetStateFlags));
-        return avatarDataByteArray.left(sizeof(packetStateFlags));
+        QByteArray avatarDataByteArray(reinterpret_cast<char*>(&packetStateFlags), sizeof(packetStateFlags));
+        return avatarDataByteArray;
     }
 
     // FIXME -
@@ -258,6 +263,15 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         hasFaceTrackerInfo = !dropFaceTracking && hasFaceTracker() && (sendAll || faceTrackerInfoChangedSince(lastSentTime));
         hasJointData = sendAll || !sendMinimum;
     }
+
+
+    const size_t byteArraySize = AvatarDataPacket::MAX_CONSTANT_HEADER_SIZE +
+        (hasFaceTrackerInfo ? AvatarDataPacket::maxFaceTrackerInfoSize(_headData->getNumSummedBlendshapeCoefficients()) : 0) +
+        (hasJointData ? AvatarDataPacket::maxJointDataSize(_jointData.size()) : 0);
+
+    QByteArray avatarDataByteArray((int)byteArraySize, 0);
+    unsigned char* destinationBuffer = reinterpret_cast<unsigned char*>(avatarDataByteArray.data());
+    unsigned char* startPosition = destinationBuffer;
 
     // Leading flags, to indicate how much data is actually included in the packet...
     AvatarDataPacket::HasFlags packetStateFlags =
@@ -479,11 +493,14 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         unsigned char* validityPosition = destinationBuffer;
         unsigned char validity = 0;
         int validityBit = 0;
+        int numValidityBytes = (int)std::ceil(numJoints / (float)BITS_IN_BYTE);
 
 #ifdef WANT_DEBUG
         int rotationSentCount = 0;
         unsigned char* beforeRotations = destinationBuffer;
 #endif
+
+        destinationBuffer += numValidityBytes; // Move pointer past the validity bytes
 
         if (sentJointDataOut) {
             sentJointDataOut->resize(_jointData.size()); // Make sure the destination is resized before using it
@@ -504,6 +521,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
 #ifdef WANT_DEBUG
                         rotationSentCount++;
 #endif
+                        destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, data.rotation);
+
                         if (sentJointDataOut) {
                             auto jointDataOut = *sentJointDataOut;
                             jointDataOut[i].rotation = data.rotation;
@@ -513,27 +532,13 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                 }
             }
             if (++validityBit == BITS_IN_BYTE) {
-                *destinationBuffer++ = validity;
+                *validityPosition++ = validity;
                 validityBit = validity = 0;
             }
         }
         if (validityBit != 0) {
-            *destinationBuffer++ = validity;
+            *validityPosition++ = validity;
         }
-
-        validityBit = 0;
-        validity = *validityPosition++;
-        for (int i = 0; i < _jointData.size(); i++) {
-            const JointData& data = _jointData[i];
-            if (validity & (1 << validityBit)) {
-                destinationBuffer += packOrientationQuatToSixBytes(destinationBuffer, data.rotation);
-            }
-            if (++validityBit == BITS_IN_BYTE) {
-                validityBit = 0;
-                validity = *validityPosition++;
-            }
-        }
-
 
         // joint translation data
         validityPosition = destinationBuffer;
@@ -544,6 +549,8 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
         int translationSentCount = 0;
         unsigned char* beforeTranslations = destinationBuffer;
 #endif
+
+        destinationBuffer += numValidityBytes; // Move pointer past the validity bytes
 
         float minTranslation = !distanceAdjust ? AVATAR_MIN_TRANSLATION : getDistanceBasedMinTranslationDistance(viewerPosition);
 
@@ -563,6 +570,9 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                         maxTranslationDimension = glm::max(fabsf(data.translation.y), maxTranslationDimension);
                         maxTranslationDimension = glm::max(fabsf(data.translation.z), maxTranslationDimension);
 
+                        destinationBuffer +=
+                            packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
+
                         if (sentJointDataOut) {
                             auto jointDataOut = *sentJointDataOut;
                             jointDataOut[i].translation = data.translation;
@@ -572,27 +582,13 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
                 }
             }
             if (++validityBit == BITS_IN_BYTE) {
-                *destinationBuffer++ = validity;
+                *validityPosition++ = validity;
                 validityBit = validity = 0;
             }
         }
 
         if (validityBit != 0) {
-            *destinationBuffer++ = validity;
-        }
-
-        validityBit = 0;
-        validity = *validityPosition++;
-        for (int i = 0; i < _jointData.size(); i++) {
-            const JointData& data = _jointData[i];
-            if (validity & (1 << validityBit)) {
-                destinationBuffer +=
-                    packFloatVec3ToSignedTwoByteFixed(destinationBuffer, data.translation, TRANSLATION_COMPRESSION_RADIX);
-            }
-            if (++validityBit == BITS_IN_BYTE) {
-                validityBit = 0;
-                validity = *validityPosition++;
-            }
+            *validityPosition++ = validity;
         }
 
         // faux joints
@@ -625,6 +621,12 @@ QByteArray AvatarData::toByteArray(AvatarDataDetail dataDetail, quint64 lastSent
     }
 
     int avatarDataSize = destinationBuffer - startPosition;
+
+    if (avatarDataSize > (int)byteArraySize) {
+        qCCritical(avatars) << "AvatarData::toByteArray buffer overflow"; // We've overflown into the heap
+        ASSERT(false);
+    }
+
     return avatarDataByteArray.left(avatarDataSize);
 }
 // NOTE: This is never used in a "distanceAdjust" mode, so it's ok that it doesn't use a variable minimum rotation/translation
@@ -1229,7 +1231,7 @@ bool AvatarData::isJointDataValid(int index) const {
     }
     if (QThread::currentThread() != thread()) {
         bool result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "isJointDataValid", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "isJointDataValid", 
             Q_RETURN_ARG(bool, result), Q_ARG(int, index));
         return result;
     }
@@ -1242,7 +1244,7 @@ glm::quat AvatarData::getJointRotation(int index) const {
     }
     if (QThread::currentThread() != thread()) {
         glm::quat result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getJointRotation", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getJointRotation", 
             Q_RETURN_ARG(glm::quat, result), Q_ARG(int, index));
         return result;
     }
@@ -1257,7 +1259,7 @@ glm::vec3 AvatarData::getJointTranslation(int index) const {
     }
     if (QThread::currentThread() != thread()) {
         glm::vec3 result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getJointTranslation", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getJointTranslation", 
             Q_RETURN_ARG(glm::vec3, result), Q_ARG(int, index));
         return result;
     }
@@ -1268,7 +1270,7 @@ glm::vec3 AvatarData::getJointTranslation(int index) const {
 glm::vec3 AvatarData::getJointTranslation(const QString& name) const {
     if (QThread::currentThread() != thread()) {
         glm::vec3 result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getJointTranslation", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getJointTranslation", 
             Q_RETURN_ARG(glm::vec3, result), Q_ARG(const QString&, name));
         return result;
     }
@@ -1346,7 +1348,7 @@ void AvatarData::clearJointData(const QString& name) {
 bool AvatarData::isJointDataValid(const QString& name) const {
     if (QThread::currentThread() != thread()) {
         bool result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "isJointDataValid", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "isJointDataValid", 
             Q_RETURN_ARG(bool, result), Q_ARG(const QString&, name));
         return result;
     }
@@ -1356,7 +1358,7 @@ bool AvatarData::isJointDataValid(const QString& name) const {
 glm::quat AvatarData::getJointRotation(const QString& name) const {
     if (QThread::currentThread() != thread()) {
         glm::quat result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getJointRotation", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getJointRotation", 
             Q_RETURN_ARG(glm::quat, result), Q_ARG(const QString&, name));
         return result;
     }
@@ -1366,8 +1368,7 @@ glm::quat AvatarData::getJointRotation(const QString& name) const {
 QVector<glm::quat> AvatarData::getJointRotations() const {
     if (QThread::currentThread() != thread()) {
         QVector<glm::quat> result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this),
-                                  "getJointRotations", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getJointRotations",
                                   Q_RETURN_ARG(QVector<glm::quat>, result));
         return result;
     }
@@ -1382,8 +1383,7 @@ QVector<glm::quat> AvatarData::getJointRotations() const {
 void AvatarData::setJointRotations(QVector<glm::quat> jointRotations) {
     if (QThread::currentThread() != thread()) {
         QVector<glm::quat> result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this),
-                                  "setJointRotations", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "setJointRotations",
                                   Q_ARG(QVector<glm::quat>, jointRotations));
     }
     QWriteLocker writeLock(&_jointDataLock);
@@ -1400,8 +1400,7 @@ void AvatarData::setJointRotations(QVector<glm::quat> jointRotations) {
 QVector<glm::vec3> AvatarData::getJointTranslations() const {
     if (QThread::currentThread() != thread()) {
         QVector<glm::vec3> result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this),
-                                  "getJointTranslations", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getJointTranslations",
                                   Q_RETURN_ARG(QVector<glm::vec3>, result));
         return result;
     }
@@ -1416,8 +1415,7 @@ QVector<glm::vec3> AvatarData::getJointTranslations() const {
 void AvatarData::setJointTranslations(QVector<glm::vec3> jointTranslations) {
     if (QThread::currentThread() != thread()) {
         QVector<glm::quat> result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this),
-                                  "setJointTranslations", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "setJointTranslations",
                                   Q_ARG(QVector<glm::vec3>, jointTranslations));
     }
     QWriteLocker writeLock(&_jointDataLock);
@@ -1467,12 +1465,12 @@ int AvatarData::getJointIndex(const QString& name) const {
         return result;
     }
     QReadLocker readLock(&_jointDataLock);
-    return _jointIndices.value(name) - 1;
+    return _fstJointIndices.value(name) - 1;
 }
 
 QStringList AvatarData::getJointNames() const {
     QReadLocker readLock(&_jointDataLock);
-    return _jointNames;
+    return _fstJointNames;
 }
 
 glm::quat AvatarData::getOrientationOutbound() const {
@@ -1627,7 +1625,7 @@ void AvatarData::setDisplayName(const QString& displayName) {
 QVector<AttachmentData> AvatarData::getAttachmentData() const {
     if (QThread::currentThread() != thread()) {
         QVector<AttachmentData> result;
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getAttachmentData", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getAttachmentData",
             Q_RETURN_ARG(QVector<AttachmentData>, result));
         return result;
     }
@@ -1734,14 +1732,14 @@ void AvatarData::setJointMappingsFromNetworkReply() {
             bool ok;
             int jointIndex = line.mid(secondSeparatorIndex + 1).trimmed().toInt(&ok);
             if (ok) {
-                while (_jointNames.size() < jointIndex + 1) {
-                    _jointNames.append(QString());
+                while (_fstJointNames.size() < jointIndex + 1) {
+                    _fstJointNames.append(QString());
                 }
-                _jointNames[jointIndex] = jointName;
+                _fstJointNames[jointIndex] = jointName;
             }
         }
-        for (int i = 0; i < _jointNames.size(); i++) {
-            _jointIndices.insert(_jointNames.at(i), i + 1);
+        for (int i = 0; i < _fstJointNames.size(); i++) {
+            _fstJointIndices.insert(_fstJointNames.at(i), i + 1);
         }
     }
 
@@ -1757,6 +1755,24 @@ void AvatarData::sendAvatarDataPacket() {
     bool cullSmallData = (randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO);
     auto dataDetail = cullSmallData ? SendAllData : CullSmallData;
     QByteArray avatarByteArray = toByteArrayStateful(dataDetail);
+
+    int maximumByteArraySize = NLPacket::maxPayloadSize(PacketType::AvatarData) - sizeof(AvatarDataSequenceNumber);
+
+    if (avatarByteArray.size() > maximumByteArraySize) {
+        qCWarning(avatars) << "toByteArrayStateful() resulted in very large buffer:" << avatarByteArray.size() << "... attempt to drop facial data";
+        avatarByteArray = toByteArrayStateful(dataDetail, true);
+
+        if (avatarByteArray.size() > maximumByteArraySize) {
+            qCWarning(avatars) << "toByteArrayStateful() without facial data resulted in very large buffer:" << avatarByteArray.size() << "... reduce to MinimumData";
+            avatarByteArray = toByteArrayStateful(MinimumData, true);
+
+            if (avatarByteArray.size() > maximumByteArraySize) {
+                qCWarning(avatars) << "toByteArrayStateful() MinimumData resulted in very large buffer:" << avatarByteArray.size() << "... FAIL!!";
+                return;
+            }
+        }
+    }
+
     doneEncoding(cullSmallData);
 
     static AvatarDataSequenceNumber sequenceNumber = 0;
@@ -1795,8 +1811,8 @@ void AvatarData::sendIdentityPacket() {
 void AvatarData::updateJointMappings() {
     {
         QWriteLocker writeLock(&_jointDataLock);
-        _jointIndices.clear();
-        _jointNames.clear();
+        _fstJointIndices.clear();
+        _fstJointNames.clear();
         _jointData.clear();
     }
 
@@ -2350,7 +2366,7 @@ void AvatarData::clearAvatarEntity(const QUuid& entityID) {
 AvatarEntityMap AvatarData::getAvatarEntityData() const {
     AvatarEntityMap result;
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getAvatarEntityData", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getAvatarEntityData",
                                   Q_RETURN_ARG(AvatarEntityMap, result));
         return result;
     }
@@ -2359,6 +2375,12 @@ AvatarEntityMap AvatarData::getAvatarEntityData() const {
         result = _avatarEntityData;
     });
     return result;
+}
+
+void AvatarData::insertDetachedEntityID(const QUuid entityID) {
+    _avatarEntitiesLock.withWriteLock([&] {
+        _avatarEntityDetached.insert(entityID);
+    });
 }
 
 void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
@@ -2391,7 +2413,7 @@ void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
 AvatarEntityIDs AvatarData::getAndClearRecentlyDetachedIDs() {
     AvatarEntityIDs result;
     if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(const_cast<AvatarData*>(this), "getAndClearRecentlyDetachedIDs", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarData*>(this), "getAndClearRecentlyDetachedIDs",
                                   Q_RETURN_ARG(AvatarEntityIDs, result));
         return result;
     }

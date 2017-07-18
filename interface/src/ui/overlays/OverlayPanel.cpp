@@ -11,6 +11,8 @@
 
 #include "OverlayPanel.h"
 
+#if OVERLAY_PANELS
+
 #include <QVariant>
 #include <RegisteredMetaTypes.h>
 #include <DependencyManager.h>
@@ -185,3 +187,4 @@ void OverlayPanel::applyTransformTo(Transform& transform, bool force) {
         pointTransformAtCamera(transform, getOffsetRotation());
     }
 }
+#endif

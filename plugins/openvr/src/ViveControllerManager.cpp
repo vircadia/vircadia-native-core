@@ -28,6 +28,8 @@
 #include <GLMHelpers.h>
 #include <glm/ext.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <ui-plugins/PluginContainer.h>
+#include <plugins/DisplayPlugin.h>
 
 #include <controllers/UserInputMapper.h>
 #include <Plugins/InputConfiguration.h>
@@ -59,11 +61,6 @@ static const int FIRST_FOOT = 0;
 static const int SECOND_FOOT = 1;
 static const int HIP = 2;
 static const int CHEST = 3;
-
-static float HEAD_PUCK_Y_OFFSET = -0.0254f;
-static float HEAD_PUCK_Z_OFFSET = -0.152f;
-static float HAND_PUCK_Y_OFFSET = -0.0508f;
-static float HAND_PUCK_Z_OFFSET = 0.0254f;
 
 const char* ViveControllerManager::NAME { "OpenVR" };
 
@@ -121,6 +118,29 @@ static QString deviceTrackingResultToString(vr::ETrackingResult trackingResult) 
     return result;
 }
 
+static glm::mat4 calculateResetMat() {
+    auto chaperone = vr::VRChaperone();
+    if (chaperone) {
+        float const UI_RADIUS = 1.0f;
+        float const UI_HEIGHT = 1.6f;
+        float const UI_Z_OFFSET = 0.5;
+
+        float xSize, zSize;
+        chaperone->GetPlayAreaSize(&xSize, &zSize);
+        glm::vec3 uiPos(0.0f, UI_HEIGHT, UI_RADIUS - (0.5f * zSize) - UI_Z_OFFSET);
+
+        return glm::inverse(createMatFromQuatAndPos(glm::quat(), uiPos));
+    }
+    return glm::mat4();
+}
+
+bool ViveControllerManager::isDesktopMode() {
+    if (_container) {
+        return !_container->getActiveDisplayPlugin()->isHmd();
+    }
+    return false;
+}
+
 void ViveControllerManager::calibrate() {
     if (isSupported()) {
         _inputDevice->calibrateNextFrame();
@@ -141,13 +161,21 @@ bool ViveControllerManager::isSupported() const {
 
 void ViveControllerManager::setConfigurationSettings(const QJsonObject configurationSettings) {
     if (isSupported()) {
+        if (configurationSettings.contains("desktopMode")) {
+            _desktopMode = configurationSettings["desktopMode"].toBool();
+            if (!_desktopMode) {
+                _resetMatCalculated = false;
+            }
+        }
         _inputDevice->configureCalibrationSettings(configurationSettings);
     }
 }
 
 QJsonObject ViveControllerManager::configurationSettings() {
     if (isSupported()) {
-        return _inputDevice->configurationSettings();
+        QJsonObject configurationSettings = _inputDevice->configurationSettings();
+        configurationSettings["desktopMode"] = _desktopMode;
+        return configurationSettings;
     }
 
     return QJsonObject();
@@ -218,6 +246,18 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
         return;
     }
 
+    if (isDesktopMode() && _desktopMode) {
+        if (!_resetMatCalculated) {
+            _resetMat = calculateResetMat();
+            _resetMatCalculated = true;
+        }
+
+        _system->GetDeviceToAbsoluteTrackingPose(vr::TrackingUniverseStanding, 0, _nextSimPoseData.vrPoses, vr::k_unMaxTrackedDeviceCount);
+        _nextSimPoseData.update(_resetMat);
+    } else if (isDesktopMode()) {
+        _nextSimPoseData.resetToInvalid();
+    }
+
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     handleOpenVrEvents();
     if (openVrQuitRequested()) {
@@ -249,6 +289,7 @@ ViveControllerManager::InputDevice::InputDevice(vr::IVRSystem*& system) : contro
     _configStringMap[Config::FeetAndHips] = QString("FeetAndHips");
     _configStringMap[Config::FeetHipsAndChest] = QString("FeetHipsAndChest");
     _configStringMap[Config::FeetHipsAndShoulders] = QString("FeetHipsAndShoulders");
+    _configStringMap[Config::FeetHipsChestAndShoulders] = QString("FeetHipsChestAndShoulders");
 }
 
 void ViveControllerManager::InputDevice::update(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
@@ -325,6 +366,7 @@ void ViveControllerManager::InputDevice::calibrateFromUI(const controller::Input
     if (_calibrate) {
         uncalibrate();
         calibrate(inputCalibrationData);
+        emitCalibrationStatus();
         _calibrate = false;
     }
 }
@@ -342,8 +384,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 bool overrideHead = headObject["override"].toBool();
                 if (overrideHead) {
                     _headConfig = HeadConfig::Puck;
-                    HEAD_PUCK_Y_OFFSET = headObject["Y"].toDouble();
-                    HEAD_PUCK_Z_OFFSET = headObject["Z"].toDouble();
+                    _headPuckYOffset = headObject["Y"].toDouble();
+                    _headPuckZOffset = headObject["Z"].toDouble();
                 } else {
                     _headConfig = HeadConfig::HMD;
                 }
@@ -352,8 +394,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 bool overrideHands = handsObject["override"].toBool();
                 if (overrideHands) {
                     _handConfig = HandConfig::Pucks;
-                    HAND_PUCK_Y_OFFSET = handsObject["Y"].toDouble();
-                    HAND_PUCK_Z_OFFSET = handsObject["Z"].toDouble();
+                    _handPuckYOffset = handsObject["Y"].toDouble();
+                    _handPuckZOffset = handsObject["Z"].toDouble();
                 } else {
                     _handConfig = HandConfig::HandController;
                 }
@@ -372,29 +414,23 @@ QJsonObject ViveControllerManager::InputDevice::configurationSettings() {
     Locker locker(_lock);
     QJsonObject configurationSettings;
     configurationSettings["trackerConfiguration"] = configToString(_preferedConfig);
-    configurationSettings["HMDHead"] = (_headConfig == HeadConfig::HMD) ? true : false;
-    configurationSettings["handController"] = (_handConfig == HandConfig::HandController) ? true : false;
+    configurationSettings["HMDHead"] = (_headConfig == HeadConfig::HMD);
+    configurationSettings["handController"] = (_handConfig == HandConfig::HandController);
+    configurationSettings["puckCount"] = (int)_validTrackedObjects.size();
     return configurationSettings;
 }
 
-void ViveControllerManager::InputDevice::emitCalibrationStatus(const bool success) {
+void ViveControllerManager::InputDevice::emitCalibrationStatus() {
     auto inputConfiguration = DependencyManager::get<InputConfiguration>();
     QJsonObject status = QJsonObject();
+    status["calibrated"] = _calibrated;
+    status["configuration"] = configToString(_preferedConfig);
+    status["head_puck"] = (_headConfig == HeadConfig::Puck);
+    status["hand_pucks"] = (_handConfig == HandConfig::Pucks);
+    status["puckCount"] = (int)_validTrackedObjects.size();
+    status["UI"] = _calibrate;
 
-    if (_calibrated && success) {
-        status["calibrated"] = _calibrated;
-        status["configuration"] = configToString(_preferedConfig);
-    } else if (!_calibrated && !success) {
-        status["calibrated"] = _calibrated;
-        status["success"] = success;
-    } else if (!_calibrated && success) {
-        status["calibrated"] = _calibrated;
-        status["success"] = success;
-        status["configuration"] = configToString(_preferedConfig);
-        status["puckCount"] = (int)_validTrackedObjects.size();
-    }
-    
-    emit inputConfiguration->calibrationStatus(status); //inputConfiguration->calibrated(status);
+    emit inputConfiguration->calibrationStatus(status);
 }
 
 void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceIndex, const controller::InputCalibrationData& inputCalibrationData) {
@@ -430,19 +466,38 @@ void ViveControllerManager::InputDevice::handleTrackedObject(uint32_t deviceInde
         // transform into avatar frame
         glm::mat4 controllerToAvatar = glm::inverse(inputCalibrationData.avatarMat) * inputCalibrationData.sensorToWorldMat;
         _poseStateMap[poseIndex] = pose.transform(controllerToAvatar);
-        _validTrackedObjects.push_back(std::make_pair(poseIndex, _poseStateMap[poseIndex]));
+
+        // but _validTrackedObjects remain in sensor frame
+        _validTrackedObjects.push_back(std::make_pair(poseIndex, pose));
     } else {
         controller::Pose invalidPose;
         _poseStateMap[poseIndex] = invalidPose;
     }
 }
 
+void ViveControllerManager::InputDevice::sendUserActivityData(QString activity) {
+    QJsonObject jsonData = {
+        {"num_pucks", (int)_validTrackedObjects.size()},
+        {"configuration", configToString(_preferedConfig)},
+        {"head_puck", (_headConfig == HeadConfig::Puck) ? true : false},
+        {"hand_pucks", (_handConfig == HandConfig::Pucks) ? true : false}
+    };
+
+    UserActivityLogger::getInstance().logAction(activity, jsonData);
+}
+
 void ViveControllerManager::InputDevice::calibrateOrUncalibrate(const controller::InputCalibrationData& inputCalibration) {
     if (!_calibrated) {
         calibrate(inputCalibration);
+        if (_calibrated) {
+            sendUserActivityData("mocap_button_success");
+        } else {
+            sendUserActivityData("mocap_button_fail");
+        }
+        emitCalibrationStatus();
     } else {
         uncalibrate();
-        emitCalibrationStatus(true);
+        sendUserActivityData("mocap_button_uncalibrate");
     }
 }
 
@@ -454,29 +509,27 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
 
     if (puckCount == 0) {
         uncalibrate();
-        emitCalibrationStatus(false);
         return;
     }
 
     glm::mat4 defaultToReferenceMat = glm::mat4();
     if (_headConfig == HeadConfig::HMD) {
         defaultToReferenceMat = calculateDefaultToReferenceForHmd(inputCalibration);
-    } else if (_headConfig == HeadConfig::Puck) { 
+    } else if (_headConfig == HeadConfig::Puck) {
+        std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), sortPucksYPosition);
         defaultToReferenceMat = calculateDefaultToReferenceForHeadPuck(inputCalibration);
     }
-    
+
     _config = _preferedConfig;
-    
+
     bool headConfigured = configureHead(defaultToReferenceMat, inputCalibration);
     bool handsConfigured = configureHands(defaultToReferenceMat, inputCalibration);
     bool bodyConfigured = configureBody(defaultToReferenceMat, inputCalibration);
 
     if (!headConfigured || !handsConfigured || !bodyConfigured) {
         uncalibrate();
-        emitCalibrationStatus(false);
     } else {
         _calibrated = true;
-        emitCalibrationStatus(true);
         qDebug() << "PuckCalibration: " << configToString(_config) << " Configuration Successful";
     }
 }
@@ -566,8 +619,6 @@ bool ViveControllerManager::InputDevice::configureBody(glm::mat4& defaultToRefer
         return true;
     }
     qDebug() << "Puck Calibration: " << configToString(_config) << " Config Failed: Could not meet the minimal # of pucks";
-    uncalibrate();
-    emitCalibrationStatus(false);
     return false;
 }
 
@@ -660,63 +711,67 @@ void ViveControllerManager::InputDevice::handleHandController(float deltaTime, u
          }
     }
 }
+
+// defaultToReferenceMat is an offset from avatar space to sensor space.
+// it aligns the default center-eye in avatar space with the hmd in sensor space.
+//
+//  * E_a is the the default center-of-the-eyes transform in avatar space.
+//  * E_s is the the hmd eye-center transform in sensor space, with roll and pitch removed.
+//  * D is the defaultReferenceMat.
+//
+//  E_s = D * E_a  =>
+//  D = E_s * inverse(E_a)
+//
 glm::mat4 ViveControllerManager::InputDevice::calculateDefaultToReferenceForHmd(const controller::InputCalibrationData& inputCalibration) {
-    // convert the hmd head from sensor space to avatar space
-    glm::mat4 hmdSensorFlippedMat = inputCalibration.hmdSensorMat * Matrices::Y_180;
-    glm::mat4 sensorToAvatarMat = glm::inverse(inputCalibration.avatarMat) * inputCalibration.sensorToWorldMat;
-    glm::mat4 hmdAvatarMat = sensorToAvatarMat * hmdSensorFlippedMat;
 
-    // cancel the roll and pitch for the hmd head
-    glm::quat hmdRotation = cancelOutRollAndPitch(glmExtractRotation(hmdAvatarMat));
-    glm::vec3 hmdTranslation = extractTranslation(hmdAvatarMat);
-    glm::mat4 currentHmd = createMatFromQuatAndPos(hmdRotation, hmdTranslation);
+    // the center-eye transform in avatar space.
+    glm::mat4 E_a = inputCalibration.defaultCenterEyeMat;
 
-    // calculate the offset from the centerOfEye to defaultHeadMat
-    glm::mat4 defaultHeadOffset = glm::inverse(inputCalibration.defaultCenterEyeMat) * inputCalibration.defaultHeadMat;
+    // the center-eye transform in sensor space.
+    glm::mat4 E_s = inputCalibration.hmdSensorMat * Matrices::Y_180;  // the Y_180 is to convert hmd from -z forward to z forward.
 
-    glm::mat4 currentHead  = currentHmd * defaultHeadOffset;
+    // cancel out roll and pitch on E_s
+    glm::quat rot = cancelOutRollAndPitch(glmExtractRotation(E_s));
+    glm::vec3 trans = extractTranslation(E_s);
+    E_s = createMatFromQuatAndPos(rot, trans);
 
-    // calculate the defaultToRefrenceXform
-    glm::mat4 defaultToReferenceMat = currentHead * glm::inverse(inputCalibration.defaultHeadMat);
-
-    return defaultToReferenceMat;
+    return E_s * glm::inverse(E_a);
 }
 
+// defaultToReferenceMat is an offset from avatar space to sensor space.
+// It aligns the default center-of-the-eyes transform in avatar space with the head-puck in sensor space.
+// The offset from the center-of-the-eyes to the head-puck can be configured via _headPuckYOffset and _headPuckZOffset,
+// These values are exposed in the configuration UI.
+//
+//  * E_a is the the default center-eye transform in avatar space.
+//  * E_s is the the head-puck center-eye transform in sensor space, with roll and pitch removed.
+//  * D is the defaultReferenceMat.
+//
+//  E_s = D * E_a  =>
+//  D = E_s * inverse(E_a)
+//
 glm::mat4 ViveControllerManager::InputDevice::calculateDefaultToReferenceForHeadPuck(const controller::InputCalibrationData& inputCalibration) {
-    glm::mat4 avatarToSensorMat = glm::inverse(inputCalibration.sensorToWorldMat) * inputCalibration.avatarMat;
-    glm::mat4 sensorToAvatarMat = glm::inverse(inputCalibration.avatarMat) * inputCalibration.sensorToWorldMat;
+
+    // the center-eye transform in avatar space.
+    glm::mat4 E_a = inputCalibration.defaultCenterEyeMat;
+
+    // calculate the center-eye transform in sensor space, via the head-puck
     size_t headPuckIndex = _validTrackedObjects.size() - 1;
     controller::Pose headPuckPose = _validTrackedObjects[headPuckIndex].second;
-    glm::mat4 headPuckAvatarMat = createMatFromQuatAndPos(headPuckPose.getRotation(), headPuckPose.getTranslation()) * Matrices::Y_180;
-    glm::vec3 headPuckTranslation = extractTranslation(headPuckAvatarMat);
-    glm::vec3 headPuckZAxis = cancelOutRollAndPitch(glmExtractRotation(headPuckAvatarMat)) * glm::vec3(0.0f, 0.0f, 1.0f);
-    glm::vec3 worldUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
-    // check that the head puck z axis is not parrallel to the world up
-    const float EPSILON = 1.0e-4f;
-    glm::vec3 zAxis = glmExtractRotation(headPuckAvatarMat) * glm::vec3(0.0f, 0.0f, 1.0f);
-    if (fabsf(fabsf(glm::dot(glm::normalize(worldUp), glm::normalize(zAxis))) - 1.0f) < EPSILON) {
-        headPuckZAxis = glm::vec3(1.0f, 0.0f, 0.0f);
-    }
+    // AJT: TODO: handle case were forward is parallel with UNIT_Y.
+    glm::vec3 forward = headPuckPose.rotation * -Vectors::UNIT_Z;
+    glm::vec3 x = glm::normalize(glm::cross(Vectors::UNIT_Y, forward));
+    glm::vec3 z = glm::normalize(glm::cross(x, Vectors::UNIT_Y));
+    glm::mat3 centerEyeRotMat(x, Vectors::UNIT_Y, z);
+    glm::vec3 centerEyeTrans = headPuckPose.translation + centerEyeRotMat * glm::vec3(0.0f, _headPuckYOffset, _headPuckZOffset);
 
-    glm::vec3 yPrime = glm::vec3(0.0f, 1.0f, 0.0f);
-    glm::vec3 xPrime = glm::normalize(glm::cross(worldUp, headPuckZAxis));
-    glm::vec3 zPrime = glm::normalize(glm::cross(xPrime, yPrime));
-    glm::mat4 newHeadPuck = glm::mat4(glm::vec4(xPrime, 0.0f), glm::vec4(yPrime, 0.0f),
-                                      glm::vec4(zPrime, 0.0f), glm::vec4(headPuckTranslation, 1.0f));
+    glm::mat4 E_s(glm::vec4(centerEyeRotMat[0], 0.0f),
+                  glm::vec4(centerEyeRotMat[1], 0.0f),
+                  glm::vec4(centerEyeRotMat[2], 0.0f),
+                  glm::vec4(centerEyeTrans, 1.0f));
 
-    glm::mat4 headPuckOffset = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f),
-                                         glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(0.0f, HEAD_PUCK_Y_OFFSET, HEAD_PUCK_Z_OFFSET, 1.0f));
-
-    glm::mat4 finalHeadPuck = newHeadPuck * headPuckOffset;
-
-    glm::mat4 defaultHeadOffset = glm::inverse(inputCalibration.defaultCenterEyeMat) * inputCalibration.defaultHeadMat;
-
-    glm::mat4 currentHead  = finalHeadPuck * defaultHeadOffset;
-
-    // calculate the defaultToRefrenceXform
-    glm::mat4 defaultToReferenceMat = currentHead * glm::inverse(inputCalibration.defaultHeadMat);
-    return defaultToReferenceMat;
+    return E_s * glm::inverse(E_a);
 }
 
 void ViveControllerManager::InputDevice::partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPseudoButton, int xPseudoButton, int yPseudoButton) {
@@ -904,12 +959,12 @@ void ViveControllerManager::InputDevice::calibrateLeftHand(glm::mat4& defaultToR
 
     glm::mat4 newHandMat = glm::mat4(glm::vec4(xPrime, 0.0f), glm::vec4(yPrime, 0.0f),
                                      glm::vec4(zPrime, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-    
 
-    glm::vec3 translationOffset = glm::vec3(0.0f, HAND_PUCK_Y_OFFSET, HAND_PUCK_Z_OFFSET);
+
+    glm::vec3 translationOffset = glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
     glm::quat initialRotation = glmExtractRotation(handPoseAvatarMat);
     glm::quat finalRotation = glmExtractRotation(newHandMat);
-    
+
     glm::quat rotationOffset = glm::inverse(initialRotation) * finalRotation;
 
     glm::mat4 offsetMat = createMatFromQuatAndPos(rotationOffset, translationOffset);
@@ -934,13 +989,13 @@ void ViveControllerManager::InputDevice::calibrateRightHand(glm::mat4& defaultTo
     glm::vec3 yPrime = glm::normalize(glm::cross(zPrime, xPrime));
     glm::mat4 newHandMat = glm::mat4(glm::vec4(xPrime, 0.0f), glm::vec4(yPrime, 0.0f),
                                      glm::vec4(zPrime, 0.0f), glm::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-    
 
 
-    glm::vec3 translationOffset = glm::vec3(0.0f, HAND_PUCK_Y_OFFSET, HAND_PUCK_Z_OFFSET);
+
+    glm::vec3 translationOffset = glm::vec3(0.0f, _handPuckYOffset, _handPuckZOffset);
     glm::quat initialRotation = glmExtractRotation(handPoseAvatarMat);
     glm::quat finalRotation = glmExtractRotation(newHandMat);
-    
+
     glm::quat rotationOffset = glm::inverse(initialRotation) * finalRotation;
 
     glm::mat4 offsetMat = createMatFromQuatAndPos(rotationOffset, translationOffset);
@@ -957,7 +1012,7 @@ void ViveControllerManager::InputDevice::calibrateFeet(glm::mat4& defaultToRefer
     auto& secondFoot = _validTrackedObjects[SECOND_FOOT];
     controller::Pose& firstFootPose = firstFoot.second;
     controller::Pose& secondFootPose = secondFoot.second;
-    
+
     if (determineLimbOrdering(firstFootPose, secondFootPose, headXAxis, headPosition)) {
         calibrateFoot(defaultToReferenceMat, inputCalibration, firstFoot, true);
         calibrateFoot(defaultToReferenceMat, inputCalibration, secondFoot, false);
@@ -1022,13 +1077,8 @@ void ViveControllerManager::InputDevice::calibrateShoulders(glm::mat4& defaultTo
 void ViveControllerManager::InputDevice::calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
     size_t headIndex = _validTrackedObjects.size() - 1;
     const PuckPosePair& head = _validTrackedObjects[headIndex];
-
-    // assume the person is wearing the head puck on his/her forehead
-    glm::mat4 defaultHeadOffset = glm::inverse(inputCalibration.defaultCenterEyeMat) * inputCalibration.defaultHeadMat;
-    controller::Pose newHead = head.second.postTransform(defaultHeadOffset);
-
     _jointToPuckMap[controller::HEAD] = head.first;
-    _pucksOffset[head.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHeadMat, newHead);
+    _pucksOffset[head.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHeadMat, head.second);
 }
 
 QString ViveControllerManager::InputDevice::configToString(Config config) {

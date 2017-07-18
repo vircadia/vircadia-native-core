@@ -25,8 +25,9 @@
 #include <PointerEvent.h>
 
 #include "Overlay.h"
-#include "OverlayPanel.h"
+
 #include "PanelAttachable.h"
+#include "OverlayPanel.h"
 
 class PickRay;
 
@@ -41,6 +42,8 @@ Q_DECLARE_METATYPE(OverlayPropertyResult);
 QScriptValue OverlayPropertyResultToScriptValue(QScriptEngine* engine, const OverlayPropertyResult& value);
 void OverlayPropertyResultFromScriptValue(const QScriptValue& object, OverlayPropertyResult& value);
 
+const OverlayID UNKNOWN_OVERLAY_ID = OverlayID();
+
 /**jsdoc
  * @typedef Overlays.RayToOverlayIntersectionResult
  * @property {bool} intersects True if the PickRay intersected with a 3D overlay.
@@ -51,10 +54,9 @@ void OverlayPropertyResultFromScriptValue(const QScriptValue& object, OverlayPro
  */
 class RayToOverlayIntersectionResult {
 public:
-    RayToOverlayIntersectionResult();
-    bool intersects;
-    OverlayID overlayID;
-    float distance;
+    bool intersects { false };
+    OverlayID overlayID { UNKNOWN_OVERLAY_ID };
+    float distance { 0 };
     BoxFace face;
     glm::vec3 surfaceNormal;
     glm::vec3 intersection;
@@ -77,8 +79,6 @@ void RayToOverlayIntersectionResultFromScriptValue(const QScriptValue& object, R
  * @namespace Overlays
  */
 
-const OverlayID UNKNOWN_OVERLAY_ID = OverlayID();
-
 class Overlays : public QObject {
     Q_OBJECT
 
@@ -94,11 +94,13 @@ public:
     void enable();
 
     Overlay::Pointer getOverlay(OverlayID id) const;
+#if OVERLAY_PANELS
     OverlayPanel::Pointer getPanel(OverlayID id) const { return _panels[id]; }
+#endif
 
     /// adds an overlay that's already been created
     OverlayID addOverlay(Overlay* overlay) { return addOverlay(Overlay::Pointer(overlay)); }
-    OverlayID addOverlay(Overlay::Pointer overlay);
+    OverlayID addOverlay(const Overlay::Pointer& overlay);
 
     bool mousePressEvent(QMouseEvent* event);
     bool mouseDoublePressEvent(QMouseEvent* event);
@@ -156,7 +158,7 @@ public slots:
      * @param {Overlays.OverlayID} overlayID The ID of the overlay to get the type of.
      * @return {string} The type of the overlay if found, otherwise the empty string.
      */
-    QString getOverlayType(OverlayID overlayId) const;
+    QString getOverlayType(OverlayID overlayId);
 
     /**jsdoc
     * Get the overlay Script object.
@@ -188,6 +190,10 @@ public slots:
      */
     OverlayPropertyResult getProperty(OverlayID id, const QString& property);
 
+    OverlayPropertyResult getProperties(const OverlayID& id, const QStringList& properties);
+
+    OverlayPropertyResult getOverlaysProperties(const QVariant& overlaysProperties);
+
     /*jsdoc
      * Find the closest 3D overlay hit by a pick ray.
      *
@@ -215,7 +221,7 @@ public slots:
      * @param {float} radius search radius
      * @return {Overlays.OverlayID[]} list of overlays withing the radius
      */
-    QVector<QUuid> findOverlays(const glm::vec3& center, float radius) const;
+    QVector<QUuid> findOverlays(const glm::vec3& center, float radius);
 
     /**jsdoc
      * Check whether an overlay's assets have been loaded. For example, if the
@@ -237,7 +243,7 @@ public slots:
      * @param {string} The string to measure.
      * @return {Vec2} The size of the text.
      */
-    QSizeF textSize(OverlayID id, const QString& text) const;
+    QSizeF textSize(OverlayID id, const QString& text);
 
     /**jsdoc
      * Get the width of the virtual 2D HUD.
@@ -245,7 +251,7 @@ public slots:
      * @function Overlays.width
      * @return {float} The width of the 2D HUD.
      */
-    float width() const;
+    float width();
 
     /**jsdoc
      * Get the height of the virtual 2D HUD.
@@ -253,11 +259,12 @@ public slots:
      * @function Overlays.height
      * @return {float} The height of the 2D HUD.
      */
-    float height() const;
+    float height();
 
     /// return true if there is an overlay with that id else false
     bool isAddedOverlay(OverlayID id);
 
+#if OVERLAY_PANELS
     OverlayID getParentPanel(OverlayID childId) const;
     void setParentPanel(OverlayID childId, OverlayID panelId);
 
@@ -279,6 +286,8 @@ public slots:
     /// return true if there is a panel with that id else false
     bool isAddedPanel(OverlayID id) { return _panels.contains(id); }
 
+#endif
+
     void sendMousePressOnOverlay(OverlayID overlayID, const PointerEvent& event);
     void sendMouseReleaseOnOverlay(OverlayID overlayID, const PointerEvent& event);
     void sendMouseMoveOnOverlay(OverlayID overlayID, const PointerEvent& event);
@@ -287,7 +296,7 @@ public slots:
     void sendHoverOverOverlay(OverlayID id, PointerEvent event);
     void sendHoverLeaveOverlay(OverlayID id, PointerEvent event);
 
-    OverlayID getKeyboardFocusOverlay() const;
+    OverlayID getKeyboardFocusOverlay();
     void setKeyboardFocusOverlay(OverlayID id);
 
 signals:
@@ -314,15 +323,18 @@ signals:
 private:
     void cleanupOverlaysToDelete();
 
+    mutable QMutex _mutex;
     QMap<OverlayID, Overlay::Pointer> _overlaysHUD;
     QMap<OverlayID, Overlay::Pointer> _overlaysWorld;
+#if OVERLAY_PANELS
     QMap<OverlayID, OverlayPanel::Pointer> _panels;
+#endif
     QList<Overlay::Pointer> _overlaysToDelete;
     unsigned int _stackOrder { 1 };
 
-    QReadWriteLock _lock;
-    QReadWriteLock _deleteLock;
+#if OVERLAY_PANELS
     QScriptEngine* _scriptEngine;
+#endif
     bool _enabled = true;
 
     PointerEvent calculatePointerEvent(Overlay::Pointer overlay, PickRay ray, RayToOverlayIntersectionResult rayPickResult,
@@ -331,7 +343,7 @@ private:
     OverlayID _currentClickingOnOverlayID { UNKNOWN_OVERLAY_ID };
     OverlayID _currentHoverOverOverlayID { UNKNOWN_OVERLAY_ID };
 
-    RayToOverlayIntersectionResult findRayIntersectionInternal(const PickRay& ray, bool precisionPicking,
+    Q_INVOKABLE RayToOverlayIntersectionResult findRayIntersectionInternal(const PickRay& ray, bool precisionPicking,
                                                                const QVector<OverlayID>& overlaysToInclude,
                                                                const QVector<OverlayID>& overlaysToDiscard,
                                                                bool visibleOnly = false, bool collidableOnly = false);

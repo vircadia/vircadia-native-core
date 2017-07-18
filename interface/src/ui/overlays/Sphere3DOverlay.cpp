@@ -44,15 +44,15 @@ void Sphere3DOverlay::render(RenderArgs* args) {
         batch->setModelTransform(transform);
 
         auto geometryCache = DependencyManager::get<GeometryCache>();
-        auto pipeline = args->_pipeline;
-        if (!pipeline) {
-            pipeline = _isSolid ? geometryCache->getOpaqueShapePipeline() : geometryCache->getWireShapePipeline();
+        auto shapePipeline = args->_shapePipeline;
+        if (!shapePipeline) {
+            shapePipeline = _isSolid ? geometryCache->getOpaqueShapePipeline() : geometryCache->getWireShapePipeline();
         }
 
         if (_isSolid) {
-            geometryCache->renderSolidSphereInstance(*batch, sphereColor, pipeline);
+            geometryCache->renderSolidSphereInstance(args, *batch, sphereColor, shapePipeline);
         } else {
-            geometryCache->renderWireSphereInstance(*batch, sphereColor, pipeline);
+            geometryCache->renderWireSphereInstance(args, *batch, sphereColor, shapePipeline);
         }
     }
 }
