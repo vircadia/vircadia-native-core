@@ -1469,6 +1469,14 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["atp_mapping_requests"] = atpMappingRequests;
 
         properties["throttled"] = _displayPlugin ? _displayPlugin->isThrottled() : false;
+        
+        QJsonObject bytesDownloaded;
+        bytesDownloaded["atp"] = statTracker->getStat(STAT_ATP_RESOURCE_TOTAL_BYTES).toInt();
+        bytesDownloaded["http"] = statTracker->getStat(STAT_HTTP_RESOURCE_TOTAL_BYTES).toInt();
+        bytesDownloaded["file"] = statTracker->getStat(STAT_FILE_RESOURCE_TOTAL_BYTES).toInt();
+        bytesDownloaded["total"] = bytesDownloaded["atp"].toInt() + bytesDownloaded["http"].toInt()
+            + bytesDownloaded["file"].toInt();
+        properties["bytesDownloaded"] = bytesDownloaded;
 
         auto myAvatar = getMyAvatar();
         glm::vec3 avatarPosition = myAvatar->getPosition();
@@ -2116,6 +2124,7 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
     surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
+    surfaceContext->setContextProperty("HoverOverlay", DependencyManager::get<HoverOverlayInterface>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -5818,6 +5827,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     auto entityScriptServerLog = DependencyManager::get<EntityScriptServerLogClient>();
     scriptEngine->registerGlobalObject("EntityScriptServerLog", entityScriptServerLog.data());
     scriptEngine->registerGlobalObject("AvatarInputs", AvatarInputs::getInstance());
+    scriptEngine->registerGlobalObject("HoverOverlay", DependencyManager::get<HoverOverlayInterface>().data());
 
     qScriptRegisterMetaType(scriptEngine, OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 

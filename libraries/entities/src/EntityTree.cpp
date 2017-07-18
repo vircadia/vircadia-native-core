@@ -90,13 +90,17 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
     if (_simulation) {
         _simulation->clearEntities();
     }
-    {
-        QWriteLocker locker(&_entityToElementLock);
-        foreach(EntityTreeElementPointer element, _entityToElementMap) {
-            element->cleanupEntities();
+    QHash<EntityItemID, EntityItemPointer> localMap;
+    localMap.swap(_entityMap);
+    this->withWriteLock([&] {
+        foreach(EntityItemPointer entity, localMap) {
+            EntityTreeElementPointer element = entity->getElement();
+            if (element) {
+                element->cleanupEntities();
+            }
         }
-        _entityToElementMap.clear();
-    }
+    });
+    localMap.clear();
     Octree::eraseAllOctreeElements(createNewRoot);
 
     resetClientEditStats();
@@ -136,29 +140,24 @@ void EntityTree::postAddEntity(EntityItemPointer entity) {
 }
 
 bool EntityTree::updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
-    EntityTreeElementPointer containingElement = getContainingElement(entityID);
+    EntityItemPointer entity;
+    {
+        QReadLocker locker(&_entityMapLock);
+        entity = _entityMap.value(entityID);
+    }
+    if (!entity) {
+        return false;
+    }
+    return updateEntity(entity, properties, senderNode);
+}
+
+bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperties& origProperties,
+        const SharedNodePointer& senderNode) {
+    EntityTreeElementPointer containingElement = entity->getElement();
     if (!containingElement) {
         return false;
     }
 
-    EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
-    if (!existingEntity) {
-        return false;
-    }
-
-    return updateEntityWithElement(existingEntity, properties, containingElement, senderNode);
-}
-
-bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode) {
-    EntityTreeElementPointer containingElement = getContainingElement(entity->getEntityItemID());
-    if (!containingElement) {
-        return false;
-    }
-    return updateEntityWithElement(entity, properties, containingElement, senderNode);
-}
-
-bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityItemProperties& origProperties,
-                                         EntityTreeElementPointer containingElement, const SharedNodePointer& senderNode) {
     EntityItemProperties properties = origProperties;
 
     bool allowLockChange;
@@ -190,7 +189,7 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
                 bool success;
                 AACube queryCube = entity->getQueryAACube(success);
                 if (!success) {
-                    qCDebug(entities) << "Warning -- failed to get query-cube for" << entity->getID();
+                    qCWarning(entities) << "failed to get query-cube for" << entity->getID();
                 }
                 UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, queryCube);
                 recurseTreeWithOperator(&theOperator);
@@ -331,9 +330,8 @@ bool EntityTree::updateEntityWithElement(EntityItemPointer entity, const EntityI
      }
 
     // TODO: this final containingElement check should eventually be removed (or wrapped in an #ifdef DEBUG).
-    containingElement = getContainingElement(entity->getEntityItemID());
-    if (!containingElement) {
-        qCDebug(entities) << "UNEXPECTED!!!! after updateEntity() we no longer have a containing element??? entityID="
+    if (!entity->getElement()) {
+        qCWarning(entities) << "EntityTree::updateEntity() we no longer have a containing element for entityID="
                 << entity->getEntityItemID();
         return false;
     }
@@ -366,7 +364,7 @@ EntityItemPointer EntityTree::addEntity(const EntityItemID& entityID, const Enti
     // You should not call this on existing entities that are already part of the tree! Call updateEntity()
     EntityTreeElementPointer containingElement = getContainingElement(entityID);
     if (containingElement) {
-        qCDebug(entities) << "UNEXPECTED!!! ----- don't call addEntity() on existing entity items. entityID=" << entityID
+        qCWarning(entities) << "EntityTree::addEntity() on existing entity item with entityID=" << entityID
                           << "containingElement=" << containingElement.get();
         return result;
     }
@@ -422,7 +420,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
     EntityTreeElementPointer containingElement = getContainingElement(entityID);
     if (!containingElement) {
         if (!ignoreWarnings) {
-            qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::deleteEntity() entityID doesn't exist!!! entityID=" << entityID;
+            qCWarning(entities) << "EntityTree::deleteEntity() on non-existent entityID=" << entityID;
         }
         return;
     }
@@ -430,8 +428,7 @@ void EntityTree::deleteEntity(const EntityItemID& entityID, bool force, bool ign
     EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
     if (!existingEntity) {
         if (!ignoreWarnings) {
-            qCDebug(entities) << "UNEXPECTED!!!! don't call EntityTree::deleteEntity() on entity items that don't exist. "
-                        "entityID=" << entityID;
+            qCWarning(entities) << "EntityTree::deleteEntity() on non-existant entity item with entityID=" << entityID;
         }
         return;
     }
@@ -478,7 +475,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         EntityTreeElementPointer containingElement = getContainingElement(entityID);
         if (!containingElement) {
             if (!ignoreWarnings) {
-                qCDebug(entities) << "UNEXPECTED!!!!  EntityTree::deleteEntities() entityID doesn't exist!!! entityID=" << entityID;
+                qCWarning(entities) << "EntityTree::deleteEntities() on non-existent entityID=" << entityID;
             }
             continue;
         }
@@ -486,8 +483,7 @@ void EntityTree::deleteEntities(QSet<EntityItemID> entityIDs, bool force, bool i
         EntityItemPointer existingEntity = containingElement->getEntityWithEntityItemID(entityID);
         if (!existingEntity) {
             if (!ignoreWarnings) {
-                qCDebug(entities) << "UNEXPECTED!!!! don't call EntityTree::deleteEntities() on entity items that don't exist. "
-                            "entityID=" << entityID;
+                qCWarning(entities) << "EntityTree::deleteEntities() on non-existent entity item with entityID=" << entityID;
             }
             continue;
         }
@@ -975,7 +971,7 @@ int EntityTree::processEditPacketData(ReceivedMessage& message, const unsigned c
                                      const SharedNodePointer& senderNode) {
 
     if (!getIsServer()) {
-        qCDebug(entities) << "UNEXPECTED!!! processEditPacketData() should only be called on a server tree.";
+        qCWarning(entities) << "EntityTree::processEditPacketData() should only be called on a server tree.";
         return 0;
     }
 
@@ -1502,27 +1498,43 @@ int EntityTree::processEraseMessageDetails(const QByteArray& dataByteArray, cons
 }
 
 EntityTreeElementPointer EntityTree::getContainingElement(const EntityItemID& entityItemID)  /*const*/ {
-    QReadLocker locker(&_entityToElementLock);
-    EntityTreeElementPointer element = _entityToElementMap.value(entityItemID);
-    return element;
+    EntityItemPointer entity;
+    {
+        QReadLocker locker(&_entityMapLock);
+        entity = _entityMap.value(entityItemID);
+    }
+    if (entity) {
+        return entity->getElement();
+    }
+    return EntityTreeElementPointer(nullptr);
 }
 
-void EntityTree::setContainingElement(const EntityItemID& entityItemID, EntityTreeElementPointer element) {
-    QWriteLocker locker(&_entityToElementLock);
-    if (element) {
-        _entityToElementMap[entityItemID] = element;
-    } else {
-        _entityToElementMap.remove(entityItemID);
+void EntityTree::addEntityMapEntry(EntityItemPointer entity) {
+    EntityItemID id = entity->getEntityItemID();
+    QWriteLocker locker(&_entityMapLock);
+    EntityItemPointer otherEntity = _entityMap.value(id);
+    if (otherEntity) {
+        qCWarning(entities) << "EntityTree::addEntityMapEntry() found pre-existing id " << id;
+        assert(false);
+        return;
     }
+    _entityMap.insert(id, entity);
+}
+
+void EntityTree::clearEntityMapEntry(const EntityItemID& id) {
+    QWriteLocker locker(&_entityMapLock);
+    _entityMap.remove(id);
 }
 
 void EntityTree::debugDumpMap() {
+    // QHash's are implicitly shared, so we make a shared copy and use that instead.
+    // This way we might be able to avoid both a lock and a true copy.
+    QHash<EntityItemID, EntityItemPointer> localMap(_entityMap);
     qCDebug(entities) << "EntityTree::debugDumpMap() --------------------------";
-    QReadLocker locker(&_entityToElementLock);
-    QHashIterator<EntityItemID, EntityTreeElementPointer> i(_entityToElementMap);
+    QHashIterator<EntityItemID, EntityItemPointer> i(localMap);
     while (i.hasNext()) {
         i.next();
-        qCDebug(entities) << i.key() << ": " << i.value().get();
+        qCDebug(entities) << i.key() << ": " << i.value()->getElement().get();
     }
     qCDebug(entities) << "-----------------------------------------------------";
 }

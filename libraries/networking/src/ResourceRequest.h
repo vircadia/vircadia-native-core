@@ -33,6 +33,9 @@ const QString STAT_HTTP_REQUEST_CACHE = "CacheHTTPRequest";
 const QString STAT_ATP_MAPPING_REQUEST_STARTED = "StartedATPMappingRequest";
 const QString STAT_ATP_MAPPING_REQUEST_FAILED = "FailedATPMappingRequest";
 const QString STAT_ATP_MAPPING_REQUEST_SUCCESS = "SuccessfulATPMappingRequest";
+const QString STAT_HTTP_RESOURCE_TOTAL_BYTES = "HTTPBytesDownloaded";
+const QString STAT_ATP_RESOURCE_TOTAL_BYTES = "ATPBytesDownloaded";
+const QString STAT_FILE_RESOURCE_TOTAL_BYTES = "FILEBytesDownloaded";
 
 class ResourceRequest : public QObject {
     Q_OBJECT
