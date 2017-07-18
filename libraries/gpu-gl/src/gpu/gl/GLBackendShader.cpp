@@ -485,9 +485,15 @@ void GLBackend::makeProgramBindings(ShaderObject& shaderObject) {
         glBindAttribLocation(glprogram, gpu::Stream::TANGENT, "inTangent");
     }
 
-    loc = glGetAttribLocation(glprogram, "inTexCoord1");
-    if (loc >= 0 && loc != gpu::Stream::TEXCOORD1) {
-        glBindAttribLocation(glprogram, gpu::Stream::TEXCOORD1, "inTexCoord1");
+    char attribName[] = "inTexCoordn";
+    for (auto i = 0; i < 4; i++) {
+        auto streamId = gpu::Stream::TEXCOORD1 + i;
+
+        attribName[strlen(attribName) - 1] = '1' + i;
+        loc = glGetAttribLocation(glprogram, attribName);
+        if (loc >= 0 && loc != streamId) {
+            glBindAttribLocation(glprogram, streamId, attribName);
+        }
     }
 
     loc = glGetAttribLocation(glprogram, "inSkinClusterIndex");
