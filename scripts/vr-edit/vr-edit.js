@@ -747,6 +747,10 @@
             }
         }
 
+        function finishDirectScaling() {
+            select(selectedEntityID);  // Refresh.
+        }
+
         function startHandleScaling() {
             // Save initial position data so that can scale relative to these without accumulating float errors.
             scaleRootPosition = rootPosition;
@@ -803,6 +807,7 @@
             setPositionAndOrientation: setPositionAndOrientation,
             startDirectScaling: startDirectScaling,
             directScale: directScale,
+            finishDirectScaling: finishDirectScaling,
             startHandleScaling: startHandleScaling,
             handleScale: handleScale,
             finishHandleScaling: finishHandleScaling,
@@ -1310,6 +1315,7 @@
         }
 
         function stopDirectScaling() {
+            selection.finishDirectScaling();
             isDirectScaling = false;
         }
 
