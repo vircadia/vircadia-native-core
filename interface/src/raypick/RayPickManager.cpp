@@ -49,7 +49,8 @@ void RayPickManager::cacheResult(const bool intersects, const RayPickResult& res
 
 void RayPickManager::update() {
     QHash<QPair<glm::vec3, glm::vec3>, QHash<unsigned int, RayPickResult>> results;
-    for (auto& rayPick : _rayPicks) {
+    for (auto& uid : _rayPicks.keys()) {
+        std::shared_ptr<RayPick> rayPick = _rayPicks[uid];
         if (!rayPick->isEnabled() || rayPick->getFilter() == RayPickMask::PICK_NOTHING || rayPick->getMaxDistance() < 0.0f) {
             continue;
         }
@@ -145,40 +146,63 @@ void RayPickManager::update() {
             }
         }
 
-        if (rayPick->getMaxDistance() == 0.0f ||  (rayPick->getMaxDistance() > 0.0f && res.distance < rayPick->getMaxDistance())) {
+        QWriteLocker lock(_rayPickLocks[uid].get());
+        if (rayPick->getMaxDistance() == 0.0f || (rayPick->getMaxDistance() > 0.0f && res.distance < rayPick->getMaxDistance())) {
             rayPick->setRayPickResult(res);
         } else {
             rayPick->setRayPickResult(RayPickResult());
         }
     }
+
+    QWriteLocker containsLock(&_containsLock);
+    {
+        QWriteLocker lock(&_addLock);
+        while (!_rayPicksToAdd.isEmpty()) {
+            QPair<unsigned int, std::shared_ptr<RayPick>> rayPickToAdd = _rayPicksToAdd.dequeue();
+            _rayPicks[rayPickToAdd.first] = rayPickToAdd.second;
+            _rayPickLocks[rayPickToAdd.first] = std::make_shared<QReadWriteLock>();
+        }
+    }
+
+    {
+        QWriteLocker lock(&_removeLock);
+        while (!_rayPicksToRemove.isEmpty()) {
+            unsigned int uid = _rayPicksToRemove.dequeue();
+            _rayPicks.remove(uid);
+            _rayPickLocks.remove(uid);
+        }
+    }
 }
 
 unsigned int RayPickManager::addRayPick(std::shared_ptr<RayPick> rayPick) {
-    // TODO:
-    // use lock and defer adding to prevent issues
-    _rayPicks[_nextUID] = rayPick;
+    QWriteLocker lock(&_addLock);
+    _rayPicksToAdd.enqueue(QPair<unsigned int, std::shared_ptr<RayPick>>(_nextUID, rayPick));
     return _nextUID++;
 }
 
 void RayPickManager::removeRayPick(const unsigned int uid) {
-    // TODO:
-    // use lock and defer removing to prevent issues
-    _rayPicks.remove(uid);
+    QWriteLocker lock(&_removeLock);
+    _rayPicksToRemove.enqueue(uid);
 }
 
 void RayPickManager::enableRayPick(const unsigned int uid) {
+    QReadLocker containsLock(&_containsLock);
     if (_rayPicks.contains(uid)) {
+        QWriteLocker rayPickLock(_rayPickLocks[uid].get());
         _rayPicks[uid]->enable();
     }
 }
 
 void RayPickManager::disableRayPick(const unsigned int uid) {
+    QReadLocker containsLock(&_containsLock);
     if (_rayPicks.contains(uid)) {
+        QWriteLocker rayPickLock(_rayPickLocks[uid].get());
         _rayPicks[uid]->disable();
     }
 }
 
 const PickRay RayPickManager::getPickRay(const unsigned int uid) {
+    QReadLocker containsLock(&_containsLock);
     if (_rayPicks.contains(uid)) {
         bool valid;
         PickRay pickRay = _rayPicks[uid]->getPickRay(valid);
@@ -190,9 +214,9 @@ const PickRay RayPickManager::getPickRay(const unsigned int uid) {
 }
 
 const RayPickResult RayPickManager::getPrevRayPickResult(const unsigned int uid) {
-    // TODO:
-    // does this need to lock the individual ray?  what happens with concurrent set/get?
+    QReadLocker containsLock(&_containsLock);
     if (_rayPicks.contains(uid)) {
+        QReadLocker lock(_rayPickLocks[uid].get());
         return _rayPicks[uid]->getPrevRayPickResult();
     }
     return RayPickResult();

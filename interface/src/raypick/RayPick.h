@@ -19,7 +19,7 @@ class RayPick {
 public:
     RayPick(const uint16_t filter, const float maxDistance, const bool enabled);
 
-    virtual const PickRay getPickRay(bool& valid) = 0;
+    virtual const PickRay getPickRay(bool& valid) const = 0;
 
     void enable() { _enabled = true; }
     void disable() { _enabled = false; }

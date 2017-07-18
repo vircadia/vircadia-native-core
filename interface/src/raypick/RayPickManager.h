@@ -14,6 +14,8 @@
 #include "RegisteredMetaTypes.h"
 
 #include <QHash>
+#include <QQueue>
+#include <QReadWriteLock>
 #include <memory>
 #include <QtCore/QObject>
 
@@ -68,7 +70,13 @@ public:
 
 private:
     QHash<unsigned int, std::shared_ptr<RayPick>> _rayPicks;
+    QHash<unsigned int, std::shared_ptr<QReadWriteLock>> _rayPickLocks;
     unsigned int _nextUID { 1 }; // 0 is invalid
+    QReadWriteLock _addLock;
+    QQueue<QPair<unsigned int, std::shared_ptr<RayPick>>> _rayPicksToAdd;
+    QReadWriteLock _removeLock;
+    QQueue<unsigned int> _rayPicksToRemove;
+    QReadWriteLock _containsLock;
 
     unsigned int PICK_NOTHING() { return RayPickMask::PICK_NOTHING; }
     unsigned int PICK_ENTITIES() { return RayPickMask::PICK_ENTITIES; }
