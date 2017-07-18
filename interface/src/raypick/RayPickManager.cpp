@@ -19,13 +19,7 @@
 #include "scripting/HMDScriptingInterface.h"
 #include "DependencyManager.h"
 
-RayPickManager& RayPickManager::getInstance() {
-    static RayPickManager instance;
-    return instance;
-}
-
-// Returns true if this ray exists in the cache, and if it does, update res if the cached result is closer
-bool RayPickManager::checkAndCompareCachedResults(QPair<glm::vec3, glm::vec3>& ray, QHash<QPair<glm::vec3, glm::vec3>, QHash<unsigned int, RayPickResult>>& cache, RayPickResult& res, unsigned int mask) {
+bool RayPickManager::checkAndCompareCachedResults(QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache, RayPickResult& res, unsigned int mask) {
     if (cache.contains(ray) && cache[ray].contains(mask)) {
         if (cache[ray][mask].distance < res.distance) {
             res = cache[ray][mask];
@@ -35,8 +29,7 @@ bool RayPickManager::checkAndCompareCachedResults(QPair<glm::vec3, glm::vec3>& r
     return false;
 }
 
-void RayPickManager::cacheResult(const bool intersects, const RayPickResult& resTemp, unsigned int mask, RayPickResult& res,
-    QPair<glm::vec3, glm::vec3>& ray, QHash<QPair<glm::vec3, glm::vec3>, QHash<unsigned int, RayPickResult>>& cache) {
+void RayPickManager::cacheResult(const bool intersects, const RayPickResult& resTemp, unsigned int mask, RayPickResult& res, QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache) {
     if (intersects) {
         cache[ray][mask] = resTemp;
         if (resTemp.distance < res.distance) {
@@ -48,7 +41,7 @@ void RayPickManager::cacheResult(const bool intersects, const RayPickResult& res
 }
 
 void RayPickManager::update() {
-    QHash<QPair<glm::vec3, glm::vec3>, QHash<unsigned int, RayPickResult>> results;
+    RayPickCache results;
     for (auto& uid : _rayPicks.keys()) {
         std::shared_ptr<RayPick> rayPick = _rayPicks[uid];
         if (!rayPick->isEnabled() || rayPick->getFilter() == RayPickMask::PICK_NOTHING || rayPick->getMaxDistance() < 0.0f) {

@@ -17,14 +17,14 @@
 #include <glm/glm.hpp>
 
 #include "LaserPointer.h"
+#include "DependencyManager.h"
 
 class RayPickResult;
 
-class LaserPointerManager {
+class LaserPointerManager : public Dependency {
+    SINGLETON_DEPENDENCY
 
 public:
-    static LaserPointerManager& getInstance();
-
     unsigned int createLaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance,
         const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled);
     unsigned int createLaserPointer(const glm::vec3& position, const glm::vec3& direction, const uint16_t filter, const float maxDistance,

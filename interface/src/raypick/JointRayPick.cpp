@@ -24,7 +24,8 @@ JointRayPick::JointRayPick(const QString& jointName, const glm::vec3& posOffset,
 const PickRay JointRayPick::getPickRay(bool& valid) const {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     int jointIndex = myAvatar->getJointIndex(_jointName);
-    if (jointIndex != -1) {
+    const int INVALID_JOINT = -1;
+    if (jointIndex != INVALID_JOINT) {
         glm::vec3 jointPos = myAvatar->getAbsoluteJointTranslationInObjectFrame(jointIndex);
         glm::quat jointRot = myAvatar->getAbsoluteJointRotationInObjectFrame(jointIndex);
         glm::vec3 avatarPos = myAvatar->getPosition();

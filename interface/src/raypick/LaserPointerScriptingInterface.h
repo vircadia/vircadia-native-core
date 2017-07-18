@@ -15,20 +15,19 @@
 
 #include "LaserPointerManager.h"
 #include "RegisteredMetaTypes.h"
+#include "DependencyManager.h"
 
-class LaserPointerScriptingInterface : public QObject {
+class LaserPointerScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
-
-public:
-    static LaserPointerScriptingInterface* getInstance();
+    SINGLETON_DEPENDENCY
 
 public slots:
     Q_INVOKABLE unsigned int createLaserPointer(const QVariant& properties);
-    Q_INVOKABLE void enableLaserPointer(unsigned int uid) { LaserPointerManager::getInstance().enableLaserPointer(uid); }
-    Q_INVOKABLE void disableLaserPointer(unsigned int uid) { LaserPointerManager::getInstance().disableLaserPointer(uid); }
-    Q_INVOKABLE void removeLaserPointer(unsigned int uid) { LaserPointerManager::getInstance().removeLaserPointer(uid); }
-    Q_INVOKABLE void setRenderState(unsigned int uid, const QString& renderState) { LaserPointerManager::getInstance().setRenderState(uid, renderState); }
-    Q_INVOKABLE RayPickResult getPrevRayPickResult(unsigned int uid) { return LaserPointerManager::getInstance().getPrevRayPickResult(uid); }
+    Q_INVOKABLE void enableLaserPointer(unsigned int uid) { DependencyManager::get<LaserPointerManager>()->enableLaserPointer(uid); }
+    Q_INVOKABLE void disableLaserPointer(unsigned int uid) { DependencyManager::get<LaserPointerManager>()->disableLaserPointer(uid); }
+    Q_INVOKABLE void removeLaserPointer(unsigned int uid) { DependencyManager::get<LaserPointerManager>()->removeLaserPointer(uid); }
+    Q_INVOKABLE void setRenderState(unsigned int uid, const QString& renderState) { DependencyManager::get<LaserPointerManager>()->setRenderState(uid, renderState); }
+    Q_INVOKABLE RayPickResult getPrevRayPickResult(unsigned int uid) { return DependencyManager::get<LaserPointerManager>()->getPrevRayPickResult(uid); }
 
 };
 

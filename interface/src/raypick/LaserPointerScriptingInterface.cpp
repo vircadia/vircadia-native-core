@@ -17,11 +17,6 @@
 
 #include "Application.h"
 
-LaserPointerScriptingInterface* LaserPointerScriptingInterface::getInstance() {
-    static LaserPointerScriptingInterface instance;
-    return &instance;
-}
-
 uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& properties) {
     QVariantMap propertyMap = properties.toMap();
 
@@ -104,7 +99,7 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
             dirOffset = vec3FromVariant(propertyMap["dirOffset"]);
         }
 
-        return LaserPointerManager::getInstance().createLaserPointer(jointName, posOffset, dirOffset, filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
+        return DependencyManager::get<LaserPointerManager>()->createLaserPointer(jointName, posOffset, dirOffset, filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
     } else if (propertyMap["position"].isValid()) {
         glm::vec3 position = vec3FromVariant(propertyMap["position"]);
 
@@ -113,7 +108,7 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
             direction = vec3FromVariant(propertyMap["direction"]);
         }
 
-        return LaserPointerManager::getInstance().createLaserPointer(position, direction, filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
+        return DependencyManager::get<LaserPointerManager>()->createLaserPointer(position, direction, filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
     }
 
     return 0;

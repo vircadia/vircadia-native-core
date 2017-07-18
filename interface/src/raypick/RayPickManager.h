@@ -11,33 +11,34 @@
 #ifndef hifi_RayPickManager_h
 #define hifi_RayPickManager_h
 
-#include "RegisteredMetaTypes.h"
-
 #include <QHash>
 #include <QQueue>
 #include <QReadWriteLock>
 #include <memory>
 #include <QtCore/QObject>
 
+#include "RegisteredMetaTypes.h"
+#include "DependencyManager.h"
+
 class RayPick;
 class RayPickResult;
 
 enum RayPickMask {
     PICK_NOTHING = 0,
-    PICK_ENTITIES = 1,
-    PICK_OVERLAYS = 2,
-    PICK_AVATARS = 4,
-    PICK_HUD = 8,
+    PICK_ENTITIES = 1 << 0,
+    PICK_OVERLAYS = 1 << 1,
+    PICK_AVATARS = 1 << 2,
+    PICK_HUD = 1 << 3,
 
-    PICK_BOUNDING_BOX = 16, // if not set, picks again physics mesh (can't pick against graphics mesh, yet)
+    PICK_BOUNDING_BOX = 1 << 4, // if not set, picks again physics mesh (can't pick against graphics mesh, yet)
 
-    PICK_INCLUDE_INVISIBLE = 32, // if not set, will not intersect invisible elements, otherwise, intersects both visible and invisible elements
-    PICK_INCLUDE_NONCOLLIDABLE = 64, // if not set, will not intersect noncollidable elements, otherwise, intersects both collidable and noncollidable elements
+    PICK_INCLUDE_INVISIBLE = 1 << 5, // if not set, will not intersect invisible elements, otherwise, intersects both visible and invisible elements
+    PICK_INCLUDE_NONCOLLIDABLE = 1 << 6, // if not set, will not intersect noncollidable elements, otherwise, intersects both collidable and noncollidable elements
 
-    PICK_ALL_INTERSECTIONS = 128 // if not set, returns closest intersection, otherwise, returns list of all intersections
+    PICK_ALL_INTERSECTIONS = 1 << 7 // if not set, returns closest intersection, otherwise, returns list of all intersections
 };
 
-class RayPickManager : public QObject {
+class RayPickManager : public QObject, public Dependency {
     Q_OBJECT
     Q_PROPERTY(unsigned int PICK_NOTHING READ PICK_NOTHING CONSTANT)
     Q_PROPERTY(unsigned int PICK_ENTITIES READ PICK_ENTITIES CONSTANT)
@@ -53,14 +54,10 @@ class RayPickManager : public QObject {
     Q_PROPERTY(unsigned int INTERSECTED_OVERLAY READ INTERSECTED_OVERLAY CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_AVATAR READ INTERSECTED_AVATAR CONSTANT)
     Q_PROPERTY(unsigned int INTERSECTED_HUD READ INTERSECTED_HUD CONSTANT)
+    SINGLETON_DEPENDENCY
 
 public:
-    static RayPickManager& getInstance();
-
     void update();
-    bool checkAndCompareCachedResults(QPair<glm::vec3, glm::vec3>& ray, QHash<QPair<glm::vec3, glm::vec3>, QHash<unsigned int, RayPickResult>>& cache, RayPickResult& res, unsigned int mask);
-    void cacheResult(const bool intersects, const RayPickResult& resTemp, unsigned int mask, RayPickResult& res,
-        QPair<glm::vec3, glm::vec3>& ray, QHash<QPair<glm::vec3, glm::vec3>, QHash<unsigned int, RayPickResult>>& cache);
     unsigned int addRayPick(std::shared_ptr<RayPick> rayPick);
     void removeRayPick(const unsigned int uid);
     void enableRayPick(const unsigned int uid);
@@ -77,6 +74,12 @@ private:
     QReadWriteLock _removeLock;
     QQueue<unsigned int> _rayPicksToRemove;
     QReadWriteLock _containsLock;
+
+    typedef QHash<QPair<glm::vec3, glm::vec3>, QHash<unsigned int, RayPickResult>> RayPickCache;
+
+    // Returns true if this ray exists in the cache, and if it does, update res if the cached result is closer
+    bool checkAndCompareCachedResults(QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache, RayPickResult& res, unsigned int mask);
+    void cacheResult(const bool intersects, const RayPickResult& resTemp, unsigned int mask, RayPickResult& res, QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache);
 
     unsigned int PICK_NOTHING() { return RayPickMask::PICK_NOTHING; }
     unsigned int PICK_ENTITIES() { return RayPickMask::PICK_ENTITIES; }

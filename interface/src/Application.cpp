@@ -591,6 +591,10 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<CloseEventSender>();
     DependencyManager::set<ResourceManager>();
 
+    DependencyManager::set<LaserPointerScriptingInterface>();
+    DependencyManager::set<LaserPointerManager>();
+    DependencyManager::set<RayPickManager>();
+
     return previousSessionCrashed;
 }
 
@@ -4922,12 +4926,12 @@ void Application::update(float deltaTime) {
 
     {
         PROFILE_RANGE(app, "RayPick");
-        RayPickManager::getInstance().update();
+        DependencyManager::get<RayPickManager>()->update();
     }
 
     {
         PROFILE_RANGE(app, "LaserPointerManager");
-        LaserPointerManager::getInstance().update();
+        DependencyManager::get<LaserPointerManager>()->update();
     }
 
     // Update _viewFrustum with latest camera and view frustum data...
@@ -5775,7 +5779,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
     scriptEngine->registerGlobalObject("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
     scriptEngine->registerGlobalObject("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
-    scriptEngine->registerGlobalObject("LaserPointers", LaserPointerScriptingInterface::getInstance());
+    scriptEngine->registerGlobalObject("LaserPointers", DependencyManager::get<LaserPointerScriptingInterface>().data());
 
     // Caches
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
@@ -5828,7 +5832,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("EntityScriptServerLog", entityScriptServerLog.data());
     scriptEngine->registerGlobalObject("AvatarInputs", AvatarInputs::getInstance());
 
-    scriptEngine->registerGlobalObject("RayPick", &RayPickManager::getInstance());
+    scriptEngine->registerGlobalObject("RayPick", DependencyManager::get<RayPickManager>().data());
 
     qScriptRegisterMetaType(scriptEngine, OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 

@@ -23,7 +23,7 @@ LaserPointer::LaserPointer(const QString& jointName, const glm::vec3& posOffset,
     _faceAvatar(faceAvatar),
     _centerEndY(centerEndY)
 {
-    _rayPickUID = RayPickManager::getInstance().addRayPick(std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled));
+    _rayPickUID = DependencyManager::get<RayPickManager>()->addRayPick(std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled));
 
     for (auto& state : _renderStates.keys()) {
         if (!enabled || state != _currentRenderState) {
@@ -39,7 +39,7 @@ LaserPointer::LaserPointer(const glm::vec3& position, const glm::vec3& direction
     _faceAvatar(faceAvatar),
     _centerEndY(centerEndY)
 {
-    _rayPickUID = RayPickManager::getInstance().addRayPick(std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled));
+    _rayPickUID = DependencyManager::get<RayPickManager>()->addRayPick(std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled));
 
     for (auto& state : _renderStates.keys()) {
         if (!enabled || state != _currentRenderState) {
@@ -49,7 +49,7 @@ LaserPointer::LaserPointer(const glm::vec3& position, const glm::vec3& direction
 }
 
 LaserPointer::~LaserPointer() {
-    RayPickManager::getInstance().removeRayPick(_rayPickUID);
+    DependencyManager::get<RayPickManager>()->removeRayPick(_rayPickUID);
     for (RenderState& renderState : _renderStates) {
         if (!renderState.getStartID().isNull()) {
             qApp->getOverlays().deleteOverlay(renderState.getStartID());
@@ -64,12 +64,12 @@ LaserPointer::~LaserPointer() {
 }
 
 void LaserPointer::enable() {
-    RayPickManager::getInstance().enableRayPick(_rayPickUID);
+    DependencyManager::get<RayPickManager>()->enableRayPick(_rayPickUID);
     _renderingEnabled = true;
 }
 
 void LaserPointer::disable() {
-    RayPickManager::getInstance().disableRayPick(_rayPickUID);
+    DependencyManager::get<RayPickManager>()->disableRayPick(_rayPickUID);
     _renderingEnabled = false;
     if (!_currentRenderState.isEmpty() && _renderStates.contains(_currentRenderState)) {
         disableRenderState(_currentRenderState);
@@ -105,9 +105,9 @@ void LaserPointer::disableRenderState(const QString& renderState) {
 }
 
 void LaserPointer::update() {
-    RayPickResult prevRayPickResult = RayPickManager::getInstance().getPrevRayPickResult(_rayPickUID);
+    RayPickResult prevRayPickResult = DependencyManager::get<RayPickManager>()->getPrevRayPickResult(_rayPickUID);
     if (_renderingEnabled && !_currentRenderState.isEmpty() && _renderStates.contains(_currentRenderState) && prevRayPickResult.type != IntersectionType::NONE) {
-        PickRay pickRay = RayPickManager::getInstance().getPickRay(_rayPickUID);
+        PickRay pickRay = DependencyManager::get<RayPickManager>()->getPickRay(_rayPickUID);
         if (!_renderStates[_currentRenderState].getStartID().isNull()) {
             QVariantMap startProps;
             startProps.insert("position", vec3toVariant(pickRay.origin));

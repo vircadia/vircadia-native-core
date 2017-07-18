@@ -14,6 +14,8 @@
 #include <QString>
 #include "glm/glm.hpp"
 #include "ui/overlays/Overlay.h"
+
+#include <DependencyManager.h>
 #include "RayPickManager.h"
 
 class RayPickResult;
@@ -53,7 +55,7 @@ public:
     unsigned int getUID() { return _rayPickUID; }
     void enable();
     void disable();
-    const RayPickResult getPrevRayPickResult() { return RayPickManager::getInstance().getPrevRayPickResult(_rayPickUID); }
+    const RayPickResult getPrevRayPickResult() { return DependencyManager::get<RayPickManager>()->getPrevRayPickResult(_rayPickUID); }
 
     void setRenderState(const QString& state);
     void disableRenderState(const QString& renderState);
