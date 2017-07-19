@@ -52,7 +52,7 @@ void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
         _contextOverlay->setPosition(entityProperties.getPosition());
         _contextOverlay->setRotation(entityProperties.getRotation());
         _contextOverlay->setVisible(true);
-    } else {
+    } else if (_currentEntityWithContextOverlay == entityItemID) {
         destroyContextOverlay(entityItemID, event);
     }
 }
