@@ -1,6 +1,6 @@
 //
-//  HoverOverlayLogging.h
-//  libraries/entities/src
+//  ContextOverlayLogging.h
+//  interface/src/ui/overlays
 //
 //  Created by Zach Fox on 2017-07-17
 //  Copyright 2017 High Fidelity, Inc.
@@ -10,11 +10,11 @@
 //
 
 #pragma once
-#ifndef hifi_HoverOverlayLogging_h
-#define hifi_HoverOverlayLogging_h
+#ifndef hifi_ContextOverlayLogging_h
+#define hifi_ContextOverlayLogging_h
 
 #include <QLoggingCategory>
 
-Q_DECLARE_LOGGING_CATEGORY(hover_overlay)
+Q_DECLARE_LOGGING_CATEGORY(context_overlay)
 
-#endif // hifi_HoverOverlayLogging_h
+#endif // hifi_ContextOverlayLogging_h

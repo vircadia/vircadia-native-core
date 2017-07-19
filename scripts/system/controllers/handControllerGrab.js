@@ -187,7 +187,7 @@ var DEFAULT_GRABBABLE_DATA = {
 var USE_BLACKLIST = true;
 var blacklist = [];
 
-var entitiesWithHoverOverlays = [];
+var entityWithContextOverlay = false;
 
 var FORBIDDEN_GRAB_NAMES = ["Grab Debug Entity", "grab pointer"];
 var FORBIDDEN_GRAB_TYPES = ["Unknown", "Light", "PolyLine", "Zone"];
@@ -224,6 +224,7 @@ CONTROLLER_STATE_MACHINE[STATE_OFF] = {
 CONTROLLER_STATE_MACHINE[STATE_SEARCHING] = {
     name: "searching",
     enterMethod: "searchEnter",
+    exitMethod: "searchExit",
     updateMethod: "search"
 };
 CONTROLLER_STATE_MACHINE[STATE_DISTANCE_HOLDING] = {
@@ -369,7 +370,9 @@ function projectOntoOverlayXYPlane(overlayID, worldPos) {
         dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
     } else {
         dimensions = Overlays.getProperty(overlayID, "dimensions");
-        dimensions.z = 0.01;    // overlay dimensions are 2D, not 3D.
+        if (dimensions.z) {
+            dimensions.z = 0.01;    // overlay dimensions are 2D, not 3D.
+        }
     }
 
     return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
@@ -2182,6 +2185,13 @@ function MyController(hand) {
         }
     };
 
+    this.searchExit = function () {
+        if (entityWithContextOverlay) {
+            ContextOverlay.destroyContextOverlay(entityWithContextOverlay);
+            entityWithContextOverlay = false;
+        }
+    };
+
     this.search = function(deltaTime, timestamp) {
         var _this = this;
         var name;
@@ -2211,13 +2221,26 @@ function MyController(hand) {
             entityPropertiesCache.addEntity(rayPickInfo.entityID);
         }
 
-        if (rayPickInfo.entityID && entitiesWithHoverOverlays.indexOf(rayPickInfo.entityID) == -1) {
-            entitiesWithHoverOverlays.forEach(function (element) {
-                HoverOverlay.destroyHoverOverlay(element);
-            });
-            entitiesWithHoverOverlays = [];
-            HoverOverlay.createHoverOverlay(rayPickInfo.entityID);
-            entitiesWithHoverOverlays.push(rayPickInfo.entityID);
+        if (rayPickInfo.entityID && (entityWithContextOverlay !== rayPickInfo.entityID)) {
+            if (entityWithContextOverlay) {
+                ContextOverlay.destroyContextOverlay(entityWithContextOverlay);
+                entityWithContextOverlay = false;
+            }
+            Script.setTimeout(function() {
+                if (rayPickInfo.entityID === entityWithContextOverlay) {
+                    var pointerEvent = {
+                        type: "Move",
+                        id: this.hand + 1, // 0 is reserved for hardware mouse
+                        pos2D: projectOntoEntityXYPlane(rayPickInfo.entityID, rayPickInfo.intersection),
+                        pos3D: rayPickInfo.intersection,
+                        normal: rayPickInfo.normal,
+                        direction: rayPickInfo.searchRay.direction,
+                        button: "Secondary"
+                    };
+                    ContextOverlay.createOrDestroyContextOverlay(rayPickInfo.entityID, pointerEvent);
+                }
+            }, 500);
+            entityWithContextOverlay = rayPickInfo.entityID;
         }
 
         var candidateHotSpotEntities = Entities.findEntities(handPosition, MAX_EQUIP_HOTSPOT_RADIUS);
@@ -2474,26 +2497,23 @@ function MyController(hand) {
         var pointerEvent;
         if (rayPickInfo.overlayID) {
             var overlay = rayPickInfo.overlayID;
-            if (Overlays.getProperty(overlay, "type") != "web3d") {
-                return false;
-            }
-            if (Overlays.keyboardFocusOverlay != overlay) {
+            if ((Overlays.getProperty(overlay, "type") == "web3d") && Overlays.keyboardFocusOverlay != overlay) {
                 Entities.keyboardFocusEntity = null;
                 Overlays.keyboardFocusOverlay = overlay;
-
-                pointerEvent = {
-                    type: "Move",
-                    id: HARDWARE_MOUSE_ID,
-                    pos2D: projectOntoOverlayXYPlane(overlay, rayPickInfo.intersection),
-                    pos3D: rayPickInfo.intersection,
-                    normal: rayPickInfo.normal,
-                    direction: rayPickInfo.searchRay.direction,
-                    button: "None"
-                };
-
-                this.hoverOverlay = overlay;
-                Overlays.sendHoverEnterOverlay(overlay, pointerEvent);
             }
+
+            pointerEvent = {
+                type: "Move",
+                id: HARDWARE_MOUSE_ID,
+                pos2D: projectOntoOverlayXYPlane(overlay, rayPickInfo.intersection),
+                pos3D: rayPickInfo.intersection,
+                normal: rayPickInfo.normal,
+                direction: rayPickInfo.searchRay.direction,
+                button: "None"
+            };
+
+            this.hoverOverlay = overlay;
+            Overlays.sendHoverEnterOverlay(overlay, pointerEvent);
 
             // Send mouse events for button highlights and tooltips.
             if (this.hand == mostRecentSearchingHand ||
@@ -3588,7 +3608,7 @@ function MyController(hand) {
     };
 
     this.overlayLaserTouchingEnter = function () {
-        // Test for intersection between controller laser and Web overlay plane.
+        // Test for intersection between controller laser and overlay plane.
         var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var intersectInfo = handLaserIntersectOverlay(this.grabbedOverlay, controllerLocation);
         if (intersectInfo) {
@@ -3781,11 +3801,6 @@ function MyController(hand) {
 
     this.release = function() {
         this.turnOffVisualizations();
-
-        entitiesWithHoverOverlays.forEach(function (element) {
-            HoverOverlay.destroyHoverOverlay(element);
-        });
-        entitiesWithHoverOverlays = [];
 
         if (this.grabbedThingID !== null) {
 

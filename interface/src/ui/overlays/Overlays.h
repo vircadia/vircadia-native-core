@@ -288,13 +288,13 @@ public slots:
 
 #endif
 
-    void sendMousePressOnOverlay(OverlayID overlayID, const PointerEvent& event);
-    void sendMouseReleaseOnOverlay(OverlayID overlayID, const PointerEvent& event);
-    void sendMouseMoveOnOverlay(OverlayID overlayID, const PointerEvent& event);
+    void sendMousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event);
+    void sendMouseReleaseOnOverlay(const OverlayID& overlayID, const PointerEvent& event);
+    void sendMouseMoveOnOverlay(const OverlayID& overlayID, const PointerEvent& event);
 
-    void sendHoverEnterOverlay(OverlayID id, PointerEvent event);
-    void sendHoverOverOverlay(OverlayID id, PointerEvent event);
-    void sendHoverLeaveOverlay(OverlayID id, PointerEvent event);
+    void sendHoverEnterOverlay(const OverlayID& id, const PointerEvent& event);
+    void sendHoverOverOverlay(const OverlayID& id, const PointerEvent& event);
+    void sendHoverLeaveOverlay(const OverlayID& id, const PointerEvent& event);
 
     OverlayID getKeyboardFocusOverlay();
     void setKeyboardFocusOverlay(OverlayID id);
@@ -337,7 +337,7 @@ private:
 #endif
     bool _enabled = true;
 
-    PointerEvent calculatePointerEvent(Overlay::Pointer overlay, PickRay ray, RayToOverlayIntersectionResult rayPickResult,
+    PointerEvent calculateWeb3DPointerEvent(Overlay::Pointer overlay, PickRay ray, RayToOverlayIntersectionResult rayPickResult,
         QMouseEvent* event, PointerEvent::EventType eventType);
 
     OverlayID _currentClickingOnOverlayID { UNKNOWN_OVERLAY_ID };
