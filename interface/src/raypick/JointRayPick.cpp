@@ -24,15 +24,16 @@ JointRayPick::JointRayPick(const QString& jointName, const glm::vec3& posOffset,
 const PickRay JointRayPick::getPickRay(bool& valid) const {
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     int jointIndex = myAvatar->getJointIndex(_jointName);
+    bool useAvatarHead = _jointName == "Avatar";
     const int INVALID_JOINT = -1;
-    if (jointIndex != INVALID_JOINT) {
-        glm::vec3 jointPos = myAvatar->getAbsoluteJointTranslationInObjectFrame(jointIndex);
-        glm::quat jointRot = myAvatar->getAbsoluteJointRotationInObjectFrame(jointIndex);
+    if (jointIndex != INVALID_JOINT || useAvatarHead) {
+        glm::vec3 jointPos = useAvatarHead ? myAvatar->getHeadPosition() : myAvatar->getAbsoluteJointTranslationInObjectFrame(jointIndex);
+        glm::quat jointRot = useAvatarHead ? myAvatar->getHeadOrientation() : myAvatar->getAbsoluteJointRotationInObjectFrame(jointIndex);
         glm::vec3 avatarPos = myAvatar->getPosition();
         glm::quat avatarRot = myAvatar->getOrientation();
 
-        glm::vec3 pos = avatarPos + (avatarRot * jointPos);
-        glm::quat rot = avatarRot * jointRot;
+        glm::vec3 pos = useAvatarHead ? jointPos : avatarPos + (avatarRot * jointPos);
+        glm::quat rot = useAvatarHead ? jointRot * glm::angleAxis(-PI / 2.0f, Vectors::RIGHT) : avatarRot * jointRot;
 
         // Apply offset
         pos = pos + (rot * _posOffset);

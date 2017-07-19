@@ -46,6 +46,15 @@ var COLORS_TELEPORT_CANCEL = {
 var TELEPORT_CANCEL_RANGE = 1;
 var COOL_IN_DURATION = 500;
 
+var handInfo = {
+    right: {
+        controllerInput: Controller.Standard.RightHand
+    },
+    left: {
+        controllerInput: Controller.Standard.LeftHand
+    }
+};
+
 var cancelPath = {
     type: "line3d",
     color: COLORS_TELEPORT_CANCEL,
@@ -172,6 +181,21 @@ function Teleporter() {
         renderStates: teleportRenderStates
     });
 
+    this.teleportRayHeadVisible = LaserPointers.createLaserPointer({
+        joint: "Avatar",
+        filter: RayPick.PICK_ENTITIES,
+        faceAvatar: true,
+        centerEndY: false,
+        renderStates: teleportRenderStates
+    });
+    this.teleportRayHeadInvisible = LaserPointers.createLaserPointer({
+        joint: "Avatar",
+        filter: RayPick.PICK_ENTITIES | RayPick.PICK_INCLUDE_INVISIBLE,
+        faceAvatar: true,
+        centerEndY: false,
+        renderStates: teleportRenderStates
+    });
+
     this.updateConnected = null;
     this.activeHand = null;
 
@@ -193,6 +217,8 @@ function Teleporter() {
         LaserPointers.removeLaserPointer(this.teleportRayLeftInvisible);
         LaserPointers.removeLaserPointer(this.teleportRayRightVisible);
         LaserPointers.removeLaserPointer(this.teleportRayRightInvisible);
+        LaserPointers.removeLaserPointer(this.teleportRayHeadVisible);
+        LaserPointers.removeLaserPointer(this.teleportRayHeadInvisible);
 
         if (this.updateConnected === true) {
             Script.update.disconnect(this, this.update);
@@ -211,14 +237,6 @@ function Teleporter() {
 
         if (coolInTimeout !== null) {
             Script.clearTimeout(coolInTimeout);
-        }
-
-        if (hand === 'right') {
-            LaserPointers.enableLaserPointer(_this.teleportRayRightVisible);
-            LaserPointers.enableLaserPointer(_this.teleportRayRightInvisible);
-        } else {
-            LaserPointers.enableLaserPointer(_this.teleportRayLeftVisible);
-            LaserPointers.enableLaserPointer(_this.teleportRayLeftInvisible);
         }
 
         this.state = TELEPORTER_STATES.COOL_IN;
@@ -244,6 +262,8 @@ function Teleporter() {
         LaserPointers.disableLaserPointer(this.teleportRayLeftInvisible);
         LaserPointers.disableLaserPointer(this.teleportRayRightVisible);
         LaserPointers.disableLaserPointer(this.teleportRayRightInvisible);
+        LaserPointers.disableLaserPointer(this.teleportRayHeadVisible);
+        LaserPointers.disableLaserPointer(this.teleportRayHeadInvisible);
 
         this.updateConnected = null;
         this.state = TELEPORTER_STATES.IDLE;
@@ -255,6 +275,31 @@ function Teleporter() {
             return;
         }
 
+        // Get current hand pose information to see if the pose is valid
+        var pose = Controller.getPoseValue(handInfo[_this.activeHand].controllerInput);
+        var mode = pose.valid ? _this.activeHand : 'head';
+        if (!pose.valid) {
+            if (mode === 'right') {
+                LaserPointers.disableLaserPointer(_this.teleportRayRightVisible);
+                LaserPointers.disableLaserPointer(_this.teleportRayRightInvisible);
+            } else {
+                LaserPointers.disableLaserPointer(_this.teleportRayLeftVisible);
+                LaserPointers.disableLaserPointer(_this.teleportRayLeftInvisible);
+            }
+            LaserPointers.enableLaserPointer(_this.teleportRayHeadVisible);
+            LaserPointers.enableLaserPointer(_this.teleportRayHeadInvisible);
+        } else {
+            if (mode === 'right') {
+                LaserPointers.enableLaserPointer(_this.teleportRayRightVisible);
+                LaserPointers.enableLaserPointer(_this.teleportRayRightInvisible);
+            } else {
+                LaserPointers.enableLaserPointer(_this.teleportRayLeftVisible);
+                LaserPointers.enableLaserPointer(_this.teleportRayLeftInvisible);
+            }
+            LaserPointers.disableLaserPointer(_this.teleportRayHeadVisible);
+            LaserPointers.disableLaserPointer(_this.teleportRayHeadInvisible);
+        }
+
         // We do up to 2 ray picks to find a teleport location.
         // There are 2 types of teleport locations we are interested in:
         //   1. A visible floor. This can be any entity surface that points within some degree of "up"
@@ -264,28 +309,39 @@ function Teleporter() {
         //    We might hit an invisible entity that is not a seat, so we need to do a second pass.
         //  * In the second pass we pick against visible entities only.
         //
-        var result = (_this.activeHand === 'right') ? LaserPointers.getPrevRayPickResult(_this.teleportRayRightInvisible) :
-                                                      LaserPointers.getPrevRayPickResult(_this.teleportRayLeftInvisible);
+        var result;
+        if (mode === 'right') {
+            result = LaserPointers.getPrevRayPickResult(_this.teleportRayRightInvisible);
+        } else if (mode === 'left') {
+            result = LaserPointers.getPrevRayPickResult(_this.teleportRayLeftInvisible);
+        } else {
+            result = LaserPointers.getPrevRayPickResult(_this.teleportRayHeadInvisible);
+        }
 
         var teleportLocationType = getTeleportTargetType(result);
         if (teleportLocationType === TARGET.INVISIBLE) {
-            result = (_this.activeHand === 'right') ? LaserPointers.getPrevRayPickResult(_this.teleportRayRightVisible) :
-                                                      LaserPointers.getPrevRayPickResult(_this.teleportRayLeftVisible);
+            if (mode === 'right') {
+                result = LaserPointers.getPrevRayPickResult(_this.teleportRayRightVisible);
+            } else if (mode === 'left') {
+                result = LaserPointers.getPrevRayPickResult(_this.teleportRayLeftVisible);
+            } else {
+                result = LaserPointers.getPrevRayPickResult(_this.teleportRayHeadVisible);
+            }
             teleportLocationType = getTeleportTargetType(result);
         }
 
         if (teleportLocationType === TARGET.NONE) {
-            this.setTeleportState(_this.activeHand, "", "");
+            this.setTeleportState(mode, "", "");
         } else if (teleportLocationType === TARGET.INVALID || teleportLocationType === TARGET.INVISIBLE) {
-            this.setTeleportState(_this.activeHand, "", "cancel");
+            this.setTeleportState(mode, "", "cancel");
         } else if (teleportLocationType === TARGET.SURFACE) {
             if (this.state === TELEPORTER_STATES.COOL_IN) {
-                this.setTeleportState(_this.activeHand, "cancel", "");
+                this.setTeleportState(mode, "cancel", "");
             } else {
-                this.setTeleportState(_this.activeHand, "teleport", "");
+                this.setTeleportState(mode, "teleport", "");
             }
         } else if (teleportLocationType === TARGET.SEAT) {
-            this.setTeleportState(_this.activeHand, "", "seat");
+            this.setTeleportState(mode, "", "seat");
         }
 
 
@@ -308,13 +364,16 @@ function Teleporter() {
         }
     };
 
-    this.setTeleportState = function(hand, visibleState, invisibleState) {
-        if (hand === 'right') {
+    this.setTeleportState = function(mode, visibleState, invisibleState) {
+        if (mode === 'right') {
             LaserPointers.setRenderState(_this.teleportRayRightVisible, visibleState);
             LaserPointers.setRenderState(_this.teleportRayRightInvisible, invisibleState);
-        } else {
+        } else if (mode === 'left') {
             LaserPointers.setRenderState(_this.teleportRayLeftVisible, visibleState);
             LaserPointers.setRenderState(_this.teleportRayLeftInvisible, invisibleState);
+        } else {
+            LaserPointers.setRenderState(_this.teleportRayHeadVisible, visibleState);
+            LaserPointers.setRenderState(_this.teleportRayHeadInvisible, invisibleState);
         }
     };
 }
