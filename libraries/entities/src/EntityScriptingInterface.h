@@ -100,7 +100,7 @@ public:
     void setEntityTree(EntityTreePointer modelTree);
     EntityTreePointer getEntityTree() { return _entityTree; }
     void setEntitiesScriptEngine(EntitiesScriptEngineProvider* engine);
-    float calculateCost(float mass, float oldVelocity, float newVelocity);
+    float calculateCost(float mass, float oldSpeed, float newSpeed);
 
     void resetActivityTracking();
     ActivityTracking getActivityTracking() const { return _activityTracking; }

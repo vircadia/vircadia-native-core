@@ -577,7 +577,7 @@ void EntityMotionState::sendUpdate(OctreeEditPacketSender* packetSender, uint32_
         properties.setActionData(_serverActionData);
     }
 
-    if (properties.parentRelatedPropertyChanged() && _entity->computePuffedQueryAACube()) {
+    if (properties.transformChanged() && _entity->computePuffedQueryAACube()) {
         // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
         properties.setQueryAACube(_entity->getQueryAACube());
     }
