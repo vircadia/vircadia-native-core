@@ -39,7 +39,7 @@ void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
         EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
         if (entityProperties.getMarketplaceID().length() != 0) {
             qCDebug(context_overlay) << "Creating Context Overlay on top of entity with ID: " << entityItemID;
-            _marketplaceID = entityProperties.getMarketplaceID();
+            _entityMarketplaceID = entityProperties.getMarketplaceID();
             setCurrentEntityWithContextOverlay(entityItemID);
 
             if (_contextOverlayID == UNKNOWN_OVERLAY_ID || !qApp->getOverlays().isAddedOverlay(_contextOverlayID)) {
@@ -72,7 +72,7 @@ void ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
     qApp->getOverlays().deleteOverlay(_contextOverlayID);
     _contextOverlay = NULL;
     _contextOverlayID = UNKNOWN_OVERLAY_ID;
-    _marketplaceID.clear();
+    _entityMarketplaceID.clear();
 }
 
 void ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID) {
@@ -92,10 +92,10 @@ void ContextOverlayInterface::openMarketplace() {
     // lets open the tablet and go to the current item in
     // the marketplace (if the current entity has a
     // marketplaceID)
-    if (!_currentEntityWithContextOverlay.isNull() && _marketplaceID.length() > 0) {
+    if (!_currentEntityWithContextOverlay.isNull() && _entityMarketplaceID.length() > 0) {
         auto tablet = dynamic_cast<TabletProxy*>(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
         // construct the url to the marketplace item
-        QString url = MARKETPLACE_BASE_URL + _marketplaceID;
+        QString url = MARKETPLACE_BASE_URL + _entityMarketplaceID;
         tablet->gotoWebScreen(url);
         _hmdScriptingInterface->openTablet();
     }
