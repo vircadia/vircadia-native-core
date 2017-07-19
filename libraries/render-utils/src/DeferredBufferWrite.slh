@@ -77,4 +77,9 @@ void packDeferredFragmentTranslucent(vec3 normal, float alpha, vec3 albedo, vec3
 
 }
 
+void packDeferredFragmentTranslucentEmissive(vec3 normal, float alpha, vec3 albedo, vec3 fresnel, float roughness, vec3 emissive) {
+    packDeferredFragmentTranslucent(normal, alpha, albedo, fresnel, roughness);
+    _fragColor3 = vec4(emissive, 1.0);
+}
+
 <@endif@>

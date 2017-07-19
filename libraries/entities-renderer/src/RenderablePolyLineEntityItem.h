@@ -33,6 +33,7 @@ public:
         }
     }
     static gpu::PipelinePointer _pipeline;
+    static gpu::PipelinePointer _fadePipeline;
 
     static const int32_t PAINTSTROKE_TEXTURE_SLOT{ 0 };
     static const int32_t PAINTSTROKE_UNIFORM_SLOT{ 0 };
@@ -60,6 +61,9 @@ public:
     virtual void render(RenderArgs* args) override;
     virtual void update(const quint64& now) override;
     virtual bool needsToCallUpdate() const override { return true; }
+    virtual bool addToScene(const EntityItemPointer& self,
+        const render::ScenePointer& scene,
+        render::Transaction& transaction) override;
 
     bool isTransparent() override { return true; }
 
