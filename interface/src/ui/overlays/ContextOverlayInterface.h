@@ -43,7 +43,7 @@ public:
     void setCurrentEntityWithContextOverlay(const QUuid& entityID) { _currentEntityWithContextOverlay = entityID; }
 
 public slots:
-    void createContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
+    void createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
     void destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
     void destroyContextOverlay(const EntityItemID& entityItemID);
     void clickContextOverlay(const OverlayID& overlayID, const PointerEvent& event);

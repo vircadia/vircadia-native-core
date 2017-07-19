@@ -370,7 +370,9 @@ function projectOntoOverlayXYPlane(overlayID, worldPos) {
         dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
     } else {
         dimensions = Overlays.getProperty(overlayID, "dimensions");
-        dimensions.z = 0.01;    // overlay dimensions are 2D, not 3D.
+        if (dimensions.z) {
+            dimensions.z = 0.01;    // overlay dimensions are 2D, not 3D.
+        }
     }
 
     return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
@@ -2225,9 +2227,9 @@ function MyController(hand) {
                         pos3D: rayPickInfo.intersection,
                         normal: rayPickInfo.normal,
                         direction: rayPickInfo.searchRay.direction,
-                        button: "None"
+                        button: "Secondary"
                     };
-                    ContextOverlay.createContextOverlay(rayPickInfo.entityID, pointerEvent);
+                    ContextOverlay.createOrDestroyContextOverlay(rayPickInfo.entityID, pointerEvent);
                 }
             }, 500);
             entityWithContextOverlay = rayPickInfo.entityID;

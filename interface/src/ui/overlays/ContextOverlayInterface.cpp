@@ -25,33 +25,36 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _entityPropertyFlags += PROP_ROTATION;
 
     auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>().data();
-    connect(entityTreeRenderer, SIGNAL(hoverEnterEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(createContextOverlay(const EntityItemID&, const PointerEvent&)));
-    connect(entityTreeRenderer, SIGNAL(hoverLeaveEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(destroyContextOverlay(const EntityItemID&, const PointerEvent&)));
+    connect(entityTreeRenderer, SIGNAL(mousePressOnEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(createOrDestroyContextOverlay(const EntityItemID&, const PointerEvent&)));
 }
 
-void ContextOverlayInterface::createContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
-    qCDebug(context_overlay) << "Creating Context Overlay on top of entity with ID: " << entityItemID;
-    setCurrentEntityWithContextOverlay(entityItemID);
+void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
+    if (event.getButton() == PointerEvent::SecondaryButton) {
+        qCDebug(context_overlay) << "Creating Context Overlay on top of entity with ID: " << entityItemID;
+        setCurrentEntityWithContextOverlay(entityItemID);
 
-    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
+        EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
 
-    if (_contextOverlayID == UNKNOWN_OVERLAY_ID || !qApp->getOverlays().isAddedOverlay(_contextOverlayID)) {
-        _contextOverlay = std::make_shared<Image3DOverlay>();
-        _contextOverlay->setAlpha(1.0f);
-        _contextOverlay->setPulseMin(0.75f);
-        _contextOverlay->setPulseMax(1.0f);
-        _contextOverlay->setColorPulse(1.0f);
-        _contextOverlay->setIgnoreRayIntersection(false);
-        _contextOverlay->setDrawInFront(true);
-        _contextOverlay->setURL("http://i.imgur.com/gksZygp.png");
-        _contextOverlay->setIsFacingAvatar(true);
-        _contextOverlay->setDimensions(glm::vec2(0.2f, 0.2f) * glm::distance(entityProperties.getPosition(), qApp->getCamera().getPosition()));
-        _contextOverlayID = qApp->getOverlays().addOverlay(_contextOverlay);
+        if (_contextOverlayID == UNKNOWN_OVERLAY_ID || !qApp->getOverlays().isAddedOverlay(_contextOverlayID)) {
+            _contextOverlay = std::make_shared<Image3DOverlay>();
+            _contextOverlay->setAlpha(1.0f);
+            _contextOverlay->setPulseMin(0.75f);
+            _contextOverlay->setPulseMax(1.0f);
+            _contextOverlay->setColorPulse(1.0f);
+            _contextOverlay->setIgnoreRayIntersection(false);
+            _contextOverlay->setDrawInFront(true);
+            _contextOverlay->setURL("http://i.imgur.com/gksZygp.png");
+            _contextOverlay->setIsFacingAvatar(true);
+            _contextOverlay->setDimensions(glm::vec2(0.2f, 0.2f) * glm::distance(entityProperties.getPosition(), qApp->getCamera().getPosition()));
+            _contextOverlayID = qApp->getOverlays().addOverlay(_contextOverlay);
+        }
+
+        _contextOverlay->setPosition(entityProperties.getPosition());
+        _contextOverlay->setRotation(entityProperties.getRotation());
+        _contextOverlay->setVisible(true);
+    } else {
+        destroyContextOverlay(entityItemID, event);
     }
-
-    _contextOverlay->setPosition(entityProperties.getPosition());
-    _contextOverlay->setRotation(entityProperties.getRotation());
-    _contextOverlay->setVisible(true);
 }
 
 void ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
@@ -68,7 +71,8 @@ void ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
 }
 
 void ContextOverlayInterface::clickContextOverlay(const OverlayID& overlayID, const PointerEvent& event) {
-    if (overlayID == _contextOverlayID) {
+    if (overlayID == _contextOverlayID && event.getButton() == PointerEvent::PrimaryButton) {
         qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "Overlay ID:" << overlayID;
+        destroyContextOverlay(_currentEntityWithContextOverlay, PointerEvent());
     }
 }
