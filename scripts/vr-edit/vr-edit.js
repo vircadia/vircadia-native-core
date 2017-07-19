@@ -1310,6 +1310,7 @@
         }
 
         function startDirectScaling(targetPosition) {
+            // Called on grabbing hand by scaling hand.
             var initialTargetPosition,
                 initialTargetsCenter;
 
@@ -1326,17 +1327,21 @@
         }
 
         function updateDirectScaling(targetPosition) {
+            // Called on grabbing hand by scaling hand.
             otherTargetPosition = targetPosition;
         }
 
         function stopDirectScaling() {
+            // Called on grabbing hand by scaling hand.
             selection.finishDirectScaling();
             isDirectScaling = false;
         }
 
         function startHandleScaling(targetPosition, overlayID) {
+            // Called on grabbing hand by scaling hand.
             var initialTargetPosition,
                 boundingBox,
+                selectionPositionAndOrientation,
                 scaleAxis,
                 handDistance;
 
@@ -1375,10 +1380,12 @@
         }
 
         function updateHandleScaling(targetPosition) {
+            // Called on grabbing hand by scaling hand.
             otherTargetPosition = targetPosition;
         }
 
         function stopHandleScaling() {
+            // Called on grabbing hand by scaling hand.
             handles.finishScaling();
             selection.finishHandleScaling();
             handles.grab(null);  // Stop highlighting grabbed handle and resume displaying all handles.
@@ -1388,17 +1395,12 @@
 
         function applyGrab() {
             // Sets position and orientation of selection per grabbing hand.
-            var handPosition,
-                handOrientation,
-                deltaOrientation,
+            var deltaOrientation,
                 selectionPosition,
                 selectionOrientation;
 
-            handPosition = hand.position();
-            handOrientation = hand.orientation();
-
-            deltaOrientation = Quat.multiply(handOrientation, initialHandOrientationInverse);
-            selectionPosition = Vec3.sum(handPosition, Vec3.multiplyQbyV(deltaOrientation, initialHandToSelectionVector));
+            deltaOrientation = Quat.multiply(hand.orientation(), initialHandOrientationInverse);
+            selectionPosition = Vec3.sum(hand.position(), Vec3.multiplyQbyV(deltaOrientation, initialHandToSelectionVector));
             selectionOrientation = Quat.multiply(deltaOrientation, initialSelectionOrientation);
 
             selection.setPositionAndOrientation(selectionPosition, selectionOrientation);
