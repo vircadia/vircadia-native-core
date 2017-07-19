@@ -1423,26 +1423,20 @@ void EntityItem::setDimensions(const glm::vec3& value) {
 ///
 AACube EntityItem::getMaximumAACube(bool& success) const {
     if (_recalcMaxAACube) {
-        // * we know that the position is the center of rotation
         glm::vec3 centerOfRotation = getPosition(success); // also where _registration point is
         if (success) {
             _recalcMaxAACube = false;
-            // * we know that the registration point is the center of rotation
-            // * we can calculate the length of the furthest extent from the registration point
-            //   as the dimensions * max (registrationPoint, (1.0,1.0,1.0) - registrationPoint)
-            glm::vec3 dimensions = getDimensions();
-            glm::vec3 registrationPoint = (dimensions * _registrationPoint);
-            glm::vec3 registrationRemainder = (dimensions * (glm::vec3(1.0f, 1.0f, 1.0f) - _registrationPoint));
-            glm::vec3 furthestExtentFromRegistration = glm::max(registrationPoint, registrationRemainder);
+            // we want to compute the furthestExtent that an entity can extend out from its "position"
+            // to do this we compute the max of these two vec3s: registration and 1-registration
+            // and then scale by dimensions
+            glm::vec3 maxExtents = getDimensions() * glm::max(_registrationPoint, glm::vec3(1.0f) - _registrationPoint);
 
-            // * we know that if you rotate in any direction you would create a sphere
-            //   that has a radius of the length of furthest extent from registration point
-            float radius = glm::length(furthestExtentFromRegistration);
+            // there exists a sphere that contains maxExtents for all rotations
+            float radius = glm::length(maxExtents);
 
-            // * we know that the minimum bounding cube of this maximum possible sphere is
-            //   (center - radius) to (center + radius)
+            // put a cube around the sphere
+            // TODO? replace _maxAACube with _boundingSphereRadius
             glm::vec3 minimumCorner = centerOfRotation - glm::vec3(radius, radius, radius);
-
             _maxAACube = AACube(minimumCorner, radius * 2.0f);
         }
     } else {
