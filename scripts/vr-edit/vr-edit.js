@@ -80,9 +80,17 @@
         print(APP_NAME + ": " + message);
     }
 
-    function debug(message) {
+    function debug(side, message) {
+        // Optional parameter: side.
+        var hand = "",
+            HAND_LETTERS = ["L", "R"];
         if (DEBUG) {
-            log(message);
+            if (side === 0 || side === 1) {
+                hand = HAND_LETTERS[side] + " ";
+            } else {
+                message = side;
+            }
+            log(hand + message);
         }
     }
 
@@ -204,7 +212,7 @@
     };
 
 
-    Handles = function () {
+    Handles = function (side) {
         var boundingBoxOverlay,
             boundingBoxDimensions,
             boundingBoxLocalCenter,
@@ -529,7 +537,7 @@
         }
 
         if (!this instanceof Handles) {
-            return new Handles();
+            return new Handles(side);
         }
 
         return {
@@ -548,7 +556,7 @@
     };
 
 
-    Selection = function () {
+    Selection = function (side) {
         // Manages set of selected entities. Currently supports just one set of linked entities.
         var selection = [],
             selectedEntityID = null,
@@ -795,7 +803,7 @@
         }
 
         if (!this instanceof Selection) {
-            return new Selection();
+            return new Selection(side);
         }
 
         return {
@@ -1003,7 +1011,7 @@
         }
 
         if (!this instanceof Laser) {
-            return new Laser();
+            return new Laser(side);
         }
 
         return {
@@ -1183,7 +1191,7 @@
         }
 
         if (!this instanceof Hand) {
-            return new Hand();
+            return new Hand(side);
         }
 
         return {
@@ -1251,9 +1259,9 @@
 
         hand = new Hand(side, gripPressedCallback);
         laser = new Laser(side);
-        selection = new Selection();
+        selection = new Selection(side);
         highlights = new Highlights(side);
-        handles = new Handles();
+        handles = new Handles(side);
 
         function setOtherEditor(editor) {
             otherEditor = editor;
@@ -1643,7 +1651,7 @@
                         setState(EDITOR_GRABBING);
                     }
                 } else {
-                    debug("ERROR: Unexpected condition in EDITOR_SEARCHING!");
+                    debug(side, "ERROR: Unexpected condition in EDITOR_SEARCHING!");
                 }
                 break;
             case EDITOR_HIGHLIGHTING:
@@ -1681,7 +1689,7 @@
                     // Note that this transition includes the case of highlighting a scaling handle.
                     setState(EDITOR_SEARCHING);
                 } else {
-                    debug("ERROR: Unexpected condition in EDITOR_HIGHLIGHTING!");
+                    debug(side, "ERROR: Unexpected condition in EDITOR_HIGHLIGHTING!");
                 }
                 break;
             case EDITOR_GRABBING:
@@ -1705,7 +1713,7 @@
                         setState(EDITOR_SEARCHING);
                     }
                 } else {
-                    debug("ERROR: Unexpected condition in EDITOR_GRABBING!");
+                    debug(side, "ERROR: Unexpected condition in EDITOR_GRABBING!");
                 }
                 break;
             case EDITOR_DIRECT_SCALING:
@@ -1761,7 +1769,7 @@
             }
 
             if (DEBUG && editorState !== previousState) {
-                debug((side === LEFT_HAND ? "L " : "R ") + EDITOR_STATE_STRINGS[editorState]);
+                debug(side, EDITOR_STATE_STRINGS[editorState]);
             }
         }
 
