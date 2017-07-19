@@ -50,6 +50,8 @@ public:
         const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled);
     LaserPointer(const glm::vec3& position, const glm::vec3& direction, const uint16_t filter, const float maxDistance,
         const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled);
+    LaserPointer(const uint16_t filter, const float maxDistance, const QHash<QString, RenderState>& renderStates, const bool faceAvatar,
+        const bool centerEndY, const bool enabled);
     ~LaserPointer();
 
     unsigned int getUID() { return _rayPickUID; }

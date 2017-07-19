@@ -88,18 +88,22 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
     if (propertyMap["joint"].isValid()) {
         QString jointName = propertyMap["joint"].toString();
 
-        // x = upward, y = forward, z = lateral
-        glm::vec3 posOffset = Vectors::ZERO;
-        if (propertyMap["posOffset"].isValid()) {
-            posOffset = vec3FromVariant(propertyMap["posOffset"]);
-        }
+        if (jointName != "Mouse") {
+            // x = upward, y = forward, z = lateral
+            glm::vec3 posOffset = Vectors::ZERO;
+            if (propertyMap["posOffset"].isValid()) {
+                posOffset = vec3FromVariant(propertyMap["posOffset"]);
+            }
 
-        glm::vec3 dirOffset = Vectors::UP;
-        if (propertyMap["dirOffset"].isValid()) {
-            dirOffset = vec3FromVariant(propertyMap["dirOffset"]);
-        }
+            glm::vec3 dirOffset = Vectors::UP;
+            if (propertyMap["dirOffset"].isValid()) {
+                dirOffset = vec3FromVariant(propertyMap["dirOffset"]);
+            }
 
-        return DependencyManager::get<LaserPointerManager>()->createLaserPointer(jointName, posOffset, dirOffset, filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
+            return DependencyManager::get<LaserPointerManager>()->createLaserPointer(jointName, posOffset, dirOffset, filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
+        } else {
+            return DependencyManager::get<LaserPointerManager>()->createLaserPointer(filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
+        }
     } else if (propertyMap["position"].isValid()) {
         glm::vec3 position = vec3FromVariant(propertyMap["position"]);
 

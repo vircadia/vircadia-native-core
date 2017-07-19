@@ -12,6 +12,7 @@
 
 #include "JointRayPick.h"
 #include "StaticRayPick.h"
+#include "MouseRayPick.h"
 
 #include "Application.h"
 #include "avatar/AvatarManager.h"
@@ -40,6 +41,21 @@ LaserPointer::LaserPointer(const glm::vec3& position, const glm::vec3& direction
     _centerEndY(centerEndY)
 {
     _rayPickUID = DependencyManager::get<RayPickManager>()->addRayPick(std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled));
+
+    for (auto& state : _renderStates.keys()) {
+        if (!enabled || state != _currentRenderState) {
+            disableRenderState(state);
+        }
+    }
+}
+
+LaserPointer::LaserPointer(const uint16_t filter, const float maxDistance, const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled) :
+    _renderingEnabled(enabled),
+    _renderStates(renderStates),
+    _faceAvatar(faceAvatar),
+    _centerEndY(centerEndY)
+{
+    _rayPickUID = DependencyManager::get<RayPickManager>()->addRayPick(std::make_shared<MouseRayPick>(filter, maxDistance, enabled));
 
     for (auto& state : _renderStates.keys()) {
         if (!enabled || state != _currentRenderState) {

@@ -28,6 +28,13 @@ unsigned int LaserPointerManager::createLaserPointer(const glm::vec3& position, 
     return uid;
 }
 
+unsigned int LaserPointerManager::createLaserPointer(const uint16_t filter, const float maxDistance, const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled) {
+    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
+    unsigned int uid = laserPointer->getUID();
+    _laserPointers[uid] = laserPointer;
+    return uid;
+}
+
 void LaserPointerManager::enableLaserPointer(const unsigned int uid) {
     if (_laserPointers.contains(uid)) {
         _laserPointers[uid]->enable();
