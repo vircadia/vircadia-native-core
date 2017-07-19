@@ -22,17 +22,65 @@
 #include "paintStroke_vert.h"
 #include "paintStroke_frag.h"
 
+uint8_t PolyLinePayload::CUSTOM_PIPELINE_NUMBER = 0;
 
+gpu::PipelinePointer PolyLinePayload::_pipeline;
+const int32_t PolyLinePayload::PAINTSTROKE_TEXTURE_SLOT;
+const int32_t PolyLinePayload::PAINTSTROKE_UNIFORM_SLOT;
+
+render::ShapePipelinePointer PolyLinePayload::shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key) {
+    if (!_pipeline) {
+        auto VS = gpu::Shader::createVertex(std::string(paintStroke_vert));
+        auto PS = gpu::Shader::createPixel(std::string(paintStroke_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
+
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), PAINTSTROKE_TEXTURE_SLOT));
+        slotBindings.insert(gpu::Shader::Binding(std::string("polyLineBuffer"), PAINTSTROKE_UNIFORM_SLOT));
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        PrepareStencil::testMask(*state);
+        state->setBlendFunction(true,
+            gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
+            gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        _pipeline = gpu::Pipeline::create(program, state);
+    }
+    return std::make_shared<render::ShapePipeline>(_pipeline, nullptr, nullptr, nullptr);
+}
+
+namespace render {
+    template <> const ItemKey payloadGetKey(const PolyLinePayload::Pointer& payload) {
+        return payloadGetKey(std::static_pointer_cast<RenderableEntityItemProxy>(payload));
+    }
+    template <> const Item::Bound payloadGetBound(const PolyLinePayload::Pointer& payload) {
+        return payloadGetBound(std::static_pointer_cast<RenderableEntityItemProxy>(payload));
+    }
+    template <> void payloadRender(const PolyLinePayload::Pointer& payload, RenderArgs* args) {
+        payloadRender(std::static_pointer_cast<RenderableEntityItemProxy>(payload), args);
+    }
+    template <> uint32_t metaFetchMetaSubItems(const PolyLinePayload::Pointer& payload, ItemIDs& subItems) {
+        return metaFetchMetaSubItems(std::static_pointer_cast<RenderableEntityItemProxy>(payload), subItems);
+    }
+
+    template <> const ShapeKey shapeGetShapeKey(const PolyLinePayload::Pointer& payload) {
+        auto shapeKey = ShapeKey::Builder().withCustom(PolyLinePayload::CUSTOM_PIPELINE_NUMBER);
+        return shapeKey.build();
+    }
+}
 
 struct PolyLineUniforms {
     glm::vec3 color;
 };
 
-
-
 EntityItemPointer RenderablePolyLineEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     EntityItemPointer entity{ new RenderablePolyLineEntityItem(entityID) };
     entity->setProperties(properties);
+
+    // As we create the first PolyLine entity, let's register its special shapePipeline factory:
+    PolyLinePayload::registerShapePipeline();
+
     return entity;
 }
 
@@ -45,12 +93,9 @@ _numVertices(0)
     _uniformBuffer = std::make_shared<gpu::Buffer>(sizeof(PolyLineUniforms), (const gpu::Byte*) &uniforms);
 }
 
-gpu::PipelinePointer RenderablePolyLineEntityItem::_pipeline;
 gpu::Stream::FormatPointer RenderablePolyLineEntityItem::_format;
-const int32_t RenderablePolyLineEntityItem::PAINTSTROKE_TEXTURE_SLOT;
-const int32_t RenderablePolyLineEntityItem::PAINTSTROKE_UNIFORM_SLOT;
 
-void RenderablePolyLineEntityItem::createPipeline() {
+void RenderablePolyLineEntityItem::createStreamFormat() {
     static const int NORMAL_OFFSET = 12;
     static const int TEXTURE_OFFSET = 24;
 
@@ -58,23 +103,6 @@ void RenderablePolyLineEntityItem::createPipeline() {
     _format->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
     _format->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), NORMAL_OFFSET);
     _format->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), TEXTURE_OFFSET);
-
-    auto VS = gpu::Shader::createVertex(std::string(paintStroke_vert));
-    auto PS = gpu::Shader::createPixel(std::string(paintStroke_frag));
-    gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
-
-    gpu::Shader::BindingSet slotBindings;
-    slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), PAINTSTROKE_TEXTURE_SLOT));
-    slotBindings.insert(gpu::Shader::Binding(std::string("polyLineBuffer"), PAINTSTROKE_UNIFORM_SLOT));
-    gpu::Shader::makeProgram(*program, slotBindings);
-
-    gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-    state->setDepthTest(true, true, gpu::LESS_EQUAL);
-    PrepareStencil::testMask(*state);
-    state->setBlendFunction(true,
-        gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
-        gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-    _pipeline = gpu::Pipeline::create(program, state);
 }
 
 void RenderablePolyLineEntityItem::updateGeometry() {
@@ -180,8 +208,8 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
         return;
     }
 
-    if (!_pipeline) {
-        createPipeline();
+    if (!_format) {
+        createStreamFormat();
     }
 
     if (!_texture || _texturesChangedFlag) {
@@ -199,14 +227,13 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     Transform transform = Transform();
     transform.setTranslation(getPosition());
     transform.setRotation(getRotation());
-    batch.setUniformBuffer(PAINTSTROKE_UNIFORM_SLOT, _uniformBuffer);
+    batch.setUniformBuffer(PolyLinePayload::PAINTSTROKE_UNIFORM_SLOT, _uniformBuffer);
     batch.setModelTransform(transform);
 
-    batch.setPipeline(_pipeline);
     if (_texture->isLoaded()) {
-        batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, _texture->getGPUTexture());
+        batch.setResourceTexture(PolyLinePayload::PAINTSTROKE_TEXTURE_SLOT, _texture->getGPUTexture());
     } else {
-        batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, nullptr);
+        batch.setResourceTexture(PolyLinePayload::PAINTSTROKE_TEXTURE_SLOT, nullptr);
     }
    
     batch.setInputFormat(_format);
