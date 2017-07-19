@@ -473,15 +473,8 @@ bool Model::getMeshes(MeshProxyList& result) {
 
     Transform offset;
     offset.setScale(_scale);
-    // offset.postTranslate(_offset);
+    offset.postTranslate(_offset);
     glm::mat4 offsetMat = offset.getMatrix();
-
-    Extents modelExtents = getUnscaledMeshExtents();
-    glm::vec3 dimensions = modelExtents.maximum - modelExtents.minimum;
-
-    const glm::vec3 DEFAULT_ENTITY_REGISTRATION_POINT = glm::vec3(0.5f, 0.5f, 0.5f);
-    glm::vec3 regis = (DEFAULT_ENTITY_REGISTRATION_POINT - _registrationPoint);
-    glm::vec3 regisOffset = dimensions * regis;
 
     for (std::shared_ptr<const model::Mesh> mesh : meshes) {
         if (!mesh) {
