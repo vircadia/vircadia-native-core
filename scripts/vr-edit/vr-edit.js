@@ -238,6 +238,7 @@
             ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO),
             DISTANCE_MULTIPLIER_MULTIPLIER = 0.5,
             hoveredOverlayID = null,
+            isVisible = false,
 
             // Scaling.
             scalingBoundingBoxDimensions,
@@ -366,6 +367,8 @@
                 cornerHandleDimensions,
                 faceHandleDimensions,
                 i;
+
+            isVisible = true;
 
             boundingBoxDimensions = boundingBox.dimensions;
             boundingBoxCenter = boundingBox.center;
@@ -505,7 +508,7 @@
             for (i = 0, length = cornerHandleOverlays.length; i < length; i += 1) {
                 overlay = cornerHandleOverlays[i];
                 Overlays.editOverlay(overlay, {
-                    visible: isShowAll || overlay === overlayID,
+                    visible: isVisible && (isShowAll || overlay === overlayID),
                     color: color
                 });
             }
@@ -513,7 +516,7 @@
             for (i = 0, length = faceHandleOverlays.length; i < length; i += 1) {
                 overlay = faceHandleOverlays[i];
                 Overlays.editOverlay(overlay, {
-                    visible: isShowAll || overlay === overlayID,
+                    visible: isVisible && (isShowAll || overlay === overlayID),
                     color: color
                 });
             }
@@ -521,6 +524,8 @@
 
         function clear() {
             var i;
+
+            isVisible = false;
 
             Overlays.editOverlay(boundingBoxOverlay, { visible: false });
             for (i = 0; i < NUM_CORNER_HANDLES; i += 1) {
