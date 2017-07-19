@@ -91,9 +91,22 @@ void AssignmentClientMonitor::simultaneousWaitOnChildren(int waitMsecs) {
     }
 }
 
-void AssignmentClientMonitor::childProcessFinished(qint64 pid) {
+void AssignmentClientMonitor::childProcessFinished(qint64 pid, int exitCode, QProcess::ExitStatus exitStatus) {
+    auto message = "Child process " + QString::number(pid) + " has %1 with exit code " + QString::number(exitCode) + ".";
+
     if (_childProcesses.remove(pid)) {
-        qDebug() << "Child process" << pid << "has finished. Removed from internal map.";
+        message.append(" Removed from internal map.");
+    } else {
+        message.append(" Could not find process in internal map.");
+    }
+
+    switch (exitStatus) {
+        case QProcess::NormalExit:
+            qDebug() << qPrintable(message.arg("returned"));
+            break;
+        case QProcess::CrashExit:
+            qCritical() << qPrintable(message.arg("crashed"));
+            break;
     }
 }
 
@@ -221,7 +234,9 @@ void AssignmentClientMonitor::spawnChildClient() {
         auto pid = assignmentClient->processId();
         // make sure we hear that this process has finished when it does
         connect(assignmentClient, static_cast<void(QProcess::*)(int, QProcess::ExitStatus)>(&QProcess::finished),
-                this, [this, pid]() { childProcessFinished(pid); });
+                this, [this, pid](int exitCode, QProcess::ExitStatus exitStatus) {
+                    childProcessFinished(pid, exitCode, exitStatus);
+            });
 
         qDebug() << "Spawned a child client with PID" << assignmentClient->processId();
 

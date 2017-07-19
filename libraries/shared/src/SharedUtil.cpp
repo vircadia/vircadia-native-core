@@ -47,6 +47,7 @@ extern "C" FILE * __cdecl __iob_func(void) {
 #include <QtCore/QDebug>
 #include <QDateTime>
 #include <QElapsedTimer>
+#include <QTimer>
 #include <QProcess>
 #include <QSysInfo>
 #include <QThread>
@@ -1077,11 +1078,17 @@ void setMaxCores(uint8_t maxCores) {
 #endif
 }
 
-#ifdef Q_OS_WIN
-VOID CALLBACK parentDiedCallback(PVOID lpParameter, BOOLEAN timerOrWaitFired) {
-    if (!timerOrWaitFired && qApp) {
+void quitWithParentProcess() {
+    if (qApp) {
         qDebug() << "Parent process died, quitting";
         qApp->quit();
+    }
+}
+
+#ifdef Q_OS_WIN
+VOID CALLBACK parentDiedCallback(PVOID lpParameter, BOOLEAN timerOrWaitFired) {
+    if (!timerOrWaitFired) {
+        quitWithParentProcess();
     }
 }
 
@@ -1092,8 +1099,17 @@ void watchParentProcess(int parentPID) {
     HANDLE newHandle;
     RegisterWaitForSingleObject(&newHandle, procHandle, parentDiedCallback, NULL, INFINITE, WT_EXECUTEONLYONCE);
 }
-#else
+#elif defined(Q_OS_MAC) || defined(Q_OS_LINUX)
 void watchParentProcess(int parentPID) {
-    qWarning() << "Parent PID option not implemented on this plateform";
+    auto timer = new QTimer(qApp);
+    timer->setInterval(MSECS_PER_SECOND);
+    QObject::connect(timer, &QTimer::timeout, qApp, [parentPID]() {
+        auto ppid = getppid();
+        if (parentPID != ppid) {
+            // If the PPID changed, then that means our parent process died.
+            quitWithParentProcess();
+        }
+    });
+    timer->start();
 }
-#endif // Q_OS_WIN
+#endif
