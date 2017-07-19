@@ -51,7 +51,7 @@ public slots:
 private:
     bool _verboseLogging { true };
     QUuid _currentEntityWithContextOverlay{};
-
+    void openMarketplace();
 };
 
 #endif // hifi_ContextOverlayInterface_h

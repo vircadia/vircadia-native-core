@@ -11,7 +11,10 @@
 
 #include "ContextOverlayInterface.h"
 #include "Application.h"
+#include "scripting/HMDScriptingInterface.h"
+
 #include <EntityTreeRenderer.h>
+#include <ui/TabletScriptingInterface.h>
 
 ContextOverlayInterface::ContextOverlayInterface() {
     // "context_overlay" debug log category disabled by default.
@@ -73,6 +76,27 @@ void ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
 void ContextOverlayInterface::clickContextOverlay(const OverlayID& overlayID, const PointerEvent& event) {
     if (overlayID == _contextOverlayID && event.getButton() == PointerEvent::PrimaryButton) {
         qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "Overlay ID:" << overlayID;
+        openMarketplace();
         destroyContextOverlay(_currentEntityWithContextOverlay, PointerEvent());
+    }
+}
+static const QString MARKETPLACE_BASE_URL = "http://metaverse.highfidelity.com/marketplace/items/";
+
+void ContextOverlayInterface::openMarketplace() {
+    // lets open the tablet and go to the current item in
+    // the marketplace (if the current entity has a
+    // marketplaceID)
+    if (!_currentEntityWithContextOverlay.isNull()) {
+        auto hmd = DependencyManager::get<HMDScriptingInterface>();
+        auto entity = qApp->getEntities()->getTree()->findEntityByID(_currentEntityWithContextOverlay);
+
+        if (entity->getMarketplaceID().length() > 0) {
+            auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+            auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+            // construct the url to the marketplace item
+            QString url = MARKETPLACE_BASE_URL + entity->getMarketplaceID();
+            tablet->gotoWebScreen(url);
+            hmd->openTablet();
+        }
     }
 }
