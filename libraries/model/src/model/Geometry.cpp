@@ -137,7 +137,7 @@ Box Mesh::evalPartsBound(int partStart, int partEnd) const {
 
 model::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
                              std::function<glm::vec3(glm::vec3)> normalFunc,
-                             std::function<uint32_t(uint32_t)> indexFunc) {
+                             std::function<uint32_t(uint32_t)> indexFunc) const {
     // vertex data
     const gpu::BufferView& vertexBufferView = getVertexBuffer();
     gpu::BufferView::Index numVertices = (gpu::BufferView::Index)getNumVertices();

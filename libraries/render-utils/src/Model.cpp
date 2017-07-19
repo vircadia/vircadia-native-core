@@ -24,6 +24,7 @@
 #include <PerfStat.h>
 #include <ViewFrustum.h>
 #include <GLMHelpers.h>
+#include <model-networking/SimpleMeshProxy.h>
 
 #include "AbstractViewStateInterface.h"
 #include "MeshPartPayload.h"
@@ -460,6 +461,40 @@ bool Model::convexHullContains(glm::vec3 point) {
     }
     // It wasn't in any mesh, return false.
     return false;
+}
+
+bool Model::getMeshes(MeshProxyList& result) {
+    const Geometry::Pointer& renderGeometry = getGeometry();
+    const Geometry::GeometryMeshes& meshes = renderGeometry->getMeshes();
+
+    if (!isLoaded()) {
+        return false;
+    }
+
+    Transform offset;
+    offset.setScale(_scale);
+    // not set -- far to the right
+    // offset.postTranslate(_offset); // far to right
+    // offset.postTranslate(-_offset); // a bit to left
+    glm::mat4 offsetMat = offset.getMatrix();
+
+    for (std::shared_ptr<const model::Mesh> mesh : meshes) {
+        if (!mesh) {
+            continue;
+        }
+
+        MeshProxy* meshProxy = new SimpleMeshProxy(
+            mesh->map([=](glm::vec3 position) {
+                const glm::vec3 DEFAULT_ENTITY_REGISTRATION_POINT = glm::vec3(0.5f, 0.5f, 0.5f);
+                glm::vec3 regis = _registrationPoint - DEFAULT_ENTITY_REGISTRATION_POINT;
+                return glm::vec3(offsetMat * glm::vec4(position + _offset, 1.0f)) + regis; // very close
+            },
+            [=](glm::vec3 normal){ return glm::normalize(glm::vec3(offsetMat * glm::vec4(normal, 0.0f))); },
+            [&](uint32_t index){ return index; }));
+        result << meshProxy;
+    }
+
+    return true;
 }
 
 void Model::calculateTriangleSets() {

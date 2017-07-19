@@ -124,7 +124,7 @@ public:
     // create a copy of this mesh after passing its vertices, normals, and indexes though the provided functions
     MeshPointer map(std::function<glm::vec3(glm::vec3)> vertexFunc,
                     std::function<glm::vec3(glm::vec3)> normalFunc,
-                    std::function<uint32_t(uint32_t)> indexFunc);
+                    std::function<uint32_t(uint32_t)> indexFunc) const;
 
     void forEach(std::function<void(glm::vec3)> vertexFunc,
                  std::function<void(glm::vec3)> normalFunc,

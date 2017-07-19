@@ -257,6 +257,8 @@ public:
     int getResourceDownloadAttempts() { return _renderWatcher.getResourceDownloadAttempts(); }
     int getResourceDownloadAttemptsRemaining() { return _renderWatcher.getResourceDownloadAttemptsRemaining(); }
 
+    bool getMeshes(MeshProxyList& result);
+
 public slots:
     void loadURLFinished(bool success);
 

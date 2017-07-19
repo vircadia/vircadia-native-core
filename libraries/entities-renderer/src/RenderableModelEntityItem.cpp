@@ -1282,3 +1282,10 @@ void RenderableModelEntityItem::mapJoints(const QStringList& modelJointNames) {
         }
     }
 }
+
+bool RenderableModelEntityItem::getMeshes(MeshProxyList& result) {
+    if (!_model || !_model->isLoaded()) {
+        return false;
+    }
+    return _model->getMeshes(result);
+}
