@@ -226,13 +226,9 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
 
         // forward qml surface events to interface js
         connect(tabletRootWindow, &QmlWindowClass::fromQml, this, &TabletProxy::fromQml);
-        loadHomeScreen(true);
-        emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
     } else {
         removeButtonsFromToolbar();
         addButtonsToHomeScreen();
-        loadHomeScreen(true);
-        emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
 
         // destroy desktop window
         if (_desktopWindow) {
@@ -240,6 +236,8 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
             _desktopWindow = nullptr;
         }
     }
+    loadHomeScreen(true);
+    emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
 }
 
 static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* buttonProxy) {
