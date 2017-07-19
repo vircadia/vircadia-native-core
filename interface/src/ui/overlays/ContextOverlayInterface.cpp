@@ -52,7 +52,7 @@ void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
             _contextOverlayID = qApp->getOverlays().addOverlay(_contextOverlay);
         }
 
-        _contextOverlay->setDimensions(glm::vec2(0.2f, 0.2f) * glm::distance(entityProperties.getPosition(), qApp->getCamera().getPosition()));
+        _contextOverlay->setDimensions(glm::vec2(0.05f, 0.05f) * glm::distance(entityProperties.getPosition(), qApp->getCamera().getPosition()));
         _contextOverlay->setPosition(entityProperties.getPosition());
         _contextOverlay->setRotation(entityProperties.getRotation());
         _contextOverlay->setVisible(true);
