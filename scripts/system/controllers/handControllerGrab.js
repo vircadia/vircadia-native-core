@@ -188,6 +188,7 @@ var USE_BLACKLIST = true;
 var blacklist = [];
 
 var entityWithContextOverlay = false;
+var contextualHand = -1;
 
 var FORBIDDEN_GRAB_NAMES = ["Grab Debug Entity", "grab pointer"];
 var FORBIDDEN_GRAB_TYPES = ["Unknown", "Light", "PolyLine", "Zone"];
@@ -352,7 +353,9 @@ function projectOntoXYPlane(worldPos, position, rotation, dimensions, registrati
 
 function projectOntoEntityXYPlane(entityID, worldPos) {
     var props = entityPropertiesCache.getProps(entityID);
-    return projectOntoXYPlane(worldPos, props.position, props.rotation, props.dimensions, props.registrationPoint);
+    if (props) {
+        return projectOntoXYPlane(worldPos, props.position, props.rotation, props.dimensions, props.registrationPoint);
+    }
 }
 
 function projectOntoOverlayXYPlane(overlayID, worldPos) {
@@ -2186,10 +2189,7 @@ function MyController(hand) {
     };
 
     this.searchExit = function () {
-        if (entityWithContextOverlay) {
-            ContextOverlay.destroyContextOverlay(entityWithContextOverlay);
-            entityWithContextOverlay = false;
-        }
+        contextualHand = -1;
     };
 
     this.search = function(deltaTime, timestamp) {
@@ -2226,11 +2226,11 @@ function MyController(hand) {
                 ContextOverlay.destroyContextOverlay(entityWithContextOverlay);
                 entityWithContextOverlay = false;
             }
-            Script.setTimeout(function() {
-                if (rayPickInfo.entityID === entityWithContextOverlay) {
+            Script.setTimeout(function () {
+                if (rayPickInfo.entityID === entityWithContextOverlay && contextualHand !== -1) {
                     var pointerEvent = {
                         type: "Move",
-                        id: this.hand + 1, // 0 is reserved for hardware mouse
+                        id: contextualHand + 1, // 0 is reserved for hardware mouse
                         pos2D: projectOntoEntityXYPlane(rayPickInfo.entityID, rayPickInfo.intersection),
                         pos3D: rayPickInfo.intersection,
                         normal: rayPickInfo.normal,
@@ -2241,6 +2241,7 @@ function MyController(hand) {
                 }
             }, 500);
             entityWithContextOverlay = rayPickInfo.entityID;
+            contextualHand = this.hand;
         }
 
         var candidateHotSpotEntities = Entities.findEntities(handPosition, MAX_EQUIP_HOTSPOT_RADIUS);
@@ -3488,6 +3489,11 @@ function MyController(hand) {
         var existingSearchDistance = this.searchSphereDistance;
         this.release();
 
+        if (entityWithContextOverlay) {
+            ContextOverlay.destroyContextOverlay(entityWithContextOverlay);
+            entityWithContextOverlay = false;
+        }
+
         if (isInEditMode()) {
             this.searchSphereDistance = existingSearchDistance;
         }
@@ -3624,6 +3630,7 @@ function MyController(hand) {
             };
 
             Overlays.sendMousePressOnOverlay(this.grabbedOverlay, pointerEvent);
+            entityWithContextOverlay = false;
 
             this.touchingEnterTimer = 0;
             this.touchingEnterPointerEvent = pointerEvent;
