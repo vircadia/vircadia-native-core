@@ -473,10 +473,15 @@ bool Model::getMeshes(MeshProxyList& result) {
 
     Transform offset;
     offset.setScale(_scale);
-    // not set -- far to the right
-    // offset.postTranslate(_offset); // far to right
-    // offset.postTranslate(-_offset); // a bit to left
+    // offset.postTranslate(_offset);
     glm::mat4 offsetMat = offset.getMatrix();
+
+    Extents modelExtents = getUnscaledMeshExtents();
+    glm::vec3 dimensions = modelExtents.maximum - modelExtents.minimum;
+
+    const glm::vec3 DEFAULT_ENTITY_REGISTRATION_POINT = glm::vec3(0.5f, 0.5f, 0.5f);
+    glm::vec3 regis = (DEFAULT_ENTITY_REGISTRATION_POINT - _registrationPoint);
+    glm::vec3 regisOffset = dimensions * regis;
 
     for (std::shared_ptr<const model::Mesh> mesh : meshes) {
         if (!mesh) {
@@ -485,9 +490,7 @@ bool Model::getMeshes(MeshProxyList& result) {
 
         MeshProxy* meshProxy = new SimpleMeshProxy(
             mesh->map([=](glm::vec3 position) {
-                const glm::vec3 DEFAULT_ENTITY_REGISTRATION_POINT = glm::vec3(0.5f, 0.5f, 0.5f);
-                glm::vec3 regis = _registrationPoint - DEFAULT_ENTITY_REGISTRATION_POINT;
-                return glm::vec3(offsetMat * glm::vec4(position + _offset, 1.0f)) + regis; // very close
+                return glm::vec3(offsetMat * glm::vec4(position, 1.0f));
             },
             [=](glm::vec3 normal){ return glm::normalize(glm::vec3(offsetMat * glm::vec4(normal, 0.0f))); },
             [&](uint32_t index){ return index; }));

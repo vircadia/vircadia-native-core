@@ -1738,7 +1738,7 @@ glm::mat4 EntityScriptingInterface::getEntityTransform(const QUuid& entityID) {
                 glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
                 glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT -
                                                         entity->getRegistrationPoint());
-                result = translation * rotation * registration;
+                result = translation * rotation /* * registration */;
             }
         });
     }
