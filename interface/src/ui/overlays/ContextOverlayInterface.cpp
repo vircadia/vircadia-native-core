@@ -27,6 +27,7 @@ ContextOverlayInterface::ContextOverlayInterface() {
 
     _entityPropertyFlags += PROP_POSITION;
     _entityPropertyFlags += PROP_ROTATION;
+    _entityPropertyFlags += PROP_MARKETPLACE_ID;
 
     auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>().data();
     connect(entityTreeRenderer, SIGNAL(mousePressOnEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(createOrDestroyContextOverlay(const EntityItemID&, const PointerEvent&)));
@@ -35,27 +36,30 @@ ContextOverlayInterface::ContextOverlayInterface() {
 void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
     if (event.getButton() == PointerEvent::SecondaryButton) {
         qCDebug(context_overlay) << "Creating Context Overlay on top of entity with ID: " << entityItemID;
-        setCurrentEntityWithContextOverlay(entityItemID);
 
         EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
+        if (entityProperties.getMarketplaceID().length() != 0) {
+            _marketplaceID = entityProperties.getMarketplaceID();
+            setCurrentEntityWithContextOverlay(entityItemID);
 
-        if (_contextOverlayID == UNKNOWN_OVERLAY_ID || !qApp->getOverlays().isAddedOverlay(_contextOverlayID)) {
-            _contextOverlay = std::make_shared<Image3DOverlay>();
-            _contextOverlay->setAlpha(1.0f);
-            _contextOverlay->setPulseMin(0.75f);
-            _contextOverlay->setPulseMax(1.0f);
-            _contextOverlay->setColorPulse(1.0f);
-            _contextOverlay->setIgnoreRayIntersection(false);
-            _contextOverlay->setDrawInFront(true);
-            _contextOverlay->setURL("http://i.imgur.com/gksZygp.png");
-            _contextOverlay->setIsFacingAvatar(true);
-            _contextOverlayID = qApp->getOverlays().addOverlay(_contextOverlay);
+            if (_contextOverlayID == UNKNOWN_OVERLAY_ID || !qApp->getOverlays().isAddedOverlay(_contextOverlayID)) {
+                _contextOverlay = std::make_shared<Image3DOverlay>();
+                _contextOverlay->setAlpha(1.0f);
+                _contextOverlay->setPulseMin(0.75f);
+                _contextOverlay->setPulseMax(1.0f);
+                _contextOverlay->setColorPulse(1.0f);
+                _contextOverlay->setIgnoreRayIntersection(false);
+                _contextOverlay->setDrawInFront(true);
+                _contextOverlay->setURL("http://i.imgur.com/gksZygp.png");
+                _contextOverlay->setIsFacingAvatar(true);
+                _contextOverlayID = qApp->getOverlays().addOverlay(_contextOverlay);
+            }
+
+            _contextOverlay->setDimensions(glm::vec2(0.2f, 0.2f) * glm::distance(entityProperties.getPosition(), qApp->getCamera().getPosition()));
+            _contextOverlay->setPosition(entityProperties.getPosition());
+            _contextOverlay->setRotation(entityProperties.getRotation());
+            _contextOverlay->setVisible(true);
         }
-
-        _contextOverlay->setDimensions(glm::vec2(0.2f, 0.2f) * glm::distance(entityProperties.getPosition(), qApp->getCamera().getPosition()));
-        _contextOverlay->setPosition(entityProperties.getPosition());
-        _contextOverlay->setRotation(entityProperties.getRotation());
-        _contextOverlay->setVisible(true);
     } else if (_currentEntityWithContextOverlay == entityItemID) {
         destroyContextOverlay(entityItemID, event);
     }
@@ -87,14 +91,11 @@ void ContextOverlayInterface::openMarketplace() {
     // lets open the tablet and go to the current item in
     // the marketplace (if the current entity has a
     // marketplaceID)
-    if (!_currentEntityWithContextOverlay.isNull()) {
-        auto entity = qApp->getEntities()->getTree()->findEntityByID(_currentEntityWithContextOverlay);
-        if (entity->getMarketplaceID().length() > 0) {
-            auto tablet = dynamic_cast<TabletProxy*>(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
-            // construct the url to the marketplace item
-            QString url = MARKETPLACE_BASE_URL + entity->getMarketplaceID();
-            tablet->gotoWebScreen(url);
-            _hmdScriptingInterface->openTablet();
-        }
+    if (!_currentEntityWithContextOverlay.isNull() && _marketplaceID.length() > 0) {
+        auto tablet = dynamic_cast<TabletProxy*>(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+        // construct the url to the marketplace item
+        QString url = MARKETPLACE_BASE_URL + _marketplaceID;
+        tablet->gotoWebScreen(url);
+        _hmdScriptingInterface->openTablet();
     }
 }
