@@ -35,10 +35,10 @@ ContextOverlayInterface::ContextOverlayInterface() {
 
 void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
     if (event.getButton() == PointerEvent::SecondaryButton) {
-        qCDebug(context_overlay) << "Creating Context Overlay on top of entity with ID: " << entityItemID;
 
         EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
         if (entityProperties.getMarketplaceID().length() != 0) {
+            qCDebug(context_overlay) << "Creating Context Overlay on top of entity with ID: " << entityItemID;
             _marketplaceID = entityProperties.getMarketplaceID();
             setCurrentEntityWithContextOverlay(entityItemID);
 
@@ -72,6 +72,7 @@ void ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
     qApp->getOverlays().deleteOverlay(_contextOverlayID);
     _contextOverlay = NULL;
     _contextOverlayID = UNKNOWN_OVERLAY_ID;
+    _marketplaceID.clear();
 }
 
 void ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID) {
