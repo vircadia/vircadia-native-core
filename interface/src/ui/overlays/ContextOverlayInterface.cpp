@@ -11,10 +11,8 @@
 
 #include "ContextOverlayInterface.h"
 #include "Application.h"
-#include "scripting/HMDScriptingInterface.h"
 
 #include <EntityTreeRenderer.h>
-#include <ui/TabletScriptingInterface.h>
 
 ContextOverlayInterface::ContextOverlayInterface() {
     // "context_overlay" debug log category disabled by default.
@@ -24,6 +22,9 @@ ContextOverlayInterface::ContextOverlayInterface() {
     QLoggingCategory::setFilterRules(QStringLiteral("hifi.context_overlay.debug=false"));
 
     _entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+    _hmdScriptingInterface = DependencyManager::get<HMDScriptingInterface>();
+    _tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+
     _entityPropertyFlags += PROP_POSITION;
     _entityPropertyFlags += PROP_ROTATION;
 
@@ -87,16 +88,13 @@ void ContextOverlayInterface::openMarketplace() {
     // the marketplace (if the current entity has a
     // marketplaceID)
     if (!_currentEntityWithContextOverlay.isNull()) {
-        auto hmd = DependencyManager::get<HMDScriptingInterface>();
         auto entity = qApp->getEntities()->getTree()->findEntityByID(_currentEntityWithContextOverlay);
-
         if (entity->getMarketplaceID().length() > 0) {
-            auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-            auto tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+            auto tablet = dynamic_cast<TabletProxy*>(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
             // construct the url to the marketplace item
             QString url = MARKETPLACE_BASE_URL + entity->getMarketplaceID();
             tablet->gotoWebScreen(url);
-            hmd->openTablet();
+            _hmdScriptingInterface->openTablet();
         }
     }
 }

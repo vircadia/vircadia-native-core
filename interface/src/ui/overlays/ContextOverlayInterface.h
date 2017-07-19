@@ -18,9 +18,12 @@
 
 #include <DependencyManager.h>
 #include <PointerEvent.h>
+#include <ui/TabletScriptingInterface.h>
+
 #include "EntityScriptingInterface.h"
 #include "ui/overlays/Image3DOverlay.h"
 #include "ui/overlays/Overlays.h"
+#include "scripting/HMDScriptingInterface.h"
 
 #include "EntityTree.h"
 #include "ContextOverlayLogging.h"
@@ -34,6 +37,8 @@ class ContextOverlayInterface : public QObject, public Dependency  {
     Q_PROPERTY(QUuid entityWithContextOverlay READ getCurrentEntityWithContextOverlay WRITE setCurrentEntityWithContextOverlay)
     QSharedPointer<EntityScriptingInterface> _entityScriptingInterface;
     EntityPropertyFlags _entityPropertyFlags;
+    QSharedPointer<HMDScriptingInterface> _hmdScriptingInterface;
+    QSharedPointer<TabletScriptingInterface> _tabletScriptingInterface;
     OverlayID _contextOverlayID { UNKNOWN_OVERLAY_ID };
     std::shared_ptr<Image3DOverlay> _contextOverlay { nullptr };
 public:
