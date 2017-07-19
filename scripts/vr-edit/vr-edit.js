@@ -767,6 +767,8 @@
 
         function handleScale(factor, position, orientation) {
             // Scale and reposition and orient selection.
+            var i,
+                length;
 
             // Scale and position root.
             rootPosition = position;
@@ -778,7 +780,14 @@
             });
 
             // Scale and position children.
-            // TODO
+            // Only corner handles are used for scaling multiple entities so scale factor is the same in all dimensions.
+            // Therefore don't need to take into account orientation relative to parent when scaling local position.
+            for (i = 1, length = selection.length; i < length; i += 1) {
+                Entities.editEntity(selection[i].id, {
+                    dimensions: Vec3.multiplyVbyV(factor, selection[i].dimensions),
+                    localPosition: Vec3.multiplyVbyV(factor, selection[i].localPosition)
+                });
+            }
         }
 
         function finishHandleScaling() {
