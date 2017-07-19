@@ -2124,6 +2124,7 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
     surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
+    surfaceContext->setContextProperty("HoverOverlay", DependencyManager::get<HoverOverlayInterface>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -2748,6 +2749,16 @@ bool Application::event(QEvent* event) {
     switch (type) {
         case Event::Lambda:
             static_cast<LambdaEvent*>(event)->call();
+            return true;
+
+        // Explicit idle keeps the idle running at a lower interval, but without any rendering
+        // see (windowMinimizedChanged)
+        case Event::Idle:
+            {
+                float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
+                _lastTimeUpdated.start();
+                idle(nsecsElapsed);
+            }
             return true;
 
         case Event::Present:
@@ -5438,9 +5449,9 @@ void Application::updateWindowTitle() const {
 #endif
     _window->setWindowTitle(title);
 
-	// updateTitleWindow gets called whenever there's a change regarding the domain, so rather
-	// than placing this within domainChanged, it's placed here to cover the other potential cases.
-	DependencyManager::get< MessagesClient >()->sendLocalMessage("Toolbar-DomainChanged", "");
+    // updateTitleWindow gets called whenever there's a change regarding the domain, so rather
+    // than placing this within domainChanged, it's placed here to cover the other potential cases.
+    DependencyManager::get< MessagesClient >()->sendLocalMessage("Toolbar-DomainChanged", "");
 }
 
 void Application::clearDomainOctreeDetails() {
@@ -5826,6 +5837,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     auto entityScriptServerLog = DependencyManager::get<EntityScriptServerLogClient>();
     scriptEngine->registerGlobalObject("EntityScriptServerLog", entityScriptServerLog.data());
     scriptEngine->registerGlobalObject("AvatarInputs", AvatarInputs::getInstance());
+    scriptEngine->registerGlobalObject("HoverOverlay", DependencyManager::get<HoverOverlayInterface>().data());
 
     qScriptRegisterMetaType(scriptEngine, OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
@@ -6597,11 +6609,11 @@ void Application::setPreviousScriptLocation(const QString& location) {
 }
 
 void Application::loadScriptURLDialog() const {
-    auto newScript = OffscreenUi::getText(OffscreenUi::ICON_NONE, "Open and Run Script", "Script URL");
+    QString newScript = OffscreenUi::getText(OffscreenUi::ICON_NONE, "Open and Run Script", "Script URL");
     if (QUrl(newScript).scheme() == "atp") {
         OffscreenUi::warning("Error Loading Script", "Cannot load client script over ATP");
     } else if (!newScript.isEmpty()) {
-        DependencyManager::get<ScriptEngines>()->loadScript(newScript);
+        DependencyManager::get<ScriptEngines>()->loadScript(newScript.trimmed());
     }
 }
 

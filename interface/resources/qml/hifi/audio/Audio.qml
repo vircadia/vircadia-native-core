@@ -117,26 +117,28 @@ Rectangle {
             delegate: Item {
                 width: parent.width;
                 height: 36;
+                
+                AudioControls.CheckBox {
+                    id: checkbox
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: parent.left
+                    text: display;
+                    wrap: false;
+                    checked: selected;
+                    enabled: false;
+                }
 
-                RowLayout {
-                    width: parent.width;
+                MouseArea {
+                    anchors.fill: checkbox
+                    onClicked: Audio.setInputDevice(info);
+                }
 
-                    AudioControls.CheckBox {
-                        Layout.maximumWidth: parent.width - level.width - 40;
-                        text: display;
-                        wrap: false;
-                        checked: selected;
-                        onClicked: {
-                            selected = checked;
-                            checked = Qt.binding(function() { return selected; }); // restore binding
-                        }
-                    }
-                    InputLevel {
-                        id: level;
-                        Layout.alignment: Qt.AlignRight;
-                        Layout.rightMargin: 30;
-                        visible: selected;
-                    }
+                InputLevel {
+                    id: level;
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.right: parent.right
+                    anchors.rightMargin: 30
+                    visible: selected;
                 }
             }
         }
@@ -174,13 +176,19 @@ Rectangle {
             delegate: Item {
                 width: parent.width;
                 height: 36;
+
                 AudioControls.CheckBox {
+                    id: checkbox
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: parent.left
                     text: display;
                     checked: selected;
-                    onClicked: {
-                        selected = checked;
-                        checked = Qt.binding(function() { return selected; }); // restore binding
-                    }
+                    enabled: false;
+                }
+
+                MouseArea {
+                    anchors.fill: checkbox
+                    onClicked: Audio.setOutputDevice(info);
                 }
             }
         }
