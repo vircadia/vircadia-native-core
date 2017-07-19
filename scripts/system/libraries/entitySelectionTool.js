@@ -4064,6 +4064,7 @@ SelectionDisplay = (function() {
             // if another mouse button than left is pressed ignore it
             return false;
         }
+        entityIconOverlayManager.setIconsSelectable(selectionManager.selections,true);
 
         var somethingClicked = false;
         var pickRay = generalComputePickRay(event.x, event.y);

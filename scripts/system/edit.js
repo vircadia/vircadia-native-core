@@ -943,8 +943,6 @@ function mouseClickEvent(event) {
                     selectionManager.addEntity(foundEntity, true);
                 }
 
-                entityIconOverlayManager.setIconsSelectable(selectionManager.selections,true);
-
                 if (wantDebug) {
                     print("Model selected: " + foundEntity);
                 }
