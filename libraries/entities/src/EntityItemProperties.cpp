@@ -2169,5 +2169,5 @@ bool EntityItemProperties::parentRelatedPropertyChanged() const {
 }
 
 bool EntityItemProperties::queryAACubeRelatedPropertyChanged() const {
-	return parentRelatedPropertyChanged() || dimensionsChanged();
+    return parentRelatedPropertyChanged() || dimensionsChanged();
 }

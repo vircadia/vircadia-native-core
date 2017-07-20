@@ -10,7 +10,6 @@
 //
 
 #include <QQueue>
-#include <iostream> // adebug
 
 #include "DependencyManager.h"
 #include "SharedUtil.h"
@@ -947,13 +946,16 @@ AACube SpatiallyNestable::getMaximumAACube(bool& success) const {
     return AACube(getPosition(success) - glm::vec3(defaultAACubeSize / 2.0f), defaultAACubeSize);
 }
 
+const float PARENTED_EXPANSION_FACTOR = 3.0f;
+
 bool SpatiallyNestable::checkAndMaybeUpdateQueryAACube() {
     bool success;
     AACube maxAACube = getMaximumAACube(success);
     if (success && (!_queryAACubeSet || !_queryAACube.contains(maxAACube))) {
-	    const float PUFF_COEFFICIENT = (_parentJointIndex != INVALID_JOINT_INDEX || _children.size() > 0 ) ? 3.0f : 1.0f;
+        const float expansionFactor = (_parentJointIndex != INVALID_JOINT_INDEX || _children.size() > 0 )
+            ? PARENTED_EXPANSION_FACTOR : 1.0f;
         float scale = maxAACube.getScale();
-        _queryAACube = AACube(maxAACube.getCorner() - glm::vec3(scale), scale * PUFF_COEFFICIENT);
+        _queryAACube = AACube(maxAACube.getCorner() - glm::vec3(scale), scale * expansionFactor);
 
         getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
             bool success;
@@ -1002,9 +1004,10 @@ void SpatiallyNestable::updateQueryAACube() {
     bool success;
     AACube currentAACube = getMaximumAACube(success);
     // make an AACube with edges thrice as long and centered on the object
-	const float PUFF_COEFFICIENT = (_parentJointIndex != INVALID_JOINT_INDEX || _children.size() > 0 ) ? 3.0f : 1.0f;
+    const float expansionFactor = (_parentJointIndex != INVALID_JOINT_INDEX || _children.size() > 0 ) ?
+        PARENTED_EXPANSION_FACTOR : 1.0f;
     float scale = currentAACube.getScale();
-    _queryAACube = AACube(currentAACube.getCorner() - glm::vec3(scale), scale * PUFF_COEFFICIENT);
+    _queryAACube = AACube(currentAACube.getCorner() - glm::vec3(scale), scale * expansionFactor);
 
     getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
         bool success;
