@@ -49,6 +49,7 @@ void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _bbOverlay->setIsSolid(false);
                 _bbOverlay->setColor(BB_OVERLAY_COLOR);
                 _bbOverlay->setDrawInFront(true);
+                _bbOverlay->setIgnoreRayIntersection(false);
                 _bbOverlayID = qApp->getOverlays().addOverlay(_bbOverlay);
             }
             _bbOverlay->setDimensions(entityProperties.getDimensions());
@@ -69,7 +70,7 @@ void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _contextOverlayID = qApp->getOverlays().addOverlay(_contextOverlay);
             }
 
-            _contextOverlay->setDimensions(glm::vec2(0.1f, 0.1f) * glm::distance(entityProperties.getPosition(), qApp->getCamera().getPosition()));
+            _contextOverlay->setDimensions(glm::vec2(0.05f, 0.05f) * glm::distance(entityProperties.getPosition(), qApp->getCamera().getPosition()));
             _contextOverlay->setPosition(entityProperties.getPosition());
             _contextOverlay->setRotation(entityProperties.getRotation());
             _contextOverlay->setVisible(true);
@@ -97,7 +98,7 @@ void ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
 }
 
 void ContextOverlayInterface::clickContextOverlay(const OverlayID& overlayID, const PointerEvent& event) {
-    if (overlayID == _contextOverlayID && event.getButton() == PointerEvent::PrimaryButton) {
+    if ((overlayID == _contextOverlayID || overlayID == _bbOverlayID) && event.getButton() == PointerEvent::PrimaryButton) {
         qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "Overlay ID:" << overlayID;
         openMarketplace();
         destroyContextOverlay(_currentEntityWithContextOverlay, PointerEvent());
