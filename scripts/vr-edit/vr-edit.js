@@ -577,7 +577,8 @@
             // Recursively traverses tree of entities and their children, gather IDs and properties.
             var children,
                 properties,
-                SELECTION_PROPERTIES = ["position", "registrationPoint", "rotation", "dimensions", "localPosition"],
+                SELECTION_PROPERTIES = ["position", "registrationPoint", "rotation", "dimensions", "localPosition",
+                    "dynamic", "collisionless"],
                 i,
                 length;
 
@@ -588,7 +589,9 @@
                 localPosition: properties.localPosition,
                 registrationPoint: properties.registrationPoint,
                 rotation: properties.rotation,
-                dimensions: properties.dimensions
+                dimensions: properties.dimensions,
+                dynamic: properties.dynamic,
+                collisionless: properties.collisionless
             });
 
             children = Entities.getChildrenIDs(id);
@@ -601,7 +604,7 @@
 
         function select(entityID) {
             var entityProperties,
-                PARENT_PROPERTIES = ["parentID", "position", "rotation"];
+                PARENT_PROPERTIES = ["parentID", "position", "rotation", "dymamic", "collisionless"];
 
             // Find root parent.
             rootEntityID = Entities.rootOf(entityID);
@@ -707,6 +710,47 @@
                 orientation: orientation,
                 dimensions: dimensions
             };
+        }
+
+        function startEditing() {
+            var count,
+                i;
+
+            // Disable entity set's physics.
+            for (i = 0, count = selection.length; i < count; i += 1) {
+                Entities.editEntity(selection[i].id, {
+                    dynamic: false,         // So that gravity doesn't fight with us trying to hold the entity in place.
+                    collisionless: true     // So that entity doesn't bump us about as we resize the entity.
+                });
+            }
+        }
+
+        function finishEditing() {
+            var firstDynamicEntityID = null,
+                properties,
+                VELOCITY_THRESHOLD = 0.05,  // See EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
+                VELOCITY_KICK = { x: 0, y: 0.02, z: 0 },
+                count,
+                i;
+
+            // Restore entity set's physics.
+            for (i = 0, count = selection.length; i < count; i += 1) {
+                if (firstDynamicEntityID === null && selection[i].dynamic) {
+                    firstDynamicEntityID = selection[i].id;
+                }
+                Entities.editEntity(selection[i].id, {
+                    dynamic: selection[i].dynamic,
+                    collisionless: selection[i].collisionless
+                });
+            }
+
+            // If dynamic with gravity, and velocity is zero, give the entity set a little kick to set off physics.
+            if (firstDynamicEntityID) {
+                properties = Entities.getEntityProperties(firstDynamicEntityID, ["velocity", "gravity"]);
+                if (Vec3.length(properties.gravity) > 0 && Vec3.length(properties.velocity) < VELOCITY_THRESHOLD) {
+                    Entities.editEntity(firstDynamicEntityID, { velocity: VELOCITY_KICK });
+                }
+            }
         }
 
         function getPositionAndOrientation() {
@@ -816,12 +860,14 @@
             boundingBox: getBoundingBox,
             getPositionAndOrientation: getPositionAndOrientation,
             setPositionAndOrientation: setPositionAndOrientation,
+            startEditing: startEditing,
             startDirectScaling: startDirectScaling,
             directScale: directScale,
             finishDirectScaling: finishDirectScaling,
             startHandleScaling: startHandleScaling,
             handleScale: handleScale,
             finishHandleScaling: finishHandleScaling,
+            finishEditing: finishEditing,
             clear: clear,
             destroy: destroy
         };
@@ -1295,10 +1341,12 @@
             selectionPositionAndOrientation = selection.getPositionAndOrientation();
             initialHandToSelectionVector = Vec3.subtract(selectionPositionAndOrientation.position, hand.position());
             initialSelectionOrientation = selectionPositionAndOrientation.orientation;
+
+            selection.startEditing();
         }
 
         function stopEditing() {
-            // Nothing to do.
+            selection.finishEditing();
         }
 
 
