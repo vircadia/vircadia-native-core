@@ -516,6 +516,15 @@ function cleanup() {
 }
 Script.scriptEnding.connect(cleanup);
 
+var setIgnoredEntities = function () {
+    LaserPointers.setIgnoredEntities(teleporter.teleportRayRightVisible, ignoredEntities);
+    LaserPointers.setIgnoredEntities(teleporter.teleportRayRightInvisible, ignoredEntities);
+    LaserPointers.setIgnoredEntities(teleporter.teleportRayLeftVisible, ignoredEntities);
+    LaserPointers.setIgnoredEntities(teleporter.teleportRayLeftInvisible, ignoredEntities);
+    LaserPointers.setIgnoredEntities(teleporter.teleportRayHeadVisible, ignoredEntities);
+    LaserPointers.setIgnoredEntities(teleporter.teleportRayHeadInvisible, ignoredEntities);
+}
+
 var isDisabled = false;
 var handleTeleportMessages = function(channel, message, sender) {
     if (sender === MyAvatar.sessionUUID) {
@@ -533,13 +542,13 @@ var handleTeleportMessages = function(channel, message, sender) {
                 isDisabled = false;
             }
         } else if (channel === 'Hifi-Teleport-Ignore-Add' && !Uuid.isNull(message) && ignoredEntities.indexOf(message) === -1) {
-            // TODO:
-            // add ability to ignore entities to LaserPointers
             ignoredEntities.push(message);
+            setIgnoredEntities();
         } else if (channel === 'Hifi-Teleport-Ignore-Remove' && !Uuid.isNull(message)) {
             var removeIndex = ignoredEntities.indexOf(message);
             if (removeIndex > -1) {
                 ignoredEntities.splice(removeIndex, 1);
+                setIgnoredEntities();
             }
         }
     }
