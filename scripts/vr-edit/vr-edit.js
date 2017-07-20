@@ -1728,7 +1728,7 @@
                 break;
             case EDITOR_SEARCHING:
                 if (hand.valid() && !intersection.entityID
-                        && !(intersection.overlayID && hand.triggerClicked())) {
+                        && !(intersection.overlayID && hand.triggerClicked() && otherEditor.isHandle(intersection.overlayID))) {
                     // No transition.
                     updateState();
                     break;
