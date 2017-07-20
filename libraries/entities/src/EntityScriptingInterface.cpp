@@ -1166,7 +1166,7 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
 }
 
 void EntityScriptingInterface::replaceDomainContentSet(const QString url){
-    
+
 }
 
 QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,

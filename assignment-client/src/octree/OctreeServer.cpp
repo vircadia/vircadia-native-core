@@ -965,7 +965,8 @@ void OctreeServer::handleOctreeFileReplacement(QSharedPointer<ReceivedMessage> m
                     } else {
                         qWarning() << "Could not write replacement octree data to file - refusing to process";
                     }
-                } else {
+                }
+                else {
                     qDebug() << "Received replacement octree file that is invalid - refusing to process";
                 }
             } else {
