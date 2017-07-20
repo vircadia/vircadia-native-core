@@ -49,15 +49,11 @@ private:
 class LaserPointer {
 
 public:
-    LaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance,
-        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled);
-    LaserPointer(const glm::vec3& position, const glm::vec3& direction, const uint16_t filter, const float maxDistance,
-        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled);
-    LaserPointer(const uint16_t filter, const float maxDistance, const QHash<QString, RenderState>& renderStates, const bool faceAvatar,
-        const bool centerEndY, const bool lockEnd, const bool enabled);
+    LaserPointer::LaserPointer(const QVariantMap& rayProps, const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY,
+        const bool lockEnd, const bool enabled);
     ~LaserPointer();
 
-    unsigned int getUID() { return _rayPickUID; }
+    unsigned int getRayUID() { return _rayPickUID; }
     void enable();
     void disable();
     const RayPickResult getPrevRayPickResult() { return DependencyManager::get<RayPickManager>()->getPrevRayPickResult(_rayPickUID); }

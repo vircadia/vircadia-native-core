@@ -10,56 +10,17 @@
 //
 #include "LaserPointer.h"
 
-#include "JointRayPick.h"
-#include "StaticRayPick.h"
-#include "MouseRayPick.h"
-
 #include "Application.h"
 #include "avatar/AvatarManager.h"
 
-LaserPointer::LaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance,
-    const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) :
+LaserPointer::LaserPointer(const QVariantMap& rayProps, const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) :
     _renderingEnabled(enabled),
     _renderStates(renderStates),
     _faceAvatar(faceAvatar),
     _centerEndY(centerEndY),
     _lockEnd(lockEnd)
 {
-    _rayPickUID = DependencyManager::get<RayPickManager>()->addRayPick(std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled));
-
-    for (auto& state : _renderStates.keys()) {
-        if (!enabled || state != _currentRenderState) {
-            disableRenderState(state);
-        }
-    }
-}
-
-LaserPointer::LaserPointer(const glm::vec3& position, const glm::vec3& direction, const uint16_t filter, const float maxDistance,
-        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) :
-    _renderingEnabled(enabled),
-    _renderStates(renderStates),
-    _faceAvatar(faceAvatar),
-    _centerEndY(centerEndY),
-    _lockEnd(lockEnd)
-{
-    _rayPickUID = DependencyManager::get<RayPickManager>()->addRayPick(std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled));
-
-    for (auto& state : _renderStates.keys()) {
-        if (!enabled || state != _currentRenderState) {
-            disableRenderState(state);
-        }
-    }
-}
-
-LaserPointer::LaserPointer(const uint16_t filter, const float maxDistance, const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY,
-    const bool lockEnd, const bool enabled) :
-    _renderingEnabled(enabled),
-    _renderStates(renderStates),
-    _faceAvatar(faceAvatar),
-    _centerEndY(centerEndY),
-    _lockEnd(lockEnd)
-{
-    _rayPickUID = DependencyManager::get<RayPickManager>()->addRayPick(std::make_shared<MouseRayPick>(filter, maxDistance, enabled));
+    _rayPickUID = DependencyManager::get<RayPickManager>()->createRayPick(rayProps);
 
     for (auto& state : _renderStates.keys()) {
         if (!enabled || state != _currentRenderState) {

@@ -19,6 +19,10 @@
 #include "scripting/HMDScriptingInterface.h"
 #include "DependencyManager.h"
 
+#include "JointRayPick.h"
+#include "StaticRayPick.h"
+#include "MouseRayPick.h"
+
 bool RayPickManager::checkAndCompareCachedResults(QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache, RayPickResult& res, unsigned int mask) {
     if (cache.contains(ray) && cache[ray].contains(mask)) {
         if (cache[ray][mask].distance < res.distance) {
@@ -137,10 +141,59 @@ void RayPickManager::update() {
     }
 }
 
-unsigned int RayPickManager::addRayPick(std::shared_ptr<RayPick> rayPick) {
-    QWriteLocker lock(&_addLock);
-    _rayPicksToAdd.enqueue(QPair<unsigned int, std::shared_ptr<RayPick>>(_nextUID, rayPick));
-    return _nextUID++;
+unsigned int RayPickManager::createRayPick(const QVariantMap& rayProps) {
+    bool enabled = false;
+    if (rayProps["enabled"].isValid()) {
+        enabled = rayProps["enabled"].toBool();
+    }
+
+    uint16_t filter = 0;
+    if (rayProps["filter"].isValid()) {
+        filter = rayProps["filter"].toUInt();
+    }
+
+    float maxDistance = 0.0f;
+    if (rayProps["maxDistance"].isValid()) {
+        maxDistance = rayProps["maxDistance"].toFloat();
+    }
+
+    if (rayProps["joint"].isValid()) {
+        QString jointName = rayProps["joint"].toString();
+
+        if (jointName != "Mouse") {
+            // x = upward, y = forward, z = lateral
+            glm::vec3 posOffset = Vectors::ZERO;
+            if (rayProps["posOffset"].isValid()) {
+                posOffset = vec3FromVariant(rayProps["posOffset"]);
+            }
+
+            glm::vec3 dirOffset = Vectors::UP;
+            if (rayProps["dirOffset"].isValid()) {
+                dirOffset = vec3FromVariant(rayProps["dirOffset"]);
+            }
+
+            QWriteLocker lock(&_addLock);
+            _rayPicksToAdd.enqueue(QPair<unsigned int, std::shared_ptr<RayPick>>(_nextUID, std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled)));
+            return _nextUID++;
+        } else {
+            QWriteLocker lock(&_addLock);
+            _rayPicksToAdd.enqueue(QPair<unsigned int, std::shared_ptr<RayPick>>(_nextUID, std::make_shared<MouseRayPick>(filter, maxDistance, enabled)));
+            return _nextUID++;
+        }
+    } else if (rayProps["position"].isValid()) {
+        glm::vec3 position = vec3FromVariant(rayProps["position"]);
+
+        glm::vec3 direction = -Vectors::UP;
+        if (rayProps["direction"].isValid()) {
+            direction = vec3FromVariant(rayProps["direction"]);
+        }
+
+        QWriteLocker lock(&_addLock);
+        _rayPicksToAdd.enqueue(QPair<unsigned int, std::shared_ptr<RayPick>>(_nextUID, std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled)));
+        return _nextUID++;
+    }
+
+    return 0;
 }
 
 void RayPickManager::removeRayPick(const unsigned int uid) {

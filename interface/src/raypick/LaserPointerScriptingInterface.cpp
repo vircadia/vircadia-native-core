@@ -20,16 +20,6 @@
 uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& properties) {
     QVariantMap propertyMap = properties.toMap();
 
-    uint16_t filter = 0;
-    if (propertyMap["filter"].isValid()) {
-        filter = propertyMap["filter"].toUInt();
-    }
-
-    float maxDistance = 0.0f;
-    if (propertyMap["maxDistance"].isValid()) {
-        maxDistance = propertyMap["maxDistance"].toFloat();
-    }
-
     bool faceAvatar = false;
     if (propertyMap["faceAvatar"].isValid()) {
         faceAvatar = propertyMap["faceAvatar"].toBool();
@@ -64,37 +54,7 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
         }
     }
 
-    if (propertyMap["joint"].isValid()) {
-        QString jointName = propertyMap["joint"].toString();
-
-        if (jointName != "Mouse") {
-            // x = upward, y = forward, z = lateral
-            glm::vec3 posOffset = Vectors::ZERO;
-            if (propertyMap["posOffset"].isValid()) {
-                posOffset = vec3FromVariant(propertyMap["posOffset"]);
-            }
-
-            glm::vec3 dirOffset = Vectors::UP;
-            if (propertyMap["dirOffset"].isValid()) {
-                dirOffset = vec3FromVariant(propertyMap["dirOffset"]);
-            }
-
-            return DependencyManager::get<LaserPointerManager>()->createLaserPointer(jointName, posOffset, dirOffset, filter, maxDistance, renderStates, faceAvatar, centerEndY, lockEnd, enabled);
-        } else {
-            return DependencyManager::get<LaserPointerManager>()->createLaserPointer(filter, maxDistance, renderStates, faceAvatar, centerEndY, lockEnd, enabled);
-        }
-    } else if (propertyMap["position"].isValid()) {
-        glm::vec3 position = vec3FromVariant(propertyMap["position"]);
-
-        glm::vec3 direction = -Vectors::UP;
-        if (propertyMap["direction"].isValid()) {
-            direction = vec3FromVariant(propertyMap["direction"]);
-        }
-
-        return DependencyManager::get<LaserPointerManager>()->createLaserPointer(position, direction, filter, maxDistance, renderStates, faceAvatar, centerEndY, lockEnd, enabled);
-    }
-
-    return 0;
+    return DependencyManager::get<LaserPointerManager>()->createLaserPointer(propertyMap, renderStates, faceAvatar, centerEndY, lockEnd, enabled);
 }
 
 void LaserPointerScriptingInterface::editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) {

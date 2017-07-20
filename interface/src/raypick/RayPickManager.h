@@ -58,19 +58,21 @@ class RayPickManager : public QObject, public Dependency {
 
 public:
     void update();
-    unsigned int addRayPick(std::shared_ptr<RayPick> rayPick);
-    void removeRayPick(const unsigned int uid);
-    void enableRayPick(const unsigned int uid);
-    void disableRayPick(const unsigned int uid);
     const PickRay getPickRay(const unsigned int uid);
-    const RayPickResult getPrevRayPickResult(const unsigned int uid);
 
-    void setIgnoreEntities(unsigned int uid, const QScriptValue& ignoreEntities);
-    void setIncludeEntities(unsigned int uid, const QScriptValue& includeEntities);
-    void setIgnoreOverlays(unsigned int uid, const QScriptValue& ignoreOverlays);
-    void setIncludeOverlays(unsigned int uid, const QScriptValue& includeOverlays);
-    void setIgnoreAvatars(unsigned int uid, const QScriptValue& ignoreAvatars);
-    void setIncludeAvatars(unsigned int uid, const QScriptValue& includeAvatars);
+public slots:
+    Q_INVOKABLE unsigned int createRayPick(const QVariantMap& rayProps);
+    Q_INVOKABLE void removeRayPick(const unsigned int uid);
+    Q_INVOKABLE void enableRayPick(const unsigned int uid);
+    Q_INVOKABLE void disableRayPick(const unsigned int uid);
+    Q_INVOKABLE const RayPickResult getPrevRayPickResult(const unsigned int uid);
+
+    Q_INVOKABLE void setIgnoreEntities(unsigned int uid, const QScriptValue& ignoreEntities);
+    Q_INVOKABLE void setIncludeEntities(unsigned int uid, const QScriptValue& includeEntities);
+    Q_INVOKABLE void setIgnoreOverlays(unsigned int uid, const QScriptValue& ignoreOverlays);
+    Q_INVOKABLE void setIncludeOverlays(unsigned int uid, const QScriptValue& includeOverlays);
+    Q_INVOKABLE void setIgnoreAvatars(unsigned int uid, const QScriptValue& ignoreAvatars);
+    Q_INVOKABLE void setIncludeAvatars(unsigned int uid, const QScriptValue& includeAvatars);
 
 private:
     QHash<unsigned int, std::shared_ptr<RayPick>> _rayPicks;

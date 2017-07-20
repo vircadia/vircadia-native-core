@@ -257,12 +257,12 @@ function Grabber() {
     this.liftKey = false; // SHIFT
     this.rotateKey = false; // CONTROL
 
-    this.mouseRayOverlays = LaserPointers.createLaserPointer({
+    this.mouseRayOverlays = RayPick.createRayPick({
         joint: "Mouse",
         filter: RayPick.PICK_OVERLAYS,
         enabled: true
     });
-    LaserPointers.setIncludeOverlays(this.mouseRayOverlays, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
+    RayPick.setIncludeOverlays(this.mouseRayOverlays, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
     this.mouseRayEntities = LaserPointers.createLaserPointer({
         joint: "Mouse",
         filter: RayPick.PICK_ENTITIES,
@@ -318,7 +318,7 @@ Grabber.prototype.pressEvent = function(event) {
         return;
     }
 
-    var overlayResult = LaserPointers.getPrevRayPickResult(this.mouseRayOverlays);
+    var overlayResult = RayPick.getPrevRayPickResult(this.mouseRayOverlays);
     if (overlayResult.type != RayPick.INTERSECTED_NONE) {
         return;
     }
@@ -572,7 +572,7 @@ Grabber.prototype.keyPressEvent = function(event) {
 
 Grabber.prototype.cleanup = function() {
     LaserPointers.removeLaserPointer(this.mouseRayEntities);
-    LaserPointers.removeLaserPointer(this.mouseRayOverlays);
+    RayPick.removeRayPick(this.mouseRayOverlays);
 };
 
 var grabber = new Grabber();
