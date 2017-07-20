@@ -224,7 +224,8 @@
             BOUNDING_BOX_ALPHA = 0.8,
             HANDLE_NORMAL_COLOR = { red: 0, green: 240, blue: 240 },
             HANDLE_HOVER_COLOR = { red: 0, green: 255, blue: 120 },
-            HANDLE_ALPHA = 0.7,
+            HANDLE_NORMAL_ALPHA = 0.7,
+            HANDLE_HOVER_ALPHA = 0.9,
             NUM_CORNERS = 8,
             NUM_CORNER_HANDLES = 2,
             CORNER_HANDLE_OVERLAY_DIMENSIONS = { x: 0.1, y: 0.1, z: 0.1 },
@@ -303,7 +304,7 @@
         for (i = 0; i < NUM_CORNER_HANDLES; i += 1) {
             cornerHandleOverlays[i] = Overlays.addOverlay("sphere", {
                 color: HANDLE_NORMAL_COLOR,
-                alpha: HANDLE_ALPHA,
+                alpha: HANDLE_NORMAL_ALPHA,
                 solid: true,
                 drawInFront: true,
                 ignoreRayIntersection: false,
@@ -315,7 +316,7 @@
             faceHandleOverlays[i] = Overlays.addOverlay("shape", {
                 shape: "Cone",
                 color: HANDLE_NORMAL_COLOR,
-                alpha: HANDLE_ALPHA,
+                alpha: HANDLE_NORMAL_ALPHA,
                 solid: true,
                 drawInFront: true,
                 ignoreRayIntersection: false,
@@ -492,7 +493,10 @@
 
                 if (overlayID !== null
                         && (faceHandleOverlays.indexOf(overlayID) !== -1 || cornerHandleOverlays.indexOf(overlayID) !== -1)) {
-                    Overlays.editOverlay(overlayID, { color: HANDLE_HOVER_COLOR });
+                    Overlays.editOverlay(overlayID, {
+                        color: HANDLE_HOVER_COLOR,
+                        alpha: HANDLE_HOVER_ALPHA
+                    });
                     hoveredOverlayID = overlayID;
                 }
             }
@@ -502,6 +506,7 @@
             var overlay,
                 isShowAll = overlayID === null,
                 color = isShowAll ? HANDLE_NORMAL_COLOR : HANDLE_HOVER_COLOR,
+                alpha = isShowAll ? HANDLE_NORMAL_ALPHA : HANDLE_HOVER_ALPHA,
                 i,
                 length;
 
@@ -509,7 +514,8 @@
                 overlay = cornerHandleOverlays[i];
                 Overlays.editOverlay(overlay, {
                     visible: isVisible && (isShowAll || overlay === overlayID),
-                    color: color
+                    color: color,
+                    alpha: alpha
                 });
             }
 
@@ -517,7 +523,8 @@
                 overlay = faceHandleOverlays[i];
                 Overlays.editOverlay(overlay, {
                     visible: isVisible && (isShowAll || overlay === overlayID),
-                    color: color
+                    color: color,
+                    alpha: alpha
                 });
             }
         }
