@@ -1348,9 +1348,19 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     });
 
     connect(overlays,
-            SIGNAL(mousePressOnOverlay(const OverlayID&, const PointerEvent&)),
-            DependencyManager::get<ContextOverlayInterface>().data(),
-            SLOT(clickContextOverlay(const OverlayID&, const PointerEvent&)));
+        SIGNAL(mousePressOnOverlay(const OverlayID&, const PointerEvent&)),
+        DependencyManager::get<ContextOverlayInterface>().data(),
+        SLOT(clickContextOverlay(const OverlayID&, const PointerEvent&)));
+
+    connect(overlays,
+        SIGNAL(hoverEnterOverlay(const OverlayID&, const PointerEvent&)),
+        DependencyManager::get<ContextOverlayInterface>().data(),
+        SLOT(hoverEnterContextOverlay(const OverlayID&, const PointerEvent&)));
+
+    connect(overlays,
+        SIGNAL(hoverLeaveOverlay(const OverlayID&, const PointerEvent&)),
+        DependencyManager::get<ContextOverlayInterface>().data(),
+        SLOT(hoverLeaveContextOverlay(const OverlayID&, const PointerEvent&)));
 
     // Add periodic checks to send user activity data
     static int CHECK_NEARBY_AVATARS_INTERVAL_MS = 10000;

@@ -58,6 +58,8 @@ public slots:
     bool destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
     bool destroyContextOverlay(const EntityItemID& entityItemID);
     void clickContextOverlay(const OverlayID& overlayID, const PointerEvent& event);
+    void hoverEnterContextOverlay(const OverlayID& overlayID, const PointerEvent& event);
+    void hoverLeaveContextOverlay(const OverlayID& overlayID, const PointerEvent& event);
 
 private:
     bool _verboseLogging { true };
