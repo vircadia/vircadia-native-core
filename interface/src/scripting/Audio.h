@@ -81,7 +81,7 @@ private:
     float _inputVolume { 1.0f };
     float _inputLevel { 0.0f };
     bool _isMuted { false };
-    bool _enableNoiseReduction;
+    bool _enableNoiseReduction { true };  // Match default value of AudioClient::_isNoiseGateEnabled.
     bool _contextIsHMD { false };
 
     AudioDevices* getDevices() { return &_devices; }
