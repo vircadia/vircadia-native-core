@@ -1334,6 +1334,10 @@
                 && (rootEntityID === undefined || rootEntityID === selection.rootEntityID());
         }
 
+        function isScaling() {
+            return editorState === EDITOR_DIRECT_SCALING || editorState === EDITOR_HANDLE_SCALING;
+        }
+
         function startEditing() {
             var selectionPositionAndOrientation;
 
@@ -1917,6 +1921,7 @@
             hoverHandle: hoverHandle,
             isHandle: isHandle,
             isEditing: isEditing,
+            isScaling: isScaling,
             startDirectScaling: startDirectScaling,
             updateDirectScaling: updateDirectScaling,
             stopDirectScaling: stopDirectScaling,
@@ -1966,7 +1971,10 @@
     }
 
     function onGripClicked() {
-        isAppScaleWithHandles = !isAppScaleWithHandles;
+        // Do not change scale mode if are currently scaling.
+        if (!editors[LEFT_HAND].isScaling() && !editors[RIGHT_HAND].isScaling()) {
+            isAppScaleWithHandles = !isAppScaleWithHandles;
+        }
     }
 
 
