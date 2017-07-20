@@ -16,6 +16,7 @@
 #include <TextureCache.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
+#include <FadeEffect.h>
 
 #include "RenderablePolyLineEntityItem.h"
 
@@ -46,6 +47,8 @@ render::ShapePipelinePointer PolyLinePayload::shapePipelineFactory(const render:
         slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), PAINTSTROKE_TEXTURE_SLOT));
         slotBindings.insert(gpu::Shader::Binding(std::string("polyLineBuffer"), PAINTSTROKE_UNIFORM_SLOT));
         gpu::Shader::makeProgram(*program, slotBindings);
+        slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), PAINTSTROKE_TEXTURE_SLOT + 1));
+        slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), PAINTSTROKE_UNIFORM_SLOT+1));
         gpu::Shader::makeProgram(*fadeProgram, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
@@ -59,7 +62,8 @@ render::ShapePipelinePointer PolyLinePayload::shapePipelineFactory(const render:
     }
 
     if (key.isFaded()) {
-        return std::make_shared<render::ShapePipeline>(_fadePipeline, nullptr, nullptr, nullptr);
+        auto fadeEffect = DependencyManager::get<FadeEffect>();
+        return std::make_shared<render::ShapePipeline>(_fadePipeline, nullptr, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
     } else {
         return std::make_shared<render::ShapePipeline>(_pipeline, nullptr, nullptr, nullptr);
     }
@@ -201,10 +205,7 @@ void RenderablePolyLineEntityItem::updateVertices() {
 
 }
 
-void RenderablePolyLineEntityItem::update(const quint64& now) {
-    PolyLineUniforms uniforms;
-    uniforms.color = toGlm(getXColor());
-    memcpy(&_uniformBuffer.edit<PolyLineUniforms>(), &uniforms, sizeof(PolyLineUniforms));
+void RenderablePolyLineEntityItem::updateMesh() {
     if (_pointsChanged || _strokeWidthsChanged || _normalsChanged) {
         QWriteLocker lock(&_quadReadWriteLock);
         _empty = (_points.size() < 2 || _normals.size() < 2 || _strokeWidths.size() < 2);
@@ -213,7 +214,13 @@ void RenderablePolyLineEntityItem::update(const quint64& now) {
             updateGeometry();
         }
     }
+}
 
+void RenderablePolyLineEntityItem::update(const quint64& now) {
+    PolyLineUniforms uniforms;
+    uniforms.color = toGlm(getXColor());
+    memcpy(&_uniformBuffer.edit<PolyLineUniforms>(), &uniforms, sizeof(PolyLineUniforms));
+    updateMesh();
 }
 
 bool RenderablePolyLineEntityItem::addToScene(const EntityItemPointer& self,
@@ -230,13 +237,12 @@ bool RenderablePolyLineEntityItem::addToScene(const EntityItemPointer& self,
 
     transaction.resetItem(_myItem, renderPayload);
     transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+    updateMesh();
 
     return true;
 }
 
 void RenderablePolyLineEntityItem::render(RenderArgs* args) {
-    checkFading();
-
     if (_empty) {
         return;
     }

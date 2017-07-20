@@ -76,6 +76,7 @@ public:
 protected:
     void updateGeometry();
     void updateVertices();
+    void updateMesh();
 
     static void createStreamFormat();
 

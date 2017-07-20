@@ -74,7 +74,7 @@ void RenderableShapeEntityItem::setUserData(const QString& value) {
 }
 
 bool RenderableShapeEntityItem::isTransparent() {
-    return getLocalRenderAlpha() < 1.0f || EntityItem::isTransparent();
+    return getLocalRenderAlpha() < 1.0f;
 }
 
 namespace render {
@@ -121,7 +121,6 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableShapeEntityItem::render");
     //Q_ASSERT(getType() == EntityTypes::Shape);
     Q_ASSERT(args->_batch);
-    checkFading();
 
     if (!_procedural) {
         _procedural.reset(new Procedural(getUserData()));
