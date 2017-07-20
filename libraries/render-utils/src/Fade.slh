@@ -16,7 +16,7 @@
 
 <@include Fade_shared.slh@>
 
-uniform fadeParametersBuffer {
+layout(std140) uniform fadeParametersBuffer {
     FadeParameters fadeParameters[CATEGORY_COUNT];
 };
 uniform int fadeCategory;
