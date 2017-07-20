@@ -72,13 +72,18 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
             glm::vec3 cameraPosition = qApp->getCamera().getPosition();
             float distanceToEntity = glm::distance(entityProperties.getPosition(), cameraPosition);
             glm::vec3 contextOverlayPosition;
+            glm::vec2 contextOverlayDimensions;
             if (distanceToEntity > 1.5f) {
                 contextOverlayPosition = (distanceToEntity - 1.0f) * glm::normalize(entityProperties.getPosition() - cameraPosition) + cameraPosition;
+                contextOverlayDimensions = glm::vec2(0.08f, 0.08f) * glm::distance(contextOverlayPosition, cameraPosition);
             } else {
-                contextOverlayPosition = (glm::quat(glm::radians(glm::vec3(0.0f, -30.0f, 0.0f))) * (entityProperties.getPosition() - cameraPosition)) + cameraPosition;
+                // If the entity is too close to the camera, rotate the context overlay to the right of the entity.
+                // This makes it easy to inspect things you're holding.
+                contextOverlayPosition = (glm::quat(glm::radians(glm::vec3(0.0f, -20.0f, 0.0f))) * (entityProperties.getPosition() - cameraPosition)) + cameraPosition;
+                contextOverlayDimensions = glm::vec2(0.12f, 0.12f) * glm::distance(contextOverlayPosition, cameraPosition);
             }
             _contextOverlay->setPosition(contextOverlayPosition);
-            _contextOverlay->setDimensions(glm::vec2(0.1f, 0.1f) * glm::distance(contextOverlayPosition, cameraPosition));
+            _contextOverlay->setDimensions(contextOverlayDimensions);
             _contextOverlay->setRotation(entityProperties.getRotation());
             _contextOverlay->setVisible(true);
             return true;
@@ -90,7 +95,6 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
 }
 
 bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
-
     if (_contextOverlayID != UNKNOWN_OVERLAY_ID) {
         qCDebug(context_overlay) << "Destroying Context Overlay on top of entity with ID: " << entityItemID;
         setCurrentEntityWithContextOverlay(QUuid());

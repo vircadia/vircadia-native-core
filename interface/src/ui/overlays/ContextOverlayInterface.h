@@ -29,10 +29,6 @@
 #include "EntityTree.h"
 #include "ContextOverlayLogging.h"
 
-#ifndef MIN
-#define MIN(a,b) ((a) < (b) ? (a) : (b))
-#endif
-
 /**jsdoc
 * @namespace ContextOverlay
 */
