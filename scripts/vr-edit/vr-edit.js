@@ -1338,6 +1338,11 @@
             return editorState === EDITOR_DIRECT_SCALING || editorState === EDITOR_HANDLE_SCALING;
         }
 
+        function rootEntityID() {
+            return selection.rootEntityID();
+        }
+
+
         function startEditing() {
             var selectionPositionAndOrientation;
 
@@ -1612,7 +1617,7 @@
         }
 
         function enterEditorDirectScaling() {
-            selection.select(highlightedEntityID);  // For when transitioning from EDITOR_SEARCHING.
+            selection.select(highlightedEntityID);  // In case need to transition to EDITOR_GRABBING.
             isScalingWithHand = intersection.handIntersected;
             if (intersection.laserIntersected) {
                 laser.setLength(laser.length());
@@ -1630,7 +1635,7 @@
         }
 
         function enterEditorHandleScaling() {
-            selection.select(highlightedEntityID);  // For when transitioning from EDITOR_SEARCHING.
+            selection.select(highlightedEntityID);  // In case need to transition to EDITOR_GRABBING.
             isScalingWithHand = intersection.handIntersected;
             if (intersection.laserIntersected) {
                 laser.setLength(laser.length());
@@ -1732,6 +1737,7 @@
                     setState(EDITOR_IDLE);
                 } else if (intersection.overlayID && hand.triggerClicked()
                         && otherEditor.isHandle(intersection.overlayID)) {
+                    highlightedEntityID = otherEditor.rootEntityID();
                     setState(EDITOR_HANDLE_SCALING);
                 } else if (intersection.entityID && !hand.triggerClicked()) {
                     highlightedEntityID = Entities.rootOf(intersection.entityID);
@@ -1776,6 +1782,7 @@
                     setState(EDITOR_IDLE);
                 } else if (intersection.overlayID && hand.triggerClicked()
                         && otherEditor.isHandle(intersection.overlayID)) {
+                    highlightedEntityID = otherEditor.rootEntityID();
                     setState(EDITOR_HANDLE_SCALING);
                 } else if (intersection.entityID && hand.triggerClicked()) {
                     highlightedEntityID = Entities.rootOf(intersection.entityID);  // May be a different entityID.
@@ -1818,7 +1825,8 @@
                 }
                 break;
             case EDITOR_DIRECT_SCALING:
-                if (hand.valid() && hand.triggerClicked() && otherEditor.isEditing(highlightedEntityID)) {
+                if (hand.valid() && hand.triggerClicked()
+                        && (otherEditor.isEditing(highlightedEntityID) || otherEditor.isHandle(intersection.overlayID))) {
                     // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
                     // Don't test isAppScaleWithHandles because this will eventually be a UI element and so not able to be 
                     // changed while scaling with two hands.
@@ -1925,6 +1933,7 @@
             isHandle: isHandle,
             isEditing: isEditing,
             isScaling: isScaling,
+            rootEntityID: rootEntityID,
             startDirectScaling: startDirectScaling,
             updateDirectScaling: updateDirectScaling,
             stopDirectScaling: stopDirectScaling,
