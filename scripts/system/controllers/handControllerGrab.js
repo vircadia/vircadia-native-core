@@ -2227,8 +2227,6 @@ function MyController(hand) {
                 if (rayPickInfo.entityID === potentialEntityWithContextOverlay &&
                     !entityWithContextOverlay
                     && contextualHand !== -1) {
-                    entityWithContextOverlay = rayPickInfo.entityID;
-                    potentialEntityWithContextOverlay = false;
                     var pointerEvent = {
                         type: "Move",
                         id: contextualHand + 1, // 0 is reserved for hardware mouse
@@ -2238,7 +2236,10 @@ function MyController(hand) {
                         direction: rayPickInfo.searchRay.direction,
                         button: "Secondary"
                     };
-                    ContextOverlay.createOrDestroyContextOverlay(rayPickInfo.entityID, pointerEvent);
+                    if (ContextOverlay.createOrDestroyContextOverlay(rayPickInfo.entityID, pointerEvent)) {
+                        entityWithContextOverlay = rayPickInfo.entityID;
+                        potentialEntityWithContextOverlay = false;
+                    }
                 }
             }, 500);
             contextualHand = this.hand;
@@ -3632,8 +3633,6 @@ function MyController(hand) {
             };
 
             Overlays.sendMousePressOnOverlay(this.grabbedOverlay, pointerEvent);
-            entityWithContextOverlay = false;
-            potentialEntityWithContextOverlay = false;
 
             this.touchingEnterTimer = 0;
             this.touchingEnterPointerEvent = pointerEvent;

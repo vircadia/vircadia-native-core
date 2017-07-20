@@ -37,7 +37,7 @@ ContextOverlayInterface::ContextOverlayInterface() {
 
 static const xColor BB_OVERLAY_COLOR = {255, 255, 0};
 
-void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
+bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
     if (_enabled && event.getButton() == PointerEvent::SecondaryButton) {
 
         EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
@@ -63,7 +63,7 @@ void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
 
             if (_contextOverlayID == UNKNOWN_OVERLAY_ID || !qApp->getOverlays().isAddedOverlay(_contextOverlayID)) {
                 _contextOverlay = std::make_shared<Image3DOverlay>();
-                _contextOverlay->setAlpha(1.0f);
+                _contextOverlay->setAlpha(0.85f);
                 _contextOverlay->setPulseMin(0.75f);
                 _contextOverlay->setPulseMax(1.0f);
                 _contextOverlay->setColorPulse(1.0f);
@@ -74,32 +74,49 @@ void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _contextOverlay->setParentID(entityItemID);
                 _contextOverlayID = qApp->getOverlays().addOverlay(_contextOverlay);
             }
-
-            _contextOverlay->setDimensions(glm::vec2(0.05f, 0.05f) * glm::distance(entityProperties.getPosition(), qApp->getCamera().getPosition()));
-            _contextOverlay->setPosition(position);
+            glm::vec3 cameraPosition = qApp->getCamera().getPosition();
+            float distanceToEntity = glm::distance(position, cameraPosition);
+            glm::vec3 contextOverlayPosition;
+            glm::vec2 contextOverlayDimensions;
+            if (distanceToEntity > 1.5f) {
+                contextOverlayPosition = (distanceToEntity - 1.0f) * glm::normalize(entityProperties.getPosition() - cameraPosition) + cameraPosition;
+                contextOverlayDimensions = glm::vec2(0.08f, 0.08f) * glm::distance(contextOverlayPosition, cameraPosition);
+            } else {
+                // If the entity is too close to the camera, rotate the context overlay to the right of the entity.
+                // This makes it easy to inspect things you're holding.
+                contextOverlayPosition = (glm::quat(glm::radians(glm::vec3(0.0f, -20.0f, 0.0f))) * (entityProperties.getPosition() - cameraPosition)) + cameraPosition;
+                contextOverlayDimensions = glm::vec2(0.12f, 0.12f) * glm::distance(contextOverlayPosition, cameraPosition);
+            }
+            _contextOverlay->setPosition(contextOverlayPosition);
+            _contextOverlay->setDimensions(contextOverlayDimensions);
             _contextOverlay->setRotation(entityProperties.getRotation());
             _contextOverlay->setVisible(true);
+            return true;
         }
-    } else if (_currentEntityWithContextOverlay == entityItemID) {
-        destroyContextOverlay(entityItemID, event);
+    } else {
+        return destroyContextOverlay(entityItemID, event);
     }
+    return false;
 }
 
-void ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
-    qCDebug(context_overlay) << "Destroying Context Overlay on top of entity with ID: " << entityItemID;
-    setCurrentEntityWithContextOverlay(QUuid());
-
-    qApp->getOverlays().deleteOverlay(_contextOverlayID);
-    qApp->getOverlays().deleteOverlay(_bbOverlayID);
-    _contextOverlay = NULL;
-    _bbOverlay = NULL;
-    _contextOverlayID = UNKNOWN_OVERLAY_ID;
-    _bbOverlayID = UNKNOWN_OVERLAY_ID;
-    _entityMarketplaceID.clear();
+bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
+    if (_contextOverlayID != UNKNOWN_OVERLAY_ID) {
+        qCDebug(context_overlay) << "Destroying Context Overlay on top of entity with ID: " << entityItemID;
+        setCurrentEntityWithContextOverlay(QUuid());
+        qApp->getOverlays().deleteOverlay(_contextOverlayID);
+        qApp->getOverlays().deleteOverlay(_bbOverlayID);
+        _contextOverlay = NULL;
+        _bbOverlay = NULL;
+        _contextOverlayID = UNKNOWN_OVERLAY_ID;
+        _bbOverlayID = UNKNOWN_OVERLAY_ID;
+        _entityMarketplaceID.clear();
+        return true;
+    }
+    return false;
 }
 
-void ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID) {
-    ContextOverlayInterface::destroyContextOverlay(entityItemID, PointerEvent());
+bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID) {
+    return ContextOverlayInterface::destroyContextOverlay(entityItemID, PointerEvent());
 }
 
 void ContextOverlayInterface::clickContextOverlay(const OverlayID& overlayID, const PointerEvent& event) {
