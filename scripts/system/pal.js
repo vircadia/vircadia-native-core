@@ -732,7 +732,9 @@ function onTabletButtonClicked() {
     if (onPalScreen) {
         // for toolbar-mode: go back to home screen, this will close the window.
         tablet.gotoHomeScreen();
+        ContextOverlay.enabled = true;
     } else {
+        ContextOverlay.enabled = false;
         tablet.loadQMLSource(PAL_QML_SOURCE);
         tablet.tabletShownChanged.connect(tabletVisibilityChanged);
         Users.requestsDomainListData = true;
@@ -883,6 +885,7 @@ function shutdown() {
     if (onPalScreen) {
         tablet.gotoHomeScreen();
     }
+    ContextOverlay.enabled = true;
     button.clicked.disconnect(onTabletButtonClicked);
     tablet.removeButton(button);
     tablet.screenChanged.disconnect(onTabletScreenChanged);
