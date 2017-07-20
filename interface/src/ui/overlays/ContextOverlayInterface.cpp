@@ -45,7 +45,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
         glm::vec3 dimensions = entityProperties.getDimensions();
         if (entityProperties.getRegistrationPoint() != glm::vec3(0.5f)) {
             glm::vec3 adjustPos = entityProperties.getRegistrationPoint() - glm::vec3(0.5f);
-            bbPosition = bbPosition - (entityProperties.getRotation() * glm::vec3(adjustPos.x * dimensions.x, adjustPos.y * dimensions.y, adjustPos.z * dimensions.z));
+            bbPosition = bbPosition - (entityProperties.getRotation() * (adjustPos*dimensions));
         }
         if (entityProperties.getMarketplaceID().length() != 0) {
             qCDebug(context_overlay) << "Creating Context Overlay on top of entity with ID: " << entityItemID;
@@ -79,7 +79,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _contextOverlayID = qApp->getOverlays().addOverlay(_contextOverlay);
             }
             glm::vec3 cameraPosition = qApp->getCamera().getPosition();
-            float distanceToEntity = glm::distance(position, cameraPosition);
+            float distanceToEntity = glm::distance(bbPosition, cameraPosition);
             glm::vec3 contextOverlayPosition;
             glm::vec2 contextOverlayDimensions;
             if (distanceToEntity > 1.5f) {
