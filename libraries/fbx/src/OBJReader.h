@@ -19,8 +19,8 @@ public:
     void pushBackToken(int token) { _pushedBackToken = token; }
     void ungetChar(char ch) { _device->ungetChar(ch); }
     const QString getComment() const { return _comment; }
-	glm::vec3 getVec3();
-	bool getVec3Vec3(glm::vec3& vertex, glm::vec3& vertexColor);
+    glm::vec3 getVec3();
+    bool getVec3Vec3(glm::vec3& vertex, glm::vec3& vertexColor);
     glm::vec2 getVec2();
     float getFloat() { return std::stof((nextToken() != OBJTokenizer::DATUM_TOKEN) ? nullptr : getDatum().data()); }
 
@@ -66,8 +66,8 @@ class OBJReader: public QObject { // QObject so we can make network requests.
     Q_OBJECT
 public:
     typedef QVector<OBJFace> FaceGroup;
-	QVector<glm::vec3> vertices;
-	QVector<glm::vec3> vertexColors;
+    QVector<glm::vec3> vertices;
+    QVector<glm::vec3> vertexColors;
     QVector<glm::vec2> textureUVs;
     QVector<glm::vec3> normals;
     QVector<FaceGroup> faceGroups;
