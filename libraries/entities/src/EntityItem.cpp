@@ -1353,12 +1353,6 @@ bool EntityItem::setProperties(const EntityItemProperties& properties) {
 
     SET_ENTITY_PROPERTY_FROM_PROPERTIES(lastEditedBy, setLastEditedBy);
 
-    AACube saveQueryAACube = _queryAACube;
-    checkAndAdjustQueryAACube();
-    if (saveQueryAACube != _queryAACube) {
-        somethingChanged = true;
-    }
-
     // Now check the sub classes
     somethingChanged |= setSubClassProperties(properties);
 
