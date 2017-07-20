@@ -712,6 +712,7 @@ Function HandlePostInstallOptions
     ${Else}
       !insertmacro WritePostInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ NO
     ${EndIf}
+    
     ; check if the user asked to have Sandbox launched every startup
     ${If} $ServerStartupState == ${BST_CHECKED}
       ; in case we added a shortcut in the global context, pull that now
