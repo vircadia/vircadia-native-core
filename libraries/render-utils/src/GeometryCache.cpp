@@ -29,6 +29,7 @@
 #include "gpu/StandardShaderLib.h"
 
 #include "model/TextureMap.h"
+#include "render/Args.h"
 
 #include "standardTransformPNTC_vert.h"
 #include "standardDrawTexture_frag.h"
@@ -459,7 +460,8 @@ _nextID(0) {
                 // Set the defaults needed for a simple program
                 batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
                     DependencyManager::get<TextureCache>()->getWhiteTexture());
-            }
+            },
+            nullptr
         );
     GeometryCache::_simpleTransparentPipeline =
         std::make_shared<render::ShapePipeline>(getSimplePipeline(false, true, true, false), nullptr,
@@ -467,11 +469,12 @@ _nextID(0) {
                 // Set the defaults needed for a simple program
                 batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
                     DependencyManager::get<TextureCache>()->getWhiteTexture());
-            }
+            },
+            nullptr
         );
     GeometryCache::_simpleWirePipeline =
         std::make_shared<render::ShapePipeline>(getSimplePipeline(false, false, true, true), nullptr,
-        [](const render::ShapePipeline&, gpu::Batch& batch, RenderArgs* args) {});
+        [](const render::ShapePipeline&, gpu::Batch& batch, RenderArgs* args) {}, nullptr);
 }
 
 GeometryCache::~GeometryCache() {

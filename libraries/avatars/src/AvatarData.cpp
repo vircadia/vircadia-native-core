@@ -2366,6 +2366,12 @@ AvatarEntityMap AvatarData::getAvatarEntityData() const {
     return result;
 }
 
+void AvatarData::insertDetachedEntityID(const QUuid entityID) {
+    _avatarEntitiesLock.withWriteLock([&] {
+        _avatarEntityDetached.insert(entityID);
+    });
+}
+
 void AvatarData::setAvatarEntityData(const AvatarEntityMap& avatarEntityData) {
     if (avatarEntityData.size() > MAX_NUM_AVATAR_ENTITIES) {
         // the data is suspect
