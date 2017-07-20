@@ -1547,6 +1547,7 @@
 
 
         function enterEditorIdle() {
+            laser.clear();
             selection.clear();
         }
 
