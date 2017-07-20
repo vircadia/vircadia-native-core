@@ -123,7 +123,7 @@ glm::vec3 OBJTokenizer::getVec3() {
     }
     return v;
 }
-bool OBJTokenizer::getVec3Vec3(glm::vec3& vertex, glm::vec3& vertexColor) {
+bool OBJTokenizer::getVertex(glm::vec3& vertex, glm::vec3& vertexColor) {
     // Used for vertices which may also have a vertex color (RGB [0,1]) to follow.
     //	NOTE: Returns true if there is a vertex color.
     auto x = getFloat(); // N.B.: getFloat() has side-effect
@@ -134,10 +134,11 @@ bool OBJTokenizer::getVec3Vec3(glm::vec3& vertex, glm::vec3& vertexColor) {
     auto r = 1.0f, g = 1.0f, b = 1.0f;
     bool hasVertexColor = false;
     if (isNextTokenFloat()) {
-        // If there's another float it's one of two things: a W component or an R component. The standard OBJ spec doesn't output a W component,
-        // so we're making the assumption that if a float follows (unless it's only a single value) that it's a vertex color.
+        // If there's another float it's one of two things: a W component or an R component. The standard OBJ spec
+        // doesn't output a W component, so we're making the assumption that if a float follows (unless it's
+        // only a single value) that it's a vertex color.
         r = getFloat();
-        if(isNextTokenFloat()) {
+        if (isNextTokenFloat()) {
             // Safe to assume the following values are the green/blue components. 
             g = getFloat();
             b = getFloat();
@@ -167,7 +168,8 @@ void setMeshPartDefaults(FBXMeshPart& meshPart, QString materialID) {
 }
 
 // OBJFace
-//	NOTE (trent, 7/20/17): The vertexColors vector being passed-in isn't necessary here, but I'm just pairing it with the vertices vector for consistency.
+//	NOTE (trent, 7/20/17): The vertexColors vector being passed-in isn't necessary here, but I'm just
+//                         pairing it with the vertices vector for consistency.
 bool OBJFace::add(const QByteArray& vertexIndex, const QByteArray& textureIndex, const QByteArray& normalIndex, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& vertexColors) {
     bool ok;
     int index = vertexIndex.toInt(&ok);
@@ -412,7 +414,7 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
         } else if (token == "v") {
             glm::vec3 vertex, vertexColor;
 
-            bool hasVertexColor = tokenizer.getVec3Vec3(vertex, vertexColor);
+            bool hasVertexColor = tokenizer.getVertex(vertex, vertexColor);
             vertices.append(vertex);
             
             if(hasVertexColor) {
@@ -445,7 +447,8 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 assert(parts.count() >= 1);
                 assert(parts.count() <= 3);
                 const QByteArray noData {};
-                face.add(parts[0], (parts.count() > 1) ? parts[1] : noData, (parts.count() > 2) ? parts[2] : noData, vertices, vertexColors);
+                face.add(parts[0], (parts.count() > 1) ? parts[1] : noData, (parts.count() > 2) ? parts[2] : noData,
+                         vertices, vertexColors);
                 face.groupName = currentGroup;
                 face.materialName = currentMaterialName;
             }
@@ -576,8 +579,8 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 glm::vec3 v2 = checked_at(vertices, face.vertexIndices[2]);
 
                 glm::vec3 vc0, vc1, vc2;
-                bool hasVertexColors = ( vertexColors.size( ) > 0 );
-                if(hasVertexColors) {
+                bool hasVertexColors = (vertexColors.size() > 0);
+                if (hasVertexColors) {
                     // If there are any vertex colors, it's safe to assume all meshes had them exported.
                     vc0 = checked_at(vertexColors, face.vertexIndices[0]);
                     vc1 = checked_at(vertexColors, face.vertexIndices[1]);
@@ -599,7 +602,7 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 meshPart.triangleIndices.append(mesh.vertices.count());
                 mesh.vertices << v2;
 
-                if( hasVertexColors ) {
+                if (hasVertexColors) {
                     // Add vertex colors.
                     mesh.colors << vc0;
                     mesh.colors << vc1;
