@@ -19,6 +19,7 @@
 in vec3 _normal;
 in vec4 _position;
 in vec4 _worldPosition;
+in vec4 _worldFadePosition;
 
 uniform sampler2D xMap;
 uniform sampler2D yMap;
@@ -33,7 +34,7 @@ void main(void) {
     FadeObjectParams fadeParams;
 
     <$fetchFadeObjectParams(fadeParams)$>
-    applyFade(fadeParams, _worldPosition.xyz, emissive);
+    applyFade(fadeParams, _worldFadePosition.xyz, emissive);
 
     vec3 worldNormal = cross(dFdy(_worldPosition.xyz), dFdx(_worldPosition.xyz));
     worldNormal = normalize(worldNormal);

@@ -19,6 +19,7 @@
 
 out vec4 _position;
 out vec4 _worldPosition;
+out vec4 _worldFadePosition;
 out vec3 _normal;
 
 void main(void) {
@@ -27,5 +28,6 @@ void main(void) {
     TransformObject obj = getTransformObject();
     <$transformModelToEyeAndClipPos(cam, obj, inPosition, _position, gl_Position)$>
     <$transformModelToEyeDir(cam, obj, inNormal.xyz, _normal)$>
+    <$transformModelToWorldPos(obj, inPosition, _worldFadePosition)$>
     _worldPosition = inPosition;
 }
