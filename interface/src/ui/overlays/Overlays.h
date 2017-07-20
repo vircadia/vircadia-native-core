@@ -131,7 +131,7 @@ public slots:
     OverlayID cloneOverlay(OverlayID id);
 
     /**jsdoc
-     * Edit an overlay's properties. 
+     * Edit an overlay's properties.
      *
      * @function Overlays.editOverlay
      * @param {Overlays.OverlayID} overlayID The ID of the overlay to edit.
@@ -337,7 +337,7 @@ private:
 #endif
     bool _enabled = true;
 
-    PointerEvent Overlays::calculateOverlayPointerEvent(OverlayID overlayID, PickRay ray, RayToOverlayIntersectionResult rayPickResult,
+    PointerEvent calculateOverlayPointerEvent(OverlayID overlayID, PickRay ray, RayToOverlayIntersectionResult rayPickResult,
         QMouseEvent* event, PointerEvent::EventType eventType);
 
     OverlayID _currentClickingOnOverlayID { UNKNOWN_OVERLAY_ID };
