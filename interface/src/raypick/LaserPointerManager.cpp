@@ -13,23 +13,24 @@
 #include "RayPick.h"
 
 unsigned int LaserPointerManager::createLaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance,
-        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled) {
-    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(jointName, posOffset, dirOffset, filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
+        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) {
+    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(jointName, posOffset, dirOffset, filter, maxDistance, renderStates, faceAvatar, centerEndY, lockEnd, enabled);
     unsigned int uid = laserPointer->getUID();
     _laserPointers[uid] = laserPointer;
     return uid;
 }
 
 unsigned int LaserPointerManager::createLaserPointer(const glm::vec3& position, const glm::vec3& direction, const uint16_t filter, const float maxDistance,
-        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled) {
-    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(position, direction, filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
+        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) {
+    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(position, direction, filter, maxDistance, renderStates, faceAvatar, centerEndY, lockEnd, enabled);
     unsigned int uid = laserPointer->getUID();
     _laserPointers[uid] = laserPointer;
     return uid;
 }
 
-unsigned int LaserPointerManager::createLaserPointer(const uint16_t filter, const float maxDistance, const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled) {
-    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
+unsigned int LaserPointerManager::createLaserPointer(const uint16_t filter, const float maxDistance, const QHash<QString, RenderState>& renderStates, const bool faceAvatar,
+        const bool centerEndY, const bool lockEnd, const bool enabled) {
+    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(filter, maxDistance, renderStates, faceAvatar, centerEndY, lockEnd, enabled);
     unsigned int uid = laserPointer->getUID();
     _laserPointers[uid] = laserPointer;
     return uid;
@@ -50,6 +51,12 @@ void LaserPointerManager::disableLaserPointer(const unsigned int uid) {
 void LaserPointerManager::setRenderState(unsigned int uid, const QString & renderState) {
     if (_laserPointers.contains(uid)) {
         _laserPointers[uid]->setRenderState(renderState);
+    }
+}
+
+void LaserPointerManager::editRenderState(unsigned int uid, const QString& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) {
+    if (_laserPointers.contains(uid)) {
+        _laserPointers[uid]->editRenderState(state, startProps, pathProps, endProps);
     }
 }
 

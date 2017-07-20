@@ -18,11 +18,12 @@
 #include "avatar/AvatarManager.h"
 
 LaserPointer::LaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance,
-    const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled) :
+    const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) :
     _renderingEnabled(enabled),
     _renderStates(renderStates),
     _faceAvatar(faceAvatar),
-    _centerEndY(centerEndY)
+    _centerEndY(centerEndY),
+    _lockEnd(lockEnd)
 {
     _rayPickUID = DependencyManager::get<RayPickManager>()->addRayPick(std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled));
 
@@ -34,11 +35,12 @@ LaserPointer::LaserPointer(const QString& jointName, const glm::vec3& posOffset,
 }
 
 LaserPointer::LaserPointer(const glm::vec3& position, const glm::vec3& direction, const uint16_t filter, const float maxDistance,
-        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled) :
+        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) :
     _renderingEnabled(enabled),
     _renderStates(renderStates),
     _faceAvatar(faceAvatar),
-    _centerEndY(centerEndY)
+    _centerEndY(centerEndY),
+    _lockEnd(lockEnd)
 {
     _rayPickUID = DependencyManager::get<RayPickManager>()->addRayPick(std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled));
 
@@ -49,11 +51,13 @@ LaserPointer::LaserPointer(const glm::vec3& position, const glm::vec3& direction
     }
 }
 
-LaserPointer::LaserPointer(const uint16_t filter, const float maxDistance, const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled) :
+LaserPointer::LaserPointer(const uint16_t filter, const float maxDistance, const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY,
+    const bool lockEnd, const bool enabled) :
     _renderingEnabled(enabled),
     _renderStates(renderStates),
     _faceAvatar(faceAvatar),
-    _centerEndY(centerEndY)
+    _centerEndY(centerEndY),
+    _lockEnd(lockEnd)
 {
     _rayPickUID = DependencyManager::get<RayPickManager>()->addRayPick(std::make_shared<MouseRayPick>(filter, maxDistance, enabled));
 
@@ -99,6 +103,27 @@ void LaserPointer::setRenderState(const QString& state) {
     _currentRenderState = state;
 }
 
+void LaserPointer::editRenderState(const QString& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) {
+    _renderStates[state].setStartID(updateRenderStateOverlay(_renderStates[state].getStartID(), startProps));
+    _renderStates[state].setPathID(updateRenderStateOverlay(_renderStates[state].getPathID(), pathProps));
+    _renderStates[state].setEndID(updateRenderStateOverlay(_renderStates[state].getEndID(), endProps));
+}
+
+OverlayID LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant& props) {
+    if (props.isValid()) {
+        if (!id.isNull()) {
+            qApp->getOverlays().editOverlay(id, props);
+            return id;
+        } else {
+            QVariantMap propsMap = props.toMap();
+            if (propsMap["type"].isValid()) {
+                return qApp->getOverlays().addOverlay(propsMap["type"].toString(), props);
+            }
+        }
+    }
+    return OverlayID();
+}
+
 void LaserPointer::disableRenderState(const QString& renderState) {
     if (!_renderStates[renderState].getStartID().isNull()) {
         QVariantMap startProps;
@@ -131,7 +156,18 @@ void LaserPointer::update() {
             startProps.insert("ignoreRayIntersection", _renderStates[_currentRenderState].doesStartIgnoreRays());
             qApp->getOverlays().editOverlay(_renderStates[_currentRenderState].getStartID(), startProps);
         }
-        glm::vec3 endVec = pickRay.origin + pickRay.direction * prevRayPickResult.distance;
+        glm::vec3 endVec;
+        if (!_lockEnd || prevRayPickResult.type == IntersectionType::HUD) {
+            endVec = pickRay.origin + pickRay.direction * prevRayPickResult.distance;
+        } else {
+            if (prevRayPickResult.type == IntersectionType::ENTITY) {
+                endVec = DependencyManager::get<EntityScriptingInterface>()->getEntityTransform(prevRayPickResult.objectID)[3];
+            } else if (prevRayPickResult.type == IntersectionType::OVERLAY) {
+                endVec = vec3FromVariant(qApp->getOverlays().getProperty(prevRayPickResult.objectID, "position").value);
+            } else if (prevRayPickResult.type == IntersectionType::AVATAR) {
+                endVec = DependencyManager::get<AvatarHashMap>()->getAvatar(prevRayPickResult.objectID)->getPosition();
+            }
+        }
         QVariant end = vec3toVariant(endVec);
         if (!_renderStates[_currentRenderState].getPathID().isNull()) {
             QVariantMap pathProps;

@@ -26,8 +26,12 @@ public slots:
     Q_INVOKABLE void enableLaserPointer(unsigned int uid) { DependencyManager::get<LaserPointerManager>()->enableLaserPointer(uid); }
     Q_INVOKABLE void disableLaserPointer(unsigned int uid) { DependencyManager::get<LaserPointerManager>()->disableLaserPointer(uid); }
     Q_INVOKABLE void removeLaserPointer(unsigned int uid) { DependencyManager::get<LaserPointerManager>()->removeLaserPointer(uid); }
+    Q_INVOKABLE void editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties);
     Q_INVOKABLE void setRenderState(unsigned int uid, const QString& renderState) { DependencyManager::get<LaserPointerManager>()->setRenderState(uid, renderState); }
     Q_INVOKABLE RayPickResult getPrevRayPickResult(unsigned int uid) { return DependencyManager::get<LaserPointerManager>()->getPrevRayPickResult(uid); }
+
+private:
+    const RenderState buildRenderState(const QVariantMap & propMap);
 
 };
 

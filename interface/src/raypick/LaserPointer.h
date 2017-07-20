@@ -29,6 +29,9 @@ public:
     const OverlayID& getStartID() { return _startID; }
     const OverlayID& getPathID() { return _pathID; }
     const OverlayID& getEndID() { return _endID; }
+    void setStartID(const OverlayID& startID) { _startID = startID; }
+    void setPathID(const OverlayID& pathID) { _pathID = pathID; }
+    void setEndID(const OverlayID& endID) { _endID = endID; }
     const bool& doesStartIgnoreRays() { return _startIgnoreRays; }
     const bool& doesPathIgnoreRays() { return _pathIgnoreRays; }
     const bool& doesEndIgnoreRays() { return _endIgnoreRays; }
@@ -47,11 +50,11 @@ class LaserPointer {
 
 public:
     LaserPointer(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance,
-        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled);
+        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled);
     LaserPointer(const glm::vec3& position, const glm::vec3& direction, const uint16_t filter, const float maxDistance,
-        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool enabled);
+        const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled);
     LaserPointer(const uint16_t filter, const float maxDistance, const QHash<QString, RenderState>& renderStates, const bool faceAvatar,
-        const bool centerEndY, const bool enabled);
+        const bool centerEndY, const bool lockEnd, const bool enabled);
     ~LaserPointer();
 
     unsigned int getUID() { return _rayPickUID; }
@@ -60,7 +63,7 @@ public:
     const RayPickResult getPrevRayPickResult() { return DependencyManager::get<RayPickManager>()->getPrevRayPickResult(_rayPickUID); }
 
     void setRenderState(const QString& state);
-    void disableRenderState(const QString& renderState);
+    void editRenderState(const QString& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps);
 
     void update();
 
@@ -70,8 +73,12 @@ private:
     QHash<QString, RenderState> _renderStates;
     bool _faceAvatar;
     bool _centerEndY;
+    bool _lockEnd;
 
     unsigned int _rayPickUID;
+
+    OverlayID updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
+    void disableRenderState(const QString& renderState);
 };
 
 #endif // hifi_LaserPointer_h

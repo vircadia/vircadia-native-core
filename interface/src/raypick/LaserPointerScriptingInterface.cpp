@@ -40,6 +40,11 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
         centerEndY = propertyMap["centerEndY"].toBool();
     }
 
+    bool lockEnd = false;
+    if (propertyMap["lockEnd"].isValid()) {
+        lockEnd = propertyMap["lockEnd"].toBool();
+    }
+
     bool enabled = false;
     if (propertyMap["enabled"].isValid()) {
         enabled = propertyMap["enabled"].toBool();
@@ -53,33 +58,7 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
                 QVariantMap renderStateMap = renderStateVariant.toMap();
                 if (renderStateMap["name"].isValid()) {
                     QString name = renderStateMap["name"].toString();
-
-                    QUuid startID;
-                    if (renderStateMap["start"].isValid()) {
-                        QVariantMap startMap = renderStateMap["start"].toMap();
-                        if (startMap["type"].isValid()) {
-                            startID = qApp->getOverlays().addOverlay(startMap["type"].toString(), startMap);
-                        }
-                    }
-
-                    QUuid pathID;
-                    if (renderStateMap["path"].isValid()) {
-                        QVariantMap pathMap = renderStateMap["path"].toMap();
-                        // right now paths must be line3ds
-                        if (pathMap["type"].isValid() && pathMap["type"].toString() == "line3d") {
-                            pathID = qApp->getOverlays().addOverlay(pathMap["type"].toString(), pathMap);
-                        }
-                    }
-
-                    QUuid endID;
-                    if (renderStateMap["end"].isValid()) {
-                        QVariantMap endMap = renderStateMap["end"].toMap();
-                        if (endMap["type"].isValid()) {
-                            endID = qApp->getOverlays().addOverlay(endMap["type"].toString(), endMap);
-                        }
-                    }
-
-                    renderStates[name] = RenderState(startID, pathID, endID);
+                    renderStates[name] = buildRenderState(renderStateMap);
                 }
             }
         }
@@ -100,9 +79,9 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
                 dirOffset = vec3FromVariant(propertyMap["dirOffset"]);
             }
 
-            return DependencyManager::get<LaserPointerManager>()->createLaserPointer(jointName, posOffset, dirOffset, filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
+            return DependencyManager::get<LaserPointerManager>()->createLaserPointer(jointName, posOffset, dirOffset, filter, maxDistance, renderStates, faceAvatar, centerEndY, lockEnd, enabled);
         } else {
-            return DependencyManager::get<LaserPointerManager>()->createLaserPointer(filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
+            return DependencyManager::get<LaserPointerManager>()->createLaserPointer(filter, maxDistance, renderStates, faceAvatar, centerEndY, lockEnd, enabled);
         }
     } else if (propertyMap["position"].isValid()) {
         glm::vec3 position = vec3FromVariant(propertyMap["position"]);
@@ -112,8 +91,58 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
             direction = vec3FromVariant(propertyMap["direction"]);
         }
 
-        return DependencyManager::get<LaserPointerManager>()->createLaserPointer(position, direction, filter, maxDistance, renderStates, faceAvatar, centerEndY, enabled);
+        return DependencyManager::get<LaserPointerManager>()->createLaserPointer(position, direction, filter, maxDistance, renderStates, faceAvatar, centerEndY, lockEnd, enabled);
     }
 
     return 0;
+}
+
+void LaserPointerScriptingInterface::editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) {
+    QVariantMap propMap = properties.toMap();
+
+    QVariant startProps;
+    if (propMap["start"].isValid()) {
+        startProps = propMap["start"];
+    }
+
+    QVariant pathProps;
+    if (propMap["path"].isValid()) {
+        pathProps = propMap["path"];
+    }
+
+    QVariant endProps;
+    if (propMap["end"].isValid()) {
+        endProps = propMap["end"];
+    }
+
+    DependencyManager::get<LaserPointerManager>()->editRenderState(uid, renderState, startProps, pathProps, endProps);
+}
+
+const RenderState LaserPointerScriptingInterface::buildRenderState(const QVariantMap& propMap) {
+    QUuid startID;
+    if (propMap["start"].isValid()) {
+        QVariantMap startMap = propMap["start"].toMap();
+        if (startMap["type"].isValid()) {
+            startID = qApp->getOverlays().addOverlay(startMap["type"].toString(), startMap);
+        }
+    }
+
+    QUuid pathID;
+    if (propMap["path"].isValid()) {
+        QVariantMap pathMap = propMap["path"].toMap();
+        // right now paths must be line3ds
+        if (pathMap["type"].isValid() && pathMap["type"].toString() == "line3d") {
+            pathID = qApp->getOverlays().addOverlay(pathMap["type"].toString(), pathMap);
+        }
+    }
+
+    QUuid endID;
+    if (propMap["end"].isValid()) {
+        QVariantMap endMap = propMap["end"].toMap();
+        if (endMap["type"].isValid()) {
+            endID = qApp->getOverlays().addOverlay(endMap["type"].toString(), endMap);
+        }
+    }
+
+    return RenderState(startID, pathID, endID);
 }
