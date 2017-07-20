@@ -56,6 +56,8 @@ public slots:
 private:
     bool _verboseLogging { true };
     QUuid _currentEntityWithContextOverlay{};
+    QString _entityMarketplaceID;
+
     void openMarketplace();
 };
 
