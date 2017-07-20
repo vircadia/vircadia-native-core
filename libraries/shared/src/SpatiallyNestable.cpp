@@ -999,9 +999,9 @@ bool SpatiallyNestable::computePuffedQueryAACube() {
     bool success;
     AACube currentAACube = getMaximumAACube(success);
     // make an AACube with edges thrice as long and centered on the object
-	const float PUFF_COEFICIENT = _children.size() > 0 ? 3.0f : 1.0f;
+	const float PUFF_COEFFICIENT = _children.size() > 0 ? 3.0f : 1.0f;
     float scale = currentAACube.getScale();
-    _queryAACube = AACube(currentAACube.getCorner() - glm::vec3(scale), scale * PUFF_COEFICIENT);
+    _queryAACube = AACube(currentAACube.getCorner() - glm::vec3(scale), scale * PUFF_COEFFICIENT);
     _queryAACubeSet = true;
 
     getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
