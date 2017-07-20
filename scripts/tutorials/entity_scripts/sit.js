@@ -12,9 +12,9 @@
     Script.include("/~/system/libraries/utils.js");
     if (!String.prototype.startsWith) {
         String.prototype.startsWith = function(searchString, position){
-          position = position || 0;
-          return this.substr(position, searchString.length) === searchString;
-      };
+            position = position || 0;
+            return this.substr(position, searchString.length) === searchString;
+        };
     }
 
     var SETTING_KEY = "com.highfidelity.avatar.isSitting";
@@ -122,7 +122,7 @@
 
     this.rolesToOverride = function() {
         return MyAvatar.getAnimationRoles().filter(function(role) {
-            return role === "fly" || role.startsWith("inAir");
+            return !(role.startsWith("right") || role.startsWith("left"));
         });
     }
 
@@ -331,7 +331,7 @@
         }
         this.cleanupOverlay();
     }
-
+    
     this.clickDownOnEntity = function (id, event) {
         if (isInEditMode()) {
             return;
