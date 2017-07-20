@@ -19,7 +19,6 @@ UsersScriptingInterface::UsersScriptingInterface() {
     connect(nodeList.data(), &LimitedNodeList::canKickChanged, this, &UsersScriptingInterface::canKickChanged);
     connect(nodeList.data(), &NodeList::ignoreRadiusEnabledChanged, this, &UsersScriptingInterface::ignoreRadiusEnabledChanged);
     connect(nodeList.data(), &NodeList::usernameFromIDReply, this, &UsersScriptingInterface::usernameFromIDReply);
-    connect(nodeList.data(), &NodeList::canReplaceContentChanged, this, &UsersScriptingInterface::canReplaceContentChanged);
 }
 
 void UsersScriptingInterface::ignore(const QUuid& nodeID, bool ignoreEnabled) {
@@ -94,6 +93,4 @@ bool UsersScriptingInterface::getRequestsDomainListData() {
 void UsersScriptingInterface::setRequestsDomainListData(bool isRequesting) {
     DependencyManager::get<NodeList>()->setRequestsDomainListData(isRequesting);
 }
-bool UsersScriptingInterface::getCanReplaceContent() {
-    return DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent();
-}
+

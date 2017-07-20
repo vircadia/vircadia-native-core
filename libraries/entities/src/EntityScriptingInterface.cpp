@@ -47,6 +47,8 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
     connect(nodeList.data(), &NodeList::canRezTmpChanged, this, &EntityScriptingInterface::canRezTmpChanged);
     connect(nodeList.data(), &NodeList::canWriteAssetsChanged, this, &EntityScriptingInterface::canWriteAssetsChanged);
+    connect(nodeList.data(), &NodeList::canReplaceContentChanged, this, &EntityScriptingInterface::canReplaceDomainContentChanged);
+
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
@@ -78,6 +80,11 @@ bool EntityScriptingInterface::canRezTmp() {
 bool EntityScriptingInterface::canWriteAssets() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanWriteAssets();
+}
+
+bool EntityScriptingInterface::canReplaceDomainContent() {
+    auto nodeList = DependencyManager::get<NodeList>();
+    return nodeList->getThisNodeCanReplaceContent();
 }
 
 void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
@@ -1158,6 +1165,9 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
     return doTransmit;
 }
 
+void EntityScriptingInterface::replaceDomainContentSet(const QString url){
+    
+}
 
 QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
                                           const QUuid& entityID,

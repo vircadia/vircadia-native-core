@@ -928,7 +928,7 @@ void OctreeServer::handleJurisdictionRequestPacket(QSharedPointer<ReceivedMessag
 
 void OctreeServer::handleOctreeFileReplacement(QSharedPointer<ReceivedMessage> message) {
     if (!_isFinished && !_isShuttingDown) {
-        // these messages are only allowed to come from the domain server, so make sure that is the case
+        // these messages are only allowed to come from the domain server or authenticated users, so make sure that is the case
         auto nodeList = DependencyManager::get<NodeList>();
         if (message->getSenderSockAddr() == nodeList->getDomainHandler().getSockAddr()) {
             // it's far cleaner to load up the new content upon server startup
@@ -973,6 +973,64 @@ void OctreeServer::handleOctreeFileReplacement(QSharedPointer<ReceivedMessage> m
             }
         } else {
             qDebug() << "Received an octree file replacement that was not from our domain server - refusing to process";
+        }
+    }
+}
+
+void OctreeServer::handleOctreeFileReplacementFromURL(QString url) {
+    if (!_isFinished && !_isShuttingDown) {
+        // This call comes from Interface, so we skip our domain server check
+        if (!_persistAbsoluteFilePath.isEmpty()) {
+            // Download from our QString
+            QUrl modelsURL = QUrl(url, QUrl::StrictMode);
+            QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+            QNetworkRequest request(modelsURL);
+            QNetworkReply* reply = networkAccessManager.get(request);
+            connect(reply, &QNetworkReply::finished, [this, reply, modelsURL]() {
+                QNetworkReply::NetworkError networkError = reply->error();
+                if (networkError == QNetworkReply::NoError) {
+                    QByteArray contents = reply->readAll();
+
+                    // Like above, assume we have compressed data
+                    auto compressedOctree = contents;
+                    QByteArray jsonOctree;
+
+                    bool wasCompressed = gunzip(compressedOctree, jsonOctree);
+                    if (!wasCompressed) {
+                        // the source was not compressed, assume we were sent regular JSON data
+                        jsonOctree = compressedOctree;
+                    }
+                    // check the JSON data to verify it is an object
+                    if (QJsonDocument::fromJson(jsonOctree).isObject()) {
+                        if (!wasCompressed) {
+                            // source was not compressed, we compress it before we write it locally
+                            gzip(jsonOctree, compressedOctree);
+                        }
+
+                        // write the compressed octree data to a special file
+                        auto replacementFilePath = _persistAbsoluteFilePath.append(OctreePersistThread::REPLACEMENT_FILE_EXTENSION);
+                        QFile replacementFile(replacementFilePath);
+                        if (replacementFile.open(QIODevice::WriteOnly) && replacementFile.write(compressedOctree) != -1) {
+                            // we've now written our replacement file, time to take the server down so it can
+                            // process it when it comes back up
+                            qInfo() << "Wrote octree replacement file to" << replacementFilePath << "- stopping server";
+                            setFinished(true);
+                        }
+                        else {
+                            qWarning() << "Could not write replacement octree data to file - refusing to process";
+                        }
+                    }
+                    else {
+                        qDebug() << "Received replacement octree file that is invalid - refusing to process";
+                    }
+                }
+                else {
+                    qDebug() << "Error downloading JSON from specified file";
+                }
+            });
+        }
+        else {
+            qDebug() << "Cannot perform octree file replacement since current persist file path is not yet known";
         }
     }
 }
