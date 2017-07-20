@@ -36,6 +36,7 @@ class ContextOverlayInterface : public QObject, public Dependency  {
     Q_OBJECT
 
     Q_PROPERTY(QUuid entityWithContextOverlay READ getCurrentEntityWithContextOverlay WRITE setCurrentEntityWithContextOverlay)
+    Q_PROPERTY(bool enabled READ getEnabled WRITE setEnabled);
     QSharedPointer<EntityScriptingInterface> _entityScriptingInterface;
     EntityPropertyFlags _entityPropertyFlags;
     QSharedPointer<HMDScriptingInterface> _hmdScriptingInterface;
@@ -49,6 +50,8 @@ public:
 
     Q_INVOKABLE QUuid getCurrentEntityWithContextOverlay() { return _currentEntityWithContextOverlay; }
     void setCurrentEntityWithContextOverlay(const QUuid& entityID) { _currentEntityWithContextOverlay = entityID; }
+    void setEnabled(bool enabled) { _enabled = enabled; }
+    bool getEnabled() { return _enabled; }
 
 public slots:
     void createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
@@ -58,6 +61,7 @@ public slots:
 
 private:
     bool _verboseLogging { true };
+    bool _enabled { true };
     QUuid _currentEntityWithContextOverlay{};
     QString _entityMarketplaceID;
 

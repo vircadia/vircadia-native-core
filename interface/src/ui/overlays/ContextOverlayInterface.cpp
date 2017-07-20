@@ -33,10 +33,11 @@ ContextOverlayInterface::ContextOverlayInterface() {
     auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>().data();
     connect(entityTreeRenderer, SIGNAL(mousePressOnEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(createOrDestroyContextOverlay(const EntityItemID&, const PointerEvent&)));
 }
+
 static const xColor BB_OVERLAY_COLOR = {255, 255, 0};
 
 void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
-    if (event.getButton() == PointerEvent::SecondaryButton) {
+    if (_enabled && event.getButton() == PointerEvent::SecondaryButton) {
 
         EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
         if (entityProperties.getMarketplaceID().length() != 0) {
