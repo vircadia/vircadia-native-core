@@ -122,7 +122,7 @@
 
     this.rolesToOverride = function() {
         return MyAvatar.getAnimationRoles().filter(function(role) {
-            return !(role === "right" && role.startsWith("left"));
+            return !(role === "right" || role.startsWith("left"));
         });
     }
 
