@@ -600,7 +600,7 @@ Function PostInstallOptionsPage
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Copy settings and content from production install"
     Pop $CopyFromProductionCheckbox
 
-    ${NSD_SetState} $CopyFromProductionCheckbox ${BST_CHECKED}
+    ${NSD_SetState} $CopyFromProductionCheckbox ${BST_UNCHECKED}
   ${EndIf}
   
   ; Check if Express is set, if so, abort the post install options page
@@ -682,8 +682,8 @@ Function HandleInstallTypes
     ${NSD_SetState} $LaunchClientNowCheckbox ${BST_CHECKED}
     
     ${If} @PR_BUILD@ == 1
-      ${NSD_SetState} $CopyFromProductionCheckbox ${BST_CHECKED}
-    ${EndIf}
+      ${NSD_SetState} $CopyFromProductionCheckbox ${BST_UNCHECKED}
+    ${EndIf}    
     
     ; call ReadPostInstallOptions and HandlePostInstallOptions with defaults selected
     Call ReadPostInstallOptions 
