@@ -29,6 +29,10 @@
 #include "EntityTree.h"
 #include "ContextOverlayLogging.h"
 
+#ifndef MIN
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+#endif
+
 /**jsdoc
 * @namespace ContextOverlay
 */
@@ -54,9 +58,9 @@ public:
     bool getEnabled() { return _enabled; }
 
 public slots:
-    void createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
-    void destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
-    void destroyContextOverlay(const EntityItemID& entityItemID);
+    bool createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
+    bool destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
+    bool destroyContextOverlay(const EntityItemID& entityItemID);
     void clickContextOverlay(const OverlayID& overlayID, const PointerEvent& event);
 
 private:
