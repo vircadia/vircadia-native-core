@@ -885,7 +885,7 @@ function shutdown() {
     if (onPalScreen) {
         tablet.gotoHomeScreen();
     }
-    ContextOverlay.enable = true;
+    ContextOverlay.enabled = true;
     button.clicked.disconnect(onTabletButtonClicked);
     tablet.removeButton(button);
     tablet.screenChanged.disconnect(onTabletScreenChanged);
