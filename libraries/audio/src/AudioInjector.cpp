@@ -27,8 +27,6 @@
 #include "AudioSRC.h"
 #include "AudioHelpers.h"
 
-int audioInjectorPtrMetaTypeId = qRegisterMetaType<AudioInjector*>();
-
 AbstractAudioInterface* AudioInjector::_localAudioInterface{ nullptr };
 
 AudioInjectorState operator& (AudioInjectorState lhs, AudioInjectorState rhs) {
