@@ -16,6 +16,7 @@ import Qt.labs.settings 1.0
 import "../../styles-uit"
 import "../../controls-uit" as HifiControls
 import "../../windows"
+import "../"
 
 Rectangle {
     id: root
@@ -26,9 +27,25 @@ Rectangle {
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
     property var runningScriptsModel: ListModel { }
+    property bool developerMenuEnabled: false
     property bool isHMD: false
 
     color: hifi.colors.baseGray
+
+
+    LetterboxMessage {
+        id: letterBoxMessage
+        z: 999
+        visible: false
+    }
+
+    function letterBox(glyph, text, message) {
+        letterBoxMessage.headerGlyph = glyph;
+        letterBoxMessage.headerText = text;
+        letterBoxMessage.text = message;
+        letterBoxMessage.visible = true;
+        letterBoxMessage.popupRadius = 0;
+    }
 
     Connections {
         target: ScriptDiscoveryService
@@ -38,6 +55,7 @@ Rectangle {
     Component.onCompleted: {
         isHMD = HMD.active;
         updateRunningScripts();
+        developerMenuEnabled = MenuInterface.isMenuEnabled("Developer Menus");
     }
 
     function updateRunningScripts() {
@@ -76,6 +94,14 @@ Rectangle {
     function stopAll() {
         console.log("Stop all scripts");
         scripts.stopAllScripts();
+    }
+
+    function canEditScript(script) {
+        if ((script === "controllerScripts.js") || (script === "defaultScripts.js")) {
+            return developerMenuEnabled;
+        }
+
+        return true;
     }
 
     Flickable {
@@ -125,6 +151,7 @@ Rectangle {
                     expandSelectedRow: true
 
                     itemDelegate: Item {
+                        property bool canEdit: canEditScript(styleData.value);
                         anchors {
                             left: parent ? parent.left : undefined
                             leftMargin: hifi.dimensions.tablePadding
@@ -148,7 +175,7 @@ Rectangle {
 
                             HiFiGlyphs {
                                 id: reloadButton
-                                text: hifi.glyphs.reloadSmall
+                                text: ((canEditScript(styleData.value)) ? hifi.glyphs.reloadSmall : hifi.glyphs.lock)
                                 color: reloadButtonArea.pressed ? hifi.colors.white : parent.color
                                 anchors {
                                     top: parent.top
@@ -158,7 +185,17 @@ Rectangle {
                                 MouseArea {
                                     id: reloadButtonArea
                                     anchors { fill: parent; margins: -2 }
-                                    onClicked: reloadScript(model.url)
+                                    onClicked: {
+                                        if (canEdit) {
+                                            reloadScript(model.url)
+                                        } else {
+                                            letterBox(hifi.glyphs.lock,
+                                                      "Need Developer Mode On",
+                                                      "In order to edit, delete or reload this script," +
+                                                      " turn on Developer Mode by going to:" +
+                                                      " Menu > Settings > Developer Menus");
+                                        }
+                                    }
                                 }
                             }
 
@@ -166,6 +203,7 @@ Rectangle {
                                 id: stopButton
                                 text: hifi.glyphs.closeSmall
                                 color: stopButtonArea.pressed ? hifi.colors.white : parent.color
+                                visible: canEditScript(styleData.value)
                                 anchors {
                                     top: parent.top
                                     right: parent.right
@@ -174,7 +212,11 @@ Rectangle {
                                 MouseArea {
                                     id: stopButtonArea
                                     anchors { fill: parent; margins: -2 }
-                                    onClicked: stopScript(model.url)
+                                    onClicked: {
+                                        if (canEdit) {
+                                            stopScript(model.url)
+                                        }
+                                    }
                                 }
                             }
 

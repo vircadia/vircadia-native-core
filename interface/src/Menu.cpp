@@ -98,10 +98,10 @@ Menu::Menu() {
     // Edit > Running Scripts
     auto action = addActionToQMenuAndActionHash(editMenu, MenuOption::RunningScripts, Qt::CTRL | Qt::Key_J);
     connect(action, &QAction::triggered, [] {
-        static const QUrl widgetUrl("hifi/dialogs/RunningScripts.qml");
         static const QUrl tabletUrl("../../hifi/dialogs/TabletRunningScripts.qml");
-        static const QString name("RunningScripts");
-        qApp->showDialog(widgetUrl, tabletUrl, name);
+        auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+        TabletProxy* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
+        tablet->pushOntoStack(tabletUrl);
     });
 
     // Edit > Open and Run Script from File... [advanced]
