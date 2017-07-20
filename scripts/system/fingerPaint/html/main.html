@@ -2,6 +2,7 @@
 <html>
 <head>
 <script type="text/javascript" src="../../html/js/jquery-2.1.4.min.js"></script>
+<link rel="stylesheet" type="text/css" href="../../html/css/edit-style.css">
 
 <style>
     iframe {
@@ -9,16 +10,19 @@
         width:100%;
         position: absolute;
     }
+    #tabs {
+        background-color: black;
+    }
     .tabButton {
-        background-color: #aaaaaa;
+        background-color: #000;
         color: white;
         font-size: 100%;
         padding: 12px;
         margin: 0px;
         text-align: center;
         vertical-align: middle;
-         display: inline-block;
-         user-select: none;
+        display: inline-block;
+        user-select: none;
     }
     .tabIcon {
         width: 24px;
@@ -26,24 +30,22 @@
         padding-right: 12px;
     }
     .selected {
-        background-color: #4286f4
+        background-color: #404040
     }
 </style>
 </head>
 <body style="margin:0px;padding:0px;overflow:hidden">
     <div id="tabs">
-        <span class="tabButton" onclick="selectTab(0)"><img class="tabIcon" src="../content/tabicons/colorpaletteBtn.png"/>Color</span>
+        <span class="tabButton" onclick="selectTab(0)"><img class="tabIcon" src="../content/tabicons/colorpaletteBtn.png"/>Palette</span>
         <span class="tabButton" onclick="selectTab(1)"><img class="tabIcon" src="../content/tabicons/brushesBtn.png"/>Brushes</span>
         <span class="tabButton" onclick="selectTab(2)"><img class="tabIcon" src="../content/tabicons/eraser.png"/>Eraser</span>
-        <span class="tabButton" onclick="selectTab(3)"><img class="tabIcon" src="../content/tabicons/linewidthBtn.png"/>Line Width</span>
-        <span class="tabButton" onclick="selectTab(4)"><img class="tabIcon" src="../content/tabicons/pointingfinger128px.png"/>Hand</span>
+        <span class="tabButton" onclick="selectTab(3)"><img class="tabIcon" src="../content/tabicons/pointingfinger128px.png"/>Hand</span>
     </div>
     <div id="settingsLoading" style="display: none; background-color: #F44336; color: white; padding: 8px">Loading previous settings</div>
     <div id="content">
         <iframe frameborder="0" src="colorsTab.html" onLoad="notifyFrameLoaded(this)" id="colorTab" seamless></iframe>
         <iframe frameborder="0" src="brushesTab.html" onLoad="notifyFrameLoaded(this)" id="brushesTab" seamless style="display: none"></iframe>
         <iframe frameborder="0" src="eraserTab.html" onLoad="notifyFrameLoaded(this)" id="eraserTab" seamless style="display: none"></iframe>
-        <iframe frameborder="0" src="lineWidthTab.html"  onLoad="notifyFrameLoaded(this)" id="lineWidthTab" seamless style="display: none"></iframe>
         <iframe frameborder="0" src="chooseHandTab.html" onLoad="notifyFrameLoaded(this)" id="chooseHandTab" seamless style="display: none"></iframe>
     </div>
 </body>
@@ -98,11 +100,11 @@
     function setupSettings() {
         //run only when all the tabs have been loaded and the settings have been received 
         //no matter the order at which these occur
-        if (!settings || iframesLoaded != 5) {
+        if (!settings || iframesLoaded != document.getElementById("content").children.length) {
             return;  
         } 
         $("#settingsLoading").hide();
-        if (settings.currentTab) {
+        if (settings.currentTab != null) {
             selectTab(settings.currentTab);    
         }
         if (settings.currentColor) {
@@ -111,20 +113,23 @@
         if (settings.customColors) {
             document.getElementById("colorTab").contentWindow.postMessage(JSON.stringify({customColors: settings.customColors}), "*");
         }
+        if (settings.currentTriggerWidthEnabled) {
+            document.getElementById("colorTab").contentWindow.postMessage(JSON.stringify({currentTriggerWidthEnabled: settings.currentTriggerWidthEnabled}), "*");
+        }
+        if (settings.currentStrokeWidth) {
+            document.getElementById("colorTab").contentWindow.postMessage(JSON.stringify({currentStrokeWidth: settings.currentStrokeWidth}), "*");
+        }
         if (settings.currentTexture) {
             document.getElementById("brushesTab").contentWindow.postMessage(JSON.stringify({currentTexture: settings.currentTexture}), "*");
         }
         if (settings.currentDynamicBrushes) {
             document.getElementById("brushesTab").contentWindow.postMessage(JSON.stringify({currentDynamicBrushes: settings.currentDynamicBrushes}), "*");
         }
-        if (settings.currentStrokeWidth) {
-            document.getElementById("lineWidthTab").contentWindow.postMessage(JSON.stringify(settings.currentStrokeWidth), "*");
-        }
         if (settings.currentDrawingHand) {
             document.getElementById("chooseHandTab").contentWindow.postMessage(JSON.stringify(settings.currentDrawingHand), "*");
         }
     }
-
+    
     $(document).ready(receiveDataSetup);
     // Listen to message from child window
     eventer(messageEvent,function(e) {

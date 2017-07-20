@@ -51,6 +51,7 @@ protected:
     gpu::BufferView _uniformBuffer;
     unsigned int _numVertices;
     bool _empty { true };
+    float _textureAspectRatio = 1.0f;
     QVector<glm::vec3> _vertices;
 };
 

@@ -85,9 +85,18 @@ void RenderablePolyLineEntityItem::updateGeometry() {
     float uCoord, vCoord;
     uCoord = 0.0f;
     float uCoordInc = 1.0 / (_vertices.size() / 2);
+    float accumulatedDistance = 0;
+    float distanceToLastPoint = 0;
+
     for (int i = 0; i < _vertices.size() / 2; i++) {
         vCoord = 0.0f;
-  
+
+        if (!_isUVModeStretch && vertexIndex > 2) {
+            distanceToLastPoint = glm::abs(glm::distance(_vertices.at(vertexIndex), _vertices.at(vertexIndex - 2)));
+            float strokeWidth = i > 1 ? _strokeWidths[i] : (_strokeWidths[i - 2] + _strokeWidths[i - 1]) / 2;
+            uCoord = (_textureAspectRatio * (accumulatedDistance + distanceToLastPoint)) / strokeWidth;
+            accumulatedDistance += distanceToLastPoint;
+        }
 
         uv = vec2(uCoord, vCoord);
 
@@ -105,15 +114,16 @@ void RenderablePolyLineEntityItem::updateGeometry() {
         _numVertices += 2;
         uCoord += uCoordInc;
 
-		if (!_isUVModeStretch) {
-			if (i % 2 == 0) {
-				uCoord = 1.0f;
-			}
-			else {
-				uCoord = 0.0f;
-			}
-		}
-    } 
+        /*
+        if (!_isUVModeStretch) {
+            if (i % 2 == 0) {
+                uCoord = 1.0f;
+            } else {
+                uCoord = 0.0f;
+            }
+        }
+        */
+    }
     _pointsChanged = false;
     _normalsChanged = false;
     _strokeWidthsChanged = false;
@@ -217,7 +227,15 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     } else {
         batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, nullptr);
     }
-   
+
+    float textureWidth = (float)_texture->getOriginalWidth();
+    float textureHeight = (float)_texture->getOriginalHeight();
+    if (textureWidth != 0 && textureHeight != 0) {
+        _textureAspectRatio = textureWidth < textureHeight
+            ? textureWidth / textureHeight
+            : textureHeight / textureWidth;
+    }
+
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
 
