@@ -49,7 +49,6 @@ void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _bbOverlay->setIsSolid(false);
                 _bbOverlay->setColor(BB_OVERLAY_COLOR);
                 _bbOverlay->setDrawInFront(true);
-                _bbOverlay->setIgnoreRayIntersection(false);
                 _bbOverlayID = qApp->getOverlays().addOverlay(_bbOverlay);
             }
             _bbOverlay->setDimensions(entityProperties.getDimensions());
@@ -98,7 +97,7 @@ void ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
 }
 
 void ContextOverlayInterface::clickContextOverlay(const OverlayID& overlayID, const PointerEvent& event) {
-    if ((overlayID == _contextOverlayID || overlayID == _bbOverlayID) && event.getButton() == PointerEvent::PrimaryButton) {
+    if (overlayID == _contextOverlayID  && event.getButton() == PointerEvent::PrimaryButton) {
         qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "Overlay ID:" << overlayID;
         openMarketplace();
         destroyContextOverlay(_currentEntityWithContextOverlay, PointerEvent());
