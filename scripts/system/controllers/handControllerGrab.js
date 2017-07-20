@@ -187,6 +187,7 @@ var DEFAULT_GRABBABLE_DATA = {
 var USE_BLACKLIST = true;
 var blacklist = [];
 
+var potentialEntityWithContextOverlay = false;
 var entityWithContextOverlay = false;
 var contextualHand = -1;
 
@@ -2221,13 +2222,13 @@ function MyController(hand) {
             entityPropertiesCache.addEntity(rayPickInfo.entityID);
         }
 
-        if (rayPickInfo.entityID && (entityWithContextOverlay !== rayPickInfo.entityID)) {
-            if (entityWithContextOverlay) {
-                ContextOverlay.destroyContextOverlay(entityWithContextOverlay);
-                entityWithContextOverlay = false;
-            }
+        if (rayPickInfo.entityID && !entityWithContextOverlay) {
             Script.setTimeout(function () {
-                if (rayPickInfo.entityID === entityWithContextOverlay && contextualHand !== -1) {
+                if (rayPickInfo.entityID === potentialEntityWithContextOverlay &&
+                    !entityWithContextOverlay
+                    && contextualHand !== -1) {
+                    entityWithContextOverlay = rayPickInfo.entityID;
+                    potentialEntityWithContextOverlay = false;
                     var pointerEvent = {
                         type: "Move",
                         id: contextualHand + 1, // 0 is reserved for hardware mouse
@@ -2240,8 +2241,8 @@ function MyController(hand) {
                     ContextOverlay.createOrDestroyContextOverlay(rayPickInfo.entityID, pointerEvent);
                 }
             }, 500);
-            entityWithContextOverlay = rayPickInfo.entityID;
             contextualHand = this.hand;
+            potentialEntityWithContextOverlay = rayPickInfo.entityID;
         }
 
         var candidateHotSpotEntities = Entities.findEntities(handPosition, MAX_EQUIP_HOTSPOT_RADIUS);
@@ -3492,6 +3493,7 @@ function MyController(hand) {
         if (entityWithContextOverlay) {
             ContextOverlay.destroyContextOverlay(entityWithContextOverlay);
             entityWithContextOverlay = false;
+            potentialEntityWithContextOverlay = false;
         }
 
         if (isInEditMode()) {
@@ -3631,6 +3633,7 @@ function MyController(hand) {
 
             Overlays.sendMousePressOnOverlay(this.grabbedOverlay, pointerEvent);
             entityWithContextOverlay = false;
+            potentialEntityWithContextOverlay = false;
 
             this.touchingEnterTimer = 0;
             this.touchingEnterPointerEvent = pointerEvent;
