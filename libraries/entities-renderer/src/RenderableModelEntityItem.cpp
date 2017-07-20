@@ -23,6 +23,7 @@
 #include <PerfStat.h>
 #include <render/Scene.h>
 #include <DependencyManager.h>
+#include <shared/QtHelpers.h>
 
 #include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
@@ -1287,5 +1288,6 @@ bool RenderableModelEntityItem::getMeshes(MeshProxyList& result) {
     if (!_model || !_model->isLoaded()) {
         return false;
     }
-    return _model->getMeshes(result);
+    BLOCKING_INVOKE_METHOD(_model.get(), "getMeshes", Q_RETURN_ARG(MeshProxyList, result));
+    return !result.isEmpty();
 }

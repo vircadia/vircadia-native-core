@@ -463,12 +463,13 @@ bool Model::convexHullContains(glm::vec3 point) {
     return false;
 }
 
-bool Model::getMeshes(MeshProxyList& result) {
+MeshProxyList Model::getMeshes() {
+    MeshProxyList result;
     const Geometry::Pointer& renderGeometry = getGeometry();
     const Geometry::GeometryMeshes& meshes = renderGeometry->getMeshes();
 
     if (!isLoaded()) {
-        return false;
+        return result;
     }
 
     Transform offset;
@@ -490,7 +491,7 @@ bool Model::getMeshes(MeshProxyList& result) {
         result << meshProxy;
     }
 
-    return true;
+    return result;
 }
 
 void Model::calculateTriangleSets() {

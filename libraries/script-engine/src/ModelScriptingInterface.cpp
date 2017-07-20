@@ -138,6 +138,41 @@ QScriptValue ModelScriptingInterface::transformMesh(glm::mat4 transform, MeshPro
     return meshToScriptValue(_modelScriptEngine, resultProxy);
 }
 
+QScriptValue ModelScriptingInterface::getVertexCount(MeshProxy* meshProxy) {
+    if (!meshProxy) {
+        return QScriptValue(false);
+    }
+    MeshPointer mesh = meshProxy->getMeshPointer();
+    if (!mesh) {
+        return QScriptValue(false);
+    }
+
+    gpu::BufferView::Index numVertices = (gpu::BufferView::Index)mesh->getNumVertices();
+
+    return numVertices;
+}
+
+QScriptValue ModelScriptingInterface::getVertex(MeshProxy* meshProxy, int vertexIndex) {
+    if (!meshProxy) {
+        return QScriptValue(false);
+    }
+    MeshPointer mesh = meshProxy->getMeshPointer();
+    if (!mesh) {
+        return QScriptValue(false);
+    }
+
+    const gpu::BufferView& vertexBufferView = mesh->getVertexBuffer();
+    gpu::BufferView::Index numVertices = (gpu::BufferView::Index)mesh->getNumVertices();
+
+    if (vertexIndex < 0 || vertexIndex >= numVertices) {
+        return QScriptValue(false);
+    }
+
+    glm::vec3 pos = vertexBufferView.get<glm::vec3>(vertexIndex);
+    return vec3toScriptValue(_modelScriptEngine, pos);
+}
+
+
 QScriptValue ModelScriptingInterface::newMesh(const QVector<glm::vec3>& vertices,
                                               const QVector<glm::vec3>& normals,
                                               const QVector<MeshFace>& faces) {
