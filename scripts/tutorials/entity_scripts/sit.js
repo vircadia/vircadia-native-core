@@ -122,7 +122,7 @@
 
     this.rolesToOverride = function() {
         return MyAvatar.getAnimationRoles().filter(function(role) {
-            return role === "right" || role.startsWith("left");
+            return !(role === "right" && role.startsWith("left"));
         });
     }
 
@@ -132,7 +132,6 @@
         print("Sitter's model has FINISHED changing. Reapply anim role overrides.");
         var roles = this.rolesToOverride();
         for (i in roles) {
-            //print("Overriding role animation " + roles[i]);
             MyAvatar.overrideRoleAnimation(roles[i], ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
         }
     }
