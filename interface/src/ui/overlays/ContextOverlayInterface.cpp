@@ -29,6 +29,7 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _entityPropertyFlags += PROP_ROTATION;
     _entityPropertyFlags += PROP_MARKETPLACE_ID;
     _entityPropertyFlags += PROP_DIMENSIONS;
+    _entityPropertyFlags += PROP_REGISTRATION_POINT;
 
     auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>().data();
     connect(entityTreeRenderer, SIGNAL(mousePressOnEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(createOrDestroyContextOverlay(const EntityItemID&, const PointerEvent&)));
@@ -40,6 +41,7 @@ void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
     if (_enabled && event.getButton() == PointerEvent::SecondaryButton) {
 
         EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
+        glm::vec3 position = entityProperties.getPosition();
         if (entityProperties.getMarketplaceID().length() != 0) {
             qCDebug(context_overlay) << "Creating Context Overlay on top of entity with ID: " << entityItemID;
             _entityMarketplaceID = entityProperties.getMarketplaceID();
@@ -50,11 +52,13 @@ void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _bbOverlay->setIsSolid(false);
                 _bbOverlay->setColor(BB_OVERLAY_COLOR);
                 _bbOverlay->setDrawInFront(true);
+                _bbOverlay->setIgnoreRayIntersection(true);
+                _bbOverlay->setParentID(entityItemID);
                 _bbOverlayID = qApp->getOverlays().addOverlay(_bbOverlay);
             }
             _bbOverlay->setDimensions(entityProperties.getDimensions());
             _bbOverlay->setRotation(entityProperties.getRotation());
-            _bbOverlay->setPosition(entityProperties.getPosition());
+            _bbOverlay->setPosition(position);
             _bbOverlay->setVisible(true);
 
             if (_contextOverlayID == UNKNOWN_OVERLAY_ID || !qApp->getOverlays().isAddedOverlay(_contextOverlayID)) {
@@ -67,11 +71,12 @@ void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _contextOverlay->setDrawInFront(true);
                 _contextOverlay->setURL("http://i.imgur.com/gksZygp.png");
                 _contextOverlay->setIsFacingAvatar(true);
+                _contextOverlay->setParentID(entityItemID);
                 _contextOverlayID = qApp->getOverlays().addOverlay(_contextOverlay);
             }
 
             _contextOverlay->setDimensions(glm::vec2(0.05f, 0.05f) * glm::distance(entityProperties.getPosition(), qApp->getCamera().getPosition()));
-            _contextOverlay->setPosition(entityProperties.getPosition());
+            _contextOverlay->setPosition(position);
             _contextOverlay->setRotation(entityProperties.getRotation());
             _contextOverlay->setVisible(true);
         }

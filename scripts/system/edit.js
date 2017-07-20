@@ -14,7 +14,7 @@
    Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
 
 (function() { // BEGIN LOCAL_SCOPE
-    
+
 "use strict";
 
 var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
@@ -388,7 +388,6 @@ var toolBar = (function () {
 
     function initialize() {
         Script.scriptEnding.connect(cleanup);
-
         Window.domainChanged.connect(function () {
             that.setActive(false);
             that.clearEntityList();
@@ -614,6 +613,7 @@ var toolBar = (function () {
     };
 
     that.setActive = function (active) {
+        ContextOverlay.enabled = !active;
         Settings.setValue(EDIT_SETTING, active);
         if (active) {
             Controller.captureEntityClickEvents();
@@ -2184,6 +2184,7 @@ var PopupMenu = function () {
     };
 
     function cleanup() {
+        ContextOverlay.enabled = true;
         for (var i = 0; i < overlays.length; i++) {
             Overlays.deleteOverlay(overlays[i]);
         }
