@@ -3633,8 +3633,6 @@ function MyController(hand) {
             };
 
             Overlays.sendMousePressOnOverlay(this.grabbedOverlay, pointerEvent);
-            entityWithContextOverlay = false;
-            potentialEntityWithContextOverlay = false;
 
             this.touchingEnterTimer = 0;
             this.touchingEnterPointerEvent = pointerEvent;
