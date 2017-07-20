@@ -18,7 +18,7 @@ Original.CheckBox {
     id: checkBox
 
     property int colorScheme: hifi.colorSchemes.light
-    property string color: hifi.colors.lightGray
+    property string color: hifi.colors.lightGrayText
     readonly property bool isLightColorScheme: colorScheme == hifi.colorSchemes.light
     property bool isRedCheck: false
     property int boxSize: 14

@@ -19,6 +19,8 @@
 #include "Args.h"
 
 namespace render {
+class Item;
+class ShapePlumber;
 
 class ShapeKey {
 public:
@@ -38,7 +40,19 @@ public:
         OWN_PIPELINE,
         INVALID,
 
+        CUSTOM_0,
+        CUSTOM_1,
+        CUSTOM_2,
+        CUSTOM_3,
+        CUSTOM_4,
+        CUSTOM_5,
+        CUSTOM_6,
+        CUSTOM_7,
+
         NUM_FLAGS, // Not a valid flag
+
+        CUSTOM_MASK = (0xFF << CUSTOM_0),
+
     };
     using Flags = std::bitset<NUM_FLAGS>;
 
@@ -73,6 +87,8 @@ public:
         Builder& withOwnPipeline() { _flags.set(OWN_PIPELINE); return (*this); }
         Builder& invalidate() { _flags.set(INVALID); return (*this); }
 
+        Builder& withCustom(uint8_t custom) {  _flags &= (~CUSTOM_MASK); _flags |= (custom << CUSTOM_0); return (*this); }
+        
         static const ShapeKey ownPipeline() { return Builder().withOwnPipeline(); }
         static const ShapeKey invalid() { return Builder().invalidate(); }
 
@@ -127,6 +143,9 @@ public:
             Builder& withCullFace() { _flags.reset(NO_CULL_FACE); _mask.set(NO_CULL_FACE); return (*this); }
             Builder& withoutCullFace() { _flags.set(NO_CULL_FACE); _mask.set(NO_CULL_FACE); return (*this); }
 
+            Builder& withCustom(uint8_t custom) { _flags &= (~CUSTOM_MASK); _flags |= (custom << CUSTOM_0); _mask |= (CUSTOM_MASK); return (*this); }
+            Builder& withoutCustom() { _flags &= (~CUSTOM_MASK);  _mask |= (CUSTOM_MASK); return (*this); }
+
         protected:
             friend class Filter;
             Flags _flags{0};
@@ -154,6 +173,9 @@ public:
 
     bool hasOwnPipeline() const { return _flags[OWN_PIPELINE]; }
     bool isValid() const { return !_flags[INVALID]; }
+
+    uint8_t getCustom() const { return (_flags.to_ulong() & CUSTOM_MASK) >> CUSTOM_0; }
+    bool isCustom() const { return (_flags.to_ulong() & CUSTOM_MASK); }
 
     // Comparator for use in stl containers
     class Hash {
@@ -240,22 +262,39 @@ public:
     };
     using LocationsPointer = std::shared_ptr<Locations>;
 
-    using BatchSetter = std::function<void(const ShapePipeline&, gpu::Batch&)>;
+    using BatchSetter = std::function<void(const ShapePipeline&, gpu::Batch&, render::Args*)>;
 
-    ShapePipeline(gpu::PipelinePointer pipeline, LocationsPointer locations, BatchSetter batchSetter) :
-        pipeline(pipeline), locations(locations), batchSetter(batchSetter) {}
+    using ItemSetter = std::function<void(const ShapePipeline&, render::Args*, const render::Item&)>;
 
-    // Normally, a pipeline is accessed thorugh pickPipeline. If it needs to be set manually,
+    ShapePipeline(gpu::PipelinePointer pipeline, LocationsPointer locations, BatchSetter batchSetter, ItemSetter itemSetter) :
+        pipeline(pipeline),
+        locations(locations),
+        _batchSetter(batchSetter),
+        _itemSetter(itemSetter) {}
+
+    // Normally, a pipeline is accessed through pickPipeline. If it needs to be set manually,
     // after calling setPipeline this method should be called to prepare the pipeline with default buffers.
-    void prepare(gpu::Batch& batch);
+    void prepare(gpu::Batch& batch, Args* args);
 
     gpu::PipelinePointer pipeline;
     std::shared_ptr<Locations> locations;
 
+    void prepareShapeItem(Args* args, const ShapeKey& key, const Item& shape);
+
 protected:
     friend class ShapePlumber;
 
-    BatchSetter batchSetter;
+    BatchSetter _batchSetter;
+    ItemSetter _itemSetter;
+public:
+    using CustomKey = uint8_t;
+    using CustomFactory = std::function<std::shared_ptr<ShapePipeline> (const ShapePlumber& plumber, const ShapeKey& key)>;
+    using CustomFactoryMap = std::map<CustomKey, CustomFactory>;
+
+    static CustomFactoryMap _globalCustomFactoryMap;
+
+    static CustomKey registerCustomShapePipelineFactory(CustomFactory factory);
+
 };
 using ShapePipelinePointer = std::shared_ptr<ShapePipeline>;
 
@@ -270,21 +309,23 @@ public:
     using Locations = Pipeline::Locations;
     using LocationsPointer = Pipeline::LocationsPointer;
     using BatchSetter = Pipeline::BatchSetter;
+    using ItemSetter = Pipeline::ItemSetter;
 
     void addPipeline(const Key& key, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
-        BatchSetter batchSetter = nullptr);
+        BatchSetter batchSetter = nullptr, ItemSetter itemSetter = nullptr);
     void addPipeline(const Filter& filter, const gpu::ShaderPointer& program, const gpu::StatePointer& state,
-        BatchSetter batchSetter = nullptr);
+        BatchSetter batchSetter = nullptr, ItemSetter itemSetter = nullptr);
 
     const PipelinePointer pickPipeline(RenderArgs* args, const Key& key) const;
 
 protected:
-    void addPipelineHelper(const Filter& filter, Key key, int bit, const PipelinePointer& pipeline);
-    PipelineMap _pipelineMap;
+    void addPipelineHelper(const Filter& filter, Key key, int bit, const PipelinePointer& pipeline) const;
+    mutable PipelineMap _pipelineMap;
 
 private:
     mutable std::unordered_set<Key, Key::Hash, Key::KeyEqual> _missingKeys;
 };
+
 
 using ShapePlumberPointer = std::shared_ptr<ShapePlumber>;
 

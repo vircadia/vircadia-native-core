@@ -678,7 +678,7 @@ private:
     QTimer _addAssetToWorldErrorTimer;
 
     FileScriptingInterface* _fileDownload;
-    AudioInjector* _snapshotSoundInjector { nullptr };
+    AudioInjectorPointer _snapshotSoundInjector;
     SharedSoundPointer _snapshotSound;
 
     DisplayPluginPointer _autoSwitchDisplayModeSupportedHMDPlugin;

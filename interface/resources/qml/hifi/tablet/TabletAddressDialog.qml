@@ -99,7 +99,13 @@ StackView {
         height: parent.height
 
         MouseArea {
-            anchors.fill: parent
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
+                bottom: keyboard.top
+            }
+
             propagateComposedEvents: true
             onPressed: {
                 parent.forceActiveFocus();

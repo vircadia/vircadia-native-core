@@ -18,6 +18,7 @@
 #include <udt/PacketHeaders.h>
 
 #include "AudioInjectorOptions.h"
+#include "AudioInjector.h"
 
 class AudioInjector;
 class AudioInjectorLocalBuffer;
@@ -35,7 +36,7 @@ public:
     // threadsafe
     // moves injector->getLocalBuffer() to another thread (so removes its parent)
     // take care to delete it when ~AudioInjector, as parenting Qt semantics will not work
-    virtual bool outputLocalInjector(AudioInjector* injector) = 0;
+    virtual bool outputLocalInjector(const AudioInjectorPointer& injector) = 0;
 
 public slots:
     virtual bool shouldLoopbackInjectors() { return false; }

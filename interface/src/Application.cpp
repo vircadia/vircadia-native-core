@@ -112,10 +112,7 @@
 #include <plugins/InputConfiguration.h>
 #include <RecordingScriptingInterface.h>
 #include <RenderableWebEntityItem.h>
-#include <RenderShadowTask.h>
-#include <render/RenderFetchCullSortTask.h>
-#include <RenderDeferredTask.h>
-#include <RenderForwardTask.h>
+#include <UpdateSceneTask.h>
 #include <RenderViewTask.h>
 #include <SecondaryCamera.h>
 #include <ResourceCache.h>
@@ -170,6 +167,7 @@
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
+#include "ui/ResourceImageItem.h"
 #include "ui/AddressBarDialog.h"
 #include "ui/AvatarInputs.h"
 #include "ui/DialogsManager.h"
@@ -952,58 +950,68 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
-
-    // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
-    // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
-    static const QString TESTER = "HIFI_TESTER";
-    auto gpuIdent = GPUIdent::getInstance();
-    auto glContextData = getGLContextData();
-    QJsonObject properties = {
-        { "version", applicationVersion() },
-        { "tester", QProcessEnvironment::systemEnvironment().contains(TESTER) },
-        { "previousSessionCrashed", _previousSessionCrashed },
-        { "previousSessionRuntime", sessionRunTime.get() },
-        { "cpu_architecture", QSysInfo::currentCpuArchitecture() },
-        { "kernel_type", QSysInfo::kernelType() },
-        { "kernel_version", QSysInfo::kernelVersion() },
-        { "os_type", QSysInfo::productType() },
-        { "os_version", QSysInfo::productVersion() },
-        { "gpu_name", gpuIdent->getName() },
-        { "gpu_driver", gpuIdent->getDriver() },
-        { "gpu_memory", static_cast<qint64>(gpuIdent->getMemory()) },
-        { "gl_version_int", glVersionToInteger(glContextData.value("version").toString()) },
-        { "gl_version", glContextData["version"] },
-        { "gl_vender", glContextData["vendor"] },
-        { "gl_sl_version", glContextData["sl_version"] },
-        { "gl_renderer", glContextData["renderer"] },
-        { "ideal_thread_count", QThread::idealThreadCount() }
-    };
-    auto macVersion = QSysInfo::macVersion();
-    if (macVersion != QSysInfo::MV_None) {
-        properties["os_osx_version"] = QSysInfo::macVersion();
-    }
-    auto windowsVersion = QSysInfo::windowsVersion();
-    if (windowsVersion != QSysInfo::WV_None) {
-        properties["os_win_version"] = QSysInfo::windowsVersion();
-    }
-
-    ProcessorInfo procInfo;
-    if (getProcessorInfo(procInfo)) {
-        properties["processor_core_count"] = procInfo.numProcessorCores;
-        properties["logical_processor_count"] = procInfo.numLogicalProcessors;
-        properties["processor_l1_cache_count"] = procInfo.numProcessorCachesL1;
-        properties["processor_l2_cache_count"] = procInfo.numProcessorCachesL2;
-        properties["processor_l3_cache_count"] = procInfo.numProcessorCachesL3;
-    }
-
-    // add firstRun flag from settings to launch event
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
-    properties["first_run"] = firstRun.get();
 
-    // add the user's machine ID to the launch event
-    properties["machine_fingerprint"] = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
+    // once the settings have been loaded, check if we need to flip the default for UserActivityLogger
+    auto& userActivityLogger = UserActivityLogger::getInstance();
+    if (!userActivityLogger.isDisabledSettingSet()) {
+        // the user activity logger is opt-out for Interface
+        // but it's defaulted to disabled for other targets
+        // so we need to enable it here if it has never been disabled by the user
+        userActivityLogger.disable(false);
+    }
 
-    UserActivityLogger::getInstance().logAction("launch", properties);
+    if (userActivityLogger.isEnabled()) {
+        // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
+        // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
+        static const QString TESTER = "HIFI_TESTER";
+        auto gpuIdent = GPUIdent::getInstance();
+        auto glContextData = getGLContextData();
+        QJsonObject properties = {
+            { "version", applicationVersion() },
+            { "tester", QProcessEnvironment::systemEnvironment().contains(TESTER) },
+            { "previousSessionCrashed", _previousSessionCrashed },
+            { "previousSessionRuntime", sessionRunTime.get() },
+            { "cpu_architecture", QSysInfo::currentCpuArchitecture() },
+            { "kernel_type", QSysInfo::kernelType() },
+            { "kernel_version", QSysInfo::kernelVersion() },
+            { "os_type", QSysInfo::productType() },
+            { "os_version", QSysInfo::productVersion() },
+            { "gpu_name", gpuIdent->getName() },
+            { "gpu_driver", gpuIdent->getDriver() },
+            { "gpu_memory", static_cast<qint64>(gpuIdent->getMemory()) },
+            { "gl_version_int", glVersionToInteger(glContextData.value("version").toString()) },
+            { "gl_version", glContextData["version"] },
+            { "gl_vender", glContextData["vendor"] },
+            { "gl_sl_version", glContextData["sl_version"] },
+            { "gl_renderer", glContextData["renderer"] },
+            { "ideal_thread_count", QThread::idealThreadCount() }
+        };
+        auto macVersion = QSysInfo::macVersion();
+        if (macVersion != QSysInfo::MV_None) {
+            properties["os_osx_version"] = QSysInfo::macVersion();
+        }
+        auto windowsVersion = QSysInfo::windowsVersion();
+        if (windowsVersion != QSysInfo::WV_None) {
+            properties["os_win_version"] = QSysInfo::windowsVersion();
+        }
+
+        ProcessorInfo procInfo;
+        if (getProcessorInfo(procInfo)) {
+            properties["processor_core_count"] = procInfo.numProcessorCores;
+            properties["logical_processor_count"] = procInfo.numLogicalProcessors;
+            properties["processor_l1_cache_count"] = procInfo.numProcessorCachesL1;
+            properties["processor_l2_cache_count"] = procInfo.numProcessorCachesL2;
+            properties["processor_l3_cache_count"] = procInfo.numProcessorCachesL3;
+        }
+
+        properties["first_run"] = firstRun.get();
+
+        // add the user's machine ID to the launch event
+        properties["machine_fingerprint"] = uuidStringWithoutCurlyBraces(FingerprintUtils::getMachineFingerprint());
+
+        userActivityLogger.logAction("launch", properties);
+    }
 
     // Tell our entity edit sender about our known jurisdictions
     _entityEditSender.setServerJurisdictions(&_entityServerJurisdictions);
@@ -1963,7 +1971,8 @@ void Application::initializeGL() {
     render::CullFunctor cullFunctor = LODManager::shouldRender;
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
     bool isDeferred = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
-    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraFrame", cullFunctor);
+    _renderEngine->addJob<UpdateSceneTask>("UpdateScene");
+    _renderEngine->addJob<SecondaryCameraRenderTask>("SecondaryCameraJob", cullFunctor);
     _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, isDeferred);
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
@@ -2011,6 +2020,7 @@ void Application::initializeUi() {
     LoginDialog::registerType();
     Tooltip::registerType();
     UpdateDialog::registerType();
+    qmlRegisterType<ResourceImageItem>("Hifi", 1, 0, "ResourceImageItem");
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
@@ -2732,6 +2742,16 @@ bool Application::event(QEvent* event) {
             static_cast<LambdaEvent*>(event)->call();
             return true;
 
+        // Explicit idle keeps the idle running at a lower interval, but without any rendering
+        // see (windowMinimizedChanged)
+        case Event::Idle:
+            {
+                float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
+                _lastTimeUpdated.start();
+                idle(nsecsElapsed);
+            }
+            return true;
+
         case Event::Present:
             if (!_renderRequested) {
                 float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
@@ -2741,7 +2761,7 @@ bool Application::event(QEvent* event) {
                     idle(nsecsElapsed);
                     postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
                 }
-            } 
+            }
             return true;
 
         case Event::Paint:
@@ -3142,59 +3162,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 updateProjectionMatrix();
                 break;
 #endif
-
-            case Qt::Key_H: {
-                // whenever switching to/from full screen mirror from the keyboard, remember
-                // the state you were in before full screen mirror, and return to that.
-                auto previousMode = _myCamera.getMode();
-                if (previousMode != CAMERA_MODE_MIRROR) {
-                    switch (previousMode) {
-                    case CAMERA_MODE_FIRST_PERSON:
-                        _returnFromFullScreenMirrorTo = MenuOption::FirstPerson;
-                        break;
-                    case CAMERA_MODE_THIRD_PERSON:
-                        _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
-                        break;
-
-                        // FIXME - it's not clear that these modes make sense to return to...
-                    case CAMERA_MODE_INDEPENDENT:
-                        _returnFromFullScreenMirrorTo = MenuOption::IndependentMode;
-                        break;
-                    case CAMERA_MODE_ENTITY:
-                        _returnFromFullScreenMirrorTo = MenuOption::CameraEntityMode;
-                        break;
-
-                    default:
-                        _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
-                        break;
-                    }
-                }
-
-                bool isMirrorChecked = Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror);
-                Menu::getInstance()->setIsOptionChecked(MenuOption::FullscreenMirror, !isMirrorChecked);
-                if (isMirrorChecked) {
-
-                    // if we got here without coming in from a non-Full Screen mirror case, then our
-                    // _returnFromFullScreenMirrorTo is unknown. In that case we'll go to the old
-                    // behavior of returning to ThirdPerson
-                    if (_returnFromFullScreenMirrorTo.isEmpty()) {
-                        _returnFromFullScreenMirrorTo = MenuOption::ThirdPerson;
-                    }
-                    Menu::getInstance()->setIsOptionChecked(_returnFromFullScreenMirrorTo, true);
-                }
-                cameraMenuChanged();
-                break;
-            }
-
-            case Qt::Key_P: {
-                if (!(isShifted || isMeta || isOption)) {
-                    bool isFirstPersonChecked = Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson);
-                    Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, !isFirstPersonChecked);
-                    Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, isFirstPersonChecked);
-                    cameraMenuChanged();
-                }
-                break;
-            }
 
             case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
@@ -3770,8 +3737,8 @@ void updateCpuInformation() {
         // Update friendly structure
         auto& myCpuInfo = myCpuInfos[i];
         myCpuInfo.update(cpuInfo);
-        PROFILE_COUNTER(app, myCpuInfo.name.c_str(), { 
-            { "kernel", myCpuInfo.kernelUsage }, 
+        PROFILE_COUNTER(app, myCpuInfo.name.c_str(), {
+            { "kernel", myCpuInfo.kernelUsage },
             { "user", myCpuInfo.userUsage }
         });
     }
@@ -3838,7 +3805,7 @@ void getCpuUsage(vec3& systemAndUser) {
 void setupCpuMonitorThread() {
     initCpuUsage();
     auto cpuMonitorThread = QThread::currentThread();
-    
+
     QTimer* timer = new QTimer();
     timer->setInterval(50);
     QObject::connect(timer, &QTimer::timeout, [] {
@@ -5355,7 +5322,7 @@ namespace render {
 
             auto& batch = *args->_batch;
             DependencyManager::get<GeometryCache>()->bindSimpleProgram(batch);
-            renderWorldBox(batch);
+            renderWorldBox(args, batch);
         }
     }
 }
@@ -5418,10 +5385,7 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
     }
 
     {
-        PerformanceTimer perfTimer("SceneProcessTransaction");
         _main3DScene->enqueueTransaction(transaction);
-
-        _main3DScene->processTransactionQueue();
     }
 
     // For now every frame pass the renderContext
@@ -7111,6 +7075,12 @@ void Application::updateDisplayMode() {
 
     // reset the avatar, to set head and hand palms back to a reasonable default pose.
     getMyAvatar()->reset(false);
+
+    // switch to first person if entering hmd and setting is checked
+    if (isHmd && menu->isOptionChecked(MenuOption::FirstPersonHMD)) {
+        menu->setIsOptionChecked(MenuOption::FirstPerson, true);
+        cameraMenuChanged();
+    }
 
     Q_ASSERT_X(_displayPlugin, "Application::updateDisplayMode", "could not find an activated display plugin");
 }

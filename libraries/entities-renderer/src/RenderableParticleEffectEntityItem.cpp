@@ -13,14 +13,13 @@
 #include <DependencyManager.h>
 #include <PerfStat.h>
 #include <GeometryCache.h>
+#include <render/ShapePipeline.h>
 #include <StencilMaskPass.h>
 #include <AbstractViewStateInterface.h>
 #include "EntitiesRendererLogging.h"
 
 #include "RenderableParticleEffectEntityItem.h"
 
-#include "untextured_particle_vert.h"
-#include "untextured_particle_frag.h"
 #include "textured_particle_vert.h"
 #include "textured_particle_frag.h"
 
@@ -28,6 +27,16 @@
 class ParticlePayloadData {
 public:
     static const size_t VERTEX_PER_PARTICLE = 4;
+
+    static uint8_t CUSTOM_PIPELINE_NUMBER;
+    static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key);
+    static void registerShapePipeline() {
+        if (!CUSTOM_PIPELINE_NUMBER) {
+            CUSTOM_PIPELINE_NUMBER = render::ShapePipeline::registerCustomShapePipelineFactory(shapePipelineFactory);
+        }
+    }
+
+    static std::weak_ptr<gpu::Pipeline> _texturedPipeline;
 
     template<typename T>
     struct InterpolationData {
@@ -70,9 +79,6 @@ public:
                                     offsetof(ParticlePrimitive, uv), gpu::Stream::PER_INSTANCE);
     }
 
-    void setPipeline(PipelinePointer pipeline) { _pipeline = pipeline; }
-    const PipelinePointer& getPipeline() const { return _pipeline; }
-
     const Transform& getModelTransform() const { return _modelTransform; }
     void setModelTransform(const Transform& modelTransform) { _modelTransform = modelTransform; }
 
@@ -90,15 +96,15 @@ public:
 
     bool getVisibleFlag() const { return _visibleFlag; }
     void setVisibleFlag(bool visibleFlag) { _visibleFlag = visibleFlag; }
-    
+
     void render(RenderArgs* args) const {
-        assert(_pipeline);
 
         gpu::Batch& batch = *args->_batch;
-        batch.setPipeline(_pipeline);
 
         if (_texture) {
             batch.setResourceTexture(0, _texture);
+        } else {
+            batch.setResourceTexture(0, DependencyManager::get<TextureCache>()->getWhiteTexture());
         }
 
         batch.setModelTransform(_modelTransform);
@@ -113,7 +119,6 @@ public:
 protected:
     Transform _modelTransform;
     AABox _bound;
-    PipelinePointer _pipeline;
     FormatPointer _vertexFormat { std::make_shared<Format>() };
     BufferPointer _particleBuffer { std::make_shared<Buffer>() };
     BufferView _uniformBuffer;
@@ -142,23 +147,49 @@ namespace render {
             payload->render(args);
         }
     }
+    template <>
+    const ShapeKey shapeGetShapeKey(const ParticlePayloadData::Pointer& payload) {
+        return render::ShapeKey::Builder().withCustom(ParticlePayloadData::CUSTOM_PIPELINE_NUMBER).withTranslucent().build();
+    }
 }
 
+uint8_t ParticlePayloadData::CUSTOM_PIPELINE_NUMBER = 0;
 
+std::weak_ptr<gpu::Pipeline> ParticlePayloadData::_texturedPipeline;
+
+render::ShapePipelinePointer ParticlePayloadData::shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key) {
+    auto texturedPipeline = _texturedPipeline.lock();
+    if (!texturedPipeline) {
+        auto state = std::make_shared<gpu::State>();
+        state->setCullMode(gpu::State::CULL_BACK);
+        state->setDepthTest(true, false, gpu::LESS_EQUAL);
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE,
+                                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
+        PrepareStencil::testMask(*state);
+
+        auto vertShader = gpu::Shader::createVertex(std::string(textured_particle_vert));
+        auto fragShader = gpu::Shader::createPixel(std::string(textured_particle_frag));
+
+        auto program = gpu::Shader::createProgram(vertShader, fragShader);
+        _texturedPipeline = texturedPipeline = gpu::Pipeline::create(program, state);
+    }
+    
+    return std::make_shared<render::ShapePipeline>(texturedPipeline, nullptr, nullptr, nullptr);
+}
 
 EntityItemPointer RenderableParticleEffectEntityItem::factory(const EntityItemID& entityID,
                                                               const EntityItemProperties& properties) {
     auto entity = std::make_shared<RenderableParticleEffectEntityItem>(entityID);
     entity->setProperties(properties);
+
+    // As we create the first ParticuleSystem entity, let s register its special shapePIpeline factory:
+    ParticlePayloadData::registerShapePipeline();
+
     return entity;
 }
 
 RenderableParticleEffectEntityItem::RenderableParticleEffectEntityItem(const EntityItemID& entityItemID) :
     ParticleEffectEntityItem(entityItemID) {
-    // lazy creation of particle system pipeline
-    if (!_untexturedPipeline || !_texturedPipeline) {
-        createPipelines();
-    }
 }
 
 bool RenderableParticleEffectEntityItem::addToScene(const EntityItemPointer& self,
@@ -167,7 +198,6 @@ bool RenderableParticleEffectEntityItem::addToScene(const EntityItemPointer& sel
     _scene = scene;
     _renderItemId = _scene->allocateID();
     auto particlePayloadData = std::make_shared<ParticlePayloadData>();
-    particlePayloadData->setPipeline(_untexturedPipeline);
     auto renderPayload = std::make_shared<ParticlePayloadData::Payload>(particlePayloadData);
     render::Item::Status::Getters statusGetters;
     makeEntityItemStatusGetters(getThisPointer(), statusGetters);
@@ -276,45 +306,12 @@ void RenderableParticleEffectEntityItem::updateRenderItem() {
 
         if (_texture && _texture->isLoaded()) {
             payload.setTexture(_texture->getGPUTexture());
-            payload.setPipeline(_texturedPipeline);
         } else {
             payload.setTexture(nullptr);
-            payload.setPipeline(_untexturedPipeline);
         }
     });
 
     _scene->enqueueTransaction(transaction);
-}
-
-void RenderableParticleEffectEntityItem::createPipelines() {
-    if (!_untexturedPipeline) {
-        auto state = std::make_shared<gpu::State>();
-        state->setCullMode(gpu::State::CULL_BACK);
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE,
-                                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-        PrepareStencil::testMask(*state);
-
-        auto vertShader = gpu::Shader::createVertex(std::string(untextured_particle_vert));
-        auto fragShader = gpu::Shader::createPixel(std::string(untextured_particle_frag));
-
-        auto program = gpu::Shader::createProgram(vertShader, fragShader);
-        _untexturedPipeline = gpu::Pipeline::create(program, state);
-    }
-    if (!_texturedPipeline) {
-        auto state = std::make_shared<gpu::State>();
-        state->setCullMode(gpu::State::CULL_BACK);
-        state->setDepthTest(true, false, gpu::LESS_EQUAL);
-        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE,
-                                gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-        PrepareStencil::testMask(*state);
-
-        auto vertShader = gpu::Shader::createVertex(std::string(textured_particle_vert));
-        auto fragShader = gpu::Shader::createPixel(std::string(textured_particle_frag));
-
-        auto program = gpu::Shader::createProgram(vertShader, fragShader);
-        _texturedPipeline = gpu::Pipeline::create(program, state);
-    }
 }
 
 void RenderableParticleEffectEntityItem::notifyBoundChanged() {

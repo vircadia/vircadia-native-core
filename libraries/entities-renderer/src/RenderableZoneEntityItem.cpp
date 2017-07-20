@@ -221,10 +221,10 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                 if (getShapeType() == SHAPE_TYPE_SPHERE) {
                     shapeTransform.postScale(SPHERE_ENTITY_SCALE);
                     batch.setModelTransform(shapeTransform);
-                    geometryCache->renderWireSphereInstance(batch, DEFAULT_COLOR);
+                    geometryCache->renderWireSphereInstance(args, batch, DEFAULT_COLOR);
                 } else {
                     batch.setModelTransform(shapeTransform);
-                    geometryCache->renderWireCubeInstance(batch, DEFAULT_COLOR);
+                    geometryCache->renderWireCubeInstance(args, batch, DEFAULT_COLOR);
                 }
                 break;
             }
@@ -554,11 +554,13 @@ void RenderableZoneEntityItemMeta::setProceduralUserData(QString userData) {
 
 void RenderableZoneEntityItemMeta::render(RenderArgs* args) {
     if (!_stage) {
-        _stage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
+        _stage = args->_scene->getStage<LightStage>();
+        assert(_stage);
     }
 
     if (!_backgroundStage) {
-        _backgroundStage = DependencyManager::get<DeferredLightingEffect>()->getBackgroundStage();
+        _backgroundStage = args->_scene->getStage<BackgroundStage>();
+        assert(_backgroundStage);
     }
 
     { // Sun 

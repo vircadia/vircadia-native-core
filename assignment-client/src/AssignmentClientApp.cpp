@@ -17,8 +17,8 @@
 #include <QtCore/QThread>
 
 #include <LogHandler.h>
-#include <SharedUtil.h>
 #include <HifiConfigVariantMap.h>
+#include <SharedUtil.h>
 #include <ShutdownEventListener.h>
 
 #include "Assignment.h"
