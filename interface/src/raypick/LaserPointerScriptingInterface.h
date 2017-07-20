@@ -30,6 +30,13 @@ public slots:
     Q_INVOKABLE void setRenderState(unsigned int uid, const QString& renderState) { DependencyManager::get<LaserPointerManager>()->setRenderState(uid, renderState); }
     Q_INVOKABLE RayPickResult getPrevRayPickResult(unsigned int uid) { return DependencyManager::get<LaserPointerManager>()->getPrevRayPickResult(uid); }
 
+    Q_INVOKABLE void setIgnoreEntities(unsigned int uid, const QScriptValue& ignoreEntities) { DependencyManager::get<LaserPointerManager>()->setIgnoreEntities(uid, ignoreEntities); }
+    Q_INVOKABLE void setIncludeEntities(unsigned int uid, const QScriptValue& includeEntities) { DependencyManager::get<LaserPointerManager>()->setIncludeEntities(uid, includeEntities); }
+    Q_INVOKABLE void setIgnoreOverlays(unsigned int uid, const QScriptValue& ignoreOverlays) { DependencyManager::get<LaserPointerManager>()->setIgnoreOverlays(uid, ignoreOverlays); }
+    Q_INVOKABLE void setIncludeOverlays(unsigned int uid, const QScriptValue& includeOverlays) { DependencyManager::get<LaserPointerManager>()->setIncludeOverlays(uid, includeOverlays); }
+    Q_INVOKABLE void setIgnoreAvatars(unsigned int uid, const QScriptValue& ignoreAvatars) { DependencyManager::get<LaserPointerManager>()->setIgnoreAvatars(uid, ignoreAvatars); }
+    Q_INVOKABLE void setIncludeAvatars(unsigned int uid, const QScriptValue& includeAvatars) { DependencyManager::get<LaserPointerManager>()->setIncludeAvatars(uid, includeAvatars); }
+
 private:
     const RenderState buildRenderState(const QVariantMap & propMap);
 

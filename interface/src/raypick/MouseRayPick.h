@@ -13,8 +13,6 @@
 
 #include "RayPick.h"
 
-#include <QString>
-
 class MouseRayPick : public RayPick {
 
 public:

@@ -63,70 +63,40 @@ void RayPickManager::update() {
         if (rayPick->getFilter() & RayPickMask::PICK_ENTITIES) {
             RayToEntityIntersectionResult entityRes;
             bool fromCache = true;
-            if (rayPick->getFilter() & RayPickMask::PICK_INCLUDE_INVISIBLE && rayPick->getFilter() & RayPickMask::PICK_INCLUDE_NONCOLLIDABLE) {
-                if (!checkAndCompareCachedResults(rayKey, results, res, RayPickMask::PICK_ENTITIES | RayPickMask::PICK_INCLUDE_INVISIBLE | RayPickMask::PICK_INCLUDE_NONCOLLIDABLE)) {
-                    entityRes = DependencyManager::get<EntityScriptingInterface>()->findRayIntersection(ray, true, QScriptValue(), QScriptValue(), false, false);
-                    fromCache = false;
-                }
-            } else if (rayPick->getFilter() & RayPickMask::PICK_INCLUDE_INVISIBLE) {
-                if (!checkAndCompareCachedResults(rayKey, results, res, RayPickMask::PICK_ENTITIES | RayPickMask::PICK_INCLUDE_INVISIBLE)) {
-                    entityRes = DependencyManager::get<EntityScriptingInterface>()->findRayIntersection(ray, true, QScriptValue(), QScriptValue(), false, true);
-                    fromCache = false;
-                }
-            } else if (rayPick->getFilter() & RayPickMask::PICK_INCLUDE_NONCOLLIDABLE) {
-                if (!checkAndCompareCachedResults(rayKey, results, res, RayPickMask::PICK_ENTITIES | RayPickMask::PICK_INCLUDE_NONCOLLIDABLE)) {
-                    entityRes = DependencyManager::get<EntityScriptingInterface>()->findRayIntersection(ray, true, QScriptValue(), QScriptValue(), true, false);
-                    fromCache = false;
-                }
-            } else {
-                if (!checkAndCompareCachedResults(rayKey, results, res, RayPickMask::PICK_ENTITIES)) {
-                    entityRes = DependencyManager::get<EntityScriptingInterface>()->findRayIntersection(ray, true, QScriptValue(), QScriptValue(), true, true);
-                    fromCache = false;
-                }
+            unsigned int invisible = rayPick->getFilter() & RayPickMask::PICK_INCLUDE_INVISIBLE;
+            unsigned int noncollidable = rayPick->getFilter() & RayPickMask::PICK_INCLUDE_NONCOLLIDABLE;
+            unsigned int entityMask = RayPickMask::PICK_ENTITIES | invisible | noncollidable;
+            if (!checkAndCompareCachedResults(rayKey, results, res, entityMask)) {
+                entityRes = DependencyManager::get<EntityScriptingInterface>()->findRayIntersection(ray, true, rayPick->getIncludeEntites(), rayPick->getIgnoreEntites(), !invisible, !noncollidable);
+                fromCache = false;
             }
 
             if (!fromCache) {
-                unsigned int mask = (rayPick->getFilter() & RayPickMask::PICK_INCLUDE_INVISIBLE) | (rayPick->getFilter() & RayPickMask::PICK_INCLUDE_NONCOLLIDABLE);
                 cacheResult(entityRes.intersects, RayPickResult(IntersectionType::ENTITY, entityRes.entityID, entityRes.distance, entityRes.intersection, entityRes.surfaceNormal),
-                    RayPickMask::PICK_ENTITIES | mask, res, rayKey, results);
+                    entityMask, res, rayKey, results);
             }
         }
 
         if (rayPick->getFilter() & RayPickMask::PICK_OVERLAYS) {
             RayToOverlayIntersectionResult overlayRes;
             bool fromCache = true;
-            if (rayPick->getFilter() & RayPickMask::PICK_INCLUDE_INVISIBLE && rayPick->getFilter() & RayPickMask::PICK_INCLUDE_NONCOLLIDABLE) {
-                if (!checkAndCompareCachedResults(rayKey, results, res, RayPickMask::PICK_OVERLAYS | RayPickMask::PICK_INCLUDE_INVISIBLE | RayPickMask::PICK_INCLUDE_NONCOLLIDABLE)) {
-                    overlayRes = qApp->getOverlays().findRayIntersection(ray, true, QScriptValue(), QScriptValue(), false, false);
-                    fromCache = false;
-                }
-            } else if (rayPick->getFilter() & RayPickMask::PICK_INCLUDE_INVISIBLE) {
-                if (!checkAndCompareCachedResults(rayKey, results, res, RayPickMask::PICK_OVERLAYS | RayPickMask::PICK_INCLUDE_INVISIBLE)) {
-                    overlayRes = qApp->getOverlays().findRayIntersection(ray, true, QScriptValue(), QScriptValue(), false, true);
-                    fromCache = false;
-                }
-            } else if (rayPick->getFilter() & RayPickMask::PICK_INCLUDE_NONCOLLIDABLE) {
-                if (!checkAndCompareCachedResults(rayKey, results, res, RayPickMask::PICK_OVERLAYS | RayPickMask::PICK_INCLUDE_NONCOLLIDABLE)) {
-                    overlayRes = qApp->getOverlays().findRayIntersection(ray, true, QScriptValue(), QScriptValue(), true, false);
-                    fromCache = false;
-                }
-            } else {
-                if (!checkAndCompareCachedResults(rayKey, results, res, RayPickMask::PICK_OVERLAYS)) {
-                    overlayRes = qApp->getOverlays().findRayIntersection(ray, true, QScriptValue(), QScriptValue(), true, true);
-                    fromCache = false;
-                }
+            unsigned int invisible = rayPick->getFilter() & RayPickMask::PICK_INCLUDE_INVISIBLE;
+            unsigned int noncollidable = rayPick->getFilter() & RayPickMask::PICK_INCLUDE_NONCOLLIDABLE;
+            unsigned int overlayMask = RayPickMask::PICK_OVERLAYS | invisible | noncollidable;
+            if (!checkAndCompareCachedResults(rayKey, results, res, overlayMask)) {
+                overlayRes = qApp->getOverlays().findRayIntersection(ray, true, rayPick->getIncludeOverlays(), rayPick->getIgnoreOverlays(), !invisible, !noncollidable);
+                fromCache = false;
             }
 
             if (!fromCache) {
-                unsigned int mask = (rayPick->getFilter() & RayPickMask::PICK_INCLUDE_INVISIBLE) | (rayPick->getFilter() & RayPickMask::PICK_INCLUDE_NONCOLLIDABLE);
                 cacheResult(overlayRes.intersects, RayPickResult(IntersectionType::OVERLAY, overlayRes.overlayID, overlayRes.distance, overlayRes.intersection, overlayRes.surfaceNormal),
-                    RayPickMask::PICK_OVERLAYS | mask, res, rayKey, results);
+                    overlayMask, res, rayKey, results);
             }
         }
 
         if (rayPick->getFilter() & RayPickMask::PICK_AVATARS) {
             if (!checkAndCompareCachedResults(rayKey, results, res, RayPickMask::PICK_AVATARS)) {
-                RayToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findRayIntersection(ray, QScriptValue(), QScriptValue());
+                RayToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findRayIntersection(ray, rayPick->getIncludeAvatars(), rayPick->getIgnoreAvatars());
                 cacheResult(avatarRes.intersects, RayPickResult(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.intersection), RayPickMask::PICK_AVATARS, res, rayKey, results);
             }
         }
@@ -213,4 +183,52 @@ const RayPickResult RayPickManager::getPrevRayPickResult(const unsigned int uid)
         return _rayPicks[uid]->getPrevRayPickResult();
     }
     return RayPickResult();
+}
+
+void RayPickManager::setIgnoreEntities(unsigned int uid, const QScriptValue& ignoreEntities) {
+    QReadLocker containsLock(&_containsLock);
+    if (_rayPicks.contains(uid)) {
+        QWriteLocker lock(_rayPickLocks[uid].get());
+        _rayPicks[uid]->setIgnoreEntities(ignoreEntities);
+    }
+}
+
+void RayPickManager::setIncludeEntities(unsigned int uid, const QScriptValue& includeEntities) {
+    QReadLocker containsLock(&_containsLock);
+    if (_rayPicks.contains(uid)) {
+        QWriteLocker lock(_rayPickLocks[uid].get());
+        _rayPicks[uid]->setIncludeEntities(includeEntities);
+    }
+}
+
+void RayPickManager::setIgnoreOverlays(unsigned int uid, const QScriptValue& ignoreOverlays) {
+    QReadLocker containsLock(&_containsLock);
+    if (_rayPicks.contains(uid)) {
+        QWriteLocker lock(_rayPickLocks[uid].get());
+        _rayPicks[uid]->setIgnoreOverlays(ignoreOverlays);
+    }
+}
+
+void RayPickManager::setIncludeOverlays(unsigned int uid, const QScriptValue& includeOverlays) {
+    QReadLocker containsLock(&_containsLock);
+    if (_rayPicks.contains(uid)) {
+        QWriteLocker lock(_rayPickLocks[uid].get());
+        _rayPicks[uid]->setIncludeOverlays(includeOverlays);
+    }
+}
+
+void RayPickManager::setIgnoreAvatars(unsigned int uid, const QScriptValue& ignoreAvatars) {
+    QReadLocker containsLock(&_containsLock);
+    if (_rayPicks.contains(uid)) {
+        QWriteLocker lock(_rayPickLocks[uid].get());
+        _rayPicks[uid]->setIgnoreAvatars(ignoreAvatars);
+    }
+}
+
+void RayPickManager::setIncludeAvatars(unsigned int uid, const QScriptValue& includeAvatars) {
+    QReadLocker containsLock(&_containsLock);
+    if (_rayPicks.contains(uid)) {
+        QWriteLocker lock(_rayPickLocks[uid].get());
+        _rayPicks[uid]->setIncludeAvatars(includeAvatars);
+    }
 }

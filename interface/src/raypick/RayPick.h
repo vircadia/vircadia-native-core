@@ -31,12 +31,31 @@ public:
 
     void setRayPickResult(const RayPickResult& rayPickResult) { _prevResult = rayPickResult; }
 
+    const QScriptValue& getIgnoreEntites() { return _ignoreEntities; }
+    const QScriptValue& getIncludeEntites() { return _includeEntities; }
+    const QScriptValue& getIgnoreOverlays() { return _ignoreOverlays; }
+    const QScriptValue& getIncludeOverlays() { return _includeOverlays; }
+    const QScriptValue& getIgnoreAvatars() { return _ignoreAvatars; }
+    const QScriptValue& getIncludeAvatars() { return _includeAvatars; }
+    void setIgnoreEntities(const QScriptValue& ignoreEntities) { _ignoreEntities = ignoreEntities; }
+    void setIncludeEntities(const QScriptValue& includeEntities) { _includeEntities = includeEntities; }
+    void setIgnoreOverlays(const QScriptValue& ignoreOverlays) { _ignoreOverlays = ignoreOverlays; }
+    void setIncludeOverlays(const QScriptValue& includeOverlays) { _includeOverlays = includeOverlays; }
+    void setIgnoreAvatars(const QScriptValue& ignoreAvatars) { _ignoreAvatars = ignoreAvatars; }
+    void setIncludeAvatars(const QScriptValue& includeAvatars) { _includeAvatars = includeAvatars; }
+
 private:
     uint16_t _filter;
     float _maxDistance;
     bool _enabled;
     RayPickResult _prevResult;
 
+    QScriptValue _ignoreEntities;
+    QScriptValue _includeEntities;
+    QScriptValue _ignoreOverlays;
+    QScriptValue _includeOverlays;
+    QScriptValue _ignoreAvatars;
+    QScriptValue _includeAvatars;
 };
 
 #endif // hifi_RayPick_h

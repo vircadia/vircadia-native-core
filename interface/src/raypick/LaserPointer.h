@@ -65,6 +65,13 @@ public:
     void setRenderState(const QString& state);
     void editRenderState(const QString& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps);
 
+    void setIgnoreEntities(const QScriptValue& ignoreEntities) { DependencyManager::get<RayPickManager>()->setIgnoreEntities(_rayPickUID, ignoreEntities); }
+    void setIncludeEntities(const QScriptValue& includeEntities) { DependencyManager::get<RayPickManager>()->setIncludeEntities(_rayPickUID, includeEntities); }
+    void setIgnoreOverlays(const QScriptValue& ignoreOverlays) { DependencyManager::get<RayPickManager>()->setIgnoreOverlays(_rayPickUID, ignoreOverlays); }
+    void setIncludeOverlays(const QScriptValue& includeOverlays) { DependencyManager::get<RayPickManager>()->setIncludeOverlays(_rayPickUID, includeOverlays); }
+    void setIgnoreAvatars(const QScriptValue& ignoreAvatars) { DependencyManager::get<RayPickManager>()->setIgnoreAvatars(_rayPickUID, ignoreAvatars); }
+    void setIncludeAvatars(const QScriptValue& includeAvatars) { DependencyManager::get<RayPickManager>()->setIncludeAvatars(_rayPickUID, includeAvatars); }
+
     void update();
 
 private:

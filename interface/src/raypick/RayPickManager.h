@@ -65,6 +65,13 @@ public:
     const PickRay getPickRay(const unsigned int uid);
     const RayPickResult getPrevRayPickResult(const unsigned int uid);
 
+    void setIgnoreEntities(unsigned int uid, const QScriptValue& ignoreEntities);
+    void setIncludeEntities(unsigned int uid, const QScriptValue& includeEntities);
+    void setIgnoreOverlays(unsigned int uid, const QScriptValue& ignoreOverlays);
+    void setIncludeOverlays(unsigned int uid, const QScriptValue& includeOverlays);
+    void setIgnoreAvatars(unsigned int uid, const QScriptValue& ignoreAvatars);
+    void setIncludeAvatars(unsigned int uid, const QScriptValue& includeAvatars);
+
 private:
     QHash<unsigned int, std::shared_ptr<RayPick>> _rayPicks;
     QHash<unsigned int, std::shared_ptr<QReadWriteLock>> _rayPickLocks;

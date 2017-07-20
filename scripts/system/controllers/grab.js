@@ -262,6 +262,7 @@ function Grabber() {
         filter: RayPick.PICK_OVERLAYS,
         enabled: true
     });
+    LaserPointers.setIncludeOverlays(this.mouseRayOverlays, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
     this.mouseRayEntities = LaserPointers.createLaserPointer({
         joint: "Mouse",
         filter: RayPick.PICK_ENTITIES,
@@ -319,9 +320,7 @@ Grabber.prototype.pressEvent = function(event) {
 
     var overlayResult = LaserPointers.getPrevRayPickResult(this.mouseRayOverlays);
     if (overlayResult.type != RayPick.INTERSECTED_NONE) {
-        if (overlayResult.objectID == HMD.tabletID || overlayResult.objectID == HMD.tabletScreenID || overlayResult.objectID == HMD.homeButtonID) {
-            return;
-        }
+        return;
     }
 
     var pickResults = LaserPointers.getPrevRayPickResult(this.mouseRayEntities);
