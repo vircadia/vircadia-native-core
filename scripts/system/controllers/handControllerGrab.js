@@ -2500,7 +2500,7 @@ function MyController(hand) {
         var pointerEvent;
         if (rayPickInfo.overlayID) {
             var overlay = rayPickInfo.overlayID;
-            if ((Overlays.getProperty(overlay, "type") == "web3d") && Overlays.keyboardFocusOverlay != overlay) {
+            if ((Overlays.getProperty(overlay, "type") === "web3d") && Overlays.keyboardFocusOverlay != overlay) {
                 Entities.keyboardFocusEntity = null;
                 Overlays.keyboardFocusOverlay = overlay;
             }
