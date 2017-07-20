@@ -59,6 +59,7 @@
             ERASE_SEARCH_RADIUS = 0.1,  // m
             STROKE_DIMENSIONS = { x: 10, y: 10, z: 10 },
             isDrawingLine = false,
+            isTriggerPressureWidthEnabled = savedSettings.currentTriggerWidthEnabled,
             entityID,
             basePosition,
             strokePoints,
@@ -92,7 +93,13 @@
         }
         
         function changeStrokeWidthMultiplier(multiplier) {
+           // MIN_STROKE_LENGTH = ((multiplier * MIN_STROKE_LENGTH) / 0.25)*0.5;
+            //print("MIN_STROKE_LENGTH: " + MIN_STROKE_LENGTH);
             strokeWidthMultiplier = multiplier;
+        }
+
+        function setTriggerPressureWidthEnabled(isEnabled) {
+            isTriggerPressureWidthEnabled = isEnabled;
         }
 		
 		function changeUVMode(isUVModeStretch) {
@@ -118,12 +125,20 @@
             }
         }
 
+        function calculateLineWidth(width) {
+            if (isTriggerPressureWidthEnabled) {
+                return width * strokeWidthMultiplier;    
+            } else {
+                return 0.03 * strokeWidthMultiplier; //MAX_LINE_WIDTH
+            }
+        }
+
         function startLine(position, width) {
             // Start drawing a polyline.
             if (isTabletFocused)
                 return;
 
-            width = width * strokeWidthMultiplier;
+            width = calculateLineWidth(width);
             
             if (isDrawingLine) {
                 print("ERROR: startLine() called when already drawing line");
@@ -160,8 +175,8 @@
             var localPosition,
                 distanceToPrevious,
                 MAX_DISTANCE_TO_PREVIOUS = 1.0;
-
-            width = width * strokeWidthMultiplier;    
+            
+            width = calculateLineWidth(width);
                 
             if (!isDrawingLine) {
                 print("ERROR: drawLine() called when not drawing line");
@@ -197,17 +212,17 @@
         function finishLine(position, width) {
             // Finish drawing polyline; delete if it has only 1 point.
             //stopDynamicBrush = true;
-            print("Before adding script: " + JSON.stringify(Entities.getEntityProperties(entityID)));
+            //print("Before adding script: " + JSON.stringify(Entities.getEntityProperties(entityID)));
             var userData = Entities.getEntityProperties(entityID).userData;
             if (userData && JSON.parse(userData).animations) {
                 Entities.editEntity(entityID, {
                     script: ANIMATION_SCRIPT_PATH,
                 });    
             }
-            print("After adding script: " + JSON.stringify(Entities.getEntityProperties(entityID)));
+            //print("After adding script: " + JSON.stringify(Entities.getEntityProperties(entityID)));
             //setIsDrawingFingerPaint(entityID, false);
-            print("already stopped drawing");
-            width = width * strokeWidthMultiplier;
+            //print("already stopped drawing");
+            width = calculateLineWidth(width);
             
             if (!isDrawingLine) {
                 print("ERROR: finishLine() called when not drawing line");
@@ -220,7 +235,7 @@
             }
 
             isDrawingLine = false;
-            print("After adding script 3: " + JSON.stringify(Entities.getEntityProperties(entityID)));
+            //print("After adding script 3: " + JSON.stringify(Entities.getEntityProperties(entityID)));
         }
 
         function cancelLine() {
@@ -294,7 +309,8 @@
             getStrokeColor: getStrokeColor,
             getStrokeWidth: getStrokeWidth,
             getEntityID: getEntityID,
-			changeUVMode: changeUVMode
+			changeUVMode: changeUVMode,
+            setTriggerPressureWidthEnabled: setTriggerPressureWidthEnabled
         };
     }
 
@@ -462,21 +478,21 @@
 
                     updateHandAnimations();
                     pauseProcessing();
-                    print("Hovering tablet!");
+                    //print("Hovering tablet!");
                 } 
             } else {
                 if (isTabletFocused) {
-                    print("Unhovering tablet!");
+                    //print("Unhovering tablet!");
                     isTabletFocused = false;
                     //isFingerPainting = true;
                     Overlays.editOverlay(inkSourceOverlay, {visible: true});
                     resumeProcessing();
                     updateHandFunctions();
                     //updateHandAnimations();
-                    print("Current hand " + handName);
+                    /*print("Current hand " + handName);
                     print("isFingerPainting " + isFingerPainting);
                     print("inkSourceOverlay " + JSON.stringify(inkSourceOverlay));
-                    print("inkSourceOverlay " + JSON.stringify(inkSourceOverlay));
+                    print("inkSourceOverlay " + JSON.stringify(inkSourceOverlay));*/
                 }            
             };
         }
@@ -839,6 +855,7 @@
         savedSettings.currentDynamicBrushes = Settings.getValue("currentDynamicBrushes", []);
         savedSettings.customColors = Settings.getValue("customColors", []);
         savedSettings.currentTab = Settings.getValue("currentTab", 0);
+        savedSettings.currentTriggerWidthEnabled = Settings.getValue("currentTriggerWidthEnabled", true);
 
         print("Restoring data: " + JSON.stringify(savedSettings));
         isLeftHandDominant = savedSettings.currentDrawingHand;
@@ -897,7 +914,7 @@
         }
         switch (event.type) {
             case "ready":
-                print("Setting up the tablet");
+                //print("Setting up the tablet");
                 tablet.emitScriptEvent(JSON.stringify(savedSettings));
                 break;
             case "changeTab":
@@ -906,17 +923,22 @@
             case "changeColor":
                 if (!isBrushColored) {
                     Settings.setValue("currentColor", event);
-                    print("changing color...");
+                    //print("changing color...");
                     leftBrush.changeStrokeColor(event.red, event.green, event.blue);
                     rightBrush.changeStrokeColor(event.red, event.green, event.blue);
                     Overlays.editOverlay(inkSourceOverlay, {
                         color: {red: event.red, green: event.green, blue: event.blue} 
                     });
-                    
                 } 
                 break;
+            case "switchTriggerPressureWidth":
+                //print("changing pressure sensitive width...");
+                Settings.setValue("currentTriggerWidthEnabled", event.enabled);
+                leftBrush.setTriggerPressureWidthEnabled(event.enabled);
+                rightBrush.setTriggerPressureWidthEnabled(event.enabled);
+                break;
             case "addCustomColor":
-                print("Adding custom color");
+                //print("Adding custom color");
                 var customColors = Settings.getValue("customColors", []);
                 customColors.push({red: event.red, green: event.green, blue: event.blue});
                 if (customColors.length > event.maxColors) {
@@ -927,7 +949,7 @@
 
 
             case "changeBrush":
-                print("abrushType: " + event.brushType);
+                //print("abrushType: " + event.brushType);
                 Settings.setValue("currentTexture", event);
                 if (event.brushType === "repeat") {
                     print("brushType: " + event.brushType);
@@ -940,19 +962,14 @@
                 } 
                 isBrushColored = event.isColored;
                 if (event.isColored) {
+                    Settings.setValue("currentColor", {red: 255, green: 255, blue: 255});
                     leftBrush.changeStrokeColor(255, 255, 255);
                     rightBrush.changeStrokeColor(255, 255, 255);
                     Overlays.editOverlay(inkSourceOverlay, {
                         color: {red: 255, green: 255, blue: 255} 
                     });
                 }
-                /*leftBrush.changeUVMode(false);
-                rightBrush.changeUVMode(false);
-                if (event.brushName.indexOf("256x256") != -1) {
-                    leftBrush.changeUVMode(true);
-                    rightBrush.changeUVMode(true);
-                }*/
-                print("changing brush to " + event.brushName);
+                //print("changing brush to " + event.brushName);
                 event.brushName = CONTENT_PATH + "/" + event.brushName;
                 leftBrush.changeTexture(event.brushName);
                 rightBrush.changeTexture(event.brushName);
@@ -960,8 +977,8 @@
 
             case "changeLineWidth":
                 Settings.setValue("currentStrokeWidth", event.brushWidth);
-                var dim = event.brushWidth*2 +0.1;
-                print("changing brush width dim to " + dim);
+                var dim = event.brushWidth * 2 + 0.1;
+                //print("changing brush width dim to " + dim);
                 //var dim2 = Math.floor( Math.random()*40 + 5);
                 leftBrush.changeStrokeWidthMultiplier(dim);
                 rightBrush.changeStrokeWidthMultiplier(dim);
@@ -971,7 +988,7 @@
                 break;
 
             case "undo":
-                print("Going to undo");
+                //print("Going to undo");
                 /**
                 The undo is called only on the right brush because the undo stack is global, meaning that
                 calling undoErasing on both the left and right brush would cause the stack to pop twice.
@@ -1006,7 +1023,7 @@
     }    
 
     function addAnimationToBrush(entityID) {
-            print("Brushes INfo 0" + JSON.stringify(DynamicBrushesInfo));
+            //print("Brushes INfo 0" + JSON.stringify(DynamicBrushesInfo));
             Object.keys(DynamicBrushesInfo).forEach(function(animationName) {
                 print(animationName + "Brushes INfo 0" + JSON.stringify(DynamicBrushesInfo));
                 if (DynamicBrushesInfo[animationName].isEnabled) {
@@ -1020,7 +1037,7 @@
                     //Entities.editEntity(entityID, {script: Script.resolvePath("content/brushes/dynamicBrushes/dynamicBrushScript.js")});    
                 }
             });
-            print("Brushes INfo 1" + JSON.stringify(DynamicBrushesInfo));
+            //print("Brushes INfo 1" + JSON.stringify(DynamicBrushesInfo));
     }
 
     function addElementToUndoStack(item)

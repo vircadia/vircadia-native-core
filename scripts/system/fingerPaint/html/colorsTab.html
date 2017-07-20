@@ -1,7 +1,39 @@
 <!--Note: change the parent postmessage second parameter due to possible security issues-->
 <link rel="stylesheet" type="text/css" href="../../html/css/colpick.css">
+<link rel="stylesheet" type="text/css" href="../../html/css/edit-style.css">
 <script src="../../html/js/jquery-2.1.4.min.js"></script>
 <style>
+    /*range style: http://danielstern.ca/range.css/#/*/
+   input[type=range] {
+        -webkit-appearance: none;
+        background: #2e2e2e;
+        height: 1.8rem;
+        border-radius: 1rem;
+    }
+    input[type=range]::-webkit-slider-thumb {
+        -webkit-appearance:none;
+        width: 0.6rem;
+        height: 1.8rem;
+        padding:0;
+        margin: 0;
+        background-color: #696969;
+        border-radius: 1rem;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+        background-color: white;
+    }
+    input[type=range]:focus { /*#252525*/
+        outline: none;
+    }
+    .slider-wrapper {
+        display: table;
+        padding: 0.4rem 0;
+    }
+    .property.range input[type=number] {
+        margin-left: 0.8rem;
+        width: 5.4rem;
+        height: 1.8rem;
+    }
     #color_picker {
         display: grid;
     }
@@ -9,6 +41,7 @@
         border: none; 
         width: 20px; 
         height: 20px;
+        display: inline-block;
     }
     #color_picker_table {
         border-collapse:collapse
@@ -17,11 +50,28 @@
         height: 50px;
     }
 </style>
+
+<div class="behavior-group property checkbox">
+    <input onchange="switchPressureSensitiveWidth(this)"  type="checkbox" id="triggerSensitiveWidth"></input>
+    <label for="triggerSensitiveWidth">Use Trigger Sensitive Width</label>
+</div>
+<div class="property range">
+    <label style="display: block">Stroke Width</label>
+    <div class="slider-wrapper">
+        <input type="range" id="lineWidthRange" value=0.25 min=0 max=1 step=0.01 onchange="changeLineWidthRange(this)"/>
+        <input type="number" id="lineWidthText" value=0.25 min=0 max=1 step=0.01 onchange="changeLineWidthNumber(this)"/>
+        <!--<span id="lineWidthText">0.25</span>
+        var inputField = document.createElement("input");
+        inputField.setAttribute("type", "number");-->
+    </div>
+</div>
+
 <div id="colorpicker"></div>
-<table id="color_picker_table">
-</table>
+
+<div id="color_picker_table">
+</div>
+
 <div id="last_picked_colors"></div>
-<div id="property-color" class="color-picker"></div>
 
 
 <script src="../../html/js/colpick.js">
@@ -53,10 +103,10 @@
         }
         var colorPickerLayout = document.getElementById("color_picker_table");
         for (var j = 0; j < ROWS; j++) {
-            var row = document.createElement("tr");
+            var row = document.createElement("div");
             for (var i = 0; i < startingColors.length; i++) {
-                var colorCell = document.createElement("input");
-                colorCell.type = "button";
+                var colorCell = document.createElement("div");
+                //colorCell.type = "button";
                 colorCell.style.backgroundColor = "hsl(" + startingColors[i].hue + ",100%," + ((80-(80*j/(ROWS-1))) + 10) + "%)";
                 colorCell.className  = "color_picker_cell";
                 colorCell.onclick = function() { 
@@ -79,6 +129,33 @@
             "blue"  : colorArray[2]
         };
         parent.postMessage(JSON.stringify(changedColorEvent), "*");
+    }
+
+    function changeLineWidthRange(e) {
+        document.getElementById("lineWidthText").value = e.value;
+        notifyLineWidthChanged(e);
+    }
+
+    function changeLineWidthNumber(e) {
+        document.getElementById("lineWidthRange").value = e.value;
+        notifyLineWidthChanged(e);
+    }
+
+    function notifyLineWidthChanged(e) {
+          var changeLineWidthEvent = {
+            "type"     : "changeLineWidth",
+            "brushWidth":  e.value
+        };
+        parent.postMessage(JSON.stringify(changeLineWidthEvent), "*");
+    }
+
+    function switchPressureSensitiveWidth(checkbox) {
+        // 'jscolor' instance can be used as a string
+        var switchPressureSensitiveWidthEvent = {
+            "type"    : "switchTriggerPressureWidth",
+            "enabled" : checkbox.checked,
+        };
+        parent.postMessage(JSON.stringify(switchPressureSensitiveWidthEvent), "*");
     }
 
     function updateColorFromTable(button) {
@@ -106,11 +183,10 @@
                     return;
             }
         }
-        if (lastPickedColors.length + 1 >= COLUMNS) {
+        if (lastPickedColors.length + 1 > COLUMNS) {
             lastPickedColorsContainer.removeChild(lastPickedColors[lastPickedColors.length-1]);
         }
-        var colorCell = document.createElement("input");
-        colorCell.type = "button";
+        var colorCell = document.createElement("div");
         colorCell.style.backgroundColor = "rgb(" + colorArray[0] + "," + colorArray[1] + "," + colorArray[2];
         colorCell.className  = "color_picker_cell";
         colorCell.onclick = function() { updateColorFromTable(this) };
@@ -129,16 +205,28 @@
 
     window.addEventListener("message", restoreLastColor, false);
     function restoreLastColor(event) {
-        var color = JSON.parse(event.data);
-        var newColor = color.currentColor;
-        var customColors = color.customColors;
-        if (newColor) {
+        var palleteData = JSON.parse(event.data);
+
+        if ("currentColor" in palleteData) {
+            var newColor = palleteData.currentColor;
             $('#colorpicker').colpickSetColor({'r': newColor.red, 'g': newColor.green, 'b': newColor.blue}, true);    
         }
-        if (customColors) {
+
+        if ("customColors" in palleteData) {
+            var customColors = palleteData.customColors;
             for (var i = 0; i < customColors.length; i++) {
                 addCustomColor([customColors[i].red, customColors[i].green, customColors[i].blue], false);
             }
+        }
+
+        if ("currentTriggerWidthEnabled" in palleteData) {
+            document.getElementById("triggerSensitiveWidth").checked = palleteData.currentTriggerWidthEnabled;
+        }
+
+        if ("currentStrokeWidth" in palleteData) {
+            document.getElementById("lineWidthRange").value = palleteData.currentStrokeWidth;
+            changeLineWidthRange({value: palleteData.currentStrokeWidth});
+            changeLineWidthNumber({value: palleteData.currentStrokeWidth});
         }
     }
 </script>
