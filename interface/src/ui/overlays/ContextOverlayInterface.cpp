@@ -28,10 +28,12 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _entityPropertyFlags += PROP_POSITION;
     _entityPropertyFlags += PROP_ROTATION;
     _entityPropertyFlags += PROP_MARKETPLACE_ID;
+    _entityPropertyFlags += PROP_DIMENSIONS;
 
     auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>().data();
     connect(entityTreeRenderer, SIGNAL(mousePressOnEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(createOrDestroyContextOverlay(const EntityItemID&, const PointerEvent&)));
 }
+static const xColor BB_OVERLAY_COLOR = {255, 255, 0};
 
 void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
     if (event.getButton() == PointerEvent::SecondaryButton) {
@@ -41,6 +43,18 @@ void ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
             qCDebug(context_overlay) << "Creating Context Overlay on top of entity with ID: " << entityItemID;
             _entityMarketplaceID = entityProperties.getMarketplaceID();
             setCurrentEntityWithContextOverlay(entityItemID);
+
+            if (_bbOverlayID == UNKNOWN_OVERLAY_ID || !qApp->getOverlays().isAddedOverlay(_bbOverlayID)) {
+                _bbOverlay = std::make_shared<Cube3DOverlay>();
+                _bbOverlay->setIsSolid(false);
+                _bbOverlay->setColor(BB_OVERLAY_COLOR);
+                _bbOverlay->setDrawInFront(true);
+                _bbOverlayID = qApp->getOverlays().addOverlay(_bbOverlay);
+            }
+            _bbOverlay->setDimensions(entityProperties.getDimensions());
+            _bbOverlay->setRotation(entityProperties.getRotation());
+            _bbOverlay->setPosition(entityProperties.getPosition());
+            _bbOverlay->setVisible(true);
 
             if (_contextOverlayID == UNKNOWN_OVERLAY_ID || !qApp->getOverlays().isAddedOverlay(_contextOverlayID)) {
                 _contextOverlay = std::make_shared<Image3DOverlay>();
@@ -70,8 +84,11 @@ void ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
     setCurrentEntityWithContextOverlay(QUuid());
 
     qApp->getOverlays().deleteOverlay(_contextOverlayID);
+    qApp->getOverlays().deleteOverlay(_bbOverlayID);
     _contextOverlay = NULL;
+    _bbOverlay = NULL;
     _contextOverlayID = UNKNOWN_OVERLAY_ID;
+    _bbOverlayID = UNKNOWN_OVERLAY_ID;
     _entityMarketplaceID.clear();
 }
 
