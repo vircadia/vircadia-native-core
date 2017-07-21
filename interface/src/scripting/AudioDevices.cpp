@@ -63,6 +63,14 @@ QVariant AudioDeviceList::data(const QModelIndex& index, int role) const {
 void AudioDeviceList::resetDevice(bool contextIsHMD, const QString& device) {
     auto client = DependencyManager::get<AudioClient>().data();
     auto deviceName = getSetting(contextIsHMD, _mode).get();
+
+    // FIXME hack to prevent deadlock on startup.  The real fix will be to have the 
+    // audio client emit success and failure messages in response to audio device 
+    // switches made here
+#if 1
+    QMetaObject::invokeMethod(client, "switchAudioDevice", 
+        Q_ARG(QAudio::Mode, _mode), Q_ARG(QString, deviceName));
+#else
     bool switchResult = false;
     QMetaObject::invokeMethod(client, "switchAudioDevice", Qt::BlockingQueuedConnection,
         Q_RETURN_ARG(bool, switchResult),
@@ -85,6 +93,7 @@ void AudioDeviceList::resetDevice(bool contextIsHMD, const QString& device) {
             QMetaObject::invokeMethod(client, "switchAudioDevice", Q_ARG(QAudio::Mode, _mode));
         }
     }
+#endif
 }
 
 void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device) {
@@ -201,6 +210,14 @@ void AudioDevices::onDevicesChanged(QAudio::Mode mode, const QList<QAudioDeviceI
 
 void AudioDevices::chooseInputDevice(const QAudioDeviceInfo& device) {
     auto client = DependencyManager::get<AudioClient>();
+
+    // FIXME hack to prevent deadlock on startup
+#if 1
+    QMetaObject::invokeMethod(client.data(), "switchAudioDevice",
+        Q_ARG(QAudio::Mode, QAudio::AudioInput),
+        Q_ARG(const QAudioDeviceInfo&, device));
+    onDeviceSelected(QAudio::AudioInput, device, _inputs._selectedDevice);
+#else
     bool success = false;
     QMetaObject::invokeMethod(client.data(), "switchAudioDevice",
         Qt::BlockingQueuedConnection,
@@ -211,6 +228,7 @@ void AudioDevices::chooseInputDevice(const QAudioDeviceInfo& device) {
     if (success) {
         onDeviceSelected(QAudio::AudioInput, device, _inputs._selectedDevice);
     }
+#endif
 }
 
 void AudioDevices::chooseOutputDevice(const QAudioDeviceInfo& device) {
