@@ -1943,6 +1943,8 @@
         }
 
         function clear() {
+            setState(EDITOR_IDLE);
+
             hand.clear();
             laser.clear();
             selection.clear();
