@@ -173,7 +173,7 @@ FadeConfig::FadeConfig()
 }
 
 void FadeConfig::setEditedCategory(int value) {
-    assert(value < CATEGORY_COUNT);
+    assert(value < FADE_CATEGORY_COUNT);
     editedCategory = std::min<int>(FADE_CATEGORY_COUNT, value);
     emit dirtyCategory();
     emit dirty();
@@ -578,20 +578,31 @@ void FadeJob::run(const render::RenderContextPointer& renderContext, FadeJob::Ou
     auto transitionStage = scene->getStage<render::TransitionStage>(render::TransitionStage::getName());
     uint64_t now = usecTimestampNow();
     const double deltaTime = (int64_t(now) - int64_t(_previousTime)) / double(USECS_PER_SECOND);
+    render::Transaction transaction;
     bool isFirstItem = true;
+    bool hasTransaction = false;
     
     output = (FadeCategory) jobConfig->editedCategory;
 
     // And now update fade effect
     for (auto transitionId : *transitionStage) {
         auto& state = transitionStage->editTransition(transitionId);
-        update(*jobConfig, scene, state, deltaTime);
+#ifdef DEBUG
+        auto& item = scene->getItem(state.itemId);
+        assert(item.getTransitionId() == transitionId);
+#endif
+        if (update(*jobConfig, scene, transaction, state, deltaTime)) {
+            hasTransaction = true;
+        }
         if (isFirstItem) {
             jobConfig->setProperty("threshold", state.threshold);
             isFirstItem = false;
         }
     }
     _previousTime = now;
+    if (hasTransaction) {
+        scene->enqueueTransaction(transaction);
+    }
 }
 
 const FadeCategory FadeJob::transitionToCategory[render::Transition::TYPE_COUNT] = {
@@ -604,17 +615,17 @@ const FadeCategory FadeJob::transitionToCategory[render::Transition::TYPE_COUNT]
     FADE_AVATAR_CHANGE
 };
 
-void FadeJob::update(const Config& config, const render::ScenePointer& scene, render::Transition& transition, const double deltaTime) const {
+bool FadeJob::update(const Config& config, const render::ScenePointer& scene, render::Transaction& transaction, render::Transition& transition, const double deltaTime) const {
     const auto fadeCategory = transitionToCategory[transition.eventType];
     auto& eventConfig = config.events[fadeCategory];
-    auto& item = scene->getItem(transition.itemId);
+    auto item = scene->getItemSafe(transition.itemId);
     const double eventDuration = (double)eventConfig.duration;
     const FadeConfig::Timing timing = (FadeConfig::Timing) eventConfig.timing;
 
     if (item.exist()) {
         auto aabb = item.getBound();
         if (render::Item::isValidID(transition.boundItemId)) {
-            auto& boundItem = scene->getItem(transition.boundItemId);
+            auto boundItem = scene->getItemSafe(transition.boundItemId);
             if (boundItem.exist()) {
                 aabb = boundItem.getBound();
             }
@@ -687,12 +698,12 @@ void FadeJob::update(const Config& config, const render::ScenePointer& scene, re
     transition.threshold = (transition.threshold - 0.5f)*_thresholdScale[fadeCategory] + 0.5f;
     transition.time += deltaTime;
 
-    // If the transition is finished for more than a number of frames (here 3), garbage collect it.
-    if (transition.isFinished > 3) {
-        render::Transaction transaction;
+    // If the transition is finished for more than a number of frames (here 1), garbage collect it.
+    if (transition.isFinished > 1) {
         transaction.removeTransitionFromItem(transition.itemId);
-        scene->enqueueTransaction(transaction);
+        return true;
     }
+    return false;
 }
 
 float FadeJob::computeElementEnterRatio(double time, const double period, FadeConfig::Timing timing) {

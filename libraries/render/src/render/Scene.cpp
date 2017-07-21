@@ -41,6 +41,10 @@ void Transaction::removeTransitionFromItem(ItemID id) {
     _addedTransitions.emplace_back(TransitionAdd{ id, Transition::NONE, render::Item::INVALID_ITEM_ID });
 }
 
+void Transaction::reApplyTransitionToItem(ItemID id) {
+    _reAppliedTransitions.emplace_back(TransitionReApply{ id });
+}
+
 void Transaction::queryTransitionOnItem(ItemID id, TransitionQueryFunc func) {
     _queriedTransitions.emplace_back(TransitionQuery{ id, func });
 }
@@ -60,6 +64,7 @@ void Transaction::merge(const Transaction& transaction) {
     _resetSelections.insert(_resetSelections.end(), transaction._resetSelections.begin(), transaction._resetSelections.end());
     _addedTransitions.insert(_addedTransitions.end(), transaction._addedTransitions.begin(), transaction._addedTransitions.end());
     _queriedTransitions.insert(_queriedTransitions.end(), transaction._queriedTransitions.begin(), transaction._queriedTransitions.end());
+    _reAppliedTransitions.insert(_reAppliedTransitions.end(), transaction._reAppliedTransitions.begin(), transaction._reAppliedTransitions.end());
 }
 
 
@@ -132,7 +137,7 @@ void Scene::processTransactionQueue() {
 #ifdef SCENE_ENABLE_TRANSITIONS
         // add transitions
         transitionItems(consolidatedTransaction._addedTransitions);
-
+        reApplyTransitions(consolidatedTransaction._reAppliedTransitions);
         queryTransitionItems(consolidatedTransaction._queriedTransitions);
 #endif
         // Update the numItemsAtomic counter AFTER the pending changes went through
@@ -184,11 +189,8 @@ void Scene::removeItems(const Transaction::Removes& transactions) {
             _masterNonspatialSet.erase(removedID);
         }
 
-        // If there is a transition on this item, remove it
-        if (item.getTransitionId() != render::TransitionStage::INVALID_INDEX) {
-            auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
-            transitionStage->removeTransition(item.getTransitionId());
-        }
+        // Remove the transition to prevent updating it for nothing
+        resetItemTransition(removedID);
 
         // Kill it
         item.kill();
@@ -240,22 +242,30 @@ void Scene::transitionItems(const Transaction::TransitionAdds& transactions) {
         auto itemId = std::get<0>(add);
         // Access the true item
         const auto& item = _items[itemId];
-        if (item.exist()) {
-            auto transitionId = INVALID_INDEX;
-            auto transitionType = std::get<1>(add);
-            auto boundId = std::get<2>(add);
+        auto transitionId = item.getTransitionId();
+        auto transitionType = std::get<1>(add);
+        auto boundId = std::get<2>(add);
 
-            // Remove pre-existing transition, if need be
-            if (!TransitionStage::isIndexInvalid(item.getTransitionId())) {
-                transitionStage->removeTransition(item.getTransitionId());
-            }
-            // Add a new one.
-            if (transitionType != Transition::NONE) {
-                transitionId = transitionStage->addTransition(itemId, transitionType, boundId);
-            }
-
-            setItemTransition(itemId, transitionId);
+        // Remove pre-existing transition, if need be
+        if (!TransitionStage::isIndexInvalid(transitionId)) {
+            transitionStage->removeTransition(transitionId);
+            transitionId = TransitionStage::INVALID_INDEX;
         }
+        // Add a new one.
+        if (transitionType != Transition::NONE) {
+            transitionId = transitionStage->addTransition(itemId, transitionType, boundId);
+        }
+
+        setItemTransition(itemId, transitionId);
+    }
+}
+
+void Scene::reApplyTransitions(const Transaction::TransitionReApplies& transactions) {
+    for (auto itemId : transactions) {
+        // Access the true item
+        const auto& item = _items[itemId];
+        auto transitionId = item.getTransitionId();
+        setItemTransition(itemId, transitionId);
     }
 }
 
@@ -302,29 +312,28 @@ void Scene::setItemTransition(ItemID itemId, Index transitionId) {
     // Access the true item
     auto& item = _items[itemId];
 
+    item.setTransitionId(transitionId);
     if (item.exist()) {
         ItemIDs subItems;
-
-        item.setTransitionId(transitionId);
 
         // Sub-items share the same transition Id
         collectSubItems(itemId, subItems);
         for (auto subItemId : subItems) {
-            auto& subItem = _items[subItemId];
-            subItem.setTransitionId(transitionId);
+            // Curiously... this can happen
+            if (subItemId != itemId) {
+                setItemTransition(subItemId, transitionId);
+            }
         }
-    } else {
-        qWarning() << "Collecting sub items on item without payload";
     }
 }
 
 void Scene::resetItemTransition(ItemID itemId) {
-    // Access the true item
     auto& item = _items[itemId];
-    auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
-
-    transitionStage->removeTransition(item.getTransitionId());
-    setItemTransition(itemId, Transition::NONE);
+    if (!render::TransitionStage::isIndexInvalid(item.getTransitionId())) {
+        auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
+        transitionStage->removeTransition(item.getTransitionId());
+        setItemTransition(itemId, render::TransitionStage::INVALID_INDEX);
+    }
 }
 
 // THis fucntion is thread safe

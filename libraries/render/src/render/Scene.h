@@ -48,6 +48,7 @@ public:
 
     void addTransitionToItem(ItemID id, Transition::Type transition, ItemID boundId = render::Item::INVALID_ITEM_ID);
     void removeTransitionFromItem(ItemID id);
+    void reApplyTransitionToItem(ItemID id);
     void queryTransitionOnItem(ItemID id, TransitionQueryFunc func);
 
     template <class T> void updateItem(ItemID id, std::function<void(T&)> func) {
@@ -72,6 +73,7 @@ protected:
     using Update = std::tuple<ItemID, UpdateFunctorPointer>;
     using TransitionAdd = std::tuple<ItemID, Transition::Type, ItemID>;
     using TransitionQuery = std::tuple<ItemID, TransitionQueryFunc>;
+    using TransitionReApply = ItemID;
     using SelectionReset = Selection;
 
     using Resets = std::vector<Reset>;
@@ -79,6 +81,7 @@ protected:
     using Updates = std::vector<Update>;
     using TransitionAdds = std::vector<TransitionAdd>;
     using TransitionQueries = std::vector<TransitionQuery>;
+    using TransitionReApplies = std::vector<TransitionReApply>;
     using SelectionResets = std::vector<SelectionReset>;
 
     Resets _resetItems;
@@ -86,6 +89,7 @@ protected:
     Updates _updatedItems;
     TransitionAdds _addedTransitions;
     TransitionQueries _queriedTransitions;
+    TransitionReApplies _reAppliedTransitions;
     SelectionResets _resetSelections;
 };
 typedef std::queue<Transaction> TransactionQueue;
@@ -169,6 +173,7 @@ protected:
     void removeItems(const Transaction::Removes& transactions);
     void updateItems(const Transaction::Updates& transactions);
     void transitionItems(const Transaction::TransitionAdds& transactions);
+    void reApplyTransitions(const Transaction::TransitionReApplies& transactions);
     void queryTransitionItems(const Transaction::TransitionQueries& transactions);
 
     void collectSubItems(ItemID parentId, ItemIDs& subItems) const;
