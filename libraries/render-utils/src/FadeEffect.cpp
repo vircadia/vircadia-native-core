@@ -71,7 +71,6 @@ render::ShapePipeline::ItemSetter FadeEffect::getItemStoredSetter() {
     return [this](const render::ShapePipeline& shapePipeline, render::Args* args, const render::Item& item) {
         if (!render::TransitionStage::isIndexInvalid(item.getTransitionId())) {
             auto scene = args->_scene;
-            auto batch = args->_batch;
             auto transitionStage = scene->getStage<render::TransitionStage>(render::TransitionStage::getName());
             auto& transitionState = transitionStage->getTransition(item.getTransitionId());
             const auto fadeCategory = FadeJob::transitionToCategory[transitionState.eventType];
