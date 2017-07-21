@@ -1166,17 +1166,19 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
 }
 
 void EntityScriptingInterface::replaceDomainContentSet(const QString url){
-    QByteArray _url(url.toUtf8());
-    auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-    limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
-        return node->getType() == NodeType::EntityServer && node->getActiveSocket();
-    }, [&_url, limitedNodeList](const SharedNodePointer& octreeNode) {
-        auto octreeFilePacketList = NLPacketList::create(PacketType::OctreeFileReplacementFromUrl, QByteArray(), true, true);
-        octreeFilePacketList->write(_url);
-        qCDebug(entities) << "Attempting to send an octree file url to replace domain content";
+    if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
+        QByteArray _url(url.toUtf8());
+        auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+        limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
+            return node->getType() == NodeType::EntityServer && node->getActiveSocket();
+        }, [&_url, limitedNodeList](const SharedNodePointer& octreeNode) {
+            auto octreeFilePacketList = NLPacketList::create(PacketType::OctreeFileReplacementFromUrl, QByteArray(), true, true);
+            octreeFilePacketList->write(_url);
+            qCDebug(entities) << "Attempting to send an octree file url to replace domain content";
 
-        limitedNodeList->sendPacketList(std::move(octreeFilePacketList), *octreeNode);
-    });
+            limitedNodeList->sendPacketList(std::move(octreeFilePacketList), *octreeNode);
+        });
+    };
 }
 
 QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
