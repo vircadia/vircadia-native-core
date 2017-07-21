@@ -69,7 +69,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
             if (_contextOverlayID == UNKNOWN_OVERLAY_ID || !qApp->getOverlays().isAddedOverlay(_contextOverlayID)) {
                 _contextOverlay = std::make_shared<Image3DOverlay>();
                 _contextOverlay->setAlpha(0.85f);
-                _contextOverlay->setPulseMin(0.75f);
+                _contextOverlay->setPulseMin(0.6f);
                 _contextOverlay->setPulseMax(1.0f);
                 _contextOverlay->setColorPulse(1.0f);
                 _contextOverlay->setIgnoreRayIntersection(false);
@@ -130,6 +130,27 @@ void ContextOverlayInterface::clickContextOverlay(const OverlayID& overlayID, co
         destroyContextOverlay(_currentEntityWithContextOverlay, PointerEvent());
     }
 }
+
+void ContextOverlayInterface::hoverEnterContextOverlay(const OverlayID& overlayID, const PointerEvent& event) {
+    if (_contextOverlayID != UNKNOWN_OVERLAY_ID && _contextOverlay) {
+        qCDebug(context_overlay) << "Started hovering over Context Overlay. Overlay ID:" << overlayID;
+        _contextOverlay->setColor({ 0xFF, 0xFF, 0xFF });
+        _contextOverlay->setColorPulse(0.0f);
+        _contextOverlay->setPulsePeriod(0.0f);
+        _contextOverlay->setAlpha(1.0f);
+    }
+}
+
+void ContextOverlayInterface::hoverLeaveContextOverlay(const OverlayID& overlayID, const PointerEvent& event) {
+    if (_contextOverlayID != UNKNOWN_OVERLAY_ID && _contextOverlay) {
+        qCDebug(context_overlay) << "Stopped hovering over Context Overlay. Overlay ID:" << overlayID;
+        _contextOverlay->setColor({ 0xFF, 0xFF, 0xFF });
+        _contextOverlay->setColorPulse(1.0f);
+        _contextOverlay->setPulsePeriod(1.0f);
+        _contextOverlay->setAlpha(0.85f);
+    }
+}
+
 static const QString MARKETPLACE_BASE_URL = "http://metaverse.highfidelity.com/marketplace/items/";
 
 void ContextOverlayInterface::openMarketplace() {
