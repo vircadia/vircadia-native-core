@@ -18,11 +18,12 @@
         tablet,
         button,
 
+        VR_EDIT_SETTING = "io.highfidelity.isVREditing",  // Note: This constant is duplicated in utils.js.
+
         // Application state
         isAppActive = false,
         isAppScaleWithHandles = false,
-
-        VR_EDIT_SETTING = "io.highfidelity.isVREditing",  // Note: This constant is duplicated in utils.js.
+        dominantHand,
 
         editors = [],
         LEFT_HAND = 0,
@@ -825,6 +826,13 @@
         }
     }
 
+    function onDominantHandChanged() {
+        /*
+        // TODO: API coming.
+        dominantHand = TODO;
+        */
+    }
+
 
     function setUp() {
         updateHandControllerGrab();
@@ -850,6 +858,14 @@
         editors[RIGHT_HAND] = new Editor(RIGHT_HAND, onGripClicked);
         editors[LEFT_HAND].setOtherEditor(editors[RIGHT_HAND]);
         editors[RIGHT_HAND].setOtherEditor(editors[LEFT_HAND]);
+
+        // Dominant hand from settings.
+        // TODO: API coming.
+        dominantHand = RIGHT_HAND;
+        /*
+        dominantHand = TODO;
+        TODO.change.connect(onDominantHandChanged);
+        */
 
         if (isAppActive) {
             update();
