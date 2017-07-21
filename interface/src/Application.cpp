@@ -3020,7 +3020,34 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_F: {
-                _physicsEngine->dumpNextStats();
+                if (isMeta) {
+                    auto menu = Menu::getInstance();
+                    if (menu->isOptionChecked(MenuOption::FirstPerson)) {
+                        menu->setIsOptionChecked(MenuOption::ThirdPerson, true);
+                        menu->setIsOptionChecked(MenuOption::FirstPerson, false);
+                    } else {
+                        menu->setIsOptionChecked(MenuOption::FirstPerson, true);
+                        menu->setIsOptionChecked(MenuOption::ThirdPerson, false);
+                    }
+                    cameraMenuChanged();
+                } else if (isOption) {
+                    _physicsEngine->dumpNextStats();
+                }
+                break;
+            }
+
+            case Qt::Key_H: {
+                if (isOption) {
+                    auto menu = Menu::getInstance();
+                    if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
+                        menu->setIsOptionChecked(MenuOption::FullscreenMirror, false);
+                        menu->setIsOptionChecked(MenuOption::FirstPerson, true);
+                    } else {
+                        menu->setIsOptionChecked(MenuOption::FullscreenMirror, true);
+                        menu->setIsOptionChecked(MenuOption::FirstPerson, false);
+                    }
+                }
+                cameraMenuChanged();
                 break;
             }
 
