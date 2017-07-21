@@ -49,6 +49,7 @@ static const float CONTEXT_OVERLAY_UNHOVERED_PULSEMIN = 0.6f;
 static const float CONTEXT_OVERLAY_UNHOVERED_PULSEMAX = 1.0f;
 static const float CONTEXT_OVERLAY_UNHOVERED_PULSEPERIOD = 1.0f;
 static const float CONTEXT_OVERLAY_UNHOVERED_COLORPULSE = 1.0f;
+static const float CONTEXT_OVERLAY_FAR_OFFSET = 0.1f;
 
 bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
     if (_enabled && event.getButton() == PointerEvent::SecondaryButton) {
@@ -95,7 +96,12 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
             glm::vec3 contextOverlayPosition;
             glm::vec2 contextOverlayDimensions;
             if (distanceToEntity > CONTEXT_OVERLAY_CLOSE_DISTANCE) {
-                contextOverlayPosition = (distanceToEntity - 1.0f) * glm::normalize(entityProperties.getPosition() - cameraPosition) + cameraPosition;
+                auto direction = glm::normalize(bbPosition - cameraPosition);
+                PickRay pickRay(cameraPosition, direction);
+                _bbOverlay->setIgnoreRayIntersection(false);
+                auto result = qApp->getOverlays().findRayIntersection(pickRay);
+                _bbOverlay->setIgnoreRayIntersection(true);
+                contextOverlayPosition = result.intersection - direction * CONTEXT_OVERLAY_FAR_OFFSET;
                 contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_FAR_SIZE, CONTEXT_OVERLAY_FAR_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
             } else {
                 // If the entity is too close to the camera, rotate the context overlay to the right of the entity.
