@@ -84,7 +84,7 @@
           "to": "Actions.Yaw",
           "filters":
             [
-                { "type": "scale", "scale": 0.1 }
+                { "type": "scale", "scale": 0.6 }
             ]
         },
 
@@ -109,14 +109,14 @@
         { "from": "Keyboard.MouseMoveUp", "when": "Keyboard.RightMouseButton", "to": "Actions.PITCH_UP",
           "filters":
             [
-                { "type": "scale", "scale": 0.1 }
+                { "type": "scale", "scale": 0.6 }
             ]
 
         },
         { "from": "Keyboard.MouseMoveDown", "when": "Keyboard.RightMouseButton", "to": "Actions.PITCH_DOWN",
           "filters":
             [
-                { "type": "scale", "scale": 0.1 }
+                { "type": "scale", "scale": 0.6 }
             ]
         },
 
