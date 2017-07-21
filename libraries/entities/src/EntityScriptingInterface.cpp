@@ -435,7 +435,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     entity->rememberHasSimulationOwnershipBid();
                 }
             }
-            if (properties.queryAACubeRelatedPropertyChanged() && entity->checkAndMaybeUpdateQueryAACube()) {
+            if (properties.queryAACubeRelatedPropertyChanged()) {
                 properties.setQueryAACube(entity->getQueryAACube());
             }
             entity->setLastBroadcast(usecTimestampNow());
