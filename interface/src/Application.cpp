@@ -3037,7 +3037,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             }
 
             case Qt::Key_H: {
-                if (isOption) {
+                if (isMeta) {
                     auto menu = Menu::getInstance();
                     if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
                         menu->setIsOptionChecked(MenuOption::FullscreenMirror, false);
