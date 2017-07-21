@@ -822,14 +822,14 @@ PointerEvent Overlays::calculateOverlayPointerEvent(OverlayID overlayID, PickRay
                                              RayToOverlayIntersectionResult rayPickResult, QMouseEvent* event,
                                              PointerEvent::EventType eventType) {
     auto overlay = std::dynamic_pointer_cast<Planar3DOverlay>(getOverlay(overlayID));
+    if (getOverlayType(overlayID) == "web3d") {
+        overlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
+    }
     if (!overlay) {
         return PointerEvent();
     }
     glm::vec3 position = overlay->getPosition();
     glm::quat rotation = overlay->getRotation();
-    if (getOverlayType(overlayID) == "web3d") {
-        overlay = std::dynamic_pointer_cast<Web3DOverlay>(getOverlay(overlayID));
-    }
     glm::vec2 dimensions = overlay->getSize();
 
 
