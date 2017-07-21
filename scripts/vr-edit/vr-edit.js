@@ -1624,6 +1624,7 @@
         }
 
         function updateEditorGrabbing() {
+            selection.select(highlightedEntityID);
             if (isAppScaleWithHandles) {
                 handles.display(highlightedEntityID, selection.boundingBox(), selection.count() > 1);
             } else {
