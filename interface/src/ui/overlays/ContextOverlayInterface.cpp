@@ -37,7 +37,6 @@ ContextOverlayInterface::ContextOverlayInterface() {
 
 static const xColor BB_OVERLAY_COLOR = {255, 255, 0};
 static const uint32_t LEFT_HAND_HW_ID = 1;
-static const uint32_t RIGHT_HAND_HW_ID = 2;
 static const xColor CONTEXT_OVERLAY_COLOR = { 255, 255, 255 };
 static const float CONTEXT_OVERLAY_CLOSE_DISTANCE = 1.5f; // in meters
 static const float CONTEXT_OVERLAY_CLOSE_SIZE = 0.12f; // in meters, same x and y dims
