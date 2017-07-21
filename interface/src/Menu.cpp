@@ -101,7 +101,7 @@ Menu::Menu() {
         static const QUrl tabletUrl("../../hifi/dialogs/TabletRunningScripts.qml");
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
         TabletProxy* tablet = tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system");
-        tablet->pushOntoStack(tabletUrl);
+        tablet->loadQMLSource(tabletUrl);
     });
 
     // Edit > Open and Run Script from File... [advanced]
