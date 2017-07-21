@@ -952,10 +952,13 @@ bool SpatiallyNestable::checkAndMaybeUpdateQueryAACube() {
     bool success;
     AACube maxAACube = getMaximumAACube(success);
     if (success && (!_queryAACubeSet || !_queryAACube.contains(maxAACube))) {
-        const float expansionFactor = (_parentJointIndex != INVALID_JOINT_INDEX || _children.size() > 0 )
-            ? PARENTED_EXPANSION_FACTOR : 1.0f;
-        float scale = maxAACube.getScale();
-        _queryAACube = AACube(maxAACube.getCorner() - glm::vec3(scale), scale * expansionFactor);
+        if (_parentJointIndex != INVALID_JOINT_INDEX || _children.size() > 0 ) {
+            // make an expanded AACube centered on the object
+            float scale = PARENTED_EXPANSION_FACTOR * maxAACube.getScale();
+            _queryAACube = AACube(maxAACube.calcCenter() - glm::vec3(0.5f * scale), scale);
+        } else {
+            _queryAACube = maxAACube;
+        }
 
         getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
             bool success;
@@ -1002,12 +1005,14 @@ bool SpatiallyNestable::queryAACubeNeedsUpdate() const {
 
 void SpatiallyNestable::updateQueryAACube() {
     bool success;
-    AACube currentAACube = getMaximumAACube(success);
-    // make an AACube with edges thrice as long and centered on the object
-    const float expansionFactor = (_parentJointIndex != INVALID_JOINT_INDEX || _children.size() > 0 ) ?
-        PARENTED_EXPANSION_FACTOR : 1.0f;
-    float scale = currentAACube.getScale();
-    _queryAACube = AACube(currentAACube.getCorner() - glm::vec3(scale), scale * expansionFactor);
+    AACube maxAACube = getMaximumAACube(success);
+    if (_parentJointIndex != INVALID_JOINT_INDEX || _children.size() > 0 ) {
+        // make an expanded AACube centered on the object
+        float scale = PARENTED_EXPANSION_FACTOR * maxAACube.getScale();
+        _queryAACube = AACube(maxAACube.calcCenter() - glm::vec3(0.5f * scale), scale);
+    } else {
+        _queryAACube = maxAACube;
+    }
 
     getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
         bool success;
