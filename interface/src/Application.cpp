@@ -2751,6 +2751,16 @@ bool Application::event(QEvent* event) {
             static_cast<LambdaEvent*>(event)->call();
             return true;
 
+        // Explicit idle keeps the idle running at a lower interval, but without any rendering
+        // see (windowMinimizedChanged)
+        case Event::Idle:
+            {
+                float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
+                _lastTimeUpdated.start();
+                idle(nsecsElapsed);
+            }
+            return true;
+
         case Event::Present:
             if (!_renderRequested) {
                 float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
@@ -5439,9 +5449,9 @@ void Application::updateWindowTitle() const {
 #endif
     _window->setWindowTitle(title);
 
-	// updateTitleWindow gets called whenever there's a change regarding the domain, so rather
-	// than placing this within domainChanged, it's placed here to cover the other potential cases.
-	DependencyManager::get< MessagesClient >()->sendLocalMessage("Toolbar-DomainChanged", "");
+    // updateTitleWindow gets called whenever there's a change regarding the domain, so rather
+    // than placing this within domainChanged, it's placed here to cover the other potential cases.
+    DependencyManager::get< MessagesClient >()->sendLocalMessage("Toolbar-DomainChanged", "");
 }
 
 void Application::clearDomainOctreeDetails() {
