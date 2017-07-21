@@ -36,10 +36,22 @@ ContextOverlayInterface::ContextOverlayInterface() {
 }
 
 static const xColor BB_OVERLAY_COLOR = {255, 255, 0};
+static const uint32_t LEFT_HAND_HW_ID = 1;
+static const uint32_t RIGHT_HAND_HW_ID = 2;
+static const xColor CONTEXT_OVERLAY_COLOR = { 255, 255, 255 };
+static const float CONTEXT_OVERLAY_CLOSE_DISTANCE = 1.5f; // in meters
+static const float CONTEXT_OVERLAY_CLOSE_SIZE = 0.12f; // in meters, same x and y dims
+static const float CONTEXT_OVERLAY_FAR_SIZE = 0.08f; // in meters, same x and y dims
+static const float CONTEXT_OVERLAY_CLOSE_OFFSET_ANGLE = 20.0f;
+static const float CONTEXT_OVERLAY_UNHOVERED_ALPHA = 0.85f;
+static const float CONTEXT_OVERLAY_HOVERED_ALPHA = 1.0f;
+static const float CONTEXT_OVERLAY_UNHOVERED_PULSEMIN = 0.6f;
+static const float CONTEXT_OVERLAY_UNHOVERED_PULSEMAX = 1.0f;
+static const float CONTEXT_OVERLAY_UNHOVERED_PULSEPERIOD = 1.0f;
+static const float CONTEXT_OVERLAY_UNHOVERED_COLORPULSE = 1.0f;
 
 bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
     if (_enabled && event.getButton() == PointerEvent::SecondaryButton) {
-
         EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
         glm::vec3 bbPosition = entityProperties.getPosition();
         glm::vec3 dimensions = entityProperties.getDimensions();
@@ -68,10 +80,10 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
 
             if (_contextOverlayID == UNKNOWN_OVERLAY_ID || !qApp->getOverlays().isAddedOverlay(_contextOverlayID)) {
                 _contextOverlay = std::make_shared<Image3DOverlay>();
-                _contextOverlay->setAlpha(0.85f);
-                _contextOverlay->setPulseMin(0.6f);
-                _contextOverlay->setPulseMax(1.0f);
-                _contextOverlay->setColorPulse(1.0f);
+                _contextOverlay->setAlpha(CONTEXT_OVERLAY_UNHOVERED_ALPHA);
+                _contextOverlay->setPulseMin(CONTEXT_OVERLAY_UNHOVERED_PULSEMIN);
+                _contextOverlay->setPulseMax(CONTEXT_OVERLAY_UNHOVERED_PULSEMAX);
+                _contextOverlay->setColorPulse(CONTEXT_OVERLAY_UNHOVERED_COLORPULSE);
                 _contextOverlay->setIgnoreRayIntersection(false);
                 _contextOverlay->setDrawInFront(true);
                 _contextOverlay->setURL("http://i.imgur.com/gksZygp.png");
@@ -82,14 +94,18 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
             float distanceToEntity = glm::distance(bbPosition, cameraPosition);
             glm::vec3 contextOverlayPosition;
             glm::vec2 contextOverlayDimensions;
-            if (distanceToEntity > 1.5f) {
+            if (distanceToEntity > CONTEXT_OVERLAY_CLOSE_DISTANCE) {
                 contextOverlayPosition = (distanceToEntity - 1.0f) * glm::normalize(entityProperties.getPosition() - cameraPosition) + cameraPosition;
-                contextOverlayDimensions = glm::vec2(0.08f, 0.08f) * glm::distance(contextOverlayPosition, cameraPosition);
+                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_FAR_SIZE, CONTEXT_OVERLAY_FAR_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
             } else {
                 // If the entity is too close to the camera, rotate the context overlay to the right of the entity.
                 // This makes it easy to inspect things you're holding.
-                contextOverlayPosition = (glm::quat(glm::radians(glm::vec3(0.0f, -20.0f, 0.0f))) * (entityProperties.getPosition() - cameraPosition)) + cameraPosition;
-                contextOverlayDimensions = glm::vec2(0.12f, 0.12f) * glm::distance(contextOverlayPosition, cameraPosition);
+                float offsetAngle = -CONTEXT_OVERLAY_CLOSE_OFFSET_ANGLE;
+                if (event.getID() == LEFT_HAND_HW_ID) {
+                    offsetAngle *= -1;
+                }
+                contextOverlayPosition = (glm::quat(glm::radians(glm::vec3(0.0f, offsetAngle, 0.0f))) * (entityProperties.getPosition() - cameraPosition)) + cameraPosition;
+                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_CLOSE_SIZE, CONTEXT_OVERLAY_CLOSE_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
             }
             _contextOverlay->setPosition(contextOverlayPosition);
             _contextOverlay->setDimensions(contextOverlayDimensions);
@@ -134,20 +150,20 @@ void ContextOverlayInterface::clickContextOverlay(const OverlayID& overlayID, co
 void ContextOverlayInterface::hoverEnterContextOverlay(const OverlayID& overlayID, const PointerEvent& event) {
     if (_contextOverlayID != UNKNOWN_OVERLAY_ID && _contextOverlay) {
         qCDebug(context_overlay) << "Started hovering over Context Overlay. Overlay ID:" << overlayID;
-        _contextOverlay->setColor({ 0xFF, 0xFF, 0xFF });
-        _contextOverlay->setColorPulse(0.0f);
-        _contextOverlay->setPulsePeriod(0.0f);
-        _contextOverlay->setAlpha(1.0f);
+        _contextOverlay->setColor(CONTEXT_OVERLAY_COLOR);
+        _contextOverlay->setColorPulse(0.0f); // pulse off
+        _contextOverlay->setPulsePeriod(0.0f); // pulse off
+        _contextOverlay->setAlpha(CONTEXT_OVERLAY_HOVERED_ALPHA);
     }
 }
 
 void ContextOverlayInterface::hoverLeaveContextOverlay(const OverlayID& overlayID, const PointerEvent& event) {
     if (_contextOverlayID != UNKNOWN_OVERLAY_ID && _contextOverlay) {
         qCDebug(context_overlay) << "Stopped hovering over Context Overlay. Overlay ID:" << overlayID;
-        _contextOverlay->setColor({ 0xFF, 0xFF, 0xFF });
-        _contextOverlay->setColorPulse(1.0f);
-        _contextOverlay->setPulsePeriod(1.0f);
-        _contextOverlay->setAlpha(0.85f);
+        _contextOverlay->setColor(CONTEXT_OVERLAY_COLOR);
+        _contextOverlay->setColorPulse(CONTEXT_OVERLAY_UNHOVERED_COLORPULSE);
+        _contextOverlay->setPulsePeriod(CONTEXT_OVERLAY_UNHOVERED_PULSEPERIOD);
+        _contextOverlay->setAlpha(CONTEXT_OVERLAY_UNHOVERED_ALPHA);
     }
 }
 
