@@ -115,7 +115,8 @@
             HAND_HIGHLIGHT_ALPHA = 0.35,
             ENTITY_HIGHLIGHT_ALPHA = 0.8,
             HAND_HIGHLIGHT_DIMENSIONS = { x: 0.2, y: 0.2, z: 0.2 },
-            HAND_HIGHLIGHT_OFFSET = { x: 0.0, y: 0.11, z: 0.02 };
+            HAND_HIGHLIGHT_OFFSET = { x: 0.0, y: 0.11, z: 0.02 },
+            ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO);
 
         handOverlay = Overlays.addOverlay("sphere", {
             dimensions: HAND_HIGHLIGHT_DIMENSIONS,
@@ -144,13 +145,12 @@
         }
 
         function editEntityOverlay(index, details, overlayColor) {
-            var offset = Vec3.multiplyQbyV(details.rotation,
-                Vec3.multiplyVbyV(Vec3.subtract(Vec3.HALF, details.registrationPoint), details.dimensions));
+            var offset = Vec3.multiplyVbyV(Vec3.subtract(Vec3.HALF, details.registrationPoint), details.dimensions);
 
             Overlays.editOverlay(entityOverlays[index], {
                 parentID: details.id,
-                position: Vec3.sum(details.position, offset),
-                rotation: details.rotation,
+                localPosition: offset,
+                localRotation: ZERO_ROTATION,
                 dimensions: details.dimensions,
                 color: overlayColor,
                 visible: true
