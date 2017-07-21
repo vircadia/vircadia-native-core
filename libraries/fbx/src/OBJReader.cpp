@@ -123,6 +123,34 @@ glm::vec3 OBJTokenizer::getVec3() {
     }
     return v;
 }
+bool OBJTokenizer::getVertex(glm::vec3& vertex, glm::vec3& vertexColor) {
+    // Used for vertices which may also have a vertex color (RGB [0,1]) to follow.
+    //	NOTE: Returns true if there is a vertex color.
+    auto x = getFloat(); // N.B.: getFloat() has side-effect
+    auto y = getFloat(); // And order of arguments is different on Windows/Linux.
+    auto z = getFloat();
+    vertex = glm::vec3(x, y, z);
+
+    auto r = 1.0f, g = 1.0f, b = 1.0f;
+    bool hasVertexColor = false;
+    if (isNextTokenFloat()) {
+        // If there's another float it's one of two things: a W component or an R component. The standard OBJ spec
+        // doesn't output a W component, so we're making the assumption that if a float follows (unless it's
+        // only a single value) that it's a vertex color.
+        r = getFloat();
+        if (isNextTokenFloat()) {
+            // Safe to assume the following values are the green/blue components. 
+            g = getFloat();
+            b = getFloat();
+
+            hasVertexColor = true;
+        }
+
+        vertexColor = glm::vec3(r, g, b);
+    }
+
+    return hasVertexColor;
+}
 glm::vec2 OBJTokenizer::getVec2() {
     float uCoord = getFloat();
     float vCoord = 1.0f - getFloat();
@@ -140,7 +168,9 @@ void setMeshPartDefaults(FBXMeshPart& meshPart, QString materialID) {
 }
 
 // OBJFace
-bool OBJFace::add(const QByteArray& vertexIndex, const QByteArray& textureIndex, const QByteArray& normalIndex, const QVector<glm::vec3>& vertices) {
+//	NOTE (trent, 7/20/17): The vertexColors vector being passed-in isn't necessary here, but I'm just
+//                         pairing it with the vertices vector for consistency.
+bool OBJFace::add(const QByteArray& vertexIndex, const QByteArray& textureIndex, const QByteArray& normalIndex, const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& vertexColors) {
     bool ok;
     int index = vertexIndex.toInt(&ok);
     if (!ok) {
@@ -382,7 +412,14 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 #endif
             }
         } else if (token == "v") {
-            vertices.append(tokenizer.getVec3());
+            glm::vec3 vertex, vertexColor;
+
+            bool hasVertexColor = tokenizer.getVertex(vertex, vertexColor);
+            vertices.append(vertex);
+            
+            if(hasVertexColor) {
+                vertexColors.append(vertexColor);
+            }
         } else if (token == "vn") {
             normals.append(tokenizer.getVec3());
         } else if (token == "vt") {
@@ -410,7 +447,8 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 assert(parts.count() >= 1);
                 assert(parts.count() <= 3);
                 const QByteArray noData {};
-                face.add(parts[0], (parts.count() > 1) ? parts[1] : noData, (parts.count() > 2) ? parts[2] : noData, vertices);
+                face.add(parts[0], (parts.count() > 1) ? parts[1] : noData, (parts.count() > 2) ? parts[2] : noData,
+                         vertices, vertexColors);
                 face.groupName = currentGroup;
                 face.materialName = currentMaterialName;
             }
@@ -540,6 +578,15 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 glm::vec3 v1 = checked_at(vertices, face.vertexIndices[1]);
                 glm::vec3 v2 = checked_at(vertices, face.vertexIndices[2]);
 
+                glm::vec3 vc0, vc1, vc2;
+                bool hasVertexColors = (vertexColors.size() > 0);
+                if (hasVertexColors) {
+                    // If there are any vertex colors, it's safe to assume all meshes had them exported.
+                    vc0 = checked_at(vertexColors, face.vertexIndices[0]);
+                    vc1 = checked_at(vertexColors, face.vertexIndices[1]);
+                    vc2 = checked_at(vertexColors, face.vertexIndices[2]);
+                }
+
                 // Scale the vertices if the OBJ file scale is specified as non-one.
                 if (scaleGuess != 1.0f) {
                     v0 *= scaleGuess;
@@ -554,6 +601,13 @@ FBXGeometry* OBJReader::readOBJ(QByteArray& model, const QVariantHash& mapping, 
                 mesh.vertices << v1;
                 meshPart.triangleIndices.append(mesh.vertices.count());
                 mesh.vertices << v2;
+
+                if (hasVertexColors) {
+                    // Add vertex colors.
+                    mesh.colors << vc0;
+                    mesh.colors << vc1;
+                    mesh.colors << vc2;
+                }
 
                 glm::vec3 n0, n1, n2;
                 if (face.normalIndices.count()) {
@@ -690,6 +744,7 @@ void fbxDebugDump(const FBXGeometry& fbxgeo) {
     qCDebug(modelformat) << "  meshes.count() =" << fbxgeo.meshes.count();
     foreach (FBXMesh mesh, fbxgeo.meshes) {
         qCDebug(modelformat) << "    vertices.count() =" << mesh.vertices.count();
+        qCDebug(modelformat) << "    colors.count() =" << mesh.colors.count();
         qCDebug(modelformat) << "    normals.count() =" << mesh.normals.count();
         /*if (mesh.normals.count() == mesh.vertices.count()) {
             for (int i = 0; i < mesh.normals.count(); i++) {
