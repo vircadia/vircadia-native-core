@@ -718,10 +718,12 @@ function off() {
     triggerPressMapping.disable(); // see above
     removeOverlays();
     Users.requestsDomainListData = false;
+    ContextOverlay.enabled = true;
 }
 
 function tabletVisibilityChanged() {
     if (!tablet.tabletShown) {
+        ContextOverlay.enabled = true;
         tablet.gotoHomeScreen();
     }
 }
@@ -865,6 +867,7 @@ function avatarDisconnected(nodeID) {
 function clearLocalQMLDataAndClosePAL() {
     sendToQml({ method: 'clearLocalQMLData' });
     if (onPalScreen) {
+        ContextOverlay.enabled = true;
         tablet.gotoHomeScreen();
     }
 }
@@ -885,7 +888,6 @@ function shutdown() {
     if (onPalScreen) {
         tablet.gotoHomeScreen();
     }
-    ContextOverlay.enabled = true;
     button.clicked.disconnect(onTabletButtonClicked);
     tablet.removeButton(button);
     tablet.screenChanged.disconnect(onTabletScreenChanged);
