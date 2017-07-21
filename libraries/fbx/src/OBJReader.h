@@ -20,6 +20,7 @@ public:
     void ungetChar(char ch) { _device->ungetChar(ch); }
     const QString getComment() const { return _comment; }
     glm::vec3 getVec3();
+    bool getVertex(glm::vec3& vertex, glm::vec3& vertexColor);
     glm::vec2 getVec2();
     float getFloat() { return std::stof((nextToken() != OBJTokenizer::DATUM_TOKEN) ? nullptr : getDatum().data()); }
 
@@ -38,7 +39,8 @@ public:
     QString groupName; // We don't make use of hierarchical structure, but it can be preserved for debugging and future use.
     QString materialName;
     // Add one more set of vertex data. Answers true if successful
-    bool add(const QByteArray& vertexIndex, const QByteArray& textureIndex, const QByteArray& normalIndex, const QVector<glm::vec3>& vertices);
+    bool add(const QByteArray& vertexIndex, const QByteArray& textureIndex, const QByteArray& normalIndex,
+             const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& vertexColors);
     // Return a set of one or more OBJFaces from this one, in which each is just a triangle.
     // Even though FBXMeshPart can handle quads, it would be messy to try to keep track of mixed-size faces, so we treat everything as triangles.
     QVector<OBJFace> triangulate();
@@ -65,7 +67,8 @@ class OBJReader: public QObject { // QObject so we can make network requests.
     Q_OBJECT
 public:
     typedef QVector<OBJFace> FaceGroup;
-    QVector<glm::vec3> vertices;  // all that we ever encounter while reading
+    QVector<glm::vec3> vertices;
+    QVector<glm::vec3> vertexColors;
     QVector<glm::vec2> textureUVs;
     QVector<glm::vec3> normals;
     QVector<FaceGroup> faceGroups;

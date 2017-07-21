@@ -29,8 +29,12 @@
 #include <QVector>
 #include <QFile>
 #include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 #include <QFileInfo>
 #include <QString>
+#include <QRegularExpression>
+#include <QRegularExpressionMatch>
 
 #include <GeometryUtil.h>
 #include <Gzip.h>
@@ -1667,7 +1671,28 @@ bool Octree::readJSONFromGzippedFile(QString qFileName) {
     return readJSONFromStream(-1, jsonStream);
 }
 
+// hack to get the marketplace id into the entities.  We will create a way to get this from a hash of
+// the entity later, but this helps us move things along for now
+QString getMarketplaceID(const QString& urlString) {
+    // the url should be http://mpassets.highfidelity.com/<uuid>-v1/<item name>.extension
+    // a regex for the this is a PITA as there are several valid versions of uuids, and so
+    // lets strip out the uuid (if any) and try to create a UUID from the string, relying on
+    // QT to parse it
+    static const QRegularExpression re("^http:\\/\\/mpassets.highfidelity.com\\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})-v[\\d]+\\/.*");
+    QRegularExpressionMatch match = re.match(urlString);
+    if (match.hasMatch()) {
+        QString matched = match.captured(1);
+        if (QUuid(matched).isNull()) {
+            qDebug() << "invalid uuid for marketplaceID";
+        } else {
+            return matched;
+        }
+    }
+    return QString();
+}
+
 bool Octree::readFromURL(const QString& urlString) {
+    QString marketplaceID = getMarketplaceID(urlString);
     auto request =
         std::unique_ptr<ResourceRequest>(DependencyManager::get<ResourceManager>()->createResourceRequest(this, urlString));
 
@@ -1686,11 +1711,11 @@ bool Octree::readFromURL(const QString& urlString) {
 
     auto data = request->getData();
     QDataStream inputStream(data);
-    return readFromStream(data.size(), inputStream);
+    return readFromStream(data.size(), inputStream, marketplaceID);
 }
 
 
-bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream) {
+bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream, const QString& marketplaceID) {
     // decide if this is binary SVO or JSON-formatted SVO
     QIODevice *device = inputStream.device();
     char firstChar;
@@ -1702,7 +1727,7 @@ bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream
         return readSVOFromStream(streamLength, inputStream);
     } else {
         qCDebug(octree) << "Reading from JSON SVO Stream length:" << streamLength;
-        return readJSONFromStream(streamLength, inputStream);
+        return readJSONFromStream(streamLength, inputStream, marketplaceID);
     }
 }
 
@@ -1838,9 +1863,31 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
     return fileOk;
 }
 
+// hack to get the marketplace id into the entities.  We will create a way to get this from a hash of
+// the entity later, but this helps us move things along for now
+QJsonDocument addMarketplaceIDToDocumentEntities(QJsonDocument& doc, const QString& marketplaceID) {
+    if (!marketplaceID.isEmpty()) {
+        QJsonDocument newDoc;
+        QJsonObject rootObj = doc.object();
+        QJsonArray newEntitiesArray;
+
+        // build a new entities array
+        auto entitiesArray = rootObj["Entities"].toArray();
+        for(auto it = entitiesArray.begin(); it != entitiesArray.end(); it++) {
+            auto entity = (*it).toObject();
+            entity["marketplaceID"] = marketplaceID;
+            newEntitiesArray.append(entity);
+        }
+        rootObj["Entities"] = newEntitiesArray;
+        newDoc.setObject(rootObj);
+        return newDoc;
+    }
+    return doc;
+}
+
 const int READ_JSON_BUFFER_SIZE = 2048;
 
-bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputStream) {
+bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputStream, const QString& marketplaceID /*=""*/) {
     // if the data is gzipped we may not have a useful bytesAvailable() result, so just keep reading until
     // we get an eof.  Leave streamLength parameter for consistency.
 
@@ -1860,6 +1907,9 @@ bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputSt
     }
 
     QJsonDocument asDocument = QJsonDocument::fromJson(jsonBuffer);
+    if (!marketplaceID.isEmpty()) {
+        asDocument = addMarketplaceIDToDocumentEntities(asDocument, marketplaceID);
+    }
     QVariant asVariant = asDocument.toVariant();
     QVariantMap asMap = asVariant.toMap();
     bool success = readFromMap(asMap);

@@ -24,7 +24,15 @@ void HoverOverlayInterface::createHoverOverlay(const EntityItemID& entityItemID,
     setCurrentHoveredEntity(entityItemID);
 }
 
+void HoverOverlayInterface::createHoverOverlay(const EntityItemID& entityItemID) {
+    HoverOverlayInterface::createHoverOverlay(entityItemID, PointerEvent());
+}
+
 void HoverOverlayInterface::destroyHoverOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
     qCDebug(hover_overlay) << "Destroying Hover Overlay on top of entity with ID: " << entityItemID;
     setCurrentHoveredEntity(QUuid());
+}
+
+void HoverOverlayInterface::destroyHoverOverlay(const EntityItemID& entityItemID) {
+    HoverOverlayInterface::destroyHoverOverlay(entityItemID, PointerEvent());
 }

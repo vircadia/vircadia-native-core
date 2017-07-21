@@ -506,7 +506,7 @@ Rectangle {
         }
         HifiControls.Tree {
             id: treeView
-            height: 430
+            height: 290
             anchors.leftMargin: hifi.dimensions.contentMargin.x + 2  // Extra for border
             anchors.rightMargin: hifi.dimensions.contentMargin.x + 2  // Extra for border
             anchors.left: parent.left

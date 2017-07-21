@@ -22,6 +22,9 @@
 #include "EntityTree.h"
 #include "HoverOverlayLogging.h"
 
+/**jsdoc
+* @namespace HoverOverlay
+*/
 class HoverOverlayInterface : public QObject, public Dependency  {
     Q_OBJECT
 
@@ -34,7 +37,9 @@ public:
 
 public slots:
     void createHoverOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
+    void createHoverOverlay(const EntityItemID& entityItemID);
     void destroyHoverOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
+    void destroyHoverOverlay(const EntityItemID& entityItemID);
 
 private:
     bool _verboseLogging { true };
