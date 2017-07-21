@@ -1055,6 +1055,10 @@
             return laserLength;
         }
 
+        function handOffset() {
+            return GRAB_POINT_SPHERE_OFFSET;
+        }
+
         function clear() {
             isLaserOn = false;
             hide();
@@ -1075,6 +1079,7 @@
             setLength: setLength,
             clearLength: clearLength,
             length: getLength,
+            handOffset: handOffset,
             clear: clear,
             destroy: destroy
         };
@@ -1313,6 +1318,7 @@
             initialHandleOrientationInverse,
             initialHandleRegistrationOffset,
             initialSelectionOrientationInverse,
+            laserOffset,
             MIN_SCALE = 0.001,
 
             intersection;
@@ -1322,6 +1328,8 @@
         selection = new Selection(side);
         highlights = new Highlights(side);
         handles = new Handles(side);
+
+        laserOffset = laser.handOffset();
 
         function setOtherEditor(editor) {
             otherEditor = editor;
@@ -1371,7 +1379,8 @@
             if (isScalingWithHand) {
                 return side === LEFT_HAND ? MyAvatar.getLeftPalmPosition() : MyAvatar.getRightPalmPosition();
             }
-            return Vec3.sum(hand.position(), Vec3.multiply(laser.length(), Quat.getUp(hand.orientation())));
+            return Vec3.sum(Vec3.sum(hand.position(), Vec3.multiplyQbyV(hand.orientation(), laserOffset)),
+                Vec3.multiply(laser.length(), Quat.getUp(hand.orientation())));
         }
 
         function startDirectScaling(targetPosition) {
@@ -1484,6 +1493,8 @@
             targetPosition = getScaleTargetPosition();
             targetsSeparation = Vec3.distance(targetPosition, otherTargetPosition);
             scale = targetsSeparation / initialTargetsSeparation;
+            scale = Math.max(scale, MIN_SCALE);
+
             rotation = Quat.rotationBetween(initialtargetsDirection, Vec3.subtract(otherTargetPosition, targetPosition));
             center = Vec3.multiply(0.5, Vec3.sum(targetPosition, otherTargetPosition));
             selection.directScale(scale, rotation, center);
