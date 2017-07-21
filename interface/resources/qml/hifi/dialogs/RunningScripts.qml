@@ -45,8 +45,8 @@ ScrollingWindow {
     Component {
         id: letterBoxMessage
         Window {
-            implicitWidth: 424
-            implicitHeight: 400
+            implicitWidth: 400
+            implicitHeight: 300
             minSize: Qt.vector2d(424, 300)
             DesktopLetterboxMessage {
                 visible: true

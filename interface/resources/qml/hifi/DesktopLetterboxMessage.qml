@@ -27,15 +27,9 @@ Item {
     id: letterbox
     anchors.fill: parent
     Rectangle {
-        anchors.fill: parent
-        color: "black"
-        opacity: 0.5
-        radius: popupRadius
-    }
-    Rectangle {
         id: textContainer;
-        width: parent.width * 0.8
-        height: contentContainer.height + 50
+        width: parent.width
+        height: parent.height
         anchors.centerIn: parent
         radius: popupRadius
         color: "white"
