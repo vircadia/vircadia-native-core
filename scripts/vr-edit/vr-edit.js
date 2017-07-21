@@ -1313,6 +1313,7 @@
             initialHandleOrientationInverse,
             initialHandleRegistrationOffset,
             initialSelectionOrientationInverse,
+            MIN_SCALE = 0.001,
 
             intersection;
 
@@ -1520,14 +1521,15 @@
             scaleAxis = Vec3.multiplyQbyV(selection.getPositionAndOrientation().orientation, handleUnitScaleAxis);
             handleDistance = Math.abs(Vec3.dot(Vec3.subtract(otherTargetPosition, boundingBoxCenter), scaleAxis));
             handleDistance -= handleHandOffset;
+            handleDistance = Math.max(handleDistance, MIN_SCALE);
 
             // Scale selection relative to initial dimensions.
             scale = handleDistance / initialHandleDistance;
             scale3D = Vec3.multiply(scale, handleScaleDirections);
             scale3D = {
-                x: scale3D.x !== 0 ? scale3D.x : 1,
-                y: scale3D.y !== 0 ? scale3D.y : 1,
-                z: scale3D.z !== 0 ? scale3D.z : 1
+                x: handleScaleDirections.x !== 0 ? scale3D.x : 1,
+                y: handleScaleDirections.y !== 0 ? scale3D.y : 1,
+                z: handleScaleDirections.z !== 0 ? scale3D.z : 1
             };
 
             // Reposition selection per scale.
