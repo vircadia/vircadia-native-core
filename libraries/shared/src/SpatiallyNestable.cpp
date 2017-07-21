@@ -951,7 +951,7 @@ const float PARENTED_EXPANSION_FACTOR = 3.0f;
 bool SpatiallyNestable::checkAndMaybeUpdateQueryAACube() {
     bool success;
     AACube maxAACube = getMaximumAACube(success);
-    if (success && (!_queryAACubeSet || !_queryAACube.contains(maxAACube))) {
+    if (success && (!_queryAACubeSet || (_parentID.isNull() && _children.size() == 0) || !_queryAACube.contains(maxAACube))) {
         if (_parentJointIndex != INVALID_JOINT_INDEX || _children.size() > 0 ) {
             // make an expanded AACube centered on the object
             float scale = PARENTED_EXPANSION_FACTOR * maxAACube.getScale();
