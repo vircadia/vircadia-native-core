@@ -42,7 +42,8 @@ const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
     << PacketType::DomainServerRemovedNode << PacketType::UsernameFromIDReply << PacketType::OctreeFileReplacement
     << PacketType::ReplicatedMicrophoneAudioNoEcho << PacketType::ReplicatedMicrophoneAudioWithEcho
     << PacketType::ReplicatedInjectAudio << PacketType::ReplicatedSilentAudioFrame
-    << PacketType::ReplicatedAvatarIdentity << PacketType::ReplicatedKillAvatar << PacketType::ReplicatedBulkAvatarData;
+    << PacketType::ReplicatedAvatarIdentity << PacketType::ReplicatedKillAvatar << PacketType::ReplicatedBulkAvatarData
+    << PacketType::OctreeFileReplacementFromUrl;
 
 const QHash<PacketType, PacketType> REPLICATED_PACKET_MAPPING {
     { PacketType::MicrophoneAudioNoEcho, PacketType::ReplicatedMicrophoneAudioNoEcho },

@@ -978,11 +978,14 @@ void OctreeServer::handleOctreeFileReplacement(QSharedPointer<ReceivedMessage> m
     }
 }
 
-void OctreeServer::handleOctreeFileReplacementFromURL(QString url) {
+// Message->getMessage() contains a QByteArray representation of the URL to download from
+void OctreeServer::handleOctreeFileReplacementFromURL(QSharedPointer<ReceivedMessage> message) {
+    qInfo() << "Received request to replace content from a url";
     if (!_isFinished && !_isShuttingDown) {
         // This call comes from Interface, so we skip our domain server check
         if (!_persistAbsoluteFilePath.isEmpty()) {
-            // Download from our QString
+            // Convert message data into our URL
+            QString url(message->getMessage());
             QUrl modelsURL = QUrl(url, QUrl::StrictMode);
             QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
             QNetworkRequest request(modelsURL);
@@ -1261,6 +1264,7 @@ void OctreeServer::domainSettingsRequestComplete() {
     packetReceiver.registerListener(PacketType::OctreeDataNack, this, "handleOctreeDataNackPacket");
     packetReceiver.registerListener(PacketType::JurisdictionRequest, this, "handleJurisdictionRequestPacket");
     packetReceiver.registerListener(PacketType::OctreeFileReplacement, this, "handleOctreeFileReplacement");
+    packetReceiver.registerListener(PacketType::OctreeFileReplacementFromUrl, this, "handleOctreeFileReplacementFromURL");
     
     readConfiguration();
     
