@@ -58,9 +58,9 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _bbOverlay->setColor(BB_OVERLAY_COLOR);
                 _bbOverlay->setDrawInFront(true);
                 _bbOverlay->setIgnoreRayIntersection(true);
-                _bbOverlay->setParentID(entityItemID);
                 _bbOverlayID = qApp->getOverlays().addOverlay(_bbOverlay);
             }
+            _bbOverlay->setParentID(entityItemID);
             _bbOverlay->setDimensions(entityProperties.getDimensions());
             _bbOverlay->setRotation(entityProperties.getRotation());
             _bbOverlay->setPosition(bbPosition);
