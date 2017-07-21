@@ -885,7 +885,8 @@
         // Draws hand lasers.
         // May intersect with entities or bounding box of other hand's selection.
 
-        var isLaserOn = false,
+        var isLaserEnabled = true,
+            isLaserOn = false,
 
             laserLine = null,
             laserSphere = null,
@@ -1000,6 +1001,10 @@
                 deltaOrigin,
                 pickRay;
 
+            if (!isLaserEnabled) {
+                return;
+            }
+
             if (!hand.intersection().intersects && hand.triggerPressed()) {
                 handPosition = hand.position();
                 handOrientation = hand.orientation();
@@ -1064,6 +1069,18 @@
             hide();
         }
 
+        function enable() {
+            isLaserEnabled = true;
+        }
+
+        function disable() {
+            isLaserEnabled = false;
+            if (isLaserOn) {
+                hide();
+            }
+            isLaserOn = false;
+        }
+
         function destroy() {
             Overlays.deleteOverlay(laserLine);
             Overlays.deleteOverlay(laserSphere);
@@ -1079,6 +1096,8 @@
             setLength: setLength,
             clearLength: clearLength,
             length: getLength,
+            enable: enable,
+            disable: disable,
             handOffset: handOffset,
             clear: clear,
             destroy: destroy
@@ -1615,6 +1634,8 @@
             selection.select(highlightedEntityID);  // For when transitioning from EDITOR_SEARCHING.
             if (intersection.laserIntersected) {
                 laser.setLength(laser.length());
+            } else {
+                laser.disable();
             }
             if (isAppScaleWithHandles) {
                 handles.display(highlightedEntityID, selection.boundingBox(), selection.count() > 1);
@@ -1636,6 +1657,7 @@
             stopEditing();
             handles.clear();
             laser.clearLength();
+            laser.enable();
         }
 
         function enterEditorDirectScaling() {
@@ -1643,6 +1665,8 @@
             isScalingWithHand = intersection.handIntersected;
             if (intersection.laserIntersected) {
                 laser.setLength(laser.length());
+            } else {
+                laser.disable();
             }
             otherEditor.startDirectScaling(getScaleTargetPosition());
         }
@@ -1654,6 +1678,7 @@
         function exitEditorDirectScaling() {
             otherEditor.stopDirectScaling();
             laser.clearLength();
+            laser.enable();
         }
 
         function enterEditorHandleScaling() {
@@ -1661,6 +1686,8 @@
             isScalingWithHand = intersection.handIntersected;
             if (intersection.laserIntersected) {
                 laser.setLength(laser.length());
+            } else {
+                laser.disable();
             }
             otherEditor.startHandleScaling(getScaleTargetPosition(), intersection.overlayID);
         }
@@ -1672,6 +1699,7 @@
         function exitEditorHandleScaling() {
             otherEditor.stopHandleScaling();
             laser.clearLength();
+            laser.enable();
         }
 
         STATE_MACHINE = {
