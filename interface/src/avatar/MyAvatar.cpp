@@ -1643,10 +1643,13 @@ void MyAvatar::prepareForPhysicsSimulation() {
 }
 
 void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
-    glm::vec3 position = getPosition();
-    glm::quat orientation = getOrientation();
+    glm::vec3 position;
+    glm::quat orientation;
     if (_characterController.isEnabledAndReady()) {
         _characterController.getPositionAndOrientation(position, orientation);
+    } else {
+        position = getPosition();
+        orientation = getOrientation();
     }
     nextAttitude(position, orientation);
     _bodySensorMatrix = _follow.postPhysicsUpdate(*this, _bodySensorMatrix);
