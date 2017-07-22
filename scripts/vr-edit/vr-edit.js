@@ -72,7 +72,7 @@
     }
 
 
-    Editor = function (side, gripPressedCallback) {
+    Editor = function (side) {
         // Each controller has a hand, laser, an entity selection, entity highlighter, and entity handles.
 
         var otherEditor,  // Other hand's Editor object.
@@ -84,16 +84,17 @@
             EDITOR_GRABBING = 3,
             EDITOR_DIRECT_SCALING = 4,  // Scaling data are sent to other editor's EDITOR_GRABBING state.
             EDITOR_HANDLE_SCALING = 5,  // ""
-            editorState = EDITOR_IDLE,
             EDITOR_STATE_STRINGS = ["EDITOR_IDLE", "EDITOR_SEARCHING", "EDITOR_HIGHLIGHTING", "EDITOR_GRABBING",
                 "EDITOR_DIRECT_SCALING", "EDITOR_HANDLE_SCALING"],
+            editorState = EDITOR_IDLE,
 
             // State machine.
             STATE_MACHINE,
-            highlightedEntityID = null,
+            highlightedEntityID = null,  // Root entity of highlighted entity set.
             wasAppScaleWithHandles = false,
             isOtherEditorEditingEntityID = false,
             hoveredOverlayID = null,
+            doDeleteEntities = false,
 
             // Primary objects.
             hand,
@@ -127,13 +128,21 @@
 
             intersection;
 
-        hand = new Hand(side, gripPressedCallback);
+        function onGripClicked() {
+            // Delete entity set grabbed by this hand.
+            if (editorState === EDITOR_GRABBING) {
+                doDeleteEntities = true;
+            }
+        }
+
+        hand = new Hand(side, onGripClicked);
         laser = new Laser(side);
         selection = new Selection(side);
         highlights = new Highlights(side);
         handles = new Handles(side);
 
         laserOffset = laser.handOffset();
+
 
         function setOtherEditor(editor) {
             otherEditor = editor;
@@ -427,6 +436,7 @@
             }
             startEditing();
             wasAppScaleWithHandles = isAppScaleWithHandles;
+            doDeleteEntities = false;
         }
 
         function updateEditorGrabbing() {
@@ -637,7 +647,7 @@
                 }
                 break;
             case EDITOR_GRABBING:
-                if (hand.valid() && hand.triggerClicked()) {
+                if (hand.valid() && hand.triggerClicked() && !doDeleteEntities) {
                     // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
                     // No transition.
                     if (isAppScaleWithHandles !== wasAppScaleWithHandles) {
@@ -655,6 +665,9 @@
                     } else {
                         setState(EDITOR_SEARCHING);
                     }
+                } else if (doDeleteEntities) {
+                    selection.deleteEntities();
+                    setState(EDITOR_SEARCHING);
                 } else {
                     debug(side, "ERROR: Unexpected condition in EDITOR_GRABBING!");
                 }
@@ -819,13 +832,6 @@
         }
     }
 
-    function onGripClicked() {
-        // Do not change scale mode if are currently scaling.
-        if (!editors[LEFT_HAND].isScaling() && !editors[RIGHT_HAND].isScaling()) {
-            isAppScaleWithHandles = !isAppScaleWithHandles;
-        }
-    }
-
     function onDominantHandChanged() {
         /*
         // TODO: API coming.
@@ -854,8 +860,8 @@
         }
 
         // Hands, each with a laser, selection, etc.
-        editors[LEFT_HAND] = new Editor(LEFT_HAND, onGripClicked);
-        editors[RIGHT_HAND] = new Editor(RIGHT_HAND, onGripClicked);
+        editors[LEFT_HAND] = new Editor(LEFT_HAND);
+        editors[RIGHT_HAND] = new Editor(RIGHT_HAND);
         editors[LEFT_HAND].setOtherEditor(editors[RIGHT_HAND]);
         editors[RIGHT_HAND].setOtherEditor(editors[LEFT_HAND]);
 

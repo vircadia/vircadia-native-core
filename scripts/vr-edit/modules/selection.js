@@ -296,6 +296,13 @@ Selection = function (side) {
         rootEntityID = null;
     }
 
+    function deleteEntities() {
+        if (rootEntityID) {
+            Entities.deleteEntity(rootEntityID);  // Children are automatically deleted.
+            clear();
+        }
+    }
+
     function destroy() {
         clear();
     }
@@ -320,6 +327,7 @@ Selection = function (side) {
         handleScale: handleScale,
         finishHandleScaling: finishHandleScaling,
         finishEditing: finishEditing,
+        deleteEntities: deleteEntities,
         clear: clear,
         destroy: destroy
     };
