@@ -15,9 +15,6 @@
     var APP_NAME = "VR EDIT",  // TODO: App name.
         APP_ICON_INACTIVE = "icons/tablet-icons/edit-i.svg",  // TODO: App icons.
         APP_ICON_ACTIVE = "icons/tablet-icons/edit-a.svg",
-        tablet,
-        button,
-
         VR_EDIT_SETTING = "io.highfidelity.isVREditing",  // Note: This constant is duplicated in utils.js.
 
         // Application state
@@ -25,12 +22,11 @@
         isAppScaleWithHandles = false,
         dominantHand,
 
+        // Primary objects
         editors = [],
         LEFT_HAND = 0,
         RIGHT_HAND = 1,
-
-        UPDATE_LOOP_TIMEOUT = 16,
-        updateTimer = null,
+        toolMenu,
 
         // Modules
         Hand,
@@ -38,7 +34,14 @@
         Highlights,
         Laser,
         Selection,
+        ToolMenu,
         Editor,
+
+        // Miscellaneous
+        UPDATE_LOOP_TIMEOUT = 16,
+        updateTimer = null,
+        tablet,
+        button,
 
         DEBUG = true;  // TODO: Set false.
 
@@ -51,6 +54,7 @@
     Script.include("./modules/highlights.js");
     Script.include("./modules/laser.js");
     Script.include("./modules/selection.js");
+    Script.include("./modules/toolMenu.js");
 
 
     function log(message) {
@@ -823,13 +827,19 @@
         button.editProperties({ isActive: isAppActive });
 
         if (isAppActive) {
+            toolMenu.display();
             update();
         } else {
             Script.clearTimeout(updateTimer);
             updateTimer = null;
             editors[LEFT_HAND].clear();
             editors[RIGHT_HAND].clear();
+            toolMenu.clear();
         }
+    }
+
+    function otherHand(hand) {
+        return (hand + 1) % 2;
     }
 
     function onDominantHandChanged() {
@@ -837,6 +847,7 @@
         // TODO: API coming.
         dominantHand = TODO;
         */
+        toolMenu.setHand(otherHand(dominantHand));
     }
 
 
@@ -872,6 +883,7 @@
         dominantHand = TODO;
         TODO.change.connect(onDominantHandChanged);
         */
+        toolMenu = new ToolMenu(otherHand(dominantHand));
 
         if (isAppActive) {
             update();
@@ -894,6 +906,11 @@
             button.clicked.disconnect(onAppButtonClicked);
             tablet.removeButton(button);
             button = null;
+        }
+
+        if (toolMenu) {
+            toolMenu.destroy();
+            toolMenu = null;
         }
 
         if (editors[LEFT_HAND]) {
