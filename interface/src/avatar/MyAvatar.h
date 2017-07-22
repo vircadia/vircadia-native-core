@@ -432,6 +432,7 @@ public:
 
     void updateMotors();
     void prepareForPhysicsSimulation();
+    void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
     void harvestResultsFromPhysicsSimulation(float deltaTime);
 
     const QString& getCollisionSoundURL() { return _collisionSoundURL; }

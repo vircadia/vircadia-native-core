@@ -445,9 +445,6 @@ public:
     using SpatiallyNestable::setOrientation;
     virtual void setOrientation(const glm::quat& orientation) override;
 
-    void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
-    virtual void updateAttitude() {} // Tell skeleton mesh about changes
-
     glm::quat getHeadOrientation() const {
         lazyInitHeadData();
         return _headData->getOrientation();

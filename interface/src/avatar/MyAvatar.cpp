@@ -1642,6 +1642,23 @@ void MyAvatar::prepareForPhysicsSimulation() {
     _prePhysicsRoomPose = AnimPose(_sensorToWorldMatrix);
 }
 
+// There are a number of possible strategies for this set of tools through endRender, below.
+void MyAvatar::nextAttitude(glm::vec3 position, glm::quat orientation) {
+    bool success;
+    Transform trans = getTransform(success);
+    if (!success) {
+        qCWarning(interfaceapp) << "Warning -- MyAvatar::nextAttitude failed";
+        return;
+    }
+    trans.setTranslation(position);
+    trans.setRotation(orientation);
+    SpatiallyNestable::setTransform(trans, success);
+    if (!success) {
+        qCWarning(interfaceapp) << "Warning -- MyAvatar::nextAttitude failed";
+    }
+    updateAttitude();
+}
+
 void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
     glm::vec3 position;
     glm::quat orientation;

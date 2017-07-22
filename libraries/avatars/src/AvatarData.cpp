@@ -110,23 +110,6 @@ const QUrl& AvatarData::defaultFullAvatarModelUrl() {
     return _defaultFullAvatarModelUrl;
 }
 
-// There are a number of possible strategies for this set of tools through endRender, below.
-void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
-    bool success;
-    Transform trans = getTransform(success);
-    if (!success) {
-        qCWarning(avatars) << "Warning -- AvatarData::nextAttitude failed";
-        return;
-    }
-    trans.setTranslation(position);
-    trans.setRotation(orientation);
-    SpatiallyNestable::setTransform(trans, success);
-    if (!success) {
-        qCWarning(avatars) << "Warning -- AvatarData::nextAttitude failed";
-    }
-    updateAttitude();
-}
-
 void AvatarData::setTargetScale(float targetScale) {
     auto newValue = glm::clamp(targetScale, MIN_AVATAR_SCALE, MAX_AVATAR_SCALE);
     if (_targetScale != newValue) {
