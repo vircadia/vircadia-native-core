@@ -745,7 +745,9 @@
         }
 
         function clear() {
-            setState(EDITOR_IDLE);
+            if (editorState !== EDITOR_IDLE) {
+                setState(EDITOR_IDLE);
+            }
 
             hand.clear();
             laser.clear();
