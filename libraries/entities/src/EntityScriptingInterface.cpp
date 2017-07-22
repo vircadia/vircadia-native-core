@@ -47,8 +47,6 @@ EntityScriptingInterface::EntityScriptingInterface(bool bidOnSimulationOwnership
     connect(nodeList.data(), &NodeList::canRezChanged, this, &EntityScriptingInterface::canRezChanged);
     connect(nodeList.data(), &NodeList::canRezTmpChanged, this, &EntityScriptingInterface::canRezTmpChanged);
     connect(nodeList.data(), &NodeList::canWriteAssetsChanged, this, &EntityScriptingInterface::canWriteAssetsChanged);
-    connect(nodeList.data(), &NodeList::canReplaceContentChanged, this, &EntityScriptingInterface::canReplaceDomainContentChanged);
-
 }
 
 void EntityScriptingInterface::queueEntityMessage(PacketType packetType,
@@ -80,11 +78,6 @@ bool EntityScriptingInterface::canRezTmp() {
 bool EntityScriptingInterface::canWriteAssets() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanWriteAssets();
-}
-
-bool EntityScriptingInterface::canReplaceDomainContent() {
-    auto nodeList = DependencyManager::get<NodeList>();
-    return nodeList->getThisNodeCanReplaceContent();
 }
 
 void EntityScriptingInterface::setEntityTree(EntityTreePointer elementTree) {
@@ -1163,22 +1156,6 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
     }
 
     return doTransmit;
-}
-
-void EntityScriptingInterface::replaceDomainContentSet(const QString url){
-    if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
-        QByteArray _url(url.toUtf8());
-        auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-        limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
-            return node->getType() == NodeType::EntityServer && node->getActiveSocket();
-        }, [&_url, limitedNodeList](const SharedNodePointer& octreeNode) {
-            auto octreeFilePacketList = NLPacketList::create(PacketType::OctreeFileReplacementFromUrl, QByteArray(), true, true);
-            octreeFilePacketList->write(_url);
-            qCDebug(entities) << "Attempting to send an octree file url to replace domain content";
-
-            limitedNodeList->sendPacketList(std::move(octreeFilePacketList), *octreeNode);
-        });
-    };
 }
 
 QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,

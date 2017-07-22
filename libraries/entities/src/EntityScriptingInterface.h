@@ -359,18 +359,6 @@ public slots:
      */
     Q_INVOKABLE glm::mat4 getEntityLocalTransform(const QUuid& entityID);
 
-    /**jsdoc
-    * Returns true if the user has permissions to replace domain content sets
-    * @function Entities.canReplaceDomainContent
-    * @return {bool} true if the user has permissions to replace domain content sets, false if not
-    */
-    Q_INVOKABLE bool canReplaceDomainContent();
-
-    /**jsdoc
-    * TODO: temporary placement for content set calls
-    */
-    Q_INVOKABLE void replaceDomainContentSet(const QString fileURL);
-
 
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
@@ -379,7 +367,6 @@ signals:
     void canRezChanged(bool canRez);
     void canRezTmpChanged(bool canRez);
     void canWriteAssetsChanged(bool canWriteAssets);
-    void canReplaceDomainContentChanged();
 
     void mousePressOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);
     void mouseMoveOnEntity(const EntityItemID& entityItemID, const PointerEvent& event);

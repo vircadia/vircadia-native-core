@@ -984,7 +984,6 @@ void OctreeServer::handleOctreeFileReplacementFromURL(QSharedPointer<ReceivedMes
     if (!_isFinished && !_isShuttingDown) {
         // This call comes from Interface, so we skip our domain server check
         // but confirm that we have permissions to replace content sets
-        if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
             if (!_persistAbsoluteFilePath.isEmpty()) {
                 // Convert message data into our URL
                 QString url(message->getMessage());
@@ -1038,7 +1037,6 @@ void OctreeServer::handleOctreeFileReplacementFromURL(QSharedPointer<ReceivedMes
             else {
                 qDebug() << "Cannot perform octree file replacement since current persist file path is not yet known";
             }
-        }
     }
 }
 
