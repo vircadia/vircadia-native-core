@@ -122,7 +122,7 @@ void JSConsole::setScriptEngine(ScriptEngine* scriptEngine) {
 }
 
 void JSConsole::executeCommand(const QString& command) {
-    if (_commandHistory.constFirst() != command) {
+    if (_commandHistory.isEmpty() || _commandHistory.constFirst() != command) {
         _commandHistory.prepend(command);
         if (_commandHistory.length() > MAX_HISTORY_SIZE) {
             _commandHistory.removeLast();
