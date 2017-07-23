@@ -488,7 +488,9 @@ MeshProxyList Model::getMeshes() {
                     return glm::vec3(offsetMat * glm::vec4(position, 1.0f));
                 },
                 [=](glm::vec3 color) { return color; },
-                [=](glm::vec3 normal) { return glm::normalize(glm::vec3(offsetMat * glm::vec4(normal, 0.0f))); },
+                [=](glm::vec3 normal) {
+                    return glm::normalize(glm::vec3(offsetMat * glm::vec4(normal, 0.0f)));
+                },
                 [&](uint32_t index) { return index; }));
         result << meshProxy;
     }

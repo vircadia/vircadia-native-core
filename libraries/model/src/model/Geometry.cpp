@@ -152,8 +152,6 @@ model::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
     }
 
     // color data
-    // static const gpu::Element COLOR_ELEMENT { gpu::VEC4, gpu::NUINT8, gpu::RGBA };
-    // int attributeTypeColor = gpu::Stream::InputSlot::COLOR; // libraries/gpu/src/gpu/Stream.h
     int attributeTypeColor = gpu::Stream::COLOR;
     const gpu::BufferView& colorsBufferView = getAttributeBuffer(attributeTypeColor);
     gpu::BufferView::Index numColors = (gpu::BufferView::Index)colorsBufferView.getNumElements();
@@ -250,7 +248,6 @@ void Mesh::forEach(std::function<void(glm::vec3)> vertexFunc,
 
     // color data
     int attributeTypeColor = gpu::Stream::InputSlot::COLOR; // libraries/gpu/src/gpu/Stream.h
-    // int attributeTypeColor = gpu::Stream::COLOR;
     const gpu::BufferView& colorsBufferView = getAttributeBuffer(attributeTypeColor);
     gpu::BufferView::Index numColors =  (gpu::BufferView::Index)colorsBufferView.getNumElements();
     for (gpu::BufferView::Index i = 0; i < numColors; i++) {
