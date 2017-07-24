@@ -1560,7 +1560,6 @@ SelectionDisplay = (function() {
             visible: rotationOverlaysVisible
         });
 
-        // TODO: we have not implemented the rotating handle/controls yet... so for now, these handles are hidden
         Overlays.editOverlay(yawHandle, {
             visible: rotateHandlesVisible,
             position: yawCorner,
@@ -3615,24 +3614,21 @@ SelectionDisplay = (function() {
         onMove: function(event) {
             var pickRay = generalComputePickRay(event.x, event.y);
             Overlays.editOverlay(selectionBox, {
-                ignoreRayIntersection: true,
                 visible: false
             });
             Overlays.editOverlay(baseOfEntityProjectionOverlay, {
-                ignoreRayIntersection: true,
                 visible: false
             });
-            Overlays.editOverlay(rotateOverlayTarget, {
-                ignoreRayIntersection: false
-            });
 
-            var result = Overlays.findRayIntersection(pickRay);
+            var result = Overlays.findRayIntersection(pickRay, true, [rotateOverlayTarget]);
 
             if (result.intersects) {
                 var center = yawCenter;
                 var zero = yawZero;
+                // TODO: these vectors are backwards to their names, doesn't matter for this use case (inverted vectors still give same angle)
                 var centerToZero = Vec3.subtract(center, zero);
                 var centerToIntersect = Vec3.subtract(center, result.intersection);
+                // TODO: orientedAngle wants normalized centerToZero and centerToIntersect
                 var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
                 var distanceFromCenter = Vec3.distance(center, result.intersection);
                 var snapToInner = distanceFromCenter < innerRadius;
@@ -3785,17 +3781,12 @@ SelectionDisplay = (function() {
         onMove: function(event) {
             var pickRay = generalComputePickRay(event.x, event.y);
             Overlays.editOverlay(selectionBox, {
-                ignoreRayIntersection: true,
                 visible: false
             });
             Overlays.editOverlay(baseOfEntityProjectionOverlay, {
-                ignoreRayIntersection: true,
                 visible: false
             });
-            Overlays.editOverlay(rotateOverlayTarget, {
-                ignoreRayIntersection: false
-            });
-            var result = Overlays.findRayIntersection(pickRay);
+            var result = Overlays.findRayIntersection(pickRay, true, [rotateOverlayTarget]);
 
             if (result.intersects) {
                 var properties = Entities.getEntityProperties(selectionManager.selections[0]);
@@ -3947,17 +3938,12 @@ SelectionDisplay = (function() {
         onMove: function(event) {
             var pickRay = generalComputePickRay(event.x, event.y);
             Overlays.editOverlay(selectionBox, {
-                ignoreRayIntersection: true,
                 visible: false
             });
             Overlays.editOverlay(baseOfEntityProjectionOverlay, {
-                ignoreRayIntersection: true,
                 visible: false
             });
-            Overlays.editOverlay(rotateOverlayTarget, {
-                ignoreRayIntersection: false
-            });
-            var result = Overlays.findRayIntersection(pickRay);
+            var result = Overlays.findRayIntersection(pickRay, true, [rotateOverlayTarget]);
 
             if (result.intersects) {
                 var properties = Entities.getEntityProperties(selectionManager.selections[0]);
@@ -4074,21 +4060,8 @@ SelectionDisplay = (function() {
             return false;
         }
 
-        // before we do a ray test for grabbers, disable the ray intersection for our selection box
-        Overlays.editOverlay(selectionBox, {
-            ignoreRayIntersection: true
-        });
-        Overlays.editOverlay(yawHandle, {
-            ignoreRayIntersection: true
-        });
-        Overlays.editOverlay(pitchHandle, {
-            ignoreRayIntersection: true
-        });
-        Overlays.editOverlay(rollHandle, {
-            ignoreRayIntersection: true
-        });
-
-        result = Overlays.findRayIntersection(pickRay);
+        // ignore ray intersection for our selection box and yaw/pitch/roll
+        result = Overlays.findRayIntersection(pickRay, true, null, [ yawHandle, pitchHandle, rollHandle, selectionBox ] );
         if (result.intersects) {
             if (wantDebug) {
                 print("something intersects... ");
@@ -4191,17 +4164,8 @@ SelectionDisplay = (function() {
             }
 
 
-            // After testing our stretch handles, then check out rotate handles
-            Overlays.editOverlay(yawHandle, {
-                ignoreRayIntersection: false
-            });
-            Overlays.editOverlay(pitchHandle, {
-                ignoreRayIntersection: false
-            });
-            Overlays.editOverlay(rollHandle, {
-                ignoreRayIntersection: false
-            });
-            var result = Overlays.findRayIntersection(pickRay);
+            // Only intersect versus yaw/pitch/roll.
+            var result = Overlays.findRayIntersection(pickRay, true, [ yawHandle, pitchHandle, rollHandle ] );
 
             var overlayOrientation;
             var overlayCenter;
@@ -4306,6 +4270,7 @@ SelectionDisplay = (function() {
                 });
 
 
+                // TODO: these three duplicate prior three, remove them.
                 Overlays.editOverlay(yawHandle, {
                     visible: false
                 });
@@ -4402,10 +4367,8 @@ SelectionDisplay = (function() {
         }
 
         if (!somethingClicked) {
-            Overlays.editOverlay(selectionBox, {
-                ignoreRayIntersection: false
-            });
-            var result = Overlays.findRayIntersection(pickRay);
+            // Only intersect versus selectionBox.
+            var result = Overlays.findRayIntersection(pickRay, true, [selectionBox]);
             if (result.intersects) {
                 switch (result.overlayID) {
                     case selectionBox:
