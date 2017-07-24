@@ -4064,7 +4064,6 @@ SelectionDisplay = (function() {
             // if another mouse button than left is pressed ignore it
             return false;
         }
-        entityIconOverlayManager.setIconsSelectable(selectionManager.selections,true);
 
         var somethingClicked = false;
         var pickRay = generalComputePickRay(event.x, event.y);
@@ -4074,6 +4073,8 @@ SelectionDisplay = (function() {
             // mouse clicks on the tablet should override the edit affordances
             return false;
         }
+
+        entityIconOverlayManager.setIconsSelectable(selectionManager.selections,true);
 
         // before we do a ray test for grabbers, disable the ray intersection for our selection box
         Overlays.editOverlay(selectionBox, {
