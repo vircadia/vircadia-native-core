@@ -67,6 +67,12 @@ void setupPreferences() {
         auto setter = [=](bool value) { myAvatar->setClearOverlayWhenMoving(value); };
         preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Clear overlays when moving", getter, setter));
     }
+    {
+        auto getter = [=]()->bool { return myAvatar->getUseAlternativeHand(); };
+        auto setter = [=](bool value) { myAvatar->setUseAlternativeHand(value); };
+        preferences->addPreference(new PrimaryHandPreference(AVATAR_BASICS, "Dominant Hand", getter, setter));
+        
+    }
 
     // UI
     static const QString UI_CATEGORY { "UI" };
