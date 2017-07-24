@@ -4074,8 +4074,6 @@ SelectionDisplay = (function() {
             return false;
         }
 
-        entityIconOverlayManager.setIconsSelectable(selectionManager.selections,true);
-
         // before we do a ray test for grabbers, disable the ray intersection for our selection box
         Overlays.editOverlay(selectionBox, {
             ignoreRayIntersection: true
