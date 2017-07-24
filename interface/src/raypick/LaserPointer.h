@@ -49,7 +49,7 @@ private:
 class LaserPointer {
 
 public:
-    LaserPointer::LaserPointer(const QVariantMap& rayProps, const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY,
+    LaserPointer(const QVariantMap& rayProps, const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY,
         const bool lockEnd, const bool enabled);
     ~LaserPointer();
 
