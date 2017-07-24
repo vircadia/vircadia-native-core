@@ -10,7 +10,7 @@
 
 /* global Hand */
 
-Hand = function (side, gripPressedCallback) {
+Hand = function (side) {
 
     "use strict";
 
@@ -73,6 +73,10 @@ Hand = function (side, gripPressedCallback) {
         return isTriggerClicked;
     }
 
+    function gripPressed() {
+        return isGripPressed;
+    }
+
     function getIntersection() {
         return intersection;
     }
@@ -112,9 +116,6 @@ Hand = function (side, gripPressedCallback) {
             isGripPressed = gripValue > GRIP_OFF_VALUE;
         } else {
             isGripPressed = gripValue > GRIP_ON_VALUE;
-            if (isGripPressed) {
-                gripPressedCallback();
-            }
         }
 
         // Hand-overlay intersection, if any.
@@ -190,6 +191,7 @@ Hand = function (side, gripPressedCallback) {
         orientation: orientation,
         triggerPressed: triggerPressed,
         triggerClicked: triggerClicked,
+        gripPressed: gripPressed,
         intersection: getIntersection,
         update: update,
         clear: clear,

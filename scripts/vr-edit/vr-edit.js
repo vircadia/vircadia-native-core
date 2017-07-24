@@ -98,7 +98,6 @@
             wasAppScaleWithHandles = false,
             isOtherEditorEditingEntityID = false,
             hoveredOverlayID = null,
-            doDeleteEntities = false,
 
             // Primary objects.
             hand,
@@ -132,14 +131,7 @@
 
             intersection;
 
-        function onGripClicked() {
-            // Delete entity set grabbed by this hand.
-            if (editorState === EDITOR_GRABBING) {
-                doDeleteEntities = true;
-            }
-        }
-
-        hand = new Hand(side, onGripClicked);
+        hand = new Hand(side);
         laser = new Laser(side);
         selection = new Selection(side);
         highlights = new Highlights(side);
@@ -440,7 +432,6 @@
             }
             startEditing();
             wasAppScaleWithHandles = isAppScaleWithHandles;
-            doDeleteEntities = false;
         }
 
         function updateEditorGrabbing() {
@@ -651,7 +642,7 @@
                 }
                 break;
             case EDITOR_GRABBING:
-                if (hand.valid() && hand.triggerClicked() && !doDeleteEntities) {
+                if (hand.valid() && hand.triggerClicked() && !hand.gripPressed()) {
                     // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
                     // No transition.
                     if (isAppScaleWithHandles !== wasAppScaleWithHandles) {
@@ -669,7 +660,7 @@
                     } else {
                         setState(EDITOR_SEARCHING);
                     }
-                } else if (doDeleteEntities) {
+                } else if (hand.gripPressed()) {
                     selection.deleteEntities();
                     setState(EDITOR_SEARCHING);
                 } else {
