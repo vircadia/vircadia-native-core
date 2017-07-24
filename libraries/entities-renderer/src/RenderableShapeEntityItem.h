@@ -28,7 +28,7 @@ public:
 
     bool isTransparent() override;
 
-	void computeShapeInfo(ShapeInfo& info);
+    virtual void computeShapeInfo(ShapeInfo& info);
 
 private:
     std::unique_ptr<Procedural> _procedural { nullptr };

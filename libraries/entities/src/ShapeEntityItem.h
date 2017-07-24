@@ -70,7 +70,7 @@ public:
 
     entity::Shape getShape() const { return _shape; }
     void setShape(const entity::Shape& shape);
-	void setShape(const QString& shape);
+    void setShape(const QString& shape) { setShape(entity::shapeFromString(shape)); }
 
     float getAlpha() const { return _alpha; };
     void setAlpha(float alpha) { _alpha = alpha; }
@@ -100,7 +100,7 @@ protected:
     float _alpha { 1 };
     rgbColor _color;
     entity::Shape _shape { entity::Shape::Sphere };
-	ShapeType _collisionShapeType{ ShapeType::SHAPE_TYPE_NONE };
+    ShapeType _collisionShapeType { ShapeType::SHAPE_TYPE_NONE };
 };
 
 #endif // hifi_ShapeEntityItem_h

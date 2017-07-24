@@ -29,8 +29,8 @@ void ShapeInfo::clear() {
 }
 
 void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString url) {
-	//TODO_CUSACK: Does this need additional cases and handling added?
-	_url = "";
+    //TODO_CUSACK: Does this need additional cases and handling added?
+    _url = "";
     _type = type;
     setHalfExtents(halfExtents);
     switch(type) {

@@ -247,123 +247,6 @@ void deleteStaticMeshArray(btTriangleIndexVertexArray* dataArray) {
     delete dataArray;
 }
 
-ShapeType validateShapeType(ShapeType type, const glm::vec3 &halfExtents, btCollisionShape **outCollisionShape = NULL)
-{
-    if ((type == SHAPE_TYPE_SPHERE) || (type == SHAPE_TYPE_ELLIPSOID))
-    {
-        float radius = halfExtents.x;
-        const float MIN_RADIUS = 0.001f;
-        const float MIN_RELATIVE_SPHERICAL_ERROR = 0.001f;
-        if (radius > MIN_RADIUS
-            && fabsf(radius - halfExtents.y) / radius < MIN_RELATIVE_SPHERICAL_ERROR
-            && fabsf(radius - halfExtents.z) / radius < MIN_RELATIVE_SPHERICAL_ERROR) {
-            // close enough to true sphere
-            if (outCollisionShape) {
-                (*outCollisionShape) = new btSphereShape(radius);
-            }
-
-            return SHAPE_TYPE_SPHERE;
-        }
-        else {
-            ShapeInfo::PointList points;
-            points.reserve(NUM_UNIT_SPHERE_DIRECTIONS);
-            for (uint32_t i = 0; i < NUM_UNIT_SPHERE_DIRECTIONS; ++i) {
-                points.push_back(bulletToGLM(_unitSphereDirections[i]) * halfExtents);
-            }
-            if (outCollisionShape) {
-                (*outCollisionShape) = createConvexHull(points);
-            }
-
-            return SHAPE_TYPE_ELLIPSOID;
-        }
-    }
-    else if ((type == SHAPE_TYPE_CYLINDER_X) || (type == SHAPE_TYPE_CYLINDER_Y) || (type == SHAPE_TYPE_CYLINDER_Z))
-    {
-        // TODO_CUSACK: Should allow for minor variance along axes?
-        const btVector3 btHalfExtents(halfExtents.x, halfExtents.y, halfExtents.z);
-        if ((halfExtents.y >= halfExtents.x) && (halfExtents.y >= halfExtents.z)) {
-            if (outCollisionShape) {
-                (*outCollisionShape) = new btCylinderShape(btHalfExtents);
-            }
-
-            return SHAPE_TYPE_CYLINDER_Y;
-        }
-        else if (halfExtents.x >= halfExtents.z) {
-            if (outCollisionShape) {
-                (*outCollisionShape) = new btCylinderShapeX(btHalfExtents);
-            }
-
-            return SHAPE_TYPE_CYLINDER_X;
-        }
-        else if (halfExtents.z > halfExtents.x) {
-            if (outCollisionShape) {
-                (*outCollisionShape) = new btCylinderShapeZ(btHalfExtents);
-            }
-
-            return SHAPE_TYPE_CYLINDER_Z;
-        }
-        else //...there was no major axis, treat as a sphere
-        {
-            ShapeType cylinderFallback = validateShapeType(SHAPE_TYPE_ELLIPSOID, halfExtents, outCollisionShape);
-            return cylinderFallback;
-        }
-    }
-
-    //Got here, then you are what you are along with outCollisionShape
-    return type;
-}
-
-ShapeType ShapeFactory::computeShapeType(entity::Shape shape, const glm::vec3 &entityDimensions) {
-    if (shape == entity::Shape::NUM_SHAPES) {
-        //--EARLY EXIT--
-        return SHAPE_TYPE_NONE;
-    }
-
-    const glm::vec3 halfExtents = entityDimensions * 0.5f;
-    switch (shape){
-    case entity::Shape::Triangle: {
-        //TODO_CUSACK: Implement this
-        return validateShapeType(SHAPE_TYPE_ELLIPSOID, halfExtents);
-    }
-    //Note: Intentional Fallthrough from Quad to Cube
-    case entity::Shape::Quad:
-    case entity::Shape::Cube: {
-        return SHAPE_TYPE_BOX;
-    }
-    //Note: Intentional Fallthrough from Hexagon to Sphere
-    case entity::Shape::Hexagon:
-    case entity::Shape::Octagon:
-    case entity::Shape::Circle:
-    case entity::Shape::Sphere: {
-        return validateShapeType(SHAPE_TYPE_SPHERE, halfExtents);
-    }
-
-    case entity::Shape::Cylinder: {
-        return validateShapeType(SHAPE_TYPE_CYLINDER_Y, halfExtents);
-    }
-
-    //Note: Intentional Fallthrough from Tetrahedron to Icosahedron
-    case entity::Shape::Tetrahedron:
-    case entity::Shape::Octahedron:
-    case entity::Shape::Dodecahedron:
-    case entity::Shape::Icosahedron: {
-
-        //TODO_CUSACK: Implement the hedrons
-        return validateShapeType(SHAPE_TYPE_ELLIPSOID, halfExtents);
-    }
-
-    //Note:  Intentional Fallthrough from Torus to default.
-    case entity::Shape::Torus:
-    case entity::Shape::Cone: {
-
-        // These types are currently unsupported
-    }
-    default:
-        return SHAPE_TYPE_NONE;
-    }
-
-}
-
 const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info) {
     btCollisionShape* shape = NULL;
     int type = info.getType();
@@ -372,37 +255,32 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
             shape = new btBoxShape(glmToBullet(info.getHalfExtents()));
         }
         break;
-        //case SHAPE_TYPE_SPHERE: {
-        //    glm::vec3 halfExtents = info.getHalfExtents();
-        //    float radius = glm::max(halfExtents.x, glm::max(halfExtents.y, halfExtents.z));
-        //    shape = new btSphereShape(radius);
-        //}
-        //break;
-        case SHAPE_TYPE_SPHERE:
-        case SHAPE_TYPE_ELLIPSOID: {
+        case SHAPE_TYPE_SPHERE: {
             glm::vec3 halfExtents = info.getHalfExtents();
-            //float radius = halfExtents.x;
-            //const float MIN_RADIUS = 0.001f;
-            //const float MIN_RELATIVE_SPHERICAL_ERROR = 0.001f;
-            //if (radius > MIN_RADIUS
-            //        && fabsf(radius - halfExtents.y) / radius < MIN_RELATIVE_SPHERICAL_ERROR
-            //        && fabsf(radius - halfExtents.z) / radius < MIN_RELATIVE_SPHERICAL_ERROR) {
-            //    // close enough to true sphere
-            //    shape = new btSphereShape(radius);
-            //} else {
-            //    ShapeInfo::PointList points;
-            //    points.reserve(NUM_UNIT_SPHERE_DIRECTIONS);
-            //    for (uint32_t i = 0; i < NUM_UNIT_SPHERE_DIRECTIONS; ++i) {
-            //        points.push_back(bulletToGLM(_unitSphereDirections[i]) * halfExtents);
-            //    }
-            //    shape = createConvexHull(points);
-            //}
-
-            validateShapeType(SHAPE_TYPE_ELLIPSOID, halfExtents, &shape);
+            float radius = glm::max(halfExtents.x, glm::max(halfExtents.y, halfExtents.z));
+            shape = new btSphereShape(radius);
         }
         break;
-        //TODO_CUSACK: Add Capsules to vetting/validation process for
-        //             type checks.
+        case SHAPE_TYPE_ELLIPSOID: {
+            glm::vec3 halfExtents = info.getHalfExtents();
+            float radius = halfExtents.x;
+            const float MIN_RADIUS = 0.001f;
+            const float MIN_RELATIVE_SPHERICAL_ERROR = 0.001f;
+            if (radius > MIN_RADIUS
+                    && fabsf(radius - halfExtents.y) / radius < MIN_RELATIVE_SPHERICAL_ERROR
+                    && fabsf(radius - halfExtents.z) / radius < MIN_RELATIVE_SPHERICAL_ERROR) {
+                // close enough to true sphere
+                shape = new btSphereShape(radius);
+            } else {
+                ShapeInfo::PointList points;
+                points.reserve(NUM_UNIT_SPHERE_DIRECTIONS);
+                for (uint32_t i = 0; i < NUM_UNIT_SPHERE_DIRECTIONS; ++i) {
+                    points.push_back(bulletToGLM(_unitSphereDirections[i]) * halfExtents);
+                }
+                shape = createConvexHull(points);
+            }
+        }
+        break;
         case SHAPE_TYPE_CAPSULE_Y: {
             glm::vec3 halfExtents = info.getHalfExtents();
             float radius = halfExtents.x;
@@ -424,30 +302,22 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
             shape = new btCapsuleShapeZ(radius, height);
         }
         break;
-        case SHAPE_TYPE_CYLINDER_X:
-        case SHAPE_TYPE_CYLINDER_Z:
-        case SHAPE_TYPE_CYLINDER_Y: {
-            // TODO_CUSACK: Should allow for minor variance along axes.
+        case SHAPE_TYPE_CYLINDER_X: {
             const glm::vec3 halfExtents = info.getHalfExtents();
-            //const btVector3 btHalfExtents(halfExtents.x, halfExtents.y, halfExtents.z);
-            //if ((halfExtents.y > halfExtents.x) && (halfExtents.y > halfExtents.z)) {
-            //  shape = new btCylinderShape(btHalfExtents);
-            //}
-            //else if (halfExtents.x > halfExtents.z) {
-            //  shape = new btCylinderShapeX(btHalfExtents);
-            //}
-            //else if (halfExtents.z > halfExtents.x) {
-            //  shape = new btCylinderShapeZ(btHalfExtents);
-            //}
-            //else //...there was no major axis, treat as a sphere
-            //{
-            //  //TODO_CUSACK: Shunt to ELLIPSOID handling
-            //}
-            validateShapeType(SHAPE_TYPE_CYLINDER_Y, halfExtents, &shape);
+            const btVector3 btHalfExtents(halfExtents.x, halfExtents.y, halfExtents.z);
+            shape = new btCylinderShapeX(btHalfExtents);
+        }
+        case SHAPE_TYPE_CYLINDER_Z: {
+            const glm::vec3 halfExtents = info.getHalfExtents();
+            const btVector3 btHalfExtents(halfExtents.x, halfExtents.y, halfExtents.z);
+            shape = new btCylinderShapeZ(btHalfExtents);
+        }
+        case SHAPE_TYPE_CYLINDER_Y: {
+            const glm::vec3 halfExtents = info.getHalfExtents();
+            const btVector3 btHalfExtents(halfExtents.x, halfExtents.y, halfExtents.z);
+            shape = new btCylinderShape(btHalfExtents);
         }
         break;
-        //TODO_CUSACK: Add compound and simple hull to vetting/validation
-        //             process for types.
         case SHAPE_TYPE_COMPOUND:
         case SHAPE_TYPE_SIMPLE_HULL: {
             const ShapeInfo::PointCollection& pointCollection = info.getPointCollection();

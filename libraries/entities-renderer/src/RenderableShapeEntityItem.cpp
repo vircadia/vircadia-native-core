@@ -49,23 +49,18 @@ RenderableShapeEntityItem::Pointer RenderableShapeEntityItem::baseFactory(const 
 }
 
 EntityItemPointer RenderableShapeEntityItem::factory(const EntityItemID& entityID, const EntityItemProperties& properties) {
-    auto result = baseFactory(entityID, properties);
-
-    //TODO_CUSACK: Remove this before final PN
-    qCDebug(entities) << "Creating RenderableShapeEntityItem( " << result->_name << " ): " << result.get() << " ID: " << result->_id;
-
-    return result;
+    return baseFactory(entityID, properties);
 }
 
 EntityItemPointer RenderableShapeEntityItem::boxFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     auto result = baseFactory(entityID, properties);
-    result->setShape(entity::Shape::Cube);
+    result->setShape(entity::Cube);
     return result;
 }
 
 EntityItemPointer RenderableShapeEntityItem::sphereFactory(const EntityItemID& entityID, const EntityItemProperties& properties) {
     auto result = baseFactory(entityID, properties);
-    result->setShape(entity::Shape::Sphere);
+    result->setShape(entity::Sphere);
     return result;
 }
 
@@ -90,19 +85,84 @@ bool RenderableShapeEntityItem::isTransparent() {
 
 void RenderableShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
 
-    if (_collisionShapeType == ShapeType::SHAPE_TYPE_NONE) {
-        if (_shape == entity::Shape::NUM_SHAPES)
-        {
-            EntityItem::computeShapeInfo(info);
+    // This will be called whenever DIRTY_SHAPE flag (set by dimension change, etc)
+    // is set.
 
-            //--EARLY EXIT--( allow default handling to process )
-            return;
+    const glm::vec3 entityDimensions = getDimensions();
+
+    switch (_shape){
+    case entity::Shape::Quad:
+    case entity::Shape::Cube: {
+        _collisionShapeType = SHAPE_TYPE_BOX;
+    }
+    break;
+    case entity::Shape::Sphere: {
+
+        float diameter = entityDimensions.x;
+        const float MIN_DIAMETER = 0.001f;
+        const float MIN_RELATIVE_SPHERICAL_ERROR = 0.001f;
+        if (diameter > MIN_DIAMETER
+            && fabsf(diameter - entityDimensions.y) / diameter < MIN_RELATIVE_SPHERICAL_ERROR
+            && fabsf(diameter - entityDimensions.z) / diameter < MIN_RELATIVE_SPHERICAL_ERROR) {
+
+            _collisionShapeType = SHAPE_TYPE_SPHERE;
         }
+        else {
+            _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
+        }
+    }
+    break;
+    case entity::Shape::Cylinder: {
+        _collisionShapeType = SHAPE_TYPE_CYLINDER_Y;
+        // TODO_CUSACK: determine if rotation is axis-aligned
+        //const Transform::Quat & rot = _transform.getRotation();
 
-        _collisionShapeType = ShapeFactory::computeShapeType(getShape(), getDimensions());
+#if 0
+        // TODO: some way to tell apart SHAPE_TYPE_CYLINDER_Y
+        // TODO_CUSACK: Should allow for minor variance along axes?
+        if ((entityDimensions.y >= entityDimensions.x) && (entityDimensions.y >= entityDimensions.z)) {
+        }
+        else if (entityDimensions.x >= entityDimensions.z) {
+            _collisionShapeType = SHAPE_TYPE_CYLINDER_X;
+        }
+        else if (entityDimensions.z >= entityDimensions.x) {
+            _collisionShapeType = SHAPE_TYPE_CYLINDER_Z;
+        }
+        else //...there was no major axis, treat as a hull
+        {
+            _collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;
+            //TODO_CUSACK: pointCollection
+        }
+#endif
+    }
+    break;
+    case entity::Shape::Triangle:
+    case entity::Shape::Hexagon:
+    case entity::Shape::Octagon:
+    case entity::Shape::Circle:
+    case entity::Shape::Tetrahedron:
+    case entity::Shape::Octahedron:
+    case entity::Shape::Dodecahedron:
+    case entity::Shape::Icosahedron:
+    case entity::Shape::Cone: {
+        _collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;
+        //TODO_CUSACK: pointCollection
+    }
+    break;
+    case entity::Shape::Torus:
+    {
+        // Not in GeometryCache::buildShapes, unsupported.
+        _collisionShapeType = SHAPE_TYPE_NONE;
+        //TODO_CUSACK: SHAPE_TYPE_SIMPLE_HULL and pointCollection (later)
+    }
+    break;
+    default:{
+        //_collisionShapeType = SHAPE_TYPE_NONE; // Remains SHAPE_TYPE_NONE.
+    }
+    break;
     }
 
-    return EntityItem::computeShapeInfo(info);
+    EntityItem::computeShapeInfo(info);
 }
 
 void RenderableShapeEntityItem::render(RenderArgs* args) {
