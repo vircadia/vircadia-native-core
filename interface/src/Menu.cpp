@@ -232,9 +232,9 @@ Menu::Menu() {
                                    false, qApp, SLOT(cameraMenuChanged())));
 
     // View > Mirror
-    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
-        MenuOption::FullscreenMirror, 0,
-        false, qApp, SLOT(cameraMenuChanged())));
+    cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
+                                   viewMenu, MenuOption::FullscreenMirror, Qt::ALT | Qt::Key_H,
+                                   false, qApp, SLOT(cameraMenuChanged())));
 
     // View > Independent [advanced]
     cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(viewMenu,
