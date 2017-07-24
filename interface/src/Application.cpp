@@ -3023,6 +3023,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 if (isOption) {
                     _physicsEngine->dumpNextStats();
                 }
+                break;
             }
 
             case Qt::Key_Asterisk:
