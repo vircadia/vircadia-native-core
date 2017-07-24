@@ -43,6 +43,12 @@ enum AudioListenerMode {
     FROM_CAMERA,
     CUSTOM
 };
+
+enum DominantHand {
+    LEFT_HAND,
+    RIGHT_HAND
+};
+
 Q_DECLARE_METATYPE(AudioListenerMode);
 
 class MyAvatar : public Avatar {
@@ -339,11 +345,7 @@ public:
     Q_INVOKABLE bool getClearOverlayWhenMoving() const { return _clearOverlayWhenMoving; }
     Q_INVOKABLE void setClearOverlayWhenMoving(bool on) { _clearOverlayWhenMoving = on; }
 
-    Q_INVOKABLE void setDominantHand(const QString& hand) {
-        if (hand == "left" || hand == "right") {
-            _dominantHand = hand;
-        }
-    }
+    Q_INVOKABLE void setDominantHand(const QString& hand);
 
     Q_INVOKABLE QString getDominantHand() const { return _dominantHand; }
 

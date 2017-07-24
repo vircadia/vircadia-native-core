@@ -89,10 +89,10 @@ Preference {
                 verticalCenter: parent.verticalCenter
             }
             onClicked: {
-                if(box1.checked) {
+                if (box1.checked) {
                     box1.checked = false;
                 }
-                if(!box1.checked && !box2.checked) {
+                if (!box1.checked && !box2.checked) {
                     box2.checked = true;
                 }
             }

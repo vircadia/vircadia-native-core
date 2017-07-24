@@ -72,6 +72,9 @@ const float MIN_AVATAR_SPEED_SQUARED = MIN_AVATAR_SPEED * MIN_AVATAR_SPEED; // s
 const float YAW_SPEED_DEFAULT = 120.0f;   // degrees/sec
 const float PITCH_SPEED_DEFAULT = 90.0f; // degrees/sec
 
+const QString DOMINANT_HAND_LEFT = "left";
+const QString DOMINANT_HAND_RIGHT = "right";
+
 // TODO: normalize avatar speed for standard avatar size, then scale all motion logic
 // to properly follow avatar size.
 float MAX_AVATAR_SPEED = 30.0f;
@@ -86,6 +89,9 @@ const QString& DEFAULT_AVATAR_COLLISION_SOUND_URL = "https://hifi-public.s3.amaz
 const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
+
+const QString& DOMINANT_LEFT_HAND = "left";
+const QString& DOMINANT_RIGHT_HAND = "right";
 
 // default values, used when avatar is missing joints... (avatar space)
 static const glm::quat DEFAULT_AVATAR_MIDDLE_EYE_ROT { Quaternions::Y_180 };
@@ -253,6 +259,12 @@ MyAvatar::MyAvatar(QThread* thread) :
 
 MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
+}
+
+void MyAvatar::setDominantHand(const QString& hand) {
+    if (hand == DOMINANT_HAND_LEFT || hand == DOMINANT_HAND_RIGHT) {
+        _dominantHand = hand;
+    }
 }
 
 void MyAvatar::registerMetaTypes(QScriptEngine* engine) {
