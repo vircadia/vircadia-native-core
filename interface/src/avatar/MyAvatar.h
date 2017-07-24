@@ -44,11 +44,6 @@ enum AudioListenerMode {
     CUSTOM
 };
 
-enum DominantHand {
-    LEFT_HAND,
-    RIGHT_HAND
-};
-
 Q_DECLARE_METATYPE(AudioListenerMode);
 
 class MyAvatar : public Avatar {
