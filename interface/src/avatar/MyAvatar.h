@@ -556,6 +556,8 @@ public slots:
     void increaseSize();
     void decreaseSize();
     void resetSize();
+    float getDomainMinScale();
+    float getDomainMaxScale();
 
     void goToLocation(const glm::vec3& newPosition,
                       bool hasOrientation = false, const glm::quat& newOrientation = glm::quat(),
@@ -606,12 +608,13 @@ signals:
     void onLoadComplete();
     void wentAway();
     void wentActive();
+    void skeletonChanged();
 
 private:
 
     bool requiresSafeLanding(const glm::vec3& positionIn, glm::vec3& positionOut);
 
-    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail) override;
+    virtual QByteArray toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) override;
 
     void simulate(float deltaTime);
     void updateFromTrackers(float deltaTime);

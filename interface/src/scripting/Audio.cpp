@@ -134,3 +134,11 @@ void Audio::setReverb(bool enable) {
 void Audio::setReverbOptions(const AudioEffectOptions* options) {
     DependencyManager::get<AudioClient>()->setReverbOptions(options);
 }
+
+void Audio::setInputDevice(const QAudioDeviceInfo& device) {
+    _devices.chooseInputDevice(device);
+}
+
+void Audio::setOutputDevice(const QAudioDeviceInfo& device) {
+    _devices.chooseOutputDevice(device);
+}

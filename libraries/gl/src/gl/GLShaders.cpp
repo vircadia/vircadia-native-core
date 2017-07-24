@@ -182,7 +182,6 @@ GLuint compileProgram(const std::vector<GLuint>& glshaders, std::string& error) 
         filestream.close();
         }
         */
-        delete[] temp;
 
         glDeleteProgram(glprogram);
         return 0;

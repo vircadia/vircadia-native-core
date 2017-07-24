@@ -27,7 +27,7 @@ public:
     QVariant getProperty(const QString& property) override;
 
 protected:
-    virtual void applyTransformTo(Transform& transform, bool force = false) override;
+    virtual bool applyTransformTo(Transform& transform, bool force = false) override;
 };
 
 #endif // hifi_Billboard3DOverlay_h

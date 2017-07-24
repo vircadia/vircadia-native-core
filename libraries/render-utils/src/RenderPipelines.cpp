@@ -76,8 +76,8 @@ void initForwardPipelines(ShapePlumber& plumber);
 void addPlumberPipeline(ShapePlumber& plumber,
         const ShapeKey& key, const gpu::ShaderPointer& vertex, const gpu::ShaderPointer& pixel);
 
-void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch);
-void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch);
+void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* args);
+void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* args);
 
 void initOverlay3DPipelines(ShapePlumber& plumber) {
     auto vertex = gpu::Shader::createVertex(std::string(overlay3D_vert));
@@ -359,7 +359,7 @@ void addPlumberPipeline(ShapePlumber& plumber,
     }
 }
 
-void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
+void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* args) {
     // Set a default albedo map
     batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
         DependencyManager::get<TextureCache>()->getWhiteTexture());
@@ -382,13 +382,13 @@ void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
     }
 }
 
-void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch) {
+void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* args) {
     // Set the batch
-    batchSetter(pipeline, batch);
+    batchSetter(pipeline, batch, args);
 
     // Set the light
     if (pipeline.locations->lightBufferUnit >= 0) {
-        DependencyManager::get<DeferredLightingEffect>()->setupKeyLightBatch(batch,
+        DependencyManager::get<DeferredLightingEffect>()->setupKeyLightBatch(args, batch,
             pipeline.locations->lightBufferUnit,
             pipeline.locations->lightAmbientBufferUnit,
             pipeline.locations->lightAmbientMapUnit);

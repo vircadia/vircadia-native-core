@@ -1,0 +1,98 @@
+{
+    "name": "app-camera-move",
+    "channels": [
+
+        { "comment": "------------------ Actions.TranslateX -------------------" },
+        {
+            "from": {"makeAxis": [["Keyboard.Left"],["Keyboard.Right"]]},
+            "when": "Keyboard.Shift",
+            "to": "Actions.TranslateX"
+        },
+        {
+            "from": {"makeAxis": [["Keyboard.A","Keyboard.TouchpadLeft"],["Keyboard.D","Keyboard.TouchpadRight"]]},
+            "when": "Keyboard.Shift",
+            "to": "Actions.TranslateX"
+        },
+
+        { "comment": "------------------ Actions.TranslateY -------------------" },
+        {
+            "from": {"makeAxis": [["Keyboard.C","Keyboard.PgDown"],["Keyboard.E","Keyboard.PgUp"]]},
+            "when": "!Keyboard.Shift",
+            "to": "Actions.TranslateY"
+        },
+
+        { "comment": "------------------ Actions.TranslateZ -------------------" },
+        {
+            "from": {"makeAxis": [["Keyboard.W"],["Keyboard.S"]]},
+            "when": "!Keyboard.Shift",
+            "to": "Actions.TranslateZ"
+        },
+        {
+            "from": {"makeAxis": [["Keyboard.Up"],["Keyboard.Down"]]},
+            "when": "!Keyboard.Shift",
+            "to": "Actions.TranslateZ"
+        },
+
+        { "comment": "------------------ Actions.Yaw -------------------" },
+        {
+            "from": {"makeAxis": [["Keyboard.A","Keyboard.TouchpadLeft"],["Keyboard.D","Keyboard.TouchpadRight"]]},
+            "when": "!Keyboard.Shift",
+            "to": "Actions.Yaw",
+            "filters": ["invert"]
+        },
+        {
+            "from": {"makeAxis": [["Keyboard.MouseMoveLeft"],["Keyboard.MouseMoveRight"]]},
+            "when": "Keyboard.RightMouseButton",
+            "to": "Actions.Yaw",
+            "filters": ["invert"]
+        },
+        {
+            "from": {"makeAxis": [["Keyboard.Left"],["Keyboard.Right"]]},
+            "when": "!Keyboard.Shift",
+            "to": "Actions.Yaw",
+            "filters": ["invert"]
+        },
+        {
+            "from": {"makeAxis": [["Keyboard.Left"],["Keyboard.Right"]]},
+            "when": ["Application.SnapTurn", "!Keyboard.Shift"],
+            "to": "Actions.StepYaw",
+            "filters":
+            [
+                "invert",
+                { "type": "pulse", "interval": 0.5, "resetOnZero": true },
+                { "type": "scale", "scale": 22.5 }
+            ]
+        },
+
+        { "comment": "------------------ Actions.Pitch -------------------" },
+        {
+            "from": {"makeAxis": [["Keyboard.W"],["Keyboard.S"]]},
+            "when": "Keyboard.Shift",
+            "to": "Actions.Pitch",
+            "filters": ["invert"]
+        },
+        {
+            "from": {"makeAxis": [["Keyboard.MouseMoveUp"],["Keyboard.MouseMoveDown"]]},
+            "when": "Keyboard.RightMouseButton",
+            "to": "Actions.Pitch",
+            "filters": ["invert"]
+        },
+        {
+            "from": {"makeAxis": [["Keyboard.Up"],["Keyboard.Down"]]},
+            "when": "Keyboard.Shift",
+            "to": "Actions.Pitch",
+            "filters": ["invert"]
+        },
+
+        { "comment": "------------------ Actions.BoomIn -------------------" },
+        {
+            "from": {"makeAxis": [["Keyboard.C","Keyboard.PgDown"],["Keyboard.E","Keyboard.PgUp"]]},
+            "when": "Keyboard.Shift",
+            "to": "Actions.BoomIn",
+            "filters": [{"type": "scale","scale": 0.005}]
+        },
+
+        { "comment": "------------------ end -------------------" }
+
+    ]
+}

@@ -404,8 +404,18 @@ void Rig::setJointRotation(int index, bool valid, const glm::quat& rotation, flo
 }
 
 bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position, glm::vec3 translation, glm::quat rotation) const {
-    if (isIndexValid(jointIndex)) {
-        position = (rotation * _internalPoseSet._absolutePoses[jointIndex].trans()) + translation;
+    if (QThread::currentThread() == thread()) {
+        if (isIndexValid(jointIndex)) {
+            position = (rotation * _internalPoseSet._absolutePoses[jointIndex].trans()) + translation;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    QReadLocker readLock(&_externalPoseSetLock);
+    if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._absolutePoses.size()) {
+        position = (rotation * _externalPoseSet._absolutePoses[jointIndex].trans()) + translation;
         return true;
     } else {
         return false;
@@ -413,17 +423,31 @@ bool Rig::getJointPositionInWorldFrame(int jointIndex, glm::vec3& position, glm:
 }
 
 bool Rig::getJointPosition(int jointIndex, glm::vec3& position) const {
-    if (isIndexValid(jointIndex)) {
-        position = _internalPoseSet._absolutePoses[jointIndex].trans();
-        return true;
+    if (QThread::currentThread() == thread()) {
+        if (isIndexValid(jointIndex)) {
+            position = _internalPoseSet._absolutePoses[jointIndex].trans();
+            return true;
+        } else {
+            return false;
+        }
     } else {
-        return false;
+        return getAbsoluteJointTranslationInRigFrame(jointIndex, position);
     }
 }
 
 bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const glm::quat& rotation) const {
-    if (isIndexValid(jointIndex)) {
-        result = rotation * _internalPoseSet._absolutePoses[jointIndex].rot();
+    if (QThread::currentThread() == thread()) {
+        if (isIndexValid(jointIndex)) {
+            result = rotation * _internalPoseSet._absolutePoses[jointIndex].rot();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    QReadLocker readLock(&_externalPoseSetLock);
+    if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._absolutePoses.size()) {
+        result = rotation * _externalPoseSet._absolutePoses[jointIndex].rot();
         return true;
     } else {
         return false;
@@ -431,6 +455,15 @@ bool Rig::getJointRotationInWorldFrame(int jointIndex, glm::quat& result, const 
 }
 
 bool Rig::getJointRotation(int jointIndex, glm::quat& rotation) const {
+    if (QThread::currentThread() == thread()) {
+        if (isIndexValid(jointIndex)) {
+            rotation = _internalPoseSet._relativePoses[jointIndex].rot();
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     QReadLocker readLock(&_externalPoseSetLock);
     if (jointIndex >= 0 && jointIndex < (int)_externalPoseSet._relativePoses.size()) {
         rotation = _externalPoseSet._relativePoses[jointIndex].rot();
@@ -1082,35 +1115,12 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
     const glm::vec3 bodyCapsuleEnd = bodyCapsuleCenter + glm::vec3(0, bodyCapsuleHalfHeight, 0);
 
     const float HAND_RADIUS = 0.05f;
-
-    const float RELAX_DURATION = 0.6f;
-    const float CONTROL_DURATION = 0.4f;
-    const bool TO_CONTROLLED = true;
-    const bool FROM_CONTROLLED = false;
-    const bool LEFT_HAND = true;
-    const bool RIGHT_HAND = false;
-
     const float ELBOW_POLE_VECTOR_BLEND_FACTOR = 0.95f;
 
     if (leftHandEnabled) {
-        if (!_isLeftHandControlled) {
-            _leftHandControlTimeRemaining = CONTROL_DURATION;
-            _isLeftHandControlled = true;
-        }
 
         glm::vec3 handPosition = leftHandPose.trans();
         glm::quat handRotation = leftHandPose.rot();
-
-        if (_leftHandControlTimeRemaining > 0.0f) {
-            // Move hand from non-controlled position to controlled position.
-            _leftHandControlTimeRemaining = std::max(_leftHandControlTimeRemaining - dt, 0.0f);
-            AnimPose handPose(Vectors::ONE, handRotation, handPosition);
-            if (transitionHandPose(_leftHandControlTimeRemaining, CONTROL_DURATION, handPose,
-                                   LEFT_HAND, TO_CONTROLLED, handPose)) {
-                handPosition = handPose.trans();
-                handRotation = handPose.rot();
-            }
-        }
 
         if (!hipsEnabled) {
             // prevent the hand IK targets from intersecting the body capsule
@@ -1123,9 +1133,6 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         _animVars.set("leftHandPosition", handPosition);
         _animVars.set("leftHandRotation", handRotation);
         _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
-
-        _lastLeftHandControlledPose = AnimPose(Vectors::ONE, handRotation, handPosition);
-        _isLeftHandControlled = true;
 
         // compute pole vector
         int handJointIndex = _animSkeleton->nameToJointIndex("LeftHand");
@@ -1154,46 +1161,16 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         _prevLeftHandPoleVectorValid = false;
         _animVars.set("leftHandPoleVectorEnabled", false);
 
-        if (_isLeftHandControlled) {
-            _leftHandRelaxTimeRemaining = RELAX_DURATION;
-            _isLeftHandControlled = false;
-        }
+        _animVars.unset("leftHandPosition");
+        _animVars.unset("leftHandRotation");
+        _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
 
-        if (_leftHandRelaxTimeRemaining > 0.0f) {
-            // Move hand from controlled position to non-controlled position.
-            _leftHandRelaxTimeRemaining = std::max(_leftHandRelaxTimeRemaining - dt, 0.0f);
-            AnimPose handPose;
-            if (transitionHandPose(_leftHandRelaxTimeRemaining, RELAX_DURATION, _lastLeftHandControlledPose,
-                                   LEFT_HAND, FROM_CONTROLLED, handPose)) {
-                _animVars.set("leftHandPosition", handPose.trans());
-                _animVars.set("leftHandRotation", handPose.rot());
-                _animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
-            }
-        } else {
-            _animVars.unset("leftHandPosition");
-            _animVars.unset("leftHandRotation");
-            _animVars.set("leftHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
-        }
     }
 
     if (rightHandEnabled) {
-        if (!_isRightHandControlled) {
-            _rightHandControlTimeRemaining = CONTROL_DURATION;
-            _isRightHandControlled = true;
-        }
 
         glm::vec3 handPosition = rightHandPose.trans();
         glm::quat handRotation = rightHandPose.rot();
-
-        if (_rightHandControlTimeRemaining > 0.0f) {
-            // Move hand from non-controlled position to controlled position.
-            _rightHandControlTimeRemaining = std::max(_rightHandControlTimeRemaining - dt, 0.0f);
-            AnimPose handPose(Vectors::ONE, handRotation, handPosition);
-            if (transitionHandPose(_rightHandControlTimeRemaining, CONTROL_DURATION, handPose, RIGHT_HAND, TO_CONTROLLED, handPose)) {
-                handPosition = handPose.trans();
-                handRotation = handPose.rot();
-            }
-        }
 
         if (!hipsEnabled) {
             // prevent the hand IK targets from intersecting the body capsule
@@ -1206,9 +1183,6 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         _animVars.set("rightHandPosition", handPosition);
         _animVars.set("rightHandRotation", handRotation);
         _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
-
-        _lastRightHandControlledPose = AnimPose(Vectors::ONE, handRotation, handPosition);
-        _isRightHandControlled = true;
 
         // compute pole vector
         int handJointIndex = _animSkeleton->nameToJointIndex("RightHand");
@@ -1237,25 +1211,9 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         _prevRightHandPoleVectorValid = false;
         _animVars.set("rightHandPoleVectorEnabled", false);
 
-        if (_isRightHandControlled) {
-            _rightHandRelaxTimeRemaining = RELAX_DURATION;
-            _isRightHandControlled = false;
-        }
-
-        if (_rightHandRelaxTimeRemaining > 0.0f) {
-            // Move hand from controlled position to non-controlled position.
-            _rightHandRelaxTimeRemaining = std::max(_rightHandRelaxTimeRemaining - dt, 0.0f);
-            AnimPose handPose;
-            if (transitionHandPose(_rightHandRelaxTimeRemaining, RELAX_DURATION, _lastRightHandControlledPose, RIGHT_HAND, FROM_CONTROLLED, handPose)) {
-                _animVars.set("rightHandPosition", handPose.trans());
-                _animVars.set("rightHandRotation", handPose.rot());
-                _animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
-            }
-        } else {
-            _animVars.unset("rightHandPosition");
-            _animVars.unset("rightHandRotation");
-            _animVars.set("rightHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
-        }
+        _animVars.unset("rightHandPosition");
+        _animVars.unset("rightHandRotation");
+        _animVars.set("rightHandType", (int)IKTarget::Type::HipsRelativeRotationAndPosition);
     }
 }
 
@@ -1704,39 +1662,38 @@ void Rig::computeAvatarBoundingCapsule(
     ikNode.setTargetVars("RightFoot", "rightFootPosition", "rightFootRotation",
                          "rightFootType", "rightFootWeight", 1.0f, {},
                          QString(), QString(), QString());
-
-    AnimPose geometryToRig = _modelOffset * _geometryOffset;
-
-    AnimPose hips(glm::vec3(1), glm::quat(), glm::vec3());
+    glm::vec3 hipsPosition(0.0f);
     int hipsIndex = indexOfJoint("Hips");
     if (hipsIndex >= 0) {
-        hips = geometryToRig * _animSkeleton->getAbsoluteBindPose(hipsIndex);
+        hipsPosition = transformPoint(_geometryToRigTransform, _animSkeleton->getAbsoluteDefaultPose(hipsIndex).trans());
     }
     AnimVariantMap animVars;
+    animVars.setRigToGeometryTransform(_rigToGeometryTransform);
     glm::quat handRotation = glm::angleAxis(PI, Vectors::UNIT_X);
-    animVars.set("leftHandPosition", hips.trans());
+    animVars.set("leftHandPosition", hipsPosition);
     animVars.set("leftHandRotation", handRotation);
     animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
-    animVars.set("rightHandPosition", hips.trans());
+    animVars.set("rightHandPosition", hipsPosition);
     animVars.set("rightHandRotation", handRotation);
     animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
 
     int rightFootIndex = indexOfJoint("RightFoot");
     int leftFootIndex = indexOfJoint("LeftFoot");
     if (rightFootIndex != -1 && leftFootIndex != -1) {
-        glm::vec3 foot = Vectors::ZERO;
+        glm::vec3 geomFootPosition = glm::vec3(0.0f, _animSkeleton->getAbsoluteDefaultPose(rightFootIndex).trans().y, 0.0f);
+        glm::vec3 footPosition = transformPoint(_geometryToRigTransform, geomFootPosition);
         glm::quat footRotation = glm::angleAxis(0.5f * PI, Vectors::UNIT_X);
-        animVars.set("leftFootPosition", foot);
+        animVars.set("leftFootPosition", footPosition);
         animVars.set("leftFootRotation", footRotation);
         animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
-        animVars.set("rightFootPosition", foot);
+        animVars.set("rightFootPosition", footPosition);
         animVars.set("rightFootRotation", footRotation);
         animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
     }
 
     // call overlay twice: once to verify AnimPoseVec joints and again to do the IK
     AnimNode::Triggers triggersOut;
-    AnimContext context(false, false, false, glm::mat4(), glm::mat4());
+    AnimContext context(false, false, false, _geometryToRigTransform, _rigToGeometryTransform);
     float dt = 1.0f; // the value of this does not matter
     ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
     AnimPoseVec finalPoses =  ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
@@ -1769,34 +1726,13 @@ void Rig::computeAvatarBoundingCapsule(
 
     // compute bounding shape parameters
     // NOTE: we assume that the longest side of totalExtents is the yAxis...
-    glm::vec3 diagonal = (geometryToRig * totalExtents.maximum) - (geometryToRig * totalExtents.minimum);
+    glm::vec3 diagonal = (transformPoint(_geometryToRigTransform, totalExtents.maximum) -
+                          transformPoint(_geometryToRigTransform, totalExtents.minimum));
     // ... and assume the radiusOut is half the RMS of the X and Z sides:
     radiusOut = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
     heightOut = diagonal.y - 2.0f * radiusOut;
 
     glm::vec3 rootPosition = finalPoses[geometry.rootJointIndex].trans();
-    glm::vec3 rigCenter = (geometryToRig * (0.5f * (totalExtents.maximum + totalExtents.minimum)));
-    localOffsetOut = rigCenter - (geometryToRig * rootPosition);
-}
-
-bool Rig::transitionHandPose(float deltaTime, float totalDuration, AnimPose& controlledHandPose, bool isLeftHand,
-                             bool isToControlled, AnimPose& returnHandPose) {
-    auto ikNode = getAnimInverseKinematicsNode();
-    if (ikNode) {
-        float alpha = 1.0f - deltaTime / totalDuration;
-        const AnimPose geometryToRigTransform(_geometryToRigTransform);
-        AnimPose uncontrolledHandPose;
-        if (isLeftHand) {
-            uncontrolledHandPose = geometryToRigTransform * ikNode->getUncontrolledLeftHandPose();
-        } else {
-            uncontrolledHandPose = geometryToRigTransform * ikNode->getUncontrolledRightHandPose();
-        }
-        if (isToControlled) {
-            ::blend(1, &uncontrolledHandPose, &controlledHandPose, alpha, &returnHandPose);
-        } else {
-            ::blend(1, &controlledHandPose, &uncontrolledHandPose, alpha, &returnHandPose);
-        }
-        return true;
-    }
-    return false;
+    glm::vec3 rigCenter = transformPoint(_geometryToRigTransform, (0.5f * (totalExtents.maximum + totalExtents.minimum)));
+    localOffsetOut = rigCenter - transformPoint(_geometryToRigTransform, rootPosition);
 }

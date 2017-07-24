@@ -23,6 +23,7 @@
 #include <AvatarHashMap.h>
 #include <AudioInjectorManager.h>
 #include <AssetClient.h>
+#include <DebugDraw.h>
 #include <LocationScriptingInterface.h>
 #include <MessagesClient.h>
 #include <NetworkAccessManager.h>
@@ -50,14 +51,14 @@
 #include "RecordingScriptingInterface.h"
 #include "AbstractAudioInterface.h"
 
-#include "AvatarAudioTimer.h"
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 
 Agent::Agent(ReceivedMessage& message) :
     ThreadedAssignment(message),
     _receivedAudioStream(RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES),
-    _audioGate(AudioConstants::SAMPLE_RATE, AudioConstants::MONO)
+    _audioGate(AudioConstants::SAMPLE_RATE, AudioConstants::MONO),
+    _avatarAudioTimer(this)
 {
     _entityEditSender.setPacketsPerSecond(DEFAULT_ENTITY_PPS_PER_SCRIPT);
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
@@ -81,6 +82,9 @@ Agent::Agent(ReceivedMessage& message) :
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<UsersScriptingInterface>();
 
+    // Needed to ensure the creation of the DebugDraw instance on the main thread
+    DebugDraw::getInstance();
+
 
     auto& packetReceiver = DependencyManager::get<NodeList>()->getPacketReceiver();
 
@@ -92,6 +96,14 @@ Agent::Agent(ReceivedMessage& message) :
         this, "handleOctreePacket");
     packetReceiver.registerListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
     packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
+
+
+    // 100Hz timer for audio
+    const int TARGET_INTERVAL_MSEC = 10; // 10ms
+    connect(&_avatarAudioTimer, &QTimer::timeout, this, &Agent::processAgentAvatarAudio);
+    _avatarAudioTimer.setSingleShot(false);
+    _avatarAudioTimer.setInterval(TARGET_INTERVAL_MSEC);
+    _avatarAudioTimer.setTimerType(Qt::PreciseTimer);
 }
 
 void Agent::playAvatarSound(SharedSoundPointer sound) {
@@ -471,14 +483,7 @@ void Agent::executeScript() {
 
     DependencyManager::set<AssignmentParentFinder>(_entityViewer.getTree());
 
-    // 100Hz timer for audio
-    AvatarAudioTimer* audioTimerWorker = new AvatarAudioTimer();
-    audioTimerWorker->moveToThread(&_avatarAudioTimerThread);
-    connect(audioTimerWorker, &AvatarAudioTimer::avatarTick, this, &Agent::processAgentAvatarAudio);
-    connect(this, &Agent::startAvatarAudioTimer, audioTimerWorker, &AvatarAudioTimer::start);
-    connect(this, &Agent::stopAvatarAudioTimer, audioTimerWorker, &AvatarAudioTimer::stop);
-    connect(&_avatarAudioTimerThread, &QThread::finished, audioTimerWorker, &QObject::deleteLater);
-    _avatarAudioTimerThread.start();
+    QMetaObject::invokeMethod(&_avatarAudioTimer, "start");
 
     // Agents should run at 45hz
     static const int AVATAR_DATA_HZ = 45;
@@ -557,7 +562,7 @@ void Agent::setIsAvatar(bool isAvatar) {
         _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);  // FIXME - we shouldn't really need to constantly send identity packets
 
         // tell the avatarAudioTimer to start ticking
-        emit startAvatarAudioTimer();
+        QMetaObject::invokeMethod(&_avatarAudioTimer, "start");
 
     }
 
@@ -586,7 +591,7 @@ void Agent::setIsAvatar(bool isAvatar) {
                 nodeList->sendPacket(std::move(packet), *node);
             });
         }
-        emit stopAvatarAudioTimer();
+        QMetaObject::invokeMethod(&_avatarAudioTimer, "stop");
     }
 }
 
@@ -604,6 +609,24 @@ void Agent::processAgentAvatar() {
 
         AvatarData::AvatarDataDetail dataDetail = (randFloat() < AVATAR_SEND_FULL_UPDATE_RATIO) ? AvatarData::SendAllData : AvatarData::CullSmallData;
         QByteArray avatarByteArray = scriptedAvatar->toByteArrayStateful(dataDetail);
+
+        int maximumByteArraySize = NLPacket::maxPayloadSize(PacketType::AvatarData) - sizeof(AvatarDataSequenceNumber);
+
+        if (avatarByteArray.size() > maximumByteArraySize) {
+            qWarning() << " scriptedAvatar->toByteArrayStateful() resulted in very large buffer:" << avatarByteArray.size() << "... attempt to drop facial data";
+            avatarByteArray = scriptedAvatar->toByteArrayStateful(dataDetail, true);
+
+            if (avatarByteArray.size() > maximumByteArraySize) {
+                qWarning() << " scriptedAvatar->toByteArrayStateful() without facial data resulted in very large buffer:" << avatarByteArray.size() << "... reduce to MinimumData";
+                avatarByteArray = scriptedAvatar->toByteArrayStateful(AvatarData::MinimumData, true);
+
+                if (avatarByteArray.size() > maximumByteArraySize) {
+                    qWarning() << " scriptedAvatar->toByteArrayStateful() MinimumData resulted in very large buffer:" << avatarByteArray.size() << "... FAIL!!";
+                    return;
+                }
+            }
+        }
+
         scriptedAvatar->doneEncoding(true);
 
         static AvatarDataSequenceNumber sequenceNumber = 0;
@@ -796,8 +819,7 @@ void Agent::aboutToFinish() {
     DependencyManager::destroy<recording::Recorder>();
     DependencyManager::destroy<recording::ClipCache>();
 
-    emit stopAvatarAudioTimer();
-    _avatarAudioTimerThread.quit();
+    QMetaObject::invokeMethod(&_avatarAudioTimer, "stop");
 
     // cleanup codec & encoder
     if (_codec && _encoder) {

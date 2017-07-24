@@ -85,7 +85,22 @@ void AvatarMixer::handleReplicatedPacket(QSharedPointer<ReceivedMessage> message
     auto nodeList = DependencyManager::get<NodeList>();
     auto nodeID = QUuid::fromRfc4122(message->peek(NUM_BYTES_RFC4122_UUID));
 
-    auto replicatedNode = addOrUpdateReplicatedNode(nodeID, message->getSenderSockAddr());
+    SharedNodePointer replicatedNode;
+
+    if (message->getType() == PacketType::ReplicatedKillAvatar) {
+        // this is a kill packet, which we should only process if we already have the node in our list
+        // since it of course does not make sense to add a node just to remove it an instant later
+        replicatedNode = nodeList->nodeWithUUID(nodeID);
+
+        if (!replicatedNode) {
+            return;
+        }
+    } else {
+        replicatedNode = addOrUpdateReplicatedNode(nodeID, message->getSenderSockAddr());
+    }
+
+    // we better have a node to work with at this point
+    assert(replicatedNode);
 
     if (message->getType() == PacketType::ReplicatedAvatarIdentity) {
         handleAvatarIdentityPacket(message, replicatedNode);
