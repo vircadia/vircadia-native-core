@@ -23,6 +23,9 @@
         dominantHand,
 
         // Primary objects
+        Inputs,
+        inputs = [],
+        Editor,
         editors = [],
         LEFT_HAND = 0,
         RIGHT_HAND = 1,
@@ -35,7 +38,6 @@
         Laser,
         Selection,
         ToolMenu,
-        Editor,
 
         // Miscellaneous
         UPDATE_LOOP_TIMEOUT = 16,
@@ -76,8 +78,75 @@
     }
 
 
+    Inputs = function (side) {
+        // A hand plus a laser.
+
+        var
+            // Primary objects.
+            hand,
+            laser,
+
+            intersection = { x: "hello" };
+
+        hand = new Hand(side);
+        laser = new Laser(side);
+
+        function getHand() {
+            return hand;
+        }
+
+        function getLaser() {
+            return laser;
+        }
+
+        function getIntersection() {
+            return intersection;
+        }
+
+        function update() {
+            // Hand update.
+            hand.update();
+            intersection = hand.intersection();
+
+            // Laser update.
+            // Displays laser if hand has no intersection and trigger is pressed.
+            if (hand.valid()) {
+                laser.update(hand);
+                if (!intersection.intersects) {
+                    intersection = laser.intersection();
+                }
+            }
+        }
+
+        function clear() {
+            hand.clear();
+            laser.clear();
+        }
+
+        function destroy() {
+            if (hand) {
+                hand.destroy();
+                hand = null;
+            }
+            if (laser) {
+                laser.destroy();
+                laser = null;
+            }
+        }
+
+        return {
+            hand: getHand,
+            laser: getLaser,
+            getIntersection: getIntersection,
+            update: update,
+            clear: clear,
+            destroy: destroy
+        };
+    };
+
+
     Editor = function (side) {
-        // Each controller has a hand, laser, an entity selection, entity highlighter, and entity handles.
+        // An entity selection, entity highlights, and entity handles.
 
         var otherEditor,  // Other hand's Editor object.
 
@@ -100,11 +169,13 @@
             hoveredOverlayID = null,
 
             // Primary objects.
-            hand,
-            laser,
             selection,
             highlights,
             handles,
+
+            // Input objects.
+            hand,
+            laser,
 
             // Position values.
             initialHandOrientationInverse,
@@ -129,19 +200,20 @@
             laserOffset,
             MIN_SCALE = 0.001,
 
+            getIntersection,  // Function.
             intersection;
 
-        hand = new Hand(side);
-        laser = new Laser(side);
         selection = new Selection(side);
         highlights = new Highlights(side);
         handles = new Handles(side);
 
-        laserOffset = laser.handOffset();
+        function setReferences(inputs, editor) {
+            hand = inputs.hand();  // Object.
+            laser = inputs.laser();  // Object.
+            getIntersection = inputs.getIntersection;  // Function.
+            otherEditor = editor;  // Object.
 
-
-        function setOtherEditor(editor) {
-            otherEditor = editor;
+            laserOffset = laser.handOffset();  // Value.
         }
 
         function hoverHandle(overlayID) {
@@ -544,18 +616,7 @@
             var previousState = editorState,
                 doUpdateState;
 
-            // Hand update.
-            hand.update();
-            intersection = hand.intersection();
-
-            // Laser update.
-            // Displays laser if hand has no intersection and trigger is pressed.
-            if (hand.valid()) {
-                laser.update(hand);
-                if (!intersection.intersects) {
-                    intersection = laser.intersection();
-                }
-            }
+            intersection = getIntersection();
 
             // State update.
             switch (editorState) {
@@ -740,22 +801,12 @@
                 setState(EDITOR_IDLE);
             }
 
-            hand.clear();
-            laser.clear();
             selection.clear();
             highlights.clear();
             handles.clear();
         }
 
         function destroy() {
-            if (hand) {
-                hand.destroy();
-                hand = null;
-            }
-            if (laser) {
-                laser.destroy();
-                laser = null;
-            }
             if (selection) {
                 selection.destroy();
                 selection = null;
@@ -775,7 +826,7 @@
         }
 
         return {
-            setOtherEditor: setOtherEditor,
+            setReferences: setReferences,
             hoverHandle: hoverHandle,
             isHandle: isHandle,
             isEditing: isEditing,
@@ -799,7 +850,11 @@
         // Main update loop.
         updateTimer = null;
 
-        // Each hand's action depends on the state of the other hand, so update the states first then apply actions.
+        // Update inputs - hands and lasers.
+        inputs[LEFT_HAND].update();
+        inputs[RIGHT_HAND].update();
+
+        // Each hand's edit action depends on the state of the other hand, so update the states first then apply actions.
         editors[LEFT_HAND].update();
         editors[RIGHT_HAND].update();
         editors[LEFT_HAND].apply();
@@ -825,6 +880,8 @@
         } else {
             Script.clearTimeout(updateTimer);
             updateTimer = null;
+            inputs[LEFT_HAND].clear();
+            inputs[RIGHT_HAND].clear();
             editors[LEFT_HAND].clear();
             editors[RIGHT_HAND].clear();
             toolMenu.clear();
@@ -863,11 +920,15 @@
             button.clicked.connect(onAppButtonClicked);
         }
 
-        // Hands, each with a laser, selection, etc.
+        // Input objects.
+        inputs[LEFT_HAND] = new Inputs(LEFT_HAND);
+        inputs[RIGHT_HAND] = new Inputs(RIGHT_HAND);
+
+        // Editor objects.
         editors[LEFT_HAND] = new Editor(LEFT_HAND);
         editors[RIGHT_HAND] = new Editor(RIGHT_HAND);
-        editors[LEFT_HAND].setOtherEditor(editors[RIGHT_HAND]);
-        editors[RIGHT_HAND].setOtherEditor(editors[LEFT_HAND]);
+        editors[LEFT_HAND].setReferences(inputs[LEFT_HAND], editors[RIGHT_HAND]);
+        editors[RIGHT_HAND].setReferences(inputs[RIGHT_HAND], editors[LEFT_HAND]);
 
         // Dominant hand from settings.
         // TODO: API coming.
@@ -913,6 +974,15 @@
         if (editors[RIGHT_HAND]) {
             editors[RIGHT_HAND].destroy();
             editors[RIGHT_HAND] = null;
+        }
+
+        if (inputs[LEFT_HAND]) {
+            inputs[LEFT_HAND].destroy();
+            inputs[LEFT_HAND] = null;
+        }
+        if (inputs[RIGHT_HAND]) {
+            inputs[RIGHT_HAND].destroy();
+            inputs[RIGHT_HAND] = null;
         }
 
         tablet = null;
