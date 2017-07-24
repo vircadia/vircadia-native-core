@@ -1074,7 +1074,7 @@ function loaded() {
         elDimensionsZ.addEventListener('change', dimensionsChangeFunction);
 
         elParentID.addEventListener('change', createEmitTextPropertyUpdateFunction('parentID'));
-        elParentJointIndex.addEventListener('change', createEmitNumberPropertyUpdateFunction('parentJointIndex'));
+        elParentJointIndex.addEventListener('change', createEmitNumberPropertyUpdateFunction('parentJointIndex', 0));
 
         var registrationChangeFunction = createEmitVec3PropertyUpdateFunction(
             'registrationPoint', elRegistrationX, elRegistrationY, elRegistrationZ);
