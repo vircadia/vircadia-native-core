@@ -32,7 +32,7 @@ Original.RadioButton {
             id: box
             width: boxSize
             height: boxSize
-            radius: boxRadius
+            radius: 7
             gradient: Gradient {
                 GradientStop {
                     position: 0.2
@@ -52,7 +52,7 @@ Original.RadioButton {
                 id: check
                 width: checkSize
                 height: checkSize
-                radius: checkRadius
+                radius: 7
                 anchors.centerIn: parent
                 color: hifi.colors.checkBoxChecked
                 border.width: 1
