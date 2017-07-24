@@ -19,6 +19,7 @@
 #include <DependencyManager.h>
 #include <PointerEvent.h>
 #include <ui/TabletScriptingInterface.h>
+#include "avatar/AvatarManager.h"
 
 #include "EntityScriptingInterface.h"
 #include "ui/overlays/Image3DOverlay.h"
@@ -66,6 +67,7 @@ private:
     bool _enabled { true };
     QUuid _currentEntityWithContextOverlay{};
     QString _entityMarketplaceID;
+    bool _contextOverlayJustClicked { false };
 
     void openMarketplace();
 };
