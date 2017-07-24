@@ -142,6 +142,9 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(float hmdRollControlDeadZone READ getHMDRollControlDeadZone WRITE setHMDRollControlDeadZone)
     Q_PROPERTY(float hmdRollControlRate READ getHMDRollControlRate WRITE setHMDRollControlRate)
 
+    const QString DOMINANT_LEFT_HAND = "left";
+    const QString DOMINANT_RIGHT_HAND = "right";
+
 public:
     enum DriveKeys {
         TRANSLATE_X = 0,
@@ -341,7 +344,6 @@ public:
     Q_INVOKABLE void setClearOverlayWhenMoving(bool on) { _clearOverlayWhenMoving = on; }
 
     Q_INVOKABLE void setDominantHand(const QString& hand);
-
     Q_INVOKABLE QString getDominantHand() const { return _dominantHand; }
 
     Q_INVOKABLE void setHMDLeanRecenterEnabled(bool value) { _hmdLeanRecenterEnabled = value; }
@@ -724,7 +726,7 @@ private:
     QUrl _fstAnimGraphOverrideUrl;
     bool _useSnapTurn { true };
     bool _clearOverlayWhenMoving { true };
-    QString _dominantHand{ DOMINANT_RIGHT_HAND };
+    QString _dominantHand { DOMINANT_RIGHT_HAND };
 
     const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // deg
     const float ROLL_CONTROL_RATE_DEFAULT = 2.5f; // deg/sec/deg

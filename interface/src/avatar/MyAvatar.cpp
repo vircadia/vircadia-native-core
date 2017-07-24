@@ -87,9 +87,6 @@ const float MyAvatar::ZOOM_MIN = 0.5f;
 const float MyAvatar::ZOOM_MAX = 25.0f;
 const float MyAvatar::ZOOM_DEFAULT = 1.5f;
 
-const QString& DOMINANT_LEFT_HAND = "left";
-const QString& DOMINANT_RIGHT_HAND = "right";
-
 // default values, used when avatar is missing joints... (avatar space)
 static const glm::quat DEFAULT_AVATAR_MIDDLE_EYE_ROT { Quaternions::Y_180 };
 static const glm::vec3 DEFAULT_AVATAR_MIDDLE_EYE_POS { 0.0f, 0.6f, 0.0f };
@@ -259,7 +256,7 @@ MyAvatar::~MyAvatar() {
 }
 
 void MyAvatar::setDominantHand(const QString& hand) {
-    if (hand == DOMINANT_HAND_LEFT || hand == DOMINANT_HAND_RIGHT) {
+    if (hand == DOMINANT_LEFT_HAND || hand == DOMINANT_RIGHT_HAND) {
         _dominantHand = hand;
     }
 }
