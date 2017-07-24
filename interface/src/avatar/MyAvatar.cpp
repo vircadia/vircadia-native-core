@@ -926,7 +926,7 @@ void MyAvatar::saveData() {
     Settings settings;
     settings.beginGroup("Avatar");
 
-    settings.setValue("useAlternativeHand", _useAlternativeHand);
+    settings.setValue("dominantHand", _dominantHand);
     settings.setValue("headPitch", getHead()->getBasePitch());
 
     settings.setValue("scale", _targetScale);
@@ -1123,7 +1123,7 @@ void MyAvatar::loadData() {
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
     setSnapTurn(settings.value("useSnapTurn", _useSnapTurn).toBool());
     setClearOverlayWhenMoving(settings.value("clearOverlayWhenMoving", _clearOverlayWhenMoving).toBool());
-    setUseAlternativeHand(settings.value("useAlternativeHand", _useAlternativeHand).toBool());
+    setDominantHand(settings.value("dominantHand", _dominantHand).toString().toLower());
     settings.endGroup();
 
     setEnableMeshVisible(Menu::getInstance()->isOptionChecked(MenuOption::MeshVisible));

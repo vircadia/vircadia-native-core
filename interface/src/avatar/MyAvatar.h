@@ -339,8 +339,13 @@ public:
     Q_INVOKABLE bool getClearOverlayWhenMoving() const { return _clearOverlayWhenMoving; }
     Q_INVOKABLE void setClearOverlayWhenMoving(bool on) { _clearOverlayWhenMoving = on; }
 
-    Q_INVOKABLE void setUseAlternativeHand(bool hand) { _useAlternativeHand = hand; }
-    Q_INVOKABLE bool getUseAlternativeHand() const { return _useAlternativeHand; }
+    Q_INVOKABLE void setDominantHand(const QString& hand) {
+        if (hand == "left" || hand == "right") {
+            _dominantHand = hand;
+        }
+    }
+
+    Q_INVOKABLE QString getDominantHand() const { return _dominantHand; }
 
     Q_INVOKABLE void setHMDLeanRecenterEnabled(bool value) { _hmdLeanRecenterEnabled = value; }
     Q_INVOKABLE bool getHMDLeanRecenterEnabled() const { return _hmdLeanRecenterEnabled; }
@@ -722,7 +727,7 @@ private:
     QUrl _fstAnimGraphOverrideUrl;
     bool _useSnapTurn { true };
     bool _clearOverlayWhenMoving { true };
-    bool _useAlternativeHand{ false }; // False defaults to right hand, true to left
+    QString _dominantHand{ "right" };
 
     const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // deg
     const float ROLL_CONTROL_RATE_DEFAULT = 2.5f; // deg/sec/deg

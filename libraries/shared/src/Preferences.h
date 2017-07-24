@@ -340,11 +340,11 @@ public:
     Type getType() override { return Checkbox; }
 };
 
-class PrimaryHandPreference : public BoolPreference {
+class PrimaryHandPreference : public StringPreference {
     Q_OBJECT
 public:
     PrimaryHandPreference(const QString& category, const QString& name, Getter getter, Setter setter)
-        : BoolPreference(category, name, getter, setter) { }
+        : StringPreference(category, name, getter, setter) { }
     Type getType() override { return PrimaryHand; }
 };
 

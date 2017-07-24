@@ -68,8 +68,8 @@ void setupPreferences() {
         preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Clear overlays when moving", getter, setter));
     }
     {
-        auto getter = [=]()->bool { return myAvatar->getUseAlternativeHand(); };
-        auto setter = [=](bool value) { myAvatar->setUseAlternativeHand(value); };
+        auto getter = [=]()->QString { return myAvatar->getDominantHand(); };
+        auto setter = [=](const QString& value) { myAvatar->setDominantHand(value); };
         preferences->addPreference(new PrimaryHandPreference(AVATAR_BASICS, "Dominant Hand", getter, setter));
     }
 

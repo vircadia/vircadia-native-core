@@ -20,7 +20,7 @@ Preference {
     height: control.height + hifi.dimensions.controlInterlineHeight
 
     Component.onCompleted: {
-        if (preference.value) {
+        if (preference.value == "left") {
             box1.checked = true;
         } else {
             box2.checked = true;
@@ -30,10 +30,10 @@ Preference {
     function save() {
         // Box1 = True, Box2 = False (Right Hand for Default)
         if (box1.checked && !box2.checked) {
-            preference.value = true;
+            preference.value = "left";
         }
         if (!box1.checked && box2.checked) {
-            preference.value = false;
+            preference.value = "right";
         }
         preference.save();
     }
