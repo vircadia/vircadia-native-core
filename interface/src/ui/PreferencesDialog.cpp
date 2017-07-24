@@ -71,7 +71,6 @@ void setupPreferences() {
         auto getter = [=]()->bool { return myAvatar->getUseAlternativeHand(); };
         auto setter = [=](bool value) { myAvatar->setUseAlternativeHand(value); };
         preferences->addPreference(new PrimaryHandPreference(AVATAR_BASICS, "Dominant Hand", getter, setter));
-        
     }
 
     // UI

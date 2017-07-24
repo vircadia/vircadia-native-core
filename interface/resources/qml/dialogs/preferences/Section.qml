@@ -73,7 +73,7 @@ Preference {
         property var buttonBuilder: Component { ButtonPreference { } }
         property var comboBoxBuilder: Component { ComboBoxPreference { } }
         property var spinnerSliderBuilder: Component { SpinnerSliderPreference { } }
-		property var primaryHandBuilder: Component { PrimaryHandPreference { } }
+        property var primaryHandBuilder: Component { PrimaryHandPreference { } }
         property var preferences: []
         property int checkBoxCount: 0
 
@@ -135,6 +135,7 @@ Preference {
                     checkBoxCount = 0;
                     builder = spinnerSliderBuilder;
                     break;
+                    
                 case Preference.PrimaryHand:
                     checkBoxCount++;
                     builder = primaryHandBuilder;

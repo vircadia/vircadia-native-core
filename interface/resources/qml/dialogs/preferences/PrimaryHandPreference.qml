@@ -20,7 +20,7 @@ Preference {
     height: control.height + hifi.dimensions.controlInterlineHeight
 
     Component.onCompleted: {
-        if(preference.value) {
+        if (preference.value) {
             box1.checked = true;
         } else {
             box2.checked = true;
@@ -28,13 +28,13 @@ Preference {
     }
 
     function save() {
-		// Box1 = True, Box2 = False (Right Hand for Default)
-		if(box1.checked && !box2.checked) {
-			preference.value = true;
-		}
-		if(!box1.checked && box2.checked) {
-			preference.value = false;
-		}
+        // Box1 = True, Box2 = False (Right Hand for Default)
+        if (box1.checked && !box2.checked) {
+            preference.value = true;
+        }
+        if (!box1.checked && box2.checked) {
+            preference.value = false;
+        }
         preference.save();
     }
 
@@ -70,10 +70,10 @@ Preference {
                 verticalCenter: parent.verticalCenter
             }
             onClicked: {
-                if(box2.checked) {
+                if (box2.checked) {
                     box2.checked = false;
                 }
-                if(!box1.checked && !box2.checked) {
+                if (!box1.checked && !box2.checked) {
                     box2.checked = true;
                 }
             }
