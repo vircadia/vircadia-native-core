@@ -25,11 +25,12 @@
         // Primary objects
         Inputs,
         inputs = [],
+        UI,
+        ui,
         Editor,
         editors = [],
         LEFT_HAND = 0,
         RIGHT_HAND = 1,
-        toolMenu,
 
         // Modules
         Hand,
@@ -134,10 +135,60 @@
             }
         }
 
+        if (!this instanceof Inputs) {
+            return new Inputs();
+        }
+
         return {
             hand: getHand,
             laser: getLaser,
             getIntersection: getIntersection,
+            update: update,
+            clear: clear,
+            destroy: destroy
+        };
+    };
+
+
+    UI = function (side) {
+        // Tool menu and Create palette.
+
+        var // Primary objects.
+            toolMenu;
+
+        toolMenu = new ToolMenu(side);
+
+
+        function setHand(side) {
+            toolMenu.setHand(side);
+        }
+
+        function display() {
+            toolMenu.display();
+        }
+
+        function update() {
+            // TODO
+        }
+
+        function clear() {
+            toolMenu.clear();
+        }
+
+        function destroy() {
+            if (toolMenu) {
+                toolMenu.destroy();
+                toolMenu = null;
+            }
+        }
+
+        if (!this instanceof UI) {
+            return new UI();
+        }
+
+        return {
+            setHand: setHand,
+            display: display,
             update: update,
             clear: clear,
             destroy: destroy
@@ -854,6 +905,9 @@
         inputs[LEFT_HAND].update();
         inputs[RIGHT_HAND].update();
 
+        // UI has first dibs on handling inputs.
+        ui.update();
+
         // Each hand's edit action depends on the state of the other hand, so update the states first then apply actions.
         editors[LEFT_HAND].update();
         editors[RIGHT_HAND].update();
@@ -875,16 +929,16 @@
         button.editProperties({ isActive: isAppActive });
 
         if (isAppActive) {
-            toolMenu.display();
+            ui.display();
             update();
         } else {
             Script.clearTimeout(updateTimer);
             updateTimer = null;
             inputs[LEFT_HAND].clear();
             inputs[RIGHT_HAND].clear();
+            ui.clear();
             editors[LEFT_HAND].clear();
             editors[RIGHT_HAND].clear();
-            toolMenu.clear();
         }
     }
 
@@ -897,7 +951,7 @@
         // TODO: API coming.
         dominantHand = TODO;
         */
-        toolMenu.setHand(otherHand(dominantHand));
+        ui.setHand(otherHand(dominantHand));
     }
 
 
@@ -924,6 +978,9 @@
         inputs[LEFT_HAND] = new Inputs(LEFT_HAND);
         inputs[RIGHT_HAND] = new Inputs(RIGHT_HAND);
 
+        // UI object.
+        ui = new UI(otherHand(dominantHand));
+
         // Editor objects.
         editors[LEFT_HAND] = new Editor(LEFT_HAND);
         editors[RIGHT_HAND] = new Editor(RIGHT_HAND);
@@ -937,7 +994,6 @@
         dominantHand = TODO;
         TODO.change.connect(onDominantHandChanged);
         */
-        toolMenu = new ToolMenu(otherHand(dominantHand));
 
         if (isAppActive) {
             update();
@@ -962,11 +1018,6 @@
             button = null;
         }
 
-        if (toolMenu) {
-            toolMenu.destroy();
-            toolMenu = null;
-        }
-
         if (editors[LEFT_HAND]) {
             editors[LEFT_HAND].destroy();
             editors[LEFT_HAND] = null;
@@ -974,6 +1025,11 @@
         if (editors[RIGHT_HAND]) {
             editors[RIGHT_HAND].destroy();
             editors[RIGHT_HAND] = null;
+        }
+
+        if (ui) {
+            ui.destroy();
+            ui = null;
         }
 
         if (inputs[LEFT_HAND]) {
