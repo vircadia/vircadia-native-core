@@ -930,8 +930,8 @@ void DomainGatekeeper::getDomainOwnerFriendsList() {
     if (DependencyManager::get<AccountManager>()->hasValidAccessToken())
     {
         DependencyManager::get<AccountManager>()->sendRequest(GET_FRIENDS_LIST_PATH, AccountManagerAuth::Required,
-            QNetworkAccessManager::GetOperation, callbackParams, QByteArray(),
-            NULL, QVariantMap());
+                                                              QNetworkAccessManager::GetOperation, callbackParams, QByteArray(),
+                                                              NULL, QVariantMap());
     }
     
 }
