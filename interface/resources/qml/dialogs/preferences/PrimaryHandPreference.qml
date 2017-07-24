@@ -74,7 +74,7 @@ Preference {
                     box2.checked = false;
                 }
                 if (!box1.checked && !box2.checked) {
-                    box2.checked = true;
+                    box1.checked = true;
                 }
             }
             colorScheme: hifi.colorSchemes.dark
