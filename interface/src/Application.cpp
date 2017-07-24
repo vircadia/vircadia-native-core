@@ -3020,20 +3020,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_F: {
-                if (isMeta) {
-                    auto menu = Menu::getInstance();
-                    if (menu->isOptionChecked(MenuOption::FirstPerson)) {
-                        menu->setIsOptionChecked(MenuOption::ThirdPerson, true);
-                        menu->setIsOptionChecked(MenuOption::FirstPerson, false);
-                    } else {
-                        menu->setIsOptionChecked(MenuOption::FirstPerson, true);
-                        menu->setIsOptionChecked(MenuOption::ThirdPerson, false);
-                    }
-                    cameraMenuChanged();
-                } else if (isOption) {
+                if (isOption) {
                     _physicsEngine->dumpNextStats();
                 }
-                break;
             }
 
             case Qt::Key_H: {
