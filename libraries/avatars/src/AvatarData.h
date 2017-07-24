@@ -351,14 +351,14 @@ public:
 class AvatarData : public QObject, public SpatiallyNestable {
     Q_OBJECT
 
-    Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
+    Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPositionViaScript)
     Q_PROPERTY(float scale READ getTargetScale WRITE setTargetScale)
     Q_PROPERTY(glm::vec3 handPosition READ getHandPosition WRITE setHandPosition)
     Q_PROPERTY(float bodyYaw READ getBodyYaw WRITE setBodyYaw)
     Q_PROPERTY(float bodyPitch READ getBodyPitch WRITE setBodyPitch)
     Q_PROPERTY(float bodyRoll READ getBodyRoll WRITE setBodyRoll)
 
-    Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientation)
+    Q_PROPERTY(glm::quat orientation READ getOrientation WRITE setOrientationViaScript)
     Q_PROPERTY(glm::quat headOrientation READ getHeadOrientation WRITE setHeadOrientation)
     Q_PROPERTY(float headPitch READ getHeadPitch WRITE setHeadPitch)
     Q_PROPERTY(float headYaw READ getHeadYaw WRITE setHeadYaw)
@@ -440,10 +440,10 @@ public:
     float getBodyRoll() const;
     void setBodyRoll(float bodyRoll);
 
-    using SpatiallyNestable::setPosition;
-    virtual void setPosition(const glm::vec3& position) override;
-    using SpatiallyNestable::setOrientation;
-    virtual void setOrientation(const glm::quat& orientation) override;
+    virtual void setPositionViaScript(const glm::vec3& position);
+    virtual void setOrientationViaScript(const glm::quat& orientation);
+
+    virtual void updateAttitude(const glm::quat& orientation) {}
 
     glm::quat getHeadOrientation() const {
         lazyInitHeadData();

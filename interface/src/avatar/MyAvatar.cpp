@@ -1291,7 +1291,7 @@ eyeContactTarget MyAvatar::getEyeContactTarget() {
 }
 
 glm::vec3 MyAvatar::getDefaultEyePosition() const {
-    return getPosition() + getWorldAlignedOrientation() * Quaternions::Y_180 * _skeletonModel->getDefaultEyeModelPosition();
+    return getPosition() + getOrientation() * Quaternions::Y_180 * _skeletonModel->getDefaultEyeModelPosition();
 }
 
 const float SCRIPT_PRIORITY = 1.0f + 1.0f;
@@ -1588,7 +1588,7 @@ void MyAvatar::updateMotors() {
             // non-hovering = walking: follow camera twist about vertical but not lift
             // so we decompose camera's rotation and store the twist part in motorRotation
             glm::quat liftRotation;
-            swingTwistDecomposition(getMyHead()->getHeadOrientation(), _worldUpDirection, liftRotation, motorRotation);
+            motorRotation = getOrientation();
         }
         const float DEFAULT_MOTOR_TIMESCALE = 0.2f;
         const float INVALID_MOTOR_TIMESCALE = 1.0e6f;
@@ -1656,7 +1656,7 @@ void MyAvatar::nextAttitude(glm::vec3 position, glm::quat orientation) {
     if (!success) {
         qCWarning(interfaceapp) << "Warning -- MyAvatar::nextAttitude failed";
     }
-    updateAttitude();
+    updateAttitude(orientation);
 }
 
 void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {

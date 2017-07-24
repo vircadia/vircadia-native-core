@@ -2314,7 +2314,7 @@ void Application::paintGL() {
                 }
             } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
                 if (isHMDMode()) {
-                    auto mirrorBodyOrientation = myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
+                    auto mirrorBodyOrientation = myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
 
                     glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
                     // Mirror HMD yaw and roll
@@ -2336,7 +2336,7 @@ void Application::paintGL() {
                         + mirrorBodyOrientation * glm::vec3(0.0f, 0.0f, 1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
                         + mirrorBodyOrientation * hmdOffset);
                 } else {
-                    _myCamera.setOrientation(myAvatar->getWorldAlignedOrientation()
+                    _myCamera.setOrientation(myAvatar->getOrientation()
                         * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                         + glm::vec3(0, _raiseMirror * myAvatar->getUniformScale(), 0)
