@@ -2378,6 +2378,7 @@ void Application::paintGL() {
         finalFramebuffer = framebufferCache->getFramebuffer();
     }
 
+    mat4 eyeProjections[2];
     {
         PROFILE_RANGE(render, "/mainRender");
         PerformanceTimer perfTimer("mainRender");
@@ -2399,7 +2400,6 @@ void Application::paintGL() {
             _myCamera.setProjection(displayPlugin->getCullingProjection(_myCamera.getProjection()));
             renderArgs._context->enableStereo(true);
             mat4 eyeOffsets[2];
-            mat4 eyeProjections[2];
             auto baseProjection = renderArgs.getViewFrustum().getProjection();
             auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
             float IPDScale = hmdInterface->getIPDScale();
@@ -2430,6 +2430,19 @@ void Application::paintGL() {
         displaySide(&renderArgs, _myCamera);
     }
 
+    gpu::Batch postCompositeBatch;
+    {
+        PROFILE_RANGE(render, "/postComposite");
+        PerformanceTimer perfTimer("postComposite");
+        renderArgs._batch = &postCompositeBatch;
+        renderArgs._batch->setViewportTransform(ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height()));
+        renderArgs._batch->setViewTransform(renderArgs.getViewFrustum().getView());
+        for_each_eye([&](Eye eye) {
+            renderArgs._batch->setProjectionTransform(eyeProjections[eye]);
+            _overlays.render3DHUDOverlays(&renderArgs);
+        });
+    }
+
     auto frame = _gpuContext->endFrame();
     frame->frameIndex = _frameCount;
     frame->framebuffer = finalFramebuffer;
@@ -2437,6 +2450,7 @@ void Application::paintGL() {
         DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
     };
     frame->overlay = _applicationOverlay.getOverlayTexture();
+    frame->postCompositeBatch = postCompositeBatch;
     // deliver final scene rendering commands to the display plugin
     {
         PROFILE_RANGE(render, "/pluginOutput");

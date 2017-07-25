@@ -642,6 +642,15 @@ void OpenGLDisplayPlugin::compositeLayers() {
     }
 
     {
+        PROFILE_RANGE_EX(render_detail, "compositeHUDOverlays", 0xff0077ff, (uint64_t)presentCount())
+        render([&](gpu::Batch& batch) {
+            batch.enableStereo(false);
+            batch.setFramebuffer(_compositeFramebuffer);
+        });
+        _gpuContext->executeBatch(_currentFrame->postCompositeBatch);
+    }
+
+    {
         PROFILE_RANGE_EX(render_detail, "compositeExtra", 0xff0077ff, (uint64_t)presentCount())
         compositeExtra();
     }

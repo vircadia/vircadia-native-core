@@ -90,6 +90,7 @@ public:
     void init();
     void update(float deltatime);
     void renderHUD(RenderArgs* renderArgs);
+    void render3DHUDOverlays(RenderArgs* renderArgs);
     void disable();
     void enable();
 
@@ -325,7 +326,11 @@ private:
 
     mutable QMutex _mutex;
     QMap<OverlayID, Overlay::Pointer> _overlaysHUD;
+    QMap<OverlayID, Overlay::Pointer> _overlays3DHUD;
     QMap<OverlayID, Overlay::Pointer> _overlaysWorld;
+
+    render::ShapePlumberPointer _shapePlumber;
+
 #if OVERLAY_PANELS
     QMap<OverlayID, OverlayPanel::Pointer> _panels;
 #endif
