@@ -57,7 +57,7 @@
         $("body").append(
             '<div id="marketplace-navigation">' +
                 (!isInitialHiFiPage ? '<input id="back-button" type="button" class="white" value="&lt; Back" />' : '') +
-                (isInitialHiFiPage ? '<span class="glyph">&#x1f6c8;</span> <span class="text">See also other marketplaces.</span>' : '') +
+                (isInitialHiFiPage ? '<span class="glyph">&#x1f6c8;</span> <span class="text">Get items from Blocks and Clara.io!</span>' : '') +
                 (!isDirectoryPage ? '<input id="all-markets" type="button" class="white" value="See All Markets" />' : '') +
                 (isDirectoryPage ? '<span class="right"><span class="glyph">&#x1f6c8;</span> <span class="text">Select a marketplace to explore.</span><span>' : '') +
             '</div>'
