@@ -28,7 +28,6 @@ Preference {
     }
 
     function save() {
-        // Box1 = True, Box2 = False (Right Hand for Default)
         if (box1.checked && !box2.checked) {
             preference.value = "left";
         }

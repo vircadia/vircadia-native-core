@@ -54,9 +54,9 @@ Original.RadioButton {
                 height: checkSize
                 radius: 7
                 anchors.centerIn: parent
-                color: hifi.colors.checkBoxChecked
+                color: "#00B4EF"
                 border.width: 1
-                border.color: hifi.colors.checkBoxCheckedBorder
+                border.color: "#36CDFF"
                 visible: checked && !pressed || !checked && pressed
             }
         }

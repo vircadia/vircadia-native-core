@@ -67,11 +67,6 @@ void setupPreferences() {
         auto setter = [=](bool value) { myAvatar->setClearOverlayWhenMoving(value); };
         preferences->addPreference(new CheckPreference(AVATAR_BASICS, "Clear overlays when moving", getter, setter));
     }
-    {
-        auto getter = [=]()->QString { return myAvatar->getDominantHand(); };
-        auto setter = [=](const QString& value) { myAvatar->setDominantHand(value); };
-        preferences->addPreference(new PrimaryHandPreference(AVATAR_BASICS, "Dominant Hand", getter, setter));
-    }
 
     // UI
     static const QString UI_CATEGORY { "UI" };
@@ -185,6 +180,11 @@ void setupPreferences() {
         preference->setMax(180);
         preference->setStep(1);
         preferences->addPreference(preference);
+    }
+    {
+        auto getter = [=]()->QString { return myAvatar->getDominantHand(); };
+        auto setter = [=](const QString& value) { myAvatar->setDominantHand(value); };
+        preferences->addPreference(new PrimaryHandPreference(AVATAR_TUNING, "Dominant Hand", getter, setter));
     }
     {
         auto getter = [=]()->float { return myAvatar->getUniformScale(); };
