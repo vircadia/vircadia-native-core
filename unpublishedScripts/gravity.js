@@ -18,10 +18,12 @@
 
     function update(deltatime) {
         var planet = Entities.getEntityProperties(_entityID);
-        var direction = Vec3.normalize(Vec3.subtract(MyAvatar.position, planet.position));
+
+        //normalization happens in rotationBetween.
+        var direction = Vec3.subtract(MyAvatar.position, planet.position);
         var localUp = Quat.getUp(MyAvatar.orientation);
 
-        MyAvatar.orientation = Quat.multiply(Quat.rotationBetween(localUp, direction), MyAvatar.orientation);
+        MyAvatar.orientation = Quat.normalize(Quat.multiply(Quat.rotationBetween(localUp, direction), MyAvatar.orientation));
     }
 
     function init() {
