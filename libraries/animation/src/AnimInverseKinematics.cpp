@@ -23,6 +23,8 @@
 #include "CubicHermiteSpline.h"
 #include "AnimUtil.h"
 
+static const int MAX_TARGET_MARKERS = 30;
+
 static void lookupJointChainInfo(AnimInverseKinematics::JointChainInfo* jointChainInfos, size_t numJointChainInfos,
                                  int indexA, int indexB,
                                  AnimInverseKinematics::JointChainInfo** jointChainInfoA,
@@ -94,6 +96,12 @@ AnimInverseKinematics::~AnimInverseKinematics() {
     _rotationAccumulators.clear();
     _translationAccumulators.clear();
     _targetVarVec.clear();
+
+    // remove markers
+    for (int i = 0; i < MAX_TARGET_MARKERS; i++) {
+        QString name = QString("ikTarget%1").arg(i);
+        DebugDraw::getInstance().removeMyAvatarMarker(name);
+    }
 }
 
 void AnimInverseKinematics::loadDefaultPoses(const AnimPoseVec& poses) {
@@ -898,19 +906,30 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
                 // debug render ik targets
                 if (context.getEnableDebugDrawIKTargets()) {
                     const vec4 WHITE(1.0f);
+                    const vec4 GREEN(0.0f, 1.0f, 0.0f, 1.0f);
                     glm::mat4 rigToAvatarMat = createMatFromQuatAndPos(Quaternions::Y_180, glm::vec3());
+                    int targetNum = 0;
 
                     for (auto& target : targets) {
                         glm::mat4 geomTargetMat = createMatFromQuatAndPos(target.getRotation(), target.getTranslation());
                         glm::mat4 avatarTargetMat = rigToAvatarMat * context.getGeometryToRigMatrix() * geomTargetMat;
 
-                        QString name = QString("ikTarget%1").arg(target.getIndex());
+                        QString name = QString("ikTarget%1").arg(targetNum);
                         DebugDraw::getInstance().addMyAvatarMarker(name, glmExtractRotation(avatarTargetMat), extractTranslation(avatarTargetMat), WHITE);
+                        targetNum++;
+                    }
+
+                    // draw secondary ik targets
+                    for (auto& iter : _secondaryTargetsInRigFrame) {
+                        glm::mat4 avatarTargetMat = rigToAvatarMat * (glm::mat4)iter.second;
+                        QString name = QString("ikTarget%1").arg(targetNum);
+                        DebugDraw::getInstance().addMyAvatarMarker(name, glmExtractRotation(avatarTargetMat), extractTranslation(avatarTargetMat), GREEN);
+                        targetNum++;
                     }
                 } else if (context.getEnableDebugDrawIKTargets() != _previousEnableDebugIKTargets) {
                     // remove markers if they were added last frame.
-                    for (auto& target : targets) {
-                        QString name = QString("ikTarget%1").arg(target.getIndex());
+                    for (int i = 0; i < MAX_TARGET_MARKERS; i++) {
+                        QString name = QString("ikTarget%1").arg(i);
                         DebugDraw::getInstance().removeMyAvatarMarker(name);
                     }
                 }
@@ -1744,12 +1763,16 @@ void AnimInverseKinematics::setSecondaryTargets(const AnimContext& context) {
     AnimPose rigToGeometryPose = AnimPose(glm::inverse(context.getGeometryToRigMatrix()));
     for (auto& iter : _secondaryTargetsInRigFrame) {
         AnimPose absPose = rigToGeometryPose * iter.second;
+        absPose.scale() = glm::vec3(1.0f);
         AnimPose parentAbsPose;
         int parentIndex = _skeleton->getParentIndex(iter.first);
         if (parentIndex >= 0) {
             parentAbsPose = _skeleton->getAbsolutePose(parentIndex, _relativePoses);
         }
+        // AJT: for now ignore translation on secondary poses.
+        glm::vec3 origTrans = _relativePoses[iter.first].trans();
         _relativePoses[iter.first] = parentAbsPose.inverse() * absPose;
+        _relativePoses[iter.first].trans() = origTrans;
     }
 }
 

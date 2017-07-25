@@ -4811,10 +4811,10 @@ void Application::update(float deltaTime) {
         controller::Action::RIGHT_TOE_BASE
     };
 
+    // copy controller poses from userInputMapper to myAvatar.
     glm::mat4 myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
     glm::mat4 worldToSensorMatrix = glm::inverse(myAvatar->getSensorToWorldMatrix());
     glm::mat4 avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
-
     for (auto& action : avatarControllerActions) {
         controller::Pose pose = userInputMapper->getPoseState(action);
         myAvatar->setControllerPoseInSensorFrame(action, pose.transform(avatarToSensorMatrix));

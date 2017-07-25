@@ -93,18 +93,18 @@ private:
         void partitionTouchpad(int sButton, int xAxis, int yAxis, int centerPsuedoButton, int xPseudoButton, int yPseudoButton);
         void printDeviceTrackingResultChange(uint32_t deviceIndex);
         void setConfigFromString(const QString& value);
-        bool configureHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
-        bool configureHands(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
-        bool configureBody(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
-        void calibrateLeftHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair);
-        void calibrateRightHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair);
-        void calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
-        void calibrateFoot(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& footPair, bool isLeftFoot);
-        void calibrateHips(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
-        void calibrateChest(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
-        void calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
+        bool configureHead(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        bool configureHands(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        bool configureBody(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateLeftHand(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair);
+        void calibrateRightHand(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair);
+        void calibrateFeet(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateFoot(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& footPair, bool isLeftFoot);
+        void calibrateHips(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateChest(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateShoulders(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
                                 int firstShoulderIndex, int secondShoulderIndex);
-        void calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
+        void calibrateHead(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration);
         void calibrateFromHandController(const controller::InputCalibrationData& inputCalibrationData);
         void calibrateFromUI(const controller::InputCalibrationData& inputCalibrationData);
         void emitCalibrationStatus();
@@ -189,6 +189,11 @@ private:
         bool _overrideHead { false };
         bool _overrideHands { false };
         mutable std::recursive_mutex _lock;
+
+        std::vector<glm::vec3> _leftControllerHistory;
+        size_t _leftControllerHistoryCursor { 0 };
+        std::vector<glm::vec3> _rightControllerHistory;
+        size_t _rightControllerHistoryCursor { 0 };
 
         QString configToString(Config config);
         friend class ViveControllerManager;
