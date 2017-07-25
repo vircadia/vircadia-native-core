@@ -81,10 +81,17 @@ class PolyLineEntityItem : public EntityItem {
                                              BoxFace& face, glm::vec3& surfaceNormal,
                                              void** intersectedObject, bool precisionPicking) const override { return false; }
 
+	// disable these external interfaces as PolyLineEntities caculate their own dimensions based on the points they contain
+	virtual void setRegistrationPoint(const glm::vec3& value) override {};
+	virtual void setScale(const glm::vec3& scale) override {};
+	virtual void setScale(float value) override {};
+
     virtual void debugDump() const override;
     static const float DEFAULT_LINE_WIDTH;
     static const int MAX_POINTS_PER_LINE;
-
+private:
+	void calculateScaleAndRegistrationPoint();
+	
  protected:
     rgbColor _color;
     float _lineWidth;

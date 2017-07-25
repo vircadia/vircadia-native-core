@@ -92,13 +92,12 @@ bool PolyLineEntityItem::appendPoint(const glm::vec3& point) {
         qCDebug(entities) << "MAX POINTS REACHED!";
         return false;
     }
-    glm::vec3 halfBox = getDimensions() * 0.5f;
-    if ((point.x < -halfBox.x || point.x > halfBox.x) || (point.y < -halfBox.y || point.y > halfBox.y) || (point.z < -halfBox.z || point.z > halfBox.z)) {
-        qCDebug(entities) << "Point is outside entity's bounding box";
-        return false;
-    }
+
     _points << point;
     _pointsChanged = true;
+
+	calculateScaleAndRegistrationPoint();
+
     return true;
 }
 
@@ -141,21 +140,69 @@ bool PolyLineEntityItem::setLinePoints(const QVector<glm::vec3>& points) {
             return;
         }
 
-        for (int i = 0; i < points.size(); i++) {
-            glm::vec3 point = points.at(i);
-            glm::vec3 halfBox = getDimensions() * 0.5f;
-            if ((point.x < -halfBox.x || point.x > halfBox.x) ||
-                (point.y < -halfBox.y || point.y > halfBox.y) ||
-                (point.z < -halfBox.z || point.z > halfBox.z)) {
-                qCDebug(entities) << "Point is outside entity's bounding box";
-                return;
-            }
-        }
         _points = points;
+
+		calculateScaleAndRegistrationPoint();
+
         result = true;
     });
 
     return result;
+}
+
+void PolyLineEntityItem::calculateScaleAndRegistrationPoint() {
+	glm::vec3 high(0.0f, 0.0f, 0.0f);
+	glm::vec3 low(0.0f, 0.0f, 0.0f);
+	for (int i = 0; i < _points.size(); i++) {
+		glm::vec3 point = _points.at(i);
+
+		if (point.x > high.x){
+			high.x = point.x;
+		}
+		else if (point.x < low.x) {
+			low.x = point.x;
+		}
+
+		if (point.y > high.y){
+			high.y = point.y;
+		}
+		else if (point.y < low.y) {
+			low.y = point.y;
+		}
+
+		if (point.z > high.z){
+			high.z = point.z;
+		}
+		else if (point.z < low.z) {
+			low.z = point.z;
+		}
+	}
+
+	if (_points.size() > 1) {
+		// if all the points in the Polyline are at the same place in space, use default dimension settings
+		if ((low - high).length() < 0.00001f) {
+			SpatiallyNestable::setScale(glm::vec3(1.0f, 1.0f, 1.0f));
+			EntityItem::setRegistrationPoint(glm::vec3(0.0f, 0.0f, 0.0f));
+			return;
+		}
+
+		glm::vec3 result;
+		result.x = abs(high.x) + abs(low.x);
+		result.y = abs(high.y) + abs(low.y);
+		result.z = abs(high.z) + abs(low.z);
+		SpatiallyNestable::setScale(result);
+
+		glm::vec3 point = _points.at(0);
+		glm::vec3 startPointInScaleSpace = point - low;
+		glm::vec3 newRegistrationPoint = startPointInScaleSpace / result;
+		EntityItem::setRegistrationPoint(newRegistrationPoint);
+	}
+	else {
+		// if Polyline has only one or fewer points, use default dimension settings
+		SpatiallyNestable::setScale(glm::vec3(1.0f, 1.0f, 1.0f));
+		EntityItem::setRegistrationPoint(glm::vec3(0.0f, 0.0f, 0.0f));
+		return;
+	}
 }
 
 int PolyLineEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data, int bytesLeftToRead,
