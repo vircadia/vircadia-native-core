@@ -53,7 +53,7 @@ public:
         const bool lockEnd, const bool enabled);
     ~LaserPointer();
 
-    unsigned int getRayUID() { return _rayPickUID; }
+    QUuid getRayUID() { return _rayPickUID; }
     void enable();
     void disable();
     const RayPickResult getPrevRayPickResult() { return DependencyManager::get<RayPickManager>()->getPrevRayPickResult(_rayPickUID); }
@@ -78,7 +78,7 @@ private:
     bool _centerEndY;
     bool _lockEnd;
 
-    unsigned int _rayPickUID;
+    QUuid _rayPickUID;
 
     OverlayID updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
     void disableRenderState(const QString& renderState);

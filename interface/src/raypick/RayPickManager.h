@@ -58,30 +58,29 @@ class RayPickManager : public QObject, public Dependency {
 
 public:
     void update();
-    const PickRay getPickRay(const unsigned int uid);
+    const PickRay getPickRay(const QUuid uid);
 
 public slots:
-    Q_INVOKABLE unsigned int createRayPick(const QVariantMap& rayProps);
-    Q_INVOKABLE void removeRayPick(const unsigned int uid);
-    Q_INVOKABLE void enableRayPick(const unsigned int uid);
-    Q_INVOKABLE void disableRayPick(const unsigned int uid);
-    Q_INVOKABLE const RayPickResult getPrevRayPickResult(const unsigned int uid);
+    Q_INVOKABLE QUuid createRayPick(const QVariantMap& rayProps);
+    Q_INVOKABLE void removeRayPick(const QUuid uid);
+    Q_INVOKABLE void enableRayPick(const QUuid uid);
+    Q_INVOKABLE void disableRayPick(const QUuid uid);
+    Q_INVOKABLE const RayPickResult getPrevRayPickResult(const QUuid uid);
 
-    Q_INVOKABLE void setIgnoreEntities(unsigned int uid, const QScriptValue& ignoreEntities);
-    Q_INVOKABLE void setIncludeEntities(unsigned int uid, const QScriptValue& includeEntities);
-    Q_INVOKABLE void setIgnoreOverlays(unsigned int uid, const QScriptValue& ignoreOverlays);
-    Q_INVOKABLE void setIncludeOverlays(unsigned int uid, const QScriptValue& includeOverlays);
-    Q_INVOKABLE void setIgnoreAvatars(unsigned int uid, const QScriptValue& ignoreAvatars);
-    Q_INVOKABLE void setIncludeAvatars(unsigned int uid, const QScriptValue& includeAvatars);
+    Q_INVOKABLE void setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities);
+    Q_INVOKABLE void setIncludeEntities(QUuid uid, const QScriptValue& includeEntities);
+    Q_INVOKABLE void setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays);
+    Q_INVOKABLE void setIncludeOverlays(QUuid uid, const QScriptValue& includeOverlays);
+    Q_INVOKABLE void setIgnoreAvatars(QUuid uid, const QScriptValue& ignoreAvatars);
+    Q_INVOKABLE void setIncludeAvatars(QUuid uid, const QScriptValue& includeAvatars);
 
 private:
-    QHash<unsigned int, std::shared_ptr<RayPick>> _rayPicks;
-    QHash<unsigned int, std::shared_ptr<QReadWriteLock>> _rayPickLocks;
-    unsigned int _nextUID { 1 }; // 0 is invalid
+    QHash<QUuid, std::shared_ptr<RayPick>> _rayPicks;
+    QHash<QUuid, std::shared_ptr<QReadWriteLock>> _rayPickLocks;
     QReadWriteLock _addLock;
-    QQueue<QPair<unsigned int, std::shared_ptr<RayPick>>> _rayPicksToAdd;
+    QQueue<QPair<QUuid, std::shared_ptr<RayPick>>> _rayPicksToAdd;
     QReadWriteLock _removeLock;
-    QQueue<unsigned int> _rayPicksToRemove;
+    QQueue<QUuid> _rayPicksToRemove;
     QReadWriteLock _containsLock;
 
     typedef QHash<QPair<glm::vec3, glm::vec3>, QHash<unsigned int, RayPickResult>> RayPickCache;

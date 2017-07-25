@@ -17,7 +17,7 @@
 
 #include "Application.h"
 
-uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& properties) {
+QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& properties) {
     QVariantMap propertyMap = properties.toMap();
 
     bool faceAvatar = false;
@@ -57,7 +57,7 @@ uint32_t LaserPointerScriptingInterface::createLaserPointer(const QVariant& prop
     return DependencyManager::get<LaserPointerManager>()->createLaserPointer(propertyMap, renderStates, faceAvatar, centerEndY, lockEnd, enabled);
 }
 
-void LaserPointerScriptingInterface::editRenderState(unsigned int uid, const QString& renderState, const QVariant& properties) {
+void LaserPointerScriptingInterface::editRenderState(QUuid uid, const QString& renderState, const QVariant& properties) {
     QVariantMap propMap = properties.toMap();
 
     QVariant startProps;
