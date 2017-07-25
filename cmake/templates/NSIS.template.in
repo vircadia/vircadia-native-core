@@ -49,7 +49,7 @@
     Var STR_CONTAINS_VAR_3
     Var STR_CONTAINS_VAR_4
     Var STR_RETURN_VAR
-    
+        
     Function StrContains
       Exch $STR_NEEDLE
       Exch 1
@@ -343,23 +343,29 @@ SectionEnd
 ;--------------------------------
 ;Pages
   !insertmacro MUI_PAGE_WELCOME
-
+  
   !insertmacro MUI_PAGE_LICENSE "@CPACK_RESOURCE_FILE_LICENSE@"
+  
+  Page custom InstallTypesPage ReadInstallTypes
+  
+  !define MUI_PAGE_CUSTOMFUNCTION_PRE AbortFunction
   !insertmacro MUI_PAGE_DIRECTORY
-
+  
   ;Start Menu Folder Page Configuration
   !define MUI_STARTMENUPAGE_REGISTRY_ROOT "HKLM"
   !define MUI_STARTMENUPAGE_REGISTRY_KEY "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
   !define MUI_STARTMENUPAGE_REGISTRY_VALUENAME "Start Menu Folder"
-  !insertmacro MUI_PAGE_STARTMENU Application $STARTMENU_FOLDER
-
-  @CPACK_NSIS_PAGE_COMPONENTS@
   
-  Page custom InstallTypesPage ReadInstallTypes
+  !define MUI_PAGE_CUSTOMFUNCTION_PRE AbortFunction
+  !insertmacro MUI_PAGE_STARTMENU Application $STARTMENU_FOLDER
+  
+  !define MUI_PAGE_CUSTOMFUNCTION_PRE AbortFunction
+  @CPACK_NSIS_PAGE_COMPONENTS@
+    
   Page custom PostInstallOptionsPage ReadPostInstallOptions
 
   !insertmacro MUI_PAGE_INSTFILES
-
+  
   !insertmacro MUI_UNPAGE_CONFIRM
   !insertmacro MUI_UNPAGE_INSTFILES
 
@@ -510,6 +516,14 @@ Function ChangeCustomLabel
   Pop $R1
 FunctionEnd
 
+Function AbortFunction
+  ; Check if Express is set, if so, abort the post install options page
+  Call HandleInstallTypes ; Sets Express if ExpressInstallRadioButton is checked and installs with defaults
+  StrCmp $Express "1" 0 end
+  Abort
+  end:
+FunctionEnd  
+
 Function PostInstallOptionsPage
   !insertmacro MUI_HEADER_TEXT "Setup Options" ""
 
@@ -628,11 +642,11 @@ Var ExpressInstallState
 Var CustomInstallState
 
 Function ReadInstallTypes
-${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
     ; check if the user asked for express/custom install
     ${NSD_GetState} $ExpressInstallRadioButton $ExpressInstallState
     ${NSD_GetState} $CustomInstallRadioButton $CustomInstallState
-${EndIf}
+  ${EndIf}
 FunctionEnd
 
 Function ReadPostInstallOptions
@@ -712,6 +726,7 @@ Function HandlePostInstallOptions
     ${Else}
       !insertmacro WritePostInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ NO
     ${EndIf}
+
     
     ; check if the user asked to have Sandbox launched every startup
     ${If} $ServerStartupState == ${BST_CHECKED}
