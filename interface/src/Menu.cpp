@@ -228,7 +228,7 @@ Menu::Menu() {
 
     // View > Third Person
     cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::ThirdPerson, Qt::ALT | Qt::Key_O,
+                                   viewMenu, MenuOption::ThirdPerson, Qt::ALT | Qt::Key_G,
                                    false, qApp, SLOT(cameraMenuChanged())));
 
     // View > Mirror
