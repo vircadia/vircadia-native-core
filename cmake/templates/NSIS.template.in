@@ -49,7 +49,7 @@
     Var STR_CONTAINS_VAR_3
     Var STR_CONTAINS_VAR_4
     Var STR_RETURN_VAR
-
+    
     Function StrContains
       Exch $STR_NEEDLE
       Exch 1
@@ -438,6 +438,7 @@ Var DesktopServerCheckbox
 Var ServerStartupCheckbox
 Var LaunchServerNowCheckbox
 Var LaunchClientNowCheckbox
+Var CleanInstallCheckbox
 Var CurrentOffset
 Var OffsetUnits
 Var CopyFromProductionCheckbox
@@ -475,27 +476,18 @@ Function PostInstallOptionsPage
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @INTERFACE_HF_SHORTCUT_NAME@"
     Pop $DesktopClientCheckbox
     IntOp $CurrentOffset $CurrentOffset + 15
-
+    
     ; set the checkbox state depending on what is present in the registry
     !insertmacro SetPostInstallOption $DesktopClientCheckbox @CLIENT_DESKTOP_SHORTCUT_REG_KEY@ ${BST_CHECKED}
   ${EndIf}
-
+  
   ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Create a desktop shortcut for @CONSOLE_HF_SHORTCUT_NAME@"
     Pop $DesktopServerCheckbox
-
+    IntOp $CurrentOffset $CurrentOffset + 15
+    
     ; set the checkbox state depending on what is present in the registry
     !insertmacro SetPostInstallOption $DesktopServerCheckbox @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ ${BST_UNCHECKED}
-
-    IntOp $CurrentOffset $CurrentOffset + 15
-
-    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ on startup"
-    Pop $ServerStartupCheckbox
-
-    ; set the checkbox state depending on what is present in the registry
-    !insertmacro SetPostInstallOption $ServerStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_CHECKED}
-
-    IntOp $CurrentOffset $CurrentOffset + 15
   ${EndIf}
 
   ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
@@ -511,17 +503,33 @@ Function PostInstallOptionsPage
 
     IntOp $CurrentOffset $CurrentOffset + 15
   ${EndIf}
-
+  
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
-	  ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @INTERFACE_HF_SHORTCUT_NAME@ after install"
-	  Pop $LaunchClientNowCheckbox
-
-	  ; set the checkbox state depending on what is present in the registry
-	  !insertmacro SetPostInstallOption $LaunchClientNowCheckbox @CLIENT_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
-      ${StrContains} $substringResult "/forceNoLaunchClient" $CMDLINE
-      ${IfNot} $substringResult == ""
-          ${NSD_SetState} $LaunchClientNowCheckbox ${BST_UNCHECKED}
-      ${EndIf}
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @INTERFACE_HF_SHORTCUT_NAME@ after install"
+    Pop $LaunchClientNowCheckbox
+    IntOp $CurrentOffset $CurrentOffset + 30
+    
+    ; set the checkbox state depending on what is present in the registry
+    !insertmacro SetPostInstallOption $LaunchClientNowCheckbox @CLIENT_LAUNCH_NOW_REG_KEY@ ${BST_CHECKED}
+    ${StrContains} $substringResult "/forceNoLaunchClient" $CMDLINE
+    ${IfNot} $substringResult == ""
+    ${NSD_SetState} $LaunchClientNowCheckbox ${BST_UNCHECKED}
+    ${EndIf}
+  ${EndIf}
+  
+  ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Launch @CONSOLE_HF_SHORTCUT_NAME@ on startup"
+    Pop $ServerStartupCheckbox
+    IntOp $CurrentOffset $CurrentOffset + 15
+    
+    ; set the checkbox state depending on what is present in the registry
+    !insertmacro SetPostInstallOption $ServerStartupCheckbox @CONSOLE_STARTUP_REG_KEY@ ${BST_CHECKED}
+  ${EndIf}
+  
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+    ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Perform a clean install (Delete older settings and content)"
+    Pop $CleanInstallCheckbox
+    IntOp $CurrentOffset $CurrentOffset + 15
   ${EndIf}
 
   ${If} @PR_BUILD@ == 1
@@ -543,7 +551,7 @@ Function PostInstallOptionsPage
 
     ${NSD_SetState} $CopyFromProductionCheckbox ${BST_CHECKED}
   ${EndIf}
-
+  
   nsDialogs::Show
 FunctionEnd
 
@@ -558,6 +566,7 @@ Var ServerStartupState
 Var LaunchServerNowState
 Var LaunchClientNowState
 Var CopyFromProductionState
+Var CleanInstallState
 
 Function ReadPostInstallOptions
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
@@ -579,13 +588,18 @@ Function ReadPostInstallOptions
   ${EndIf}
 
   ${If} ${SectionIsSelected} ${@SERVER_COMPONENT_NAME@}
-	  ; check if we need to launch the server post-install
-	  ${NSD_GetState} $LaunchServerNowCheckbox $LaunchServerNowState
+    ; check if we need to launch the server post-install
+    ${NSD_GetState} $LaunchServerNowCheckbox $LaunchServerNowState
   ${EndIf}
-
+  
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
-	  ; check if we need to launch the client post-install
-	  ${NSD_GetState} $LaunchClientNowCheckbox $LaunchClientNowState
+    ; check if we need to launch the client post-install
+    ${NSD_GetState} $LaunchClientNowCheckbox $LaunchClientNowState
+  ${EndIf}
+   
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+    ; check if the user asked for a clean install
+    ${NSD_GetState} $CleanInstallCheckbox $CleanInstallState
   ${EndIf}
 FunctionEnd
 
@@ -626,6 +640,15 @@ Function HandlePostInstallOptions
       !insertmacro WritePostInstallOption @CONSOLE_STARTUP_REG_KEY@ YES
     ${Else}
       !insertmacro WritePostInstallOption @CONSOLE_STARTUP_REG_KEY@ NO
+    ${EndIf}
+  ${EndIf}
+  
+  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
+    ; check if the user asked for a clean install
+    ${If} $CleanInstallState == ${BST_CHECKED}
+      SetShellVarContext current
+      RMDir /r "$APPDATA\@BUILD_ORGANIZATION@"
+      RMDir /r "$LOCALAPPDATA\@BUILD_ORGANIZATION@"
     ${EndIf}
   ${EndIf}
 

@@ -92,6 +92,7 @@ void AudioClient::checkDevices() {
     auto inputDevices = getAvailableDevices(QAudio::AudioInput);
     auto outputDevices = getAvailableDevices(QAudio::AudioOutput);
 
+    Lock lock(_deviceMutex);
     if (inputDevices != _inputDevices) {
         _inputDevices.swap(inputDevices);
         emit devicesChanged(QAudio::AudioInput, _inputDevices);

@@ -119,9 +119,6 @@ public:
     // use this method if you only know the entityID
     bool updateEntity(const EntityItemID& entityID, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
 
-    // use this method if you have a pointer to the entity (avoid an extra entity lookup)
-    bool updateEntity(EntityItemPointer entity, const EntityItemProperties& properties, const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
-
     // check if the avatar is a child of this entity, If so set the avatar parentID to null
     void unhookChildAvatar(const EntityItemID entityID);
     void deleteEntity(const EntityItemID& entityID, bool force = false, bool ignoreWarnings = true);
@@ -183,7 +180,8 @@ public:
     int processEraseMessageDetails(const QByteArray& buffer, const SharedNodePointer& sourceNode);
 
     EntityTreeElementPointer getContainingElement(const EntityItemID& entityItemID)  /*const*/;
-    void setContainingElement(const EntityItemID& entityItemID, EntityTreeElementPointer element);
+    void addEntityMapEntry(EntityItemPointer entity);
+    void clearEntityMapEntry(const EntityItemID& id);
     void debugDumpMap();
     virtual void dumpTree() override;
     virtual void pruneTree() override;
@@ -275,9 +273,8 @@ signals:
 protected:
 
     void processRemovedEntities(const DeleteEntityOperator& theOperator);
-    bool updateEntityWithElement(EntityItemPointer entity, const EntityItemProperties& properties,
-                                 EntityTreeElementPointer containingElement,
-                                 const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
+    bool updateEntity(EntityItemPointer entity, const EntityItemProperties& properties,
+            const SharedNodePointer& senderNode = SharedNodePointer(nullptr));
     static bool findNearPointOperation(const OctreeElementPointer& element, void* extraData);
     static bool findInSphereOperation(const OctreeElementPointer& element, void* extraData);
     static bool findInCubeOperation(const OctreeElementPointer& element, void* extraData);
@@ -309,8 +306,8 @@ protected:
         _deletedEntityItemIDs << id;
     }
 
-    mutable QReadWriteLock _entityToElementLock;
-    QHash<EntityItemID, EntityTreeElementPointer> _entityToElementMap;
+    mutable QReadWriteLock _entityMapLock;
+    QHash<EntityItemID, EntityItemPointer> _entityMap;
 
     EntitySimulationPointer _simulation;
 

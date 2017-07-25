@@ -556,6 +556,8 @@ public slots:
     void increaseSize();
     void decreaseSize();
     void resetSize();
+    float getDomainMinScale();
+    float getDomainMaxScale();
 
     void goToLocation(const glm::vec3& newPosition,
                       bool hasOrientation = false, const glm::quat& newOrientation = glm::quat(),

@@ -615,6 +615,7 @@ public:
     Q_INVOKABLE AvatarEntityMap getAvatarEntityData() const;
     Q_INVOKABLE void setAvatarEntityData(const AvatarEntityMap& avatarEntityData);
     void setAvatarEntityDataChanged(bool value) { _avatarEntityDataChanged = value; }
+    void insertDetachedEntityID(const QUuid entityID);
     AvatarEntityIDs getAndClearRecentlyDetachedIDs();
 
     // thread safe

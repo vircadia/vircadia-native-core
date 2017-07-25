@@ -51,14 +51,14 @@
 #include "RecordingScriptingInterface.h"
 #include "AbstractAudioInterface.h"
 
-#include "AvatarAudioTimer.h"
 
 static const int RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES = 10;
 
 Agent::Agent(ReceivedMessage& message) :
     ThreadedAssignment(message),
     _receivedAudioStream(RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES, RECEIVED_AUDIO_STREAM_CAPACITY_FRAMES),
-    _audioGate(AudioConstants::SAMPLE_RATE, AudioConstants::MONO)
+    _audioGate(AudioConstants::SAMPLE_RATE, AudioConstants::MONO),
+    _avatarAudioTimer(this)
 {
     _entityEditSender.setPacketsPerSecond(DEFAULT_ENTITY_PPS_PER_SCRIPT);
     DependencyManager::get<EntityScriptingInterface>()->setPacketSender(&_entityEditSender);
@@ -96,6 +96,14 @@ Agent::Agent(ReceivedMessage& message) :
         this, "handleOctreePacket");
     packetReceiver.registerListener(PacketType::Jurisdiction, this, "handleJurisdictionPacket");
     packetReceiver.registerListener(PacketType::SelectedAudioFormat, this, "handleSelectedAudioFormat");
+
+
+    // 100Hz timer for audio
+    const int TARGET_INTERVAL_MSEC = 10; // 10ms
+    connect(&_avatarAudioTimer, &QTimer::timeout, this, &Agent::processAgentAvatarAudio);
+    _avatarAudioTimer.setSingleShot(false);
+    _avatarAudioTimer.setInterval(TARGET_INTERVAL_MSEC);
+    _avatarAudioTimer.setTimerType(Qt::PreciseTimer);
 }
 
 void Agent::playAvatarSound(SharedSoundPointer sound) {
@@ -475,14 +483,7 @@ void Agent::executeScript() {
 
     DependencyManager::set<AssignmentParentFinder>(_entityViewer.getTree());
 
-    // 100Hz timer for audio
-    AvatarAudioTimer* audioTimerWorker = new AvatarAudioTimer();
-    audioTimerWorker->moveToThread(&_avatarAudioTimerThread);
-    connect(audioTimerWorker, &AvatarAudioTimer::avatarTick, this, &Agent::processAgentAvatarAudio);
-    connect(this, &Agent::startAvatarAudioTimer, audioTimerWorker, &AvatarAudioTimer::start);
-    connect(this, &Agent::stopAvatarAudioTimer, audioTimerWorker, &AvatarAudioTimer::stop);
-    connect(&_avatarAudioTimerThread, &QThread::finished, audioTimerWorker, &QObject::deleteLater);
-    _avatarAudioTimerThread.start();
+    QMetaObject::invokeMethod(&_avatarAudioTimer, "start");
 
     // Agents should run at 45hz
     static const int AVATAR_DATA_HZ = 45;
@@ -561,7 +562,7 @@ void Agent::setIsAvatar(bool isAvatar) {
         _avatarIdentityTimer->start(AVATAR_IDENTITY_PACKET_SEND_INTERVAL_MSECS);  // FIXME - we shouldn't really need to constantly send identity packets
 
         // tell the avatarAudioTimer to start ticking
-        emit startAvatarAudioTimer();
+        QMetaObject::invokeMethod(&_avatarAudioTimer, "start");
 
     }
 
@@ -590,7 +591,7 @@ void Agent::setIsAvatar(bool isAvatar) {
                 nodeList->sendPacket(std::move(packet), *node);
             });
         }
-        emit stopAvatarAudioTimer();
+        QMetaObject::invokeMethod(&_avatarAudioTimer, "stop");
     }
 }
 
@@ -818,9 +819,7 @@ void Agent::aboutToFinish() {
     DependencyManager::destroy<recording::Recorder>();
     DependencyManager::destroy<recording::ClipCache>();
 
-    emit stopAvatarAudioTimer();
-    _avatarAudioTimerThread.quit();
-    _avatarAudioTimerThread.wait();
+    QMetaObject::invokeMethod(&_avatarAudioTimer, "stop");
 
     // cleanup codec & encoder
     if (_codec && _encoder) {

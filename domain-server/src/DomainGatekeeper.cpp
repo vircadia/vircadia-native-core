@@ -927,9 +927,12 @@ void DomainGatekeeper::getDomainOwnerFriendsList() {
     callbackParams.errorCallbackMethod = "getDomainOwnerFriendsListErrorCallback";
 
     const QString GET_FRIENDS_LIST_PATH = "api/v1/user/friends";
-    DependencyManager::get<AccountManager>()->sendRequest(GET_FRIENDS_LIST_PATH, AccountManagerAuth::Required,
-                                                          QNetworkAccessManager::GetOperation, callbackParams, QByteArray(),
-                                                          NULL, QVariantMap());
+    if (DependencyManager::get<AccountManager>()->hasValidAccessToken()) {
+        DependencyManager::get<AccountManager>()->sendRequest(GET_FRIENDS_LIST_PATH, AccountManagerAuth::Required,
+                                                              QNetworkAccessManager::GetOperation, callbackParams, QByteArray(),
+                                                              NULL, QVariantMap());
+    }
+    
 }
 
 void DomainGatekeeper::getDomainOwnerFriendsListJSONCallback(QNetworkReply& requestReply) {

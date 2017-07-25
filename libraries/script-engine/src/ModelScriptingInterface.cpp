@@ -38,16 +38,22 @@ QString ModelScriptingInterface::meshToOBJ(MeshProxyList in) {
 QScriptValue ModelScriptingInterface::appendMeshes(MeshProxyList in) {
     // figure out the size of the resulting mesh
     size_t totalVertexCount { 0 };
-    size_t totalAttributeCount { 0 };
+    size_t totalColorCount { 0 };
+    size_t totalNormalCount { 0 };
     size_t totalIndexCount { 0 };
     foreach (const MeshProxy* meshProxy, in) {
         MeshPointer mesh = meshProxy->getMeshPointer();
         totalVertexCount += mesh->getNumVertices();
 
+        int attributeTypeColor = gpu::Stream::InputSlot::COLOR; // libraries/gpu/src/gpu/Stream.h
+        const gpu::BufferView& colorsBufferView = mesh->getAttributeBuffer(attributeTypeColor);
+        gpu::BufferView::Index numColors = (gpu::BufferView::Index)colorsBufferView.getNumElements();
+        totalColorCount += numColors;
+
         int attributeTypeNormal = gpu::Stream::InputSlot::NORMAL; // libraries/gpu/src/gpu/Stream.h
         const gpu::BufferView& normalsBufferView = mesh->getAttributeBuffer(attributeTypeNormal);
         gpu::BufferView::Index numNormals = (gpu::BufferView::Index)normalsBufferView.getNumElements();
-        totalAttributeCount += numNormals;
+        totalNormalCount += numNormals;
 
         totalIndexCount += mesh->getNumIndices();
     }
@@ -57,7 +63,11 @@ QScriptValue ModelScriptingInterface::appendMeshes(MeshProxyList in) {
     unsigned char* combinedVertexData  = new unsigned char[combinedVertexSize];
     unsigned char* combinedVertexDataCursor = combinedVertexData;
 
-    gpu::Resource::Size combinedNormalSize = totalAttributeCount * sizeof(glm::vec3);
+    gpu::Resource::Size combinedColorSize = totalColorCount * sizeof(glm::vec3);
+    unsigned char* combinedColorData  = new unsigned char[combinedColorSize];
+    unsigned char* combinedColorDataCursor = combinedColorData;
+
+    gpu::Resource::Size combinedNormalSize = totalNormalCount * sizeof(glm::vec3);
     unsigned char* combinedNormalData  = new unsigned char[combinedNormalSize];
     unsigned char* combinedNormalDataCursor = combinedNormalData;
 
@@ -73,6 +83,10 @@ QScriptValue ModelScriptingInterface::appendMeshes(MeshProxyList in) {
             [&](glm::vec3 position){
                 memcpy(combinedVertexDataCursor, &position, sizeof(position));
                 combinedVertexDataCursor += sizeof(position);
+            },
+            [&](glm::vec3 color){
+                memcpy(combinedColorDataCursor, &color, sizeof(color));
+                combinedColorDataCursor += sizeof(color);
             },
             [&](glm::vec3 normal){
                 memcpy(combinedNormalDataCursor, &normal, sizeof(normal));
@@ -95,6 +109,13 @@ QScriptValue ModelScriptingInterface::appendMeshes(MeshProxyList in) {
     gpu::BufferPointer combinedVertexBufferPointer(combinedVertexBuffer);
     gpu::BufferView combinedVertexBufferView(combinedVertexBufferPointer, vertexElement);
     result->setVertexBuffer(combinedVertexBufferView);
+
+    int attributeTypeColor = gpu::Stream::InputSlot::COLOR; // libraries/gpu/src/gpu/Stream.h
+    gpu::Element colorElement = gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ);
+    gpu::Buffer* combinedColorsBuffer = new gpu::Buffer(combinedColorSize, combinedColorData);
+    gpu::BufferPointer combinedColorsBufferPointer(combinedColorsBuffer);
+    gpu::BufferView combinedColorsBufferView(combinedColorsBufferPointer, colorElement);
+    result->addAttribute(attributeTypeColor, combinedColorsBufferView);
 
     int attributeTypeNormal = gpu::Stream::InputSlot::NORMAL; // libraries/gpu/src/gpu/Stream.h
     gpu::Element normalElement = gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ);
@@ -132,11 +153,47 @@ QScriptValue ModelScriptingInterface::transformMesh(glm::mat4 transform, MeshPro
     }
 
     model::MeshPointer result = mesh->map([&](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
+                                          [&](glm::vec3 color){ return color; },
                                           [&](glm::vec3 normal){ return glm::vec3(transform * glm::vec4(normal, 0.0f)); },
                                           [&](uint32_t index){ return index; });
     MeshProxy* resultProxy = new SimpleMeshProxy(result);
     return meshToScriptValue(_modelScriptEngine, resultProxy);
 }
+
+QScriptValue ModelScriptingInterface::getVertexCount(MeshProxy* meshProxy) {
+    if (!meshProxy) {
+        return QScriptValue(false);
+    }
+    MeshPointer mesh = meshProxy->getMeshPointer();
+    if (!mesh) {
+        return QScriptValue(false);
+    }
+
+    gpu::BufferView::Index numVertices = (gpu::BufferView::Index)mesh->getNumVertices();
+
+    return numVertices;
+}
+
+QScriptValue ModelScriptingInterface::getVertex(MeshProxy* meshProxy, int vertexIndex) {
+    if (!meshProxy) {
+        return QScriptValue(false);
+    }
+    MeshPointer mesh = meshProxy->getMeshPointer();
+    if (!mesh) {
+        return QScriptValue(false);
+    }
+
+    const gpu::BufferView& vertexBufferView = mesh->getVertexBuffer();
+    gpu::BufferView::Index numVertices = (gpu::BufferView::Index)mesh->getNumVertices();
+
+    if (vertexIndex < 0 || vertexIndex >= numVertices) {
+        return QScriptValue(false);
+    }
+
+    glm::vec3 pos = vertexBufferView.get<glm::vec3>(vertexIndex);
+    return vec3toScriptValue(_modelScriptEngine, pos);
+}
+
 
 QScriptValue ModelScriptingInterface::newMesh(const QVector<glm::vec3>& vertices,
                                               const QVector<glm::vec3>& normals,
