@@ -38,9 +38,8 @@ ContextOverlayInterface::ContextOverlayInterface() {
             QUuid tabletFrameID = _hmdScriptingInterface->getCurrentTabletFrameID();
             QVariantMap props;
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-            glm::vec3 position = myAvatar->getJointPosition("Head") + 0.6f * (myAvatar->getOrientation() * Vectors::FRONT);
-            props.insert("position", vec3toVariant(position));
-            props.insert("orientation", quatToVariant(myAvatar->getOrientation() * glm::quat(0.0f, 0.0f, 1.0f, 0.0f)));
+            props.insert("position", vec3toVariant(myAvatar->getEyePosition() + glm::quat(glm::radians(glm::vec3(0.0f, 30.0f, 0.0f))) * (0.65f * (myAvatar->getHeadOrientation() * Vectors::FRONT))));
+            props.insert("orientation", quatToVariant(myAvatar->getHeadOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, 210.0f, 0.0f)))));
             qApp->getOverlays().editOverlay(tabletFrameID, props);
             _contextOverlayJustClicked = false;
         }
