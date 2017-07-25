@@ -34,11 +34,11 @@
         };
         parent.postMessage(JSON.stringify(chooseHandEvent), "*");
     }
+    //window.addEventListener("message", restoreCurrentDrawingHand, false);
+    restoreCurrentDrawingHand(JSON.parse(decodeURIComponent(window.parent.location.search).substring(1)));
 
-    window.addEventListener("message", restoreCurrentDrawingHand, false);
-    function restoreCurrentDrawingHand() {
-        var currentHand = JSON.parse(event.data);
-        if (currentHand) {
+    function restoreCurrentDrawingHand(handData) {
+        if (handData.currentDrawingHand) {
             chooseHand(0);
         } else {
             chooseHand(1);

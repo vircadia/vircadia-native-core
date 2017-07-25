@@ -2,11 +2,11 @@
 Script.include("dynamicBrush.js");
 
 function DynamicHueBrushClass(settings) {
-	//dynamic brush vars
-	DynamicBrush.call(this);
-	print("Starting dynamic hue brush");
-	this.hsvColor = {hue: 0, saturation: 1.0, value: 1.0};
-	this.dynamicColor = {red: 0, green: 0, blue: 0};
+    //dynamic brush vars
+    DynamicBrush.call(this);
+    //print("Starting dynamic hue brush");
+    this.hsvColor = {hue: 0, saturation: 1.0, value: 1.0};
+    this.dynamicColor = {red: 0, green: 0, blue: 0};
 }
 
 DynamicHueBrushClass.prototype.DYNAMIC_BRUSH_TIME = 10; //inteval in milliseconds to update the brush width;
@@ -14,7 +14,7 @@ DynamicHueBrushClass.prototype.DYNAMIC_BRUSH_INCREMENT = 0.5; //linear increment
 DynamicHueBrushClass.prototype.NAME = "DynamicHueBrush"; //linear increment of brush size;
 
 DynamicHueBrushClass.prototype.onUpdate = function(deltaSeconds, entityID) {
-	print("Dynamic Hue Brush");
+    //print("Dynamic Hue Brush");
     this.hsvColor.hue = this.hsvColor.hue + ((deltaSeconds * this.DYNAMIC_BRUSH_INCREMENT)/this.DYNAMIC_BRUSH_TIME);
     this.hsvColor.hue = this.hsvColor.hue >= 360 ? 0 : this.hsvColor.hue; //restart hue cycle
     this.dynamicColor = this.convertHsvToRgb(this.hsvColor);
