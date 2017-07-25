@@ -11,6 +11,7 @@
 #include "DomainManagementScriptingInterface.h"
 #include "EntitiesLogging.h"
 #include "Application.h"
+#include "OffscreenUi.h"
 
 DomainManagementScriptingInterface::DomainManagementScriptingInterface()
 {
@@ -28,18 +29,6 @@ bool DomainManagementScriptingInterface::canReplaceDomainContent() {
     return nodeList->getThisNodeCanReplaceContent();
 }
 
-void DomainManagementScriptingInterface::replaceDomainContentSet(const QString url){
-    if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
-        QByteArray _url(url.toUtf8());
-        auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
-        limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
-            return node->getType() == NodeType::EntityServer && node->getActiveSocket();
-        }, [&_url, limitedNodeList](const SharedNodePointer& octreeNode) {
-            auto octreeFilePacketList = NLPacketList::create(PacketType::OctreeFileReplacementFromUrl, QByteArray(), true, true);
-            octreeFilePacketList->write(_url);
-            qCDebug(entities) << "Attempting to send an octree file url to replace domain content";
+void DomainManagementScriptingInterface::replaceDomainContentSet(const QString& url){
 
-            limitedNodeList->sendPacketList(std::move(octreeFilePacketList), *octreeNode);
-        });
-    };
 }

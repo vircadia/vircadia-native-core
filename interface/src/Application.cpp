@@ -222,6 +222,7 @@ static const int MIN_PROCESSING_THREAD_POOL_SIZE = 1;
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
 static const QString SVO_JSON_EXTENSION = ".svo.json";
+static const QString JSON_GZ_EXTENSION = ".json.gz";
 static const QString JSON_EXTENSION = ".json";
 static const QString JS_EXTENSION  = ".js";
 static const QString FST_EXTENSION  = ".fst";
@@ -254,13 +255,14 @@ static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 
 static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 
-const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
+const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions{
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
     { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl },
     { JSON_EXTENSION, &Application::importJSONFromURL },
     { JS_EXTENSION, &Application::askToLoadScript },
-    { FST_EXTENSION, &Application::askToSetAvatarUrl }
+    { FST_EXTENSION, &Application::askToSetAvatarUrl },
+    { JSON_GZ_EXTENSION, &Application::askToReplaceDomainContent }
 };
 
 class DeadlockWatchdogThread : public QThread {
@@ -2724,7 +2726,6 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 bool Application::importJSONFromURL(const QString& urlString) {
     // we only load files that terminate in just .json (not .svo.json and not .ava.json)
     // if they come from the High Fidelity Marketplace Assets CDN
-
     QUrl jsonURL { urlString };
 
     if (jsonURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
@@ -6034,6 +6035,41 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
         reply->deleteLater();
     });
     return true;
+}
+
+bool Application::askToReplaceDomainContent(const QString& url) {
+
+    if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
+        // Create a confirmation dialog when this call is made
+        static const QString infoText = "Your domain's content will be replaced but backup files of your "
+            "domain's content will not immediately be changed.\n Save a manual backup of your"
+            "models.json.gz file, usually stored at:\n"
+            "C:/Users/[username]/AppData/Roaming/High Fidelity/assignment-client/entities/models.json.gz";
+
+        bool agreeToReplaceContent = false; // assume false
+        agreeToReplaceContent = QMessageBox::Yes == OffscreenUi::question("Are you sure you want to replace this domain's content set?",
+            infoText, QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+
+        if (agreeToReplaceContent) {
+            // Given confirmation, send request to domain server to replace content
+            QByteArray _url(url.toUtf8());
+            auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+            limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
+                return node->getType() == NodeType::EntityServer && node->getActiveSocket();
+            }, [&_url, limitedNodeList](const SharedNodePointer& octreeNode) {
+                auto octreeFilePacketList = NLPacketList::create(PacketType::OctreeFileReplacementFromUrl, QByteArray(), true, true);
+                octreeFilePacketList->write(_url);
+                qCDebug(entities) << "Attempting to send an octree file url to replace domain content";
+
+                limitedNodeList->sendPacketList(std::move(octreeFilePacketList), *octreeNode);
+                return true;
+            });
+        }
+    } else {
+        OffscreenUi::warning("Unable to replace content", "You do not have permissions to replace domain content", QMessageBox::Ok, QMessageBox::Ok);
+    }
+    return false;
+   
 }
 
 void Application::displayAvatarAttachmentWarning(const QString& message) const {
