@@ -29,8 +29,8 @@ Overlay::Overlay() :
     _alphaPulse(0.0f),
     _colorPulse(0.0f),
     _color(DEFAULT_OVERLAY_COLOR),
-    _drawHUDLayer(false),
     _visible(true),
+    _drawHUDLayer(false),
     _anchor(NO_ANCHOR)
 {
 }
@@ -48,8 +48,8 @@ Overlay::Overlay(const Overlay* overlay) :
     _alphaPulse(overlay->_alphaPulse),
     _colorPulse(overlay->_colorPulse),
     _color(overlay->_color),
-    _drawHUDLayer(overlay->_drawHUDLayer),
     _visible(overlay->_visible),
+    _drawHUDLayer(overlay->_drawHUDLayer),
     _anchor(overlay->_anchor)
 {
 }

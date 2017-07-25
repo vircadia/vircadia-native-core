@@ -42,16 +42,9 @@ static const bool DEFAULT_MONO_VIEW = true;
 static const bool DEFAULT_DISABLE_PREVIEW = false;
 #endif
 static const glm::mat4 IDENTITY_MATRIX;
-static const size_t NUMBER_OF_HANDS = 2;
 
 //#define LIVE_SHADER_RELOAD 1
 extern glm::vec3 getPoint(float yaw, float pitch);
-
-struct HandLaserData {
-    vec4 p1;
-    vec4 p2;
-    vec4 color;
-};
 
 static QString readFile(const QString& filename) {
     QFile file(filename);
@@ -114,8 +107,6 @@ bool HmdDisplayPlugin::internalActivate() {
 void HmdDisplayPlugin::internalDeactivate() {
     Parent::internalDeactivate();
 }
-
-static const int32_t LINE_DATA_SLOT = 1;
 
 void HmdDisplayPlugin::customizeContext() {
     Parent::customizeContext();

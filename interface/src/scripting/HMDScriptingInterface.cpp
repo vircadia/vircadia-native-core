@@ -91,7 +91,7 @@ void HMDScriptingInterface::activateHMDHandMouse() {
 
 void HMDScriptingInterface::deactivateHMDHandMouse() {
     QWriteLocker lock(&_hmdHandMouseLock);
-    _hmdHandMouseCount = std::max(--_hmdHandMouseCount, 0);
+    _hmdHandMouseCount = std::max(_hmdHandMouseCount - 1, 0);
     if (_hmdHandMouseCount == 0) {
         auto offscreenUi = DependencyManager::get<OffscreenUi>();
         offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", false);
