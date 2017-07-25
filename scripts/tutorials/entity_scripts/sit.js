@@ -12,9 +12,9 @@
     Script.include("/~/system/libraries/utils.js");
     if (!String.prototype.startsWith) {
         String.prototype.startsWith = function(searchString, position){
-          position = position || 0;
-          return this.substr(position, searchString.length) === searchString;
-      };
+            position = position || 0;
+            return this.substr(position, searchString.length) === searchString;
+        };
     }
 
     var SETTING_KEY = "com.highfidelity.avatar.isSitting";
@@ -122,8 +122,18 @@
 
     this.rolesToOverride = function() {
         return MyAvatar.getAnimationRoles().filter(function(role) {
-            return role === "fly" || role.startsWith("inAir");
+            return !(role.startsWith("right") || role.startsWith("left"));
         });
+    }
+
+    // Handler for user changing the avatar model while sitting. There's currently an issue with changing avatar models while override role animations are applied,
+    // so to avoid that problem, re-apply the role overrides once the model has finished changing.
+    this.modelURLChangeFinished = function () {
+        print("Sitter's model has FINISHED changing. Reapply anim role overrides.");
+        var roles = this.rolesToOverride();
+        for (i in roles) {
+            MyAvatar.overrideRoleAnimation(roles[i], ANIMATION_URL, ANIMATION_FPS, true, ANIMATION_FIRST_FRAME, ANIMATION_LAST_FRAME);
+        }
     }
 
     this.sitDown = function() {
@@ -164,12 +174,14 @@
             return { headType: 0 };
         }, ["headType"]);
         Script.update.connect(this, this.update);
+        MyAvatar.onLoadComplete.connect(this, this.modelURLChangeFinished);
     }
 
     this.standUp = function() {
         print("Standing up (" + this.entityID + ")");
         MyAvatar.removeAnimationStateHandler(this.animStateHandlerID);
         Script.update.disconnect(this, this.update);
+        MyAvatar.onLoadComplete.disconnect(this, this.modelURLChangeFinished);
 
         if (MyAvatar.sessionUUID === this.getSeatUser()) {
             this.setSeatUser(null);
@@ -331,7 +343,7 @@
         }
         this.cleanupOverlay();
     }
-
+    
     this.clickDownOnEntity = function (id, event) {
         if (isInEditMode()) {
             return;

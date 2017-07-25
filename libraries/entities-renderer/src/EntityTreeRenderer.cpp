@@ -464,12 +464,12 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
     connect(this, &EntityTreeRenderer::clickReleaseOnEntity, entityScriptingInterface, &EntityScriptingInterface::clickReleaseOnEntity);
 
     connect(this, &EntityTreeRenderer::hoverEnterEntity, entityScriptingInterface, &EntityScriptingInterface::hoverEnterEntity);
-    connect(this, &EntityTreeRenderer::hoverEnterEntity, hoverOverlayInterface, &HoverOverlayInterface::createHoverOverlay);
+    connect(this, SIGNAL(hoverEnterEntity(const EntityItemID&, const PointerEvent&)), hoverOverlayInterface, SLOT(createHoverOverlay(const EntityItemID&, const PointerEvent&)));
 
     connect(this, &EntityTreeRenderer::hoverOverEntity, entityScriptingInterface, &EntityScriptingInterface::hoverOverEntity);
 
     connect(this, &EntityTreeRenderer::hoverLeaveEntity, entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity);
-    connect(this, &EntityTreeRenderer::hoverLeaveEntity, hoverOverlayInterface, &HoverOverlayInterface::destroyHoverOverlay);
+    connect(this, SIGNAL(hoverLeaveEntity(const EntityItemID&, const PointerEvent&)), hoverOverlayInterface, SLOT(destroyHoverOverlay(const EntityItemID&, const PointerEvent&)));
 
     connect(this, &EntityTreeRenderer::enterEntity, entityScriptingInterface, &EntityScriptingInterface::enterEntity);
     connect(this, &EntityTreeRenderer::leaveEntity, entityScriptingInterface, &EntityScriptingInterface::leaveEntity);
