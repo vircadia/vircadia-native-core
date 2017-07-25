@@ -177,19 +177,19 @@ void PolyLineEntityItem::calculateScaleAndRegistrationPoint() {
 			low.z = point.z;
 		}
 	}
-
+	const float EPSILON = 0.0001f;
 	if (_points.size() > 1) {
 		// if all the points in the Polyline are at the same place in space, use default dimension settings
-		if ((low - high).length() < 0.00001f) {
+		if ((low - high).length() < EPSILON) {
 			SpatiallyNestable::setScale(glm::vec3(1.0f, 1.0f, 1.0f));
 			EntityItem::setRegistrationPoint(glm::vec3(0.0f, 0.0f, 0.0f));
 			return;
 		}
 
 		glm::vec3 result;
-		result.x = abs(high.x) + abs(low.x);
-		result.y = abs(high.y) + abs(low.y);
-		result.z = abs(high.z) + abs(low.z);
+		result.x = fabsf(high.x) + fabsf(low.x);
+		result.y = fabsf(high.y) + fabsf(low.y);
+		result.z = fabsf(high.z) + fabsf(low.z);
 		SpatiallyNestable::setScale(result);
 
 		glm::vec3 point = _points.at(0);
