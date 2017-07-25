@@ -644,17 +644,8 @@ void ViveControllerManager::InputDevice::updateCalibratedLimbs() {
     _poseStateMap[controller::RIGHT_FOOT] = addOffsetToPuckPose(controller::RIGHT_FOOT);
     _poseStateMap[controller::HIPS] = addOffsetToPuckPose(controller::HIPS);
     _poseStateMap[controller::SPINE2] = addOffsetToPuckPose(controller::SPINE2);
-    controller::Pose rightArmPose = addOffsetToPuckPose(controller::RIGHT_ARM);
-    _poseStateMap[controller::RIGHT_ARM] = rightArmPose;
-    if (rightArmPose.isValid()) {
-        // AJT: TODO: compute rotation for RIGHT_SHOULDER AS WELL.
-    }
-
-    controller::Pose leftArmPose = addOffsetToPuckPose(controller::LEFT_ARM);
-    _poseStateMap[controller::LEFT_ARM] = leftArmPose;
-    if (leftArmPose.isValid()) {
-        // AJT: TODO: compute rotation for LEFT_SHOULDER AS WELL.
-    }
+    _poseStateMap[controller::RIGHT_ARM] = addOffsetToPuckPose(controller::RIGHT_ARM);
+    _poseStateMap[controller::LEFT_ARM] = addOffsetToPuckPose(controller::LEFT_ARM);
 
     if (_overrideHead) {
         _poseStateMap[controller::HEAD] = addOffsetToPuckPose(controller::HEAD);
@@ -1146,6 +1137,25 @@ static glm::vec3 computeUserShoulderPositionFromHistory(const glm::mat4& headMat
     return transformPoint(headMat, center);
 }
 
+// y axis comes out of puck usb port/green light
+// -z axis comes out of puck center/vive logo
+static glm::vec3 computeUserShoulderPositionFromMeasurements(const glm::mat4& headMat, const controller::Pose& armPuck, bool isLeftHand) {
+    // AJT: TODO measurments are hard coded!
+    const float ARM_CIRC = 0.33f; // 13 inches
+    const float SHOULDER_SPAN = 0.4826; // 19 inches
+
+    float armRadius = ARM_CIRC / TWO_PI;
+
+    float sign = isLeftHand ? 1.0f : -1.0f;
+    float localArmX = sign * SHOULDER_SPAN / 2.0f;
+
+    controller::Pose localPuck = armPuck.transform(glm::inverse(headMat));
+    glm::mat4 localPuckMat = localPuck.getMatrix();
+    glm::vec3 localArmCenter = extractTranslation(localPuckMat) + armRadius * transformVectorFast(localPuckMat, Vectors::UNIT_Z);
+
+    return transformPoint(headMat, glm::vec3(localArmX, localArmCenter.y, localArmCenter.z));
+}
+
 void ViveControllerManager::InputDevice::calibrateShoulders(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
                                                             int firstShoulderIndex, int secondShoulderIndex) {
     const PuckPosePair& firstShoulder = _validTrackedObjects[firstShoulderIndex];
@@ -1160,12 +1170,17 @@ void ViveControllerManager::InputDevice::calibrateShoulders(const glm::mat4& def
     glm::mat4 userRefRightArm = refRightArm;
 
     glm::mat4 headMat = defaultToReferenceMat * inputCalibration.defaultHeadMat;
+    /*  AJT: TODO REMOVE
     userRefLeftArm[3] = glm::vec4(computeUserShoulderPositionFromHistory(headMat, _leftControllerHistory), 1.0f);
     userRefRightArm[3] = glm::vec4(computeUserShoulderPositionFromHistory(headMat, _rightControllerHistory), 1.0f);
+    */
 
     if (firstShoulderPose.translation.x < secondShoulderPose.translation.x) {
         _jointToPuckMap[controller::LEFT_ARM] = firstShoulder.first;
         _jointToPuckMap[controller::RIGHT_ARM] = secondShoulder.first;
+
+        userRefLeftArm[3] = glm::vec4(computeUserShoulderPositionFromMeasurements(headMat, firstShoulderPose, true), 1.0f);
+        userRefRightArm[3] = glm::vec4(computeUserShoulderPositionFromMeasurements(headMat, secondShoulderPose, false), 1.0f);
 
         // compute the post offset from the userRefArm
         _pucksPostOffset[firstShoulder.first] = computeOffset(Matrices::IDENTITY, userRefLeftArm, firstShoulderPose);
@@ -1178,6 +1193,9 @@ void ViveControllerManager::InputDevice::calibrateShoulders(const glm::mat4& def
     } else {
         _jointToPuckMap[controller::LEFT_ARM] = secondShoulder.first;
         _jointToPuckMap[controller::RIGHT_ARM] = firstShoulder.first;
+
+        userRefLeftArm[3] = glm::vec4(computeUserShoulderPositionFromMeasurements(headMat, secondShoulderPose, true), 1.0f);
+        userRefRightArm[3] = glm::vec4(computeUserShoulderPositionFromMeasurements(headMat, firstShoulderPose, false), 1.0f);
 
         // compute the post offset from the userRefArm
         _pucksPostOffset[secondShoulder.first] = computeOffset(Matrices::IDENTITY, userRefLeftArm, secondShoulderPose);

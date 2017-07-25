@@ -1862,15 +1862,40 @@ void AnimInverseKinematics::preconditionRelativePosesToAvoidLimbLock(const AnimC
 
 // overwrites _relativePoses with secondary poses.
 void AnimInverseKinematics::setSecondaryTargets(const AnimContext& context) {
+
+    if (_secondaryTargetsInRigFrame.empty()) {
+        return;
+    }
+
+    // shoulder joint should look-at position of arm joint.
+    const int leftArmIndex = _skeleton->nameToJointIndex("LeftArm");
+    const int rightArmIndex = _skeleton->nameToJointIndex("RightArm");
+
     AnimPose rigToGeometryPose = AnimPose(glm::inverse(context.getGeometryToRigMatrix()));
     for (auto& iter : _secondaryTargetsInRigFrame) {
         AnimPose absPose = rigToGeometryPose * iter.second;
         absPose.scale() = glm::vec3(1.0f);
+
         AnimPose parentAbsPose;
         int parentIndex = _skeleton->getParentIndex(iter.first);
         if (parentIndex >= 0) {
             parentAbsPose = _skeleton->getAbsolutePose(parentIndex, _relativePoses);
         }
+
+        // if parent should "look-at" child joint position.
+        if (iter.first == leftArmIndex || iter.first == rightArmIndex) {
+
+            AnimPose grandParentAbsPose;
+            int grandParentIndex = _skeleton->getParentIndex(parentIndex);
+            if (parentIndex >= 0) {
+                grandParentAbsPose = _skeleton->getAbsolutePose(grandParentIndex, _relativePoses);
+            }
+
+            // the shoulder should rotate toward the arm joint via "look-at" constraint
+            parentAbsPose = boneLookAt(absPose.trans(), parentAbsPose);
+            _relativePoses[parentIndex] = grandParentAbsPose.inverse() * parentAbsPose;
+        }
+
         // AJT: for now ignore translation on secondary poses.
         glm::vec3 origTrans = _relativePoses[iter.first].trans();
         _relativePoses[iter.first] = parentAbsPose.inverse() * absPose;
