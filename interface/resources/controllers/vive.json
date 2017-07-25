@@ -24,7 +24,7 @@
         { "from": "Vive.LS", "to": "Standard.LS" },
         { "from": "Vive.LSTouch", "to": "Standard.LeftThumbUp",
             "peek": true,
-            "filters": [ { "type": "not" } ]
+            "filters": [ { "type": "logicalNot" } ]
         },
         { "from": "Vive.LSTouch", "to": "Standard.LSTouch" },
 
@@ -42,7 +42,7 @@
         { "from": "Vive.RS", "to": "Standard.RS" },
         { "from": "Vive.RSTouch", "to": "Standard.RightThumbUp",
             "peek": true,
-            "filters": [ { "type": "not" } ]
+            "filters": [ { "type": "logicalNot" } ]
         },
         { "from": "Vive.RSTouch", "to": "Standard.RSTouch" },
 

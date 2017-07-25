@@ -41,7 +41,7 @@ REGISTER_FILTER_CLASS_INSTANCE(ConstrainToPositiveIntegerFilter, "constrainToPos
 REGISTER_FILTER_CLASS_INSTANCE(DeadZoneFilter, "deadZone")
 REGISTER_FILTER_CLASS_INSTANCE(HysteresisFilter, "hysteresis")
 REGISTER_FILTER_CLASS_INSTANCE(InvertFilter, "invert")
-REGISTER_FILTER_CLASS_INSTANCE(NotFilter, "not")
+REGISTER_FILTER_CLASS_INSTANCE(NotFilter, "logicalNot")
 REGISTER_FILTER_CLASS_INSTANCE(ScaleFilter, "scale")
 REGISTER_FILTER_CLASS_INSTANCE(PulseFilter, "pulse")
 REGISTER_FILTER_CLASS_INSTANCE(TranslateFilter, "translate")

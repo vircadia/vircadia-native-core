@@ -149,7 +149,7 @@ QObject* RouteBuilderProxy::pulse(float interval) {
     return this;
 }
 
-QObject* RouteBuilderProxy::not() {
+QObject* RouteBuilderProxy::logicalNot() {
     addFilter(std::make_shared<NotFilter>());
     return this;
 }
