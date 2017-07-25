@@ -337,6 +337,9 @@ var toolBar = (function () {
     var SHAPE_TYPE_SIMPLE_HULL = 1;
     var SHAPE_TYPE_SIMPLE_COMPOUND = 2;
     var SHAPE_TYPE_STATIC_MESH = 3;
+    var SHAPE_TYPE_BOX = 4;
+    var SHAPE_TYPE_SPHERE = 5;
+    var SHAPE_TYPE_COMPOUND = 6;
     var DYNAMIC_DEFAULT = false;
 
     function handleNewModelDialogResult(result) {
@@ -352,6 +355,15 @@ var toolBar = (function () {
                 break;
             case SHAPE_TYPE_STATIC_MESH:
                 shapeType = "static-mesh";
+                break;
+            case SHAPE_TYPE_BOX:
+                shapeType = "box";
+                break;
+            case SHAPE_TYPE_SPHERE:
+                shapeType = "sphere";
+                break;
+            case SHAPE_TYPE_COMPOUND:
+                shapeType = "compound";
                 break;
             default:
                 shapeType = "none";
@@ -450,6 +462,9 @@ var toolBar = (function () {
             SHAPE_TYPES[SHAPE_TYPE_SIMPLE_HULL] = "Basic - Whole model";
             SHAPE_TYPES[SHAPE_TYPE_SIMPLE_COMPOUND] = "Good - Sub-meshes";
             SHAPE_TYPES[SHAPE_TYPE_STATIC_MESH] = "Exact - All polygons";
+            SHAPE_TYPES[SHAPE_TYPE_BOX] = "Box";
+            SHAPE_TYPES[SHAPE_TYPE_SPHERE] = "Sphere";
+            SHAPE_TYPES[SHAPE_TYPE_COMPOUND] = "Compound";
             var SHAPE_TYPE_DEFAULT = SHAPE_TYPE_STATIC_MESH;
 
             // tablet version of new-model dialog
