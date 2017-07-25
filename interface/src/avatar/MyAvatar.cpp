@@ -255,6 +255,12 @@ MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
 }
 
+void MyAvatar::setDominantHand(const QString& hand) {
+    if (hand == DOMINANT_LEFT_HAND || hand == DOMINANT_RIGHT_HAND) {
+        _dominantHand = hand;
+    }
+}
+
 void MyAvatar::registerMetaTypes(QScriptEngine* engine) {
     QScriptValue value = engine->newQObject(this, QScriptEngine::QtOwnership, QScriptEngine::ExcludeDeleteLater | QScriptEngine::ExcludeChildObjects);
     engine->globalObject().setProperty("MyAvatar", value);
@@ -926,6 +932,7 @@ void MyAvatar::saveData() {
     Settings settings;
     settings.beginGroup("Avatar");
 
+    settings.setValue("dominantHand", _dominantHand);
     settings.setValue("headPitch", getHead()->getBasePitch());
 
     settings.setValue("scale", _targetScale);
@@ -1122,7 +1129,7 @@ void MyAvatar::loadData() {
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
     setSnapTurn(settings.value("useSnapTurn", _useSnapTurn).toBool());
     setClearOverlayWhenMoving(settings.value("clearOverlayWhenMoving", _clearOverlayWhenMoving).toBool());
-
+    setDominantHand(settings.value("dominantHand", _dominantHand).toString().toLower());
     settings.endGroup();
 
     setEnableMeshVisible(Menu::getInstance()->isOptionChecked(MenuOption::MeshVisible));

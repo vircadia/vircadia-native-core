@@ -182,6 +182,11 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
+        auto getter = [=]()->QString { return myAvatar->getDominantHand(); };
+        auto setter = [=](const QString& value) { myAvatar->setDominantHand(value); };
+        preferences->addPreference(new PrimaryHandPreference(AVATAR_TUNING, "Dominant Hand", getter, setter));
+    }
+    {
         auto getter = [=]()->float { return myAvatar->getUniformScale(); };
         auto setter = [=](float value) { myAvatar->setTargetScale(value); };
         auto preference = new SpinnerSliderPreference(AVATAR_TUNING, "Avatar Scale", getter, setter);
