@@ -102,6 +102,8 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
     QSharedPointer<Resource> highestResource;
     Lock lock(_mutex);
 
+    bool currentHighestIsFile = false;
+
     for (int i = 0; i < _pendingRequests.size();) {
         // Clear any freed resources
         auto resource = _pendingRequests.at(i).lock();
@@ -112,10 +114,12 @@ QSharedPointer<Resource> ResourceCacheSharedItems::getHighestPendingRequest() {
 
         // Check load priority
         float priority = resource->getLoadPriority();
-        if (priority >= highestPriority) {
+        bool isFile = resource->getURL().scheme() == URL_SCHEME_FILE;
+        if (priority >= highestPriority && (isFile || !currentHighestIsFile)) {
             highestPriority = priority;
             highestIndex = i;
             highestResource = resource;
+            currentHighestIsFile = isFile;
         }
         i++;
     }

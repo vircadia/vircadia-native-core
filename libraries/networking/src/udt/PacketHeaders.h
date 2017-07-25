@@ -105,7 +105,6 @@ public:
         UsernameFromIDReply,
         ViewFrustum,
         RequestsDomainListData,
-        ExitingSpaceBubble,
         PerAvatarGainSet,
         EntityScriptGetStatus,
         EntityScriptGetStatusReply,

@@ -451,7 +451,7 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     // In Qt 5.9 mouse events must be sent before touch events to make sure some QtQuick components will
     // receive mouse events
 #if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
-    if (!(this->_pressed && event.getType() == PointerEvent::Move)) {
+    if (event.getType() == PointerEvent::Move) {
         QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
         QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
     }
@@ -459,11 +459,10 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 9, 0)
-    if (this->_pressed && event.getType() == PointerEvent::Move) {
-        return;
+    if (event.getType() == PointerEvent::Move) {
+        QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+        QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
     }
-    QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
-    QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
 #endif
 }
 

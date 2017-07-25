@@ -143,7 +143,7 @@ public:
 
     Q_INVOKABLE void setAvatarBoundingBoxParameters(glm::vec3 corner, glm::vec3 scale);
 
-    bool outputLocalInjector(AudioInjector* injector) override;
+    bool outputLocalInjector(const AudioInjectorPointer& injector) override;
 
     QAudioDeviceInfo getActiveAudioDevice(QAudio::Mode mode) const;
     QList<QAudioDeviceInfo> getAudioDevices(QAudio::Mode mode) const;
@@ -380,7 +380,7 @@ private:
 
     bool _hasReceivedFirstPacket { false };
 
-    QVector<AudioInjector*> _activeLocalAudioInjectors;
+    QVector<AudioInjectorPointer> _activeLocalAudioInjectors;
 
     bool _isPlayingBackRecording { false };
 

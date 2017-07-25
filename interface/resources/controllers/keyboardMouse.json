@@ -81,7 +81,11 @@
 
         { "from": { "makeAxis" : ["Keyboard.MouseMoveLeft", "Keyboard.MouseMoveRight"] },
           "when": "Keyboard.RightMouseButton",
-          "to": "Actions.Yaw"
+          "to": "Actions.Yaw",
+          "filters":
+            [
+                { "type": "scale", "scale": 0.6 }
+            ]
         },
 
         { "from": "Keyboard.W", "to": "Actions.LONGITUDINAL_FORWARD" },
@@ -102,8 +106,19 @@
         { "from": "Keyboard.PgDown", "to": "Actions.VERTICAL_DOWN" },
         { "from": "Keyboard.PgUp", "to": "Actions.VERTICAL_UP" },
 
-        { "from": "Keyboard.MouseMoveUp", "when": "Keyboard.RightMouseButton", "to": "Actions.PITCH_UP" },
-        { "from": "Keyboard.MouseMoveDown", "when": "Keyboard.RightMouseButton", "to": "Actions.PITCH_DOWN" },
+        { "from": "Keyboard.MouseMoveUp", "when": "Keyboard.RightMouseButton", "to": "Actions.PITCH_UP",
+          "filters":
+            [
+                { "type": "scale", "scale": 0.6 }
+            ]
+
+        },
+        { "from": "Keyboard.MouseMoveDown", "when": "Keyboard.RightMouseButton", "to": "Actions.PITCH_DOWN",
+          "filters":
+            [
+                { "type": "scale", "scale": 0.6 }
+            ]
+        },
 
         { "from": "Keyboard.TouchpadDown", "to": "Actions.PITCH_DOWN" },
         { "from": "Keyboard.TouchpadUp", "to": "Actions.PITCH_UP" },
