@@ -130,7 +130,6 @@ bool OBJTokenizer::getVertex(glm::vec3& vertex, glm::vec3& vertexColor) {
     auto y = getFloat(); // And order of arguments is different on Windows/Linux.
     auto z = getFloat();
     vertex = glm::vec3(x, y, z);
-    vertexColor = glm::vec3(1.0f); // default, in case there is not color information
 
     auto r = 1.0f, g = 1.0f, b = 1.0f;
     bool hasVertexColor = false;
@@ -415,7 +414,8 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 #endif
             }
         } else if (token == "v") {
-            glm::vec3 vertex, vertexColor;
+            glm::vec3 vertex;
+            glm::vec3 vertexColor { glm::vec3(1.0f) };
 
             bool hasVertexColor = tokenizer.getVertex(vertex, vertexColor);
             vertices.append(vertex);

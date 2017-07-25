@@ -463,7 +463,7 @@ bool Model::convexHullContains(glm::vec3 point) {
     return false;
 }
 
-MeshProxyList Model::getMeshes() {
+MeshProxyList Model::getMeshes() const {
     MeshProxyList result;
     const Geometry::Pointer& renderGeometry = getGeometry();
     const Geometry::GeometryMeshes& meshes = renderGeometry->getMeshes();

@@ -257,7 +257,7 @@ public:
     int getResourceDownloadAttempts() { return _renderWatcher.getResourceDownloadAttempts(); }
     int getResourceDownloadAttemptsRemaining() { return _renderWatcher.getResourceDownloadAttemptsRemaining(); }
 
-    Q_INVOKABLE MeshProxyList getMeshes();
+    Q_INVOKABLE MeshProxyList getMeshes() const;
 
 public slots:
     void loadURLFinished(bool success);
