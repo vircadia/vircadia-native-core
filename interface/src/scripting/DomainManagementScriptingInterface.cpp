@@ -9,7 +9,6 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "DomainManagementScriptingInterface.h"
-#include "EntitiesLogging.h"
 #include "Application.h"
 #include "OffscreenUi.h"
 
@@ -27,8 +26,4 @@ DomainManagementScriptingInterface::~DomainManagementScriptingInterface() {
 bool DomainManagementScriptingInterface::canReplaceDomainContent() {
     auto nodeList = DependencyManager::get<NodeList>();
     return nodeList->getThisNodeCanReplaceContent();
-}
-
-void DomainManagementScriptingInterface::replaceDomainContentSet(const QString& url){
-
 }

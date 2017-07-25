@@ -32,9 +32,6 @@ public:
 public slots:
     Q_INVOKABLE bool canReplaceDomainContent();
 
-protected:
-    void replaceDomainContentSet(const QString& fileURL);
-
 signals:
     void canReplaceDomainContentChanged(bool canReplaceDomainContent);
 };

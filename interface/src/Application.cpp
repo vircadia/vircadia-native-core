@@ -6041,10 +6041,11 @@ bool Application::askToReplaceDomainContent(const QString& url) {
 
     if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
         // Create a confirmation dialog when this call is made
-        static const QString infoText = "Your domain's content will be replaced but backup files of your "
-            "domain's content will not immediately be changed.\n Save a manual backup of your"
-            "models.json.gz file, usually stored at:\n"
-            "C:/Users/[username]/AppData/Roaming/High Fidelity/assignment-client/entities/models.json.gz";
+        const int MAX_CHARACTERS_PER_LINE = 90;
+        static const QString infoText = simpleWordWrap("Your domain's content will be replaced but backup files of your "
+            "domain's content will not immediately be changed. Save a manual backup of your"
+            "models.json.gz file, usually stored at:", MAX_CHARACTERS_PER_LINE) + 
+            "\nC:/Users/[username]/AppData/Roaming/High Fidelity/assignment-client/entities/models.json.gz";
 
         bool agreeToReplaceContent = false; // assume false
         agreeToReplaceContent = QMessageBox::Yes == OffscreenUi::question("Are you sure you want to replace this domain's content set?",
@@ -6052,15 +6053,14 @@ bool Application::askToReplaceDomainContent(const QString& url) {
 
         if (agreeToReplaceContent) {
             // Given confirmation, send request to domain server to replace content
+            qCDebug(interfaceapp) << "Attempting to replace domain content: " << url;
             QByteArray _url(url.toUtf8());
             auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
             limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
                 return node->getType() == NodeType::EntityServer && node->getActiveSocket();
             }, [&_url, limitedNodeList](const SharedNodePointer& octreeNode) {
                 auto octreeFilePacketList = NLPacketList::create(PacketType::OctreeFileReplacementFromUrl, QByteArray(), true, true);
-                octreeFilePacketList->write(_url);
-                qCDebug(entities) << "Attempting to send an octree file url to replace domain content";
-
+                octreeFilePacketList->write(_url); 
                 limitedNodeList->sendPacketList(std::move(octreeFilePacketList), *octreeNode);
                 return true;
             });
