@@ -604,19 +604,6 @@ bool DomainGatekeeper::isWithinMaxCapacity() {
     return true;
 }
 
-
-void DomainGatekeeper::preloadAllowedUserPublicKeys() {
-    QStringList allowedUsers = _server->_settingsManager.getAllNames();
-
-    if (allowedUsers.size() > 0) {
-        // in the future we may need to limit how many requests here - for now assume that lists of allowed users are not
-        // going to create > 100 requests
-        foreach(const QString& username, allowedUsers) {
-            requestUserPublicKey(username);
-        }
-    }
-}
-
 void DomainGatekeeper::requestUserPublicKey(const QString& username) {
     // don't request public keys for the standard psuedo-account-names
     if (NodePermissions::standardNames.contains(username, Qt::CaseInsensitive)) {
@@ -666,6 +653,8 @@ void DomainGatekeeper::publicKeyJSONCallback(QNetworkReply& requestReply) {
         // pull the public key as a QByteArray from this response
         const QString JSON_DATA_KEY = "data";
         const QString JSON_PUBLIC_KEY_KEY = "public_key";
+
+        qDebug() << "Extracted public key for" << username.toLower();
 
         _userPublicKeys[username.toLower()] =
             QByteArray::fromBase64(jsonObject[JSON_DATA_KEY].toObject()[JSON_PUBLIC_KEY_KEY].toString().toUtf8());

@@ -39,8 +39,6 @@ public:
                                 const QUuid& walletUUID, const QString& nodeVersion);
     QUuid assignmentUUIDForPendingAssignment(const QUuid& tempUUID);
     
-    void preloadAllowedUserPublicKeys();
-    
     void removeICEPeer(const QUuid& peerUUID) { _icePeers.remove(peerUUID); }
 
     static void sendProtocolMismatchConnectionDenial(const HifiSockAddr& senderSockAddr);
