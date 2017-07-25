@@ -33,6 +33,17 @@ ContextOverlayInterface::ContextOverlayInterface() {
 
     auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>().data();
     connect(entityTreeRenderer, SIGNAL(mousePressOnEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(createOrDestroyContextOverlay(const EntityItemID&, const PointerEvent&)));
+    connect(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"), &TabletProxy::tabletShownChanged, this, [&]() {
+        if (_contextOverlayJustClicked && _hmdScriptingInterface->isMounted()) {
+            QUuid tabletFrameID = _hmdScriptingInterface->getCurrentTabletFrameID();
+            QVariantMap props;
+            auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
+            props.insert("position", vec3toVariant(myAvatar->getEyePosition() + glm::quat(glm::radians(glm::vec3(0.0f, 30.0f, 0.0f))) * (0.65f * (myAvatar->getHeadOrientation() * Vectors::FRONT))));
+            props.insert("orientation", quatToVariant(myAvatar->getHeadOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, 210.0f, 0.0f)))));
+            qApp->getOverlays().editOverlay(tabletFrameID, props);
+            _contextOverlayJustClicked = false;
+        }
+    });
 }
 
 static const xColor BB_OVERLAY_COLOR = {255, 255, 0};
@@ -149,6 +160,7 @@ void ContextOverlayInterface::clickContextOverlay(const OverlayID& overlayID, co
         qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "Overlay ID:" << overlayID;
         openMarketplace();
         destroyContextOverlay(_currentEntityWithContextOverlay, PointerEvent());
+        _contextOverlayJustClicked = true;
     }
 }
 
