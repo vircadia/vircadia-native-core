@@ -629,7 +629,7 @@ void OpenGLDisplayPlugin::compositeLayers() {
     // Clear the depth framebuffer after drawing the scene so that the HUD elements can depth test against each other
     render([&](gpu::Batch& batch) {
         batch.setFramebuffer(_compositeFramebuffer);
-        batch.clearDepthFramebuffer(UINT32_MAX);
+        batch.clearDepthFramebuffer((float) UINT32_MAX);
     });
 
 #ifdef HIFI_ENABLE_NSIGHT_DEBUG
@@ -658,7 +658,7 @@ void OpenGLDisplayPlugin::compositeLayers() {
     // Clear the depth buffer again and draw the pointer last so it's on top of everything
     render([&](gpu::Batch& batch) {
         batch.setFramebuffer(_compositeFramebuffer);
-        batch.clearDepthFramebuffer(UINT32_MAX);
+        batch.clearDepthFramebuffer((float) UINT32_MAX);
     });
 
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
