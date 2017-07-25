@@ -24,4 +24,7 @@ out vec4 FragColor;
 void main() {
     FragColor = texture(sampler, vTexCoord);
     FragColor.a *= overlay.alpha;
+    if (FragColor.a <= 0.0) {
+        discard;
+    }
 }

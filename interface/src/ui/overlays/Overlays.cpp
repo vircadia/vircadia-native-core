@@ -41,7 +41,7 @@
 
 Q_LOGGING_CATEGORY(trace_render_overlays, "trace.render.overlays")
 
-extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
+extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
 
 void Overlays::cleanupAllOverlays() {
     QMap<OverlayID, Overlay::Pointer> overlaysHUD;
@@ -74,7 +74,7 @@ void Overlays::init() {
     _scriptEngine = new QScriptEngine();
 #endif
     _shapePlumber = std::make_shared<render::ShapePlumber>();
-    initOverlay3DPipelines(*_shapePlumber);
+    initOverlay3DPipelines(*_shapePlumber, true);
 }
 
 void Overlays::update(float deltatime) {

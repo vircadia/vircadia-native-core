@@ -626,6 +626,11 @@ void OpenGLDisplayPlugin::compositeLayers() {
         compositeScene();
     }
 
+    // Clear the depth framebuffer after drawing the scene so that the HUD elements can depth test against each other
+    render([&](gpu::Batch& batch) {
+        batch.setFramebuffer(_compositeFramebuffer);
+        batch.clearDepthFramebuffer(UINT32_MAX);
+    });
 
 #ifdef HIFI_ENABLE_NSIGHT_DEBUG
     if (false) // do not compositeoverlay if running nsight debug
@@ -633,12 +638,6 @@ void OpenGLDisplayPlugin::compositeLayers() {
     {
         PROFILE_RANGE_EX(render_detail, "compositeOverlay", 0xff0077ff, (uint64_t)presentCount())
         compositeOverlay();
-    }
-
-    auto compositorHelper = DependencyManager::get<CompositorHelper>();
-    if (compositorHelper->getReticleVisible()) {
-        PROFILE_RANGE_EX(render_detail, "compositePointer", 0xff0077ff, (uint64_t)presentCount())
-        compositePointer();
     }
 
     // Only render HUD layer 3D overlays in HMD mode
@@ -654,6 +653,18 @@ void OpenGLDisplayPlugin::compositeLayers() {
     {
         PROFILE_RANGE_EX(render_detail, "compositeExtra", 0xff0077ff, (uint64_t)presentCount())
         compositeExtra();
+    }
+
+    // Clear the depth buffer again and draw the pointer last so it's on top of everything
+    render([&](gpu::Batch& batch) {
+        batch.setFramebuffer(_compositeFramebuffer);
+        batch.clearDepthFramebuffer(UINT32_MAX);
+    });
+
+    auto compositorHelper = DependencyManager::get<CompositorHelper>();
+    if (compositorHelper->getReticleVisible()) {
+        PROFILE_RANGE_EX(render_detail, "compositePointer", 0xff0077ff, (uint64_t)presentCount())
+            compositePointer();
     }
 }
 
@@ -861,7 +872,8 @@ OpenGLDisplayPlugin::~OpenGLDisplayPlugin() {
 void OpenGLDisplayPlugin::updateCompositeFramebuffer() {
     auto renderSize = getRecommendedRenderSize();
     if (!_compositeFramebuffer || _compositeFramebuffer->getSize() != renderSize) {
-        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, renderSize.x, renderSize.y));
+        auto depthFormat = gpu::Element(gpu::SCALAR, gpu::UINT32, gpu::DEPTH_STENCIL);
+        _compositeFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("OpenGLDisplayPlugin::composite", gpu::Element::COLOR_RGBA_32, depthFormat, renderSize.x, renderSize.y));
     }
 }
 
