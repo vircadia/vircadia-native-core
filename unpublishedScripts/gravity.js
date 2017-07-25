@@ -1,6 +1,5 @@
 //
 //  gravity.js
-//  scripts/system/
 //
 //  Created by Alan-Michael Moody on 7/24/17
 //  Copyright 2016 High Fidelity, Inc.
