@@ -103,6 +103,8 @@ public:
     OverlayID addOverlay(Overlay* overlay) { return addOverlay(Overlay::Pointer(overlay)); }
     OverlayID addOverlay(const Overlay::Pointer& overlay);
 
+    void setOverlayDrawHUDLayer(const OverlayID& id, const bool drawHUDLayer);
+
     bool mousePressEvent(QMouseEvent* event);
     bool mouseDoublePressEvent(QMouseEvent* event);
     bool mouseReleaseEvent(QMouseEvent* event);

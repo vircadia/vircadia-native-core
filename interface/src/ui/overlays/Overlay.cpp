@@ -13,6 +13,8 @@
 #include <NumericalConstants.h>
 #include <RegisteredMetaTypes.h>
 
+#include "Application.h"
+
 static const xColor DEFAULT_OVERLAY_COLOR = { 255, 255, 255 };
 static const float DEFAULT_ALPHA = 0.7f;
 
@@ -168,6 +170,12 @@ float Overlay::getAlpha() {
     return (_alphaPulse >= 0.0f) ? _alpha * pulseLevel : _alpha * (1.0f - pulseLevel);
 }
 
+void Overlay::setDrawHUDLayer(bool drawHUDLayer) {
+    if (drawHUDLayer != _drawHUDLayer) {
+        qApp->getOverlays().setOverlayDrawHUDLayer(getOverlayID(), drawHUDLayer);
+        _drawHUDLayer = drawHUDLayer;
+    }
+}
 
 // pulse travels from min to max, then max to min in one period.
 float Overlay::updatePulse() {

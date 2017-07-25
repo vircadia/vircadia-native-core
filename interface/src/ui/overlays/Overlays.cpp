@@ -253,6 +253,28 @@ OverlayID Overlays::addOverlay(const Overlay::Pointer& overlay) {
     return thisID;
 }
 
+void Overlays::setOverlayDrawHUDLayer(const OverlayID& id, const bool drawHUDLayer) {
+    QMutexLocker locker(&_mutex);
+    if (drawHUDLayer && _overlaysWorld.contains(id)) {
+        std::shared_ptr<Overlay> overlay = _overlaysWorld.take(id);
+        render::ScenePointer scene = qApp->getMain3DScene();
+        render::Transaction transaction;
+        auto itemID = overlay->getRenderItemID();
+        if (render::Item::isValidID(itemID)) {
+            overlay->removeFromScene(overlay, scene, transaction);
+            scene->enqueueTransaction(transaction);
+        }
+        _overlays3DHUD[id] = overlay;
+    } else if (!drawHUDLayer && _overlays3DHUD.contains(id)) {
+        std::shared_ptr<Overlay> overlay = _overlays3DHUD.take(id);
+        render::ScenePointer scene = qApp->getMain3DScene();
+        render::Transaction transaction;
+        overlay->addToScene(overlay, scene, transaction);
+        scene->enqueueTransaction(transaction);
+        _overlaysWorld[id] = overlay;
+    }
+}
+
 OverlayID Overlays::cloneOverlay(OverlayID id) {
     if (QThread::currentThread() != thread()) {
         OverlayID result;

@@ -641,7 +641,8 @@ void OpenGLDisplayPlugin::compositeLayers() {
         compositePointer();
     }
 
-    {
+    // Only render HUD layer 3D overlays in HMD mode
+    if (isHmd()) {
         PROFILE_RANGE_EX(render_detail, "compositeHUDOverlays", 0xff0077ff, (uint64_t)presentCount())
         render([&](gpu::Batch& batch) {
             batch.enableStereo(false);

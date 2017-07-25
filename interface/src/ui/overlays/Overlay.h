@@ -73,7 +73,7 @@ public:
 
     // setters
     void setVisible(bool visible) { _visible = visible; }
-    void setDrawHUDLayer(bool drawHUDLayer) { _drawHUDLayer = drawHUDLayer; }
+    void setDrawHUDLayer(bool drawHUDLayer);
     void setColor(const xColor& color) { _color = color; }
     void setAlpha(float alpha) { _alpha = alpha; }
     void setAnchor(Anchor anchor) { _anchor = anchor; }
