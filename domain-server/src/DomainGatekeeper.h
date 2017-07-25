@@ -102,7 +102,7 @@ private:
     QHash<QString, QUuid> _connectionTokenHash;
 
     // the word "optimistic" below is used for keys that we request during user connection before the user has
-    // had a change to upload a new public key
+    // had a chance to upload a new public key
 
     // we don't send back user signature decryption errors for those keys so that there isn't a thrasing of key re-generation
     // and connection refusal
