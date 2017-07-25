@@ -307,11 +307,13 @@ const btCollisionShape* ShapeFactory::createShapeFromInfo(const ShapeInfo& info)
             const btVector3 btHalfExtents(halfExtents.x, halfExtents.y, halfExtents.z);
             shape = new btCylinderShapeX(btHalfExtents);
         }
+        break;
         case SHAPE_TYPE_CYLINDER_Z: {
             const glm::vec3 halfExtents = info.getHalfExtents();
             const btVector3 btHalfExtents(halfExtents.x, halfExtents.y, halfExtents.z);
             shape = new btCylinderShapeZ(btHalfExtents);
         }
+        break;
         case SHAPE_TYPE_CYLINDER_Y: {
             const glm::vec3 halfExtents = info.getHalfExtents();
             const btVector3 btHalfExtents(halfExtents.x, halfExtents.y, halfExtents.z);

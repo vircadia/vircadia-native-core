@@ -88,14 +88,14 @@ EntityItemProperties ShapeEntityItem::getProperties(EntityPropertyFlags desiredP
 
 void ShapeEntityItem::setShape(const entity::Shape& shape) {
     _shape = shape;
-    switch (_shape) { // TODO_CUSACK fill out?
+    switch (_shape) { // TODO WL21389: fill out with other shapes?
         case entity::Shape::Cube:
             _type = EntityTypes::Box;
             _collisionShapeType = ShapeType::SHAPE_TYPE_BOX;
             break;
         case entity::Shape::Sphere:
             _type = EntityTypes::Sphere;
-            _collisionShapeType = ShapeType::SHAPE_TYPE_ELLIPSOID; // TODO_CUSACK defer?  Check to see if sphere is more appropriate?
+            _collisionShapeType = ShapeType::SHAPE_TYPE_ELLIPSOID;
             break;
         default:
             _type = EntityTypes::Shape;
@@ -162,8 +162,7 @@ void ShapeEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
 }
 
-// This value specifes how the shape should be treated by physics calculations.  
-// For now, all polys will act as spheres
+// This value specifes how the shape should be treated by physics calculations.
 ShapeType ShapeEntityItem::getShapeType() const {
     return _collisionShapeType;
 }

@@ -114,26 +114,13 @@ void RenderableShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
     break;
     case entity::Shape::Cylinder: {
         _collisionShapeType = SHAPE_TYPE_CYLINDER_Y;
-        // TODO_CUSACK: determine if rotation is axis-aligned
+        // TODO WL21389: determine if rotation is axis-aligned
         //const Transform::Quat & rot = _transform.getRotation();
 
-#if 0
-        // TODO: some way to tell apart SHAPE_TYPE_CYLINDER_Y
-        // TODO_CUSACK: Should allow for minor variance along axes?
-        if ((entityDimensions.y >= entityDimensions.x) && (entityDimensions.y >= entityDimensions.z)) {
-        }
-        else if (entityDimensions.x >= entityDimensions.z) {
-            _collisionShapeType = SHAPE_TYPE_CYLINDER_X;
-        }
-        else if (entityDimensions.z >= entityDimensions.x) {
-            _collisionShapeType = SHAPE_TYPE_CYLINDER_Z;
-        }
-        else //...there was no major axis, treat as a hull
-        {
-            _collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;
-            //TODO_CUSACK: pointCollection
-        }
-#endif
+        // TODO WL21389: some way to tell apart SHAPE_TYPE_CYLINDER_Y, _X, _Z based on rotation and
+        //       hull ( or dimensions, need circular cross section)
+        // Should allow for minor variance along axes?
+
     }
     break;
     case entity::Shape::Triangle:
@@ -145,15 +132,15 @@ void RenderableShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
     case entity::Shape::Dodecahedron:
     case entity::Shape::Icosahedron:
     case entity::Shape::Cone: {
-        _collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;
-        //TODO_CUSACK: pointCollection
+        //TODO WL21389: SHAPE_TYPE_SIMPLE_HULL and pointCollection (later)
+        //_collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;
     }
     break;
     case entity::Shape::Torus:
     {
         // Not in GeometryCache::buildShapes, unsupported.
         _collisionShapeType = SHAPE_TYPE_NONE;
-        //TODO_CUSACK: SHAPE_TYPE_SIMPLE_HULL and pointCollection (later)
+        //TODO WL21389: SHAPE_TYPE_SIMPLE_HULL and pointCollection (later if desired support)
     }
     break;
     default:{
