@@ -14,6 +14,9 @@
 
 #include <EntityTreeRenderer.h>
 
+static const float CONTEXT_OVERLAY_TABLET_OFFSET = 30.0f; // Degrees
+static const float CONTEXT_OVERLAY_TABLET_ORIENTATION = 210.0f; // Degrees
+static const float CONTEXT_OVERLAY_TABLET_DISTANCE = 0.65F; // Meters
 ContextOverlayInterface::ContextOverlayInterface() {
     // "context_overlay" debug log category disabled by default.
     // Create your own "qtlogging.ini" file and set your "QT_LOGGING_CONF" environment variable
@@ -38,8 +41,9 @@ ContextOverlayInterface::ContextOverlayInterface() {
             QUuid tabletFrameID = _hmdScriptingInterface->getCurrentTabletFrameID();
             QVariantMap props;
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
-            props.insert("position", vec3toVariant(myAvatar->getEyePosition() + glm::quat(glm::radians(glm::vec3(0.0f, 30.0f, 0.0f))) * (0.65f * (myAvatar->getHeadOrientation() * Vectors::FRONT))));
-            props.insert("orientation", quatToVariant(myAvatar->getHeadOrientation() * glm::quat(glm::radians(glm::vec3(0.0f, 210.0f, 0.0f)))));
+            glm::quat cameraOrientation = qApp->getCamera().getOrientation();
+            props.insert("position", vec3toVariant(myAvatar->getEyePosition() + glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_OFFSET, 0.0f))) * (CONTEXT_OVERLAY_TABLET_DISTANCE * (cameraOrientation * Vectors::FRONT))));
+            props.insert("orientation", quatToVariant(cameraOrientation * glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_ORIENTATION, 0.0f)))));
             qApp->getOverlays().editOverlay(tabletFrameID, props);
             _contextOverlayJustClicked = false;
         }
@@ -49,6 +53,7 @@ ContextOverlayInterface::ContextOverlayInterface() {
 static const xColor BB_OVERLAY_COLOR = {255, 255, 0};
 static const uint32_t LEFT_HAND_HW_ID = 1;
 static const xColor CONTEXT_OVERLAY_COLOR = { 255, 255, 255 };
+static const float CONTEXT_OVERLAY_INSIDE_DISTANCE = 1.0f; // in meters
 static const float CONTEXT_OVERLAY_CLOSE_DISTANCE = 1.5f; // in meters
 static const float CONTEXT_OVERLAY_CLOSE_SIZE = 0.12f; // in meters, same x and y dims
 static const float CONTEXT_OVERLAY_FAR_SIZE = 0.08f; // in meters, same x and y dims
@@ -68,7 +73,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
         glm::vec3 dimensions = entityProperties.getDimensions();
         if (entityProperties.getRegistrationPoint() != glm::vec3(0.5f)) {
             glm::vec3 adjustPos = entityProperties.getRegistrationPoint() - glm::vec3(0.5f);
-            bbPosition = bbPosition - (entityProperties.getRotation() * (adjustPos*dimensions));
+            bbPosition = bbPosition - (entityProperties.getRotation() * (adjustPos * dimensions));
         }
         if (entityProperties.getMarketplaceID().length() != 0) {
             qCDebug(context_overlay) << "Creating Context Overlay on top of entity with ID: " << entityItemID;
@@ -84,7 +89,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _bbOverlayID = qApp->getOverlays().addOverlay(_bbOverlay);
             }
             _bbOverlay->setParentID(entityItemID);
-            _bbOverlay->setDimensions(entityProperties.getDimensions());
+            _bbOverlay->setDimensions(dimensions);
             _bbOverlay->setRotation(entityProperties.getRotation());
             _bbOverlay->setPosition(bbPosition);
             _bbOverlay->setVisible(true);
@@ -105,15 +110,11 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
             float distanceToEntity = glm::distance(bbPosition, cameraPosition);
             glm::vec3 contextOverlayPosition;
             glm::vec2 contextOverlayDimensions;
-            if (distanceToEntity > CONTEXT_OVERLAY_CLOSE_DISTANCE) {
-                auto direction = glm::normalize(bbPosition - cameraPosition);
-                PickRay pickRay(cameraPosition, direction);
-                _bbOverlay->setIgnoreRayIntersection(false);
-                auto result = qApp->getOverlays().findRayIntersection(pickRay);
-                _bbOverlay->setIgnoreRayIntersection(true);
-                contextOverlayPosition = result.intersection - direction * CONTEXT_OVERLAY_FAR_OFFSET;
-                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_FAR_SIZE, CONTEXT_OVERLAY_FAR_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
-            } else {
+            if (AABox(bbPosition - (dimensions / 2.0f), dimensions * 2.0f).contains(cameraPosition)) {
+                // If the camera is inside the box, position the context overlay 1 meter in front of the camera.
+                contextOverlayPosition = cameraPosition + CONTEXT_OVERLAY_INSIDE_DISTANCE * (qApp->getCamera().getOrientation() * Vectors::FRONT);
+                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_CLOSE_SIZE, CONTEXT_OVERLAY_CLOSE_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
+            } else if (distanceToEntity < CONTEXT_OVERLAY_CLOSE_DISTANCE) {
                 // If the entity is too close to the camera, rotate the context overlay to the right of the entity.
                 // This makes it easy to inspect things you're holding.
                 float offsetAngle = -CONTEXT_OVERLAY_CLOSE_OFFSET_ANGLE;
@@ -122,6 +123,14 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 }
                 contextOverlayPosition = (glm::quat(glm::radians(glm::vec3(0.0f, offsetAngle, 0.0f))) * (entityProperties.getPosition() - cameraPosition)) + cameraPosition;
                 contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_CLOSE_SIZE, CONTEXT_OVERLAY_CLOSE_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
+            } else {
+                auto direction = glm::normalize(bbPosition - cameraPosition);
+                PickRay pickRay(cameraPosition, direction);
+                _bbOverlay->setIgnoreRayIntersection(false);
+                auto result = qApp->getOverlays().findRayIntersection(pickRay);
+                _bbOverlay->setIgnoreRayIntersection(true);
+                contextOverlayPosition = result.intersection - direction * CONTEXT_OVERLAY_FAR_OFFSET;
+                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_FAR_SIZE, CONTEXT_OVERLAY_FAR_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
             }
             _contextOverlay->setPosition(contextOverlayPosition);
             _contextOverlay->setDimensions(contextOverlayDimensions);
