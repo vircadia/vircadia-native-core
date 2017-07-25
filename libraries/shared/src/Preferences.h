@@ -56,6 +56,7 @@ public:
         Checkbox,
         Button,
         ComboBox,
+        PrimaryHand,
         // Special casing for an unusual preference
         Avatar
     };
@@ -337,6 +338,14 @@ public:
     CheckPreference(const QString& category, const QString& name, Getter getter, Setter setter)
         : BoolPreference(category, name, getter, setter) { }
     Type getType() override { return Checkbox; }
+};
+
+class PrimaryHandPreference : public StringPreference {
+    Q_OBJECT
+public:
+    PrimaryHandPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : StringPreference(category, name, getter, setter) { }
+    Type getType() override { return PrimaryHand; }
 };
 
 #endif
