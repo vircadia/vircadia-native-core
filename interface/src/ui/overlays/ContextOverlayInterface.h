@@ -70,6 +70,9 @@ private:
     bool _contextOverlayJustClicked { false };
 
     void openMarketplace();
+
+    bool contextOverlayFilterPassed(const EntityItemID& entityItemID);
+    glm::vec3 drawOutlineOverlay(const EntityItemID& entityItemID);
 };
 
 #endif // hifi_ContextOverlayInterface_h

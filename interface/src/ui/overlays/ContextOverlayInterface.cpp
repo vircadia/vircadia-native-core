@@ -39,9 +39,9 @@ ContextOverlayInterface::ContextOverlayInterface() {
     connect(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"), &TabletProxy::tabletShownChanged, this, [&]() {
         if (_contextOverlayJustClicked && _hmdScriptingInterface->isMounted()) {
             QUuid tabletFrameID = _hmdScriptingInterface->getCurrentTabletFrameID();
-            QVariantMap props;
             auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
             glm::quat cameraOrientation = qApp->getCamera().getOrientation();
+            QVariantMap props;
             props.insert("position", vec3toVariant(myAvatar->getEyePosition() + glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_OFFSET, 0.0f))) * (CONTEXT_OVERLAY_TABLET_DISTANCE * (cameraOrientation * Vectors::FRONT))));
             props.insert("orientation", quatToVariant(cameraOrientation * glm::quat(glm::radians(glm::vec3(0.0f, CONTEXT_OVERLAY_TABLET_ORIENTATION, 0.0f)))));
             qApp->getOverlays().editOverlay(tabletFrameID, props);
@@ -68,32 +68,57 @@ static const float CONTEXT_OVERLAY_FAR_OFFSET = 0.1f;
 
 bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
     if (_enabled && event.getButton() == PointerEvent::SecondaryButton) {
-        EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
-        glm::vec3 bbPosition = entityProperties.getPosition();
-        glm::vec3 dimensions = entityProperties.getDimensions();
-        if (entityProperties.getRegistrationPoint() != glm::vec3(0.5f)) {
-            glm::vec3 adjustPos = entityProperties.getRegistrationPoint() - glm::vec3(0.5f);
-            bbPosition = bbPosition - (entityProperties.getRotation() * (adjustPos * dimensions));
-        }
-        if (entityProperties.getMarketplaceID().length() != 0) {
+        if (contextOverlayFilterPassed(entityItemID)) {
             qCDebug(context_overlay) << "Creating Context Overlay on top of entity with ID: " << entityItemID;
+
+            // Add all necessary variables to the stack
+            EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
+            glm::vec3 cameraPosition = qApp->getCamera().getPosition();
+            float distanceFromCameraToEntity = glm::distance(entityProperties.getPosition(), cameraPosition);
+            glm::vec3 entityDimensions = entityProperties.getDimensions();
+            glm::vec3 contextOverlayPosition;
+            glm::vec2 contextOverlayDimensions;
+
+            // Draw the outline overlay
+            // This also gives us the centerpoint of the entity even if
+            // the the entity doesn't use the default registration point.
+            glm::vec3 entityCenterPoint = drawOutlineOverlay(entityItemID);
+
+            // Update the cached Entity Marketplace ID
             _entityMarketplaceID = entityProperties.getMarketplaceID();
+
+            // Update the cached "Current Entity with Context Overlay" variable
             setCurrentEntityWithContextOverlay(entityItemID);
 
-            if (_bbOverlayID == UNKNOWN_OVERLAY_ID || !qApp->getOverlays().isAddedOverlay(_bbOverlayID)) {
-                _bbOverlay = std::make_shared<Cube3DOverlay>();
-                _bbOverlay->setIsSolid(false);
-                _bbOverlay->setColor(BB_OVERLAY_COLOR);
-                _bbOverlay->setDrawInFront(true);
+            // Here, we determine the position and dimensions of the Context Overlay.
+            if (AABox(entityCenterPoint - (entityDimensions / 2.0f), entityDimensions * 2.0f).contains(cameraPosition)) {
+                // If the camera is inside the box...
+                // ...position the Context Overlay 1 meter in front of the camera.
+                contextOverlayPosition = cameraPosition + CONTEXT_OVERLAY_INSIDE_DISTANCE * (qApp->getCamera().getOrientation() * Vectors::FRONT);
+                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_CLOSE_SIZE, CONTEXT_OVERLAY_CLOSE_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
+            } else if (distanceFromCameraToEntity < CONTEXT_OVERLAY_CLOSE_DISTANCE) {
+                // Else if the entity is too close to the camera...
+                // ...rotate the Context Overlay to the right of the entity.
+                // This makes it easy to inspect things you're holding.
+                float offsetAngle = -CONTEXT_OVERLAY_CLOSE_OFFSET_ANGLE;
+                if (event.getID() == LEFT_HAND_HW_ID) {
+                    offsetAngle *= -1;
+                }
+                contextOverlayPosition = (glm::quat(glm::radians(glm::vec3(0.0f, offsetAngle, 0.0f))) * (entityProperties.getPosition() - cameraPosition)) + cameraPosition;
+                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_CLOSE_SIZE, CONTEXT_OVERLAY_CLOSE_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
+            } else {
+                // Else, place the Context Overlay some offset away from the entity's bounding
+                // box in the direction of the camera.
+                auto direction = glm::normalize(entityProperties.getPosition() - cameraPosition);
+                PickRay pickRay(cameraPosition, direction);
+                _bbOverlay->setIgnoreRayIntersection(false);
+                auto result = qApp->getOverlays().findRayIntersection(pickRay);
                 _bbOverlay->setIgnoreRayIntersection(true);
-                _bbOverlayID = qApp->getOverlays().addOverlay(_bbOverlay);
+                contextOverlayPosition = result.intersection - direction * CONTEXT_OVERLAY_FAR_OFFSET;
+                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_FAR_SIZE, CONTEXT_OVERLAY_FAR_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
             }
-            _bbOverlay->setParentID(entityItemID);
-            _bbOverlay->setDimensions(dimensions);
-            _bbOverlay->setRotation(entityProperties.getRotation());
-            _bbOverlay->setPosition(bbPosition);
-            _bbOverlay->setVisible(true);
 
+            // Finally, setup and draw the Context Overlay
             if (_contextOverlayID == UNKNOWN_OVERLAY_ID || !qApp->getOverlays().isAddedOverlay(_contextOverlayID)) {
                 _contextOverlay = std::make_shared<Image3DOverlay>();
                 _contextOverlay->setAlpha(CONTEXT_OVERLAY_UNHOVERED_ALPHA);
@@ -106,36 +131,11 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 _contextOverlay->setIsFacingAvatar(true);
                 _contextOverlayID = qApp->getOverlays().addOverlay(_contextOverlay);
             }
-            glm::vec3 cameraPosition = qApp->getCamera().getPosition();
-            float distanceToEntity = glm::distance(bbPosition, cameraPosition);
-            glm::vec3 contextOverlayPosition;
-            glm::vec2 contextOverlayDimensions;
-            if (AABox(bbPosition - (dimensions / 2.0f), dimensions * 2.0f).contains(cameraPosition)) {
-                // If the camera is inside the box, position the context overlay 1 meter in front of the camera.
-                contextOverlayPosition = cameraPosition + CONTEXT_OVERLAY_INSIDE_DISTANCE * (qApp->getCamera().getOrientation() * Vectors::FRONT);
-                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_CLOSE_SIZE, CONTEXT_OVERLAY_CLOSE_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
-            } else if (distanceToEntity < CONTEXT_OVERLAY_CLOSE_DISTANCE) {
-                // If the entity is too close to the camera, rotate the context overlay to the right of the entity.
-                // This makes it easy to inspect things you're holding.
-                float offsetAngle = -CONTEXT_OVERLAY_CLOSE_OFFSET_ANGLE;
-                if (event.getID() == LEFT_HAND_HW_ID) {
-                    offsetAngle *= -1;
-                }
-                contextOverlayPosition = (glm::quat(glm::radians(glm::vec3(0.0f, offsetAngle, 0.0f))) * (entityProperties.getPosition() - cameraPosition)) + cameraPosition;
-                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_CLOSE_SIZE, CONTEXT_OVERLAY_CLOSE_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
-            } else {
-                auto direction = glm::normalize(bbPosition - cameraPosition);
-                PickRay pickRay(cameraPosition, direction);
-                _bbOverlay->setIgnoreRayIntersection(false);
-                auto result = qApp->getOverlays().findRayIntersection(pickRay);
-                _bbOverlay->setIgnoreRayIntersection(true);
-                contextOverlayPosition = result.intersection - direction * CONTEXT_OVERLAY_FAR_OFFSET;
-                contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_FAR_SIZE, CONTEXT_OVERLAY_FAR_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
-            }
             _contextOverlay->setPosition(contextOverlayPosition);
             _contextOverlay->setDimensions(contextOverlayDimensions);
             _contextOverlay->setRotation(entityProperties.getRotation());
             _contextOverlay->setVisible(true);
+
             return true;
         }
     } else {
@@ -144,17 +144,51 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
     return false;
 }
 
+bool ContextOverlayInterface::contextOverlayFilterPassed(const EntityItemID& entityItemID) {
+    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
+    return (entityProperties.getMarketplaceID().length() != 0);
+}
+
+glm::vec3 ContextOverlayInterface::drawOutlineOverlay(const EntityItemID& entityItemID) {
+    EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(entityItemID, _entityPropertyFlags);
+    glm::vec3 bbPosition = entityProperties.getPosition();
+    if (entityProperties.getRegistrationPoint() != glm::vec3(0.5f)) {
+        glm::vec3 adjustPos = entityProperties.getRegistrationPoint() - glm::vec3(0.5f);
+        bbPosition = bbPosition - (entityProperties.getRotation() * (adjustPos * entityProperties.getDimensions()));
+    }
+
+    // Setup and draw the bounding box around the entity
+    if (_bbOverlayID == UNKNOWN_OVERLAY_ID || !qApp->getOverlays().isAddedOverlay(_bbOverlayID)) {
+        _bbOverlay = std::make_shared<Cube3DOverlay>();
+        _bbOverlay->setIsSolid(false);
+        _bbOverlay->setColor(BB_OVERLAY_COLOR);
+        _bbOverlay->setDrawInFront(true);
+        _bbOverlay->setIgnoreRayIntersection(true);
+        _bbOverlayID = qApp->getOverlays().addOverlay(_bbOverlay);
+    }
+    _bbOverlay->setParentID(entityItemID);
+    _bbOverlay->setDimensions(entityProperties.getDimensions());
+    _bbOverlay->setRotation(entityProperties.getRotation());
+    _bbOverlay->setPosition(bbPosition);
+    _bbOverlay->setVisible(true);
+    // This returned position should always be the center of the entity
+    // even if the registration point isn't the default.
+    return bbPosition;
+}
+
 bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
     if (_contextOverlayID != UNKNOWN_OVERLAY_ID) {
         qCDebug(context_overlay) << "Destroying Context Overlay on top of entity with ID: " << entityItemID;
         setCurrentEntityWithContextOverlay(QUuid());
-        qApp->getOverlays().deleteOverlay(_contextOverlayID);
-        qApp->getOverlays().deleteOverlay(_bbOverlayID);
-        _contextOverlay = NULL;
-        _bbOverlay = NULL;
-        _contextOverlayID = UNKNOWN_OVERLAY_ID;
-        _bbOverlayID = UNKNOWN_OVERLAY_ID;
         _entityMarketplaceID.clear();
+        // Destroy the Context Overlay
+        qApp->getOverlays().deleteOverlay(_contextOverlayID);
+        _contextOverlay = NULL;
+        _contextOverlayID = UNKNOWN_OVERLAY_ID;
+        // Destroy the outline overlay
+        qApp->getOverlays().deleteOverlay(_bbOverlayID);
+        _bbOverlay = NULL;
+        _bbOverlayID = UNKNOWN_OVERLAY_ID;
         return true;
     }
     return false;
