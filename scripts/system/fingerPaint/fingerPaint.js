@@ -27,6 +27,7 @@
         rightBrush = null,
         isBrushColored = false,
         isLeftHandDominant = false,
+        isMouseDrawing = false,
         savedSettings = null,
         CONTROLLER_MAPPING_NAME = "com.highfidelity.fingerPaint",
         isTabletDisplayed = false,
@@ -45,11 +46,11 @@
     //var window = null;
 
     //var inkSource = null;
-	var inkSourceOverlay = null;
-	// Set path for finger paint hand animations 
-	var RIGHT_ANIM_URL = Script.resourcesPath() + 'avatar/animations/touch_point_closed_right.fbx';
+    var inkSourceOverlay = null;
+    // Set path for finger paint hand animations 
+    var RIGHT_ANIM_URL = Script.resourcesPath() + 'avatar/animations/touch_point_closed_right.fbx';
     var LEFT_ANIM_URL = Script.resourcesPath() + 'avatar/animations/touch_point_closed_left.fbx';
-	var RIGHT_ANIM_URL_OPEN = Script.resourcesPath() + 'avatar/animations/touch_point_open_right.fbx';
+    var RIGHT_ANIM_URL_OPEN = Script.resourcesPath() + 'avatar/animations/touch_point_open_right.fbx';
     var LEFT_ANIM_URL_OPEN = Script.resourcesPath() + 'avatar/animations/touch_point_open_left.fbx'; 
 
     function paintBrush(name) {
@@ -66,10 +67,10 @@
             strokeNormals,
             strokeWidths,
             timeOfLastPoint,
-            texture = savedSettings.currentTexture,
+            texture = CONTENT_PATH + "/" + savedSettings.currentTexture.brushName,
             //'https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Caris_Tessellation.svg/1024px-Caris_Tessellation.svg.png', // Daantje
-            strokeWidthMultiplier = savedSettings.currentStrokeWidth,
-			IS_UV_MODE_STRETCH = true,
+            strokeWidthMultiplier = savedSettings.currentStrokeWidth * 2 + 0.1,
+            IS_UV_MODE_STRETCH = savedSettings.currentTexture.brushType == "stretch",
             MIN_STROKE_LENGTH = 0.005,  // m
             MIN_STROKE_INTERVAL = 66,  // ms
             MAX_POINTS_PER_LINE = 70;  // Hard-coded limit in PolyLineEntityItem.h.
@@ -101,8 +102,8 @@
         function setTriggerPressureWidthEnabled(isEnabled) {
             isTriggerPressureWidthEnabled = isEnabled;
         }
-		
-		function changeUVMode(isUVModeStretch) {
+        
+        function changeUVMode(isUVModeStretch) {
             IS_UV_MODE_STRETCH = isUVModeStretch;
         }
         
@@ -113,7 +114,7 @@
         function getEntityID() {
             return entityID;
         }
-		        
+                
         function changeTexture(textureURL) {
             texture = textureURL;
         }
@@ -161,10 +162,8 @@
                 normals: strokeNormals,
                 strokeWidths: strokeWidths,
                 textures: texture, // Daantje
-				isUVModeStretch: IS_UV_MODE_STRETCH,
+                isUVModeStretch: IS_UV_MODE_STRETCH,
                 dimensions: STROKE_DIMENSIONS,
-                shapeType: "box",
-                collisionless: true,
             });
             isDrawingLine = true;
             addAnimationToBrush(entityID);
@@ -206,6 +205,8 @@
                     normals: strokeNormals,
                     strokeWidths: strokeWidths
                 });
+
+                print(JSON.stringify(Entities.getEntityProperties(entityID)));
             }
         }
 
@@ -309,7 +310,7 @@
             getStrokeColor: getStrokeColor,
             getStrokeWidth: getStrokeWidth,
             getEntityID: getEntityID,
-			changeUVMode: changeUVMode,
+            changeUVMode: changeUVMode,
             setTriggerPressureWidthEnabled: setTriggerPressureWidthEnabled
         };
     }
@@ -562,7 +563,7 @@
             //Entities
             //if (inkSource){
             //    Entities.deleteEntity(inkSource);
-			//	inkSource = null;
+            //    inkSource = null;
             //}
         }
 
@@ -601,86 +602,86 @@
             pointIndex: !enabled
         }), true);
     }
-	
-	function updateHandAnimations(){
-		var ANIM_URL = (isLeftHandDominant? LEFT_ANIM_URL: RIGHT_ANIM_URL );
-		var ANIM_OPEN = (isLeftHandDominant? LEFT_ANIM_URL_OPEN: RIGHT_ANIM_URL_OPEN );
-		var handLiteral = (isLeftHandDominant? "left": "right" );
+    
+    function updateHandAnimations(){
+        var ANIM_URL = (isLeftHandDominant? LEFT_ANIM_URL: RIGHT_ANIM_URL );
+        var ANIM_OPEN = (isLeftHandDominant? LEFT_ANIM_URL_OPEN: RIGHT_ANIM_URL_OPEN );
+        var handLiteral = (isLeftHandDominant? "left": "right" );
 
-		//Clear previous hand animation override
-		restoreAllHandAnimations();
-		
-		//"rightHandGraspOpen","rightHandGraspClosed",
-		MyAvatar.overrideRoleAnimation(handLiteral + "HandGraspOpen", ANIM_OPEN, 30, false, 19, 20);
-		MyAvatar.overrideRoleAnimation(handLiteral + "HandGraspClosed", ANIM_URL, 30, false, 19, 20);
+        //Clear previous hand animation override
+        restoreAllHandAnimations();
+        
+        //"rightHandGraspOpen","rightHandGraspClosed",
+        MyAvatar.overrideRoleAnimation(handLiteral + "HandGraspOpen", ANIM_OPEN, 30, false, 19, 20);
+        MyAvatar.overrideRoleAnimation(handLiteral + "HandGraspClosed", ANIM_URL, 30, false, 19, 20);
 
-		//"rightIndexPointOpen","rightIndexPointClosed",
-		MyAvatar.overrideRoleAnimation(handLiteral + "IndexPointOpen", ANIM_OPEN, 30, false, 19, 20);
-		MyAvatar.overrideRoleAnimation(handLiteral + "IndexPointClosed", ANIM_URL, 30, false, 19, 20);
+        //"rightIndexPointOpen","rightIndexPointClosed",
+        MyAvatar.overrideRoleAnimation(handLiteral + "IndexPointOpen", ANIM_OPEN, 30, false, 19, 20);
+        MyAvatar.overrideRoleAnimation(handLiteral + "IndexPointClosed", ANIM_URL, 30, false, 19, 20);
 
-		//"rightThumbRaiseOpen","rightThumbRaiseClosed",
-		MyAvatar.overrideRoleAnimation(handLiteral + "ThumbRaiseOpen", ANIM_OPEN, 30, false, 19, 20);
-		MyAvatar.overrideRoleAnimation(handLiteral + "ThumbRaiseClosed", ANIM_URL, 30, false, 19, 20);
+        //"rightThumbRaiseOpen","rightThumbRaiseClosed",
+        MyAvatar.overrideRoleAnimation(handLiteral + "ThumbRaiseOpen", ANIM_OPEN, 30, false, 19, 20);
+        MyAvatar.overrideRoleAnimation(handLiteral + "ThumbRaiseClosed", ANIM_URL, 30, false, 19, 20);
 
-		//"rightIndexPointAndThumbRaiseOpen","rightIndexPointAndThumbRaiseClosed", 
-		MyAvatar.overrideRoleAnimation(handLiteral + "IndexPointAndThumbRaiseOpen", ANIM_OPEN, 30, false, 19, 20);
-		MyAvatar.overrideRoleAnimation(handLiteral + "IndexPointAndThumbRaiseClosed", ANIM_URL, 30, false, 19, 20);
-		
-		//turn off lasers and other interactions
-		Messages.sendLocalMessage("Hifi-Hand-Disabler", "none");
-		Messages.sendLocalMessage("Hifi-Hand-Disabler", handLiteral);
-		
-		
-		
-		//update ink Source
+        //"rightIndexPointAndThumbRaiseOpen","rightIndexPointAndThumbRaiseClosed", 
+        MyAvatar.overrideRoleAnimation(handLiteral + "IndexPointAndThumbRaiseOpen", ANIM_OPEN, 30, false, 19, 20);
+        MyAvatar.overrideRoleAnimation(handLiteral + "IndexPointAndThumbRaiseClosed", ANIM_URL, 30, false, 19, 20);
+        
+        //turn off lasers and other interactions
+        Messages.sendLocalMessage("Hifi-Hand-Disabler", "none");
+        Messages.sendLocalMessage("Hifi-Hand-Disabler", handLiteral);
+        
+        
+        
+        //update ink Source
         var strokeColor = leftBrush.getStrokeColor();
         var strokeWidth = leftBrush.getStrokeWidth()*0.06;
-		if (inkSourceOverlay == null){
-			inkSourceOverlay = Overlays.addOverlay("sphere", { parentID: MyAvatar.sessionUUID, parentJointIndex: MyAvatar.getJointIndex(handLiteral === "left" ? "LeftHandIndex4" : "RightHandIndex4"), localPosition: { x: 0, y: 0, z: 0 }, size: strokeWidth, color: strokeColor , solid: true });
-		} else {
-			Overlays.editOverlay(inkSourceOverlay, {
+        if (inkSourceOverlay == null){
+            inkSourceOverlay = Overlays.addOverlay("sphere", { parentID: MyAvatar.sessionUUID, parentJointIndex: MyAvatar.getJointIndex(handLiteral === "left" ? "LeftHandIndex4" : "RightHandIndex4"), localPosition: { x: 0, y: 0, z: 0 }, size: strokeWidth, color: strokeColor , solid: true });
+        } else {
+            Overlays.editOverlay(inkSourceOverlay, {
                 parentJointIndex: MyAvatar.getJointIndex(handLiteral === "left" ? "LeftHandIndex4" : "RightHandIndex4"),
-				localPosition: { x: 0, y: 0, z: 0 },
-				size: strokeWidth, 
-				color: strokeColor 
+                localPosition: { x: 0, y: 0, z: 0 },
+                size: strokeWidth, 
+                color: strokeColor 
             });
-		}
+        }
 
-	}
-	
-	function restoreAllHandAnimations(){
-		//"rightHandGraspOpen","rightHandGraspClosed",
-		MyAvatar.restoreRoleAnimation("rightHandGraspOpen");
-		MyAvatar.restoreRoleAnimation("rightHandGraspClosed");
+    }
+    
+    function restoreAllHandAnimations(){
+        //"rightHandGraspOpen","rightHandGraspClosed",
+        MyAvatar.restoreRoleAnimation("rightHandGraspOpen");
+        MyAvatar.restoreRoleAnimation("rightHandGraspClosed");
 
-		//"rightIndexPointOpen","rightIndexPointClosed",
-		MyAvatar.restoreRoleAnimation("rightIndexPointOpen");
-		MyAvatar.restoreRoleAnimation("rightIndexPointClosed");
+        //"rightIndexPointOpen","rightIndexPointClosed",
+        MyAvatar.restoreRoleAnimation("rightIndexPointOpen");
+        MyAvatar.restoreRoleAnimation("rightIndexPointClosed");
 
-		//"rightThumbRaiseOpen","rightThumbRaiseClosed",
-		MyAvatar.restoreRoleAnimation("rightThumbRaiseOpen");
-		MyAvatar.restoreRoleAnimation("rightThumbRaiseClosed");
+        //"rightThumbRaiseOpen","rightThumbRaiseClosed",
+        MyAvatar.restoreRoleAnimation("rightThumbRaiseOpen");
+        MyAvatar.restoreRoleAnimation("rightThumbRaiseClosed");
 
-		//"rightIndexPointAndThumbRaiseOpen","rightIndexPointAndThumbRaiseClosed", 
-		MyAvatar.restoreRoleAnimation("rightIndexPointAndThumbRaiseOpen");
-		MyAvatar.restoreRoleAnimation("rightIndexPointAndThumbRaiseClosed");
-		
-		//"leftHandGraspOpen","leftHandGraspClosed",
-		MyAvatar.restoreRoleAnimation("leftHandGraspOpen");
-		MyAvatar.restoreRoleAnimation("leftHandGraspClosed");
+        //"rightIndexPointAndThumbRaiseOpen","rightIndexPointAndThumbRaiseClosed", 
+        MyAvatar.restoreRoleAnimation("rightIndexPointAndThumbRaiseOpen");
+        MyAvatar.restoreRoleAnimation("rightIndexPointAndThumbRaiseClosed");
+        
+        //"leftHandGraspOpen","leftHandGraspClosed",
+        MyAvatar.restoreRoleAnimation("leftHandGraspOpen");
+        MyAvatar.restoreRoleAnimation("leftHandGraspClosed");
 
-		//"leftIndexPointOpen","leftIndexPointClosed",
-		MyAvatar.restoreRoleAnimation("leftIndexPointOpen");
-		MyAvatar.restoreRoleAnimation("leftIndexPointClosed");
+        //"leftIndexPointOpen","leftIndexPointClosed",
+        MyAvatar.restoreRoleAnimation("leftIndexPointOpen");
+        MyAvatar.restoreRoleAnimation("leftIndexPointClosed");
 
-		//"leftThumbRaiseOpen","leftThumbRaiseClosed",
-		MyAvatar.restoreRoleAnimation("leftThumbRaiseOpen");
-		MyAvatar.restoreRoleAnimation("leftThumbRaiseClosed");
+        //"leftThumbRaiseOpen","leftThumbRaiseClosed",
+        MyAvatar.restoreRoleAnimation("leftThumbRaiseOpen");
+        MyAvatar.restoreRoleAnimation("leftThumbRaiseClosed");
 
-		//"leftIndexPointAndThumbRaiseOpen","leftIndexPointAndThumbRaiseClosed", 
-		MyAvatar.restoreRoleAnimation("leftIndexPointAndThumbRaiseOpen");
-		MyAvatar.restoreRoleAnimation("leftIndexPointAndThumbRaiseClosed");
-	}
+        //"leftIndexPointAndThumbRaiseOpen","leftIndexPointAndThumbRaiseClosed", 
+        MyAvatar.restoreRoleAnimation("leftIndexPointAndThumbRaiseOpen");
+        MyAvatar.restoreRoleAnimation("leftIndexPointAndThumbRaiseClosed");
+    }
 
     function pauseProcessing() {
         //Script.update.disconnect(leftHand.onUpdate);
@@ -708,15 +709,18 @@
         Messages.subscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
         Messages.subscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
     }
-	
+    
     function enableProcessing() {
         // Connect controller API to handController objects.
         leftHand = handController("left");
         rightHand = handController("right");
-		
-		
-		
-		
+        
+          // Connect handController outputs to paintBrush objects.
+        leftBrush = paintBrush("left");
+        leftHand.setUp(leftBrush.startLine, leftBrush.drawLine, leftBrush.finishLine, leftBrush.eraseClosestLine);
+        rightBrush = paintBrush("right");
+        rightHand.setUp(rightBrush.startLine, rightBrush.drawLine, rightBrush.finishLine, rightBrush.eraseClosestLine);
+
         var controllerMapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
         controllerMapping.from(Controller.Standard.LT).to(leftHand.onTriggerPress);
         controllerMapping.from(Controller.Standard.LeftGrip).to(leftHand.onGripPress);
@@ -724,15 +728,9 @@
         controllerMapping.from(Controller.Standard.RightGrip).to(rightHand.onGripPress);
         Controller.enableMapping(CONTROLLER_MAPPING_NAME);
 
-        // Connect handController outputs to paintBrush objects.
-        leftBrush = paintBrush("left");
-        leftHand.setUp(leftBrush.startLine, leftBrush.drawLine, leftBrush.finishLine, leftBrush.eraseClosestLine);
-        rightBrush = paintBrush("right");
-        rightHand.setUp(rightBrush.startLine, rightBrush.drawLine, rightBrush.finishLine, rightBrush.eraseClosestLine);
-
-		//Change to finger paint hand animation
-		updateHandAnimations();
-		
+        //Change to finger paint hand animation
+        updateHandAnimations();
+        
         // Messages channels for enabling/disabling other scripts' functions.
         Messages.subscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
         Messages.subscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
@@ -742,7 +740,7 @@
         Script.update.connect(leftHand.onUpdate);
         Script.update.connect(rightHand.onUpdate);
         
-		
+        
         // enable window palette
         /*window = new OverlayWindow({
             title: 'Paint Window',
@@ -761,8 +759,8 @@
             if (message[0] === "color"){
                 leftBrush.changeStrokeColor(message[1], message[2], message[3]);
                 rightBrush.changeStrokeColor(message[1], message[2], message[3]);
-				Overlays.editOverlay(inkSourceOverlay, {
-				    color: {red: message[1], green: message[2], blue: message[3]} 
+                Overlays.editOverlay(inkSourceOverlay, {
+                    color: {red: message[1], green: message[2], blue: message[3]} 
                 });
                 return;
             }
@@ -773,9 +771,9 @@
                 //var dim2 = Math.floor( Math.random()*40 + 5);
                 leftBrush.changeStrokeWidthMultiplier(dim);
                 rightBrush.changeStrokeWidthMultiplier(dim);
-				Overlays.editOverlay(inkSourceOverlay, {
-				    size: dim * 0.06 
-				
+                Overlays.editOverlay(inkSourceOverlay, {
+                    size: dim * 0.06 
+                
                 });
                 return;
             }
@@ -785,17 +783,17 @@
                 //var dim2 = Math.floor( Math.random()*40 + 5);
                 leftBrush.changeTexture(message[1]);
                 rightBrush.changeTexture(message[1]);
-				
-				if (message[1] === "content/brushes/paintbrush1.png") {
-					leftBrush.changeUVMode(true);
-					rightBrush.changeUVMode(true);
-				}else if (message[1] === "content/brushes/paintbrush3.png") {
-					leftBrush.changeUVMode(true);
-					rightBrush.changeUVMode(true);
-				}else{
-					leftBrush.changeUVMode(false);
-					rightBrush.changeUVMode(false);
-				}
+                
+                if (message[1] === "content/brushes/paintbrush1.png") {
+                    leftBrush.changeUVMode(true);
+                    rightBrush.changeUVMode(true);
+                }else if (message[1] === "content/brushes/paintbrush3.png") {
+                    leftBrush.changeUVMode(true);
+                    rightBrush.changeUVMode(true);
+                }else{
+                    leftBrush.changeUVMode(false);
+                    rightBrush.changeUVMode(false);
+                }
                 return;
             }
             if (message[0] === "undo"){
@@ -805,7 +803,7 @@
             }
             if (message[0] === "hand"){
                 isLeftHandDominant = !isLeftHandDominant;
-				updateHandAnimations();
+                updateHandAnimations();
                 return;
             }
         });*/ //uncomment for qml interface
@@ -817,8 +815,8 @@
 
         Controller.disableMapping(CONTROLLER_MAPPING_NAME);
 
-		Messages.sendLocalMessage("Hifi-Hand-Disabler", "none");
-		
+        Messages.sendLocalMessage("Hifi-Hand-Disabler", "none");
+        
         leftBrush.tearDown();
         leftBrush = null;
         leftHand.tearDown();
@@ -833,14 +831,14 @@
         Messages.unsubscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
         Messages.unsubscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
         
-		
-		//Restores and clears hand animations
-		restoreAllHandAnimations();
-		
-		//clears Overlay sphere
-		Overlays.deleteOverlay(inkSourceOverlay);
-		inkSourceOverlay = null;
-		
+        
+        //Restores and clears hand animations
+        restoreAllHandAnimations();
+        
+        //clears Overlay sphere
+        Overlays.deleteOverlay(inkSourceOverlay);
+        inkSourceOverlay = null;
+        
         // disable window palette
         //window.close(); //uncomment for qml interface
     }
@@ -856,18 +854,18 @@
         savedSettings.customColors = Settings.getValue("customColors", []);
         savedSettings.currentTab = Settings.getValue("currentTab", 0);
         savedSettings.currentTriggerWidthEnabled = Settings.getValue("currentTriggerWidthEnabled", true);
-
-        print("Restoring data: " + JSON.stringify(savedSettings));
         isLeftHandDominant = savedSettings.currentDrawingHand;
     }
 
     function onButtonClicked() {
         restoreLastValues();
-
         isTabletFocused = false; //should always start false so onUpdate updates this variable to true in the beggining
         var wasFingerPainting = isFingerPainting;
 
         isFingerPainting = !isFingerPainting;
+        if (!isFingerPainting) {
+            tablet.gotoHomeScreen();
+        }
         button.editProperties({ isActive: isFingerPainting });
 
         print("Finger painting: " + isFingerPainting ? "on" : "off");
@@ -878,10 +876,9 @@
         }
 
         if (isFingerPainting) {
-        	tablet.gotoWebScreen(APP_URL);
+            tablet.gotoWebScreen(APP_URL + "?" + encodeURIComponent(JSON.stringify(savedSettings)));
             enableProcessing();
         }
-
         updateHandFunctions();
 
         if (!isFingerPainting) {
@@ -913,15 +910,12 @@
             event = JSON.parse(event);
         }
         switch (event.type) {
-            case "ready":
-                //print("Setting up the tablet");
-                tablet.emitScriptEvent(JSON.stringify(savedSettings));
-                break;
             case "changeTab":
                 Settings.setValue("currentTab", event.currentTab);
                 break;
             case "changeColor":
                 if (!isBrushColored) {
+                    print("HMD ACTIVE: " + HMD.active);
                     Settings.setValue("currentColor", event);
                     //print("changing color...");
                     leftBrush.changeStrokeColor(event.red, event.green, event.blue);
@@ -989,11 +983,10 @@
 
             case "undo":
                 //print("Going to undo");
-                /**
-                The undo is called only on the right brush because the undo stack is global, meaning that
-                calling undoErasing on both the left and right brush would cause the stack to pop twice.
-                Using the leftBrush instead of the rightBrush would have the exact same effect.
-                */
+                
+                //The undo is called only on the right brush because the undo stack is global, meaning that
+                //calling undoErasing on both the left and right brush would cause the stack to pop twice.
+                //Using the leftBrush instead of the rightBrush would have the exact same effect.
                 rightBrush.undoErasing();
                 break;
 
@@ -1023,21 +1016,19 @@
     }    
 
     function addAnimationToBrush(entityID) {
-            //print("Brushes INfo 0" + JSON.stringify(DynamicBrushesInfo));
-            Object.keys(DynamicBrushesInfo).forEach(function(animationName) {
-                print(animationName + "Brushes INfo 0" + JSON.stringify(DynamicBrushesInfo));
-                if (DynamicBrushesInfo[animationName].isEnabled) {
-                    var prevUserData = Entities.getEntityProperties(entityID).userData;
-                    prevUserData = prevUserData == "" ? new Object() : JSON.parse(prevUserData); //preserve other possible user data
-                    if (prevUserData.animations == null) {
-                        prevUserData.animations = {};
-                    }
-                    prevUserData.animations[animationName] = dynamicBrushFactory(animationName, DynamicBrushesInfo[animationName].settings);
-                    Entities.editEntity(entityID, {userData: JSON.stringify(prevUserData)});    
-                    //Entities.editEntity(entityID, {script: Script.resolvePath("content/brushes/dynamicBrushes/dynamicBrushScript.js")});    
+        Object.keys(DynamicBrushesInfo).forEach(function(animationName) {
+            print(animationName + "Brushes INfo 0" + JSON.stringify(DynamicBrushesInfo));
+            if (DynamicBrushesInfo[animationName].isEnabled) {
+                var prevUserData = Entities.getEntityProperties(entityID).userData;
+                prevUserData = prevUserData == "" ? new Object() : JSON.parse(prevUserData); //preserve other possible user data
+                if (prevUserData.animations == null) {
+                    prevUserData.animations = {};
                 }
-            });
-            //print("Brushes INfo 1" + JSON.stringify(DynamicBrushesInfo));
+                prevUserData.animations[animationName] = dynamicBrushFactory(animationName, DynamicBrushesInfo[animationName].settings);
+                Entities.editEntity(entityID, {userData: JSON.stringify(prevUserData)});    
+                //Entities.editEntity(entityID, {script: Script.resolvePath("content/brushes/dynamicBrushes/dynamicBrushScript.js")});    
+            }
+        });
     }
 
     function addElementToUndoStack(item)
@@ -1083,6 +1074,57 @@
         button.clicked.disconnect(onButtonClicked);
         tablet.removeButton(button);
     }
+   
+    function getFingerPosition(x, y) {
+        var pickRay = Camera.computePickRay(x, y);
+        return Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, 5));
+    }
+
+    Controller.mouseMoveEvent.connect(function(event){
+        if (rightBrush && rightBrush.isDrawing()) {
+            rightBrush.drawLine(getFingerPosition(event.x, event.y), 0.03);
+        }
+    });
+
+    Controller.mousePressEvent.connect(function(event){
+        print(JSON.stringify(event));
+        if (event.isLeftButton) {
+            rightBrush.startLine(getFingerPosition(event.x, event.y), 0.03);
+
+        } else if (event.isMiddleButton) {
+            //delete first line in sight
+            //var pickRay = getFingerPosition(event.x, event.y);
+            entities = Entities.findEntities(MyAvatar.position, 10);
+            // Fine polyline entity with closest point within search radius.
+            for (i = 0, entitiesLength = entities.length; i < entitiesLength; i += 1) {
+                print("NEAR ENTITIES: " + JSON.stringify(Entities.getEntityProperties(entities[i])));
+            }
+
+            var pickRay = Camera.computePickRay(event.x, event.y);
+            var entityToDelete = Entities.findRayIntersection(pickRay, false, [Entities.findEntities(MyAvatar.position, 1000)], []);
+            print("Entity to DELETE: " + JSON.stringify(entityToDelete));
+
+              var line3d = Overlays.addOverlay("line3d", {
+                    start: pickRay.origin, 
+                    end: Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, 100)),
+                    color: { red: 255, green: 0, blue: 255},
+                    lineWidth: 5
+                });
+            if (entityToDelete.intersects) {
+                print("Entity to DELETE Properties: " + JSON.stringify(Entities.getEntityProperties(entityToDelete.entityID)));
+                //Entities.deleteEntity(entityToDelete.entityID);
+              
+            }
+        }
+       
+    });
+
+    Controller.mouseReleaseEvent.connect(function(event){
+        isMouseDrawing = false;
+        if (rightBrush && rightBrush.isDrawing()) {
+            rightBrush.finishLine(getFingerPosition(event.x, event.y), 0.03);
+        }
+    });
 
     setUp();
     Script.scriptEnding.connect(tearDown);    

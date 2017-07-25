@@ -1,9 +1,10 @@
 <!--Note: change the parent postmessage second parameter due to possible security issues-->
 <link rel="stylesheet" type="text/css" href="../../html/css/edit-style.css">
+<script src="../../html/js/jquery-2.1.4.min.js"></script>
 
 <style>
 .brushButton {
-	width: 66px;
+    width: 66px;
     background-color: #2e2e2e;
     border:none;
     margin: 1px 0px;
@@ -56,11 +57,12 @@
 
 
 </style>
+
 <div class="behavior-group property checkbox">
     <input onchange="setDynamicBrush(this)" animationType="DynamicHueBrush" type="checkbox" id="dynamicBrush"></input>
     <label for="dynamicBrush">Use Dynamic Hue </label>
 </div>
-<div>
+<!--<div>
     <div style="float: left; margin-right: 20px">
         <div class="behavior-group property checkbox">
             <input onchange="setDynamicBrush(this)" animationType="DynamicRotationBrush" type="checkbox" id="yawRotationBrush"></input>
@@ -89,7 +91,7 @@
             <label for="zTranslationBrush">Use Translation z</label>
         </div>
     </div>
-</div>
+</div>-->
 
 
 <div id="brushesCointainer">
@@ -615,7 +617,6 @@
         var selectedOverlay = document.createElement("div");
         selectedOverlay.id = "selectedOverlay";        
         brushes[currentBrush].children[0].appendChild(selectedOverlay);
-        console.log(brushes[currentBrush].children[0]);
 
         var changedBrushEvent = {
             "type"     : "changeBrush",
@@ -668,12 +669,12 @@
         parent.postMessage(JSON.stringify(switchDynamicBrushEvent), "*");
     }
 
-    window.addEventListener("message", restoreSavedBrushes, false);
-    function restoreSavedBrushes() {
-        var brush = JSON.parse(event.data);
-        var dynamicBrushes = brush.currentDynamicBrushes;
-        if (brush.currentTexture) {
-            changePaintBrush(brush.currentTexture.brushID);
+    restoreSavedBrushes(JSON.parse(decodeURIComponent(window.parent.location.search).substring(1)));
+    function restoreSavedBrushes(brushData) {
+        //var brush = JSON.parse(event.data);
+        var dynamicBrushes = brushData.currentDynamicBrushes;
+        if (brushData.currentTexture) {
+            changePaintBrush(brushData.currentTexture.brushID);
         }
         if (dynamicBrushes) {
             for (var i = 0; i < dynamicBrushes.length; i++) {

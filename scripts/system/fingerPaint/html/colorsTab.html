@@ -60,9 +60,6 @@
     <div class="slider-wrapper">
         <input type="range" id="lineWidthRange" value=0.25 min=0 max=1 step=0.01 onchange="changeLineWidthRange(this)"/>
         <input type="number" id="lineWidthText" value=0.25 min=0 max=1 step=0.01 onchange="changeLineWidthNumber(this)"/>
-        <!--<span id="lineWidthText">0.25</span>
-        var inputField = document.createElement("input");
-        inputField.setAttribute("type", "number");-->
     </div>
 </div>
 
@@ -203,9 +200,9 @@
         }
     }
 
-    window.addEventListener("message", restoreLastColor, false);
-    function restoreLastColor(event) {
-        var palleteData = JSON.parse(event.data);
+    restoreLastColor(JSON.parse(decodeURIComponent(window.parent.location.search).substring(1)));
+    function restoreLastColor(palleteData) {
+        //var palleteData = JSON.parse(event.data);
 
         if ("currentColor" in palleteData) {
             var newColor = palleteData.currentColor;
@@ -229,4 +226,6 @@
             changeLineWidthNumber({value: palleteData.currentStrokeWidth});
         }
     }
+
+
 </script>
