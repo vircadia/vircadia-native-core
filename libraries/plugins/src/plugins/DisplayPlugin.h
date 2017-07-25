@@ -17,6 +17,8 @@
 #include <QtCore/QPoint>
 #include <QtCore/QElapsedTimer>
 #include <QtCore/QJsonObject>
+#include <QtCore/QMutex>
+#include <QtCore/QWaitCondition>
 
 #include <GLMHelpers.h>
 #include <RegisteredMetaTypes.h>
@@ -134,10 +136,6 @@ class DisplayPlugin : public Plugin, public HmdDisplay {
     Q_OBJECT
     using Parent = Plugin;
 public:
-    enum Event {
-        Present = QEvent::User + 1
-    };
-
     virtual int getRequiredThreadCount() const { return 0; }
     virtual bool isHmd() const { return false; }
     virtual int getHmdScreen() const { return -1; }
@@ -221,12 +219,15 @@ public:
 
     virtual void cycleDebugOutput() {}
 
+    void waitForPresent();
+
     static const QString& MENU_PATH();
 
 
 signals:
     void recommendedFramebufferSizeChanged(const QSize& size);
     void resetSensorsRequested();
+    void presented(quint32 frame);
 
 protected:
     void incrementPresentCount();
@@ -234,6 +235,8 @@ protected:
     gpu::ContextPointer _gpuContext;
 
 private:
+    QMutex _presentMutex;
+    QWaitCondition _presentCondition;
     std::atomic<uint32_t> _presentedFrameIndex;
     mutable std::mutex _paintDelayMutex;
     QElapsedTimer _paintDelayTimer;

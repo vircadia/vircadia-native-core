@@ -2256,7 +2256,7 @@ void Application::paintGL() {
             QMutexLocker viewLocker(&_viewMutex);
             _viewFrustum.calculate();
         }
-        renderArgs = RenderArgs(_gpuContext, getEntities(), lodManager->getOctreeSizeScale(),
+        renderArgs = RenderArgs(_gpuContext, lodManager->getOctreeSizeScale(),
             lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
             RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
         {
@@ -2772,7 +2772,12 @@ bool Application::importSVOFromURL(const QString& urlString) {
     return true;
 }
 
-bool _renderRequested { false };
+void Application::onPresent(quint32 frameCount) {
+    if (shouldPaint()) {
+        postEvent(this, new QEvent(static_cast<QEvent::Type>(Idle)), Qt::HighEventPriority);
+        postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
+    }
+}
 
 bool Application::event(QEvent* event) {
     if (!Menu::getInstance()) {
@@ -2788,23 +2793,9 @@ bool Application::event(QEvent* event) {
         // Explicit idle keeps the idle running at a lower interval, but without any rendering
         // see (windowMinimizedChanged)
         case Event::Idle:
-            {
-                float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
-                _lastTimeUpdated.start();
-                idle(nsecsElapsed);
-            }
-            return true;
-
-        case Event::Present:
-            if (!_renderRequested) {
-                float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
-                if (shouldPaint(nsecsElapsed)) {
-                    _renderRequested = true;
-                    _lastTimeUpdated.start();
-                    idle(nsecsElapsed);
-                    postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
-                }
-            }
+            idle();
+            // Clear the event queue of pending idle calls
+            removePostedEvents(this, Idle);
             return true;
 
         case Event::Paint:
@@ -2812,9 +2803,8 @@ bool Application::event(QEvent* event) {
             //       or AvatarInputs will mysteriously move to the bottom-right
             AvatarInputs::getInstance()->update();
             paintGL();
-            // wait for the next present event before starting idle / paint again
-            removePostedEvents(this, Present);
-            _renderRequested = false;
+            // Clear the event queue of pending paint calls
+            removePostedEvents(this, Paint);
             return true;
 
         default:
@@ -3633,7 +3623,7 @@ bool Application::acceptSnapshot(const QString& urlString) {
 
 static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
-bool Application::shouldPaint(float nsecsElapsed) {
+bool Application::shouldPaint() {
     if (_aboutToQuit) {
         return false;
     }
@@ -3653,11 +3643,9 @@ bool Application::shouldPaint(float nsecsElapsed) {
             (float)paintDelaySamples / paintDelayUsecs << "us";
     }
 #endif
-
-    float msecondsSinceLastUpdate = nsecsElapsed / NSECS_PER_USEC / USECS_PER_MSEC;
-
+    
     // Throttle if requested
-    if (displayPlugin->isThrottled() && (msecondsSinceLastUpdate < THROTTLED_SIM_FRAME_PERIOD_MS)) {
+    if (displayPlugin->isThrottled() && (_lastTimeUpdated.elapsed() < THROTTLED_SIM_FRAME_PERIOD_MS)) {
         return false;
     }
 
@@ -3874,7 +3862,7 @@ void setupCpuMonitorThread() {
 #endif
 
 
-void Application::idle(float nsecsElapsed) {
+void Application::idle() {
     PerformanceTimer perfTimer("idle");
 
     // Update the deadlock watchdog
@@ -3931,7 +3919,8 @@ void Application::idle(float nsecsElapsed) {
         steamClient->runCallbacks();
     }
 
-    float secondsSinceLastUpdate = nsecsElapsed / NSECS_PER_MSEC / MSECS_PER_SECOND;
+    float secondsSinceLastUpdate = (float)_lastTimeUpdated.nsecsElapsed() / NSECS_PER_MSEC / MSECS_PER_SECOND;
+    _lastTimeUpdated.start();
 
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
     if (_keyboardDeviceHasFocus && offscreenUi && offscreenUi->getWindow()->activeFocusItem() != offscreenUi->getRootItem()) {
@@ -7106,6 +7095,7 @@ void Application::updateDisplayMode() {
 
         auto oldDisplayPlugin = _displayPlugin;
         if (_displayPlugin) {
+            disconnect(_displayPluginPresentConnection);
             _displayPlugin->deactivate();
         }
 
@@ -7146,6 +7136,7 @@ void Application::updateDisplayMode() {
         _offscreenContext->makeCurrent();
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
+        _displayPluginPresentConnection = connect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent);
         offscreenUi->getDesktop()->setProperty("repositionLocked", wasRepositionLocked);
     }
 
