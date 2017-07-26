@@ -5396,9 +5396,9 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
 
             RenderArgs::OutlineFlags renderOutlineFlags = RenderArgs::RENDER_OUTLINE_NONE;
             if (DependencyManager::get<ContextOverlayInterface>()->getIsInMarketplaceInspectionMode()) {
-                renderOutlineFlags = static_cast<RenderArgs::OutlineFlags>(renderOutlineFlags |
-                    static_cast<int>(RenderArgs::RENDER_OUTLINE_WIREFRAMES));
+                renderOutlineFlags = RenderArgs::RENDER_OUTLINE_WIREFRAMES;
             }
+            renderArgs->_outlineFlags = renderOutlineFlags;
         }
     }
 
