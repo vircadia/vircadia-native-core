@@ -255,6 +255,8 @@ static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 
 static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 
+static const QString DOMAIN_ORIGIN = "/0, 0, 0";
+
 const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
@@ -6075,6 +6077,8 @@ bool Application::askToReplaceDomainContent(const QString& url) {
                 limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
                 return true;
             });
+            DependencyManager::get<AddressManager>()->handleLookupString(DOMAIN_ORIGIN);
+
         }
     } else {
         OffscreenUi::warning("Unable to replace content", "You do not have permissions to replace domain content", QMessageBox::Ok, QMessageBox::Ok);
