@@ -1,20 +1,25 @@
 This is a stand-alone guide for creating your first High Fidelity build for Windows 64-bit.
 
 ## Building High Fidelity
+Note: We are now using Visual Studio 2017 and Qt 5.9.1. If you are upgrading from Visual Studio 2013 and Qt 5.6.2, do a clean uninstall of those versions before going through this guide. 
 
-### Step 1. Installing Visual Studio 2013
+Note: The prerequisites will require about 10 GB of space on your drive.
 
-If you don't already have the Community or Professional edition of Visual Studio 2013, download and install [Visual Studio Community 2013](https://www.visualstudio.com/en-us/news/releasenotes/vs2013-community-vs). You do not need to install any of the optional components when going through the installer.
+### Step 1. Visual Studio 2017
 
-Note: Newer versions of Visual Studio are not yet compatible. 
+If you don’t have Community or Professional edition of Visual Studio 2017, download [Visual Studio Community 2017](https://www.visualstudio.com/downloads/). 
+
+When selecting components, check "Desktop development with C++." Also check "Windows 8.1 SDK and UCRT SDK" and "VC++ 2015.3 v140 toolset (x86,x64)" on the Summary toolbar on the right. In the end, your screen should look like this:
 
 ### Step 2. Installing CMake
 
-Download and install the [CMake 3.8.0 win64-x64 Installer](https://cmake.org/files/v3.8/cmake-3.8.0-win64-x64.msi). Make sure "Add CMake to system PATH for all users" is checked when going through the installer.
+Download and install the latest version of CMake 3.9. Download the file named  win64-x64 Installer from the [CMake Website](https://cmake.org/download/). Make sure to check "Add CMake to system PATH for all users" when prompted during installation.
 
 ### Step 3. Installing Qt
 
-Download and install the [Qt 5.6.2 for Windows 64-bit (VS 2013)](http://download.qt.io/official_releases/qt/5.6/5.6.2/qt-opensource-windows-x86-msvc2013_64-5.6.2.exe). 
+Download and install the [Qt Online Installer](https://www.qt.io/download-open-source/?hsCtaTracking=f977210e-de67-475f-a32b-65cec207fd03%7Cd62710cd-e1db-46aa-8d4d-2f1c1ffdacea). While installing, deselect components so that your window looks like this:
+
+Note: Installing the Sources is optional but recommended if you have room for them (~2GB). 
 
 Keep the default components checked when going through the installer.
 
