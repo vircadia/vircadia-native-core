@@ -327,7 +327,7 @@ void NodeList::sendDomainServerCheckIn() {
                 << "but no keypair is present. Waiting for keypair generation to complete.";
             accountManager->generateNewUserKeypair();
 
-            // don't send the check in packet - wait for the keypair first
+            // don't send the check in packet - wait for the new public key to be available to the domain-server first
             return;
         }
 

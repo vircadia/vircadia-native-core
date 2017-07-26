@@ -1663,6 +1663,7 @@ bool RenderablePolyVoxEntityItem::getMeshes(MeshProxyList& result) {
             // the mesh will be in voxel-space.  transform it into object-space
             meshProxy = new SimpleMeshProxy(
                 _mesh->map([=](glm::vec3 position){ return glm::vec3(transform * glm::vec4(position, 1.0f)); },
+                           [=](glm::vec3 color){ return color; },
                            [=](glm::vec3 normal){ return glm::normalize(glm::vec3(transform * glm::vec4(normal, 0.0f))); },
                            [&](uint32_t index){ return index; }));
             result << meshProxy;

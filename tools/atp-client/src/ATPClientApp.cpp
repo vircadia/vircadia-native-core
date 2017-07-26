@@ -23,6 +23,7 @@
 #include <DependencyManager.h>
 #include <SettingHandle.h>
 #include <AssetUpload.h>
+#include <StatTracker.h>
 
 #include "ATPClientApp.h"
 
@@ -137,6 +138,7 @@ ATPClientApp::ATPClientApp(int argc, char* argv[]) :
     Setting::init();
     DependencyManager::registerInheritance<LimitedNodeList, NodeList>();
 
+    DependencyManager::set<StatTracker>();
     DependencyManager::set<AccountManager>([&]{ return QString(HIGH_FIDELITY_ATP_CLIENT_USER_AGENT); });
     DependencyManager::set<AddressManager>();
     DependencyManager::set<NodeList>(NodeType::Agent, _listenPort);

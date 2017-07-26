@@ -118,7 +118,7 @@ glm::vec3 OBJTokenizer::getVec3() {
     auto z = getFloat();
     auto v = glm::vec3(x, y, z);
     while (isNextTokenFloat()) {
-        // the spec(s) get(s) vague here.  might be w, might be a color... chop it off.
+        // ignore any following floats
         nextToken();
     }
     return v;
@@ -139,7 +139,7 @@ bool OBJTokenizer::getVertex(glm::vec3& vertex, glm::vec3& vertexColor) {
         // only a single value) that it's a vertex color.
         r = getFloat();
         if (isNextTokenFloat()) {
-            // Safe to assume the following values are the green/blue components. 
+            // Safe to assume the following values are the green/blue components.
             g = getFloat();
             b = getFloat();
 
@@ -351,6 +351,8 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
     bool result = true;
     int originalFaceCountForDebugging = 0;
     QString currentGroup;
+    bool anyVertexColor { false };
+    int vertexCount { 0 };
 
     setMeshPartDefaults(meshPart, QString("dontknow") + QString::number(mesh.parts.count()));
 
@@ -412,14 +414,25 @@ bool OBJReader::parseOBJGroup(OBJTokenizer& tokenizer, const QVariantHash& mappi
                 #endif
             }
         } else if (token == "v") {
-            glm::vec3 vertex, vertexColor;
+            glm::vec3 vertex;
+            glm::vec3 vertexColor { glm::vec3(1.0f) };
 
             bool hasVertexColor = tokenizer.getVertex(vertex, vertexColor);
             vertices.append(vertex);
-            
-            if(hasVertexColor) {
+
+            // if any vertex has color, they all need to.
+            if (hasVertexColor && !anyVertexColor) {
+                // we've had a gap of zero or more vertices without color, followed
+                // by one that has color.  catch up:
+                for (int i = 0; i < vertexCount; i++) {
+                    vertexColors.append(glm::vec3(1.0f));
+                }
+                anyVertexColor = true;
+            }
+            if (anyVertexColor) {
                 vertexColors.append(vertexColor);
             }
+            vertexCount++;
         } else if (token == "vn") {
             normals.append(tokenizer.getVec3());
         } else if (token == "vt") {
