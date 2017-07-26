@@ -127,7 +127,7 @@
         onMarketplaceScreen = type === "Web" && url === MARKETPLACE_URL_INITIAL
         // for toolbar mode: change button to active when window is first openend, false otherwise.
         marketplaceButton.editProperties({ isActive: onMarketplaceScreen });
-        if (onMarketplaceScreen) {
+        if (type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1) {
             ContextOverlay.isInMarketplaceInspectionMode = true;
         } else {
             ContextOverlay.isInMarketplaceInspectionMode = false;

@@ -97,6 +97,12 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
             // Update the cached Entity Marketplace ID
             _entityMarketplaceID = entityProperties.getMarketplaceID();
 
+
+            if (!_currentEntityWithContextOverlay.isNull() && _currentEntityWithContextOverlay != entityItemID) {
+                qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'false' for Entity ID:" << _currentEntityWithContextOverlay;
+                qApp->getEntities()->getTree()->findEntityByEntityItemID(_currentEntityWithContextOverlay)->setShouldHighlight(false);
+            }
+
             // Update the cached "Current Entity with Context Overlay" variable
             setCurrentEntityWithContextOverlay(entityItemID);
 
@@ -162,8 +168,10 @@ bool ContextOverlayInterface::contextOverlayFilterPassed(const EntityItemID& ent
 bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
     if (_contextOverlayID != UNKNOWN_OVERLAY_ID) {
         qCDebug(context_overlay) << "Destroying Context Overlay on top of entity with ID: " << entityItemID;
-        qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'false' for Entity ID:" << _currentEntityWithContextOverlay;
-        qApp->getEntities()->getTree()->findEntityByEntityItemID(_currentEntityWithContextOverlay)->setShouldHighlight(false);
+        if (!_currentEntityWithContextOverlay.isNull() && _currentEntityWithContextOverlay != entityItemID) {
+            qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'false' for Entity ID:" << _currentEntityWithContextOverlay;
+            qApp->getEntities()->getTree()->findEntityByEntityItemID(_currentEntityWithContextOverlay)->setShouldHighlight(false);
+        }
         setCurrentEntityWithContextOverlay(QUuid());
         _entityMarketplaceID.clear();
         // Destroy the Context Overlay
@@ -222,7 +230,7 @@ void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemI
     }
 }
 
-static const QString MARKETPLACE_BASE_URL = "http://metaverse.highfidelity.com/marketplace/items/";
+static const QString MARKETPLACE_BASE_URL = "https://metaverse.highfidelity.com/marketplace/items/";
 
 void ContextOverlayInterface::openMarketplace() {
     // lets open the tablet and go to the current item in
