@@ -2201,6 +2201,10 @@ function MyController(hand) {
 
     this.searchExit = function () {
         contextualHand = -1;
+        if (hoveredEntityID) {
+            Entities.sendHoverLeaveEntity(hoveredEntityID, pointerEvent);
+        }
+        hoveredEntityID = false;
     };
 
     this.search = function(deltaTime, timestamp) {
@@ -2486,8 +2490,10 @@ function MyController(hand) {
                     button: "None"
                 };
 
+            if (this.hoverEntity !== entity) {
+                Entities.sendHoverLeaveEntity(this.hoverEntity, pointerEvent);
                 this.hoverEntity = entity;
-                Entities.sendHoverEnterEntity(entity, pointerEvent);
+                Entities.sendHoverEnterEntity(this.hoverEntity, pointerEvent);
             }
 
             // send mouse events for button highlights and tooltips.
@@ -2551,8 +2557,11 @@ function MyController(hand) {
                 button: "None"
             };
 
-            this.hoverOverlay = overlay;
-            Overlays.sendHoverEnterOverlay(overlay, pointerEvent);
+            if (this.hoverOverlay !== overlay) {
+                Overlays.sendHoverLeaveOverlay(this.hoverOverlay, pointerEvent);
+                this.hoverOverlay = overlay;
+                Overlays.sendHoverEnterOverlay(this.hoverOverlay, pointerEvent);
+            }
 
             // Send mouse events for button highlights and tooltips.
             if (this.hand == mostRecentSearchingHand ||
@@ -3527,10 +3536,13 @@ function MyController(hand) {
         var existingSearchDistance = this.searchSphereDistance;
         this.release();
 
+        if (hoveredEntityID) {
+            Entities.sendHoverLeaveEntity(hoveredEntityID, pointerEvent);
+            hoveredEntityID = false;
+        }
         if (entityWithContextOverlay) {
             ContextOverlay.destroyContextOverlay(entityWithContextOverlay);
             entityWithContextOverlay = false;
-            hoveredEntityID = false;
         }
 
         if (isInEditMode()) {
