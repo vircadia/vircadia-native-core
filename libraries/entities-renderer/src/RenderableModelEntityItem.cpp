@@ -372,8 +372,8 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         _model->updateRenderItems();
     }
 
-    bool showingEntityHighlight = (bool)(args->_outlineFlags & (int)RenderArgs::RENDER_OUTLINE_WIREFRAMES);
-    if (getMarketplaceID().length() != 0 && showingEntityHighlight) {
+    bool showingEntityHighlight = ((bool)(args->_outlineFlags & (int)RenderArgs::RENDER_OUTLINE_WIREFRAMES) && getMarketplaceID().length() != 0) || getShouldHighlight();
+    if (showingEntityHighlight) {
         static glm::vec4 yellowColor(1.0f, 1.0f, 0.0f, 1.0f);
         gpu::Batch& batch = *args->_batch;
         bool success;

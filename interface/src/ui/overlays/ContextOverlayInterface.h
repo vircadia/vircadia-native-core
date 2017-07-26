@@ -23,7 +23,6 @@
 
 #include "EntityScriptingInterface.h"
 #include "ui/overlays/Image3DOverlay.h"
-#include "ui/overlays/Cube3DOverlay.h"
 #include "ui/overlays/Overlays.h"
 #include "scripting/HMDScriptingInterface.h"
 
@@ -44,9 +43,7 @@ class ContextOverlayInterface : public QObject, public Dependency  {
     QSharedPointer<HMDScriptingInterface> _hmdScriptingInterface;
     QSharedPointer<TabletScriptingInterface> _tabletScriptingInterface;
     OverlayID _contextOverlayID { UNKNOWN_OVERLAY_ID };
-    OverlayID _bbOverlayID { UNKNOWN_OVERLAY_ID };
     std::shared_ptr<Image3DOverlay> _contextOverlay { nullptr };
-    std::shared_ptr<Cube3DOverlay> _bbOverlay { nullptr };
 public:
     ContextOverlayInterface();
 
@@ -64,6 +61,8 @@ public slots:
     void clickContextOverlay(const OverlayID& overlayID, const PointerEvent& event);
     void hoverEnterContextOverlay(const OverlayID& overlayID, const PointerEvent& event);
     void hoverLeaveContextOverlay(const OverlayID& overlayID, const PointerEvent& event);
+    void highlightEntity(const EntityItemID& entityID, const PointerEvent& event);
+    void unHighlightEntity(const EntityItemID& entityID, const PointerEvent& event);
 
 private:
     bool _verboseLogging { true };
@@ -76,7 +75,6 @@ private:
     bool _isInMarketplaceInspectionMode { false };
 
     bool contextOverlayFilterPassed(const EntityItemID& entityItemID);
-    glm::vec3 drawOutlineOverlay(const EntityItemID& entityItemID);
 };
 
 #endif // hifi_ContextOverlayInterface_h

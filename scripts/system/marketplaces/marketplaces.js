@@ -116,12 +116,10 @@
         if (onMarketplaceScreen) {
             // for toolbar-mode: go back to home screen, this will close the window.
             tablet.gotoHomeScreen();
-            ContextOverlay.isInMarketplaceInspectionMode = false;
         } else {
             var entity = HMD.tabletID;
             Entities.editEntity(entity, { textures: JSON.stringify({ "tex.close": HOME_BUTTON_TEXTURE }) });
             showMarketplace();
-            ContextOverlay.isInMarketplaceInspectionMode = true;
         }
     }
 
@@ -129,6 +127,11 @@
         onMarketplaceScreen = type === "Web" && url === MARKETPLACE_URL_INITIAL
         // for toolbar mode: change button to active when window is first openend, false otherwise.
         marketplaceButton.editProperties({ isActive: onMarketplaceScreen });
+        if (onMarketplaceScreen) {
+            ContextOverlay.isInMarketplaceInspectionMode = true;
+        } else {
+            ContextOverlay.isInMarketplaceInspectionMode = false;
+        }
     }
 
     marketplaceButton.clicked.connect(onClick);
