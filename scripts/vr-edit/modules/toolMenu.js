@@ -10,12 +10,18 @@
 
 /* global ToolMenu */
 
-ToolMenu = function (side, scaleModeChangedCallback) {
+ToolMenu = function (side, setAppScaleWithHandlesCallback) {
     // Tool menu displayed on top of forearm.
 
     "use strict";
 
-    var panelEntity,
+    var SCALE_MODE_DIRECT = 0,
+        SCALE_MODE_HANDLES = 1,
+        scaleMode = SCALE_MODE_DIRECT,
+        SCALE_MODE_DIRECT_COLOR = { red: 240, green: 240, blue: 0 },
+        SCALE_MODE_HANDLES_COLOR = { red: 0, green: 240, blue: 240 },
+
+        panelEntity,
         buttonEntity,
         buttonHighlightOverlay,
 
@@ -50,7 +56,7 @@ ToolMenu = function (side, scaleModeChangedCallback) {
             dimensions: { x: 0.03, y: 0.03, z: 0.01 },
             registrationPoint: { x: 0, y: 0.0, z: 0.0 },
             localPosition: { x: 0.005, y: 0.005, z: -0.005 },  // Relative to the root panel entity.
-            color: { red: 240, green: 0, blue: 0 },
+            color: scaleMode === SCALE_MODE_DIRECT ? SCALE_MODE_DIRECT_COLOR : SCALE_MODE_HANDLES_COLOR,
             ignoreRayIntersection: false,
             lifetime: 3600,
             visible: true
@@ -71,9 +77,6 @@ ToolMenu = function (side, scaleModeChangedCallback) {
         isDisplaying = false,
         isHighlightingButton = false,
         isButtonPressed = false,
-
-        SCALE_MODE_DIRECT = 0,
-        SCALE_MODE_HANDLES = 1,
 
         // References.
         leftInputs,
@@ -109,6 +112,14 @@ ToolMenu = function (side, scaleModeChangedCallback) {
         // Button click.
         if (isHighlightingButton && controlHand.triggerClicked() !== isButtonPressed) {
             isButtonPressed = controlHand.triggerClicked();
+
+            if (isButtonPressed) {
+                scaleMode = scaleMode === SCALE_MODE_DIRECT ? SCALE_MODE_HANDLES : SCALE_MODE_DIRECT;
+                Entities.editEntity(buttonEntity, {
+                    color: scaleMode === SCALE_MODE_DIRECT ? SCALE_MODE_DIRECT_COLOR : SCALE_MODE_HANDLES_COLOR
+                });
+                setAppScaleWithHandlesCallback(scaleMode === SCALE_MODE_HANDLES);
+            }
         }
     }
 
