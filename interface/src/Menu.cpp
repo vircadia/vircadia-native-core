@@ -223,17 +223,17 @@ Menu::Menu() {
 
     // View > First Person
     cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::FirstPerson, Qt::ALT | Qt::Key_F,
+                                   viewMenu, MenuOption::FirstPerson, Qt::CTRL | Qt::Key_F,
                                    true, qApp, SLOT(cameraMenuChanged())));
 
     // View > Third Person
     cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::ThirdPerson, Qt::ALT | Qt::Key_G,
+                                   viewMenu, MenuOption::ThirdPerson, Qt::CTRL | Qt::Key_G,
                                    false, qApp, SLOT(cameraMenuChanged())));
 
     // View > Mirror
     cameraModeGroup->addAction(addCheckableActionToQMenuAndActionHash(
-                                   viewMenu, MenuOption::FullscreenMirror, Qt::ALT | Qt::Key_H,
+                                   viewMenu, MenuOption::FullscreenMirror, Qt::CTRL | Qt::Key_H,
                                    false, qApp, SLOT(cameraMenuChanged())));
 
     // View > Independent [advanced]
