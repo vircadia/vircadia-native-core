@@ -478,6 +478,9 @@ private:
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
 
+    // temporary zip handling for Emily
+    bool importFromZIP(const QString& filePath);
+
     bool nearbyEntitiesAreReadyForPhysics();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
     void trackIncomingOctreePacket(ReceivedMessage& message, SharedNodePointer sendingNode, bool wasStatsPacket);

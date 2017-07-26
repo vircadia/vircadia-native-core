@@ -33,8 +33,8 @@
         $("head").append(
             '<style>' +
                 '#marketplace-navigation { font-family: Arial, Helvetica, sans-serif; width: 100%; height: 50px; background: #00b4ef; position: fixed; bottom: 0; z-index: 1000; }' +
-                '#marketplace-navigation .glyph { margin-left: 20px; margin-right: 3px; font-family: sans-serif; color: #fff; font-size: 24px; line-height: 50px; }' +
-                '#marketplace-navigation .text { color: #fff; font-size: 18px; line-height: 50px; vertical-align: top; position: relative; top: 1px; }' +
+                '#marketplace-navigation .glyph { margin-left: 10px; margin-right: 3px; font-family: sans-serif; color: #fff; font-size: 24px; line-height: 50px; }' +
+                '#marketplace-navigation .text { color: #fff; font-size: 16px; line-height: 50px; vertical-align: top; position: relative; top: 1px; }' +
                 '#marketplace-navigation input#back-button { position: absolute; left: 20px; margin-top: 12px; padding-left: 0; padding-right: 5px; }' +
                 '#marketplace-navigation input#all-markets { position: absolute; right: 20px; margin-top: 12px; padding-left: 15px; padding-right: 15px; }' +
                 '#marketplace-navigation .right { position: absolute; right: 20px; }' +
@@ -79,6 +79,9 @@
         letUsKnow.replaceWith(letUsKnow.html());
 
         // Add button links.
+        $('#exploreBlocksMarketplace').on('click', function () {
+            window.location = "https://vr.google.com/objects";
+        });
         $('#exploreClaraMarketplace').on('click', function () {
             window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
@@ -89,6 +92,16 @@
 
     function injectHiFiCode() {
         // Nothing to do.
+    }
+
+    function injectBlocksCode() {
+        // Make space for marketplaces footer in Blocks pages.
+        $("head").append(
+            '<style>' +
+                '#app { margin-bottom: 135px; }' +
+                '.footer { bottom: 50px; }' +
+            '</style>'
+        );
     }
 
     function updateClaraCode() {
@@ -322,10 +335,12 @@
 
         var DIRECTORY = 0;
         var HIFI = 1;
-        var CLARA = 2;
+        var BLOCKS = 2;
+        var CLARA = 3;
         var pageType = DIRECTORY;
 
         if (location.href.indexOf("highfidelity.com/") !== -1) { pageType = HIFI; }
+        if (location.href.indexOf("google.com/") !== -1) { pageType = BLOCKS; }
         if (location.href.indexOf("clara.io/") !== -1) { pageType = CLARA; }
 
         injectCommonCode(pageType === DIRECTORY);
@@ -335,6 +350,9 @@
                 break;
             case HIFI:
                 injectHiFiCode();
+                break;
+            case BLOCKS:
+                injectBlocksCode();
                 break;
             case CLARA:
                 injectClaraCode();

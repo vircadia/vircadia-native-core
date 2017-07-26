@@ -24,7 +24,7 @@ public:
 
 public slots:
     QString convertUrlToPath(QUrl url);
-    void runUnzip(QString path, QUrl url, bool autoAdd);
+    void runUnzip(QString path, QUrl url, bool autoAdd, bool isBlocks);
     QString getTempDir();
 
 signals:
