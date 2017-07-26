@@ -183,13 +183,14 @@ OctreeElement::AppendState EntityItem::appendEntityData(OctreePacketData* packet
 
     EntityPropertyFlags propertyFlags(PROP_LAST_ITEM);
     EntityPropertyFlags requestedProperties = getEntityProperties(params);
-    EntityPropertyFlags propertiesDidntFit = requestedProperties;
 
     // If we are being called for a subsequent pass at appendEntityData() that failed to completely encode this item,
     // then our entityTreeElementExtraEncodeData should include data about which properties we need to append.
     if (entityTreeElementExtraEncodeData && entityTreeElementExtraEncodeData->entities.contains(getEntityItemID())) {
         requestedProperties = entityTreeElementExtraEncodeData->entities.value(getEntityItemID());
     }
+
+    EntityPropertyFlags propertiesDidntFit = requestedProperties;
 
     LevelDetails entityLevel = packetData->startLevel();
 
