@@ -36,8 +36,8 @@ private:
     void MidiSetup();
     void MidiCleanup();
 
-//signals:
-//    void midiNote(QVariantMap eventData);
+signals:
+    void midiNote(QVariantMap eventData);
 
 public slots:
 /// play a note on all connected devices
