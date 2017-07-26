@@ -23,7 +23,6 @@
 
 #include <EntityEditPacketSender.h>
 #include <EntityTree.h>
-#include <EntityTreeHeadlessViewer.h>
 #include <ScriptEngine.h>
 #include <ThreadedAssignment.h>
 
@@ -31,6 +30,7 @@
 
 #include "AudioGate.h"
 #include "MixedAudioStream.h"
+#include "entities/EntityTreeHeadlessViewer.h"
 #include "avatars/ScriptableAvatar.h"
 
 class Agent : public ThreadedAssignment {
@@ -81,9 +81,6 @@ private slots:
     void processAgentAvatar();
     void processAgentAvatarAudio();
 
-signals:
-    void startAvatarAudioTimer();
-    void stopAvatarAudioTimer();
 private:
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
@@ -118,7 +115,7 @@ private:
     CodecPluginPointer _codec;
     QString _selectedCodecName;
     Encoder* _encoder { nullptr };
-    QThread _avatarAudioTimerThread;
+    QTimer _avatarAudioTimer;
     bool _flushEncoder { false };
 };
 

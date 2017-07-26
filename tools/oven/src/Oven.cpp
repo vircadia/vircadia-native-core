@@ -18,7 +18,7 @@
 
 #include "ui/OvenMainWindow.h"
 #include "Oven.h"
-#include "BakerCli.h"
+#include "BakerCLI.h"
 
 static const QString OUTPUT_FOLDER = "/Users/birarda/code/hifi/lod/test-oven/export";
 
@@ -61,7 +61,9 @@ Oven::Oven(int argc, char* argv[]) :
     if (parser.isSet(CLI_INPUT_PARAMETER) || parser.isSet(CLI_OUTPUT_PARAMETER)) {
         if (parser.isSet(CLI_INPUT_PARAMETER) && parser.isSet(CLI_OUTPUT_PARAMETER)) {
             BakerCLI* cli = new BakerCLI(this);
-            cli->bakeFile(parser.value(CLI_INPUT_PARAMETER), parser.value(CLI_OUTPUT_PARAMETER));
+            QUrl inputUrl(QDir::fromNativeSeparators(parser.value(CLI_INPUT_PARAMETER)));
+            QUrl outputUrl(QDir::fromNativeSeparators(parser.value(CLI_OUTPUT_PARAMETER)));
+            cli->bakeFile(inputUrl, outputUrl.toString());
         } else {
             parser.showHelp();
             QApplication::quit();

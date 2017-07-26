@@ -80,8 +80,8 @@ void Circle3DOverlay::render(RenderArgs* args) {
 
     Q_ASSERT(args->_batch);
     auto& batch = *args->_batch;
-    if (args->_pipeline) {
-        batch.setPipeline(args->_pipeline->pipeline);
+    if (args->_shapePipeline) {
+        batch.setPipeline(args->_shapePipeline->pipeline);
     }
 
     // FIXME: THe line width of _lineWidth is not supported anymore, we ll need a workaround

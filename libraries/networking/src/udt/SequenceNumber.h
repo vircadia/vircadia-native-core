@@ -35,8 +35,8 @@ public:
     explicit SequenceNumber(char* value) { _value = (*reinterpret_cast<int32_t*>(value)) & MAX; }
     explicit SequenceNumber(Type value) { _value = (value <= MAX) ? ((value >= 0) ? value : 0) : MAX; }
     explicit SequenceNumber(UType value) { _value = (value <= MAX) ? value : MAX; }
-    explicit operator Type() { return _value; }
-    explicit operator UType() { return static_cast<UType>(_value); }
+    explicit operator Type() const { return _value; }
+    explicit operator UType() const { return static_cast<UType>(_value); }
     
     inline SequenceNumber& operator++() {
         _value = (_value + 1) % (MAX + 1);

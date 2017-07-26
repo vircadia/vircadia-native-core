@@ -55,7 +55,7 @@ void DeleteEntityOperator::addEntityIDToDeleteList(const EntityItemID& searchEnt
 
 
 // does this entity tree element contain the old entity
-bool DeleteEntityOperator::subTreeContainsSomeEntitiesToDelete(OctreeElementPointer element) {
+bool DeleteEntityOperator::subTreeContainsSomeEntitiesToDelete(const OctreeElementPointer& element) {
     bool containsEntity = false;
 
     // If we don't have an old entity, then we don't contain the entity, otherwise
@@ -72,7 +72,7 @@ bool DeleteEntityOperator::subTreeContainsSomeEntitiesToDelete(OctreeElementPoin
     return containsEntity;
 }
 
-bool DeleteEntityOperator::preRecursion(OctreeElementPointer element) {
+bool DeleteEntityOperator::preRecursion(const OctreeElementPointer& element) {
     EntityTreeElementPointer entityTreeElement = std::static_pointer_cast<EntityTreeElement>(element);
 
     // In Pre-recursion, we're generally deciding whether or not we want to recurse this
@@ -96,7 +96,7 @@ bool DeleteEntityOperator::preRecursion(OctreeElementPointer element) {
                 bool entityDeleted = entityTreeElement->removeEntityItem(theEntity); // remove it from the element
                 assert(entityDeleted);
                 (void)entityDeleted; // quite warning
-                _tree->setContainingElement(details.entity->getEntityItemID(), NULL); // update or id to element lookup
+                _tree->clearEntityMapEntry(details.entity->getEntityItemID());
                 _foundCount++;
             }
         }
@@ -108,7 +108,7 @@ bool DeleteEntityOperator::preRecursion(OctreeElementPointer element) {
     return keepSearching; // if we haven't yet found it, keep looking
 }
 
-bool DeleteEntityOperator::postRecursion(OctreeElementPointer element) {
+bool DeleteEntityOperator::postRecursion(const OctreeElementPointer& element) {
     // Post-recursion is the unwinding process. For this operation, while we
     // unwind we want to mark the path as being dirty if we changed it below.
     // We might have two paths, one for the old entity and one for the new entity.

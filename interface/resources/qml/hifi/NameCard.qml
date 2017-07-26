@@ -43,6 +43,7 @@ Item {
     property bool selected: false
     property bool isAdmin: false
     property bool isPresent: true
+    property bool isReplicated: false
     property string placeName: ""
     property string profilePicBorderColor: (connectionStatus == "connection" ? hifi.colors.indigoAccent : (connectionStatus == "friend" ? hifi.colors.greenHighlight : "transparent"))
     property alias avImage: avatarImage
@@ -590,14 +591,11 @@ Item {
             console.log("This avatar is no longer present. goToUserInDomain() failed.");
             return;
         }
-        var vector = Vec3.subtract(avatar.position, MyAvatar.position);
-        var distance = Vec3.length(vector);
-        var target = Vec3.multiply(Vec3.normalize(vector), distance - 2.0);
         // FIXME: We would like the avatar to recompute the avatar's "maybe fly" test at the new position, so that if high enough up,
         // the avatar goes into fly mode rather than falling. However, that is not exposed to Javascript right now.
         // FIXME: it would be nice if this used the same teleport steps and smoothing as in the teleport.js script.
         // Note, however, that this script allows teleporting to a person in the air, while teleport.js is going to a grounded target.
-        MyAvatar.orientation = Quat.lookAtSimple(MyAvatar.position, avatar.position);
-        MyAvatar.position = Vec3.sum(MyAvatar.position, target);
+        MyAvatar.position = Vec3.sum(avatar.position, Vec3.multiplyQbyV(avatar.orientation, {x: 0, y: 0, z: -2}));
+        MyAvatar.orientation = Quat.multiply(avatar.orientation, {y: 1});
     }
 }

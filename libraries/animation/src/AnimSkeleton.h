@@ -28,6 +28,7 @@ public:
     int nameToJointIndex(const QString& jointName) const;
     const QString& getJointName(int jointIndex) const;
     int getNumJoints() const;
+    int getChainDepth(int jointIndex) const;
 
     // absolute pose, not relative to parent
     const AnimPose& getAbsoluteBindPose(int jointIndex) const;
@@ -50,7 +51,7 @@ public:
 
     int getParentIndex(int jointIndex) const;
 
-    AnimPose getAbsolutePose(int jointIndex, const AnimPoseVec& poses) const;
+    AnimPose getAbsolutePose(int jointIndex, const AnimPoseVec& relativePoses) const;
 
     void convertRelativePosesToAbsolute(AnimPoseVec& poses) const;
     void convertAbsolutePosesToRelative(AnimPoseVec& poses) const;

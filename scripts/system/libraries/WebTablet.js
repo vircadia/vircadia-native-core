@@ -14,8 +14,6 @@ Script.include(Script.resolvePath("../libraries/utils.js"));
 Script.include(Script.resolvePath("../libraries/controllers.js"));
 Script.include(Script.resolvePath("../libraries/Xform.js"));
 
-var VEC3_ZERO = {x: 0, y: 0, z: 0};
-var X_AXIS = {x: 1, y: 0, z: 0};
 var Y_AXIS = {x: 0, y: 1, z: 0};
 var DEFAULT_DPI = 34;
 var DEFAULT_WIDTH = 0.4375;
@@ -25,12 +23,13 @@ var CAMERA_MATRIX = -7;
 var ROT_Y_180 = {x: 0.0, y: 1.0, z: 0, w: 0};
 var ROT_LANDSCAPE = {x: 1.0, y: 1.0, z: 0, w: 0};
 var ROT_LANDSCAPE_WINDOW = {x: 0.0, y: 0.0, z: 0.0, w: 0};
-var ROT_IDENT = {x: 0, y: 0, z: 0, w: 1};
 var TABLET_TEXTURE_RESOLUTION = { x: 480, y: 706 };
 var INCHES_TO_METERS = 1 / 39.3701;
 var AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}";
 
 var NO_HANDS = -1;
+var DELAY_FOR_30HZ = 33; // milliseconds
+
 
 // will need to be recaclulated if dimensions of fbx model change.
 var TABLET_NATURAL_DIMENSIONS = {x: 33.797, y: 50.129, z: 2.269};
@@ -77,7 +76,7 @@ function calcSpawnInfo(hand, tabletHeight) {
         var TABLET_RAKE_ANGLE = 30;
         rotation = Quat.multiply(Quat.angleAxis(TABLET_RAKE_ANGLE, Vec3.multiplyQbyV(lookAt, Vec3.UNIT_X)), lookAt);
 
-        var RELATIVE_SPAWN_OFFSET = { x: 0, y: 0.4, z: 0.05 };
+        var RELATIVE_SPAWN_OFFSET = { x: 0, y: 0.6, z: 0.1 };
         position = Vec3.sum(position, Vec3.multiplyQbyV(rotation, Vec3.multiply(tabletHeight, RELATIVE_SPAWN_OFFSET)));
 
         return {
@@ -561,9 +560,29 @@ function rayIntersectPlane(planePosition, planeNormal, rayStart, rayDirection) {
     }
 }
 
+WebTablet.prototype.scheduleMouseMoveProcessor = function() {
+    var _this = this;
+    if (!this.moveEventTimer) {
+        this.moveEventTimer = Script.setTimeout(function() {
+            _this.mouseMoveProcessor();
+        }, DELAY_FOR_30HZ);
+    }
+};
+
 WebTablet.prototype.mouseMoveEvent = function (event) {
     if (this.dragging) {
-        var pickRay = Camera.computePickRay(event.x, event.y);
+        this.currentMouse = {
+            x: event.x,
+            y: event.y
+        };
+        this.scheduleMouseMoveProcessor();
+    }
+};
+
+WebTablet.prototype.mouseMoveProcessor = function () {
+    this.moveEventTimer = null;
+    if (this.dragging) {
+        var pickRay = Camera.computePickRay(this.currentMouse.x, this.currentMouse.y);
 
         // transform pickRay into camera local coordinates
         var invCameraXform = new Xform(Camera.orientation, Camera.position).inv();
@@ -582,6 +601,7 @@ WebTablet.prototype.mouseMoveEvent = function (event) {
                 localPosition: localPosition
             });
         }
+        this.scheduleMouseMoveProcessor();
     }
 };
 

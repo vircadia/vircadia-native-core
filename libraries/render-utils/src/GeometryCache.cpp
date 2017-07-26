@@ -29,6 +29,7 @@
 #include "gpu/StandardShaderLib.h"
 
 #include "model/TextureMap.h"
+#include "render/Args.h"
 
 #include "standardTransformPNTC_vert.h"
 #include "standardDrawTexture_frag.h"
@@ -455,23 +456,25 @@ _nextID(0) {
     buildShapes();
     GeometryCache::_simpleOpaquePipeline =
         std::make_shared<render::ShapePipeline>(getSimplePipeline(false, false, true, false), nullptr,
-            [](const render::ShapePipeline&, gpu::Batch& batch) {
+            [](const render::ShapePipeline&, gpu::Batch& batch, RenderArgs* args) {
                 // Set the defaults needed for a simple program
                 batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
                     DependencyManager::get<TextureCache>()->getWhiteTexture());
-            }
+            },
+            nullptr
         );
     GeometryCache::_simpleTransparentPipeline =
         std::make_shared<render::ShapePipeline>(getSimplePipeline(false, true, true, false), nullptr,
-            [](const render::ShapePipeline&, gpu::Batch& batch) {
+        [](const render::ShapePipeline&, gpu::Batch& batch, RenderArgs* args) {
                 // Set the defaults needed for a simple program
                 batch.setResourceTexture(render::ShapePipeline::Slot::MAP::ALBEDO,
                     DependencyManager::get<TextureCache>()->getWhiteTexture());
-            }
+            },
+            nullptr
         );
     GeometryCache::_simpleWirePipeline =
         std::make_shared<render::ShapePipeline>(getSimplePipeline(false, false, true, true), nullptr,
-            [](const render::ShapePipeline&, gpu::Batch& batch) {});
+        [](const render::ShapePipeline&, gpu::Batch& batch, RenderArgs* args) {}, nullptr);
 }
 
 GeometryCache::~GeometryCache() {
@@ -1938,7 +1941,7 @@ uint32_t toCompactColor(const glm::vec4& color) {
 
 static const size_t INSTANCE_COLOR_BUFFER = 0;
 
-void renderInstances(gpu::Batch& batch, const glm::vec4& color, bool isWire,
+void renderInstances(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color, bool isWire,
     const render::ShapePipelinePointer& pipeline, GeometryCache::Shape shape) {
     // Add pipeline to name
     std::string instanceName = (isWire ? "wire_shapes_" : "solid_shapes_") + std::to_string(shape) + "_" + std::to_string(std::hash<render::ShapePipelinePointer>()(pipeline));
@@ -1951,9 +1954,9 @@ void renderInstances(gpu::Batch& batch, const glm::vec4& color, bool isWire,
     }
 
     // Add call to named buffer
-    batch.setupNamedCalls(instanceName, [isWire, pipeline, shape](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
+    batch.setupNamedCalls(instanceName, [args, isWire, pipeline, shape](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
         batch.setPipeline(pipeline->pipeline);
-        pipeline->prepare(batch);
+        pipeline->prepare(batch, args);
 
         if (isWire) {
             DependencyManager::get<GeometryCache>()->renderWireShapeInstances(batch, shape, data.count(), data.buffers[INSTANCE_COLOR_BUFFER]);
@@ -1963,28 +1966,28 @@ void renderInstances(gpu::Batch& batch, const glm::vec4& color, bool isWire,
     });
 }
 
-void GeometryCache::renderSolidShapeInstance(gpu::Batch& batch, GeometryCache::Shape shape, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
-    renderInstances(batch, color, false, pipeline, shape);
+void GeometryCache::renderSolidShapeInstance(RenderArgs* args, gpu::Batch& batch, GeometryCache::Shape shape, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
+    renderInstances(args, batch, color, false, pipeline, shape);
 }
 
-void GeometryCache::renderWireShapeInstance(gpu::Batch& batch, GeometryCache::Shape shape, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
-    renderInstances(batch, color, true, pipeline, shape);
+void GeometryCache::renderWireShapeInstance(RenderArgs* args, gpu::Batch& batch, GeometryCache::Shape shape, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
+    renderInstances(args, batch, color, true, pipeline, shape);
 }
 
 
-void GeometryCache::renderSolidSphereInstance(gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
-    renderInstances(batch, color, false, pipeline, GeometryCache::Sphere);
+void GeometryCache::renderSolidSphereInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
+    renderInstances(args, batch, color, false, pipeline, GeometryCache::Sphere);
 }
 
-void GeometryCache::renderWireSphereInstance(gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
-    renderInstances(batch, color, true, pipeline, GeometryCache::Sphere);
+void GeometryCache::renderWireSphereInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
+    renderInstances(args, batch, color, true, pipeline, GeometryCache::Sphere);
 }
 
 // Enable this in a debug build to cause 'box' entities to iterate through all the
 // available shape types, both solid and wireframes
 //#define DEBUG_SHAPES
 
-void GeometryCache::renderSolidCubeInstance(gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
+void GeometryCache::renderSolidCubeInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
 #ifdef DEBUG_SHAPES
     static auto startTime = usecTimestampNow();
     renderInstances(INSTANCE_NAME, batch, color, pipeline, [](gpu::Batch& batch, gpu::Batch::NamedBatchData& data) {
@@ -2018,11 +2021,11 @@ void GeometryCache::renderSolidCubeInstance(gpu::Batch& batch, const glm::vec4& 
         }
     });
 #else
-    renderInstances(batch, color, false, pipeline, GeometryCache::Cube);
+    renderInstances(args, batch, color, false, pipeline, GeometryCache::Cube);
 #endif
 }
 
-void GeometryCache::renderWireCubeInstance(gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
+void GeometryCache::renderWireCubeInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color, const render::ShapePipelinePointer& pipeline) {
     static const std::string INSTANCE_NAME = __FUNCTION__;
-    renderInstances(batch, color, true, pipeline, GeometryCache::Cube);
+    renderInstances(args, batch, color, true, pipeline, GeometryCache::Cube);
 }

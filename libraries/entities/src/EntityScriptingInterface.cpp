@@ -9,20 +9,21 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "EntityScriptingInterface.h"
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
-
-#include "EntityScriptingInterface.h"
 
 #include <QFutureWatcher>
 #include <QtConcurrent/QtConcurrentRun>
 
-#include "EntityItemID.h"
+#include <shared/QtHelpers.h>
 #include <VariantMapToScriptValue.h>
 #include <SharedUtil.h>
 #include <SpatialParentFinder.h>
-#include <model-networking/MeshProxy.h>
+#include <AvatarHashMap.h>
 
+#include "EntityItemID.h"
 #include "EntitiesLogging.h"
 #include "EntityDynamicFactoryInterface.h"
 #include "EntityDynamicInterface.h"
@@ -298,18 +299,6 @@ EntityItemProperties EntityScriptingInterface::getEntityProperties(QUuid identit
                 }
 
                 results = entity->getProperties(desiredProperties);
-
-                // TODO: improve naturalDimensions in the future,
-                //       for now we've added this hack for setting natural dimensions of models
-                if (entity->getType() == EntityTypes::Model) {
-                    const FBXGeometry* geometry = _entityTree->getGeometryForEntity(entity);
-                    if (geometry) {
-                        Extents meshExtents = geometry->getUnscaledMeshExtents();
-                        results.setNaturalDimensions(meshExtents.maximum - meshExtents.minimum);
-                        results.calculateNaturalPosition(meshExtents.minimum, meshExtents.maximum);
-                    }
-                }
-
             }
         });
     }
@@ -511,6 +500,11 @@ void EntityScriptingInterface::deleteEntity(QUuid id) {
                 const QUuid myNodeID = nodeList->getSessionUUID();
                 if (entity->getClientOnly() && entity->getOwningAvatarID() != myNodeID) {
                     // don't delete other avatar's avatarEntities
+                    // If you actually own the entity but the onwership property is not set because of a domain switch
+                    // The lines below makes sure the entity is deleted once its properties are set.
+                    auto avatarHashMap = DependencyManager::get<AvatarHashMap>();
+                    AvatarSharedPointer myAvatar = avatarHashMap->getAvatarBySessionID(myNodeID);
+                    myAvatar->insertDetachedEntityID(id);
                     shouldDelete = false;
                     return;
                 }
@@ -1501,7 +1495,7 @@ int EntityScriptingInterface::getJointIndex(const QUuid& entityID, const QString
         return -1;
     }
     int result;
-    QMetaObject::invokeMethod(_entityTree.get(), "getJointIndex", Qt::BlockingQueuedConnection,
+    BLOCKING_INVOKE_METHOD(_entityTree.get(), "getJointIndex",
                               Q_RETURN_ARG(int, result), Q_ARG(QUuid, entityID), Q_ARG(QString, name));
     return result;
 }
@@ -1511,7 +1505,7 @@ QStringList EntityScriptingInterface::getJointNames(const QUuid& entityID) {
         return QStringList();
     }
     QStringList result;
-    QMetaObject::invokeMethod(_entityTree.get(), "getJointNames", Qt::BlockingQueuedConnection,
+    BLOCKING_INVOKE_METHOD(_entityTree.get(), "getJointNames",
                               Q_RETURN_ARG(QStringList, result), Q_ARG(QUuid, entityID));
     return result;
 }
@@ -1742,9 +1736,7 @@ glm::mat4 EntityScriptingInterface::getEntityTransform(const QUuid& entityID) {
             if (entity) {
                 glm::mat4 translation = glm::translate(entity->getPosition());
                 glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
-                glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT -
-                                                        entity->getRegistrationPoint());
-                result = translation * rotation * registration;
+                result = translation * rotation;
             }
         });
     }
@@ -1759,9 +1751,7 @@ glm::mat4 EntityScriptingInterface::getEntityLocalTransform(const QUuid& entityI
             if (entity) {
                 glm::mat4 translation = glm::translate(entity->getLocalPosition());
                 glm::mat4 rotation = glm::mat4_cast(entity->getLocalOrientation());
-                glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT -
-                                                        entity->getRegistrationPoint());
-                result = translation * rotation * registration;
+                result = translation * rotation;
             }
         });
     }

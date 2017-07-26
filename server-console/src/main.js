@@ -101,6 +101,10 @@ function getApplicationDataDirectory() {
     return path.join(getRootHifiDataDirectory(), '/Server Console');
 }
 
+// Update lock filepath
+const UPDATER_LOCK_FILENAME = ".updating";
+const UPDATER_LOCK_FULL_PATH = getRootHifiDataDirectory() + "/" + UPDATER_LOCK_FILENAME;
+
 // Configure log
 global.log = require('electron-log');
 const logFile = getApplicationDataDirectory() + '/log.txt';
@@ -330,6 +334,7 @@ function startInterface(url) {
 
     // create a new Interface instance - Interface makes sure only one is running at a time
     var pInterface = new Process('interface', interfacePath, argArray);
+    pInterface.detached = true;
     pInterface.start();
 }
 
@@ -630,11 +635,22 @@ function checkNewContent() {
                       userConfig.save(configPath);
                   }
               });
+            } else if (fs.existsSync(UPDATER_LOCK_FULL_PATH)) {
+                backupResourceDirectoriesAndRestart();
             }
         }
     });
 }
 
+function removeIncompleteUpdate(acResourceDirectory, dsResourceDirectory) {
+    if (fs.existsSync(UPDATER_LOCK_FULL_PATH)) {
+        log.debug('Removing incomplete content update files before copying new update');
+        fs.emptyDirSync(dsResourceDirectory);
+        fs.emptyDirSync(acResourceDirectory);
+    } else {
+         fs.ensureFileSync(UPDATER_LOCK_FULL_PATH);
+    }
+}
 
 function maybeInstallDefaultContentSet(onComplete) {
     // Check for existing data
@@ -673,7 +689,11 @@ function maybeInstallDefaultContentSet(onComplete) {
     }
 
     log.debug("Found contentPath:" + argv.contentPath);
+
     if (argv.contentPath) {
+        // check if we're updating a data folder whose update is incomplete
+        removeIncompleteUpdate(acResourceDirectory, dsResourceDirectory);
+
         fs.copy(argv.contentPath, getRootHifiDataDirectory(), function (err) {
             if (err) {
                 log.debug('Could not copy home content: ' + err);
@@ -682,11 +702,11 @@ function maybeInstallDefaultContentSet(onComplete) {
             log.debug('Copied home content over to: ' + getRootHifiDataDirectory());
             userConfig.set('homeContentLastModified', new Date());
             userConfig.save(configPath);
+            fs.removeSync(UPDATER_LOCK_FULL_PATH);
             onComplete();
         });
         return;
     }
-
 
     // Show popup
     var window = new BrowserWindow({
@@ -717,6 +737,9 @@ function maybeInstallDefaultContentSet(onComplete) {
         }
 
         var aborted = false;
+
+        // check if we're updating a data folder whose update is incomplete
+        removeIncompleteUpdate(acResourceDirectory, dsResourceDirectory);
 
         // Start downloading content set
         var req = progress(request.get({
@@ -763,6 +786,7 @@ function maybeInstallDefaultContentSet(onComplete) {
             log.debug("Finished unarchiving home content set");
             userConfig.set('homeContentLastModified', new Date());
             userConfig.save(configPath);
+            fs.removeSync(UPDATER_LOCK_FULL_PATH);
             sendStateUpdate('complete');
         });
 
@@ -869,10 +893,19 @@ function onContentLoaded() {
     deleteOldFiles(logPath, DELETE_LOG_FILES_OLDER_THAN_X_SECONDS, LOG_FILE_REGEX);
 
     if (dsPath && acPath) {
-        domainServer = new Process('domain-server', dsPath, ["--get-temp-name"], logPath);
-        acMonitor = new ACMonitorProcess('ac-monitor', acPath, ['-n7',
-                                                                '--log-directory', logPath,
-                                                                '--http-status-port', httpStatusPort], httpStatusPort, logPath);
+        var dsArguments = ['--get-temp-name',
+                           '--parent-pid', process.pid];
+        domainServer = new Process('domain-server', dsPath, dsArguments, logPath);
+        domainServer.restartOnCrash = true;
+
+        var acArguments = ['-n7',
+                           '--log-directory', logPath,
+                           '--http-status-port', httpStatusPort,
+                           '--parent-pid', process.pid];
+        acMonitor = new ACMonitorProcess('ac-monitor', acPath, acArguments,
+                                         httpStatusPort, logPath);
+        acMonitor.restartOnCrash = true;
+
         homeServer = new ProcessGroup('home', [domainServer, acMonitor]);
         logWindow = new LogWindow(acMonitor, domainServer);
 

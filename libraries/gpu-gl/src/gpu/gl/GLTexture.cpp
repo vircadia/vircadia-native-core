@@ -223,12 +223,21 @@ TransferJob::TransferJob(const GLTexture& parent, uint16_t sourceMip, uint16_t t
 
     // Buffering can invoke disk IO, so it should be off of the main and render threads
     _bufferingLambda = [=] {
-        _mipData = _parent._gpuObject.accessStoredMipFace(sourceMip, face)->createView(_transferSize, _transferOffset);
+        auto mipStorage = _parent._gpuObject.accessStoredMipFace(sourceMip, face);
+        if (mipStorage) {
+            _mipData = mipStorage->createView(_transferSize, _transferOffset);
+        } else {
+            qCWarning(gpugllogging) << "Buffering failed because mip could not be retrieved from texture " << _parent._source.c_str() ;
+        }
     };
 
     _transferLambda = [=] {
-        _parent.copyMipFaceLinesFromTexture(targetMip, face, transferDimensions, lineOffset, internalFormat, format, type, _mipData->size(), _mipData->readData());
-        _mipData.reset();
+        if (_mipData) {
+            _parent.copyMipFaceLinesFromTexture(targetMip, face, transferDimensions, lineOffset, internalFormat, format, type, _mipData->size(), _mipData->readData());
+            _mipData.reset();
+        } else {
+            qCWarning(gpugllogging) << "Transfer failed because mip could not be retrieved from texture " << _parent._source.c_str();
+        }
     };
 }
 
@@ -452,11 +461,6 @@ void GLVariableAllocationSupport::updateMemoryPressure() {
 
     if (newState != _memoryPressureState) {
         _memoryPressureState = newState;
-#if THREADED_TEXTURE_BUFFERING
-        if (MemoryPressureState::Transfer == _memoryPressureState) {
-            TransferJob::startBufferingThread();
-        }
-#endif
         // Clear the existing queue
         _transferQueue = WorkQueue();
         _promoteQueue = WorkQueue();

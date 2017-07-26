@@ -322,20 +322,20 @@ void SkeletonModel::computeBoundingShape() {
     _boundingCapsuleLocalOffset = invScale * offset;
 }
 
-void SkeletonModel::renderBoundingCollisionShapes(gpu::Batch& batch, float scale, float alpha) {
+void SkeletonModel::renderBoundingCollisionShapes(RenderArgs* args, gpu::Batch& batch, float scale, float alpha) {
     auto geometryCache = DependencyManager::get<GeometryCache>();
     // draw a blue sphere at the capsule top point
     glm::vec3 topPoint = _translation + getRotation() * (scale * (_boundingCapsuleLocalOffset + (0.5f * _boundingCapsuleHeight) * Vectors::UNIT_Y));
 
     batch.setModelTransform(Transform().setTranslation(topPoint).postScale(scale * _boundingCapsuleRadius));
-    geometryCache->renderSolidSphereInstance(batch, glm::vec4(0.6f, 0.6f, 0.8f, alpha));
+    geometryCache->renderSolidSphereInstance(args, batch, glm::vec4(0.6f, 0.6f, 0.8f, alpha));
 
     // draw a yellow sphere at the capsule bottom point
     glm::vec3 bottomPoint = topPoint - glm::vec3(0.0f, scale * _boundingCapsuleHeight, 0.0f);
     glm::vec3 axis = topPoint - bottomPoint;
 
     batch.setModelTransform(Transform().setTranslation(bottomPoint).postScale(scale * _boundingCapsuleRadius));
-    geometryCache->renderSolidSphereInstance(batch, glm::vec4(0.8f, 0.8f, 0.6f, alpha));
+    geometryCache->renderSolidSphereInstance(args, batch, glm::vec4(0.8f, 0.8f, 0.6f, alpha));
 
     // draw a green cylinder between the two points
     glm::vec3 origin(0.0f);

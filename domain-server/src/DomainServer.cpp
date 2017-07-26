@@ -40,11 +40,11 @@
 #include <LogHandler.h>
 #include <PathUtils.h>
 #include <NumericalConstants.h>
+#include <Trace.h>
+#include <StatTracker.h>
 
 #include "DomainServerNodeData.h"
 #include "NodeConnectionData.h"
-#include <Trace.h>
-#include <StatTracker.h>
 
 int const DomainServer::EXIT_CODE_REBOOT = 234923;
 
@@ -87,7 +87,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     qDebug() << "[VERSION] VERSION:" << BuildInfo::VERSION;
     qDebug() << "[VERSION] BUILD_BRANCH:" << BuildInfo::BUILD_BRANCH;
     qDebug() << "[VERSION] BUILD_GLOBAL_SERVICES:" << BuildInfo::BUILD_GLOBAL_SERVICES;
-    qDebug() << "[VERSION] We will be using this default ICE server:" << ICE_SERVER_DEFAULT_HOSTNAME;
+    qDebug() << "[VERSION] We will be using this name to find ICE servers:" << _iceServerAddr;
 
 
     // make sure we have a fresh AccountManager instance
@@ -117,6 +117,12 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // if permissions are updated, relay the changes to the Node datastructures
     connect(&_settingsManager, &DomainServerSettingsManager::updateNodePermissions,
             &_gatekeeper, &DomainGatekeeper::updateNodePermissions);
+    connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
+            this, &DomainServer::updateReplicatedNodes);
+    connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
+            this, &DomainServer::updateDownstreamNodes);
+    connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
+            this, &DomainServer::updateUpstreamNodes);
 
     setupGroupCacheRefresh();
 
@@ -128,6 +134,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     _settingsManager.apiRefreshGroupInformation();
 
     setupNodeListAndAssignments();
+
+    updateReplicatedNodes();
+    updateDownstreamNodes();
+    updateUpstreamNodes();
 
     if (_type != NonMetaverse) {
         // if we have a metaverse domain, we'll use an access token for API calls
@@ -150,10 +160,10 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         getTemporaryName();
     }
 
-    _gatekeeper.preloadAllowedUserPublicKeys(); // so they can connect on first request
-
+    // send signal to DomainMetadata when descriptors changed
     _metadata = new DomainMetadata(this);
-
+    connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
+            _metadata, &DomainMetadata::descriptorsChanged);
 
     qDebug() << "domain-server is running";
     static const QString AC_SUBNET_WHITELIST_SETTING_PATH = "security.ac_subnet_whitelist";
@@ -211,6 +221,8 @@ void DomainServer::parseCommandLine() {
     const QCommandLineOption masterConfigOption("master-config", "Deprecated config-file option");
     parser.addOption(masterConfigOption);
 
+    const QCommandLineOption parentPIDOption(PARENT_PID_OPTION, "PID of the parent process", "parent-pid");
+    parser.addOption(parentPIDOption);
 
     if (!parser.parse(QCoreApplication::arguments())) {
         qWarning() << parser.errorText() << endl;
@@ -238,6 +250,17 @@ void DomainServer::parseCommandLine() {
         _overridingDomainID = QUuid(parser.value(domainIDOption));
         _overrideDomainID = true;
         qDebug() << "domain-server ID is" << _overridingDomainID;
+    }
+
+
+    if (parser.isSet(parentPIDOption)) {
+        bool ok = false;
+        int parentPID = parser.value(parentPIDOption).toInt(&ok);
+
+        if (ok) {
+            qDebug() << "Parent process PID is" << parentPID;
+            watchParentProcess(parentPID);
+        }
     }
 }
 
@@ -958,6 +981,11 @@ void DomainServer::handleConnectedNode(SharedNodePointer newNode) {
         emit userConnected();
     }
 
+    if (shouldReplicateNode(*newNode)) {
+        qDebug() << "Setting node to replicated: " << newNode->getUUID();
+        newNode->setIsReplicated(true);
+    }
+
     // send out this node to our other connected nodes
     broadcastNewNode(newNode);
 }
@@ -1537,7 +1565,7 @@ void DomainServer::sendHeartbeatToIceServer() {
 
     } else {
         qDebug() << "Not sending ice-server heartbeat since there is no selected ice-server.";
-        qDebug() << "Waiting for" << ICE_SERVER_DEFAULT_HOSTNAME << "host lookup response";
+        qDebug() << "Waiting for" << _iceServerAddr << "host lookup response";
 
     }
 }
@@ -1650,6 +1678,7 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     const QString URI_NODES = "/nodes";
     const QString URI_SETTINGS = "/settings";
     const QString URI_ENTITY_FILE_UPLOAD = "/content/upload";
+    const QString URI_RESTART = "/restart";
 
     const QString UUID_REGEX_STRING = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 
@@ -1805,6 +1834,10 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
             connection->respond(HTTPConnection::StatusCode200, nodesDocument.toJson(), qPrintable(JSON_MIME_TYPE));
 
             return true;
+        } else if (url.path() == URI_RESTART) {
+            connection->respond(HTTPConnection::StatusCode200);
+            restart();
+            return true;
         } else {
             // check if this is for json stats for a node
             const QString NODE_JSON_REGEX_STRING = QString("\\%1\\/(%2).json\\/?$").arg(URI_NODES).arg(UUID_REGEX_STRING);
@@ -1939,7 +1972,8 @@ bool DomainServer::handleHTTPRequest(HTTPConnection* connection, const QUrl& url
     return _settingsManager.handleAuthenticatedHTTPRequest(connection, url);
 }
 
-const QString HIFI_SESSION_COOKIE_KEY = "DS_WEB_SESSION_UUID";
+static const QString HIFI_SESSION_COOKIE_KEY = "DS_WEB_SESSION_UUID";
+static const QString STATE_QUERY_KEY = "state";
 
 bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &url, bool skipSubHandler) {
     qDebug() << "HTTPS request received at" << url.toString();
@@ -1950,10 +1984,9 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
         const QString CODE_QUERY_KEY = "code";
         QString authorizationCode = codeURLQuery.queryItemValue(CODE_QUERY_KEY);
 
-        const QString STATE_QUERY_KEY = "state";
         QUuid stateUUID = QUuid(codeURLQuery.queryItemValue(STATE_QUERY_KEY));
 
-        if (!authorizationCode.isEmpty() && !stateUUID.isNull()) {
+        if (!authorizationCode.isEmpty() && !stateUUID.isNull() && _webAuthenticationStateSet.remove(stateUUID)) {
             // fire off a request with this code and state to get an access token for the user
 
             const QString OAUTH_TOKEN_REQUEST_PATH = "/oauth/token";
@@ -1971,47 +2004,83 @@ bool DomainServer::handleHTTPSRequest(HTTPSConnection* connection, const QUrl &u
             tokenRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/x-www-form-urlencoded");
 
             QNetworkReply* tokenReply = NetworkAccessManager::getInstance().post(tokenRequest, tokenPostBody.toLocal8Bit());
+            connect(tokenReply, &QNetworkReply::finished, this, &DomainServer::tokenGrantFinished);
 
-            if (_webAuthenticationStateSet.remove(stateUUID)) {
-                // this is a web user who wants to auth to access web interface
-                // we hold the response back to them until we get their profile information
-                // and can decide if they are let in or not
+            // add this connection to our list of pending connections so that we can hold the response
+            _pendingOAuthConnections.insert(stateUUID, connection);
 
-                QEventLoop loop;
-                connect(tokenReply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+            // set the state UUID on the reply so that we can associate the response with the connection later
+            tokenReply->setProperty(STATE_QUERY_KEY.toLocal8Bit(), stateUUID);
 
-                // start the loop for the token request
-                loop.exec();
+            return true;
+        } else {
+            connection->respond(HTTPConnection::StatusCode400);
 
-                QNetworkReply* profileReply = profileRequestGivenTokenReply(tokenReply);
+            return true;
+        }
+    } else {
+        return false;
+    }
+}
 
-                // stop the loop once the profileReply is complete
-                connect(profileReply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+HTTPSConnection* DomainServer::connectionFromReplyWithState(QNetworkReply* reply) {
+    // grab the UUID state property from the reply
+    QUuid stateUUID = reply->property(STATE_QUERY_KEY.toLocal8Bit()).toUuid();
 
-                // restart the loop for the profile request
-                loop.exec();
+    if (!stateUUID.isNull()) {
+        return _pendingOAuthConnections.take(stateUUID);
+    } else {
+        return nullptr;
+    }
+}
 
+void DomainServer::tokenGrantFinished() {
+    auto tokenReply = qobject_cast<QNetworkReply*>(sender());
+
+    if (tokenReply) {
+        if (tokenReply->error() == QNetworkReply::NoError) {
+            // now that we have a token for this profile, send off a profile request
+            QNetworkReply* profileReply = profileRequestGivenTokenReply(tokenReply);
+
+            // forward along the state UUID that we kept with the token request
+            profileReply->setProperty(STATE_QUERY_KEY.toLocal8Bit(), tokenReply->property(STATE_QUERY_KEY.toLocal8Bit()));
+
+            connect(profileReply, &QNetworkReply::finished, this, &DomainServer::profileRequestFinished);
+        } else {
+            // the token grant failed, send back a 500 (assuming the connection is still around)
+            auto connection = connectionFromReplyWithState(tokenReply);
+
+            if (connection) {
+                connection->respond(HTTPConnection::StatusCode500);
+            }
+        }
+
+        tokenReply->deleteLater();
+    }
+}
+
+void DomainServer::profileRequestFinished() {
+
+    auto profileReply = qobject_cast<QNetworkReply*>(sender());
+
+    if (profileReply) {
+        auto connection = connectionFromReplyWithState(profileReply);
+
+        if (connection) {
+            if (profileReply->error() == QNetworkReply::NoError) {
                 // call helper method to get cookieHeaders
                 Headers cookieHeaders = setupCookieHeadersFromProfileReply(profileReply);
 
                 connection->respond(HTTPConnection::StatusCode302, QByteArray(),
                                     HTTPConnection::DefaultContentType, cookieHeaders);
 
-                delete tokenReply;
-                delete profileReply;
-
-                // we've redirected the user back to our homepage
-                return true;
-
+            } else {
+                // the profile request failed, send back a 500 (assuming the connection is still around)
+                connection->respond(HTTPConnection::StatusCode500);
             }
         }
 
-        // respond with a 200 code indicating that login is complete
-        connection->respond(HTTPConnection::StatusCode200);
-
-        return true;
-    } else {
-        return false;
+        profileReply->deleteLater();
     }
 }
 
@@ -2071,22 +2140,31 @@ bool DomainServer::isAuthenticatedRequest(HTTPConnection* connection, const QUrl
             // the user does not have allowed username or role, return 401
             return false;
         } else {
-            // re-direct this user to OAuth page
+            static const QByteArray REQUESTED_WITH_HEADER = "X-Requested-With";
+            static const QString XML_REQUESTED_WITH = "XMLHttpRequest";
 
-            // generate a random state UUID to use
-            QUuid stateUUID = QUuid::createUuid();
+            if (connection->requestHeaders().value(REQUESTED_WITH_HEADER) == XML_REQUESTED_WITH) {
+                // unauthorized XHR requests get a 401 and not a 302, since there isn't an XHR
+                // path to OAuth authorize
+                connection->respond(HTTPConnection::StatusCode401, UNAUTHENTICATED_BODY);
+            } else {
+                // re-direct this user to OAuth page
 
-            // add it to the set so we can handle the callback from the OAuth provider
-            _webAuthenticationStateSet.insert(stateUUID);
+                // generate a random state UUID to use
+                QUuid stateUUID = QUuid::createUuid();
 
-            QUrl authURL = oauthAuthorizationURL(stateUUID);
+                // add it to the set so we can handle the callback from the OAuth provider
+                _webAuthenticationStateSet.insert(stateUUID);
 
-            Headers redirectHeaders;
+                QUrl authURL = oauthAuthorizationURL(stateUUID);
 
-            redirectHeaders.insert("Location", authURL.toEncoded());
+                Headers redirectHeaders;
 
-            connection->respond(HTTPConnection::StatusCode302,
-                                QByteArray(), HTTPConnection::DefaultContentType, redirectHeaders);
+                redirectHeaders.insert("Location", authURL.toEncoded());
+
+                connection->respond(HTTPConnection::StatusCode302,
+                                    QByteArray(), HTTPConnection::DefaultContentType, redirectHeaders);
+            }
 
             // we don't know about this user yet, so they are not yet authenticated
             return false;
@@ -2209,6 +2287,172 @@ void DomainServer::refreshStaticAssignmentAndAddToQueue(SharedAssignmentPointer&
     _allAssignments.insert(assignment->getUUID(), assignment);
     _unfulfilledAssignments.enqueue(assignment);
 }
+
+static const QString BROADCASTING_SETTINGS_KEY = "broadcasting";
+
+struct ReplicationServerInfo {
+    NodeType_t nodeType;
+    HifiSockAddr sockAddr;
+};
+
+ReplicationServerInfo serverInformationFromSettings(QVariantMap serverMap, ReplicationServerDirection direction) {
+    static const QString REPLICATION_SERVER_ADDRESS = "address";
+    static const QString REPLICATION_SERVER_PORT = "port";
+    static const QString REPLICATION_SERVER_TYPE = "server_type";
+
+    if (serverMap.contains(REPLICATION_SERVER_ADDRESS) && serverMap.contains(REPLICATION_SERVER_PORT)
+        && serverMap.contains(REPLICATION_SERVER_TYPE)) {
+
+        auto nodeType = NodeType::fromString(serverMap[REPLICATION_SERVER_TYPE].toString());
+
+        ReplicationServerInfo serverInfo;
+
+        if (direction == Upstream) {
+            serverInfo.nodeType = NodeType::upstreamType(nodeType);
+        } else if (direction == Downstream) {
+            serverInfo.nodeType = NodeType::downstreamType(nodeType);
+        }
+
+        // read the address and port and construct a HifiSockAddr from them
+        serverInfo.sockAddr = {
+            serverMap[REPLICATION_SERVER_ADDRESS].toString(),
+            (quint16) serverMap[REPLICATION_SERVER_PORT].toString().toInt()
+        };
+
+        return serverInfo;
+    }
+
+    return { NodeType::Unassigned, HifiSockAddr() };
+}
+
+void DomainServer::updateReplicationNodes(ReplicationServerDirection direction) {
+    auto settings = _settingsManager.getSettingsMap();
+
+    if (settings.contains(BROADCASTING_SETTINGS_KEY)) {
+        auto nodeList = DependencyManager::get<LimitedNodeList>();
+        std::vector<HifiSockAddr> replicationNodesInSettings;
+
+        auto replicationSettings = settings.value(BROADCASTING_SETTINGS_KEY).toMap();
+
+        QString serversKey = direction == Upstream ? "upstream_servers" : "downstream_servers";
+        QString replicationDirection = direction == Upstream ? "upstream" : "downstream";
+
+        if (replicationSettings.contains(serversKey)) {
+            auto serversSettings = replicationSettings.value(serversKey).toList();
+
+            std::vector<HifiSockAddr> knownReplicationNodes;
+            nodeList->eachNode([&](const SharedNodePointer& otherNode) {
+                if ((direction == Upstream && NodeType::isUpstream(otherNode->getType()))
+                    || (direction == Downstream && NodeType::isDownstream(otherNode->getType()))) {
+                    knownReplicationNodes.push_back(otherNode->getPublicSocket());
+                }
+            });
+
+            for (auto& server : serversSettings) {
+                auto replicationServer = serverInformationFromSettings(server.toMap(), direction);
+
+                if (!replicationServer.sockAddr.isNull() && replicationServer.nodeType != NodeType::Unassigned) {
+                    // make sure we have the settings we need for this replication server
+                    replicationNodesInSettings.push_back(replicationServer.sockAddr);
+
+                    bool knownNode = find(knownReplicationNodes.cbegin(), knownReplicationNodes.cend(),
+                                          replicationServer.sockAddr) != knownReplicationNodes.cend();
+                    if (!knownNode) {
+                        // manually add the replication node to our node list
+                        auto node = nodeList->addOrUpdateNode(QUuid::createUuid(), replicationServer.nodeType,
+                                                              replicationServer.sockAddr, replicationServer.sockAddr,
+                                                              false, direction == Upstream);
+                        node->setIsForcedNeverSilent(true);
+
+                        qDebug() << "Adding" << (direction == Upstream ? "upstream" : "downstream")
+                            << "node:" << node->getUUID() << replicationServer.sockAddr;
+
+                        // manually activate the public socket for the replication node
+                        node->activatePublicSocket();
+                    }
+                }
+
+            }
+        }
+
+        // enumerate the nodes to determine which are no longer downstream for this domain
+        // collect them in a vector to separately remove them with handleKillNode (since eachNode has a read lock and
+        // we cannot recursively take the write lock required by handleKillNode)
+        std::vector<SharedNodePointer> nodesToKill;
+        nodeList->eachNode([&](const SharedNodePointer& otherNode) {
+            if ((direction == Upstream && NodeType::isUpstream(otherNode->getType()))
+                || (direction == Downstream && NodeType::isDownstream(otherNode->getType()))) {
+                bool nodeInSettings = find(replicationNodesInSettings.cbegin(), replicationNodesInSettings.cend(),
+                                           otherNode->getPublicSocket()) != replicationNodesInSettings.cend();
+                if (!nodeInSettings) {
+                    qDebug() << "Removing" << replicationDirection
+                        << "node:" << otherNode->getUUID() << otherNode->getPublicSocket();
+                    nodesToKill.push_back(otherNode);
+                }
+            }
+        });
+
+        for (auto& node : nodesToKill) {
+            handleKillNode(node);
+        }
+    }
+}
+
+void DomainServer::updateDownstreamNodes() {
+    updateReplicationNodes(Downstream);
+}
+
+void DomainServer::updateUpstreamNodes() {
+    updateReplicationNodes(Upstream);
+}
+
+void DomainServer::updateReplicatedNodes() {
+    // Make sure we have downstream nodes in our list
+    auto settings = _settingsManager.getSettingsMap();
+
+    static const QString REPLICATED_USERS_KEY = "users";
+    _replicatedUsernames.clear();
+    
+    if (settings.contains(BROADCASTING_SETTINGS_KEY)) {
+        auto replicationSettings = settings.value(BROADCASTING_SETTINGS_KEY).toMap();
+        if (replicationSettings.contains(REPLICATED_USERS_KEY)) {
+            auto usersSettings = replicationSettings.value(REPLICATED_USERS_KEY).toList();
+            for (auto& username : usersSettings) {
+                _replicatedUsernames.push_back(username.toString().toLower());
+            }
+        }
+    }
+
+    auto nodeList = DependencyManager::get<LimitedNodeList>();
+    nodeList->eachMatchingNode([this](const SharedNodePointer& otherNode) -> bool {
+            return otherNode->getType() == NodeType::Agent;
+        }, [this](const SharedNodePointer& otherNode) {
+            auto shouldReplicate = shouldReplicateNode(*otherNode);
+            auto isReplicated = otherNode->isReplicated();
+            if (isReplicated && !shouldReplicate) {
+                qDebug() << "Setting node to NOT be replicated:"
+                    << otherNode->getPermissions().getVerifiedUserName() << otherNode->getUUID();
+            } else if (!isReplicated && shouldReplicate) {
+                qDebug() << "Setting node to replicated:"
+                    << otherNode->getPermissions().getVerifiedUserName() << otherNode->getUUID();
+            }
+            otherNode->setIsReplicated(shouldReplicate);
+        }
+    );
+}
+
+bool DomainServer::shouldReplicateNode(const Node& node) {
+    if (node.getType() == NodeType::Agent) {
+        QString verifiedUsername = node.getPermissions().getVerifiedUserName();
+
+        // Both the verified username and usernames in _replicatedUsernames are lowercase, so
+        // comparisons here are case-insensitive.
+        auto it = find(_replicatedUsernames.cbegin(), _replicatedUsernames.cend(), verifiedUsername);
+        return it != _replicatedUsernames.end();
+    } else {
+        return false;
+    }
+};
 
 void DomainServer::nodeAdded(SharedNodePointer node) {
     // we don't use updateNodeWithData, so add the DomainServerNodeData to the node here
@@ -2497,7 +2741,7 @@ void DomainServer::handleICEHostInfo(const QHostInfo& hostInfo) {
     _iceAddressLookupID = -1;
 
     if (hostInfo.error() != QHostInfo::NoError) {
-        qWarning() << "IP address lookup failed for" << ICE_SERVER_DEFAULT_HOSTNAME << ":" << hostInfo.errorString();
+        qWarning() << "IP address lookup failed for" << _iceServerAddr << ":" << hostInfo.errorString();
 
         // if we don't have an ICE server to use yet, trigger a retry
         if (_iceServerSocket.isNull()) {
@@ -2512,7 +2756,7 @@ void DomainServer::handleICEHostInfo(const QHostInfo& hostInfo) {
         _iceServerAddresses = hostInfo.addresses();
 
         if (countBefore == 0) {
-            qInfo() << "Found" << _iceServerAddresses.count() << "ice-server IP addresses for" << ICE_SERVER_DEFAULT_HOSTNAME;
+            qInfo() << "Found" << _iceServerAddresses.count() << "ice-server IP addresses for" << _iceServerAddr;
         }
 
         if (_iceServerSocket.isNull()) {
@@ -2547,7 +2791,7 @@ void DomainServer::randomizeICEServerAddress(bool shouldTriggerHostLookup) {
         // so clear the set of failed addresses and start going through them again
 
         qWarning() << "All current ice-server addresses have failed - re-attempting all current addresses for"
-            << ICE_SERVER_DEFAULT_HOSTNAME;
+                   << _iceServerAddr;
 
         _failedIceServerAddresses.clear();
         candidateICEAddresses = _iceServerAddresses;

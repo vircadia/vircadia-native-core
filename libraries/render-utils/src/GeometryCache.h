@@ -172,46 +172,46 @@ public:
     void renderShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
     void renderWireShapeInstances(gpu::Batch& batch, Shape shape, size_t count, gpu::BufferPointer& colorBuffer);
 
-    void renderSolidShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec4& color = glm::vec4(1),
+    void renderSolidShapeInstance(RenderArgs* args, gpu::Batch& batch, Shape shape, const glm::vec4& color = glm::vec4(1),
                                     const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline);
-    void renderSolidShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec3& color,
+    void renderSolidShapeInstance(RenderArgs* args, gpu::Batch& batch, Shape shape, const glm::vec3& color,
                                     const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline) {
-        renderSolidShapeInstance(batch, shape, glm::vec4(color, 1.0f), pipeline);
+        renderSolidShapeInstance(args, batch, shape, glm::vec4(color, 1.0f), pipeline);
     }
 
-    void renderWireShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec4& color = glm::vec4(1),
+    void renderWireShapeInstance(RenderArgs* args, gpu::Batch& batch, Shape shape, const glm::vec4& color = glm::vec4(1),
         const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline);
-    void renderWireShapeInstance(gpu::Batch& batch, Shape shape, const glm::vec3& color,
+    void renderWireShapeInstance(RenderArgs* args, gpu::Batch& batch, Shape shape, const glm::vec3& color,
         const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline) {
-        renderWireShapeInstance(batch, shape, glm::vec4(color, 1.0f), pipeline);
+        renderWireShapeInstance(args, batch, shape, glm::vec4(color, 1.0f), pipeline);
     }
 
-    void renderSolidSphereInstance(gpu::Batch& batch, const glm::vec4& color,
+    void renderSolidSphereInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color,
                                     const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline);
-    void renderSolidSphereInstance(gpu::Batch& batch, const glm::vec3& color,
+    void renderSolidSphereInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec3& color,
                                     const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline) {
-        renderSolidSphereInstance(batch, glm::vec4(color, 1.0f), pipeline);
+        renderSolidSphereInstance(args, batch, glm::vec4(color, 1.0f), pipeline);
     }
     
-    void renderWireSphereInstance(gpu::Batch& batch, const glm::vec4& color,
+    void renderWireSphereInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color,
                                     const render::ShapePipelinePointer& pipeline = _simpleWirePipeline);
-    void renderWireSphereInstance(gpu::Batch& batch, const glm::vec3& color,
+    void renderWireSphereInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec3& color,
                                     const render::ShapePipelinePointer& pipeline = _simpleWirePipeline) {
-        renderWireSphereInstance(batch, glm::vec4(color, 1.0f), pipeline);
+        renderWireSphereInstance(args, batch, glm::vec4(color, 1.0f), pipeline);
     }
     
-    void renderSolidCubeInstance(gpu::Batch& batch, const glm::vec4& color,
+    void renderSolidCubeInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color,
                                     const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline);
-    void renderSolidCubeInstance(gpu::Batch& batch, const glm::vec3& color,
+    void renderSolidCubeInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec3& color,
                                     const render::ShapePipelinePointer& pipeline = _simpleOpaquePipeline) {
-        renderSolidCubeInstance(batch, glm::vec4(color, 1.0f), pipeline);
+        renderSolidCubeInstance(args, batch, glm::vec4(color, 1.0f), pipeline);
     }
     
-    void renderWireCubeInstance(gpu::Batch& batch, const glm::vec4& color,
+    void renderWireCubeInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec4& color,
                                     const render::ShapePipelinePointer& pipeline = _simpleWirePipeline);
-    void renderWireCubeInstance(gpu::Batch& batch, const glm::vec3& color,
+    void renderWireCubeInstance(RenderArgs* args, gpu::Batch& batch, const glm::vec3& color,
                                     const render::ShapePipelinePointer& pipeline = _simpleWirePipeline) {
-        renderWireCubeInstance(batch, glm::vec4(color, 1.0f), pipeline);
+        renderWireCubeInstance(args, batch, glm::vec4(color, 1.0f), pipeline);
     }
     
     // Dynamic geometry

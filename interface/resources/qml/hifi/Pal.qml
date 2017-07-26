@@ -473,6 +473,7 @@ Rectangle {
                     visible: !isCheckBox && !isButton && !isAvgAudio;
                     uuid: model ? model.sessionId : "";
                     selected: styleData.selected;
+                    isReplicated: model.isReplicated;
                     isAdmin: model && model.admin;
                     isPresent: model && model.isPresent;
                     // Size
@@ -553,6 +554,7 @@ Rectangle {
                     id: actionButton;
                     color: 2; // Red
                     visible: isButton;
+                    enabled: !nameCard.isReplicated;
                     anchors.centerIn: parent;
                     width: 32;
                     height: 32;
@@ -1099,9 +1101,9 @@ Rectangle {
         case 'nearbyUsers':
             var data = message.params;
             var index = -1;
+            iAmAdmin = Users.canKick;
             index = findNearbySessionIndex('', data);
             if (index !== -1) {
-                iAmAdmin = Users.canKick;
                 myData = data[index];
                 data.splice(index, 1);
             } else {

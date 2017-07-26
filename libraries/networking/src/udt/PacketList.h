@@ -49,6 +49,8 @@ public:
     void startSegment();
     void endSegment();
 
+    virtual qint64 getMaxSegmentSize() const { return Packet::maxPayloadSize(_isOrdered); }
+
     HifiSockAddr getSenderSockAddr() const;
     
     void closeCurrentPacket(bool shouldSendEmpty = false);
@@ -74,6 +76,8 @@ protected:
     
     PacketType _packetType;
     std::list<std::unique_ptr<Packet>> _packets;
+
+    bool _isOrdered = false;
     
 private:
     friend class ::LimitedNodeList;
@@ -93,7 +97,6 @@ private:
     
     Packet::MessageNumber _messageNumber;
     bool _isReliable = false;
-    bool _isOrdered = false;
     
     std::unique_ptr<Packet> _currentPacket;
     

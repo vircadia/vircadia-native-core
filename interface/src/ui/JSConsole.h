@@ -63,6 +63,7 @@ private:
     QFutureWatcher<QScriptValue> _executeWatcher;
     Ui::Console* _ui;
     int _currentCommandInHistory;
+    QString _savedHistoryFilename;
     QList<QString> _commandHistory;
     // Keeps track if the script engine is created inside the JSConsole
     bool _ownScriptEngine;

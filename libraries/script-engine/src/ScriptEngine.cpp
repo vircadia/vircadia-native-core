@@ -24,6 +24,8 @@
 
 #include <QtWidgets/QMainWindow>
 #include <QtWidgets/QApplication>
+#include <QtWidgets/QMenuBar>
+#include <QtWidgets/QMenu>
 
 #include <QtNetwork/QNetworkRequest>
 #include <QtNetwork/QNetworkReply>
@@ -34,6 +36,7 @@
 
 #include <QtScriptTools/QScriptEngineDebugger>
 
+#include <shared/QtHelpers.h>
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
 #include <AvatarData.h>
@@ -48,7 +51,6 @@
 #include <ScriptAvatarData.h>
 #include <udt/PacketHeaders.h>
 #include <UUID.h>
-#include <ui/Menu.h>
 
 #include <controllers/ScriptingInterface.h>
 #include <AnimationObject.h>
@@ -70,7 +72,6 @@
 #include "WebSocketClass.h"
 #include "RecordingScriptingInterface.h"
 #include "ScriptEngines.h"
-#include "TabletScriptingInterface.h"
 #include "ModelScriptingInterface.h"
 
 
@@ -172,7 +173,7 @@ ScriptEngine::ScriptEngine(Context context, const QString& scriptContents, const
             emit unhandledException(exception);
         }
     }, Qt::DirectConnection);
-    
+
     setProcessEventsInterval(MSECS_PER_SECOND);
     if (isEntityServerScript()) {
         qCDebug(scriptengine) << "isEntityServerScript() -- limiting maxRetries to 1";
@@ -281,7 +282,7 @@ void ScriptEngine::runDebuggable() {
                 scriptDebugMenu = nullptr;
             }
         }
-        disconnect(timer); 
+        disconnect(timer);
     });
 
     connect(timer, &QTimer::timeout, [this, timer] {
@@ -340,7 +341,7 @@ void ScriptEngine::runInThread() {
     QThread* workerThread = new QThread();
     workerThread->setObjectName(QString("js:") + getFilename().replace("about:",""));
     moveToThread(workerThread);
-    
+
     // NOTE: If you connect any essential signals for proper shutdown or cleanup of
     // the script engine, make sure to add code to "reconnect" them to the
     // disconnectNonEssentialSignals() method
@@ -436,12 +437,12 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
     _fileNameString = url.toString();
     _isReloading = reload;
 
-	// Check that script has a supported file extension
+    // Check that script has a supported file extension
     if (!hasValidScriptSuffix(_fileNameString)) {
         scriptErrorMessage("File extension of file: " + _fileNameString + " is not a currently supported script type");
         emit errorLoadingScript(_fileNameString);
         return;
-	}
+    }
 
     const auto maxRetries = 0; // for consistency with previous scriptCache->getScript() behavior
     auto scriptCache = DependencyManager::get<ScriptCache>();
@@ -472,18 +473,22 @@ void ScriptEngine::scriptErrorMessage(const QString& message) {
 }
 
 void ScriptEngine::scriptWarningMessage(const QString& message) {
-    qCWarning(scriptengine) << message;
+    qCWarning(scriptengine) << qPrintable(message);
     emit warningMessage(message, getFilename());
 }
 
 void ScriptEngine::scriptInfoMessage(const QString& message) {
-    qCInfo(scriptengine) << message;
+    qCInfo(scriptengine) << qPrintable(message);
     emit infoMessage(message, getFilename());
 }
 
 void ScriptEngine::scriptPrintedMessage(const QString& message) {
-    qCDebug(scriptengine) << message;
+    qCDebug(scriptengine) << qPrintable(message);
     emit printedMessage(message, getFilename());
+}
+
+void ScriptEngine::clearDebugLogWindow() {
+    emit clearDebugWindow();
 }
 
 // Even though we never pass AnimVariantMap directly to and from javascript, the queued invokeMethod of
@@ -668,8 +673,18 @@ void ScriptEngine::init() {
     registerGlobalObject("Mat4", &_mat4Library);
     registerGlobalObject("Uuid", &_uuidLibrary);
     registerGlobalObject("Messages", DependencyManager::get<MessagesClient>().data());
-
     registerGlobalObject("File", new FileScriptingInterface(this));
+    registerGlobalObject("console", &_consoleScriptingInterface);
+    registerFunction("console", "info", ConsoleScriptingInterface::info, currentContext()->argumentCount());
+    registerFunction("console", "log", ConsoleScriptingInterface::log, currentContext()->argumentCount());
+    registerFunction("console", "debug", ConsoleScriptingInterface::debug, currentContext()->argumentCount());
+    registerFunction("console", "warn", ConsoleScriptingInterface::warn, currentContext()->argumentCount());
+    registerFunction("console", "error", ConsoleScriptingInterface::error, currentContext()->argumentCount());
+    registerFunction("console", "exception", ConsoleScriptingInterface::exception, currentContext()->argumentCount());
+    registerFunction("console", "assert", ConsoleScriptingInterface::assertion, currentContext()->argumentCount());
+    registerFunction("console", "group", ConsoleScriptingInterface::group, 1);
+    registerFunction("console", "groupCollapsed", ConsoleScriptingInterface::groupCollapsed, 1);
+    registerFunction("console", "groupEnd", ConsoleScriptingInterface::groupEnd, 0);
 
     qScriptRegisterMetaType(this, animVarMapToScriptValue, animVarMapFromScriptValue);
     qScriptRegisterMetaType(this, resultHandlerToScriptValue, resultHandlerFromScriptValue);
@@ -683,8 +698,6 @@ void ScriptEngine::init() {
     // constants
     globalObject().setProperty("TREE_SCALE", newVariant(QVariant(TREE_SCALE)));
 
-    registerGlobalObject("Tablet", DependencyManager::get<TabletScriptingInterface>().data());
-    qScriptRegisterMetaType(this, tabletToScriptValue, tabletFromScriptValue);
     registerGlobalObject("Assets", &_assetScriptingInterface);
     registerGlobalObject("Resources", DependencyManager::get<ResourceScriptingInterface>().data());
 
@@ -952,7 +965,7 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
         qCDebug(scriptengine) << "*** WARNING *** ScriptEngine::evaluate() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "] "
             "sourceCode:" << sourceCode << " fileName:" << fileName << "lineNumber:" << lineNumber;
 #endif
-        QMetaObject::invokeMethod(this, "evaluate", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "evaluate",
                                   Q_RETURN_ARG(QScriptValue, result),
                                   Q_ARG(const QString&, sourceCode),
                                   Q_ARG(const QString&, fileName),
@@ -1006,6 +1019,7 @@ void ScriptEngine::run() {
     emit runningStateChanged();
 
     {
+        PROFILE_RANGE(script, _fileNameString);
         evaluate(_scriptContents, _fileNameString);
         maybeEmitUncaughtException(__FUNCTION__);
     }
@@ -1032,46 +1046,43 @@ void ScriptEngine::run() {
         auto beforeSleep = clock::now();
 
         // Throttle to SCRIPT_FPS
-        // We'd like to try to keep the script at a solid SCRIPT_FPS update rate. And so we will 
+        // We'd like to try to keep the script at a solid SCRIPT_FPS update rate. And so we will
         // calculate a sleepUntil to be the time from our start time until the original target
-        // sleepUntil for this frame. This approach will allow us to "catch up" in the event 
-        // that some of our script udpates/frames take a little bit longer than the target average 
+        // sleepUntil for this frame. This approach will allow us to "catch up" in the event
+        // that some of our script udpates/frames take a little bit longer than the target average
         // to execute.
         // NOTE: if we go to variable SCRIPT_FPS, then we will need to reconsider this approach
         const std::chrono::microseconds TARGET_SCRIPT_FRAME_DURATION(USECS_PER_SECOND / SCRIPT_FPS + 1);
         clock::time_point targetSleepUntil(startTime + (thisFrame++ * TARGET_SCRIPT_FRAME_DURATION));
 
-        // However, if our sleepUntil is not at least our average update and timer execution time 
-        // into the future it means our script is taking too long in its updates, and we want to 
-        // punish the script a little bit. So we will force the sleepUntil to be at least our 
+        // However, if our sleepUntil is not at least our average update and timer execution time
+        // into the future it means our script is taking too long in its updates, and we want to
+        // punish the script a little bit. So we will force the sleepUntil to be at least our
         // averageUpdate + averageTimerPerFrame time into the future.
         auto averageUpdate = totalUpdates / thisFrame;
         auto averageTimerPerFrame = _totalTimerExecution / thisFrame;
         auto averageTimerAndUpdate = averageUpdate + averageTimerPerFrame;
         auto sleepUntil = std::max(targetSleepUntil, beforeSleep + averageTimerAndUpdate);
 
-        // We don't want to actually sleep for too long, because it causes our scripts to hang 
-        // on shutdown and stop... so we want to loop and sleep until we've spent our time in 
+        // We don't want to actually sleep for too long, because it causes our scripts to hang
+        // on shutdown and stop... so we want to loop and sleep until we've spent our time in
         // purgatory, constantly checking to see if our script was asked to end
         bool processedEvents = false;
-        while (!_isFinished && clock::now() < sleepUntil) {
-
-            {
-                PROFILE_RANGE(script, "processEvents-sleep");
-                QCoreApplication::processEvents(); // before we sleep again, give events a chance to process
+        if (!_isFinished) {
+            PROFILE_RANGE(script, "processEvents-sleep");
+            std::chrono::milliseconds sleepFor =
+                std::chrono::duration_cast<std::chrono::milliseconds>(sleepUntil - clock::now());
+            if (sleepFor > std::chrono::milliseconds(0)) {
+                QEventLoop loop;
+                QTimer timer;
+                timer.setSingleShot(true);
+                connect(&timer, SIGNAL(timeout()), &loop, SLOT(quit()));
+                timer.start(sleepFor.count());
+                loop.exec();
+            } else {
+                QCoreApplication::processEvents();
             }
             processedEvents = true;
-
-            // If after processing events, we're past due, exit asap
-            if (clock::now() >= sleepUntil) {
-                break;
-            }
-
-            // We only want to sleep a small amount so that any pending events (like timers or invokeMethod events)
-            // will be able to process quickly.
-            static const int SMALL_SLEEP_AMOUNT = 100;
-            auto smallSleepUntil = clock::now() + static_cast<std::chrono::microseconds>(SMALL_SLEEP_AMOUNT);
-            std::this_thread::sleep_until(smallSleepUntil);
         }
 
         PROFILE_RANGE(script, "ScriptMainLoop");
@@ -1269,6 +1280,7 @@ void ScriptEngine::timerFired() {
 
     // call the associated JS function, if it exists
     if (timerData.function.isValid()) {
+        PROFILE_RANGE(script, __FUNCTION__);
         auto preTimer = p_high_resolution_clock::now();
         callWithEnvironment(timerData.definingEntityIdentifier, timerData.definingSandboxURL, timerData.function, timerData.function, QScriptValueList());
         auto postTimer = p_high_resolution_clock::now();
@@ -1294,6 +1306,7 @@ QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int 
 
     // make sure the timer stops when the script does
     connect(this, &ScriptEngine::scriptEnding, newTimer, &QTimer::stop);
+
 
     CallbackData timerData = { function, currentEntityIdentifier, currentSandboxURL };
     _timerFunctionMap.insert(newTimer, timerData);
@@ -1378,12 +1391,21 @@ void ScriptEngine::print(const QString& message) {
     emit printedMessage(message, getFilename());
 }
 
+
+void ScriptEngine::beginProfileRange(const QString& label) const {
+    PROFILE_SYNC_BEGIN(script, label.toStdString().c_str(), label.toStdString().c_str());
+}
+
+void ScriptEngine::endProfileRange(const QString& label) const {
+    PROFILE_SYNC_END(script, label.toStdString().c_str(), label.toStdString().c_str());
+}
+
 // Script.require.resolve -- like resolvePath, but performs more validation and throws exceptions on invalid module identifiers (for consistency with Node.js)
 QString ScriptEngine::_requireResolve(const QString& moduleId, const QString& relativeTo) {
     if (!IS_THREADSAFE_INVOCATION(thread(), __FUNCTION__)) {
         return QString();
     }
-    QUrl defaultScriptsLoc = defaultScriptsLocation();
+    QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
     QUrl url(moduleId);
 
     auto displayId = moduleId;
@@ -1449,7 +1471,7 @@ QString ScriptEngine::_requireResolve(const QString& moduleId, const QString& re
             canonical.setPath(file.canonicalFilePath());
         }
 
-        bool disallowOutsideFiles = !defaultScriptsLocation().isParentOf(canonical) && !currentSandboxURL.isLocalFile();
+        bool disallowOutsideFiles = !PathUtils::defaultScriptsLocation().isParentOf(canonical) && !currentSandboxURL.isLocalFile();
         if (disallowOutsideFiles && !PathUtils::isDescendantOf(canonical, currentSandboxURL)) {
             return throwResolveError(makeError(message.arg(
                 QString("path '%1' outside of origin script '%2' '%3'")
@@ -1734,19 +1756,19 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
         return;
     }
     if (DependencyManager::get<ScriptEngines>()->isStopped()) {
-        scriptWarningMessage("Script.include() while shutting down is ignored... includeFiles:" 
+        scriptWarningMessage("Script.include() while shutting down is ignored... includeFiles:"
                 + includeFiles.join(",") + "parent script:" + getFilename());
         return; // bail early
     }
     QList<QUrl> urls;
 
     for (QString includeFile : includeFiles) {
-        QString file = ResourceManager::normalizeURL(includeFile);
+        QString file = DependencyManager::get<ResourceManager>()->normalizeURL(includeFile);
         QUrl thisURL;
         bool isStandardLibrary = false;
         if (file.startsWith("/~/")) {
             thisURL = expandScriptUrl(QUrl::fromLocalFile(expandScriptPath(file)));
-            QUrl defaultScriptsLoc = defaultScriptsLocation();
+            QUrl defaultScriptsLoc = PathUtils::defaultScriptsLocation();
             if (!defaultScriptsLoc.isParentOf(thisURL)) {
                 scriptWarningMessage("Script.include() -- skipping" + file + "-- outside of standard libraries");
                 continue;
@@ -1758,7 +1780,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
 
         bool disallowOutsideFiles = thisURL.isLocalFile() && !isStandardLibrary && !currentSandboxURL.isLocalFile();
         if (disallowOutsideFiles && !PathUtils::isDescendantOf(thisURL, currentSandboxURL)) {
-            scriptWarningMessage("Script.include() ignoring file path" + thisURL.toString() 
+            scriptWarningMessage("Script.include() ignoring file path" + thisURL.toString()
                                 + "outside of original entity script" + currentSandboxURL.toString());
         } else {
             // We could also check here for CORS, but we don't yet.
@@ -1799,7 +1821,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
                         clearExceptions();
                     }
                 } else {
-                    scriptWarningMessage("Script.include() skipping evaluation of previously included url:" + url.toString());
+                    scriptPrintedMessage("Script.include() skipping evaluation of previously included url:" + url.toString());
                 }
             }
         }
@@ -1828,7 +1850,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
 
 void ScriptEngine::include(const QString& includeFile, QScriptValue callback) {
     if (DependencyManager::get<ScriptEngines>()->isStopped()) {
-        scriptWarningMessage("Script.include() while shutting down is ignored...  includeFile:" 
+        scriptWarningMessage("Script.include() while shutting down is ignored...  includeFile:"
                     + includeFile + "parent script:" + getFilename());
         return; // bail early
     }
@@ -1846,12 +1868,12 @@ void ScriptEngine::load(const QString& loadFile) {
         return;
     }
     if (DependencyManager::get<ScriptEngines>()->isStopped()) {
-        scriptWarningMessage("Script.load() while shutting down is ignored... loadFile:" 
+        scriptWarningMessage("Script.load() while shutting down is ignored... loadFile:"
                 + loadFile + "parent script:" + getFilename());
         return; // bail early
     }
     if (!currentEntityIdentifier.isInvalidID()) {
-        scriptWarningMessage("Script.load() from entity script is ignored...  loadFile:" 
+        scriptWarningMessage("Script.load() from entity script is ignored...  loadFile:"
                 + loadFile + "parent script:" + getFilename() + "entity: " + currentEntityIdentifier.toString());
         return; // bail early
     }
@@ -2532,7 +2554,7 @@ void ScriptEngine::callEntityScriptMethod(const EntityItemID& entityID, const QS
     qCDebug(scriptengine) << "ScriptEngine::callEntityScriptMethod() called on correct thread [" << thread() << "]  "
         "entityID:" << entityID << "methodName:" << methodName << "otherID:" << otherID << "collision: collision";
 #endif
-    
+
     if (HIFI_AUTOREFRESH_FILE_SCRIPTS) {
         refreshFileScript(entityID);
     }

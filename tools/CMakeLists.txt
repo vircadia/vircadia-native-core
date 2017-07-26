@@ -17,8 +17,8 @@ set_target_properties(ac-client PROPERTIES FOLDER "Tools")
 add_subdirectory(skeleton-dump)
 set_target_properties(skeleton-dump PROPERTIES FOLDER "Tools")
 
-add_subdirectory(atp-get)
-set_target_properties(atp-get PROPERTIES FOLDER "Tools")
+add_subdirectory(atp-client)
+set_target_properties(atp-client PROPERTIES FOLDER "Tools")
 
 add_subdirectory(oven)
 set_target_properties(oven PROPERTIES FOLDER "Tools")

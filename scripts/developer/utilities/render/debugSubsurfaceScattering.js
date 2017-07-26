@@ -33,5 +33,5 @@ function setDebugCursor(x, y) {
     nx = (x / Window.innerWidth);
     ny = 1.0 - ((y) / (Window.innerHeight - 32));
 
-     Render.getConfig("DebugScattering").debugCursorTexcoord = { x: nx, y: ny };
+     Render.getConfig("RenderMainView").getConfig("DebugScattering").debugCursorTexcoord = { x: nx, y: ny };
 }
