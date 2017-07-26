@@ -43,10 +43,10 @@
     </div>
     <div id="settingsLoading" style="display: none; background-color: #F44336; color: white; padding: 8px">Loading previous settings</div>
     <div id="content">
-        <iframe frameborder="0" lastState="window.location.search" src="colorsTab.html"     id="colorTab" seamless></iframe>
-        <iframe frameborder="0" lastState="window.location.search" src="brushesTab.html"    id="brushesTab" seamless style="display: none"></iframe>
-        <iframe frameborder="0" lastState="window.location.search" src="eraserTab.html"     id="eraserTab" seamless style="display: none"></iframe>
-        <iframe frameborder="0" lastState="window.location.search" src="chooseHandTab.html" id="chooseHandTab" seamless style="display: none"></iframe>
+        <iframe frameborder="0" lastState="window.location.search" onload="frameLoaded(this)" src="colorsTab.html"     id="colorTab" seamless></iframe>
+        <iframe frameborder="0" lastState="window.location.search" onload="frameLoaded(this)" src="brushesTab.html"    id="brushesTab" seamless style="display: none"></iframe>
+        <iframe frameborder="0" lastState="window.location.search" onload="frameLoaded(this)" src="eraserTab.html"     id="eraserTab" seamless style="display: none"></iframe>
+        <iframe frameborder="0" lastState="window.location.search" onload="frameLoaded(this)" src="chooseHandTab.html" id="chooseHandTab" seamless style="display: none"></iframe>
     </div>
 </body>
 </html>
@@ -70,6 +70,16 @@
         EventBridge.emitWebEvent(JSON.stringify(changeTabEvent));
     }
 
+    function frameLoaded(iframe) {
+        iframesLoaded++;
+        if (iframesLoaded == $("#content").children().length) {
+            var appReadyEvent = {
+                "type" : "appReady",
+            };
+            EventBridge.emitWebEvent(JSON.stringify(appReadyEvent));
+        }
+    }
+
     //Accept events from iframes
     //https://stackoverflow.com/questions/8822907/html5-cross-browser-iframe-postmessage-child-to-parent
     var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
@@ -82,6 +92,5 @@
     eventer(messageEvent,function(e) {
         EventBridge.emitWebEvent(e.data);
     }, false);
-
 </script>
 

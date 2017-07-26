@@ -1,6 +1,8 @@
 <!--Note: change the parent postmessage second parameter due to possible security issues-->
 <link rel="stylesheet" type="text/css" href="../../html/css/colpick.css">
 <link rel="stylesheet" type="text/css" href="../../html/css/edit-style.css">
+<script type="text/javascript" src="../../html/js/eventBridgeLoader.js"></script>
+<script type="text/javascript" src="../../html/js/keyboardControl.js"></script>
 <script src="../../html/js/jquery-2.1.4.min.js"></script>
 <style>
     /*range style: http://danielstern.ca/range.css/#/*/
@@ -25,7 +27,7 @@
     input[type=range]:focus { /*#252525*/
         outline: none;
     }
-    .slider-wrapper {
+    .sliderWrapper {
         display: table;
         padding: 0.4rem 0;
     }
@@ -34,30 +36,45 @@
         width: 5.4rem;
         height: 1.8rem;
     }
-    #color_picker {
+    #colorPicker {
         display: grid;
     }
-    .color_picker_cell {
+    .colorPickerCell {
         border: none; 
         width: 20px; 
         height: 20px;
         display: inline-block;
     }
-    #color_picker_table {
+    #colorPickerTable {
         border-collapse:collapse
     }
-    #custom_color_picker {
+    #customColorPicker {
         height: 50px;
     }
+    .colorPickerCell {
+        position: relative;
+    }
+    #selectedOverlay {
+        background-color: rgba(16, 128, 184, 0.3);
+        top:0;
+        left:0;
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        z-index: 1;
+        background-image: url("../content/chosen.png");
+        background-repeat: no-repeat;
+        background-position: center; 
+        background-size: contain;
+    }
 </style>
-
 <div class="behavior-group property checkbox">
     <input onchange="switchPressureSensitiveWidth(this)"  type="checkbox" id="triggerSensitiveWidth"></input>
     <label for="triggerSensitiveWidth">Use Trigger Sensitive Width</label>
 </div>
 <div class="property range">
     <label style="display: block">Stroke Width</label>
-    <div class="slider-wrapper">
+    <div class="sliderWrapper">
         <input type="range" id="lineWidthRange" value=0.25 min=0 max=1 step=0.01 onchange="changeLineWidthRange(this)"/>
         <input type="number" id="lineWidthText" value=0.25 min=0 max=1 step=0.01 onchange="changeLineWidthNumber(this)"/>
     </div>
@@ -65,10 +82,10 @@
 
 <div id="colorpicker"></div>
 
-<div id="color_picker_table">
+<div id="colorPickerTable">
 </div>
 
-<div id="last_picked_colors"></div>
+<div id="lastPickedColors"></div>
 
 
 <script src="../../html/js/colpick.js">
@@ -81,15 +98,16 @@
         colorScheme:'dark',
         submitText: 'Add custom color',
         onChange: function(hsb, hex, rgb, el) {
-            update([rgb.r, rgb.g, rgb.b])
+            updateFromCustomPicker([rgb.r, rgb.g, rgb.b])
         },
         onSubmit: function(hsb, hex, rgb, el) {
-            updateColorFromCustomPicker(rgb)
+            addColorFromCustomPicker(rgb)
         }
     });
 
     var COLUMNS = 18, ROWS = 10;
-
+    var lastSelectedButton = null;
+    var currentSelectedColorOrigin = "custom"; //where the color was picked from
     function addColors() {
         //10-90%
         var startingColors = [];
@@ -98,21 +116,28 @@
             hsl.hue = 340*i/(COLUMNS-1) + 10;
             startingColors.push(hsl);
         }
-        var colorPickerLayout = document.getElementById("color_picker_table");
+        var colorPickerLayout = document.getElementById("colorPickerTable");
         for (var j = 0; j < ROWS; j++) {
             var row = document.createElement("div");
             for (var i = 0; i < startingColors.length; i++) {
                 var colorCell = document.createElement("div");
                 //colorCell.type = "button";
                 colorCell.style.backgroundColor = "hsl(" + startingColors[i].hue + ",100%," + ((80-(80*j/(ROWS-1))) + 10) + "%)";
-                colorCell.className  = "color_picker_cell";
+                colorCell.className  = "colorPickerCell";
                 colorCell.onclick = function() { 
-                    updateColorFromTable(this) 
+                    updateColorFromTable(this, "table") 
                 };
                 row.appendChild(colorCell);
             }
             colorPickerLayout.appendChild(row);
         }
+
+        //make it easier to select later the current color
+        $(".colorPickerCell").each(function() {
+            var colorArray = window.getComputedStyle($(this)[0]).backgroundColor.match(/\d+/g); 
+            $(this).attr("id", "table(" + colorArray[0] + "," + colorArray[1] + "," + colorArray[2] + ")");
+        });
+                        
     }
 
     addColors();
@@ -123,9 +148,24 @@
             "type"  : "changeColor",
             "red"   : colorArray[0],
             "green" : colorArray[1],
-            "blue"  : colorArray[2]
+            "blue"  : colorArray[2],
+            "origin"  : currentSelectedColorOrigin,
         };
+        setColorInTable(colorArray);
         parent.postMessage(JSON.stringify(changedColorEvent), "*");
+    }
+
+    function updateFromCustomPicker(colorArray) {
+        var tableColor = document.getElementById("table(" + colorArray[0] + "," + colorArray[1] + "," + colorArray[2] + ")");
+        var userColor  = document.getElementById("user(" + colorArray[0] + "," + colorArray[1] + "," + colorArray[2] + ")");
+        if (tableColor) {
+            currentSelectedColorOrigin = "table";
+        } else if (userColor) {
+            currentSelectedColorOrigin = "user";
+        } else {
+            currentSelectedColorOrigin = "custom";
+        }
+        update(colorArray);
     }
 
     function changeLineWidthRange(e) {
@@ -134,7 +174,10 @@
     }
 
     function changeLineWidthNumber(e) {
-        document.getElementById("lineWidthRange").value = e.value;
+        if (e.value > 1) {
+            document.getElementById("lineWidthText").value = 1;
+        }
+        document.getElementById("lineWidthRange").value = e.value > 1 ? 1 : e.value;
         notifyLineWidthChanged(e);
     }
 
@@ -155,23 +198,39 @@
         parent.postMessage(JSON.stringify(switchPressureSensitiveWidthEvent), "*");
     }
 
-    function updateColorFromTable(button) {
+    function selectButton(button) {
+         if (lastSelectedButton != null) {
+             lastSelectedButton.removeChild(document.getElementById("selectedOverlay"));
+        }
+        if (button) {
+            var selectedOverlay = document.createElement("div");
+            selectedOverlay.id = "selectedOverlay";        
+            button.appendChild(selectedOverlay);
+            lastSelectedButton = button;
+        } else {
+            lastSelectedButton = null;
+        }
+    }
+
+    function updateColorFromTable(button, origin) {
         var colorArray = window.getComputedStyle(button).backgroundColor.match(/\d+/g); 
         $('#colorpicker').colpickSetColor({'r': colorArray[0], 'g': colorArray[1], 'b': colorArray[2]}, true);
+        currentSelectedColorOrigin = origin;
         update(colorArray);
     }
 
-    function updateColorFromCustomPicker(rgbColor) {
+    function addColorFromCustomPicker(rgbColor) {
+        currentSelectedColorOrigin = "user";
         var colorArray = [rgbColor.r, rgbColor.g, rgbColor.b];
         addCustomColor(colorArray, true);
         update(colorArray);
     }
 
     function addCustomColor(colorArray, notify) {
-        var lastPickedColorsContainer = document.getElementById("last_picked_colors");
+        var lastPickedColorsContainer = document.getElementById("lastPickedColors");
         var lastPickedColors = lastPickedColorsContainer.children;
         for (var i = 0; i < lastPickedColors.length; i++) {
-            var lasPickedCellColor = window.getComputedStyle(lastPickedColors[0]).backgroundColor.match(/\d+/g);
+            var lasPickedCellColor = window.getComputedStyle(lastPickedColors[i]).backgroundColor.match(/\d+/g);
             var equalRgbComponentsCount = 0; 
             for (var j = 0; j < 3; j++) {
                 if (lasPickedCellColor[j] == colorArray[j])
@@ -184,9 +243,10 @@
             lastPickedColorsContainer.removeChild(lastPickedColors[lastPickedColors.length-1]);
         }
         var colorCell = document.createElement("div");
-        colorCell.style.backgroundColor = "rgb(" + colorArray[0] + "," + colorArray[1] + "," + colorArray[2];
-        colorCell.className  = "color_picker_cell";
-        colorCell.onclick = function() { updateColorFromTable(this) };
+        colorCell.style.backgroundColor = "rgb(" + colorArray[0] + "," + colorArray[1] + "," + colorArray[2] + ")";
+        colorCell.className  = "colorPickerCell";
+        colorCell.id = "user(" + colorArray[0] + "," + colorArray[1] + "," + colorArray[2] + ")";
+        colorCell.onclick = function() { updateColorFromTable(this, "user") };
         lastPickedColorsContainer.insertBefore(colorCell, lastPickedColorsContainer.firstChild);
         if (notify) {
              var addCustomColorEvent = {
@@ -203,17 +263,18 @@
     restoreLastColor(JSON.parse(decodeURIComponent(window.parent.location.search).substring(1)));
     function restoreLastColor(palleteData) {
         //var palleteData = JSON.parse(event.data);
-
-        if ("currentColor" in palleteData) {
-            var newColor = palleteData.currentColor;
-            $('#colorpicker').colpickSetColor({'r': newColor.red, 'g': newColor.green, 'b': newColor.blue}, true);    
-        }
-
         if ("customColors" in palleteData) {
             var customColors = palleteData.customColors;
             for (var i = 0; i < customColors.length; i++) {
                 addCustomColor([customColors[i].red, customColors[i].green, customColors[i].blue], false);
             }
+        }
+        
+        if ("currentColor" in palleteData) {
+            var newColor = palleteData.currentColor;           
+            $('#colorpicker').colpickSetColor({'r': newColor.red, 'g': newColor.green, 'b': newColor.blue}, true);    
+            currentSelectedColorOrigin = newColor.origin;
+            setColorInTable([newColor.red, newColor.green, newColor.blue]);
         }
 
         if ("currentTriggerWidthEnabled" in palleteData) {
@@ -227,5 +288,13 @@
         }
     }
 
+    function setColorInTable(colorArray) {
+        var color = document.getElementById(currentSelectedColorOrigin + "(" + colorArray[0] + "," + colorArray[1] + "," + colorArray[2] + ")");
+        selectButton(color);
+    }
 
+    $(window).load(function(){ 
+        var EventBridge = parent.EventBridge;
+        setUpKeyboardControl();
+    });
 </script>
