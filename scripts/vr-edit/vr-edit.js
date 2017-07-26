@@ -963,6 +963,13 @@
             return;
         }
 
+        // Settings values.
+        // TODO: API coming.
+        dominantHand = RIGHT_HAND;
+        /*
+        dominantHand = TODO;
+        */
+
         // Tablet/toolbar button.
         button = tablet.addButton({
             icon: APP_ICON_INACTIVE,
@@ -987,11 +994,9 @@
         editors[LEFT_HAND].setReferences(inputs[LEFT_HAND], editors[RIGHT_HAND]);
         editors[RIGHT_HAND].setReferences(inputs[RIGHT_HAND], editors[LEFT_HAND]);
 
-        // Dominant hand from settings.
-        // TODO: API coming.
-        dominantHand = RIGHT_HAND;
+        // Settings changes.
         /*
-        dominantHand = TODO;
+        // TODO: API coming.
         TODO.change.connect(onDominantHandChanged);
         */
 
