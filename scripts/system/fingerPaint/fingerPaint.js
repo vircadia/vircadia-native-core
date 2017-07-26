@@ -12,7 +12,7 @@
         button,
         BUTTON_NAME = "PAINT",
         //undo vars
-        UNDO_STACK_SIZE = 5, 
+        UNDO_STACK_SIZE = 10, 
         undoStack = [];
         isFingerPainting = false,
         isTabletFocused = false,
@@ -119,10 +119,25 @@
             texture = textureURL;
         }
         
-        function undoErasing() {
+        function undo() {
             var undo = undoStack.pop();
-            if (undo) {
-                Entities.addEntity(undo);
+            if (undoStack.length == 0) {
+                var undoDisableEvent = {type: "undoDisable", value: true};
+                tablet.emitScriptEvent(JSON.stringify(undoDisableEvent));
+            }
+            if (undo.type == "deleted") {
+                var prevEntityId = undo.data.id;
+                var newEntity = Entities.addEntity(undo.data);
+                //restoring a deleted entity will create a new entity with a new id therefore we need to update
+                //the created elements id in the undo stack. For the delete elements though, it is not necessary
+                //to update the id since you can't delete the same entity twice
+                for (var i = 0; i < undoStack.length; i++) {
+                    if (undoStack[i].type == "created" && undoStack[i].data == prevEntityId) {
+                        undoStack[i].data = newEntity;
+                    } 
+                }
+            } else {
+                Entities.deleteEntity(undo.data);
             }
         }
 
@@ -235,6 +250,7 @@
             }
 
             isDrawingLine = false;
+            addElementToUndoStack({type: "created", data: entityID});
             //print("After adding script 3: " + JSON.stringify(Entities.getEntityProperties(entityID)));
         }
 
@@ -280,7 +296,7 @@
 
             // Delete found entity.
             if (found) {
-                addElementToUndoStack(Entities.getEntityProperties(foundID));
+                addElementToUndoStack({type: "deleted", data: Entities.getEntityProperties(foundID)});
                 Entities.deleteEntity(foundID);
                 /*Entities.editEntity(entityID, {
                     color: «,
@@ -305,7 +321,7 @@
             changeStrokeWidthMultiplier: changeStrokeWidthMultiplier,
             changeTexture: changeTexture,
             isDrawing: isDrawing,
-            undoErasing: undoErasing,
+            undo: undo,
             getStrokeColor: getStrokeColor,
             getStrokeWidth: getStrokeWidth,
             getEntityID: getEntityID,
@@ -796,8 +812,8 @@
                 return;
             }
             if (message[0] === "undo"){
-                leftBrush.undoErasing();
-                rightBrush.undoErasing();
+                leftBrush.undo();
+                rightBrush.undo();
                 return;
             }
             if (message[0] === "hand"){
@@ -853,6 +869,7 @@
         savedSettings.customColors = Settings.getValue("customColors", []);
         savedSettings.currentTab = Settings.getValue("currentTab", 0);
         savedSettings.currentTriggerWidthEnabled = Settings.getValue("currentTriggerWidthEnabled", true);
+        savedSettings.undoDisable = undoStack.length == 0;
         isLeftHandDominant = savedSettings.currentDrawingHand;
     }
 
@@ -893,18 +910,26 @@
     }
 
     function onTabletScreenChanged(type, url) {
+        //var TABLET_SCREEN_CLOSED = "Closed";
+        //var TABLET_SCREEN_HOME = "Home";
+        //isTabletDisplayed = type !== TABLET_SCREEN_CLOSED;
+        //if (type === TABLET_SCREEN_HOME) {
+        //    if (isFingerPainting) {
+        //        isFingerPainting = false;
+        //        disableProcessing();
+        //    }
+        //    button.editProperties({ isActive: isFingerPainting });
+        //    print("Closing the APP");
+        //}
+        //updateHandFunctions();
+        
         var TABLET_SCREEN_CLOSED = "Closed";
-        var TABLET_SCREEN_HOME = "Home";
-
         isTabletDisplayed = type !== TABLET_SCREEN_CLOSED;
-        if (type === TABLET_SCREEN_HOME) {
-            if (isFingerPainting) {
-                isFingerPainting = false;
-                disableProcessing();
-            }
-            button.editProperties({ isActive: isFingerPainting });
-            print("Closing the APP");
+        isFingerPainting = type === "Web" && url.indexOf("fingerPaint/html/main.html") > -1;
+        if (!isFingerPainting) {
+            disableProcessing();
         }
+        button.editProperties({ isActive: isFingerPainting });
         updateHandFunctions();
     }
 
@@ -919,9 +944,11 @@
             case "appReady":
                 isTabletFocused = false; //make sure we can set the focus on the tablet again
                 break;
+
             case "changeTab":
                 Settings.setValue("currentTab", event.currentTab);
                 break;
+
             case "changeColor":
                 if (!isBrushColored) {
                     print("HMD ACTIVE: " + HMD.active);
@@ -934,12 +961,14 @@
                     });
                 } 
                 break;
+
             case "switchTriggerPressureWidth":
                 //print("changing pressure sensitive width...");
                 Settings.setValue("currentTriggerWidthEnabled", event.enabled);
                 leftBrush.setTriggerPressureWidthEnabled(event.enabled);
                 rightBrush.setTriggerPressureWidthEnabled(event.enabled);
                 break;
+
             case "addCustomColor":
                 //print("Adding custom color");
                 var customColors = Settings.getValue("customColors", []);
@@ -994,9 +1023,9 @@
                 //print("Going to undo");
                 
                 //The undo is called only on the right brush because the undo stack is global, meaning that
-                //calling undoErasing on both the left and right brush would cause the stack to pop twice.
+                //calling undo on both the left and right brush would cause the stack to pop twice.
                 //Using the leftBrush instead of the rightBrush would have the exact same effect.
-                rightBrush.undoErasing();
+                rightBrush.undo();
                 break;
 
             case "changeBrushHand":
@@ -1042,6 +1071,9 @@
 
     function addElementToUndoStack(item)
     {
+        var undoDisableEvent = {type: "undoDisable", value: false};
+        tablet.emitScriptEvent(JSON.stringify(undoDisableEvent));
+
         if (undoStack.length + 1 > UNDO_STACK_SIZE) {
             undoStack.splice(0, 1);
         }
@@ -1098,30 +1130,23 @@
         print(JSON.stringify(event));
         if (event.isLeftButton) {
             rightBrush.startLine(getFingerPosition(event.x, event.y), 0.03);
-
-        } else if (event.isMiddleButton) {
-            //delete first line in sight
-            //var pickRay = getFingerPosition(event.x, event.y);
-           // entities = Entities.findEntities(MyAvatar.position, 10);
-            // Fine polyline entity with closest point within search radius.
-            /*for (i = 0, entitiesLength = entities.length; i < entitiesLength; i += 1) {
-                print("NEAR ENTITIES: " + JSON.stringify(Entities.getEntityProperties(entities[i])));
-            }*/
-
-            var pickRay = Camera.computePickRay(event.x, event.y);
-            var entityToDelete = Entities.findRayIntersection(pickRay, false, [Entities.findEntities(MyAvatar.position, 1000)], []);
-            print("Entity to DELETE: " + JSON.stringify(entityToDelete));
-            var line3d = Overlays.addOverlay("line3d", {
-                start: pickRay.origin, 
-                end: Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, 100)),
-                color: { red: 255, green: 0, blue: 255},
-                lineWidth: 5
-            });
-            if (entityToDelete.intersects) {
-                print("Entity to DELETE Properties: " + JSON.stringify(Entities.getEntityProperties(entityToDelete.entityID)));
-                //Entities.deleteEntity(entityToDelete.entityID);
-            }
-        }
+        } 
+        //won't work until findRayIntersection works with polylines
+        //else if (event.isMiddleButton) {
+        //    var pickRay = Camera.computePickRay(event.x, event.y);
+        //    var entityToDelete = Entities.findRayIntersection(pickRay, false, [Entities.findEntities(MyAvatar.position, 1000)], []);
+        //    print("Entity to DELETE: " + JSON.stringify(entityToDelete));
+        //    var line3d = Overlays.addOverlay("line3d", {
+        //        start: pickRay.origin, 
+        //        end: Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, 100)),
+        //        color: { red: 255, green: 0, blue: 255},
+        //        lineWidth: 5
+        //    });
+        //    if (entityToDelete.intersects) {
+        //        print("Entity to DELETE Properties: " + JSON.stringify(Entities.getEntityProperties(entityToDelete.entityID)));
+        //        //Entities.deleteEntity(entityToDelete.entityID);
+        //    }
+        //}
     }
 
     function mouseFinishLine(event){
