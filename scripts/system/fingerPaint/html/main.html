@@ -38,7 +38,7 @@
     <div id="tabs">
         <span class="tabButton" onclick="selectTab(0)"><img class="tabIcon" src="../content/tabicons/colorpaletteBtn.png"/>Palette</span>
         <span class="tabButton" onclick="selectTab(1)"><img class="tabIcon" src="../content/tabicons/brushesBtn.png"/>Brushes</span>
-        <span class="tabButton" onclick="selectTab(2)"><img class="tabIcon" src="../content/tabicons/eraser.png"/>Eraser</span>
+        <span class="tabButton" onclick="selectTab(2)"><img class="tabIcon" src="../content/tabicons/eraser.png"/>Undo</span>
         <span class="tabButton" onclick="selectTab(3)"><img class="tabIcon" src="../content/tabicons/pointingfinger128px.png"/>Hand</span>
     </div>
     <div id="settingsLoading" style="display: none; background-color: #F44336; color: white; padding: 8px">Loading previous settings</div>
@@ -53,7 +53,6 @@
 
 <script type="text/javascript">
     var currentTab = 0;
-    var settings;
     var iframesLoaded = 0;
     function selectTab(tabIndex) {
         var tabs = document.getElementById("tabs").children;
@@ -80,12 +79,19 @@
         }
     }
 
-    //Accept events from iframes
+    EventBridge.scriptEventReceived.connect(function (message) {
+        var event = JSON.parse(message); 
+        if (event.type == "undoDisable") {
+            document.getElementById("eraserTab").contentWindow.postMessage(message, "*");
+        }       
+    });
+    //Accept events function() from iframes
     //https://stackoverflow.com/questions/8822907/html5-cross-browser-iframe-postmessage-child-to-parent
     var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
     var eventer = window[eventMethod];
     var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
 
+    //restore last opened tab
     selectTab(JSON.parse(decodeURIComponent(window.location.search).substring(1)).currentTab);    
    
     // Listen to message from child window

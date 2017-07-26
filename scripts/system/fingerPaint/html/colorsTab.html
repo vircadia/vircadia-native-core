@@ -1,6 +1,6 @@
 <!--Note: change the parent postmessage second parameter due to possible security issues-->
-<link rel="stylesheet" type="text/css" href="../../html/css/colpick.css">
 <link rel="stylesheet" type="text/css" href="../../html/css/edit-style.css">
+<link rel="stylesheet" type="text/css" href="../../html/css/colpick.css">
 <script type="text/javascript" src="../../html/js/eventBridgeLoader.js"></script>
 <script type="text/javascript" src="../../html/js/keyboardControl.js"></script>
 <script src="../../html/js/jquery-2.1.4.min.js"></script>
@@ -94,7 +94,7 @@
 <script>
     $('#colorpicker').colpick({
         flat:true, 
-        layout:'hex',
+        layout:'full',
         colorScheme:'dark',
         submitText: 'Add custom color',
         onChange: function(hsb, hex, rgb, el) {
@@ -108,6 +108,8 @@
     var COLUMNS = 18, ROWS = 10;
     var lastSelectedButton = null;
     var currentSelectedColorOrigin = "custom"; //where the color was picked from
+    var EventBridge = parent.EventBridge;
+
     function addColors() {
         //10-90%
         var startingColors = [];
@@ -292,9 +294,8 @@
         var color = document.getElementById(currentSelectedColorOrigin + "(" + colorArray[0] + "," + colorArray[1] + "," + colorArray[2] + ")");
         selectButton(color);
     }
-
+    
     $(window).load(function(){ 
-        var EventBridge = parent.EventBridge;
         setUpKeyboardControl();
     });
 </script>
