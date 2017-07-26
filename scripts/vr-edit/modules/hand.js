@@ -28,6 +28,7 @@ Hand = function (side) {
         isTriggerClicked,
         TRIGGER_ON_VALUE = 0.15,  // Per handControllerGrab.js.
         TRIGGER_OFF_VALUE = 0.1,  // Per handControllerGrab.js.
+        TRIGGER_CLICKED_VALUE = 1.0,
 
         NEAR_GRAB_RADIUS = 0.1,  // Per handControllerGrab.js.
         NEAR_HOVER_RADIUS = 0.025,
@@ -108,7 +109,7 @@ Hand = function (side) {
         // Controller trigger.
         isTriggerPressed = Controller.getValue(controllerTrigger) > (isTriggerPressed
             ? TRIGGER_OFF_VALUE : TRIGGER_ON_VALUE);
-        isTriggerClicked = Controller.getValue(controllerTriggerClicked);
+        isTriggerClicked = Controller.getValue(controllerTriggerClicked) === TRIGGER_CLICKED_VALUE;
 
         // Controller grip.
         gripValue = Controller.getValue(controllerGrip);

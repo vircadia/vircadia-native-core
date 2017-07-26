@@ -155,7 +155,7 @@
     };
 
 
-    UI = function (side) {
+    UI = function (side, setAppScaleWithHandlesCallback) {
         // Tool menu and Create palette.
 
         var // Primary objects.
@@ -170,13 +170,15 @@
             getIntersection,  // Function.
             intersection;
 
-        toolMenu = new ToolMenu(side);
+        toolMenu = new ToolMenu(side, setAppScaleWithHandlesCallback);
 
 
         function setReferences(left, right) {
             leftInputs = left;
             rightInputs = right;
             getIntersection = side === LEFT_HAND ? rightInputs.getIntersection : leftInputs.getIntersection;
+
+            toolMenu.setReferences(left, right);
         }
 
         function setHand(side) {
@@ -959,6 +961,10 @@
         Settings.setValue(VR_EDIT_SETTING, isAppActive);
     }
 
+    function setAppScaleWithHandles(appScaleWithHandles) {
+        isAppScaleWithHandles = appScaleWithHandles;
+    }
+
     function onAppButtonClicked() {
         // Application tablet/toolbar button clicked.
         isAppActive = !isAppActive;
@@ -1023,7 +1029,7 @@
         inputs[RIGHT_HAND] = new Inputs(RIGHT_HAND);
 
         // UI object.
-        ui = new UI(otherHand(dominantHand));
+        ui = new UI(otherHand(dominantHand), setAppScaleWithHandles);
         ui.setReferences(inputs[LEFT_HAND], inputs[RIGHT_HAND]);
 
         // Editor objects.

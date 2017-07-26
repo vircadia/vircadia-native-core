@@ -70,12 +70,25 @@ ToolMenu = function (side, scaleModeChangedCallback) {
 
         isDisplaying = false,
         isHighlightingButton = false,
+        isButtonPressed = false,
 
         SCALE_MODE_DIRECT = 0,
-        SCALE_MODE_HANDLES = 1;
+        SCALE_MODE_HANDLES = 1,
 
-    function setHand(hand) {
-        side = hand;
+        // References.
+        leftInputs,
+        rightInputs,
+        controlHand;
+
+    function setReferences(left, right) {
+        leftInputs = left;
+        rightInputs = right;
+        controlHand = side === LEFT_HAND ? rightInputs.hand() : leftInputs.hand();
+    }
+
+    function setHand(uiSide) {
+        side = uiSide;
+        controlHand = side === LEFT_HAND ? rightInputs.hand() : leftInputs.hand();
 
         if (isDisplaying) {
             // TODO: Move UI to other hand.
@@ -91,6 +104,11 @@ ToolMenu = function (side, scaleModeChangedCallback) {
         if (intersectionEntityID === buttonEntity !== isHighlightingButton) {
             isHighlightingButton = !isHighlightingButton;
             Overlays.editOverlay(buttonHighlightOverlay, { visible: isHighlightingButton });
+        }
+
+        // Button click.
+        if (isHighlightingButton && controlHand.triggerClicked() !== isButtonPressed) {
+            isButtonPressed = controlHand.triggerClicked();
         }
     }
 
@@ -153,6 +171,7 @@ ToolMenu = function (side, scaleModeChangedCallback) {
     }
 
     return {
+        setReferences: setReferences,
         setHand: setHand,
         getEntityIDs: getEntityIDs,
         update: update,
