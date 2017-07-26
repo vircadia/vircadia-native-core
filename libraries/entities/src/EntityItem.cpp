@@ -2024,7 +2024,7 @@ bool EntityItem::removeActionInternal(const QUuid& actionID, EntitySimulationPoi
     _previouslyDeletedActions.insert(actionID, usecTimestampNow());
     if (_objectActions.contains(actionID)) {
         if (!simulation) {
-        EntityTreeElementPointer element = _element; // use local copy of _element for logic below
+            EntityTreeElementPointer element = _element; // use local copy of _element for logic below
             EntityTreePointer entityTree = element ? element->getTree() : nullptr;
             simulation = entityTree ? entityTree->getSimulation() : nullptr;
         }
