@@ -372,6 +372,18 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         _model->updateRenderItems();
     }
 
+    bool showingEntityHighlight = (bool)(args->_outlineFlags & (int)RenderArgs::RENDER_OUTLINE_WIREFRAMES);
+    if (getMarketplaceID().length() != 0 && showingEntityHighlight) {
+        static glm::vec4 yellowColor(1.0f, 1.0f, 0.0f, 1.0f);
+        gpu::Batch& batch = *args->_batch;
+        bool success;
+        auto shapeTransform = getTransformToCenter(success);
+        if (success) {
+            batch.setModelTransform(shapeTransform); // we want to include the scale as well
+            DependencyManager::get<GeometryCache>()->renderWireCubeInstance(args, batch, yellowColor);
+        }
+    }
+
     if (!hasModel() || (_model && _model->didVisualGeometryRequestFail())) {
         static glm::vec4 greenColor(0.0f, 1.0f, 0.0f, 1.0f);
         gpu::Batch& batch = *args->_batch;

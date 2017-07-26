@@ -37,7 +37,8 @@ class ContextOverlayInterface : public QObject, public Dependency  {
     Q_OBJECT
 
     Q_PROPERTY(QUuid entityWithContextOverlay READ getCurrentEntityWithContextOverlay WRITE setCurrentEntityWithContextOverlay)
-    Q_PROPERTY(bool enabled READ getEnabled WRITE setEnabled);
+    Q_PROPERTY(bool enabled READ getEnabled WRITE setEnabled)
+    Q_PROPERTY(bool isInMarketplaceInspectionMode READ getIsInMarketplaceInspectionMode WRITE setIsInMarketplaceInspectionMode)
     QSharedPointer<EntityScriptingInterface> _entityScriptingInterface;
     EntityPropertyFlags _entityPropertyFlags;
     QSharedPointer<HMDScriptingInterface> _hmdScriptingInterface;
@@ -53,6 +54,8 @@ public:
     void setCurrentEntityWithContextOverlay(const QUuid& entityID) { _currentEntityWithContextOverlay = entityID; }
     void setEnabled(bool enabled) { _enabled = enabled; }
     bool getEnabled() { return _enabled; }
+    bool getIsInMarketplaceInspectionMode() { return _isInMarketplaceInspectionMode; }
+    void setIsInMarketplaceInspectionMode(bool mode) { _isInMarketplaceInspectionMode = mode; }
 
 public slots:
     bool createOrDestroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event);
@@ -70,6 +73,7 @@ private:
     bool _contextOverlayJustClicked { false };
 
     void openMarketplace();
+    bool _isInMarketplaceInspectionMode { false };
 
     bool contextOverlayFilterPassed(const EntityItemID& entityItemID);
     glm::vec3 drawOutlineOverlay(const EntityItemID& entityItemID);
