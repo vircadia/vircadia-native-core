@@ -25,6 +25,7 @@ Laser = function (side) {
         searchDistance = 0.0,
 
         SEARCH_SPHERE_SIZE = 0.013,  // Per handControllerGrab.js multiplied by 1.2 per handControllerGrab.js.
+        MINUMUM_SEARCH_SPHERE_SIZE = 0.006,
         SEARCH_SPHERE_FOLLOW_RATE = 0.5,  // Per handControllerGrab.js.
         COLORS_GRAB_SEARCHING_HALF_SQUEEZE = { red: 10, green: 10, blue: 255 },  // Per handControllgerGrab.js.
         COLORS_GRAB_SEARCHING_FULL_SQUEEZE = { red: 250, green: 10, blue: 10 },  // Per handControllgerGrab.js.
@@ -116,7 +117,7 @@ Laser = function (side) {
 
         searchDistance = SEARCH_SPHERE_FOLLOW_RATE * searchDistance + (1.0 - SEARCH_SPHERE_FOLLOW_RATE) * distance;
         searchTarget = Vec3.sum(origin, Vec3.multiply(searchDistance, direction));
-        sphereSize = SEARCH_SPHERE_SIZE * searchDistance;
+        sphereSize = Math.max(SEARCH_SPHERE_SIZE * searchDistance, MINUMUM_SEARCH_SPHERE_SIZE);
         color = isClicked ? COLORS_GRAB_SEARCHING_FULL_SQUEEZE : COLORS_GRAB_SEARCHING_HALF_SQUEEZE;
         brightColor = isClicked ? COLORS_GRAB_SEARCHING_FULL_SQUEEZE_BRIGHT : COLORS_GRAB_SEARCHING_HALF_SQUEEZE_BRIGHT;
 
