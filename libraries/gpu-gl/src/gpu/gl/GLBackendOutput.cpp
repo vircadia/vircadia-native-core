@@ -48,7 +48,7 @@ void GLBackend::do_setFramebuffer(const Batch& batch, size_t paramOffset) {
 }
 
 void GLBackend::do_clearFramebuffer(const Batch& batch, size_t paramOffset) {
-    if (_stereo._enable && !_pipeline._stateCache.scissorEnable) {
+    if (_stereo.isStereo() && !_pipeline._stateCache.scissorEnable) {
         qWarning("Clear without scissor in stereo mode");
     }
 

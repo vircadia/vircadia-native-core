@@ -37,9 +37,11 @@ QVariant Billboard3DOverlay::getProperty(const QString &property) {
     return Planar3DOverlay::getProperty(property);
 }
 
-void Billboard3DOverlay::applyTransformTo(Transform& transform, bool force) {
+bool Billboard3DOverlay::applyTransformTo(Transform& transform, bool force) {
+    bool transformChanged = false;
     if (force || usecTimestampNow() > _transformExpiry) {
-        PanelAttachable::applyTransformTo(transform, true);
-        pointTransformAtCamera(transform, getOffsetRotation());
+        transformChanged = PanelAttachable::applyTransformTo(transform, true);
+        transformChanged |= pointTransformAtCamera(transform, getOffsetRotation());
     }
+    return transformChanged;
 }

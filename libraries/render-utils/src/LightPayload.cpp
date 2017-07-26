@@ -55,7 +55,8 @@ LightPayload::~LightPayload() {
 
 void LightPayload::render(RenderArgs* args) {
     if (!_stage) {
-        _stage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
+        _stage = args->_scene->getStage<LightStage>();
+        assert(_stage);
     }
     // Do we need to allocate the light in the stage ?
     if (LightStage::isIndexInvalid(_index)) {
@@ -123,7 +124,8 @@ KeyLightPayload::~KeyLightPayload() {
 
 void KeyLightPayload::render(RenderArgs* args) {
     if (!_stage) {
-        _stage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
+        _stage = args->_scene->getStage<LightStage>();
+        assert(_stage);
     }
     // Do we need to allocate the light in the stage ?
     if (LightStage::isIndexInvalid(_index)) {

@@ -29,8 +29,12 @@
 #include <QVector>
 #include <QFile>
 #include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 #include <QFileInfo>
 #include <QString>
+#include <QRegularExpression>
+#include <QRegularExpressionMatch>
 
 #include <GeometryUtil.h>
 #include <Gzip.h>
@@ -74,7 +78,7 @@ Octree::~Octree() {
 // non-sorted array
 // returns -1 if size exceeded
 // originalIndexArray is optional
-int insertOctreeElementIntoSortedArrays(OctreeElementPointer value, float key, int originalIndex,
+int insertOctreeElementIntoSortedArrays(const OctreeElementPointer& value, float key, int originalIndex,
                                         OctreeElementPointer* valueArray, float* keyArray, int* originalIndexArray,
                                         int currentCount, int maxCount) {
 
@@ -108,17 +112,17 @@ int insertOctreeElementIntoSortedArrays(OctreeElementPointer value, float key, i
 
 // Recurses voxel tree calling the RecurseOctreeOperation function for each element.
 // stops recursion if operation function returns false.
-void Octree::recurseTreeWithOperation(RecurseOctreeOperation operation, void* extraData) {
+void Octree::recurseTreeWithOperation(const RecurseOctreeOperation& operation, void* extraData) {
     recurseElementWithOperation(_rootElement, operation, extraData);
 }
 
 // Recurses voxel tree calling the RecurseOctreePostFixOperation function for each element in post-fix order.
-void Octree::recurseTreeWithPostOperation(RecurseOctreeOperation operation, void* extraData) {
+void Octree::recurseTreeWithPostOperation(const RecurseOctreeOperation& operation, void* extraData) {
     recurseElementWithPostOperation(_rootElement, operation, extraData);
 }
 
 // Recurses voxel element with an operation function
-void Octree::recurseElementWithOperation(OctreeElementPointer element, RecurseOctreeOperation operation, void* extraData,
+void Octree::recurseElementWithOperation(const OctreeElementPointer& element, const RecurseOctreeOperation& operation, void* extraData,
                         int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
         static QString repeatedMessage
@@ -140,7 +144,7 @@ void Octree::recurseElementWithOperation(OctreeElementPointer element, RecurseOc
 }
 
 // Recurses voxel element with an operation function
-void Octree::recurseElementWithPostOperation(OctreeElementPointer element, RecurseOctreeOperation operation,
+void Octree::recurseElementWithPostOperation(const OctreeElementPointer& element, const RecurseOctreeOperation& operation,
                                              void* extraData, int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
         static QString repeatedMessage
@@ -162,14 +166,14 @@ void Octree::recurseElementWithPostOperation(OctreeElementPointer element, Recur
 
 // Recurses voxel tree calling the RecurseOctreeOperation function for each element.
 // stops recursion if operation function returns false.
-void Octree::recurseTreeWithOperationDistanceSorted(RecurseOctreeOperation operation,
+void Octree::recurseTreeWithOperationDistanceSorted(const RecurseOctreeOperation& operation,
                                                        const glm::vec3& point, void* extraData) {
 
     recurseElementWithOperationDistanceSorted(_rootElement, operation, point, extraData);
 }
 
 // Recurses voxel element with an operation function
-void Octree::recurseElementWithOperationDistanceSorted(OctreeElementPointer element, RecurseOctreeOperation operation,
+void Octree::recurseElementWithOperationDistanceSorted(const OctreeElementPointer& element, const RecurseOctreeOperation& operation,
                                                        const glm::vec3& point, void* extraData, int recursionCount) {
 
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
@@ -212,7 +216,7 @@ void Octree::recurseTreeWithOperator(RecurseOctreeOperator* operatorObject) {
     recurseElementWithOperator(_rootElement, operatorObject);
 }
 
-bool Octree::recurseElementWithOperator(OctreeElementPointer element,
+bool Octree::recurseElementWithOperator(const OctreeElementPointer& element,
                                         RecurseOctreeOperator* operatorObject, int recursionCount) {
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
         static QString repeatedMessage
@@ -245,7 +249,7 @@ bool Octree::recurseElementWithOperator(OctreeElementPointer element,
 }
 
 
-OctreeElementPointer Octree::nodeForOctalCode(OctreeElementPointer ancestorElement, const unsigned char* needleCode,
+OctreeElementPointer Octree::nodeForOctalCode(const OctreeElementPointer& ancestorElement, const unsigned char* needleCode,
                                               OctreeElementPointer* parentOfFoundElement) const {
     // special case for NULL octcode
     if (!needleCode) {
@@ -281,7 +285,7 @@ OctreeElementPointer Octree::nodeForOctalCode(OctreeElementPointer ancestorEleme
 }
 
 // returns the element created!
-OctreeElementPointer Octree::createMissingElement(OctreeElementPointer lastParentElement,
+OctreeElementPointer Octree::createMissingElement(const OctreeElementPointer& lastParentElement,
                                                   const unsigned char* codeToReach, int recursionCount) {
 
     if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
@@ -311,7 +315,7 @@ OctreeElementPointer Octree::createMissingElement(OctreeElementPointer lastParen
     }
 }
 
-int Octree::readElementData(OctreeElementPointer destinationElement, const unsigned char* nodeData, int bytesAvailable,
+int Octree::readElementData(const OctreeElementPointer& destinationElement, const unsigned char* nodeData, int bytesAvailable,
                             ReadBitstreamToTreeParams& args) {
 
     int bytesLeftToRead = bytesAvailable;
@@ -529,7 +533,7 @@ void Octree::deleteOctalCodeFromTree(const unsigned char* codeBuffer, bool colla
     });
 }
 
-void Octree::deleteOctalCodeFromTreeRecursion(OctreeElementPointer element, void* extraData) {
+void Octree::deleteOctalCodeFromTreeRecursion(const OctreeElementPointer& element, void* extraData) {
     DeleteOctalCodeFromTreeArgs* args = (DeleteOctalCodeFromTreeArgs*)extraData;
 
     int lengthOfElementCode = numberOfThreeBitSectionsInCode(element->getOctalCode());
@@ -703,7 +707,7 @@ public:
     void* penetratedObject; /// the type is defined by the type of Octree, the caller is assumed to know the type
 };
 
-bool findSpherePenetrationOp(OctreeElementPointer element, void* extraData) {
+bool findSpherePenetrationOp(const OctreeElementPointer& element, void* extraData) {
     SphereArgs* args = static_cast<SphereArgs*>(extraData);
 
     // coarse check against bounds
@@ -765,7 +769,7 @@ public:
     CubeList* cubes;
 };
 
-bool findCapsulePenetrationOp(OctreeElementPointer element, void* extraData) {
+bool findCapsulePenetrationOp(const OctreeElementPointer& element, void* extraData) {
     CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);
 
     // coarse check against bounds
@@ -798,7 +802,7 @@ uint qHash(const glm::vec3& point) {
         (((quint64)(point.z * RESOLUTION_PER_METER)) % MAX_SCALED_COMPONENT << 2 * BITS_PER_COMPONENT));
 }
 
-bool findContentInCubeOp(OctreeElementPointer element, void* extraData) {
+bool findContentInCubeOp(const OctreeElementPointer& element, void* extraData) {
     ContentArgs* args = static_cast<ContentArgs*>(extraData);
 
     // coarse check against bounds
@@ -851,7 +855,7 @@ public:
 };
 
 // Find the smallest colored voxel enclosing a point (if there is one)
-bool getElementEnclosingOperation(OctreeElementPointer element, void* extraData) {
+bool getElementEnclosingOperation(const OctreeElementPointer& element, void* extraData) {
     GetElementEnclosingArgs* args = static_cast<GetElementEnclosingArgs*>(extraData);
     if (element->getAACube().contains(args->point)) {
         if (element->hasContent() && element->isLeaf()) {
@@ -885,7 +889,7 @@ OctreeElementPointer Octree::getElementEnclosingPoint(const glm::vec3& point, Oc
 
 
 
-int Octree::encodeTreeBitstream(OctreeElementPointer element,
+int Octree::encodeTreeBitstream(const OctreeElementPointer& element,
                                 OctreePacketData* packetData, OctreeElementBag& bag,
                                 EncodeBitstreamParams& params) {
 
@@ -979,7 +983,7 @@ int Octree::encodeTreeBitstream(OctreeElementPointer element,
     return bytesWritten;
 }
 
-int Octree::encodeTreeBitstreamRecursion(OctreeElementPointer element,
+int Octree::encodeTreeBitstreamRecursion(const OctreeElementPointer& element,
                                          OctreePacketData* packetData, OctreeElementBag& bag,
                                          EncodeBitstreamParams& params, int& currentEncodeLevel,
                                          const ViewFrustum::intersection& parentLocationThisView) const {
@@ -1667,8 +1671,30 @@ bool Octree::readJSONFromGzippedFile(QString qFileName) {
     return readJSONFromStream(-1, jsonStream);
 }
 
+// hack to get the marketplace id into the entities.  We will create a way to get this from a hash of
+// the entity later, but this helps us move things along for now
+QString getMarketplaceID(const QString& urlString) {
+    // the url should be http://mpassets.highfidelity.com/<uuid>-v1/<item name>.extension
+    // a regex for the this is a PITA as there are several valid versions of uuids, and so
+    // lets strip out the uuid (if any) and try to create a UUID from the string, relying on
+    // QT to parse it
+    static const QRegularExpression re("^http:\\/\\/mpassets.highfidelity.com\\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})-v[\\d]+\\/.*");
+    QRegularExpressionMatch match = re.match(urlString);
+    if (match.hasMatch()) {
+        QString matched = match.captured(1);
+        if (QUuid(matched).isNull()) {
+            qDebug() << "invalid uuid for marketplaceID";
+        } else {
+            return matched;
+        }
+    }
+    return QString();
+}
+
 bool Octree::readFromURL(const QString& urlString) {
-    auto request = std::unique_ptr<ResourceRequest>(ResourceManager::createResourceRequest(this, urlString));
+    QString marketplaceID = getMarketplaceID(urlString);
+    auto request =
+        std::unique_ptr<ResourceRequest>(DependencyManager::get<ResourceManager>()->createResourceRequest(this, urlString));
 
     if (!request) {
         return false;
@@ -1685,11 +1711,11 @@ bool Octree::readFromURL(const QString& urlString) {
 
     auto data = request->getData();
     QDataStream inputStream(data);
-    return readFromStream(data.size(), inputStream);
+    return readFromStream(data.size(), inputStream, marketplaceID);
 }
 
 
-bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream) {
+bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream, const QString& marketplaceID) {
     // decide if this is binary SVO or JSON-formatted SVO
     QIODevice *device = inputStream.device();
     char firstChar;
@@ -1701,7 +1727,7 @@ bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream
         return readSVOFromStream(streamLength, inputStream);
     } else {
         qCDebug(octree) << "Reading from JSON SVO Stream length:" << streamLength;
-        return readJSONFromStream(streamLength, inputStream);
+        return readJSONFromStream(streamLength, inputStream, marketplaceID);
     }
 }
 
@@ -1837,9 +1863,31 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
     return fileOk;
 }
 
+// hack to get the marketplace id into the entities.  We will create a way to get this from a hash of
+// the entity later, but this helps us move things along for now
+QJsonDocument addMarketplaceIDToDocumentEntities(QJsonDocument& doc, const QString& marketplaceID) {
+    if (!marketplaceID.isEmpty()) {
+        QJsonDocument newDoc;
+        QJsonObject rootObj = doc.object();
+        QJsonArray newEntitiesArray;
+
+        // build a new entities array
+        auto entitiesArray = rootObj["Entities"].toArray();
+        for(auto it = entitiesArray.begin(); it != entitiesArray.end(); it++) {
+            auto entity = (*it).toObject();
+            entity["marketplaceID"] = marketplaceID;
+            newEntitiesArray.append(entity);
+        }
+        rootObj["Entities"] = newEntitiesArray;
+        newDoc.setObject(rootObj);
+        return newDoc;
+    }
+    return doc;
+}
+
 const int READ_JSON_BUFFER_SIZE = 2048;
 
-bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputStream) {
+bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputStream, const QString& marketplaceID /*=""*/) {
     // if the data is gzipped we may not have a useful bytesAvailable() result, so just keep reading until
     // we get an eof.  Leave streamLength parameter for consistency.
 
@@ -1859,6 +1907,9 @@ bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputSt
     }
 
     QJsonDocument asDocument = QJsonDocument::fromJson(jsonBuffer);
+    if (!marketplaceID.isEmpty()) {
+        asDocument = addMarketplaceIDToDocumentEntities(asDocument, marketplaceID);
+    }
     QVariant asVariant = asDocument.toVariant();
     QVariantMap asMap = asVariant.toMap();
     bool success = readFromMap(asMap);
@@ -1866,7 +1917,7 @@ bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputSt
     return success;
 }
 
-bool Octree::writeToFile(const char* fileName, OctreeElementPointer element, QString persistAsFileType) {
+bool Octree::writeToFile(const char* fileName, const OctreeElementPointer& element, QString persistAsFileType) {
     // make the sure file extension makes sense
     QString qFileName = fileNameWithoutExtension(QString(fileName), PERSIST_EXTENSIONS) + "." + persistAsFileType;
     QByteArray byteArray = qFileName.toUtf8();
@@ -1883,7 +1934,7 @@ bool Octree::writeToFile(const char* fileName, OctreeElementPointer element, QSt
     return success;
 }
 
-bool Octree::writeToJSONFile(const char* fileName, OctreeElementPointer element, bool doGzip) {
+bool Octree::writeToJSONFile(const char* fileName, const OctreeElementPointer& element, bool doGzip) {
     QVariantMap entityDescription;
 
     qCDebug(octree, "Saving JSON SVO to file %s...", fileName);
@@ -1937,7 +1988,7 @@ unsigned long Octree::getOctreeElementsCount() {
     return nodeCount;
 }
 
-bool Octree::countOctreeElementsOperation(OctreeElementPointer element, void* extraData) {
+bool Octree::countOctreeElementsOperation(const OctreeElementPointer& element, void* extraData) {
     (*(unsigned long*)extraData)++;
     return true; // keep going
 }

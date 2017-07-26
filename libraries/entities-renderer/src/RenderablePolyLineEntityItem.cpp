@@ -206,7 +206,7 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     if (_texture->isLoaded()) {
         batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, _texture->getGPUTexture());
     } else {
-        batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, args->_whiteTexture);
+        batch.setResourceTexture(PAINTSTROKE_TEXTURE_SLOT, nullptr);
     }
    
     batch.setInputFormat(_format);

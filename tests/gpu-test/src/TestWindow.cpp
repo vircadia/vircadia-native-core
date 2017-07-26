@@ -22,7 +22,6 @@
 #include <DeferredLightingEffect.h>
 #include <FramebufferCache.h>
 #include <TextureCache.h>
-#include <OctreeRenderer.h>
 
 #ifdef DEFERRED_LIGHTING
 extern void initDeferredPipelines(render::ShapePlumber& plumber);
@@ -78,7 +77,6 @@ void TestWindow::initGl() {
 #ifdef DEFERRED_LIGHTING
     auto deferredLightingEffect = DependencyManager::get<DeferredLightingEffect>();
     deferredLightingEffect->init();
-    deferredLightingEffect->setGlobalLight(_light);
     initDeferredPipelines(*_shapePlumber);
 #endif
 }

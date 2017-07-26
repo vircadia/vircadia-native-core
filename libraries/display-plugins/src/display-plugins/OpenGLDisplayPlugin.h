@@ -38,7 +38,7 @@ protected:
     using Condition = std::condition_variable;
 public:
     ~OpenGLDisplayPlugin();
-    // These must be final to ensure proper ordering of operations 
+    // These must be final to ensure proper ordering of operations
     // between the main thread and the presentation thread
     bool activate() override final;
     void deactivate() override final;
@@ -57,6 +57,8 @@ public:
         return getSurfaceSize();
     }
 
+    virtual bool setDisplayTexture(const QString& name) override;
+    virtual bool onDisplayTextureReset() { return false; };
     QImage getScreenshot(float aspectRatio = 0.0f) const override;
 
     float presentRate() const override;
@@ -76,6 +78,8 @@ public:
     bool isVsyncEnabled() const { return _vsyncEnabled; }
     // Three threads, one for rendering, one for texture transfers, one reserved for the GL driver
     int getRequiredThreadCount() const override { return 3; }
+
+    void copyTextureToQuickFramebuffer(NetworkTexturePointer source, QOpenGLFramebufferObject* target, GLsync* fenceSync) override;
 
 protected:
     friend class PresentThread;
@@ -101,7 +105,7 @@ protected:
     // Returns true on successful activation
     virtual bool internalActivate() { return true; }
     virtual void internalDeactivate() {}
-	
+
     // Returns true on successful activation of standby session
     virtual bool activateStandBySession() { return true; }
     virtual void deactivateSession() {}
@@ -109,6 +113,8 @@ protected:
     // Plugin specific functionality to send the composed scene to the output window or device
     virtual void internalPresent();
 
+    void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor, gpu::FramebufferPointer fbo);
+    void renderFromTexture(gpu::Batch& batch, const gpu::TexturePointer texture, glm::ivec4 viewport, const glm::ivec4 scissor);
     virtual void updateFrameData();
 
     void withMainThreadContext(std::function<void()> f) const;
@@ -134,6 +140,7 @@ protected:
     gpu::PipelinePointer _simplePipeline;
     gpu::PipelinePointer _presentPipeline;
     gpu::PipelinePointer _cursorPipeline;
+    gpu::TexturePointer _displayTexture{};
     float _compositeOverlayAlpha { 1.0f };
 
     struct CursorData {

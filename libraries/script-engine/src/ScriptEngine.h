@@ -41,7 +41,9 @@
 #include "ScriptCache.h"
 #include "ScriptUUID.h"
 #include "Vec3.h"
+#include "ConsoleScriptingInterface.h"
 #include "SettingHandle.h"
+#include "Profile.h"
 
 class QScriptEngineDebugger;
 
@@ -181,6 +183,8 @@ public:
     Q_INVOKABLE void print(const QString& message);
     Q_INVOKABLE QUrl resolvePath(const QString& path) const;
     Q_INVOKABLE QUrl resourcesPath() const;
+    Q_INVOKABLE void beginProfileRange(const QString& label) const;
+    Q_INVOKABLE void endProfileRange(const QString& label) const;
 
     // Entity Script Related methods
     Q_INVOKABLE bool isEntityScriptRunning(const EntityItemID& entityID) {
@@ -225,7 +229,7 @@ public:
     void scriptWarningMessage(const QString& message);
     void scriptInfoMessage(const QString& message);
     void scriptPrintedMessage(const QString& message);
-
+    void clearDebugLogWindow();
     int getNumRunningEntityScripts() const;
     bool getEntityScriptDetails(const EntityItemID& entityID, EntityScriptDetails &details) const;
 
@@ -245,6 +249,7 @@ signals:
     void warningMessage(const QString& message, const QString& scriptName);
     void infoMessage(const QString& message, const QString& scriptName);
     void runningStateChanged();
+    void clearDebugWindow();
     void loadScript(const QString& scriptName, bool isUserLoaded);
     void reloadScript(const QString& scriptName, bool isUserLoaded);
     void doneRunning();
@@ -305,6 +310,7 @@ protected:
     Vec3 _vec3Library;
     Mat4 _mat4Library;
     ScriptUUID _uuidLibrary;
+    ConsoleScriptingInterface _consoleScriptingInterface;
     std::atomic<bool> _isUserLoaded { false };
     bool _isReloading { false };
 

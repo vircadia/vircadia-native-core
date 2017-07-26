@@ -259,7 +259,7 @@ void MeshPartPayload::render(RenderArgs* args) {
 
     gpu::Batch& batch = *(args->_batch);
 
-    auto locations = args->_pipeline->locations;
+    auto locations = args->_shapePipeline->locations;
     assert(locations);
 
     // Bind the model transform and the skinCLusterMatrices if needed
@@ -557,6 +557,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
 
     if (_fadeState == FADE_WAITING_TO_START) {
         if (model->isLoaded()) {
+            // FIXME as far as I can tell this is the ONLY reason render-util depends on entities.
             if (EntityItem::getEntitiesShouldFadeFunction()()) {
                 _fadeStartTime = usecTimestampNow();
                 _fadeState = FADE_IN_PROGRESS;
@@ -582,7 +583,7 @@ void ModelMeshPartPayload::render(RenderArgs* args) {
     }
 
     gpu::Batch& batch = *(args->_batch);
-    auto locations =  args->_pipeline->locations;
+    auto locations =  args->_shapePipeline->locations;
     assert(locations);
 
     bindTransform(batch, locations, args->_renderMode);

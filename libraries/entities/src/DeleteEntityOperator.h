@@ -36,8 +36,8 @@ public:
     ~DeleteEntityOperator();
 
     void addEntityIDToDeleteList(const EntityItemID& searchEntityID);
-    virtual bool preRecursion(OctreeElementPointer element) override;
-    virtual bool postRecursion(OctreeElementPointer element) override;
+    virtual bool preRecursion(const OctreeElementPointer& element) override;
+    virtual bool postRecursion(const OctreeElementPointer& element) override;
 
     const RemovedEntities& getEntities() const { return _entitiesToDelete; }
 private:
@@ -46,7 +46,7 @@ private:
     quint64 _changeTime;
     int _foundCount;
     int _lookingCount;
-    bool subTreeContainsSomeEntitiesToDelete(OctreeElementPointer element);
+    bool subTreeContainsSomeEntitiesToDelete(const OctreeElementPointer& element);
 };
 
 #endif // hifi_DeleteEntityOperator_h

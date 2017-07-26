@@ -34,7 +34,7 @@ public:
 
     void setIsShuttingDown();
     bool isShuttingDown() { return _isShuttingDown; }
-    
+
     QUuid getNodeUuid() const { return _nodeUuid; }
 
     static AtomicUIntStat _totalBytes;
@@ -53,20 +53,23 @@ protected:
 
     /// Called before a packetDistributor pass to allow for pre-distribution processing
     virtual void preDistributionProcessing() {};
+    virtual void traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData, bool viewFrustumChanged, bool isFullScene);
 
     OctreeServer* _myServer { nullptr };
     QWeakPointer<Node> _node;
 
 private:
-    int handlePacketSend(SharedNodePointer node, OctreeQueryNode* nodeData, int& trueBytesSent, int& truePacketsSent, bool dontSuppressDuplicate = false);
+    int handlePacketSend(SharedNodePointer node, OctreeQueryNode* nodeData, bool dontSuppressDuplicate = false);
     int packetDistributor(SharedNodePointer node, OctreeQueryNode* nodeData, bool viewFrustumChanged);
-    
+
 
     QUuid _nodeUuid;
 
     OctreePacketData _packetData;
 
-    int _nodeMissingCount { 0 };
+    int _truePacketsSent { 0 }; // available for debug stats
+    int _trueBytesSent { 0 }; // available for debug stats
+    int _packetsSentThisInterval { 0 }; // used for bandwidth throttle condition
     bool _isShuttingDown { false };
 };
 

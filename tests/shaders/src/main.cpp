@@ -57,8 +57,6 @@
 #include <render-utils/model_lightmap_specular_map_frag.h>
 #include <render-utils/model_translucent_frag.h>
 
-#include <entities-renderer/untextured_particle_frag.h>
-#include <entities-renderer/untextured_particle_vert.h>
 #include <entities-renderer/textured_particle_frag.h>
 #include <entities-renderer/textured_particle_vert.h>
 
@@ -172,7 +170,6 @@ void QTestWindow::draw() {
         testShaderBuild(skin_model_normal_map_vert, model_translucent_frag);
 
         testShaderBuild(model_shadow_vert, model_shadow_frag);
-        testShaderBuild(untextured_particle_vert, untextured_particle_frag);
         testShaderBuild(textured_particle_vert, textured_particle_frag);
 /* FIXME: Bring back the ssao shader tests
         testShaderBuild(gaussian_blur_vertical_vert, gaussian_blur_frag);

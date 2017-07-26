@@ -93,7 +93,7 @@ private:
     bool cancelUploadAssetRequest(MessageID id);
 
     void handleProgressCallback(const QWeakPointer<Node>& node, MessageID messageID, qint64 size, DataOffset length);
-    void handleCompleteCallback(const QWeakPointer<Node>& node, MessageID messageID);
+    void handleCompleteCallback(const QWeakPointer<Node>& node, MessageID messageID, DataOffset length);
 
     void forceFailureOfPendingRequests(SharedNodePointer node);
 
@@ -108,6 +108,8 @@ private:
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetAssetRequestData>> _pendingRequests;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, GetInfoCallback>> _pendingInfoRequests;
     std::unordered_map<SharedNodePointer, std::unordered_map<MessageID, UploadResultCallback>> _pendingUploads;
+
+    QString _cacheDir;
 
     friend class AssetRequest;
     friend class AssetUpload;

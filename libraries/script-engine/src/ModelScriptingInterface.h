@@ -9,19 +9,13 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-
 #ifndef hifi_ModelScriptingInterface_h
 #define hifi_ModelScriptingInterface_h
 
 #include <QtCore/QObject>
-#include <QScriptValue>
-#include <OBJWriter.h>
-#include <model/Geometry.h>
-#include <model-networking/MeshProxy.h>
-#include <model-networking/MeshFace.h>
 
-using MeshPointer = std::shared_ptr<model::Mesh>;
-class ScriptEngine;
+#include <RegisteredMetaTypes.h>
+class QScriptEngine;
 
 class ModelScriptingInterface : public QObject {
     Q_OBJECT
@@ -35,9 +29,11 @@ public:
     Q_INVOKABLE QScriptValue newMesh(const QVector<glm::vec3>& vertices,
                                      const QVector<glm::vec3>& normals,
                                      const QVector<MeshFace>& faces);
+    Q_INVOKABLE QScriptValue getVertexCount(MeshProxy* meshProxy);
+    Q_INVOKABLE QScriptValue getVertex(MeshProxy* meshProxy, int vertexIndex);
 
 private:
-    ScriptEngine* _modelScriptEngine { nullptr };
+    QScriptEngine* _modelScriptEngine { nullptr };
 };
 
 #endif // hifi_ModelScriptingInterface_h

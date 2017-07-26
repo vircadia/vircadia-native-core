@@ -17,10 +17,9 @@
 
 #include <gpu/Resource.h>
 #include <gpu/Pipeline.h>
+#include <render/Forward.h>
 #include <render/DrawTask.h>
 
-
-class RenderArgs;
 
 class ToneMappingEffect {
 public:

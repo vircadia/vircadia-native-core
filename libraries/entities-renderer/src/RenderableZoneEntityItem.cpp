@@ -221,10 +221,10 @@ void RenderableZoneEntityItem::render(RenderArgs* args) {
                 if (getShapeType() == SHAPE_TYPE_SPHERE) {
                     shapeTransform.postScale(SPHERE_ENTITY_SCALE);
                     batch.setModelTransform(shapeTransform);
-                    geometryCache->renderWireSphereInstance(batch, DEFAULT_COLOR);
+                    geometryCache->renderWireSphereInstance(args, batch, DEFAULT_COLOR);
                 } else {
                     batch.setModelTransform(shapeTransform);
-                    geometryCache->renderWireCubeInstance(batch, DEFAULT_COLOR);
+                    geometryCache->renderWireCubeInstance(args, batch, DEFAULT_COLOR);
                 }
                 break;
             }
@@ -257,7 +257,7 @@ bool RenderableZoneEntityItem::contains(const glm::vec3& point) const {
     return false;
 }
 
-bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, const render::ScenePointer& scene,
+bool RenderableZoneEntityItem::addToScene(const EntityItemPointer& self, const render::ScenePointer& scene,
     render::Transaction& transaction) {
     _myMetaItem = scene->allocateID();
 
@@ -277,7 +277,7 @@ bool RenderableZoneEntityItem::addToScene(EntityItemPointer self, const render::
     return true;
 }
 
-void RenderableZoneEntityItem::removeFromScene(EntityItemPointer self, const render::ScenePointer& scene,
+void RenderableZoneEntityItem::removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene,
     render::Transaction& transaction) {
     transaction.removeItem(_myMetaItem);
     render::Item::clearID(_myMetaItem);
@@ -554,11 +554,13 @@ void RenderableZoneEntityItemMeta::setProceduralUserData(QString userData) {
 
 void RenderableZoneEntityItemMeta::render(RenderArgs* args) {
     if (!_stage) {
-        _stage = DependencyManager::get<DeferredLightingEffect>()->getLightStage();
+        _stage = args->_scene->getStage<LightStage>();
+        assert(_stage);
     }
 
     if (!_backgroundStage) {
-        _backgroundStage = DependencyManager::get<DeferredLightingEffect>()->getBackgroundStage();
+        _backgroundStage = args->_scene->getStage<BackgroundStage>();
+        assert(_backgroundStage);
     }
 
     { // Sun 

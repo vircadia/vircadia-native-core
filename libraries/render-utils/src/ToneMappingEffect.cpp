@@ -14,7 +14,6 @@
 #include <gpu/Context.h>
 #include <gpu/StandardShaderLib.h>
 
-#include <RenderArgs.h>
 #include "StencilMaskPass.h"
 #include "FramebufferCache.h"
 
