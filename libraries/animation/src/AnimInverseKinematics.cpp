@@ -27,9 +27,9 @@ static const int MAX_TARGET_MARKERS = 30;
 static const float JOINT_CHAIN_INTERP_TIME = 0.25f;
 
 static void lookupJointInfo(const AnimInverseKinematics::JointChainInfo& jointChainInfo,
-                                 int indexA, int indexB,
-                                 const AnimInverseKinematics::JointInfo** jointInfoA,
-                                 const AnimInverseKinematics::JointInfo** jointInfoB) {
+                            int indexA, int indexB,
+                            const AnimInverseKinematics::JointInfo** jointInfoA,
+                            const AnimInverseKinematics::JointInfo** jointInfoB) {
     *jointInfoA = nullptr;
     *jointInfoB = nullptr;
     for (size_t i = 0; i < jointChainInfo.jointInfoVec.size(); i++) {
@@ -1640,8 +1640,10 @@ void AnimInverseKinematics::debugDrawIKChain(const JointChainInfo& jointChainInf
     // copy debug joint rotations into the relative poses
     for (size_t i = 0; i < jointChainInfo.jointInfoVec.size(); i++) {
         const JointInfo& info = jointChainInfo.jointInfoVec[i];
-        poses[info.jointIndex].rot() = info.rot;
-        poses[info.jointIndex].trans() = info.trans;
+        if (info.jointIndex != _hipsIndex) {
+            poses[info.jointIndex].rot() = info.rot;
+            poses[info.jointIndex].trans() = info.trans;
+        }
     }
 
     // convert relative poses to absolute
@@ -1867,9 +1869,19 @@ void AnimInverseKinematics::setSecondaryTargets(const AnimContext& context) {
         return;
     }
 
-    // shoulder joint should look-at position of arm joint.
+    // special case for arm secondary poses.
+    // determine if shoulder joint should look-at position of arm joint.
+    bool shoulderShouldLookAtArm = false;
     const int leftArmIndex = _skeleton->nameToJointIndex("LeftArm");
     const int rightArmIndex = _skeleton->nameToJointIndex("RightArm");
+    const int leftShoulderIndex = _skeleton->nameToJointIndex("LeftShoulder");
+    const int rightShoulderIndex = _skeleton->nameToJointIndex("RightShoulder");
+    for (auto& iter : _secondaryTargetsInRigFrame) {
+        if (iter.first == leftShoulderIndex || iter.first == rightShoulderIndex) {
+            shoulderShouldLookAtArm = true;
+            break;
+        }
+    }
 
     AnimPose rigToGeometryPose = AnimPose(glm::inverse(context.getGeometryToRigMatrix()));
     for (auto& iter : _secondaryTargetsInRigFrame) {
@@ -1883,7 +1895,7 @@ void AnimInverseKinematics::setSecondaryTargets(const AnimContext& context) {
         }
 
         // if parent should "look-at" child joint position.
-        if (iter.first == leftArmIndex || iter.first == rightArmIndex) {
+        if (shoulderShouldLookAtArm && (iter.first == leftArmIndex || iter.first == rightArmIndex)) {
 
             AnimPose grandParentAbsPose;
             int grandParentIndex = _skeleton->getParentIndex(parentIndex);
@@ -1896,7 +1908,7 @@ void AnimInverseKinematics::setSecondaryTargets(const AnimContext& context) {
             _relativePoses[parentIndex] = grandParentAbsPose.inverse() * parentAbsPose;
         }
 
-        // AJT: for now ignore translation on secondary poses.
+        // Ignore translation on secondary poses, to prevent them from distorting the skeleton.
         glm::vec3 origTrans = _relativePoses[iter.first].trans();
         _relativePoses[iter.first] = parentAbsPose.inverse() * absPose;
         _relativePoses[iter.first].trans() = origTrans;

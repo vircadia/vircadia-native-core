@@ -192,11 +192,6 @@ private:
         bool _overrideHands { false };
         mutable std::recursive_mutex _lock;
 
-        std::vector<glm::vec3> _leftControllerHistory;
-        size_t _leftControllerHistoryCursor { 0 };
-        std::vector<glm::vec3> _rightControllerHistory;
-        size_t _rightControllerHistoryCursor { 0 };
-
         QString configToString(Config config);
         friend class ViveControllerManager;
     };
