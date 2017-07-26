@@ -36,8 +36,8 @@ ContextOverlayInterface::ContextOverlayInterface() {
 
     auto entityTreeRenderer = DependencyManager::get<EntityTreeRenderer>().data();
     connect(entityTreeRenderer, SIGNAL(mousePressOnEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(createOrDestroyContextOverlay(const EntityItemID&, const PointerEvent&)));
-    connect(entityTreeRenderer, SIGNAL(hoverEnterEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(highlightEntity(const EntityItemID&, const PointerEvent&)));
-    connect(entityTreeRenderer, SIGNAL(hoverLeaveEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(unHighlightEntity(const EntityItemID&, const PointerEvent&)));
+    connect(entityTreeRenderer, SIGNAL(hoverEnterEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(contextOverlays_hoverEnterEntity(const EntityItemID&, const PointerEvent&)));
+    connect(entityTreeRenderer, SIGNAL(hoverLeaveEntity(const EntityItemID&, const PointerEvent&)), this, SLOT(contextOverlays_hoverLeaveEntity(const EntityItemID&, const PointerEvent&)));
     connect(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"), &TabletProxy::tabletShownChanged, this, [&]() {
         if (_contextOverlayJustClicked && _hmdScriptingInterface->isMounted()) {
             QUuid tabletFrameID = _hmdScriptingInterface->getCurrentTabletFrameID();
@@ -88,6 +88,9 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 glm::vec3 adjustPos = entityProperties.getRegistrationPoint() - glm::vec3(0.5f);
                 entityPosition = entityPosition - (entityProperties.getRotation() * (adjustPos * entityProperties.getDimensions()));
             }
+
+            qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'true' for Entity ID:" << entityItemID;
+            qApp->getEntities()->getTree()->findEntityByEntityItemID(entityItemID)->setShouldHighlight(true);
 
             AABox boundingBox = AABox(entityPosition - (entityDimensions / 2.0f), entityDimensions * 2.0f);
 
@@ -159,6 +162,8 @@ bool ContextOverlayInterface::contextOverlayFilterPassed(const EntityItemID& ent
 bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
     if (_contextOverlayID != UNKNOWN_OVERLAY_ID) {
         qCDebug(context_overlay) << "Destroying Context Overlay on top of entity with ID: " << entityItemID;
+        qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'false' for Entity ID:" << _currentEntityWithContextOverlay;
+        qApp->getEntities()->getTree()->findEntityByEntityItemID(_currentEntityWithContextOverlay)->setShouldHighlight(false);
         setCurrentEntityWithContextOverlay(QUuid());
         _entityMarketplaceID.clear();
         // Destroy the Context Overlay
@@ -174,7 +179,7 @@ bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
     return ContextOverlayInterface::destroyContextOverlay(entityItemID, PointerEvent());
 }
 
-void ContextOverlayInterface::clickContextOverlay(const OverlayID& overlayID, const PointerEvent& event) {
+void ContextOverlayInterface::contextOverlays_mousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
     if (overlayID == _contextOverlayID  && event.getButton() == PointerEvent::PrimaryButton) {
         qCDebug(context_overlay) << "Clicked Context Overlay. Entity ID:" << _currentEntityWithContextOverlay << "Overlay ID:" << overlayID;
         openMarketplace();
@@ -183,7 +188,7 @@ void ContextOverlayInterface::clickContextOverlay(const OverlayID& overlayID, co
     }
 }
 
-void ContextOverlayInterface::hoverEnterContextOverlay(const OverlayID& overlayID, const PointerEvent& event) {
+void ContextOverlayInterface::contextOverlays_hoverEnterOverlay(const OverlayID& overlayID, const PointerEvent& event) {
     if (_contextOverlayID != UNKNOWN_OVERLAY_ID && _contextOverlay) {
         qCDebug(context_overlay) << "Started hovering over Context Overlay. Overlay ID:" << overlayID;
         _contextOverlay->setColor(CONTEXT_OVERLAY_COLOR);
@@ -193,7 +198,7 @@ void ContextOverlayInterface::hoverEnterContextOverlay(const OverlayID& overlayI
     }
 }
 
-void ContextOverlayInterface::hoverLeaveContextOverlay(const OverlayID& overlayID, const PointerEvent& event) {
+void ContextOverlayInterface::contextOverlays_hoverLeaveOverlay(const OverlayID& overlayID, const PointerEvent& event) {
     if (_contextOverlayID != UNKNOWN_OVERLAY_ID && _contextOverlay) {
         qCDebug(context_overlay) << "Stopped hovering over Context Overlay. Overlay ID:" << overlayID;
         _contextOverlay->setColor(CONTEXT_OVERLAY_COLOR);
@@ -203,16 +208,18 @@ void ContextOverlayInterface::hoverLeaveContextOverlay(const OverlayID& overlayI
     }
 }
 
-void ContextOverlayInterface::highlightEntity(const EntityItemID& entityID, const PointerEvent& event) {
-    //if (contextOverlayFilterPassed(entityID)) {
+void ContextOverlayInterface::contextOverlays_hoverEnterEntity(const EntityItemID& entityID, const PointerEvent& event) {
+    if (contextOverlayFilterPassed(entityID)) {
         qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'true' for Entity ID:" << entityID;
         qApp->getEntities()->getTree()->findEntityByEntityItemID(entityID)->setShouldHighlight(true);
-    //}
+    }
 }
 
-void ContextOverlayInterface::unHighlightEntity(const EntityItemID& entityID, const PointerEvent& event) {
-    qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'false' for Entity ID:" << entityID;
-    qApp->getEntities()->getTree()->findEntityByEntityItemID(entityID)->setShouldHighlight(false);
+void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemID& entityID, const PointerEvent& event) {
+    if (_currentEntityWithContextOverlay != entityID) {
+        qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'false' for Entity ID:" << entityID;
+        qApp->getEntities()->getTree()->findEntityByEntityItemID(entityID)->setShouldHighlight(false);
+    }
 }
 
 static const QString MARKETPLACE_BASE_URL = "http://metaverse.highfidelity.com/marketplace/items/";
@@ -227,5 +234,6 @@ void ContextOverlayInterface::openMarketplace() {
         QString url = MARKETPLACE_BASE_URL + _entityMarketplaceID;
         tablet->gotoWebScreen(url);
         _hmdScriptingInterface->openTablet();
+        _isInMarketplaceInspectionMode = true;
     }
 }
