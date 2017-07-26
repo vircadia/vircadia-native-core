@@ -311,8 +311,6 @@ signals:
     void uploadRequest(QString path);
     void receivedHifiSchemeURL(const QString& url);
 
-    void requestDomainContentReplacement(const QString& url);
-
 public slots:
     QVector<EntityItemID> pasteEntities(float x, float y, float z);
     bool exportEntities(const QString& filename, const QVector<EntityItemID>& entityIDs, const glm::vec3* givenOffset = nullptr);

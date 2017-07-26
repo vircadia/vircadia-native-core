@@ -928,7 +928,7 @@ void OctreeServer::handleJurisdictionRequestPacket(QSharedPointer<ReceivedMessag
 
 void OctreeServer::handleOctreeFileReplacement(QSharedPointer<ReceivedMessage> message) {
     if (!_isFinished && !_isShuttingDown) {
-        // these messages are only allowed to come from the domain server or authenticated users, so make sure that is the case
+        // these messages are only allowed to come from the domain server, so make sure that is the case
         auto nodeList = DependencyManager::get<NodeList>();
         if (message->getSenderSockAddr() == nodeList->getDomainHandler().getSockAddr()) {
             // it's far cleaner to load up the new content upon server startup
@@ -965,8 +965,7 @@ void OctreeServer::handleOctreeFileReplacement(QSharedPointer<ReceivedMessage> m
                     } else {
                         qWarning() << "Could not write replacement octree data to file - refusing to process";
                     }
-                }
-                else {
+                } else {
                     qDebug() << "Received replacement octree file that is invalid - refusing to process";
                 }
             } else {
@@ -984,6 +983,7 @@ void OctreeServer::handleOctreeFileReplacementFromURL(QSharedPointer<ReceivedMes
     if (!_isFinished && !_isShuttingDown) {
         // This call comes from Interface, so we skip our domain server check
         // but confirm that we have permissions to replace content sets
+        if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
             if (!_persistAbsoluteFilePath.isEmpty()) {
                 // Convert message data into our URL
                 QString url(message->getMessage());
@@ -1020,23 +1020,20 @@ void OctreeServer::handleOctreeFileReplacementFromURL(QSharedPointer<ReceivedMes
                                 // process it when it comes back up
                                 qInfo() << "Wrote octree replacement file to" << replacementFilePath << "- stopping server";
                                 setFinished(true);
-                            }
-                            else {
+                            } else {
                                 qWarning() << "Could not write replacement octree data to file - refusing to process";
                             }
-                        }
-                        else {
+                        } else {
                             qDebug() << "Received replacement octree file that is invalid - refusing to process";
                         }
-                    }
-                    else {
+                    } else {
                         qDebug() << "Error downloading JSON from specified file";
                     }
                 });
-            }
-            else {
+            } else {
                 qDebug() << "Cannot perform octree file replacement since current persist file path is not yet known";
             }
+        }
     }
 }
 

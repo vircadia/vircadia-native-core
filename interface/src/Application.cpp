@@ -255,7 +255,7 @@ static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 
 static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 
-const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions{
+const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
     { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl },
@@ -6070,9 +6070,9 @@ bool Application::askToReplaceDomainContent(const QString& url) {
             limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
                 return node->getType() == NodeType::EntityServer && node->getActiveSocket();
             }, [&_url, limitedNodeList](const SharedNodePointer& octreeNode) {
-                auto octreeFilePacketList = NLPacketList::create(PacketType::OctreeFileReplacementFromUrl, QByteArray(), true, true);
-                octreeFilePacketList->write(_url); 
-                limitedNodeList->sendPacketList(std::move(octreeFilePacketList), *octreeNode);
+                auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, _url.size(), true);
+                octreeFilePacket->write(_url); 
+                limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
                 return true;
             });
         }
