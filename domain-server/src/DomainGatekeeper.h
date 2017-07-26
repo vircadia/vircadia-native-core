@@ -39,8 +39,6 @@ public:
                                 const QUuid& walletUUID, const QString& nodeVersion);
     QUuid assignmentUUIDForPendingAssignment(const QUuid& tempUUID);
     
-    void preloadAllowedUserPublicKeys();
-    
     void removeICEPeer(const QUuid& peerUUID) { _icePeers.remove(peerUUID); }
 
     static void sendProtocolMismatchConnectionDenial(const HifiSockAddr& senderSockAddr);
@@ -93,7 +91,7 @@ private:
     
     void pingPunchForConnectingPeer(const SharedNetworkPeer& peer);
     
-    void requestUserPublicKey(const QString& username);
+    void requestUserPublicKey(const QString& username, bool isOptimistic = false);
     
     DomainServer* _server;
     
@@ -102,8 +100,17 @@ private:
     QHash<QUuid, SharedNetworkPeer> _icePeers;
     
     QHash<QString, QUuid> _connectionTokenHash;
-    QHash<QString, QByteArray> _userPublicKeys;
-    QSet<QString> _inFlightPublicKeyRequests; // keep track of which we've already asked for
+
+    // the word "optimistic" below is used for keys that we request during user connection before the user has
+    // had a chance to upload a new public key
+
+    // we don't send back user signature decryption errors for those keys so that there isn't a thrasing of key re-generation
+    // and connection refusal
+
+    using KeyFlagPair = QPair<QByteArray, bool>;
+
+    QHash<QString, KeyFlagPair> _userPublicKeys; // keep track of keys and flag them as optimistic or not
+    QHash<QString, bool> _inFlightPublicKeyRequests; // keep track of keys we've asked for (and if it was optimistic)
     QSet<QString> _domainOwnerFriends; // keep track of friends of the domain owner
     QSet<QString> _inFlightGroupMembershipsRequests; // keep track of which we've already asked for
 
