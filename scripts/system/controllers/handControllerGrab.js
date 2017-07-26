@@ -2490,10 +2490,11 @@ function MyController(hand) {
                     button: "None"
                 };
 
-            if (this.hoverEntity !== entity) {
-                Entities.sendHoverLeaveEntity(this.hoverEntity, pointerEvent);
-                this.hoverEntity = entity;
-                Entities.sendHoverEnterEntity(this.hoverEntity, pointerEvent);
+                if (this.hoverEntity !== entity) {
+                    Entities.sendHoverLeaveEntity(this.hoverEntity, pointerEvent);
+                    this.hoverEntity = entity;
+                    Entities.sendHoverEnterEntity(this.hoverEntity, pointerEvent);
+                }
             }
 
             // send mouse events for button highlights and tooltips.
