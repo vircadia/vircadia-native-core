@@ -87,7 +87,7 @@
             hand,
             laser,
 
-            intersection = { x: "hello" };
+            intersection = {};
 
         hand = new Hand(side);
         laser = new Laser(side);
@@ -163,7 +163,12 @@
 
             // References.
             leftInputs,
-            rightInputs;
+            rightInputs,
+
+            isDisplaying = false,
+
+            getIntersection,  // Function.
+            intersection;
 
         toolMenu = new ToolMenu(side);
 
@@ -171,10 +176,12 @@
         function setReferences(left, right) {
             leftInputs = left;
             rightInputs = right;
+            getIntersection = side === LEFT_HAND ? rightInputs.getIntersection : leftInputs.getIntersection;
         }
 
         function setHand(side) {
             toolMenu.setHand(side);
+            getIntersection = side === LEFT_HAND ? rightInputs.getIntersection : leftInputs.getIntersection;
         }
 
         function display() {
@@ -185,16 +192,23 @@
             uiEntityIDs = toolMenu.getEntityIDs();
             leftInputs.setUIEntities(uiEntityIDs);
             rightInputs.setUIEntities(uiEntityIDs);
+
+            isDisplaying = true;
         }
 
         function update() {
-            // TODO
+            if (isDisplaying) {
+                intersection = getIntersection();
+                toolMenu.update(intersection.entityID);
+            }
         }
 
         function clear() {
             leftInputs.setUIEntities([]);
             rightInputs.setUIEntities([]);
             toolMenu.clear();
+
+            isDisplaying = false;
         }
 
         function destroy() {

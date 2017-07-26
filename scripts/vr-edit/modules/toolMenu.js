@@ -17,6 +17,7 @@ ToolMenu = function (side, scaleModeChangedCallback) {
 
     var panelEntity,
         buttonEntity,
+        buttonHighlightOverlay,
 
         LEFT_HAND = 0,
         AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
@@ -29,6 +30,8 @@ ToolMenu = function (side, scaleModeChangedCallback) {
         ROOT_ROTATION = side === LEFT_HAND
             ? Quat.fromVec3Degrees({ x: 180, y: -90, z: 0 })
             : Quat.fromVec3Degrees({ x: 180, y: 90, z: 0 }),
+
+        ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO),
 
         PANEL_ENTITY_PROPERTIES = {
             type: "Box",
@@ -53,7 +56,20 @@ ToolMenu = function (side, scaleModeChangedCallback) {
             visible: true
         },
 
+        BUTTON_HIGHLIGHT_PROPERTIES = {
+            dimensions: { x: 0.034, y: 0.034, z: 0.001 },
+            color: { red: 240, green: 240, blue: 0 },
+            alpha: 0.8,
+            localPosition: { x: 0.0155, y: 0.0155, z: 0.003 },
+            localRotation: ZERO_ROTATION,
+            solid: false,
+            drawInFront: true,
+            ignoreRayIntersection: true,
+            visible: false
+        },
+
         isDisplaying = false,
+        isHighlightingButton = false,
 
         SCALE_MODE_DIRECT = 0,
         SCALE_MODE_HANDLES = 1;
@@ -70,8 +86,12 @@ ToolMenu = function (side, scaleModeChangedCallback) {
         return [panelEntity, buttonEntity];
     }
 
-    function update() {
-        // TODO
+    function update(intersectionEntityID) {
+        // Highlight button.
+        if (intersectionEntityID === buttonEntity !== isHighlightingButton) {
+            isHighlightingButton = !isHighlightingButton;
+            Overlays.editOverlay(buttonHighlightOverlay, { visible: isHighlightingButton });
+        }
     }
 
     function display() {
@@ -105,6 +125,10 @@ ToolMenu = function (side, scaleModeChangedCallback) {
         panelEntity = Entities.addEntity(PANEL_ENTITY_PROPERTIES, true);
         BUTTON_ENTITY_PROPERTIES.parentID = panelEntity;
         buttonEntity = Entities.addEntity(BUTTON_ENTITY_PROPERTIES, true);
+
+        // Prepare highlight overlay.
+        BUTTON_HIGHLIGHT_PROPERTIES.parentID = buttonEntity;
+        buttonHighlightOverlay = Overlays.addOverlay("cube", BUTTON_HIGHLIGHT_PROPERTIES);
 
         isDisplaying = true;
     }
