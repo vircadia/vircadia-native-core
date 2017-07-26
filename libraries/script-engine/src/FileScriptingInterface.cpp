@@ -51,18 +51,21 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool
         return;
     }
 
-    QString file = unzipFile(path, tempDir);
-    qCDebug(scriptengine) << "Unzipped file: " << file;
-    QString filename = QUrl::fromLocalFile(file).toString();
-    if (file != "") {
+    QStringList fileList = unzipFile(path, tempDir);
+    qCDebug(scriptengine) << "Unzipped file list: " << fileList;
+    QString filename = QUrl::fromLocalFile(fileList.first()).toString();
+    
+    if (filename != "") {
         qCDebug(scriptengine) << "File to upload: " + filename;
-    } else {
+    }
+    else {
         qCDebug(scriptengine) << "Unzip failed";
     }
-    emit unzipResult(path, filename, autoAdd);
+    emit unzipResult(path, fileList, autoAdd, isBlocks);
+
 }
 
-QString FileScriptingInterface::unzipFile(QString path, QString tempDir) {
+QStringList FileScriptingInterface::unzipFile(QString path, QString tempDir) {
 
     QDir dir(path);
     QString dirName = dir.path();
@@ -73,11 +76,11 @@ QString FileScriptingInterface::unzipFile(QString path, QString tempDir) {
     qCDebug(scriptengine) << list;
 
     if (!list.isEmpty()) {
-        return list.front();
+        return list;
     }
     else {
         qCDebug(scriptengine) << "Extraction failed";
-        return "";
+        return list;
     }
 
 }
