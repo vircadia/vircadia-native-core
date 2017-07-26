@@ -115,6 +115,7 @@
 #include <render/RenderFetchCullSortTask.h>
 #include <RenderDeferredTask.h>
 #include <RenderForwardTask.h>
+#include <RenderViewTask.h>
 #include <ResourceCache.h>
 #include <ResourceRequest.h>
 #include <SandboxUtils.h>
@@ -1726,6 +1727,10 @@ void Application::cleanupBeforeQuit() {
 
     // Cleanup all overlays after the scripts, as scripts might add more
     _overlays.cleanupAllOverlays();
+    // The cleanup process enqueues the transactions but does not process them.  Calling this here will force the actual 
+    // removal of the items.  
+    // See https://highfidelity.fogbugz.com/f/cases/5328
+    _main3DScene->processTransactionQueue();
 
     // first stop all timers directly or by invokeMethod
     // depending on what thread they run in
@@ -1872,15 +1877,9 @@ void Application::initializeGL() {
 
     // Set up the render engine
     render::CullFunctor cullFunctor = LODManager::shouldRender;
-    _renderEngine->addJob<RenderShadowTask>("RenderShadowTask", cullFunctor);
-    const auto items = _renderEngine->addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
-    assert(items.canCast<RenderFetchCullSortTask::Output>());
     static const QString RENDER_FORWARD = "HIFI_RENDER_FORWARD";
-    if (QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD)) {
-        _renderEngine->addJob<RenderForwardTask>("Forward", items);
-    } else {
-        _renderEngine->addJob<RenderDeferredTask>("RenderDeferredTask", items);
-    }
+    bool isDeferred = !QProcessEnvironment::systemEnvironment().contains(RENDER_FORWARD);
+    _renderEngine->addJob<RenderViewTask>("RenderMainView", cullFunctor, isDeferred);
     _renderEngine->load();
     _renderEngine->registerScene(_main3DScene);
 
@@ -5082,7 +5081,7 @@ namespace render {
     template <> const ItemKey payloadGetKey(const WorldBoxRenderData::Pointer& stuff) { return ItemKey::Builder::opaqueShape(); }
     template <> const Item::Bound payloadGetBound(const WorldBoxRenderData::Pointer& stuff) { return Item::Bound(); }
     template <> void payloadRender(const WorldBoxRenderData::Pointer& stuff, RenderArgs* args) {
-        if (args->_renderMode != RenderArgs::MIRROR_RENDER_MODE && Menu::getInstance()->isOptionChecked(MenuOption::WorldAxes)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::WorldAxes)) {
             PerformanceTimer perfTimer("worldBox");
 
             auto& batch = *args->_batch;
@@ -5303,6 +5302,11 @@ void Application::nodeActivated(SharedNodePointer node) {
 
     if (node->getType() == NodeType::AvatarMixer) {
         // new avatar mixer, send off our identity packet on next update loop
+        // Reset skeletonModelUrl if the last server modified our choice.
+        static const QUrl empty{};
+        if (getMyAvatar()->getFullAvatarURLFromPreferences() != getMyAvatar()->cannonicalSkeletonModelURL(empty)) {
+            getMyAvatar()->resetFullAvatarURL();
+        }
         getMyAvatar()->markIdentityDataChanged();
         getMyAvatar()->resetLastSent();
     }

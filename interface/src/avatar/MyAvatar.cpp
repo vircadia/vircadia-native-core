@@ -794,6 +794,77 @@ controller::Pose MyAvatar::getRightHandTipPose() const {
     return pose;
 }
 
+glm::vec3 MyAvatar::worldToJointPoint(const glm::vec3& position, const int jointIndex) const {
+    glm::vec3 jointPos = getPosition();//default value if no or invalid joint specified
+    glm::quat jointRot = getRotation();//default value if no or invalid joint specified
+    if (jointIndex != -1) {
+        if (_skeletonModel->getJointPositionInWorldFrame(jointIndex, jointPos)) {
+            _skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot);
+        } else {
+            qWarning() << "Invalid joint index specified: " << jointIndex;
+        }
+    }
+    glm::vec3 modelOffset = position - jointPos;
+    glm::vec3 jointSpacePosition = glm::inverse(jointRot) * modelOffset;
+
+    return jointSpacePosition;
+}
+
+glm::vec3 MyAvatar::worldToJointDirection(const glm::vec3& worldDir, const int jointIndex) const {
+    glm::quat jointRot = getRotation();//default value if no or invalid joint specified
+    if ((jointIndex != -1) && (!_skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot))) {
+        qWarning() << "Invalid joint index specified: " << jointIndex;
+    }
+
+    glm::vec3 jointSpaceDir = glm::inverse(jointRot) * worldDir;
+    return jointSpaceDir;
+}
+
+glm::quat MyAvatar::worldToJointRotation(const glm::quat& worldRot, const int jointIndex) const {
+    glm::quat jointRot = getRotation();//default value if no or invalid joint specified
+    if ((jointIndex != -1) && (!_skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot))) {
+        qWarning() << "Invalid joint index specified: " << jointIndex;
+    }
+    glm::quat jointSpaceRot = glm::inverse(jointRot) * worldRot;
+    return jointSpaceRot;
+}
+
+glm::vec3 MyAvatar::jointToWorldPoint(const glm::vec3& jointSpacePos, const int jointIndex) const {
+    glm::vec3 jointPos = getPosition();//default value if no or invalid joint specified
+    glm::quat jointRot = getRotation();//default value if no or invalid joint specified
+
+    if (jointIndex != -1) {
+        if (_skeletonModel->getJointPositionInWorldFrame(jointIndex, jointPos)) {
+            _skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot);
+        } else {
+            qWarning() << "Invalid joint index specified: " << jointIndex;
+        }
+    }
+
+    glm::vec3 worldOffset = jointRot * jointSpacePos;
+    glm::vec3 worldPos = jointPos + worldOffset;
+
+    return worldPos;
+}
+
+glm::vec3 MyAvatar::jointToWorldDirection(const glm::vec3& jointSpaceDir, const int jointIndex) const {
+    glm::quat jointRot = getRotation();//default value if no or invalid joint specified
+    if ((jointIndex != -1) && (!_skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot))) {
+        qWarning() << "Invalid joint index specified: " << jointIndex;
+    }
+    glm::vec3 worldDir = jointRot * jointSpaceDir;
+    return worldDir;
+}
+
+glm::quat MyAvatar::jointToWorldRotation(const glm::quat& jointSpaceRot, const int jointIndex) const {
+    glm::quat jointRot = getRotation();//default value if no or invalid joint specified
+    if ((jointIndex != -1) && (!_skeletonModel->getJointRotationInWorldFrame(jointIndex, jointRot))) {
+        qWarning() << "Invalid joint index specified: " << jointIndex;
+    }
+    glm::quat worldRot = jointRot * jointSpaceRot;
+    return worldRot;
+}
+
 // virtual
 void MyAvatar::render(RenderArgs* renderArgs) {
     // don't render if we've been asked to disable local rendering
@@ -1888,6 +1959,32 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
         // apply our delta, but scale it by the speed factor, so we turn faster when we are flying faster.
         totalBodyYaw += (speedFactor * deltaAngle * (180.0f / PI));
+    }
+
+    // Use head/HMD roll to turn while walking or flying.
+    if (qApp->isHMDMode() && _hmdRollControlEnabled) {
+        // Turn with head roll.
+        const float MIN_CONTROL_SPEED = 0.01f;
+        float speed = glm::length(getVelocity());
+        if (speed >= MIN_CONTROL_SPEED) {
+            // Feather turn when stopping moving.
+            float speedFactor;
+            if (getDriveKey(TRANSLATE_Z) != 0.0f || _lastDrivenSpeed == 0.0f) {
+                _lastDrivenSpeed = speed;
+                speedFactor = 1.0f;
+            } else {
+                speedFactor = glm::min(speed / _lastDrivenSpeed, 1.0f);
+            }
+
+            float direction = glm::dot(getVelocity(), getRotation() * Vectors::UNIT_NEG_Z) > 0.0f ? 1.0f : -1.0f;
+
+            float rollAngle = glm::degrees(asinf(glm::dot(IDENTITY_UP, _hmdSensorOrientation * IDENTITY_RIGHT)));
+            float rollSign = rollAngle < 0.0f ? -1.0f : 1.0f;
+            rollAngle = fabsf(rollAngle);
+            rollAngle = rollAngle > _hmdRollControlDeadZone ? rollSign * (rollAngle - _hmdRollControlDeadZone) : 0.0f;
+
+            totalBodyYaw += speedFactor * direction * rollAngle * deltaTime * _hmdRollControlRate;
+        }
     }
 
     // update body orientation by movement inputs

@@ -22,7 +22,7 @@ public:
 private:
     enum Action {
         DELETE_INTERFACE_INI,
-        RETAIN_AVATAR_INFO,
+        RETAIN_IMPORTANT_INFO,
         DO_NOTHING
     };
 

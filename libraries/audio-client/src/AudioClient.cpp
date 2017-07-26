@@ -184,6 +184,8 @@ AudioClient::AudioClient() :
             checkDevices();
         });
     });
+    const unsigned long DEVICE_CHECK_INTERVAL_MSECS = 2 * 1000;
+    _checkDevicesTimer->start(DEVICE_CHECK_INTERVAL_MSECS);
 
 
     configureReverb();
@@ -392,6 +394,11 @@ QAudioDeviceInfo defaultAudioDeviceForMode(QAudio::Mode mode) {
     // fallback for failed lookup is the default device
     return (mode == QAudio::AudioInput) ? QAudioDeviceInfo::defaultInputDevice() : QAudioDeviceInfo::defaultOutputDevice();
 }
+
+bool AudioClient::getNamedAudioDeviceForModeExists(QAudio::Mode mode, const QString& deviceName) {
+    return (getNamedAudioDeviceForMode(mode, deviceName).deviceName() == deviceName);
+}
+
 
 // attempt to use the native sample rate and channel count
 bool nativeFormatForAudioDevice(const QAudioDeviceInfo& audioDevice,

@@ -277,6 +277,23 @@ QString getEventBridgeJavascript() {
     return javaScriptToInject;
 }
 
+class EventBridgeWrapper : public QObject {
+    Q_OBJECT
+    Q_PROPERTY(QObject* eventBridge READ getEventBridge CONSTANT);
+
+public:
+    EventBridgeWrapper(QObject* eventBridge, QObject* parent = nullptr) : QObject(parent), _eventBridge(eventBridge) {
+    }
+
+    QObject* getEventBridge() {
+        return _eventBridge;
+    }
+
+private:
+    QObject* _eventBridge;
+};
+
+
 
 QQmlEngine* acquireEngine(QQuickWindow* window) {
     Q_ASSERT(QThread::currentThread() == qApp->thread());
@@ -430,7 +447,6 @@ OffscreenQmlSurface::~OffscreenQmlSurface() {
 
     _canvas->deleteLater();
     _rootItem->deleteLater();
-    _qmlComponent->deleteLater();
     _quickWindow->deleteLater();
     releaseEngine();
 }
@@ -473,11 +489,12 @@ void OffscreenQmlSurface::create(QOpenGLContext* shareContext) {
     _qmlContext = new QQmlContext(qmlEngine->rootContext());
 
     _qmlContext->setContextProperty("offscreenWindow", QVariant::fromValue(getWindow()));
-    _qmlContext->setContextProperty("globalEventBridge", this);
+    _qmlContext->setContextProperty("eventBridge", this);
     _qmlContext->setContextProperty("webEntity", this);
 
-    _qmlComponent = new QQmlComponent(qmlEngine);
-
+    // FIXME Compatibility mechanism for existing HTML and JS that uses eventBridgeWrapper
+    // Find a way to flag older scripts using this mechanism and wanr that this is deprecated
+    _qmlContext->setContextProperty("eventBridgeWrapper", new EventBridgeWrapper(this, _qmlContext));
 
     if (!_canvas->makeCurrent()) {
         qWarning("Failed to make context current for QML Renderer");
@@ -577,71 +594,79 @@ void OffscreenQmlSurface::setBaseUrl(const QUrl& baseUrl) {
     _qmlContext->setBaseUrl(baseUrl);
 }
 
-QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
+QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, bool createNewContext, std::function<void(QQmlContext*, QObject*)> f) {
     // Synchronous loading may take a while; restart the deadlock timer
     QMetaObject::invokeMethod(qApp, "updateHeartbeat", Qt::DirectConnection);
 
-    if ((qmlSource.isRelative() && !qmlSource.isEmpty()) || qmlSource.scheme() == QLatin1String("file")) {
-        _qmlComponent->loadUrl(_qmlContext->resolvedUrl(qmlSource), QQmlComponent::PreferSynchronous);
-    } else {
-        _qmlComponent->loadUrl(qmlSource, QQmlComponent::PreferSynchronous);
+    QQmlContext* targetContext = _qmlContext;
+    if (_rootItem && createNewContext) {
+        targetContext = new QQmlContext(targetContext);
     }
 
+    QUrl finalQmlSource = qmlSource;
+    if ((qmlSource.isRelative() && !qmlSource.isEmpty()) || qmlSource.scheme() == QLatin1String("file")) {
+        finalQmlSource = _qmlContext->resolvedUrl(qmlSource);
+    }
 
-    if (_qmlComponent->isLoading()) {
-        connect(_qmlComponent, &QQmlComponent::statusChanged, this,
-            [this, f](QQmlComponent::Status){
-                finishQmlLoad(f);
-            });
+    auto qmlComponent = new QQmlComponent(_qmlContext->engine(), finalQmlSource, QQmlComponent::PreferSynchronous);
+    if (qmlComponent->isLoading()) {
+        connect(qmlComponent, &QQmlComponent::statusChanged, this,
+            [this, qmlComponent, targetContext, f](QQmlComponent::Status) {
+            finishQmlLoad(qmlComponent, targetContext, f);
+        });
         return nullptr;
     }
 
-    return finishQmlLoad(f);
+    return finishQmlLoad(qmlComponent, targetContext, f);
+}
+
+QObject* OffscreenQmlSurface::loadInNewContext(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
+    return load(qmlSource, true, f);
+}
+
+QObject* OffscreenQmlSurface::load(const QUrl& qmlSource, std::function<void(QQmlContext*, QObject*)> f) {
+    return load(qmlSource, false, f);
 }
 
 void OffscreenQmlSurface::clearCache() {
     _qmlContext->engine()->clearComponentCache();
 }
 
-QObject* OffscreenQmlSurface::finishQmlLoad(std::function<void(QQmlContext*, QObject*)> f) {
-#if 0
-    if (!_rootItem) {
-        QQmlComponent component(_qmlContext->engine());
-        component.setData(R"QML(
-import QtQuick 2.0
-import QtWebChannel 1.0
-Item { Component.onCompleted: globalEventBridge.WebChannel.id = "globalEventBridge"; }
-)QML", QUrl());
-        QObject *helper = component.create(_qmlContext);
-        qDebug() << "Created helper";
-    }
-#endif
-    disconnect(_qmlComponent, &QQmlComponent::statusChanged, this, 0);
-    if (_qmlComponent->isError()) {
-        QList<QQmlError> errorList = _qmlComponent->errors();
-        foreach(const QQmlError& error, errorList) {
-            qWarning() << error.url() << error.line() << error;
+QObject* OffscreenQmlSurface::finishQmlLoad(QQmlComponent* qmlComponent, QQmlContext* qmlContext, std::function<void(QQmlContext*, QObject*)> f) {
+    disconnect(qmlComponent, &QQmlComponent::statusChanged, this, 0);
+    if (qmlComponent->isError()) {
+        for (const auto& error : qmlComponent->errors()) {
+            qCWarning(glLogging) << error.url() << error.line() << error;
         }
+        qmlComponent->deleteLater();
         return nullptr;
     }
 
 
-    QObject* newObject = _qmlComponent->beginCreate(_qmlContext);
-    if (_qmlComponent->isError()) {
-        QList<QQmlError> errorList = _qmlComponent->errors();
-        foreach(const QQmlError& error, errorList)
+    QObject* newObject = qmlComponent->beginCreate(qmlContext);
+    if (qmlComponent->isError()) {
+        for (const auto& error : qmlComponent->errors()) {
             qCWarning(glLogging) << error.url() << error.line() << error;
+        }
         if (!_rootItem) {
             qFatal("Unable to finish loading QML root");
         }
+        qmlComponent->deleteLater();
         return nullptr;
     }
 
-    _qmlContext->engine()->setObjectOwnership(this, QQmlEngine::CppOwnership);
-    newObject->setProperty("eventBridge", QVariant::fromValue(this));
+    qmlContext->engine()->setObjectOwnership(this, QQmlEngine::CppOwnership);
+    f(qmlContext, newObject);
 
-    f(_qmlContext, newObject);
-    _qmlComponent->completeCreate();
+    QObject* eventBridge = qmlContext->contextProperty("eventBridge").value<QObject*>();
+    if (qmlContext != _qmlContext && eventBridge && eventBridge != this) {
+        // FIXME Compatibility mechanism for existing HTML and JS that uses eventBridgeWrapper
+        // Find a way to flag older scripts using this mechanism and wanr that this is deprecated
+        qmlContext->setContextProperty("eventBridgeWrapper", new EventBridgeWrapper(eventBridge, qmlContext));
+    }
+
+    qmlComponent->completeCreate();
+    qmlComponent->deleteLater();
 
 
     // All quick items should be focusable

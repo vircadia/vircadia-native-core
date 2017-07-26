@@ -8,7 +8,6 @@ Item {
     id: tabletRoot
     objectName: "tabletRoot"
     property string username: "Unknown user"
-    property var eventBridge;
     property var rootMenu;
     property var openModal: null;
     property var openMessage: null;
@@ -111,7 +110,6 @@ Item {
     function openBrowserWindow(request, profile) {
         var component = Qt.createComponent("../../controls/TabletWebView.qml");
         var newWindow = component.createObject(tabletRoot);
-        newWindow.eventBridge = tabletRoot.eventBridge;
         newWindow.remove = true;
         newWindow.profile = profile;
         request.openIn(newWindow.webView);
@@ -175,7 +173,7 @@ Item {
         // Hook up callback for clara.io download from the marketplace.
         Connections {
             id: eventBridgeConnection
-            target: null
+            target: eventBridge
             onWebEventReceived: {
                 if (message.slice(0, 17) === "CLARA.IO DOWNLOAD") {
                     ApplicationInterface.addAssetToWorldFromURL(message.slice(18));
@@ -184,10 +182,6 @@ Item {
         }
 
         onLoaded: {
-            if (loader.item.hasOwnProperty("eventBridge")) {
-                loader.item.eventBridge = eventBridge;
-                eventBridgeConnection.target = eventBridge
-            }
             if (loader.item.hasOwnProperty("sendToScript")) {
                 loader.item.sendToScript.connect(tabletRoot.sendToScript);
             }

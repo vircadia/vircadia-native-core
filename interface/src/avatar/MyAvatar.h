@@ -132,6 +132,10 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(bool characterControllerEnabled READ getCharacterControllerEnabled WRITE setCharacterControllerEnabled)
     Q_PROPERTY(bool useAdvancedMovementControls READ useAdvancedMovementControls WRITE setUseAdvancedMovementControls)
 
+    Q_PROPERTY(bool hmdRollControlEnabled READ getHMDRollControlEnabled WRITE setHMDRollControlEnabled)
+    Q_PROPERTY(float hmdRollControlDeadZone READ getHMDRollControlDeadZone WRITE setHMDRollControlDeadZone)
+    Q_PROPERTY(float hmdRollControlRate READ getHMDRollControlRate WRITE setHMDRollControlRate)
+
 public:
     enum DriveKeys {
         TRANSLATE_X = 0,
@@ -337,6 +341,13 @@ public:
     void setUseAdvancedMovementControls(bool useAdvancedMovementControls)
         { _useAdvancedMovementControls.set(useAdvancedMovementControls); }
 
+    void setHMDRollControlEnabled(bool value) { _hmdRollControlEnabled = value; }
+    bool getHMDRollControlEnabled() const { return _hmdRollControlEnabled; }
+    void setHMDRollControlDeadZone(float value) { _hmdRollControlDeadZone = value; }
+    float getHMDRollControlDeadZone() const { return _hmdRollControlDeadZone; }
+    void setHMDRollControlRate(float value) { _hmdRollControlRate = value; }
+    float getHMDRollControlRate() const { return _hmdRollControlRate; }
+
     // get/set avatar data
     void saveData();
     void loadData();
@@ -377,6 +388,15 @@ public:
     Q_INVOKABLE controller::Pose getRightHandPose() const;
     Q_INVOKABLE controller::Pose getLeftHandTipPose() const;
     Q_INVOKABLE controller::Pose getRightHandTipPose() const;
+
+    // world-space to avatar-space rigconversion functions
+    Q_INVOKABLE glm::vec3 worldToJointPoint(const glm::vec3& position, const int jointIndex = -1) const;
+    Q_INVOKABLE glm::vec3 worldToJointDirection(const glm::vec3& direction, const int jointIndex = -1) const;
+    Q_INVOKABLE glm::quat worldToJointRotation(const glm::quat& rotation, const int jointIndex = -1) const;
+
+    Q_INVOKABLE glm::vec3 jointToWorldPoint(const glm::vec3& position, const int jointIndex = -1) const;
+    Q_INVOKABLE glm::vec3 jointToWorldDirection(const glm::vec3& direction, const int jointIndex = -1) const;
+    Q_INVOKABLE glm::quat jointToWorldRotation(const glm::quat& rotation, const int jointIndex = -1) const;
 
     AvatarWeakPointer getLookAtTargetAvatar() const { return _lookAtTargetAvatar; }
     void updateLookAtTargetAvatar();
@@ -677,6 +697,13 @@ private:
     QUrl _fstAnimGraphOverrideUrl;
     bool _useSnapTurn { true };
     bool _clearOverlayWhenMoving { true };
+
+    const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // deg
+    const float ROLL_CONTROL_RATE_DEFAULT = 2.5f; // deg/sec/deg
+    bool _hmdRollControlEnabled { true };
+    float _hmdRollControlDeadZone { ROLL_CONTROL_DEAD_ZONE_DEFAULT };
+    float _hmdRollControlRate { ROLL_CONTROL_RATE_DEFAULT };
+    float _lastDrivenSpeed { 0.0f };
 
     // working copies -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
     glm::mat4 _sensorToWorldMatrix { glm::mat4() };

@@ -540,7 +540,7 @@ void TabletProxy::gotoWebScreen(const QString& url, const QString& injectedJavaS
 
 QObject* TabletProxy::addButton(const QVariant& properties) {
     auto tabletButtonProxy = QSharedPointer<TabletButtonProxy>(new TabletButtonProxy(properties.toMap()));
-    std::lock_guard<std::mutex> guard(_tabletMutex);
+    std::unique_lock<std::mutex> guard(_tabletMutex);
     _tabletButtonProxies.push_back(tabletButtonProxy);
     if (!_toolbarMode && _qmlTabletRoot) {
         auto tablet = getQmlTablet();
@@ -550,7 +550,6 @@ QObject* TabletProxy::addButton(const QVariant& properties) {
             qCCritical(scriptengine) << "Could not find tablet in TabletRoot.qml";
         }
     } else if (_toolbarMode) {
-
         auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
         QObject* toolbarProxy = tabletScriptingInterface->getSystemToolbarProxy();
 
@@ -558,6 +557,8 @@ QObject* TabletProxy::addButton(const QVariant& properties) {
         if (QThread::currentThread() != toolbarProxy->thread()) {
             connectionType = Qt::BlockingQueuedConnection;
         }
+
+        guard.unlock();
 
         // copy properties from tablet button proxy to toolbar button proxy.
         QObject* toolbarButtonProxy = nullptr;
@@ -576,31 +577,38 @@ bool TabletProxy::onHomeScreen() {
 }
 
 void TabletProxy::removeButton(QObject* tabletButtonProxy) {
-    std::lock_guard<std::mutex> guard(_tabletMutex);
+    std::unique_lock<std::mutex> guard(_tabletMutex);
 
     auto tablet = getQmlTablet();
     if (!tablet) {
         qCCritical(scriptengine) << "Could not find tablet in TabletRoot.qml";
     }
 
-    auto iter = std::find(_tabletButtonProxies.begin(), _tabletButtonProxies.end(), tabletButtonProxy);
-    if (iter != _tabletButtonProxies.end()) {
-        if (!_toolbarMode && _qmlTabletRoot) {
-            (*iter)->setQmlButton(nullptr);
-            if (tablet) {
-                QMetaObject::invokeMethod(tablet, "removeButtonProxy", Qt::AutoConnection, Q_ARG(QVariant, (*iter)->getProperties()));
-            }
-        } else if (_toolbarMode) {
-            auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-            QObject* toolbarProxy = tabletScriptingInterface->getSystemToolbarProxy();
-
-            // remove button from toolbarProxy
-            QMetaObject::invokeMethod(toolbarProxy, "removeButton", Qt::AutoConnection, Q_ARG(QVariant, (*iter)->getUuid().toString()));
-            (*iter)->setToolbarButtonProxy(nullptr);
+    QSharedPointer<TabletButtonProxy> buttonProxy; 
+    {
+        auto iter = std::find(_tabletButtonProxies.begin(), _tabletButtonProxies.end(), tabletButtonProxy);
+        if (iter == _tabletButtonProxies.end()) {
+            qCWarning(scriptengine) << "TabletProxy::removeButton() could not find button " << tabletButtonProxy;
+            return;
         }
+        buttonProxy = *iter;
         _tabletButtonProxies.erase(iter);
-    } else {
-        qCWarning(scriptengine) << "TabletProxy::removeButton() could not find button " << tabletButtonProxy;
+    }
+    
+    if (!_toolbarMode && _qmlTabletRoot) {
+        buttonProxy->setQmlButton(nullptr);
+        if (tablet) {
+            guard.unlock();
+            QMetaObject::invokeMethod(tablet, "removeButtonProxy", Qt::AutoConnection, Q_ARG(QVariant, buttonProxy->getProperties()));
+        }
+    } else if (_toolbarMode) {
+        auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+        QObject* toolbarProxy = tabletScriptingInterface->getSystemToolbarProxy();
+
+        // remove button from toolbarProxy
+        guard.unlock();
+        QMetaObject::invokeMethod(toolbarProxy, "removeButton", Qt::AutoConnection, Q_ARG(QVariant, buttonProxy->getUuid().toString()));
+        buttonProxy->setToolbarButtonProxy(nullptr);
     }
 }
 
