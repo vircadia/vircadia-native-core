@@ -154,10 +154,7 @@ Laser = function (side) {
             if (!intersection.intersects) {
                 intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
                     VISIBLE_ONLY);
-                if (intersection.intersects && !Entities.hasEditableRoot(intersection.entityID)) {
-                    intersection.intersects = false;
-                    intersection.entityID = null;
-                }
+                intersection.editableEntity = intersection.intersects && Entities.hasEditableRoot(intersection.entityID);
             }
             intersection.laserIntersected = true;
             laserLength = (specifiedLaserLength !== null)

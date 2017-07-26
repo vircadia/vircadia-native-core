@@ -139,7 +139,7 @@ Hand = function (side) {
             }
         }
 
-        // Hand-entity intersection, if any, if overlay not intersected.
+        // Hand-entity intersection, if any editable, if overlay not intersected.
         entityID = null;
         if (overlayID === null) {
             // palmPosition is set above.
@@ -169,7 +169,8 @@ Hand = function (side) {
             intersects: overlayID !== null || entityID !== null,
             overlayID: overlayID,
             entityID: entityID,
-            handIntersected: true
+            handIntersected: true,
+            editableEntity: entityID !== null
         };
     }
 

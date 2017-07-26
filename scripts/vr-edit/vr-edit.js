@@ -679,7 +679,7 @@
                 setState(EDITOR_SEARCHING);
                 break;
             case EDITOR_SEARCHING:
-                if (hand.valid() && !intersection.entityID
+                if (hand.valid() && (!intersection.entityID || !intersection.editableEntity)
                         && !(intersection.overlayID && hand.triggerClicked() && otherEditor.isHandle(intersection.overlayID))) {
                     // No transition.
                     updateState();
@@ -691,10 +691,10 @@
                         && otherEditor.isHandle(intersection.overlayID)) {
                     highlightedEntityID = otherEditor.rootEntityID();
                     setState(EDITOR_HANDLE_SCALING);
-                } else if (intersection.entityID && !hand.triggerClicked()) {
+                } else if (intersection.entityID && intersection.editableEntity && !hand.triggerClicked()) {
                     highlightedEntityID = Entities.rootOf(intersection.entityID);
                     setState(EDITOR_HIGHLIGHTING);
-                } else if (intersection.entityID && hand.triggerClicked()) {
+                } else if (intersection.entityID && intersection.editableEntity && hand.triggerClicked()) {
                     highlightedEntityID = Entities.rootOf(intersection.entityID);
                     if (otherEditor.isEditing(highlightedEntityID)) {
                         if (!isAppScaleWithHandles) {
@@ -709,7 +709,7 @@
                 break;
             case EDITOR_HIGHLIGHTING:
                 if (hand.valid()
-                        && intersection.entityID
+                        && intersection.entityID && intersection.editableEntity
                         && !(hand.triggerClicked() && (!otherEditor.isEditing(highlightedEntityID) || !isAppScaleWithHandles))
                         && !(hand.triggerClicked() && intersection.overlayID && otherEditor.isHandle(intersection.overlayID))) {
                     // No transition.
@@ -736,7 +736,7 @@
                         && otherEditor.isHandle(intersection.overlayID)) {
                     highlightedEntityID = otherEditor.rootEntityID();
                     setState(EDITOR_HANDLE_SCALING);
-                } else if (intersection.entityID && hand.triggerClicked()) {
+                } else if (intersection.entityID && intersection.editableEntity && hand.triggerClicked()) {
                     highlightedEntityID = Entities.rootOf(intersection.entityID);  // May be a different entityID.
                     if (otherEditor.isEditing(highlightedEntityID)) {
                         if (!isAppScaleWithHandles) {
@@ -747,7 +747,7 @@
                     } else {
                         setState(EDITOR_GRABBING);
                     }
-                } else if (!intersection.entityID) {
+                } else if (!intersection.entityID || !intersection.editableEntity) {
                     setState(EDITOR_SEARCHING);
                 } else {
                     debug(side, "ERROR: Unexpected condition in EDITOR_HIGHLIGHTING! B");
@@ -766,7 +766,7 @@
                 if (!hand.valid()) {
                     setState(EDITOR_IDLE);
                 } else if (!hand.triggerClicked()) {
-                    if (intersection.entityID) {
+                    if (intersection.entityID && intersection.editableEntity) {
                         highlightedEntityID = Entities.rootOf(intersection.entityID);
                         setState(EDITOR_HIGHLIGHTING);
                     } else {
@@ -792,7 +792,7 @@
                 if (!hand.valid()) {
                     setState(EDITOR_IDLE);
                 } else if (!hand.triggerClicked()) {
-                    if (!intersection.entityID) {
+                    if (!intersection.entityID || !intersection.editableEntity) {
                         setState(EDITOR_SEARCHING);
                     } else {
                         highlightedEntityID = Entities.rootOf(intersection.entityID);
@@ -815,7 +815,7 @@
                 if (!hand.valid()) {
                     setState(EDITOR_IDLE);
                 } else if (!hand.triggerClicked()) {
-                    if (!intersection.entityID) {
+                    if (!intersection.entityID || !intersection.editableEntity) {
                         setState(EDITOR_SEARCHING);
                     } else {
                         highlightedEntityID = Entities.rootOf(intersection.entityID);
