@@ -63,6 +63,7 @@ public slots:
     void contextOverlays_hoverLeaveOverlay(const OverlayID& overlayID, const PointerEvent& event);
     void contextOverlays_hoverEnterEntity(const EntityItemID& entityID, const PointerEvent& event);
     void contextOverlays_hoverLeaveEntity(const EntityItemID& entityID, const PointerEvent& event);
+    bool contextOverlayFilterPassed(const EntityItemID& entityItemID);
 
 private:
     bool _verboseLogging { true };
@@ -74,7 +75,8 @@ private:
     void openMarketplace();
     bool _isInMarketplaceInspectionMode { false };
 
-    bool contextOverlayFilterPassed(const EntityItemID& entityItemID);
+    void enableEntityHighlight(const EntityItemID& entityItemID);
+    void disableEntityHighlight(const EntityItemID& entityItemID);
 };
 
 #endif // hifi_ContextOverlayInterface_h

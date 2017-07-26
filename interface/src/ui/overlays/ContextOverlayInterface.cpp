@@ -89,8 +89,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 entityPosition = entityPosition - (entityProperties.getRotation() * (adjustPos * entityProperties.getDimensions()));
             }
 
-            qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'true' for Entity ID:" << entityItemID;
-            qApp->getEntities()->getTree()->findEntityByEntityItemID(entityItemID)->setShouldHighlight(true);
+            enableEntityHighlight(entityItemID);
 
             AABox boundingBox = AABox(entityPosition - (entityDimensions / 2.0f), entityDimensions * 2.0f);
 
@@ -99,8 +98,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
 
 
             if (!_currentEntityWithContextOverlay.isNull() && _currentEntityWithContextOverlay != entityItemID) {
-                qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'false' for Entity ID:" << _currentEntityWithContextOverlay;
-                qApp->getEntities()->getTree()->findEntityByEntityItemID(_currentEntityWithContextOverlay)->setShouldHighlight(false);
+                disableEntityHighlight(_currentEntityWithContextOverlay);
             }
 
             // Update the cached "Current Entity with Context Overlay" variable
@@ -169,8 +167,7 @@ bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityIt
     if (_contextOverlayID != UNKNOWN_OVERLAY_ID) {
         qCDebug(context_overlay) << "Destroying Context Overlay on top of entity with ID: " << entityItemID;
         if (!_currentEntityWithContextOverlay.isNull() && _currentEntityWithContextOverlay != entityItemID) {
-            qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'false' for Entity ID:" << _currentEntityWithContextOverlay;
-            qApp->getEntities()->getTree()->findEntityByEntityItemID(_currentEntityWithContextOverlay)->setShouldHighlight(false);
+            disableEntityHighlight(_currentEntityWithContextOverlay);
         }
         setCurrentEntityWithContextOverlay(QUuid());
         _entityMarketplaceID.clear();
@@ -218,15 +215,13 @@ void ContextOverlayInterface::contextOverlays_hoverLeaveOverlay(const OverlayID&
 
 void ContextOverlayInterface::contextOverlays_hoverEnterEntity(const EntityItemID& entityID, const PointerEvent& event) {
     if (contextOverlayFilterPassed(entityID)) {
-        qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'true' for Entity ID:" << entityID;
-        qApp->getEntities()->getTree()->findEntityByEntityItemID(entityID)->setShouldHighlight(true);
+        enableEntityHighlight(entityID);
     }
 }
 
 void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemID& entityID, const PointerEvent& event) {
     if (_currentEntityWithContextOverlay != entityID) {
-        qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'false' for Entity ID:" << entityID;
-        qApp->getEntities()->getTree()->findEntityByEntityItemID(entityID)->setShouldHighlight(false);
+        disableEntityHighlight(entityID);
     }
 }
 
@@ -244,4 +239,14 @@ void ContextOverlayInterface::openMarketplace() {
         _hmdScriptingInterface->openTablet();
         _isInMarketplaceInspectionMode = true;
     }
+}
+
+void ContextOverlayInterface::enableEntityHighlight(const EntityItemID& entityItemID) {
+    qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'true' for Entity ID:" << entityItemID;
+    qApp->getEntities()->getTree()->findEntityByEntityItemID(entityItemID)->setShouldHighlight(true);
+}
+
+void ContextOverlayInterface::disableEntityHighlight(const EntityItemID& entityItemID) {
+    qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'false' for Entity ID:" << entityItemID;
+    qApp->getEntities()->getTree()->findEntityByEntityItemID(entityItemID)->setShouldHighlight(false);
 }
