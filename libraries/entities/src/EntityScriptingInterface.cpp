@@ -1164,6 +1164,7 @@ bool EntityScriptingInterface::actionWorker(const QUuid& entityID,
     return doTransmit;
 }
 
+
 QUuid EntityScriptingInterface::addAction(const QString& actionTypeString,
                                           const QUuid& entityID,
                                           const QVariantMap& arguments) {

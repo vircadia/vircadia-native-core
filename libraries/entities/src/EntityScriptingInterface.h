@@ -359,7 +359,6 @@ public slots:
      */
     Q_INVOKABLE glm::mat4 getEntityLocalTransform(const QUuid& entityID);
 
-
 signals:
     void collisionWithEntity(const EntityItemID& idA, const EntityItemID& idB, const Collision& collision);
 

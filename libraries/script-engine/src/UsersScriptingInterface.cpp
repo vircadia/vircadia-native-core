@@ -93,4 +93,3 @@ bool UsersScriptingInterface::getRequestsDomainListData() {
 void UsersScriptingInterface::setRequestsDomainListData(bool isRequesting) {
     DependencyManager::get<NodeList>()->setRequestsDomainListData(isRequesting);
 }
-

@@ -25,6 +25,7 @@ class UsersScriptingInterface : public QObject, public Dependency {
 
     Q_PROPERTY(bool canKick READ getCanKick)
     Q_PROPERTY(bool requestsDomainListData READ getRequestsDomainListData WRITE setRequestsDomainListData)
+
 public:
     UsersScriptingInterface();
 
@@ -129,7 +130,6 @@ public slots:
     * @return {bool} `true` if the ignore in radius feature is enabled, `false` if not.
     */
     bool getIgnoreRadiusEnabled();
-
 
 signals:
     void canKickChanged(bool canKick);
