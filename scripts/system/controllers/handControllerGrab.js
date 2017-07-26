@@ -2236,18 +2236,22 @@ function MyController(hand) {
             entityPropertiesCache.addEntity(rayPickInfo.entityID);
         }
 
+        pointerEvent = {
+            type: "Move",
+            id: this.hand + 1, // 0 is reserved for hardware mouse
+            pos2D: projectOntoEntityXYPlane(rayPickInfo.entityID, rayPickInfo.intersection),
+            pos3D: rayPickInfo.intersection,
+            normal: rayPickInfo.normal,
+            direction: rayPickInfo.searchRay.direction,
+            button: "None"
+        };
         if (rayPickInfo.entityID) {
+            print("ZRF: " + hoveredEntityID);
             if (hoveredEntityID !== rayPickInfo.entityID) {
-                pointerEvent = {
-                    type: "Move",
-                    id: this.hand + 1, // 0 is reserved for hardware mouse
-                    pos2D: projectOntoEntityXYPlane(entity, rayPickInfo.intersection),
-                    pos3D: rayPickInfo.intersection,
-                    normal: rayPickInfo.normal,
-                    direction: rayPickInfo.searchRay.direction,
-                    button: "None"
-                };
-
+                if (contextOverlayTimer) {
+                    Script.clearTimeout(contextOverlayTimer);
+                    contextOverlayTimer = false;
+                }
                 if (hoveredEntityID) {
                     Entities.sendHoverLeaveEntity(hoveredEntityID, pointerEvent);
                 }
@@ -2255,17 +2259,14 @@ function MyController(hand) {
                 Entities.sendHoverEnterEntity(hoveredEntityID, pointerEvent);
             }
 
-            if (contextOverlayTimer && rayPickInfo.entityID != hoveredEntityID) {
-                Script.clearTimeout(contextOverlayTimer);
-            }
-
             // If we already have a context overlay, we don't want to move it to
             // another entity while we're searching.
-            if (!entityWithContextOverlay) {
+            if (!entityWithContextOverlay && !contextOverlayTimer) {
                 contextOverlayTimer = Script.setTimeout(function () {
                     if (rayPickInfo.entityID === hoveredEntityID &&
-                        !entityWithContextOverlay
-                        && contextualHand !== -1) {
+                        !entityWithContextOverlay &&
+                        contextualHand !== -1 &&
+                        contextOverlayTimer) {
                         var pointerEvent = {
                             type: "Move",
                             id: contextualHand + 1, // 0 is reserved for hardware mouse
@@ -2283,6 +2284,15 @@ function MyController(hand) {
                     contextOverlayTimer = false;
                 }, 500);
                 contextualHand = this.hand;
+            }
+        } else {
+            if (hoveredEntityID) {
+                Entities.sendHoverLeaveEntity(hoveredEntityID, pointerEvent);
+                hoveredEntityID = false;
+            }
+            if (contextOverlayTimer) {
+                Script.clearTimeout(contextOverlayTimer);
+                contextOverlayTimer = false;
             }
         }
 

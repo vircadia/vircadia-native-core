@@ -242,11 +242,15 @@ void ContextOverlayInterface::openMarketplace() {
 }
 
 void ContextOverlayInterface::enableEntityHighlight(const EntityItemID& entityItemID) {
-    qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'true' for Entity ID:" << entityItemID;
-    qApp->getEntities()->getTree()->findEntityByEntityItemID(entityItemID)->setShouldHighlight(true);
+    if (!qApp->getEntities()->getTree()->findEntityByEntityItemID(entityItemID)->getShouldHighlight()) {
+        qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'true' for Entity ID:" << entityItemID;
+        qApp->getEntities()->getTree()->findEntityByEntityItemID(entityItemID)->setShouldHighlight(true);
+    }
 }
 
 void ContextOverlayInterface::disableEntityHighlight(const EntityItemID& entityItemID) {
-    qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'false' for Entity ID:" << entityItemID;
-    qApp->getEntities()->getTree()->findEntityByEntityItemID(entityItemID)->setShouldHighlight(false);
+    if (qApp->getEntities()->getTree()->findEntityByEntityItemID(entityItemID)->getShouldHighlight()) {
+        qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'false' for Entity ID:" << entityItemID;
+        qApp->getEntities()->getTree()->findEntityByEntityItemID(entityItemID)->setShouldHighlight(false);
+    }
 }
