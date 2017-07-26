@@ -192,6 +192,10 @@ Laser = function (side) {
                     laserLength = (specifiedLaserLength !== null)
                         ? specifiedLaserLength
                         : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
+                    if (!isLaserOn) {
+                        // Start laser dot at UI distance.
+                        searchDistance = laserLength;
+                    }
                     isLaserOn = true;
                     display(pickRay.origin, pickRay.direction, laserLength, false, false);
                 } else {
