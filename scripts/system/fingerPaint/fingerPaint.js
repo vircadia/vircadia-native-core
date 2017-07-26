@@ -15,7 +15,7 @@
         UNDO_STACK_SIZE = 5, 
         undoStack = [];
         isFingerPainting = false,
-        isTabletFocused = false, //starts with true cause you need to be hovering the tablet in order to open the app
+        isTabletFocused = false,
         tabletDebugFocusLine = null,
         //animated brush vars
         lastFrameTime = Date.now(),
@@ -156,6 +156,7 @@
             entityID = Entities.addEntity({
                 type: "PolyLine",
                 name: "fingerPainting",
+                shapeType: "box",
                 color: STROKE_COLOR,
                 position: position,
                 linePoints: strokePoints,
@@ -205,8 +206,6 @@
                     normals: strokeNormals,
                     strokeWidths: strokeWidths
                 });
-
-                print(JSON.stringify(Entities.getEntityProperties(entityID)));
             }
         }
 
@@ -460,17 +459,17 @@
         }
 
         function checkTabletHasFocus() {
-            var controllerPose = isLeftHandDominant ? getControllerWorldLocation(Controller.Standard.LeftHand, true)
-                                                    : getControllerWorldLocation(Controller.Standard.RightHand, true);
+            var controllerPose = isLeftHandDominant 
+                                    ? getControllerWorldLocation(Controller.Standard.LeftHand, true)
+                                    : getControllerWorldLocation(Controller.Standard.RightHand, true);
             
-            var fingerTipRotation = controllerPose.rotation;//Quat.inverse(MyAvatar.orientation);
-            var fingerTipPosition = controllerPose.position;//MyAvatar.getJointPosition(handName === "left" ? "LeftHandIndex4" : "RightHandIndex4");
+            var fingerTipRotation = controllerPose.rotation;
+            var fingerTipPosition = controllerPose.position;
             var pickRay = {
                 origin: fingerTipPosition,
                 direction: Quat.getUp(fingerTipRotation)
             }
             var overlays = Overlays.findRayIntersection(pickRay, false, [HMD.tabletID], [inkSourceOverlay.overlayID]);
-            //print(JSON.stringify(overlays));
             if (overlays.intersects && HMD.tabletID == overlays.overlayID) {
                 if (!isTabletFocused) {
                     isTabletFocused = true;
@@ -846,7 +845,7 @@
     //Load last fingerpaint settings
     function restoreLastValues() {
         savedSettings = new Object();
-        savedSettings.currentColor = Settings.getValue("currentColor", {red: 250, green: 0, blue: 0}),
+        savedSettings.currentColor = Settings.getValue("currentColor", {red: 250, green: 0, blue: 0, origin: "custom"}),
         savedSettings.currentStrokeWidth = Settings.getValue("currentStrokeWidth", 0.25);
         savedSettings.currentTexture = Settings.getValue("currentTexture", null);
         savedSettings.currentDrawingHand = Settings.getValue("currentDrawingHand", false);
@@ -859,7 +858,7 @@
 
     function onButtonClicked() {
         restoreLastValues();
-        isTabletFocused = false; //should always start false so onUpdate updates this variable to true in the beggining
+        //isFingerPainting = false;
         var wasFingerPainting = isFingerPainting;
 
         isFingerPainting = !isFingerPainting;
@@ -883,6 +882,13 @@
 
         if (!isFingerPainting) {
             disableProcessing();
+            Controller.mousePressEvent.disconnect(mouseStartLine);
+            Controller.mouseMoveEvent.disconnect(mouseDrawLine);
+            Controller.mouseReleaseEvent.disconnect(mouseFinishLine);
+        } else {
+            Controller.mousePressEvent.connect(mouseStartLine);
+            Controller.mouseMoveEvent.connect(mouseDrawLine);
+            Controller.mouseReleaseEvent.connect(mouseFinishLine);
         }
     }
 
@@ -910,6 +916,9 @@
             event = JSON.parse(event);
         }
         switch (event.type) {
+            case "appReady":
+                isTabletFocused = false; //make sure we can set the focus on the tablet again
+                break;
             case "changeTab":
                 Settings.setValue("currentTab", event.currentTab);
                 break;
@@ -1053,7 +1062,6 @@
             isActive: isFingerPainting
         });
         button.clicked.connect(onButtonClicked);
-
         // Track whether tablet is displayed or not.
         tablet.screenChanged.connect(onTabletScreenChanged);
     }
@@ -1080,13 +1088,13 @@
         return Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, 5));
     }
 
-    Controller.mouseMoveEvent.connect(function(event){
+    function mouseDrawLine(event){
         if (rightBrush && rightBrush.isDrawing()) {
             rightBrush.drawLine(getFingerPosition(event.x, event.y), 0.03);
         }
-    });
+    }
 
-    Controller.mousePressEvent.connect(function(event){
+    function mouseStartLine(event){
         print(JSON.stringify(event));
         if (event.isLeftButton) {
             rightBrush.startLine(getFingerPosition(event.x, event.y), 0.03);
@@ -1094,37 +1102,34 @@
         } else if (event.isMiddleButton) {
             //delete first line in sight
             //var pickRay = getFingerPosition(event.x, event.y);
-            entities = Entities.findEntities(MyAvatar.position, 10);
+           // entities = Entities.findEntities(MyAvatar.position, 10);
             // Fine polyline entity with closest point within search radius.
-            for (i = 0, entitiesLength = entities.length; i < entitiesLength; i += 1) {
+            /*for (i = 0, entitiesLength = entities.length; i < entitiesLength; i += 1) {
                 print("NEAR ENTITIES: " + JSON.stringify(Entities.getEntityProperties(entities[i])));
-            }
+            }*/
 
             var pickRay = Camera.computePickRay(event.x, event.y);
             var entityToDelete = Entities.findRayIntersection(pickRay, false, [Entities.findEntities(MyAvatar.position, 1000)], []);
             print("Entity to DELETE: " + JSON.stringify(entityToDelete));
-
-              var line3d = Overlays.addOverlay("line3d", {
-                    start: pickRay.origin, 
-                    end: Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, 100)),
-                    color: { red: 255, green: 0, blue: 255},
-                    lineWidth: 5
-                });
+            var line3d = Overlays.addOverlay("line3d", {
+                start: pickRay.origin, 
+                end: Vec3.sum(pickRay.origin, Vec3.multiply(pickRay.direction, 100)),
+                color: { red: 255, green: 0, blue: 255},
+                lineWidth: 5
+            });
             if (entityToDelete.intersects) {
                 print("Entity to DELETE Properties: " + JSON.stringify(Entities.getEntityProperties(entityToDelete.entityID)));
                 //Entities.deleteEntity(entityToDelete.entityID);
-              
             }
         }
-       
-    });
+    }
 
-    Controller.mouseReleaseEvent.connect(function(event){
+    function mouseFinishLine(event){
         isMouseDrawing = false;
         if (rightBrush && rightBrush.isDrawing()) {
             rightBrush.finishLine(getFingerPosition(event.x, event.y), 0.03);
         }
-    });
+    }
 
     setUp();
     Script.scriptEnding.connect(tearDown);    
