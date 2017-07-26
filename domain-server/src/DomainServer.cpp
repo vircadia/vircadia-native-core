@@ -160,9 +160,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
         getTemporaryName();
     }
 
-    _gatekeeper.preloadAllowedUserPublicKeys(); // so they can connect on first request
-
-    //send signal to DomainMetadata when descriptors changed
+    // send signal to DomainMetadata when descriptors changed
     _metadata = new DomainMetadata(this);
     connect(&_settingsManager, &DomainServerSettingsManager::settingsUpdated,
             _metadata, &DomainMetadata::descriptorsChanged);
