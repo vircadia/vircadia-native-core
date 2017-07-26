@@ -74,7 +74,6 @@ protected:
     EntityTreeElementPointer traverseFirstTime();
     EntityTreeElementPointer traverseAgain();
     EntityTreeElementPointer traverseDelta();
-    void onCompleteTraversal();
 
     ViewFrustum _currentView;
     ViewFrustum _lastCompletedView;

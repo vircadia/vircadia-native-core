@@ -43,7 +43,7 @@ void PrioritizedEntity::updatePriority(const ViewFrustum& view) {
                 }
             }
         } else {
-            // when in doubt just it something positive
+            // when in doubt give it something positive
             _priority = 1.0f;
         }
     } else {
@@ -193,7 +193,8 @@ EntityTreeElementPointer TreeTraversalPath::getNextElement() {
             _forks.pop_back();
             if (_forks.empty()) {
                 // we've traversed the entire tree
-                onCompleteTraversal();
+                _lastCompletedView = _currentView;
+                _startOfLastCompletedTraversal = _startOfCurrentTraversal;
                 return nextElement;
             }
             // keep looking for nextElement
@@ -211,11 +212,6 @@ void TreeTraversalPath::dump() const {
     for (size_t i = 0; i < _forks.size(); ++i) {
         std::cout << (int)(_forks[i].getNextIndex()) << "-->";
     }
-}
-
-void TreeTraversalPath::onCompleteTraversal() {
-    _lastCompletedView = _currentView;
-    _startOfLastCompletedTraversal = _startOfCurrentTraversal;
 }
 
 void EntityTreeSendThread::preDistributionProcessing() {
@@ -307,7 +303,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
             ++numElements;
 
             now = usecTimestampNow();
-            const uint64_t PARTIAL_TRAVERSAL_TIME_BUDGET = 80;
+            const uint64_t PARTIAL_TRAVERSAL_TIME_BUDGET = 80; // usec
             if (now - t0 > PARTIAL_TRAVERSAL_TIME_BUDGET) {
                 break;
             }
@@ -327,7 +323,6 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
             << "  numEntities = " << entities.size()
             << "  dt = " << dt1 << std::endl;  // adebug
     } else if (!_sendQueue.empty()) {
-
         while (!_sendQueue.empty()) {
             PrioritizedEntity entry = _sendQueue.top();
             EntityItemPointer entity = entry.getEntity();
