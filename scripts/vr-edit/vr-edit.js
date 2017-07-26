@@ -92,6 +92,10 @@
         hand = new Hand(side);
         laser = new Laser(side);
 
+        function setUIEntities(entityIDs) {
+            laser.setUIEntities(entityIDs);
+        }
+
         function getHand() {
             return hand;
         }
@@ -140,6 +144,7 @@
         }
 
         return {
+            setUIEntities: setUIEntities,
             hand: getHand,
             laser: getLaser,
             getIntersection: getIntersection,
@@ -154,17 +159,32 @@
         // Tool menu and Create palette.
 
         var // Primary objects.
-            toolMenu;
+            toolMenu,
+
+            // References.
+            leftInputs,
+            rightInputs;
 
         toolMenu = new ToolMenu(side);
 
+
+        function setReferences(left, right) {
+            leftInputs = left;
+            rightInputs = right;
+        }
 
         function setHand(side) {
             toolMenu.setHand(side);
         }
 
         function display() {
+            var uiEntityIDs;
+
             toolMenu.display();
+
+            uiEntityIDs = toolMenu.getEntityIDs();
+            leftInputs.setUIEntities(uiEntityIDs);
+            rightInputs.setUIEntities(uiEntityIDs);
         }
 
         function update() {
@@ -172,6 +192,8 @@
         }
 
         function clear() {
+            leftInputs.setUIEntities([]);
+            rightInputs.setUIEntities([]);
             toolMenu.clear();
         }
 
@@ -187,6 +209,7 @@
         }
 
         return {
+            setReferences: setReferences,
             setHand: setHand,
             display: display,
             update: update,
@@ -987,6 +1010,7 @@
 
         // UI object.
         ui = new UI(otherHand(dominantHand));
+        ui.setReferences(inputs[LEFT_HAND], inputs[RIGHT_HAND]);
 
         // Editor objects.
         editors[LEFT_HAND] = new Editor(LEFT_HAND);

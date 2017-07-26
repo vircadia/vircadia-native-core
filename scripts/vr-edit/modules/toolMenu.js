@@ -66,6 +66,10 @@ ToolMenu = function (side, scaleModeChangedCallback) {
         }
     }
 
+    function getEntityIDs() {
+        return [panelEntity, buttonEntity];
+    }
+
     function update() {
         // TODO
     }
@@ -126,6 +130,7 @@ ToolMenu = function (side, scaleModeChangedCallback) {
 
     return {
         setHand: setHand,
+        getEntityIDs: getEntityIDs,
         update: update,
         display: display,
         clear: clear,

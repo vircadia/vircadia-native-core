@@ -12,7 +12,8 @@
 
 Laser = function (side) {
     // Draws hand lasers.
-    // May intersect with entities or bounding box of other hand's selection.
+    // May intersect with overlays or entities, or bounding box of other hand's selection.
+    // Laser dot is always drawn on UI entities.
 
     "use strict";
 
@@ -46,6 +47,8 @@ Laser = function (side) {
 
         LEFT_HAND = 0,
         AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
+
+        uiEntityIDs = [],
 
         intersection;
 
@@ -109,7 +112,7 @@ Laser = function (side) {
         });
     }
 
-    function display(origin, direction, distance, isClicked) {
+    function display(origin, direction, distance, isPressed, isClicked) {
         var searchTarget,
             sphereSize,
             color,
@@ -121,13 +124,21 @@ Laser = function (side) {
         color = isClicked ? COLORS_GRAB_SEARCHING_FULL_SQUEEZE : COLORS_GRAB_SEARCHING_HALF_SQUEEZE;
         brightColor = isClicked ? COLORS_GRAB_SEARCHING_FULL_SQUEEZE_BRIGHT : COLORS_GRAB_SEARCHING_HALF_SQUEEZE_BRIGHT;
 
-        updateLine(origin, searchTarget, color);
+        if (isPressed) {
+            updateLine(origin, searchTarget, color);
+        } else {
+            Overlays.editOverlay(laserLine, { visible: false });
+        }
         updateSphere(searchTarget, sphereSize, color, brightColor);
     }
 
     function hide() {
         Overlays.editOverlay(laserLine, { visible: false });
         Overlays.editOverlay(laserSphere, { visible: false });
+    }
+
+    function setUIEntities(entityIDs) {
+        uiEntityIDs = entityIDs;
     }
 
     function update(hand) {
@@ -140,7 +151,7 @@ Laser = function (side) {
             return;
         }
 
-        if (!hand.intersection().intersects && hand.triggerPressed()) {
+        if (!hand.intersection().intersects) {
             handPosition = hand.position();
             handOrientation = hand.orientation();
             deltaOrigin = Vec3.multiplyQbyV(handOrientation, GRAB_POINT_SPHERE_OFFSET);
@@ -150,20 +161,47 @@ Laser = function (side) {
                 length: PICK_MAX_DISTANCE
             };
 
-            intersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
-                VISIBLE_ONLY);
-            if (!intersection.intersects) {
-                intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
-                    VISIBLE_ONLY);
-                intersection.editableEntity = intersection.intersects && Entities.hasEditableRoot(intersection.entityID);
-            }
-            intersection.laserIntersected = true;
-            laserLength = (specifiedLaserLength !== null)
-                ? specifiedLaserLength
-                : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
+            if (hand.triggerPressed()) {
 
-            isLaserOn = true;
-            display(pickRay.origin, pickRay.direction, laserLength, hand.triggerClicked());
+                // Normal laser operation with trigger.
+                intersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
+                    VISIBLE_ONLY);
+                if (!intersection.intersects) {
+                    intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
+                        VISIBLE_ONLY);
+                    intersection.editableEntity = intersection.intersects && Entities.hasEditableRoot(intersection.entityID);
+                }
+                intersection.laserIntersected = true;
+                laserLength = (specifiedLaserLength !== null)
+                    ? specifiedLaserLength
+                    : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
+                isLaserOn = true;
+                display(pickRay.origin, pickRay.direction, laserLength, true, hand.triggerClicked());
+
+            } else {
+
+                // Special hovering of UI.
+                intersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
+                    VISIBLE_ONLY);  // Check for overlay intersections in case they occlude the UI entities.
+                if (!intersection.intersects) {
+                    intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, uiEntityIDs, NO_EXCLUDE_IDS,
+                        VISIBLE_ONLY);
+                }
+                if (intersection.intersects && intersection.entityID) {
+                    intersection.laserIntersected = true;
+                    laserLength = (specifiedLaserLength !== null)
+                        ? specifiedLaserLength
+                        : (intersection.intersects ? intersection.distance : PICK_MAX_DISTANCE);
+                    isLaserOn = true;
+                    display(pickRay.origin, pickRay.direction, laserLength, false, false);
+                } else {
+                    if (isLaserOn) {
+                        isLaserOn = false;
+                        hide();
+                    }
+                }
+
+            }
         } else {
             intersection = {
                 intersects: false
@@ -223,6 +261,7 @@ Laser = function (side) {
     }
 
     return {
+        setUIEntities: setUIEntities,
         update: update,
         intersection: getIntersection,
         setLength: setLength,
