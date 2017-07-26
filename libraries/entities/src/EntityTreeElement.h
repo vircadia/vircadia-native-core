@@ -21,11 +21,12 @@
 #include "EntityItem.h"
 #include "EntityTree.h"
 
-typedef QVector<EntityItemPointer> EntityItems;
-
 class EntityTree;
 class EntityTreeElement;
-typedef std::shared_ptr<EntityTreeElement> EntityTreeElementPointer;
+
+using EntityItems = QVector<EntityItemPointer>;
+using EntityTreeElementWeakPointer = std::weak_ptr<EntityTreeElement>;
+using EntityTreeElementPointer = std::shared_ptr<EntityTreeElement>;
 
 class EntityTreeUpdateArgs {
 public:
@@ -173,7 +174,6 @@ public:
     void setTree(EntityTreePointer tree) { _myTree = tree; }
     EntityTreePointer getTree() const { return _myTree; }
 
-    bool updateEntity(const EntityItem& entity);
     void addEntityItem(EntityItemPointer entity);
 
     EntityItemPointer getClosestEntity(glm::vec3 position) const;
