@@ -25,9 +25,9 @@ void PrioritizedEntity::updatePriority(const ViewFrustum& view) {
         bool success;
         AACube cube = entity->getQueryAACube(success);
         if (success) {
-            glm::vec3 center = cube.calcCenter() - view.getPosition();
+            glm::vec3 offset = cube.calcCenter() - view.getPosition();
             const float MIN_DISTANCE = 0.001f;
-            float distanceToCenter = glm::length(center) + MIN_DISTANCE;
+            float distanceToCenter = glm::length(offset) + MIN_DISTANCE;
             float distance = distanceToCenter; //- 0.5f * cube.getScale();
             if (distance < MIN_DISTANCE) {
                 // this object's bounding box overlaps the camera --> give it a big priority
@@ -35,8 +35,8 @@ void PrioritizedEntity::updatePriority(const ViewFrustum& view) {
             } else {
                 // NOTE: we assume view.aspectRatio < 1.0 (view width greater than height)
                 // so we only check against the larger (horizontal) view angle
-                float front = glm::dot(center, view.getDirection()) / distanceToCenter;
-                if (front > cosf(view.getFieldOfView()) || distance < view.getCenterRadius()) {
+                float front = glm::dot(offset, view.getDirection()) / distanceToCenter;
+                if (front > cosf(glm::radians(view.getFieldOfView())) || distance < view.getCenterRadius()) {
                     _priority = cube.getScale() / distance; // + front;
                 } else {
                     _priority = INVALID_ENTITY_SEND_PRIORITY;
@@ -84,15 +84,8 @@ EntityTreeElementPointer TreeTraversalPath::Fork::getNextElementAgain(const View
         ++_nextIndex;
         EntityTreeElementPointer element = _weakElement.lock();
         assert(element); // should never lose root element
-        if (element->getLastChanged() < oldTime) {
-            _nextIndex = NUMBER_OF_CHILDREN;
-            return EntityTreeElementPointer();
-        }
-        if (element->getLastChanged() > oldTime) {
-            return element;
-        }
-    }
-    if (_nextIndex < NUMBER_OF_CHILDREN) {
+        return element;
+    } else if (_nextIndex < NUMBER_OF_CHILDREN) {
         EntityTreeElementPointer element = _weakElement.lock();
         if (element) {
             while (_nextIndex < NUMBER_OF_CHILDREN) {
@@ -115,10 +108,6 @@ EntityTreeElementPointer TreeTraversalPath::Fork::getNextElementDelta(const View
         ++_nextIndex;
         EntityTreeElementPointer element = _weakElement.lock();
         assert(element); // should never lose root element
-        if (element->getLastChanged() < oldTime) {
-            _nextIndex = NUMBER_OF_CHILDREN;
-            return EntityTreeElementPointer();
-        }
         return element;
     } else if (_nextIndex < NUMBER_OF_CHILDREN) {
         EntityTreeElementPointer element = _weakElement.lock();
@@ -282,13 +271,14 @@ static size_t adebug = 0;
 
 void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
             bool viewFrustumChanged, bool isFullScene) {
-    if (viewFrustumChanged) {
+    static int foo=0;++foo;bool verbose=(0==(foo%800)); // adebug
+    if (viewFrustumChanged || verbose) {
         ViewFrustum view;
         nodeData->copyCurrentViewFrustum(view);
+        std::cout << "adebug reset view" << std::endl;  // adebug
         EntityTreeElementPointer root = std::dynamic_pointer_cast<EntityTreeElement>(_myServer->getOctree()->getRoot());
         _path.startNewTraversal(view, root);
 
-        std::cout << "adebug reset view" << std::endl;  // adebug
         adebug = 0;
     }
     if (!_path.empty()) {
@@ -321,6 +311,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
         std::cout << "adebug  traverseTreeAndSendContents totalEntities = " << adebug
             << "  numElements = " << numElements
             << "  numEntities = " << entities.size()
+            << "  queueSize = " << _sendQueue.size()
             << "  dt = " << dt1 << std::endl;  // adebug
     } else if (!_sendQueue.empty()) {
         while (!_sendQueue.empty()) {
