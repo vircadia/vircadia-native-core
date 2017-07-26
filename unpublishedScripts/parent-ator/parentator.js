@@ -4,63 +4,85 @@
 //  Created by Jeff Moyes on 6/30/2017
 //  Copyright 2017 High Fidelity, Inc.
 //
-//  This script shoots a ping pong ball.
+//  This script allows users to parent one object to another via the "parent-ator" entity
+//  (which looks like a purple gun-like object). The user:
+//  1) equips their avatar with this parent-ator,
+//  2) taps the end of the parent-ator on an entity (which becomes the child entity), and
+//  3) taps the end of the parent-ator on a second entity (which becomes the parent entity)
+//
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
 
 (function() {
+    var MESSAGE_1_TEXTURE_URL = Script.resolvePath( 'resources/message-1-start.png' );
+    var MESSAGE_2_TEXTURE_URL = Script.resolvePath( 'resources/message-2-noperms.png' );
+    var MESSAGE_3_TEXTURE_URL = Script.resolvePath( 'resources/message-3-tryagain.png' );
+    var MESSAGE_4_TEXTURE_URL = Script.resolvePath( 'resources/message-4-setparent.png' );
+    var MESSAGE_5_TEXTURE_URL = Script.resolvePath( 'resources/message-5-success.png' );
 
-    var MESSAGE_1_TEXTURE_URL = Script.resolvePath('resources/message-1-start.png');
-    var MESSAGE_2_TEXTURE_URL = Script.resolvePath('resources/message-2-noperms.png');
-    var MESSAGE_3_TEXTURE_URL = Script.resolvePath('resources/message-3-tryagain.png');
-    var MESSAGE_4_TEXTURE_URL = Script.resolvePath('resources/message-4-setparent.png');
-    var MESSAGE_5_TEXTURE_URL = Script.resolvePath('resources/message-5-success.png');
-
-    var SOUND_1_URL = Script.resolvePath('resources/parent-tool-sound1.wav');
-    var SOUND_2_URL = Script.resolvePath('resources/parent-tool-sound2.wav');
-    var SOUND_ERROR_URL = Script.resolvePath('resources/parent-tool-sound-error.wav');
-    var SOUND_SUCCESS_URL = Script.resolvePath('resources/parent-tool-sound-success.wav');
+    var SOUND_1_URL = Script.resolvePath( 'resources/parent-tool-sound1.wav' );
+    var SOUND_2_URL = Script.resolvePath( 'resources/parent-tool-sound2.wav' );
+    var SOUND_ERROR_URL = Script.resolvePath( 'resources/parent-tool-sound-error.wav' );
+    var SOUND_SUCCESS_URL = Script.resolvePath( 'resources/parent-tool-sound-success.wav' );
     var SOUND_1, SOUND_2, SOUND_ERROR, SOUND_SUCCESS;
+    var childEntityID, parentEntityID;
 
-    var childEntityID = 0;
-    var parentEntityID = 0;
+
 
     function Parentator() {
         return;
     }
 
-    Parentator.prototype.preload = function(entityID) {
-        this.entityID = entityID;
-        SOUND_1 = SoundCache.getSound(SOUND_1_URL);
-        SOUND_2 = SoundCache.getSound(SOUND_2_URL);
-        SOUND_ERROR = SoundCache.getSound(SOUND_ERROR_URL);
-        SOUND_SUCCESS = SoundCache.getSound(SOUND_SUCCESS_URL);
-    };
-
-    Parentator.prototype.startEquip = function(entityID, args) {
+    Parentator.prototype.reset = function() {
+        childEntityID = 0;
+        parentEntityID = 0;
         if (Entities.canRez()) {
-            Entities.editEntity( this.entityID, { textures: JSON.stringify({ "message-1-start.png.001": MESSAGE_1_TEXTURE_URL }) });
-            this.playSoundAtCurrentPosition(SOUND_1);
+            Entities.editEntity( this.entityID, { textures: JSON.stringify({ "texture-message": MESSAGE_1_TEXTURE_URL }) });
+            this.playSoundAtCurrentPosition( SOUND_1 );
         } else {
-            Entities.editEntity( this.entityID, { textures: JSON.stringify({ "message-1-start.png.001": MESSAGE_2_TEXTURE_URL }) });
-            this.playSoundAtCurrentPosition(SOUND_ERROR);
+            Entities.editEntity( this.entityID, { textures: JSON.stringify({ "texture-message": MESSAGE_2_TEXTURE_URL }) });
+            this.playSoundAtCurrentPosition( SOUND_ERROR );
         }
-    };
+    }
 
-    Parentator.prototype.collisionWithEntity = function(parentatorID, collidedID, collisionInfo) {
+    Parentator.prototype.preload = function( entityID ) {
+        this.entityID = entityID;
+        SOUND_1 = SoundCache.getSound( SOUND_1_URL );
+        SOUND_2 = SoundCache.getSound( SOUND_2_URL );
+        SOUND_ERROR = SoundCache.getSound( SOUND_ERROR_URL );
+        SOUND_SUCCESS = SoundCache.getSound( SOUND_SUCCESS_URL );
+
+        // The following is in case a user has been in a domain where they didn't have permission to rez
+        // (and that is displayed on the parent-tor screen) and then they move to a domain where they can rez
+        Window.domainChanged.connect( function() {
+            this.reset();
+        });
+    }
+
+    Parentator.prototype.startEquip = function( args ) {
+        this.hand = args[0];
+        this.reset();
+    }
+
+    Parentator.prototype.collisionWithEntity = function( parentatorID, collidedID, collisionInfo ) {
         // We don't want to be able to select Lights, Zone, and Particles but they are not collidable anyway so we don't have to worry about them
-        var collidedEntityProperties = Entities.getEntityProperties(collidedID);
+        var collidedEntityProperties = Entities.getEntityProperties( collidedID );
+
+        if ( !Entities.canRez() ) {
+            Entities.editEntity( this.entityID, { textures: JSON.stringify({ "texture-message": MESSAGE_2_TEXTURE_URL }) });
+            this.playSoundAtCurrentPosition( SOUND_ERROR );
+        }
 
         // User has just reclicked the first entity (or it's 'bounced')
         if ( childEntityID == collidedID ) {
             return;
         }
 
-        if (collidedEntityProperties.locked) {
-            Entities.editEntity( this.entityID, { textures: JSON.stringify({ "message-1-start.png.001": MESSAGE_3_TEXTURE_URL }) });
-            this.playSoundAtCurrentPosition(SOUND_ERROR);
+        if ( collidedEntityProperties.locked ) {
+            Entities.editEntity( this.entityID, { textures: JSON.stringify({ "texture-message": MESSAGE_3_TEXTURE_URL }) });
+            this.playSoundAtCurrentPosition( SOUND_ERROR );
             return;
         }
 
@@ -69,46 +91,43 @@
             childEntityID = collidedID;
 
             // if there is a parentID, remove it
-            if (collidedEntityProperties.parentID != "{00000000-0000-0000-0000-000000000000}") {
+            if ( collidedEntityProperties.parentID != "{00000000-0000-0000-0000-000000000000}" ) {
                 Entities.editEntity( collidedID, { parentID: "{00000000-0000-0000-0000-000000000000}" });
             }
 
-            if (collidedEntityProperties.dynamic) {
+            if ( collidedEntityProperties.dynamic ) {
                 Entities.editEntity( collidedID, { dynamic: false });
             }
 
-            Entities.editEntity( this.entityID, { textures: JSON.stringify({ "message-1-start.png.001": MESSAGE_4_TEXTURE_URL }) });
-            this.playSoundAtCurrentPosition(SOUND_2);
+            Entities.editEntity( this.entityID, { textures: JSON.stringify({ "texture-message": MESSAGE_4_TEXTURE_URL }) });
+            this.playSoundAtCurrentPosition( SOUND_2 );
         } else {
             parentEntityID = collidedID;
             this.setParent();
         }
-    };
+    }
 
     Parentator.prototype.setParent = function() {
-        Entities.editEntity(childEntityID, { parentID: parentEntityID });
-        Entities.editEntity( this.entityID, { textures: JSON.stringify({ "message-1-start.png.001": MESSAGE_5_TEXTURE_URL }) });
+        Entities.editEntity( childEntityID, { parentID: parentEntityID });
+        Entities.editEntity( this.entityID, { textures: JSON.stringify({ "texture-message": MESSAGE_5_TEXTURE_URL }) });
+        this.playSoundAtCurrentPosition( SOUND_SUCCESS );
 
-        Script.setTimeout(function() {
-            childEntityID = 0;
-            parentEntityID = 0;
-            Entities.editEntity( this.entityID, { textures: JSON.stringify({ "message-1-start.png.001": MESSAGE_1_TEXTURE_URL }) });
-            this.playSoundAtCurrentPosition(SOUND_SUCCESS);
-        }.bind(this), 5000);
-    };
+        Script.setTimeout( function() {
+            this.reset()
+        }.bind( this ), 5000 );
+    }
 
-    Parentator.prototype.playSoundAtCurrentPosition = function(sound) {
+    Parentator.prototype.playSoundAtCurrentPosition = function( sound ) {
         var audioProperties = {
             volume: 0.3,
-            position: Entities.getEntityProperties(this.entityID).position
+            position: Entities.getEntityProperties( this.entityID ).position
         }
-        Audio.playSound(sound, audioProperties);
-    };
+        Audio.playSound( sound, audioProperties );
+    }
 
     Parentator.prototype.unload = function () {
-        Entities.deleteEntity(this.entityID);
-    };
-
+        Entities.deleteEntity( this.entityID );
+    }
 
     // entity scripts always need to return a newly constructed object of our type
     return new Parentator();
