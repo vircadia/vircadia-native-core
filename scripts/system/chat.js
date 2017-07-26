@@ -650,7 +650,7 @@
         var width = textSize.width + fudge;
         var height = speechBubbleLineHeight + fudge;
 
-        if(textSize.width >= SPEECH_BUBBLE_MAX_WIDTH) {
+        if (textSize.width >= SPEECH_BUBBLE_MAX_WIDTH) {
             var numLines = Math.ceil(width);
             height = speechBubbleLineHeight * numLines + fudge;
             width = SPEECH_BUBBLE_MAX_WIDTH;
@@ -681,7 +681,7 @@
             Vec3.sum(
                 headPosition,
                 rotatedOffset);
-        position.y += height / 2; // offset based on wrapped height of bubble
+        position.y += height / 2; // offset based on half of bubble height
         speechBubbleParams.position = position;
 
         if (!speechBubbleTextID) {
