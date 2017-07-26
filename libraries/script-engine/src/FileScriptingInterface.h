@@ -28,11 +28,11 @@ public slots:
     QString getTempDir();
 
 signals:
-    void unzipResult(QString zipFile, QString unzipFile, bool autoAdd);
+    void unzipResult(QString zipFile, QStringList unzipFile, bool autoAdd, bool isBlocks);
 
 private:
     bool isTempDir(QString tempDir);
-    QString unzipFile(QString path, QString tempDir);
+    QStringList unzipFile(QString path, QString tempDir);
     void recursiveFileScan(QFileInfo file, QString* dirName);
     void downloadZip(QString path, const QString link);
 

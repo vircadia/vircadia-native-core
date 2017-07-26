@@ -6200,12 +6200,21 @@ void Application::addAssetToWorldUnzipFailure(QString filePath) {
     addAssetToWorldError(filename, "Couldn't unzip file " + filename + ".");
 }
 
-void Application::addAssetToWorld(QString filePath) {
+void Application::addAssetToWorld(QString filePath, QString zipFile, bool isBlocks) {
     // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
 
+    qCDebug(interfaceapp) << "File about to be uploaded: " << filePath;
+    qCDebug(interfaceapp) << "Original zip folder: " << zipFile;
     QString path = QUrl(filePath).toLocalFile();
     QString filename = filenameFromPath(path);
-    QString mapping = "/" + filename;
+    QString mapping;
+    if (isBlocks) {
+        QString assetFolder = zipFile.section("/", -1);
+        assetFolder.remove(".zip");
+        mapping = "/" + assetFolder + "/" + filename;
+    } else {
+        mapping = "/" + filename;
+    }
 
     // Test repeated because possibly different code paths.
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
@@ -6576,15 +6585,19 @@ void Application::onAssetToWorldMessageBoxClosed() {
 }
 
 
-void Application::handleUnzip(QString zipFile, QString unzipFile, bool autoAdd) {
+void Application::handleUnzip(QString zipFile, QStringList unzipFile, bool autoAdd, bool isBlocks) {
     if (autoAdd) {
         if (!unzipFile.isEmpty()) {
-            addAssetToWorld(unzipFile);
+            qCDebug(interfaceapp) << "My folder contents: " << unzipFile;
+            for (int i = 0; i < unzipFile.length(); i++) {
+                qCDebug(interfaceapp) << "Preparing file for asset server: " << unzipFile.at(i);
+                addAssetToWorld(unzipFile.at(i), zipFile, isBlocks);
+            }
         } else {
             addAssetToWorldUnzipFailure(zipFile);
         }
     } else {
-        showAssetServerWidget(unzipFile);
+        showAssetServerWidget(unzipFile.first());
     }
 }
 
