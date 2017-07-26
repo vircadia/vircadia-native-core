@@ -230,6 +230,9 @@ static const QString OBJ_EXTENSION  = ".obj";
 static const QString AVA_JSON_EXTENSION = ".ava.json";
 static const QString WEB_VIEW_TAG = "noDownload=true";
 
+// temporary zip handling for Emily
+static const QString ZIP_EXTENSION = ".zip";
+
 static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
 
 static const quint64 TOO_LONG_SINCE_LAST_SEND_DOWNSTREAM_AUDIO_STATS = 1 * USECS_PER_SECOND;
@@ -260,7 +263,10 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl },
     { JSON_EXTENSION, &Application::importJSONFromURL },
     { JS_EXTENSION, &Application::askToLoadScript },
-    { FST_EXTENSION, &Application::askToSetAvatarUrl }
+    { FST_EXTENSION, &Application::askToSetAvatarUrl },
+
+    // temporary zip handling for Emily
+    { ZIP_EXTENSION, &Application::importFromZIP }
 };
 
 class DeadlockWatchdogThread : public QThread {
@@ -2778,6 +2784,15 @@ void Application::onPresent(quint32 frameCount) {
         postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
     }
 }
+
+bool Application::importFromZIP(const QString& filePath) {
+    qDebug() << "A zip file has been dropped in: " << filePath;
+    QUrl empty = "";
+    qApp->getFileDownloadInterface()->runUnzip(filePath, empty, false, true);
+    return true;
+}
+
+bool _renderRequested { false };
 
 bool Application::event(QEvent* event) {
     if (!Menu::getInstance()) {
@@ -6218,7 +6233,7 @@ void Application::addAssetToWorldFromURLRequestFinished() {
             if (tempFile.open(QIODevice::WriteOnly)) {
                 tempFile.write(request->getData());
                 addAssetToWorldInfoClear(filename);  // Remove message from list; next one added will have a different key.
-                qApp->getFileDownloadInterface()->runUnzip(downloadPath, url, true);
+                qApp->getFileDownloadInterface()->runUnzip(downloadPath, url, true, false);
             } else {
                 QString errorInfo = "Couldn't open temporary file for download";
                 qWarning(interfaceapp) << errorInfo;
