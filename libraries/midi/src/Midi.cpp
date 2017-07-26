@@ -98,19 +98,6 @@ void Midi::sendNote(int status, int note, int vel) {
     }
 }
 
-void Midi::noteReceived(int status, int note, int velocity) {
-    if (((status & MIDI_STATUS_MASK) != MIDI_NOTE_OFF) &&
-        ((status & MIDI_STATUS_MASK) != MIDI_NOTE_ON)) {
-        return;            // NOTE: only sending note-on and note-off to Javascript
-    }
-
-    QVariantMap eventData;
-    eventData["status"] = status;
-    eventData["note"] = note;
-    eventData["velocity"] = velocity;
-    emit midiNote(eventData);
-}
-
 
 void Midi::MidiSetup() {
     midihin.clear();
@@ -187,12 +174,30 @@ void Midi::MidiCleanup() {
 }
 #endif
 
+void Midi::noteReceived(int status, int note, int velocity) {
+    if (((status & MIDI_STATUS_MASK) != MIDI_NOTE_OFF) &&
+        ((status & MIDI_STATUS_MASK) != MIDI_NOTE_ON)) {
+        return;            // NOTE: only sending note-on and note-off to Javascript
+    }
+
+    QVariantMap eventData;
+    eventData["status"] = status;
+    eventData["note"] = note;
+    eventData["velocity"] = velocity;
+//    emit midiNote(eventData);
+}
+
 //
 
 Midi::Midi() {
     instance = this;
+#if defined Q_OS_WIN32
     midioutexclude.push_back("Microsoft GS Wavetable Synth");        // we don't want to hear this thing
+#endif
     MidiSetup();
+}
+
+Midi::~Midi() {
 }
 
 void Midi::playMidiNote(int status, int note, int velocity) {
@@ -237,14 +242,14 @@ QStringList Midi::listMidiDevices(bool output) {
 
 void Midi::unblockMidiDevice(QString name, bool output) {
     if (output) {
-        for (int i = 0; i < midioutexclude.size(); i++) {
+        for (unsigned long i = 0; i < midioutexclude.size(); i++) {
             if (midioutexclude[i].toStdString().compare(name.toStdString()) == 0) {
                 midioutexclude.erase(midioutexclude.begin() + i);
                 break;
             }
         }
     } else {
-        for (int i = 0; i < midiinexclude.size(); i++) {
+        for (unsigned long i = 0; i < midiinexclude.size(); i++) {
             if (midiinexclude[i].toStdString().compare(name.toStdString()) == 0) {
                 midiinexclude.erase(midiinexclude.begin() + i);
                 break;
@@ -265,4 +270,81 @@ void Midi::blockMidiDevice(QString name, bool output) {
 void Midi::thruModeEnable(bool enable) {
     thruModeEnabled = enable;
 }
+
+/*
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang++ -arch x86_64 -isysroot
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.12.sdk -L/Users/burt/hifi/assignment-client/Debug -F/Users/burt/hifi/assignment-client/Debug -F/Users/burt/Qt5.6.2/5.6/clang_64/lib -filelist
+/Users/burt/hifi/assignment-client/hifi.build/Debug/assignment-client.build/Objects-normal/x86_64/assignment-client.LinkFileList -Xlinker -rpath -Xlinker
+/Users/burt/Qt5.6.2/5.6/clang_64/lib -mmacosx-version-min=10.8 -Xlinker -object_path_lto -Xlinker
+/Users/burt/hifi/assignment-client/hifi.build/Debug/assignment-client.build/Objects-normal/x86_64/assignment-client_lto.o -Xlinker -no_deduplicate -stdlib=libc++ -Wl,-search_paths_first -Wl,-headerpad_max_install_names
+/Users/burt/hifi/libraries/audio/Debug/libaudio.a
+/Users/burt/hifi/libraries/avatars/Debug/libavatars.a
+/Users/burt/hifi/libraries/octree/Debug/liboctree.a
+/Users/burt/hifi/libraries/gpu/Debug/libgpu.a
+/Users/burt/hifi/libraries/model/Debug/libmodel.a
+/Users/burt/hifi/libraries/fbx/Debug/libfbx.a
+/Users/burt/hifi/libraries/entities/Debug/libentities.a
+/Users/burt/hifi/libraries/networking/Debug/libnetworking.a
+/Users/burt/hifi/libraries/animation/Debug/libanimation.a
+/Users/burt/hifi/libraries/recording/Debug/librecording.a
+/Users/burt/hifi/libraries/shared/Debug/libshared.a
+/Users/burt/hifi/libraries/script-engine/Debug/libscript-engine.a
+/Users/burt/hifi/libraries/embedded-webserver/Debug/libembedded-webserver.a
+/Users/burt/hifi/libraries/controllers/Debug/libcontrollers.a
+/Users/burt/hifi/libraries/physics/Debug/libphysics.a
+/Users/burt/hifi/libraries/plugins/Debug/libplugins.a
+/Users/burt/hifi/libraries/ui/Debug/libui.a
+/Users/burt/hifi/libraries/script-engine/Debug/libscript-engine.a
+/Users/burt/hifi/libraries/ui/Debug/libui.a
+/Users/burt/hifi/libraries/recording/Debug/librecording.a
+/Users/burt/hifi/libraries/controllers/Debug/libcontrollers.a
+/Users/burt/hifi/libraries/physics/Debug/libphysics.a
+/Users/burt/hifi/libraries/entities/Debug/libentities.a
+/Users/burt/hifi/libraries/audio/Debug/libaudio.a
+/Users/burt/hifi/libraries/plugins/Debug/libplugins.a
+/Users/burt/hifi/libraries/avatars/Debug/libavatars.a
+/Users/burt/hifi/libraries/octree/Debug/liboctree.a
+/Users/burt/hifi/libraries/animation/Debug/libanimation.a
+/Users/burt/hifi/ext/Xcode/bullet/project/lib/libBulletDynamics.dylib
+/Users/burt/hifi/ext/Xcode/bullet/project/lib/libBulletCollision.dylib
+/Users/burt/hifi/ext/Xcode/bullet/project/lib/libLinearMath.dylib
+/Users/burt/hifi/ext/Xcode/bullet/project/lib/libBulletSoftBody.dylib
+/Users/burt/Qt5.6.2/5.6/clang_64/lib/QtScriptTools.framework/QtScriptTools
+/Users/burt/hifi/ext/Xcode/quazip/project/lib/libquazip5d.1.0.0.dylib
+/Users/burt/hifi/libraries/procedural/Debug/libprocedural.a
+/Users/burt/hifi/libraries/model-networking/Debug/libmodel-networking.a
+/Users/burt/hifi/libraries/fbx/Debug/libfbx.a
+/Users/burt/hifi/libraries/model/Debug/libmodel.a
+/Users/burt/hifi/libraries/image/Debug/libimage.a
+/Users/burt/hifi/ext/Xcode/nvtt/project/lib/libnvtt.dylib
+/Users/burt/hifi/libraries/gpu-gl/Debug/libgpu-gl.a
+/Users/burt/hifi/libraries/gpu/Debug/libgpu.a
+/Users/burt/hifi/libraries/ktx/Debug/libktx.a
+/Users/burt/Qt5.6.2/5.6/clang_64/lib/QtConcurrent.framework/QtConcurrent -lpthread
+/Users/burt/Qt5.6.2/5.6/clang_64/lib/QtWebSockets.framework/QtWebSockets
+/Users/burt/Qt5.6.2/5.6/clang_64/lib/QtXmlPatterns.framework/QtXmlPatterns
+/Users/burt/hifi/libraries/gl/Debug/libgl.a
+/Users/burt/hifi/libraries/networking/Debug/libnetworking.a
+/Users/burt/Qt5.6.2/5.6/clang_64/lib/QtWebEngine.framework/QtWebEngine
+/Users/burt/Qt5.6.2/5.6/clang_64/lib/QtWebEngineCore.framework/QtWebEngineCore
+/Users/burt/Qt5.6.2/5.6/clang_64/lib/QtQuick.framework/QtQuick
+/Users/burt/Qt5.6.2/5.6/clang_64/lib/QtWebChannel.framework/QtWebChannel
+/Users/burt/Qt5.6.2/5.6/clang_64/lib/QtPositioning.framework/QtPositioning
+/usr/local/Cellar/openssl/1.0.2k/lib/libssl.dylib
+/usr/local/Cellar/openssl/1.0.2k/lib/libcrypto.dylib
+/Users/burt/hifi/ext/Xcode/tbb/project/src/tbb/lib/libtbb_debug.dylib
+/Users/burt/hifi/ext/Xcode/tbb/project/src/tbb/lib/libtbbmalloc_debug.dylib -framework IOKit -framework CoreFoundation
+/Users/burt/hifi/libraries/shared/Debug/libshared.a
+/Users/burt/Qt5.6.2/5.6/clang_64/lib/QtScript.framework/QtScript
+/usr/local/lib/libz.a
+/Users/burt/Qt5.6.2/5.6/clang_64/lib/QtQml.framework/QtQml
+/Users/burt/Qt5.6.2/5.6/clang_64/lib/QtOpenGL.framework/QtOpenGL
+/Users/burt/Qt5.6.2/5.6/clang_64/lib/QtWidgets.framework/QtWidgets
+/Users/burt/Qt5.6.2/5.6/clang_64/lib/QtGui.framework/QtGui -framework OpenGL
+/Users/burt/hifi/ext/Xcode/glew/project/lib/libglew_d.a
+/Users/burt/Qt5.6.2/5.6/clang_64/lib/QtNetwork.framework/QtNetwork
+/Users/burt/Qt5.6.2/5.6/clang_64/lib/QtCore.framework/QtCore -Xlinker -dependency_info -Xlinker
+/Users/burt/hifi/assignment-client/hifi.build/Debug/assignment-client.build/Objects-normal/x86_64/assignment-client_dependency_info.dat -o
+/Users/burt/hifi/assignment-client/Debug/assignment-client
+*/
 
