@@ -182,6 +182,11 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
+        auto getter = [=]()->QString { return myAvatar->getDominantHand(); };
+        auto setter = [=](const QString& value) { myAvatar->setDominantHand(value); };
+        preferences->addPreference(new PrimaryHandPreference(AVATAR_TUNING, "Dominant Hand", getter, setter));
+    }
+    {
         auto getter = [=]()->float { return myAvatar->getUniformScale(); };
         auto setter = [=](float value) { myAvatar->setTargetScale(value); };
         auto preference = new SpinnerSliderPreference(AVATAR_TUNING, "Avatar Scale", getter, setter);
@@ -296,17 +301,6 @@ void setupPreferences() {
         auto preference = new SpinnerPreference("HMD", "UI horizontal angular size (degrees)", getter, setter);
         preference->setMin(30);
         preference->setMax(160);
-        preference->setStep(1);
-        preferences->addPreference(preference);
-    }
-
-
-    {
-        auto getter = []()->float { return controller::InputDevice::getReticleMoveSpeed(); };
-        auto setter = [](float value) { controller::InputDevice::setReticleMoveSpeed(value); };
-        auto preference = new SpinnerPreference("Sixense Controllers", "Reticle movement speed", getter, setter);
-        preference->setMin(0);
-        preference->setMax(100);
         preference->setStep(1);
         preferences->addPreference(preference);
     }

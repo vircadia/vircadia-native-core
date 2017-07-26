@@ -11,8 +11,6 @@
 
 #include "Geometry.h"
 
-#include <QDebug>
-
 using namespace model;
 
 Mesh::Mesh() :
@@ -136,11 +134,13 @@ Box Mesh::evalPartsBound(int partStart, int partEnd) const {
 
 
 model::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
+                             std::function<glm::vec3(glm::vec3)> colorFunc,
                              std::function<glm::vec3(glm::vec3)> normalFunc,
-                             std::function<uint32_t(uint32_t)> indexFunc) {
+                             std::function<uint32_t(uint32_t)> indexFunc) const {
     // vertex data
     const gpu::BufferView& vertexBufferView = getVertexBuffer();
     gpu::BufferView::Index numVertices = (gpu::BufferView::Index)getNumVertices();
+
     gpu::Resource::Size vertexSize = numVertices * sizeof(glm::vec3);
     unsigned char* resultVertexData = new unsigned char[vertexSize];
     unsigned char* vertexDataCursor = resultVertexData;
@@ -149,6 +149,21 @@ model::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
         glm::vec3 pos = vertexFunc(vertexBufferView.get<glm::vec3>(i));
         memcpy(vertexDataCursor, &pos, sizeof(pos));
         vertexDataCursor += sizeof(pos);
+    }
+
+    // color data
+    int attributeTypeColor = gpu::Stream::COLOR;
+    const gpu::BufferView& colorsBufferView = getAttributeBuffer(attributeTypeColor);
+    gpu::BufferView::Index numColors = (gpu::BufferView::Index)colorsBufferView.getNumElements();
+
+    gpu::Resource::Size colorSize = numColors * sizeof(glm::vec3);
+    unsigned char* resultColorData = new unsigned char[colorSize];
+    unsigned char* colorDataCursor = resultColorData;
+
+    for (gpu::BufferView::Index i = 0; i < numColors; i++) {
+        glm::vec3 color = colorFunc(colorsBufferView.get<glm::vec3>(i));
+        memcpy(colorDataCursor, &color, sizeof(color));
+        colorDataCursor += sizeof(color);
     }
 
     // normal data
@@ -187,6 +202,12 @@ model::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
     gpu::BufferView resultVertexBufferView(resultVertexBufferPointer, vertexElement);
     result->setVertexBuffer(resultVertexBufferView);
 
+    gpu::Element colorElement = gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ);
+    gpu::Buffer* resultColorsBuffer = new gpu::Buffer(colorSize, resultColorData);
+    gpu::BufferPointer resultColorsBufferPointer(resultColorsBuffer);
+    gpu::BufferView resultColorsBufferView(resultColorsBufferPointer, colorElement);
+    result->addAttribute(attributeTypeColor, resultColorsBufferView);
+
     gpu::Element normalElement = gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ);
     gpu::Buffer* resultNormalsBuffer = new gpu::Buffer(normalSize, resultNormalData);
     gpu::BufferPointer resultNormalsBufferPointer(resultNormalsBuffer);
@@ -215,6 +236,7 @@ model::MeshPointer Mesh::map(std::function<glm::vec3(glm::vec3)> vertexFunc,
 
 
 void Mesh::forEach(std::function<void(glm::vec3)> vertexFunc,
+                   std::function<void(glm::vec3)> colorFunc,
                    std::function<void(glm::vec3)> normalFunc,
                    std::function<void(uint32_t)> indexFunc) {
     // vertex data
@@ -222,6 +244,14 @@ void Mesh::forEach(std::function<void(glm::vec3)> vertexFunc,
     gpu::BufferView::Index numVertices = (gpu::BufferView::Index)getNumVertices();
     for (gpu::BufferView::Index i = 0; i < numVertices; i++) {
         vertexFunc(vertexBufferView.get<glm::vec3>(i));
+    }
+
+    // color data
+    int attributeTypeColor = gpu::Stream::InputSlot::COLOR; // libraries/gpu/src/gpu/Stream.h
+    const gpu::BufferView& colorsBufferView = getAttributeBuffer(attributeTypeColor);
+    gpu::BufferView::Index numColors =  (gpu::BufferView::Index)colorsBufferView.getNumElements();
+    for (gpu::BufferView::Index i = 0; i < numColors; i++) {
+        colorFunc(colorsBufferView.get<glm::vec3>(i));
     }
 
     // normal data
