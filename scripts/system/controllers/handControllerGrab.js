@@ -2246,7 +2246,6 @@ function MyController(hand) {
             button: "None"
         };
         if (rayPickInfo.entityID) {
-            print("ZRF: " + hoveredEntityID);
             if (hoveredEntityID !== rayPickInfo.entityID) {
                 if (contextOverlayTimer) {
                     Script.clearTimeout(contextOverlayTimer);

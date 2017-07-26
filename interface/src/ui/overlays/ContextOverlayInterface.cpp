@@ -153,7 +153,10 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
             return true;
         }
     } else {
-        return destroyContextOverlay(entityItemID, event);
+        if (!_currentEntityWithContextOverlay.isNull()) {
+            return destroyContextOverlay(_currentEntityWithContextOverlay, event);
+        }
+        return false;
     }
     return false;
 }
@@ -166,9 +169,7 @@ bool ContextOverlayInterface::contextOverlayFilterPassed(const EntityItemID& ent
 bool ContextOverlayInterface::destroyContextOverlay(const EntityItemID& entityItemID, const PointerEvent& event) {
     if (_contextOverlayID != UNKNOWN_OVERLAY_ID) {
         qCDebug(context_overlay) << "Destroying Context Overlay on top of entity with ID: " << entityItemID;
-        if (!_currentEntityWithContextOverlay.isNull() && _currentEntityWithContextOverlay != entityItemID) {
-            disableEntityHighlight(_currentEntityWithContextOverlay);
-        }
+        disableEntityHighlight(entityItemID);
         setCurrentEntityWithContextOverlay(QUuid());
         _entityMarketplaceID.clear();
         // Destroy the Context Overlay
