@@ -238,10 +238,14 @@ public:
         return std::static_pointer_cast<const OctreeElement>(shared_from_this());
     }
 
+    void bumpChangedContent() { _lastChangedContent = usecTimestampNow(); }
+    uint64_t getLastChangedContent() const { return _lastChangedContent; }
+
 protected:
     virtual void init(unsigned char * octalCode) override;
     EntityTreePointer _myTree;
     EntityItems _entityItems;
+    uint64_t _lastChangedContent { 0 };
 };
 
 #endif // hifi_EntityTreeElement_h

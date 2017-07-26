@@ -192,6 +192,8 @@ bool MovingEntitiesOperator::preRecursion(const OctreeElementPointer& element) {
                         oldElement->removeEntityItem(details.entity);
                     }
                     entityTreeElement->addEntityItem(details.entity);
+                } else {
+                    entityTreeElement->bumpChangedContent();
                 }
                 _foundNewCount++;
                 //details.newFound = true; // TODO: would be nice to add this optimization

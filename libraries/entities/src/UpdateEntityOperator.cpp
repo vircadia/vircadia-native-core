@@ -173,6 +173,8 @@ bool UpdateEntityOperator::preRecursion(const OctreeElementPointer& element) {
                 if (oldElement != _containingElement) {
                     qCDebug(entities) << "WARNING entity moved during UpdateEntityOperator recursion";
                     _containingElement->removeEntityItem(_existingEntity);
+                } else {
+                    _containingElement->bumpChangedContent();
                 }
 
                 if (_wantDebug) {

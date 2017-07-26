@@ -893,6 +893,7 @@ void EntityTreeElement::cleanupEntities() {
         }
         _entityItems.clear();
     });
+    _lastChangedContent = usecTimestampNow();
 }
 
 bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
@@ -906,6 +907,7 @@ bool EntityTreeElement::removeEntityWithEntityItemID(const EntityItemID& id) {
                 // NOTE: only EntityTreeElement should ever be changing the value of entity->_element
                 entity->_element = NULL;
                 _entityItems.removeAt(i);
+                _lastChangedContent = usecTimestampNow();
                 break;
             }
         }
@@ -922,6 +924,7 @@ bool EntityTreeElement::removeEntityItem(EntityItemPointer entity) {
         // NOTE: only EntityTreeElement should ever be changing the value of entity->_element
         assert(entity->_element.get() == this);
         entity->_element = NULL;
+        _lastChangedContent = usecTimestampNow();
         return true;
     }
     return false;
@@ -939,6 +942,7 @@ void EntityTreeElement::addEntityItem(EntityItemPointer entity) {
     withWriteLock([&] {
         _entityItems.push_back(entity);
     });
+    _lastChangedContent = usecTimestampNow();
     entity->_element = getThisPointer();
 }
 
