@@ -145,7 +145,9 @@ Rectangle {
                     model: ["No Collision",
                             "Basic - Whole model",
                             "Good - Sub-meshes",
-                            "Exact - All polygons"]
+                            "Exact - All polygons", 
+                            "Box", 
+                            "Sphere"]
                 }
 
                 Row {
