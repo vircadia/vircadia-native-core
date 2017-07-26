@@ -182,6 +182,8 @@ private:
         float _headPuckZOffset { -0.05f };
         float _handPuckYOffset { 0.0f };
         float _handPuckZOffset { 0.0f };
+        float _armCircumference { 0.33f };
+        float _shoulderWidth { 0.48f };
         bool _triggersPressedHandled { false };
         bool _calibrated { false };
         bool _timeTilCalibrationSet { false };
