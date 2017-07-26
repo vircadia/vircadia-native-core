@@ -147,8 +147,7 @@ Rectangle {
                             "Good - Sub-meshes",
                             "Exact - All polygons", 
                             "Box", 
-                            "Sphere", 
-                            "Compound"]
+                            "Sphere"]
                 }
 
                 Row {
