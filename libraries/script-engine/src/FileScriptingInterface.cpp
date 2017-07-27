@@ -52,7 +52,6 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool
     }
 
     QStringList fileList = unzipFile(path, tempDir);
-    qCDebug(scriptengine) << "Unzipped file list: " << fileList;
     QString filename = QUrl::fromLocalFile(fileList.first()).toString();
     
     if (filename != "") {
