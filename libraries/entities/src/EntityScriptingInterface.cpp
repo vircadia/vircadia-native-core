@@ -1736,9 +1736,7 @@ glm::mat4 EntityScriptingInterface::getEntityTransform(const QUuid& entityID) {
             if (entity) {
                 glm::mat4 translation = glm::translate(entity->getPosition());
                 glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
-                glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT -
-                                                        entity->getRegistrationPoint());
-                result = translation * rotation * registration;
+                result = translation * rotation;
             }
         });
     }
@@ -1753,9 +1751,7 @@ glm::mat4 EntityScriptingInterface::getEntityLocalTransform(const QUuid& entityI
             if (entity) {
                 glm::mat4 translation = glm::translate(entity->getLocalPosition());
                 glm::mat4 rotation = glm::mat4_cast(entity->getLocalOrientation());
-                glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT -
-                                                        entity->getRegistrationPoint());
-                result = translation * rotation * registration;
+                result = translation * rotation;
             }
         });
     }

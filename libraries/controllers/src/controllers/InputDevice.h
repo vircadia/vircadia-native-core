@@ -73,10 +73,6 @@ public:
     int getDeviceID() { return _deviceID; }
     void setDeviceID(int deviceID) { _deviceID = deviceID; }
 
-    static float getCursorPixelRangeMult();
-    static float getReticleMoveSpeed() { return _reticleMoveSpeed; }
-    static void setReticleMoveSpeed(float reticleMoveSpeed) { _reticleMoveSpeed = reticleMoveSpeed; }
-
     Input makeInput(StandardButtonChannel button) const;
     Input makeInput(StandardAxisChannel axis) const;
     Input makeInput(StandardPoseChannel pose) const;
@@ -99,9 +95,6 @@ protected:
     ButtonPressedMap _buttonPressedMap;
     AxisStateMap _axisStateMap;
     PoseStateMap _poseStateMap;
-
-private:
-    static float _reticleMoveSpeed;
 };
 
 }
