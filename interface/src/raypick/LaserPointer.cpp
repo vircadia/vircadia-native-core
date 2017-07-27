@@ -81,7 +81,7 @@ void LaserPointer::disable() {
 }
 
 void LaserPointer::setRenderState(const QString& state) {
-    if (!_currentRenderState.isEmpty()) {
+    if (!_currentRenderState.isEmpty() && state != _currentRenderState) {
         if (_renderStates.contains(_currentRenderState)) {
             disableRenderState(_renderStates[_currentRenderState]);
         }
@@ -125,15 +125,12 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
     glm::vec3 endVec;
     if (defaultState || !_lockEnd || type == IntersectionType::HUD) {
         endVec = pickRay.origin + pickRay.direction * distance;
-    }
-    else {
+    } else {
         if (type == IntersectionType::ENTITY) {
             endVec = DependencyManager::get<EntityScriptingInterface>()->getEntityTransform(objectID)[3];
-        }
-        else if (type == IntersectionType::OVERLAY) {
+        } else if (type == IntersectionType::OVERLAY) {
             endVec = vec3FromVariant(qApp->getOverlays().getProperty(objectID, "position").value);
-        }
-        else if (type == IntersectionType::AVATAR) {
+        } else if (type == IntersectionType::AVATAR) {
             endVec = DependencyManager::get<AvatarHashMap>()->getAvatar(objectID)->getPosition();
         }
     }
@@ -150,8 +147,7 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
         QVariantMap endProps;
         if (_centerEndY) {
             endProps.insert("position", end);
-        }
-        else {
+        } else {
             glm::vec3 dim = vec3FromVariant(qApp->getOverlays().getProperty(renderState.getEndID(), "dimensions").value);
             endProps.insert("position", vec3toVariant(endVec + glm::vec3(0, 0.5f * dim.y, 0)));
         }

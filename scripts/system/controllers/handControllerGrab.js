@@ -1410,7 +1410,8 @@ function MyController(hand) {
 
     this.updateLaserPointer = function() {
         var SEARCH_SPHERE_SIZE = 0.011;
-        var radius = 1.2 * SEARCH_SPHERE_SIZE * this.intersectionDistance;
+        var MIN_SPHERE_SIZE = 0.0005;
+        var radius = Math.max(1.2 * SEARCH_SPHERE_SIZE * this.intersectionDistance, MIN_SPHERE_SIZE);
         var dim = {x: radius, y: radius, z: radius};
         var mode = "hold";
         if (this.state !== STATE_DISTANCE_HOLDING && this.state !== STATE_DISTANCE_ROTATING) {
