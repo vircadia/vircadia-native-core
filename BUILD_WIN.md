@@ -9,7 +9,7 @@ Note: The prerequisites will require about 10 GB of space on your drive.
 
 If you don’t have Community or Professional edition of Visual Studio 2017, download [Visual Studio Community 2017](https://www.visualstudio.com/downloads/). 
 
-When selecting components, check "Desktop development with C++." Also check "Windows 8.1 SDK and UCRT SDK" and "VC++ 2015.3 v140 toolset (x86,x64)" on the Summary toolbar on the right. In the end, your screen should look like this:
+When selecting components, check "Desktop development with C++." Also check "Windows 8.1 SDK and UCRT SDK" and "VC++ 2015.3 v140 toolset (x86,x64)" on the Summary toolbar on the right.
 
 ### Step 2. Installing CMake
 
@@ -17,31 +17,29 @@ Download and install the latest version of CMake 3.9. Download the file named  w
 
 ### Step 3. Installing Qt
 
-Download and install the [Qt Online Installer](https://www.qt.io/download-open-source/?hsCtaTracking=f977210e-de67-475f-a32b-65cec207fd03%7Cd62710cd-e1db-46aa-8d4d-2f1c1ffdacea). While installing, deselect components so that your window looks like this:
+Download and install the [Qt Online Installer](https://www.qt.io/download-open-source/?hsCtaTracking=f977210e-de67-475f-a32b-65cec207fd03%7Cd62710cd-e1db-46aa-8d4d-2f1c1ffdacea). While installing, you only need to have the following components checked under Qt 5.9.1: "msvc2017 64-bit", "Qt WebEngine", and "Qt Script (Deprecated)".
 
 Note: Installing the Sources is optional but recommended if you have room for them (~2GB). 
-
-Keep the default components checked when going through the installer.
 
 ### Step 4. Setting Qt Environment Variable
 
 Go to `Control Panel > System > Advanced System Settings > Environment Variables > New...` (or search “Environment Variables” in Start Search).
 * Set "Variable name": `QT_CMAKE_PREFIX_PATH`
-* Set "Variable value": `%QT_DIR%\5.6\msvc2013_64\lib\cmake`
+* Set "Variable value": `C:\Qt\5.9.1\msvc2017_64\lib\cmake` 
 
 ### Step 5. Installing OpenSSL
 
-Download and install the [Win64 OpenSSL v1.0.2L Installer](https://slproweb.com/download/Win64OpenSSL-1_0_2L.exe).
+Download and install the Win64 OpenSSL v1.0.2 Installer[https://slproweb.com/products/Win32OpenSSL.html].  
 
 ### Step 6. Running CMake to Generate Build Files
 
 Run Command Prompt from Start and run the following commands:
-````
+```
 cd "%HIFI_DIR%"
 mkdir build
 cd build
-cmake .. -G "Visual Studio 12 Win64"
-````
+cmake .. -G "Visual Studio 15 Win64"
+```
     
 Where `%HIFI_DIR%` is the directory for the highfidelity repository.     
 
@@ -87,4 +85,4 @@ If not, add the directory where nmake is located to the PATH environment variabl
 
 #### Qt is throwing an error
 
-Make sure you have the correct version (5.6.2) installed and `QT_CMAKE_PREFIX_PATH` environment variable is set correctly.
+Make sure you have the correct version (5.9.1) installed and `QT_CMAKE_PREFIX_PATH` environment variable is set correctly.
