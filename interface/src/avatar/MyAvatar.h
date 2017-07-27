@@ -767,7 +767,7 @@ private:
     glm::vec3 _hoverReferenceCameraFacing { 0.0f, 0.0f, -1.0f }; // hmd sensor space
 
     // all poses are in sensor-frame
-    std::unordered_map<controller::Action, controller::Pose> _controllerPoseMap;
+    std::map<controller::Action, controller::Pose> _controllerPoseMap;
     mutable std::mutex _controllerPoseMapMutex;
 
     bool _hmdLeanRecenterEnabled = true;
