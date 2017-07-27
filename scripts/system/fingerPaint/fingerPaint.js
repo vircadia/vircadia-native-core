@@ -865,7 +865,7 @@
         savedSettings = new Object();
         savedSettings.currentColor = Settings.getValue("currentColor", {red: 250, green: 0, blue: 0, origin: "custom"}),
         savedSettings.currentStrokeWidth = Settings.getValue("currentStrokeWidth", 0.25);
-        savedSettings.currentTexture = Settings.getValue("currentTexture", null);
+        savedSettings.currentTexture = Settings.getValue("currentTexture", {brushID: 0});
         savedSettings.currentDrawingHand = Settings.getValue("currentDrawingHand", MyAvatar.getDominantHand() == "left");
         savedSettings.currentDynamicBrushes = Settings.getValue("currentDynamicBrushes", []);
         savedSettings.customColors = Settings.getValue("customColors", []);
