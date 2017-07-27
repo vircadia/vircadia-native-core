@@ -20,9 +20,11 @@
 #endif
 
 
+#if defined Q_OS_WIN32
 const int MIDI_BYTE_MASK = 0x0FF;
 const int MIDI_SHIFT_NOTE = 8;
 const int MIDI_SHIFT_VELOCITY = 16;
+#endif
 const int MIDI_STATUS_MASK = 0x0F0;
 const int MIDI_NOTE_OFF = 0x080;
 const int MIDI_NOTE_ON = 0x090;
