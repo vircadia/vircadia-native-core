@@ -2748,7 +2748,7 @@ bool Application::importSVOFromURL(const QString& urlString) {
 bool Application::importFromZIP(const QString& filePath) {
     qDebug() << "A zip file has been dropped in: " << filePath;
     QUrl empty = "";
-    qApp->getFileDownloadInterface()->runUnzip(filePath, empty, false, true);
+    qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true);
     return true;
 }
 
@@ -6205,6 +6205,38 @@ void Application::addAssetToWorld(QString filePath, QString zipFile, bool isBloc
 
     qCDebug(interfaceapp) << "File about to be uploaded: " << filePath;
     qCDebug(interfaceapp) << "Original zip folder: " << zipFile;
+    QString mapping;
+    QString path = filePath;
+    QString filename = filenameFromPath(filePath);
+    if (isBlocks) {
+        QString assetFolder = zipFile.section("/", -1);
+        assetFolder.remove(".zip");
+        mapping = "/" + assetFolder + "/" + filenameFromPath(filename);
+    }
+    else {
+        path = QUrl(filePath).toLocalFile();
+        filename = filenameFromPath(path);
+        mapping = "/" + filename;
+    }
+
+    // Test repeated because possibly different code paths.
+    if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
+        QString errorInfo = "You do not have permissions to write to the Asset Server.";
+        qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
+        addAssetToWorldError(filename, errorInfo);
+        return;
+    }
+
+    addAssetToWorldInfo(filename, "Adding " + mapping.mid(1) + " to the Asset Server.");
+
+    addAssetToWorldWithNewMapping(path, mapping, 0);
+}
+
+/**void Application::addAssetToWorld(QString filePath, QString zipFile, bool isBlocks) {
+    // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
+
+    qCDebug(interfaceapp) << "File about to be uploaded: " << filePath;
+    qCDebug(interfaceapp) << "Original zip folder: " << zipFile;
     QString path = QUrl(filePath).toLocalFile();
     QString filename = filenameFromPath(path);
     QString mapping;
@@ -6227,7 +6259,7 @@ void Application::addAssetToWorld(QString filePath, QString zipFile, bool isBloc
     addAssetToWorldInfo(filename, "Adding " + mapping.mid(1) + " to the Asset Server.");
 
     addAssetToWorldWithNewMapping(path, mapping, 0);
-}
+}*/
 
 void Application::addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy) {
     auto request = DependencyManager::get<AssetClient>()->createGetMappingRequest(mapping);
