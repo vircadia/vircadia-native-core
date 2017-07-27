@@ -39,6 +39,7 @@
         Laser,
         Selection,
         ToolMenu,
+        CreatePalette,
 
         // Miscellaneous
         UPDATE_LOOP_TIMEOUT = 16,
@@ -52,6 +53,7 @@
     Script.include("./utilities/utilities.js");
 
     // Modules
+    Script.include("./modules/createPalette.js");
     Script.include("./modules/hand.js");
     Script.include("./modules/handles.js");
     Script.include("./modules/highlights.js");
@@ -162,6 +164,7 @@
 
         var // Primary objects.
             toolMenu,
+            createPalette,
 
             isDisplaying = false,
 
@@ -173,12 +176,14 @@
         }
 
         toolMenu = new ToolMenu(side, leftInputs, rightInputs, setAppScaleWithHandlesCallback);
+        createPalette = new CreatePalette(side, leftInputs, rightInputs);
 
         getIntersection = side === LEFT_HAND ? rightInputs.intersection : leftInputs.intersection;
 
 
         function setHand(side) {
             toolMenu.setHand(side);
+            createPalette.setHand(side);
             getIntersection = side === LEFT_HAND ? rightInputs.intersection : leftInputs.intersection;
         }
 
@@ -186,8 +191,9 @@
             var uiEntityIDs;
 
             toolMenu.display();
+            createPalette.display();
 
-            uiEntityIDs = toolMenu.entityIDs();
+            uiEntityIDs = [].concat(toolMenu.entityIDs(), createPalette.entityIDs());
             leftInputs.setUIEntities(side === RIGHT_HAND ? uiEntityIDs : []);
             rightInputs.setUIEntities(side === LEFT_HAND ? uiEntityIDs : []);
 
@@ -197,6 +203,7 @@
         function update() {
             if (isDisplaying) {
                 toolMenu.update(getIntersection().overlayID);
+                createPalette.update(getIntersection().overlayID);
             }
         }
 
@@ -204,11 +211,16 @@
             leftInputs.setUIEntities([]);
             rightInputs.setUIEntities([]);
             toolMenu.clear();
+            createPalette.clear();
 
             isDisplaying = false;
         }
 
         function destroy() {
+            if (createPalette) {
+                createPalette.destroy();
+                createPalette = null;
+            }
             if (toolMenu) {
                 toolMenu.destroy();
                 toolMenu = null;
