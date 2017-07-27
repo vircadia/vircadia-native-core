@@ -5,37 +5,6 @@
 <script type="text/javascript" src="../../html/js/keyboardControl.js"></script>
 <script src="../../html/js/jquery-2.1.4.min.js"></script>
 <style>
-    /*range style: http://danielstern.ca/range.css/#/*/
-   input[type=range] {
-        -webkit-appearance: none;
-        background: #2e2e2e;
-        height: 1.8rem;
-        border-radius: 1rem;
-    }
-    input[type=range]::-webkit-slider-thumb {
-        -webkit-appearance:none;
-        width: 0.6rem;
-        height: 1.8rem;
-        padding:0;
-        margin: 0;
-        background-color: #696969;
-        border-radius: 1rem;
-    }
-    input[type=range]::-webkit-slider-thumb:hover {
-        background-color: white;
-    }
-    input[type=range]:focus { /*#252525*/
-        outline: none;
-    }
-    .sliderWrapper {
-        display: table;
-        padding: 0.4rem 0;
-    }
-    .property.range input[type=number] {
-        margin-left: 0.8rem;
-        width: 5.4rem;
-        height: 1.8rem;
-    }
     #colorPicker {
         display: grid;
     }
@@ -72,21 +41,10 @@
     <input onchange="switchPressureSensitiveWidth(this)"  type="checkbox" id="triggerSensitiveWidth"></input>
     <label for="triggerSensitiveWidth">Use Trigger Sensitive Width</label>
 </div>
-<div class="property range">
-    <label style="display: block">Stroke Width</label>
-    <div class="sliderWrapper">
-        <input type="range" id="lineWidthRange" value=0.25 min=0 max=1 step=0.01 onchange="changeLineWidthRange(this)"/>
-        <input type="number" id="lineWidthText" value=0.25 min=0 max=1 step=0.01 onchange="changeLineWidthNumber(this)"/>
-    </div>
-</div>
 
 <div id="colorpicker"></div>
-
-<div id="colorPickerTable">
-</div>
-
+<div id="colorPickerTable"></div>
 <div id="lastPickedColors"></div>
-
 
 <script src="../../html/js/colpick.js">
     require('jquery-colpick');
@@ -168,27 +126,6 @@
             currentSelectedColorOrigin = "custom";
         }
         update(colorArray);
-    }
-
-    function changeLineWidthRange(e) {
-        document.getElementById("lineWidthText").value = e.value;
-        notifyLineWidthChanged(e);
-    }
-
-    function changeLineWidthNumber(e) {
-        if (e.value > 1) {
-            document.getElementById("lineWidthText").value = 1;
-        }
-        document.getElementById("lineWidthRange").value = e.value > 1 ? 1 : e.value;
-        notifyLineWidthChanged(e);
-    }
-
-    function notifyLineWidthChanged(e) {
-          var changeLineWidthEvent = {
-            "type"     : "changeLineWidth",
-            "brushWidth":  e.value
-        };
-        parent.postMessage(JSON.stringify(changeLineWidthEvent), "*");
     }
 
     function switchPressureSensitiveWidth(checkbox) {
@@ -281,12 +218,6 @@
 
         if ("currentTriggerWidthEnabled" in palleteData) {
             document.getElementById("triggerSensitiveWidth").checked = palleteData.currentTriggerWidthEnabled;
-        }
-
-        if ("currentStrokeWidth" in palleteData) {
-            document.getElementById("lineWidthRange").value = palleteData.currentStrokeWidth;
-            changeLineWidthRange({value: palleteData.currentStrokeWidth});
-            changeLineWidthNumber({value: palleteData.currentStrokeWidth});
         }
     }
 
