@@ -151,13 +151,17 @@ ScrollingWindow {
         var SHAPE_TYPE_SIMPLE_HULL = 1;
         var SHAPE_TYPE_SIMPLE_COMPOUND = 2;
         var SHAPE_TYPE_STATIC_MESH = 3;
-
+        var SHAPE_TYPE_BOX = 4;
+        var SHAPE_TYPE_SPHERE = 5;
+        
         var SHAPE_TYPES = [];
         SHAPE_TYPES[SHAPE_TYPE_NONE] = "No Collision";
         SHAPE_TYPES[SHAPE_TYPE_SIMPLE_HULL] = "Basic - Whole model";
         SHAPE_TYPES[SHAPE_TYPE_SIMPLE_COMPOUND] = "Good - Sub-meshes";
         SHAPE_TYPES[SHAPE_TYPE_STATIC_MESH] = "Exact - All polygons";
-
+        SHAPE_TYPES[SHAPE_TYPE_BOX] = "Box";
+        SHAPE_TYPES[SHAPE_TYPE_SPHERE] = "Sphere";
+        
         var SHAPE_TYPE_DEFAULT = SHAPE_TYPE_STATIC_MESH;
         var DYNAMIC_DEFAULT = false;
         var prompt = desktop.customInputDialog({
@@ -195,6 +199,12 @@ ScrollingWindow {
                         break;
                     case SHAPE_TYPE_STATIC_MESH:
                         shapeType = "static-mesh";
+                        break;
+                    case SHAPE_TYPE_BOX:
+                        shapeType = "box";
+                        break;
+                    case SHAPE_TYPE_SPHERE:
+                        shapeType = "sphere";
                         break;
                     default:
                         shapeType = "none";
