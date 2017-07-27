@@ -82,9 +82,9 @@ void MySkeletonModel::updateRig(float deltaTime, glm::mat4 parentTransform) {
     };
 
     for (auto pair : primaryControllers) {
-        auto pose = myAvatar->getControllerPoseInAvatarFrame(pair.first);
-        if (pose.isValid()) {
-            AnimPose pose(pose.getRotation(), pose.getTranslation());
+        auto controllerPose = myAvatar->getControllerPoseInAvatarFrame(pair.first);
+        if (controllerPose.isValid()) {
+            AnimPose pose(controllerPose.getRotation(), controllerPose.getTranslation());
             params.primaryControllerPoses[pair.second] = avatarToRigPose * pose;
             params.primaryControllerActiveFlags[pair.second] = true;
         } else {
