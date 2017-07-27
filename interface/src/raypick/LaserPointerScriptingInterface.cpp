@@ -54,7 +54,22 @@ QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& propert
         }
     }
 
-    return DependencyManager::get<LaserPointerManager>()->createLaserPointer(propertyMap, renderStates, faceAvatar, centerEndY, lockEnd, enabled);
+    QHash<QString, QPair<float, RenderState>> defaultRenderStates;
+    if (propertyMap["defaultRenderStates"].isValid()) {
+        QList<QVariant> renderStateVariants = propertyMap["defaultRenderStates"].toList();
+        for (QVariant& renderStateVariant : renderStateVariants) {
+            if (renderStateVariant.isValid()) {
+                QVariantMap renderStateMap = renderStateVariant.toMap();
+                if (renderStateMap["name"].isValid() && renderStateMap["distance"].isValid()) {
+                    QString name = renderStateMap["name"].toString();
+                    float distance = renderStateMap["distance"].toFloat();
+                    defaultRenderStates[name] = QPair<float, RenderState>(distance, buildRenderState(renderStateMap));
+                }
+            }
+        }
+    }
+
+    return DependencyManager::get<LaserPointerManager>()->createLaserPointer(propertyMap, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, enabled);
 }
 
 void LaserPointerScriptingInterface::editRenderState(QUuid uid, const QString& renderState, const QVariant& properties) {

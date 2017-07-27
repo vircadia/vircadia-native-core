@@ -25,8 +25,8 @@ class LaserPointerManager : public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    QUuid createLaserPointer(const QVariantMap& rayProps, const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY,
-        const bool lockEnd, const bool enabled);
+    QUuid createLaserPointer(const QVariantMap& rayProps, const QHash<QString, RenderState>& renderStates, QHash<QString, QPair<float, RenderState>>& defaultRenderStates,
+        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled);
     void removeLaserPointer(const QUuid uid);
     void enableLaserPointer(const QUuid uid);
     void disableLaserPointer(const QUuid uid);

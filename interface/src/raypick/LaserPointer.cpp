@@ -13,18 +13,25 @@
 #include "Application.h"
 #include "avatar/AvatarManager.h"
 
-LaserPointer::LaserPointer(const QVariantMap& rayProps, const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) :
+LaserPointer::LaserPointer(const QVariantMap& rayProps, const QHash<QString, RenderState>& renderStates, QHash<QString, QPair<float, RenderState>>& defaultRenderStates,
+        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) :
     _renderingEnabled(enabled),
     _renderStates(renderStates),
+    _defaultRenderStates(defaultRenderStates),
     _faceAvatar(faceAvatar),
     _centerEndY(centerEndY),
     _lockEnd(lockEnd)
 {
     _rayPickUID = DependencyManager::get<RayPickManager>()->createRayPick(rayProps);
 
-    for (auto& state : _renderStates.keys()) {
+    for (QString& state : _renderStates.keys()) {
         if (!enabled || state != _currentRenderState) {
-            disableRenderState(state);
+            disableRenderState(_renderStates[state]);
+        }
+    }
+    for (QString& state : _defaultRenderStates.keys()) {
+        if (!enabled || state != _currentRenderState) {
+            disableRenderState(_defaultRenderStates[state].second);
         }
     }
 }
@@ -42,6 +49,17 @@ LaserPointer::~LaserPointer() {
             qApp->getOverlays().deleteOverlay(renderState.getEndID());
         }
     }
+    for (QPair<float, RenderState>& renderState : _defaultRenderStates) {
+        if (!renderState.second.getStartID().isNull()) {
+            qApp->getOverlays().deleteOverlay(renderState.second.getStartID());
+        }
+        if (!renderState.second.getPathID().isNull()) {
+            qApp->getOverlays().deleteOverlay(renderState.second.getPathID());
+        }
+        if (!renderState.second.getEndID().isNull()) {
+            qApp->getOverlays().deleteOverlay(renderState.second.getEndID());
+        }
+    }
 }
 
 void LaserPointer::enable() {
@@ -52,14 +70,24 @@ void LaserPointer::enable() {
 void LaserPointer::disable() {
     DependencyManager::get<RayPickManager>()->disableRayPick(_rayPickUID);
     _renderingEnabled = false;
-    if (!_currentRenderState.isEmpty() && _renderStates.contains(_currentRenderState)) {
-        disableRenderState(_currentRenderState);
+    if (!_currentRenderState.isEmpty()) {
+        if (_renderStates.contains(_currentRenderState)) {
+            disableRenderState(_renderStates[_currentRenderState]);
+        }
+        if (_defaultRenderStates.contains(_currentRenderState)) {
+            disableRenderState(_defaultRenderStates[_currentRenderState].second);
+        }
     }
 }
 
 void LaserPointer::setRenderState(const QString& state) {
-    if (!_currentRenderState.isEmpty() && _renderStates.contains(_currentRenderState)) {
-        disableRenderState(_currentRenderState);
+    if (!_currentRenderState.isEmpty()) {
+        if (_renderStates.contains(_currentRenderState)) {
+            disableRenderState(_renderStates[_currentRenderState]);
+        }
+        if (_defaultRenderStates.contains(_currentRenderState)) {
+            disableRenderState(_defaultRenderStates[_currentRenderState].second);
+        }
     }
     _currentRenderState = state;
 }
@@ -85,77 +113,90 @@ OverlayID LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVar
     return OverlayID();
 }
 
-void LaserPointer::disableRenderState(const QString& renderState) {
-    if (!_renderStates[renderState].getStartID().isNull()) {
+void LaserPointer::updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const bool defaultState) {
+    PickRay pickRay = DependencyManager::get<RayPickManager>()->getPickRay(_rayPickUID);
+    if (!renderState.getStartID().isNull()) {
+        QVariantMap startProps;
+        startProps.insert("position", vec3toVariant(pickRay.origin));
+        startProps.insert("visible", true);
+        startProps.insert("ignoreRayIntersection", renderState.doesStartIgnoreRays());
+        qApp->getOverlays().editOverlay(renderState.getStartID(), startProps);
+    }
+    glm::vec3 endVec;
+    if (defaultState || !_lockEnd || type == IntersectionType::HUD) {
+        endVec = pickRay.origin + pickRay.direction * distance;
+    }
+    else {
+        if (type == IntersectionType::ENTITY) {
+            endVec = DependencyManager::get<EntityScriptingInterface>()->getEntityTransform(objectID)[3];
+        }
+        else if (type == IntersectionType::OVERLAY) {
+            endVec = vec3FromVariant(qApp->getOverlays().getProperty(objectID, "position").value);
+        }
+        else if (type == IntersectionType::AVATAR) {
+            endVec = DependencyManager::get<AvatarHashMap>()->getAvatar(objectID)->getPosition();
+        }
+    }
+    QVariant end = vec3toVariant(endVec);
+    if (!renderState.getPathID().isNull()) {
+        QVariantMap pathProps;
+        pathProps.insert("start", vec3toVariant(pickRay.origin));
+        pathProps.insert("end", end);
+        pathProps.insert("visible", true);
+        pathProps.insert("ignoreRayIntersection", renderState.doesPathIgnoreRays());
+        qApp->getOverlays().editOverlay(renderState.getPathID(), pathProps);
+    }
+    if (!renderState.getEndID().isNull()) {
+        QVariantMap endProps;
+        if (_centerEndY) {
+            endProps.insert("position", end);
+        }
+        else {
+            glm::vec3 dim = vec3FromVariant(qApp->getOverlays().getProperty(renderState.getEndID(), "dimensions").value);
+            endProps.insert("position", vec3toVariant(endVec + glm::vec3(0, 0.5f * dim.y, 0)));
+        }
+        if (_faceAvatar) {
+            glm::quat rotation = glm::inverse(glm::quat_cast(glm::lookAt(endVec, DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), Vectors::UP)));
+            endProps.insert("rotation", quatToVariant(glm::quat(glm::radians(glm::vec3(0, glm::degrees(safeEulerAngles(rotation)).y, 0)))));
+        }
+        endProps.insert("visible", true);
+        endProps.insert("ignoreRayIntersection", renderState.doesEndIgnoreRays());
+        qApp->getOverlays().editOverlay(renderState.getEndID(), endProps);
+    }
+}
+
+void LaserPointer::disableRenderState(const RenderState& renderState) {
+    if (!renderState.getStartID().isNull()) {
         QVariantMap startProps;
         startProps.insert("visible", false);
         startProps.insert("ignoreRayIntersection", true);
-        qApp->getOverlays().editOverlay(_renderStates[renderState].getStartID(), startProps);
+        qApp->getOverlays().editOverlay(renderState.getStartID(), startProps);
     }
-    if (!_renderStates[renderState].getPathID().isNull()) {
+    if (!renderState.getPathID().isNull()) {
         QVariantMap pathProps;
         pathProps.insert("visible", false);
         pathProps.insert("ignoreRayIntersection", true);
-        qApp->getOverlays().editOverlay(_renderStates[renderState].getPathID(), pathProps);
+        qApp->getOverlays().editOverlay(renderState.getPathID(), pathProps);
     }
-    if (!_renderStates[renderState].getEndID().isNull()) {
+    if (!renderState.getEndID().isNull()) {
         QVariantMap endProps;
         endProps.insert("visible", false);
         endProps.insert("ignoreRayIntersection", true);
-        qApp->getOverlays().editOverlay(_renderStates[renderState].getEndID(), endProps);
+        qApp->getOverlays().editOverlay(renderState.getEndID(), endProps);
     }
 }
 
 void LaserPointer::update() {
     RayPickResult prevRayPickResult = DependencyManager::get<RayPickManager>()->getPrevRayPickResult(_rayPickUID);
     if (_renderingEnabled && !_currentRenderState.isEmpty() && _renderStates.contains(_currentRenderState) && prevRayPickResult.type != IntersectionType::NONE) {
-        PickRay pickRay = DependencyManager::get<RayPickManager>()->getPickRay(_rayPickUID);
-        if (!_renderStates[_currentRenderState].getStartID().isNull()) {
-            QVariantMap startProps;
-            startProps.insert("position", vec3toVariant(pickRay.origin));
-            startProps.insert("visible", true);
-            startProps.insert("ignoreRayIntersection", _renderStates[_currentRenderState].doesStartIgnoreRays());
-            qApp->getOverlays().editOverlay(_renderStates[_currentRenderState].getStartID(), startProps);
-        }
-        glm::vec3 endVec;
-        if (!_lockEnd || prevRayPickResult.type == IntersectionType::HUD) {
-            endVec = pickRay.origin + pickRay.direction * prevRayPickResult.distance;
-        } else {
-            if (prevRayPickResult.type == IntersectionType::ENTITY) {
-                endVec = DependencyManager::get<EntityScriptingInterface>()->getEntityTransform(prevRayPickResult.objectID)[3];
-            } else if (prevRayPickResult.type == IntersectionType::OVERLAY) {
-                endVec = vec3FromVariant(qApp->getOverlays().getProperty(prevRayPickResult.objectID, "position").value);
-            } else if (prevRayPickResult.type == IntersectionType::AVATAR) {
-                endVec = DependencyManager::get<AvatarHashMap>()->getAvatar(prevRayPickResult.objectID)->getPosition();
-            }
-        }
-        QVariant end = vec3toVariant(endVec);
-        if (!_renderStates[_currentRenderState].getPathID().isNull()) {
-            QVariantMap pathProps;
-            pathProps.insert("start", vec3toVariant(pickRay.origin));
-            pathProps.insert("end", end);
-            pathProps.insert("visible", true);
-            pathProps.insert("ignoreRayIntersection", _renderStates[_currentRenderState].doesPathIgnoreRays());
-            qApp->getOverlays().editOverlay(_renderStates[_currentRenderState].getPathID(), pathProps);
-        }
-        if (!_renderStates[_currentRenderState].getEndID().isNull()) {
-            QVariantMap endProps;
-            if (_centerEndY) {
-                endProps.insert("position", end);
-            } else {
-                glm::vec3 dim = vec3FromVariant(qApp->getOverlays().getProperty(_renderStates[_currentRenderState].getEndID(), "dimensions").value);
-                endProps.insert("position", vec3toVariant(endVec + glm::vec3(0, 0.5f * dim.y, 0)));
-            }
-            if (_faceAvatar) {
-                glm::quat rotation = glm::inverse(glm::quat_cast(glm::lookAt(endVec, DependencyManager::get<AvatarManager>()->getMyAvatar()->getPosition(), Vectors::UP)));
-                endProps.insert("rotation", quatToVariant(glm::quat(glm::radians(glm::vec3(0, glm::degrees(safeEulerAngles(rotation)).y, 0)))));
-            }
-            endProps.insert("visible", true);
-            endProps.insert("ignoreRayIntersection", _renderStates[_currentRenderState].doesEndIgnoreRays());
-            qApp->getOverlays().editOverlay(_renderStates[_currentRenderState].getEndID(), endProps);
-        }
-    } else {
-        disableRenderState(_currentRenderState);
+        updateRenderState(_renderStates[_currentRenderState], prevRayPickResult.type, prevRayPickResult.distance, prevRayPickResult.objectID, false);
+        disableRenderState(_defaultRenderStates[_currentRenderState].second);
+    } else if (_renderingEnabled && !_currentRenderState.isEmpty() && _defaultRenderStates.contains(_currentRenderState)) {
+        disableRenderState(_renderStates[_currentRenderState]);
+        updateRenderState(_defaultRenderStates[_currentRenderState].second, IntersectionType::NONE, _defaultRenderStates[_currentRenderState].first, QUuid(), true);
+    } else if (!_currentRenderState.isEmpty()) {
+        disableRenderState(_renderStates[_currentRenderState]);
+        disableRenderState(_defaultRenderStates[_currentRenderState].second);
     }
 }
 

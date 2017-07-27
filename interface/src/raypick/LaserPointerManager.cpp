@@ -12,9 +12,9 @@
 #include "LaserPointer.h"
 #include "RayPick.h"
 
-QUuid LaserPointerManager::createLaserPointer(const QVariantMap& rayProps, const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY,
-        const bool lockEnd, const bool enabled) {
-    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(rayProps, renderStates, faceAvatar, centerEndY, lockEnd, enabled);
+QUuid LaserPointerManager::createLaserPointer(const QVariantMap& rayProps, const QHash<QString, RenderState>& renderStates, QHash<QString, QPair<float, RenderState>>& defaultRenderStates,
+    const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) {
+    std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(rayProps, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, enabled);
     if (laserPointer->getRayUID() != 0) {
         QWriteLocker lock(&_addLock);
         QUuid id = QUuid::createUuid();

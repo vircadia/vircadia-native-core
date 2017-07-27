@@ -105,6 +105,9 @@ var teleportRenderStates = [{name: "cancel", path: cancelPath, end: cancelEnd},
                             {name: "teleport", path: teleportPath, end: teleportEnd},
                             {name: "seat", path: seatPath, end: seatEnd}];
 
+var DEFAULT_DISTANCE = 50;
+var teleportDefaultRenderStates = [{name: "cancel", distance: DEFAULT_DISTANCE, path: cancelPath}];
+
 function ThumbPad(hand) {
     this.hand = hand;
     var _thisPad = this;
@@ -157,7 +160,8 @@ function Teleporter() {
         filter: RayPick.PICK_ENTITIES,
         faceAvatar: true,
         centerEndY: false,
-        renderStates: teleportRenderStates
+        renderStates: teleportRenderStates,
+        defaultRenderStates: teleportDefaultRenderStates
     });
     this.teleportRayLeftInvisible = LaserPointers.createLaserPointer({
         joint: "LeftHand",
@@ -171,7 +175,8 @@ function Teleporter() {
         filter: RayPick.PICK_ENTITIES,
         faceAvatar: true,
         centerEndY: false,
-        renderStates: teleportRenderStates
+        renderStates: teleportRenderStates,
+        defaultRenderStates: teleportDefaultRenderStates
     });
     this.teleportRayRightInvisible = LaserPointers.createLaserPointer({
         joint: "RightHand",
@@ -186,7 +191,8 @@ function Teleporter() {
         filter: RayPick.PICK_ENTITIES,
         faceAvatar: true,
         centerEndY: false,
-        renderStates: teleportRenderStates
+        renderStates: teleportRenderStates,
+        defaultRenderStates: teleportDefaultRenderStates
     });
     this.teleportRayHeadInvisible = LaserPointers.createLaserPointer({
         joint: "Avatar",
@@ -331,7 +337,8 @@ function Teleporter() {
         }
 
         if (teleportLocationType === TARGET.NONE) {
-            this.setTeleportState(mode, "", "");
+            // Use the cancel default state
+            this.setTeleportState(mode, "cancel", "");
         } else if (teleportLocationType === TARGET.INVALID || teleportLocationType === TARGET.INVISIBLE) {
             this.setTeleportState(mode, "", "cancel");
         } else if (teleportLocationType === TARGET.SURFACE) {
@@ -516,13 +523,13 @@ function cleanup() {
 }
 Script.scriptEnding.connect(cleanup);
 
-var setIgnoredEntities = function () {
-    LaserPointers.setIgnoredEntities(teleporter.teleportRayRightVisible, ignoredEntities);
-    LaserPointers.setIgnoredEntities(teleporter.teleportRayRightInvisible, ignoredEntities);
-    LaserPointers.setIgnoredEntities(teleporter.teleportRayLeftVisible, ignoredEntities);
-    LaserPointers.setIgnoredEntities(teleporter.teleportRayLeftInvisible, ignoredEntities);
-    LaserPointers.setIgnoredEntities(teleporter.teleportRayHeadVisible, ignoredEntities);
-    LaserPointers.setIgnoredEntities(teleporter.teleportRayHeadInvisible, ignoredEntities);
+var setIgnoreEntities = function() {
+    LaserPointers.setIgnoreEntities(teleporter.teleportRayRightVisible, ignoredEntities);
+    LaserPointers.setIgnoreEntities(teleporter.teleportRayRightInvisible, ignoredEntities);
+    LaserPointers.setIgnoreEntities(teleporter.teleportRayLeftVisible, ignoredEntities);
+    LaserPointers.setIgnoreEntities(teleporter.teleportRayLeftInvisible, ignoredEntities);
+    LaserPointers.setIgnoreEntities(teleporter.teleportRayHeadVisible, ignoredEntities);
+    LaserPointers.setIgnoreEntities(teleporter.teleportRayHeadInvisible, ignoredEntities);
 }
 
 var isDisabled = false;
@@ -543,12 +550,12 @@ var handleTeleportMessages = function(channel, message, sender) {
             }
         } else if (channel === 'Hifi-Teleport-Ignore-Add' && !Uuid.isNull(message) && ignoredEntities.indexOf(message) === -1) {
             ignoredEntities.push(message);
-            setIgnoredEntities();
+            setIgnoreEntities();
         } else if (channel === 'Hifi-Teleport-Ignore-Remove' && !Uuid.isNull(message)) {
             var removeIndex = ignoredEntities.indexOf(message);
             if (removeIndex > -1) {
                 ignoredEntities.splice(removeIndex, 1);
-                setIgnoredEntities();
+                setIgnoreEntities();
             }
         }
     }

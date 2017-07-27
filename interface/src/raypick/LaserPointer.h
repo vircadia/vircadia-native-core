@@ -26,15 +26,15 @@ public:
     RenderState() {}
     RenderState(const OverlayID& startID, const OverlayID& pathID, const OverlayID& endID);
 
-    const OverlayID& getStartID() { return _startID; }
-    const OverlayID& getPathID() { return _pathID; }
-    const OverlayID& getEndID() { return _endID; }
+    const OverlayID& getStartID() const { return _startID; }
+    const OverlayID& getPathID() const { return _pathID; }
+    const OverlayID& getEndID() const { return _endID; }
     void setStartID(const OverlayID& startID) { _startID = startID; }
     void setPathID(const OverlayID& pathID) { _pathID = pathID; }
     void setEndID(const OverlayID& endID) { _endID = endID; }
-    const bool& doesStartIgnoreRays() { return _startIgnoreRays; }
-    const bool& doesPathIgnoreRays() { return _pathIgnoreRays; }
-    const bool& doesEndIgnoreRays() { return _endIgnoreRays; }
+    const bool& doesStartIgnoreRays() const { return _startIgnoreRays; }
+    const bool& doesPathIgnoreRays() const { return _pathIgnoreRays; }
+    const bool& doesEndIgnoreRays() const { return _endIgnoreRays; }
 
 private:
     OverlayID _startID;
@@ -49,8 +49,8 @@ private:
 class LaserPointer {
 
 public:
-    LaserPointer(const QVariantMap& rayProps, const QHash<QString, RenderState>& renderStates, const bool faceAvatar, const bool centerEndY,
-        const bool lockEnd, const bool enabled);
+    LaserPointer(const QVariantMap& rayProps, const QHash<QString, RenderState>& renderStates, QHash<QString, QPair<float, RenderState>>& defaultRenderStates,
+        const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled);
     ~LaserPointer();
 
     QUuid getRayUID() { return _rayPickUID; }
@@ -74,6 +74,7 @@ private:
     bool _renderingEnabled;
     QString _currentRenderState { "" };
     QHash<QString, RenderState> _renderStates;
+    QHash<QString, QPair<float, RenderState>> _defaultRenderStates;
     bool _faceAvatar;
     bool _centerEndY;
     bool _lockEnd;
@@ -81,7 +82,8 @@ private:
     QUuid _rayPickUID;
 
     OverlayID updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
-    void disableRenderState(const QString& renderState);
+    void updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const bool defaultState);
+    void disableRenderState(const RenderState& renderState);
 };
 
 #endif // hifi_LaserPointer_h
