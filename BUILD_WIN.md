@@ -75,14 +75,6 @@ For any problems after Step #6, first try this:
 
 Remove `CMakeCache.txt` found in the `%HIFI_DIR%\build` directory.
 
-#### nmake cannot be found
-
-Make sure nmake.exe is located at the following path:
-
-    C:\Program Files (x86)\Microsoft Visual Studio 12.0\VC\bin
-    
-If not, add the directory where nmake is located to the PATH environment variable.
-
 #### Qt is throwing an error
 
 Make sure you have the correct version (5.9.1) installed and `QT_CMAKE_PREFIX_PATH` environment variable is set correctly.
