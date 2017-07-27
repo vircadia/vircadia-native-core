@@ -89,8 +89,14 @@
 
             intersection = {};
 
+
+        if (!this instanceof Inputs) {
+            return new Inputs();
+        }
+
         hand = new Hand(side);
         laser = new Laser(side);
+
 
         function setUIEntities(entityIDs) {
             laser.setUIEntities(entityIDs);
@@ -139,15 +145,11 @@
             }
         }
 
-        if (!this instanceof Inputs) {
-            return new Inputs();
-        }
-
         return {
             setUIEntities: setUIEntities,
             hand: getHand,
             laser: getLaser,
-            getIntersection: getIntersection,
+            intersection: getIntersection,
             update: update,
             clear: clear,
             destroy: destroy
@@ -155,35 +157,29 @@
     };
 
 
-    UI = function (side, setAppScaleWithHandlesCallback) {
+    UI = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallback) {
         // Tool menu and Create palette.
 
         var // Primary objects.
             toolMenu,
 
-            // References.
-            leftInputs,
-            rightInputs,
-
             isDisplaying = false,
 
-            getIntersection,  // Function.
-            intersection;
-
-        toolMenu = new ToolMenu(side, setAppScaleWithHandlesCallback);
+            getIntersection;  // Function.
 
 
-        function setReferences(left, right) {
-            leftInputs = left;
-            rightInputs = right;
-            getIntersection = side === LEFT_HAND ? rightInputs.getIntersection : leftInputs.getIntersection;
-
-            toolMenu.setReferences(left, right);
+        if (!this instanceof UI) {
+            return new UI();
         }
+
+        toolMenu = new ToolMenu(side, leftInputs, rightInputs, setAppScaleWithHandlesCallback);
+
+        getIntersection = side === LEFT_HAND ? rightInputs.intersection : leftInputs.intersection;
+
 
         function setHand(side) {
             toolMenu.setHand(side);
-            getIntersection = side === LEFT_HAND ? rightInputs.getIntersection : leftInputs.getIntersection;
+            getIntersection = side === LEFT_HAND ? rightInputs.intersection : leftInputs.intersection;
         }
 
         function display() {
@@ -191,17 +187,16 @@
 
             toolMenu.display();
 
-            uiEntityIDs = toolMenu.getEntityIDs();
-            leftInputs.setUIEntities(uiEntityIDs);
-            rightInputs.setUIEntities(uiEntityIDs);
+            uiEntityIDs = toolMenu.entityIDs();
+            leftInputs.setUIEntities(side === RIGHT_HAND ? uiEntityIDs : []);
+            rightInputs.setUIEntities(side === LEFT_HAND ? uiEntityIDs : []);
 
             isDisplaying = true;
         }
 
         function update() {
             if (isDisplaying) {
-                intersection = getIntersection();
-                toolMenu.update(intersection.overlayID);
+                toolMenu.update(getIntersection().overlayID);
             }
         }
 
@@ -220,12 +215,7 @@
             }
         }
 
-        if (!this instanceof UI) {
-            return new UI();
-        }
-
         return {
-            setReferences: setReferences,
             setHand: setHand,
             display: display,
             update: update,
@@ -238,7 +228,16 @@
     Editor = function (side) {
         // An entity selection, entity highlights, and entity handles.
 
-        var otherEditor,  // Other hand's Editor object.
+        var
+            // Primary objects.
+            selection,
+            highlights,
+            handles,
+
+            // References.
+            otherEditor,  // Other hand's Editor object.
+            hand,
+            laser,
 
             // Editor states.
             EDITOR_IDLE = 0,
@@ -257,15 +256,6 @@
             wasAppScaleWithHandles = false,
             isOtherEditorEditingEntityID = false,
             hoveredOverlayID = null,
-
-            // Primary objects.
-            selection,
-            highlights,
-            handles,
-
-            // Input objects.
-            hand,
-            laser,
 
             // Position values.
             initialHandOrientationInverse,
@@ -293,6 +283,11 @@
             getIntersection,  // Function.
             intersection;
 
+
+        if (!this instanceof Editor) {
+            return new Editor();
+        }
+
         selection = new Selection(side);
         highlights = new Highlights(side);
         handles = new Handles(side);
@@ -300,11 +295,12 @@
         function setReferences(inputs, editor) {
             hand = inputs.hand();  // Object.
             laser = inputs.laser();  // Object.
-            getIntersection = inputs.getIntersection;  // Function.
+            getIntersection = inputs.intersection;  // Function.
             otherEditor = editor;  // Object.
 
             laserOffset = laser.handOffset();  // Value.
         }
+
 
         function hoverHandle(overlayID) {
             // Highlights handle if overlayID is a handle, otherwise unhighlights currently highlighted handle if any.
@@ -911,10 +907,6 @@
             }
         }
 
-        if (!this instanceof Editor) {
-            return new Editor();
-        }
-
         return {
             setReferences: setReferences,
             hoverHandle: hoverHandle,
@@ -1029,8 +1021,7 @@
         inputs[RIGHT_HAND] = new Inputs(RIGHT_HAND);
 
         // UI object.
-        ui = new UI(otherHand(dominantHand), setAppScaleWithHandles);
-        ui.setReferences(inputs[LEFT_HAND], inputs[RIGHT_HAND]);
+        ui = new UI(otherHand(dominantHand), inputs[LEFT_HAND], inputs[RIGHT_HAND], setAppScaleWithHandles);
 
         // Editor objects.
         editors[LEFT_HAND] = new Editor(LEFT_HAND);

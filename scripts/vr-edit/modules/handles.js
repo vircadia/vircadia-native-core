@@ -49,6 +49,10 @@ Handles = function (side) {
 
         i;
 
+    if (!this instanceof Handles) {
+        return new Handles(side);
+    }
+
     CORNER_HANDLE_OVERLAY_AXES = [
         // Ordered such that items 4 apart are opposite corners - used in display().
         { x: -0.5, y: -0.5, z: -0.5 },
@@ -348,10 +352,6 @@ Handles = function (side) {
     function destroy() {
         clear();
         Overlays.deleteOverlay(boundingBoxOverlay);
-    }
-
-    if (!this instanceof Handles) {
-        return new Handles(side);
     }
 
     return {

@@ -32,7 +32,7 @@ Laser = function (side) {
         COLORS_GRAB_SEARCHING_FULL_SQUEEZE = { red: 250, green: 10, blue: 10 },  // Per handControllgerGrab.js.
         COLORS_GRAB_SEARCHING_HALF_SQUEEZE_BRIGHT,
         COLORS_GRAB_SEARCHING_FULL_SQUEEZE_BRIGHT,
-        BRIGHT_POW = 0.06,  // Per handControllgerGrab.js.
+        BRIGHT_POW = 0.06,  // Per handControllerGrab.js.
 
         GRAB_POINT_SPHERE_OFFSET = { x: 0.04, y: 0.13, z: 0.039 },  // Per HmdDisplayPlugin.cpp and controllers.js.
 
@@ -51,6 +51,10 @@ Laser = function (side) {
         uiEntityIDs = [],
 
         intersection;
+
+    if (!this instanceof Laser) {
+        return new Laser(side);
+    }
 
     function colorPow(color, power) {  // Per handControllerGrab.js.
         return {
@@ -254,10 +258,6 @@ Laser = function (side) {
     function destroy() {
         Overlays.deleteOverlay(laserLine);
         Overlays.deleteOverlay(laserSphere);
-    }
-
-    if (!this instanceof Laser) {
-        return new Laser(side);
     }
 
     return {

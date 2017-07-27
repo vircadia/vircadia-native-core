@@ -42,6 +42,10 @@ Hand = function (side) {
 
         intersection = {};
 
+    if (!this instanceof Hand) {
+        return new Hand(side);
+    }
+
     if (side === LEFT_HAND) {
         handController = Controller.Standard.LeftHand;
         controllerTrigger = Controller.Standard.LT;
@@ -181,10 +185,6 @@ Hand = function (side) {
 
     function destroy() {
         // Nothing to do.
-    }
-
-    if (!this instanceof Hand) {
-        return new Hand(side);
     }
 
     return {

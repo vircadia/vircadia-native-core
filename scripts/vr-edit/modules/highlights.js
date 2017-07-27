@@ -27,6 +27,10 @@ Highlights = function (side) {
         AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
         ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO);
 
+    if (!this instanceof Highlights) {
+        return new Highlights();
+    }
+
     handOverlay = Overlays.addOverlay("sphere", {
         dimensions: HAND_HIGHLIGHT_DIMENSIONS,
         parentID: AVATAR_SELF_ID,
@@ -107,10 +111,6 @@ Highlights = function (side) {
     function destroy() {
         clear();
         Overlays.deleteOverlay(handOverlay);
-    }
-
-    if (!this instanceof Highlights) {
-        return new Highlights();
     }
 
     return {

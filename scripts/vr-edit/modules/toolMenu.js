@@ -10,7 +10,7 @@
 
 /* global ToolMenu */
 
-ToolMenu = function (side, setAppScaleWithHandlesCallback) {
+ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallback) {
     // Tool menu displayed on top of forearm.
 
     "use strict";
@@ -89,15 +89,14 @@ ToolMenu = function (side, setAppScaleWithHandlesCallback) {
         isButtonPressed = false,
 
         // References.
-        leftInputs,
-        rightInputs,
         controlHand;
 
-    function setReferences(left, right) {
-        leftInputs = left;
-        rightInputs = right;
-        controlHand = side === LEFT_HAND ? rightInputs.hand() : leftInputs.hand();
+
+    if (!this instanceof ToolMenu) {
+        return new ToolMenu();
     }
+
+    controlHand = side === LEFT_HAND ? rightInputs.hand() : leftInputs.hand();
 
     function setHand(uiSide) {
         side = uiSide;
@@ -190,14 +189,9 @@ ToolMenu = function (side, setAppScaleWithHandlesCallback) {
         clear();
     }
 
-    if (!this instanceof ToolMenu) {
-        return new ToolMenu();
-    }
-
     return {
-        setReferences: setReferences,
         setHand: setHand,
-        getEntityIDs: getEntityIDs,
+        entityIDs: getEntityIDs,
         update: update,
         display: display,
         clear: clear,

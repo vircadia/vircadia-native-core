@@ -25,6 +25,10 @@ Selection = function (side) {
         scaleRootOrientation,
         ENTITY_TYPE = "entity";
 
+    if (!this instanceof Selection) {
+        return new Selection(side);
+    }
+
     function traverseEntityTree(id, result) {
         // Recursively traverses tree of entities and their children, gather IDs and properties.
         var children,
@@ -305,10 +309,6 @@ Selection = function (side) {
 
     function destroy() {
         clear();
-    }
-
-    if (!this instanceof Selection) {
-        return new Selection(side);
     }
 
     return {
