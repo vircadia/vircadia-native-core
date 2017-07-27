@@ -74,7 +74,7 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
 
         BUTTON_HIGHLIGHT_PROPERTIES = {
             dimensions: { x: 0.034, y: 0.034, z: 0.001 },
-            localPosition: { x: 0, y: 0, z: -0.002 },
+            localPosition: { x: 0.02, y: 0.02, z: -0.002 },
             localRotation: ZERO_ROTATION,
             color: { red: 240, green: 240, blue: 0 },
             alpha: 0.8,
@@ -125,9 +125,14 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
             if (isButtonPressed) {
                 scaleMode = scaleMode === SCALE_MODE_DIRECT ? SCALE_MODE_HANDLES : SCALE_MODE_DIRECT;
                 Overlays.editOverlay(buttonOverlay, {
-                    color: scaleMode === SCALE_MODE_DIRECT ? SCALE_MODE_DIRECT_COLOR : SCALE_MODE_HANDLES_COLOR
+                    color: scaleMode === SCALE_MODE_DIRECT ? SCALE_MODE_DIRECT_COLOR : SCALE_MODE_HANDLES_COLOR,
+                    localPosition: Vec3.sum(BUTTON_PROPERTIES.localPosition, { x: 0, y: 0, z: 0.004 })
                 });
                 setAppScaleWithHandlesCallback(scaleMode === SCALE_MODE_HANDLES);
+            } else {
+                Overlays.editOverlay(buttonOverlay, {
+                    localPosition: BUTTON_PROPERTIES.localPosition
+                });
             }
         }
     }
@@ -160,7 +165,7 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
         buttonOverlay = Overlays.addOverlay("cube", BUTTON_PROPERTIES);
 
         // Prepare highlight overlay.
-        BUTTON_HIGHLIGHT_PROPERTIES.parentID = buttonOverlay;
+        BUTTON_HIGHLIGHT_PROPERTIES.parentID = originOverlay;
         buttonHighlightOverlay = Overlays.addOverlay("cube", BUTTON_HIGHLIGHT_PROPERTIES);
 
         isDisplaying = true;
