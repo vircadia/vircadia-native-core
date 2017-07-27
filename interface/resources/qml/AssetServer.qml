@@ -334,7 +334,7 @@ ScrollingWindow {
             defaultButton: OriginalDialogs.StandardButton.Yes,
             title: "Delete",
             text: modalMessage
-            });
+        });
         object.selected.connect(function(button) {
             if (button === OriginalDialogs.StandardButton.Yes) {
                 doDeleteFile(path);
