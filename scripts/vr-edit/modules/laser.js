@@ -180,14 +180,10 @@ Laser = function (side) {
 
             } else {
 
-                // Special hovering of UI.
-                intersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, NO_INCLUDE_IDS, NO_EXCLUDE_IDS,
-                    VISIBLE_ONLY);  // Check for overlay intersections in case they occlude the UI entities.
-                if (!intersection.intersects) {
-                    intersection = Entities.findRayIntersection(pickRay, PRECISION_PICKING, uiEntityIDs, NO_EXCLUDE_IDS,
-                        VISIBLE_ONLY);
-                }
-                if (intersection.intersects && intersection.entityID) {
+                // Special UI cursor.
+                intersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, uiEntityIDs, NO_EXCLUDE_IDS,
+                    VISIBLE_ONLY);
+                if (intersection.intersects) {
                     intersection.laserIntersected = true;
                     laserLength = (specifiedLaserLength !== null)
                         ? specifiedLaserLength

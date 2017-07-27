@@ -201,7 +201,7 @@
         function update() {
             if (isDisplaying) {
                 intersection = getIntersection();
-                toolMenu.update(intersection.entityID);
+                toolMenu.update(intersection.overlayID);
             }
         }
 

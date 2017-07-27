@@ -21,8 +21,9 @@ ToolMenu = function (side, setAppScaleWithHandlesCallback) {
         SCALE_MODE_DIRECT_COLOR = { red: 240, green: 240, blue: 0 },
         SCALE_MODE_HANDLES_COLOR = { red: 0, green: 240, blue: 240 },
 
-        panelEntity,
-        buttonEntity,
+        originOverlay,
+        panelOverlay,
+        buttonOverlay,
         buttonHighlightOverlay,
 
         LEFT_HAND = 0,
@@ -39,35 +40,44 @@ ToolMenu = function (side, setAppScaleWithHandlesCallback) {
 
         ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO),
 
-        PANEL_ENTITY_PROPERTIES = {
-            type: "Box",
-            dimensions: { x: 0.1, y: 0.2, z: 0.01 },
-            color: { red: 192, green: 192, blue: 192 },
+        ORIGIN_PROPERTIES = {
+            dimensions: { x: 0.005, y: 0.005, z: 0.005 },
+            color: { red: 255, blue: 0, green: 0 },
+            alpha: 1.0,
             parentID: AVATAR_SELF_ID,
-            registrationPoint: { x: 0, y: 0.0, z: 0.0 },
             localRotation: ROOT_ROTATION,
+            ignoreRayIntersection: true,
+            visible: false
+        },
+
+        PANEL_PROPERTIES = {
+            dimensions: { x: 0.1, y: 0.2, z: 0.01 },
+            localPosition: { x: 0.05, y: 0.1, z: 0.005 },
+            localRotation: ZERO_ROTATION,
+            color: { red: 192, green: 192, blue: 192 },
+            alpha: 1.0,
+            solid: true,
             ignoreRayIntersection: false,
-            lifetime: 3600,
             visible: true
         },
 
-        BUTTON_ENTITY_PROPERTIES = {
-            type: "Box",
+        BUTTON_PROPERTIES = {
             dimensions: { x: 0.03, y: 0.03, z: 0.01 },
-            registrationPoint: { x: 0, y: 0.0, z: 0.0 },
-            localPosition: { x: 0.005, y: 0.005, z: -0.005 },  // Relative to the root panel entity.
+            localPosition: { x: 0.02, y: 0.02, z: 0.0 },
+            localRotation: ZERO_ROTATION,
             color: scaleMode === SCALE_MODE_DIRECT ? SCALE_MODE_DIRECT_COLOR : SCALE_MODE_HANDLES_COLOR,
+            alpha: 1.0,
+            solid: true,
             ignoreRayIntersection: false,
-            lifetime: 3600,
             visible: true
         },
 
         BUTTON_HIGHLIGHT_PROPERTIES = {
             dimensions: { x: 0.034, y: 0.034, z: 0.001 },
+            localPosition: { x: 0, y: 0, z: -0.002 },
+            localRotation: ZERO_ROTATION,
             color: { red: 240, green: 240, blue: 0 },
             alpha: 0.8,
-            localPosition: { x: 0.0155, y: 0.0155, z: 0.003 },
-            localRotation: ZERO_ROTATION,
             solid: false,
             drawInFront: true,
             ignoreRayIntersection: true,
@@ -99,12 +109,12 @@ ToolMenu = function (side, setAppScaleWithHandlesCallback) {
     }
 
     function getEntityIDs() {
-        return [panelEntity, buttonEntity];
+        return [panelOverlay, buttonOverlay];
     }
 
-    function update(intersectionEntityID) {
+    function update(intersectionOverlayID) {
         // Highlight button.
-        if (intersectionEntityID === buttonEntity !== isHighlightingButton) {
+        if (intersectionOverlayID === buttonOverlay !== isHighlightingButton) {
             isHighlightingButton = !isHighlightingButton;
             Overlays.editOverlay(buttonHighlightOverlay, { visible: isHighlightingButton });
         }
@@ -115,7 +125,7 @@ ToolMenu = function (side, setAppScaleWithHandlesCallback) {
 
             if (isButtonPressed) {
                 scaleMode = scaleMode === SCALE_MODE_DIRECT ? SCALE_MODE_HANDLES : SCALE_MODE_DIRECT;
-                Entities.editEntity(buttonEntity, {
+                Overlays.editOverlay(buttonOverlay, {
                     color: scaleMode === SCALE_MODE_DIRECT ? SCALE_MODE_DIRECT_COLOR : SCALE_MODE_HANDLES_COLOR
                 });
                 setAppScaleWithHandlesCallback(scaleMode === SCALE_MODE_HANDLES);
@@ -147,16 +157,18 @@ ToolMenu = function (side, setAppScaleWithHandlesCallback) {
         // Calculate position to put menu.
         forearmLength = Vec3.distance(MyAvatar.getJointPosition(forearmJointIndex), MyAvatar.getJointPosition(handJointIndex));
         rootOffset = { x: ROOT_X_OFFSET, y: forearmLength, z: ROOT_Z_OFFSET };
-        PANEL_ENTITY_PROPERTIES.parentJointIndex = forearmJointIndex;
-        PANEL_ENTITY_PROPERTIES.localPosition = rootOffset;
+        ORIGIN_PROPERTIES.parentJointIndex = forearmJointIndex;
+        ORIGIN_PROPERTIES.localPosition = rootOffset;
+        originOverlay = Overlays.addOverlay("sphere", ORIGIN_PROPERTIES);
 
         // Create menu items.
-        panelEntity = Entities.addEntity(PANEL_ENTITY_PROPERTIES, true);
-        BUTTON_ENTITY_PROPERTIES.parentID = panelEntity;
-        buttonEntity = Entities.addEntity(BUTTON_ENTITY_PROPERTIES, true);
+        PANEL_PROPERTIES.parentID = originOverlay;
+        panelOverlay = Overlays.addOverlay("cube", PANEL_PROPERTIES);
+        BUTTON_PROPERTIES.parentID = originOverlay;
+        buttonOverlay = Overlays.addOverlay("cube", BUTTON_PROPERTIES);
 
         // Prepare highlight overlay.
-        BUTTON_HIGHLIGHT_PROPERTIES.parentID = buttonEntity;
+        BUTTON_HIGHLIGHT_PROPERTIES.parentID = buttonOverlay;
         buttonHighlightOverlay = Overlays.addOverlay("cube", BUTTON_HIGHLIGHT_PROPERTIES);
 
         isDisplaying = true;
@@ -168,8 +180,9 @@ ToolMenu = function (side, setAppScaleWithHandlesCallback) {
             return;
         }
 
-        Entities.deleteEntity(buttonEntity);
-        Entities.deleteEntity(panelEntity);
+        Overlays.deleteOverlay(buttonHighlightOverlay);
+        Overlays.deleteOverlay(buttonOverlay);
+        Overlays.deleteOverlay(panelOverlay);
         isDisplaying = false;
     }
 
