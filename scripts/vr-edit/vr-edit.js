@@ -255,6 +255,7 @@
             highlightedEntityID = null,  // Root entity of highlighted entity set.
             wasAppScaleWithHandles = false,
             isOtherEditorEditingEntityID = false,
+            wasGripPressed = false,
             hoveredOverlayID = null,
 
             // Position values.
@@ -590,6 +591,7 @@
             }
             startEditing();
             wasAppScaleWithHandles = isAppScaleWithHandles;
+            wasGripPressed = hand.gripPressed();
         }
 
         function updateEditorGrabbing() {
@@ -796,6 +798,7 @@
                         updateState();
                         wasAppScaleWithHandles = isAppScaleWithHandles;
                     }
+                    wasGripPressed = false;
                     break;
                 }
                 if (!hand.valid()) {
@@ -808,8 +811,10 @@
                         setState(EDITOR_SEARCHING);
                     }
                 } else if (hand.gripPressed()) {
-                    selection.deleteEntities();
-                    setState(EDITOR_SEARCHING);
+                    if (!wasGripPressed) {
+                        selection.deleteEntities();
+                        setState(EDITOR_SEARCHING);
+                    }
                 } else {
                     debug(side, "ERROR: Unexpected condition in EDITOR_GRABBING!");
                 }
