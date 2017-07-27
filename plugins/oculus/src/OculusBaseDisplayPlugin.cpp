@@ -126,15 +126,17 @@ void OculusBaseDisplayPlugin::internalDeactivate() {
 }
 
 bool OculusBaseDisplayPlugin::activateStandBySession() {
-    _session = acquireOculusSession();
     if (!_session) {
-        return false;
+        _session = acquireOculusSession();
     }
-    return true;
+    return _session;
 }
 void OculusBaseDisplayPlugin::deactivateSession() {
-    releaseOculusSession();
-    _session = nullptr;
+    // FIXME
+    // Switching to Qt 5.9 exposed a race condition or similar issue that caused a crash when putting on an Rift
+    // while already in VR mode.  Commenting these out is a workaround.
+    //releaseOculusSession();
+    //_session = nullptr;
 }
 void OculusBaseDisplayPlugin::updatePresentPose() {
     //mat4 sensorResetMat;
