@@ -1,0 +1,1340 @@
+<!doctype html>
+<html class="tablet-ui">
+  <head>
+    <title>Camera Move</title>
+    <script> VERSION = '0.0.1'; </script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+
+    <!-- hide the page content until fully loaded -->
+    <style>
+      body { background-color: #393939 }
+      .content { display: none }
+    </style>
+
+    <!-- bring in jQuery (MIT) and jQuery UI (MIT) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/themes/base/jquery-ui.css" />
+
+    <!-- bring in Mousetrap (Apache 2.0) for keybinding support -->
+    <script src="https://cdn.jsdelivr.net/g/mousetrap@1.6.1(mousetrap.js+plugins/bind-dictionary/mousetrap-bind-dictionary.min.js+plugins/global-bind/mousetrap-global-bind.min.js)"></script>
+
+    <!-- bring in Tooltipster (MIT) for tooltip support -->
+    <script src="https://cdn.jsdelivr.net/jquery.tooltipster/4.2.5/js/tooltipster.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/g/jquery.tooltipster@4.2.5(css/tooltipster.bundle.min.css+css/plugins/tooltipster/sideTip/themes/tooltipster-sideTip-noir.min.css)">
+
+    <script src='./_debug.js'></script>
+
+    <!-- load our local scripts -->
+    <script type='require' src='./modules/_utils.js'></script>
+    <script type='require' src='./modules/custom-settings-app/browser/BridgedSettings.js'></script>
+    <script type='require' src='./modules/custom-settings-app/browser/JQuerySettings.js'></script>
+    <script type='require'>{
+        signal = _utils.signal;
+        assert = _utils.assert;
+        Object.assign = Object.assign || _utils.assign;
+        browserUtils = new _utils.BrowserUtils(window);
+    }</script>
+    <script type='require' src='./app.js'></script>
+    <script type='require' src='./hifi-jquery-ui.js'></script>
+    <script type='require' src='./_json-persist.js'></script>
+    <script type='require' src='./_tooltips.js'></script>
+    <script type='require' src='./_less-utils.js'></script>
+    <script type='require' src='../app.fileOnErrors.js'></script>
+
+    <script>
+      _debug.loadScriptNodes('script[type=require]');
+    </script>
+
+    <script>;
+try {
+    // Qt web views only show the first parameter passed to console; patch if needed so all parameters show up
+    console = browserUtils.makeConsoleWorkRight(console);
+
+    // display unhandled exceptions in an error div
+    if (/debug|localhost|file:/.test(location) || window.qt) {
+        window.onerror = window._debug ? _debug.handleUncaughtException : null;
+    }
+
+    // process querystring parameters from main client script
+    var PARAMS = browserUtils.extendWithQueryParams({
+        namespace: location.pathname.split('/').pop(),
+        uuid: undefined,
+        debug: false,
+        tooltiptest: false,
+    }, location.href);
+
+    log.prefix = 'html.' + PARAMS.namespace + ' | ';
+    function log(msg) {
+        console.info.apply(console, [log.prefix + msg].concat([].slice.call(arguments,1)));
+    }
+    function _debugPrint(msg) {
+        console.debug.apply(console, [log.prefix + msg].concat([].slice.call(arguments,1)));
+    }
+    var debugPrint = PARAMS.debug ? _debugPrint : function() {};
+
+    $(document).ready(function() {
+        initializeDOM();
+
+        // event bridge intialization
+        debugPrint('document.ready...');
+        if (typeof QWebChannel === 'function') {
+            // Qt/Interface within an embedded web view
+            browserUtils.openEventBridge(onEventBridgeOpened);
+        } else {
+            // Testing in Desktop Chrome
+            _debug.openEventBridgeMock(onEventBridgeOpened);
+        }
+    });
+
+    function onEventBridgeOpened(_eventBridge) {
+        if (!window.EventBridge) {
+            window.EventBridge = _eventBridge;
+        }
+        assert(_eventBridge === window.EventBridge,
+               'ERROR: window.EventBridge materialized spontaneously and differently from the QWebChannel-derived value');
+        log('openEventBridge.opened', window.EventBridge);
+
+        bridgedSettings = new BridgedSettings({
+            namespace: PARAMS.namespace,
+            uuid: PARAMS.uuid,
+            debug: PARAMS.debug,
+            extraParams: { contentVersion: VERSION },
+        });
+        window.addEventListener('unload', bridgedSettings.cleanup.bind(bridgedSettings));
+
+        bridgedSettings.callbackError.connect(function onCallbackError(err, msg)  {
+            console.error(err.stack);
+            throw err;
+        });
+
+        jquerySettings = new JQuerySettings({
+            namespace: PARAMS.namespace,
+            uuid: PARAMS.uuid,
+            debug: PARAMS.debug,
+        });
+
+        debugPrint('>>> SENDING ACK');
+        // let Client script know we are ready
+        bridgedSettings.eventBridge.emitWebEvent(location.href);
+
+        function onValueReceived(key, value, oldValue, origin) {
+            onMutationEvent.paused++;
+            try {
+                //debugPrint('>>> onValueReceived', key, value, origin);
+                jquerySettings.setValue(key, value, origin);
+            } finally {
+                setTimeout(function() { onMutationEvent.paused--; }, 1);
+            }
+        }
+        // keep DOM in sync when Interface changes
+        bridgedSettings.valueReceived.connect(onValueReceived);
+
+        // Object.defineProperty(onMutationEvent, 'paused', {
+        //     enumerable: true,
+        //     get: function() { return this._paused || 0; },
+        //     set: function(nv) { this._paused = nv; log('paused = ' + nv); return nv; },
+        // });
+
+        var THROTTLE_DELAY_MS = 500;
+        function throttledSend(update) {
+            var $hash = [update.params[0], update.method].join('-'); // key-method
+            window.clearTimeout(throttledSend[$hash]);
+            throttledSend[$hash] = window.setTimeout(function() {
+                delete throttledSend[$hash];
+                //debugPrint('>>> throttled mutation event:', $hash, update.method, update.params);
+                bridgedSettings.sendEvent(update);
+            }, THROTTLE_DELAY_MS);
+        }
+
+        onMutationEvent.paused = 1;
+        function onMutationEvent(event) {
+            assert(onMutationEvent.paused >= 0);
+            if (!onMutationEvent.paused) {
+                //debugPrint('>>> mutation event:', event.key, event.value);
+                throttledSend({
+                    method: 'valueUpdated', params: [
+                        event.key, event.value, event.oldValue, event.hifiType
+                    ]
+                });
+            } else {
+                //debugPrint('>> (paused) mutation event:', event.key, event.value);
+            }
+        }
+
+        // unpause the mutation handler after the initial requests complete
+        bridgedSettings.pendingRequestsFinished.connect(function once() {
+            bridgedSettings.pendingRequestsFinished.disconnect(once);
+            onMutationEvent.paused--;
+            // jump to a particular page element if any match with the URL hash fragment
+            window.setTimeout(function() {
+                window.jumpToAnchor(location.hash.split(/[#?&]/g).pop());
+            }, 250);
+        });
+        jquerySettings.mutationEvent.connect(onMutationEvent);
+
+        setupUI();
+
+        window.setTimeout(function() {
+            // wait a tic before showing so initial async settings have time to queue/arrive
+            $('section').show();
+        }, 150);
+    }
+} catch(e) { alert(e) }</script>
+  </head>
+
+  <body class="settings-app">
+    <div class="content">
+      <header class="title">
+        <div class="inner-title">
+          <h1>Camera Move</h1>
+          <label><input type="checkbox" id="camera-move-enabled" /> Enabled </label>
+          <div id="appVersion"><span class='output'>...</span></div>
+        </div>
+      </header>
+
+      <div class='scrollable'>
+        <section>
+          <h2>Translation</h2>
+          <div class="number row">
+            <label>Max Linear Velocity <span class="unit">m/s</span></label>
+            <input id="translation-max-velocity" data-type="number" step=".1"  />
+            <span class="tooltip">
+              avatar walking/flying speed limit (ie: the value eased-into)
+            </span>
+          </div>
+          <div class="slider row">
+            <label>Ease In Coefficient</label>
+            <div type="slider" class="control" data-for="translation-ease-in"></div>
+            <input data-type="number" id="translation-ease-in" data-step=".1" />
+            <span class="tooltip"><ul>
+                <li>lower values gently ramp-into moving</li>
+                <li>higher values rapidly accelerate to top speed</li>
+            </ul></span>
+          </div>
+          <div class="slider row">
+            <label>Ease Out Coefficient</label>
+            <div type="slider" class="control" data-for="translation-ease-out"></div>
+            <input id="translation-ease-out" data-type="number" data-step=".1" />
+            <span class="tooltip"><ul>
+                <li>lower values bring movement to a rolling stop</li>
+                <li>higher values stop movements more immediately</li>
+            </ul></span>
+          </div>
+        </section>
+
+        <hr />
+
+        <section>
+          <h2>Rotation</h2>
+          <div class="number row">
+            <label>Max Angular Velocity<span class="unit">deg/s</span></label>
+            <input id="rotation-max-velocity" data-type="number" step=".1" />
+            <span class="tooltip">look up/down (pitch) and turn left/right (yaw) speed limit</span>
+          </div>
+          <div class="slider row">
+            <label>Ease In Coefficient</label>
+            <div type="slider" class="control" data-for="rotation-ease-in"></div>
+            <input id="rotation-ease-in" data-type="number" />
+            <ul class="tooltip">
+              <li>lower values gently start turning or looking up/down</li>
+              <li>higher values quickly turn and look around</li>
+            </ul>
+          </div>
+          <div class="slider row">
+            <label>Ease Out Coefficient</label>
+            <div type="slider" class="control" data-for="rotation-ease-out"></div>
+            <input id="rotation-ease-out" data-type="number"  />
+            <ul class="tooltip">
+              <li>lower values bring turning/looking to a rolling stop</li>
+              <li>higher values stop turning/looking more immediately</li>
+            </ul>
+          </div>
+        </section>
+
+        <hr />
+
+        <section>
+          <h2>Options</h2>
+          <div class="checkbox rows">
+            <label><input data-for="Avatar/lookAtSnappingEnabled" data-autoenable="false" type="checkbox" />
+              Avatars snap look at camera
+              <span class="tooltip">
+                uncheck this to prevent avatars from making automatic eye contact with the camera
+              </span>
+            </label>
+            <label><input data-for="Avatar/useSnapTurn" id="use-snap-turn" type="checkbox" />
+              Enable snap turn in HMD
+              <span class="tooltip">
+                toggles <b>Settings &gt; Avatar &gt; Snap turn while in HMD</b>
+              </span>
+            </label>
+            <label><input id="enable-mouse-smooth" type="checkbox"  />
+              Enable smooth mouselook
+              <span class="tooltip">
+                uncheck this to bypass smoothing for right-mouse-button drag controls</span>
+            </label>
+            <label><input id="minimal-cursor" data-autoenable="false" type="checkbox" />
+              Enable minimal cursor
+              <span class="tooltip">
+                use half-sized mouse cursor</span>
+            </label>
+          </div>
+        </section>
+
+        <!-- advanced-options -->
+        <div style='display: none' id='advanced-options'>
+          <br />
+          <br />
+          <div class='content'>
+            <hr />
+            <section>
+              <h2>Additional Options</h2>
+              <div class="checkbox rows">
+                <label><input id="collisions-enabled" data-for="Avatar/Enable Avatar Collisions" type="checkbox" />
+                  Enable Avatar Collisions
+                  <span class="tooltip">
+                    toggles <b>Avatar &gt; Enable Avatar Collisions</b>
+                  </span>
+                </label>
+                <label><input data-for="Avatar/Draw Mesh" id="draw-mesh" type="checkbox" />
+                  Render Avatar
+                  <span class="tooltip">
+                    toggles <b>Developer &gt; Avatar &gt; Draw Mesh</b>
+                  </span>
+                </label>
+                <label><input id="stay-grounded" type="checkbox" />
+                  Stay on ground
+                  <span class="tooltip">
+                    prevent Y-axis translation when <b>Application.isGrounded</b> reports true.<br /><i>(can be temporarily overridden by looking up or down &gt;= 45&deg; )</i>
+                  </span>
+                </label>
+                <label><input id="prevent-roll" type="checkbox" />
+                  Prevent Roll
+                  <span class="tooltip">
+                    keep upright by applying <b>Quat.cancelOutRoll</b> to resulting rotations
+
+                  </span>
+                </label>
+                <label><input id="ui-enable-tooltips" type="checkbox" />
+                  Enable UI tooltips
+                  <span class="tooltip">
+                    toggle display of tooltips like this one
+                  </span>
+                </label>
+                <br />
+              </div>
+            </section>
+
+            <hr />
+            <section>
+              <h2>Rotation Speeds</h2>
+              <div class="column" data-tooltipster='{"distance":{"top":24,"bottom":10},"side":["top","bottom"]}'>
+                <div class="number row">
+                  <label>Pitch speed <span class="unit">deg/unit</span></label>
+                  <input id="rotation-x-speed" data-type="number" min="-1000" step="1" />
+                  <ul class="tooltip">
+                    <li>look up/down amount applied per unit controller input</li>
+                    <li>use a negative value for inverted mouselook behavior (eg: <b>&minus;1</b>)</li>
+                  </ul>
+                </div>
+                <div class="number row">
+                  <label>Yaw speed<span class="unit">deg/unit</span></label>
+                  <input id="rotation-y-speed" data-type="number" min="-1000" step="1" />
+                  <span class="tooltip">
+                    turn left/right amount applied per unit controller input
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            <hr />
+
+            <section>
+              <h2>input scaling</h2>
+              <div class="column" data-tooltipster='{"distance":{"top":24,"bottom":10},"side":["top","bottom"]}'>
+                <div class="number row">
+                  <label>Keyboard multiplier</label>
+                  <input id="keyboard-multiplier" data-type="number" min="-1000" step=".01" data-step=".1"  />
+                  <span class="tooltip">
+                    prescaled keyboard inputs by this amount
+                  </span>
+                </div>
+                <div class="number row">
+                  <label>Mouse multiplier</label>
+                  <input id="mouse-multiplier" data-type="number" min="-1000" step=".01" data-step=".1" />
+                  <span class="tooltip">
+                    prescale mouse inputs by this amount
+                  </span>
+                </div>
+              </div>
+            </section>
+
+            <hr />
+
+            <section>
+              <h2>Update Modes</h2>
+              <div class='column'>
+                <fieldset id="drive-mode" class="radio rows" data-tooltipster='{"side":["right","top"]}'>
+                  <legend>Avatar Movement</legend>
+                  <label><input value="motor" type="radio" />
+                    Scripted Motor Control
+                    <span class="tooltip">
+                      apply movements using <b>MyAvatar.motorVelocity</b>
+                    </span>
+                  </label>
+                  <label><input value="position" type="radio" />
+                    Avatar position
+                    <span class="tooltip">
+                      apply movements as changes to <b>MyAvatar.position</b>
+                    </span>
+                  </label>
+                  <label><input value="thrust" type="radio" />
+                    Thrust/force vectors
+                    <span class="tooltip">
+                      apply movements using <b>MyAvatar.setThrust()</b>
+                    </span>
+                  </label>
+                </fieldset>
+
+                <fieldset id="thread-update-mode" class="radio rows" data-tooltipster='{"side":["left","top"]}'>
+                  <legend>Timing</legend>
+                  <label><input value="update" type="radio" />
+                    Use Script.update
+                    <span class="tooltip">
+                      apply movement updates ~60 times per second
+                    </span>
+                  </label>
+                  <label><input value="setImmediate" type="radio" />
+                    Update every 5ms
+                    <span class="tooltip">
+                      schedule movement updates every 5ms
+                    </span>
+                  </label>
+                  <label><input value="nextTick" type="radio" />
+                    Update continuously
+                    <span class="tooltip">
+                      schedule movement updates continuously
+                    </span>
+                  </label>
+                  <div class="radio row extended">
+                    <label><input value="requestAnimationFrame" type="radio" />
+                      Update @ FPS:
+                      <span class="tooltip">
+                        schedule movement updates at the specified rate per second
+                      </span>
+                    </label>
+                    <input id="fps" data-type="number" data-autoenable="false" step="1" min="0" />
+                  </div>
+                </fieldset>
+              </div>
+              <br />
+            </section>
+
+            <hr />
+
+            <section>
+              <h2>Advanced Options</h2>
+              <div class="checkbox rows">
+                <label><input id="use-head" type="checkbox" />
+                  Apply rotations to Avatar Head
+                  <span class="tooltip">
+                    update <b>MyAvatar.headOrientation</b> (instead of body orientation)
+                  </span>
+                </label>
+                <label><input id="constant-delta-time" type="checkbox" />
+                  Use constant &Delta; time for frame updates
+                  <span class="tooltip">
+                    ignore actual time between frames and instead calculate using <b>(1s / requestAnimationFrame.fps)</b> or <b>(1s / 90fps)</b>
+                  </span>
+                </label>
+                <label><input id="normalize-inputs" type="checkbox" />
+                  Normalize mouse movement
+                  <span class="tooltip">
+                    convert variable mouse movements into unit values <b>&plus;1, 0, &minus;1</b>
+                  </span>
+                </label>
+                <label><input data-for="Avatar/Show My Eye Vectors" type="checkbox" />
+                  Show My Eye Vectors
+                  <span class="tooltip">
+                    toggles <b>Developer &gt; Avatar &gt; Show My Eye Vectors</b>
+                  </span>
+                </label>
+                <label><input data-for="Avatar/Show Other Eye Vectors" type="checkbox" />
+                  Show Other Eye Vectors
+                  <span class="tooltip">
+                    toggles <b>Developer &gt; Avatar &gt; Show Other Eye Vectors</b>
+                  </span>
+                </label>
+                <label class="off-red"><input data-for="Scene/shouldRenderEntities" type="checkbox" />
+                  Render Entities (debug)
+                  <span class="tooltip">
+                    toggles <b>Scene.shouldRenderEntities</b>
+                  </span>
+                </label>
+                <label class="off-red"><input data-for="Scene/shouldRenderAvatars" type="checkbox" />
+                  Render Avatars (debug)
+                  <span class="tooltip">
+                    toggles <b>Scene.shouldRenderAvatars</b>
+                  </span>
+                </label>
+                <label class="on-red"><input id="jitter-test" type="checkbox" />
+                  Jitter Rotation Test (debug)
+                  <span class="tooltip">
+                    Applies a constant avatar rotation to help reveal system-level jitter and update interference
+                  </span>
+                </label>
+              </div>
+              <br />
+            </section>
+
+            <hr />
+            <section id='debug-menu'>
+              <h2>debug menu</h2>
+              <div class='buttons'>
+                <div style='float:left'>
+                  <button id='reset-sensors'>
+                    Reset Avatar
+                    <span class="tooltip">
+                      trigger <b>MyAvatar &gt; Reset Sensors</b>;reset <b>bodyPitch</b> and <b>bodyYaw</b>
+                    </span>
+                  </button>
+                  <button title='test EventBridge.emitWebEvent' class='localhost-only' id='test-event-bridge'>EventBridge test</button>
+                  <button title='reload the tablet app web view' class='localhost-only' id='page-reload'>refresh page</button>
+                  <button title='reload the Client script' class='localhost-only' id='script-reload'>reload script</button>
+                </div>
+                <div style='float:right'>
+                  <button id='copy-json'>
+                    Export JSON
+                    <span class="tooltip">exports current settings as JSON
+                    </span>
+                  </button>
+                  <button id='paste-json'>
+                    Import JSON
+                    <span class="tooltip">replace current settings with previously-exported JSON
+                    </span>
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <hr />
+            <div class='footer-stop'>&nbsp;</div>
+          </div>
+        </div><!-- /advanced-options -->
+      </div><!-- /scrollable -->
+
+      <footer>
+        <div style='float:left'>
+          <button id='reset-to-defaults' data-tooltipster='{"side":["top"]}'>
+            Reset
+            <span class="tooltip">
+              <span style="font-size:1.5em;color:red;padding:.3em;">&#x26a0;
+              </span>
+              Reset to System Defaults
+            </span>
+          </button>
+        </div>
+        <center>
+          <div id='toggleKey'>keybinding: &nbsp; <span class='binding'>&hellip;</span></div>
+        </center>
+        <div style='float:right'>
+          <button checked=false data-for='ui-show-advanced-options' class='toggle-advanced-options' id='toggle-advanced-options'>Advanced<span class='chevron'>
+            </span>
+            <span class="tooltip">show / hide advanced settings
+            </span>
+          </button>
+        </div>
+        <br />
+      </footer>
+    </div><!-- /content -->
+
+    <div id="errors" style="display:none">
+      <div class='title'>PAGE ERROR:</div>
+      <pre class='output'></pre>
+      <pre class='debug-lines' style='display:none;'><span class='content'></span></pre>
+      <div class='buttons'><button onclick='location.reload()'>reload page</button>&nbsp; | &nbsp;<button>dismiss</button></div>
+    </div>
+    <!-- generate debug line outputs -->
+    <script>(function(template) {
+        for (var i=0; i !== 25; i++) {
+            template.parentNode.appendChild(template.cloneNode());
+        }
+      })(document.querySelector('#errors .debug-lines .content'));
+    </script>
+    <script>
+    var LESS_GLOBALS = {
+        'interface-mode': /highfidelity/i.test(navigator.userAgent),
+        'header-height': 48,
+        'footer-height': 32,
+        'font-source': /unpublishedScripts/.test(location.pathname) ? 'unpublishedScripts' : 'google',
+        'hifi-custom-font-family': 'Raleway-Regular',
+        'hifi-input-font-family': 'FiraSans-Regular',
+        'color-highlight': '#009bd5',
+        'color-text': '#afafaf',
+        'color-bg': '#393939',
+        'color-bg-darker': '#252525',
+        'color-bg-icon': '#545454',
+        'color-primary-button': 'darken(darkblue,10%)',
+        'color-alt-button': 'green',
+        'color-caution-button': 'darkred',
+    };
+    </script>
+    <style id='tablet-ui-less' type="text/less">
+// #line 613 "app.html"
+// Embedded LESS stylesheets are used as a structured way to manage page styling.
+// The template rules below get compiled at page load time by less.js.
+//   see: app.js:preconfigureLESS() and http://lesscss.org/usage/ for more info
+// ----------------------------------------------------------------------------
+// tablet-ui.less
+.load-fonts();
+.tablet-ui {
+    .mixin-tablet-mode() {
+        width: 100%;
+        margin-left: -3px;
+        margin-right: 0;
+        overflow-x: hidden;
+        .column { margin-left: -8px; }
+        .content {
+            .slider {
+                .ui-spinner {
+                    width: 80px;
+                }
+            }
+        }
+    }
+    .tablet-mode { .mixin-tablet-mode() !important; }
+
+    body {
+        color: @color-text;
+        background-color: @color-bg;
+
+        &.window-blurred header {
+            opacity: .5;
+        }
+
+        font-family: '@{custom-font-family}';
+        font-size: 15px;
+        text-rendering: optimizeLegibility;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+        overflow: hidden;
+        overflow-x: hidden !important;
+        padding: 0;
+        margin: 0;
+
+        height: @client-height * 1px;
+        //margin-top: 6px;
+        margin-left: -5px;
+        overflow: hidden;
+        input, textarea {
+            font-family: '@{input-font-family}', sans-serif;
+            user-select: auto;
+            -webkit-user-select: auto;
+        }
+    }
+
+    p { margin: 2px 0; }
+
+    header { z-index: 2; }
+
+    section { padding: 0 24px; }
+
+    hr {
+        border: none;
+        background: #404040 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAAjSURBVBhXY1RVVf3PgARYjIyMoEwIYHRwcEBRwQSloYCBAQCwjgPMiI7W2QAAAABJRU5ErkJggg==) repeat-x top left;
+        padding: 1px;
+        margin: 0px;
+        width: 100%;
+        //position: absolute;
+    }
+
+    header.title {
+        position: relative;
+        padding: 6px 0 6px 10px;
+        text-align: left;
+        clear: both;
+
+        h1 { font-size: 18px; }
+        h1, label {
+            font-weight: normal;
+            //margin: 16px 0;
+            display: inline-block;
+        }
+    }
+
+    section h1 { font-size: 18px; }
+
+    section h2 {
+        margin-left: -12px;
+        font-size: 14px;
+        color: #ddd;
+    }
+
+    input[type=text], input[type=number], input[data-type=number], textarea {
+        margin: 0;
+        padding: 0 0 0 12px;
+        color: @color-text;
+        background-color: @color-bg-darker;
+        border: none;
+        font-size: 15px;
+        &:disabled {
+            background-color: lighten(@color-bg-darker, 25%);
+            color: darken(@color-text, 25%);
+        }
+    }
+}
+
+.scrollable {
+    top: @header-height * 1px + 1;
+    padding-top: 0;
+    padding-right: 5px;
+    left: 0;
+    position: relative;
+    //width: @client-width * 1px;
+    overflow-x: hidden;
+    height: @inner-height * 1px - @footer-height - @header-height;
+    overflow-y: scroll;
+    &::-webkit-scrollbar { width: 12px; height: 0px; }
+    &::-webkit-scrollbar-button { width: 0px; height: 0px;}
+    &::-webkit-scrollbar-thumb { background: darken(@color-highlight, 5%); border-radius: 4px; }
+    &::-webkit-scrollbar-thumb:hover { background: lighten(@color-highlight, 5%); border-radius: 4px;}
+    //&::-webkit-scrollbar-thumb:active { background: #fff; border: 1px dotted black;}
+    &::-webkit-scrollbar-track:disabled { background: @color-bg; border: 0px none #ffffff; border-radius: 0px;}
+    &::-webkit-scrollbar-track { background: #666666; border: 0px none #ffffff; border-radius: 0px;}
+    &::-webkit-scrollbar-track:hover { background: #666666;}
+    &::-webkit-scrollbar-track:active { xborder: 2px dotted #666; background: #555;}
+    &::-webkit-scrollbar-corner { background: transparent;}
+}
+//<!--/style><style id='hifi-mixins-less' type='text/less'-->
+// ----------------------------------------------------------------------------
+// hifi-mixins.less
+.mixins() {
+    .load-google-font(@font-family) {
+        @import (css) url("https://fonts.googleapis.com/css?family=@{font-family}:300,400,600,700");
+    }
+    .load-hifi-font(@font-family) {
+        @font-face {
+            font-family: '@{font-family}';
+            src: url('../../../../resources/fonts/@{font-family}.ttf'),  /* Windows production */
+            url('../../../../fonts/@{font-family}.ttf'),  /* OSX production */
+            url('../../../../interface/resources/fonts/@{font-family}.ttf'),  /* Development, running script in /HiFi/examples */
+            url('https://cdn.rawgit.com/highfidelity/hifi/9fa900ba/interface/resources/fonts/@{font-family}.ttf'); /* fallback to rawgit/github */
+        }
+    }
+    // when accessed from /HiFi/unpublishedScripts/*/*/something.html
+    .load-unpublishedScripts-font(@font-family) {
+        @font-face {
+            font-family: '@{font-family}';
+            src: url('../../../interface/resources/fonts/@{font-family}.ttf');
+        }
+    }
+}
+
+.load-fonts() when(@font-source=google) {
+    // adapt font family names from 'HifiStyle-Regular' to 'Google Style'
+    @input-font-family: replace(replace(@hifi-input-font-family, '-Regular', ''), '([a-z])([A-Z])', '$1 $2', 'g');
+    @custom-font-family: replace(replace(@hifi-custom-font-family, '-Regular', ''), '([a-z])([A-Z])', '$1 $2', 'g');
+    .mixins > .load-google-font(@custom-font-family);
+    .mixins > .load-google-font(@input-font-family);
+}
+.load-fonts() when(@font-source=hifi) {
+    @input-font-family: @hifi-input-font-family;
+    @custom-font-family: @hifi-custom-font-family;
+    .mixins > .load-hifi-font(@custom-font-family);
+    .mixins > .load-hifi-font(@input-font-family);
+}
+.load-fonts() when(@font-source=unpublishedScripts) {
+    @input-font-family: @hifi-input-font-family;
+    @custom-font-family: @hifi-custom-font-family;
+    .mixins > .load-unpublishedScripts-font(@custom-font-family);
+    .mixins > .load-unpublishedScripts-font(@input-font-family);
+}
+
+//<!--/style><style id='jquery-ui-overrides-less' type='text/less'-->
+// ----------------------------------------------------------------------------
+// jquery-ui-overrides.less
+@color-subtle-border: rgba(158, 158, 158, 0.151);
+@tooltip-bg-color: darken(#624888, 5%);
+@tooltip-text-color: contrast(@tooltip-bg-color);
+
+.tablet-ui {
+    .content .tooltip { display: none; }
+    .tooltipster-base {
+        .tooltipster-box {
+            background-color: @tooltip-bg-color;
+            .tooltipster-content {
+                ul {
+                    margin: 0; padding: 0;
+                    li {
+                        list-style-position: outside;
+                        text-indent: -4px;
+                        margin-left: 14px;
+                    }
+                }
+                color: @tooltip-text-color;
+                font-weight: normal;
+                font-size: 12.5px;
+                overflow-y: hidden;
+                padding: 3px 6px 2px 6px;
+            }
+        }
+        .arrow-border(@side) {
+            &.tooltipster-@{side} {
+                .tooltipster-arrow {
+                    .tooltipster-arrow-background { border-@{side}-color: @tooltip-bg-color; }
+                    .tooltipster-arrow-border { border-@{side}-color: black; }
+                }
+            }
+        }
+        .arrow-border(top);
+        .arrow-border(right);
+        .arrow-border(left);
+        .arrow-border(bottom);
+    }
+
+    .ui-checkboxradio-label {
+        .outlined(@color) {
+            width: 8px;
+            height: 8px;
+            padding: 2px;
+            border: solid 2px @color;
+        }
+
+        &.ui-button {
+            text-align: left;
+            background: inherit;
+            border: none;
+            color: inherit;
+            .ui-icon { background-image: none; }
+        }
+
+        padding: 3px 0;
+        pointer-events: all !important;
+        &:hover {
+            .ui-icon-background {
+                .outlined(gray);
+            }
+            &.ui-state-active .ui-icon-background {
+                border-color: white;
+                background-color: @color-highlight;
+            }
+        }
+        .ui-checkboxradio-icon-space {
+            width: 8px;
+            display: inline-block;
+        }
+        &.ui-visual-focus { box-shadow: inherit; }
+        .ui-icon {
+            background-color: @color-bg-icon;
+            box-shadow: none;
+            border-radius: .25em;
+        }
+        &.ui-state-active {
+            .ui-icon-background {
+                background-color: @color-highlight;
+                .outlined(@color-bg-icon);
+            }
+        }
+    }
+    .ui-slider-range { background-color: @color-highlight; }
+
+    .ui-spinner {
+        border: none;
+        outline: none;
+        background-color: transparent;
+        margin: 4px 2px;
+        padding: 0;
+        .ui-button {
+            border-left: solid 1px @color-subtle-border;
+            background-color: inherit;
+            &:active span {
+                border-color-left: @color-subtle-border;
+                border-color: transparent;
+            }
+        }
+        input.ui-spinner-input {
+            margin: 0 !important;
+            xwidth: inherit !important;
+            &::-webkit-outer-spin-button,
+            &::-webkit-inner-spin-button {
+                -webkit-appearance: none;
+            }
+        }
+    }
+
+    .ui-slider-horizontal {
+        background-color: @color-bg-darker;
+        border-color: @color-bg-darker !important;
+        .ui-slider-handle {
+            top: -.5em;
+            width: 1.4em;
+            height: 1.4em;
+            border-radius: 100%;
+            outline: none;
+            background-color: #757575;
+            border-color: @color-bg-darker;
+            &:focus  { border-color: white; }
+            // custom inner slider handle circle
+            .inner-ui-slider-handle {
+                border-radius: 100%;
+                padding: 0px;
+                right: 2px;
+                bottom: 2px;
+                position: absolute;
+                left: 2px;
+                top: 2px;
+                border: solid black 2px;
+            }
+        }
+    }
+}
+//<!--/style><style id='CustomSettingsApp-less' type='text/less'-->
+// ----------------------------------------------------------------------------
+// CustomSettingsApp.less
+.tablet-ui .settings-app {
+    .ui-spinner-up { border-top-style: none; }
+    .radio {
+        label.ui-state-active { color: white !important; }
+        .ui-checkboxradio-label .ui-icon { border-radius: .5em; }
+    }
+
+    br { clear: both; }
+    a:not(.ui-widget) {
+        text-decoration: none;
+        color: #99f;
+        &:hover { color: darken(#99f, 10%); }
+    }
+    .content { display: block; }
+
+    #overlay {
+        opacity: .35;
+        background-color: black;
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        z-index: 9999999;
+    }
+    &:not(.active) {
+        #overlay { display: block; }
+        .tooltipster-base { display: none; }
+    }
+    &.active #overlay { display: none; }
+
+    section {
+        clear: both;
+        h2 {
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+    }
+
+    .content footer {
+        bottom: 0;
+        top: auto;
+        text-align: center;
+        height: @footer-height * 1px;
+        border-left: none;
+        border-right: none;
+        border-bottom: none !important;//solid -1px blue;
+        box-shadow: none !important;
+        center {
+            //line-height: @footer-height * 1px;
+            vertical-align: middle;
+            font-size: .8em;
+            width: @client-width * .5px;
+            position: absolute;
+            display: block;
+            margin-left: 24%;
+            left: 0;
+            div { display: inline-block; }
+        }
+        button {
+            margin-top: 3px;
+        }
+    }
+    header, footer {
+        border: solid 1px black;
+        height: @header-height * 1px;
+        margin: 0;
+        position: fixed;
+        left: 0;
+        padding: 0;
+        top: 0;
+        width: 100%;
+        background-color: lighten(@color-bg,10%);
+        box-shadow: 2px 2px 10px rgba(0,0,0,.5);
+        z-index: 10;
+        white-space: nowrap;
+        > div {
+            position: relative;
+            padding: 0 6px;
+        }
+        .ui-icon { background-color: lighten(@color-bg-icon, 10%); }
+        .ui-checkboxradio-label {
+            &.ui-state-active {
+                .ui-icon { border-color: lighten(@color-bg-icon, 10%); }
+                &:hover .ui-icon { border-color: inherit; }
+            }
+            margin-left: 2em;
+        }
+        x.row {
+            margin-top: 2px;
+            margin-left: 10px;
+            font-size: .9em;
+            display: inline-block !important;
+            &.checkbox {
+                margin-top: inherit !important;
+                margin-bottom: inherit !important;
+            }
+        }
+    }
+
+    // row styles in two column mode
+    .column {
+        fieldset {
+            margin: 0;
+            padding: 0;
+            -webkit-touch-callout: none;
+            outline: none;
+        }
+        margin-right: -16px;
+        margin-left: -8px;
+        //white-space: nowrap;
+        .rows {
+            width: 35%;
+            &:nth-child(1) { margin-right: 1%; }
+            .radio {
+                height: 1.5em;
+                vertical-align: top;
+                display: block;
+                label { vertical-align: top; }
+                &:nth-child(1) { margin-right: 2.5%; }
+                //padding: .2em .7em .7em .7em;
+            }
+        }
+        .row {
+            display: inline-block;
+            &.number {
+                label { display: block; clear: both; }
+                width: 45%;
+            }
+
+        }
+    }
+
+    .focused() { outline: dotted 1px darken(@color-highlight,20%); }
+
+    .rows {
+        &.radio {
+            vertical-align: top;
+            border: solid 1px @color-subtle-border;
+            border-right: solid 1px @color-subtle-border;
+            border-radius: .5em;
+            padding-left: 12px;
+            padding-bottom: 12px;
+            padding-right: 4px;
+        }
+    }
+
+    // general row styles
+    .row {
+        white-space: nowrap;
+        margin-top: .25em;
+        margin-bottom: .25em;
+
+        &:focus, div:focus { .focused }
+        &.disabled input.setting { color: #000; }
+        &.invalid input.setting { border: solid 1px mix(red, @color-highlight, 55%); }
+        input {
+            outline: none !important;
+            font-size: 1.1em;
+            margin: 8px;
+            padding: 8px;
+            border: solid 1px transparent;
+            &:focus { border: solid 1px @color-highlight !important; }
+        }
+        &.slider {
+            label { display: block; clear: both }
+            .ui-spinner {
+                position: relative;
+                width: 100px;
+                max-width: 20%;
+                input { width: 80% }
+            }
+            .control  {
+                float: left;
+                clear: left;
+                width: 75%;
+                margin: 13px;
+                top: 6px;
+                height: 6px;
+            }
+        }
+        &.checkbox {
+            input[type=checkbox] { display: none; }
+            label.ui-widget {
+                padding-left: 0px; display: inline-block;
+            }
+            //display: table-row;
+            margin-top: .25em;
+            margin-bottom: .25em;
+        }
+
+         &.radio {
+            input[type=radio] { display: inline-block; }
+            //label.ui-visual-focus { .focused; }
+        }
+
+        &.radio, &.checkbox {
+            .ui-checkboxradio-label {
+                &.ui-button {
+                    text-align: left;
+                    background: inherit;
+                    border: none;
+                    color: inherit;
+                    .ui-icon { background-image: none; }
+                }
+            }
+            //&:hover { background-color: darken(@color-bg, 3%); }
+            //.ui-checkboxradio-checked { color: white }
+        }
+        &.number {
+            label {
+                display: block;
+                width: 100%;
+                margin-right: 26px;
+                //padding-bottom: 2px;
+            }
+            input { width: 10em; }
+        }
+        .unit {
+            margin-left: 6px;
+            font-weight: lighter;
+            font-size: .8em;
+            font-style: italic;
+        }
+    }
+    code {
+        font-family: monospace;
+        font-size: .8em;
+        font-weight: bold;
+        //color: mix(@color-text, magenta, 90%);
+    }
+    kbd {
+        display: inline-block;
+        margin: 0 .1em;
+        padding: .1em .6em;
+        font-family: Arial,"Helvetica Neue",Helvetica,sans-serif;
+        font-size: .85em;
+        font-weight: bold;
+        line-height: 1.1em;
+        color: #242729;
+        text-shadow: 0 1px 0 darken(#FFF, 25%);
+        background-color: darken(#e1e3e5, 25%);
+        border: 1px solid darken(#adb3b9, 25%);
+        border-radius: 3px;
+        box-shadow: 0 1px 0 rgba(12,13,14,0.2),0 0 0 2px darken(#FFF,25%) inset;
+        white-space: nowrap;
+    }
+}
+//<!--/style><style id='app-less' type='text/less'-->
+// ----------------------------------------------------------------------------
+// app.less
+.tablet-ui .settings-app {
+    &.camera-move-enabled header {
+        border-bottom: solid 1px @color-highlight;
+        label { color: white !important; font-weight: bold; }
+    }
+
+    label sup {
+        margin: 4px;
+        text-transform: uppercase;
+        font-style: italic;
+        color: black;
+    }
+    button {
+        font-weight: bold;
+        font-family: arial;
+        font-size: 12px;
+        //padding: 6px 8px;
+        cursor: pointer;
+        background-color: @color-primary-button;
+        color: white;
+        border-color: transparent;
+        margin: 2px;
+        text-transform: uppercase;
+        border: solid 1px transparent;
+        &:hover { background-color: lighten(@color-primary-button,10%); }
+        &:focus { border: dotted 1px tint(@color-highlight) !important; }
+    }
+    .localhost-only {
+        //display: none;
+        &when (@debug), (@localhost) {
+            display: inline-block;
+        }
+    }
+    #debug-menu {
+        .buttons {
+            margin: 0px -8px;
+            button {
+                padding: 4px;
+                margin: 1px;
+                font-size: 12px;
+                text-transform: none;
+                font-weight: normal;
+                border-radius: 6px;
+                &.localhost-only { background-color: #303; &:hover { background-color: lighten(#303,10%);} }
+            }
+        }
+    }
+    #advanced-options {
+        .content { background-color: #333; }
+        display: none;
+    }
+    .toggle-advanced-options {
+        background-color: darken(@color-alt-button, 5%);
+        .chevron {
+            width: 2em;
+            display: inline-block;
+            &:after { content: ' \25B7'; }
+        }
+        &:hover { background-color: lighten(@color-alt-button, 5%); }
+    }
+    #reset-to-defaults {
+        background-color: darken(@color-caution-button, 5%);
+        &:hover { background-color: lighten(@color-caution-button, 5%); }
+    }
+}
+.ui-show-advanced-options {
+    #advanced-options { display: block !important; }
+    .toggle-advanced-options {
+        background-color: mix(blue,@color-alt-button,20%) !important;
+        .chevron:after { content: ' \25B2' !important; }
+    }
+}
+
+#appVersion {
+    z-index: 1;
+    float: right;
+}
+#toggleKey { line-height: @footer-height * 1px; }
+
+// #overlay when(not(@interface-mode)) {
+//     height: 16px !important;
+// }
+
+#errors {
+    user-select: initial;
+    position: fixed;
+    left: 0;
+    top: 0;
+    height: auto;
+    min-height: @header-height * 1px;
+    border-bottom: solid 1px gray;
+    box-shadow: 2px 2px 8px black;
+    right: 0;
+    font-size: .8em;
+    background-color: rgb(95,0,0);
+    color: white;
+    overflow: auto;
+    margin: 0;
+    padding: 4px;
+    z-index: 9999999;
+    pre {
+        white-space: pre-wrap;
+        margin: 0 6px;
+    }
+    .title {
+        background-color: red;
+        padding: 2px;
+        margin-bottom: 4px;
+    }
+    .buttons {
+        user-select: none;
+        margin-top: 4px;
+        float: right;
+        button {
+            font-weight: normal;
+            margin: 4px 2px;
+        }
+    }
+    .debug-lines {
+        font-size: 8px;
+        background-color: black;
+        color: lightblue;
+        .content {
+            padding: 1px 3px;
+            &:nth-child(1):before { content: 'hash:@{hash}\000a'; }
+        }
+    }
+}
+
+footer center > div { display: none; }
+.footer-stop {
+    height: 32px;
+    background-color: darken(@color-bg,5%);
+}
+
+#tooltips { display: none }
+
+.tablet-ui .checkbox.row .ui-checkboxradio-label {
+    &.on-red {
+        &.ui-state-active {
+            //.ui-icon-background { background-color: #c33; }
+            color: #c33;
+        }
+    }
+    &.off-red {
+        &:not(.ui-state-active) { color: #c33; }
+        //&.ui-state-active { color: inherit; }
+    }
+}
+
+.tablet-ui .settings-app {
+    // special case for requestAnimationFrame radio / fps inline spinner
+    .radio.row.extended {
+        pointer-events: all;
+        .ui-spinner {
+            transform: scale(.8);
+            transform-origin: left top;
+            margin-top: 0;
+        }
+        .ui-spinner-input  {
+            width: 3em;
+            padding: 4px 8px;
+        }
+    }
+}
+</style>
+<script>
+    lessManager = preconfigureLESS({
+        env: PARAMS.debug ? 'development' : 'production',
+        selector: 'style[type="text/less"]',
+        globalVars: Object.assign({
+            debug: !!PARAMS.debug,
+            localhost: /\b(?:file:\/\/|localhost|127[.])/.test(location),
+        }, LESS_GLOBALS)
+    });
+less = lessManager.options;
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/less.js/2.7.2/less.js"></script>
+<!-- JSON DUMP TEMPLATE -->
+<script type='text/html' id='POPUP'>
+  <html>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/ir-black.min.css" />
+    <xx-script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></xx-script>
+    <body style='margin:0;overflow:hidden;'>
+      <pre><code class="json" style='height:100%'>JSON</code></pre>
+      <xx-script>hljs.initHighlighting();</xx-script>
+    </body>
+  </html>
+</script>
+
+<div id='overlay'></div>
+</body>
+</html>
