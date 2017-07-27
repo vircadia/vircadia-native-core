@@ -39,7 +39,7 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
         CANVAS_SIZE = { x: 0.21, y: 0.13 },
         LATERAL_OFFSET = side === LEFT_HAND ? -0.01 : 0.01,
 
-        PANEL_ROOT_POSITION = { x: CANVAS_SIZE.x / 2 + LATERAL_OFFSET, y: 0.15, z: -0.03 },
+        PANEL_ROOT_POSITION = { x: CANVAS_SIZE.x / 2 + LATERAL_OFFSET, y: 0.15, z: -0.04 },
         PANEL_ROOT_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 }),
 
         PALETTE_ROOT_POSITION = { x: -CANVAS_SIZE.x / 2 + LATERAL_OFFSET, y: 0.15, z: 0.09 },
