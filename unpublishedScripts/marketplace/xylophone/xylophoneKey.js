@@ -9,7 +9,6 @@
 //
 
 (function() {
-    Script.include(Script.resolvePath("pUtils.js"));
     var TIMEOUT = 150;
     var TEXTURE_GRAY = Script.resolvePath("xylotex_bar_gray.png");
     var TEXTURE_BLACK = Script.resolvePath("xylotex_bar_black.png");
