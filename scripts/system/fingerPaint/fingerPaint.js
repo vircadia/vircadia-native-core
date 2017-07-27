@@ -825,37 +825,39 @@
     }
 
     function disableProcessing() {
-        Script.update.disconnect(leftHand.onUpdate);
-        Script.update.disconnect(rightHand.onUpdate);
+        if (leftHand && rightHand) {
+            Script.update.disconnect(leftHand.onUpdate);
+            Script.update.disconnect(rightHand.onUpdate);
 
-        Controller.disableMapping(CONTROLLER_MAPPING_NAME);
+            Controller.disableMapping(CONTROLLER_MAPPING_NAME);
 
-        Messages.sendLocalMessage("Hifi-Hand-Disabler", "none");
-        
-        leftBrush.tearDown();
-        leftBrush = null;
-        leftHand.tearDown();
-        leftHand = null;
+            Messages.sendLocalMessage("Hifi-Hand-Disabler", "none");
+            
+            leftBrush.tearDown();
+            leftBrush = null;
+            leftHand.tearDown();
+            leftHand = null;
 
-        rightBrush.tearDown();
-        rightBrush = null;
-        rightHand.tearDown();
-        rightHand = null;
+            rightBrush.tearDown();
+            rightBrush = null;
+            rightHand.tearDown();
+            rightHand = null;
 
-        Messages.unsubscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
-        Messages.unsubscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
-        Messages.unsubscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
-        
-        
-        //Restores and clears hand animations
-        restoreAllHandAnimations();
-        
-        //clears Overlay sphere
-        Overlays.deleteOverlay(inkSourceOverlay);
-        inkSourceOverlay = null;
-        
-        // disable window palette
-        //window.close(); //uncomment for qml interface
+            Messages.unsubscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
+            Messages.unsubscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
+            Messages.unsubscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
+            
+            
+            //Restores and clears hand animations
+            restoreAllHandAnimations();
+            
+            //clears Overlay sphere
+            Overlays.deleteOverlay(inkSourceOverlay);
+            inkSourceOverlay = null;
+            
+            // disable window palette
+            //window.close(); //uncomment for qml interface
+        }
     }
 
     //Load last fingerpaint settings
@@ -864,7 +866,7 @@
         savedSettings.currentColor = Settings.getValue("currentColor", {red: 250, green: 0, blue: 0, origin: "custom"}),
         savedSettings.currentStrokeWidth = Settings.getValue("currentStrokeWidth", 0.25);
         savedSettings.currentTexture = Settings.getValue("currentTexture", null);
-        savedSettings.currentDrawingHand = Settings.getValue("currentDrawingHand", false);
+        savedSettings.currentDrawingHand = Settings.getValue("currentDrawingHand", MyAvatar.getDominantHand() == "left");
         savedSettings.currentDynamicBrushes = Settings.getValue("currentDynamicBrushes", []);
         savedSettings.customColors = Settings.getValue("customColors", []);
         savedSettings.currentTab = Settings.getValue("currentTab", 0);
