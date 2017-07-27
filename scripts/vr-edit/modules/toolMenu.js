@@ -29,30 +29,30 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
         LEFT_HAND = 0,
         AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
 
-        FOREARM_JOINT_NAME = side === LEFT_HAND ? "LeftForeArm" : "RightForeArm",
         HAND_JOINT_NAME = side === LEFT_HAND ? "LeftHand" : "RightHand",
 
-        ROOT_X_OFFSET = side === LEFT_HAND ? -0.05 : 0.05,
-        ROOT_Z_OFFSET = side === LEFT_HAND ? -0.05 : 0.05,
-        ROOT_ROTATION = side === LEFT_HAND
-            ? Quat.fromVec3Degrees({ x: 180, y: -90, z: 0 })
-            : Quat.fromVec3Degrees({ x: 180, y: 90, z: 0 }),
+        CANVAS_SIZE = { x: 0.21, y: 0.13 },
+
+        LATERAL_OFFSET = side === LEFT_HAND ? -0.01 : 0.01,
+        ROOT_POSITION = { x: CANVAS_SIZE.x / 2 + LATERAL_OFFSET, y: 0.15, z: -0.03 },
+        ROOT_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 }),
 
         ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO),
 
         ORIGIN_PROPERTIES = {
             dimensions: { x: 0.005, y: 0.005, z: 0.005 },
+            localPosition: ROOT_POSITION,
+            localRotation: ROOT_ROTATION,
             color: { red: 255, blue: 0, green: 0 },
             alpha: 1.0,
             parentID: AVATAR_SELF_ID,
-            localRotation: ROOT_ROTATION,
             ignoreRayIntersection: true,
             visible: false
         },
 
         PANEL_PROPERTIES = {
-            dimensions: { x: 0.1, y: 0.2, z: 0.01 },
-            localPosition: { x: 0.05, y: 0.1, z: 0.005 },
+            dimensions: { x: CANVAS_SIZE.x, y: CANVAS_SIZE.y, z: 0.01 },
+            localPosition: { x: CANVAS_SIZE.x / 2, y: CANVAS_SIZE.y / 2, z: 0.005 },
             localRotation: ZERO_ROTATION,
             color: { red: 192, green: 192, blue: 192 },
             alpha: 1.0,
@@ -134,19 +134,15 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
 
     function display() {
         // Creates and shows menu entities.
-        var forearmJointIndex,
-            handJointIndex,
-            forearmLength,
-            rootOffset;
+        var handJointIndex;
 
         if (isDisplaying) {
             return;
         }
 
-        // Joint indexes.
-        forearmJointIndex = MyAvatar.getJointIndex(FOREARM_JOINT_NAME);
+        // Joint index.
         handJointIndex = MyAvatar.getJointIndex(HAND_JOINT_NAME);
-        if (forearmJointIndex === -1 || handJointIndex === -1) {
+        if (handJointIndex === -1) {
             // Don't display if joint isn't available (yet) to attach to.
             // User can clear this condition by toggling the app off and back on once avatar finishes loading.
             // TODO: Log error.
@@ -154,10 +150,7 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
         }
 
         // Calculate position to put menu.
-        forearmLength = Vec3.distance(MyAvatar.getJointPosition(forearmJointIndex), MyAvatar.getJointPosition(handJointIndex));
-        rootOffset = { x: ROOT_X_OFFSET, y: forearmLength, z: ROOT_Z_OFFSET };
-        ORIGIN_PROPERTIES.parentJointIndex = forearmJointIndex;
-        ORIGIN_PROPERTIES.localPosition = rootOffset;
+        ORIGIN_PROPERTIES.parentJointIndex = handJointIndex;
         originOverlay = Overlays.addOverlay("sphere", ORIGIN_PROPERTIES);
 
         // Create menu items.
