@@ -125,6 +125,4 @@ private:
     friend class AudioInjectorManager;
 };
 
-Q_DECLARE_METATYPE(AudioInjectorPointer)
-
 #endif // hifi_AudioInjector_h

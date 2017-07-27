@@ -52,9 +52,11 @@ public:
         Browsable,
         Slider,
         Spinner,
+        SpinnerSlider,
         Checkbox,
         Button,
         ComboBox,
+        PrimaryHand,
         // Special casing for an unusual preference
         Avatar
     };
@@ -254,6 +256,15 @@ public:
     Type getType() override { return Spinner; }
 };
 
+class SpinnerSliderPreference : public FloatPreference {
+	Q_OBJECT
+public:
+	SpinnerSliderPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+		: FloatPreference(category, name, getter, setter) { }
+
+	Type getType() override { return SpinnerSlider; }
+};
+
 class IntSpinnerPreference : public IntPreference {
     Q_OBJECT
 public:
@@ -327,6 +338,14 @@ public:
     CheckPreference(const QString& category, const QString& name, Getter getter, Setter setter)
         : BoolPreference(category, name, getter, setter) { }
     Type getType() override { return Checkbox; }
+};
+
+class PrimaryHandPreference : public StringPreference {
+    Q_OBJECT
+public:
+    PrimaryHandPreference(const QString& category, const QString& name, Getter getter, Setter setter)
+        : StringPreference(category, name, getter, setter) { }
+    Type getType() override { return PrimaryHand; }
 };
 
 #endif

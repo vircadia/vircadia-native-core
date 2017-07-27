@@ -182,14 +182,22 @@ void setupPreferences() {
         preferences->addPreference(preference);
     }
     {
+        auto getter = [=]()->QString { return myAvatar->getDominantHand(); };
+        auto setter = [=](const QString& value) { myAvatar->setDominantHand(value); };
+        preferences->addPreference(new PrimaryHandPreference(AVATAR_TUNING, "Dominant Hand", getter, setter));
+    }
+    {
         auto getter = [=]()->float { return myAvatar->getUniformScale(); };
         auto setter = [=](float value) { myAvatar->setTargetScale(value); };
-        auto preference = new SpinnerPreference(AVATAR_TUNING, "Avatar scale (default is 1.0)", getter, setter);
-        preference->setMin(0.01f);
-        preference->setMax(99.9f);
+        auto preference = new SpinnerSliderPreference(AVATAR_TUNING, "Avatar Scale", getter, setter);
+        preference->setStep(0.05f);
         preference->setDecimals(2);
-        preference->setStep(1);
         preferences->addPreference(preference);
+        
+        // When the Interface is first loaded, this section setupPreferences(); is loaded - 
+        // causing the myAvatar->getDomainMinScale() and myAvatar->getDomainMaxScale() to get set to incorrect values
+        // which can't be changed across domain switches. Having these values loaded up when you load the Dialog each time
+        // is a way around this, therefore they're not specified here but in the QML.
     }
     {
         auto getter = []()->float { return DependencyManager::get<DdeFaceTracker>()->getEyeClosingThreshold(); };
@@ -293,17 +301,6 @@ void setupPreferences() {
         auto preference = new SpinnerPreference("HMD", "UI horizontal angular size (degrees)", getter, setter);
         preference->setMin(30);
         preference->setMax(160);
-        preference->setStep(1);
-        preferences->addPreference(preference);
-    }
-
-
-    {
-        auto getter = []()->float { return controller::InputDevice::getReticleMoveSpeed(); };
-        auto setter = [](float value) { controller::InputDevice::setReticleMoveSpeed(value); };
-        auto preference = new SpinnerPreference("Sixense Controllers", "Reticle movement speed", getter, setter);
-        preference->setMin(0);
-        preference->setMax(100);
         preference->setStep(1);
         preferences->addPreference(preference);
     }
