@@ -479,7 +479,7 @@ function loaded() {
     openEventBridge(function() {
 
         var allSections = [];
-		var elPropertiesList = document.getElementById("properties-list");
+        var elPropertiesList = document.getElementById("properties-list");
         var elID = document.getElementById("property-id");
         var elType = document.getElementById("property-type");
         var elTypeIcon = document.getElementById("type-icon");
@@ -566,8 +566,8 @@ function loaded() {
         var elJSONEditor = document.getElementById("userdata-editor");
         var elNewJSONEditor = document.getElementById('userdata-new-editor');
         var elColorSections = document.querySelectorAll(".color-section");
-		var elColorControl1 = document.getElementById("property-color-control1");
-		var elColorControl2 = document.getElementById("property-color-control2");
+        var elColorControl1 = document.getElementById("property-color-control1");
+        var elColorControl2 = document.getElementById("property-color-control2");
         var elColorRed = document.getElementById("property-color-red");
         var elColorGreen = document.getElementById("property-color-green");
         var elColorBlue = document.getElementById("property-color-blue");
@@ -681,7 +681,9 @@ function loaded() {
                 data = JSON.parse(data);
                 if (data.type == "server_script_status") {
                     elServerScriptError.value = data.errorInfo;
-					// If we just set elServerScriptError's diplay to block or none, we still end up with it's parent contributing 21px bottom padding even when elServerScriptError is display:none. So set it's parent to block or none
+                    // If we just set elServerScriptError's diplay to block or none, we still end up with
+                    //it's parent contributing 21px bottom padding even when elServerScriptError is display:none.
+                    // So set it's parent to block or none
                     elServerScriptError.parentElement.style.display = data.errorInfo ? "block" : "none";
                     if (data.statusRetrieved === false) {
                         elServerScriptStatus.innerText = "Failed to retrieve status";
@@ -1194,11 +1196,11 @@ function loaded() {
                 $(el).css('background-color', '#' + hex);
                 $(el).colpickHide();
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
-				// Keep the companion control in sync
-				elColorControl2.style.backgroundColor = "rgb(" + rgb.r + "," + rgb.g + "," + rgb.b + ")";
+                // Keep the companion control in sync
+                elColorControl2.style.backgroundColor = "rgb(" + rgb.r + "," + rgb.g + "," + rgb.b + ")";
             }
         }));
-		colorPickers.push($('#property-color-control2').colpick({
+        colorPickers.push($('#property-color-control2').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
@@ -1212,8 +1214,8 @@ function loaded() {
                 $(el).css('background-color', '#' + hex);
                 $(el).colpickHide();
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
-				// Keep the companion control in sync
-				elColorControl1.style.backgroundColor = "rgb(" + rgb.r + "," + rgb.g + "," + rgb.b + ")";
+                // Keep the companion control in sync
+                elColorControl1.style.backgroundColor = "rgb(" + rgb.r + "," + rgb.g + "," + rgb.b + ")";
 
             }
         }));
@@ -1478,9 +1480,9 @@ function loaded() {
     var elCollapsible = document.getElementsByClassName("section-header");
 
     var toggleCollapsedEvent = function(event) {
-		var element = event.target.parentNode.parentNode;
-		var isCollapsed = element.dataset.collapsed !== "true";
-		element.dataset.collapsed = isCollapsed ? "true" : false
+        var element = event.target.parentNode.parentNode;
+        var isCollapsed = element.dataset.collapsed !== "true";
+        element.dataset.collapsed = isCollapsed ? "true" : false
         element.setAttribute("collapsed", isCollapsed ? "true" : "false");
         element.getElementsByTagName("span")[0].textContent = isCollapsed ? "L" : "M";
     };
