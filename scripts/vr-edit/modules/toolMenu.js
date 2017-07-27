@@ -21,10 +21,15 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
         SCALE_MODE_DIRECT_COLOR = { red: 240, green: 240, blue: 0 },
         SCALE_MODE_HANDLES_COLOR = { red: 0, green: 240, blue: 240 },
 
-        originOverlay,
-        panelOverlay,
+        menuOriginOverlay,
+        menuPanelOverlay,
         buttonOverlay,
         buttonHighlightOverlay,
+
+        paletteOriginOverlay,
+        palettePanelOverlay,
+        cubeOverlay,
+        cubeHighlightOverlay,
 
         LEFT_HAND = 0,
         AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
@@ -32,17 +37,20 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
         HAND_JOINT_NAME = side === LEFT_HAND ? "LeftHand" : "RightHand",
 
         CANVAS_SIZE = { x: 0.21, y: 0.13 },
-
         LATERAL_OFFSET = side === LEFT_HAND ? -0.01 : 0.01,
-        ROOT_POSITION = { x: CANVAS_SIZE.x / 2 + LATERAL_OFFSET, y: 0.15, z: -0.03 },
-        ROOT_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 }),
+
+        PANEL_ROOT_POSITION = { x: CANVAS_SIZE.x / 2 + LATERAL_OFFSET, y: 0.15, z: -0.03 },
+        PANEL_ROOT_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 }),
+
+        PALETTE_ROOT_POSITION = { x: -CANVAS_SIZE.x / 2 + LATERAL_OFFSET, y: 0.15, z: 0.09 },
+        PALETTE_ROOT_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 180, z: 180 }),
 
         ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO),
 
-        ORIGIN_PROPERTIES = {
+        PANEL_ORIGIN_PROPERTIES = {
             dimensions: { x: 0.005, y: 0.005, z: 0.005 },
-            localPosition: ROOT_POSITION,
-            localRotation: ROOT_ROTATION,
+            localPosition: PANEL_ROOT_POSITION,
+            localRotation: PANEL_ROOT_ROTATION,
             color: { red: 255, blue: 0, green: 0 },
             alpha: 1.0,
             parentID: AVATAR_SELF_ID,
@@ -50,7 +58,7 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
             visible: false
         },
 
-        PANEL_PROPERTIES = {
+        MENU_PANEL_PROPERTIES = {
             dimensions: { x: CANVAS_SIZE.x, y: CANVAS_SIZE.y, z: 0.01 },
             localPosition: { x: CANVAS_SIZE.x / 2, y: CANVAS_SIZE.y / 2, z: 0.005 },
             localRotation: ZERO_ROTATION,
@@ -84,9 +92,63 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
             visible: false
         },
 
+        PALETTE_ORIGIN_PROPERTIES = {
+            dimensions: { x: 0.005, y: 0.005, z: 0.005 },
+            localPosition: PALETTE_ROOT_POSITION,
+            localRotation: PALETTE_ROOT_ROTATION,
+            color: { red: 255, blue: 0, green: 0 },
+            alpha: 1.0,
+            parentID: AVATAR_SELF_ID,
+            ignoreRayIntersection: true,
+            visible: false
+        },
+
+        PALETTE_PANEL_PROPERTIES = {
+            dimensions: { x: CANVAS_SIZE.x, y: CANVAS_SIZE.y, z: 0.001 },
+            localPosition: { x: CANVAS_SIZE.x / 2, y: CANVAS_SIZE.y / 2, z: 0 },
+            localRotation: ZERO_ROTATION,
+            color: { red: 192, green: 192, blue: 192 },
+            alpha: 0.3,
+            solid: true,
+            ignoreRayIntersection: false,
+            visible: true
+        },
+
+        CUBE_PROPERTIES = {
+            dimensions: { x: 0.03, y: 0.03, z: 0.03 },
+            localPosition: { x: 0.02, y: 0.02, z: 0.0 },
+            localRotation: ZERO_ROTATION,
+            color: { red: 240, green: 0, blue: 0 },
+            alpha: 1.0,
+            solid: true,
+            ignoreRayIntersection: false,
+            visible: true
+        },
+
+        CUBE_HIGHLIGHT_PROPERTIES = {
+            dimensions: { x: 0.034, y: 0.034, z: 0.034 },
+            localPosition: { x: 0.02, y: 0.02, z: 0.0 },
+            localRotation: ZERO_ROTATION,
+            color: { red: 240, green: 240, blue: 0 },
+            alpha: 0.8,
+            solid: false,
+            drawInFront: true,
+            ignoreRayIntersection: true,
+            visible: false
+        },
+
+        CUBE_ENTITY_PROPERTIES = {
+            type: "Box",
+            dimensions: { x: 0.2, y: 0.2, z: 0.2 },
+            color: { red: 192, green: 192, blue: 192 }
+        },
+
         isDisplaying = false,
+
         isHighlightingButton = false,
         isButtonPressed = false,
+        isHighlightingCube = false,
+        isCubePressed = false,
 
         // References.
         controlHand;
@@ -108,7 +170,7 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
     }
 
     function getEntityIDs() {
-        return [panelOverlay, buttonOverlay];
+        return [menuPanelOverlay, buttonOverlay, palettePanelOverlay, cubeOverlay];
     }
 
     function update(intersectionOverlayID) {
@@ -135,6 +197,31 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
                 });
             }
         }
+
+        // Highlight cube.
+        if (intersectionOverlayID === cubeOverlay !== isHighlightingCube) {
+            isHighlightingCube = !isHighlightingCube;
+            Overlays.editOverlay(cubeHighlightOverlay, { visible: isHighlightingCube });
+        }
+
+        // Cube click.
+        if (isHighlightingCube && controlHand.triggerClicked() !== isCubePressed) {
+            isCubePressed = controlHand.triggerClicked();
+
+            if (isCubePressed) {
+                Overlays.editOverlay(cubeOverlay, {
+                    localPosition: Vec3.sum(BUTTON_PROPERTIES.localPosition, { x: 0, y: 0, z: 0.01 })
+                });
+                CUBE_ENTITY_PROPERTIES.position =
+                    Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.2, z: -1.0 }));
+                CUBE_ENTITY_PROPERTIES.rotation = MyAvatar.orientation;
+                Entities.addEntity(CUBE_ENTITY_PROPERTIES);
+            } else {
+                Overlays.editOverlay(cubeOverlay, {
+                    localPosition: BUTTON_PROPERTIES.localPosition
+                });
+            }
+        }
     }
 
     function display() {
@@ -155,18 +242,32 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
         }
 
         // Calculate position to put menu.
-        ORIGIN_PROPERTIES.parentJointIndex = handJointIndex;
-        originOverlay = Overlays.addOverlay("sphere", ORIGIN_PROPERTIES);
+        PANEL_ORIGIN_PROPERTIES.parentJointIndex = handJointIndex;
+        menuOriginOverlay = Overlays.addOverlay("sphere", PANEL_ORIGIN_PROPERTIES);
 
         // Create menu items.
-        PANEL_PROPERTIES.parentID = originOverlay;
-        panelOverlay = Overlays.addOverlay("cube", PANEL_PROPERTIES);
-        BUTTON_PROPERTIES.parentID = originOverlay;
+        MENU_PANEL_PROPERTIES.parentID = menuOriginOverlay;
+        menuPanelOverlay = Overlays.addOverlay("cube", MENU_PANEL_PROPERTIES);
+        BUTTON_PROPERTIES.parentID = menuOriginOverlay;
         buttonOverlay = Overlays.addOverlay("cube", BUTTON_PROPERTIES);
 
-        // Prepare highlight overlay.
-        BUTTON_HIGHLIGHT_PROPERTIES.parentID = originOverlay;
+        // Prepare button highlight overlay.
+        BUTTON_HIGHLIGHT_PROPERTIES.parentID = menuOriginOverlay;
         buttonHighlightOverlay = Overlays.addOverlay("cube", BUTTON_HIGHLIGHT_PROPERTIES);
+
+        // Calculate position to put palette.
+        PALETTE_ORIGIN_PROPERTIES.parentJointIndex = handJointIndex;
+        paletteOriginOverlay = Overlays.addOverlay("sphere", PALETTE_ORIGIN_PROPERTIES);
+
+        // Create palette items.
+        PALETTE_PANEL_PROPERTIES.parentID = paletteOriginOverlay;
+        palettePanelOverlay = Overlays.addOverlay("cube", PALETTE_PANEL_PROPERTIES);
+        CUBE_PROPERTIES.parentID = paletteOriginOverlay;
+        cubeOverlay = Overlays.addOverlay("cube", CUBE_PROPERTIES);
+
+        // Prepare cube highlight overlay.
+        CUBE_HIGHLIGHT_PROPERTIES.parentID = paletteOriginOverlay;
+        cubeHighlightOverlay = Overlays.addOverlay("cube", CUBE_HIGHLIGHT_PROPERTIES);
 
         isDisplaying = true;
     }
@@ -177,9 +278,15 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
             return;
         }
 
+        Overlays.deleteOverlay(cubeHighlightOverlay);
+        Overlays.deleteOverlay(cubeOverlay);
+        Overlays.deleteOverlay(palettePanelOverlay);
+        Overlays.deleteOverlay(paletteOriginOverlay);
+
         Overlays.deleteOverlay(buttonHighlightOverlay);
         Overlays.deleteOverlay(buttonOverlay);
-        Overlays.deleteOverlay(panelOverlay);
+        Overlays.deleteOverlay(menuPanelOverlay);
+        Overlays.deleteOverlay(menuOriginOverlay);
         isDisplaying = false;
     }
 
