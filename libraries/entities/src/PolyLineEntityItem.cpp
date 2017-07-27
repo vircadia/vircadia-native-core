@@ -158,22 +158,19 @@ void PolyLineEntityItem::calculateScaleAndRegistrationPoint() {
 
 		if (point.x > high.x){
 			high.x = point.x;
-		}
-		else if (point.x < low.x) {
+		} else if (point.x < low.x) {
 			low.x = point.x;
 		}
 
 		if (point.y > high.y){
 			high.y = point.y;
-		}
-		else if (point.y < low.y) {
+		} else if (point.y < low.y) {
 			low.y = point.y;
 		}
 
 		if (point.z > high.z){
 			high.z = point.z;
-		}
-		else if (point.z < low.z) {
+		} else if (point.z < low.z) {
 			low.z = point.z;
 		}
 	}
@@ -196,12 +193,10 @@ void PolyLineEntityItem::calculateScaleAndRegistrationPoint() {
 		glm::vec3 startPointInScaleSpace = point - low;
 		glm::vec3 newRegistrationPoint = startPointInScaleSpace / result;
 		EntityItem::setRegistrationPoint(newRegistrationPoint);
-	}
-	else {
+	} else {
 		// if Polyline has only one or fewer points, use default dimension settings
 		SpatiallyNestable::setScale(glm::vec3(1.0f, 1.0f, 1.0f));
 		EntityItem::setRegistrationPoint(glm::vec3(0.0f, 0.0f, 0.0f));
-		return;
 	}
 }
 
