@@ -182,7 +182,7 @@ Laser = function (side) {
                 isLaserOn = true;
                 display(pickRay.origin, pickRay.direction, laserLength, true, hand.triggerClicked());
 
-            } else {
+            } else if (uiEntityIDs.length > 0) {
 
                 // Special UI cursor.
                 intersection = Overlays.findRayIntersection(pickRay, PRECISION_PICKING, uiEntityIDs, NO_EXCLUDE_IDS,
@@ -198,18 +198,20 @@ Laser = function (side) {
                     }
                     isLaserOn = true;
                     display(pickRay.origin, pickRay.direction, laserLength, false, false);
-                } else {
-                    if (isLaserOn) {
-                        isLaserOn = false;
-                        hide();
-                    }
+                } else if (isLaserOn) {
+                    isLaserOn = false;
+                    hide();
                 }
 
+            } else {
+                intersection = { intersects: false };
+                if (isLaserOn) {
+                    isLaserOn = false;
+                    hide();
+                }
             }
         } else {
-            intersection = {
-                intersects: false
-            };
+            intersection = { intersects: false };
             if (isLaserOn) {
                 isLaserOn = false;
                 hide();
