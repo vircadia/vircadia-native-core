@@ -4060,6 +4060,8 @@ SelectionDisplay = (function() {
             return false;
         }
 
+        entityIconOverlayManager.setIconsSelectable(selectionManager.selections,true);
+
         // ignore ray intersection for our selection box and yaw/pitch/roll
         result = Overlays.findRayIntersection(pickRay, true, null, [ yawHandle, pitchHandle, rollHandle, selectionBox ] );
         if (result.intersects) {
