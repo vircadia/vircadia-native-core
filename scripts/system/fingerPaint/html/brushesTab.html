@@ -96,13 +96,13 @@
     }
 </style>
 
-    <div id="strokeWidthWidget" class="property range">
-        <label style="display: block">Stroke Width</label>
-        <div class="sliderWrapper">
-            <input type="range" id="lineWidthRange" value=0.25 min=0 max=1 step=0.01 onchange="changeLineWidthRange(this)"/>
-            <input type="number" id="lineWidthText" value=0.25 min=0 max=1 step=0.01 onchange="changeLineWidthNumber(this)"/>
-        </div>
+<div id="strokeWidthWidget" class="property range">
+    <label style="display: block">Stroke Width</label>
+    <div class="sliderWrapper">
+        <input type="range" id="lineWidthRange" value=0.25 min=0 max=1 step=0.01 onchange="changeLineWidthRange(this)"/>
+        <input type="number" id="lineWidthText" value=0.25 min=0 max=1 step=0.01 onchange="changeLineWidthNumber(this)"/>
     </div>
+</div>
 <div style="margin-top: 75px">
     <div class="behavior-group property checkbox">
         <input onchange="setDynamicBrush(this)" animationType="DynamicHueBrush" type="checkbox" id="dynamicBrush"></input>
@@ -650,8 +650,8 @@
 
 
 <script type="text/javascript">
-    var currentBrush = 5;
-     var EventBridge = parent.EventBridge;
+    var currentBrush = 0;
+    var EventBridge = parent.EventBridge;
 
     function changeLineWidthRange(e) {
         document.getElementById("lineWidthText").value = e.value;
@@ -737,10 +737,9 @@
         };
         parent.postMessage(JSON.stringify(switchDynamicBrushEvent), "*");
     }
-
+    
     restoreSavedBrushes(JSON.parse(decodeURIComponent(window.parent.location.search).substring(1)));
     function restoreSavedBrushes(brushData) {
-        //var brush = JSON.parse(event.data);
         if ("currentTexture" in brushData) {
             changePaintBrush(brushData.currentTexture.brushID);
         }
@@ -762,5 +761,6 @@
     $(window).load(function(){ 
         setUpKeyboardControl();
     });
+
 
 </script>
