@@ -303,7 +303,7 @@ Rectangle {
         });
     }
     function deleteFile(index) {
-        var path=[];
+        var path = [];
         
         if (!index) {
             for (var i = 0; i < selectedItems; i++) {
