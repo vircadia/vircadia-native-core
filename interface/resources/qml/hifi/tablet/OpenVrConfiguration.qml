@@ -878,6 +878,9 @@ Rectangle {
         var viveController = settings["handController"];
         var desktopMode = settings["desktopMode"];
 
+        armCircumference.value = settings.armCircumference;
+        shoulderWidth.value = settings.shoulderWidth;
+
         if (HmdHead) {
             headBox.checked = true;
             headPuckBox.checked = false;

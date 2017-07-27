@@ -375,6 +375,7 @@ void ViveControllerManager::InputDevice::calibrateFromUI(const controller::Input
 }
 
 static const float CM_TO_M = 0.01f;
+static const float M_TO_CM = 100.0f;
 
 void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJsonObject configurationSettings) {
     Locker locker(_lock);
@@ -411,6 +412,10 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                     _armCircumference = shoulderObj["armCircumference"].toDouble() * CM_TO_M;
                     _shoulderWidth = shoulderObj["shoulderWidth"].toDouble() * CM_TO_M;
                 }
+            } else if (iter.key() == "armCircumference") {
+                _armCircumference = (float)iter.value().toDouble() * CM_TO_M;
+            } else if (iter.key() == "shoulderWidth") {
+                _shoulderWidth = (float)iter.value().toDouble() * CM_TO_M;
             }
             iter++;
         }
@@ -429,6 +434,8 @@ QJsonObject ViveControllerManager::InputDevice::configurationSettings() {
     configurationSettings["HMDHead"] = (_headConfig == HeadConfig::HMD);
     configurationSettings["handController"] = (_handConfig == HandConfig::HandController);
     configurationSettings["puckCount"] = (int)_validTrackedObjects.size();
+    configurationSettings["armCircumference"] = (double)_armCircumference * M_TO_CM;
+    configurationSettings["shoulderWidth"] = (double)_shoulderWidth * M_TO_CM;
     return configurationSettings;
 }
 
