@@ -61,6 +61,7 @@
 #include <AssetClient.h>
 #include <AssetUpload.h>
 #include <AutoUpdater.h>
+#include <Midi.h>
 #include <AudioInjectorManager.h>
 #include <AvatarBookmarks.h>
 #include <CursorManager.h>
@@ -398,6 +399,10 @@ public:
                     return true;
                 }
             }
+
+            if (message->message == WM_DEVICECHANGE) {
+                Midi::USBchanged();                // re-scan the MIDI bus
+            }
         }
         return false;
     }
@@ -567,6 +572,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<SceneScriptingInterface>();
     DependencyManager::set<OffscreenUi>();
     DependencyManager::set<AutoUpdater>();
+    DependencyManager::set<Midi>();
     DependencyManager::set<PathUtils>();
     DependencyManager::set<InterfaceDynamicFactory>();
     DependencyManager::set<AudioInjectorManager>();
