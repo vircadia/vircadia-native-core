@@ -167,6 +167,7 @@ void ViveControllerManager::setConfigurationSettings(const QJsonObject configura
             }
         }
         _inputDevice->configureCalibrationSettings(configurationSettings);
+        saveSettings();
     }
 }
 
@@ -186,6 +187,8 @@ QString ViveControllerManager::configurationLayout() {
 
 bool ViveControllerManager::activate() {
     InputPlugin::activate();
+
+    loadSettings();
 
     if (!_system) {
         _system = acquireOpenVrSystem();
@@ -229,6 +232,8 @@ void ViveControllerManager::deactivate() {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->removeDevice(_inputDevice->_deviceID);
     _registeredWithInputMapper = false;
+
+    saveSettings();
 }
 
 bool ViveControllerManager::isHeadControllerMounted() const {
@@ -281,7 +286,34 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
     }
 }
 
-static const size_t CONTROLLER_HISTORY_SIZE = 90 * 3;
+void ViveControllerManager::loadSettings() {
+    Settings settings;
+    QString nameString = getName();
+    settings.beginGroup(nameString);
+    {
+        if (_inputDevice) {
+            const double DEFAULT_ARM_CIRCUMFERENCE = 0.33;
+            const double DEFAULT_SHOULDER_WIDTH = 0.48;
+            _inputDevice->_armCircumference = settings.value("armCircumference", QVariant(DEFAULT_ARM_CIRCUMFERENCE)).toDouble();
+            _inputDevice->_shoulderWidth = settings.value("shoulderWidth", QVariant(DEFAULT_SHOULDER_WIDTH)).toDouble();
+        }
+    }
+    settings.endGroup();
+}
+
+void ViveControllerManager::saveSettings() const {
+    Settings settings;
+    QString nameString = getName();
+    settings.beginGroup(nameString);
+    {
+        if (_inputDevice) {
+            settings.setValue(QString("armCircumference"), _inputDevice->_armCircumference);
+            settings.setValue(QString("shoulderWidth"), _inputDevice->_shoulderWidth);
+        }
+    }
+    settings.endGroup();
+}
+
 
 ViveControllerManager::InputDevice::InputDevice(vr::IVRSystem*& system) :
     controller::InputDevice("Vive"),
@@ -404,13 +436,6 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                     _handPuckZOffset = handsObject["Z"].toDouble() * CM_TO_M;
                 } else {
                     _handConfig = HandConfig::HandController;
-                }
-            } else if (iter.key() == "shoulderConfiguration") {
-                QJsonObject shoulderObj = iter.value().toObject();
-                bool shouldersChecked = shoulderObj["override"].toBool();
-                if (shouldersChecked) {
-                    _armCircumference = shoulderObj["armCircumference"].toDouble() * CM_TO_M;
-                    _shoulderWidth = shoulderObj["shoulderWidth"].toDouble() * CM_TO_M;
                 }
             } else if (iter.key() == "armCircumference") {
                 _armCircumference = (float)iter.value().toDouble() * CM_TO_M;

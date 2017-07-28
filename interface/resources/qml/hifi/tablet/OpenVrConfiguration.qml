@@ -1052,17 +1052,12 @@ Rectangle {
             "Z": handZOffset.value
         }
 
-        var shoulderObject = {
-            "override": shouldersChecked,
-            "armCircumference": armCircumference.value,
-            "shoulderWidth": shoulderWidth.value
-        }
-
         var settingsObject = {
             "bodyConfiguration": trackerConfiguration,
             "headConfiguration": headObject,
             "handConfiguration": handObject,
-            "shoulderConfiguration": shoulderObject,
+            "armCircumference": armCircumference.value,
+            "shoulderWidth": shoulderWidth.value,
             "desktopMode": viveInDesktop.checked
         }
 

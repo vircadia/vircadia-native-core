@@ -57,6 +57,9 @@ public:
 
     void setRenderControllers(bool renderControllers) { _renderControllers = renderControllers; }
 
+    virtual void saveSettings() const override;
+    virtual void loadSettings() override;
+
 private:
     class InputDevice : public controller::InputDevice {
     public:
