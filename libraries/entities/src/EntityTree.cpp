@@ -1675,6 +1675,7 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
                 addToNeedsParentFixupList(entity);
             }
             entity->forceQueryAACubeUpdate();
+            entity->checkAndMaybeUpdateQueryAACube();
             moveOperator.addEntityToMoveList(entity, entity->getQueryAACube());
             i++;
         } else {
@@ -1693,7 +1694,7 @@ QVector<EntityItemID> EntityTree::sendEntities(EntityEditPacketSender* packetSen
         EntityItemPointer entity = localTree->findEntityByEntityItemID(newID);
         if (entity) {
             // queue the packet to send to the server
-            entity->computePuffedQueryAACube();
+            entity->updateQueryAACube();
             EntityItemProperties properties = entity->getProperties();
             properties.markAllChanged(); // so the entire property set is considered new, since we're making a new entity
             packetSender->queueEditEntityMessage(PacketType::EntityAdd, localTree, newID, properties);
