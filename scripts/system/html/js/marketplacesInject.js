@@ -96,11 +96,13 @@
 
     function injectBlocksCode() {
         // Make space for marketplaces footer in Blocks pages.
-        $("head").append(
-            '<style>' +
-                '#app { margin-bottom: 135px; }' +
-                '.footer { bottom: 50px; }' +
-            '</style>'
+        /*$("body").append(
+            '<div id="marketplace-navigation">' +
+                '<input id="all-markets" type="button" class="white" value="See All Markets" />' +
+            '</div>'
+        );*/
+        $("body").append(
+            'style= "bottom: 135px" '
         );
     }
 
