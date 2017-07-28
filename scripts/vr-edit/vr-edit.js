@@ -33,13 +33,14 @@
         RIGHT_HAND = 1,
 
         // Modules
+        CreatePalette,
         Hand,
         Handles,
         Highlights,
         Laser,
         Selection,
+        ToolIcon,
         ToolMenu,
-        CreatePalette,
 
         // Miscellaneous
         UPDATE_LOOP_TIMEOUT = 16,
@@ -59,6 +60,7 @@
     Script.include("./modules/highlights.js");
     Script.include("./modules/laser.js");
     Script.include("./modules/selection.js");
+    Script.include("./modules/toolIcon.js");
     Script.include("./modules/toolMenu.js");
 
 
@@ -78,6 +80,10 @@
             }
             log(hand + message);
         }
+    }
+
+    function otherHand(hand) {
+        return (hand + 1) % 2;
     }
 
 
@@ -164,6 +170,7 @@
 
         var // Primary objects.
             toolMenu,
+            toolIcon,
             createPalette,
 
             isDisplaying = false,
@@ -175,6 +182,7 @@
             return new UI();
         }
 
+        toolIcon = new ToolIcon(otherHand(side));
         toolMenu = new ToolMenu(side, leftInputs, rightInputs, setAppScaleWithHandlesCallback);
         createPalette = new CreatePalette(side, leftInputs, rightInputs);
 
@@ -185,6 +193,14 @@
             toolMenu.setHand(side);
             createPalette.setHand(side);
             getIntersection = side === LEFT_HAND ? rightInputs.intersection : leftInputs.intersection;
+        }
+
+        function setToolIcon(icon) {
+            toolIcon.display(icon);
+        }
+
+        function clearToolIcon() {
+            toolIcon.clear();
         }
 
         function display() {
@@ -204,6 +220,7 @@
             if (isDisplaying) {
                 toolMenu.update(getIntersection().overlayID);
                 createPalette.update(getIntersection().overlayID);
+                toolIcon.update();
             }
         }
 
@@ -225,10 +242,17 @@
                 toolMenu.destroy();
                 toolMenu = null;
             }
+            if (toolIcon) {
+                toolIcon.destroy();
+                toolIcon = null;
+            }
         }
 
         return {
             setHand: setHand,
+            setToolIcon: setToolIcon,
+            clearToolIcon: clearToolIcon,
+            SCALE_HANDLES: toolIcon.SCALE_HANDLES,
             display: display,
             update: update,
             clear: clear,
@@ -972,6 +996,11 @@
 
     function setAppScaleWithHandles(appScaleWithHandles) {
         isAppScaleWithHandles = appScaleWithHandles;
+        if (isAppScaleWithHandles) {
+            ui.setToolIcon(ui.SCALE_HANDLES);
+        } else {
+            ui.clearToolIcon();
+        }
     }
 
     function onAppButtonClicked() {
@@ -992,10 +1021,6 @@
             editors[LEFT_HAND].clear();
             editors[RIGHT_HAND].clear();
         }
-    }
-
-    function otherHand(hand) {
-        return (hand + 1) % 2;
     }
 
     function onDominantHandChanged() {

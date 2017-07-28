@@ -49,3 +49,9 @@ if (typeof Entities.hasEditableRoot !== "function") {
         return properties.visible && !properties.locked && NONEDITABLE_ENTITY_TYPES.indexOf(properties.type) === -1;
     };
 }
+
+if (typeof Object.clone !== "function") {
+    Object.clone = function (object) {
+        return JSON.parse(JSON.stringify(object));
+    };
+}
