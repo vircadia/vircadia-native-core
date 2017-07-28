@@ -88,14 +88,12 @@ EntityItemProperties ShapeEntityItem::getProperties(EntityPropertyFlags desiredP
 
 void ShapeEntityItem::setShape(const entity::Shape& shape) {
     _shape = shape;
-    switch (_shape) { // TODO WL21389: fill out with other shapes?
+    switch (_shape) {
         case entity::Shape::Cube:
             _type = EntityTypes::Box;
-            _collisionShapeType = ShapeType::SHAPE_TYPE_BOX;
             break;
         case entity::Shape::Sphere:
             _type = EntityTypes::Sphere;
-            _collisionShapeType = ShapeType::SHAPE_TYPE_ELLIPSOID;
             break;
         default:
             _type = EntityTypes::Shape;
@@ -160,11 +158,6 @@ void ShapeEntityItem::appendSubclassData(OctreePacketData* packetData, EncodeBit
     APPEND_ENTITY_PROPERTY(PROP_SHAPE, entity::stringFromShape(getShape()));
     APPEND_ENTITY_PROPERTY(PROP_COLOR, getColor());
     APPEND_ENTITY_PROPERTY(PROP_ALPHA, getAlpha());
-}
-
-// This value specifes how the shape should be treated by physics calculations.
-ShapeType ShapeEntityItem::getShapeType() const {
-    return _collisionShapeType;
 }
 
 void ShapeEntityItem::setColor(const rgbColor& value) {

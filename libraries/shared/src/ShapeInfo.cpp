@@ -124,7 +124,7 @@ int ShapeInfo::getLargestSubshapePointCount() const {
 }
 
 float ShapeInfo::computeVolume() const {
-    //TODO WL21389: Add support for other ShapeTypes.
+    //TODO WL21389: Add support for other ShapeTypes( CYLINDER_X, CYLINDER_Y, etc).
     const float DEFAULT_VOLUME = 1.0f;
     float volume = DEFAULT_VOLUME;
     switch(_type) {

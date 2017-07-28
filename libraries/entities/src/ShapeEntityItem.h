@@ -84,7 +84,6 @@ public:
     QColor getQColor() const;
     void setColor(const QColor& value);
 
-    ShapeType getShapeType() const override;
     bool shouldBePhysical() const override { return !isDead(); }
     
     bool supportsDetailedRayIntersection() const override;
@@ -100,7 +99,6 @@ protected:
     float _alpha { 1 };
     rgbColor _color;
     entity::Shape _shape { entity::Shape::Sphere };
-    ShapeType _collisionShapeType { ShapeType::SHAPE_TYPE_NONE };
 };
 
 #endif // hifi_ShapeEntityItem_h
