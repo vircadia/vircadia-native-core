@@ -5,21 +5,20 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global Script, Entities, controllerDispatcherPlugins, Controller, Vec3, getControllerWorldLocation */
+/* global Script, Entities, controllerDispatcherPlugins, Controller, Vec3, getControllerWorldLocation,
+   LEFT_HAND, RIGHT_HAND */
 
 controllerDispatcherPlugins = {};
 
 Script.include("/~/system/libraries/utils.js");
 Script.include("/~/system/libraries/controllers.js");
+Script.include("/~/system/controllers/controllerDispatcherUtils.js");
 
 (function() {
     var _this = this;
 
-    var LEFT_HAND = 0;
-    var RIGHT_HAND = 1;
-
-    var NEAR_GRAB_RADIUS = 0.1;
-    var NEAR_GRAB_MAX_DISTANCE = 1.0; // you cannot grab objects that are this far away from your hand
+    var NEAR_MIN_RADIUS = 0.1;
+    var NEAR_MAX_RADIUS = 1.0;
 
 
     var DISPATCHER_PROPERTIES = [
@@ -72,13 +71,13 @@ Script.include("/~/system/libraries/controllers.js");
         for (var i = LEFT_HAND; i <= RIGHT_HAND; i ++) {
             // todo: check controllerLocations[i].valid
             var controllerPosition = controllerLocations[i].position;
-            var nearbyEntityIDs = Entities.findEntities(controllerPosition, NEAR_GRAB_RADIUS);
+            var nearbyEntityIDs = Entities.findEntities(controllerPosition, NEAR_MIN_RADIUS);
             for (var j = 0; j < nearbyEntityIDs.length; j++) {
                 var entityID = nearbyEntityIDs[j];
                 var props = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
                 props.id = entityID;
                 props.distanceFromController = Vec3.length(Vec3.subtract(controllerPosition, props.position));
-                if (props.distanceFromController < NEAR_GRAB_MAX_DISTANCE) {
+                if (props.distanceFromController < NEAR_MAX_RADIUS) {
                     nearbyEntityProperties[i].push(props);
                 }
             }
