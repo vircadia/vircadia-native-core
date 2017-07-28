@@ -47,6 +47,7 @@ public:
 
 
     static void drawMask(gpu::State& state);
+    static void drawMaskDepth(gpu::State& state);
     static void testMask(gpu::State& state);
     static void testBackground(gpu::State& state);
     static void testMaskDrawShape(gpu::State& state);

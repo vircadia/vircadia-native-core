@@ -131,6 +131,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 
         // FXAA step
         auto pipeline = getAntialiasingPipeline(renderContext->args);
+        _antialiasingBuffer->setDepthStencilBuffer(sourceBuffer->getDepthStencilBuffer(), sourceBuffer->getDepthStencilBufferFormat());
         batch.setResourceTexture(0, sourceBuffer->getRenderBuffer(0));
         batch.setFramebuffer(_antialiasingBuffer);
         batch.setPipeline(pipeline);

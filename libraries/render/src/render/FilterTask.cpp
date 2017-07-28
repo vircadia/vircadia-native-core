@@ -27,10 +27,25 @@ void FilterLayeredItems::run(const RenderContextPointer& renderContext, const It
     // Clear previous values
     outItems.clear();
 
-    // For each item, filter it into one bucket
+    // Filter matches into one bucket
     for (auto itemBound : inItems) {
         auto& item = scene->getItem(itemBound.id);
         if (item.getLayer() == _keepLayer) {
+            outItems.emplace_back(itemBound);
+        }
+    }
+}
+
+void FilterOutLayeredItems::run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
+    auto& scene = renderContext->_scene;
+
+    // Clear previous values
+    outItems.clear();
+
+    // Filter non-matches into one bucket
+    for (auto itemBound : inItems) {
+        auto& item = scene->getItem(itemBound.id);
+        if (item.getLayer() != _removeLayer) {
             outItems.emplace_back(itemBound);
         }
     }

@@ -37,9 +37,6 @@ namespace render {
             if (std::static_pointer_cast<Base3DOverlay>(overlay)->getDrawInFront()) {
                 builder.withLayered();
             }
-            if (!std::static_pointer_cast<Base3DOverlay>(overlay)->isAA()) {
-                builder.withLayered();
-            }
             if (overlay->getAlphaPulse() != 0.0f || overlay->getAlpha() != 1.0f) {
                 builder.withTransparent();
             }
@@ -60,14 +57,15 @@ namespace render {
 
         if (overlay->is3D()) {
             auto overlay3D = std::dynamic_pointer_cast<Base3DOverlay>(overlay);
-            if (overlay3D->isAA())
+            if (overlay3D->isAA()) {
                 if (overlay3D->getDrawInFront()) {
                     return LAYER_3D_FRONT;
                 } else {
                     return LAYER_3D;
                 }
-            else
+            } else {
                 return LAYER_NO_AA;
+            }
         } else {
             return LAYER_2D;
         }
