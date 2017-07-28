@@ -100,30 +100,14 @@ Web3DOverlay::~Web3DOverlay() {
         }
 
         _webSurface->pause();
-        _webSurface->disconnect(_connection);
-
-        QObject::disconnect(_mousePressConnection);
-        _mousePressConnection = QMetaObject::Connection();
-        QObject::disconnect(_mouseReleaseConnection);
-        _mouseReleaseConnection = QMetaObject::Connection();
-        QObject::disconnect(_mouseMoveConnection);
-        _mouseMoveConnection = QMetaObject::Connection();
-        QObject::disconnect(_hoverLeaveConnection);
-        _hoverLeaveConnection = QMetaObject::Connection();
-
-        QObject::disconnect(_emitScriptEventConnection);
-        _emitScriptEventConnection = QMetaObject::Connection();
-        QObject::disconnect(_webEventReceivedConnection);
-        _webEventReceivedConnection = QMetaObject::Connection();
-
-        // The lifetime of the QML surface MUST be managed by the main thread
-        // Additionally, we MUST use local variables copied by value, rather than
-        // member variables, since they would implicitly refer to a this that
-        // is no longer valid
-        auto webSurface = _webSurface;
-        AbstractViewStateInterface::instance()->postLambdaEvent([webSurface] {
-            DependencyManager::get<OffscreenQmlSurfaceCache>()->release(QML, webSurface);
-        });
+        auto overlays = &(qApp->getOverlays());
+        QObject::disconnect(overlays, &Overlays::mousePressOnOverlay, this, nullptr);
+        QObject::disconnect(overlays, &Overlays::mouseReleaseOnOverlay, this, nullptr);
+        QObject::disconnect(overlays, &Overlays::mouseMoveOnOverlay, this, nullptr);
+        QObject::disconnect(overlays, &Overlays::hoverLeaveOverlay, this, nullptr);
+        QObject::disconnect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
+        QObject::disconnect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
+        DependencyManager::get<OffscreenQmlSurfaceCache>()->release(QML, _webSurface);
         _webSurface.reset();
     }
     auto geometryCache = DependencyManager::get<GeometryCache>();
@@ -153,6 +137,9 @@ QString Web3DOverlay::pickURL() {
 
 
 void Web3DOverlay::loadSourceURL() {
+    if (!_webSurface) {
+        return;
+    }
 
     QUrl sourceUrl(_url);
     if (sourceUrl.scheme() == "http" || sourceUrl.scheme() == "https" ||
@@ -252,10 +239,11 @@ void Web3DOverlay::render(RenderArgs* args) {
             }
         };
 
-        _mousePressConnection = connect(&(qApp->getOverlays()), &Overlays::mousePressOnOverlay, this, forwardPointerEvent, Qt::DirectConnection);
-        _mouseReleaseConnection = connect(&(qApp->getOverlays()), &Overlays::mouseReleaseOnOverlay, this, forwardPointerEvent, Qt::DirectConnection);
-        _mouseMoveConnection = connect(&(qApp->getOverlays()), &Overlays::mouseMoveOnOverlay, this, forwardPointerEvent, Qt::DirectConnection);
-        _hoverLeaveConnection = connect(&(qApp->getOverlays()), &Overlays::hoverLeaveOverlay, this, [=](OverlayID overlayID, const PointerEvent& event) {
+        auto overlays = &(qApp->getOverlays());
+        QObject::connect(overlays, &Overlays::mousePressOnOverlay, this, forwardPointerEvent);
+        QObject::connect(overlays, &Overlays::mouseReleaseOnOverlay, this, forwardPointerEvent);
+        QObject::connect(overlays, &Overlays::mouseMoveOnOverlay, this, forwardPointerEvent);
+        QObject::connect(overlays, &Overlays::hoverLeaveOverlay, this, [=](OverlayID overlayID, const PointerEvent& event) {
             auto self = weakSelf.lock();
             if (!self) {
                 return;
@@ -265,10 +253,10 @@ void Web3DOverlay::render(RenderArgs* args) {
                                       event.getButton(), event.getButtons(), event.getKeyboardModifiers());
                 forwardPointerEvent(overlayID, event);
             }
-        }, Qt::DirectConnection);
+        });
 
-        _emitScriptEventConnection = connect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
-        _webEventReceivedConnection = connect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
+        QObject::connect(this, &Web3DOverlay::scriptEventReceived, _webSurface.data(), &OffscreenQmlSurface::emitScriptEvent);
+        QObject::connect(_webSurface.data(), &OffscreenQmlSurface::webEventReceived, this, &Web3DOverlay::webEventReceived);
     } else {
         if (_currentMaxFPS != _desiredMaxFPS) {
             setMaxFPS(_desiredMaxFPS);
@@ -438,11 +426,11 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     QList<QTouchEvent::TouchPoint> touchPoints;
     touchPoints.push_back(point);
 
-    QTouchEvent* touchEvent = new QTouchEvent(touchType, &_touchDevice, event.getKeyboardModifiers());
-    touchEvent->setWindow(_webSurface->getWindow());
-    touchEvent->setTarget(_webSurface->getRootItem());
-    touchEvent->setTouchPoints(touchPoints);
-    touchEvent->setTouchPointStates(touchPointState);
+    QTouchEvent touchEvent(touchType, &_touchDevice, event.getKeyboardModifiers());
+    touchEvent.setWindow(_webSurface->getWindow());
+    touchEvent.setTarget(_webSurface->getRootItem());
+    touchEvent.setTouchPoints(touchPoints);
+    touchEvent.setTouchPointStates(touchPointState);
 
     // Send mouse events to the Web surface so that HTML dialog elements work with mouse press and hover.
     // FIXME: Scroll bar dragging is a bit unstable in the tablet (content can jump up and down at times).
@@ -452,16 +440,16 @@ void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
     // receive mouse events
 #if QT_VERSION >= QT_VERSION_CHECK(5, 9, 0)
     if (event.getType() == PointerEvent::Move) {
-        QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
-        QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
+        QMouseEvent mouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+        QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
     }
 #endif
-    QCoreApplication::postEvent(_webSurface->getWindow(), touchEvent);
+    QCoreApplication::sendEvent(_webSurface->getWindow(), &touchEvent);
 
 #if QT_VERSION < QT_VERSION_CHECK(5, 9, 0)
     if (event.getType() == PointerEvent::Move) {
-        QMouseEvent* mouseEvent = new QMouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
-        QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
+        QMouseEvent mouseEvent(mouseType, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+        QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
     }
 #endif
 }
@@ -505,8 +493,8 @@ void Web3DOverlay::handlePointerEventAsMouse(const PointerEvent& event) {
             return;
     }
 
-    QMouseEvent* mouseEvent = new QMouseEvent(type, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
-    QCoreApplication::postEvent(_webSurface->getWindow(), mouseEvent);
+    QMouseEvent mouseEvent(type, windowPoint, windowPoint, windowPoint, button, buttons, Qt::NoModifier);
+    QCoreApplication::sendEvent(_webSurface->getWindow(), &mouseEvent);
 }
 
 void Web3DOverlay::setProperties(const QVariantMap& properties) {
@@ -608,6 +596,9 @@ void Web3DOverlay::setScriptURL(const QString& scriptURL) {
     _scriptURL = scriptURL;
     if (_webSurface) {
         AbstractViewStateInterface::instance()->postLambdaEvent([this, scriptURL] {
+            if (!_webSurface) {
+                return;
+            }
             _webSurface->getRootItem()->setProperty("scriptURL", scriptURL);
         });
     }
@@ -631,9 +622,5 @@ Web3DOverlay* Web3DOverlay::createClone() const {
 }
 
 void Web3DOverlay::emitScriptEvent(const QVariant& message) {
-    if (QThread::currentThread() != thread()) {
-        QMetaObject::invokeMethod(this, "emitScriptEvent", Qt::QueuedConnection, Q_ARG(QVariant, message));
-    } else {
-        emit scriptEventReceived(message);
-    }
+    QMetaObject::invokeMethod(this, "scriptEventReceived", Q_ARG(QVariant, message));
 }
