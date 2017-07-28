@@ -949,34 +949,34 @@ AACube SpatiallyNestable::getMaximumAACube(bool& success) const {
 const float PARENTED_EXPANSION_FACTOR = 3.0f;
 
 bool SpatiallyNestable::checkAndMaybeUpdateQueryAACube() {
-    bool success;
+    bool success = false;
     AACube maxAACube = getMaximumAACube(success);
-    if (success && (!_queryAACubeSet || (_parentID.isNull() && _children.size() == 0) || !_queryAACube.contains(maxAACube))) {
-        if (_parentJointIndex != INVALID_JOINT_INDEX || _children.size() > 0 ) {
-            // make an expanded AACube centered on the object
-            float scale = PARENTED_EXPANSION_FACTOR * maxAACube.getScale();
-            _queryAACube = AACube(maxAACube.calcCenter() - glm::vec3(0.5f * scale), scale);
-        } else {
-            _queryAACube = maxAACube;
-        }
-
-        getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-            bool success;
-            AACube descendantAACube = descendant->getQueryAACube(success);
-            if (success) {
-                if (_queryAACube.contains(descendantAACube)) {
-                    return;
-                }
-                _queryAACube += descendantAACube.getMinimumPoint();
-                _queryAACube += descendantAACube.getMaximumPoint();
+    if (success) {
+        // maybe update _queryAACube
+        if (!_queryAACubeSet || (_parentID.isNull() && _children.size() == 0) || !_queryAACube.contains(maxAACube)) {
+            if (_parentJointIndex != INVALID_JOINT_INDEX || _children.size() > 0 ) {
+                // make an expanded AACube centered on the object
+                float scale = PARENTED_EXPANSION_FACTOR * maxAACube.getScale();
+                _queryAACube = AACube(maxAACube.calcCenter() - glm::vec3(0.5f * scale), scale);
+            } else {
+                _queryAACube = maxAACube;
             }
-        });
-        _queryAACubeSet = true;
 
-        return true;
-    } else {
-        return false;
+            getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+                bool childSuccess;
+                AACube descendantAACube = descendant->getQueryAACube(childSuccess);
+                if (childSuccess) {
+                    if (_queryAACube.contains(descendantAACube)) {
+                        return;
+                    }
+                    _queryAACube += descendantAACube.getMinimumPoint();
+                    _queryAACube += descendantAACube.getMaximumPoint();
+                }
+            });
+            _queryAACubeSet = true;
+        }
     }
+    return success;
 }
 
 void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
