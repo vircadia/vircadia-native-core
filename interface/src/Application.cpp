@@ -6224,14 +6224,12 @@ void Application::addAssetToWorld(QString filePath, QString zipFile, bool isBloc
     // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
     QString mapping;
     QString path = filePath;
-    QString filename = filenameFromPath(filePath);
+    QString filename = filenameFromPath(path);
     if (isBlocks) {
         QString assetFolder = zipFile.section("/", -1);
         assetFolder.remove(".zip");
-        mapping = "/" + assetFolder + "/" + filenameFromPath(filename);
+        mapping = "/" + assetFolder + "/" + filename;
     } else {
-        path = QUrl(filePath).toLocalFile();
-        filename = filenameFromPath(path);
         mapping = "/" + filename;
     }
 
