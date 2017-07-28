@@ -2122,7 +2122,6 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("AvatarManager", DependencyManager::get<AvatarManager>().data());
     surfaceContext->setContextProperty("UndoStack", &_undoStackScriptingInterface);
     surfaceContext->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
-    surfaceContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
     surfaceContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     surfaceContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     surfaceContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
