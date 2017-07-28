@@ -35,7 +35,7 @@
                                                               "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
                                                               "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
             }
-            
+
             return controllerJointIndex;
         }
 
@@ -52,7 +52,11 @@
 
     function entityIsGrabbable(props) {
         var grabbableProps = {};
-        var userDataParsed = JSON.parse(props.userData);
+        var userDataParsed = null;
+        try {
+            userDataParsed = JSON.parse(props.userData);
+        } catch (err) {
+        }
         if (userDataParsed && userDataParsed.grabbable) {
             grabbableProps = userDataParsed.grabbable;
         }
@@ -60,6 +64,7 @@
         if (grabbableProps.hasOwnProperty("grabbable")) {
             grabbable = grabbableProps.grabbable;
         }
+
         if (!grabbable) {
             return false;
         }
@@ -86,6 +91,7 @@
         this.previouslyUnhooked = {};
 
 
+        // todo: does this change if the avatar changes?
         this.handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
 
         this.thisHandIsParent = function(props) {
@@ -113,8 +119,7 @@
             return false;
         };
 
-        this.startNearGrab = function (controllerData) {
-            var grabbedProperties = controllerData.nearbyEntityProperties[this.hand][this.grabbedThingID];
+        this.startNearGrab = function (controllerData, grabbedProperties) {
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
             var reparentProps = {
@@ -154,24 +159,27 @@
         };
 
         this.isReady = function (controllerData) {
-            if (!controllerData.triggerPresses[this.hand]) {
+            if (controllerData.triggerClicks[this.hand] == 0) {
                 return false;
             }
 
-            var grabbable = null;
+            var grabbedProperties = null;
             var bestDistance = 1000;
-            controllerData.nearbyEntityProperties[this.hand].forEach(function(nearbyEntityProperties) {
-                if (entityIsGrabbable(nearbyEntityProperties)) {
-                    if (nearbyEntityProperties.distanceFromController < bestDistance) {
-                        bestDistance = nearbyEntityProperties.distanceFromController;
-                        grabbable = nearbyEntityProperties;
+            var nearbyEntityProperties = controllerData.nearbyEntityProperties[this.hand];
+
+            for (var i = 0; i < nearbyEntityProperties.length; i ++) {
+                var props = nearbyEntityProperties[i];
+                if (entityIsGrabbable(props)) {
+                    if (props.distanceFromController < bestDistance) {
+                        bestDistance = props.distanceFromController;
+                        grabbedProperties = props;
                     }
                 }
-            });
+            }
 
-            if (grabbable) {
-                this.grabbedThingID = grabbable.id;
-                this.startNearGrab();
+            if (grabbedProperties) {
+                this.grabbedThingID = grabbedProperties.id;
+                this.startNearGrab(controllerData, grabbedProperties);
                 return true;
             } else {
                 return false;
@@ -179,7 +187,7 @@
         };
 
         this.run = function (controllerData) {
-            if (!controllerData.triggerPresses[this.hand]) {
+            if (controllerData.triggerClicks[this.hand] == 0) {
                 this.endNearGrab(controllerData);
                 return false;
             }

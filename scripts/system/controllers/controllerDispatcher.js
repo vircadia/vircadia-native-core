@@ -7,16 +7,21 @@
 
 /* global Script, Entities, controllerDispatcherPlugins, Controller, Vec3, getControllerWorldLocation */
 
+controllerDispatcherPlugins = {};
+
 Script.include("/~/system/libraries/utils.js");
 Script.include("/~/system/libraries/controllers.js");
 
 (function() {
     var _this = this;
 
-    // var LEFT_HAND = 0;
-    // var RIGHT_HAND = 1;
+    var LEFT_HAND = 0;
+    var RIGHT_HAND = 1;
 
     var NEAR_GRAB_RADIUS = 0.1;
+    var NEAR_GRAB_MAX_DISTANCE = 1.0; // you cannot grab objects that are this far away from your hand
+
+
     var DISPATCHER_PROPERTIES = [
         "position",
         "registrationPoint",
@@ -36,6 +41,11 @@ Script.include("/~/system/libraries/controllers.js");
     ];
 
     this.runningPluginName = null;
+    this.leftTriggerValue = 0;
+    this.leftTriggerClicked = 0;
+    this.rightTriggerValue = 0;
+    this.rightTriggerClicked = 0;
+
 
     this.leftTriggerPress = function(value) {
         _this.leftTriggerValue = value;
@@ -55,40 +65,36 @@ Script.include("/~/system/libraries/controllers.js");
 
     this.update = function () {
 
-        var leftControllerLocation = getControllerWorldLocation(Controller.Standard.LeftHand, true);
-        var rightControllerLocation = getControllerWorldLocation(Controller.Standard.RightHand, true);
+        var controllerLocations = [getControllerWorldLocation(Controller.Standard.LeftHand, true),
+                                   getControllerWorldLocation(Controller.Standard.RightHand, true)];
 
-        var leftNearbyEntityIDs = Entities.findEntities(leftControllerLocation, NEAR_GRAB_RADIUS);
-        var rightNearbyEntityIDs = Entities.findEntities(rightControllerLocation, NEAR_GRAB_RADIUS);
-
-        var leftNearbyEntityProperties = {};
-        leftNearbyEntityIDs.forEach(function (entityID) {
-            var props = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
-            props.id = entityID;
-            props.distanceFromController = Vec3.length(Vec3.subtract(leftControllerLocation, props.position));
-            leftNearbyEntityProperties.push(props);
-        });
-
-        var rightNearbyEntityProperties = {};
-        rightNearbyEntityIDs.forEach(function (entityID) {
-            var props = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
-            props.id = entityID;
-            props.distanceFromController = Vec3.length(Vec3.subtract(rightControllerLocation, props.position));
-            rightNearbyEntityProperties.push(props);
-        });
-
+        var nearbyEntityProperties = [[], []];
+        for (var i = LEFT_HAND; i <= RIGHT_HAND; i ++) {
+            // todo: check controllerLocations[i].valid
+            var controllerPosition = controllerLocations[i].position;
+            var nearbyEntityIDs = Entities.findEntities(controllerPosition, NEAR_GRAB_RADIUS);
+            for (var j = 0; j < nearbyEntityIDs.length; j++) {
+                var entityID = nearbyEntityIDs[j];
+                var props = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
+                props.id = entityID;
+                props.distanceFromController = Vec3.length(Vec3.subtract(controllerPosition, props.position));
+                if (props.distanceFromController < NEAR_GRAB_MAX_DISTANCE) {
+                    nearbyEntityProperties[i].push(props);
+                }
+            }
+        }
 
         var controllerData = {
-            triggerValues: [this.leftTriggerValue, this.rightTriggerValue],
-            triggerPresses: [this.leftTriggerPress, this.rightTriggerPress],
-            controllerLocations: [ leftControllerLocation, rightControllerLocation ],
-            nearbyEntityProperties: [ leftNearbyEntityProperties, rightNearbyEntityProperties ],
+            triggerValues: [_this.leftTriggerValue, _this.rightTriggerValue],
+            triggerClicks: [_this.leftTriggerClicked, _this.rightTriggerClicked],
+            controllerLocations: controllerLocations,
+            nearbyEntityProperties: nearbyEntityProperties,
         };
 
-        if (this.runningPluginName) {
-            var plugin = controllerDispatcherPlugins[this.runningPluginName];
+        if (_this.runningPluginName) {
+            var plugin = controllerDispatcherPlugins[_this.runningPluginName];
             if (!plugin || !plugin.run(controllerData)) {
-                this.runningPluginName = null;
+                _this.runningPluginName = null;
             }
         } else if (controllerDispatcherPlugins) {
             for (var pluginName in controllerDispatcherPlugins) {
@@ -96,7 +102,7 @@ Script.include("/~/system/libraries/controllers.js");
                 if (controllerDispatcherPlugins.hasOwnProperty(pluginName)) {
                     var candidatePlugin = controllerDispatcherPlugins[pluginName];
                     if (candidatePlugin.isReady(controllerData)) {
-                        this.runningPluginName = candidatePlugin;
+                        _this.runningPluginName = pluginName;
                         break;
                     }
                 }
@@ -107,9 +113,9 @@ Script.include("/~/system/libraries/controllers.js");
     var MAPPING_NAME = "com.highfidelity.controllerDispatcher";
     var mapping = Controller.newMapping(MAPPING_NAME);
     mapping.from([Controller.Standard.RT]).peek().to(this.rightTriggerPress);
-    mapping.from([Controller.Standard.RTClick]).peek().to(this.rightTriggerClicked);
+    mapping.from([Controller.Standard.RTClick]).peek().to(this.rightTriggerClick);
     mapping.from([Controller.Standard.LT]).peek().to(this.leftTriggerPress);
-    mapping.from([Controller.Standard.LTClick]).peek().to(this.leftTriggerClicked);
+    mapping.from([Controller.Standard.LTClick]).peek().to(this.leftTriggerClick);
     Controller.enableMapping(MAPPING_NAME);
 
     this.cleanup = function () {
