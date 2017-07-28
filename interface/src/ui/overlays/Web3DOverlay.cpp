@@ -205,6 +205,8 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getSurfaceContext()->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
 
             _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
+            _webSurface->getSurfaceContext()->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
+
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface.data());
 
             // mark the TabletProxy object as cpp ownership.

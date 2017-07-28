@@ -483,6 +483,11 @@ bool TabletProxy::pushOntoStack(const QVariant& path) {
         return result;
     }
 
+    //set landscape off when pushing menu items while in Create mode
+    if (_landscape) {
+        setLandscape(false);
+    }
+
     QObject* root = nullptr;
     if (!_toolbarMode && _qmlTabletRoot) {
         root = _qmlTabletRoot;
