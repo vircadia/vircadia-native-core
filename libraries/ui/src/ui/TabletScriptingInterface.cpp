@@ -830,7 +830,13 @@ TabletButtonProxy::~TabletButtonProxy() {
 
 void TabletButtonProxy::setQmlButton(QQuickItem* qmlButton) {
     Q_ASSERT(QThread::currentThread() == qApp->thread());
+    if (_qmlButton) {
+        QObject::disconnect(_qmlButton, &QQuickItem::destroyed, this, nullptr);
+    }
     _qmlButton = qmlButton;
+    if (_qmlButton) {
+        QObject::connect(_qmlButton, &QQuickItem::destroyed, this, [this] { _qmlButton = nullptr; });
+    }
 }
 
 void TabletButtonProxy::setToolbarButtonProxy(QObject* toolbarButtonProxy) {

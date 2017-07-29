@@ -258,6 +258,7 @@ MyAvatar::~MyAvatar() {
 void MyAvatar::setDominantHand(const QString& hand) {
     if (hand == DOMINANT_LEFT_HAND || hand == DOMINANT_RIGHT_HAND) {
         _dominantHand = hand;
+        emit dominantHandChanged(_dominantHand);
     }
 }
 
