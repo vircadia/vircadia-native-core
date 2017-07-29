@@ -577,6 +577,7 @@
             selection.clear();
             hoveredOverlayID = intersection.overlayID;
             otherEditor.hoverHandle(hoveredOverlayID);
+            wasGripPressed = hand.gripPressed();
         }
 
         function updateEditorSearching() {
@@ -598,6 +599,7 @@
             }
             isOtherEditorEditingEntityID = otherEditor.isEditing(highlightedEntityID);
             wasAppScaleWithHandles = isAppScaleWithHandles;
+            wasGripPressed = hand.gripPressed();
         }
 
         function updateEditorHighlighting() {
@@ -737,6 +739,16 @@
         }
 
 
+        function updateTool() {
+            var isGripPressed = hand.gripPressed();
+            if (!wasGripPressed && isGripPressed && isAppScaleWithHandles) {
+                isAppScaleWithHandles = false;
+                ui.clearToolIcon();
+            }
+            wasGripPressed = isGripPressed;
+        }
+
+
         function update() {
             var previousState = editorState,
                 doUpdateState;
@@ -757,6 +769,7 @@
                         && !(intersection.overlayID && hand.triggerClicked() && otherEditor.isHandle(intersection.overlayID))) {
                     // No transition.
                     updateState();
+                    updateTool();
                     break;
                 }
                 if (!hand.valid()) {
@@ -802,6 +815,7 @@
                     if (doUpdateState) {
                         updateState();
                     }
+                    updateTool();
                     break;
                 }
                 if (!hand.valid()) {
@@ -995,13 +1009,9 @@
         Settings.setValue(VR_EDIT_SETTING, isAppActive);
     }
 
-    function setAppScaleWithHandles(appScaleWithHandles) {
-        isAppScaleWithHandles = appScaleWithHandles;
-        if (isAppScaleWithHandles) {
-            ui.setToolIcon(ui.SCALE_HANDLES);
-        } else {
-            ui.clearToolIcon();
-        }
+    function setAppScaleWithHandles() {
+        isAppScaleWithHandles = true;
+        ui.setToolIcon(ui.SCALE_HANDLES);
     }
 
     function onAppButtonClicked() {

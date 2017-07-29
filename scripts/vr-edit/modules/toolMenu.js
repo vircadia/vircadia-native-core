@@ -15,13 +15,7 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
 
     "use strict";
 
-    var SCALE_MODE_DIRECT = 0,
-        SCALE_MODE_HANDLES = 1,
-        scaleMode = SCALE_MODE_DIRECT,
-        SCALE_MODE_DIRECT_COLOR = { red: 240, green: 240, blue: 0 },
-        SCALE_MODE_HANDLES_COLOR = { red: 0, green: 240, blue: 240 },
-
-        menuOriginOverlay,
+    var menuOriginOverlay,
         menuPanelOverlay,
         buttonOverlay,
         buttonHighlightOverlay,
@@ -65,7 +59,7 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
             dimensions: { x: 0.03, y: 0.03, z: 0.01 },
             localPosition: { x: 0.02, y: 0.02, z: 0.0 },
             localRotation: ZERO_ROTATION,
-            color: scaleMode === SCALE_MODE_DIRECT ? SCALE_MODE_DIRECT_COLOR : SCALE_MODE_HANDLES_COLOR,
+            color: { red: 0, green: 240, blue: 240 },
             alpha: 1.0,
             solid: true,
             ignoreRayIntersection: false,
@@ -124,12 +118,10 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
             isButtonPressed = controlHand.triggerClicked();
 
             if (isButtonPressed) {
-                scaleMode = scaleMode === SCALE_MODE_DIRECT ? SCALE_MODE_HANDLES : SCALE_MODE_DIRECT;
                 Overlays.editOverlay(buttonOverlay, {
-                    color: scaleMode === SCALE_MODE_DIRECT ? SCALE_MODE_DIRECT_COLOR : SCALE_MODE_HANDLES_COLOR,
                     localPosition: Vec3.sum(BUTTON_PROPERTIES.localPosition, { x: 0, y: 0, z: 0.004 })
                 });
-                setAppScaleWithHandlesCallback(scaleMode === SCALE_MODE_HANDLES);
+                setAppScaleWithHandlesCallback();
             } else {
                 Overlays.editOverlay(buttonOverlay, {
                     localPosition: BUTTON_PROPERTIES.localPosition
