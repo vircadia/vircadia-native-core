@@ -98,38 +98,6 @@ Handles = function (side) {
         Vec3.UNIT_Z
     ];
 
-    boundingBoxOverlay = Overlays.addOverlay("cube", {
-        color: BOUNDING_BOX_COLOR,
-        alpha: BOUNDING_BOX_ALPHA,
-        solid: false,
-        drawInFront: true,
-        ignoreRayIntersection: true,
-        visible: false
-    });
-
-    for (i = 0; i < NUM_CORNER_HANDLES; i += 1) {
-        cornerHandleOverlays[i] = Overlays.addOverlay("sphere", {
-            color: HANDLE_NORMAL_COLOR,
-            alpha: HANDLE_NORMAL_ALPHA,
-            solid: true,
-            drawInFront: true,
-            ignoreRayIntersection: false,
-            visible: false
-        });
-    }
-
-    for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
-        faceHandleOverlays[i] = Overlays.addOverlay("shape", {
-            shape: "Cone",
-            color: HANDLE_NORMAL_COLOR,
-            alpha: HANDLE_NORMAL_ALPHA,
-            solid: true,
-            drawInFront: true,
-            ignoreRayIntersection: false,
-            visible: false
-        });
-    }
-
     function isAxisHandle(overlayID) {
         return faceHandleOverlays.indexOf(overlayID) !== -1;
     }
@@ -158,7 +126,7 @@ Handles = function (side) {
         return FACE_HANDLE_OVERLAY_SCALE_AXES[faceHandleOverlays.indexOf(overlayID)];
     }
 
-    function display(rootEntityID, boundingBox, isMultiple) {
+    function display(rootEntityID, boundingBox, isMultipleEntities) {
         var boundingBoxCenter,
             boundingBoxOrientation,
             cameraPosition,
@@ -183,11 +151,16 @@ Handles = function (side) {
         boundingBoxOrientation = boundingBox.orientation;
 
         // Selection bounding box.
-        Overlays.editOverlay(boundingBoxOverlay, {
+        boundingBoxOverlay = Overlays.addOverlay("cube", {
             parentID: rootEntityID,
             localPosition: boundingBoxLocalCenter,
             localRotation: ZERO_ROTATION,
             dimensions: boundingBoxDimensions,
+            color: BOUNDING_BOX_COLOR,
+            alpha: BOUNDING_BOX_ALPHA,
+            solid: false,
+            drawInFront: true,
+            ignoreRayIntersection: true,
             visible: true
         });
 
@@ -219,11 +192,17 @@ Handles = function (side) {
         cornerIndexes[1] = rightCornerIndex;
         cornerHandleDimensions = Vec3.multiply(distanceMultiplier, CORNER_HANDLE_OVERLAY_DIMENSIONS);
         for (i = 0; i < NUM_CORNER_HANDLES; i += 1) {
-            Overlays.editOverlay(cornerHandleOverlays[i], {
+            cornerHandleOverlays[i] = Overlays.addOverlay("sphere", {
                 parentID: rootEntityID,
                 localPosition: Vec3.sum(boundingBoxLocalCenter,
                     Vec3.multiplyVbyV(CORNER_HANDLE_OVERLAY_AXES[cornerIndexes[i]], boundingBoxDimensions)),
+                localRotation: ZERO_ROTATION,
                 dimensions: cornerHandleDimensions,
+                color: HANDLE_NORMAL_COLOR,
+                alpha: HANDLE_NORMAL_ALPHA,
+                solid: true,
+                drawInFront: true,
+                ignoreRayIntersection: false,
                 visible: true
             });
         }
@@ -231,23 +210,27 @@ Handles = function (side) {
         // Face scale handles.
         // Only valid for a single entity because for multiple entities, some may be at an angle relative to the root entity
         // which would necessitate a (non-existent) shear transform be applied to them when scaling a face of the set.
-        if (!isMultiple) {
+        if (!isMultipleEntities) {
             faceHandleDimensions = Vec3.multiply(distanceMultiplier, FACE_HANDLE_OVERLAY_DIMENSIONS);
             faceHandleOffsets = Vec3.multiply(distanceMultiplier, FACE_HANDLE_OVERLAY_OFFSETS);
             for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
-                Overlays.editOverlay(faceHandleOverlays[i], {
+                faceHandleOverlays[i] = Overlays.addOverlay("shape", {
                     parentID: rootEntityID,
                     localPosition: Vec3.sum(boundingBoxLocalCenter,
                         Vec3.multiplyVbyV(FACE_HANDLE_OVERLAY_AXES[i], Vec3.sum(boundingBoxDimensions, faceHandleOffsets))),
                     localRotation: FACE_HANDLE_OVERLAY_ROTATIONS[i],
                     dimensions: faceHandleDimensions,
+                    shape: "Cone",
+                    color: HANDLE_NORMAL_COLOR,
+                    alpha: HANDLE_NORMAL_ALPHA,
+                    solid: true,
+                    drawInFront: true,
+                    ignoreRayIntersection: false,
                     visible: true
                 });
             }
         } else {
-            for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
-                Overlays.editOverlay(faceHandleOverlays[i], { visible: false });
-            }
+            faceHandleOverlays = [];
         }
     }
 
@@ -275,12 +258,14 @@ Handles = function (side) {
         }
 
         // Face scale handles.
-        for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
-            Overlays.editOverlay(faceHandleOverlays[i], {
-                localPosition: Vec3.sum(scalingBoundingBoxDimensions,
-                    Vec3.multiplyVbyV(FACE_HANDLE_OVERLAY_AXES[i],
-                        Vec3.sum(scalingBoundingBoxLocalCenter, faceHandleOffsets)))
-            });
+        if (faceHandleOverlays.length > 0) {
+            for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
+                Overlays.editOverlay(faceHandleOverlays[i], {
+                    localPosition: Vec3.sum(scalingBoundingBoxDimensions,
+                        Vec3.multiplyVbyV(FACE_HANDLE_OVERLAY_AXES[i],
+                            Vec3.sum(scalingBoundingBoxLocalCenter, faceHandleOffsets)))
+                });
+            }
         }
     }
 
@@ -336,22 +321,22 @@ Handles = function (side) {
     }
 
     function clear() {
-        var i;
+        var i,
+            length;
+
+        Overlays.deleteOverlay(boundingBoxOverlay);
+        for (i = 0; i < NUM_CORNER_HANDLES; i += 1) {
+            Overlays.deleteOverlay(cornerHandleOverlays[i]);
+        }
+        for (i = 0, length = faceHandleOverlays.length; i < length; i += 1) {
+            Overlays.deleteOverlay(faceHandleOverlays[i]);
+        }
 
         isVisible = false;
-
-        Overlays.editOverlay(boundingBoxOverlay, { visible: false });
-        for (i = 0; i < NUM_CORNER_HANDLES; i += 1) {
-            Overlays.editOverlay(cornerHandleOverlays[i], { visible: false });
-        }
-        for (i = 0; i < NUM_FACE_HANDLES; i += 1) {
-            Overlays.editOverlay(faceHandleOverlays[i], { visible: false });
-        }
     }
 
     function destroy() {
         clear();
-        Overlays.deleteOverlay(boundingBoxOverlay);
     }
 
     return {
