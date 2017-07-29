@@ -42,13 +42,20 @@ ToolIcon = function (side) {
             visible: true
         },
 
-        HAND_JOINT_NAME = side === LEFT_HAND ? "LeftHand" : "RightHand",
+        handJointName,
 
         iconOverlay = null;
 
     if (!this instanceof ToolIcon) {
         return new ToolIcon();
     }
+
+    function setHand(side) {
+        // Assumes UI is not displaying.
+        handJointName = side === LEFT_HAND ? "LeftHand" : "RightHand";
+    }
+
+    setHand(side);
 
     function update() {
         // TODO: Display icon animation.
@@ -60,7 +67,7 @@ ToolIcon = function (side) {
         var handJointIndex,
             iconProperties;
 
-        handJointIndex = MyAvatar.getJointIndex(HAND_JOINT_NAME);
+        handJointIndex = MyAvatar.getJointIndex(handJointName);
         if (handJointIndex === -1) {
             // Don't display if joint isn't available (yet) to attach to.
             // User can clear this condition by toggling the app off and back on once avatar finishes loading.
@@ -93,6 +100,7 @@ ToolIcon = function (side) {
     return {
         NONE: NONE,
         SCALE_HANDLES: SCALE_HANDLES,
+        setHand: setHand,
         update: update,
         display: display,
         clear: clear,

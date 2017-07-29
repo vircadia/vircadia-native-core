@@ -190,6 +190,7 @@
 
 
         function setHand(side) {
+            toolIcon.setHand(otherHand(side));
             toolMenu.setHand(side);
             createPalette.setHand(side);
             getIntersection = side === LEFT_HAND ? rightInputs.intersection : leftInputs.intersection;
@@ -1034,12 +1035,31 @@
         }
     }
 
-    function onDominantHandChanged() {
-        /*
-        // TODO: API coming.
-        dominantHand = TODO;
-        */
+    function onDominantHandChanged(hand) {
+        dominantHand = hand === "left" ? LEFT_HAND : RIGHT_HAND;
+
+        if (isAppActive) {
+            // Stop operations.
+            Script.clearTimeout(updateTimer);
+            updateTimer = null;
+            inputs[LEFT_HAND].clear();
+            inputs[RIGHT_HAND].clear();
+            ui.clear();
+            editors[LEFT_HAND].clear();
+            editors[RIGHT_HAND].clear();
+        }
+
+        // Swap UI hands.
         ui.setHand(otherHand(dominantHand));
+        if (isAppScaleWithHandles) {
+            ui.setToolIcon(ui.SCALE_HANDLES);
+        }
+
+        if (isAppActive) {
+            // Resume operations.
+            ui.display();
+            update();
+        }
     }
 
 
@@ -1052,11 +1072,7 @@
         }
 
         // Settings values.
-        // TODO: API coming.
-        dominantHand = RIGHT_HAND;
-        /*
-        dominantHand = TODO;
-        */
+        dominantHand = MyAvatar.getDominantHand() === "left" ? LEFT_HAND : RIGHT_HAND;
 
         // Tablet/toolbar button.
         button = tablet.addButton({
@@ -1083,11 +1099,9 @@
         editors[RIGHT_HAND].setReferences(inputs[RIGHT_HAND], editors[LEFT_HAND]);
 
         // Settings changes.
-        /*
-        // TODO: API coming.
-        TODO.change.connect(onDominantHandChanged);
-        */
+        MyAvatar.dominantHandChanged.connect(onDominantHandChanged);
 
+        // Start main update loop.
         if (isAppActive) {
             update();
         }

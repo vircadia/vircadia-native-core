@@ -22,16 +22,14 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
 
         LEFT_HAND = 0,
         AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
+        ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO),
 
-        HAND_JOINT_NAME = side === LEFT_HAND ? "LeftHand" : "RightHand",
+        controlJointName,
 
         CANVAS_SIZE = { x: 0.21, y: 0.13 },
-        LATERAL_OFFSET = side === LEFT_HAND ? -0.01 : 0.01,
-
-        PANEL_ROOT_POSITION = { x: CANVAS_SIZE.x / 2 + LATERAL_OFFSET, y: 0.15, z: -0.04 },
+        PANEL_ROOT_POSITION = { x: CANVAS_SIZE.x / 2, y: 0.15, z: -0.04 },
         PANEL_ROOT_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 }),
-
-        ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO),
+        lateralOffset,
 
         PANEL_ORIGIN_PROPERTIES = {
             dimensions: { x: 0.005, y: 0.005, z: 0.005 },
@@ -93,14 +91,15 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
 
     controlHand = side === LEFT_HAND ? rightInputs.hand() : leftInputs.hand();
 
-    function setHand(uiSide) {
-        side = uiSide;
+    function setHand(hand) {
+        // Assumes UI is not displaying.
+        side = hand;
         controlHand = side === LEFT_HAND ? rightInputs.hand() : leftInputs.hand();
-
-        if (isDisplaying) {
-            // TODO: Move UI to other hand.
-        }
+        controlJointName = side === LEFT_HAND ? "LeftHand" : "RightHand";
+        lateralOffset = side === LEFT_HAND ? -0.01 : 0.01;
     }
+
+    setHand(side);
 
     function getEntityIDs() {
         return [menuPanelOverlay, buttonOverlay];
@@ -131,14 +130,15 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
 
     function display() {
         // Creates and shows menu entities.
-        var handJointIndex;
+        var handJointIndex,
+            properties;
 
         if (isDisplaying) {
             return;
         }
 
         // Joint index.
-        handJointIndex = MyAvatar.getJointIndex(HAND_JOINT_NAME);
+        handJointIndex = MyAvatar.getJointIndex(controlJointName);
         if (handJointIndex === -1) {
             // Don't display if joint isn't available (yet) to attach to.
             // User can clear this condition by toggling the app off and back on once avatar finishes loading.
@@ -147,18 +147,23 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
         }
 
         // Calculate position to put menu.
-        PANEL_ORIGIN_PROPERTIES.parentJointIndex = handJointIndex;
-        menuOriginOverlay = Overlays.addOverlay("sphere", PANEL_ORIGIN_PROPERTIES);
+        properties = Object.clone(PANEL_ORIGIN_PROPERTIES);
+        properties.parentJointIndex = handJointIndex;
+        properties.localPosition = Vec3.sum(PANEL_ROOT_POSITION, { x: lateralOffset, y: 0, z: 0 });
+        menuOriginOverlay = Overlays.addOverlay("sphere", properties);
 
         // Create menu items.
-        MENU_PANEL_PROPERTIES.parentID = menuOriginOverlay;
-        menuPanelOverlay = Overlays.addOverlay("cube", MENU_PANEL_PROPERTIES);
-        BUTTON_PROPERTIES.parentID = menuOriginOverlay;
-        buttonOverlay = Overlays.addOverlay("cube", BUTTON_PROPERTIES);
+        properties = Object.clone(MENU_PANEL_PROPERTIES);
+        properties.parentID = menuOriginOverlay;
+        menuPanelOverlay = Overlays.addOverlay("cube", properties);
+        properties = Object.clone(BUTTON_PROPERTIES);
+        properties.parentID = menuOriginOverlay;
+        buttonOverlay = Overlays.addOverlay("cube", properties);
 
         // Prepare button highlight overlay.
-        BUTTON_HIGHLIGHT_PROPERTIES.parentID = menuOriginOverlay;
-        buttonHighlightOverlay = Overlays.addOverlay("cube", BUTTON_HIGHLIGHT_PROPERTIES);
+        properties = Object.clone(BUTTON_HIGHLIGHT_PROPERTIES);
+        properties.parentID = menuOriginOverlay;
+        buttonHighlightOverlay = Overlays.addOverlay("cube", properties);
 
         isDisplaying = true;
     }

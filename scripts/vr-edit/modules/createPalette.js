@@ -22,16 +22,14 @@ CreatePalette = function (side, leftInputs, rightInputs) {
 
         LEFT_HAND = 0,
         AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
+        ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO),
 
-        HAND_JOINT_NAME = side === LEFT_HAND ? "LeftHand" : "RightHand",
+        controlJointName,
 
         CANVAS_SIZE = { x: 0.21, y: 0.13 },
-        LATERAL_OFFSET = side === LEFT_HAND ? -0.01 : 0.01,
-
-        PALETTE_ROOT_POSITION = { x: -CANVAS_SIZE.x / 2 + LATERAL_OFFSET, y: 0.15, z: 0.09 },
+        PALETTE_ROOT_POSITION = { x: -CANVAS_SIZE.x / 2, y: 0.15, z: 0.09 },
         PALETTE_ROOT_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 180, z: 180 }),
-
-        ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO),
+        lateralOffset,
 
         PALETTE_ORIGIN_PROPERTIES = {
             dimensions: { x: 0.005, y: 0.005, z: 0.005 },
@@ -97,16 +95,15 @@ CreatePalette = function (side, leftInputs, rightInputs) {
         return new CreatePalette();
     }
 
-    controlHand = side === LEFT_HAND ? rightInputs.hand() : leftInputs.hand();
-
-    function setHand(uiSide) {
-        side = uiSide;
+    function setHand(hand) {
+        // Assumes UI is not displaying.
+        side = hand;
         controlHand = side === LEFT_HAND ? rightInputs.hand() : leftInputs.hand();
-
-        if (isDisplaying) {
-            // TODO: Move UI to other hand.
-        }
+        controlJointName = side === LEFT_HAND ? "LeftHand" : "RightHand";
+        lateralOffset = side === LEFT_HAND ? -0.01 : 0.01;
     }
+
+    setHand(side);
 
     function getEntityIDs() {
         return [palettePanelOverlay, cubeOverlay];
@@ -141,14 +138,15 @@ CreatePalette = function (side, leftInputs, rightInputs) {
 
     function display() {
         // Creates and shows menu entities.
-        var handJointIndex;
+        var handJointIndex,
+            properties;
 
         if (isDisplaying) {
             return;
         }
 
         // Joint index.
-        handJointIndex = MyAvatar.getJointIndex(HAND_JOINT_NAME);
+        handJointIndex = MyAvatar.getJointIndex(controlJointName);
         if (handJointIndex === -1) {
             // Don't display if joint isn't available (yet) to attach to.
             // User can clear this condition by toggling the app off and back on once avatar finishes loading.
@@ -157,18 +155,23 @@ CreatePalette = function (side, leftInputs, rightInputs) {
         }
 
         // Calculate position to put palette.
-        PALETTE_ORIGIN_PROPERTIES.parentJointIndex = handJointIndex;
-        paletteOriginOverlay = Overlays.addOverlay("sphere", PALETTE_ORIGIN_PROPERTIES);
+        properties = Object.clone(PALETTE_ORIGIN_PROPERTIES);
+        properties.parentJointIndex = handJointIndex;
+        properties.localPosition = Vec3.sum(PALETTE_ROOT_POSITION, { x: lateralOffset, y: 0, z: 0 });
+        paletteOriginOverlay = Overlays.addOverlay("sphere", properties);
 
         // Create palette items.
-        PALETTE_PANEL_PROPERTIES.parentID = paletteOriginOverlay;
-        palettePanelOverlay = Overlays.addOverlay("cube", PALETTE_PANEL_PROPERTIES);
-        CUBE_PROPERTIES.parentID = paletteOriginOverlay;
-        cubeOverlay = Overlays.addOverlay("cube", CUBE_PROPERTIES);
+        properties = Object.clone(PALETTE_PANEL_PROPERTIES);
+        properties.parentID = paletteOriginOverlay;
+        palettePanelOverlay = Overlays.addOverlay("cube", properties);
+        properties = Object.clone(CUBE_PROPERTIES);
+        properties.parentID = paletteOriginOverlay;
+        cubeOverlay = Overlays.addOverlay("cube", properties);
 
         // Prepare cube highlight overlay.
-        CUBE_HIGHLIGHT_PROPERTIES.parentID = paletteOriginOverlay;
-        cubeHighlightOverlay = Overlays.addOverlay("cube", CUBE_HIGHLIGHT_PROPERTIES);
+        properties = Object.clone(CUBE_HIGHLIGHT_PROPERTIES);
+        properties.parentID = paletteOriginOverlay;
+        cubeHighlightOverlay = Overlays.addOverlay("cube", properties);
 
         isDisplaying = true;
     }
