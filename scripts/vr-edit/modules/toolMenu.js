@@ -114,9 +114,8 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
         }
 
         // Button click.
-        if (isHighlightingButton && controlHand.triggerClicked() !== isButtonPressed) {
-            isButtonPressed = controlHand.triggerClicked();
-
+        if (!isHighlightingButton || controlHand.triggerClicked() !== isButtonPressed) {
+            isButtonPressed = isHighlightingButton && controlHand.triggerClicked();
             if (isButtonPressed) {
                 Overlays.editOverlay(buttonOverlay, {
                     localPosition: Vec3.sum(BUTTON_PROPERTIES.localPosition, { x: 0, y: 0, z: 0.004 })
