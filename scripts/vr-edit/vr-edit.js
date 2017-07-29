@@ -293,7 +293,7 @@
             highlightedEntityID = null,  // Root entity of highlighted entity set.
             wasAppScaleWithHandles = false,
             isOtherEditorEditingEntityID = false,
-            wasGripPressed = false,
+            wasGripClicked = false,
             hoveredOverlayID = null,
 
             // Position values.
@@ -578,7 +578,7 @@
             selection.clear();
             hoveredOverlayID = intersection.overlayID;
             otherEditor.hoverHandle(hoveredOverlayID);
-            wasGripPressed = hand.gripPressed();
+            wasGripClicked = hand.gripClicked();
         }
 
         function updateEditorSearching() {
@@ -600,7 +600,7 @@
             }
             isOtherEditorEditingEntityID = otherEditor.isEditing(highlightedEntityID);
             wasAppScaleWithHandles = isAppScaleWithHandles;
-            wasGripPressed = hand.gripPressed();
+            wasGripClicked = hand.gripClicked();
         }
 
         function updateEditorHighlighting() {
@@ -631,7 +631,7 @@
             }
             startEditing();
             wasAppScaleWithHandles = isAppScaleWithHandles;
-            wasGripPressed = hand.gripPressed();
+            wasGripClicked = hand.gripClicked();
         }
 
         function updateEditorGrabbing() {
@@ -741,12 +741,12 @@
 
 
         function updateTool() {
-            var isGripPressed = hand.gripPressed();
-            if (!wasGripPressed && isGripPressed && isAppScaleWithHandles) {
+            var isGripClicked = hand.gripClicked();
+            if (!wasGripClicked && isGripClicked && isAppScaleWithHandles) {
                 isAppScaleWithHandles = false;
                 ui.clearToolIcon();
             }
-            wasGripPressed = isGripPressed;
+            wasGripClicked = isGripClicked;
         }
 
 
@@ -843,14 +843,14 @@
                 }
                 break;
             case EDITOR_GRABBING:
-                if (hand.valid() && hand.triggerClicked() && !hand.gripPressed()) {
+                if (hand.valid() && hand.triggerClicked() && !hand.gripClicked()) {
                     // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
                     // No transition.
                     if (isAppScaleWithHandles !== wasAppScaleWithHandles) {
                         updateState();
                         wasAppScaleWithHandles = isAppScaleWithHandles;
                     }
-                    wasGripPressed = false;
+                    wasGripClicked = false;
                     break;
                 }
                 if (!hand.valid()) {
@@ -862,8 +862,8 @@
                     } else {
                         setState(EDITOR_SEARCHING);
                     }
-                } else if (hand.gripPressed()) {
-                    if (!wasGripPressed) {
+                } else if (hand.gripClicked()) {
+                    if (!wasGripClicked) {
                         selection.deleteEntities();
                         setState(EDITOR_SEARCHING);
                     }

@@ -20,7 +20,7 @@ Hand = function (side) {
         controllerTriggerClicked,
         controllerGrip,
 
-        isGripPressed = false,
+        isGripClicked = false,
         GRIP_ON_VALUE = 0.99,
         GRIP_OFF_VALUE = 0.95,
 
@@ -78,8 +78,8 @@ Hand = function (side) {
         return isTriggerClicked;
     }
 
-    function gripPressed() {
-        return isGripPressed;
+    function gripClicked() {
+        return isGripClicked;
     }
 
     function getIntersection() {
@@ -117,10 +117,10 @@ Hand = function (side) {
 
         // Controller grip.
         gripValue = Controller.getValue(controllerGrip);
-        if (isGripPressed) {
-            isGripPressed = gripValue > GRIP_OFF_VALUE;
+        if (isGripClicked) {
+            isGripClicked = gripValue > GRIP_OFF_VALUE;
         } else {
-            isGripPressed = gripValue > GRIP_ON_VALUE;
+            isGripClicked = gripValue > GRIP_ON_VALUE;
         }
 
         // Hand-overlay intersection, if any.
@@ -193,7 +193,7 @@ Hand = function (side) {
         orientation: orientation,
         triggerPressed: triggerPressed,
         triggerClicked: triggerClicked,
-        gripPressed: gripPressed,
+        gripClicked: gripClicked,
         intersection: getIntersection,
         update: update,
         clear: clear,
