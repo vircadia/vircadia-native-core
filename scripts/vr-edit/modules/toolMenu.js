@@ -10,7 +10,7 @@
 
 /* global ToolMenu */
 
-ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallback) {
+ToolMenu = function (side, leftInputs, rightInputs, setToolCallback) {
     // Tool menu displayed on top of forearm.
 
     "use strict";
@@ -150,7 +150,7 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
                 });
             }
             if (isButtonPressed) {
-                setAppScaleWithHandlesCallback();
+                setToolCallback(intersectionOverlayID === scaleButtonOverlay ? "scale" : "clone");
             }
         }
     }

@@ -20,6 +20,7 @@
         // Application state
         isAppActive = false,
         isAppScaleWithHandles = false,
+        isAppCloneEntities = false,
         dominantHand,
 
         // Primary objects
@@ -165,7 +166,7 @@
     };
 
 
-    UI = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallback) {
+    UI = function (side, leftInputs, rightInputs, setToolCallback) {
         // Tool menu and Create palette.
 
         var // Primary objects.
@@ -183,7 +184,7 @@
         }
 
         toolIcon = new ToolIcon(otherHand(side));
-        toolMenu = new ToolMenu(side, leftInputs, rightInputs, setAppScaleWithHandlesCallback);
+        toolMenu = new ToolMenu(side, leftInputs, rightInputs, setToolCallback);
         createPalette = new CreatePalette(side, leftInputs, rightInputs);
 
         getIntersection = side === LEFT_HAND ? rightInputs.intersection : leftInputs.intersection;
@@ -254,7 +255,8 @@
             setHand: setHand,
             setToolIcon: setToolIcon,
             clearToolIcon: clearToolIcon,
-            SCALE_HANDLES: toolIcon.SCALE_HANDLES,
+            SCALE_TOOL: toolIcon.SCALE_TOOL,
+            CLONE_TOOL: toolIcon.CLONE_TOOL,
             display: display,
             update: update,
             clear: clear,
@@ -742,8 +744,9 @@
 
         function updateTool() {
             var isGripClicked = hand.gripClicked();
-            if (!wasGripClicked && isGripClicked && isAppScaleWithHandles) {
+            if (!wasGripClicked && isGripClicked && (isAppScaleWithHandles || isAppCloneEntities)) {
                 isAppScaleWithHandles = false;
+                isAppCloneEntities = false;
                 ui.clearToolIcon();
             }
             wasGripClicked = isGripClicked;
@@ -1010,9 +1013,21 @@
         Settings.setValue(VR_EDIT_SETTING, isAppActive);
     }
 
-    function setAppScaleWithHandles() {
-        isAppScaleWithHandles = true;
-        ui.setToolIcon(ui.SCALE_HANDLES);
+    function setTool(tool) {
+        switch (tool) {
+        case "scale":
+            isAppScaleWithHandles = true;
+            isAppCloneEntities = false;
+            ui.setToolIcon(ui.SCALE_TOOL);
+            break;
+        case "clone":
+            isAppScaleWithHandles = false;
+            isAppCloneEntities = true;
+            ui.setToolIcon(ui.CLONE_TOOL);
+            break;
+        default:
+            debug("ERROR: Unexpected condition in setTool()!");
+        }
     }
 
     function onAppButtonClicked() {
@@ -1052,7 +1067,10 @@
         // Swap UI hands.
         ui.setHand(otherHand(dominantHand));
         if (isAppScaleWithHandles) {
-            ui.setToolIcon(ui.SCALE_HANDLES);
+            ui.setToolIcon(ui.SCALE_TOOL);
+        }
+        if (isAppCloneEntities) {
+            ui.setToolIcon(ui.CLONE_TOOL);
         }
 
         if (isAppActive) {
@@ -1090,7 +1108,7 @@
         inputs[RIGHT_HAND] = new Inputs(RIGHT_HAND);
 
         // UI object.
-        ui = new UI(otherHand(dominantHand), inputs[LEFT_HAND], inputs[RIGHT_HAND], setAppScaleWithHandles);
+        ui = new UI(otherHand(dominantHand), inputs[LEFT_HAND], inputs[RIGHT_HAND], setTool);
 
         // Editor objects.
         editors[LEFT_HAND] = new Editor(LEFT_HAND);
