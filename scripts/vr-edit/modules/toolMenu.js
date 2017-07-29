@@ -17,7 +17,8 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
 
     var menuOriginOverlay,
         menuPanelOverlay,
-        buttonOverlay,
+        scaleButtonOverlay,
+        cloneButtonOverlay,
         buttonHighlightOverlay,
 
         LEFT_HAND = 0,
@@ -39,7 +40,7 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
             alpha: 1.0,
             parentID: AVATAR_SELF_ID,
             ignoreRayIntersection: true,
-            visible: false
+            visible: true
         },
 
         MENU_PANEL_PROPERTIES = {
@@ -55,9 +56,7 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
 
         BUTTON_PROPERTIES = {
             dimensions: { x: 0.03, y: 0.03, z: 0.01 },
-            localPosition: { x: 0.02, y: 0.02, z: 0.0 },
             localRotation: ZERO_ROTATION,
-            color: { red: 0, green: 240, blue: 240 },
             alpha: 1.0,
             solid: true,
             ignoreRayIntersection: false,
@@ -75,6 +74,18 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
             ignoreRayIntersection: true,
             visible: false
         },
+
+        HIGHLIGHT_Z_OFFSET = -0.002,
+
+        BUTTON_POSITIONS = [
+            { x: 0.02, y: 0.02, z: 0.0 },
+            { x: 0.06, y: 0.02, z: 0.0 }
+        ],
+
+        BUTTON_COLORS = [
+            { red: 0, green: 240, blue: 240 },
+            { red: 240, green: 0, blue: 240 }
+        ],
 
         isDisplaying = false,
 
@@ -102,28 +113,44 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
     setHand(side);
 
     function getEntityIDs() {
-        return [menuPanelOverlay, buttonOverlay];
+        return [menuPanelOverlay, scaleButtonOverlay, cloneButtonOverlay];
     }
 
     function update(intersectionOverlayID) {
         // Highlight button.
-        if (intersectionOverlayID === buttonOverlay !== isHighlightingButton) {
+        if ((intersectionOverlayID === scaleButtonOverlay || intersectionOverlayID === cloneButtonOverlay)
+                !== isHighlightingButton) {
             isHighlightingButton = !isHighlightingButton;
-            Overlays.editOverlay(buttonHighlightOverlay, { visible: isHighlightingButton });
+            Overlays.editOverlay(buttonHighlightOverlay, {
+                localPosition: Vec3.sum({ x: 0, y: 0, z: HIGHLIGHT_Z_OFFSET },
+                    intersectionOverlayID === scaleButtonOverlay ? BUTTON_POSITIONS[0] : BUTTON_POSITIONS[1]),
+                visible: isHighlightingButton
+            });
         }
 
         // Button click.
         if (!isHighlightingButton || controlHand.triggerClicked() !== isButtonPressed) {
             isButtonPressed = isHighlightingButton && controlHand.triggerClicked();
-            if (isButtonPressed) {
-                Overlays.editOverlay(buttonOverlay, {
-                    localPosition: Vec3.sum(BUTTON_PROPERTIES.localPosition, { x: 0, y: 0, z: 0.004 })
+            if (isButtonPressed && intersectionOverlayID === scaleButtonOverlay) {
+                Overlays.editOverlay(scaleButtonOverlay, {
+                    localPosition: Vec3.sum(BUTTON_POSITIONS[0], { x: 0, y: 0, z: 0.004 })
                 });
-                setAppScaleWithHandlesCallback();
             } else {
-                Overlays.editOverlay(buttonOverlay, {
-                    localPosition: BUTTON_PROPERTIES.localPosition
+                Overlays.editOverlay(scaleButtonOverlay, {
+                    localPosition: BUTTON_POSITIONS[0]
                 });
+            }
+            if (isButtonPressed && intersectionOverlayID === cloneButtonOverlay) {
+                Overlays.editOverlay(cloneButtonOverlay, {
+                    localPosition: Vec3.sum(BUTTON_POSITIONS[1], { x: 0, y: 0, z: 0.004 })
+                });
+            } else {
+                Overlays.editOverlay(cloneButtonOverlay, {
+                    localPosition: BUTTON_POSITIONS[1]
+                });
+            }
+            if (isButtonPressed) {
+                setAppScaleWithHandlesCallback();
             }
         }
     }
@@ -158,7 +185,12 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
         menuPanelOverlay = Overlays.addOverlay("cube", properties);
         properties = Object.clone(BUTTON_PROPERTIES);
         properties.parentID = menuOriginOverlay;
-        buttonOverlay = Overlays.addOverlay("cube", properties);
+        properties.localPosition = BUTTON_POSITIONS[0];
+        properties.color = BUTTON_COLORS[0];
+        scaleButtonOverlay = Overlays.addOverlay("cube", properties);
+        properties.localPosition = BUTTON_POSITIONS[1];
+        properties.color = BUTTON_COLORS[1];
+        cloneButtonOverlay = Overlays.addOverlay("cube", properties);
 
         // Prepare button highlight overlay.
         properties = Object.clone(BUTTON_HIGHLIGHT_PROPERTIES);
@@ -175,7 +207,8 @@ ToolMenu = function (side, leftInputs, rightInputs, setAppScaleWithHandlesCallba
         }
 
         Overlays.deleteOverlay(buttonHighlightOverlay);
-        Overlays.deleteOverlay(buttonOverlay);
+        Overlays.deleteOverlay(cloneButtonOverlay);
+        Overlays.deleteOverlay(scaleButtonOverlay);
         Overlays.deleteOverlay(menuPanelOverlay);
         Overlays.deleteOverlay(menuOriginOverlay);
         isDisplaying = false;
