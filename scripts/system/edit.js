@@ -14,7 +14,7 @@
    Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
 
 (function() { // BEGIN LOCAL_SCOPE
-    
+
 "use strict";
 
 var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
@@ -67,7 +67,7 @@ gridTool.setVisible(false);
 
 var entityListTool = new EntityListTool();
 
-selectionManager.addEventListener(function () {
+selectionManager.addEventListener(function (test) {
     selectionDisplay.updateHandles();
     entityIconOverlayManager.updatePositions();
 
@@ -275,7 +275,8 @@ var toolBar = (function () {
                 properties.userData = JSON.stringify({ grabbableKey: { grabbable: true } });
             }
             entityID = Entities.addEntity(properties);
-            if (properties.type == "ParticleEffect") {
+
+            if (properties.type === "ParticleEffect") {
                 selectParticleEntity(entityID);
             }
 
@@ -2229,10 +2230,9 @@ var particleExplorerTool = new ParticleExplorerTool();
 var selectedParticleEntity = 0;
 var selectedParticleEntityID = null;
 
-
 function selectParticleEntity(entityID) {
     var properties = Entities.getEntityProperties(entityID);
-
+    selectedParticleEntityID = entityID;
     if (properties.emitOrientation) {
         properties.emitOrientation = Quat.safeEulerAngles(properties.emitOrientation);
     }
@@ -2274,7 +2274,6 @@ entityListTool.webView.webEventReceived.connect(function (data) {
                     return;
                 }
                 // Destroy the old particles web view first
-                selectParticleEntity(ids[0]);
             } else {
                 selectedParticleEntity = 0;
                 particleExplorerTool.destroyWebView();
