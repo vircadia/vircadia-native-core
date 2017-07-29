@@ -33,7 +33,7 @@ Selection = function (side) {
         // Recursively traverses tree of entities and their children, gather IDs and properties.
         var children,
             properties,
-            SELECTION_PROPERTIES = ["position", "registrationPoint", "rotation", "dimensions", "localPosition",
+            SELECTION_PROPERTIES = ["position", "registrationPoint", "rotation", "dimensions", "parentID", "localPosition",
                 "dynamic", "collisionless"],
             i,
             length;
@@ -42,6 +42,7 @@ Selection = function (side) {
         result.push({
             id: id,
             position: properties.position,
+            parentID: properties.parentID,
             localPosition: properties.localPosition,
             registrationPoint: properties.registrationPoint,
             rotation: properties.rotation,
@@ -294,6 +295,37 @@ Selection = function (side) {
         select(selectedEntityID);  // Refresh.
     }
 
+    function cloneEntities() {
+        var parentIDIndexes = [],
+            parentID,
+            properties,
+            i,
+            j,
+            length;
+
+        // Map parent IDs.
+        for (i = 1, length = selection.length; i < length; i += 1) {
+            parentID = selection[i].parentID;
+            for (j = 0; j < i; j += 1) {
+                if (parentID === selection[j].id) {
+                    parentIDIndexes[i] = j;
+                    break;
+                }
+            }
+        }
+
+        // Clone entities.
+        for (i = 0, length = selection.length; i < length; i += 1) {
+            properties = Entities.getEntityProperties(selection[i].id);
+            if (i > 0) {
+                properties.parentID = selection[parentIDIndexes[i]].id;
+            }
+            selection[i].id = Entities.addEntity(properties);
+        }
+
+        rootEntityID = selection[0].id;
+    }
+
     function clear() {
         selection = [];
         selectedEntityID = null;
@@ -327,6 +359,7 @@ Selection = function (side) {
         handleScale: handleScale,
         finishHandleScaling: finishHandleScaling,
         finishEditing: finishEditing,
+        cloneEntities: cloneEntities,
         deleteEntities: deleteEntities,
         clear: clear,
         destroy: destroy

@@ -286,8 +286,9 @@
             EDITOR_GRABBING = 3,
             EDITOR_DIRECT_SCALING = 4,  // Scaling data are sent to other editor's EDITOR_GRABBING state.
             EDITOR_HANDLE_SCALING = 5,  // ""
+            EDITOR_CLONING = 6,
             EDITOR_STATE_STRINGS = ["EDITOR_IDLE", "EDITOR_SEARCHING", "EDITOR_HIGHLIGHTING", "EDITOR_GRABBING",
-                "EDITOR_DIRECT_SCALING", "EDITOR_HANDLE_SCALING"],
+                "EDITOR_DIRECT_SCALING", "EDITOR_HANDLE_SCALING", "EDITOR_CLONING"],
             editorState = EDITOR_IDLE,
 
             // State machine.
@@ -694,6 +695,16 @@
             laser.enable();
         }
 
+        function enterEditorCloning() {
+            selection.select(highlightedEntityID);  // For when transitioning from EDITOR_SEARCHING.
+            selection.cloneEntities();
+            highlightedEntityID = selection.rootEntityID();
+        }
+
+        function exitEditorCloning() {
+            // Nothing to do.
+        }
+
         STATE_MACHINE = {
             EDITOR_IDLE: {
                 enter: enterEditorIdle,
@@ -724,6 +735,11 @@
                 enter: enterEditorHandleScaling,
                 update: updateEditorHandleScaling,
                 exit: exitEditorHandleScaling
+            },
+            EDITOR_CLONING: {
+                enter: enterEditorCloning,
+                update: null,
+                exit: exitEditorCloning
             }
         };
 
@@ -791,6 +807,8 @@
                         if (!isAppScaleWithHandles) {
                             setState(EDITOR_DIRECT_SCALING);
                         }
+                    } else if (isAppCloneEntities) {
+                        setState(EDITOR_CLONING);
                     } else {
                         setState(EDITOR_GRABBING);
                     }
@@ -836,6 +854,8 @@
                         } else {
                             debug(side, "ERROR: Unexpected condition in EDITOR_HIGHLIGHTING! A");
                         }
+                    } else if (isAppCloneEntities) {
+                        setState(EDITOR_CLONING);
                     } else {
                         setState(EDITOR_GRABBING);
                     }
@@ -919,6 +939,21 @@
                 } else if (!otherEditor.isEditing(highlightedEntityID)) {
                     // Grab highlightEntityID that was scaling and has already been set.
                     setState(EDITOR_GRABBING);
+                }
+                break;
+            case EDITOR_CLONING:
+                // Immediate transition out of state after cloning entities during state entry.
+                if (hand.valid() && hand.triggerClicked()) {
+                    setState(EDITOR_GRABBING);
+                } else if (!hand.valid()) {
+                    setState(EDITOR_IDLE);
+                } else if (!hand.triggerClicked()) {
+                    if (intersection.entityID && intersection.editableEntity) {
+                        highlightedEntityID = Entities.rootOf(intersection.entityID);
+                        setState(EDITOR_HIGHLIGHTING);
+                    } else {
+                        setState(EDITOR_SEARCHING);
+                    }
                 }
                 break;
             }
