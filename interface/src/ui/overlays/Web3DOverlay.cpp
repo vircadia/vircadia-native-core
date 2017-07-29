@@ -337,11 +337,19 @@ void Web3DOverlay::setProxyWindow(QWindow* proxyWindow) {
 }
 
 void Web3DOverlay::handlePointerEvent(const PointerEvent& event) {
+    // FIXME touch event emulation is broken in some way.  Do NOT enable this code
+    // unless you have done a debug build of the application and verified that 
+    // you are not getting assertion errors on handling the touch events inside
+    // Qt.
+#if 0
     if (_inputMode == Touch) {
         handlePointerEventAsTouch(event);
     } else {
         handlePointerEventAsMouse(event);
     }
+#else
+    handlePointerEventAsMouse(event);
+#endif
 }
 
 void Web3DOverlay::handlePointerEventAsTouch(const PointerEvent& event) {
