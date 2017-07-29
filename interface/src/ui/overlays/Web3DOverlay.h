@@ -72,7 +72,6 @@ signals:
 private:
     InputMode _inputMode { Touch };
     QSharedPointer<OffscreenQmlSurface> _webSurface;
-    QMetaObject::Connection _connection;
     gpu::TexturePointer _texture;
     QString _url;
     QString _scriptURL;
@@ -88,14 +87,6 @@ private:
     uint8_t _currentMaxFPS { 0 };
 
     bool _mayNeedResize { false };
-
-    QMetaObject::Connection _mousePressConnection;
-    QMetaObject::Connection _mouseReleaseConnection;
-    QMetaObject::Connection _mouseMoveConnection;
-    QMetaObject::Connection _hoverLeaveConnection;
-
-    QMetaObject::Connection _emitScriptEventConnection;
-    QMetaObject::Connection _webEventReceivedConnection;
 };
 
 #endif // hifi_Web3DOverlay_h
