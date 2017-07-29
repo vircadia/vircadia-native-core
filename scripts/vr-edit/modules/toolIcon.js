@@ -60,7 +60,6 @@ ToolIcon = function (side) {
         var handJointIndex,
             iconProperties;
 
-        // Joint index.
         handJointIndex = MyAvatar.getJointIndex(HAND_JOINT_NAME);
         if (handJointIndex === -1) {
             // Don't display if joint isn't available (yet) to attach to.
@@ -69,10 +68,14 @@ ToolIcon = function (side) {
             return;
         }
 
-        iconProperties = Object.clone(ICON_PROPERTIES);
-        iconProperties.parentJointIndex = handJointIndex;
-        iconProperties.color = ICON_COLORS[icon];
-        iconOverlay = Overlays.addOverlay(ICON_TYPE, iconProperties);
+        if (iconOverlay === null) {
+            iconProperties = Object.clone(ICON_PROPERTIES);
+            iconProperties.parentJointIndex = handJointIndex;
+            iconProperties.color = ICON_COLORS[icon];
+            iconOverlay = Overlays.addOverlay(ICON_TYPE, iconProperties);
+        } else {
+            Overlays.editOverlay(iconOverlay, { color: ICON_COLORS[icon] });
+        }
     }
 
     function clear() {

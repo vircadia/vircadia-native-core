@@ -227,6 +227,7 @@
         function clear() {
             leftInputs.setUIEntities([]);
             rightInputs.setUIEntities([]);
+            toolIcon.clear();
             toolMenu.clear();
             createPalette.clear();
 
