@@ -1075,7 +1075,7 @@ dopplegangerAttachments.attachmentsUpdated.connect(function(attachments) {
 // var require = function(id) { return Script.require(id + '?'+new Date().getTime().toString(36)); }
 module.exports = DopplegangerAttachments;
 
-DopplegangerAttachments.version = '0.0.1a';
+DopplegangerAttachments.version = '0.0.1b';
 DopplegangerAttachments.WANT_DEBUG = false;
 
 var _modelHelper = __webpack_require__(1),
@@ -1196,7 +1196,6 @@ DopplegangerAttachments.prototype = {
                     dynamic: false,
                     shapeType: 'none',
                     lifetime: 60,
-                    grabbable: true,
                 }, !this.manualJointSync && {
                     parentID: parentID,
                     parentJointIndex: jointIndex,
