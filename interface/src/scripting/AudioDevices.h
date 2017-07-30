@@ -39,7 +39,7 @@ public:
     QVariant data(const QModelIndex& index, int role) const override;
 
     // reset device to the last selected device in this context, or the default
-    void resetDevice(bool contextIsHMD, const QString& device);
+    void resetDevice(bool contextIsHMD);
 
 signals:
     void deviceChanged(const QAudioDeviceInfo& device);
@@ -87,8 +87,10 @@ private:
 
     AudioDeviceList _inputs { QAudio::AudioInput };
     AudioDeviceList _outputs { QAudio::AudioOutput };
+    QAudioDeviceInfo _requestedOutputDevice;
+    QAudioDeviceInfo _requestedInputDevice;
 
-    bool& _contextIsHMD;
+    const bool& _contextIsHMD;
 };
 
 };

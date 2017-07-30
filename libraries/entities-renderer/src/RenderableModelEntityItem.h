@@ -116,6 +116,8 @@ public:
         return _animation;
     }
 
+    bool getMeshes(MeshProxyList& result) override;
+
 private:
     QVariantMap parseTexturesToMap(QString textures);
     void remapTextures();

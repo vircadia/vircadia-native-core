@@ -92,9 +92,8 @@ FileStorage::FileStorage(const QString& filename) : _file(filename) {
 
 FileStorage::~FileStorage() {
     if (_mapped) {
-        if (!_file.unmap(_mapped)) {
-            throw std::runtime_error("Unable to unmap file");
-        }
+        _file.unmap(_mapped);
+        _mapped = nullptr;
     }
     if (_file.isOpen()) {
         _file.close();

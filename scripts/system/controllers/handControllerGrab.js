@@ -1034,9 +1034,18 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp) {
 
 function getControllerJointIndex(hand) {
     if (HMD.isHandControllerAvailable()) {
-        return MyAvatar.getJointIndex(hand === RIGHT_HAND ?
-                                      "_CONTROLLER_RIGHTHAND" :
-                                      "_CONTROLLER_LEFTHAND");
+        var controllerJointIndex = -1;
+        if (Camera.mode === "first person") {
+            controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
+                                                          "_CONTROLLER_RIGHTHAND" :
+                                                          "_CONTROLLER_LEFTHAND");
+        } else if (Camera.mode === "third person") {
+            controllerJointIndex = MyAvatar.getJointIndex(hand === RIGHT_HAND ?
+                                                          "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" :
+                                                          "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND");
+        }
+        
+        return controllerJointIndex;
     }
 
     return MyAvatar.getJointIndex("Head");
@@ -1803,9 +1812,14 @@ function MyController(hand) {
 
         if (isInEditMode() && !this.isNearStylusTarget && HMD.isHandControllerAvailable()) {
             // Always showing lasers while in edit mode and hands/stylus is not active.
+
             var rayPickInfo = this.calcRayPickInfo(this.hand);
-            this.intersectionDistance = (rayPickInfo.entityID || rayPickInfo.overlayID) ? rayPickInfo.distance : 0;
-            this.searchIndicatorOn(rayPickInfo.searchRay);
+            if (rayPickInfo.isValid) {
+                this.intersectionDistance = (rayPickInfo.entityID || rayPickInfo.overlayID) ? rayPickInfo.distance : 0;
+                this.searchIndicatorOn(rayPickInfo.searchRay);
+            } else {
+                this.searchIndicatorOff();
+            }
         } else {
             this.searchIndicatorOff();
         }
@@ -1854,12 +1868,14 @@ function MyController(hand) {
     this.calcRayPickInfo = function(hand, pickRayOverride) {
 
         var pickRay;
+        var valid = true
         if (pickRayOverride) {
             pickRay = pickRayOverride;
         } else {
             var controllerLocation = getControllerWorldLocation(this.handToController(), true);
             var worldHandPosition = controllerLocation.position;
             var worldHandRotation = controllerLocation.orientation;
+            valid = !(worldHandPosition === undefined);
 
             pickRay = {
                 origin: PICK_WITH_HAND_RAY ? worldHandPosition : Camera.position,
@@ -1874,7 +1890,8 @@ function MyController(hand) {
             entityID: null,
             overlayID: null,
             searchRay: pickRay,
-            distance: PICK_MAX_DISTANCE
+            distance: PICK_MAX_DISTANCE,
+            isValid: valid
         };
 
         var now = Date.now();

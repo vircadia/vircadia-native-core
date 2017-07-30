@@ -61,6 +61,7 @@
 #include <AssetClient.h>
 #include <AssetUpload.h>
 #include <AutoUpdater.h>
+#include <Midi.h>
 #include <AudioInjectorManager.h>
 #include <AvatarBookmarks.h>
 #include <CursorManager.h>
@@ -398,6 +399,10 @@ public:
                     return true;
                 }
             }
+
+            if (message->message == WM_DEVICECHANGE) {
+                Midi::USBchanged();                // re-scan the MIDI bus
+            }
         }
         return false;
     }
@@ -567,6 +572,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<SceneScriptingInterface>();
     DependencyManager::set<OffscreenUi>();
     DependencyManager::set<AutoUpdater>();
+    DependencyManager::set<Midi>();
     DependencyManager::set<PathUtils>();
     DependencyManager::set<InterfaceDynamicFactory>();
     DependencyManager::set<AudioInjectorManager>();
@@ -618,6 +624,7 @@ const float DEFAULT_DESKTOP_TABLET_SCALE_PERCENT = 75.0f;
 const bool DEFAULT_DESKTOP_TABLET_BECOMES_TOOLBAR = true;
 const bool DEFAULT_HMD_TABLET_BECOMES_TOOLBAR = false;
 const bool DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS = false;
+const QString DEFAULT_CURSOR_NAME = "DEFAULT";
 
 Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bool runningMarkerExisted) :
     QApplication(argc, argv),
@@ -637,6 +644,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _hmdTabletBecomesToolbarSetting("hmdTabletBecomesToolbar", DEFAULT_HMD_TABLET_BECOMES_TOOLBAR),
     _preferAvatarFingerOverStylusSetting("preferAvatarFingerOverStylus", DEFAULT_PREFER_AVATAR_FINGER_OVER_STYLUS),
     _constrainToolbarPosition("toolbar/constrainToolbarToCenterX", true),
+    _preferredCursor("preferredCursor", DEFAULT_CURSOR_NAME),
     _scaleMirror(1.0f),
     _rotateMirror(0.0f),
     _raiseMirror(0.0f),
@@ -932,8 +940,10 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
 
-    bool useSystemCursor = cmdOptionExists(argc, constArgv, "--system-cursor");
-    showCursor(useSystemCursor ? Cursor::Icon::SYSTEM : Cursor::Icon::DEFAULT);
+    if (cmdOptionExists(argc, constArgv, "--system-cursor")) {
+        _preferredCursor.set(Cursor::Manager::getIconName(Cursor::Icon::SYSTEM));
+    }
+    showCursor(Cursor::Manager::lookupIcon(_preferredCursor.get()));
 
     // enable mouse tracking; otherwise, we only get drag events
     _glWidget->setMouseTracking(true);
@@ -2115,7 +2125,6 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("AvatarManager", DependencyManager::get<AvatarManager>().data());
     surfaceContext->setContextProperty("UndoStack", &_undoStackScriptingInterface);
     surfaceContext->setContextProperty("LODManager", DependencyManager::get<LODManager>().data());
-    surfaceContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
     surfaceContext->setContextProperty("HMD", DependencyManager::get<HMDScriptingInterface>().data());
     surfaceContext->setContextProperty("Scene", DependencyManager::get<SceneScriptingInterface>().data());
     surfaceContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
@@ -2163,7 +2172,9 @@ void Application::initializeUi() {
     auto compositorHelper = DependencyManager::get<CompositorHelper>();
     connect(compositorHelper.data(), &CompositorHelper::allowMouseCaptureChanged, this, [=] {
         if (isHMDMode()) {
-            showCursor(compositorHelper->getAllowMouseCapture() ? Cursor::Icon::DEFAULT : Cursor::Icon::SYSTEM);
+            showCursor(compositorHelper->getAllowMouseCapture() ?
+                       Cursor::Manager::lookupIcon(_preferredCursor.get()) :
+                       Cursor::Icon::SYSTEM);
         }
     });
 
@@ -2505,6 +2516,12 @@ void Application::setPreferAvatarFingerOverStylus(bool value) {
     _preferAvatarFingerOverStylusSetting.set(value);
 }
 
+void Application::setPreferredCursor(const QString& cursorName) {
+    qCDebug(interfaceapp) << "setPreferredCursor" << cursorName;
+    _preferredCursor.set(cursorName.isEmpty() ? DEFAULT_CURSOR_NAME : cursorName);
+    showCursor(Cursor::Manager::lookupIcon(_preferredCursor.get()));
+}
+
 void Application::setSettingConstrainToolbarPosition(bool setting) {
     _constrainToolbarPosition.set(setting);
     DependencyManager::get<OffscreenUi>()->setConstrainToolbarToCenterX(setting);
@@ -2750,6 +2767,16 @@ bool Application::event(QEvent* event) {
     switch (type) {
         case Event::Lambda:
             static_cast<LambdaEvent*>(event)->call();
+            return true;
+
+        // Explicit idle keeps the idle running at a lower interval, but without any rendering
+        // see (windowMinimizedChanged)
+        case Event::Idle:
+            {
+                float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
+                _lastTimeUpdated.start();
+                idle(nsecsElapsed);
+            }
             return true;
 
         case Event::Present:
@@ -3011,7 +3038,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
 
             case Qt::Key_F: {
-                _physicsEngine->dumpNextStats();
+                if (isOption) {
+                    _physicsEngine->dumpNextStats();
+                }
                 break;
             }
 
@@ -3055,6 +3084,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     auto cursor = Cursor::Manager::instance().getCursor();
                     auto curIcon = cursor->getIcon();
                     if (curIcon == Cursor::Icon::DEFAULT) {
+                        showCursor(Cursor::Icon::RETICLE);
+                    } else if (curIcon == Cursor::Icon::RETICLE) {
                         showCursor(Cursor::Icon::SYSTEM);
                     } else if (curIcon == Cursor::Icon::SYSTEM) {
                         showCursor(Cursor::Icon::LINK);
@@ -4456,27 +4487,31 @@ void Application::cameraModeChanged() {
 
 
 void Application::cameraMenuChanged() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
-        if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
+    auto menu = Menu::getInstance();
+    if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
+        if (isHMDMode()) {
+            menu->setIsOptionChecked(MenuOption::FullscreenMirror, false);
+            menu->setIsOptionChecked(MenuOption::FirstPerson, true);
+        } else if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
             _myCamera.setMode(CAMERA_MODE_MIRROR);
         }
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
+    } else if (menu->isOptionChecked(MenuOption::FirstPerson)) {
         if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
             _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
             getMyAvatar()->setBoomLength(MyAvatar::ZOOM_MIN);
         }
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::ThirdPerson)) {
+    } else if (menu->isOptionChecked(MenuOption::ThirdPerson)) {
         if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
             _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
             if (getMyAvatar()->getBoomLength() == MyAvatar::ZOOM_MIN) {
                 getMyAvatar()->setBoomLength(MyAvatar::ZOOM_DEFAULT);
             }
         }
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::IndependentMode)) {
+    } else if (menu->isOptionChecked(MenuOption::IndependentMode)) {
         if (_myCamera.getMode() != CAMERA_MODE_INDEPENDENT) {
             _myCamera.setMode(CAMERA_MODE_INDEPENDENT);
         }
-    } else if (Menu::getInstance()->isOptionChecked(MenuOption::CameraEntityMode)) {
+    } else if (menu->isOptionChecked(MenuOption::CameraEntityMode)) {
         if (_myCamera.getMode() != CAMERA_MODE_ENTITY) {
             _myCamera.setMode(CAMERA_MODE_ENTITY);
         }
@@ -5445,9 +5480,9 @@ void Application::updateWindowTitle() const {
 #endif
     _window->setWindowTitle(title);
 
-	// updateTitleWindow gets called whenever there's a change regarding the domain, so rather
-	// than placing this within domainChanged, it's placed here to cover the other potential cases.
-	DependencyManager::get< MessagesClient >()->sendLocalMessage("Toolbar-DomainChanged", "");
+    // updateTitleWindow gets called whenever there's a change regarding the domain, so rather
+    // than placing this within domainChanged, it's placed here to cover the other potential cases.
+    DependencyManager::get< MessagesClient >()->sendLocalMessage("Toolbar-DomainChanged", "");
 }
 
 void Application::clearDomainOctreeDetails() {

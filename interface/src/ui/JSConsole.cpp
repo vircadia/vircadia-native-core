@@ -24,13 +24,14 @@
 #include "ScriptHighlighting.h"
 
 const int NO_CURRENT_HISTORY_COMMAND = -1;
-const int MAX_HISTORY_SIZE = 64;
+const int MAX_HISTORY_SIZE = 256;
+const QString HISTORY_FILENAME = "JSConsole.history.json";
 
 const QString COMMAND_STYLE = "color: #266a9b;";
 
 const QString RESULT_SUCCESS_STYLE = "color: #677373;";
 const QString RESULT_INFO_STYLE = "color: #223bd1;";
-const QString RESULT_WARNING_STYLE = "color: #d13b22;";
+const QString RESULT_WARNING_STYLE = "color: #999922;";
 const QString RESULT_ERROR_STYLE = "color: #d13b22;";
 
 const QString GUTTER_PREVIOUS_COMMAND = "<span style=\"color: #57b8bb;\">&lt;</span>";
@@ -38,14 +39,35 @@ const QString GUTTER_ERROR = "<span style=\"color: #d13b22;\">X</span>";
 
 const QString JSConsole::_consoleFileName { "about:console" };
 
+const QString JSON_KEY = "entries";
+QList<QString> _readLines(const QString& filename) {
+    QFile file(filename);
+    file.open(QFile::ReadOnly);
+    auto json = QTextStream(&file).readAll().toUtf8();
+    auto root = QJsonDocument::fromJson(json).object();
+    // TODO: check root["version"]
+    return root[JSON_KEY].toVariant().toStringList();
+}
+
+void _writeLines(const QString& filename, const QList<QString>& lines) {
+    QFile file(filename);
+    file.open(QFile::WriteOnly);
+    auto root = QJsonObject();
+    root["version"] = 1.0;
+    root["last-modified"] = QDateTime::currentDateTime().toTimeSpec(Qt::OffsetFromUTC).toString(Qt::ISODate);
+    root[JSON_KEY] = QJsonArray::fromStringList(lines);
+    auto json = QJsonDocument(root).toJson();
+    QTextStream(&file) << json;
+}
+
 JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
     QWidget(parent),
     _ui(new Ui::Console),
     _currentCommandInHistory(NO_CURRENT_HISTORY_COMMAND),
-    _commandHistory(),
+    _savedHistoryFilename(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/" + HISTORY_FILENAME),
+    _commandHistory(_readLines(_savedHistoryFilename)),
     _ownScriptEngine(scriptEngine == NULL),
     _scriptEngine(NULL) {
-
     _ui->setupUi(this);
     _ui->promptTextEdit->setLineWrapMode(QTextEdit::NoWrap);
     _ui->promptTextEdit->setWordWrapMode(QTextOption::NoWrap);
@@ -101,9 +123,12 @@ void JSConsole::setScriptEngine(ScriptEngine* scriptEngine) {
 }
 
 void JSConsole::executeCommand(const QString& command) {
-    _commandHistory.prepend(command);
-    if (_commandHistory.length() > MAX_HISTORY_SIZE) {
-        _commandHistory.removeLast();
+    if (_commandHistory.isEmpty() || _commandHistory.constFirst() != command) {
+        _commandHistory.prepend(command);
+        if (_commandHistory.length() > MAX_HISTORY_SIZE) {
+            _commandHistory.removeLast();
+        }
+        _writeLines(_savedHistoryFilename, _commandHistory);
     }
 
     _ui->promptTextEdit->setDisabled(true);
@@ -182,7 +207,7 @@ bool JSConsole::eventFilter(QObject* sender, QEvent* event) {
                     // a new QTextBlock isn't created.
                     keyEvent->setModifiers(keyEvent->modifiers() & ~Qt::ShiftModifier);
                 } else {
-                    QString command = _ui->promptTextEdit->toPlainText().trimmed();
+                    QString command = _ui->promptTextEdit->toPlainText().replace("\r\n","\n").trimmed();
 
                     if (!command.isEmpty()) {
                         QTextCursor cursor = _ui->promptTextEdit->textCursor();

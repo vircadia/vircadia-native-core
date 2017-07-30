@@ -136,7 +136,7 @@ void SimpleEntitySimulation::sortEntitiesThatMoved() {
     SetOfEntities::iterator itemItr = _entitiesToSort.begin();
     while (itemItr != _entitiesToSort.end()) {
         EntityItemPointer entity = *itemItr;
-        entity->computePuffedQueryAACube();
+        entity->checkAndMaybeUpdateQueryAACube();
         ++itemItr;
     }
     EntitySimulation::sortEntitiesThatMoved();

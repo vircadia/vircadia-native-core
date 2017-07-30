@@ -401,6 +401,9 @@ public slots:
     void loadDomainConnectionDialog();
     void showScriptLogs();
 
+    const QString getPreferredCursor() const { return _preferredCursor.get(); }
+    void setPreferredCursor(const QString& cursor);
+
 private slots:
     void showDesktop();
     void clearDomainOctreeDetails();
@@ -565,6 +568,7 @@ private:
     Setting::Handle<bool> _hmdTabletBecomesToolbarSetting;
     Setting::Handle<bool> _preferAvatarFingerOverStylusSetting;
     Setting::Handle<bool> _constrainToolbarPosition;
+    Setting::Handle<QString> _preferredCursor;
 
     float _scaleMirror;
     float _rotateMirror;
