@@ -208,12 +208,13 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
 
     _toolbarMode = toolbarMode;
 
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+
     if (toolbarMode) {
         removeButtonsFromHomeScreen();
         addButtonsToToolbar();
 
         // create new desktop window
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
         auto tabletRootWindow = new TabletRootWindow();
         tabletRootWindow->initQml(QVariantMap());
         auto quickItem = tabletRootWindow->asQuickItem();
@@ -230,15 +231,36 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
         removeButtonsFromToolbar();
         addButtonsToHomeScreen();
 
+        //check if running scripts opened and save it for reopen in Tablet
+        if (offscreenUi->isVisible("RunningScripts")) {
+            offscreenUi->hide("RunningScripts");
+            _showRunningScripts = true;
+        }
         // destroy desktop window
         if (_desktopWindow) {
             _desktopWindow->deleteLater();
             _desktopWindow = nullptr;
         }
     }
+
     loadHomeScreen(true);
     emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
+
+    //connect to Tablet shown signal to open running scripts
+    if (_showRunningScripts) {
+        QMetaObject::invokeMethod(qApp, "toggleTabletUI", Q_ARG(bool, true));
+        //qApp->toggleTabletUI(true);
+        auto conn = std::make_shared<QMetaObject::Connection>();
+        *conn = connect(this, &TabletProxy::tabletShownChanged, this, [this, conn] {
+            QObject::disconnect(*conn);
+            if (_tabletShown && _showRunningScripts) {
+                _showRunningScripts = false;
+                pushOntoStack("../../hifi/dialogs/TabletRunningScripts.qml");
+            }
+        });
+    }
 }
+
 
 static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* buttonProxy) {
     Q_ASSERT(QThread::currentThread() == qApp->thread());

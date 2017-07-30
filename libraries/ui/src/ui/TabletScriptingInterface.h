@@ -252,6 +252,7 @@ protected:
     enum class State { Uninitialized, Home, Web, Menu, QML };
     State _state { State::Uninitialized };
     bool _landscape { false };
+    bool _showRunningScripts { false };
 };
 
 Q_DECLARE_METATYPE(TabletProxy*);
