@@ -51,7 +51,7 @@ public:
 
     Q_INVOKABLE QUuid getCurrentEntityWithContextOverlay() { return _currentEntityWithContextOverlay; }
     void setCurrentEntityWithContextOverlay(const QUuid& entityID) { _currentEntityWithContextOverlay = entityID; }
-    void setEnabled(bool enabled) { _enabled = enabled; }
+    void setEnabled(bool enabled);
     bool getEnabled() { return _enabled; }
 
 public slots:
@@ -73,6 +73,8 @@ private:
 
     bool contextOverlayFilterPassed(const EntityItemID& entityItemID);
     glm::vec3 drawOutlineOverlay(const EntityItemID& entityItemID);
+
+    Setting::Handle<bool> _settingSwitch { "inspectionMode", false };
 };
 
 #endif // hifi_ContextOverlayInterface_h
