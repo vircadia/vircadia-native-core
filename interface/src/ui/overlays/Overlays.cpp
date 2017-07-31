@@ -706,27 +706,27 @@ bool Overlays::isAddedOverlay(OverlayID id) {
 }
 
 void Overlays::sendMousePressOnOverlay(OverlayID overlayID, const PointerEvent& event) {
-    emit mousePressOnOverlay(overlayID, event);
+    QMetaObject::invokeMethod(this, "mousePressOnOverlay", Q_ARG(OverlayID, overlayID), Q_ARG(PointerEvent, event));
 }
 
 void Overlays::sendMouseReleaseOnOverlay(OverlayID overlayID, const PointerEvent& event) {
-    emit mouseReleaseOnOverlay(overlayID, event);
+    QMetaObject::invokeMethod(this, "mouseReleaseOnOverlay", Q_ARG(OverlayID, overlayID), Q_ARG(PointerEvent, event));
 }
 
 void Overlays::sendMouseMoveOnOverlay(OverlayID overlayID, const PointerEvent& event) {
-    emit mouseMoveOnOverlay(overlayID, event);
+    QMetaObject::invokeMethod(this, "mouseMoveOnOverlay", Q_ARG(OverlayID, overlayID), Q_ARG(PointerEvent, event));
 }
 
 void Overlays::sendHoverEnterOverlay(OverlayID id, PointerEvent event) {
-    emit hoverEnterOverlay(id, event);
+    QMetaObject::invokeMethod(this, "hoverEnterOverlay", Q_ARG(OverlayID, id), Q_ARG(PointerEvent, event));
 }
 
 void Overlays::sendHoverOverOverlay(OverlayID  id, PointerEvent event) {
-    emit hoverOverOverlay(id, event);
+    QMetaObject::invokeMethod(this, "hoverOverOverlay", Q_ARG(OverlayID, id), Q_ARG(PointerEvent, event));
 }
 
 void Overlays::sendHoverLeaveOverlay(OverlayID  id, PointerEvent event) {
-    emit hoverLeaveOverlay(id, event);
+    QMetaObject::invokeMethod(this, "hoverLeaveOverlay", Q_ARG(OverlayID, id), Q_ARG(PointerEvent, event));
 }
 
 OverlayID Overlays::getKeyboardFocusOverlay() {

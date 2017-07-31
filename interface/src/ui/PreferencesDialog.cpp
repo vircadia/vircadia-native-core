@@ -106,6 +106,12 @@ void setupPreferences() {
         auto setter = [](bool value) { qApp->setPreferAvatarFingerOverStylus(value); };
         preferences->addPreference(new CheckPreference(UI_CATEGORY, "Prefer Avatar Finger Over Stylus", getter, setter));
     }
+    {
+        static const QString RETICLE_ICON_NAME = { Cursor::Manager::getIconName(Cursor::Icon::RETICLE) };
+        auto getter = []()->bool { return qApp->getPreferredCursor() == RETICLE_ICON_NAME; };
+        auto setter = [](bool value) { qApp->setPreferredCursor(value ? RETICLE_ICON_NAME : QString()); };
+        preferences->addPreference(new CheckPreference(UI_CATEGORY, "Use reticle cursor instead of arrow", getter, setter));
+    }
 
     // Snapshots
     static const QString SNAPSHOTS { "Snapshots" };
@@ -180,6 +186,11 @@ void setupPreferences() {
         preference->setMax(180);
         preference->setStep(1);
         preferences->addPreference(preference);
+    }
+    {
+        auto getter = [=]()->QString { return myAvatar->getDominantHand(); };
+        auto setter = [=](const QString& value) { myAvatar->setDominantHand(value); };
+        preferences->addPreference(new PrimaryHandPreference(AVATAR_TUNING, "Dominant Hand", getter, setter));
     }
     {
         auto getter = [=]()->float { return myAvatar->getUniformScale(); };
@@ -296,17 +307,6 @@ void setupPreferences() {
         auto preference = new SpinnerPreference("HMD", "UI horizontal angular size (degrees)", getter, setter);
         preference->setMin(30);
         preference->setMax(160);
-        preference->setStep(1);
-        preferences->addPreference(preference);
-    }
-
-
-    {
-        auto getter = []()->float { return controller::InputDevice::getReticleMoveSpeed(); };
-        auto setter = [](float value) { controller::InputDevice::setReticleMoveSpeed(value); };
-        auto preference = new SpinnerPreference("Sixense Controllers", "Reticle movement speed", getter, setter);
-        preference->setMin(0);
-        preference->setMax(100);
         preference->setStep(1);
         preferences->addPreference(preference);
     }

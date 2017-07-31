@@ -21,7 +21,7 @@ TabView {
         enabled: true
         property string originalUrl: ""
 
-        Rectangle { 
+        Rectangle {
             color: "#404040"
 
             Text {
@@ -180,7 +180,7 @@ TabView {
 
         WebView {
             id: entityListToolWebView
-            url: "../../../../../scripts/system/html/entityList.html"
+            url: Paths.defaultScripts + "/system/html/entityList.html"
             anchors.fill: parent
             enabled: true
         }
@@ -194,7 +194,7 @@ TabView {
 
         WebView {
             id: entityPropertiesWebView
-            url: "../../../../../scripts/system/html/entityProperties.html"
+            url: Paths.defaultScripts + "/system/html/entityProperties.html"
             anchors.fill: parent
             enabled: true
         }
@@ -208,7 +208,7 @@ TabView {
 
         WebView {
             id: gridControlsWebView
-            url: "../../../../../scripts/system/html/gridControls.html"
+            url: Paths.defaultScripts + "/system/html/gridControls.html"
             anchors.fill: parent
             enabled: true
         }
@@ -222,7 +222,7 @@ TabView {
 
         WebView {
             id: particleExplorerWebView
-            url: "../../../../../scripts/system/particle_explorer/particleExplorer.html"
+            url: Paths.defaultScripts + "/system/particle_explorer/particleExplorer.html"
             anchors.fill: parent
             enabled: true
         }
@@ -293,16 +293,16 @@ TabView {
                     break;
                 case 'list':
                     editTabView.currentIndex = 1;
-                    break; 
+                    break;
                 case 'properties':
                     editTabView.currentIndex = 2;
-                    break; 
+                    break;
                 case 'grid':
                     editTabView.currentIndex = 3;
-                    break; 
+                    break;
                 case 'particle':
                     editTabView.currentIndex = 4;
-                    break; 
+                    break;
                 default:
                     console.warn('Attempt to switch to invalid tab:', id);
             }
