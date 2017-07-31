@@ -578,6 +578,7 @@ signals:
     void wentAway();
     void wentActive();
     void skeletonChanged();
+    void dominantHandChanged(const QString& hand);
 
 private:
 
