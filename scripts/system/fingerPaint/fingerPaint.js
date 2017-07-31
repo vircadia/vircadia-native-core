@@ -897,7 +897,9 @@
             print("opening tablet fingerpaint app");
             tablet.gotoWebScreen(APP_URL + "?" + encodeURIComponent(JSON.stringify(savedSettings)));
             enableProcessing();
+            savedSettings = null;
         }
+
         updateHandFunctions();
 
         if (!isFingerPainting) {
