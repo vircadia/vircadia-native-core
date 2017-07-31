@@ -72,7 +72,6 @@ signals:
 private:
     InputMode _inputMode { Touch };
     QSharedPointer<OffscreenQmlSurface> _webSurface;
-    QMetaObject::Connection _connection;
     gpu::TexturePointer _texture;
     QString _url;
     QString _scriptURL;
@@ -82,20 +81,14 @@ private:
     bool _showKeyboardFocusHighlight{ true };
 
     bool _pressed{ false };
+    bool _touchBeginAccepted { false };
+    std::map<uint32_t, QTouchEvent::TouchPoint> _activeTouchPoints;
     QTouchDevice _touchDevice;
 
     uint8_t _desiredMaxFPS { 10 };
     uint8_t _currentMaxFPS { 0 };
 
     bool _mayNeedResize { false };
-
-    QMetaObject::Connection _mousePressConnection;
-    QMetaObject::Connection _mouseReleaseConnection;
-    QMetaObject::Connection _mouseMoveConnection;
-    QMetaObject::Connection _hoverLeaveConnection;
-
-    QMetaObject::Connection _emitScriptEventConnection;
-    QMetaObject::Connection _webEventReceivedConnection;
 };
 
 #endif // hifi_Web3DOverlay_h

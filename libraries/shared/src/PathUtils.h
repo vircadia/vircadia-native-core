@@ -25,8 +25,8 @@
 class PathUtils : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
-    Q_PROPERTY(QString resources READ resourcesPath)
-    Q_PROPERTY(QUrl defaultScripts READ defaultScriptsLocation)
+    Q_PROPERTY(QString resources READ resourcesPath CONSTANT)
+    Q_PROPERTY(QUrl defaultScripts READ defaultScriptsLocation CONSTANT)
 public:
     static const QString& resourcesPath();
 
