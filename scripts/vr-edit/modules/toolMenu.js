@@ -17,8 +17,7 @@ ToolMenu = function (side, leftInputs, rightInputs, setToolCallback) {
 
     var menuOriginOverlay,
         menuPanelOverlay,
-        scaleButtonOverlay,
-        cloneButtonOverlay,
+        toolButtonOverlays = [],
         buttonHighlightOverlay,
 
         LEFT_HAND = 0,
@@ -77,14 +76,17 @@ ToolMenu = function (side, leftInputs, rightInputs, setToolCallback) {
 
         HIGHLIGHT_Z_OFFSET = -0.002,
 
-        BUTTON_POSITIONS = [
-            { x: 0.02, y: 0.02, z: 0.0 },
-            { x: 0.06, y: 0.02, z: 0.0 }
-        ],
-
-        BUTTON_COLORS = [
-            { red: 0, green: 240, blue: 240 },
-            { red: 240, green: 0, blue: 240 }
+        TOOL_BUTTONS = [
+            {   // Scale
+                position: { x: 0.02, y: 0.02, z: 0.0 },
+                color: { red: 0, green: 240, blue: 240 },
+                callback: "scale"
+            },
+            {   // Clone
+                position: { x: 0.06, y: 0.02, z: 0.0 },
+                color: { red: 240, green: 0, blue: 240 },
+                callback: "clone"
+            }
         ],
 
         isDisplaying = false,
@@ -113,44 +115,47 @@ ToolMenu = function (side, leftInputs, rightInputs, setToolCallback) {
     setHand(side);
 
     function getEntityIDs() {
-        return [menuPanelOverlay, scaleButtonOverlay, cloneButtonOverlay];
+        return [menuPanelOverlay].concat(toolButtonOverlays);
     }
 
     function update(intersectionOverlayID) {
+        var highlightedButton,
+            i,
+            length;
+
         // Highlight button.
-        if ((intersectionOverlayID === scaleButtonOverlay || intersectionOverlayID === cloneButtonOverlay)
-                !== isHighlightingButton) {
+        highlightedButton = toolButtonOverlays.indexOf(intersectionOverlayID);
+        if ((highlightedButton !== -1) !== isHighlightingButton) {
             isHighlightingButton = !isHighlightingButton;
-            Overlays.editOverlay(buttonHighlightOverlay, {
-                localPosition: Vec3.sum({ x: 0, y: 0, z: HIGHLIGHT_Z_OFFSET },
-                    intersectionOverlayID === scaleButtonOverlay ? BUTTON_POSITIONS[0] : BUTTON_POSITIONS[1]),
-                visible: isHighlightingButton
-            });
+            if (isHighlightingButton) {
+                Overlays.editOverlay(buttonHighlightOverlay, {
+                    localPosition: Vec3.sum({ x: 0, y: 0, z: HIGHLIGHT_Z_OFFSET }, TOOL_BUTTONS[highlightedButton].position),
+                    visible: true
+                });
+
+            } else {
+                Overlays.editOverlay(buttonHighlightOverlay, {
+                    visible: false
+                });
+            }
         }
 
         // Button click.
         if (!isHighlightingButton || controlHand.triggerClicked() !== isButtonPressed) {
             isButtonPressed = isHighlightingButton && controlHand.triggerClicked();
-            if (isButtonPressed && intersectionOverlayID === scaleButtonOverlay) {
-                Overlays.editOverlay(scaleButtonOverlay, {
-                    localPosition: Vec3.sum(BUTTON_POSITIONS[0], { x: 0, y: 0, z: 0.004 })
-                });
-            } else {
-                Overlays.editOverlay(scaleButtonOverlay, {
-                    localPosition: BUTTON_POSITIONS[0]
-                });
-            }
-            if (isButtonPressed && intersectionOverlayID === cloneButtonOverlay) {
-                Overlays.editOverlay(cloneButtonOverlay, {
-                    localPosition: Vec3.sum(BUTTON_POSITIONS[1], { x: 0, y: 0, z: 0.004 })
-                });
-            } else {
-                Overlays.editOverlay(cloneButtonOverlay, {
-                    localPosition: BUTTON_POSITIONS[1]
-                });
+            for (i = 0, length = toolButtonOverlays.length; i < length; i += 1) {
+                if (isButtonPressed && intersectionOverlayID === toolButtonOverlays[i]) {
+                    Overlays.editOverlay(toolButtonOverlays[i], {
+                        localPosition: Vec3.sum(TOOL_BUTTONS[i].position, { x: 0, y: 0, z: 0.004 })
+                    });
+                } else {
+                    Overlays.editOverlay(toolButtonOverlays[i], {
+                        localPosition: TOOL_BUTTONS[i].position
+                    });
+                }
             }
             if (isButtonPressed) {
-                setToolCallback(intersectionOverlayID === scaleButtonOverlay ? "scale" : "clone");
+                setToolCallback(TOOL_BUTTONS[highlightedButton].callback);
             }
         }
     }
@@ -158,7 +163,9 @@ ToolMenu = function (side, leftInputs, rightInputs, setToolCallback) {
     function display() {
         // Creates and shows menu entities.
         var handJointIndex,
-            properties;
+            properties,
+            i,
+            length;
 
         if (isDisplaying) {
             return;
@@ -185,12 +192,11 @@ ToolMenu = function (side, leftInputs, rightInputs, setToolCallback) {
         menuPanelOverlay = Overlays.addOverlay("cube", properties);
         properties = Object.clone(BUTTON_PROPERTIES);
         properties.parentID = menuOriginOverlay;
-        properties.localPosition = BUTTON_POSITIONS[0];
-        properties.color = BUTTON_COLORS[0];
-        scaleButtonOverlay = Overlays.addOverlay("cube", properties);
-        properties.localPosition = BUTTON_POSITIONS[1];
-        properties.color = BUTTON_COLORS[1];
-        cloneButtonOverlay = Overlays.addOverlay("cube", properties);
+        for (i = 0, length = TOOL_BUTTONS.length; i < length; i += 1) {
+            properties.localPosition = TOOL_BUTTONS[i].position;
+            properties.color = TOOL_BUTTONS[i].color;
+            toolButtonOverlays[i] = Overlays.addOverlay("cube", properties);
+        }
 
         // Prepare button highlight overlay.
         properties = Object.clone(BUTTON_HIGHLIGHT_PROPERTIES);
@@ -202,13 +208,17 @@ ToolMenu = function (side, leftInputs, rightInputs, setToolCallback) {
 
     function clear() {
         // Deletes menu entities.
+        var i,
+            length;
+
         if (!isDisplaying) {
             return;
         }
 
         Overlays.deleteOverlay(buttonHighlightOverlay);
-        Overlays.deleteOverlay(cloneButtonOverlay);
-        Overlays.deleteOverlay(scaleButtonOverlay);
+        for (i = 0, length = toolButtonOverlays.length; i < length; i += 1) {
+            Overlays.deleteOverlay(toolButtonOverlays[i]);
+        }
         Overlays.deleteOverlay(menuPanelOverlay);
         Overlays.deleteOverlay(menuOriginOverlay);
         isDisplaying = false;
