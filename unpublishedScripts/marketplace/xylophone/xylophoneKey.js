@@ -9,12 +9,12 @@
 //
 
 (function() {
-    var TIMEOUT = 150;
+    var TIMEOUT = 50; // at 30 ms, the key's color sometimes fails to switch when hit
     var TEXTURE_GRAY = Script.resolvePath("xylotex_bar_gray.png");
     var TEXTURE_BLACK = Script.resolvePath("xylotex_bar_black.png");
     var IS_DEBUG = false;
     var _this;
-
+ 
     function XylophoneKey() {
         _this = this;
     }
@@ -34,24 +34,28 @@
 
         collisionWithEntity: function(thisEntity, otherEntity, collision) {
             if (collision.type === 0) {
-                _this.hit();
+                _this.hit(otherEntity);                
             }
         },
 
-        clickDownOnEntity: function() {
-            _this.hit();
+        clickDownOnEntity: function(otherEntity) {
+            _this.hit(otherEntity);
         },
 
-        hit: function() {
+        hit: function(otherEntity) {
             if (!_this.isWaiting) {
                 _this.isWaiting = true;
                 _this.homePosition = Entities.getEntityProperties(_this.entityID, ["position"]).position;
                 _this.injector = Audio.playSound(_this.sound, {position: _this.homePosition, volume: 1});
                 _this.editEntityTextures(_this.entityID, "file5", TEXTURE_GRAY);
+                
                 var HAPTIC_STRENGTH = 1;
-                var HAPTIC_DURATION = 20;
-                var HAPTIC_HAND = 2; // Both hands
-                Controller.triggerHapticPulse(HAPTIC_STRENGTH, HAPTIC_DURATION, HAPTIC_HAND);
+                var HAPTIC_DURATION = 20;                
+                var userData = JSON.parse(Entities.getEntityProperties(otherEntity, 'userData').userData);
+                if (userData.hasOwnProperty('hand')){
+                    Controller.triggerHapticPulse(HAPTIC_STRENGTH, HAPTIC_DURATION, userData.hand);
+                }
+
                 _this.timeout();
             }
         },

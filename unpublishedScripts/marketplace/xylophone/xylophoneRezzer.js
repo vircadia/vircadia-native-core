@@ -11,6 +11,7 @@
 var SOUND_FILES = ["C4.wav", "D4.wav", "E4.wav", "F4.wav", "G4.wav", "A4.wav", "B4.wav", "C5.wav"];
 var KEY_MODEL_URL = Script.resolvePath("xyloKey_2_a_e.fbx");
 var KEY_SCRIPT_URL = Script.resolvePath("xylophoneKey.js");
+var MALLET_SCRIPT_URL = Script.resolvePath("xylophoneMallet.js");
 var TEXTURE_BLACK = Script.resolvePath("xylotex_bar_black.png");
 var MALLET_MODEL_URL = Script.resolvePath("Mallet3-2pc.fbx");
 var MALLET_MODEL_COLLIDER_URL = Script.resolvePath("Mallet3-2bpc_phys.obj");
@@ -91,6 +92,7 @@ function rezMallets() {
         damping: 1,
         angularDamping: 1,
         shapeType: "compound",
+        script: MALLET_SCRIPT_URL,
         userData: JSON.stringify({
             grabbableKey: {
                 invertSolidWhileHeld: true
