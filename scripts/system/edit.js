@@ -26,11 +26,8 @@ Script.include([
     "libraries/stringHelpers.js",
     "libraries/dataViewHelpers.js",
     "libraries/progressDialog.js",
-
     "libraries/entitySelectionTool.js",
-
     "libraries/ToolTip.js",
-
     "libraries/entityCameraTool.js",
     "libraries/gridTool.js",
     "libraries/entityList.js",
