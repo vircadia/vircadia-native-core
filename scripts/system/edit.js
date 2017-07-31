@@ -67,7 +67,7 @@ gridTool.setVisible(false);
 
 var entityListTool = new EntityListTool();
 
-selectionManager.addEventListener(function (test) {
+selectionManager.addEventListener(function () {
     selectionDisplay.updateHandles();
     entityIconOverlayManager.updatePositions();
 
