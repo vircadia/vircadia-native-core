@@ -16,7 +16,11 @@
 #include <TextureCache.h>
 #include <PathUtils.h>
 #include <PerfStat.h>
-#include <FadeEffect.h>
+
+//#define USE_FADE_EFFECT
+#ifdef USE_FADE_EFFECT
+#   include <FadeEffect.h>
+#endif
 
 #include "RenderablePolyLineEntityItem.h"
 
@@ -38,19 +42,21 @@ render::ShapePipelinePointer PolyLinePayload::shapePipelineFactory(const render:
     if (!_pipeline) {
         auto VS = gpu::Shader::createVertex(std::string(paintStroke_vert));
         auto PS = gpu::Shader::createPixel(std::string(paintStroke_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
+#ifdef USE_FADE_EFFECT
         auto fadeVS = gpu::Shader::createVertex(std::string(paintStroke_fade_vert));
         auto fadePS = gpu::Shader::createPixel(std::string(paintStroke_fade_frag));
-        gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
         gpu::ShaderPointer fadeProgram = gpu::Shader::createProgram(fadeVS, fadePS);
-
+#endif
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("originalTexture"), PAINTSTROKE_TEXTURE_SLOT));
         slotBindings.insert(gpu::Shader::Binding(std::string("polyLineBuffer"), PAINTSTROKE_UNIFORM_SLOT));
         gpu::Shader::makeProgram(*program, slotBindings);
+#ifdef USE_FADE_EFFECT
         slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), PAINTSTROKE_TEXTURE_SLOT + 1));
         slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), PAINTSTROKE_UNIFORM_SLOT+1));
         gpu::Shader::makeProgram(*fadeProgram, slotBindings);
-
+#endif
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
         PrepareStencil::testMask(*state);
@@ -58,15 +64,21 @@ render::ShapePipelinePointer PolyLinePayload::shapePipelineFactory(const render:
             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
         _pipeline = gpu::Pipeline::create(program, state);
+#ifdef USE_FADE_EFFECT
         _fadePipeline = gpu::Pipeline::create(fadeProgram, state);
+#endif
     }
 
+#ifdef USE_FADE_EFFECT
     if (key.isFaded()) {
         auto fadeEffect = DependencyManager::get<FadeEffect>();
         return std::make_shared<render::ShapePipeline>(_fadePipeline, nullptr, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
     } else {
+#endif
         return std::make_shared<render::ShapePipeline>(_pipeline, nullptr, nullptr, nullptr);
+#ifdef USE_FADE_EFFECT
     }
+#endif
 }
 
 namespace render {
@@ -236,13 +248,18 @@ bool RenderablePolyLineEntityItem::addToScene(const EntityItemPointer& self,
     renderPayload->addStatusGetters(statusGetters);
 
     transaction.resetItem(_myItem, renderPayload);
+#ifdef USE_FADE_EFFECT
     transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+#endif
     updateMesh();
 
     return true;
 }
 
 void RenderablePolyLineEntityItem::render(RenderArgs* args) {
+#ifndef USE_FADE_EFFECT
+    checkFading();
+#endif
     if (_empty) {
         return;
     }
@@ -278,5 +295,14 @@ void RenderablePolyLineEntityItem::render(RenderArgs* args) {
     batch.setInputFormat(_format);
     batch.setInputBuffer(0, _verticesBuffer, 0, _format->getChannels().at(0)._stride);
 
+#ifndef USE_FADE_EFFECT
+    if (_isFading) {
+        batch._glColor4f(1.0f, 1.0f, 1.0f, Interpolate::calculateFadeRatio(_fadeStartTime));
+    }
+    else {
+        batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+    }
+#endif
+
     batch.draw(gpu::TRIANGLE_STRIP, _numVertices, 0);
-};
+}
