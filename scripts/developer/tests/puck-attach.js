@@ -84,7 +84,7 @@ function getAvailableTrackedObjects() {
     var i;
     for (i = 0; i < NUM_TRACKED_OBJECTS; i++) {
         var key = indexToTrackedObjectName(i);
-        var pose = Controller.getPoseValue(Controller.Hardware.Vive[key]);
+        var pose = Controller.getPoseValue(Controller.Standard[key]);
         if (pose && pose.valid) {
             available.push(i);
         }
@@ -126,8 +126,8 @@ function pad(num, size) {
 }
 
 function update() {
-    if (attachedEntity && attachedObj && Controller.Hardware.Vive) {
-        var pose = Controller.getPoseValue(Controller.Hardware.Vive[attachedObj.key]);
+    if (attachedEntity && attachedObj && Controller.Standard) {
+        var pose = Controller.getPoseValue(Controller.Standard[attachedObj.key]);
         var avatarXform = new Xform(MyAvatar.orientation, MyAvatar.position);
         var puckXform = new Xform(pose.rotation, pose.translation);
         var finalXform = Xform.mul(avatarXform, Xform.mul(puckXform, attachedObj.localXform));
