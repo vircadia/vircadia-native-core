@@ -1,18 +1,23 @@
 <!--Note: change the parent postmessage second parameter due to possible security issues-->
 <link rel="stylesheet" type="text/css" href="../../html/css/edit-style.css">
-
 <style type="text/css">
+    @font-face {
+    font-family: Font-Awesome;
+    src: url(../../../../resources/fonts/fontawesome-webfont.ttf),
+         url(../../../../fonts/fontawesome-webfont.ttf),
+         url(../../../../interface/resources/fonts/fontawesome-webfont.ttf);
+    }
     .changeHandButton {
         width: 216px;
         height: 216px;
-        color: white;
+        color: white !important;
         background-color: #2e2e2e;
         border: none;
         float: left;
         margin: 2px;
         text-transform: uppercase;
-        font-family: Raleway-Bold;
-        font-size: 13px;
+        font-size: 100px;
+        font-family: HiFi-Glyphs;
     }
 
     .changeHandButton:first-child {
@@ -21,14 +26,16 @@
     .changeHandButton:last-child {
         margin-right: 0px;
     }
+    #left {
+        transform: scale(-1, 1);
+    }
     .selectedHand {
         background-color: rgb(16, 128, 184);
     }
 </style>
-
 <div id="handButtonsContainer" >
-    <button class="changeHandButton" id="left" onclick="chooseHand(0)">Left</button>
-    <button class="changeHandButton selectedHand" id="right" onclick="chooseHand(1)">Right</button>
+    <button class="changeHandButton glyph" id="left" onclick="chooseHand(0)">&#57;</button>
+    <button class="changeHandButton selectedHand" id="right" onclick="chooseHand(1)">&#57;</button>
 </div>
 
 <script type="text/javascript">
@@ -54,4 +61,6 @@
             chooseHand(1);
         }         
     }
+
+
 </script>

@@ -16,11 +16,13 @@
         undoStack = [];
         isFingerPainting = false,
         isTabletFocused = false,
+        shouldRestoreTablet = false,
         tabletDebugFocusLine = null,
         //animated brush vars
         lastFrameTime = Date.now(),
         frameDeltaSeconds = null, //time that passed between frames in ms;
         //end of dynamic brush vars
+        MAX_LINE_WIDTH = 0.036,
         leftHand = null,
         rightHand = null,
         leftBrush = null,
@@ -145,7 +147,7 @@
             if (isTriggerPressureWidthEnabled) {
                 return width * strokeWidthMultiplier;    
             } else {
-                return 0.03 * strokeWidthMultiplier; //MAX_LINE_WIDTH
+                return MAX_LINE_WIDTH * strokeWidthMultiplier; //MAX_LINE_WIDTH
             }
         }
 
@@ -349,7 +351,6 @@
             TRIGGER_FINISH_WIDTH_RAMP = 1.0,
             TRIGGER_RAMP_WIDTH = TRIGGER_FINISH_WIDTH_RAMP - TRIGGER_START_WIDTH_RAMP,
             MIN_LINE_WIDTH = 0.005,
-            MAX_LINE_WIDTH = 0.03,
             RAMP_LINE_WIDTH = MAX_LINE_WIDTH - MIN_LINE_WIDTH,
 
             rawGripValue = 0.0,
@@ -558,7 +559,7 @@
             }*/
             /*if (Entities.getEntityProperties(nearbyEntities[i]).name == "fingerPainting")
                     Entities.deleteEntity(nearbyEntities[i]);*/
-            if ((leftBrush == null || rightBrush == null) || (!leftBrush.isDrawing() && !rightBrush.isDrawing()))  {
+            if (HMD.tabletID && (((leftBrush == null || rightBrush == null) || (!leftBrush.isDrawing() && !rightBrush.isDrawing()))))  {
                 checkTabletHasFocus();
             }
             updateTriggerPress();
@@ -881,12 +882,11 @@
         var wasFingerPainting = isFingerPainting;
 
         isFingerPainting = !isFingerPainting;
+        print("isFingerPainting: " + isFingerPainting);
         if (!isFingerPainting) {
             tablet.gotoHomeScreen();
         }
         button.editProperties({ isActive: isFingerPainting });
-
-        print("Finger painting: " + isFingerPainting ? "on" : "off");
 
         if (wasFingerPainting) {
             leftBrush.cancelLine();
@@ -894,6 +894,7 @@
         }
 
         if (isFingerPainting) {
+            print("opening tablet fingerpaint app");
             tablet.gotoWebScreen(APP_URL + "?" + encodeURIComponent(JSON.stringify(savedSettings)));
             enableProcessing();
         }
@@ -924,12 +925,17 @@
         //    print("Closing the APP");
         //}
         //updateHandFunctions();
-        
         var TABLET_SCREEN_CLOSED = "Closed";
         isTabletDisplayed = type !== TABLET_SCREEN_CLOSED;
         isFingerPainting = type === "Web" && url.indexOf("fingerPaint/html/main.html") > -1;
         if (!isFingerPainting) {
             disableProcessing();
+        }
+        if (shouldRestoreTablet) {
+            shouldRestoreTablet = false;
+            isFingerPainting = false; //in order for it to be re enabled
+            onButtonClicked();
+            HMD.openTablet();
         }
         button.editProperties({ isActive: isFingerPainting });
         updateHandFunctions();
@@ -953,7 +959,9 @@
 
             case "changeColor":
                 if (!isBrushColored) {
-                    print("HMD ACTIVE: " + HMD.active);
+                    var changeStrokeColorEvent = {type: "changeStrokeColor", value: event};
+                    tablet.emitScriptEvent(JSON.stringify(changeStrokeColorEvent));
+                    
                     Settings.setValue("currentColor", event);
                     //print("changing color...");
                     leftBrush.changeStrokeColor(event.red, event.green, event.blue);
@@ -1057,7 +1065,6 @@
 
     function addAnimationToBrush(entityID) {
         Object.keys(DynamicBrushesInfo).forEach(function(animationName) {
-            print(animationName + "Brushes INfo 0" + JSON.stringify(DynamicBrushesInfo));
             if (DynamicBrushesInfo[animationName].isEnabled) {
                 var prevUserData = Entities.getEntityProperties(entityID).userData;
                 prevUserData = prevUserData == "" ? new Object() : JSON.parse(prevUserData); //preserve other possible user data
@@ -1082,7 +1089,25 @@
         undoStack.push(item);
     }
 
+    function onHmdChanged(isHMDActive) { 
+        var HMDInfo = Settings.getValue("wasFingerPaintingWhenHMDClosed", {isHMDActive: true, wasFingerPainting: false});
+        print("IS HMD " + isHMDActive + " fingerPainting: " + isFingerPainting + " was fingerPainting "  + HMDInfo.wasFingerPainting + " TabletID " + HMD.tabletID);
+
+        // if (isHMDActive && !isFingerPainting && HMDInfo.wasFingerPainting) { only reopen in hmd mode
+        if (!isFingerPainting && HMDInfo.wasFingerPainting) {
+            print("Restarting fingerPaint app!");
+            shouldRestoreTablet = true;
+            HMD.openTablet();
+        }
+        if (isHMDActive != HMDInfo.isHMDActive) { //check if state is different as some times it will be the same
+            //onHmdChanged seems to be called twice (once before and once after fingerpaint is over)
+            Settings.setValue("wasFingerPaintingWhenHMDClosed", {isHMDActive: isHMDActive, wasFingerPainting: isFingerPainting});
+            print("Saving finger painting value " + isFingerPainting);
+        }
+    }
+
     function setUp() {
+        print("Setting button...");
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         if (!tablet) {
             return;
@@ -1095,9 +1120,11 @@
             text: BUTTON_NAME,
             isActive: isFingerPainting
         });
+        print("button-1 : " + JSON.stringify(button.getProperties()));
         button.clicked.connect(onButtonClicked);
         // Track whether tablet is displayed or not.
         tablet.screenChanged.connect(onTabletScreenChanged);
+        HMD.displayModeChanged.connect(onHmdChanged);
     }
 
     function tearDown() {
@@ -1124,13 +1151,14 @@
 
     function mouseDrawLine(event){
         if (rightBrush && rightBrush.isDrawing()) {
+            print(JSON.stringify(event));
             rightBrush.drawLine(getFingerPosition(event.x, event.y), 0.03);
         }
     }
 
     function mouseStartLine(event){
         print(JSON.stringify(event));
-        if (event.isLeftButton) {
+        if (event.isLeftButton && rightBrush) {
             rightBrush.startLine(getFingerPosition(event.x, event.y), 0.03);
         } 
         //won't work until findRayIntersection works with polylines
