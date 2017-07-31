@@ -26,6 +26,8 @@
 
 #include "RenderableEntityItem.h"
 
+//#define POLYVOX_ENTITY_USE_FADE_EFFECT
+
 class PolyVoxPayload {
 public:
 
@@ -177,8 +179,9 @@ private:
     gpu::Stream::FormatPointer _vertexFormat;
     bool _meshDirty { true }; // does collision-shape need to be recomputed?
     bool _meshReady { false };
+#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
     bool _hasTransitioned{ false };
-
+#endif
     NetworkTexturePointer _xTexture;
     NetworkTexturePointer _yTexture;
     NetworkTexturePointer _zTexture;

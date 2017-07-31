@@ -22,6 +22,8 @@
 class Model;
 class EntityTreeRenderer;
 
+//#define MODEL_ENTITY_USE_FADE_EFFECT
+
 class RenderableModelEntityItem : public ModelEntityItem, RenderableEntityInterface {
 public:
     static EntityItemPointer factory(const EntityItemID& entityID, const EntityItemProperties& properties);
@@ -134,8 +136,9 @@ private:
     QVariantMap _originalTextures;
     bool _originalTexturesRead = false;
     bool _dimensionsInitialized = true;
+#ifdef MODEL_ENTITY_USE_FADE_EFFECT
     bool _hasTransitioned{ false };
-
+#endif
     AnimationPropertyGroup _renderAnimationProperties;
 
     render::ItemID _myMetaItem{ render::Item::INVALID_ITEM_ID };

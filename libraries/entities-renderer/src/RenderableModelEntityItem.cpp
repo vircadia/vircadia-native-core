@@ -32,8 +32,6 @@
 #include "RenderableModelEntityItem.h"
 #include "RenderableEntityItem.h"
 
-//#define USE_FADE_EFFECT
-
 static CollisionRenderMeshCache collisionMeshCache;
 
 
@@ -246,7 +244,7 @@ bool RenderableModelEntityItem::addToScene(const EntityItemPointer& self, const 
 
         // note: we don't mind if the model fails to add, we'll retry (in render()) until it succeeds
         _model->addToScene(scene, transaction, statusGetters);
-#ifdef USE_FADE_EFFECT
+#ifdef MODEL_ENTITY_USE_FADE_EFFECT
         if (!_hasTransitioned) {
             transaction.addTransitionToItem(_myMetaItem, render::Transition::ELEMENT_ENTER_DOMAIN);
             _hasTransitioned = true;
@@ -486,7 +484,7 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             makeEntityItemStatusGetters(getThisPointer(), statusGetters);
             _model->addToScene(scene, transaction, statusGetters);
 
-#ifdef USE_FADE_EFFECT
+#ifdef MODEL_ENTITY_USE_FADE_EFFECT
             if (!_hasTransitioned) {
                 transaction.addTransitionToItem(_myMetaItem, render::Transition::ELEMENT_ENTER_DOMAIN);
                 _hasTransitioned = true;

@@ -20,8 +20,7 @@
 #include <model-networking/SimpleMeshProxy.h>
 #include "ModelScriptingInterface.h"
 
-//#define USE_FADE_EFFECT
-#ifdef USE_FADE_EFFECT
+#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
 #   include <FadeEffect.h>
 #endif
 
@@ -812,7 +811,7 @@ bool RenderablePolyVoxEntityItem::addToScene(const EntityItemPointer& self,
     renderPayload->addStatusGetters(statusGetters);
 
     transaction.resetItem(_myItem, renderPayload);
-#ifdef USE_FADE_EFFECT
+#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
     if (_mesh && _mesh->getIndexBuffer()._buffer) {
         transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
         _hasTransitioned = true;
@@ -844,7 +843,7 @@ render::ShapePipelinePointer PolyVoxPayload::shapePipelineFactory(const render::
         slotBindings.insert(gpu::Shader::Binding(std::string("xMap"), 0));
         slotBindings.insert(gpu::Shader::Binding(std::string("yMap"), 1));
         slotBindings.insert(gpu::Shader::Binding(std::string("zMap"), 2));
-#ifdef USE_FADE_EFFECT
+#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
         slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), 3));
 #endif
 
@@ -869,7 +868,7 @@ render::ShapePipelinePointer PolyVoxPayload::shapePipelineFactory(const render::
         }
     }
 
-#ifdef USE_FADE_EFFECT
+#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
     if (key.isFaded()) {
         const auto& fadeEffect = DependencyManager::get<FadeEffect>();
         if (key.isWireframe()) {
@@ -886,7 +885,7 @@ render::ShapePipelinePointer PolyVoxPayload::shapePipelineFactory(const render::
         else {
             return std::make_shared<render::ShapePipeline>(_pipelines[0], nullptr, nullptr, nullptr);
         }
-#ifdef USE_FADE_EFFECT
+#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
     }
 #endif
 }
@@ -1404,7 +1403,7 @@ void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
         bonkNeighbors();
     }
 
-#ifdef USE_FADE_EFFECT
+#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
     if (!_hasTransitioned) {
         render::Transaction transaction;
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();

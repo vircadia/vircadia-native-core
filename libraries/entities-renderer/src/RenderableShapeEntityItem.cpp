@@ -20,8 +20,8 @@
 #include <render-utils/simple_vert.h>
 #include <render-utils/simple_frag.h>
 
-//#define USE_FADE_EFFECT
-#ifdef USE_FADE_EFFECT
+//#define SHAPE_ENTITY_USE_FADE_EFFECT
+#ifdef SHAPE_ENTITY_USE_FADE_EFFECT
 #   include <FadeEffect.h>
 #endif
 
@@ -78,7 +78,7 @@ void RenderableShapeEntityItem::setUserData(const QString& value) {
 }
 
 bool RenderableShapeEntityItem::isTransparent() {
-#ifdef USE_FADE_EFFECT
+#ifdef SHAPE_ENTITY_USE_FADE_EFFECT
     return getLocalRenderAlpha() < 1.0f;
 #else
     if (_procedural && _procedural->isFading()) {
@@ -107,7 +107,7 @@ namespace render {
 
     template <> const ShapeKey shapeGetShapeKey(const ShapePayload::Pointer& payload) {
         auto shapeKey = ShapeKey::Builder();
-#ifdef USE_FADE_EFFECT
+#ifdef SHAPE_ENTITY_USE_FADE_EFFECT
         shapeKey.withCustom(GeometryCache::CUSTOM_PIPELINE_NUMBER);
 #endif
         auto entity = payload->_entity;
@@ -129,7 +129,7 @@ bool RenderableShapeEntityItem::addToScene(const EntityItemPointer& self, const 
     renderPayload->addStatusGetters(statusGetters);
 
     transaction.resetItem(_myItem, renderPayload);
-#ifdef USE_FADE_EFFECT
+#ifdef SHAPE_ENTITY_USE_FADE_EFFECT
     transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
 #endif
     return true;
@@ -139,7 +139,7 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RenderableShapeEntityItem::render");
     //Q_ASSERT(getType() == EntityTypes::Shape);
     Q_ASSERT(args->_batch);
-#ifndef USE_FADE_EFFECT
+#ifndef SHAPE_ENTITY_USE_FADE_EFFECT
     checkFading();
 #endif
 
@@ -169,7 +169,7 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
     if (_procedural->ready()) {
         _procedural->prepare(batch, getPosition(), getDimensions(), getOrientation());
         auto outColor = _procedural->getColor(color);
-#ifndef USE_FADE_EFFECT
+#ifndef SHAPE_ENTITY_USE_FADE_EFFECT
         outColor.a *= _procedural->isFading() ? Interpolate::calculateFadeRatio(_procedural->getFadeStartTime()) : 1.0f;
 #endif
         batch._glColor4f(outColor.r, outColor.g, outColor.b, outColor.a);
@@ -181,7 +181,7 @@ void RenderableShapeEntityItem::render(RenderArgs* args) {
     } else {
         // FIXME, support instanced multi-shape rendering using multidraw indirect
         auto geometryCache = DependencyManager::get<GeometryCache>();
-#ifdef USE_FADE_EFFECT
+#ifdef SHAPE_ENTITY_USE_FADE_EFFECT
         auto shapeKey = render::ShapeKey(args->_itemShapeKey);
         
         assert(args->_shapePipeline != nullptr);
