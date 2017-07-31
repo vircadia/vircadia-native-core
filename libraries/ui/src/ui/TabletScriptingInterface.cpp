@@ -245,20 +245,6 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
 
     loadHomeScreen(true);
     emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
-
-    //connect to Tablet shown signal to open running scripts
-    if (_showRunningScripts) {
-        QMetaObject::invokeMethod(qApp, "toggleTabletUI", Q_ARG(bool, true));
-        //qApp->toggleTabletUI(true);
-        auto conn = std::make_shared<QMetaObject::Connection>();
-        *conn = connect(this, &TabletProxy::tabletShownChanged, this, [this, conn] {
-            QObject::disconnect(*conn);
-            if (_tabletShown && _showRunningScripts) {
-                _showRunningScripts = false;
-                pushOntoStack("../../hifi/dialogs/TabletRunningScripts.qml");
-            }
-        });
-    }
 }
 
 
@@ -384,8 +370,25 @@ void TabletProxy::setQmlTabletRoot(OffscreenQmlSurface* qmlOffscreenSurface) {
         });
 
         if (_initialScreen) {
-            pushOntoStack(_initialPath);
+            if (!_showRunningScripts) {
+                pushOntoStack(_initialPath);
+            }
             _initialScreen = false;
+        }
+
+        if (_showRunningScripts) {
+            _showRunningScripts = false;
+            //connect to Tablet shown signal to open running scripts
+            //we cant just call pushOnStack here since RunningScripts draws incorrectly
+            auto conn = std::make_shared<QMetaObject::Connection>();
+            *conn = connect(this, &TabletProxy::tabletShownChanged, this, [this, conn] {
+                QObject::disconnect(*conn); //not needed anymore, disconnect
+                if (_tabletShown) {
+                    pushOntoStack("../../hifi/dialogs/TabletRunningScripts.qml");
+                }
+            });
+            //show Tablet. Make sure, setShown implemented in TabletRoot.qml
+            QMetaObject::invokeMethod(_qmlTabletRoot, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         }
     } else {
         removeButtonsFromHomeScreen();
@@ -523,7 +526,7 @@ bool TabletProxy::pushOntoStack(const QVariant& path) {
         qCDebug(uiLogging) << "tablet cannot push QML because _qmlTabletRoot or _desktopWindow is null";
     }
 
-    return root;
+    return (root != nullptr);
 }
 
 void TabletProxy::popFromStack() {
