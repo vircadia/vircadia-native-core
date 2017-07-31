@@ -17,7 +17,7 @@
 #include <PathUtils.h>
 #include <PerfStat.h>
 
-//#define USE_FADE_EFFECT
+#define USE_FADE_EFFECT
 #ifdef USE_FADE_EFFECT
 #   include <FadeEffect.h>
 #endif
@@ -249,7 +249,9 @@ bool RenderablePolyLineEntityItem::addToScene(const EntityItemPointer& self,
 
     transaction.resetItem(_myItem, renderPayload);
 #ifdef USE_FADE_EFFECT
-    transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+    if (EntityItem::getEntitiesShouldFadeFunction()()) {
+        transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+    }
 #endif
     updateMesh();
 

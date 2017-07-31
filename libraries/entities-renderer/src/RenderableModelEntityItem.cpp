@@ -32,7 +32,7 @@
 #include "RenderableModelEntityItem.h"
 #include "RenderableEntityItem.h"
 
-//#define USE_FADE_EFFECT
+#define USE_FADE_EFFECT
 
 static CollisionRenderMeshCache collisionMeshCache;
 
@@ -248,7 +248,9 @@ bool RenderableModelEntityItem::addToScene(const EntityItemPointer& self, const 
         _model->addToScene(scene, transaction, statusGetters);
 #ifdef USE_FADE_EFFECT
         if (!_hasTransitioned) {
-            transaction.addTransitionToItem(_myMetaItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+            if (EntityItem::getEntitiesShouldFadeFunction()()) {
+                transaction.addTransitionToItem(_myMetaItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+            }
             _hasTransitioned = true;
         }
 #endif
@@ -488,7 +490,9 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
 
 #ifdef USE_FADE_EFFECT
             if (!_hasTransitioned) {
-                transaction.addTransitionToItem(_myMetaItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+                if (EntityItem::getEntitiesShouldFadeFunction()()) {
+                    transaction.addTransitionToItem(_myMetaItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+                }
                 _hasTransitioned = true;
             }
 #endif
