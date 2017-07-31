@@ -110,6 +110,7 @@ CreatePalette = function (side, leftInputs, rightInputs) {
     }
 
     function update(intersectionOverlayID) {
+        var CREATE_OFFSET = { x: 0, y: 0.05, z: -0.02 };
         // Highlight cube.
         if (intersectionOverlayID === cubeOverlay !== isHighlightingCube) {
             isHighlightingCube = !isHighlightingCube;
@@ -119,14 +120,14 @@ CreatePalette = function (side, leftInputs, rightInputs) {
         // Cube click.
         if (isHighlightingCube && controlHand.triggerClicked() !== isCubePressed) {
             isCubePressed = controlHand.triggerClicked();
-
             if (isCubePressed) {
                 Overlays.editOverlay(cubeOverlay, {
                     localPosition: Vec3.sum(CUBE_PROPERTIES.localPosition, { x: 0, y: 0, z: 0.01 })
                 });
-                CUBE_ENTITY_PROPERTIES.position =
-                    Vec3.sum(MyAvatar.position, Vec3.multiplyQbyV(MyAvatar.orientation, { x: 0, y: 0.2, z: -1.0 }));
-                CUBE_ENTITY_PROPERTIES.rotation = MyAvatar.orientation;
+                CUBE_ENTITY_PROPERTIES.position = Vec3.sum(controlHand.palmPosition(),
+                    Vec3.multiplyQbyV(controlHand.orientation(),
+                        Vec3.sum({ x: 0, y: CUBE_ENTITY_PROPERTIES.dimensions.z / 2, z: 0 }, CREATE_OFFSET)));
+                CUBE_ENTITY_PROPERTIES.rotation = controlHand.orientation();
                 Entities.addEntity(CUBE_ENTITY_PROPERTIES);
             } else {
                 Overlays.editOverlay(cubeOverlay, {

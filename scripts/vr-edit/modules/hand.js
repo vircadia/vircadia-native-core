@@ -39,6 +39,7 @@ Hand = function (side) {
         handPose,
         handPosition,
         handOrientation,
+        palmPosition,
 
         intersection = {};
 
@@ -70,6 +71,10 @@ Hand = function (side) {
         return handOrientation;
     }
 
+    function getPalmPosition() {
+        return palmPosition;
+    }
+
     function triggerPressed() {
         return isTriggerPressed;
     }
@@ -88,7 +93,6 @@ Hand = function (side) {
 
     function update() {
         var gripValue,
-            palmPosition,
             overlayID,
             overlayIDs,
             overlayDistance,
@@ -191,6 +195,7 @@ Hand = function (side) {
         valid: valid,
         position: position,
         orientation: orientation,
+        palmPosition: getPalmPosition,
         triggerPressed: triggerPressed,
         triggerClicked: triggerClicked,
         gripClicked: gripClicked,
