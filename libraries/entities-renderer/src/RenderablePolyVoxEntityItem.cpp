@@ -20,7 +20,10 @@
 #include <model-networking/SimpleMeshProxy.h>
 #include "ModelScriptingInterface.h"
 
-#include <FadeEffect.h>
+//#define USE_FADE_EFFECT
+#ifdef USE_FADE_EFFECT
+#   include <FadeEffect.h>
+#endif
 
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
@@ -57,8 +60,8 @@
 
 #include "EntityTreeRenderer.h"
 #include "polyvox_vert.h"
-#include "polyvox_fade_vert.h"
 #include "polyvox_frag.h"
+#include "polyvox_fade_vert.h"
 #include "polyvox_fade_frag.h"
 
 #include "RenderablePolyVoxEntityItem.h"
@@ -809,10 +812,12 @@ bool RenderablePolyVoxEntityItem::addToScene(const EntityItemPointer& self,
     renderPayload->addStatusGetters(statusGetters);
 
     transaction.resetItem(_myItem, renderPayload);
+#ifdef USE_FADE_EFFECT
     if (_mesh && _mesh->getIndexBuffer()._buffer) {
         transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
         _hasTransitioned = true;
     }
+#endif
 
     return true;
 }
@@ -839,7 +844,9 @@ render::ShapePipelinePointer PolyVoxPayload::shapePipelineFactory(const render::
         slotBindings.insert(gpu::Shader::Binding(std::string("xMap"), 0));
         slotBindings.insert(gpu::Shader::Binding(std::string("yMap"), 1));
         slotBindings.insert(gpu::Shader::Binding(std::string("zMap"), 2));
+#ifdef USE_FADE_EFFECT
         slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), 3));
+#endif
 
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
@@ -862,6 +869,7 @@ render::ShapePipelinePointer PolyVoxPayload::shapePipelineFactory(const render::
         }
     }
 
+#ifdef USE_FADE_EFFECT
     if (key.isFaded()) {
         const auto& fadeEffect = DependencyManager::get<FadeEffect>();
         if (key.isWireframe()) {
@@ -870,15 +878,17 @@ render::ShapePipelinePointer PolyVoxPayload::shapePipelineFactory(const render::
         else {
             return std::make_shared<render::ShapePipeline>(_pipelines[1], nullptr, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
         }
-    }
-    else {
+    } else {
+#endif
         if (key.isWireframe()) {
             return std::make_shared<render::ShapePipeline>(_wireframePipelines[0], nullptr, nullptr, nullptr);
         }
         else {
             return std::make_shared<render::ShapePipeline>(_pipelines[0], nullptr, nullptr, nullptr);
         }
+#ifdef USE_FADE_EFFECT
     }
+#endif
 }
 
 namespace render {
@@ -1394,6 +1404,7 @@ void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
         bonkNeighbors();
     }
 
+#ifdef USE_FADE_EFFECT
     if (!_hasTransitioned) {
         render::Transaction transaction;
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
@@ -1401,6 +1412,7 @@ void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
         scene->enqueueTransaction(transaction);
         _hasTransitioned = true;
     }
+#endif
 }
 
 void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
