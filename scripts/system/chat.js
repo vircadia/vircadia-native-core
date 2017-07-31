@@ -654,7 +654,7 @@
             var numLines = Math.ceil(width);
             height = speechBubbleLineHeight * numLines + fudge;
             width = SPEECH_BUBBLE_MAX_WIDTH;
-        }; 
+        } 
 
         dimensions = {
             x: width,
