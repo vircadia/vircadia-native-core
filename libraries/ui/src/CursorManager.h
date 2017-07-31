@@ -18,16 +18,18 @@ namespace Cursor {
     };
 
     enum Icon {
+        SYSTEM,
         DEFAULT,
         LINK,
         GRAB,
+        ARROW,
+        RETICLE,
 
         // Add new system cursors here
 
         // User cursors will have ids over this value
         USER_BASE = 0xFF,
     };
-
     class Instance {
     public:
         virtual Source getType() const = 0;
@@ -49,6 +51,11 @@ namespace Cursor {
         uint16_t registerIcon(const QString& path);
         QList<uint16_t> registeredIcons() const;
         const QString& getIconImage(uint16_t icon);
+
+        static QMap<uint16_t, QString> ICONS;
+        static QMap<uint16_t, QString> ICON_NAMES;
+        static Icon lookupIcon(const QString& name);
+        static const QString& getIconName(const Icon& icon);
     private:
         float _scale{ 1.0f };
     };

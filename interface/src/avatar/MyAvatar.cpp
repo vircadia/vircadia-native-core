@@ -258,6 +258,7 @@ MyAvatar::~MyAvatar() {
 void MyAvatar::setDominantHand(const QString& hand) {
     if (hand == DOMINANT_LEFT_HAND || hand == DOMINANT_RIGHT_HAND) {
         _dominantHand = hand;
+        emit dominantHandChanged(_dominantHand);
     }
 }
 
@@ -613,7 +614,7 @@ void MyAvatar::simulate(float deltaTime) {
             MovingEntitiesOperator moveOperator(entityTree);
             forEachDescendant([&](SpatiallyNestablePointer object) {
                 // if the queryBox has changed, tell the entity-server
-                if (object->computePuffedQueryAACube() && object->getNestableType() == NestableType::Entity) {
+                if (object->getNestableType() == NestableType::Entity && object->checkAndMaybeUpdateQueryAACube()) {
                     EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                     bool success;
                     AACube newCube = entity->getQueryAACube(success);
