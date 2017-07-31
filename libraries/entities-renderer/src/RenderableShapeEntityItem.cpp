@@ -132,7 +132,7 @@ void RenderableShapeEntityItem::computeShapeInfo(ShapeInfo& info) {
         case entity::Shape::Icosahedron:
         case entity::Shape::Cone: {
             //TODO WL21389: SHAPE_TYPE_SIMPLE_HULL and pointCollection (later)
-            //_collisionShapeType = SHAPE_TYPE_SIMPLE_HULL;
+            _collisionShapeType = SHAPE_TYPE_ELLIPSOID;
         }
         break;
         case entity::Shape::Torus:
