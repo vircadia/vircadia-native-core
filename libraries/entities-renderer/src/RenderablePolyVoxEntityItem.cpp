@@ -20,7 +20,7 @@
 #include <model-networking/SimpleMeshProxy.h>
 #include "ModelScriptingInterface.h"
 
-#define USE_FADE_EFFECT
+//#define USE_FADE_EFFECT
 #ifdef USE_FADE_EFFECT
 #   include <FadeEffect.h>
 #endif
@@ -814,9 +814,7 @@ bool RenderablePolyVoxEntityItem::addToScene(const EntityItemPointer& self,
     transaction.resetItem(_myItem, renderPayload);
 #ifdef USE_FADE_EFFECT
     if (_mesh && _mesh->getIndexBuffer()._buffer) {
-        if (EntityItem::getEntitiesShouldFadeFunction()()) {
-            transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
-        }
+        transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
         _hasTransitioned = true;
     }
 #endif
@@ -1410,9 +1408,7 @@ void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
     if (!_hasTransitioned) {
         render::Transaction transaction;
         render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-        if (EntityItem::getEntitiesShouldFadeFunction()()) {
-            transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
-        }
+        transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
         scene->enqueueTransaction(transaction);
         _hasTransitioned = true;
     }
