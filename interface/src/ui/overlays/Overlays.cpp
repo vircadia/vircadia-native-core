@@ -116,7 +116,7 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
 
     QMutexLocker locker(&_mutex);
     foreach(Overlay::Pointer thisOverlay, _overlaysHUD) {
-    
+
         // Reset all batch pipeline settings between overlay
         geometryCache->useSimpleDrawPipeline(batch);
         batch.setResourceTexture(0, textureCache->getWhiteTexture()); // FIXME - do we really need to do this??
@@ -136,7 +136,7 @@ void Overlays::enable() {
     _enabled = true;
 }
 
-// Note, can't be invoked by scripts, but can be called by the InterfaceParentFinder 
+// Note, can't be invoked by scripts, but can be called by the InterfaceParentFinder
 // class on packet processing threads
 Overlay::Pointer Overlays::getOverlay(OverlayID id) const {
     QMutexLocker locker(&_mutex);
@@ -244,8 +244,8 @@ OverlayID Overlays::cloneOverlay(OverlayID id) {
 
 bool Overlays::editOverlay(OverlayID id, const QVariant& properties) {
     if (QThread::currentThread() != thread()) {
-        // NOTE editOverlay can be called very frequently in scripts and can't afford to 
-        // block waiting on the main thread.  Additionally, no script actually 
+        // NOTE editOverlay can be called very frequently in scripts and can't afford to
+        // block waiting on the main thread.  Additionally, no script actually
         // examines the return value and does something useful with it, so use a non-blocking
         // invoke and just always return true
         QMetaObject::invokeMethod(this, "editOverlay", Q_ARG(OverlayID, id), Q_ARG(QVariant, properties));
@@ -706,27 +706,27 @@ bool Overlays::isAddedOverlay(OverlayID id) {
 }
 
 void Overlays::sendMousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
-    emit mousePressOnOverlay(overlayID, event);
+    QMetaObject::invokeMethod(this, "mousePressOnOverlay", Q_ARG(OverlayID, overlayID), Q_ARG(PointerEvent, event));
 }
 
 void Overlays::sendMouseReleaseOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
-    emit mouseReleaseOnOverlay(overlayID, event);
+    QMetaObject::invokeMethod(this, "mouseReleaseOnOverlay", Q_ARG(OverlayID, overlayID), Q_ARG(PointerEvent, event));
 }
 
 void Overlays::sendMouseMoveOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
-    emit mouseMoveOnOverlay(overlayID, event);
+    QMetaObject::invokeMethod(this, "mouseMoveOnOverlay", Q_ARG(OverlayID, overlayID), Q_ARG(PointerEvent, event));
 }
 
 void Overlays::sendHoverEnterOverlay(const OverlayID& id, const PointerEvent& event) {
-    emit hoverEnterOverlay(id, event);
+    QMetaObject::invokeMethod(this, "hoverEnterOverlay", Q_ARG(OverlayID, id), Q_ARG(PointerEvent, event));
 }
 
-void Overlays::sendHoverOverOverlay(const OverlayID&  id, const PointerEvent& event) {
-    emit hoverOverOverlay(id, event);
+void Overlays::sendHoverOverOverlay(const OverlayID& id, const PointerEvent& event) {
+    QMetaObject::invokeMethod(this, "hoverOverOverlay", Q_ARG(OverlayID, id), Q_ARG(PointerEvent, event));
 }
 
-void Overlays::sendHoverLeaveOverlay(const OverlayID&  id, const PointerEvent& event) {
-    emit hoverLeaveOverlay(id, event);
+void Overlays::sendHoverLeaveOverlay(const OverlayID& id, const PointerEvent& event) {
+    QMetaObject::invokeMethod(this, "hoverLeaveOverlay", Q_ARG(OverlayID, id), Q_ARG(PointerEvent, event));
 }
 
 OverlayID Overlays::getKeyboardFocusOverlay() {
@@ -775,7 +775,7 @@ float Overlays::height() {
 
 static const uint32_t MOUSE_POINTER_ID = 0;
 
-static glm::vec2 projectOntoOverlayXYPlane(glm::vec3 position, glm::quat rotation, glm::vec2 dimensions, const PickRay& pickRay, 
+static glm::vec2 projectOntoOverlayXYPlane(glm::vec3 position, glm::quat rotation, glm::vec2 dimensions, const PickRay& pickRay,
     const RayToOverlayIntersectionResult& rayPickResult) {
 
     // Project the intersection point onto the local xy plane of the overlay.
