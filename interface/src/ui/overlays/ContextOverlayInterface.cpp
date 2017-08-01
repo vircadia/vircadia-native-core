@@ -142,7 +142,7 @@ bool ContextOverlayInterface::createOrDestroyContextOverlay(const EntityItemID& 
                 float distance;
                 BoxFace face;
                 glm::vec3 normal;
-                bool intersectionExists = boundingBox.findRayIntersection(cameraPosition, direction, distance, face, normal);
+                boundingBox.findRayIntersection(cameraPosition, direction, distance, face, normal);
                 contextOverlayPosition = (cameraPosition + direction * distance) - direction * CONTEXT_OVERLAY_FAR_OFFSET;
                 contextOverlayDimensions = glm::vec2(CONTEXT_OVERLAY_FAR_SIZE, CONTEXT_OVERLAY_FAR_SIZE) * glm::distance(contextOverlayPosition, cameraPosition);
             }
