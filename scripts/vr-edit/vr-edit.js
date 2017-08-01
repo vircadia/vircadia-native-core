@@ -19,9 +19,13 @@
 
         // Application state
         isAppActive = false,
-        isAppScaleWithHandles = false,
-        isAppCloneEntities = false,
         dominantHand,
+
+        // Tool state
+        TOOL_NONE = 0,
+        TOOL_SCALE = 1,
+        TOOL_CLONE = 2,
+        toolSelected = TOOL_NONE,
 
         // Primary objects
         Inputs,
@@ -294,7 +298,7 @@
             // State machine.
             STATE_MACHINE,
             highlightedEntityID = null,  // Root entity of highlighted entity set.
-            wasAppScaleWithHandles = false,
+            wasScaleTool = false,
             isOtherEditorEditingEntityID = false,
             wasGripClicked = false,
             hoveredOverlayID = null,
@@ -585,7 +589,7 @@
         }
 
         function updateEditorSearching() {
-            if (isAppScaleWithHandles && intersection.overlayID !== hoveredOverlayID && otherEditor.isEditing()) {
+            if (toolSelected === TOOL_SCALE && intersection.overlayID !== hoveredOverlayID && otherEditor.isEditing()) {
                 hoveredOverlayID = intersection.overlayID;
                 otherEditor.hoverHandle(hoveredOverlayID);
             }
@@ -597,20 +601,20 @@
 
         function enterEditorHighlighting() {
             selection.select(highlightedEntityID);
-            if (!isAppScaleWithHandles || !otherEditor.isEditing(highlightedEntityID)) {
+            if (toolSelected !== TOOL_SCALE || !otherEditor.isEditing(highlightedEntityID)) {
                 highlights.display(intersection.handIntersected, selection.selection(),
-                    isAppScaleWithHandles || otherEditor.isEditing(highlightedEntityID));
+                    toolSelected === TOOL_SCALE || otherEditor.isEditing(highlightedEntityID));
             }
             isOtherEditorEditingEntityID = otherEditor.isEditing(highlightedEntityID);
-            wasAppScaleWithHandles = isAppScaleWithHandles;
+            wasScaleTool = toolSelected === TOOL_SCALE;
             wasGripClicked = hand.gripClicked();
         }
 
         function updateEditorHighlighting() {
             selection.select(highlightedEntityID);
-            if (!isAppScaleWithHandles || !otherEditor.isEditing(highlightedEntityID)) {
+            if (toolSelected !== TOOL_SCALE || !otherEditor.isEditing(highlightedEntityID)) {
                 highlights.display(intersection.handIntersected, selection.selection(),
-                    isAppScaleWithHandles || otherEditor.isEditing(highlightedEntityID));
+                    toolSelected === TOOL_SCALE || otherEditor.isEditing(highlightedEntityID));
             } else {
                 highlights.clear();
             }
@@ -629,17 +633,17 @@
             } else {
                 laser.disable();
             }
-            if (isAppScaleWithHandles) {
+            if (toolSelected === TOOL_SCALE) {
                 handles.display(highlightedEntityID, selection.boundingBox(), selection.count() > 1);
             }
             startEditing();
-            wasAppScaleWithHandles = isAppScaleWithHandles;
+            wasScaleTool = toolSelected === TOOL_SCALE;
             wasGripClicked = hand.gripClicked();
         }
 
         function updateEditorGrabbing() {
             selection.select(highlightedEntityID);
-            if (isAppScaleWithHandles) {
+            if (toolSelected === TOOL_SCALE) {
                 handles.display(highlightedEntityID, selection.boundingBox(), selection.count() > 1);
             } else {
                 handles.clear();
@@ -760,9 +764,8 @@
 
         function updateTool() {
             var isGripClicked = hand.gripClicked();
-            if (!wasGripClicked && isGripClicked && (isAppScaleWithHandles || isAppCloneEntities)) {
-                isAppScaleWithHandles = false;
-                isAppCloneEntities = false;
+            if (!wasGripClicked && isGripClicked && (toolSelected !== TOOL_NONE)) {
+                toolSelected = TOOL_NONE;
                 ui.clearToolIcon();
             }
             wasGripClicked = isGripClicked;
@@ -804,10 +807,10 @@
                 } else if (intersection.entityID && intersection.editableEntity && hand.triggerClicked()) {
                     highlightedEntityID = Entities.rootOf(intersection.entityID);
                     if (otherEditor.isEditing(highlightedEntityID)) {
-                        if (!isAppScaleWithHandles) {
+                        if (toolSelected !== TOOL_SCALE) {
                             setState(EDITOR_DIRECT_SCALING);
                         }
-                    } else if (isAppCloneEntities) {
+                    } else if (toolSelected === TOOL_CLONE) {
                         setState(EDITOR_CLONING);
                     } else {
                         setState(EDITOR_GRABBING);
@@ -819,7 +822,8 @@
             case EDITOR_HIGHLIGHTING:
                 if (hand.valid()
                         && intersection.entityID && intersection.editableEntity
-                        && !(hand.triggerClicked() && (!otherEditor.isEditing(highlightedEntityID) || !isAppScaleWithHandles))
+                        && !(hand.triggerClicked()
+                            && (!otherEditor.isEditing(highlightedEntityID) || toolSelected !== TOOL_SCALE))
                         && !(hand.triggerClicked() && intersection.overlayID && otherEditor.isHandle(intersection.overlayID))) {
                     // No transition.
                     doUpdateState = false;
@@ -830,8 +834,8 @@
                         highlightedEntityID = Entities.rootOf(intersection.entityID);
                         doUpdateState = true;
                     }
-                    if (isAppScaleWithHandles !== wasAppScaleWithHandles) {
-                        wasAppScaleWithHandles = isAppScaleWithHandles;
+                    if (toolSelected === TOOL_SCALE !== wasScaleTool) {
+                        wasScaleTool = toolSelected === TOOL_SCALE;
                         doUpdateState = true;
                     }
                     if (doUpdateState) {
@@ -849,12 +853,12 @@
                 } else if (intersection.entityID && intersection.editableEntity && hand.triggerClicked()) {
                     highlightedEntityID = Entities.rootOf(intersection.entityID);  // May be a different entityID.
                     if (otherEditor.isEditing(highlightedEntityID)) {
-                        if (!isAppScaleWithHandles) {
+                        if (toolSelected !== TOOL_SCALE) {
                             setState(EDITOR_DIRECT_SCALING);
                         } else {
                             debug(side, "ERROR: Unexpected condition in EDITOR_HIGHLIGHTING! A");
                         }
-                    } else if (isAppCloneEntities) {
+                    } else if (toolSelected === TOOL_CLONE) {
                         setState(EDITOR_CLONING);
                     } else {
                         setState(EDITOR_GRABBING);
@@ -869,9 +873,9 @@
                 if (hand.valid() && hand.triggerClicked() && !hand.gripClicked()) {
                     // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
                     // No transition.
-                    if (isAppScaleWithHandles !== wasAppScaleWithHandles) {
+                    if (toolSelected === TOOL_SCALE !== wasScaleTool) {
                         updateState();
-                        wasAppScaleWithHandles = isAppScaleWithHandles;
+                        wasScaleTool = toolSelected === TOOL_SCALE;
                     }
                     wasGripClicked = false;
                     break;
@@ -898,8 +902,8 @@
                 if (hand.valid() && hand.triggerClicked()
                         && (otherEditor.isEditing(highlightedEntityID) || otherEditor.isHandle(intersection.overlayID))) {
                     // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
-                    // Don't test isAppScaleWithHandles because this will eventually be a UI element and so not able to be 
-                    // changed while scaling with two hands.
+                    // Don't test toolSelected === TOOL_SCALE because this is a UI element and so not able to be changed while 
+                    // scaling with two hands.
                     // No transition.
                     updateState();
                     break;
@@ -921,8 +925,8 @@
             case EDITOR_HANDLE_SCALING:
                 if (hand.valid() && hand.triggerClicked() && otherEditor.isEditing(highlightedEntityID)) {
                     // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
-                    // Don't test isAppScaleWithHandles because this will eventually be a UI element and so not able to be 
-                    // changed while scaling with two hands.
+                    // Don't test toolSelected === TOOL_SCALE because this is a UI element and so not able to be changed while 
+                    // scaling with two hands.
                     // No transition.
                     updateState();
                     break;
@@ -1051,13 +1055,11 @@
     function setTool(tool) {
         switch (tool) {
         case "scale":
-            isAppScaleWithHandles = true;
-            isAppCloneEntities = false;
+            toolSelected = TOOL_SCALE;
             ui.setToolIcon(ui.SCALE_TOOL);
             break;
         case "clone":
-            isAppScaleWithHandles = false;
-            isAppCloneEntities = true;
+            toolSelected = TOOL_CLONE;
             ui.setToolIcon(ui.CLONE_TOOL);
             break;
         default:
@@ -1101,11 +1103,13 @@
 
         // Swap UI hands.
         ui.setHand(otherHand(dominantHand));
-        if (isAppScaleWithHandles) {
+        switch (toolSelected) {
+        case TOOL_SCALE:
             ui.setToolIcon(ui.SCALE_TOOL);
-        }
-        if (isAppCloneEntities) {
+            break;
+        case TOOL_CLONE:
             ui.setToolIcon(ui.CLONE_TOOL);
+            break;
         }
 
         if (isAppActive) {
