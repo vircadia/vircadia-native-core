@@ -78,11 +78,17 @@
             MAX_POINTS_PER_LINE = 70;  // Hard-coded limit in PolyLineEntityItem.h.
                 
         function strokeNormal() {
-            var controllerPose = isLeftHandDominant 
+            if (!isMouseDrawing) {
+                var controllerPose = isLeftHandDominant 
                                     ? getControllerWorldLocation(Controller.Standard.LeftHand, true)
                                     : getControllerWorldLocation(Controller.Standard.RightHand, true);
-            var fingerTipRotation = controllerPose.rotation;
-            return Quat.getUp(fingerTipRotation);
+                var fingerTipRotation = controllerPose.rotation;
+                return Quat.getUp(fingerTipRotation);
+            
+            } else {
+                return Vec3.multiplyQbyV(Camera.getOrientation(), Vec3.UNIT_NEG_Z);
+            }
+            
         }
         
         function changeStrokeColor(red, green, blue) {
@@ -1157,16 +1163,22 @@
     function mouseDrawLine(event){
         if (rightBrush && rightBrush.isDrawing()) {
             print(JSON.stringify(event));
-            rightBrush.drawLine(getFingerPosition(event.x, event.y), 0.03);
+            rightBrush.drawLine(getFingerPosition(event.x, event.y), MAX_LINE_WIDTH);
+        } else {
+            print("cannot draw with mouse");
         }
     }
 
     function mouseStartLine(event){
         print(JSON.stringify(event));
         if (event.isLeftButton && rightBrush) {
-            rightBrush.startLine(getFingerPosition(event.x, event.y), 0.03);
-        } 
-        //won't work until findRayIntersection works with polylines
+            isMouseDrawing = true;
+            rightBrush.startLine(getFingerPosition(event.x, event.y), MAX_LINE_WIDTH);
+        } else {
+            print("cannot draw with mouse");
+        }
+        //Note: won't work until findRayIntersection works with polylines
+        //
         //else if (event.isMiddleButton) {
         //    var pickRay = Camera.computePickRay(event.x, event.y);
         //    var entityToDelete = Entities.findRayIntersection(pickRay, false, [Entities.findEntities(MyAvatar.position, 1000)], []);
@@ -1187,7 +1199,9 @@
     function mouseFinishLine(event){
         isMouseDrawing = false;
         if (rightBrush && rightBrush.isDrawing()) {
-            rightBrush.finishLine(getFingerPosition(event.x, event.y), 0.03);
+            rightBrush.finishLine(getFingerPosition(event.x, event.y), MAX_LINE_WIDTH);
+        } else {
+            print("cannot draw with mouse");
         }
     }
 
