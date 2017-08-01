@@ -3549,6 +3549,8 @@ SelectionDisplay = (function() {
         });
     }
 
+    //-----------------------------------------
+    // YAW GRABBER TOOL DEFINITION
     var initialPosition = SelectionManager.worldPosition;
     addGrabberTool(yawHandle, {
         mode: "ROTATE_YAW",
@@ -3625,10 +3627,10 @@ SelectionDisplay = (function() {
             if (result.intersects) {
                 var center = yawCenter;
                 var zero = yawZero;
-                // TODO: these vectors are backwards to their names, doesn't matter for this use case (inverted vectors still give same angle)
-                var centerToZero = Vec3.subtract(center, zero);
-                var centerToIntersect = Vec3.subtract(center, result.intersection);
-                // TODO: orientedAngle wants normalized centerToZero and centerToIntersect
+                var centerToZero = Vec3.subtract(zero, center);
+                var centerToIntersect = Vec3.subtract(result.intersection, center);
+                // Note: orientedAngle which wants normalized centerToZero and centerToIntersect
+                //             handles that internally, so it's to pass unnormalized vectors here.
                 var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
                 var distanceFromCenter = Vec3.distance(center, result.intersection);
                 var snapToInner = distanceFromCenter < innerRadius;
@@ -3717,6 +3719,8 @@ SelectionDisplay = (function() {
         }
     });
 
+    //-----------------------------------------
+    // PITCH GRABBER TOOL DEFINITION
     addGrabberTool(pitchHandle, {
         mode: "ROTATE_PITCH",
         onBegin: function(event) {
@@ -3792,8 +3796,10 @@ SelectionDisplay = (function() {
                 var properties = Entities.getEntityProperties(selectionManager.selections[0]);
                 var center = pitchCenter;
                 var zero = pitchZero;
-                var centerToZero = Vec3.subtract(center, zero);
-                var centerToIntersect = Vec3.subtract(center, result.intersection);
+                var centerToZero = Vec3.subtract(zero, center);
+                var centerToIntersect = Vec3.subtract(result.intersection, center);
+                // Note: orientedAngle which wants normalized centerToZero & centerToIntersect, handles
+                //       this internally, so it's fine to pass non-normalized versions here.
                 var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
 
                 var distanceFromCenter = Vec3.distance(center, result.intersection);
@@ -3874,6 +3880,8 @@ SelectionDisplay = (function() {
         }
     });
 
+    //-----------------------------------------
+    // ROLL GRABBER TOOL DEFINITION
     addGrabberTool(rollHandle, {
         mode: "ROTATE_ROLL",
         onBegin: function(event) {
@@ -3949,8 +3957,10 @@ SelectionDisplay = (function() {
                 var properties = Entities.getEntityProperties(selectionManager.selections[0]);
                 var center = rollCenter;
                 var zero = rollZero;
-                var centerToZero = Vec3.subtract(center, zero);
-                var centerToIntersect = Vec3.subtract(center, result.intersection);
+                var centerToZero = Vec3.subtract(zero, center);
+                var centerToIntersect = Vec3.subtract(result.intersection, center);
+                // Note: orientedAngle which wants normalized centerToZero & centerToIntersect, handles
+                //       this internally, so it's fine to pass non-normalized versions here.
                 var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
 
                 var distanceFromCenter = Vec3.distance(center, result.intersection);
