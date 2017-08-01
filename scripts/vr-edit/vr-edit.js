@@ -302,6 +302,8 @@
             highlightedEntityID = null,  // Root entity of highlighted entity set.
             wasScaleTool = false,
             isOtherEditorEditingEntityID = false,
+            isTriggerClicked = false,
+            wasTriggerClicked = false,
             isGripClicked = false,
             wasGripClicked = false,
             hoveredOverlayID = null,
@@ -775,6 +777,7 @@
                 doUpdateState;
 
             intersection = getIntersection();
+            isTriggerClicked = hand.triggerClicked();
             isGripClicked = hand.gripClicked();
 
             // State update.
@@ -788,7 +791,7 @@
                 break;
             case EDITOR_SEARCHING:
                 if (hand.valid() && (!intersection.entityID || !intersection.editableEntity)
-                        && !(intersection.overlayID && hand.triggerClicked() && otherEditor.isHandle(intersection.overlayID))) {
+                        && !(intersection.overlayID && isTriggerClicked && otherEditor.isHandle(intersection.overlayID))) {
                     // No transition.
                     updateState();
                     updateTool();
@@ -796,14 +799,14 @@
                 }
                 if (!hand.valid()) {
                     setState(EDITOR_IDLE);
-                } else if (intersection.overlayID && hand.triggerClicked()
+                } else if (intersection.overlayID && isTriggerClicked
                         && otherEditor.isHandle(intersection.overlayID)) {
                     highlightedEntityID = otherEditor.rootEntityID();
                     setState(EDITOR_HANDLE_SCALING);
-                } else if (intersection.entityID && intersection.editableEntity && !hand.triggerClicked()) {
+                } else if (intersection.entityID && intersection.editableEntity && !isTriggerClicked) {
                     highlightedEntityID = Entities.rootOf(intersection.entityID);
                     setState(EDITOR_HIGHLIGHTING);
-                } else if (intersection.entityID && intersection.editableEntity && hand.triggerClicked()) {
+                } else if (intersection.entityID && intersection.editableEntity && isTriggerClicked) {
                     highlightedEntityID = Entities.rootOf(intersection.entityID);
                     if (otherEditor.isEditing(highlightedEntityID)) {
                         if (toolSelected !== TOOL_SCALE) {
@@ -821,9 +824,8 @@
             case EDITOR_HIGHLIGHTING:
                 if (hand.valid()
                         && intersection.entityID && intersection.editableEntity
-                        && !(hand.triggerClicked()
-                            && (!otherEditor.isEditing(highlightedEntityID) || toolSelected !== TOOL_SCALE))
-                        && !(hand.triggerClicked() && intersection.overlayID && otherEditor.isHandle(intersection.overlayID))) {
+                        && !(isTriggerClicked && (!otherEditor.isEditing(highlightedEntityID) || toolSelected !== TOOL_SCALE))
+                        && !(isTriggerClicked && intersection.overlayID && otherEditor.isHandle(intersection.overlayID))) {
                     // No transition.
                     doUpdateState = false;
                     if (otherEditor.isEditing(highlightedEntityID) !== isOtherEditorEditingEntityID) {
@@ -845,11 +847,11 @@
                 }
                 if (!hand.valid()) {
                     setState(EDITOR_IDLE);
-                } else if (intersection.overlayID && hand.triggerClicked()
+                } else if (intersection.overlayID && isTriggerClicked
                         && otherEditor.isHandle(intersection.overlayID)) {
                     highlightedEntityID = otherEditor.rootEntityID();
                     setState(EDITOR_HANDLE_SCALING);
-                } else if (intersection.entityID && intersection.editableEntity && hand.triggerClicked()) {
+                } else if (intersection.entityID && intersection.editableEntity && isTriggerClicked) {
                     highlightedEntityID = Entities.rootOf(intersection.entityID);  // May be a different entityID.
                     if (otherEditor.isEditing(highlightedEntityID)) {
                         if (toolSelected !== TOOL_SCALE) {
@@ -869,7 +871,7 @@
                 }
                 break;
             case EDITOR_GRABBING:
-                if (hand.valid() && hand.triggerClicked() && !isGripClicked) {
+                if (hand.valid() && isTriggerClicked && !isGripClicked) {
                     // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
                     // No transition.
                     if (toolSelected === TOOL_SCALE !== wasScaleTool) {
@@ -881,7 +883,7 @@
                 }
                 if (!hand.valid()) {
                     setState(EDITOR_IDLE);
-                } else if (!hand.triggerClicked()) {
+                } else if (!isTriggerClicked) {
                     if (intersection.entityID && intersection.editableEntity) {
                         highlightedEntityID = Entities.rootOf(intersection.entityID);
                         setState(EDITOR_HIGHLIGHTING);
@@ -898,7 +900,7 @@
                 }
                 break;
             case EDITOR_DIRECT_SCALING:
-                if (hand.valid() && hand.triggerClicked()
+                if (hand.valid() && isTriggerClicked
                         && (otherEditor.isEditing(highlightedEntityID) || otherEditor.isHandle(intersection.overlayID))) {
                     // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
                     // Don't test toolSelected === TOOL_SCALE because this is a UI element and so not able to be changed while 
@@ -910,7 +912,7 @@
                 }
                 if (!hand.valid()) {
                     setState(EDITOR_IDLE);
-                } else if (!hand.triggerClicked()) {
+                } else if (!isTriggerClicked) {
                     if (!intersection.entityID || !intersection.editableEntity) {
                         setState(EDITOR_SEARCHING);
                     } else {
@@ -923,7 +925,7 @@
                 }
                 break;
             case EDITOR_HANDLE_SCALING:
-                if (hand.valid() && hand.triggerClicked() && otherEditor.isEditing(highlightedEntityID)) {
+                if (hand.valid() && isTriggerClicked && otherEditor.isEditing(highlightedEntityID)) {
                     // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
                     // Don't test toolSelected === TOOL_SCALE because this is a UI element and so not able to be changed while 
                     // scaling with two hands.
@@ -934,7 +936,7 @@
                 }
                 if (!hand.valid()) {
                     setState(EDITOR_IDLE);
-                } else if (!hand.triggerClicked()) {
+                } else if (!isTriggerClicked) {
                     if (!intersection.entityID || !intersection.editableEntity) {
                         setState(EDITOR_SEARCHING);
                     } else {
@@ -948,11 +950,11 @@
                 break;
             case EDITOR_CLONING:
                 // Immediate transition out of state after cloning entities during state entry.
-                if (hand.valid() && hand.triggerClicked()) {
+                if (hand.valid() && isTriggerClicked) {
                     setState(EDITOR_GRABBING);
                 } else if (!hand.valid()) {
                     setState(EDITOR_IDLE);
-                } else if (!hand.triggerClicked()) {
+                } else if (!isTriggerClicked) {
                     if (intersection.entityID && intersection.editableEntity) {
                         highlightedEntityID = Entities.rootOf(intersection.entityID);
                         setState(EDITOR_HIGHLIGHTING);
@@ -963,6 +965,7 @@
                 break;
             }
 
+            wasTriggerClicked = isTriggerClicked;
             wasGripClicked = isGripClicked;
 
             if (DEBUG && editorState !== previousState) {
