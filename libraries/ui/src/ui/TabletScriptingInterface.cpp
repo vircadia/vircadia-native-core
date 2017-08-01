@@ -236,7 +236,6 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
             _desktopWindow = nullptr;
         }
     }
-    loadHomeScreen(true);
     emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
 }
 
