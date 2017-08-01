@@ -126,8 +126,14 @@ macro(SET_PACKAGING_PARAMETERS)
 
     # check if we need to find signtool
     if (PRODUCTION_BUILD OR PR_BUILD)
-      find_program(SIGNTOOL_EXECUTABLE signtool PATHS "C:/Program Files (x86)/Windows Kits/8.1" PATH_SUFFIXES "bin/x64")
-
+      if (MSVC_VERSION GREATER_EQUAL 1910) # VS 2017
+        find_program(SIGNTOOL_EXECUTABLE signtool PATHS "C:/Program Files (x86)/Windows Kits/10" PATH_SUFFIXES "bin/${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}/x64")
+      elseif (MSVC_VERSION GREATER_EQUAL 1800) # VS 2013
+        find_program(SIGNTOOL_EXECUTABLE signtool PATHS "C:/Program Files (x86)/Windows Kits/8.1" PATH_SUFFIXES "bin/x64")
+      else()
+        message( FATAL_ERROR "Visual Studio 2013 or higher required." )
+      endif()
+  
       if (NOT SIGNTOOL_EXECUTABLE)
         message(FATAL_ERROR "Code signing of executables was requested but signtool.exe could not be found.")
       endif ()

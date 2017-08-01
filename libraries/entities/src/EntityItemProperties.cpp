@@ -2157,12 +2157,17 @@ QList<QString> EntityItemProperties::listChangedProperties() {
     return out;
 }
 
-bool EntityItemProperties::parentDependentPropertyChanged() const {
-    return localPositionChanged() || positionChanged() ||
-        localRotationChanged() || rotationChanged() ||
-        localVelocityChanged() || localAngularVelocityChanged();
+bool EntityItemProperties::transformChanged() const {
+    return positionChanged() || rotationChanged() ||
+        localPositionChanged() || localRotationChanged();
 }
 
 bool EntityItemProperties::parentRelatedPropertyChanged() const {
-    return parentDependentPropertyChanged() || parentIDChanged() || parentJointIndexChanged();
+    return positionChanged() || rotationChanged() ||
+        localPositionChanged() || localRotationChanged() ||
+        parentIDChanged() || parentJointIndexChanged();
+}
+
+bool EntityItemProperties::queryAACubeRelatedPropertyChanged() const {
+    return parentRelatedPropertyChanged() || dimensionsChanged();
 }
