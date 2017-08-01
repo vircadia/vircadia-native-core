@@ -57,7 +57,6 @@ ContextOverlayInterface::ContextOverlayInterface() {
     });
 }
 
-static const xColor BB_OVERLAY_COLOR = {255, 255, 0};
 static const uint32_t LEFT_HAND_HW_ID = 1;
 static const xColor CONTEXT_OVERLAY_COLOR = { 255, 255, 255 };
 static const float CONTEXT_OVERLAY_INSIDE_DISTANCE = 1.0f; // in meters
