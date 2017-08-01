@@ -49,7 +49,7 @@ public:
 
     Q_INVOKABLE QUuid getCurrentEntityWithContextOverlay() { return _currentEntityWithContextOverlay; }
     void setCurrentEntityWithContextOverlay(const QUuid& entityID) { _currentEntityWithContextOverlay = entityID; }
-    void setEnabled(bool enabled) { _enabled = enabled; }
+    void setEnabled(bool enabled);
     bool getEnabled() { return _enabled; }
     bool getIsInMarketplaceInspectionMode() { return _isInMarketplaceInspectionMode; }
     void setIsInMarketplaceInspectionMode(bool mode) { _isInMarketplaceInspectionMode = mode; }
@@ -72,11 +72,14 @@ private:
     QString _entityMarketplaceID;
     bool _contextOverlayJustClicked { false };
 
-    void openMarketplace();
     bool _isInMarketplaceInspectionMode { false };
 
+    Setting::Handle<bool> _settingSwitch { "inspectionMode", false };
+
+    void openMarketplace();
     void enableEntityHighlight(const EntityItemID& entityItemID);
     void disableEntityHighlight(const EntityItemID& entityItemID);
+
 };
 
 #endif // hifi_ContextOverlayInterface_h
