@@ -78,7 +78,11 @@
             MAX_POINTS_PER_LINE = 70;  // Hard-coded limit in PolyLineEntityItem.h.
                 
         function strokeNormal() {
-            return Vec3.multiplyQbyV(Camera.getOrientation(), Vec3.UNIT_NEG_Z);
+            var controllerPose = isLeftHandDominant 
+                                    ? getControllerWorldLocation(Controller.Standard.LeftHand, true)
+                                    : getControllerWorldLocation(Controller.Standard.RightHand, true);
+            var fingerTipRotation = controllerPose.rotation;
+            return Quat.getUp(fingerTipRotation);
         }
         
         function changeStrokeColor(red, green, blue) {
@@ -564,7 +568,6 @@
             }
             updateTriggerPress();
             updateGripPress();
-
         }
 
         function setUp(onTriggerPressed, onTriggerPressing, onTriggerReleased, onGripPressed) {
