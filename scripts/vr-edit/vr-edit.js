@@ -302,6 +302,7 @@
             highlightedEntityID = null,  // Root entity of highlighted entity set.
             wasScaleTool = false,
             isOtherEditorEditingEntityID = false,
+            isGripClicked = false,
             wasGripClicked = false,
             hoveredOverlayID = null,
 
@@ -587,7 +588,6 @@
             selection.clear();
             hoveredOverlayID = intersection.overlayID;
             otherEditor.hoverHandle(hoveredOverlayID);
-            wasGripClicked = hand.gripClicked();
         }
 
         function updateEditorSearching() {
@@ -609,7 +609,6 @@
             }
             isOtherEditorEditingEntityID = otherEditor.isEditing(highlightedEntityID);
             wasScaleTool = toolSelected === TOOL_SCALE;
-            wasGripClicked = hand.gripClicked();
         }
 
         function updateEditorHighlighting() {
@@ -640,7 +639,6 @@
             }
             startEditing();
             wasScaleTool = toolSelected === TOOL_SCALE;
-            wasGripClicked = hand.gripClicked();
         }
 
         function updateEditorGrabbing() {
@@ -765,12 +763,10 @@
 
 
         function updateTool() {
-            var isGripClicked = hand.gripClicked();
             if (!wasGripClicked && isGripClicked && (toolSelected !== TOOL_NONE)) {
                 toolSelected = TOOL_NONE;
                 ui.clearToolIcon();
             }
-            wasGripClicked = isGripClicked;
         }
 
 
@@ -779,6 +775,7 @@
                 doUpdateState;
 
             intersection = getIntersection();
+            isGripClicked = hand.gripClicked();
 
             // State update.
             switch (editorState) {
@@ -872,14 +869,14 @@
                 }
                 break;
             case EDITOR_GRABBING:
-                if (hand.valid() && hand.triggerClicked() && !hand.gripClicked()) {
+                if (hand.valid() && hand.triggerClicked() && !isGripClicked) {
                     // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
                     // No transition.
                     if (toolSelected === TOOL_SCALE !== wasScaleTool) {
                         updateState();
                         wasScaleTool = toolSelected === TOOL_SCALE;
                     }
-                    wasGripClicked = false;
+                    //updateTool();  Don't updateTool() because grip button is used to delete grabbed entity.
                     break;
                 }
                 if (!hand.valid()) {
@@ -891,7 +888,7 @@
                     } else {
                         setState(EDITOR_SEARCHING);
                     }
-                } else if (hand.gripClicked()) {
+                } else if (isGripClicked) {
                     if (!wasGripClicked) {
                         selection.deleteEntities();
                         setState(EDITOR_SEARCHING);
@@ -908,6 +905,7 @@
                     // scaling with two hands.
                     // No transition.
                     updateState();
+                    // updateTool();  Don't updateTool() because this hand is currently using the scaling tool.
                     break;
                 }
                 if (!hand.valid()) {
@@ -931,6 +929,7 @@
                     // scaling with two hands.
                     // No transition.
                     updateState();
+                    updateTool();
                     break;
                 }
                 if (!hand.valid()) {
@@ -963,6 +962,8 @@
                 }
                 break;
             }
+
+            wasGripClicked = isGripClicked;
 
             if (DEBUG && editorState !== previousState) {
                 debug(side, EDITOR_STATE_STRINGS[editorState]);
