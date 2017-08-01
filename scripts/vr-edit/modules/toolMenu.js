@@ -86,6 +86,11 @@ ToolMenu = function (side, leftInputs, rightInputs, setToolCallback) {
                 position: { x: 0.06, y: 0.02, z: 0.0 },
                 color: { red: 240, green: 0, blue: 240 },
                 callback: "clone"
+            },
+            {   // Group
+                position: { x: 0.10, y: 0.02, z: 0.0 },
+                color: { red: 240, green: 240, blue: 0 },
+                callback: "group"
             }
         ],
 

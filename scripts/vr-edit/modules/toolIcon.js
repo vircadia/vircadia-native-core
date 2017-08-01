@@ -17,10 +17,12 @@ ToolIcon = function (side) {
 
     var SCALE_TOOL = 0,
         CLONE_TOOL = 1,
+        GROUP_TOOL = 2,
 
         ICON_COLORS = [
             { red: 0, green: 240, blue: 240 },
-            { red: 240, green: 0, blue: 240 }
+            { red: 240, green: 0, blue: 240 },
+            { red: 240, green: 240, blue: 0 }
         ],
 
         LEFT_HAND = 0,
@@ -100,6 +102,7 @@ ToolIcon = function (side) {
     return {
         SCALE_TOOL: SCALE_TOOL,
         CLONE_TOOL: CLONE_TOOL,
+        GROUP_TOOL: GROUP_TOOL,
         setHand: setHand,
         update: update,
         display: display,

@@ -25,6 +25,7 @@
         TOOL_NONE = 0,
         TOOL_SCALE = 1,
         TOOL_CLONE = 2,
+        TOOL_GROUP = 3,
         toolSelected = TOOL_NONE,
 
         // Primary objects
@@ -261,6 +262,7 @@
             clearToolIcon: clearToolIcon,
             SCALE_TOOL: toolIcon.SCALE_TOOL,
             CLONE_TOOL: toolIcon.CLONE_TOOL,
+            GROUP_TOOL: toolIcon.GROUP_TOOL,
             display: display,
             update: update,
             clear: clear,
@@ -1062,6 +1064,10 @@
             toolSelected = TOOL_CLONE;
             ui.setToolIcon(ui.CLONE_TOOL);
             break;
+        case "group":
+            toolSelected = TOOL_GROUP;
+            ui.setToolIcon(ui.GROUP_TOOL);
+            break;
         default:
             debug("ERROR: Unexpected condition in setTool()!");
         }
@@ -1109,6 +1115,9 @@
             break;
         case TOOL_CLONE:
             ui.setToolIcon(ui.CLONE_TOOL);
+            break;
+        case TOOL_GROUP:
+            ui.setToolIcon(ui.GROUP_TOOL);
             break;
         }
 
