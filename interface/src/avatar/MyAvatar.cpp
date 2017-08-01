@@ -1299,7 +1299,7 @@ eyeContactTarget MyAvatar::getEyeContactTarget() {
 }
 
 glm::vec3 MyAvatar::getDefaultEyePosition() const {
-    return getPosition() + getWorldAlignedOrientation() * Quaternions::Y_180 * _skeletonModel->getDefaultEyeModelPosition();
+    return getPosition() + getOrientation() * Quaternions::Y_180 * _skeletonModel->getDefaultEyeModelPosition();
 }
 
 const float SCRIPT_PRIORITY = 1.0f + 1.0f;
@@ -1594,9 +1594,14 @@ void MyAvatar::updateMotors() {
             motorRotation = getMyHead()->getHeadOrientation();
         } else {
             // non-hovering = walking: follow camera twist about vertical but not lift
-            // so we decompose camera's rotation and store the twist part in motorRotation
+            // we decompose camera's rotation and store the twist part in motorRotation
+            // however, we need to perform the decomposition in the avatar-frame
+            // using the local UP axis and then transform back into world-frame
+            glm::quat orientation = getOrientation();
+            glm::quat headOrientation = glm::inverse(orientation) * getMyHead()->getHeadOrientation(); // avatar-frame
             glm::quat liftRotation;
-            swingTwistDecomposition(getMyHead()->getHeadOrientation(), _worldUpDirection, liftRotation, motorRotation);
+            swingTwistDecomposition(headOrientation, Vectors::UNIT_Y, liftRotation, motorRotation);
+            motorRotation = orientation * motorRotation;
         }
         const float DEFAULT_MOTOR_TIMESCALE = 0.2f;
         const float INVALID_MOTOR_TIMESCALE = 1.0e6f;
@@ -1650,11 +1655,31 @@ void MyAvatar::prepareForPhysicsSimulation() {
     _prePhysicsRoomPose = AnimPose(_sensorToWorldMatrix);
 }
 
+// There are a number of possible strategies for this set of tools through endRender, below.
+void MyAvatar::nextAttitude(glm::vec3 position, glm::quat orientation) {
+    bool success;
+    Transform trans = getTransform(success);
+    if (!success) {
+        qCWarning(interfaceapp) << "Warning -- MyAvatar::nextAttitude failed";
+        return;
+    }
+    trans.setTranslation(position);
+    trans.setRotation(orientation);
+    SpatiallyNestable::setTransform(trans, success);
+    if (!success) {
+        qCWarning(interfaceapp) << "Warning -- MyAvatar::nextAttitude failed";
+    }
+    updateAttitude(orientation);
+}
+
 void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
-    glm::vec3 position = getPosition();
-    glm::quat orientation = getOrientation();
+    glm::vec3 position;
+    glm::quat orientation;
     if (_characterController.isEnabledAndReady()) {
         _characterController.getPositionAndOrientation(position, orientation);
+    } else {
+        position = getPosition();
+        orientation = getOrientation();
     }
     nextAttitude(position, orientation);
     _bodySensorMatrix = _follow.postPhysicsUpdate(*this, _bodySensorMatrix);
