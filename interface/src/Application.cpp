@@ -4483,11 +4483,9 @@ void Application::cameraModeChanged() {
 void Application::cameraMenuChanged() {
     auto menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
-        if (isHMDMode()) {
-            menu->setIsOptionChecked(MenuOption::FullscreenMirror, false);
-            menu->setIsOptionChecked(MenuOption::FirstPerson, true);
-        } else if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
+        if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
             _myCamera.setMode(CAMERA_MODE_MIRROR);
+            getMyAvatar()->reset(false, false, false); // to reset any active MyAvatar::FollowHelpers
         }
     } else if (menu->isOptionChecked(MenuOption::FirstPerson)) {
         if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
