@@ -1056,8 +1056,9 @@ const AnimPoseVec& AnimInverseKinematics::overlay(const AnimVariantMap& animVars
             {
                 PROFILE_RANGE_EX(simulation_animation, "ik/ccd", 0xffff00ff, 0);
 
-                preconditionRelativePosesToAvoidLimbLock(context, targets);
                 setSecondaryTargets(context);
+                preconditionRelativePosesToAvoidLimbLock(context, targets);
+
                 solve(context, targets, dt, jointChainInfoVec);
             }
 
@@ -1610,7 +1611,7 @@ void AnimInverseKinematics::debugDrawRelativePoses(const AnimContext& context) c
     const vec4 GREEN(0.0f, 1.0f, 0.0f, 1.0f);
     const vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
     const vec4 GRAY(0.2f, 0.2f, 0.2f, 1.0f);
-    const float AXIS_LENGTH = 2.0f; // cm
+    const float AXIS_LENGTH = 10.0f; // cm
 
     // draw each pose
     for (int i = 0; i < (int)poses.size(); i++) {
