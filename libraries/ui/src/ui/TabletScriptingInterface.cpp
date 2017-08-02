@@ -237,7 +237,6 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
         }
     }
     loadHomeScreen(true);
-    emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
 }
 
 static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* buttonProxy) {
@@ -463,14 +462,14 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
     }
 
     if (root) {
-        if (_state != State::QML) {
-            removeButtonsFromHomeScreen();
-            QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, path));
-            _state = State::QML;
+        removeButtonsFromHomeScreen(); //works only in Tablet
+        QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, path));
+        _state = State::QML;
+        if (path != _currentPathLoaded) {
             emit screenChanged(QVariant("QML"), path);
-            _currentPathLoaded = path;
-            QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         }
+        _currentPathLoaded = path;
+        QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
     } else {
         qCDebug(uiLogging) << "tablet cannot load QML because _qmlTabletRoot is null";
     }
