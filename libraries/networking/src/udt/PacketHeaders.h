@@ -219,6 +219,7 @@ const PacketVersion VERSION_ENTITIES_ZONE_FILTERS = 68;
 const PacketVersion VERSION_ENTITIES_HINGE_CONSTRAINT = 69;
 const PacketVersion VERSION_ENTITIES_BULLET_DYNAMICS = 70;
 const PacketVersion VERSION_ENTITIES_UV_MODE_PROPERTY = 71;
+const PacketVersion VERSION_ENTITIES_STROKE_COLOR_PROPERTY = 72;
 
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
