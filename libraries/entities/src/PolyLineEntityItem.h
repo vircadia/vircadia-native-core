@@ -64,6 +64,9 @@ class PolyLineEntityItem : public EntityItem {
     bool setNormals(const QVector<glm::vec3>& normals);
     QVector<glm::vec3> getNormals() const;
 
+    bool setStrokeColors(const QVector<glm::vec3>& strokeColors);
+    QVector<glm::vec3> getStrokeColors() const;
+
     bool setStrokeWidths(const QVector<float>& strokeWidths);
     QVector<float> getStrokeWidths() const;
 
@@ -93,9 +96,11 @@ class PolyLineEntityItem : public EntityItem {
     float _lineWidth;
     bool _pointsChanged;
     bool _normalsChanged;
+    bool _strokeColorsChanged;
     bool _strokeWidthsChanged;
     QVector<glm::vec3> _points;
     QVector<glm::vec3> _normals;
+    QVector<glm::vec3> _strokeColors;
     QVector<float> _strokeWidths;
     QString _textures;
 	bool _isUVModeStretch;

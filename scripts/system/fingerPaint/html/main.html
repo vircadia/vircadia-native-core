@@ -22,18 +22,17 @@
     .tabButton {
         background-color: #000;
         color: white;
-        font-size: 100%;
+        font-size: 20px;
         padding: 12px;
         margin: 0px;
-        text-align: center;
         vertical-align: middle;
-        display: inline-block;
+        display: inline-flex;
         user-select: none;
     }
     .tabIcon {
         width: 24px;
         height: 24px;
-        padding-right: 12px;
+        padding-right: 8px;
     }
     .selected {
         background-color: #404040
@@ -52,9 +51,9 @@
 </head>
 <body style="margin:0px;padding:0px;overflow:hidden">
     <div id="tabs">
-        <span class="tabButton" onclick="selectTab(0)"><img class="tabIcon" src="../content/tabicons/colorpaletteBtn.png"/>Palette</span>
-        <span class="tabButton" onclick="selectTab(1)"><img class="tabIcon" src="../content/tabicons/brushesBtn.png"/>Brushes</span>
-        <span class="tabButton" onclick="selectTab(2)"><img class="tabIcon" src="../content/tabicons/pointingfinger128px.png"/>Hand</span>
+        <div class="tabButton" onclick="selectTab(0)"><img class="tabIcon" src="../content/tabicons/palette-icon.svg"/>Palette</div>
+        <div class="tabButton" onclick="selectTab(1)"><img class="tabIcon" src="../content/tabicons/brush-icon.svg"/>Brushes</div>
+        <div class="tabButton" onclick="selectTab(2)"><img class="tabIcon" src="../content/tabicons/pointingfinger128px.png"/>Hand</div>
         <input type="button" onclick="undo()" id="undoButton"  style="font-family: Font-Awesome;" disabled class="grayButton glyph" value="&#xf064;"/>
     </div>
     <div id="content">
