@@ -1351,17 +1351,17 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     connect(overlays,
         SIGNAL(mousePressOnOverlay(const OverlayID&, const PointerEvent&)),
         DependencyManager::get<ContextOverlayInterface>().data(),
-        SLOT(clickContextOverlay(const OverlayID&, const PointerEvent&)));
+        SLOT(contextOverlays_mousePressOnOverlay(const OverlayID&, const PointerEvent&)));
 
     connect(overlays,
         SIGNAL(hoverEnterOverlay(const OverlayID&, const PointerEvent&)),
         DependencyManager::get<ContextOverlayInterface>().data(),
-        SLOT(hoverEnterContextOverlay(const OverlayID&, const PointerEvent&)));
+        SLOT(contextOverlays_hoverEnterOverlay(const OverlayID&, const PointerEvent&)));
 
     connect(overlays,
         SIGNAL(hoverLeaveOverlay(const OverlayID&, const PointerEvent&)),
         DependencyManager::get<ContextOverlayInterface>().data(),
-        SLOT(hoverLeaveContextOverlay(const OverlayID&, const PointerEvent&)));
+        SLOT(contextOverlays_hoverLeaveOverlay(const OverlayID&, const PointerEvent&)));
 
     // Add periodic checks to send user activity data
     static int CHECK_NEARBY_AVATARS_INTERVAL_MS = 10000;
@@ -5418,6 +5418,12 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             }
             renderArgs->_debugFlags = renderDebugFlags;
             //ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, transaction);
+
+            RenderArgs::OutlineFlags renderOutlineFlags = RenderArgs::RENDER_OUTLINE_NONE;
+            if (DependencyManager::get<ContextOverlayInterface>()->getIsInMarketplaceInspectionMode()) {
+                renderOutlineFlags = RenderArgs::RENDER_OUTLINE_WIREFRAMES;
+            }
+            renderArgs->_outlineFlags = renderOutlineFlags;
         }
     }
 
