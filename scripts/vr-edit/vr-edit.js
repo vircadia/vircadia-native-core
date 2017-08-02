@@ -293,8 +293,9 @@
             EDITOR_DIRECT_SCALING = 4,  // Scaling data are sent to other editor's EDITOR_GRABBING state.
             EDITOR_HANDLE_SCALING = 5,  // ""
             EDITOR_CLONING = 6,
+            EDITOR_GROUPING = 7,
             EDITOR_STATE_STRINGS = ["EDITOR_IDLE", "EDITOR_SEARCHING", "EDITOR_HIGHLIGHTING", "EDITOR_GRABBING",
-                "EDITOR_DIRECT_SCALING", "EDITOR_HANDLE_SCALING", "EDITOR_CLONING"],
+                "EDITOR_DIRECT_SCALING", "EDITOR_HANDLE_SCALING", "EDITOR_CLONING", "EDITOR_GROUPING"],
             editorState = EDITOR_IDLE,
 
             // State machine.
@@ -711,6 +712,14 @@
             // Nothing to do.
         }
 
+        function enterEditorGrouping() {
+            // TODO: Add/remove highlightedEntityID to/from groups.
+        }
+
+        function exitEditorGrouping() {
+            // Nothing to do.
+        }
+
         STATE_MACHINE = {
             EDITOR_IDLE: {
                 enter: enterEditorIdle,
@@ -746,6 +755,11 @@
                 enter: enterEditorCloning,
                 update: null,
                 exit: exitEditorCloning
+            },
+            EDITOR_GROUPING: {
+                enter: enterEditorGrouping,
+                update: null,
+                exit: exitEditorGrouping
             }
         };
 
@@ -814,6 +828,8 @@
                         }
                     } else if (toolSelected === TOOL_CLONE) {
                         setState(EDITOR_CLONING);
+                    } else if (toolSelected === TOOL_GROUP) {
+                        setState(EDITOR_GROUPING);
                     } else {
                         setState(EDITOR_GRABBING);
                     }
@@ -861,6 +877,8 @@
                         }
                     } else if (toolSelected === TOOL_CLONE) {
                         setState(EDITOR_CLONING);
+                    } else if (toolSelected === TOOL_GROUP) {
+                        setState(EDITOR_GROUPING);
                     } else {
                         setState(EDITOR_GRABBING);
                     }
@@ -922,6 +940,8 @@
                 } else if (!otherEditor.isEditing(highlightedEntityID)) {
                     // Grab highlightEntityID that was scaling and has already been set.
                     setState(EDITOR_GRABBING);
+                } else {
+                    debug(side, "ERROR: Unexpected condition in EDITOR_DIRECT_SCALING!");
                 }
                 break;
             case EDITOR_HANDLE_SCALING:
@@ -946,6 +966,8 @@
                 } else if (!otherEditor.isEditing(highlightedEntityID)) {
                     // Grab highlightEntityID that was scaling and has already been set.
                     setState(EDITOR_GRABBING);
+                } else {
+                    debug(side, "ERROR: Unexpected condition in EDITOR_HANDLE_SCALING!");
                 }
                 break;
             case EDITOR_CLONING:
@@ -961,6 +983,19 @@
                     } else {
                         setState(EDITOR_SEARCHING);
                     }
+                } else {
+                    debug(side, "ERROR: Unexpected condition in EDITOR_CLONING!");
+                }
+                break;
+            case EDITOR_GROUPING:
+                if (hand.valid() && isTriggerClicked) {
+                    // No transition.
+                    break;
+                }
+                if (!hand.valid()) {
+                    setState(EDITOR_IDLE);
+                } else {
+                    setState(EDITOR_SEARCHING);
                 }
                 break;
             }
