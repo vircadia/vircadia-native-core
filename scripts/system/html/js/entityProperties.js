@@ -475,6 +475,15 @@ function unbindAllInputs() {
     }
 }
 
+function clearSelection() {
+	if(document.selection && document.selection.empty) {
+		document.selection.empty();
+	} else if(window.getSelection) {
+		var sel = window.getSelection();
+		sel.removeAllRanges();
+	}
+}
+
 function loaded() {
     openEventBridge(function() {
 
@@ -1051,6 +1060,7 @@ function loaded() {
                             activeElement.select();
                         }
                     }
+					clearSelection();
                 }
             });
         }
