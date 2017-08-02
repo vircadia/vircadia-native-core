@@ -228,7 +228,12 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
         connect(tabletRootWindow, &QmlWindowClass::fromQml, this, &TabletProxy::fromQml);
     } else {
         removeButtonsFromToolbar();
-        addButtonsToHomeScreen();
+
+        if (_currentPathLoaded == TABLET_SOURCE_URL) {
+            addButtonsToHomeScreen();
+        } else {
+            loadHomeScreen(true);
+        }
 
         // destroy desktop window
         if (_desktopWindow) {
@@ -236,7 +241,6 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
             _desktopWindow = nullptr;
         }
     }
-    loadHomeScreen(true);
     emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
 }
 
@@ -481,6 +485,11 @@ bool TabletProxy::pushOntoStack(const QVariant& path) {
         bool result = false;
         BLOCKING_INVOKE_METHOD(this, "pushOntoStack", Q_RETURN_ARG(bool, result), Q_ARG(QVariant, path));
         return result;
+    }
+
+    //set landscape off when pushing menu items while in Create mode
+    if (_landscape) {
+        setLandscape(false);
     }
 
     QObject* root = nullptr;
