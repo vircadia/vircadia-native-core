@@ -2329,7 +2329,7 @@ void Application::paintGL() {
                 }
             } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
                 if (isHMDMode()) {
-                    auto mirrorBodyOrientation = myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
+                    auto mirrorBodyOrientation = myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
 
                     glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
                     // Mirror HMD yaw and roll
@@ -2351,7 +2351,7 @@ void Application::paintGL() {
                         + mirrorBodyOrientation * glm::vec3(0.0f, 0.0f, 1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
                         + mirrorBodyOrientation * hmdOffset);
                 } else {
-                    _myCamera.setOrientation(myAvatar->getWorldAlignedOrientation()
+                    _myCamera.setOrientation(myAvatar->getOrientation()
                         * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                         + glm::vec3(0, _raiseMirror * myAvatar->getUniformScale(), 0)
@@ -4497,11 +4497,9 @@ void Application::cameraModeChanged() {
 void Application::cameraMenuChanged() {
     auto menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
-        if (isHMDMode()) {
-            menu->setIsOptionChecked(MenuOption::FullscreenMirror, false);
-            menu->setIsOptionChecked(MenuOption::FirstPerson, true);
-        } else if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
+        if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
             _myCamera.setMode(CAMERA_MODE_MIRROR);
+            getMyAvatar()->reset(false, false, false); // to reset any active MyAvatar::FollowHelpers
         }
     } else if (menu->isOptionChecked(MenuOption::FirstPerson)) {
         if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
