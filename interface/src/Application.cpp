@@ -229,8 +229,6 @@ static const QString FBX_EXTENSION  = ".fbx";
 static const QString OBJ_EXTENSION  = ".obj";
 static const QString AVA_JSON_EXTENSION = ".ava.json";
 static const QString WEB_VIEW_TAG = "noDownload=true";
-
-// temporary zip handling for Emily
 static const QString ZIP_EXTENSION = ".zip";
 
 static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
@@ -264,8 +262,6 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { JSON_EXTENSION, &Application::importJSONFromURL },
     { JS_EXTENSION, &Application::askToLoadScript },
     { FST_EXTENSION, &Application::askToSetAvatarUrl },
-
-    // temporary zip handling for Emily
     { ZIP_EXTENSION, &Application::importFromZIP }
 };
 
@@ -6355,7 +6351,12 @@ void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, Q
             qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
-            addAssetToWorldAddEntity(filePath, mapping);
+            // to prevent files that aren't models from being loaded into world automatically
+            if (filePath.endsWith(".obj") || filePath.endsWith(".fbx")) {
+                addAssetToWorldAddEntity(filePath, mapping);
+            } else {
+                addAssetToWorldInfoDone(filenameFromPath(filePath));
+            }
         }
         request->deleteLater();
     });

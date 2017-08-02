@@ -65,7 +65,10 @@
 
         // Footer actions.
         $("#back-button").on("click", function () {
-            window.history.back();
+            if (window.history.state != null) window.history.back();
+                // to fix back button issue when in directory
+                //else window.location = "http://www.highfidelity.com/marketplace";
+            else window.location = "https://metaverse.highfidelity.com/marketplace?";
         });
         $("#all-markets").on("click", function () {
             EventBridge.emitWebEvent(GOTO_DIRECTORY);
@@ -79,9 +82,11 @@
         letUsKnow.replaceWith(letUsKnow.html());
 
         // Add button links.
+
+        /* Blocks not yet implemented 
         $('#exploreBlocksMarketplace').on('click', function () {
             window.location = "https://vr.google.com/objects";
-        });
+        });*/
         $('#exploreClaraMarketplace').on('click', function () {
             window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
@@ -102,7 +107,7 @@
             '</div>'
         );*/
         $("body").append(
-            'style= "bottom: 135px" '
+            '<p>hello</p>'
         );
     }
 
@@ -345,6 +350,7 @@
         if (location.href.indexOf("google.com/") !== -1) { pageType = BLOCKS; }
         if (location.href.indexOf("clara.io/") !== -1) { pageType = CLARA; }
 
+        //if (pageType != BLOCKS) 
         injectCommonCode(pageType === DIRECTORY);
         switch (pageType) {
             case DIRECTORY:
@@ -354,7 +360,9 @@
                 injectHiFiCode();
                 break;
             case BLOCKS:
-                injectBlocksCode();
+                console.log("in Blocks");
+                //injectBlocksCode();
+                console.log("blocks injection");
                 break;
             case CLARA:
                 injectClaraCode();
