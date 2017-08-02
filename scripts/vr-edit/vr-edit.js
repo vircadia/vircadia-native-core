@@ -790,6 +790,7 @@
         function updateTool() {
             if (!wasGripClicked && isGripClicked && (toolSelected !== TOOL_NONE)) {
                 toolSelected = TOOL_NONE;
+                grouping.clear();
                 ui.clearToolIcon();
             }
         }
@@ -1151,6 +1152,7 @@
 
         function clear() {
             groups.clear();
+            highlights.clear();
         }
 
         function destroy() {
