@@ -91,9 +91,6 @@ AvatarData::AvatarData() :
     _targetVelocity(0.0f),
     _density(DEFAULT_AVATAR_DENSITY)
 {
-    setBodyPitch(0.0f);
-    setBodyYaw(-90.0f);
-    setBodyRoll(0.0f);
 }
 
 AvatarData::~AvatarData() {
@@ -108,23 +105,6 @@ const QUrl& AvatarData::defaultFullAvatarModelUrl() {
         _defaultFullAvatarModelUrl = QUrl::fromLocalFile(PathUtils::resourcesPath() + "meshes/defaultAvatar_full.fst");
     }
     return _defaultFullAvatarModelUrl;
-}
-
-// There are a number of possible strategies for this set of tools through endRender, below.
-void AvatarData::nextAttitude(glm::vec3 position, glm::quat orientation) {
-    bool success;
-    Transform trans = getTransform(success);
-    if (!success) {
-        qCWarning(avatars) << "Warning -- AvatarData::nextAttitude failed";
-        return;
-    }
-    trans.setTranslation(position);
-    trans.setRotation(orientation);
-    SpatiallyNestable::setTransform(trans, success);
-    if (!success) {
-        qCWarning(avatars) << "Warning -- AvatarData::nextAttitude failed";
-    }
-    updateAttitude();
 }
 
 void AvatarData::setTargetScale(float targetScale) {
@@ -2100,6 +2080,7 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         currentBasis = std::make_shared<Transform>(Transform::fromJson(json[JSON_AVATAR_BASIS]));
     }
 
+    glm::quat orientation;
     if (json.contains(JSON_AVATAR_RELATIVE)) {
         // During playback you can either have the recording basis set to the avatar current state
         // meaning that all playback is relative to this avatars starting position, or
@@ -2111,12 +2092,14 @@ void AvatarData::fromJson(const QJsonObject& json, bool useFrameSkeleton) {
         auto relativeTransform = Transform::fromJson(json[JSON_AVATAR_RELATIVE]);
         auto worldTransform = currentBasis->worldTransform(relativeTransform);
         setPosition(worldTransform.getTranslation());
-        setOrientation(worldTransform.getRotation());
+        orientation = worldTransform.getRotation();
     } else {
         // We still set the position in the case that there is no movement.
         setPosition(currentBasis->getTranslation());
-        setOrientation(currentBasis->getRotation());
+        orientation = currentBasis->getRotation();
     }
+    setOrientation(orientation);
+    updateAttitude(orientation);
 
     // Do after avatar orientation because head look-at needs avatar orientation.
     if (json.contains(JSON_AVATAR_HEAD)) {
@@ -2234,11 +2217,11 @@ void AvatarData::setBodyRoll(float bodyRoll) {
     setOrientation(glm::quat(glm::radians(eulerAngles)));
 }
 
-void AvatarData::setPosition(const glm::vec3& position) {
+void AvatarData::setPositionViaScript(const glm::vec3& position) {
     SpatiallyNestable::setPosition(position);
 }
 
-void AvatarData::setOrientation(const glm::quat& orientation) {
+void AvatarData::setOrientationViaScript(const glm::quat& orientation) {
     SpatiallyNestable::setOrientation(orientation);
 }
 

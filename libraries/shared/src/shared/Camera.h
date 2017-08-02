@@ -127,7 +127,7 @@ private:
     glm::mat4 _projection;
 
     // derived
-    glm::vec3 _position;
+    glm::vec3 _position { 0.0f, 0.0f, 0.0f };
     glm::quat _orientation;
     bool _isKeepLookingAt{ false };
     glm::vec3 _lookingAt;
