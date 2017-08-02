@@ -1207,26 +1207,26 @@
         Settings.setValue(VR_EDIT_SETTING, isAppActive);
     }
 
-    function setTool(tool) {
+    function onUICommand(command) {
         if (toolSelected === TOOL_GROUP) {
             grouping.clear();
         }
 
-        switch (tool) {
-        case "scale":
+        switch (command) {
+        case "scaleTool":
             toolSelected = TOOL_SCALE;
             ui.setToolIcon(ui.SCALE_TOOL);
             break;
-        case "clone":
+        case "cloneTool":
             toolSelected = TOOL_CLONE;
             ui.setToolIcon(ui.CLONE_TOOL);
             break;
-        case "group":
+        case "groupTool":
             toolSelected = TOOL_GROUP;
             ui.setToolIcon(ui.GROUP_TOOL);
             break;
         default:
-            debug("ERROR: Unexpected condition in setTool()!");
+            debug("ERROR: Unexpected command in onUICommand()!");
         }
     }
 
@@ -1313,7 +1313,7 @@
         inputs[RIGHT_HAND] = new Inputs(RIGHT_HAND);
 
         // UI object.
-        ui = new UI(otherHand(dominantHand), inputs[LEFT_HAND], inputs[RIGHT_HAND], setTool);
+        ui = new UI(otherHand(dominantHand), inputs[LEFT_HAND], inputs[RIGHT_HAND], onUICommand);
 
         // Editor objects.
         editors[LEFT_HAND] = new Editor(LEFT_HAND);

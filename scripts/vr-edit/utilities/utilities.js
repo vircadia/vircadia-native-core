@@ -55,3 +55,12 @@ if (typeof Object.clone !== "function") {
         return JSON.parse(JSON.stringify(object));
     };
 }
+
+if (typeof Object.merge !== "function") {
+    Object.merge = function (objectA, objectB) {
+        var a = JSON.stringify(objectA),
+            b = JSON.stringify(objectB);
+        return JSON.parse(a.slice(0, -1) + "," + b.slice(1));
+    };
+}
+
