@@ -2172,6 +2172,10 @@ QList<QString> EntityItemProperties::listChangedProperties() {
         out += "shape";
     }
 
+    if (strokeColorsChanged()) {
+        out += "strokeColors";
+    }
+
     getAnimation().listChangedProperties(out);
     getKeyLight().listChangedProperties(out);
     getSkybox().listChangedProperties(out);
