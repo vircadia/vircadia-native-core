@@ -189,6 +189,7 @@ public:
     DEFINE_PROPERTY(PROP_FACE_CAMERA, FaceCamera, faceCamera, bool, TextEntityItem::DEFAULT_FACE_CAMERA);
     DEFINE_PROPERTY_REF(PROP_ACTION_DATA, ActionData, actionData, QByteArray, QByteArray());
     DEFINE_PROPERTY(PROP_NORMALS, Normals, normals, QVector<glm::vec3>, QVector<glm::vec3>());
+    DEFINE_PROPERTY(PROP_STROKE_COLORS, StrokeColors, strokeColors, QVector<glm::vec3>, QVector<glm::vec3>());
     DEFINE_PROPERTY(PROP_STROKE_WIDTHS, StrokeWidths, strokeWidths, QVector<float>, QVector<float>());
 	DEFINE_PROPERTY(PROP_IS_UV_MODE_STRETCH, IsUVModeStretch, isUVModeStretch, bool, true);
     DEFINE_PROPERTY_REF(PROP_X_TEXTURE_URL, XTextureURL, xTextureURL, QString, "");
