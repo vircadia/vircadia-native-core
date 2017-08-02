@@ -17,8 +17,9 @@ Highlights = function (side) {
 
     var handOverlay,
         entityOverlays = [],
-        GRAB_HIGHLIGHT_COLOR = { red: 240, green: 240, blue: 0 },
-        SCALE_HIGHLIGHT_COLOR = { red: 0, green: 240, blue: 240 },
+        HIGHLIGHT_COLOR = { red: 240, green: 240, blue: 0 },
+        SCALE_COLOR = { red: 0, green: 240, blue: 240 },
+        GROUP_COLOR = { red: 220, green: 60, blue: 220 },
         HAND_HIGHLIGHT_ALPHA = 0.35,
         ENTITY_HIGHLIGHT_ALPHA = 0.8,
         HAND_HIGHLIGHT_DIMENSIONS = { x: 0.2, y: 0.2, z: 0.2 },
@@ -70,9 +71,8 @@ Highlights = function (side) {
         });
     }
 
-    function display(handIntersected, selection, isScale) {
-        var overlayColor = isScale ? SCALE_HIGHLIGHT_COLOR : GRAB_HIGHLIGHT_COLOR,
-            i,
+    function display(handIntersected, selection, overlayColor) {
+        var i,
             length;
 
         // Show/hide hand overlay.
@@ -114,6 +114,9 @@ Highlights = function (side) {
     }
 
     return {
+        HIGHLIGHT_COLOR: HIGHLIGHT_COLOR,
+        SCALE_COLOR: SCALE_COLOR,
+        GROUP_COLOR: GROUP_COLOR,
         display: display,
         clear: clear,
         destroy: destroy

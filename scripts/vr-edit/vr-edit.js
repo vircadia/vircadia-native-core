@@ -612,7 +612,8 @@
             selection.select(highlightedEntityID);
             if (toolSelected !== TOOL_SCALE || !otherEditor.isEditing(highlightedEntityID)) {
                 highlights.display(intersection.handIntersected, selection.selection(),
-                    toolSelected === TOOL_SCALE || otherEditor.isEditing(highlightedEntityID));
+                    toolSelected === TOOL_SCALE || otherEditor.isEditing(highlightedEntityID)
+                        ? highlights.SCALE_CLOR : highlights.HIGHLIGHT_COLOR);
             }
             isOtherEditorEditingEntityID = otherEditor.isEditing(highlightedEntityID);
             wasScaleTool = toolSelected === TOOL_SCALE;
@@ -622,7 +623,8 @@
             selection.select(highlightedEntityID);
             if (toolSelected !== TOOL_SCALE || !otherEditor.isEditing(highlightedEntityID)) {
                 highlights.display(intersection.handIntersected, selection.selection(),
-                    toolSelected === TOOL_SCALE || otherEditor.isEditing(highlightedEntityID));
+                    toolSelected === TOOL_SCALE || otherEditor.isEditing(highlightedEntityID)
+                        ? highlights.SCALE_CLOR : highlights.HIGHLIGHT_COLOR);
             } else {
                 highlights.clear();
             }
@@ -717,7 +719,9 @@
         }
 
         function enterEditorGrouping() {
-            highlights.display(intersection.handIntersected, selection.selection(), false);
+            if (!grouping.includes(highlightedEntityID)) {
+                highlights.display(false, selection.selection(), highlights.GROUP_COLOR);
+            }
             grouping.toggle(selection.selection());
         }
 
@@ -1076,16 +1080,34 @@
     Grouping = function () {
         // Grouping highlights and functions.
 
-        var groups;
+        var groups,
+            highlights,
+            exludedLeftRootEntityID = null,
+            exludedrightRootEntityID = null,
+            excludedRootEntityIDs = [],
+            hasHighlights = false,
+            hasSelectionChanged = false;
 
         if (!this instanceof Grouping) {
             return new Grouping();
         }
 
         groups = new Groups();
+        highlights = new Highlights();
 
         function toggle(selection) {
             groups.toggle(selection);
+            if (groups.count() === 0) {
+                hasHighlights = false;
+                highlights.clear();
+            } else {
+                hasHighlights = true;
+                hasSelectionChanged = true;
+            }
+        }
+
+        function includes(rootEntityID) {
+            return groups.includes(rootEntityID);
         }
 
         function count() {
@@ -1101,7 +1123,30 @@
         }
 
         function update(leftRootEntityID, rightRootEntityID) {
-            // TODO: Update grouping highlights.
+            var hasExludedRootEntitiesChanged;
+
+            hasExludedRootEntitiesChanged = leftRootEntityID !== exludedLeftRootEntityID
+                || rightRootEntityID !== exludedrightRootEntityID;
+
+            if (!hasHighlights || (!hasSelectionChanged && !hasExludedRootEntitiesChanged)) {
+                return;
+            }
+
+            if (hasExludedRootEntitiesChanged) {
+                excludedRootEntityIDs = [];
+                if (leftRootEntityID) {
+                    excludedRootEntityIDs.push(leftRootEntityID);
+                }
+                if (rightRootEntityID) {
+                    excludedRootEntityIDs.push(rightRootEntityID);
+                }
+                exludedLeftRootEntityID = leftRootEntityID;
+                exludedrightRootEntityID = rightRootEntityID;
+            }
+
+            highlights.display(false, groups.selection(excludedRootEntityIDs), highlights.GROUP_COLOR);
+
+            hasSelectionChanged = false;
         }
 
         function clear() {
@@ -1109,11 +1154,19 @@
         }
 
         function destroy() {
-            groups.destroy();
+            if (groups) {
+                groups.destroy();
+                groups = null;
+            }
+            if (highlights) {
+                highlights.destroy();
+                highlights = null;
+            }
         }
 
         return {
             toggle: toggle,
+            includes: includes,
             count: count,
             group: group,
             ungroup: ungroup,

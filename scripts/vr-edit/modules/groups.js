@@ -46,8 +46,26 @@ Groups = function () {
         }
     }
 
-    function getGroups() {
-        return groupSelectionDetails;
+    function selection(excludes) {
+        var result = [],
+            i,
+            lengthI,
+            j,
+            lengthJ;
+
+        for (i = 0, lengthI = groupRootEntityIDs.length; i < lengthI; i += 1) {
+            if (excludes.indexOf(groupRootEntityIDs[i]) === -1) {
+                for (j = 0, lengthJ = groupSelectionDetails[i].length; j < lengthJ; j += 1) {
+                    result.push(groupSelectionDetails[i][j]);
+                }
+            }
+        }
+
+        return result;
+    }
+
+    function includes(rootEntityID) {
+        return groupRootEntityIDs.indexOf(rootEntityID) !== -1;
     }
 
     function count() {
@@ -73,7 +91,8 @@ Groups = function () {
 
     return {
         toggle: toggle,
-        groups: getGroups,
+        selection: selection,
+        includes: includes,
         count: count,
         group: group,
         ungroup: ungroup,
