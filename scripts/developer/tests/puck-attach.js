@@ -1,21 +1,13 @@
 //
 //  Created by Anthony J. Thibault on 2017/06/20
+//  Modified by Robbie Uvanni to support multiple pucks and easier placement of pucks on entities, on 2017/08/01
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 //  When this script is running, a new app button, named "PUCKTACH", will be added to the toolbar/tablet.
-//  Click this app to bring up the puck attachment panel.  This panel contains the following fields.
-//
-//  * Tracked Object - A drop down list of all the available pucks found.  If no pucks are found this list will only have a single NONE entry.
-//    Closing and re-opening the app will refresh this list.
-//  * Model URL - A model url of the model you wish to be attached to the specified puck.
-//  * Position X, Y, Z - used to apply an offset between the puck and the attached model.
-//  * Rot X, Y, Z - used to apply euler angle offsets, in degrees, between the puck and the attached model.
-//  * Create Attachment - when this button is pressed a new Entity will be created at the specified puck's location.
-//    If a puck atttachment already exists, it will be destroyed before the new entity is created.
-//  * Destroy Attachmetn - destroies the entity attached to the puck.
+//  Click this app to bring up the puck attachment panel.
 //
 
 /* eslint indent: ["error", 4, { "outerIIFEBody": 0 }] */
@@ -25,7 +17,7 @@ Script.include("/~/system/libraries/Xform.js");
 (function() { // BEGIN LOCAL_SCOPE
 
 var TABLET_BUTTON_NAME = "PUCKTACH";
-var HTML_URL = "https://s3.amazonaws.com/hifi-public/tony/html/puck-attach.html";
+var TABLET_APP_URL = "http://content.highfidelity.com/seefo/production/puck-attach/puck-attach.html";
 
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 var tabletButton = tablet.addButton({
@@ -34,20 +26,9 @@ var tabletButton = tablet.addButton({
     activeIcon: "https://s3.amazonaws.com/hifi-public/tony/icons/puck-a.svg"
 });
 
-tabletButton.clicked.connect(function () {
-    if (shown) {
-        tablet.gotoHomeScreen();
-    } else {
-        tablet.gotoWebScreen(HTML_URL);
-    }
-});
-
 var shown = false;
-var attachedEntity;
-var attachedObj;
-
 function onScreenChanged(type, url) {
-    if (type === "Web" && url === HTML_URL) {
+    if (type === "Web" && url === TABLET_APP_URL) {
         tabletButton.editProperties({isActive: true});
         if (!shown) {
             // hook up to event bridge
@@ -57,9 +38,7 @@ function onScreenChanged(type, url) {
                 // send available tracked objects to the html running in the tablet.
                 var availableTrackedObjects = getAvailableTrackedObjects();
                 tablet.emitScriptEvent(JSON.stringify(availableTrackedObjects));
-
-                // print("PUCK-ATTACH: availableTrackedObjects = " + JSON.stringify(availableTrackedObjects));
-            }, 1000);  // wait 1 sec before sending..
+            }, 1000); // wait 1 sec before sending..
         }
         shown = true;
     } else {
@@ -71,13 +50,15 @@ function onScreenChanged(type, url) {
         shown = false;
     }
 }
-
 tablet.screenChanged.connect(onScreenChanged);
 
+function pad(num, size) {
+    var tempString = "000000000" + num;
+    return tempString.substr(tempString.length - size);
+}
 function indexToTrackedObjectName(index) {
     return "TrackedObject" + pad(index, 2);
 }
-
 function getAvailableTrackedObjects() {
     var available = [];
     var NUM_TRACKED_OBJECTS = 16;
@@ -92,83 +73,139 @@ function getAvailableTrackedObjects() {
     return available;
 }
 
-function attach(obj) {
-    attachedEntity = Entities.addEntity({
-        type: "Model",
-        name: "puck-attach-entity",
-        modelURL: obj.modelurl
-    });
-    attachedObj = obj;
-    var localPos = {x: Number(obj.posx), y: Number(obj.posy), z: Number(obj.posz)};
-    var localRot = Quat.fromVec3Degrees({x: Number(obj.rotx), y: Number(obj.roty), z: Number(obj.rotz)});
-    attachedObj.localXform = new Xform(localRot, localPos);
-    var key = indexToTrackedObjectName(Number(attachedObj.puckno));
-    attachedObj.key = key;
-
-    // print("PUCK-ATTACH: attachedObj = " + JSON.stringify(attachedObj));
-
-    Script.update.connect(update);
-    update();
+function getRelativePosition(origin, rotation, offset) {
+    var relativeOffset = Vec3.multiplyQbyV(rotation, offset);
+    var worldPosition = Vec3.sum(origin, relativeOffset);
+    return worldPosition;
+}
+function getPropertyForEntity(entityID, propertyName) {
+    return Entities.getEntityProperties(entityID, [propertyName])[propertyName];
 }
 
-function remove() {
-    if (attachedEntity) {
-        Script.update.disconnect(update);
-        Entities.deleteEntity(attachedEntity);
-        attachedEntity = undefined;
-    }
-    attachedObj = undefined;
-}
+var VIVE_PUCK_MODEL = "http://content.highfidelity.com/seefo/production/puck-attach/vive_tracker_puck.obj";
+var VIVE_PUCK_SEARCH_DISTANCE = 1.5; // metres
+var VIVE_PUCK_NAME = "Tracked Puck";
 
-function pad(num, size) {
-    var tempString = "000000000" + num;
-    return tempString.substr(tempString.length - size);
-}
+var trackedPucks = { };
+var lastPuck = { };
 
-function update() {
-    if (attachedEntity && attachedObj && Controller.Standard) {
-        var pose = Controller.getPoseValue(Controller.Standard[attachedObj.key]);
-        var avatarXform = new Xform(MyAvatar.orientation, MyAvatar.position);
-        var puckXform = new Xform(pose.rotation, pose.translation);
-        var finalXform = Xform.mul(avatarXform, Xform.mul(puckXform, attachedObj.localXform));
-        if (pose && pose.valid) {
-            Entities.editEntity(attachedEntity, {
-                position: finalXform.pos,
-                rotation: finalXform.rot
-            });
-        } else {
-            if (pose) {
-                print("PUCK-ATTACH: WARNING: invalid pose for " + attachedObj.key);
-            } else {
-                print("PUCK-ATTACH: WARNING: could not find key " + attachedObj.key);
+function createPuck(puck) {
+    // create a puck entity and add it to our list of pucks
+    var spawnOffset = Vec3.multiply(Vec3.FRONT, 1.0);
+    var spawnPosition = getRelativePosition(MyAvatar.position, MyAvatar.orientation, spawnOffset);
+
+    // should be an overlay
+    var puckEntityProperties = {
+        "name": "Tracked Puck",
+        "type": "Model",
+        "modelURL": VIVE_PUCK_MODEL,
+        "dimensions": { x: 0.0945, y: 0.0921, z: 0.0423 },
+        "position": spawnPosition,
+        "userData": "{ \"grabbableKey\": { \"grabbable\": true, \"kinematic\": false } }"
+    };
+
+    var puckEntityID = Entities.addEntity(puckEntityProperties);
+    trackedPucks[puck.puckno] = {
+        "puckEntityID": puckEntityID,
+        "trackedEntityID": ""
+    };
+    lastPuck = trackedPucks[puck.puckno];
+}
+function finalizePuck() {
+    // find nearest entity and change its parent to the puck
+    var puckPosition = getPropertyForEntity(lastPuck.puckEntityID, "position");
+    var foundEntities = Entities.findEntities(puckPosition, VIVE_PUCK_SEARCH_DISTANCE);
+
+    var foundEntity;
+    var leastDistance = 999999; // this should be something like Integer.MAX_VALUE
+
+    for (var i = 0; i < foundEntities.length; i++) {
+        var entity = foundEntities[i];
+
+        if (getPropertyForEntity(entity, "name") !== VIVE_PUCK_NAME) {
+            var entityPosition = getPropertyForEntity(entity, "position");
+            var d = Vec3.distance(entityPosition, puckPosition);
+
+            if (d < leastDistance) {
+                leastDistance = d;
+                foundEntity = entity;
             }
         }
+    }
+
+    if (foundEntity) {
+        lastPuck.trackedEntityID = foundEntity;
+        Entities.editEntity(lastPuck.trackedEntityID, { "parentID": lastPuck.puckEntityID });
+    }    
+}
+function updatePucks() {
+    // for each puck, update its position and orientation
+    for (var puck in trackedPucks) {
+        var action = indexToTrackedObjectName(puck);
+        var pose = Controller.getPoseValue(Controller.Standard[action]);
+        if (pose && pose.valid) {
+            if (trackedPucks[puck].trackedEntityID) {
+                var avatarXform = new Xform(MyAvatar.orientation, MyAvatar.position);
+                var puckXform = new Xform(pose.rotation, pose.translation);
+                var finalXform = Xform.mul(avatarXform, Xform.mul(puckXform, Vec3.ZERO));
+
+                Entities.editEntity(trackedPucks[puck].puckEntityID, {
+                    position: finalXform.pos,
+                    rotation: finalXform.rot
+                });
+            } 
+        }
+    }
+}
+function destroyPuck(puckName) {
+    // unparent entity and delete its parent
+    var puckEntityID = trackedPucks[puckName].puckEntityID;
+    var trackedEntityID = trackedPucks[puckName].trackedEntityID;
+
+    Entities.editEntity(trackedEntityID, { "parentID": "{00000000-0000-0000-0000-000000000000}" });
+    Entities.deleteEntity(puckEntityID);
+}
+function destroyPucks() {
+    // remove all pucks and unparent entities
+    for (var puck in trackedPucks) {
+        destroyPuck(puck);
     }
 }
 
 function onWebEventReceived(msg) {
     var obj = {};
-    try {
+
+    try { 
         obj = JSON.parse(msg);
-    } catch (err) {
-        return;
+    } catch (err) { 
+        return; 
     }
-    if (obj.cmd === "attach") {
-        remove();
-        attach(obj);
-    } else if (obj.cmd === "detach") {
-        remove();
+
+    switch (obj.cmd) {
+    case "create":
+        createPuck(obj);
+        break;
+    case "finalize":
+        finalizePuck();
+        break;
     }
 }
 
+Script.update.connect(updatePucks);
 Script.scriptEnding.connect(function () {
-    remove();
     tablet.removeButton(tabletButton);
+    destroyPucks();
     if (shown) {
         tablet.webEventReceived.disconnect(onWebEventReceived);
         tablet.gotoHomeScreen();
     }
     tablet.screenChanged.disconnect(onScreenChanged);
 });
-
+tabletButton.clicked.connect(function () {
+    if (shown) {
+        tablet.gotoHomeScreen();
+    } else {
+        tablet.gotoWebScreen(TABLET_APP_URL);
+    }
+});
 }()); // END LOCAL_SCOPE
