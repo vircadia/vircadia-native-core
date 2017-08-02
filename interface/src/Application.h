@@ -332,14 +332,14 @@ public slots:
     // FIXME: Move addAssetToWorld* methods to own class?
     void addAssetToWorldFromURL(QString url);
     void addAssetToWorldFromURLRequestFinished();
-    void addAssetToWorld(QString filePath, QString zipFile, bool isBlocks);
+    void addAssetToWorld(QString filePath, QString zipFile, bool isZip);
     void addAssetToWorldUnzipFailure(QString filePath);
     void addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy);
     void addAssetToWorldUpload(QString filePath, QString mapping);
     void addAssetToWorldSetMapping(QString filePath, QString mapping, QString hash);
     void addAssetToWorldAddEntity(QString filePath, QString mapping);
 
-    void handleUnzip(QString sourceFile, QStringList destinationFile, bool autoAdd, bool isBlocks);
+    void handleUnzip(QString sourceFile, QStringList destinationFile, bool autoAdd, bool isZip);
 
     FileScriptingInterface* getFileDownloadInterface() { return _fileDownload; }
 
