@@ -32,12 +32,12 @@ FileScriptingInterface::FileScriptingInterface(QObject* parent) : QObject(parent
     // nothing for now
 }
 
-void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool isBlocks) {
+void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool isZip) {
     qCDebug(scriptengine) << "Url that was downloaded: " + url.toString();
     qCDebug(scriptengine) << "Path where download is saved: " + path;
     QString fileName = "/" + path.section("/", -1);
     QString tempDir = path;
-    if (!isBlocks) {
+    if (!isZip) {
         tempDir.remove(fileName);
     } else {
         QTemporaryDir blocks;
@@ -60,7 +60,7 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool
     else {
         qCDebug(scriptengine) << "Unzip failed";
     }
-    emit unzipResult(path, fileList, autoAdd, isBlocks);
+    emit unzipResult(path, fileList, autoAdd, isZip);
 
 }
 

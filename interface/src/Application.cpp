@@ -6259,12 +6259,12 @@ void Application::addAssetToWorldUnzipFailure(QString filePath) {
     addAssetToWorldError(filename, "Couldn't unzip file " + filename + ".");
 }
 
-void Application::addAssetToWorld(QString filePath, QString zipFile, bool isBlocks) {
+void Application::addAssetToWorld(QString filePath, QString zipFile, bool isZip) {
     // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
     QString mapping;
     QString path = filePath;
     QString filename = filenameFromPath(path);
-    if (isBlocks) {
+    if (isZip) {
         QString assetFolder = zipFile.section("/", -1);
         assetFolder.remove(".zip");
         mapping = "/" + assetFolder + "/" + filename;
@@ -6355,6 +6355,7 @@ void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, Q
             if (filePath.endsWith(".obj") || filePath.endsWith(".fbx")) {
                 addAssetToWorldAddEntity(filePath, mapping);
             } else {
+                qCDebug(interfaceapp) << "Zipped contents are not valid entity files";
                 addAssetToWorldInfoDone(filenameFromPath(filePath));
             }
         }
@@ -6646,12 +6647,12 @@ void Application::onAssetToWorldMessageBoxClosed() {
 }
 
 
-void Application::handleUnzip(QString zipFile, QStringList unzipFile, bool autoAdd, bool isBlocks) {
+void Application::handleUnzip(QString zipFile, QStringList unzipFile, bool autoAdd, bool isZip) {
     if (autoAdd) {
         if (!unzipFile.isEmpty()) {
             for (int i = 0; i < unzipFile.length(); i++) {
                 qCDebug(interfaceapp) << "Preparing file for asset server: " << unzipFile.at(i);
-                addAssetToWorld(unzipFile.at(i), zipFile, isBlocks);
+                addAssetToWorld(unzipFile.at(i), zipFile, isZip);
             }
         } else {
             addAssetToWorldUnzipFailure(zipFile);
