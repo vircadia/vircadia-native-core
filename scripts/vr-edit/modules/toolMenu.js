@@ -24,6 +24,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
         menuCallbacks = [],
         optionsOverlays = [],
         optionsCallbacks = [],
+        optionsItems,
         highlightOverlay,
 
         LEFT_HAND = 0,
@@ -83,7 +84,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
             }
         },
 
-        OPTON_PANELS = {
+        OPTONS_PANELS = {
             groupOptions: [
                 {
                     // Background element
@@ -171,9 +172,16 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
             }
         },
 
-        highlightedItem = -1,
+        NONE = -1,
+
+        intersectionOverlays,
+        intersectionCallbacks,
+        intersectionProperties,
+        highlightedItem = NONE,
         highlightedSource = null,
         isHighlightingButton = false,
+        pressedItem = NONE,
+        pressedSource = null,
         isButtonPressed = false,
 
         isDisplaying = false,
@@ -203,8 +211,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
     }
 
     function openOptions(toolOptions) {
-        var options,
-            properties,
+        var properties,
             parentID,
             i,
             length;
@@ -218,43 +225,49 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
 
         // Open specified panel, if any.
         if (toolOptions) {
-            options = OPTON_PANELS[toolOptions];
+            optionsItems = OPTONS_PANELS[toolOptions];
             parentID = menuPanelOverlay;  // Menu panel parents to background panel.
-            for (i = 0, length = options.length; i < length; i += 1) {
-                properties = Object.clone(UI_ELEMENTS[options[i].type].properties);
-                properties = Object.merge(properties, options[i].properties);
+            for (i = 0, length = optionsItems.length; i < length; i += 1) {
+                properties = Object.clone(UI_ELEMENTS[optionsItems[i].type].properties);
+                properties = Object.merge(properties, optionsItems[i].properties);
                 properties.parentID = parentID;
-                optionsOverlays.push(Overlays.addOverlay(UI_ELEMENTS[options[i].type].overlay, properties));
+                optionsOverlays.push(Overlays.addOverlay(UI_ELEMENTS[optionsItems[i].type].overlay, properties));
                 parentID = optionsOverlays[0];  // Menu buttons parent to menu panel.
-                optionsCallbacks.push(options[i].callback);
+                optionsCallbacks.push(optionsItems[i].callback);
             }
         }
     }
 
+
     function update(intersectionOverlayID) {
         var intersectedItem,
-            intersectionOverlays,
-            intersectionCallbacks,
             parentProperties,
-            i,
-            length,
-            CLICK_DELTA = 0.004;
+            BUTTON_PRESS_DELTA = 0.004;
 
-        // Highlight clickable item.
-        intersectedItem = menuOverlays.indexOf(intersectionOverlayID);
-        if (intersectedItem !== -1) {
-            intersectionOverlays = menuOverlays;
-            intersectionCallbacks = menuCallbacks;
-        } else {
-            intersectedItem = optionsOverlays.indexOf(intersectionOverlayID);
+        // Intersection details.
+        if (intersectionOverlayID) {
+            intersectedItem = menuOverlays.indexOf(intersectionOverlayID);
             if (intersectedItem !== -1) {
-                intersectionOverlays = optionsOverlays;
-                intersectionCallbacks = optionsCallbacks;
+                intersectionOverlays = menuOverlays;
+                intersectionCallbacks = menuCallbacks;
+                intersectionProperties = MENU_ITEMS;
+            } else {
+                intersectedItem = optionsOverlays.indexOf(intersectionOverlayID);
+                if (intersectedItem !== -1) {
+                    intersectionOverlays = optionsOverlays;
+                    intersectionCallbacks = optionsCallbacks;
+                    intersectionProperties = optionsItems;
+                }
             }
         }
+        if (!intersectionOverlays) {
+            return;
+        }
 
+        // Highlight clickable item.
         if (intersectedItem !== highlightedItem || intersectionOverlays !== highlightedSource) {
             if (intersectedItem !== -1 && intersectionCallbacks[intersectedItem] !== undefined) {
+                // Highlight new button.
                 parentProperties = Overlays.getProperties(intersectionOverlays[intersectedItem],
                     ["dimensions", "localPosition"]);
                 Overlays.editOverlay(highlightOverlay, {
@@ -269,35 +282,42 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                     color: HIGHLIGHT_PROPERTIES.properties.color,
                     visible: true
                 });
+                highlightedItem = intersectedItem;
                 isHighlightingButton = true;
-            } else {
+            } else if (highlightedItem !== NONE) {
+                // Un-highlight previous button.
                 Overlays.editOverlay(highlightOverlay, {
                     visible: false
                 });
+                highlightedItem = NONE;
                 isHighlightingButton = false;
             }
-            highlightedItem = intersectedItem;
             highlightedSource = intersectionOverlays;
         }
 
-        if (!isHighlightingButton || controlHand.triggerClicked() !== isButtonPressed) {
-            isButtonPressed = isHighlightingButton && controlHand.triggerClicked();
-            for (i = 0, length = menuOverlays.length; i < length; i += 1) {
-                if (menuCallbacks[intersectedItem] !== undefined) {
-                    if (isButtonPressed && intersectedItem === menuOverlays[i]) {
-                        Overlays.editOverlay(menuOverlays[i], {
-                            localPosition: Vec3.sum(MENU_ITEMS[i].properties.LocalPosition, { x: 0, y: 0, z: CLICK_DELTA })
-                        });
-                    } else {
-                        Overlays.editOverlay(menuOverlays[i], {
-                            localPosition: MENU_ITEMS[i].properties.LocalPosition
-                        });
-                    }
-                }
+        // Press button.
+        if (intersectedItem !== pressedItem || intersectionOverlays !== pressedSource
+                || controlHand.triggerClicked() !== isButtonPressed) {
+            if (pressedItem !== NONE) {
+                // Unpress previous button.
+                Overlays.editOverlay(intersectionOverlays[pressedItem], {
+                    localPosition: intersectionProperties[pressedItem].properties.localPosition
+                });
+                pressedItem = NONE;
             }
+            isButtonPressed = isHighlightingButton && controlHand.triggerClicked();
             if (isButtonPressed) {
+                // Press new button.
+                Overlays.editOverlay(intersectionOverlays[intersectedItem], {
+                    localPosition: Vec3.sum(intersectionProperties[intersectedItem].properties.localPosition,
+                        { x: 0, y: 0, z: BUTTON_PRESS_DELTA })
+                });
+                pressedItem = intersectedItem;
+                pressedSource = intersectionOverlays;
+
+                // Button press actions.
                 if (intersectionOverlays === menuOverlays) {
-                    openOptions(MENU_ITEMS[highlightedItem].toolOptions);
+                    openOptions(intersectionProperties[highlightedItem].toolOptions);
                 }
                 commandCallback(intersectionCallbacks[highlightedItem]);
             }
