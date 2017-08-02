@@ -21,8 +21,8 @@ ToolIcon = function (side) {
 
         ICON_COLORS = [
             { red: 0, green: 240, blue: 240 },
-            { red: 240, green: 0, blue: 240 },
-            { red: 240, green: 240, blue: 0 }
+            { red: 240, green: 240, blue: 0 },
+            { red: 220, green: 60, blue: 220 }
         ],
 
         LEFT_HAND = 0,
