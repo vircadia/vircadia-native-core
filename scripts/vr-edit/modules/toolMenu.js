@@ -22,6 +22,8 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
 
         menuOverlays = [],
         menuCallbacks = [],
+        optionsOverlays = [],
+        optionsCallbacks = [],
         highlightOverlay,
 
         LEFT_HAND = 0,
@@ -81,6 +83,39 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
             }
         },
 
+        OPTON_PANELS = {
+            groupOptions: [
+                {
+                    // Background element
+                    id: "toolsOptionsPanel",
+                    type: "panel",
+                    properties: {
+                        localPosition: { x: 0.055, y: 0.0, z: -0.005 }
+                    }
+                },
+                {
+                    id: "groupButton",
+                    type: "button",
+                    properties: {
+                        dimensions: { x: 0.07, y: 0.03, z: 0.01 },
+                        localPosition: { x: 0, y: -0.025, z: -0.005 },
+                        color: { red: 64, green: 240, blue: 64 }
+                    },
+                    callback: "groupButton"
+                },
+                {
+                    id: "ungroupButton",
+                    type: "button",
+                    properties: {
+                        dimensions: { x: 0.07, y: 0.03, z: 0.01 },
+                        localPosition: { x: 0, y: 0.025, z: -0.005 },
+                        color: { red: 240, green: 64, blue: 64 }
+                    },
+                    callback: "ungroupButton"
+                }
+            ]
+        },
+
         MENU_ITEMS = [
             {
                 // Background element
@@ -115,6 +150,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                     localPosition: { x: -0.022, y: 0.0, z: -0.005 },
                     color: { red: 220, green: 60, blue: 220 }
                 },
+                toolOptions: "groupOptions",
                 callback: "groupTool"
             }
         ],
@@ -136,6 +172,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
         },
 
         highlightedItem = -1,
+        highlightedSource = null,
         isHighlightingButton = false,
         isButtonPressed = false,
 
@@ -162,30 +199,74 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
     setHand(side);
 
     function getEntityIDs() {
-        return [menuPanelOverlay].concat(menuOverlays);
+        return [menuPanelOverlay].concat(menuOverlays).concat(optionsOverlays);
+    }
+
+    function openOptions(toolOptions) {
+        var options,
+            properties,
+            parentID,
+            i,
+            length;
+
+        // Close current panel, if any.
+        for (i = 0, length = optionsOverlays.length; i < length; i += 1) {
+            Overlays.deleteOverlay(optionsOverlays[i]);
+            optionsOverlays = [];
+            optionsCallbacks = [];
+        }
+
+        // Open specified panel, if any.
+        if (toolOptions) {
+            options = OPTON_PANELS[toolOptions];
+            parentID = menuPanelOverlay;  // Menu panel parents to background panel.
+            for (i = 0, length = options.length; i < length; i += 1) {
+                properties = Object.clone(UI_ELEMENTS[options[i].type].properties);
+                properties = Object.merge(properties, options[i].properties);
+                properties.parentID = parentID;
+                optionsOverlays.push(Overlays.addOverlay(UI_ELEMENTS[options[i].type].overlay, properties));
+                parentID = optionsOverlays[0];  // Menu buttons parent to menu panel.
+                optionsCallbacks.push(options[i].callback);
+            }
+        }
     }
 
     function update(intersectionOverlayID) {
         var intersectedItem,
+            intersectionOverlays,
+            intersectionCallbacks,
+            parentProperties,
             i,
             length,
             CLICK_DELTA = 0.004;
 
         // Highlight clickable item.
         intersectedItem = menuOverlays.indexOf(intersectionOverlayID);
-        if (intersectedItem !== highlightedItem) {
-            if (intersectedItem !== -1 && menuCallbacks[intersectedItem] !== undefined) {
+        if (intersectedItem !== -1) {
+            intersectionOverlays = menuOverlays;
+            intersectionCallbacks = menuCallbacks;
+        } else {
+            intersectedItem = optionsOverlays.indexOf(intersectionOverlayID);
+            if (intersectedItem !== -1) {
+                intersectionOverlays = optionsOverlays;
+                intersectionCallbacks = optionsCallbacks;
+            }
+        }
+
+        if (intersectedItem !== highlightedItem || intersectionOverlays !== highlightedSource) {
+            if (intersectedItem !== -1 && intersectionCallbacks[intersectedItem] !== undefined) {
+                parentProperties = Overlays.getProperties(intersectionOverlays[intersectedItem],
+                    ["dimensions", "localPosition"]);
                 Overlays.editOverlay(highlightOverlay, {
-                    parentID: menuOverlays[intersectedItem],
+                    parentID: intersectionOverlays[intersectedItem],
                     dimensions: {
-                        x: UI_ELEMENTS[MENU_ITEMS[intersectedItem].type].properties.dimensions.x + HIGHLIGHT_PROPERTIES.xDelta,
-                        y: UI_ELEMENTS[MENU_ITEMS[intersectedItem].type].properties.dimensions.y + HIGHLIGHT_PROPERTIES.yDelta,
+                        x: parentProperties.dimensions.x + HIGHLIGHT_PROPERTIES.xDelta,
+                        y: parentProperties.dimensions.y + HIGHLIGHT_PROPERTIES.yDelta,
                         z: HIGHLIGHT_PROPERTIES.zDimension
                     },
-                    localPosition: Vec3.sum(MENU_ITEMS[intersectedItem].properties,
-                        HIGHLIGHT_PROPERTIES.properties.localPosition),
-                    localRotation: HIGHLIGHT_PROPERTIES.properties.localRotation,  // Needs to be set again for some reason.
-                    color: HIGHLIGHT_PROPERTIES.properties.color,  // ""
+                    localPosition: HIGHLIGHT_PROPERTIES.properties.localPosition,
+                    localRotation: HIGHLIGHT_PROPERTIES.properties.localRotation,
+                    color: HIGHLIGHT_PROPERTIES.properties.color,
                     visible: true
                 });
                 isHighlightingButton = true;
@@ -196,6 +277,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                 isHighlightingButton = false;
             }
             highlightedItem = intersectedItem;
+            highlightedSource = intersectionOverlays;
         }
 
         if (!isHighlightingButton || controlHand.triggerClicked() !== isButtonPressed) {
@@ -211,11 +293,13 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                             localPosition: MENU_ITEMS[i].properties.LocalPosition
                         });
                     }
-
                 }
             }
             if (isButtonPressed) {
-                commandCallback(MENU_ITEMS[highlightedItem].callback);
+                if (intersectionOverlays === menuOverlays) {
+                    openOptions(MENU_ITEMS[highlightedItem].toolOptions);
+                }
+                commandCallback(intersectionCallbacks[highlightedItem]);
             }
         }
     }

@@ -214,16 +214,16 @@
             toolIcon.clear();
         }
 
-        function display() {
-            var uiEntityIDs;
-
-            toolMenu.display();
-            createPalette.display();
-
-            uiEntityIDs = [].concat(toolMenu.entityIDs(), createPalette.entityIDs());
+        function setUIEntities() {
+            var uiEntityIDs = [].concat(toolMenu.entityIDs(), createPalette.entityIDs());
             leftInputs.setUIEntities(side === RIGHT_HAND ? uiEntityIDs : []);
             rightInputs.setUIEntities(side === LEFT_HAND ? uiEntityIDs : []);
+        }
 
+        function display() {
+            toolMenu.display();
+            createPalette.display();
+            setUIEntities();
             isDisplaying = true;
         }
 
@@ -268,6 +268,7 @@
             CLONE_TOOL: toolIcon.CLONE_TOOL,
             GROUP_TOOL: toolIcon.GROUP_TOOL,
             display: display,
+            updateUIEntities: setUIEntities,
             update: update,
             clear: clear,
             destroy: destroy
@@ -1216,14 +1217,23 @@
         case "scaleTool":
             toolSelected = TOOL_SCALE;
             ui.setToolIcon(ui.SCALE_TOOL);
+            ui.updateUIEntities();
             break;
         case "cloneTool":
             toolSelected = TOOL_CLONE;
             ui.setToolIcon(ui.CLONE_TOOL);
+            ui.updateUIEntities();
             break;
         case "groupTool":
             toolSelected = TOOL_GROUP;
             ui.setToolIcon(ui.GROUP_TOOL);
+            ui.updateUIEntities();
+            break;
+        case "groupButton":
+            grouping.group();
+            break;
+        case "ungroupButton":
+            grouping.ungroup();
             break;
         default:
             debug("ERROR: Unexpected command in onUICommand()!");
