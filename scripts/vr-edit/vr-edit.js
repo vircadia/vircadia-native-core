@@ -37,9 +37,12 @@
         editors = [],
         LEFT_HAND = 0,
         RIGHT_HAND = 1,
+        Grouping,
+        grouping,
 
         // Modules
         CreatePalette,
+        Groups,
         Hand,
         Handles,
         Highlights,
@@ -61,6 +64,7 @@
 
     // Modules
     Script.include("./modules/createPalette.js");
+    Script.include("./modules/groups.js");
     Script.include("./modules/hand.js");
     Script.include("./modules/handles.js");
     Script.include("./modules/highlights.js");
@@ -713,11 +717,12 @@
         }
 
         function enterEditorGrouping() {
-            // TODO: Add/remove highlightedEntityID to/from groups.
+            highlights.display(intersection.handIntersected, selection.selection(), false);
+            grouping.toggle(selection.selection());
         }
 
         function exitEditorGrouping() {
-            // Nothing to do.
+            highlights.clear();
         }
 
         STATE_MACHINE = {
@@ -1068,6 +1073,57 @@
     };
 
 
+    Grouping = function () {
+        // Grouping highlights and functions.
+
+        var groups;
+
+        if (!this instanceof Grouping) {
+            return new Grouping();
+        }
+
+        groups = new Groups();
+
+        function toggle(selection) {
+            groups.toggle(selection);
+        }
+
+        function count() {
+            return groups.count();
+        }
+
+        function group() {
+            groups.group();
+        }
+
+        function ungroup() {
+            groups.ungroup();
+        }
+
+        function update(leftRootEntityID, rightRootEntityID) {
+            // TODO: Update grouping highlights.
+        }
+
+        function clear() {
+            groups.clear();
+        }
+
+        function destroy() {
+            groups.destroy();
+        }
+
+        return {
+            toggle: toggle,
+            count: count,
+            group: group,
+            ungroup: ungroup,
+            update: update,
+            clear: clear,
+            destroy: destroy
+        };
+    };
+
+
     function update() {
         // Main update loop.
         updateTimer = null;
@@ -1084,6 +1140,9 @@
         editors[RIGHT_HAND].update();
         editors[LEFT_HAND].apply();
         editors[RIGHT_HAND].apply();
+
+        // Grouping display.
+        grouping.update(editors[LEFT_HAND].rootEntityID(), editors[RIGHT_HAND].rootEntityID());
 
         updateTimer = Script.setTimeout(update, UPDATE_LOOP_TIMEOUT);
     }
@@ -1203,6 +1262,9 @@
         editors[LEFT_HAND].setReferences(inputs[LEFT_HAND], editors[RIGHT_HAND]);
         editors[RIGHT_HAND].setReferences(inputs[RIGHT_HAND], editors[LEFT_HAND]);
 
+        // Grouping object.
+        grouping = new Grouping();
+
         // Settings changes.
         MyAvatar.dominantHandChanged.connect(onDominantHandChanged);
 
@@ -1228,6 +1290,11 @@
             button.clicked.disconnect(onAppButtonClicked);
             tablet.removeButton(button);
             button = null;
+        }
+
+        if (grouping) {
+            grouping.destroy();
+            grouping = null;
         }
 
         if (editors[LEFT_HAND]) {

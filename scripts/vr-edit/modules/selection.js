@@ -31,6 +31,7 @@ Selection = function (side) {
 
     function traverseEntityTree(id, result) {
         // Recursively traverses tree of entities and their children, gather IDs and properties.
+        // The root entity is always the first entry.
         var children,
             properties,
             SELECTION_PROPERTIES = ["position", "registrationPoint", "rotation", "dimensions", "parentID", "localPosition",
