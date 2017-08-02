@@ -44,7 +44,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
             alpha: 1.0,
             parentID: AVATAR_SELF_ID,
             ignoreRayIntersection: true,
-            visible: true
+            visible: false
         },
 
         MENU_PANEL_PROPERTIES = {
@@ -177,12 +177,12 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
         intersectionOverlays,
         intersectionCallbacks,
         intersectionProperties,
-        highlightedItem = NONE,
-        highlightedSource = null,
-        isHighlightingButton = false,
-        pressedItem = NONE,
-        pressedSource = null,
-        isButtonPressed = false,
+        highlightedItem,
+        highlightedSource,
+        isHighlightingButton,
+        pressedItem,
+        pressedSource,
+        isButtonPressed,
 
         isDisplaying = false,
 
@@ -238,6 +238,9 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
         }
     }
 
+    function clearTool() {
+        openOptions();
+    }
 
     function update(intersectionOverlayID) {
         var intersectedItem,
@@ -372,6 +375,17 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
         properties.parentID = menuOriginOverlay;
         highlightOverlay = Overlays.addOverlay("cube", properties);
 
+        // Initial values.
+        intersectionOverlays = null;
+        intersectionCallbacks = null;
+        intersectionProperties = null;
+        highlightedItem = NONE;
+        highlightedSource = null;
+        isHighlightingButton = false;
+        pressedItem = NONE;
+        pressedSource = null;
+        isButtonPressed = false;
+
         isDisplaying = true;
     }
 
@@ -385,11 +399,21 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
         }
 
         Overlays.deleteOverlay(highlightOverlay);
+        for (i = 0, length = optionsOverlays.length; i < length; i += 1) {
+            Overlays.deleteOverlay(optionsOverlays[i]);
+        }
+        optionsOverlays = [];
+        optionsCallbacks = [];
+
         for (i = 0, length = menuOverlays.length; i < length; i += 1) {
             Overlays.deleteOverlay(menuOverlays[i]);
         }
+        menuOverlays = [];
+        menuCallbacks = [];
+
         Overlays.deleteOverlay(menuPanelOverlay);
         Overlays.deleteOverlay(menuOriginOverlay);
+
         isDisplaying = false;
     }
 
@@ -400,6 +424,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
     return {
         setHand: setHand,
         entityIDs: getEntityIDs,
+        clearTool: clearTool,
         update: update,
         display: display,
         clear: clear,

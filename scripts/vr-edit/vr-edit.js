@@ -212,6 +212,7 @@
 
         function clearToolIcon() {
             toolIcon.clear();
+            toolMenu.clearTool();
         }
 
         function setUIEntities() {
@@ -1240,6 +1241,23 @@
         }
     }
 
+    function startApp() {
+        ui.display();
+        update();
+    }
+
+    function stopApp() {
+        Script.clearTimeout(updateTimer);
+        updateTimer = null;
+        inputs[LEFT_HAND].clear();
+        inputs[RIGHT_HAND].clear();
+        ui.clear();
+        grouping.clear();
+        editors[LEFT_HAND].clear();
+        editors[RIGHT_HAND].clear();
+        toolSelected = TOOL_NONE;
+    }
+
     function onAppButtonClicked() {
         // Application tablet/toolbar button clicked.
         isAppActive = !isAppActive;
@@ -1247,16 +1265,9 @@
         button.editProperties({ isActive: isAppActive });
 
         if (isAppActive) {
-            ui.display();
-            update();
+            startApp();
         } else {
-            Script.clearTimeout(updateTimer);
-            updateTimer = null;
-            inputs[LEFT_HAND].clear();
-            inputs[RIGHT_HAND].clear();
-            ui.clear();
-            editors[LEFT_HAND].clear();
-            editors[RIGHT_HAND].clear();
+            stopApp();
         }
     }
 
@@ -1265,33 +1276,15 @@
 
         if (isAppActive) {
             // Stop operations.
-            Script.clearTimeout(updateTimer);
-            updateTimer = null;
-            inputs[LEFT_HAND].clear();
-            inputs[RIGHT_HAND].clear();
-            ui.clear();
-            editors[LEFT_HAND].clear();
-            editors[RIGHT_HAND].clear();
+            stopApp();
         }
 
         // Swap UI hands.
         ui.setHand(otherHand(dominantHand));
-        switch (toolSelected) {
-        case TOOL_SCALE:
-            ui.setToolIcon(ui.SCALE_TOOL);
-            break;
-        case TOOL_CLONE:
-            ui.setToolIcon(ui.CLONE_TOOL);
-            break;
-        case TOOL_GROUP:
-            ui.setToolIcon(ui.GROUP_TOOL);
-            break;
-        }
 
         if (isAppActive) {
             // Resume operations.
-            ui.display();
-            update();
+            startApp();
         }
     }
 
