@@ -417,7 +417,7 @@ var toolBar = (function () {
         createButton = activeButton;
         tablet.screenChanged.connect(function (type, url) {
             if (isActive && (type !== "QML" || url !== "Edit.qml")) {
-                that.toggle();
+                that.setActive(false)
             }
         });
         tablet.fromQml.connect(fromQml);
