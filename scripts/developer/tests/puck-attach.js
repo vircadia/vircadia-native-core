@@ -140,18 +140,25 @@ function finalizePuck() {
 }
 function updatePucks() {
     // for each puck, update its position and orientation
-    for (var puck in trackedPucks) {
-        var action = indexToTrackedObjectName(puck);
+    for (var puckName in trackedPucks) {
+        var action = indexToTrackedObjectName(puckName);
         var pose = Controller.getPoseValue(Controller.Standard[action]);
         if (pose && pose.valid) {
-            if (trackedPucks[puck].trackedEntityID) {
+            var puck = trackedPucks[puckName];
+            if (puck.trackedEntityID) {
                 var avatarXform = new Xform(MyAvatar.orientation, MyAvatar.position);
                 var puckXform = new Xform(pose.rotation, pose.translation);
                 var finalXform = Xform.mul(avatarXform, Xform.mul(puckXform, Vec3.ZERO));
 
-                Entities.editEntity(trackedPucks[puck].puckEntityID, {
+                Entities.editEntity(puck.puckEntityID, {
                     position: finalXform.pos,
-                    rotation: finalXform.rot
+                    rotation: finalXform.rot,
+                });
+                
+                // in case someone grabbed both entities and destroyed the 
+                // child/parent relationship
+                Entities.editEntity(puck.trackedEntityID, {
+                    parentID: puck.puckEntityID
                 });
             } 
         }
