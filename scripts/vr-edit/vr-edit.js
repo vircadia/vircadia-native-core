@@ -1208,6 +1208,10 @@
     }
 
     function setTool(tool) {
+        if (toolSelected === TOOL_GROUP) {
+            grouping.clear();
+        }
+
         switch (tool) {
         case "scale":
             toolSelected = TOOL_SCALE;
