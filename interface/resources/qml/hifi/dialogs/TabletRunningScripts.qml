@@ -45,6 +45,8 @@ Rectangle {
         letterBoxMessage.text = message;
         letterBoxMessage.visible = true;
         letterBoxMessage.popupRadius = 0;
+        letterBoxMessage.headerGlyphSize = 20
+        letterBoxMessage.headerTextMargin = 2
     }
 
     Timer {
@@ -198,6 +200,14 @@ Rectangle {
                         color: hifi.buttons.red
                         onClicked: stopAll()
                     }
+
+                    HifiControls.Button {
+                        text: "Load Defaults"
+                        color: hifi.buttons.black
+                        height: 26
+                        visible: root.developerMenuEnabled;
+                        onClicked: loadDefaults()
+                    }
                 }
 
                 HifiControls.VerticalSpacer {
@@ -253,7 +263,7 @@ Rectangle {
                                             reloadScript(model.url)
                                         } else {
                                             letterBox(hifi.glyphs.lock,
-                                                      "Need Developer Mode On",
+                                                      "Developer Mode Only",
                                                       "In order to edit, delete or reload this script," +
                                                       " turn on Developer Mode by going to:" +
                                                       " Menu > Settings > Developer Menus");
@@ -354,14 +364,6 @@ Rectangle {
                             running: false
                             onTriggered: ApplicationInterface.loadDialog();
                         }
-                    }
-
-                    HifiControls.Button {
-                        text: "Load Defaults"
-                        color: hifi.buttons.black
-                        height: 26
-                        visible: root.developerMenuEnabled;
-                        onClicked: loadDefaults()
                     }
                 }
 

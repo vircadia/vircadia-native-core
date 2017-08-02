@@ -51,11 +51,13 @@ ScrollingWindow {
             DesktopLetterboxMessage {
                 visible: true
                 headerGlyph: hifi.glyphs.lock
-                headerText: "Need Developer Mode On"
+                headerText: "Developer Mode Only"
                 text: ( "In order to edit, delete or reload this script," +
                         " turn on Developer Mode by going to:" +
                         " Menu > Settings > Developer Menus")
                 popupRadius: 0
+                headerGlyphSize: 20
+                headerTextMargin: 2
             }
         }
     }
@@ -203,6 +205,14 @@ ScrollingWindow {
                     color: hifi.buttons.red
                     onClicked: stopAll()
                 }
+
+                HifiControls.Button {
+                    text: "Load Defaults"
+                    color: hifi.buttons.black
+                    height: 26
+                    visible: root.developerMenuEnabled;
+                    onClicked: loadDefaults()
+                }
             }
 
             HifiControls.VerticalSpacer {
@@ -333,14 +343,6 @@ ScrollingWindow {
                     color: hifi.buttons.black
                     height: 26
                     onClickedQueued: ApplicationInterface.loadDialog()
-                }
-
-                HifiControls.Button {
-                    text: "Load Defaults"
-                    color: hifi.buttons.black
-                    height: 26
-                    visible: root.developerMenuEnabled;
-                    onClicked: loadDefaults()
                 }
             }
 
