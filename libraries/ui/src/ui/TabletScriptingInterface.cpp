@@ -228,7 +228,12 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
         connect(tabletRootWindow, &QmlWindowClass::fromQml, this, &TabletProxy::fromQml);
     } else {
         removeButtonsFromToolbar();
-        addButtonsToHomeScreen();
+
+        if (_currentPathLoaded == TABLET_SOURCE_URL) {
+            addButtonsToHomeScreen();
+        } else {
+            loadHomeScreen(true);
+        }
 
         // destroy desktop window
         if (_desktopWindow) {
@@ -236,7 +241,6 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
             _desktopWindow = nullptr;
         }
     }
-    loadHomeScreen(true);
 }
 
 static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* buttonProxy) {
