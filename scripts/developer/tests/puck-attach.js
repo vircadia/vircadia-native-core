@@ -83,7 +83,9 @@ function getPropertyForEntity(entityID, propertyName) {
 }
 
 var VIVE_PUCK_MODEL = "http://content.highfidelity.com/seefo/production/puck-attach/vive_tracker_puck.obj";
+var VIVE_PUCK_DIMENSIONS = { x: 0.0945, y: 0.0921, z: 0.0423 }; // 1/1000th scale of model
 var VIVE_PUCK_SEARCH_DISTANCE = 1.5; // metres
+var VIVE_PUCK_SPAWN_DISTANCE = 1.0; // metres
 var VIVE_PUCK_NAME = "Tracked Puck";
 
 var trackedPucks = { };
@@ -91,23 +93,28 @@ var lastPuck = { };
 
 function createPuck(puck) {
     // create a puck entity and add it to our list of pucks
-    var spawnOffset = Vec3.multiply(Vec3.FRONT, 1.0);
+    var spawnOffset = Vec3.multiply(Vec3.FRONT, VIVE_PUCK_SPAWN_DISTANCE);
     var spawnPosition = getRelativePosition(MyAvatar.position, MyAvatar.orientation, spawnOffset);
 
     // should be an overlay
     var puckEntityProperties = {
-        "name": "Tracked Puck",
-        "type": "Model",
-        "modelURL": VIVE_PUCK_MODEL,
-        "dimensions": { x: 0.0945, y: 0.0921, z: 0.0423 },
-        "position": spawnPosition,
-        "userData": "{ \"grabbableKey\": { \"grabbable\": true, \"kinematic\": false } }"
+        name: "Tracked Puck",
+        type: "Model",
+        modelURL: VIVE_PUCK_MODEL,
+        dimensions: VIVE_PUCK_DIMENSIONS,
+        position: spawnPosition,
+        userData: '{ "grabbableKey": { "grabbable": true, "kinematic": false } }'
     };
 
     var puckEntityID = Entities.addEntity(puckEntityProperties);
+    
+    if (trackedPucks.hasOwnProperty(puck.puckno)) {
+        destroyPuck(puck.puckno);
+    }
+    
     trackedPucks[puck.puckno] = {
-        "puckEntityID": puckEntityID,
-        "trackedEntityID": ""
+        puckEntityID: puckEntityID,
+        trackedEntityID: ""
     };
     lastPuck = trackedPucks[puck.puckno];
 }
@@ -117,7 +124,7 @@ function finalizePuck() {
     var foundEntities = Entities.findEntities(puckPosition, VIVE_PUCK_SEARCH_DISTANCE);
 
     var foundEntity;
-    var leastDistance = 999999; // this should be something like Integer.MAX_VALUE
+    var leastDistance = Number.MAX_VALUE;
 
     for (var i = 0; i < foundEntities.length; i++) {
         var entity = foundEntities[i];
@@ -141,6 +148,9 @@ function finalizePuck() {
 function updatePucks() {
     // for each puck, update its position and orientation
     for (var puckName in trackedPucks) {
+        if (!trackedPucks.hasOwnProperty(puckName)) {
+            continue;
+        }
         var action = indexToTrackedObjectName(puckName);
         var pose = Controller.getPoseValue(Controller.Standard[action]);
         if (pose && pose.valid) {
@@ -148,7 +158,7 @@ function updatePucks() {
             if (puck.trackedEntityID) {
                 var avatarXform = new Xform(MyAvatar.orientation, MyAvatar.position);
                 var puckXform = new Xform(pose.rotation, pose.translation);
-                var finalXform = Xform.mul(avatarXform, Xform.mul(puckXform, Vec3.ZERO));
+                var finalXform = Xform.mul(avatarXform, puckXform);
 
                 Entities.editEntity(puck.puckEntityID, {
                     position: finalXform.pos,
@@ -169,13 +179,16 @@ function destroyPuck(puckName) {
     var puckEntityID = trackedPucks[puckName].puckEntityID;
     var trackedEntityID = trackedPucks[puckName].trackedEntityID;
 
+    // remove the puck as a parent entity and then delete the puck
     Entities.editEntity(trackedEntityID, { "parentID": "{00000000-0000-0000-0000-000000000000}" });
     Entities.deleteEntity(puckEntityID);
 }
 function destroyPucks() {
     // remove all pucks and unparent entities
-    for (var puck in trackedPucks) {
-        destroyPuck(puck);
+    for (var puckName in trackedPucks) {
+        if (trackedPucks.hasOwnProperty(puckName)) {
+            destroyPuck(puckName);
+        }
     }
 }
 
