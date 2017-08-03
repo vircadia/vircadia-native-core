@@ -80,16 +80,67 @@ Groups = function () {
     }
 
     function group() {
-        // TODO
+        var rootID,
+            i,
+            count;
+
+        // Make the first entity in the first group the root and link the first entities of all other groups to it.
+        rootID = groupRootEntityIDs[0];
+        for (i = 1, count = groupRootEntityIDs.length; i < count; i += 1) {
+            Entities.editEntity(groupRootEntityIDs[i], {
+                parentID: rootID
+            });
+        }
+
+        // Update selection.
+        groupRootEntityIDs.splice(1, groupRootEntityIDs.length - 1);
+        for (i = 1, count = groupSelectionDetails.length; i < count; i += 1) {
+            groupSelectionDetails[i][0].parentID = rootID;
+            groupSelectionDetails[0] = groupSelectionDetails[0].concat(groupSelectionDetails[i]);
+        }
+        groupSelectionDetails.splice(1, groupSelectionDetails.length - 1);
     }
 
     function ungroup() {
-        // TODO
+        var rootID,
+            childrenIDs,
+            childrenIDIndexes,
+            i,
+            count,
+            NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
+
+        // Compile information on children.
+        rootID = groupRootEntityIDs[0];
+        childrenIDs = [];
+        childrenIDIndexes = [];
+        for (i = 1, count = groupSelectionDetails[0].length; i < count; i += 1) {
+            if (groupSelectionDetails[0][i].parentID === rootID) {
+                childrenIDs.push(groupSelectionDetails[0][i].id);
+                childrenIDIndexes.push(i);
+            }
+        }
+        childrenIDIndexes.push(groupSelectionDetails[0].length);  // Extra item at end to aid updating selection.
+
+        // Unlink direct children from root entity.
+        for (i = 0, count = childrenIDs.length; i < count; i += 1) {
+            Entities.editEntity(childrenIDs[i], {
+                parentID: NULL_UUID
+            });
+        }
+
+        // Update selection.
+        groupRootEntityIDs = groupRootEntityIDs.concat(childrenIDs);
+        for (i = 0, count = childrenIDs.length; i < count; i += 1) {
+            groupSelectionDetails.push(groupSelectionDetails[0].slice(childrenIDIndexes[i], childrenIDIndexes[i + 1]));
+            groupSelectionDetails[i + 1][0].parentID = NULL_UUID;
+        }
+        groupSelectionDetails[0].splice(1, groupSelectionDetails[0].length - childrenIDIndexes[0]);
     }
 
     function clear() {
         groupRootEntityIDs = [];
         groupSelectionDetails = [];
+        numberOfEntitiesSelected = 0;
     }
 
     function destroy() {

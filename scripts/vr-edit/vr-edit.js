@@ -1215,17 +1215,15 @@
     }
 
     function onUICommand(command) {
-        if (toolSelected === TOOL_GROUP) {
-            grouping.clear();
-        }
-
         switch (command) {
         case "scaleTool":
+            grouping.clear();
             toolSelected = TOOL_SCALE;
             ui.setToolIcon(ui.SCALE_TOOL);
             ui.updateUIEntities();
             break;
         case "cloneTool":
+            grouping.clear();
             toolSelected = TOOL_CLONE;
             ui.setToolIcon(ui.CLONE_TOOL);
             ui.updateUIEntities();
