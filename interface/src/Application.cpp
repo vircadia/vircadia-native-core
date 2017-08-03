@@ -1489,7 +1489,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["atp_mapping_requests"] = atpMappingRequests;
 
         properties["throttled"] = _displayPlugin ? _displayPlugin->isThrottled() : false;
-        
+
         QJsonObject bytesDownloaded;
         bytesDownloaded["atp"] = statTracker->getStat(STAT_ATP_RESOURCE_TOTAL_BYTES).toInt();
         bytesDownloaded["http"] = statTracker->getStat(STAT_HTTP_RESOURCE_TOTAL_BYTES).toInt();
@@ -5420,8 +5420,13 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             //ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, transaction);
 
             RenderArgs::OutlineFlags renderOutlineFlags = RenderArgs::RENDER_OUTLINE_NONE;
-            if (DependencyManager::get<ContextOverlayInterface>()->getIsInMarketplaceInspectionMode()) {
-                renderOutlineFlags = RenderArgs::RENDER_OUTLINE_WIREFRAMES;
+            auto contextOverlayInterface = DependencyManager::get<ContextOverlayInterface>();
+            if (contextOverlayInterface->getEnabled()) {
+                if (DependencyManager::get<ContextOverlayInterface>()->getIsInMarketplaceInspectionMode()) {
+                    renderOutlineFlags = RenderArgs::RENDER_OUTLINE_MARKETPLACE_MODE;
+                } else {
+                    renderOutlineFlags = RenderArgs::RENDER_OUTLINE_WIREFRAMES;
+                }
             }
             renderArgs->_outlineFlags = renderOutlineFlags;
         }

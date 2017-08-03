@@ -372,7 +372,10 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
         _model->updateRenderItems();
     }
 
-    bool showingEntityHighlight = ((bool)(args->_outlineFlags & (int)RenderArgs::RENDER_OUTLINE_WIREFRAMES) && getMarketplaceID().length() != 0) || getShouldHighlight();
+    // this simple logic should say we set showingEntityHighlight to true whenever we are in marketplace mode and we have a marketplace id, or
+    // whenever we are not set to none and shouldHighlight is true.
+    bool showingEntityHighlight = ((bool)(args->_outlineFlags & (int)RenderArgs::RENDER_OUTLINE_MARKETPLACE_MODE) && getMarketplaceID().length() != 0) ||
+                                  (args->_outlineFlags != RenderArgs::RENDER_OUTLINE_NONE && getShouldHighlight());
     if (showingEntityHighlight) {
         static glm::vec4 yellowColor(1.0f, 1.0f, 0.0f, 1.0f);
         gpu::Batch& batch = *args->_batch;

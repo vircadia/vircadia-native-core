@@ -710,6 +710,7 @@ function off() {
         Controller.mouseMoveEvent.disconnect(handleMouseMoveEvent);
         tablet.tabletShownChanged.disconnect(tabletVisibilityChanged);
         isWired = false;
+        ContextOverlay.enabled = true
     }
     if (audioTimer) {
         Script.clearInterval(audioTimer);
@@ -718,7 +719,6 @@ function off() {
     triggerPressMapping.disable(); // see above
     removeOverlays();
     Users.requestsDomainListData = false;
-    ContextOverlay.enabled = true;
 }
 
 function tabletVisibilityChanged() {

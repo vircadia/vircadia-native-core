@@ -66,7 +66,8 @@ namespace render {
         enum OutlineFlags {
             RENDER_OUTLINE_NONE = 0,
             RENDER_OUTLINE_WIREFRAMES = 1,
-            RENDER_OUTLINE_SHADER = 2
+            RENDER_OUTLINE_MARKETPLACE_MODE = 2,
+            RENDER_OUTLINE_SHADER = 4
         };
         enum DebugFlags {
             RENDER_DEBUG_NONE = 0,
