@@ -229,9 +229,14 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
         connect(tabletRootWindow, &QmlWindowClass::fromQml, this, &TabletProxy::fromQml);
     } else {
         removeButtonsFromToolbar();
-        addButtonsToHomeScreen();
 
+        if (_currentPathLoaded == TABLET_SOURCE_URL) {
+            addButtonsToHomeScreen();
+        } else {
+            loadHomeScreen(true);
+        }
         //check if running scripts opened and save it for reopen in Tablet
+        qDebug() << __FUNCTION__ << offscreenUi->isVisible("RunningScripts");
         if (offscreenUi->isVisible("RunningScripts")) {
             offscreenUi->hide("RunningScripts");
             _showRunningScripts = true;
@@ -242,11 +247,7 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
             _desktopWindow = nullptr;
         }
     }
-
-    loadHomeScreen(true);
-    emit screenChanged(QVariant("Home"), QVariant(TABLET_SOURCE_URL));
 }
-
 
 static void addButtonProxyToQmlTablet(QQuickItem* qmlTablet, TabletButtonProxy* buttonProxy) {
     Q_ASSERT(QThread::currentThread() == qApp->thread());
@@ -376,6 +377,7 @@ void TabletProxy::setQmlTabletRoot(OffscreenQmlSurface* qmlOffscreenSurface) {
             _initialScreen = false;
         }
 
+        qDebug() << __FUNCTION__ << _showRunningScripts;
         if (_showRunningScripts) {
             _showRunningScripts = false;
             //connect to Tablet shown signal to open running scripts
@@ -488,14 +490,15 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
     }
 
     if (root) {
-        if (_state != State::QML) {
-            removeButtonsFromHomeScreen();
-            QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, path));
-            _state = State::QML;
+        removeButtonsFromHomeScreen(); //works only in Tablet
+        qDebug() << __FUNCTION__ << path << _currentPathLoaded << (int)_state;
+        QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, path));
+        _state = State::QML;
+        if (path != _currentPathLoaded) {
             emit screenChanged(QVariant("QML"), path);
-            _currentPathLoaded = path;
-            QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         }
+        _currentPathLoaded = path;
+        QMetaObject::invokeMethod(root, "setShown", Q_ARG(const QVariant&, QVariant(true)));
     } else {
         qCDebug(uiLogging) << "tablet cannot load QML because _qmlTabletRoot is null";
     }
@@ -506,6 +509,11 @@ bool TabletProxy::pushOntoStack(const QVariant& path) {
         bool result = false;
         BLOCKING_INVOKE_METHOD(this, "pushOntoStack", Q_RETURN_ARG(bool, result), Q_ARG(QVariant, path));
         return result;
+    }
+
+    //set landscape off when pushing menu items while in Create mode
+    if (_landscape) {
+        setLandscape(false);
     }
 
     QObject* root = nullptr;
