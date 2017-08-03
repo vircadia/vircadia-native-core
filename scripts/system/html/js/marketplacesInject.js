@@ -57,7 +57,7 @@
         $("body").append(
             '<div id="marketplace-navigation">' +
                 (!isInitialHiFiPage ? '<input id="back-button" type="button" class="white" value="&lt; Back" />' : '') +
-                (isInitialHiFiPage ? '<span class="glyph">&#x1f6c8;</span> <span class="text">Get items from Blocks and Clara.io!</span>' : '') +
+                (isInitialHiFiPage ? '<span class="glyph">&#x1f6c8;</span> <span class="text">Get items from Clara.io!</span>' : '') +
                 (!isDirectoryPage ? '<input id="all-markets" type="button" class="white" value="See All Markets" />' : '') +
                 (isDirectoryPage ? '<span class="right"><span class="glyph">&#x1f6c8;</span> <span class="text">Select a marketplace to explore.</span><span>' : '') +
             '</div>'
@@ -65,10 +65,7 @@
 
         // Footer actions.
         $("#back-button").on("click", function () {
-            if (window.history.state != null) window.history.back();
-                // to fix back button issue when in directory
-                //else window.location = "http://www.highfidelity.com/marketplace";
-            else window.location = "https://metaverse.highfidelity.com/marketplace?";
+            (window.history.state != null) ? window.history.back() : window.location = "https://metaverse.highfidelity.com/marketplace?";
         });
         $("#all-markets").on("click", function () {
             EventBridge.emitWebEvent(GOTO_DIRECTORY);
@@ -82,11 +79,6 @@
         letUsKnow.replaceWith(letUsKnow.html());
 
         // Add button links.
-
-        /* Blocks not yet implemented 
-        $('#exploreBlocksMarketplace').on('click', function () {
-            window.location = "https://vr.google.com/objects";
-        });*/
         $('#exploreClaraMarketplace').on('click', function () {
             window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
@@ -97,18 +89,6 @@
 
     function injectHiFiCode() {
         // Nothing to do.
-    }
-
-    function injectBlocksCode() {
-        // Make space for marketplaces footer in Blocks pages.
-        /*$("body").append(
-            '<div id="marketplace-navigation">' +
-                '<input id="all-markets" type="button" class="white" value="See All Markets" />' +
-            '</div>'
-        );*/
-        $("body").append(
-            '<p>hello</p>'
-        );
     }
 
     function updateClaraCode() {
@@ -342,15 +322,12 @@
 
         var DIRECTORY = 0;
         var HIFI = 1;
-        var BLOCKS = 2;
-        var CLARA = 3;
+        var CLARA = 2;
         var pageType = DIRECTORY;
 
         if (location.href.indexOf("highfidelity.com/") !== -1) { pageType = HIFI; }
-        if (location.href.indexOf("google.com/") !== -1) { pageType = BLOCKS; }
         if (location.href.indexOf("clara.io/") !== -1) { pageType = CLARA; }
 
-        //if (pageType != BLOCKS) 
         injectCommonCode(pageType === DIRECTORY);
         switch (pageType) {
             case DIRECTORY:
@@ -358,11 +335,6 @@
                 break;
             case HIFI:
                 injectHiFiCode();
-                break;
-            case BLOCKS:
-                console.log("in Blocks");
-                //injectBlocksCode();
-                console.log("blocks injection");
                 break;
             case CLARA:
                 injectClaraCode();
