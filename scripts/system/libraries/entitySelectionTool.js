@@ -1530,7 +1530,6 @@ SelectionDisplay = (function() {
         var rotateHandlesVisible = true;
         var rotationOverlaysVisible = false;
         var translateHandlesVisible = true;
-        var stretchHandlesVisible = true;
         var selectionBoxVisible = true;
         var isPointLight = false;
 
@@ -1543,11 +1542,9 @@ SelectionDisplay = (function() {
             rotationOverlaysVisible = true;
             rotateHandlesVisible = false;
             translateHandlesVisible = false;
-            stretchHandlesVisible = false;
             selectionBoxVisible = false;
         } else if (mode == "TRANSLATE_UP_DOWN" || isPointLight) {
             rotateHandlesVisible = false;
-            stretchHandlesVisible = false;
         } else if (mode != "UNKNOWN") {
             // every other mode is a stretch mode...
             rotateHandlesVisible = false;
@@ -1622,6 +1619,7 @@ SelectionDisplay = (function() {
             return;
         }
 
+        //print( "    Triggering updateRotationHandles");
         that.updateRotationHandles();
 
         var rotation, dimensions, position, registrationPoint;
@@ -1849,201 +1847,212 @@ SelectionDisplay = (function() {
         EdgeFR = Vec3.sum(position, EdgeFR);
         EdgeFL = Vec3.sum(position, EdgeFL);
 
-        var stretchHandlesVisible = spaceMode == SPACE_LOCAL;
-        var extendedStretchHandlesVisible = stretchHandlesVisible && showExtendedStretchHandles;
+        var inModeRotate = (mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL");
+        var stretchHandlesVisible = !inModeRotate && (spaceMode == SPACE_LOCAL);
+        var extendedStretchHandlesVisible = (stretchHandlesVisible && showExtendedStretchHandles);
+        var cloneHandleVisible = !inModeRotate;
+        //print("    Set Non-Light Grabbers Visible - Norm: " + stretchHandlesVisible + " Ext: " + extendedStretchHandlesVisible);
+        var isSingleSelection = (selectionManager.selections.length == 1);
 
-        if (selectionManager.selections.length == 1) {
+        if (isSingleSelection) {
             var properties = Entities.getEntityProperties(selectionManager.selections[0]);
-            if (properties.type == "Light" && properties.isSpotlight) {
+            var isLightSelection = (properties.type == "Light");
+            if ( isLightSelection ) {
+                //print("    Light Selection revoking Non-Light Grabbers Visibility!");
                 stretchHandlesVisible = false;
                 extendedStretchHandlesVisible = false;
+                cloneHandleVisible = false;
+                if(properties.isSpotlight) {
+                    //print("    Trying to show all SpotLight related grabbers");
+                    Overlays.editOverlay(grabberSpotLightCenter, {
+                        position: position,
+                        visible: false,
+                    });
+                    Overlays.editOverlay(grabberSpotLightRadius, {
+                        position: NEAR,
+                        rotation: rotation,
+                        visible: true,
+                    });
+                    var distance = (properties.dimensions.z / 2) * Math.sin(properties.cutoff * (Math.PI / 180));
 
-                Overlays.editOverlay(grabberSpotLightCenter, {
-                    position: position,
-                    visible: false,
-                });
-                Overlays.editOverlay(grabberSpotLightRadius, {
-                    position: NEAR,
-                    rotation: rotation,
-                    visible: true,
-                });
-                var distance = (properties.dimensions.z / 2) * Math.sin(properties.cutoff * (Math.PI / 180));
+                    Overlays.editOverlay(grabberSpotLightL, {
+                        position: EdgeNL,
+                        rotation: rotation,
+                        visible: true,
+                    });
+                    Overlays.editOverlay(grabberSpotLightR, {
+                        position: EdgeNR,
+                        rotation: rotation,
+                        visible: true,
+                    });
+                    Overlays.editOverlay(grabberSpotLightT, {
+                        position: EdgeTN,
+                        rotation: rotation,
+                        visible: true,
+                    });
+                    Overlays.editOverlay(grabberSpotLightB, {
+                        position: EdgeBN,
+                        rotation: rotation,
+                        visible: true,
+                    });
+                    Overlays.editOverlay(grabberSpotLightCircle, {
+                        position: NEAR,
+                        dimensions: {
+                            x: distance,
+                            y: distance,
+                            z: 1
+                        },
+                        lineWidth: 1.5,
+                        rotation: rotation,
+                        visible: true,
+                    });
 
-                Overlays.editOverlay(grabberSpotLightL, {
-                    position: EdgeNL,
-                    rotation: rotation,
-                    visible: true,
-                });
-                Overlays.editOverlay(grabberSpotLightR, {
-                    position: EdgeNR,
-                    rotation: rotation,
-                    visible: true,
-                });
-                Overlays.editOverlay(grabberSpotLightT, {
-                    position: EdgeTN,
-                    rotation: rotation,
-                    visible: true,
-                });
-                Overlays.editOverlay(grabberSpotLightB, {
-                    position: EdgeBN,
-                    rotation: rotation,
-                    visible: true,
-                });
-                Overlays.editOverlay(grabberSpotLightCircle, {
-                    position: NEAR,
-                    dimensions: {
-                        x: distance,
-                        y: distance,
-                        z: 1
-                    },
-                    lineWidth: 1.5,
-                    rotation: rotation,
-                    visible: true,
-                });
+                    Overlays.editOverlay(grabberSpotLightLineT, {
+                        start: position,
+                        end: EdgeTN,
+                        visible: true,
+                    });
+                    Overlays.editOverlay(grabberSpotLightLineB, {
+                        start: position,
+                        end: EdgeBN,
+                        visible: true,
+                    });
+                    Overlays.editOverlay(grabberSpotLightLineR, {
+                        start: position,
+                        end: EdgeNR,
+                        visible: true,
+                    });
+                    Overlays.editOverlay(grabberSpotLightLineL, {
+                        start: position,
+                        end: EdgeNL,
+                        visible: true,
+                    });
 
-                Overlays.editOverlay(grabberSpotLightLineT, {
-                    start: position,
-                    end: EdgeTN,
-                    visible: true,
-                });
-                Overlays.editOverlay(grabberSpotLightLineB, {
-                    start: position,
-                    end: EdgeBN,
-                    visible: true,
-                });
-                Overlays.editOverlay(grabberSpotLightLineR, {
-                    start: position,
-                    end: EdgeNR,
-                    visible: true,
-                });
-                Overlays.editOverlay(grabberSpotLightLineL, {
-                    start: position,
-                    end: EdgeNL,
-                    visible: true,
-                });
+                    //print("    Trying to hide all PointLight related grabbers");
+                    Overlays.editOverlay(grabberPointLightCircleX, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(grabberPointLightCircleY, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(grabberPointLightCircleZ, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(grabberPointLightT, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(grabberPointLightB, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(grabberPointLightL, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(grabberPointLightR, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(grabberPointLightF, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(grabberPointLightN, {
+                        visible: false
+                    });
+                } else { //..it's a PointLight
+                    //print("    Trying to show all PointLight related grabbers");
+                    Overlays.editOverlay(grabberPointLightT, {
+                        position: TOP,
+                        rotation: rotation,
+                        visible: true,
+                    });
+                    Overlays.editOverlay(grabberPointLightB, {
+                        position: BOTTOM,
+                        rotation: rotation,
+                        visible: true,
+                    });
+                    Overlays.editOverlay(grabberPointLightL, {
+                        position: LEFT,
+                        rotation: rotation,
+                        visible: true,
+                    });
+                    Overlays.editOverlay(grabberPointLightR, {
+                        position: RIGHT,
+                        rotation: rotation,
+                        visible: true,
+                    });
+                    Overlays.editOverlay(grabberPointLightF, {
+                        position: FAR,
+                        rotation: rotation,
+                        visible: true,
+                    });
+                    Overlays.editOverlay(grabberPointLightN, {
+                        position: NEAR,
+                        rotation: rotation,
+                        visible: true,
+                    });
+                    Overlays.editOverlay(grabberPointLightCircleX, {
+                        position: position,
+                        rotation: Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(0, 90, 0)),
+                        dimensions: {
+                            x: properties.dimensions.z / 2.0,
+                            y: properties.dimensions.z / 2.0,
+                            z: 1
+                        },
+                        visible: true,
+                    });
+                    Overlays.editOverlay(grabberPointLightCircleY, {
+                        position: position,
+                        rotation: Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(90, 0, 0)),
+                        dimensions: {
+                            x: properties.dimensions.z / 2.0,
+                            y: properties.dimensions.z / 2.0,
+                            z: 1
+                        },
+                        visible: true,
+                    });
+                    Overlays.editOverlay(grabberPointLightCircleZ, {
+                        position: position,
+                        rotation: rotation,
+                        dimensions: {
+                            x: properties.dimensions.z / 2.0,
+                            y: properties.dimensions.z / 2.0,
+                            z: 1
+                        },
+                        visible: true,
+                    });
 
-                Overlays.editOverlay(grabberPointLightCircleX, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberPointLightCircleY, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberPointLightCircleZ, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberPointLightT, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberPointLightB, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberPointLightL, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberPointLightR, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberPointLightF, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberPointLightN, {
-                    visible: false
-                });
-            } else if (properties.type == "Light" && !properties.isSpotlight) {
-                stretchHandlesVisible = false;
-                extendedStretchHandlesVisible = false;
-                Overlays.editOverlay(grabberPointLightT, {
-                    position: TOP,
-                    rotation: rotation,
-                    visible: true,
-                });
-                Overlays.editOverlay(grabberPointLightB, {
-                    position: BOTTOM,
-                    rotation: rotation,
-                    visible: true,
-                });
-                Overlays.editOverlay(grabberPointLightL, {
-                    position: LEFT,
-                    rotation: rotation,
-                    visible: true,
-                });
-                Overlays.editOverlay(grabberPointLightR, {
-                    position: RIGHT,
-                    rotation: rotation,
-                    visible: true,
-                });
-                Overlays.editOverlay(grabberPointLightF, {
-                    position: FAR,
-                    rotation: rotation,
-                    visible: true,
-                });
-                Overlays.editOverlay(grabberPointLightN, {
-                    position: NEAR,
-                    rotation: rotation,
-                    visible: true,
-                });
-                Overlays.editOverlay(grabberPointLightCircleX, {
-                    position: position,
-                    rotation: Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(0, 90, 0)),
-                    dimensions: {
-                        x: properties.dimensions.z / 2.0,
-                        y: properties.dimensions.z / 2.0,
-                        z: 1
-                    },
-                    visible: true,
-                });
-                Overlays.editOverlay(grabberPointLightCircleY, {
-                    position: position,
-                    rotation: Quat.multiply(rotation, Quat.fromPitchYawRollDegrees(90, 0, 0)),
-                    dimensions: {
-                        x: properties.dimensions.z / 2.0,
-                        y: properties.dimensions.z / 2.0,
-                        z: 1
-                    },
-                    visible: true,
-                });
-                Overlays.editOverlay(grabberPointLightCircleZ, {
-                    position: position,
-                    rotation: rotation,
-                    dimensions: {
-                        x: properties.dimensions.z / 2.0,
-                        y: properties.dimensions.z / 2.0,
-                        z: 1
-                    },
-                    visible: true,
-                });
-
-                Overlays.editOverlay(grabberSpotLightRadius, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightL, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightR, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightT, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightB, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightCircle, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightLineL, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightLineR, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightLineT, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightLineB, {
-                    visible: false
-                });
-            } else {
+                    //print("    Trying to hide all SpotLight related grabbers");
+                    Overlays.editOverlay(grabberSpotLightRadius, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(grabberSpotLightL, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(grabberSpotLightR, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(grabberSpotLightT, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(grabberSpotLightB, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(grabberSpotLightCircle, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(grabberSpotLightLineL, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(grabberSpotLightLineR, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(grabberSpotLightLineT, {
+                        visible: false
+                    });
+                    Overlays.editOverlay(grabberSpotLightLineB, {
+                        visible: false
+                    });
+                }
+            } else { //..it's not a light at all
+                //print("    Trying to hide all Light related grabbers");
                 Overlays.editOverlay(grabberSpotLightCenter, {
                     visible: false
                 });
@@ -2106,7 +2115,7 @@ SelectionDisplay = (function() {
                     visible: false
                 });
             }
-        }
+        }//--end of isSingleSelection
 
 
 
@@ -2184,7 +2193,7 @@ SelectionDisplay = (function() {
         });
 
         Overlays.editOverlay(grabberCloner, {
-            visible: true,
+            visible: cloneHandleVisible,
             rotation: rotation,
             position: EdgeTR
         });
@@ -2195,7 +2204,7 @@ SelectionDisplay = (function() {
             position: selectionBoxPosition,
             dimensions: dimensions,
             rotation: rotation,
-            visible: !(mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL"),
+            visible: !inModeRotate,
         });
 
         // Create more selection box overlays if we don't have enough
@@ -2332,7 +2341,7 @@ SelectionDisplay = (function() {
         });
 
         Overlays.editOverlay(baseOfEntityProjectionOverlay, {
-            visible: mode != "ROTATE_YAW" && mode != "ROTATE_PITCH" && mode != "ROTATE_ROLL",
+            visible: !inModeRotate,
             solid: true,
             position: {
                 x: selectionManager.worldPosition.x,
@@ -4134,7 +4143,7 @@ SelectionDisplay = (function() {
 
     // FUNCTION: MOUSE PRESS EVENT
     that.mousePressEvent = function(event) {
-        var wantDebug = true;
+        var wantDebug = false;
         if ( wantDebug ) {
             print( "=============== eST::MousePressEvent BEG =======================");
         }
@@ -4169,7 +4178,9 @@ SelectionDisplay = (function() {
 
             var tool = grabberTools[result.overlayID];
             if (tool) {
-                print("Intersected with known table tool.");
+                if (wantDebug) {
+                    print("Intersected with known table tool( mode: " + tool.mode + " )");
+                }
                 activeTool = tool;
                 mode = tool.mode;
                 somethingClicked = 'tool';
@@ -4177,10 +4188,14 @@ SelectionDisplay = (function() {
                     activeTool.onBegin(event);
                 }
             } else {
-                print("Intersected with unregistered tool...");
+                if (wantDebug) {
+                    print("Intersected with unregistered tool...");
+                }
                 switch (result.overlayID) {
                     case grabberMoveUp:
-                        print("grabberMoveUp");
+                        if (wantDebug){
+                            print("grabberMoveUp");
+                        }
                         mode = "TRANSLATE_UP_DOWN";
                         somethingClicked = mode;
 
@@ -4196,7 +4211,9 @@ SelectionDisplay = (function() {
                     case grabberNEAR:
                     case grabberEdgeTN: // TODO: maybe this should be TOP+NEAR stretching?
                     case grabberEdgeBN: // TODO: maybe this should be BOTTOM+FAR stretching?
-                        print("grabberNear variant");
+                        if(wantDebug){
+                            print("grabberNear variant");
+                        }
                         mode = "STRETCH_NEAR";
                         somethingClicked = mode;
                         break;
@@ -4204,39 +4221,54 @@ SelectionDisplay = (function() {
                     case grabberFAR:
                     case grabberEdgeTF: // TODO: maybe this should be TOP+FAR stretching?
                     case grabberEdgeBF: // TODO: maybe this should be BOTTOM+FAR stretching?
-                        print("grabberFar variant");
+                        if(wantDebug){
+                            print("grabberFar variant");
+                        }
                         mode = "STRETCH_FAR";
                         somethingClicked = mode;
                         break;
                     case grabberTOP:
-                        print("grabberTOP");
+                        if(wantDebug){
+                            print("grabberTOP");
+                        }
                         mode = "STRETCH_TOP";
                         somethingClicked = mode;
                         break;
                     case grabberBOTTOM:
-                        print("grabberBOTTOM");
+                        if(wantDebug){
+                            print("grabberBOTTOM");
+                        }
                         mode = "STRETCH_BOTTOM";
                         somethingClicked = mode;
                         break;
                     case grabberRIGHT:
                     case grabberEdgeTR: // TODO: maybe this should be TOP+RIGHT stretching?
                     case grabberEdgeBR: // TODO: maybe this should be BOTTOM+RIGHT stretching?
-                        print("grabberRight variant");
+                        if(wantDebug){
+                            print("grabberRight variant");
+                        }
                         mode = "STRETCH_RIGHT";
                         somethingClicked = mode;
                         break;
                     case grabberLEFT:
                     case grabberEdgeTL: // TODO: maybe this should be TOP+LEFT stretching?
                     case grabberEdgeBL: // TODO: maybe this should be BOTTOM+LEFT stretching?
-                        print("grabberLeft variant");
+                        if(wantDebug){
+                            print("grabberLeft variant");
+                        }
                         mode = "STRETCH_LEFT";
                         somethingClicked = mode;
                         break;
 
                     default:
-                        print("UNKNOWN( " + result.overlayID + " )");
+                        if(wantDebug){
+                            print("UNKNOWN( " + result.overlayID + " )");
+                        }
                         mode = "UNKNOWN";
                         break;
+                }
+                if(wantDebug){
+                    print("  Unregistered Tool Mode: " + mode );
                 }
             }
         }
@@ -4244,7 +4276,9 @@ SelectionDisplay = (function() {
         // if one of the items above was clicked, then we know we are in translate or stretch mode, and we
         // should hide our rotate handles...
         if (somethingClicked) {
-            print("Click is triggering hiding of handles, hopefully");
+            if(wantDebug){
+                print("    Trying to hide PitchYawRoll Handles");
+            }
             Overlays.editOverlay(yawHandle, {
                 visible: false
             });
@@ -4256,6 +4290,9 @@ SelectionDisplay = (function() {
             });
 
             if (mode != "TRANSLATE_UP_DOWN") {
+                if(wantDebug){
+                    print("    Trying to hide GrabberMoveUp");
+                }
                 Overlays.editOverlay(grabberMoveUp, {
                     visible: false
                 });
@@ -4287,30 +4324,46 @@ SelectionDisplay = (function() {
             originalRoll = roll;
 
             if (result.intersects) {
-                print("Intersection detected with handle...");
                 var resultTool = grabberTools[result.overlayID];
+                if(wantDebug){
+                    print("Intersection detected with handle...");
+                }
                 if (resultTool) {
+                    if(wantDebug){
+                        print("    " + resultTool.mode);
+                    }
                     activeTool = resultTool;
                     mode = resultTool.mode;
                     somethingClicked = 'tool';
                     if (activeTool && activeTool.onBegin) {
+                        if(wantDebug){
+                            print("    Triggering Tool's onBegin");
+                        }
                         activeTool.onBegin(event);
+                    } else if(wantDebug) {
+                        print("    Tool's missing onBegin");
                     }
                 }
                 switch (result.overlayID) {
                     case yawHandle:
-                        print("Handle_YAW");
+                        if(wantDebug){
+                            print("Handle_YAW");
+                        }
                         mode = "ROTATE_YAW";
                         somethingClicked = mode;
                         overlayOrientation = yawHandleRotation;
                         overlayCenter = yawCenter;
                         yawZero = result.intersection;
                         rotationNormal = yawNormal;
-                        print("rotationNormal set to: " + rotationNormal.x + ", " + rotationNormal.y + ", " + rotationNormal.z);
+                        if(wantDebug){
+                            print("rotationNormal set to: " + rotationNormal.x + ", " + rotationNormal.y + ", " + rotationNormal.z);
+                        }
                         break;
 
                     case pitchHandle:
-                        print("Handle_PITCH");
+                        if(wantDebug){
+                            print("Handle_PITCH");
+                        }
                         mode = "ROTATE_PITCH";
                         initialPosition = SelectionManager.worldPosition;
                         somethingClicked = mode;
@@ -4318,18 +4371,24 @@ SelectionDisplay = (function() {
                         overlayCenter = pitchCenter;
                         pitchZero = result.intersection;
                         rotationNormal = pitchNormal;
-                        print("rotationNormal set to: " + rotationNormal.x + ", " + rotationNormal.y + ", " + rotationNormal.z);
+                        if(wantDebug){
+                            print("rotationNormal set to: " + rotationNormal.x + ", " + rotationNormal.y + ", " + rotationNormal.z);
+                        }
                         break;
 
                     case rollHandle:
-                        print("Handle_ROLL");
+                        if(wantDebug){
+                            print("Handle_ROLL");
+                        }
                         mode = "ROTATE_ROLL";
                         somethingClicked = mode;
                         overlayOrientation = rollHandleRotation;
                         overlayCenter = rollCenter;
                         rollZero = result.intersection;
                         rotationNormal = rollNormal;
-                        print("rotationNormal set to: " + rotationNormal.x + ", " + rotationNormal.y + ", " + rotationNormal.z);
+                        if(wantDebug){
+                            print("rotationNormal set to: " + rotationNormal.x + ", " + rotationNormal.y + ", " + rotationNormal.z);
+                        }
                         break;
 
                     default:
@@ -4347,6 +4406,9 @@ SelectionDisplay = (function() {
 
             if (somethingClicked) {
 
+                if(wantDebug){
+                    print("    Trying to show rotateOverlay Handles");
+                }
                 Overlays.editOverlay(rotateOverlayTarget, {
                     visible: true,
                     rotation: overlayOrientation,
@@ -4371,6 +4433,9 @@ SelectionDisplay = (function() {
                     startAt: 0,
                     endAt: 0
                 });
+                if(wantDebug){
+                    print("    Trying to hide PitchYawRoll Handles");
+                }
                 Overlays.editOverlay(yawHandle, {
                     visible: false
                 });
@@ -4381,15 +4446,11 @@ SelectionDisplay = (function() {
                     visible: false
                 });
 
+                if(wantDebug){
+                    print("    Trying to hide Non-Light GrabberHandles");
+                }
 
-                // TODO: these three duplicate prior three, remove them.
-                Overlays.editOverlay(yawHandle, {
-                    visible: false
-                });
-                Overlays.editOverlay(pitchHandle, {
-                    visible: false
-                });
-                Overlays.editOverlay(rollHandle, {
+                Overlays.editOverlay(grabberCloner, {
                     visible: false
                 });
                 Overlays.editOverlay(grabberMoveUp, {
@@ -4485,6 +4546,9 @@ SelectionDisplay = (function() {
                 switch (result.overlayID) {
                     case selectionBox:
                         activeTool = translateXZTool;
+                        if(wantDebug){
+                            print("Clicked selectionBox, Activating Tool: " + activeTool.mode );
+                        }
                         translateXZTool.pickPlanePosition = result.intersection;
                         translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, SelectionManager.worldDimensions.y),
                             SelectionManager.worldDimensions.z);
@@ -4518,7 +4582,10 @@ SelectionDisplay = (function() {
         }
 
         // reset everything as intersectable...
-        // TODO: we could optimize this since some of these were already flipped back
+        // TODO: we could optimize this since some of these were already flipped back(i.e:  just get rid of this)
+        if(wantDebug){
+            print("Trying to set SelectionBox & PitchYawRoll Handles to NOT_IGNORE Rays");
+        }
         Overlays.editOverlay(selectionBox, {
             ignoreRayIntersection: false
         });
@@ -4541,9 +4608,25 @@ SelectionDisplay = (function() {
 
     // FUNCTION: MOUSE MOVE EVENT
     that.mouseMoveEvent = function(event) {
+        var wantDebug = false;
+        if(wantDebug){
+            print( "=============== eST::MouseMoveEvent BEG =======================");
+        }
         if (activeTool) {
+            if(wantDebug){
+                print("    Trigger ActiveTool( " + activeTool.mode + " )'s onMove");
+            }
             activeTool.onMove(event);
+            
+            if(wantDebug){
+                print("    Trigger SelectionManager::update");
+            }
             SelectionManager._update();
+            
+            if(wantDebug){
+                print( "=============== eST::MouseMoveEvent END =======================");
+            }
+            //--EARLY EXIT--( Move handled via active tool)
             return true;
         }
 
@@ -4666,6 +4749,9 @@ SelectionDisplay = (function() {
             }
         }
 
+        if(wantDebug){
+            print("=============== eST::MouseMoveEvent END =======================");
+        }
         return false;
     };
 
@@ -4710,13 +4796,27 @@ SelectionDisplay = (function() {
 
     // FUNCTION: MOUSE RELEASE EVENT
     that.mouseReleaseEvent = function(event) {
-        var showHandles = false;
-        if (activeTool && activeTool.onEnd) {
-            activeTool.onEnd(event);
+        var wantDebug = false;
+        if(wantDebug){
+            print("=============== eST::MouseReleaseEvent BEG =======================");
         }
-        activeTool = null;
+        var showHandles = false;
+        if (activeTool) {
+            if( activeTool.onEnd ) {
+                if(wantDebug){
+                    print("    Triggering ActiveTool( " + activeTool.mode + " )'s onEnd");
+                }
+                activeTool.onEnd(event);
+            }else if(wantDebug){
+                print("    ActiveTool( " + activeTool.mode + " )'s missing onEnd");
+            }
+        }
+        
         // hide our rotation overlays..., and show our handles
         if (mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL") {
+            if(wantDebug){
+                print("    Triggering hide of RotateOverlays");
+            }
             Overlays.editOverlay(rotateOverlayTarget, {
                 visible: false
             });
@@ -4729,22 +4829,26 @@ SelectionDisplay = (function() {
             Overlays.editOverlay(rotateOverlayCurrent, {
                 visible: false
             });
-            showHandles = true;
+            
         }
 
-        if (mode != "UNKNOWN") {
-            showHandles = true;
-        }
-
+        showHandles = (mode != "UNKNOWN");//<base on prior mode
         mode = "UNKNOWN";
+        activeTool = null;
 
         // if something is selected, then reset the "original" properties for any potential next click+move operation
         if (SelectionManager.hasSelection()) {
             if (showHandles) {
+                if(wantDebug){
+                    print("    Triggering that.select");
+                }
                 that.select(SelectionManager.selections[0], event);
             }
         }
 
+        if(wantDebug){
+            print("=============== eST::MouseReleaseEvent END =======================");
+        }
     };
 
     // NOTE: mousePressEvent and mouseMoveEvent from the main script should call us., so we don't hook these:
