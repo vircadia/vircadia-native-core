@@ -50,7 +50,7 @@ public:
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
 
-    glm::vec2 getSize();
+    glm::vec2 getSize() const override;
 
     virtual bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance,
         BoxFace& face, glm::vec3& surfaceNormal) override;
