@@ -615,7 +615,7 @@
             if (toolSelected !== TOOL_SCALE || !otherEditor.isEditing(highlightedEntityID)) {
                 highlights.display(intersection.handIntersected, selection.selection(),
                     toolSelected === TOOL_SCALE || otherEditor.isEditing(highlightedEntityID)
-                        ? highlights.SCALE_CLOR : highlights.HIGHLIGHT_COLOR);
+                        ? highlights.SCALE_COLOR : highlights.HIGHLIGHT_COLOR);
             }
             isOtherEditorEditingEntityID = otherEditor.isEditing(highlightedEntityID);
             wasScaleTool = toolSelected === TOOL_SCALE;
@@ -626,7 +626,7 @@
             if (toolSelected !== TOOL_SCALE || !otherEditor.isEditing(highlightedEntityID)) {
                 highlights.display(intersection.handIntersected, selection.selection(),
                     toolSelected === TOOL_SCALE || otherEditor.isEditing(highlightedEntityID)
-                        ? highlights.SCALE_CLOR : highlights.HIGHLIGHT_COLOR);
+                        ? highlights.SCALE_COLOR : highlights.HIGHLIGHT_COLOR);
             } else {
                 highlights.clear();
             }
