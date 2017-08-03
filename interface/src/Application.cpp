@@ -4193,9 +4193,9 @@ void Application::loadSettings() {
 
     // finish initializing the camera, based on everything we checked above. Third person camera will be used if no settings
     // dictated that we should be in first person
-    _myCamera.setMode((isFirstPerson) ? CAMERA_MODE_FIRST_PERSON : CAMERA_MODE_THIRD_PERSON);
     Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, isFirstPerson);
     Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !isFirstPerson);
+    _myCamera.setMode((isFirstPerson) ? CAMERA_MODE_FIRST_PERSON : CAMERA_MODE_THIRD_PERSON);
     cameraMenuChanged();
 
     auto inputs = pluginManager->getInputPlugins();
