@@ -230,7 +230,7 @@
 
         function update() {
             if (isDisplaying) {
-                toolMenu.update(getIntersection().overlayID);
+                toolMenu.update(getIntersection().overlayID, grouping.groupsCount(), grouping.entitiesCount());
                 createPalette.update(getIntersection().overlayID);
                 toolIcon.update();
             }
@@ -1100,7 +1100,7 @@
 
         function toggle(selection) {
             groups.toggle(selection);
-            if (groups.count() === 0) {
+            if (groups.groupsCount() === 0) {
                 hasHighlights = false;
                 highlights.clear();
             } else {
@@ -1113,8 +1113,12 @@
             return groups.includes(rootEntityID);
         }
 
-        function count() {
-            return groups.count();
+        function groupsCount() {
+            return groups.groupsCount();
+        }
+
+        function entitiesCount() {
+            return groups.entitiesCount();
         }
 
         function group() {
@@ -1171,7 +1175,8 @@
         return {
             toggle: toggle,
             includes: includes,
-            count: count,
+            groupsCount: groupsCount,
+            entitiesCount: entitiesCount,
             group: group,
             ungroup: ungroup,
             update: update,

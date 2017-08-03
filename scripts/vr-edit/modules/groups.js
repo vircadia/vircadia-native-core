@@ -16,7 +16,8 @@ Groups = function () {
     "use strict";
 
     var groupRootEntityIDs = [],
-        groupSelectionDetails = [];
+        groupSelectionDetails = [],
+        numberOfEntitiesSelected = 0;
 
     if (!this instanceof Groups) {
         return new Groups();
@@ -25,11 +26,13 @@ Groups = function () {
     function add(selection) {
         groupRootEntityIDs.push(selection[0].id);
         groupSelectionDetails.push(Object.clone(selection));
+        numberOfEntitiesSelected += selection.length;
     }
 
     function remove(selection) {
         var index = groupRootEntityIDs.indexOf(selection[0].id);
 
+        numberOfEntitiesSelected -= groupSelectionDetails[index].length;
         groupRootEntityIDs.splice(index, 1);
         groupSelectionDetails.splice(index, 1);
     }
@@ -68,8 +71,12 @@ Groups = function () {
         return groupRootEntityIDs.indexOf(rootEntityID) !== -1;
     }
 
-    function count() {
+    function groupsCount() {
         return groupSelectionDetails.length;
+    }
+
+    function entitiesCount() {
+        return numberOfEntitiesSelected;
     }
 
     function group() {
@@ -93,7 +100,8 @@ Groups = function () {
         toggle: toggle,
         selection: selection,
         includes: includes,
-        count: count,
+        groupsCount: groupsCount,
+        entitiesCount: entitiesCount,
         group: group,
         ungroup: ungroup,
         clear: clear,
