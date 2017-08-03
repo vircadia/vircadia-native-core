@@ -187,6 +187,7 @@ TabletProxy::TabletProxy(QObject* parent, const QString& name) : QObject(parent)
     if (QThread::currentThread() != qApp->thread()) {
         qCWarning(uiLogging) << "Creating tablet proxy on wrong thread " << _name;
     }
+    connect(this, &TabletProxy::tabletShownChanged, this, &TabletProxy::onTabletShown);
 }
 
 TabletProxy::~TabletProxy() {
@@ -194,6 +195,7 @@ TabletProxy::~TabletProxy() {
     if (QThread::currentThread() != thread()) {
         qCWarning(uiLogging) << "Destroying tablet proxy on wrong thread" << _name;
     }
+    disconnect(this, &TabletProxy::tabletShownChanged, this, &TabletProxy::onTabletShown);
 }
 
 void TabletProxy::setToolbarMode(bool toolbarMode) {
@@ -235,8 +237,7 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
         } else {
             loadHomeScreen(true);
         }
-        //check if running scripts opened and save it for reopen in Tablet
-        qDebug() << __FUNCTION__ << offscreenUi->isVisible("RunningScripts");
+        //check if running scripts window opened and save it for reopen in Tablet
         if (offscreenUi->isVisible("RunningScripts")) {
             offscreenUi->hide("RunningScripts");
             _showRunningScripts = true;
@@ -322,6 +323,13 @@ void TabletProxy::emitWebEvent(const QVariant& msg) {
     emit webEventReceived(msg);
 }
 
+void TabletProxy::onTabletShown() {
+    if (_tabletShown && _showRunningScripts) {
+        _showRunningScripts = false;
+        pushOntoStack("../../hifi/dialogs/TabletRunningScripts.qml");
+    }
+}
+
 bool TabletProxy::isPathLoaded(const QVariant& path) {
     if (QThread::currentThread() != thread()) {
         bool result = false;
@@ -377,18 +385,7 @@ void TabletProxy::setQmlTabletRoot(OffscreenQmlSurface* qmlOffscreenSurface) {
             _initialScreen = false;
         }
 
-        qDebug() << __FUNCTION__ << _showRunningScripts;
         if (_showRunningScripts) {
-            _showRunningScripts = false;
-            //connect to Tablet shown signal to open running scripts
-            //we cant just call pushOnStack here since RunningScripts draws incorrectly
-            auto conn = std::make_shared<QMetaObject::Connection>();
-            *conn = connect(this, &TabletProxy::tabletShownChanged, this, [this, conn] {
-                QObject::disconnect(*conn); //not needed anymore, disconnect
-                if (_tabletShown) {
-                    pushOntoStack("../../hifi/dialogs/TabletRunningScripts.qml");
-                }
-            });
             //show Tablet. Make sure, setShown implemented in TabletRoot.qml
             QMetaObject::invokeMethod(_qmlTabletRoot, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         }
@@ -491,7 +488,6 @@ void TabletProxy::loadQMLSource(const QVariant& path) {
 
     if (root) {
         removeButtonsFromHomeScreen(); //works only in Tablet
-        qDebug() << __FUNCTION__ << path << _currentPathLoaded << (int)_state;
         QMetaObject::invokeMethod(root, "loadSource", Q_ARG(const QVariant&, path));
         _state = State::QML;
         if (path != _currentPathLoaded) {

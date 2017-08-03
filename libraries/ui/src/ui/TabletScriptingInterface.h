@@ -232,6 +232,7 @@ protected slots:
     void addButtonsToHomeScreen();
     void desktopWindowClosed();
     void emitWebEvent(const QVariant& msg);
+    void onTabletShown();
 protected:
     void removeButtonsFromHomeScreen();
     void loadHomeScreen(bool forceOntoHomeScreen);
