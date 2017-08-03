@@ -24,9 +24,7 @@ Highlights = function (side) {
         ENTITY_HIGHLIGHT_ALPHA = 0.8,
         HAND_HIGHLIGHT_DIMENSIONS = { x: 0.2, y: 0.2, z: 0.2 },
         HAND_HIGHLIGHT_OFFSET = { x: 0.0, y: 0.11, z: 0.02 },
-        LEFT_HAND = 0,
-        AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
-        ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO);
+        LEFT_HAND = 0;
 
     if (!this instanceof Highlights) {
         return new Highlights();
@@ -34,7 +32,7 @@ Highlights = function (side) {
 
     handOverlay = Overlays.addOverlay("sphere", {
         dimensions: HAND_HIGHLIGHT_DIMENSIONS,
-        parentID: AVATAR_SELF_ID,
+        parentID: Uuid.SELF,
         parentJointIndex: MyAvatar.getJointIndex(side === LEFT_HAND
             ? "_CONTROLLER_LEFTHAND"
             : "_CONTROLLER_RIGHTHAND"),
@@ -64,7 +62,7 @@ Highlights = function (side) {
         Overlays.editOverlay(entityOverlays[index], {
             parentID: details.id,
             localPosition: offset,
-            localRotation: ZERO_ROTATION,
+            localRotation: Quat.ZERO,
             dimensions: details.dimensions,
             color: overlayColor,
             visible: true

@@ -28,8 +28,6 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
         highlightOverlay,
 
         LEFT_HAND = 0,
-        AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
-        ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO),
 
         CANVAS_SIZE = { x: 0.22, y: 0.13 },
         PANEL_ORIGIN_POSITION = { x: CANVAS_SIZE.x / 2, y: 0.15, z: -0.04 },
@@ -42,7 +40,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
             localRotation: PANEL_ROOT_ROTATION,
             color: { red: 255, blue: 0, green: 0 },
             alpha: 1.0,
-            parentID: AVATAR_SELF_ID,
+            parentID: Uuid.SELF,
             ignoreRayIntersection: true,
             visible: false
         },
@@ -50,7 +48,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
         MENU_PANEL_PROPERTIES = {
             dimensions: { x: CANVAS_SIZE.x, y: CANVAS_SIZE.y, z: 0.01 },
             localPosition: { x: CANVAS_SIZE.x / 2, y: CANVAS_SIZE.y / 2, z: 0.005 },
-            localRotation: ZERO_ROTATION,
+            localRotation: Quat.ZERO,
             color: { red: 164, green: 164, blue: 164 },
             alpha: 1.0,
             solid: true,
@@ -63,7 +61,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.10, y: 0.12, z: 0.01 },
-                    localRotation: ZERO_ROTATION,
+                    localRotation: Quat.ZERO,
                     color: { red: 192, green: 192, blue: 192 },
                     alpha: 1.0,
                     solid: true,
@@ -75,7 +73,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.03, y: 0.03, z: 0.01 },
-                    localRotation: ZERO_ROTATION,
+                    localRotation: Quat.ZERO,
                     alpha: 1.0,
                     solid: true,
                     ignoreRayIntersection: false,
@@ -176,7 +174,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
             zDimension: 0.001,
             properties: {
                 localPosition: { x: 0, y: 0, z: -0.003 },
-                localRotation: ZERO_ROTATION,
+                localRotation: Quat.ZERO,
                 color: { red: 255, green: 255, blue: 0 },
                 alpha: 0.8,
                 solid: false,

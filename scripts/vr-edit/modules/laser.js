@@ -46,7 +46,6 @@ Laser = function (side) {
         specifiedLaserLength = null,
 
         LEFT_HAND = 0,
-        AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
 
         uiEntityIDs = [],
 
@@ -77,7 +76,7 @@ Laser = function (side) {
         glow: 1.0,
         ignoreRayIntersection: true,
         drawInFront: true,
-        parentID: AVATAR_SELF_ID,
+        parentID: Uuid.SELF,
         parentJointIndex: MyAvatar.getJointIndex(side === LEFT_HAND
             ? "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND"
             : "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND"),

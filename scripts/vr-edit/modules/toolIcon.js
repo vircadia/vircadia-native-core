@@ -28,7 +28,6 @@ ToolIcon = function (side) {
         ],
 
         LEFT_HAND = 0,
-        AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
 
         ICON_DIMENSIONS = { x: 0.1, y: 0.01, z: 0.1 },
         ICON_POSITION = { x: 0, y: 0.01, z: 0 },
@@ -41,7 +40,7 @@ ToolIcon = function (side) {
             localRotation: ICON_ROTATION,
             solid: true,
             alpha: 1.0,
-            parentID: AVATAR_SELF_ID,
+            parentID: Uuid.SELF,
             ignoreRayIntersection: false,
             visible: true
         },

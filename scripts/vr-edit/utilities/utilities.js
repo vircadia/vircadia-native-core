@@ -20,15 +20,26 @@ if (typeof Vec3.max !== "function") {
     };
 }
 
+if (typeof Quat.ZERO !== "object") {
+    Quat.ZERO = Quat.fromVec3Radians(Vec3.ZERO);
+}
+
+if (typeof Uuid.NULL !== "string") {
+    Uuid.NULL = "{00000000-0000-0000-0000-000000000000}";
+}
+
+if (typeof Uuid.SELF !== "string") {
+    Uuid.SELF = "{00000000-0000-0000-0000-000000000001}";
+}
+
 if (typeof Entities.rootOf !== "function") {
     Entities.rootOf = function (entityID) {
         var rootEntityID,
             entityProperties,
-            PARENT_PROPERTIES = ["parentID"],
-            NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
+            PARENT_PROPERTIES = ["parentID"];
         rootEntityID = entityID;
         entityProperties = Entities.getEntityProperties(rootEntityID, PARENT_PROPERTIES);
-        while (entityProperties.parentID && entityProperties.parentID !== NULL_UUID) {
+        while (entityProperties.parentID && entityProperties.parentID !== Uuid.NULL) {
             rootEntityID = entityProperties.parentID;
             entityProperties = Entities.getEntityProperties(rootEntityID, PARENT_PROPERTIES);
         }
@@ -40,10 +51,9 @@ if (typeof Entities.hasEditableRoot !== "function") {
     Entities.hasEditableRoot = function (entityID) {
         var EDITIBLE_ENTITY_QUERY_PROPERTYES = ["parentID", "visible", "locked", "type"],
             NONEDITABLE_ENTITY_TYPES = ["Unknown", "Zone", "Light"],
-            NULL_UUID = "{00000000-0000-0000-0000-000000000000}",
             properties;
         properties = Entities.getEntityProperties(entityID, EDITIBLE_ENTITY_QUERY_PROPERTYES);
-        while (properties.parentID && properties.parentID !== NULL_UUID) {
+        while (properties.parentID && properties.parentID !== Uuid.NULL) {
             properties = Entities.getEntityProperties(properties.parentID, EDITIBLE_ENTITY_QUERY_PROPERTYES);
         }
         return properties.visible && !properties.locked && NONEDITABLE_ENTITY_TYPES.indexOf(properties.type) === -1;
@@ -63,4 +73,3 @@ if (typeof Object.merge !== "function") {
         return JSON.parse(a.slice(0, -1) + "," + b.slice(1));
     };
 }
-

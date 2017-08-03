@@ -106,8 +106,7 @@ Groups = function () {
             childrenIDs,
             childrenIDIndexes,
             i,
-            count,
-            NULL_UUID = "{00000000-0000-0000-0000-000000000000}";
+            count;
 
         // Compile information on children.
         rootID = groupRootEntityIDs[0];
@@ -124,7 +123,7 @@ Groups = function () {
         // Unlink direct children from root entity.
         for (i = 0, count = childrenIDs.length; i < count; i += 1) {
             Entities.editEntity(childrenIDs[i], {
-                parentID: NULL_UUID
+                parentID: Uuid.NULL
             });
         }
 
@@ -132,7 +131,7 @@ Groups = function () {
         groupRootEntityIDs = groupRootEntityIDs.concat(childrenIDs);
         for (i = 0, count = childrenIDs.length; i < count; i += 1) {
             groupSelectionDetails.push(groupSelectionDetails[0].slice(childrenIDIndexes[i], childrenIDIndexes[i + 1]));
-            groupSelectionDetails[i + 1][0].parentID = NULL_UUID;
+            groupSelectionDetails[i + 1][0].parentID = Uuid.NULL;
         }
         groupSelectionDetails[0].splice(1, groupSelectionDetails[0].length - childrenIDIndexes[0]);
     }

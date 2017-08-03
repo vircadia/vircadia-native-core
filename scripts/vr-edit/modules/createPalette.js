@@ -21,8 +21,6 @@ CreatePalette = function (side, leftInputs, rightInputs) {
         cubeHighlightOverlay,
 
         LEFT_HAND = 0,
-        AVATAR_SELF_ID = "{00000000-0000-0000-0000-000000000001}",
-        ZERO_ROTATION = Quat.fromVec3Radians(Vec3.ZERO),
 
         controlJointName,
 
@@ -37,7 +35,7 @@ CreatePalette = function (side, leftInputs, rightInputs) {
             localRotation: PALETTE_ROOT_ROTATION,
             color: { red: 255, blue: 0, green: 0 },
             alpha: 1.0,
-            parentID: AVATAR_SELF_ID,
+            parentID: Uuid.SELF,
             ignoreRayIntersection: true,
             visible: false
         },
@@ -45,7 +43,7 @@ CreatePalette = function (side, leftInputs, rightInputs) {
         PALETTE_PANEL_PROPERTIES = {
             dimensions: { x: CANVAS_SIZE.x, y: CANVAS_SIZE.y, z: 0.001 },
             localPosition: { x: CANVAS_SIZE.x / 2, y: CANVAS_SIZE.y / 2, z: 0 },
-            localRotation: ZERO_ROTATION,
+            localRotation: Quat.ZERO,
             color: { red: 192, green: 192, blue: 192 },
             alpha: 0.3,
             solid: true,
@@ -56,7 +54,7 @@ CreatePalette = function (side, leftInputs, rightInputs) {
         CUBE_PROPERTIES = {
             dimensions: { x: 0.03, y: 0.03, z: 0.03 },
             localPosition: { x: 0.02, y: 0.02, z: 0.0 },
-            localRotation: ZERO_ROTATION,
+            localRotation: Quat.ZERO,
             color: { red: 240, green: 0, blue: 0 },
             alpha: 1.0,
             solid: true,
@@ -67,7 +65,7 @@ CreatePalette = function (side, leftInputs, rightInputs) {
         CUBE_HIGHLIGHT_PROPERTIES = {
             dimensions: { x: 0.034, y: 0.034, z: 0.034 },
             localPosition: { x: 0.02, y: 0.02, z: 0.0 },
-            localRotation: ZERO_ROTATION,
+            localRotation: Quat.ZERO,
             color: { red: 240, green: 240, blue: 0 },
             alpha: 0.8,
             solid: false,
