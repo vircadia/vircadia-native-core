@@ -171,17 +171,19 @@ function finalizePuck(puckName) {
 
     if (foundEntity) {
         lastPuck.trackedEntityID = foundEntity;
-        // remember the userdata for the tracked entity since we're about to
-        // remove it and make it ungrabbable
+        // remember the userdata and collisionless flag for the tracked entity since 
+        // we're about to remove it and make it ungrabbable and collisionless
         lastPuck.trackedEntityUserData = getPropertyForEntity(foundEntity, "userData");
+        lastPuck.trackedEntityCollisionFlag = getPropertyForEntity(foundEntity, "collisionless");
         // update properties of the tracked entity
         Entities.editEntity(lastPuck.trackedEntityID, { 
             "parentID": lastPuck.puckEntityID,
-            "userData": '{ "grabbableKey": { "grabbable": false } }'
+            "userData": '{ "grabbableKey": { "grabbable": false } }',
+            "collisionless": 1
         });
         // remove reference to puck since it is now calibrated and finalized
         lastPuck = undefined;
-    }    
+    }
 }
 function updatePucks() {
     // for each puck, update its position and orientation
@@ -233,14 +235,19 @@ function destroyPuck(puckName) {
     var trackedEntityID = puck.trackedEntityID;
 
     // remove the puck as a parent entity and restore the tracked entities 
-    // former userdata
+    // former userdata and collision flag
     Entities.editEntity(trackedEntityID, { 
         "parentID": "{00000000-0000-0000-0000-000000000000}",
-        "userData": puck.trackedEntityUserData
+        "userData": puck.trackedEntityUserData,
+        "collisionless": puck.trackedEntityCollisionFlag
     });
     
     delete trackedPucks[puckName];
     
+    // in some cases, the entity deletion may occur before the parent change
+    // has been processed, resulting in both the puck and the tracked entity
+    // to be deleted so we wait 100ms before deleting the puck, assuming
+    // that the parent change has occured
     Script.setTimeout(function() {
         // delete the puck
         Entities.deleteEntity(puckEntityID);
