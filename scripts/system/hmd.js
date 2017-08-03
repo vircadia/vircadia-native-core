@@ -40,9 +40,8 @@ function updateControllerDisplay() {
 var button;
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
-// Independent and Entity mode make people sick. Third Person and Mirror have traps that we need to work through.
-// Disable them in hmd.
-var desktopOnlyViews = ['Mirror', 'Independent Mode', 'Entity Mode'];
+// Independent and Entity mode make people sick; disable them in hmd.
+var desktopOnlyViews = ['Independent Mode', 'Entity Mode'];
 
 function onHmdChanged(isHmd) {
     HMD.closeTablet();
