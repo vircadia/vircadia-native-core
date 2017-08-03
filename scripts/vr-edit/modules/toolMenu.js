@@ -158,6 +158,15 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                 },
                 toolOptions: "groupOptions",
                 callback: "groupTool"
+            },
+            {
+                id: "deleteButton",
+                type: "button",
+                properties: {
+                    localPosition: { x: 0.022, y: 0.04, z: -0.005 },
+                    color: { red: 240, green: 60, blue: 60 }
+                },
+                callback: "deleteTool"
             }
         ],
 
