@@ -2783,7 +2783,7 @@ void Application::onPresent(quint32 frameCount) {
 
 bool Application::importFromZIP(const QString& filePath) {
     qDebug() << "A zip file has been dropped in: " << filePath;
-    QUrl empty = "";
+    QUrl empty;
     qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true);
     return true;
 }
