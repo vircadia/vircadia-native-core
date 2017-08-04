@@ -17,7 +17,10 @@
         margin: 2px;
         text-transform: uppercase;
         font-size: 100px;
-        font-family: HiFi-Glyphs;
+        background-image: url("../content/tabicons/hand-icon.svg");
+        background-size: 60% 60%;
+        background-repeat: no-repeat;
+        background-position: center;
     }
 
     .changeHandButton:first-child {
@@ -34,8 +37,8 @@
     }
 </style>
 <div id="handButtonsContainer" >
-    <button class="changeHandButton glyph" id="left" onclick="chooseHand(0)">&#57;</button>
-    <button class="changeHandButton selectedHand" id="right" onclick="chooseHand(1)">&#57;</button>
+    <button class="changeHandButton" id="left" onclick="chooseHand(0)"></button>
+    <button class="changeHandButton selectedHand" id="right" onclick="chooseHand(1)"></button>
 </div>
 
 <script type="text/javascript">

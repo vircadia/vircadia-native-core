@@ -38,11 +38,6 @@
         background-size: contain;
     }
 </style>
-<div class="behavior-group property checkbox">
-    <input onchange="switchPressureSensitiveWidth(this)"  type="checkbox" id="triggerSensitiveWidth"></input>
-    <label for="triggerSensitiveWidth">Use Trigger Sensitive Width</label>
-</div>
-
 <div id="colorpicker"></div>
 <div id="colorPickerTable"></div>
 <div id="lastPickedColors"></div>
@@ -129,15 +124,6 @@
         update(colorArray);
     }
 
-    function switchPressureSensitiveWidth(checkbox) {
-        // 'jscolor' instance can be used as a string
-        var switchPressureSensitiveWidthEvent = {
-            "type"    : "switchTriggerPressureWidth",
-            "enabled" : checkbox.checked,
-        };
-        parent.postMessage(JSON.stringify(switchPressureSensitiveWidthEvent), "*");
-    }
-
     function selectButton(button) {
          if (lastSelectedButton != null) {
              lastSelectedButton.removeChild(document.getElementById("selectedOverlay"));
@@ -215,10 +201,6 @@
             $('#colorpicker').colpickSetColor({'r': newColor.red, 'g': newColor.green, 'b': newColor.blue}, true);    
             currentSelectedColorOrigin = newColor.origin;
             setColorInTable([newColor.red, newColor.green, newColor.blue]);
-        }
-
-        if ("currentTriggerWidthEnabled" in palleteData) {
-            document.getElementById("triggerSensitiveWidth").checked = palleteData.currentTriggerWidthEnabled;
         }
     }
 

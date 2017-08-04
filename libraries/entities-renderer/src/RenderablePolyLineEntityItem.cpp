@@ -50,18 +50,24 @@ gpu::Stream::FormatPointer RenderablePolyLineEntityItem::_format;
 const int32_t RenderablePolyLineEntityItem::PAINTSTROKE_TEXTURE_SLOT;
 const int32_t RenderablePolyLineEntityItem::PAINTSTROKE_UNIFORM_SLOT;
 
+
 void RenderablePolyLineEntityItem::createPipeline() {
-    static const int NORMAL_OFFSET = 12;
-    static const int TEXTURE_OFFSET = 24;
+    struct Vertex {
+        glm::vec3 pos;
+        glm::vec2 textCoord;
+        glm::vec3 color;
+        glm::vec3 normal;
+    };
 
     _format.reset(new gpu::Stream::Format());
-    _format->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), 0);
-    _format->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), NORMAL_OFFSET);
-    _format->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), TEXTURE_OFFSET);
-    _format->setAttribute(gpu::Stream::COLOR, 0, gpu::Element(gpu::VEC3, gpu::UINT8, gpu::RGB), 0);
+    _format->setAttribute(gpu::Stream::POSITION, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), offsetof(Vertex, pos));
+    _format->setAttribute(gpu::Stream::TEXCOORD, 0, gpu::Element(gpu::VEC2, gpu::FLOAT, gpu::UV), offsetof(Vertex, textCoord));
+    _format->setAttribute(gpu::Stream::COLOR, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::RGB), offsetof(Vertex, color));
+    _format->setAttribute(gpu::Stream::NORMAL, 0, gpu::Element(gpu::VEC3, gpu::FLOAT, gpu::XYZ), offsetof(Vertex, normal));
 
     auto VS = gpu::Shader::createVertex(std::string(paintStroke_vert));
     auto PS = gpu::Shader::createPixel(std::string(paintStroke_frag));
+    
     gpu::ShaderPointer program = gpu::Shader::createProgram(VS, PS);
 
     gpu::Shader::BindingSet slotBindings;
@@ -77,6 +83,7 @@ void RenderablePolyLineEntityItem::createPipeline() {
         gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
     _pipeline = gpu::Pipeline::create(program, state);
 }
+
 
 void RenderablePolyLineEntityItem::updateGeometry() {
     _numVertices = 0;
@@ -120,37 +127,26 @@ void RenderablePolyLineEntityItem::updateGeometry() {
             accumulatedDistance += distanceToLastPoint;
         }
 
+
+        vec3 color = _strokeColors.size() == _normals.size() ? _strokeColors.at(i) : toGlm(getXColor());
+
         uv = vec2(uCoord, vCoord);
 
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
+        _verticesBuffer->append(sizeof(glm::vec2), (const gpu::Byte*)&uv);
+        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&color);
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
-        _verticesBuffer->append(sizeof(glm::vec2), (gpu::Byte*)&uv);
-        _strokeColors.size() > i
-            ? _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_strokeColors.at(i))
-            : _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&toGlm(getXColor()));
         vertexIndex++;
 
         uv.y = 1.0f;
         _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_vertices.at(vertexIndex));
-        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
         _verticesBuffer->append(sizeof(glm::vec2), (const gpu::Byte*)&uv);
-        _strokeColors.size() > i
-            ? _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_strokeColors.at(i))
-            : _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&toGlm(getXColor()));
+        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&color);
+        _verticesBuffer->append(sizeof(glm::vec3), (const gpu::Byte*)&_normals.at(i));
         vertexIndex++;
 
         _numVertices += 2;
         uCoord += uCoordInc;
-
-        /*
-        if (!_isUVModeStretch) {
-            if (i % 2 == 0) {
-                uCoord = 1.0f;
-            } else {
-                uCoord = 0.0f;
-            }
-        }
-        */
     }
 
     _pointsChanged = false;
@@ -213,7 +209,7 @@ void RenderablePolyLineEntityItem::update(const quint64& now) {
     memcpy(&_uniformBuffer.edit<PolyLineUniforms>(), &uniforms, sizeof(PolyLineUniforms));
     if (_pointsChanged || _strokeWidthsChanged || _normalsChanged || _strokeColorsChanged) {
         QWriteLocker lock(&_quadReadWriteLock);
-        _empty = (_points.size() < 2 || _normals.size() < 2 || _strokeWidths.size() < 2 || _strokeColors.size() < 2);
+        _empty = (_points.size() < 2 || _normals.size() < 2 || _strokeWidths.size() < 2);
         if (!_empty) {
             updateVertices();
             updateGeometry();
