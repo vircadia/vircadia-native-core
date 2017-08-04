@@ -114,6 +114,7 @@ Item {
         }
 
         function clearMenus() {
+            topMenu = null
             d.clear()
         }
 
