@@ -40,7 +40,7 @@ _strokeColorsChanged(true),
 _strokeWidthsChanged(true),
 _points(QVector<glm::vec3>(0.0f)),
 _normals(QVector<glm::vec3>(0.0f)),
-_strokeColors(QVector<glm::vec3>(0.0f)),
+_strokeColors(QVector<glm::vec3>(1.0f)),
 _strokeWidths(QVector<float>(0.0f)),
 _textures(""),
 _isUVModeStretch(true)

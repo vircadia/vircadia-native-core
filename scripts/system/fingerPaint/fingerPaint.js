@@ -18,10 +18,6 @@
         isTabletFocused = false,
         shouldRestoreTablet = false,
         tabletDebugFocusLine = null,
-        //animated brush vars
-        lastFrameTime = Date.now(),
-        frameDeltaSeconds = null, //time that passed between frames in ms;
-        //end of dynamic brush vars
         MAX_LINE_WIDTH = 0.036,
         leftHand = null,
         rightHand = null,
@@ -38,13 +34,14 @@
         HIFI_POINTER_DISABLE_MESSAGE_CHANNEL = "Hifi-Pointer-Disable",
         SCRIPT_PATH = Script.resolvePath(''),
         CONTENT_PATH = SCRIPT_PATH.substr(0, SCRIPT_PATH.lastIndexOf('/')),
-        ANIMATION_SCRIPT_PATH = Script.resolvePath("content/brushes/dynamicBrushes/dynamicBrushScript.js"),
+        ANIMATION_SCRIPT_PATH = Script.resolvePath("content/brushes/animatedBrushes/animatedBrushScript.js"),
         APP_URL = CONTENT_PATH + "/html/main.html";
 
     // Set up the qml ui
     //var qml = Script.resolvePath('PaintWindow.qml');
     Script.include("../libraries/controllers.js");
-    Script.include("content/brushes/dynamicBrushes/dynamicBrushesList.js");
+    Script.include("content/ColorUtils2.js");
+    Script.include("content/brushes/animatedBrushes/animatedBrushesList.js");
     //var window = null;
 
     //var inkSource = null;
@@ -58,7 +55,12 @@
     function paintBrush(name) {
         // Paints in 3D.
         var brushName = name,
-            STROKE_COLOR = savedSettings.currentColor,
+            STROKE_COLOR = {
+                red: savedSettings.currentColor.red, 
+                green: savedSettings.currentColor.green, 
+                blue: savedSettings.currentColor.blue
+            },
+            dynamicColor = null,
             ERASE_SEARCH_RADIUS = 0.1,  // m
             STROKE_DIMENSIONS = { x: 10, y: 10, z: 10 },
             isDrawingLine = false,
@@ -67,9 +69,14 @@
             basePosition,
             strokePoints,
             strokeNormals,
+            strokeColors,
             strokeWidths,
             timeOfLastPoint,
+            isContinuousLine = savedSettings.currentIsContinuous,
+            lastPosition = null,
+            shouldKeepDrawing = false,
             texture = CONTENT_PATH + "/" + savedSettings.currentTexture.brushName,
+            dynamicEffects = savedSettings.currentDynamicBrushes;
             //'https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Caris_Tessellation.svg/1024px-Caris_Tessellation.svg.png', // Daantje
             strokeWidthMultiplier = savedSettings.currentStrokeWidth * 2 + 0.1,
             IS_UV_MODE_STRETCH = savedSettings.currentTexture.brushType == "stretch",
@@ -101,6 +108,58 @@
             return STROKE_COLOR;
         }
 
+        function nextValueInRange(value, min, max, increment) {
+            var delta = max - min;
+            value += increment;
+            if (value > max) {
+                return min;
+            } else {
+                return value;
+            }
+        }
+
+        function attacthColorToProperties(properties) {
+            var isAnyDynamicEffectEnabled = false;
+
+            if ("dynamicHue" in dynamicEffects && dynamicEffects.dynamicHue) {
+                isAnyDynamicEffectEnabled = true;
+                var hueIncrement = 359.0 / 70.0;
+                dynamicColor.hue = nextValueInRange(dynamicColor.hue, 0, 359, hueIncrement);
+            } 
+
+            if ("dynamicSaturation" in dynamicEffects && dynamicEffects.dynamicSaturation) {
+                isAnyDynamicEffectEnabled = true;
+                dynamicColor.saturation = dynamicColor.saturation == 0.2 ? 0.8 : 0.2;
+                /*var saturationIncrement = 1.0 / 70.0;
+                dynamicColor.saturation = nextValueInRange(dynamicColor.saturation, 0, 1, saturationIncrement);*/
+            } 
+
+            if ("dynamicValue" in dynamicEffects && dynamicEffects.dynamicValue) {
+                isAnyDynamicEffectEnabled = true;
+                dynamicColor.value = dynamicColor.value == 0.2 ? 0.8 : 0.2;
+                /*var saturationIncrement = 1.0 / 70.0;
+                dynamicColor.saturation = nextValueInRange(dynamicColor.saturation, 0, 1, saturationIncrement);*/
+            } 
+
+
+            if (!isAnyDynamicEffectEnabled) {
+                properties.color = STROKE_COLOR;
+                return;
+            }
+
+            var newRgbColor =  hsv2rgb(dynamicColor);
+            strokeColors.push({
+                x: newRgbColor.red/255.0,
+                y: newRgbColor.green/255.0, 
+                z: newRgbColor.blue/255.0}
+            );
+            properties.strokeColors = strokeColors;
+        }
+
+        function setDynamicEffects(newDynamicEffects) {
+            dynamicEffects = newDynamicEffects;
+        }
+
         function isDrawing() {
             return isDrawingLine;
         }
@@ -109,6 +168,10 @@
            // MIN_STROKE_LENGTH = ((multiplier * MIN_STROKE_LENGTH) / 0.25)*0.5;
             //print("MIN_STROKE_LENGTH: " + MIN_STROKE_LENGTH);
             strokeWidthMultiplier = multiplier;
+        }
+
+        function switchContinuousLine(isContinuous) {
+            isContinuousLine = isContinuous;
         }
 
         function setTriggerPressureWidthEnabled(isEnabled) {
@@ -173,18 +236,22 @@
                 // Nevertheless, continue on and start a new line.
             }
 
-            basePosition = position;
+            if (shouldKeepDrawing) {
+                strokePoints = [Vec3.distance(basePosition, strokePoints[strokePoints.length - 1])];
+            } else {
+                strokePoints = [Vec3.ZERO];
+            }
 
-            strokePoints = [Vec3.ZERO];
+            basePosition = position;
             strokeNormals = [strokeNormal()];
+            strokeColors = [];
             strokeWidths = [width];
             timeOfLastPoint = Date.now();
 
-            entityID = Entities.addEntity({
+            var newEntityProperties = {
                 type: "PolyLine",
                 name: "fingerPainting",
                 shapeType: "box",
-                color: STROKE_COLOR,
                 position: position,
                 linePoints: strokePoints,
                 normals: strokeNormals,
@@ -192,9 +259,13 @@
                 textures: texture, // Daantje
                 isUVModeStretch: IS_UV_MODE_STRETCH,
                 dimensions: STROKE_DIMENSIONS,
-            });
+            };
+            dynamicColor = rgb2hsv(STROKE_COLOR);
+            attacthColorToProperties(newEntityProperties);
+            entityID = Entities.addEntity(newEntityProperties);
             isDrawingLine = true;
             addAnimationToBrush(entityID);
+            lastPosition = position;
         }
 
         function drawLine(position, width) {
@@ -222,23 +293,34 @@
                     && (Date.now() - timeOfLastPoint) >= MIN_STROKE_INTERVAL
                     && strokePoints.length < MAX_POINTS_PER_LINE) {
                 strokePoints.push(localPosition);
-
+                //strokeColors.push({x: STROKE_COLOR.red/255.0, y: STROKE_COLOR.green/255.0, z: STROKE_COLOR.blue/255.0});
                 strokeNormals.push(strokeNormal());
                 strokeWidths.push(width);
                 timeOfLastPoint = Date.now();
 
-                Entities.editEntity(entityID, {
+                var editItemProperties = {
                     color: STROKE_COLOR,
                     linePoints: strokePoints,
                     normals: strokeNormals,
                     strokeWidths: strokeWidths
-                });
+                };
+                attacthColorToProperties(editItemProperties);
+                Entities.editEntity(entityID, editItemProperties);
+
+            } else if (isContinuousLine && strokePoints.length >= MAX_POINTS_PER_LINE) {
+                print("restarting to draw line");
+                finishLine(position, width);
+                shouldKeepDrawing = true;
+                startLine(lastPosition, width);
             }
+
+            if (strokePoints.length >= MAX_POINTS_PER_LINE)
+                print("restarting to draw linea asdasdadwe");
+            lastPosition = position;
         }
 
         function finishLine(position, width) {
             // Finish drawing polyline; delete if it has only 1 point.
-            //stopDynamicBrush = true;
             //print("Before adding script: " + JSON.stringify(Entities.getEntityProperties(entityID)));
             var userData = Entities.getEntityProperties(entityID).userData;
             if (userData && JSON.parse(userData).animations) {
@@ -262,6 +344,7 @@
             }
 
             isDrawingLine = false;
+            shouldKeepDrawing = false;
             addElementToUndoStack({type: "created", data: entityID});
             //print("After adding script 3: " + JSON.stringify(Entities.getEntityProperties(entityID)));
         }
@@ -338,7 +421,8 @@
             getStrokeWidth: getStrokeWidth,
             getEntityID: getEntityID,
             changeUVMode: changeUVMode,
-            setTriggerPressureWidthEnabled: setTriggerPressureWidthEnabled
+            setTriggerPressureWidthEnabled: setTriggerPressureWidthEnabled,
+            setDynamicEffects: setDynamicEffects
         };
     }
 
@@ -500,26 +584,16 @@
             if (overlays.intersects && HMD.tabletID == overlays.overlayID) {
                 if (!isTabletFocused) {
                     isTabletFocused = true;
-                    //isFingerPainting = false;
                     Overlays.editOverlay(inkSourceOverlay, {visible: false});
-
                     updateHandAnimations();
                     pauseProcessing();
-                    //print("Hovering tablet!");
                 } 
             } else {
                 if (isTabletFocused) {
-                    //print("Unhovering tablet!");
                     isTabletFocused = false;
-                    //isFingerPainting = true;
                     Overlays.editOverlay(inkSourceOverlay, {visible: true});
                     resumeProcessing();
                     updateHandFunctions();
-                    //updateHandAnimations();
-                    /*print("Current hand " + handName);
-                    print("isFingerPainting " + isFingerPainting);
-                    print("inkSourceOverlay " + JSON.stringify(inkSourceOverlay));
-                    print("inkSourceOverlay " + JSON.stringify(inkSourceOverlay));*/
                 }            
             };
         }
@@ -555,20 +629,6 @@
                 // }
                 // inkSource = Entities.addEntity(inkSourceProps);
             // }
-
-            /*frameDeltaSeconds = Date.now() - lastFrameTime;
-            lastFrameTime = Date.now();
-            var nearbyEntities = Entities.findEntities(MyAvatar.position, 5.0);
-            for (var i = 0; i < nearbyEntities.length; i++) {
-                //Entities.editEntity(nearbyEntities[i], {userData: ""}); //clear user data (good to use in case we need to clear it)
-
-                var userData = Entities.getEntityProperties(nearbyEntities[i]).userData;
-                if (userData != "") {
-                    playAnimations(nearbyEntities[i], JSON.parse(userData).animations);
-                }
-            }*/
-            /*if (Entities.getEntityProperties(nearbyEntities[i]).name == "fingerPainting")
-                    Entities.deleteEntity(nearbyEntities[i]);*/
             if (HMD.tabletID && (((leftBrush == null || rightBrush == null) || (!leftBrush.isDrawing() && !rightBrush.isDrawing()))))  {
                 checkTabletHasFocus();
             }
@@ -709,18 +769,10 @@
     }
 
     function pauseProcessing() {
-        //Script.update.disconnect(leftHand.onUpdate);
-        //Script.update.disconnect(rightHand.onUpdate);
-
-        //Controller.disableMapping(CONTROLLER_MAPPING_NAME);
-
         Messages.sendLocalMessage("Hifi-Hand-Disabler", "none");
-
         Messages.unsubscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
         Messages.unsubscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
         Messages.unsubscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
-        
-        
         //Restores and clears hand animations
         restoreAllHandAnimations();
     }
@@ -877,10 +929,12 @@
         savedSettings.currentStrokeWidth = Settings.getValue("currentStrokeWidth", 0.25);
         savedSettings.currentTexture = Settings.getValue("currentTexture", {brushID: 0});
         savedSettings.currentDrawingHand = Settings.getValue("currentDrawingHand", MyAvatar.getDominantHand() == "left");
-        savedSettings.currentDynamicBrushes = Settings.getValue("currentDynamicBrushes", []);
+        savedSettings.currentAnimatedBrushes = Settings.getValue("currentAnimatedBrushes", []);
         savedSettings.customColors = Settings.getValue("customColors", []);
         savedSettings.currentTab = Settings.getValue("currentTab", 0);
         savedSettings.currentTriggerWidthEnabled = Settings.getValue("currentTriggerWidthEnabled", true);
+        savedSettings.currentDynamicBrushes = Settings.getValue("currentDynamicBrushes", new Object());
+        savedSettings.currentIsContinuous = Settings.getValue("currentIsContinuous", false);
         savedSettings.undoDisable = undoStack.length == 0;
         isLeftHandDominant = savedSettings.currentDrawingHand;
     }
@@ -891,7 +945,7 @@
         var wasFingerPainting = isFingerPainting;
 
         isFingerPainting = !isFingerPainting;
-        print("isFingerPainting: " + isFingerPainting);
+        //print("isFingerPainting: " + isFingerPainting);
         if (!isFingerPainting) {
             tablet.gotoHomeScreen();
         }
@@ -903,7 +957,7 @@
         }
 
         if (isFingerPainting) {
-            print("opening tablet fingerpaint app");
+            //print("opening tablet fingerpaint app");
             tablet.gotoWebScreen(APP_URL + "?" + encodeURIComponent(JSON.stringify(savedSettings)));
             enableProcessing();
             savedSettings = null;
@@ -924,18 +978,6 @@
     }
 
     function onTabletScreenChanged(type, url) {
-        //var TABLET_SCREEN_CLOSED = "Closed";
-        //var TABLET_SCREEN_HOME = "Home";
-        //isTabletDisplayed = type !== TABLET_SCREEN_CLOSED;
-        //if (type === TABLET_SCREEN_HOME) {
-        //    if (isFingerPainting) {
-        //        isFingerPainting = false;
-        //        disableProcessing();
-        //    }
-        //    button.editProperties({ isActive: isFingerPainting });
-        //    print("Closing the APP");
-        //}
-        //updateHandFunctions();
         var TABLET_SCREEN_CLOSED = "Closed";
         isTabletDisplayed = type !== TABLET_SCREEN_CLOSED;
         isFingerPainting = type === "Web" && url.indexOf("fingerPaint/html/main.html") > -1;
@@ -1005,11 +1047,11 @@
                 //print("abrushType: " + event.brushType);
                 Settings.setValue("currentTexture", event);
                 if (event.brushType === "repeat") {
-                    print("brushType: " + event.brushType);
+                    //print("brushType: " + event.brushType);
                     leftBrush.changeUVMode(false);
                     rightBrush.changeUVMode(false);
                 } else if (event.brushType === "stretch") {
-                    print("brushType: " + event.brushType);
+                    //print("brushType: " + event.brushType);
                     leftBrush.changeUVMode(true);
                     rightBrush.changeUVMode(true);
                 } 
@@ -1042,7 +1084,6 @@
 
             case "undo":
                 //print("Going to undo");
-                
                 //The undo is called only on the right brush because the undo stack is global, meaning that
                 //calling undo on both the left and right brush would cause the stack to pop twice.
                 //Using the leftBrush instead of the rightBrush would have the exact same effect.
@@ -1055,18 +1096,31 @@
                 updateHandAnimations();
                 break;
 
-            case "switchDynamicBrush":
-                var dynamicBrushes = Settings.getValue("currentDynamicBrushes", []);
-                var brushSettingsIndex = dynamicBrushes.indexOf(event.dynamicBrushID);
+            case "switchAnimatedBrush":
+                var animatedBrushes = Settings.getValue("currentAnimatedBrushes", []);
+                var brushSettingsIndex = animatedBrushes.indexOf(event.animatedBrushID);
                 if (brushSettingsIndex > -1) { //already exists so we are disabling it
-                    dynamicBrushes.splice(brushSettingsIndex, 1);
+                    animatedBrushes.splice(brushSettingsIndex, 1);
                 } else { //doesn't exist yet so we are just adding it
-                    dynamicBrushes.push(event.dynamicBrushID);
+                    animatedBrushes.push(event.animatedBrushID);
                 }
+                Settings.setValue("currentAnimatedBrushes", animatedBrushes);
+                AnimatedBrushesInfo[event.animatedBrushName].isEnabled = event.enabled;
+                AnimatedBrushesInfo[event.animatedBrushName].settings = event.settings;
+                //print("SEtting animated brush" + JSON.stringify(AnimatedBrushesInfo[event.animatedBrushName]));
+                break;
+
+            case "switchDynamicBrush":
+                var dynamicBrushes = Settings.getValue("currentDynamicBrushes", new Object());
+                dynamicBrushes[event.dynamicBrushId] = event.enabled;
                 Settings.setValue("currentDynamicBrushes", dynamicBrushes);
-                DynamicBrushesInfo[event.dynamicBrushName].isEnabled = event.enabled;
-                DynamicBrushesInfo[event.dynamicBrushName].settings = event.settings;
-                //print("SEtting dynamic brush" + JSON.stringify(DynamicBrushesInfo[event.dynamicBrushName]));
+                rightBrush.setDynamicEffects(dynamicBrushes);
+                leftBrush.setDynamicEffects(dynamicBrushes);
+                break;
+            case "switchIsContinuous":
+                Settings.setValue("currentIsContinuous", event.enabled);
+                rightBrush.switchIsContinuous(event.enabled);
+                leftBrush.switchIsContinuous(event.enabled);
                 break;
 
             default:
@@ -1075,16 +1129,21 @@
     }    
 
     function addAnimationToBrush(entityID) {
-        Object.keys(DynamicBrushesInfo).forEach(function(animationName) {
-            if (DynamicBrushesInfo[animationName].isEnabled) {
+        Object.keys(AnimatedBrushesInfo).forEach(function(animationName) {
+            print(animationName);
+            if (AnimatedBrushesInfo[animationName].isEnabled) {
+                //print("Adding animation " + animationName);
                 var prevUserData = Entities.getEntityProperties(entityID).userData;
                 prevUserData = prevUserData == "" ? new Object() : JSON.parse(prevUserData); //preserve other possible user data
                 if (prevUserData.animations == null) {
                     prevUserData.animations = {};
                 }
-                prevUserData.animations[animationName] = dynamicBrushFactory(animationName, DynamicBrushesInfo[animationName].settings);
+
+                prevUserData.animations[animationName] = animatedBrushFactory(animationName, 
+                    AnimatedBrushesInfo[animationName].settings, entityID);
+
                 Entities.editEntity(entityID, {userData: JSON.stringify(prevUserData)});    
-                //Entities.editEntity(entityID, {script: Script.resolvePath("content/brushes/dynamicBrushes/dynamicBrushScript.js")});    
+                //print("Added animation: " + JSON.stringify(Entities.getEntityProperties(entityID)));
             }
         });
     }
@@ -1102,23 +1161,21 @@
 
     function onHmdChanged(isHMDActive) { 
         var HMDInfo = Settings.getValue("wasFingerPaintingWhenHMDClosed", {isHMDActive: true, wasFingerPainting: false});
-        print("IS HMD " + isHMDActive + " fingerPainting: " + isFingerPainting + " was fingerPainting "  + HMDInfo.wasFingerPainting + " TabletID " + HMD.tabletID);
-
         // if (isHMDActive && !isFingerPainting && HMDInfo.wasFingerPainting) { only reopen in hmd mode
         if (!isFingerPainting && HMDInfo.wasFingerPainting) {
-            print("Restarting fingerPaint app!");
+            //print("Restarting fingerPaint app!");
             shouldRestoreTablet = true;
             HMD.openTablet();
         }
         if (isHMDActive != HMDInfo.isHMDActive) { //check if state is different as some times it will be the same
             //onHmdChanged seems to be called twice (once before and once after fingerpaint is over)
             Settings.setValue("wasFingerPaintingWhenHMDClosed", {isHMDActive: isHMDActive, wasFingerPainting: isFingerPainting});
-            print("Saving finger painting value " + isFingerPainting);
+            //print("Saving finger painting value " + isFingerPainting);
         }
     }
 
     function setUp() {
-        print("Setting button...");
+        //print("Setting button...");
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         if (!tablet) {
             return;
@@ -1131,7 +1188,7 @@
             text: BUTTON_NAME,
             isActive: isFingerPainting
         });
-        print("button-1 : " + JSON.stringify(button.getProperties()));
+        //print("button-1 : " + JSON.stringify(button.getProperties()));
         button.clicked.connect(onButtonClicked);
         // Track whether tablet is displayed or not.
         tablet.screenChanged.connect(onTabletScreenChanged);
@@ -1162,20 +1219,15 @@
 
     function mouseDrawLine(event){
         if (rightBrush && rightBrush.isDrawing()) {
-            print(JSON.stringify(event));
             rightBrush.drawLine(getFingerPosition(event.x, event.y), MAX_LINE_WIDTH);
-        } else {
-            print("cannot draw with mouse");
-        }
+        } 
     }
 
     function mouseStartLine(event){
-        print(JSON.stringify(event));
+        //print(JSON.stringify(event));
         if (event.isLeftButton && rightBrush) {
             isMouseDrawing = true;
             rightBrush.startLine(getFingerPosition(event.x, event.y), MAX_LINE_WIDTH);
-        } else {
-            print("cannot draw with mouse");
         }
         //Note: won't work until findRayIntersection works with polylines
         //
@@ -1200,9 +1252,7 @@
         isMouseDrawing = false;
         if (rightBrush && rightBrush.isDrawing()) {
             rightBrush.finishLine(getFingerPosition(event.x, event.y), MAX_LINE_WIDTH);
-        } else {
-            print("cannot draw with mouse");
-        }
+        } 
     }
 
     setUp();
