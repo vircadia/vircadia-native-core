@@ -47,6 +47,7 @@ Rectangle {
         letterBoxMessage.popupRadius = 0;
         letterBoxMessage.headerGlyphSize = 20
         letterBoxMessage.headerTextMargin = 2
+        letterBoxMessage.headerGlyphMargin = 0
     }
 
     Timer {
@@ -263,7 +264,7 @@ Rectangle {
                                             reloadScript(model.url)
                                         } else {
                                             letterBox(hifi.glyphs.lock,
-                                                      "Developer Mode Only",
+                                                      "Developer Mode only",
                                                       "In order to edit, delete or reload this script," +
                                                       " turn on Developer Mode by going to:" +
                                                       " Menu > Settings > Developer Menus");

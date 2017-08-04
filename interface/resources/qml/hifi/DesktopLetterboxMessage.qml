@@ -22,6 +22,7 @@ Item {
     property real headerTextPixelSize: 22
     property real popupTextPixelSize: 16
     property real headerTextMargin: -5
+    property real headerGlyphMargin: -15
     property bool isDesktop: false
     FontLoader { id: ralewayRegular; source: "../../fonts/Raleway-Regular.ttf"; }
     FontLoader { id: ralewaySemiBold; source: "../../fonts/Raleway-SemiBold.ttf"; }
@@ -56,7 +57,7 @@ Item {
                     height: parent.height
                     // Anchors
                     anchors.left: parent.left
-                    anchors.leftMargin: -15
+                    anchors.leftMargin: headerGlyphMargin
                     // Text Size
                     size: headerTextPixelSize*2.5
                     // Style

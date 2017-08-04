@@ -51,13 +51,14 @@ ScrollingWindow {
             DesktopLetterboxMessage {
                 visible: true
                 headerGlyph: hifi.glyphs.lock
-                headerText: "Developer Mode Only"
+                headerText: "Developer Mode only"
                 text: ( "In order to edit, delete or reload this script," +
                         " turn on Developer Mode by going to:" +
                         " Menu > Settings > Developer Menus")
                 popupRadius: 0
                 headerGlyphSize: 20
                 headerTextMargin: 2
+                headerGlyphMargin: 0
             }
         }
     }
