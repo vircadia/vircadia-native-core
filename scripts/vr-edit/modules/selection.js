@@ -327,6 +327,15 @@ Selection = function (side) {
         rootEntityID = selection[0].id;
     }
 
+    function applyColor(color) {
+        // Entities without a color property simply ignore the edit.
+        for (i = 0, length = selection.length; i < length; i += 1) {
+            Entities.editEntity(selection[i].id, {
+                color: color
+            });
+        }
+    }
+
     function clear() {
         selection = [];
         selectedEntityID = null;
@@ -361,6 +370,7 @@ Selection = function (side) {
         finishHandleScaling: finishHandleScaling,
         finishEditing: finishEditing,
         cloneEntities: cloneEntities,
+        applyColor: applyColor,
         deleteEntities: deleteEntities,
         clear: clear,
         destroy: destroy

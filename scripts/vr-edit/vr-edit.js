@@ -29,6 +29,7 @@
         TOOL_COLOR = 4,
         TOOL_DELETE = 5,
         toolSelected = TOOL_NONE,
+        colorToolColor = { red: 128, green: 128, blue: 128 },
 
         // Primary objects
         Inputs,
@@ -854,8 +855,7 @@
                     } else if (toolSelected === TOOL_GROUP) {
                         setState(EDITOR_GROUPING);
                     } else if (toolSelected === TOOL_COLOR) {
-                        // TODO
-                        print("$$$$$$$ apply color");
+                        selection.applyColor(colorToolColor);
                     } else if (toolSelected === TOOL_DELETE) {
                         setState(EDITOR_HIGHLIGHTING);
                         selection.deleteEntities();
@@ -912,8 +912,7 @@
                     } else if (toolSelected === TOOL_GROUP) {
                         setState(EDITOR_GROUPING);
                     } else if (toolSelected === TOOL_COLOR) {
-                        // TODO
-                        print("$$$$$$$ apply color");
+                        selection.applyColor(colorToolColor);
                     } else if (toolSelected === TOOL_DELETE) {
                         selection.deleteEntities();
                         setState(EDITOR_SEARCHING);
@@ -1278,6 +1277,7 @@
             break;
         case "setColor":
             ui.setToolColor(parameter);
+            colorToolColor = parameter;
             break;
         default:
             debug("ERROR: Unexpected command in onUICommand()!");
