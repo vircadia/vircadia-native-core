@@ -17,6 +17,7 @@
 #include <QFutureWatcher>
 #include <QObject>
 #include <QWidget>
+#include <QSharedPointer>
 
 #include "ui_console.h"
 #include "ScriptEngine.h"
@@ -29,10 +30,10 @@ const int CONSOLE_HEIGHT = 200;
 class JSConsole : public QWidget {
     Q_OBJECT
 public:
-    JSConsole(QWidget* parent, ScriptEngine* scriptEngine = NULL);
+    JSConsole(QWidget* parent, const QSharedPointer<ScriptEngine>& scriptEngine = QSharedPointer<ScriptEngine>());
     ~JSConsole();
 
-    void setScriptEngine(ScriptEngine* scriptEngine = NULL);
+    void setScriptEngine(const QSharedPointer<ScriptEngine>& scriptEngine = QSharedPointer<ScriptEngine>());
     void clear();
 
 public slots:
@@ -58,17 +59,14 @@ private:
     void setToNextCommandInHistory();
     void setToPreviousCommandInHistory();
     void resetCurrentCommandHistory();
-    QScriptValue executeCommandInWatcher(const QString& command);
 
     QFutureWatcher<QScriptValue> _executeWatcher;
     Ui::Console* _ui;
     int _currentCommandInHistory;
     QString _savedHistoryFilename;
     QList<QString> _commandHistory;
-    // Keeps track if the script engine is created inside the JSConsole
-    bool _ownScriptEngine;
     QString _rootCommand;
-    ScriptEngine* _scriptEngine;
+    QSharedPointer<ScriptEngine> _scriptEngine;
     static const QString _consoleFileName;
 };
 
