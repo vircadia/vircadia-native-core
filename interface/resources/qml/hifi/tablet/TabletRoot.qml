@@ -202,5 +202,11 @@ Item {
     width: 480
     height: 706
 
-    function setShown(value) {}
+    function setShown(value) {
+        if (value === true) {
+            HMD.openTablet()
+        } else {
+            HMD.closeTablet()
+        }
+    }
 }

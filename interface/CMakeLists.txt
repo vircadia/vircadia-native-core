@@ -309,9 +309,12 @@ else (APPLE)
 
     # setup install of executable and things copied by fixup/windeployqt
     install(
-      FILES "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
+      DIRECTORY "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
       DESTINATION ${INTERFACE_INSTALL_DIR}
       COMPONENT ${CLIENT_COMPONENT}
+      PATTERN "*.pdb" EXCLUDE
+      PATTERN "*.lib" EXCLUDE
+      PATTERN "*.exp" EXCLUDE
     )
 
     set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_DIR}")
