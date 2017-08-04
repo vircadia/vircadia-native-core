@@ -18,12 +18,14 @@ ToolIcon = function (side) {
     var SCALE_TOOL = 0,
         CLONE_TOOL = 1,
         GROUP_TOOL = 2,
-        DELETE_TOOL = 3,
+        COLOR_TOOL = 3,
+        DELETE_TOOL = 4,
 
         ICON_COLORS = [
             { red: 0, green: 240, blue: 240 },
             { red: 240, green: 240, blue: 0 },
             { red: 220, green: 60, blue: 220 },
+            { red: 220, green: 220, blue: 220 },
             { red: 240, green: 60, blue: 60 }
         ],
 
@@ -104,6 +106,7 @@ ToolIcon = function (side) {
         SCALE_TOOL: SCALE_TOOL,
         CLONE_TOOL: CLONE_TOOL,
         GROUP_TOOL: GROUP_TOOL,
+        COLOR_TOOL: COLOR_TOOL,
         DELETE_TOOL: DELETE_TOOL,
         setHand: setHand,
         update: update,

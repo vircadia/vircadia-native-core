@@ -103,8 +103,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
         OPTONS_PANELS = {
             groupOptions: [
                 {
-                    // Background element
-                    id: "toolsOptionsPanel",
+                    id: "groupOptionsPanel",
                     type: "panel",
                     properties: {
                         localPosition: { x: 0.055, y: 0.0, z: -0.005 }
@@ -133,6 +132,15 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                     label: "UNGROUP",
                     enabledColor: { red: 240, green: 64, blue: 64 },
                     callback: "ungroupButton"
+                }
+            ],
+            colorOptions: [
+                {
+                    id: "colorOptionsPanel",
+                    type: "panel",
+                    properties: {
+                        localPosition: { x: 0.055, y: 0.0, z: -0.005 }
+                    }
                 }
             ]
         },
@@ -179,6 +187,17 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                 label: " GROUP",
                 toolOptions: "groupOptions",
                 callback: "groupTool"
+            },
+            {
+                id: "colorButton",
+                type: "button",
+                properties: {
+                    localPosition: { x: 0.022, y: 0.0, z: -0.005 },
+                    color: { red: 220, green: 220, blue: 220 }
+                },
+                label: "  COLOR",
+                toolOptions: "colorOptions",
+                callback: "colorTool"
             },
             {
                 id: "deleteButton",

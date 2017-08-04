@@ -26,7 +26,8 @@
         TOOL_SCALE = 1,
         TOOL_CLONE = 2,
         TOOL_GROUP = 3,
-        TOOL_DELETE = 4,
+        TOOL_COLOR = 4,
+        TOOL_DELETE = 5,
         toolSelected = TOOL_NONE,
 
         // Primary objects
@@ -269,6 +270,7 @@
             SCALE_TOOL: toolIcon.SCALE_TOOL,
             CLONE_TOOL: toolIcon.CLONE_TOOL,
             GROUP_TOOL: toolIcon.GROUP_TOOL,
+            COLOR_TOOL: toolIcon.COLOR_TOOL,
             DELETE_TOOL: toolIcon.DELETE_TOOL,
             display: display,
             updateUIEntities: setUIEntities,
@@ -846,6 +848,9 @@
                         setState(EDITOR_CLONING);
                     } else if (toolSelected === TOOL_GROUP) {
                         setState(EDITOR_GROUPING);
+                    } else if (toolSelected === TOOL_COLOR) {
+                        // TODO
+                        print("$$$$$$$ apply color");
                     } else if (toolSelected === TOOL_DELETE) {
                         setState(EDITOR_HIGHLIGHTING);
                         selection.deleteEntities();
@@ -901,6 +906,9 @@
                         setState(EDITOR_CLONING);
                     } else if (toolSelected === TOOL_GROUP) {
                         setState(EDITOR_GROUPING);
+                    } else if (toolSelected === TOOL_COLOR) {
+                        // TODO
+                        print("$$$$$$$ apply color");
                     } else if (toolSelected === TOOL_DELETE) {
                         selection.deleteEntities();
                         setState(EDITOR_SEARCHING);
@@ -1244,6 +1252,11 @@
         case "groupTool":
             toolSelected = TOOL_GROUP;
             ui.setToolIcon(ui.GROUP_TOOL);
+            ui.updateUIEntities();
+            break;
+        case "colorTool":
+            toolSelected = TOOL_COLOR;
+            ui.setToolIcon(ui.COLOR_TOOL);
             ui.updateUIEntities();
             break;
         case "deleteTool":
