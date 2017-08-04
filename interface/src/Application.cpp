@@ -6355,7 +6355,7 @@ void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, Q
             if (filePath.endsWith(".obj") || filePath.endsWith(".fbx")) {
                 addAssetToWorldAddEntity(filePath, mapping);
             } else {
-                qCDebug(interfaceapp) << "Zipped contents are not valid entity files";
+                qCDebug(interfaceapp) << "Zipped contents are not supported entity files";
                 addAssetToWorldInfoDone(filenameFromPath(filePath));
             }
         }
