@@ -38,11 +38,14 @@ void setThreadName(const std::string& name) {
 
 void moveToNewNamedThread(QObject* object, const QString& name, std::function<void(QThread*)> preStartCallback, std::function<void()> startCallback, QThread::Priority priority) {
     Q_ASSERT(QThread::currentThread() == object->thread());
-    // setup a thread for the NodeList and its PacketReceiver
+
+    // Create the target thread
     QThread* thread = new QThread();
     thread->setObjectName(name);
 
-    // Execute any additional work to do before the thread starts (like moving members to the target thread
+    // Execute any additional work to do before the thread starts like moving members to the target thread.
+    // This is required as QObject::moveToThread isn't virutal, so we can't override it on objects that contain
+    // an OpenGLContext and ensure that the context moves to the target thread as well.  
     preStartCallback(thread);
 
     // Link the in-thread initialization code
@@ -54,8 +57,10 @@ void moveToNewNamedThread(QObject* object, const QString& name, std::function<vo
         startCallback();
     });
 
-    // Make sure the thread will be destroyed and cleaned up
+    // Make sure the thread will be destroyed and cleaned up.  The assumption here is that the incoming object 
+    // will be destroyed and the thread will quit when that occurs.  
     QObject::connect(object, &QObject::destroyed, thread, &QThread::quit);
+    // When the thread itself stops running, it should also be deleted.
     QObject::connect(thread, &QThread::finished, thread, &QThread::deleteLater);
 
     // put the object on the thread
