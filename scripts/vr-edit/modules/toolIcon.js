@@ -90,6 +90,10 @@ ToolIcon = function (side) {
         }
     }
 
+    function setColor(color) {
+        Overlays.editOverlay(iconOverlay, { color: color });
+    }
+
     function clear() {
         // Deletes current icon.
         if (iconOverlay) {
@@ -111,6 +115,7 @@ ToolIcon = function (side) {
         setHand: setHand,
         update: update,
         display: display,
+        setColor: setColor,
         clear: clear,
         destroy: destroy
     };

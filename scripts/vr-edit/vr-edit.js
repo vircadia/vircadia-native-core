@@ -212,6 +212,10 @@
             toolIcon.display(icon);
         }
 
+        function setToolColor(color) {
+            toolIcon.setColor(color);
+        }
+
         function clearToolIcon() {
             toolIcon.clear();
             toolMenu.clearTool();
@@ -266,6 +270,7 @@
         return {
             setHand: setHand,
             setToolIcon: setToolIcon,
+            setToolColor: setToolColor,
             clearToolIcon: clearToolIcon,
             SCALE_TOOL: toolIcon.SCALE_TOOL,
             CLONE_TOOL: toolIcon.CLONE_TOOL,
@@ -1270,6 +1275,9 @@
             break;
         case "ungroupButton":
             grouping.ungroup();
+            break;
+        case "setColor":
+            ui.setToolColor(parameter);
             break;
         default:
             debug("ERROR: Unexpected command in onUICommand()!");
