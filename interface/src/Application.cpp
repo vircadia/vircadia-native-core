@@ -4165,6 +4165,7 @@ void Application::loadSettings() {
     //DependencyManager::get<LODManager>()->setAutomaticLODAdjust(false);
 
     Menu::getInstance()->loadSettings();
+
     // If there is a preferred plugin, we probably messed it up with the menu settings, so fix it.
     auto pluginManager = PluginManager::getInstance();
     auto plugins = pluginManager->getPreferredDisplayPlugins();
@@ -4178,23 +4179,43 @@ void Application::loadSettings() {
                 break;
             }
         }
-    } else {
+    }
+
+    Setting::Handle<bool> firstRun { Settings::firstRun, true };
+    bool isFirstPerson = false;
+    if (firstRun.get()) {
         // If this is our first run, and no preferred devices were set, default to
         // an HMD device if available.
-        Setting::Handle<bool> firstRun { Settings::firstRun, true };
-        if (firstRun.get()) {
-            auto displayPlugins = pluginManager->getDisplayPlugins();
-            for (auto& plugin : displayPlugins) {
-                if (plugin->isHmd()) {
-                    if (auto action = menu->getActionForOption(plugin->getName())) {
-                        action->setChecked(true);
-                        action->trigger();
-                        break;
-                    }
+        auto displayPlugins = pluginManager->getDisplayPlugins();
+        for (auto& plugin : displayPlugins) {
+            if (plugin->isHmd()) {
+                if (auto action = menu->getActionForOption(plugin->getName())) {
+                    action->setChecked(true);
+                    action->trigger();
+                    break;
                 }
             }
         }
+
+        isFirstPerson = (qApp->isHMDMode());
+    } else {
+        // if this is not the first run, the camera will be initialized differently depending on user settings
+
+        if (qApp->isHMDMode()) {
+            // if the HMD is active, use first-person camera, unless the appropriate setting is checked
+            isFirstPerson = menu->isOptionChecked(MenuOption::FirstPersonHMD);
+        } else {
+            // if HMD is not active, only use first person if the menu option is checked
+            isFirstPerson = menu->isOptionChecked(MenuOption::FirstPerson);
+        }
     }
+
+    // finish initializing the camera, based on everything we checked above. Third person camera will be used if no settings
+    // dictated that we should be in first person
+    Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, isFirstPerson);
+    Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !isFirstPerson);
+    _myCamera.setMode((isFirstPerson) ? CAMERA_MODE_FIRST_PERSON : CAMERA_MODE_THIRD_PERSON);
+    cameraMenuChanged();
 
     auto inputs = pluginManager->getInputPlugins();
     for (auto plugin : inputs) {
@@ -4244,7 +4265,6 @@ void Application::init() {
     DependencyManager::get<DeferredLightingEffect>()->init();
 
     DependencyManager::get<AvatarManager>()->init();
-    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
 
     _timerStart.start();
     _lastTimeUpdated.start();
