@@ -14,7 +14,7 @@
    Settings, Entities, Tablet, Toolbars, Messages, Menu, Camera, progressDialog, tooltip, MyAvatar, Quat, Controller, Clipboard, HMD, UndoStack, ParticleExplorerTool */
 
 (function() { // BEGIN LOCAL_SCOPE
-    
+
 "use strict";
 
 var HIFI_PUBLIC_BUCKET = "http://s3.amazonaws.com/hifi-public/";
@@ -26,11 +26,8 @@ Script.include([
     "libraries/stringHelpers.js",
     "libraries/dataViewHelpers.js",
     "libraries/progressDialog.js",
-
     "libraries/entitySelectionTool.js",
-
     "libraries/ToolTip.js",
-
     "libraries/entityCameraTool.js",
     "libraries/gridTool.js",
     "libraries/entityList.js",
@@ -275,7 +272,8 @@ var toolBar = (function () {
                 properties.userData = JSON.stringify({ grabbableKey: { grabbable: true } });
             }
             entityID = Entities.addEntity(properties);
-            if (properties.type == "ParticleEffect") {
+
+            if (properties.type === "ParticleEffect") {
                 selectParticleEntity(entityID);
             }
 
@@ -396,7 +394,6 @@ var toolBar = (function () {
 
     function initialize() {
         Script.scriptEnding.connect(cleanup);
-
         Window.domainChanged.connect(function () {
             that.setActive(false);
             that.clearEntityList();
@@ -419,7 +416,7 @@ var toolBar = (function () {
         createButton = activeButton;
         tablet.screenChanged.connect(function (type, url) {
             if (isActive && (type !== "QML" || url !== "Edit.qml")) {
-                that.toggle();
+                that.setActive(false)
             }
         });
         tablet.fromQml.connect(fromQml);
@@ -624,6 +621,7 @@ var toolBar = (function () {
     };
 
     that.setActive = function (active) {
+        ContextOverlay.enabled = !active;
         Settings.setValue(EDIT_SETTING, active);
         if (active) {
             Controller.captureEntityClickEvents();
@@ -664,6 +662,7 @@ var toolBar = (function () {
             selectionDisplay.triggerMapping.enable();
             print("starting tablet in landscape mode");
             tablet.landscape = true;
+            entityIconOverlayManager.setIconsSelectable(null,false);
             // Not sure what the following was meant to accomplish, but it currently causes
             // everybody else to think that Interface has lost focus overall. fogbugzid:558
             // Window.setFocus();
@@ -991,6 +990,7 @@ function mouseClickEvent(event) {
                 } else {
                     selectionManager.addEntity(foundEntity, true);
                 }
+
                 if (wantDebug) {
                     print("Model selected: " + foundEntity);
                 }
@@ -2194,6 +2194,7 @@ var PopupMenu = function () {
     };
 
     function cleanup() {
+        ContextOverlay.enabled = true;
         for (var i = 0; i < overlays.length; i++) {
             Overlays.deleteOverlay(overlays[i]);
         }
@@ -2227,10 +2228,9 @@ var particleExplorerTool = new ParticleExplorerTool();
 var selectedParticleEntity = 0;
 var selectedParticleEntityID = null;
 
-
 function selectParticleEntity(entityID) {
     var properties = Entities.getEntityProperties(entityID);
-
+    selectedParticleEntityID = entityID;
     if (properties.emitOrientation) {
         properties.emitOrientation = Quat.safeEulerAngles(properties.emitOrientation);
     }
@@ -2272,7 +2272,6 @@ entityListTool.webView.webEventReceived.connect(function (data) {
                     return;
                 }
                 // Destroy the old particles web view first
-                selectParticleEntity(ids[0]);
             } else {
                 selectedParticleEntity = 0;
                 particleExplorerTool.destroyWebView();

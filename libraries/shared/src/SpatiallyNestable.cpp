@@ -946,11 +946,35 @@ AACube SpatiallyNestable::getMaximumAACube(bool& success) const {
     return AACube(getPosition(success) - glm::vec3(defaultAACubeSize / 2.0f), defaultAACubeSize);
 }
 
-bool SpatiallyNestable::checkAndAdjustQueryAACube() {
-    bool success;
+const float PARENTED_EXPANSION_FACTOR = 3.0f;
+
+bool SpatiallyNestable::checkAndMaybeUpdateQueryAACube() {
+    bool success = false;
     AACube maxAACube = getMaximumAACube(success);
-    if (success && (!_queryAACubeSet || !_queryAACube.contains(maxAACube))) {
-        setQueryAACube(maxAACube);
+    if (success) {
+        // maybe update _queryAACube
+        if (!_queryAACubeSet || (_parentID.isNull() && _children.size() == 0) || !_queryAACube.contains(maxAACube)) {
+            if (_parentJointIndex != INVALID_JOINT_INDEX || _children.size() > 0 ) {
+                // make an expanded AACube centered on the object
+                float scale = PARENTED_EXPANSION_FACTOR * maxAACube.getScale();
+                _queryAACube = AACube(maxAACube.calcCenter() - glm::vec3(0.5f * scale), scale);
+            } else {
+                _queryAACube = maxAACube;
+            }
+
+            getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
+                bool childSuccess;
+                AACube descendantAACube = descendant->getQueryAACube(childSuccess);
+                if (childSuccess) {
+                    if (_queryAACube.contains(descendantAACube)) {
+                        return;
+                    }
+                    _queryAACube += descendantAACube.getMinimumPoint();
+                    _queryAACube += descendantAACube.getMaximumPoint();
+                }
+            });
+            _queryAACubeSet = true;
+        }
     }
     return success;
 }
@@ -961,46 +985,34 @@ void SpatiallyNestable::setQueryAACube(const AACube& queryAACube) {
         return;
     }
     _queryAACube = queryAACube;
-    if (queryAACube.getScale() > 0.0f) {
-        _queryAACubeSet = true;
-    }
+    _queryAACubeSet = true;
 }
 
-bool SpatiallyNestable::queryAABoxNeedsUpdate() const {
-    bool success;
-    AACube currentAACube = getMaximumAACube(success);
-    if (!success) {
-        qCDebug(shared) << "can't getMaximumAACube for" << getID();
-        return false;
+bool SpatiallyNestable::queryAACubeNeedsUpdate() const {
+    if (!_queryAACubeSet) {
+        return true;
     }
 
     // make sure children are still in their boxes, also.
     bool childNeedsUpdate = false;
     getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
-        if (!childNeedsUpdate && descendant->queryAABoxNeedsUpdate()) {
+        if (!childNeedsUpdate && descendant->queryAACubeNeedsUpdate()) {
             childNeedsUpdate = true;
         }
     });
-    if (childNeedsUpdate) {
-        return true;
-    }
-
-    if (_queryAACubeSet && _queryAACube.contains(currentAACube)) {
-        return false;
-    }
-
-    return true;
+    return childNeedsUpdate;
 }
 
-bool SpatiallyNestable::computePuffedQueryAACube() {
-    if (!queryAABoxNeedsUpdate()) {
-        return false;
-    }
+void SpatiallyNestable::updateQueryAACube() {
     bool success;
-    AACube currentAACube = getMaximumAACube(success);
-    // make an AACube with edges thrice as long and centered on the object
-    _queryAACube = AACube(currentAACube.getCorner() - glm::vec3(currentAACube.getScale()), currentAACube.getScale() * 3.0f);
-    _queryAACubeSet = true;
+    AACube maxAACube = getMaximumAACube(success);
+    if (_parentJointIndex != INVALID_JOINT_INDEX || _children.size() > 0 ) {
+        // make an expanded AACube centered on the object
+        float scale = PARENTED_EXPANSION_FACTOR * maxAACube.getScale();
+        _queryAACube = AACube(maxAACube.calcCenter() - glm::vec3(0.5f * scale), scale);
+    } else {
+        _queryAACube = maxAACube;
+    }
 
     getThisPointer()->forEachDescendant([&](SpatiallyNestablePointer descendant) {
         bool success;
@@ -1013,8 +1025,7 @@ bool SpatiallyNestable::computePuffedQueryAACube() {
             _queryAACube += descendantAACube.getMaximumPoint();
         }
     });
-
-    return true;
+    _queryAACubeSet = true;
 }
 
 AACube SpatiallyNestable::getQueryAACube(bool& success) const {

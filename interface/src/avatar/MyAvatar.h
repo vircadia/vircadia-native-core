@@ -438,6 +438,7 @@ public:
 
     void updateMotors();
     void prepareForPhysicsSimulation();
+    void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
     void harvestResultsFromPhysicsSimulation(float deltaTime);
 
     const QString& getCollisionSoundURL() { return _collisionSoundURL; }
@@ -557,7 +558,6 @@ public:
     Q_INVOKABLE bool isUp(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) > 0.0f; }; // true iff direction points up wrt avatar's definition of up.
     Q_INVOKABLE bool isDown(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) < 0.0f; };
 
-
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -615,6 +615,7 @@ signals:
     void wentAway();
     void wentActive();
     void skeletonChanged();
+    void dominantHandChanged(const QString& hand);
 
 private:
 
