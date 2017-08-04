@@ -77,7 +77,6 @@ namespace render {
         Args() {}
 
         Args(const gpu::ContextPointer& context,
-            QSharedPointer<QObject> renderData = QSharedPointer<QObject>(nullptr),
             float sizeScale = 1.0f,
             int boundaryLevelAdjust = 0,
             RenderMode renderMode = DEFAULT_RENDER_MODE,
@@ -85,7 +84,6 @@ namespace render {
             DebugFlags debugFlags = RENDER_DEBUG_NONE,
             gpu::Batch* batch = nullptr) :
             _context(context),
-            _renderData(renderData),
             _sizeScale(sizeScale),
             _boundaryLevelAdjust(boundaryLevelAdjust),
             _renderMode(renderMode),
@@ -110,7 +108,6 @@ namespace render {
         std::shared_ptr<gpu::Context> _context;
         std::shared_ptr<gpu::Framebuffer> _blitFramebuffer;
         std::shared_ptr<render::ShapePipeline> _shapePipeline;
-        QSharedPointer<QObject> _renderData;
         std::stack<ViewFrustum> _viewFrustums;
         glm::ivec4 _viewport { 0.0f, 0.0f, 1.0f, 1.0f };
         glm::vec3 _boomOffset { 0.0f, 0.0f, 1.0f };
