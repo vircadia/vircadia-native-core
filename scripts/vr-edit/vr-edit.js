@@ -1235,7 +1235,7 @@
         Settings.setValue(VR_EDIT_SETTING, isAppActive);
     }
 
-    function onUICommand(command) {
+    function onUICommand(command, parameter) {
         switch (command) {
         case "scaleTool":
             grouping.clear();

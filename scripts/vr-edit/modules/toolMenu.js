@@ -22,9 +22,15 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
 
         menuOverlays = [],
         menuCallbacks = [],
+
         optionsOverlays = [],
+        optionsOverlaysIDs = [],
+        optionsCommands = [],
+        optionsCommandsParameters = [],
         optionsCallbacks = [],
+        optionsCallbacksParameters = [],
         optionsEnabled = [],
+
         highlightOverlay,
 
         LEFT_HAND = 0,
@@ -97,6 +103,19 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                     drawInFront: true,
                     visible: true
                 }
+            },
+            "circle": {
+                overlay: "circle3d",
+                properties: {
+                    size: 0.015,
+                    localPosition: { x: 0.0, y: 0.0, z: -0.01 },
+                    localRotation: Quat.fromVec3Degrees({ x: 0, y: 180, z: 180 }),
+                    color: { red: 128, green: 128, blue: 128 },
+                    alpha: 1.0,
+                    solid: true,
+                    ignoreRayIntersection: true,
+                    visible: true
+                }
             }
         },
 
@@ -140,6 +159,66 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                     type: "panel",
                     properties: {
                         localPosition: { x: 0.055, y: 0.0, z: -0.005 }
+                    }
+                },
+                {
+                    id: "colorSwatch1",
+                    type: "button",
+                    properties: {
+                        dimensions: { x: 0.02, y: 0.02, z: 0.01 },
+                        localPosition: { x: -0.035, y: 0.02, z: -0.005 },
+                        color: { red: 255, green: 0, blue: 0 }
+                    },
+                    command: "setCurrentColor",
+                    commandParameter: "colorSwatch1.color",
+                    callback: "setColor",
+                    callbackParameter: "colorSwatch1.color"
+                },
+                {
+                    id: "colorSwatch2",
+                    type: "button",
+                    properties: {
+                        dimensions: { x: 0.02, y: 0.02, z: 0.01 },
+                        localPosition: { x: -0.01, y: 0.02, z: -0.005 },
+                        color: { red: 0, green: 255, blue: 0 }
+                    },
+                    command: "setCurrentColor",
+                    commandParameter: "colorSwatch2.color",
+                    callback: "setColor",
+                    callbackParameter: "colorSwatch2.color"
+                },
+                {
+                    id: "colorSwatch3",
+                    type: "button",
+                    properties: {
+                        dimensions: { x: 0.02, y: 0.02, z: 0.01 },
+                        localPosition: { x: -0.035, y: 0.045, z: -0.005 },
+                        color: { red: 0, green: 0, blue: 255 }
+                    },
+                    command: "setCurrentColor",
+                    commandParameter: "colorSwatch3.color",
+                    callback: "setColor",
+                    callbackParameter: "colorSwatch3.color"
+                },
+                {
+                    id: "colorSwatch4",
+                    type: "button",
+                    properties: {
+                        dimensions: { x: 0.02, y: 0.02, z: 0.01 },
+                        localPosition: { x: -0.01, y: 0.045, z: -0.005 },
+                        color: { red: 255, green: 255, blue: 255 }
+                    },
+                    command: "setCurrentColor",
+                    commandParameter: "colorSwatch4.color",
+                    callback: "setColor",
+                    callbackParameter: "colorSwatch4.color"
+                },
+                {
+                    id: "currentColor",
+                    type: "circle",
+                    properties: {
+                        localPosition: { x: 0.025, y: 0.0325, z: -0.007 },
+                        color: { red: 128, green: 128, blue: 128 }
                     }
                 }
             ]
@@ -231,8 +310,12 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
 
         optionsItems,
         intersectionOverlays,
+        intersectionOverlaysIDs,
+        intersectionCommands,
+        intersectionCommandsParameters,
         intersectionCallbacks,
-        intersectionCallbacksEnabled,
+        intersectionCallbacksParameters,
+        intersectionEnabled,
         intersectionProperties,
         highlightedItem,
         highlightedSource,
@@ -278,11 +361,15 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
         // Close current panel, if any.
         for (i = 0, length = optionsOverlays.length; i < length; i += 1) {
             Overlays.deleteOverlay(optionsOverlays[i]);
-            optionsOverlays = [];
-            optionsCallbacks = [];
-            optionsEnabled = [];
-            optionsItems = null;
         }
+        optionsOverlays = [];
+        optionsOverlaysIDs = [];
+        optionsCommands = [];
+        optionsCommandsParameters = [];
+        optionsCallbacks = [];
+        optionsCallbacksParameters = [];
+        optionsEnabled = [];
+        optionsItems = null;
 
         // Open specified panel, if any.
         if (toolOptions) {
@@ -293,6 +380,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                 properties = Object.merge(properties, optionsItems[i].properties);
                 properties.parentID = parentID;
                 optionsOverlays.push(Overlays.addOverlay(UI_ELEMENTS[optionsItems[i].type].overlay, properties));
+                optionsOverlaysIDs.push(optionsItems[i].id);
                 if (optionsItems[i].label) {
                     properties = Object.clone(UI_ELEMENTS.label.properties);
                     properties.text = optionsItems[i].label;
@@ -300,7 +388,10 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                     Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
                 }
                 parentID = optionsOverlays[0];  // Menu buttons parent to menu panel.
+                optionsCommands.push(optionsItems[i].command);
+                optionsCommandsParameters.push(optionsItems[i].commandParameter);
                 optionsCallbacks.push(optionsItems[i].callback);
+                optionsCallbacksParameters.push(optionsItems[i].callbackParameter);
                 optionsEnabled.push(true);
             }
         }
@@ -316,10 +407,37 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
         openOptions();
     }
 
+    function evaluateParameter(parameter) {
+        var parameters,
+            overlayID,
+            overlayProperty;
+
+        parameters = parameter.split(".");
+        overlayID = parameters[0];
+        overlayProperty = parameters[1];
+
+        return Overlays.getProperty(optionsOverlays[optionsOverlaysIDs.indexOf(overlayID)], overlayProperty);
+    }
+
+    function peformCommand(command, parameter) {
+        switch (command) {
+        case "setCurrentColor":
+            Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf("currentColor")], {
+                color: parameter
+            });
+            break;
+        default:
+            // TODO: Log error.
+        }
+
+    }
+
     function update(intersectionOverlayID, groupsCount, entitiesCount) {
         var intersectedItem,
             parentProperties,
             BUTTON_PRESS_DELTA = 0.004,
+            commandParameter,
+            callbackParameter,
             enableGroupButton,
             enableUngroupButton;
 
@@ -328,15 +446,23 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
             intersectedItem = menuOverlays.indexOf(intersectionOverlayID);
             if (intersectedItem !== -1) {
                 intersectionOverlays = menuOverlays;
+                intersectionOverlaysIDs = null;
+                intersectionCommands = null;
+                intersectionCommandsParameters = null;
                 intersectionCallbacks = menuCallbacks;
-                intersectionCallbacksEnabled = null;
+                intersectionCallbacksParameters = null;
+                intersectionEnabled = null;
                 intersectionProperties = MENU_ITEMS;
             } else {
                 intersectedItem = optionsOverlays.indexOf(intersectionOverlayID);
                 if (intersectedItem !== -1) {
                     intersectionOverlays = optionsOverlays;
+                    intersectionOverlaysIDs = optionsOverlaysIDs;
+                    intersectionCommands = optionsCommands;
+                    intersectionCommandsParameters = optionsCommandsParameters;
                     intersectionCallbacks = optionsCallbacks;
-                    intersectionCallbacksEnabled = optionsEnabled;
+                    intersectionCallbacksParameters = optionsCallbacksParameters;
+                    intersectionEnabled = optionsEnabled;
                     intersectionProperties = optionsItems;
                 }
             }
@@ -387,7 +513,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                 pressedItem = NONE;
             }
             isButtonPressed = isHighlightingButton && controlHand.triggerClicked();
-            if (isButtonPressed && (intersectionCallbacksEnabled === null || intersectionCallbacksEnabled[intersectedItem])) {
+            if (isButtonPressed && (intersectionEnabled === null || intersectionEnabled[intersectedItem])) {
                 // Press new button.
                 Overlays.editOverlay(intersectionOverlays[intersectedItem], {
                     localPosition: Vec3.sum(intersectionProperties[intersectedItem].properties.localPosition,
@@ -400,7 +526,18 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                 if (intersectionOverlays === menuOverlays) {
                     openOptions(intersectionProperties[intersectedItem].toolOptions);
                 }
-                commandCallback(intersectionCallbacks[intersectedItem]);
+                if (intersectionCommands && intersectionCommands[intersectedItem]) {
+                    if (intersectionCommandsParameters && intersectionCommandsParameters[intersectedItem]) {
+                        commandParameter = evaluateParameter(intersectionCommandsParameters[intersectedItem]);
+                    }
+                    peformCommand(intersectionCommands[intersectedItem], commandParameter);
+                }
+                if (intersectionCallbacks[intersectedItem]) {
+                    if (intersectionCallbacksParameters && intersectionCallbacksParameters[intersectedItem]) {
+                        callbackParameter = evaluateParameter(intersectionCallbacksParameters[intersectedItem]);
+                    }
+                    commandCallback(intersectionCallbacks[intersectedItem], callbackParameter);
+                }
             }
         }
 
@@ -487,8 +624,12 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
         // Initial values.
         optionsItems = null;
         intersectionOverlays = null;
+        intersectionOverlaysIDs = null;
+        intersectionCommands = null;
+        intersectionCommandsParameters = null;
         intersectionCallbacks = null;
-        intersectionCallbacksEnabled = null;
+        intersectionCallbacksParameters = null;
+        intersectionEnabled = null;
         intersectionProperties = null;
         highlightedItem = NONE;
         highlightedSource = null;
