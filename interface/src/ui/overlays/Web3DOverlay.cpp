@@ -127,8 +127,9 @@ QString Web3DOverlay::pickURL() {
     QUrl sourceUrl(_url);
     if (sourceUrl.scheme() == "http" || sourceUrl.scheme() == "https" ||
         _url.toLower().endsWith(".htm") || _url.toLower().endsWith(".html")) {
-
-        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
+        if (_webSurface) {
+            _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
+        }
         return "Web3DOverlay.qml";
     } else {
         return QUrl::fromLocalFile(PathUtils::resourcesPath()).toString() + "/" + _url;
