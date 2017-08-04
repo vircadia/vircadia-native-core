@@ -79,6 +79,24 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                     ignoreRayIntersection: false,
                     visible: true
                 }
+            },
+            "label": {
+                overlay: "text3d",
+                properties: {
+                    dimensions: { x: 0.03, y: 0.0075 },
+                    localPosition: { x: 0.0, y: 0.0, z: -0.005 },
+                    localRotation: Quat.fromVec3Degrees({ x: 0, y: 180, z: 180 }),
+                    topMargin: 0,
+                    leftMargin: 0,
+                    color: { red: 128, green: 128, blue: 128 },
+                    alpha: 1.0,
+                    lineHeight: 0.007,
+                    backgroundAlpha: 0,
+                    ignoreRayIntersection: true,
+                    isFacingAvatar: false,
+                    drawInFront: true,
+                    visible: true
+                }
             }
         },
 
@@ -100,6 +118,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                         localPosition: { x: 0, y: -0.025, z: -0.005 },
                         color: { red: 200, green: 200, blue: 200 }
                     },
+                    label: " GROUP",
                     enabledColor: { red: 64, green: 240, blue: 64 },
                     callback: "groupButton"
                 },
@@ -111,6 +130,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                         localPosition: { x: 0, y: 0.025, z: -0.005 },
                         color: { red: 200, green: 200, blue: 200 }
                     },
+                    label: "UNGROUP",
                     enabledColor: { red: 240, green: 64, blue: 64 },
                     callback: "ungroupButton"
                 }
@@ -136,6 +156,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                     localPosition: { x: -0.022, y: -0.04, z: -0.005 },
                     color: { red: 0, green: 240, blue: 240 }
                 },
+                label: "  SCALE",
                 callback: "scaleTool"
             },
             {
@@ -145,6 +166,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                     localPosition: { x: 0.022, y: -0.04, z: -0.005 },
                     color: { red: 240, green: 240, blue: 0 }
                 },
+                label: "  CLONE",
                 callback: "cloneTool"
             },
             {
@@ -154,6 +176,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                     localPosition: { x: -0.022, y: 0.0, z: -0.005 },
                     color: { red: 220, green: 60, blue: 220 }
                 },
+                label: " GROUP",
                 toolOptions: "groupOptions",
                 callback: "groupTool"
             },
@@ -164,6 +187,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                     localPosition: { x: 0.022, y: 0.04, z: -0.005 },
                     color: { red: 240, green: 60, blue: 60 }
                 },
+                label: " DELETE",
                 callback: "deleteTool"
             }
         ],
@@ -250,6 +274,12 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                 properties = Object.merge(properties, optionsItems[i].properties);
                 properties.parentID = parentID;
                 optionsOverlays.push(Overlays.addOverlay(UI_ELEMENTS[optionsItems[i].type].overlay, properties));
+                if (optionsItems[i].label) {
+                    properties = Object.clone(UI_ELEMENTS.label.properties);
+                    properties.text = optionsItems[i].label;
+                    properties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                    Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
+                }
                 parentID = optionsOverlays[0];  // Menu buttons parent to menu panel.
                 optionsCallbacks.push(optionsItems[i].callback);
                 optionsEnabled.push(true);
@@ -420,6 +450,12 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
             properties = Object.merge(properties, MENU_ITEMS[i].properties);
             properties.parentID = parentID;
             menuOverlays.push(Overlays.addOverlay(UI_ELEMENTS[MENU_ITEMS[i].type].overlay, properties));
+            if (MENU_ITEMS[i].label) {
+                properties = Object.clone(UI_ELEMENTS.label.properties);
+                properties.text = MENU_ITEMS[i].label;
+                properties.parentID = menuOverlays[menuOverlays.length - 1];
+                Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
+            }
             parentID = menuOverlays[0];  // Menu buttons parent to menu panel.
             menuCallbacks.push(MENU_ITEMS[i].callback);
         }
