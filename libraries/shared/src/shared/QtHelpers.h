@@ -14,6 +14,7 @@
 
 
 namespace hifi { namespace qt {
+void addBlockingForbiddenThread(const QString& name, QThread* thread = nullptr);
 
 bool blockingInvokeMethod(
     const char* function,

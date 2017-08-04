@@ -112,8 +112,6 @@ public:
     const Head* getHead() const { return static_cast<const Head*>(_headData); }
     Head* getHead() { return static_cast<Head*>(_headData); }
 
-    glm::quat getWorldAlignedOrientation() const;
-
     AABox getBounds() const;
 
     /// Returns the distance to use as a LOD parameter.
@@ -184,7 +182,7 @@ public:
     void scaleVectorRelativeToPosition(glm::vec3 &positionToScale) const;
 
     void slamPosition(const glm::vec3& position);
-    virtual void updateAttitude() override { _skeletonModel->updateAttitude(); }
+    virtual void updateAttitude(const glm::quat& orientation) override;
 
     // Call this when updating Avatar position with a delta.  This will allow us to
     // _accurately_ measure position changes and compute the resulting velocity
@@ -197,10 +195,8 @@ public:
     void getCapsule(glm::vec3& start, glm::vec3& end, float& radius);
     float computeMass();
 
-    using SpatiallyNestable::setPosition;
-    virtual void setPosition(const glm::vec3& position) override;
-    using SpatiallyNestable::setOrientation;
-    virtual void setOrientation(const glm::quat& orientation) override;
+    void setPositionViaScript(const glm::vec3& position) override;
+    void setOrientationViaScript(const glm::quat& orientation) override;
 
     // these call through to the SpatiallyNestable versions, but they are here to expose these to javascript.
     Q_INVOKABLE virtual const QUuid getParentID() const override { return SpatiallyNestable::getParentID(); }
@@ -240,7 +236,7 @@ public:
     bool hasNewJointData() const { return _hasNewJointData; }
 
     float getBoundingRadius() const;
-    
+
     void addToScene(AvatarSharedPointer self, const render::ScenePointer& scene);
     void ensureInScene(AvatarSharedPointer self, const render::ScenePointer& scene);
     bool isInScene() const { return render::Item::isValidID(_renderItemID); }
@@ -303,7 +299,6 @@ protected:
 
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
-    glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     void measureMotionDerivatives(float deltaTime);
 
     float getSkeletonHeight() const;

@@ -77,6 +77,7 @@
 
 #include <Profile.h>
 
+#include "../../midi/src/Midi.h"        // FIXME why won't a simpler include work?
 #include "MIDIEvent.h"
 
 const QString ScriptEngine::_SETTINGS_ENABLE_EXTENDED_EXCEPTIONS {
@@ -666,6 +667,8 @@ void ScriptEngine::init() {
     }
 
     registerGlobalObject("Audio", DependencyManager::get<AudioScriptingInterface>().data());
+
+    registerGlobalObject("Midi", DependencyManager::get<Midi>().data());
 
     registerGlobalObject("Entities", entityScriptingInterface.data());
     registerGlobalObject("Quat", &_quatLibrary);

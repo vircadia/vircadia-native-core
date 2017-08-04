@@ -23,6 +23,7 @@
 #include <PerfStat.h>
 #include <render/Scene.h>
 #include <DependencyManager.h>
+#include <shared/QtHelpers.h>
 
 #include "EntityTreeRenderer.h"
 #include "EntitiesRendererLogging.h"
@@ -369,6 +370,21 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
     // we will watch for that and ask the model to update it's render items
     if (_model && _model->getRenderItemsNeedUpdate()) {
         _model->updateRenderItems();
+    }
+
+    // this simple logic should say we set showingEntityHighlight to true whenever we are in marketplace mode and we have a marketplace id, or
+    // whenever we are not set to none and shouldHighlight is true.
+    bool showingEntityHighlight = ((bool)(args->_outlineFlags & (int)RenderArgs::RENDER_OUTLINE_MARKETPLACE_MODE) && getMarketplaceID().length() != 0) ||
+                                  (args->_outlineFlags != RenderArgs::RENDER_OUTLINE_NONE && getShouldHighlight());
+    if (showingEntityHighlight) {
+        static glm::vec4 yellowColor(1.0f, 1.0f, 0.0f, 1.0f);
+        gpu::Batch& batch = *args->_batch;
+        bool success;
+        auto shapeTransform = getTransformToCenter(success);
+        if (success) {
+            batch.setModelTransform(shapeTransform); // we want to include the scale as well
+            DependencyManager::get<GeometryCache>()->renderWireCubeInstance(args, batch, yellowColor);
+        }
     }
 
     if (!hasModel() || (_model && _model->didVisualGeometryRequestFail())) {
@@ -1281,4 +1297,12 @@ void RenderableModelEntityItem::mapJoints(const QStringList& modelJointNames) {
             _jointMappingURL = _animationProperties.getURL();
         }
     }
+}
+
+bool RenderableModelEntityItem::getMeshes(MeshProxyList& result) {
+    if (!_model || !_model->isLoaded()) {
+        return false;
+    }
+    BLOCKING_INVOKE_METHOD(_model.get(), "getMeshes", Q_RETURN_ARG(MeshProxyList, result));
+    return !result.isEmpty();
 }

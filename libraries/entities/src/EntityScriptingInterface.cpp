@@ -221,7 +221,7 @@ QUuid EntityScriptingInterface::addEntity(const EntityItemProperties& properties
         _entityTree->withWriteLock([&] {
             EntityItemPointer entity = _entityTree->addEntity(id, propertiesWithSimID);
             if (entity) {
-                if (propertiesWithSimID.parentRelatedPropertyChanged()) {
+                if (propertiesWithSimID.queryAACubeRelatedPropertyChanged()) {
                     // due to parenting, the server may not know where something is in world-space, so include the bounding cube.
                     bool success;
                     AACube queryAACube = entity->getQueryAACube(success);
@@ -435,7 +435,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
                     entity->rememberHasSimulationOwnershipBid();
                 }
             }
-            if (properties.parentRelatedPropertyChanged() && entity->computePuffedQueryAACube()) {
+            if (properties.queryAACubeRelatedPropertyChanged()) {
                 properties.setQueryAACube(entity->getQueryAACube());
             }
             entity->setLastBroadcast(usecTimestampNow());
@@ -445,7 +445,7 @@ QUuid EntityScriptingInterface::editEntity(QUuid id, const EntityItemProperties&
             // if they've changed.
             entity->forEachDescendant([&](SpatiallyNestablePointer descendant) {
                 if (descendant->getNestableType() == NestableType::Entity) {
-                    if (descendant->computePuffedQueryAACube()) {
+                    if (descendant->checkAndMaybeUpdateQueryAACube()) {
                         EntityItemPointer entityDescendant = std::static_pointer_cast<EntityItem>(descendant);
                         EntityItemProperties newQueryCubeProperties;
                         newQueryCubeProperties.setQueryAACube(descendant->getQueryAACube());
@@ -1736,9 +1736,7 @@ glm::mat4 EntityScriptingInterface::getEntityTransform(const QUuid& entityID) {
             if (entity) {
                 glm::mat4 translation = glm::translate(entity->getPosition());
                 glm::mat4 rotation = glm::mat4_cast(entity->getRotation());
-                glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT -
-                                                        entity->getRegistrationPoint());
-                result = translation * rotation * registration;
+                result = translation * rotation;
             }
         });
     }
@@ -1753,9 +1751,7 @@ glm::mat4 EntityScriptingInterface::getEntityLocalTransform(const QUuid& entityI
             if (entity) {
                 glm::mat4 translation = glm::translate(entity->getLocalPosition());
                 glm::mat4 rotation = glm::mat4_cast(entity->getLocalOrientation());
-                glm::mat4 registration = glm::translate(ENTITY_ITEM_DEFAULT_REGISTRATION_POINT -
-                                                        entity->getRegistrationPoint());
-                result = translation * rotation * registration;
+                result = translation * rotation;
             }
         });
     }

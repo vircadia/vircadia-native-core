@@ -69,8 +69,8 @@ const float MAX_BOOST_SPEED = 0.5f * MAX_WALKING_SPEED; // action motor gets add
 const float MIN_AVATAR_SPEED = 0.05f;
 const float MIN_AVATAR_SPEED_SQUARED = MIN_AVATAR_SPEED * MIN_AVATAR_SPEED; // speed is set to zero below this
 
-const float YAW_SPEED_DEFAULT = 120.0f;   // degrees/sec
-const float PITCH_SPEED_DEFAULT = 90.0f; // degrees/sec
+const float YAW_SPEED_DEFAULT = 100.0f;   // degrees/sec
+const float PITCH_SPEED_DEFAULT = 75.0f; // degrees/sec
 
 // TODO: normalize avatar speed for standard avatar size, then scale all motion logic
 // to properly follow avatar size.
@@ -253,6 +253,13 @@ MyAvatar::MyAvatar(QThread* thread) :
 
 MyAvatar::~MyAvatar() {
     _lookAtTargetAvatar.reset();
+}
+
+void MyAvatar::setDominantHand(const QString& hand) {
+    if (hand == DOMINANT_LEFT_HAND || hand == DOMINANT_RIGHT_HAND) {
+        _dominantHand = hand;
+        emit dominantHandChanged(_dominantHand);
+    }
 }
 
 void MyAvatar::registerMetaTypes(QScriptEngine* engine) {
@@ -607,7 +614,7 @@ void MyAvatar::simulate(float deltaTime) {
             MovingEntitiesOperator moveOperator(entityTree);
             forEachDescendant([&](SpatiallyNestablePointer object) {
                 // if the queryBox has changed, tell the entity-server
-                if (object->computePuffedQueryAACube() && object->getNestableType() == NestableType::Entity) {
+                if (object->getNestableType() == NestableType::Entity && object->checkAndMaybeUpdateQueryAACube()) {
                     EntityItemPointer entity = std::static_pointer_cast<EntityItem>(object);
                     bool success;
                     AACube newCube = entity->getQueryAACube(success);
@@ -926,6 +933,7 @@ void MyAvatar::saveData() {
     Settings settings;
     settings.beginGroup("Avatar");
 
+    settings.setValue("dominantHand", _dominantHand);
     settings.setValue("headPitch", getHead()->getBasePitch());
 
     settings.setValue("scale", _targetScale);
@@ -1122,7 +1130,7 @@ void MyAvatar::loadData() {
     setCollisionSoundURL(settings.value("collisionSoundURL", DEFAULT_AVATAR_COLLISION_SOUND_URL).toString());
     setSnapTurn(settings.value("useSnapTurn", _useSnapTurn).toBool());
     setClearOverlayWhenMoving(settings.value("clearOverlayWhenMoving", _clearOverlayWhenMoving).toBool());
-
+    setDominantHand(settings.value("dominantHand", _dominantHand).toString().toLower());
     settings.endGroup();
 
     setEnableMeshVisible(Menu::getInstance()->isOptionChecked(MenuOption::MeshVisible));
@@ -1291,7 +1299,7 @@ eyeContactTarget MyAvatar::getEyeContactTarget() {
 }
 
 glm::vec3 MyAvatar::getDefaultEyePosition() const {
-    return getPosition() + getWorldAlignedOrientation() * Quaternions::Y_180 * _skeletonModel->getDefaultEyeModelPosition();
+    return getPosition() + getOrientation() * Quaternions::Y_180 * _skeletonModel->getDefaultEyeModelPosition();
 }
 
 const float SCRIPT_PRIORITY = 1.0f + 1.0f;
@@ -1586,9 +1594,14 @@ void MyAvatar::updateMotors() {
             motorRotation = getMyHead()->getHeadOrientation();
         } else {
             // non-hovering = walking: follow camera twist about vertical but not lift
-            // so we decompose camera's rotation and store the twist part in motorRotation
+            // we decompose camera's rotation and store the twist part in motorRotation
+            // however, we need to perform the decomposition in the avatar-frame
+            // using the local UP axis and then transform back into world-frame
+            glm::quat orientation = getOrientation();
+            glm::quat headOrientation = glm::inverse(orientation) * getMyHead()->getHeadOrientation(); // avatar-frame
             glm::quat liftRotation;
-            swingTwistDecomposition(getMyHead()->getHeadOrientation(), _worldUpDirection, liftRotation, motorRotation);
+            swingTwistDecomposition(headOrientation, Vectors::UNIT_Y, liftRotation, motorRotation);
+            motorRotation = orientation * motorRotation;
         }
         const float DEFAULT_MOTOR_TIMESCALE = 0.2f;
         const float INVALID_MOTOR_TIMESCALE = 1.0e6f;
@@ -1642,11 +1655,31 @@ void MyAvatar::prepareForPhysicsSimulation() {
     _prePhysicsRoomPose = AnimPose(_sensorToWorldMatrix);
 }
 
+// There are a number of possible strategies for this set of tools through endRender, below.
+void MyAvatar::nextAttitude(glm::vec3 position, glm::quat orientation) {
+    bool success;
+    Transform trans = getTransform(success);
+    if (!success) {
+        qCWarning(interfaceapp) << "Warning -- MyAvatar::nextAttitude failed";
+        return;
+    }
+    trans.setTranslation(position);
+    trans.setRotation(orientation);
+    SpatiallyNestable::setTransform(trans, success);
+    if (!success) {
+        qCWarning(interfaceapp) << "Warning -- MyAvatar::nextAttitude failed";
+    }
+    updateAttitude(orientation);
+}
+
 void MyAvatar::harvestResultsFromPhysicsSimulation(float deltaTime) {
-    glm::vec3 position = getPosition();
-    glm::quat orientation = getOrientation();
+    glm::vec3 position;
+    glm::quat orientation;
     if (_characterController.isEnabledAndReady()) {
         _characterController.getPositionAndOrientation(position, orientation);
+    } else {
+        position = getPosition();
+        orientation = getOrientation();
     }
     nextAttitude(position, orientation);
     _bodySensorMatrix = _follow.postPhysicsUpdate(*this, _bodySensorMatrix);
@@ -2841,7 +2874,8 @@ bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, co
 void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix,
                                               const glm::mat4& currentBodyMatrix, bool hasDriveInput) {
 
-    if (myAvatar.getHMDLeanRecenterEnabled()) {
+    if (myAvatar.getHMDLeanRecenterEnabled() &&
+        qApp->getCamera().getMode() != CAMERA_MODE_MIRROR) {
         if (!isActive(Rotation) && (shouldActivateRotation(myAvatar, desiredBodyMatrix, currentBodyMatrix) || hasDriveInput)) {
             activate(Rotation);
         }

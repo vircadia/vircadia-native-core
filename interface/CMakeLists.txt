@@ -195,7 +195,7 @@ link_hifi_libraries(
   shared octree ktx gpu gl gpu-gl procedural model render
   recording fbx networking model-networking entities avatars trackers
   audio audio-client animation script-engine physics
-  render-utils entities-renderer avatars-renderer ui auto-updater
+  render-utils entities-renderer avatars-renderer ui auto-updater midi
   controllers plugins image trackers
   ui-plugins display-plugins input-plugins
   ${NON_ANDROID_LIBRARIES}
@@ -309,9 +309,12 @@ else (APPLE)
 
     # setup install of executable and things copied by fixup/windeployqt
     install(
-      FILES "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
+      DIRECTORY "$<TARGET_FILE_DIR:${TARGET_NAME}>/"
       DESTINATION ${INTERFACE_INSTALL_DIR}
       COMPONENT ${CLIENT_COMPONENT}
+      PATTERN "*.pdb" EXCLUDE
+      PATTERN "*.lib" EXCLUDE
+      PATTERN "*.exp" EXCLUDE
     )
 
     set(SCRIPTS_INSTALL_DIR "${INTERFACE_INSTALL_DIR}")
