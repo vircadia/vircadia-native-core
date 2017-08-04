@@ -13,39 +13,34 @@
         BUTTON_NAME = "PAINT",
         //undo vars
         UNDO_STACK_SIZE = 10, 
-        undoStack = [];
-        isFingerPainting = false,
-        isTabletFocused = false,
-        shouldRestoreTablet = false,
-        tabletDebugFocusLine = null,
+        _undoStack = [];
+        _isFingerPainting = false,
+        _isTabletFocused = false,
+        _shouldRestoreTablet = false,
         MAX_LINE_WIDTH = 0.036,
-        leftHand = null,
-        rightHand = null,
-        leftBrush = null,
-        rightBrush = null,
-        isBrushColored = false,
-        isLeftHandDominant = false,
-        isMouseDrawing = false,
-        savedSettings = null,
+        _leftHand = null,
+        _rightHand = null,
+        _leftBrush = null,
+        _rightBrush = null,
+        _isBrushColored = false,
+        _isLeftHandDominant = false,
+        _isMouseDrawing = false,
+        _savedSettings = null,
+        _isTabletDisplayed = false,
         CONTROLLER_MAPPING_NAME = "com.highfidelity.fingerPaint",
-        isTabletDisplayed = false,
         HIFI_POINT_INDEX_MESSAGE_CHANNEL = "Hifi-Point-Index",
         HIFI_GRAB_DISABLE_MESSAGE_CHANNEL = "Hifi-Grab-Disable",
         HIFI_POINTER_DISABLE_MESSAGE_CHANNEL = "Hifi-Pointer-Disable",
         SCRIPT_PATH = Script.resolvePath(''),
         CONTENT_PATH = SCRIPT_PATH.substr(0, SCRIPT_PATH.lastIndexOf('/')),
-        ANIMATION_SCRIPT_PATH = Script.resolvePath("content/brushes/animatedBrushes/animatedBrushScript.js"),
+        ANIMATION_SCRIPT_PATH = Script.resolvePath("content/animatedBrushes/animatedBrushScript.js"),
         APP_URL = CONTENT_PATH + "/html/main.html";
 
-    // Set up the qml ui
-    //var qml = Script.resolvePath('PaintWindow.qml');
     Script.include("../libraries/controllers.js");
-    Script.include("content/ColorUtils2.js");
-    Script.include("content/brushes/animatedBrushes/animatedBrushesList.js");
-    //var window = null;
+    Script.include("content/js/ColorUtils.js");
+    Script.include("content/animatedBrushes/animatedBrushesList.js");
 
-    //var inkSource = null;
-    var inkSourceOverlay = null;
+    var _inkSourceOverlay = null;
     // Set path for finger paint hand animations 
     var RIGHT_ANIM_URL = Script.resourcesPath() + 'avatar/animations/touch_point_closed_right.fbx';
     var LEFT_ANIM_URL = Script.resourcesPath() + 'avatar/animations/touch_point_closed_left.fbx';
@@ -55,38 +50,38 @@
     function paintBrush(name) {
         // Paints in 3D.
         var brushName = name,
-            STROKE_COLOR = {
-                red: savedSettings.currentColor.red, 
-                green: savedSettings.currentColor.green, 
-                blue: savedSettings.currentColor.blue
+            _strokeColor = {
+                red: _savedSettings.currentColor.red, 
+                green: _savedSettings.currentColor.green, 
+                blue: _savedSettings.currentColor.blue
             },
-            dynamicColor = null,
+            _dynamicColor = null,
             ERASE_SEARCH_RADIUS = 0.1,  // m
             STROKE_DIMENSIONS = { x: 10, y: 10, z: 10 },
-            isDrawingLine = false,
-            isTriggerPressureWidthEnabled = savedSettings.currentTriggerWidthEnabled,
-            entityID,
-            basePosition,
-            strokePoints,
-            strokeNormals,
-            strokeColors,
-            strokeWidths,
-            timeOfLastPoint,
-            isContinuousLine = savedSettings.currentIsContinuous,
-            lastPosition = null,
-            shouldKeepDrawing = false,
-            texture = CONTENT_PATH + "/" + savedSettings.currentTexture.brushName,
-            dynamicEffects = savedSettings.currentDynamicBrushes;
+            _isDrawingLine = false,
+            _isTriggerWidthEnabled = _savedSettings.currentTriggerWidthEnabled,
+            _entityID,
+            _basePosition,
+            _strokePoints,
+            _strokeNormals,
+            _strokeColors,
+            _strokeWidths,
+            _timeOfLastPoint,
+            _isContinuousLine = _savedSettings.currentIsContinuous,
+            _lastPosition = null,
+            _shouldKeepDrawing = false,
+            _texture = CONTENT_PATH + "/" + _savedSettings.currentTexture.brushName,
+            _dynamicEffects = _savedSettings.currentDynamicBrushes;
             //'https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Caris_Tessellation.svg/1024px-Caris_Tessellation.svg.png', // Daantje
-            strokeWidthMultiplier = savedSettings.currentStrokeWidth * 2 + 0.1,
-            IS_UV_MODE_STRETCH = savedSettings.currentTexture.brushType == "stretch",
+            _strokeWidthMultiplier = _savedSettings.currentStrokeWidth * 2 + 0.1,
+            _isUvModeStretch = _savedSettings.currentTexture.brushType == "stretch",
             MIN_STROKE_LENGTH = 0.005,  // m
             MIN_STROKE_INTERVAL = 66,  // ms
             MAX_POINTS_PER_LINE = 70;  // Hard-coded limit in PolyLineEntityItem.h.
                 
-        function strokeNormal() {
-            if (!isMouseDrawing) {
-                var controllerPose = isLeftHandDominant 
+        function calculateStrokeNormal() {
+            if (!_isMouseDrawing) {
+                var controllerPose = _isLeftHandDominant 
                                     ? getControllerWorldLocation(Controller.Standard.LeftHand, true)
                                     : getControllerWorldLocation(Controller.Standard.RightHand, true);
                 var fingerTipRotation = controllerPose.rotation;
@@ -98,17 +93,17 @@
             
         }
         
-        function changeStrokeColor(red, green, blue) {
-            STROKE_COLOR.red = red;
-            STROKE_COLOR.green = green;
-            STROKE_COLOR.blue = blue;
+        function setStrokeColor(red, green, blue) {
+            _strokeColor.red = red;
+            _strokeColor.green = green;
+            _strokeColor.blue = blue;
         }
         
         function getStrokeColor() {
-            return STROKE_COLOR;
+            return _strokeColor;
         }
 
-        function nextValueInRange(value, min, max, increment) {
+        function calculateValueInRange(value, min, max, increment) {
             var delta = max - min;
             value += increment;
             if (value > max) {
@@ -119,84 +114,89 @@
         }
 
         function attacthColorToProperties(properties) {
-            var isAnyDynamicEffectEnabled = false;
+            //colored brushes should always be white and no effects should be applied
+            if (_isBrushColored) {
+                properties.color = {red: 255, green: 255, blue: 255};
+                return;
+            }
 
-            if ("dynamicHue" in dynamicEffects && dynamicEffects.dynamicHue) {
+            var isAnyDynamicEffectEnabled = false;
+            if ("dynamicHue" in _dynamicEffects && _dynamicEffects.dynamicHue) {
                 isAnyDynamicEffectEnabled = true;
                 var hueIncrement = 359.0 / 70.0;
-                dynamicColor.hue = nextValueInRange(dynamicColor.hue, 0, 359, hueIncrement);
+                _dynamicColor.hue = calculateValueInRange(_dynamicColor.hue, 0, 359, hueIncrement);
             } 
 
-            if ("dynamicSaturation" in dynamicEffects && dynamicEffects.dynamicSaturation) {
+            if ("dynamicSaturation" in _dynamicEffects && _dynamicEffects.dynamicSaturation) {
                 isAnyDynamicEffectEnabled = true;
-                dynamicColor.saturation = dynamicColor.saturation == 0.2 ? 0.8 : 0.2;
-                /*var saturationIncrement = 1.0 / 70.0;
-                dynamicColor.saturation = nextValueInRange(dynamicColor.saturation, 0, 1, saturationIncrement);*/
+                _dynamicColor.saturation = _dynamicColor.saturation == 0.2 ? 0.8 : 0.2;
+                //saturation along the full line
+                //var saturationIncrement = 1.0 / 70.0;
+                //_dynamicColor.saturation = calculateValueInRange(_dynamicColor.saturation, 0, 1, saturationIncrement);
             } 
 
-            if ("dynamicValue" in dynamicEffects && dynamicEffects.dynamicValue) {
+            if ("dynamicValue" in _dynamicEffects && _dynamicEffects.dynamicValue) {
                 isAnyDynamicEffectEnabled = true;
-                dynamicColor.value = dynamicColor.value == 0.2 ? 0.8 : 0.2;
-                /*var saturationIncrement = 1.0 / 70.0;
-                dynamicColor.saturation = nextValueInRange(dynamicColor.saturation, 0, 1, saturationIncrement);*/
+                _dynamicColor.value = _dynamicColor.value == 0.2 ? 0.8 : 0.2;
+                //value along the full line
+                //var saturationIncrement = 1.0 / 70.0;
+                //_dynamicColor.saturation = calculateValueInRange(_dynamicColor.saturation, 0, 1, saturationIncrement);
             } 
 
 
             if (!isAnyDynamicEffectEnabled) {
-                properties.color = STROKE_COLOR;
+                properties.color = _strokeColor;
                 return;
             }
 
-            var newRgbColor =  hsv2rgb(dynamicColor);
-            strokeColors.push({
+            var newRgbColor = hsv2rgb(_dynamicColor);
+            _strokeColors.push({
                 x: newRgbColor.red/255.0,
                 y: newRgbColor.green/255.0, 
                 z: newRgbColor.blue/255.0}
             );
-            properties.strokeColors = strokeColors;
+            properties.strokeColors = _strokeColors;
         }
 
-        function setDynamicEffects(newDynamicEffects) {
-            dynamicEffects = newDynamicEffects;
+        function setDynamicEffects(dynamicEffects) {
+            _dynamicEffects = dynamicEffects;
         }
 
-        function isDrawing() {
-            return isDrawingLine;
+        function isDrawingLine() {
+            return _isDrawingLine;
         }
         
-        function changeStrokeWidthMultiplier(multiplier) {
-           // MIN_STROKE_LENGTH = ((multiplier * MIN_STROKE_LENGTH) / 0.25)*0.5;
-            //print("MIN_STROKE_LENGTH: " + MIN_STROKE_LENGTH);
-            strokeWidthMultiplier = multiplier;
+        function setStrokeWidthMultiplier(strokeWidthMultiplier) {
+            _strokeWidthMultiplier = strokeWidthMultiplier;
         }
 
-        function switchContinuousLine(isContinuous) {
-            isContinuousLine = isContinuous;
+        function setIsContinuousLine(isContinuousLine) {
+            _isContinuousLine = isContinuousLine;
         }
 
-        function setTriggerPressureWidthEnabled(isEnabled) {
-            isTriggerPressureWidthEnabled = isEnabled;
+        function setIsTriggerWidthEnabled(isTriggerWidthEnabled) {
+            _isTriggerWidthEnabled = isTriggerWidthEnabled;
         }
         
-        function changeUVMode(isUVModeStretch) {
-            IS_UV_MODE_STRETCH = isUVModeStretch;
+        function setUVMode(isUvModeStretch) {
+            _isUvModeStretch = isUvModeStretch;
         }
         
         function getStrokeWidth() {
-            return strokeWidthMultiplier;
+            return _strokeWidthMultiplier;
         }
 
         function getEntityID() {
-            return entityID;
+            return _entityID;
         }
                 
-        function changeTexture(textureURL) {
-            texture = textureURL;
+        function setTexture(texture) {
+            _texture = texture;
         }
         
         function undo() {
-            var undo = undoStack.pop();
-            if (undoStack.length == 0) {
+            var undo = _undoStack.pop();
+            if (_undoStack.length == 0) {
                 var undoDisableEvent = {type: "undoDisable", value: true};
                 tablet.emitScriptEvent(JSON.stringify(undoDisableEvent));
             }
@@ -206,9 +206,9 @@
                 //restoring a deleted entity will create a new entity with a new id therefore we need to update
                 //the created elements id in the undo stack. For the delete elements though, it is not necessary
                 //to update the id since you can't delete the same entity twice
-                for (var i = 0; i < undoStack.length; i++) {
-                    if (undoStack[i].type == "created" && undoStack[i].data == prevEntityId) {
-                        undoStack[i].data = newEntity;
+                for (var i = 0; i < _undoStack.length; i++) {
+                    if (_undoStack[i].type == "created" && _undoStack[i].data == prevEntityId) {
+                        _undoStack[i].data = newEntity;
                     } 
                 }
             } else {
@@ -217,55 +217,55 @@
         }
 
         function calculateLineWidth(width) {
-            if (isTriggerPressureWidthEnabled) {
-                return width * strokeWidthMultiplier;    
+            if (_isTriggerWidthEnabled) {
+                return width * _strokeWidthMultiplier;    
             } else {
-                return MAX_LINE_WIDTH * strokeWidthMultiplier; //MAX_LINE_WIDTH
+                return MAX_LINE_WIDTH * _strokeWidthMultiplier; //MAX_LINE_WIDTH
             }
         }
 
         function startLine(position, width) {
             // Start drawing a polyline.
-            if (isTabletFocused)
+            if (_isTabletFocused)
                 return;
 
             width = calculateLineWidth(width);
             
-            if (isDrawingLine) {
+            if (_isDrawingLine) {
                 print("ERROR: startLine() called when already drawing line");
                 // Nevertheless, continue on and start a new line.
             }
 
-            if (shouldKeepDrawing) {
-                strokePoints = [Vec3.distance(basePosition, strokePoints[strokePoints.length - 1])];
+            if (_shouldKeepDrawing) {
+                _strokePoints = [Vec3.distance(_basePosition, _strokePoints[_strokePoints.length - 1])];
             } else {
-                strokePoints = [Vec3.ZERO];
+                _strokePoints = [Vec3.ZERO];
             }
 
-            basePosition = position;
-            strokeNormals = [strokeNormal()];
-            strokeColors = [];
-            strokeWidths = [width];
-            timeOfLastPoint = Date.now();
+            _basePosition = position;
+            _strokeNormals = [calculateStrokeNormal()];
+            _strokeColors = [];
+            _strokeWidths = [width];
+            _timeOfLastPoint = Date.now();
 
             var newEntityProperties = {
                 type: "PolyLine",
                 name: "fingerPainting",
                 shapeType: "box",
                 position: position,
-                linePoints: strokePoints,
-                normals: strokeNormals,
-                strokeWidths: strokeWidths,
-                textures: texture, // Daantje
-                isUVModeStretch: IS_UV_MODE_STRETCH,
+                linePoints: _strokePoints,
+                normals: _strokeNormals,
+                strokeWidths: _strokeWidths,
+                textures: _texture, // Daantje
+                isUVModeStretch: _isUvModeStretch,
                 dimensions: STROKE_DIMENSIONS,
             };
-            dynamicColor = rgb2hsv(STROKE_COLOR);
+            _dynamicColor = rgb2hsv(_strokeColor);
             attacthColorToProperties(newEntityProperties);
-            entityID = Entities.addEntity(newEntityProperties);
-            isDrawingLine = true;
-            addAnimationToBrush(entityID);
-            lastPosition = position;
+            _entityID = Entities.addEntity(newEntityProperties);
+            _isDrawingLine = true;
+            addAnimationToBrush(_entityID);
+            _lastPosition = position;
         }
 
         function drawLine(position, width) {
@@ -276,13 +276,13 @@
             
             width = calculateLineWidth(width);
                 
-            if (!isDrawingLine) {
+            if (!_isDrawingLine) {
                 print("ERROR: drawLine() called when not drawing line");
                 return;
             }
 
-            localPosition = Vec3.subtract(position, basePosition);
-            distanceToPrevious = Vec3.distance(localPosition, strokePoints[strokePoints.length - 1]);
+            localPosition = Vec3.subtract(position, _basePosition);
+            distanceToPrevious = Vec3.distance(localPosition, _strokePoints[_strokePoints.length - 1]);
 
             if (distanceToPrevious > MAX_DISTANCE_TO_PREVIOUS) {
                 // Ignore occasional spurious finger tip positions.
@@ -290,70 +290,64 @@
             }
 
             if (distanceToPrevious >= MIN_STROKE_LENGTH
-                    && (Date.now() - timeOfLastPoint) >= MIN_STROKE_INTERVAL
-                    && strokePoints.length < MAX_POINTS_PER_LINE) {
-                strokePoints.push(localPosition);
-                //strokeColors.push({x: STROKE_COLOR.red/255.0, y: STROKE_COLOR.green/255.0, z: STROKE_COLOR.blue/255.0});
-                strokeNormals.push(strokeNormal());
-                strokeWidths.push(width);
-                timeOfLastPoint = Date.now();
+                    && (Date.now() - _timeOfLastPoint) >= MIN_STROKE_INTERVAL
+                    && _strokePoints.length < MAX_POINTS_PER_LINE) {
+                _strokePoints.push(localPosition);
+                _strokeNormals.push(calculateStrokeNormal());
+                _strokeWidths.push(width);
+                _timeOfLastPoint = Date.now();
 
                 var editItemProperties = {
-                    color: STROKE_COLOR,
-                    linePoints: strokePoints,
-                    normals: strokeNormals,
-                    strokeWidths: strokeWidths
+                    color: _strokeColor,
+                    linePoints: _strokePoints,
+                    normals: _strokeNormals,
+                    strokeWidths: _strokeWidths
                 };
                 attacthColorToProperties(editItemProperties);
-                Entities.editEntity(entityID, editItemProperties);
+                Entities.editEntity(_entityID, editItemProperties);
 
-            } else if (isContinuousLine && strokePoints.length >= MAX_POINTS_PER_LINE) {
+            } else if (_isContinuousLine && _strokePoints.length >= MAX_POINTS_PER_LINE) {
                 print("restarting to draw line");
                 finishLine(position, width);
-                shouldKeepDrawing = true;
-                startLine(lastPosition, width);
+                _shouldKeepDrawing = true;
+                startLine(_lastPosition, width);
             }
 
-            if (strokePoints.length >= MAX_POINTS_PER_LINE)
+            if (_strokePoints.length >= MAX_POINTS_PER_LINE)
                 print("restarting to draw linea asdasdadwe");
-            lastPosition = position;
+            _lastPosition = position;
         }
 
         function finishLine(position, width) {
             // Finish drawing polyline; delete if it has only 1 point.
-            //print("Before adding script: " + JSON.stringify(Entities.getEntityProperties(entityID)));
-            var userData = Entities.getEntityProperties(entityID).userData;
-            if (userData && JSON.parse(userData).animations) {
-                Entities.editEntity(entityID, {
+            var userData = Entities.getEntityProperties(_entityID).userData;
+            if (userData && JSON.parse(userData).animations && !_isBrushColored) {
+                Entities.editEntity(_entityID, {
                     script: ANIMATION_SCRIPT_PATH,
                 });    
             }
-            //print("After adding script: " + JSON.stringify(Entities.getEntityProperties(entityID)));
-            //setIsDrawingFingerPaint(entityID, false);
-            //print("already stopped drawing");
             width = calculateLineWidth(width);
             
-            if (!isDrawingLine) {
+            if (!_isDrawingLine) {
                 print("ERROR: finishLine() called when not drawing line");
                 return;
             }
 
-            if (strokePoints.length === 1) {
+            if (_strokePoints.length === 1) {
                 // Delete "empty" line.
-                Entities.deleteEntity(entityID);
+                Entities.deleteEntity(_entityID);
             }
 
-            isDrawingLine = false;
-            shouldKeepDrawing = false;
-            addElementToUndoStack({type: "created", data: entityID});
-            //print("After adding script 3: " + JSON.stringify(Entities.getEntityProperties(entityID)));
+            _isDrawingLine = false;
+            _shouldKeepDrawing = false;
+            addElementToUndoStack({type: "created", data: _entityID});
         }
 
         function cancelLine() {
             // Cancel any line being drawn.
-            if (isDrawingLine) {
-                Entities.deleteEntity(entityID);
-                isDrawingLine = false;
+            if (_isDrawingLine) {
+                Entities.deleteEntity(_entityID);
+                _isDrawingLine = false;
             }
         }
 
@@ -377,9 +371,9 @@
             for (i = 0, entitiesLength = entities.length; i < entitiesLength; i += 1) {
                 properties = Entities.getEntityProperties(entities[i], ["type", "position", "linePoints"]);
                 if (properties.type === "PolyLine") {
-                    basePosition = properties.position;
+                    _basePosition = properties.position;
                     for (j = 0, pointsLength = properties.linePoints.length; j < pointsLength; j += 1) {
-                        distance = Vec3.distance(position, Vec3.sum(basePosition, properties.linePoints[j]));
+                        distance = Vec3.distance(position, Vec3.sum(_basePosition, properties.linePoints[j]));
                         if (distance <= foundDistance) {
                             found = true;
                             foundID = entities[i];
@@ -393,11 +387,6 @@
             if (found) {
                 addElementToUndoStack({type: "deleted", data: Entities.getEntityProperties(foundID)});
                 Entities.deleteEntity(foundID);
-                /*Entities.editEntity(entityID, {
-                    color: «,
-                    normals: strokeNormals,
-                    strokeWidths: strokeWidths
-                });*/
             }
         }
 
@@ -412,17 +401,18 @@
             cancelLine: cancelLine,
             eraseClosestLine: eraseClosestLine,
             tearDown: tearDown,
-            changeStrokeColor: changeStrokeColor,
-            changeStrokeWidthMultiplier: changeStrokeWidthMultiplier,
-            changeTexture: changeTexture,
-            isDrawing: isDrawing,
+            setStrokeColor: setStrokeColor,
+            setStrokeWidthMultiplier: setStrokeWidthMultiplier,
+            setTexture: setTexture,
+            isDrawingLine: isDrawingLine,
             undo: undo,
             getStrokeColor: getStrokeColor,
             getStrokeWidth: getStrokeWidth,
             getEntityID: getEntityID,
-            changeUVMode: changeUVMode,
-            setTriggerPressureWidthEnabled: setTriggerPressureWidthEnabled,
-            setDynamicEffects: setDynamicEffects
+            setUVMode: setUVMode,
+            setIsTriggerWidthEnabled: setIsTriggerWidthEnabled,
+            setDynamicEffects: setDynamicEffects,
+            setIsContinuousLine: setIsContinuousLine
         };
     }
 
@@ -467,7 +457,7 @@
             var LEFT_HUD_LASER = 1;
             var RIGHT_HUD_LASER = 2;
             var BOTH_HUD_LASERS = LEFT_HUD_LASER + RIGHT_HUD_LASER;
-            if (isLeftHandDominant){
+            if (_isLeftHandDominant){
                 HMD.setHandLasers(RIGHT_HUD_LASER, true, LASER_TRIGGER_COLOR_XYZW, SYSTEM_LASER_DIRECTION);
                 
                 HMD.disableHandLasers(LEFT_HUD_LASER);
@@ -477,7 +467,6 @@
                 
             }
             HMD.disableExtraLaser();
-            
             
             var wasTriggerPressed,
                 fingerTipPosition,
@@ -504,45 +493,17 @@
                         + (triggerValue - TRIGGER_START_WIDTH_RAMP) / TRIGGER_RAMP_WIDTH * RAMP_LINE_WIDTH;
                 }
                 
-                if ((handName === "left" && isLeftHandDominant) || (handName === "right" && !isLeftHandDominant)){
+                if ((handName === "left" && _isLeftHandDominant) || (handName === "right" && !_isLeftHandDominant)){
                     if (!wasTriggerPressed && isTriggerPressed) {
-                        
-                        // TEST DAANTJE changes to a random color everytime you start a new line
-                        //leftBrush.changeStrokeColor(Math.random()*255, Math.random()*255, Math.random()*255);
-                        //rightBrush.changeStrokeColor(Math.random()*255, Math.random()*255, Math.random()*255);
-                        // TEST Stroke line width
-                        //var dim = Math.random()*4 + +0.5;
-                        //var dim2 = Math.floor( Math.random()*40 + 5);
-                        //leftBrush.changeStrokeWidthMultiplier(dim);
-                        //rightBrush.changeStrokeWidthMultiplier(dim);
-                        
+                        // TEST DAANTJE changes to a random color everytime you start a new line                    
                         triggerPressedCallback(fingerTipPosition, lineWidth);
                     } else if (wasTriggerPressed && isTriggerPressed) {
                         triggerPressingCallback(fingerTipPosition, lineWidth);
                     } else {
-                        triggerReleasedCallback(fingerTipPosition, lineWidth);
-                        
-                        /* // define condition to switch dominant hands
-                        if (Vec3.length(Vec3.subtract(fingerTipPosition, opositeHandPosition)) < 0.1){
-                            isLeftHandDominant = !isLeftHandDominant;
-                            
-                            // Test DAANTJE changes texture
-                            // if (Math.random() > 0.5) {
-                                // leftBrush.changeTexture(null);
-                                // rightBrush.changeTexture(null);
-                            // }else {
-                                // leftBrush.changeTexture('http://i.imgur.com/SSWDJtd.png');
-                                // rightBrush.changeTexture('https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Caris_Tessellation.svg/1024px-Caris_Tessellation.svg.png');
-                            // }
-                            
-                        } */
-                        
+                        triggerReleasedCallback(fingerTipPosition, lineWidth);                       
                     }
-                    
                 }
-                
             }
-            
         }
 
         function onGripPress(value) {
@@ -552,7 +513,6 @@
 
         function updateGripPress() {
             var fingerTipPosition;
-
             gripValue = gripValue * GRIP_SMOOTH_RATIO + rawGripValue * (1.0 - GRIP_SMOOTH_RATIO);
 
             if (isGripPressed) {
@@ -562,7 +522,7 @@
                 if (isGripPressed) {
                     fingerTipPosition = MyAvatar.getJointPosition(handName === "left" ? "LeftHandIndex4" : "RightHandIndex4");
                     
-                    if ((handName === "left" && isLeftHandDominant) || (handName === "right" && !isLeftHandDominant)){
+                    if ((handName === "left" && _isLeftHandDominant) || (handName === "right" && !_isLeftHandDominant)){
                         gripPressedCallback(fingerTipPosition);
                     }
                 }
@@ -570,7 +530,7 @@
         }
 
         function checkTabletHasFocus() {
-            var controllerPose = isLeftHandDominant 
+            var controllerPose = _isLeftHandDominant 
                                     ? getControllerWorldLocation(Controller.Standard.LeftHand, true)
                                     : getControllerWorldLocation(Controller.Standard.RightHand, true);
             
@@ -580,18 +540,18 @@
                 origin: fingerTipPosition,
                 direction: Quat.getUp(fingerTipRotation)
             }
-            var overlays = Overlays.findRayIntersection(pickRay, false, [HMD.tabletID], [inkSourceOverlay.overlayID]);
+            var overlays = Overlays.findRayIntersection(pickRay, false, [HMD.tabletID], [_inkSourceOverlay.overlayID]);
             if (overlays.intersects && HMD.tabletID == overlays.overlayID) {
-                if (!isTabletFocused) {
-                    isTabletFocused = true;
-                    Overlays.editOverlay(inkSourceOverlay, {visible: false});
+                if (!_isTabletFocused) {
+                    _isTabletFocused = true;
+                    Overlays.editOverlay(_inkSourceOverlay, {visible: false});
                     updateHandAnimations();
                     pauseProcessing();
                 } 
             } else {
-                if (isTabletFocused) {
-                    isTabletFocused = false;
-                    Overlays.editOverlay(inkSourceOverlay, {visible: true});
+                if (_isTabletFocused) {
+                    _isTabletFocused = false;
+                    Overlays.editOverlay(_inkSourceOverlay, {visible: true});
                     resumeProcessing();
                     updateHandFunctions();
                 }            
@@ -599,39 +559,13 @@
         }
 
         function onUpdate() {
-            
-            //update ink Source
-            // var strokeColor = leftBrush.getStrokeColor();
-            // var strokeWidth = leftBrush.getStrokeWidth()*0.06;
-            
-            // var position = MyAvatar.getJointPosition(isLeftHandDominant ? "LeftHandIndex4" : "RightHandIndex4");
-            // if (inkSource){
-                
-                
-                // Entities.editEntity(inkSource, {
-                    // color : strokeColor,
-                    // position : position,
-                    // dimensions : {
-                        // x: strokeWidth, 
-                        // y: strokeWidth, 
-                        // z: strokeWidth} 
-                
-                // });
-            // } else{
-                // var inkSourceProps = {
-                    // type: "Sphere",
-                    // name: "inkSource",
-                    // color: strokeColor,
-                    // position: position,
-                    // ignoreForCollisions: true,
-                    
-                    // dimensions: {x: strokeWidth, y:strokeWidth, z:strokeWidth}
-                // }
-                // inkSource = Entities.addEntity(inkSourceProps);
-            // }
-            if (HMD.tabletID && (((leftBrush == null || rightBrush == null) || (!leftBrush.isDrawing() && !rightBrush.isDrawing()))))  {
+            if (HMD.tabletID 
+                && (((_leftBrush == null || _rightBrush == null) 
+                || (!_leftBrush.isDrawingLine() && !_rightBrush.isDrawingLine())))) {
+
                 checkTabletHasFocus();
             }
+
             updateTriggerPress();
             updateGripPress();
         }
@@ -645,11 +579,6 @@
 
         function tearDown() {
             // Nothing to do.
-            //Entities
-            //if (inkSource){
-            //    Entities.deleteEntity(inkSource);
-            //    inkSource = null;
-            //}
         }
 
         return {
@@ -663,7 +592,7 @@
 
     function updateHandFunctions() {
         // Update other scripts' hand functions.
-        var enabled = !isFingerPainting || isTabletDisplayed;
+        var enabled = !_isFingerPainting || _isTabletDisplayed;
 
         Messages.sendMessage(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL, JSON.stringify({
             holdEnabled: enabled,
@@ -674,14 +603,7 @@
         
         Messages.sendMessage(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL, JSON.stringify({
             pointerEnabled: false
-        }), true);
-        
-        //    Messages.sendMessage(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL, JSON.stringify({
-        //    pointerEnabled: enabled
-        //}), true);
-        //}), true);
-        
-        
+        }), true);      
         
         Messages.sendMessage(HIFI_POINT_INDEX_MESSAGE_CHANNEL, JSON.stringify({
             pointIndex: !enabled
@@ -689,9 +611,9 @@
     }
     
     function updateHandAnimations(){
-        var ANIM_URL = (isLeftHandDominant? LEFT_ANIM_URL: RIGHT_ANIM_URL );
-        var ANIM_OPEN = (isLeftHandDominant? LEFT_ANIM_URL_OPEN: RIGHT_ANIM_URL_OPEN );
-        var handLiteral = (isLeftHandDominant? "left": "right" );
+        var ANIM_URL = (_isLeftHandDominant? LEFT_ANIM_URL: RIGHT_ANIM_URL );
+        var ANIM_OPEN = (_isLeftHandDominant? LEFT_ANIM_URL_OPEN: RIGHT_ANIM_URL_OPEN );
+        var handLiteral = (_isLeftHandDominant? "left": "right" );
 
         //Clear previous hand animation override
         restoreAllHandAnimations();
@@ -716,15 +638,13 @@
         Messages.sendLocalMessage("Hifi-Hand-Disabler", "none");
         Messages.sendLocalMessage("Hifi-Hand-Disabler", handLiteral);
         
-        
-        
         //update ink Source
-        var strokeColor = leftBrush.getStrokeColor();
-        var strokeWidth = leftBrush.getStrokeWidth()*0.06;
-        if (inkSourceOverlay == null){
-            inkSourceOverlay = Overlays.addOverlay("sphere", { parentID: MyAvatar.sessionUUID, parentJointIndex: MyAvatar.getJointIndex(handLiteral === "left" ? "LeftHandIndex4" : "RightHandIndex4"), localPosition: { x: 0, y: 0, z: 0 }, size: strokeWidth, color: strokeColor , solid: true });
+        var strokeColor = _leftBrush.getStrokeColor();
+        var strokeWidth = _leftBrush.getStrokeWidth()*0.06;
+        if (_inkSourceOverlay == null){
+            _inkSourceOverlay = Overlays.addOverlay("sphere", { parentID: MyAvatar.sessionUUID, parentJointIndex: MyAvatar.getJointIndex(handLiteral === "left" ? "LeftHandIndex4" : "RightHandIndex4"), localPosition: { x: 0, y: 0, z: 0 }, size: strokeWidth, color: strokeColor , solid: true });
         } else {
-            Overlays.editOverlay(inkSourceOverlay, {
+            Overlays.editOverlay(_inkSourceOverlay, {
                 parentJointIndex: MyAvatar.getJointIndex(handLiteral === "left" ? "LeftHandIndex4" : "RightHandIndex4"),
                 localPosition: { x: 0, y: 0, z: 0 },
                 size: strokeWidth, 
@@ -789,20 +709,20 @@
     
     function enableProcessing() {
         // Connect controller API to handController objects.
-        leftHand = handController("left");
-        rightHand = handController("right");
+        _leftHand = handController("left");
+        _rightHand = handController("right");
         
           // Connect handController outputs to paintBrush objects.
-        leftBrush = paintBrush("left");
-        leftHand.setUp(leftBrush.startLine, leftBrush.drawLine, leftBrush.finishLine, leftBrush.eraseClosestLine);
-        rightBrush = paintBrush("right");
-        rightHand.setUp(rightBrush.startLine, rightBrush.drawLine, rightBrush.finishLine, rightBrush.eraseClosestLine);
+        _leftBrush = paintBrush("left");
+        _leftHand.setUp(_leftBrush.startLine, _leftBrush.drawLine, _leftBrush.finishLine, _leftBrush.eraseClosestLine);
+        _rightBrush = paintBrush("right");
+        _rightHand.setUp(_rightBrush.startLine, _rightBrush.drawLine, _rightBrush.finishLine, _rightBrush.eraseClosestLine);
 
         var controllerMapping = Controller.newMapping(CONTROLLER_MAPPING_NAME);
-        controllerMapping.from(Controller.Standard.LT).to(leftHand.onTriggerPress);
-        controllerMapping.from(Controller.Standard.LeftGrip).to(leftHand.onGripPress);
-        controllerMapping.from(Controller.Standard.RT).to(rightHand.onTriggerPress);
-        controllerMapping.from(Controller.Standard.RightGrip).to(rightHand.onGripPress);
+        controllerMapping.from(Controller.Standard.LT).to(_leftHand.onTriggerPress);
+        controllerMapping.from(Controller.Standard.LeftGrip).to(_leftHand.onGripPress);
+        controllerMapping.from(Controller.Standard.RT).to(_rightHand.onTriggerPress);
+        controllerMapping.from(Controller.Standard.RightGrip).to(_rightHand.onGripPress);
         Controller.enableMapping(CONTROLLER_MAPPING_NAME);
 
         //Change to finger paint hand animation
@@ -814,158 +734,86 @@
         Messages.subscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
 
         // Update hand controls.
-        Script.update.connect(leftHand.onUpdate);
-        Script.update.connect(rightHand.onUpdate);
-        
-        
-        // enable window palette
-        /*window = new OverlayWindow({
-            title: 'Paint Window',
-            source: qml,
-            width: 600, height: 600,
-        });*/
-        
-        // 75
-        //50
-        //window.setPosition(75, 100);
-        //window.closed.connect(function() { 
-        //Script.stop(); 
-        //}); uncomment for qml interface
-
-        /*window.fromQml.connect(function(message){
-            if (message[0] === "color"){
-                leftBrush.changeStrokeColor(message[1], message[2], message[3]);
-                rightBrush.changeStrokeColor(message[1], message[2], message[3]);
-                Overlays.editOverlay(inkSourceOverlay, {
-                    color: {red: message[1], green: message[2], blue: message[3]} 
-                });
-                return;
-            }
-            if (message[0] === "width"){
-                print("changing brush width " + message[1]);
-                var dim = message[1]*2 +0.1;
-                print("changing brush dim " + dim);
-                //var dim2 = Math.floor( Math.random()*40 + 5);
-                leftBrush.changeStrokeWidthMultiplier(dim);
-                rightBrush.changeStrokeWidthMultiplier(dim);
-                Overlays.editOverlay(inkSourceOverlay, {
-                    size: dim * 0.06 
-                
-                });
-                return;
-            }
-            if (message[0] === "brush"){
-                print("changing brush to qml " + message[1]);
-
-                //var dim2 = Math.floor( Math.random()*40 + 5);
-                leftBrush.changeTexture(message[1]);
-                rightBrush.changeTexture(message[1]);
-                
-                if (message[1] === "content/brushes/paintbrush1.png") {
-                    leftBrush.changeUVMode(true);
-                    rightBrush.changeUVMode(true);
-                }else if (message[1] === "content/brushes/paintbrush3.png") {
-                    leftBrush.changeUVMode(true);
-                    rightBrush.changeUVMode(true);
-                }else{
-                    leftBrush.changeUVMode(false);
-                    rightBrush.changeUVMode(false);
-                }
-                return;
-            }
-            if (message[0] === "undo"){
-                leftBrush.undo();
-                rightBrush.undo();
-                return;
-            }
-            if (message[0] === "hand"){
-                isLeftHandDominant = !isLeftHandDominant;
-                updateHandAnimations();
-                return;
-            }
-        });*/ //uncomment for qml interface
+        Script.update.connect(_leftHand.onUpdate);
+        Script.update.connect(_rightHand.onUpdate);
     }
 
     function disableProcessing() {
-        if (leftHand && rightHand) {
-            Script.update.disconnect(leftHand.onUpdate);
-            Script.update.disconnect(rightHand.onUpdate);
+        if (_leftHand && _rightHand) {
+            Script.update.disconnect(_leftHand.onUpdate);
+            Script.update.disconnect(_rightHand.onUpdate);
 
             Controller.disableMapping(CONTROLLER_MAPPING_NAME);
 
             Messages.sendLocalMessage("Hifi-Hand-Disabler", "none");
             
-            leftBrush.tearDown();
-            leftBrush = null;
-            leftHand.tearDown();
-            leftHand = null;
+            _leftBrush.tearDown();
+            _leftBrush = null;
+            _leftHand.tearDown();
+            _leftHand = null;
 
-            rightBrush.tearDown();
-            rightBrush = null;
-            rightHand.tearDown();
-            rightHand = null;
+            _rightBrush.tearDown();
+            _rightBrush = null;
+            _rightHand.tearDown();
+            _rightHand = null;
 
             Messages.unsubscribe(HIFI_POINT_INDEX_MESSAGE_CHANNEL);
             Messages.unsubscribe(HIFI_GRAB_DISABLE_MESSAGE_CHANNEL);
             Messages.unsubscribe(HIFI_POINTER_DISABLE_MESSAGE_CHANNEL);
             
-            
             //Restores and clears hand animations
             restoreAllHandAnimations();
             
             //clears Overlay sphere
-            Overlays.deleteOverlay(inkSourceOverlay);
-            inkSourceOverlay = null;
-            
-            // disable window palette
-            //window.close(); //uncomment for qml interface
+            Overlays.deleteOverlay(_inkSourceOverlay);
+            _inkSourceOverlay = null;
         }
     }
 
     //Load last fingerpaint settings
     function restoreLastValues() {
-        savedSettings = new Object();
-        savedSettings.currentColor = Settings.getValue("currentColor", {red: 250, green: 0, blue: 0, origin: "custom"}),
-        savedSettings.currentStrokeWidth = Settings.getValue("currentStrokeWidth", 0.25);
-        savedSettings.currentTexture = Settings.getValue("currentTexture", {brushID: 0});
-        savedSettings.currentDrawingHand = Settings.getValue("currentDrawingHand", MyAvatar.getDominantHand() == "left");
-        savedSettings.currentAnimatedBrushes = Settings.getValue("currentAnimatedBrushes", []);
-        savedSettings.customColors = Settings.getValue("customColors", []);
-        savedSettings.currentTab = Settings.getValue("currentTab", 0);
-        savedSettings.currentTriggerWidthEnabled = Settings.getValue("currentTriggerWidthEnabled", true);
-        savedSettings.currentDynamicBrushes = Settings.getValue("currentDynamicBrushes", new Object());
-        savedSettings.currentIsContinuous = Settings.getValue("currentIsContinuous", false);
-        savedSettings.undoDisable = undoStack.length == 0;
-        isLeftHandDominant = savedSettings.currentDrawingHand;
+        _savedSettings = new Object();
+        _savedSettings.currentColor = Settings.getValue("currentColor", {red: 250, green: 0, blue: 0, origin: "custom"}),
+        _savedSettings.currentStrokeWidth = Settings.getValue("currentStrokeWidth", 0.25);
+        _savedSettings.currentTexture = Settings.getValue("currentTexture", {brushID: 0});
+        _savedSettings.currentDrawingHand = Settings.getValue("currentDrawingHand", MyAvatar.getDominantHand() == "left");
+        _savedSettings.currentAnimatedBrushes = Settings.getValue("currentAnimatedBrushes", []);
+        _savedSettings.customColors = Settings.getValue("customColors", []);
+        _savedSettings.currentTab = Settings.getValue("currentTab", 0);
+        _savedSettings.currentTriggerWidthEnabled = Settings.getValue("currentTriggerWidthEnabled", true);
+        _savedSettings.currentDynamicBrushes = Settings.getValue("currentDynamicBrushes", new Object());
+        _savedSettings.currentIsContinuous = Settings.getValue("currentIsContinuous", false);
+        _savedSettings.currentIsBrushColored = Settings.getValue("currentIsBrushColored", false);
+        _savedSettings.undoDisable = _undoStack.length == 0;
+        //set some global variables
+        _isLeftHandDominant = _savedSettings.currentDrawingHand;
+        _isBrushColored = _savedSettings.currentIsBrushColored;
     }
 
     function onButtonClicked() {
         restoreLastValues();
-        //isFingerPainting = false;
-        var wasFingerPainting = isFingerPainting;
+        var wasFingerPainting = _isFingerPainting;
+        _isFingerPainting = !_isFingerPainting;
 
-        isFingerPainting = !isFingerPainting;
-        //print("isFingerPainting: " + isFingerPainting);
-        if (!isFingerPainting) {
+        if (!_isFingerPainting) {
             tablet.gotoHomeScreen();
         }
-        button.editProperties({ isActive: isFingerPainting });
+        button.editProperties({ isActive: _isFingerPainting });
 
         if (wasFingerPainting) {
-            leftBrush.cancelLine();
-            rightBrush.cancelLine();
+            _leftBrush.cancelLine();
+            _rightBrush.cancelLine();
         }
 
-        if (isFingerPainting) {
-            //print("opening tablet fingerpaint app");
-            tablet.gotoWebScreen(APP_URL + "?" + encodeURIComponent(JSON.stringify(savedSettings)));
+        if (_isFingerPainting) {
+            tablet.gotoWebScreen(APP_URL + "?" + encodeURIComponent(JSON.stringify(_savedSettings)));
             enableProcessing();
-            savedSettings = null;
+            _savedSettings = null;
         }
 
         updateHandFunctions();
 
-        if (!isFingerPainting) {
+        if (!_isFingerPainting) {
             disableProcessing();
             Controller.mousePressEvent.disconnect(mouseStartLine);
             Controller.mouseMoveEvent.disconnect(mouseDrawLine);
@@ -979,31 +827,31 @@
 
     function onTabletScreenChanged(type, url) {
         var TABLET_SCREEN_CLOSED = "Closed";
-        isTabletDisplayed = type !== TABLET_SCREEN_CLOSED;
-        isFingerPainting = type === "Web" && url.indexOf("fingerPaint/html/main.html") > -1;
-        if (!isFingerPainting) {
+        _isTabletDisplayed = type !== TABLET_SCREEN_CLOSED;
+        _isFingerPainting = type === "Web" && url.indexOf("fingerPaint/html/main.html") > -1;
+        if (!_isFingerPainting) {
             disableProcessing();
         }
-        if (shouldRestoreTablet) {
-            shouldRestoreTablet = false;
-            isFingerPainting = false; //in order for it to be re enabled
+        if (_shouldRestoreTablet) {
+            _shouldRestoreTablet = false;
+            _isFingerPainting = false; //in order for it to be re enabled
             onButtonClicked();
             HMD.openTablet();
         }
-        button.editProperties({ isActive: isFingerPainting });
+        button.editProperties({ isActive: _isFingerPainting });
         updateHandFunctions();
     }
 
 
     function onWebEventReceived(event){
-        print("Received Web Event: " + event);
 
         if (typeof event === "string") {
             event = JSON.parse(event);
         }
+
         switch (event.type) {
             case "appReady":
-                isTabletFocused = false; //make sure we can set the focus on the tablet again
+                _isTabletFocused = false; //make sure we can set the focus on the tablet again
                 break;
 
             case "changeTab":
@@ -1011,29 +859,26 @@
                 break;
 
             case "changeColor":
-                if (!isBrushColored) {
-                    var changeStrokeColorEvent = {type: "changeStrokeColor", value: event};
-                    tablet.emitScriptEvent(JSON.stringify(changeStrokeColorEvent));
+                if (!_isBrushColored) {
+                    var setStrokeColorEvent = {type: "changeStrokeColor", value: event};
+                    tablet.emitScriptEvent(JSON.stringify(setStrokeColorEvent));
                     
                     Settings.setValue("currentColor", event);
-                    //print("changing color...");
-                    leftBrush.changeStrokeColor(event.red, event.green, event.blue);
-                    rightBrush.changeStrokeColor(event.red, event.green, event.blue);
-                    Overlays.editOverlay(inkSourceOverlay, {
+                    _leftBrush.setStrokeColor(event.red, event.green, event.blue);
+                    _rightBrush.setStrokeColor(event.red, event.green, event.blue);
+                    Overlays.editOverlay(_inkSourceOverlay, {
                         color: {red: event.red, green: event.green, blue: event.blue} 
                     });
                 } 
                 break;
 
             case "switchTriggerPressureWidth":
-                //print("changing pressure sensitive width...");
                 Settings.setValue("currentTriggerWidthEnabled", event.enabled);
-                leftBrush.setTriggerPressureWidthEnabled(event.enabled);
-                rightBrush.setTriggerPressureWidthEnabled(event.enabled);
+                _leftBrush.setIsTriggerWidthEnabled(event.enabled);
+                _rightBrush.setIsTriggerWidthEnabled(event.enabled);
                 break;
 
             case "addCustomColor":
-                //print("Adding custom color");
                 var customColors = Settings.getValue("customColors", []);
                 customColors.push({red: event.red, green: event.green, blue: event.blue});
                 if (customColors.length > event.maxColors) {
@@ -1044,55 +889,44 @@
 
 
             case "changeBrush":
-                //print("abrushType: " + event.brushType);
                 Settings.setValue("currentTexture", event);
+                Settings.setValue("currentIsBrushColored", event.isColored);
+
                 if (event.brushType === "repeat") {
-                    //print("brushType: " + event.brushType);
-                    leftBrush.changeUVMode(false);
-                    rightBrush.changeUVMode(false);
+                    _leftBrush.setUVMode(false);
+                    _rightBrush.setUVMode(false);
+
                 } else if (event.brushType === "stretch") {
-                    //print("brushType: " + event.brushType);
-                    leftBrush.changeUVMode(true);
-                    rightBrush.changeUVMode(true);
+                    _leftBrush.setUVMode(true);
+                    _rightBrush.setUVMode(true);
                 } 
-                isBrushColored = event.isColored;
-                if (event.isColored) {
-                    Settings.setValue("currentColor", {red: 255, green: 255, blue: 255});
-                    leftBrush.changeStrokeColor(255, 255, 255);
-                    rightBrush.changeStrokeColor(255, 255, 255);
-                    Overlays.editOverlay(inkSourceOverlay, {
-                        color: {red: 255, green: 255, blue: 255} 
-                    });
-                }
-                //print("changing brush to " + event.brushName);
+
+                _isBrushColored = event.isColored;
                 event.brushName = CONTENT_PATH + "/" + event.brushName;
-                leftBrush.changeTexture(event.brushName);
-                rightBrush.changeTexture(event.brushName);
+                _leftBrush.setTexture(event.brushName);
+                _rightBrush.setTexture(event.brushName);
                 break;
 
             case "changeLineWidth":
                 Settings.setValue("currentStrokeWidth", event.brushWidth);
                 var dim = event.brushWidth * 2 + 0.1;
-                //print("changing brush width dim to " + dim);
-                //var dim2 = Math.floor( Math.random()*40 + 5);
-                leftBrush.changeStrokeWidthMultiplier(dim);
-                rightBrush.changeStrokeWidthMultiplier(dim);
-                Overlays.editOverlay(inkSourceOverlay, {
+                _leftBrush.setStrokeWidthMultiplier(dim);
+                _rightBrush.setStrokeWidthMultiplier(dim);
+                Overlays.editOverlay(_inkSourceOverlay, {
                     size: dim * 0.06 
                 });
                 break;
 
             case "undo":
-                //print("Going to undo");
                 //The undo is called only on the right brush because the undo stack is global, meaning that
                 //calling undo on both the left and right brush would cause the stack to pop twice.
                 //Using the leftBrush instead of the rightBrush would have the exact same effect.
-                rightBrush.undo();
+                _rightBrush.undo();
                 break;
 
             case "changeBrushHand":
                 Settings.setValue("currentDrawingHand", event.DrawingHand == "left");
-                isLeftHandDominant = event.DrawingHand == "left";
+                _isLeftHandDominant = event.DrawingHand == "left";
                 updateHandAnimations();
                 break;
 
@@ -1107,20 +941,20 @@
                 Settings.setValue("currentAnimatedBrushes", animatedBrushes);
                 AnimatedBrushesInfo[event.animatedBrushName].isEnabled = event.enabled;
                 AnimatedBrushesInfo[event.animatedBrushName].settings = event.settings;
-                //print("SEtting animated brush" + JSON.stringify(AnimatedBrushesInfo[event.animatedBrushName]));
                 break;
 
             case "switchDynamicBrush":
                 var dynamicBrushes = Settings.getValue("currentDynamicBrushes", new Object());
                 dynamicBrushes[event.dynamicBrushId] = event.enabled;
                 Settings.setValue("currentDynamicBrushes", dynamicBrushes);
-                rightBrush.setDynamicEffects(dynamicBrushes);
-                leftBrush.setDynamicEffects(dynamicBrushes);
+                _rightBrush.setDynamicEffects(dynamicBrushes);
+                _leftBrush.setDynamicEffects(dynamicBrushes);
                 break;
+
             case "switchIsContinuous":
                 Settings.setValue("currentIsContinuous", event.enabled);
-                rightBrush.switchIsContinuous(event.enabled);
-                leftBrush.switchIsContinuous(event.enabled);
+                _rightBrush.setIsContinuousLine(event.enabled);
+                _leftBrush.setIsContinuousLine(event.enabled);
                 break;
 
             default:
@@ -1132,7 +966,6 @@
         Object.keys(AnimatedBrushesInfo).forEach(function(animationName) {
             print(animationName);
             if (AnimatedBrushesInfo[animationName].isEnabled) {
-                //print("Adding animation " + animationName);
                 var prevUserData = Entities.getEntityProperties(entityID).userData;
                 prevUserData = prevUserData == "" ? new Object() : JSON.parse(prevUserData); //preserve other possible user data
                 if (prevUserData.animations == null) {
@@ -1143,7 +976,6 @@
                     AnimatedBrushesInfo[animationName].settings, entityID);
 
                 Entities.editEntity(entityID, {userData: JSON.stringify(prevUserData)});    
-                //print("Added animation: " + JSON.stringify(Entities.getEntityProperties(entityID)));
             }
         });
     }
@@ -1153,29 +985,25 @@
         var undoDisableEvent = {type: "undoDisable", value: false};
         tablet.emitScriptEvent(JSON.stringify(undoDisableEvent));
 
-        if (undoStack.length + 1 > UNDO_STACK_SIZE) {
-            undoStack.splice(0, 1);
+        if (_undoStack.length + 1 > UNDO_STACK_SIZE) {
+            _undoStack.splice(0, 1);
         }
-        undoStack.push(item);
+        _undoStack.push(item);
     }
 
     function onHmdChanged(isHMDActive) { 
         var HMDInfo = Settings.getValue("wasFingerPaintingWhenHMDClosed", {isHMDActive: true, wasFingerPainting: false});
-        // if (isHMDActive && !isFingerPainting && HMDInfo.wasFingerPainting) { only reopen in hmd mode
-        if (!isFingerPainting && HMDInfo.wasFingerPainting) {
-            //print("Restarting fingerPaint app!");
-            shouldRestoreTablet = true;
+        if (!_isFingerPainting && HMDInfo.wasFingerPainting) {
+            _shouldRestoreTablet = true;
             HMD.openTablet();
         }
         if (isHMDActive != HMDInfo.isHMDActive) { //check if state is different as some times it will be the same
             //onHmdChanged seems to be called twice (once before and once after fingerpaint is over)
-            Settings.setValue("wasFingerPaintingWhenHMDClosed", {isHMDActive: isHMDActive, wasFingerPainting: isFingerPainting});
-            //print("Saving finger painting value " + isFingerPainting);
+            Settings.setValue("wasFingerPaintingWhenHMDClosed", {isHMDActive: isHMDActive, wasFingerPainting: _isFingerPainting});
         }
     }
 
     function setUp() {
-        //print("Setting button...");
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         if (!tablet) {
             return;
@@ -1186,9 +1014,9 @@
             icon: "icons/tablet-icons/finger-paint-i.svg",
             activeIcon: "icons/tablet-icons/finger-paint-a.svg",
             text: BUTTON_NAME,
-            isActive: isFingerPainting
+            isActive: _isFingerPainting
         });
-        //print("button-1 : " + JSON.stringify(button.getProperties()));
+
         button.clicked.connect(onButtonClicked);
         // Track whether tablet is displayed or not.
         tablet.screenChanged.connect(onTabletScreenChanged);
@@ -1200,8 +1028,8 @@
             return;
         }
 
-        if (isFingerPainting) {
-            isFingerPainting = false;
+        if (_isFingerPainting) {
+            _isFingerPainting = false;
             updateHandFunctions();
             disableProcessing();
         }
@@ -1218,16 +1046,15 @@
     }
 
     function mouseDrawLine(event){
-        if (rightBrush && rightBrush.isDrawing()) {
-            rightBrush.drawLine(getFingerPosition(event.x, event.y), MAX_LINE_WIDTH);
+        if (_rightBrush && _rightBrush.isDrawingLine()) {
+            _rightBrush.drawLine(getFingerPosition(event.x, event.y), MAX_LINE_WIDTH);
         } 
     }
 
     function mouseStartLine(event){
-        //print(JSON.stringify(event));
-        if (event.isLeftButton && rightBrush) {
-            isMouseDrawing = true;
-            rightBrush.startLine(getFingerPosition(event.x, event.y), MAX_LINE_WIDTH);
+        if (event.isLeftButton && _rightBrush) {
+            _isMouseDrawing = true;
+            _rightBrush.startLine(getFingerPosition(event.x, event.y), MAX_LINE_WIDTH);
         }
         //Note: won't work until findRayIntersection works with polylines
         //
@@ -1249,9 +1076,9 @@
     }
 
     function mouseFinishLine(event){
-        isMouseDrawing = false;
-        if (rightBrush && rightBrush.isDrawing()) {
-            rightBrush.finishLine(getFingerPosition(event.x, event.y), MAX_LINE_WIDTH);
+        _isMouseDrawing = false;
+        if (_rightBrush && _rightBrush.isDrawingLine()) {
+            _rightBrush.finishLine(getFingerPosition(event.x, event.y), MAX_LINE_WIDTH);
         } 
     }
 

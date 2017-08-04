@@ -2,9 +2,7 @@
 Script.include("animatedBrush.js");
 
 function AnimatedRotationBrushClass(settings, entityID) {
-    //animated brush vars
     AnimatedBrush.call(this);
-    //print("Starting animated rotation brush");
     this.angle = 0;
     this.activeAxis = settings.axis;
 }
@@ -17,7 +15,6 @@ AnimatedRotationBrushClass.prototype.ANIMATED_BRUSH_INCREMENT = 5; //linear incr
 AnimatedRotationBrushClass.prototype.NAME = "animatedRotationBrush"; //linear increment of brush size;
 
 AnimatedRotationBrushClass.prototype.onUpdate = function(deltaSeconds, entityID) {
-    //print("Animated rotation this:  " + JSON.stringify(rotation));
     this.angle = this.angle + ((deltaSeconds * this.ANIMATED_BRUSH_INCREMENT)/this.ANIMATED_BRUSH_TIME);
     this.angle = this.angle >= 360 ? 0 : this.angle; //restart hue cycle
     var rotation = Vec3.multiply(this.angle, this.activeAxis);

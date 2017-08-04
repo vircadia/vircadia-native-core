@@ -2,9 +2,7 @@
 Script.include("animatedBrush.js");
 
 function AnimatedTranslationBrushClass(settings, entityID) {
-    //Animated brush vars
     AnimatedBrush.call(this);
-    //print("Starting Animated Translation brush");
     this.startingPosition = null;
     this.translation = 0;
     this.activeAxis = settings.axis;
@@ -19,9 +17,7 @@ AnimatedTranslationBrushClass.prototype.MAX_TRANSLATION = 2;
 AnimatedTranslationBrushClass.prototype.NAME = "animatedTranslationBrush"; //linear increment of brush size;
 
 AnimatedTranslationBrushClass.prototype.onUpdate = function(deltaSeconds, entityID) {
-    //print("translation this: " + JSON.stringify(this) + " : " + JSON.stringify(this.activeAxis));
     var currentPosition = Entities.getEntityProperties(entityID).position;
-    //print("currentPosition " + JSON.stringify(currentPosition));
     if (this.startingPosition == null) {
         this.startingPosition = currentPosition;
     }

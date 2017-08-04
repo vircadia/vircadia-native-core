@@ -21,11 +21,9 @@ AnimatedBrushClass.prototype.onUpdate = function(deltaSeconds, entityID) {
  * @param animatedBrushObject: the animation object (should be a subclass of animatedBrush)
  */
 AnimatedBrushClass.prototype.updateUserData = function(entityID, animatedBrushObject) {
-    //print("Saving class " + animatedBrushObject.NAME);
     var prevUserData = Entities.getEntityProperties(entityID).userData;
 
     if (prevUserData) {
-        print("saving on parent: " + JSON.stringify(animatedBrushObject));
         prevUserData = prevUserData == "" ? new Object() : JSON.parse(prevUserData); //preserve other possible user data
         if (prevUserData.animations != null && prevUserData.animations[animatedBrushObject.NAME] != null) {
             delete prevUserData.animations[animatedBrushObject.NAME];
