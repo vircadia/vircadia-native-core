@@ -54,9 +54,8 @@
         };
         parent.postMessage(JSON.stringify(chooseHandEvent), "*");
     }
-    //window.addEventListener("message", restoreCurrentDrawingHand, false);
-    restoreCurrentDrawingHand(JSON.parse(decodeURIComponent(window.parent.location.search).substring(1)));
 
+    restoreCurrentDrawingHand(JSON.parse(decodeURIComponent(window.parent.location.search).substring(1)));
     function restoreCurrentDrawingHand(handData) {
         if (handData.currentDrawingHand) {
             chooseHand(0);
@@ -64,6 +63,4 @@
             chooseHand(1);
         }         
     }
-
-
 </script>

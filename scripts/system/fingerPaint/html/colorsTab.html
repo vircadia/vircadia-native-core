@@ -8,23 +8,32 @@
     #colorPicker {
         display: grid;
     }
+
     .colorPickerCell {
         border: none; 
         width: 20px; 
         height: 20px;
         display: inline-block;
     }
+
     #colorPickerTable {
         margin-top: 24px;
         border-collapse:collapse
     }
+
     #customColorPicker {
         height: 50px;
     }
+
     .colorPickerCell {
         position: relative;
     }
+
     #selectedOverlay {
+        text-align: center;
+        font-size: 12px;
+        line-height: 20px;
+        color: white;
         background-color: rgba(16, 128, 184, 0.3);
         top:0;
         left:0;
@@ -38,6 +47,7 @@
         background-size: contain;
     }
 </style>
+
 <div id="colorpicker"></div>
 <div id="colorPickerTable"></div>
 <div id="lastPickedColors"></div>
@@ -45,6 +55,7 @@
 <script src="../../html/js/colpick.js">
     require('jquery-colpick');
 </script>
+
 <script>
     $('#colorpicker').colpick({
         flat:true, 
@@ -78,7 +89,9 @@
             for (var i = 0; i < startingColors.length; i++) {
                 var colorCell = document.createElement("div");
                 //colorCell.type = "button";
-                colorCell.style.backgroundColor = "hsl(" + startingColors[i].hue + ",100%," + ((80-(80*j/(ROWS-1))) + 10) + "%)";
+                colorCell.style.backgroundColor = "hsl(" + startingColors[i].hue 
+                    + ",100%," + ((80-(80*j/(ROWS-1))) + 10) + "%)";
+
                 colorCell.className  = "colorPickerCell";
                 colorCell.onclick = function() { 
                     updateColorFromTable(this, "table") 
@@ -125,12 +138,13 @@
     }
 
     function selectButton(button) {
-         if (lastSelectedButton != null) {
+        if (lastSelectedButton != null) {
              lastSelectedButton.removeChild(document.getElementById("selectedOverlay"));
         }
         if (button) {
             var selectedOverlay = document.createElement("div");
-            selectedOverlay.id = "selectedOverlay";        
+            selectedOverlay.id = "selectedOverlay";    
+            selectedOverlay.innerHTML  = "&#x2714";    
             button.appendChild(selectedOverlay);
             lastSelectedButton = button;
         } else {
@@ -165,15 +179,18 @@
                     return;
             }
         }
+
         if (lastPickedColors.length + 1 > COLUMNS) {
             lastPickedColorsContainer.removeChild(lastPickedColors[lastPickedColors.length-1]);
         }
+
         var colorCell = document.createElement("div");
         colorCell.style.backgroundColor = "rgb(" + colorArray[0] + "," + colorArray[1] + "," + colorArray[2] + ")";
         colorCell.className  = "colorPickerCell";
         colorCell.id = "user(" + colorArray[0] + "," + colorArray[1] + "," + colorArray[2] + ")";
         colorCell.onclick = function() { updateColorFromTable(this, "user") };
         lastPickedColorsContainer.insertBefore(colorCell, lastPickedColorsContainer.firstChild);
+        
         if (notify) {
              var addCustomColorEvent = {
                 "type"     : "addCustomColor",
@@ -188,7 +205,6 @@
 
     restoreLastColor(JSON.parse(decodeURIComponent(window.parent.location.search).substring(1)));
     function restoreLastColor(palleteData) {
-        //var palleteData = JSON.parse(event.data);
         if ("customColors" in palleteData) {
             var customColors = palleteData.customColors;
             for (var i = 0; i < customColors.length; i++) {

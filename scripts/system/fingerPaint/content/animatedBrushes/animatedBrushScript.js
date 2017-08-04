@@ -9,11 +9,9 @@
         self.intervalID = Script.setInterval(function() {
             if (Vec3.withinEpsilon(MyAvatar.position, Entities.getEntityProperties(entityID).position, MIN_PLAY_DISTANCE)) {
                 var userData = Entities.getEntityProperties(entityID).userData;
-                //print("UserData:  " + userData);
                 if (userData) {
                     var userDataObject = JSON.parse(userData);
                     var animationObject = userDataObject.animations;
-                    print("Playing animation " + JSON.stringify(animationObject));
                     var newAnimationObject = null;
                     if (!userDataObject.timeFromLastAnimation) {
                         userDataObject.timeFromLastAnimation = Date.now();
