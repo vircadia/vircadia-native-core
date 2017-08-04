@@ -166,6 +166,23 @@ Input::NamedVector StandardController::getAvailableInputs() const {
         makePair(DD, "Down"),
         makePair(DL, "Left"),
         makePair(DR, "Right"),
+
+        makePair(TRACKED_OBJECT_00, "TrackedObject00"),
+        makePair(TRACKED_OBJECT_01, "TrackedObject01"),
+        makePair(TRACKED_OBJECT_02, "TrackedObject02"),
+        makePair(TRACKED_OBJECT_03, "TrackedObject03"),
+        makePair(TRACKED_OBJECT_04, "TrackedObject04"),
+        makePair(TRACKED_OBJECT_05, "TrackedObject05"),
+        makePair(TRACKED_OBJECT_06, "TrackedObject06"),
+        makePair(TRACKED_OBJECT_07, "TrackedObject07"),
+        makePair(TRACKED_OBJECT_08, "TrackedObject08"),
+        makePair(TRACKED_OBJECT_09, "TrackedObject09"),
+        makePair(TRACKED_OBJECT_10, "TrackedObject10"),
+        makePair(TRACKED_OBJECT_11, "TrackedObject11"),
+        makePair(TRACKED_OBJECT_12, "TrackedObject12"),
+        makePair(TRACKED_OBJECT_13, "TrackedObject13"),
+        makePair(TRACKED_OBJECT_14, "TrackedObject14"),
+        makePair(TRACKED_OBJECT_15, "TrackedObject15")
     };
     return availableInputs;
 }
