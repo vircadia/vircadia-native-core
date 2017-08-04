@@ -54,6 +54,7 @@ void EntityEditPacketSender::queueEditAvatarEntityMessage(PacketType type,
     EntityItemProperties entityProperties = entity->getProperties();
     entityProperties.merge(properties);
 
+    std::lock_guard<std::mutex> lock(_mutex);
     QScriptValue scriptProperties = EntityItemNonDefaultPropertiesToScriptValue(&_scriptEngine, entityProperties);
     QVariant variantProperties = scriptProperties.toVariant();
     QJsonDocument jsonProperties = QJsonDocument::fromVariant(variantProperties);

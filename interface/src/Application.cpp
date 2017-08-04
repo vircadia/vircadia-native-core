@@ -70,7 +70,7 @@
 #include <EntityScriptClient.h>
 #include <EntityScriptServerLogClient.h>
 #include <EntityScriptingInterface.h>
-#include <HoverOverlayInterface.h>
+#include "ui/overlays/ContextOverlayInterface.h"
 #include <ErrorDialog.h>
 #include <FileScriptingInterface.h>
 #include <Finally.h>
@@ -595,7 +595,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<Snapshot>();
     DependencyManager::set<CloseEventSender>();
     DependencyManager::set<ResourceManager>();
-    DependencyManager::set<HoverOverlayInterface>();
+    DependencyManager::set<ContextOverlayInterface>();
 
     return previousSessionCrashed;
 }
@@ -1324,12 +1324,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Keyboard focus handling for Web overlays.
     auto overlays = &(qApp->getOverlays());
 
-    connect(overlays, &Overlays::mousePressOnOverlay, [=](OverlayID overlayID, const PointerEvent& event) {
-        setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
-        setKeyboardFocusOverlay(overlayID);
+    connect(overlays, &Overlays::mousePressOnOverlay, [=](const OverlayID& overlayID, const PointerEvent& event) {
+        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(overlays->getOverlay(overlayID));
+        // Only Web overlays can have keyboard focus.
+        if (thisOverlay) {
+            setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+            setKeyboardFocusOverlay(overlayID);
+        }
     });
 
-    connect(overlays, &Overlays::overlayDeleted, [=](OverlayID overlayID) {
+    connect(overlays, &Overlays::overlayDeleted, [=](const OverlayID& overlayID) {
         if (overlayID == _keyboardFocusedOverlay.get()) {
             setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         }
@@ -1343,6 +1347,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });
+
+    connect(overlays,
+        SIGNAL(mousePressOnOverlay(const OverlayID&, const PointerEvent&)),
+        DependencyManager::get<ContextOverlayInterface>().data(),
+        SLOT(contextOverlays_mousePressOnOverlay(const OverlayID&, const PointerEvent&)));
+
+    connect(overlays,
+        SIGNAL(hoverEnterOverlay(const OverlayID&, const PointerEvent&)),
+        DependencyManager::get<ContextOverlayInterface>().data(),
+        SLOT(contextOverlays_hoverEnterOverlay(const OverlayID&, const PointerEvent&)));
+
+    connect(overlays,
+        SIGNAL(hoverLeaveOverlay(const OverlayID&, const PointerEvent&)),
+        DependencyManager::get<ContextOverlayInterface>().data(),
+        SLOT(contextOverlays_hoverLeaveOverlay(const OverlayID&, const PointerEvent&)));
 
     // Add periodic checks to send user activity data
     static int CHECK_NEARBY_AVATARS_INTERVAL_MS = 10000;
@@ -1470,7 +1489,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["atp_mapping_requests"] = atpMappingRequests;
 
         properties["throttled"] = _displayPlugin ? _displayPlugin->isThrottled() : false;
-        
+
         QJsonObject bytesDownloaded;
         bytesDownloaded["atp"] = statTracker->getStat(STAT_ATP_RESOURCE_TOTAL_BYTES).toInt();
         bytesDownloaded["http"] = statTracker->getStat(STAT_HTTP_RESOURCE_TOTAL_BYTES).toInt();
@@ -2131,7 +2150,7 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
     surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
-    surfaceContext->setContextProperty("HoverOverlay", DependencyManager::get<HoverOverlayInterface>().data());
+    surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -2323,7 +2342,7 @@ void Application::paintGL() {
                 }
             } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
                 if (isHMDMode()) {
-                    auto mirrorBodyOrientation = myAvatar->getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
+                    auto mirrorBodyOrientation = myAvatar->getOrientation() * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f));
 
                     glm::quat hmdRotation = extractRotation(myAvatar->getHMDSensorMatrix());
                     // Mirror HMD yaw and roll
@@ -2345,7 +2364,7 @@ void Application::paintGL() {
                         + mirrorBodyOrientation * glm::vec3(0.0f, 0.0f, 1.0f) * MIRROR_FULLSCREEN_DISTANCE * _scaleMirror
                         + mirrorBodyOrientation * hmdOffset);
                 } else {
-                    _myCamera.setOrientation(myAvatar->getWorldAlignedOrientation()
+                    _myCamera.setOrientation(myAvatar->getOrientation()
                         * glm::quat(glm::vec3(0.0f, PI + _rotateMirror, 0.0f)));
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition()
                         + glm::vec3(0, _raiseMirror * myAvatar->getUniformScale(), 0)
@@ -4482,11 +4501,9 @@ void Application::cameraModeChanged() {
 void Application::cameraMenuChanged() {
     auto menu = Menu::getInstance();
     if (menu->isOptionChecked(MenuOption::FullscreenMirror)) {
-        if (isHMDMode()) {
-            menu->setIsOptionChecked(MenuOption::FullscreenMirror, false);
-            menu->setIsOptionChecked(MenuOption::FirstPerson, true);
-        } else if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
+        if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
             _myCamera.setMode(CAMERA_MODE_MIRROR);
+            getMyAvatar()->reset(false, false, false); // to reset any active MyAvatar::FollowHelpers
         }
     } else if (menu->isOptionChecked(MenuOption::FirstPerson)) {
         if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
@@ -5422,6 +5439,17 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             }
             renderArgs->_debugFlags = renderDebugFlags;
             //ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, transaction);
+
+            RenderArgs::OutlineFlags renderOutlineFlags = RenderArgs::RENDER_OUTLINE_NONE;
+            auto contextOverlayInterface = DependencyManager::get<ContextOverlayInterface>();
+            if (contextOverlayInterface->getEnabled()) {
+                if (DependencyManager::get<ContextOverlayInterface>()->getIsInMarketplaceInspectionMode()) {
+                    renderOutlineFlags = RenderArgs::RENDER_OUTLINE_MARKETPLACE_MODE;
+                } else {
+                    renderOutlineFlags = RenderArgs::RENDER_OUTLINE_WIREFRAMES;
+                }
+            }
+            renderArgs->_outlineFlags = renderOutlineFlags;
         }
     }
 
@@ -5885,7 +5913,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     auto entityScriptServerLog = DependencyManager::get<EntityScriptServerLogClient>();
     scriptEngine->registerGlobalObject("EntityScriptServerLog", entityScriptServerLog.data());
     scriptEngine->registerGlobalObject("AvatarInputs", AvatarInputs::getInstance());
-    scriptEngine->registerGlobalObject("HoverOverlay", DependencyManager::get<HoverOverlayInterface>().data());
+    scriptEngine->registerGlobalObject("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
 
     qScriptRegisterMetaType(scriptEngine, OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 

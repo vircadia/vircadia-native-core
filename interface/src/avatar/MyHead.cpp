@@ -29,7 +29,7 @@ MyHead::MyHead(MyAvatar* owningAvatar) : Head(owningAvatar) {
 glm::quat MyHead::getHeadOrientation() const {
     // NOTE: Head::getHeadOrientation() is not used for orienting the camera "view" while in Oculus mode, so
     // you may wonder why this code is here. This method will be called while in Oculus mode to determine how
-    // to change the driving direction while in Oculus mode. It is used to support driving toward where you're
+    // to change the driving direction while in Oculus mode. It is used to support driving toward where your
     // head is looking. Note that in oculus mode, your actual camera view and where your head is looking is not
     // always the same.
 
@@ -39,7 +39,7 @@ glm::quat MyHead::getHeadOrientation() const {
         return headPose.rotation * Quaternions::Y_180;
     }
 
-    return myAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, 0.0f, 0.0f)));
+    return myAvatar->getOrientation() * glm::quat(glm::radians(glm::vec3(_basePitch, 0.0f, 0.0f)));
 }
 
 void MyHead::simulate(float deltaTime) {

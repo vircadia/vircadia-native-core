@@ -192,6 +192,7 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getSurfaceContext()->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
 
             _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
+
             tabletScriptingInterface->setQmlTabletRoot("com.highfidelity.interface.tablet.system", _webSurface.data());
 
             // mark the TabletProxy object as cpp ownership.
@@ -596,7 +597,7 @@ void Web3DOverlay::setScriptURL(const QString& scriptURL) {
     }
 }
 
-glm::vec2 Web3DOverlay::getSize() {
+glm::vec2 Web3DOverlay::getSize() const {
     return _resolution / _dpi * INCHES_TO_METERS * getDimensions();
 };
 

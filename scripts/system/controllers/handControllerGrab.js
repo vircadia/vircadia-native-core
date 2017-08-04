@@ -187,7 +187,10 @@ var DEFAULT_GRABBABLE_DATA = {
 var USE_BLACKLIST = true;
 var blacklist = [];
 
-var entitiesWithHoverOverlays = [];
+var hoveredEntityID = false;
+var contextOverlayTimer = false;
+var entityWithContextOverlay = false;
+var contextualHand = -1;
 
 var FORBIDDEN_GRAB_NAMES = ["Grab Debug Entity", "grab pointer"];
 var FORBIDDEN_GRAB_TYPES = ["Unknown", "Light", "PolyLine", "Zone"];
@@ -224,6 +227,7 @@ CONTROLLER_STATE_MACHINE[STATE_OFF] = {
 CONTROLLER_STATE_MACHINE[STATE_SEARCHING] = {
     name: "searching",
     enterMethod: "searchEnter",
+    exitMethod: "searchExit",
     updateMethod: "search"
 };
 CONTROLLER_STATE_MACHINE[STATE_DISTANCE_HOLDING] = {
@@ -351,7 +355,9 @@ function projectOntoXYPlane(worldPos, position, rotation, dimensions, registrati
 
 function projectOntoEntityXYPlane(entityID, worldPos) {
     var props = entityPropertiesCache.getProps(entityID);
-    return projectOntoXYPlane(worldPos, props.position, props.rotation, props.dimensions, props.registrationPoint);
+    if (props) {
+        return projectOntoXYPlane(worldPos, props.position, props.rotation, props.dimensions, props.registrationPoint);
+    }
 }
 
 function projectOntoOverlayXYPlane(overlayID, worldPos) {
@@ -369,7 +375,9 @@ function projectOntoOverlayXYPlane(overlayID, worldPos) {
         dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
     } else {
         dimensions = Overlays.getProperty(overlayID, "dimensions");
-        dimensions.z = 0.01;    // overlay dimensions are 2D, not 3D.
+        if (dimensions.z) {
+            dimensions.z = 0.01;    // overlay dimensions are 2D, not 3D.
+        }
     }
 
     return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
@@ -2191,6 +2199,14 @@ function MyController(hand) {
         }
     };
 
+    this.searchExit = function () {
+        contextualHand = -1;
+        if (hoveredEntityID) {
+            Entities.sendHoverLeaveEntity(hoveredEntityID, pointerEvent);
+        }
+        hoveredEntityID = false;
+    };
+
     this.search = function(deltaTime, timestamp) {
         var _this = this;
         var name;
@@ -2220,13 +2236,63 @@ function MyController(hand) {
             entityPropertiesCache.addEntity(rayPickInfo.entityID);
         }
 
-        if (rayPickInfo.entityID && entitiesWithHoverOverlays.indexOf(rayPickInfo.entityID) == -1) {
-            entitiesWithHoverOverlays.forEach(function (element) {
-                HoverOverlay.destroyHoverOverlay(element);
-            });
-            entitiesWithHoverOverlays = [];
-            HoverOverlay.createHoverOverlay(rayPickInfo.entityID);
-            entitiesWithHoverOverlays.push(rayPickInfo.entityID);
+        pointerEvent = {
+            type: "Move",
+            id: this.hand + 1, // 0 is reserved for hardware mouse
+            pos2D: projectOntoEntityXYPlane(rayPickInfo.entityID, rayPickInfo.intersection),
+            pos3D: rayPickInfo.intersection,
+            normal: rayPickInfo.normal,
+            direction: rayPickInfo.searchRay.direction,
+            button: "None"
+        };
+        if (rayPickInfo.entityID) {
+            if (hoveredEntityID !== rayPickInfo.entityID) {
+                if (contextOverlayTimer) {
+                    Script.clearTimeout(contextOverlayTimer);
+                    contextOverlayTimer = false;
+                }
+                if (hoveredEntityID) {
+                    Entities.sendHoverLeaveEntity(hoveredEntityID, pointerEvent);
+                }
+                hoveredEntityID = rayPickInfo.entityID;
+                Entities.sendHoverEnterEntity(hoveredEntityID, pointerEvent);
+            }
+
+            // If we already have a context overlay, we don't want to move it to
+            // another entity while we're searching.
+            if (!entityWithContextOverlay && !contextOverlayTimer) {
+                contextOverlayTimer = Script.setTimeout(function () {
+                    if (rayPickInfo.entityID === hoveredEntityID &&
+                        !entityWithContextOverlay &&
+                        contextualHand !== -1 &&
+                        contextOverlayTimer) {
+                        var pointerEvent = {
+                            type: "Move",
+                            id: contextualHand + 1, // 0 is reserved for hardware mouse
+                            pos2D: projectOntoEntityXYPlane(rayPickInfo.entityID, rayPickInfo.intersection),
+                            pos3D: rayPickInfo.intersection,
+                            normal: rayPickInfo.normal,
+                            direction: rayPickInfo.searchRay.direction,
+                            button: "Secondary"
+                        };
+                        if (ContextOverlay.createOrDestroyContextOverlay(rayPickInfo.entityID, pointerEvent)) {
+                            entityWithContextOverlay = rayPickInfo.entityID;
+                            hoveredEntityID = false;
+                        }
+                    }
+                    contextOverlayTimer = false;
+                }, 500);
+                contextualHand = this.hand;
+            }
+        } else {
+            if (hoveredEntityID) {
+                Entities.sendHoverLeaveEntity(hoveredEntityID, pointerEvent);
+                hoveredEntityID = false;
+            }
+            if (contextOverlayTimer) {
+                Script.clearTimeout(contextOverlayTimer);
+                contextOverlayTimer = false;
+            }
         }
 
         var candidateHotSpotEntities = Entities.findEntities(handPosition, MAX_EQUIP_HOTSPOT_RADIUS);
@@ -2433,8 +2499,11 @@ function MyController(hand) {
                     button: "None"
                 };
 
-                this.hoverEntity = entity;
-                Entities.sendHoverEnterEntity(entity, pointerEvent);
+                if (this.hoverEntity !== entity) {
+                    Entities.sendHoverLeaveEntity(this.hoverEntity, pointerEvent);
+                    this.hoverEntity = entity;
+                    Entities.sendHoverEnterEntity(this.hoverEntity, pointerEvent);
+                }
             }
 
             // send mouse events for button highlights and tooltips.
@@ -2483,25 +2552,25 @@ function MyController(hand) {
         var pointerEvent;
         if (rayPickInfo.overlayID) {
             var overlay = rayPickInfo.overlayID;
-            if (Overlays.getProperty(overlay, "type") != "web3d") {
-                return false;
-            }
-            if (Overlays.keyboardFocusOverlay != overlay) {
+            if ((Overlays.getProperty(overlay, "type") === "web3d") && Overlays.keyboardFocusOverlay != overlay) {
                 Entities.keyboardFocusEntity = null;
                 Overlays.keyboardFocusOverlay = overlay;
+            }
 
-                pointerEvent = {
-                    type: "Move",
-                    id: HARDWARE_MOUSE_ID,
-                    pos2D: projectOntoOverlayXYPlane(overlay, rayPickInfo.intersection),
-                    pos3D: rayPickInfo.intersection,
-                    normal: rayPickInfo.normal,
-                    direction: rayPickInfo.searchRay.direction,
-                    button: "None"
-                };
+            pointerEvent = {
+                type: "Move",
+                id: HARDWARE_MOUSE_ID,
+                pos2D: projectOntoOverlayXYPlane(overlay, rayPickInfo.intersection),
+                pos3D: rayPickInfo.intersection,
+                normal: rayPickInfo.normal,
+                direction: rayPickInfo.searchRay.direction,
+                button: "None"
+            };
 
+            if (this.hoverOverlay !== overlay) {
+                Overlays.sendHoverLeaveOverlay(this.hoverOverlay, pointerEvent);
                 this.hoverOverlay = overlay;
-                Overlays.sendHoverEnterOverlay(overlay, pointerEvent);
+                Overlays.sendHoverEnterOverlay(this.hoverOverlay, pointerEvent);
             }
 
             // Send mouse events for button highlights and tooltips.
@@ -3477,6 +3546,15 @@ function MyController(hand) {
         var existingSearchDistance = this.searchSphereDistance;
         this.release();
 
+        if (hoveredEntityID) {
+            Entities.sendHoverLeaveEntity(hoveredEntityID, pointerEvent);
+            hoveredEntityID = false;
+        }
+        if (entityWithContextOverlay) {
+            ContextOverlay.destroyContextOverlay(entityWithContextOverlay);
+            entityWithContextOverlay = false;
+        }
+
         if (isInEditMode()) {
             this.searchSphereDistance = existingSearchDistance;
         }
@@ -3597,7 +3675,7 @@ function MyController(hand) {
     };
 
     this.overlayLaserTouchingEnter = function () {
-        // Test for intersection between controller laser and Web overlay plane.
+        // Test for intersection between controller laser and overlay plane.
         var controllerLocation = getControllerWorldLocation(this.handToController(), true);
         var intersectInfo = handLaserIntersectOverlay(this.grabbedOverlay, controllerLocation);
         if (intersectInfo) {
@@ -3790,11 +3868,6 @@ function MyController(hand) {
 
     this.release = function() {
         this.turnOffVisualizations();
-
-        entitiesWithHoverOverlays.forEach(function (element) {
-            HoverOverlay.destroyHoverOverlay(element);
-        });
-        entitiesWithHoverOverlays = [];
 
         if (this.grabbedThingID !== null) {
 
