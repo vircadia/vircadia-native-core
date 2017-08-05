@@ -10,7 +10,7 @@
 
 /* global ToolMenu */
 
-ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
+ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
     // Tool menu displayed on top of forearm.
 
     "use strict";
@@ -21,16 +21,10 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
         menuPanelOverlay,
 
         menuOverlays = [],
-        menuCallbacks = [],
 
         optionsOverlays = [],
-        optionsOverlaysIDs = [],
-        optionsCommands = [],
-        optionsCommandsParameters = [],
-        optionsCallbacks = [],
-        optionsCallbacksParameters = [],
+        optionsOverlaysIDs = [],  // Text ids (names) of options overlays.
         optionsEnabled = [],
-
         optionsSettings = {},
 
         highlightOverlay,
@@ -224,8 +218,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                     setting: {
                         key: "VREdit.colorTool.currentColor",
                         property: "color",
-                        defaultValue: { red: 128, green: 128, blue: 128 },
-                        callback: "setColor"
+                        defaultValue: { red: 128, green: 128, blue: 128 }
                     }
                 }
             ]
@@ -236,7 +229,6 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
 
         MENU_ITEMS = [
             {
-                // Background element
                 id: "toolsMenuPanel",
                 type: "panel",
                 properties: {
@@ -283,7 +275,8 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                 },
                 label: "  COLOR",
                 toolOptions: "colorOptions",
-                callback: "colorTool"
+                callback: "colorTool",
+                callbackParameter: "currentColor.color"
             },
             {
                 id: "deleteButton",
@@ -317,13 +310,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
 
         optionsItems,
         intersectionOverlays,
-        intersectionOverlaysIDs,
-        intersectionCommands,
-        intersectionCommandsParameters,
-        intersectionCallbacks,
-        intersectionCallbacksParameters,
         intersectionEnabled,
-        intersectionProperties,
         highlightedItem,
         highlightedSource,
         isHighlightingButton,
@@ -371,11 +358,8 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
             Overlays.deleteOverlay(optionsOverlays[i]);
         }
         optionsOverlays = [];
+
         optionsOverlaysIDs = [];
-        optionsCommands = [];
-        optionsCommandsParameters = [];
-        optionsCallbacks = [];
-        optionsCallbacksParameters = [];
         optionsEnabled = [];
         optionsItems = null;
 
@@ -394,7 +378,9 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                         value = optionsItems[i].setting.defaultValue;
                     }
                     properties[optionsItems[i].setting.property] = value;
-                    commandCallback(optionsItems[i].setting.callback, value);  // Apply setting.
+                    if (optionsItems[i].setting.callback) {
+                        doCallback(optionsItems[i].setting.callback, value);
+                    }
                 }
                 optionsOverlays.push(Overlays.addOverlay(UI_ELEMENTS[optionsItems[i].type].overlay, properties));
                 optionsOverlaysIDs.push(optionsItems[i].id);
@@ -405,10 +391,6 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                     Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
                 }
                 parentID = optionsOverlays[0];  // Menu buttons parent to menu panel.
-                optionsCommands.push(optionsItems[i].command);
-                optionsCommandsParameters.push(optionsItems[i].commandParameter);
-                optionsCallbacks.push(optionsItems[i].callback);
-                optionsCallbacksParameters.push(optionsItems[i].callbackParameter);
                 optionsEnabled.push(true);
             }
         }
@@ -436,7 +418,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
         return Overlays.getProperty(optionsOverlays[optionsOverlaysIDs.indexOf(overlayID)], overlayProperty);
     }
 
-    function peformCommand(command, parameter) {
+    function doCommand(command, parameter) {
         switch (command) {
         case "setCurrentColor":
             Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf("currentColor")], {
@@ -453,11 +435,11 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
     }
 
     function update(intersectionOverlayID, groupsCount, entitiesCount) {
-        var intersectedItem,
+        var intersectedItem = -1,
+            intersectionItems,
             parentProperties,
             BUTTON_PRESS_DELTA = 0.004,
-            commandParameter,
-            callbackParameter,
+            parameterValue,
             enableGroupButton,
             enableUngroupButton;
 
@@ -465,25 +447,15 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
         if (intersectionOverlayID) {
             intersectedItem = menuOverlays.indexOf(intersectionOverlayID);
             if (intersectedItem !== -1) {
+                intersectionItems = MENU_ITEMS;
                 intersectionOverlays = menuOverlays;
-                intersectionOverlaysIDs = null;
-                intersectionCommands = null;
-                intersectionCommandsParameters = null;
-                intersectionCallbacks = menuCallbacks;
-                intersectionCallbacksParameters = null;
                 intersectionEnabled = null;
-                intersectionProperties = MENU_ITEMS;
             } else {
                 intersectedItem = optionsOverlays.indexOf(intersectionOverlayID);
                 if (intersectedItem !== -1) {
+                    intersectionItems = optionsItems;
                     intersectionOverlays = optionsOverlays;
-                    intersectionOverlaysIDs = optionsOverlaysIDs;
-                    intersectionCommands = optionsCommands;
-                    intersectionCommandsParameters = optionsCommandsParameters;
-                    intersectionCallbacks = optionsCallbacks;
-                    intersectionCallbacksParameters = optionsCallbacksParameters;
                     intersectionEnabled = optionsEnabled;
-                    intersectionProperties = optionsItems;
                 }
             }
         }
@@ -493,8 +465,8 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
 
         // Highlight clickable item.
         if (intersectedItem !== highlightedItem || intersectionOverlays !== highlightedSource) {
-            if (intersectedItem !== -1 && intersectionCallbacks[intersectedItem] !== undefined) {
-                // Highlight new button.
+            if (intersectedItem !== -1 && intersectionItems[intersectedItem].callback !== undefined) {
+                // Highlight new button. (The existence of a callback infers that the item is a button.)
                 parentProperties = Overlays.getProperties(intersectionOverlays[intersectedItem],
                     ["dimensions", "localPosition"]);
                 Overlays.editOverlay(highlightOverlay, {
@@ -527,37 +499,38 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                 || controlHand.triggerClicked() !== isButtonPressed) {
             if (pressedItem !== NONE) {
                 // Unpress previous button.
-                Overlays.editOverlay(intersectionOverlays[pressedItem], {
-                    localPosition: intersectionProperties[pressedItem].properties.localPosition
-                });
+                if (intersectionItems) {
+                    Overlays.editOverlay(intersectionOverlays[pressedItem], {
+                        localPosition: intersectionItems[pressedItem].properties.localPosition
+                    });
+                }
                 pressedItem = NONE;
             }
             isButtonPressed = isHighlightingButton && controlHand.triggerClicked();
             if (isButtonPressed && (intersectionEnabled === null || intersectionEnabled[intersectedItem])) {
                 // Press new button.
                 Overlays.editOverlay(intersectionOverlays[intersectedItem], {
-                    localPosition: Vec3.sum(intersectionProperties[intersectedItem].properties.localPosition,
+                    localPosition: Vec3.sum(intersectionItems[intersectedItem].properties.localPosition,
                         { x: 0, y: 0, z: BUTTON_PRESS_DELTA })
                 });
                 pressedItem = intersectedItem;
                 pressedSource = intersectionOverlays;
 
                 // Button press actions.
-                if (intersectionCommands && intersectionCommands[intersectedItem]) {
-                    if (intersectionCommandsParameters && intersectionCommandsParameters[intersectedItem]) {
-                        commandParameter = evaluateParameter(intersectionCommandsParameters[intersectedItem]);
-                    }
-                    peformCommand(intersectionCommands[intersectedItem], commandParameter);
-                }
-                if (intersectionCallbacks[intersectedItem]) {
-                    if (intersectionCallbacksParameters && intersectionCallbacksParameters[intersectedItem]) {
-                        callbackParameter = evaluateParameter(intersectionCallbacksParameters[intersectedItem]);
-                    }
-                    commandCallback(intersectionCallbacks[intersectedItem], callbackParameter);
-                }
-                // Open options panel after changing tool so that options values can be applied to the tool.
                 if (intersectionOverlays === menuOverlays) {
-                    openOptions(intersectionProperties[intersectedItem].toolOptions);
+                    openOptions(intersectionItems[intersectedItem].toolOptions);
+                }
+                if (intersectionItems[intersectedItem].command) {
+                    if (intersectionItems[intersectedItem].callbackParameter) {
+                        parameterValue = evaluateParameter(intersectionItems[intersectedItem].commandParameter);
+                    }
+                    doCommand(intersectionItems[intersectedItem].command, parameterValue);
+                }
+                if (intersectionItems[intersectedItem].callback) {
+                    if (intersectionItems[intersectedItem].callbackParameter) {
+                        parameterValue = evaluateParameter(intersectionItems[intersectedItem].callbackParameter);
+                    }
+                    doCallback(intersectionItems[intersectedItem].callback, parameterValue);
                 }
             }
         }
@@ -634,7 +607,6 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                 Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
             }
             parentID = menuOverlays[0];  // Menu buttons parent to menu panel.
-            menuCallbacks.push(MENU_ITEMS[i].callback);
         }
 
         // Prepare highlight overlay.
@@ -645,13 +617,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
         // Initial values.
         optionsItems = null;
         intersectionOverlays = null;
-        intersectionOverlaysIDs = null;
-        intersectionCommands = null;
-        intersectionCommandsParameters = null;
-        intersectionCallbacks = null;
-        intersectionCallbacksParameters = null;
         intersectionEnabled = null;
-        intersectionProperties = null;
         highlightedItem = NONE;
         highlightedSource = null;
         isHighlightingButton = false;
@@ -678,13 +644,11 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
             Overlays.deleteOverlay(optionsOverlays[i]);
         }
         optionsOverlays = [];
-        optionsCallbacks = [];
 
         for (i = 0, length = menuOverlays.length; i < length; i += 1) {
             Overlays.deleteOverlay(menuOverlays[i]);
         }
         menuOverlays = [];
-        menuCallbacks = [];
 
         Overlays.deleteOverlay(menuPanelOverlay);
         Overlays.deleteOverlay(menuOriginOverlay);

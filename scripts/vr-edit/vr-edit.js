@@ -1261,6 +1261,8 @@
         case "colorTool":
             toolSelected = TOOL_COLOR;
             ui.setToolIcon(ui.COLOR_TOOL);
+            ui.setToolColor(parameter);
+            colorToolColor = parameter;
             ui.updateUIEntities();
             break;
         case "deleteTool":
