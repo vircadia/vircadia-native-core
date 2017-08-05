@@ -134,7 +134,9 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                     },
                     label: " GROUP",
                     enabledColor: { red: 64, green: 240, blue: 64 },
-                    callback: "groupButton"
+                    callback: {
+                        method: "groupButton"
+                    }
                 },
                 {
                     id: "ungroupButton",
@@ -146,7 +148,9 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                     },
                     label: "UNGROUP",
                     enabledColor: { red: 240, green: 64, blue: 64 },
-                    callback: "ungroupButton"
+                    callback: {
+                        method: "ungroupButton"
+                    }
                 }
             ],
             colorOptions: [
@@ -165,10 +169,14 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                         localPosition: { x: -0.035, y: 0.02, z: -0.005 },
                         color: { red: 255, green: 0, blue: 0 }
                     },
-                    command: "setCurrentColor",
-                    commandParameter: "colorSwatch1.color",
-                    callback: "setColor",
-                    callbackParameter: "colorSwatch1.color"
+                    command: {
+                        method: "setCurrentColor",
+                        parameter: "colorSwatch1.color"
+                    },
+                    callback: {
+                        method: "setColor",
+                        parameter: "colorSwatch1.color"
+                    }
                 },
                 {
                     id: "colorSwatch2",
@@ -178,10 +186,14 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                         localPosition: { x: -0.01, y: 0.02, z: -0.005 },
                         color: { red: 0, green: 255, blue: 0 }
                     },
-                    command: "setCurrentColor",
-                    commandParameter: "colorSwatch2.color",
-                    callback: "setColor",
-                    callbackParameter: "colorSwatch2.color"
+                    command: {
+                        method: "setCurrentColor",
+                        parameter: "colorSwatch2.color"
+                    },
+                    callback: {
+                        method: "setColor",
+                        parameter: "colorSwatch2.color"
+                    }
                 },
                 {
                     id: "colorSwatch3",
@@ -191,10 +203,14 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                         localPosition: { x: -0.035, y: 0.045, z: -0.005 },
                         color: { red: 0, green: 0, blue: 255 }
                     },
-                    command: "setCurrentColor",
-                    commandParameter: "colorSwatch3.color",
-                    callback: "setColor",
-                    callbackParameter: "colorSwatch3.color"
+                    command: {
+                        method: "setCurrentColor",
+                        parameter: "colorSwatch3.color"
+                    },
+                    callback: {
+                        method: "setColor",
+                        parameter: "colorSwatch3.color"
+                    }
                 },
                 {
                     id: "colorSwatch4",
@@ -204,10 +220,14 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                         localPosition: { x: -0.01, y: 0.045, z: -0.005 },
                         color: { red: 255, green: 255, blue: 255 }
                     },
-                    command: "setCurrentColor",
-                    commandParameter: "colorSwatch4.color",
-                    callback: "setColor",
-                    callbackParameter: "colorSwatch4.color"
+                    command: {
+                        method: "setCurrentColor",
+                        parameter: "colorSwatch4.color"
+                    },
+                    callback: {
+                        method: "setColor",
+                        parameter: "colorSwatch4.color"
+                    }
                 },
                 {
                     id: "currentColor",
@@ -243,7 +263,9 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                     color: { red: 0, green: 240, blue: 240 }
                 },
                 label: "  SCALE",
-                callback: "scaleTool"
+                callback: {
+                    method: "scaleTool"
+                }
             },
             {
                 id: "cloneButton",
@@ -253,7 +275,9 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                     color: { red: 240, green: 240, blue: 0 }
                 },
                 label: "  CLONE",
-                callback: "cloneTool"
+                callback: {
+                    method: "cloneTool"
+                }
             },
             {
                 id: "groupButton",
@@ -264,7 +288,9 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                 },
                 label: " GROUP",
                 toolOptions: "groupOptions",
-                callback: "groupTool"
+                callback: {
+                    method: "groupTool"
+                }
             },
             {
                 id: "colorButton",
@@ -275,8 +301,10 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                 },
                 label: "  COLOR",
                 toolOptions: "colorOptions",
-                callback: "colorTool",
-                callbackParameter: "currentColor.color"
+                callback: {
+                    method: "colorTool",
+                    parameter: "currentColor.color"
+                }
             },
             {
                 id: "deleteButton",
@@ -286,7 +314,9 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                     color: { red: 240, green: 60, blue: 60 }
                 },
                 label: " DELETE",
-                callback: "deleteTool"
+                callback: {
+                    method: "deleteTool"
+                }
             }
         ],
 
@@ -379,7 +409,7 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                     }
                     properties[optionsItems[i].setting.property] = value;
                     if (optionsItems[i].setting.callback) {
-                        doCallback(optionsItems[i].setting.callback, value);
+                        doCallback(optionsItems[i].setting.callback.method, value);
                     }
                 }
                 optionsOverlays.push(Overlays.addOverlay(UI_ELEMENTS[optionsItems[i].type].overlay, properties));
@@ -521,16 +551,16 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                     openOptions(intersectionItems[intersectedItem].toolOptions);
                 }
                 if (intersectionItems[intersectedItem].command) {
-                    if (intersectionItems[intersectedItem].callbackParameter) {
-                        parameterValue = evaluateParameter(intersectionItems[intersectedItem].commandParameter);
+                    if (intersectionItems[intersectedItem].command.parameter) {
+                        parameterValue = evaluateParameter(intersectionItems[intersectedItem].command.parameter);
                     }
-                    doCommand(intersectionItems[intersectedItem].command, parameterValue);
+                    doCommand(intersectionItems[intersectedItem].command.method, parameterValue);
                 }
                 if (intersectionItems[intersectedItem].callback) {
-                    if (intersectionItems[intersectedItem].callbackParameter) {
-                        parameterValue = evaluateParameter(intersectionItems[intersectedItem].callbackParameter);
+                    if (intersectionItems[intersectedItem].callback.parameter) {
+                        parameterValue = evaluateParameter(intersectionItems[intersectedItem].callback.parameter);
                     }
-                    doCallback(intersectionItems[intersectedItem].callback, parameterValue);
+                    doCallback(intersectionItems[intersectedItem].callback.method, parameterValue);
                 }
             }
         }
