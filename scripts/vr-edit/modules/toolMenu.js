@@ -31,6 +31,8 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
         optionsCallbacksParameters = [],
         optionsEnabled = [],
 
+        optionsSettings = {},
+
         highlightOverlay,
 
         LEFT_HAND = 0,
@@ -217,8 +219,13 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                     id: "currentColor",
                     type: "circle",
                     properties: {
-                        localPosition: { x: 0.025, y: 0.0325, z: -0.007 },
-                        color: { red: 128, green: 128, blue: 128 }
+                        localPosition: { x: 0.025, y: 0.0325, z: -0.007 }
+                    },
+                    setting: {
+                        key: "VREdit.colorTool.currentColor",
+                        property: "color",
+                        defaultValue: { red: 128, green: 128, blue: 128 },
+                        callback: "setColor"
                     }
                 }
             ]
@@ -355,6 +362,7 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
     function openOptions(toolOptions) {
         var properties,
             parentID,
+            value,
             i,
             length;
 
@@ -379,6 +387,15 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                 properties = Object.clone(UI_ELEMENTS[optionsItems[i].type].properties);
                 properties = Object.merge(properties, optionsItems[i].properties);
                 properties.parentID = parentID;
+                if (optionsItems[i].setting) {
+                    optionsSettings[optionsItems[i].id] = { key: optionsItems[i].setting.key };
+                    value = Settings.getValue(optionsItems[i].setting.key);
+                    if (value === "") {
+                        value = optionsItems[i].setting.defaultValue;
+                    }
+                    properties[optionsItems[i].setting.property] = value;
+                    commandCallback(optionsItems[i].setting.callback, value);  // Apply setting.
+                }
                 optionsOverlays.push(Overlays.addOverlay(UI_ELEMENTS[optionsItems[i].type].overlay, properties));
                 optionsOverlaysIDs.push(optionsItems[i].id);
                 if (optionsItems[i].label) {
@@ -425,6 +442,9 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
             Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf("currentColor")], {
                 color: parameter
             });
+            if (optionsSettings.currentColor) {
+                Settings.setValue(optionsSettings.currentColor.key, parameter);
+            }
             break;
         default:
             // TODO: Log error.
@@ -523,9 +543,6 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                 pressedSource = intersectionOverlays;
 
                 // Button press actions.
-                if (intersectionOverlays === menuOverlays) {
-                    openOptions(intersectionProperties[intersectedItem].toolOptions);
-                }
                 if (intersectionCommands && intersectionCommands[intersectedItem]) {
                     if (intersectionCommandsParameters && intersectionCommandsParameters[intersectedItem]) {
                         commandParameter = evaluateParameter(intersectionCommandsParameters[intersectedItem]);
@@ -537,6 +554,10 @@ ToolMenu = function (side, leftInputs, rightInputs, commandCallback) {
                         callbackParameter = evaluateParameter(intersectionCallbacksParameters[intersectedItem]);
                     }
                     commandCallback(intersectionCallbacks[intersectedItem], callbackParameter);
+                }
+                // Open options panel after changing tool so that options values can be applied to the tool.
+                if (intersectionOverlays === menuOverlays) {
+                    openOptions(intersectionProperties[intersectedItem].toolOptions);
                 }
             }
         }
