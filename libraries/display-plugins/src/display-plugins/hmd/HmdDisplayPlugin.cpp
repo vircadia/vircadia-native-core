@@ -134,7 +134,7 @@ void HmdDisplayPlugin::customizeContext() {
         state->setBlendFunction(true,
             gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA,
             gpu::State::FACTOR_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::ONE);
-        
+
         gpu::Shader::BindingSet bindings;
         bindings.insert({ "lineData", LINE_DATA_SLOT });;
         gpu::Shader::makeProgram(*program, bindings);
@@ -243,6 +243,8 @@ void HmdDisplayPlugin::internalPresent() {
         glm::ivec4 viewport = getViewportForSourceSize(sourceSize);
         glm::ivec4 scissor = viewport;
 
+        auto fbo = gpu::FramebufferPointer();
+
         render([&](gpu::Batch& batch) {
 
             if (_monoPreview) {
@@ -285,11 +287,15 @@ void HmdDisplayPlugin::internalPresent() {
                     viewport = ivec4(scissorOffset - scaledShiftLeftBy, viewportOffset, viewportSizeX, viewportSizeY);
                 }
 
+                // TODO: only bother getting and passing in the hmdPreviewFramebuffer if the camera is on
+                fbo = DependencyManager::get<TextureCache>()->getHmdPreviewFramebuffer(windowSize.x, windowSize.y);
+
                 viewport.z *= 2;
             }
-            renderFromTexture(batch, _compositeFramebuffer->getRenderBuffer(0), viewport, scissor);
+            renderFromTexture(batch, _compositeFramebuffer->getRenderBuffer(0), viewport, scissor, fbo);
         });
         swapBuffers();
+
     } else if (_clearPreviewFlag) {
         QImage image;
         if (_vsyncEnabled) {
@@ -312,7 +318,7 @@ void HmdDisplayPlugin::internalPresent() {
             _previewTexture->assignStoredMip(0, image.byteCount(), image.constBits());
             _previewTexture->setAutoGenerateMips(true);
         }
-        
+
         auto viewport = getViewportForSourceSize(uvec2(_previewTexture->getDimensions()));
 
         render([&](gpu::Batch& batch) {
@@ -323,7 +329,7 @@ void HmdDisplayPlugin::internalPresent() {
     }
     postPreview();
 
-    // If preview is disabled, we need to check to see if the window size has changed 
+    // If preview is disabled, we need to check to see if the window size has changed
     // and re-render the no-preview message
     if (_disablePreview) {
         auto window = _container->getPrimaryWidget();
@@ -510,7 +516,7 @@ void HmdDisplayPlugin::OverlayRenderer::build() {
     indices = std::make_shared<gpu::Buffer>();
 
     //UV mapping source: http://www.mvps.org/directx/articles/spheremap.htm
-    
+
     static const float fov = CompositorHelper::VIRTUAL_UI_TARGET_FOV.y;
     static const float aspectRatio = CompositorHelper::VIRTUAL_UI_ASPECT_RATIO;
     static const uint16_t stacks = 128;
@@ -672,7 +678,7 @@ bool HmdDisplayPlugin::setHandLaser(uint32_t hands, HandLaserMode mode, const ve
             _handLasers[1] = info;
         }
     });
-    // FIXME defer to a child class plugin to determine if hand lasers are actually 
+    // FIXME defer to a child class plugin to determine if hand lasers are actually
     // available based on the presence or absence of hand controllers
     return true;
 }
@@ -687,7 +693,7 @@ bool HmdDisplayPlugin::setExtraLaser(HandLaserMode mode, const vec4& color, cons
         _extraLaserStart = sensorSpaceStart;
     });
 
-    // FIXME defer to a child class plugin to determine if hand lasers are actually 
+    // FIXME defer to a child class plugin to determine if hand lasers are actually
     // available based on the presence or absence of hand controllers
     return true;
 }
@@ -702,7 +708,7 @@ void HmdDisplayPlugin::compositeExtra() {
     if (_presentHandPoses[0] == IDENTITY_MATRIX && _presentHandPoses[1] == IDENTITY_MATRIX && !_presentExtraLaser.valid()) {
         return;
     }
-    
+
     render([&](gpu::Batch& batch) {
         batch.setFramebuffer(_compositeFramebuffer);
         batch.setModelTransform(Transform());

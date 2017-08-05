@@ -13,6 +13,7 @@
 
 #include <QtScript/QScriptContext>
 
+#include <shared/QtHelpers.h>
 #include <avatar/AvatarManager.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <display-plugins/CompositorHelper.h>
@@ -152,22 +153,31 @@ QString HMDScriptingInterface::preferredAudioOutput() const {
     return qApp->getActiveDisplayPlugin()->getPreferredAudioOutDevice();
 }
 
-bool HMDScriptingInterface::setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) const {
+bool HMDScriptingInterface::setHandLasers(int hands, bool enabled, const glm::vec4& color, const glm::vec3& direction) {
+    if (QThread::currentThread() != thread()) {
+        bool result;
+        BLOCKING_INVOKE_METHOD(this, "setHandLasers", Q_RETURN_ARG(bool, result), 
+            Q_ARG(int, hands), Q_ARG(bool, enabled), Q_ARG(glm::vec4, color), Q_ARG(glm::vec3, direction));
+        return result;
+    }
+
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->executeOnUiThread([offscreenUi, enabled] {
-        offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", enabled);
-    });
+    offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", enabled);
     return qApp->getActiveDisplayPlugin()->setHandLaser(hands,
         enabled ? DisplayPlugin::HandLaserMode::Overlay : DisplayPlugin::HandLaserMode::None,
         color, direction);
 }
 
-bool HMDScriptingInterface::setExtraLaser(const glm::vec3& worldStart, bool enabled, const glm::vec4& color, const glm::vec3& direction) const {
-    auto offscreenUi = DependencyManager::get<OffscreenUi>();
-    offscreenUi->executeOnUiThread([offscreenUi, enabled] {
-        offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", enabled);
-    });
+bool HMDScriptingInterface::setExtraLaser(const glm::vec3& worldStart, bool enabled, const glm::vec4& color, const glm::vec3& direction) {
+    if (QThread::currentThread() != thread()) {
+        bool result;
+        BLOCKING_INVOKE_METHOD(this, "setExtraLaser", Q_RETURN_ARG(bool, result), 
+            Q_ARG(glm::vec3, worldStart), Q_ARG(bool, enabled), Q_ARG(glm::vec4, color), Q_ARG(glm::vec3, direction));
+        return result;
+    }
 
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    offscreenUi->getDesktop()->setProperty("hmdHandMouseActive", enabled);
 
     auto myAvatar = DependencyManager::get<AvatarManager>()->getMyAvatar();
     auto sensorToWorld = myAvatar->getSensorToWorldMatrix();
@@ -179,11 +189,11 @@ bool HMDScriptingInterface::setExtraLaser(const glm::vec3& worldStart, bool enab
         color, sensorStart, sensorDirection);
 }
 
-void HMDScriptingInterface::disableExtraLaser() const {
+void HMDScriptingInterface::disableExtraLaser() {
     setExtraLaser(vec3(0), false, vec4(0), vec3(0));
 }
 
-void HMDScriptingInterface::disableHandLasers(int hands) const {
+void HMDScriptingInterface::disableHandLasers(int hands) {
     setHandLasers(hands, false, vec4(0), vec3(0));
 }
 

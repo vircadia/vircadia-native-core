@@ -37,14 +37,11 @@ public:
 
     // get/set devices through a QML ListView
     QVariant data(const QModelIndex& index, int role) const override;
-    bool setData(const QModelIndex& index, const QVariant &value, int role) override;
 
     // reset device to the last selected device in this context, or the default
-    void resetDevice(bool contextIsHMD, const QString& device);
+    void resetDevice(bool contextIsHMD);
 
 signals:
-    void deviceSelected(const QAudioDeviceInfo& device = QAudioDeviceInfo(),
-                        const QAudioDeviceInfo& previousDevice = QAudioDeviceInfo());
     void deviceChanged(const QAudioDeviceInfo& device);
 
 private slots:
@@ -54,12 +51,9 @@ private slots:
 private:
     friend class AudioDevices;
 
-    bool setDevice(int index, bool fromUser);
-
     static QHash<int, QByteArray> _roles;
     static Qt::ItemFlags _flags;
-
-    QAudio::Mode _mode;
+    const QAudio::Mode _mode;
     QAudioDeviceInfo _selectedDevice;
     QList<AudioDevice> _devices;
 };
@@ -73,6 +67,8 @@ class AudioDevices : public QObject {
 
 public:
     AudioDevices(bool& contextIsHMD);
+    void chooseInputDevice(const QAudioDeviceInfo& device);
+    void chooseOutputDevice(const QAudioDeviceInfo& device);
 
 signals:
     void nop();
@@ -91,8 +87,10 @@ private:
 
     AudioDeviceList _inputs { QAudio::AudioInput };
     AudioDeviceList _outputs { QAudio::AudioOutput };
+    QAudioDeviceInfo _requestedOutputDevice;
+    QAudioDeviceInfo _requestedInputDevice;
 
-    bool& _contextIsHMD;
+    const bool& _contextIsHMD;
 };
 
 };

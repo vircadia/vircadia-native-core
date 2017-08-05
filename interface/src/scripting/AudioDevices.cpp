@@ -11,6 +11,9 @@
 
 #include <map>
 
+#include <shared/QtHelpers.h>
+#include <plugins/DisplayPlugin.h>
+
 #include "AudioDevices.h"
 
 #include "Application.h"
@@ -34,9 +37,25 @@ Setting::Handle<QString>& getSetting(bool contextIsHMD, QAudio::Mode mode) {
     }
 }
 
+static QString getTargetDevice(bool hmd, QAudio::Mode mode) {
+    QString deviceName;
+    auto& setting = getSetting(hmd, mode);
+    if (setting.isSet()) {
+        deviceName = setting.get();
+    } else if (hmd) {
+        if (mode == QAudio::AudioInput) {
+            deviceName = qApp->getActiveDisplayPlugin()->getPreferredAudioInDevice();
+        } else { // if (_mode == QAudio::AudioOutput)
+            deviceName = qApp->getActiveDisplayPlugin()->getPreferredAudioOutDevice();
+        }
+    }
+    return deviceName;
+}
+
 QHash<int, QByteArray> AudioDeviceList::_roles {
     { Qt::DisplayRole, "display" },
-    { Qt::CheckStateRole, "selected" }
+    { Qt::CheckStateRole, "selected" },
+    { Qt::UserRole, "info" }
 };
 Qt::ItemFlags AudioDeviceList::_flags { Qt::ItemIsSelectable | Qt::ItemIsEnabled };
 
@@ -49,74 +68,29 @@ QVariant AudioDeviceList::data(const QModelIndex& index, int role) const {
         return _devices.at(index.row()).display;
     } else if (role == Qt::CheckStateRole) {
         return _devices.at(index.row()).selected;
+    } else if (role == Qt::UserRole) {
+        return QVariant::fromValue<QAudioDeviceInfo>(_devices.at(index.row()).info);
     } else {
         return QVariant();
     }
 }
 
-bool AudioDeviceList::setData(const QModelIndex& index, const QVariant& value, int role) {
-    if (!index.isValid() || index.row() >= _devices.size() || role != Qt::CheckStateRole) {
-        return false;
-    }
+void AudioDeviceList::resetDevice(bool contextIsHMD) {
+    auto client = DependencyManager::get<AudioClient>().data();
+    QString deviceName = getTargetDevice(contextIsHMD, _mode);
+    // FIXME can't use blocking connections here, so we can't determine whether the switch succeeded or not
+    // We need to have the AudioClient emit signals on switch success / failure
+    QMetaObject::invokeMethod(client, "switchAudioDevice", 
+        Q_ARG(QAudio::Mode, _mode), Q_ARG(QString, deviceName));
 
-    // only allow switching to a new device, not deactivating an in-use device
-    auto selected = value.toBool();
-    if (!selected) {
-        return false;
-    }
-
-    return setDevice(index.row(), true);
-}
-
-bool AudioDeviceList::setDevice(int row, bool fromUser) {
-    bool success = false;
-    auto& device = _devices[row];
-
-    // skip if already selected
-    if (!device.selected) {
-        auto client = DependencyManager::get<AudioClient>();
-        QMetaObject::invokeMethod(client.data(), "switchAudioDevice", Qt::BlockingQueuedConnection,
-            Q_RETURN_ARG(bool, success),
-            Q_ARG(QAudio::Mode, _mode),
-            Q_ARG(const QAudioDeviceInfo&, device.info));
-
-        if (success) {
-            device.selected = true;
-            if (fromUser) {
-                emit deviceSelected(device.info, _selectedDevice);
-            }
-            emit deviceChanged(device.info);
-        }
-    }
-
-    emit dataChanged(createIndex(0, 0), createIndex(rowCount() - 1, 0));
-    return success;
-}
-
-void AudioDeviceList::resetDevice(bool contextIsHMD, const QString& device) {
-    bool success { false };
-
-    // try to set the last selected device
-    if (!device.isNull()) {
-        auto i = 0;
-        for (; i < rowCount(); ++i) {
-            if (device == _devices[i].info.deviceName()) {
-                break;
-            }
-        }
-        if (i < rowCount()) {
-            success = setDevice(i, false);
-        }
-
-        // the selection failed - reset it
-        if (!success) {
-            emit deviceSelected();
-        }
-    }
+#if 0
+    bool switchResult = false;
+    QMetaObject::invokeMethod(client, "switchAudioDevice", Qt::BlockingQueuedConnection,
+        Q_RETURN_ARG(bool, switchResult),
+        Q_ARG(QAudio::Mode, _mode), Q_ARG(QString, deviceName));
 
     // try to set to the default device for this mode
-    if (!success) {
-        auto client = DependencyManager::get<AudioClient>().data();
+    if (!switchResult) {
         if (contextIsHMD) {
             QString deviceName;
             if (_mode == QAudio::AudioInput) {
@@ -132,20 +106,19 @@ void AudioDeviceList::resetDevice(bool contextIsHMD, const QString& device) {
             QMetaObject::invokeMethod(client, "switchAudioDevice", Q_ARG(QAudio::Mode, _mode));
         }
     }
+#endif
 }
 
 void AudioDeviceList::onDeviceChanged(const QAudioDeviceInfo& device) {
+    auto oldDevice = _selectedDevice;
     _selectedDevice = device;
-    QModelIndex index;
 
     for (auto i = 0; i < _devices.size(); ++i) {
         AudioDevice& device = _devices[i];
-
         if (device.selected && device.info != _selectedDevice) {
             device.selected = false;
         } else if (device.info == _selectedDevice) {
             device.selected = true;
-            index = createIndex(i, 0);
         }
     }
 
@@ -183,21 +156,11 @@ AudioDevices::AudioDevices(bool& contextIsHMD) : _contextIsHMD(contextIsHMD) {
     _outputs.onDeviceChanged(client->getActiveAudioDevice(QAudio::AudioOutput));
     _inputs.onDevicesChanged(client->getAudioDevices(QAudio::AudioInput));
     _outputs.onDevicesChanged(client->getAudioDevices(QAudio::AudioOutput));
-
-    connect(&_inputs, &AudioDeviceList::deviceSelected, [&](const QAudioDeviceInfo& device, const QAudioDeviceInfo& previousDevice) {
-        onDeviceSelected(QAudio::AudioInput, device, previousDevice);
-    });
-    connect(&_outputs, &AudioDeviceList::deviceSelected, [&](const QAudioDeviceInfo& device, const QAudioDeviceInfo& previousDevice) {
-        onDeviceSelected(QAudio::AudioOutput, device, previousDevice);
-    });
 }
 
 void AudioDevices::onContextChanged(const QString& context) {
-    auto input = getSetting(_contextIsHMD, QAudio::AudioInput).get();
-    auto output = getSetting(_contextIsHMD, QAudio::AudioOutput).get();
-
-    _inputs.resetDevice(_contextIsHMD, input);
-    _outputs.resetDevice(_contextIsHMD, output);
+    _inputs.resetDevice(_contextIsHMD);
+    _outputs.resetDevice(_contextIsHMD);
 }
 
 void AudioDevices::onDeviceSelected(QAudio::Mode mode, const QAudioDeviceInfo& device, const QAudioDeviceInfo& previousDevice) {
@@ -238,29 +201,43 @@ void AudioDevices::onDeviceSelected(QAudio::Mode mode, const QAudioDeviceInfo& d
 
 void AudioDevices::onDeviceChanged(QAudio::Mode mode, const QAudioDeviceInfo& device) {
     if (mode == QAudio::AudioInput) {
+        if (_requestedInputDevice == device) {
+            onDeviceSelected(QAudio::AudioInput, device, _inputs._selectedDevice);
+            _requestedInputDevice = QAudioDeviceInfo();
+        }
         _inputs.onDeviceChanged(device);
     } else { // if (mode == QAudio::AudioOutput)
+        if (_requestedOutputDevice == device) {
+            onDeviceSelected(QAudio::AudioOutput, device, _outputs._selectedDevice);
+            _requestedOutputDevice = QAudioDeviceInfo();
+        }
         _outputs.onDeviceChanged(device);
     }
 }
 
 void AudioDevices::onDevicesChanged(QAudio::Mode mode, const QList<QAudioDeviceInfo>& devices) {
-    static bool initialized { false };
-    auto initialize = [&]{
-        if (initialized) {
-            onContextChanged(QString());
-        } else {
-            initialized = true;
-        }
-    };
-
+    static std::once_flag once;
     if (mode == QAudio::AudioInput) {
         _inputs.onDevicesChanged(devices);
-        static std::once_flag inputFlag;
-        std::call_once(inputFlag, initialize);
     } else { // if (mode == QAudio::AudioOutput)
         _outputs.onDevicesChanged(devices);
-        static std::once_flag outputFlag;
-        std::call_once(outputFlag, initialize);
     }
+    std::call_once(once, [&] { onContextChanged(QString()); });
+}
+
+
+void AudioDevices::chooseInputDevice(const QAudioDeviceInfo& device) {
+    auto client = DependencyManager::get<AudioClient>();
+    _requestedInputDevice = device;
+    QMetaObject::invokeMethod(client.data(), "switchAudioDevice",
+        Q_ARG(QAudio::Mode, QAudio::AudioInput),
+        Q_ARG(const QAudioDeviceInfo&, device));
+}
+
+void AudioDevices::chooseOutputDevice(const QAudioDeviceInfo& device) {
+    auto client = DependencyManager::get<AudioClient>();
+    _requestedOutputDevice = device;
+    QMetaObject::invokeMethod(client.data(), "switchAudioDevice",
+        Q_ARG(QAudio::Mode, QAudio::AudioOutput),
+        Q_ARG(const QAudioDeviceInfo&, device));
 }

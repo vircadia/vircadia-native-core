@@ -497,13 +497,14 @@ float computeGain(const AvatarAudioStream& listeningNodeStream, const Positional
     // avatar: apply fixed off-axis attenuation to make them quieter as they turn away
     } else if (!isEcho && (streamToAdd.getType() == PositionalAudioStream::Microphone)) {
         glm::vec3 rotatedListenerPosition = glm::inverse(streamToAdd.getOrientation()) * relativePosition;
-        float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                           glm::normalize(rotatedListenerPosition));
+
+        // source directivity is based on angle of emission, in local coordinates
+        glm::vec3 direction = glm::normalize(rotatedListenerPosition);
+        float angleOfDelivery = fastAcosf(glm::clamp(-direction.z, -1.0f, 1.0f));   // UNIT_NEG_Z is "forward"
 
         const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
         const float OFF_AXIS_ATTENUATION_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
-        float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-            (angleOfDelivery * (OFF_AXIS_ATTENUATION_STEP / PI_OVER_TWO));
+        float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION + (angleOfDelivery * (OFF_AXIS_ATTENUATION_STEP / PI_OVER_TWO));
 
         gain *= offAxisCoefficient;
     }
@@ -545,7 +546,6 @@ float computeAzimuth(const AvatarAudioStream& listeningNodeStream, const Positio
         const glm::vec3& relativePosition) {
     glm::quat inverseOrientation = glm::inverse(listeningNodeStream.getOrientation());
 
-    //  Compute sample delay for the two ears to create phase panning
     glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
 
     // project the rotated source position vector onto the XZ plane
@@ -553,11 +553,16 @@ float computeAzimuth(const AvatarAudioStream& listeningNodeStream, const Positio
 
     const float SOURCE_DISTANCE_THRESHOLD = 1e-30f;
 
-    if (glm::length2(rotatedSourcePosition) > SOURCE_DISTANCE_THRESHOLD) {
+    float rotatedSourcePositionLength2 = glm::length2(rotatedSourcePosition);
+    if (rotatedSourcePositionLength2 > SOURCE_DISTANCE_THRESHOLD) {
+        
         // produce an oriented angle about the y-axis
-        return glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f), glm::normalize(rotatedSourcePosition), glm::vec3(0.0f, -1.0f, 0.0f));
-    } else {
-        // there is no distance between listener and source - return no azimuth
-        return 0;
+        glm::vec3 direction = rotatedSourcePosition * (1.0f / fastSqrtf(rotatedSourcePositionLength2));
+		float angle = fastAcosf(glm::clamp(-direction.z, -1.0f, 1.0f)); // UNIT_NEG_Z is "forward"
+        return (direction.x < 0.0f) ? -angle : angle;
+
+    } else {   
+        // no azimuth if they are in same spot
+        return 0.0f; 
     }
 }

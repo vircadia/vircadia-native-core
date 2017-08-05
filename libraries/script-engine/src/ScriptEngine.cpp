@@ -36,6 +36,7 @@
 
 #include <QtScriptTools/QScriptEngineDebugger>
 
+#include <shared/QtHelpers.h>
 #include <AudioConstants.h>
 #include <AudioEffectOptions.h>
 #include <AvatarData.h>
@@ -76,6 +77,7 @@
 
 #include <Profile.h>
 
+#include "../../midi/src/Midi.h"        // FIXME why won't a simpler include work?
 #include "MIDIEvent.h"
 
 const QString ScriptEngine::_SETTINGS_ENABLE_EXTENDED_EXCEPTIONS {
@@ -436,12 +438,12 @@ void ScriptEngine::loadURL(const QUrl& scriptURL, bool reload) {
     _fileNameString = url.toString();
     _isReloading = reload;
 
-	// Check that script has a supported file extension
+    // Check that script has a supported file extension
     if (!hasValidScriptSuffix(_fileNameString)) {
         scriptErrorMessage("File extension of file: " + _fileNameString + " is not a currently supported script type");
         emit errorLoadingScript(_fileNameString);
         return;
-	}
+    }
 
     const auto maxRetries = 0; // for consistency with previous scriptCache->getScript() behavior
     auto scriptCache = DependencyManager::get<ScriptCache>();
@@ -665,6 +667,8 @@ void ScriptEngine::init() {
     }
 
     registerGlobalObject("Audio", DependencyManager::get<AudioScriptingInterface>().data());
+
+    registerGlobalObject("Midi", DependencyManager::get<Midi>().data());
 
     registerGlobalObject("Entities", entityScriptingInterface.data());
     registerGlobalObject("Quat", &_quatLibrary);
@@ -964,7 +968,7 @@ QScriptValue ScriptEngine::evaluate(const QString& sourceCode, const QString& fi
         qCDebug(scriptengine) << "*** WARNING *** ScriptEngine::evaluate() called on wrong thread [" << QThread::currentThread() << "], invoking on correct thread [" << thread() << "] "
             "sourceCode:" << sourceCode << " fileName:" << fileName << "lineNumber:" << lineNumber;
 #endif
-        QMetaObject::invokeMethod(this, "evaluate", Qt::BlockingQueuedConnection,
+        BLOCKING_INVOKE_METHOD(this, "evaluate",
                                   Q_RETURN_ARG(QScriptValue, result),
                                   Q_ARG(const QString&, sourceCode),
                                   Q_ARG(const QString&, fileName),
@@ -1067,24 +1071,21 @@ void ScriptEngine::run() {
         // on shutdown and stop... so we want to loop and sleep until we've spent our time in
         // purgatory, constantly checking to see if our script was asked to end
         bool processedEvents = false;
-        while (!_isFinished && clock::now() < sleepUntil) {
-
-            {
-                PROFILE_RANGE(script, "processEvents-sleep");
-                QCoreApplication::processEvents(); // before we sleep again, give events a chance to process
+        if (!_isFinished) {
+            PROFILE_RANGE(script, "processEvents-sleep");
+            std::chrono::milliseconds sleepFor =
+                std::chrono::duration_cast<std::chrono::milliseconds>(sleepUntil - clock::now());
+            if (sleepFor > std::chrono::milliseconds(0)) {
+                QEventLoop loop;
+                QTimer timer;
+                timer.setSingleShot(true);
+                connect(&timer, SIGNAL(timeout()), &loop, SLOT(quit()));
+                timer.start(sleepFor.count());
+                loop.exec();
+            } else {
+                QCoreApplication::processEvents();
             }
             processedEvents = true;
-
-            // If after processing events, we're past due, exit asap
-            if (clock::now() >= sleepUntil) {
-                break;
-            }
-
-            // We only want to sleep a small amount so that any pending events (like timers or invokeMethod events)
-            // will be able to process quickly.
-            static const int SMALL_SLEEP_AMOUNT = 100;
-            auto smallSleepUntil = clock::now() + static_cast<std::chrono::microseconds>(SMALL_SLEEP_AMOUNT);
-            std::this_thread::sleep_until(smallSleepUntil);
         }
 
         PROFILE_RANGE(script, "ScriptMainLoop");
@@ -1309,6 +1310,7 @@ QObject* ScriptEngine::setupTimerWithInterval(const QScriptValue& function, int 
     // make sure the timer stops when the script does
     connect(this, &ScriptEngine::scriptEnding, newTimer, &QTimer::stop);
 
+
     CallbackData timerData = { function, currentEntityIdentifier, currentSandboxURL };
     _timerFunctionMap.insert(newTimer, timerData);
 
@@ -1390,6 +1392,15 @@ QUrl ScriptEngine::resourcesPath() const {
 
 void ScriptEngine::print(const QString& message) {
     emit printedMessage(message, getFilename());
+}
+
+
+void ScriptEngine::beginProfileRange(const QString& label) const {
+    PROFILE_SYNC_BEGIN(script, label.toStdString().c_str(), label.toStdString().c_str());
+}
+
+void ScriptEngine::endProfileRange(const QString& label) const {
+    PROFILE_SYNC_END(script, label.toStdString().c_str(), label.toStdString().c_str());
 }
 
 // Script.require.resolve -- like resolvePath, but performs more validation and throws exceptions on invalid module identifiers (for consistency with Node.js)
@@ -1755,7 +1766,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
     QList<QUrl> urls;
 
     for (QString includeFile : includeFiles) {
-        QString file = ResourceManager::normalizeURL(includeFile);
+        QString file = DependencyManager::get<ResourceManager>()->normalizeURL(includeFile);
         QUrl thisURL;
         bool isStandardLibrary = false;
         if (file.startsWith("/~/")) {
@@ -1813,7 +1824,7 @@ void ScriptEngine::include(const QStringList& includeFiles, QScriptValue callbac
                         clearExceptions();
                     }
                 } else {
-                    scriptWarningMessage("Script.include() skipping evaluation of previously included url:" + url.toString());
+                    scriptPrintedMessage("Script.include() skipping evaluation of previously included url:" + url.toString());
                 }
             }
         }

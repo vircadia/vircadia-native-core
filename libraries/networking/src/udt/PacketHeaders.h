@@ -105,7 +105,6 @@ public:
         UsernameFromIDReply,
         ViewFrustum,
         RequestsDomainListData,
-        ExitingSpaceBubble,
         PerAvatarGainSet,
         EntityScriptGetStatus,
         EntityScriptGetStatusReply,
@@ -219,6 +218,7 @@ const PacketVersion VERSION_ENTITIES_PHYSICS_PACKET = 67;
 const PacketVersion VERSION_ENTITIES_ZONE_FILTERS = 68;
 const PacketVersion VERSION_ENTITIES_HINGE_CONSTRAINT = 69;
 const PacketVersion VERSION_ENTITIES_BULLET_DYNAMICS = 70;
+const PacketVersion VERSION_ENTITIES_HAS_SHOULD_HIGHLIGHT = 71;
 
 enum class EntityQueryPacketVersion: PacketVersion {
     JSONFilter = 18,
@@ -247,7 +247,8 @@ enum class AvatarMixerPacketVersion : PacketVersion {
     IdentityPacketsIncludeUpdateTime,
     AvatarIdentitySequenceId,
     MannequinDefaultAvatar,
-    AvatarIdentitySequenceFront
+    AvatarIdentitySequenceFront,
+    IsReplicatedInAvatarIdentity
 };
 
 enum class DomainConnectRequestVersion : PacketVersion {

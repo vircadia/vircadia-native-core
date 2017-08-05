@@ -119,7 +119,7 @@ private:
     void clean();
     void clear();
     // Remove a file from the cache
-    void eject(const FilePointer& file);
+    void eject(FilePointer file);
 
     size_t getOverbudgetAmount() const;
 

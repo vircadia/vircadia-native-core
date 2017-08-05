@@ -81,7 +81,7 @@ int AvatarMixerSlave::sendIdentityPacket(const AvatarMixerClientData* nodeData, 
 
 int AvatarMixerSlave::sendReplicatedIdentityPacket(const Node& agentNode, const AvatarMixerClientData* nodeData, const Node& destinationNode) {
     if (AvatarMixer::shouldReplicateTo(agentNode, destinationNode)) {
-        QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray();
+        QByteArray individualData = nodeData->getConstAvatarData()->identityByteArray(true);
         individualData.replace(0, NUM_BYTES_RFC4122_UUID, nodeData->getNodeID().toRfc4122()); // FIXME, this looks suspicious
         auto identityPacket = NLPacketList::create(PacketType::ReplicatedAvatarIdentity, QByteArray(), true, true);
         identityPacket->write(individualData);
@@ -320,14 +320,18 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
         ++numOtherAvatars;
 
         const AvatarMixerClientData* otherNodeData = reinterpret_cast<const AvatarMixerClientData*>(otherNode->getLinkedData());
+        const AvatarData* otherAvatar = otherNodeData->getConstAvatarData();
 
         // If the time that the mixer sent AVATAR DATA about Avatar B to Avatar A is BEFORE OR EQUAL TO
         // the time that Avatar B flagged an IDENTITY DATA change, send IDENTITY DATA about Avatar B to Avatar A.
-        if (nodeData->getLastBroadcastTime(otherNode->getUUID()) <= otherNodeData->getIdentityChangeTimestamp()) {
+        if (otherAvatar->hasProcessedFirstIdentity()
+            && nodeData->getLastBroadcastTime(otherNode->getUUID()) <= otherNodeData->getIdentityChangeTimestamp()) {
             identityBytesSent += sendIdentityPacket(otherNodeData, node);
+
+            // remember the last time we sent identity details about this other node to the receiver
+            nodeData->setLastBroadcastTime(otherNode->getUUID(), usecTimestampNow());
         }
 
-        const AvatarData* otherAvatar = otherNodeData->getConstAvatarData();
         glm::vec3 otherPosition = otherAvatar->getClientGlobalPosition();
 
         // determine if avatar is in view, to determine how much data to include...
@@ -379,11 +383,11 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                 qCWarning(avatars) << "otherAvatar.toByteArray() without facial data resulted in very large buffer:" << bytes.size() << "... reduce to MinimumData";
                 bytes = otherAvatar->toByteArray(AvatarData::MinimumData, lastEncodeForOther, lastSentJointsForOther,
                                                  hasFlagsOut, dropFaceTracking, distanceAdjust, viewerPosition, &lastSentJointsForOther);
-            }
 
-            if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
-                qCWarning(avatars) << "otherAvatar.toByteArray() MinimumData resulted in very large buffer:" << bytes.size() << "... FAIL!!";
-                includeThisAvatar = false;
+                if (bytes.size() > MAX_ALLOWED_AVATAR_DATA) {
+                    qCWarning(avatars) << "otherAvatar.toByteArray() MinimumData resulted in very large buffer:" << bytes.size() << "... FAIL!!";
+                    includeThisAvatar = false;
+                }
             }
         }
 
@@ -400,9 +404,6 @@ void AvatarMixerSlave::broadcastAvatarDataToAgent(const SharedNodePointer& node)
                 // set the last sent sequence number for this sender on the receiver
                 nodeData->setLastBroadcastSequenceNumber(otherNode->getUUID(),
                                                          otherNodeData->getLastReceivedSequenceNumber());
-
-                // remember the last time we sent details about this other node to the receiver
-                nodeData->setLastBroadcastTime(otherNode->getUUID(), start);
             }
         }
 

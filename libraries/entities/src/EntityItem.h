@@ -19,14 +19,13 @@
 
 #include <QtGui/QWindow>
 
-#include <AnimationCache.h> // for Animation, AnimationCache, and AnimationPointer classes
+#include <shared/types/AnimationLoop.h> // for Animation, AnimationCache, and AnimationPointer classes
 #include <Octree.h> // for EncodeBitstreamParams class
 #include <OctreeElement.h> // for OctreeElement::AppendState
 #include <OctreePacketData.h>
 #include <PhysicsCollisionGroups.h>
 #include <ShapeInfo.h>
 #include <Transform.h>
-#include <Sound.h>
 #include <SpatiallyNestable.h>
 #include <Interpolate.h>
 
@@ -260,9 +259,6 @@ public:
     QString getCollisionSoundURL() const;
     void setCollisionSoundURL(const QString& value);
 
-    SharedSoundPointer getCollisionSound();
-    void setCollisionSound(SharedSoundPointer sound);
-
     glm::vec3 getRegistrationPoint() const; /// registration point as ratio of entity
 
     /// registration point as ratio of entity
@@ -319,6 +315,9 @@ public:
 
     QString getMarketplaceID() const;
     void setMarketplaceID(const QString& value);
+
+    bool getShouldHighlight() const;
+    void setShouldHighlight(const bool value);
 
     // TODO: get rid of users of getRadius()...
     float getRadius() const;
@@ -526,7 +525,6 @@ protected:
     quint64 _loadedScriptTimestamp { ENTITY_ITEM_DEFAULT_SCRIPT_TIMESTAMP + 1 };
 
     QString _collisionSoundURL;
-    SharedSoundPointer _collisionSound;
     glm::vec3 _registrationPoint;
     float _angularDamping;
     bool _visible;
@@ -537,6 +535,7 @@ protected:
     QString _userData;
     SimulationOwner _simulationOwner;
     QString _marketplaceID;
+    bool _shouldHighlight { false };
     QString _name;
     QString _href; //Hyperlink href
     QString _description; //Hyperlink description

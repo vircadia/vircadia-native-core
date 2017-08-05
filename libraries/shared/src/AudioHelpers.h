@@ -14,6 +14,8 @@
 
 #include <stdint.h>
 
+#include <NumericalConstants.h>
+
 const int IEEE754_MANT_BITS = 23;
 const int IEEE754_EXPN_BIAS = 127;
 
@@ -64,6 +66,48 @@ static inline float fastExp2f(float x) {
     x = (((0.0135557472f * x + 0.0520323690f) * x + 0.241379763f) * x + 0.693032121f) * x + 1.0f;
 
     return x * xi.f;
+}
+
+//
+// on x86 architecture, assume that SSE2 is present
+//
+#if defined(_M_IX86) || defined(_M_X64) || defined(__i386__) || defined(__x86_64__)
+
+#include <xmmintrin.h>
+// inline sqrtss, without requiring /fp:fast
+static inline float fastSqrtf(float x) {   
+    return _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss(x)));
+}
+
+#else 
+
+static inline float fastSqrtf(float x) {   
+    return sqrtf(x);
+}
+
+#endif
+
+//
+// for -1 <= x <= 1, returns acos(x)
+// otherwise, returns NaN
+//
+// abs |error| < 7e-5, smooth
+//
+static inline float fastAcosf(float x) {
+
+    union { float f; int32_t i; } xi = { x };
+
+    int32_t sign = xi.i & 0x80000000;
+    xi.i ^= sign;   // fabs(x)
+
+    // compute sqrt(1-x) in parallel
+    float r = fastSqrtf(1.0f - xi.f);
+
+    // polynomial for acos(x)/sqrt(1-x) over x=[0,1]
+    xi.f = ((-0.0198439236f * xi.f + 0.0762021306f) * xi.f + -0.212940971f) * xi.f + 1.57079633f;
+
+    xi.f *= r;
+    return (sign ? PI - xi.f : xi.f);
 }
 
 //

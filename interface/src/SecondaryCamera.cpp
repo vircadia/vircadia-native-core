@@ -9,9 +9,11 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "Application.h"
 #include "SecondaryCamera.h"
 #include <TextureCache.h>
 #include <gpu/Context.h>
+#include <EntityScriptingInterface.h>
 
 using RenderArgsPointer = std::shared_ptr<RenderArgs>;
 
@@ -27,39 +29,32 @@ void MainRenderTask::build(JobModel& task, const render::Varying& inputs, render
     }
 }
 
-void SecondaryCameraRenderTaskConfig::resetSize(int width, int height) { // FIXME: Add an arg here for "destinationFramebuffer"
-    bool wasEnabled = isEnabled();
-    setEnabled(false);
-    auto textureCache = DependencyManager::get<TextureCache>();
-    textureCache->resetSpectatorCameraFramebuffer(width, height); // FIXME: Call the correct reset function based on the "destinationFramebuffer" arg
-    setEnabled(wasEnabled);
-}
-
-void SecondaryCameraRenderTaskConfig::resetSizeSpectatorCamera(int width, int height) { // Carefully adjust the framebuffer / texture.
-    resetSize(width, height);
-}
-
-class BeginSecondaryCameraFrame {  // Changes renderContext for our framebuffer and and view.
+class SecondaryCameraJob {  // Changes renderContext for our framebuffer and view.
+    QUuid _attachedEntityId{};
     glm::vec3 _position{};
     glm::quat _orientation{};
     float _vFoV{};
     float _nearClipPlaneDistance{};
     float _farClipPlaneDistance{};
+    EntityPropertyFlags _attachedEntityPropertyFlags;
+    QSharedPointer<EntityScriptingInterface> _entityScriptingInterface;
 public:
-    using Config = BeginSecondaryCameraFrameConfig;
-    using JobModel = render::Job::ModelO<BeginSecondaryCameraFrame, RenderArgsPointer, Config>;
-    BeginSecondaryCameraFrame() {
+    using Config = SecondaryCameraJobConfig;
+    using JobModel = render::Job::ModelO<SecondaryCameraJob, RenderArgsPointer, Config>;
+    SecondaryCameraJob() {
         _cachedArgsPointer = std::make_shared<RenderArgs>(_cachedArgs);
+        _entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
+        _attachedEntityPropertyFlags += PROP_POSITION;
+        _attachedEntityPropertyFlags += PROP_ROTATION;
     }
 
     void configure(const Config& config) {
-        if (config.enabled || config.alwaysEnabled) {
-            _position = config.position;
-            _orientation = config.orientation;
-            _vFoV = config.vFoV;
-            _nearClipPlaneDistance = config.nearClipPlaneDistance;
-            _farClipPlaneDistance = config.farClipPlaneDistance;
-        }
+        _attachedEntityId = config.attachedEntityId;
+        _position = config.position;
+        _orientation = config.orientation;
+        _vFoV = config.vFoV;
+        _nearClipPlaneDistance = config.nearClipPlaneDistance;
+        _farClipPlaneDistance = config.farClipPlaneDistance;
     }
 
     void run(const render::RenderContextPointer& renderContext, RenderArgsPointer& cachedArgs) {
@@ -79,11 +74,18 @@ public:
 
             gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
                 batch.disableContextStereo();
+                batch.disableContextViewCorrection();
             });
 
             auto srcViewFrustum = args->getViewFrustum();
-            srcViewFrustum.setPosition(_position);
-            srcViewFrustum.setOrientation(_orientation);
+            if (!_attachedEntityId.isNull()) {
+                EntityItemProperties entityProperties = _entityScriptingInterface->getEntityProperties(_attachedEntityId, _attachedEntityPropertyFlags);
+                srcViewFrustum.setPosition(entityProperties.getPosition());
+                srcViewFrustum.setOrientation(entityProperties.getRotation());
+            } else {
+                srcViewFrustum.setPosition(_position);
+                srcViewFrustum.setOrientation(_orientation);
+            }
             srcViewFrustum.setProjection(glm::perspective(glm::radians(_vFoV), ((float)args->_viewport.z / (float)args->_viewport.w), _nearClipPlaneDistance, _farClipPlaneDistance));
             // Without calculating the bound planes, the secondary camera will use the same culling frustum as the main camera,
             // which is not what we want here.
@@ -97,6 +99,41 @@ protected:
     RenderArgs _cachedArgs;
     RenderArgsPointer _cachedArgsPointer;
 };
+
+void SecondaryCameraJobConfig::setPosition(glm::vec3 pos) {
+    if (attachedEntityId.isNull()) {
+        position = pos;
+        emit dirty();
+    } else {
+        qDebug() << "ERROR: Cannot set position of SecondaryCamera while attachedEntityId is set.";
+    }
+}
+
+void SecondaryCameraJobConfig::setOrientation(glm::quat orient) {
+    if (attachedEntityId.isNull()) {
+        orientation = orient;
+        emit dirty();
+    } else {
+        qDebug() << "ERROR: Cannot set orientation of SecondaryCamera while attachedEntityId is set.";
+    }
+}
+
+void SecondaryCameraJobConfig::enableSecondaryCameraRenderConfigs(bool enabled) {
+    qApp->getRenderEngine()->getConfiguration()->getConfig<SecondaryCameraRenderTask>()->setEnabled(enabled);
+    setEnabled(enabled);
+}
+
+void SecondaryCameraJobConfig::resetSizeSpectatorCamera(int width, int height) { // Carefully adjust the framebuffer / texture.
+    qApp->getRenderEngine()->getConfiguration()->getConfig<SecondaryCameraRenderTask>()->resetSize(width, height);
+}
+
+void SecondaryCameraRenderTaskConfig::resetSize(int width, int height) { // FIXME: Add an arg here for "destinationFramebuffer"
+    bool wasEnabled = isEnabled();
+    setEnabled(false);
+    auto textureCache = DependencyManager::get<TextureCache>();
+    textureCache->resetSpectatorCameraFramebuffer(width, height); // FIXME: Call the correct reset function based on the "destinationFramebuffer" arg
+    setEnabled(wasEnabled);
+}
 
 class EndSecondaryCameraFrame {  // Restores renderContext.
 public:
@@ -112,12 +149,13 @@ public:
 
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             batch.restoreContextStereo();
+            batch.restoreContextViewCorrection();
         });
     }
 };
 
 void SecondaryCameraRenderTask::build(JobModel& task, const render::Varying& inputs, render::Varying& outputs, render::CullFunctor cullFunctor) {
-    const auto cachedArg = task.addJob<BeginSecondaryCameraFrame>("BeginSecondaryCamera");
+    const auto cachedArg = task.addJob<SecondaryCameraJob>("SecondaryCamera");
     const auto items = task.addJob<RenderFetchCullSortTask>("FetchCullSort", cullFunctor);
     assert(items.canCast<RenderFetchCullSortTask::Output>());
     task.addJob<RenderDeferredTask>("RenderDeferredTask", items);

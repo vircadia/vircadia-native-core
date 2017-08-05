@@ -35,6 +35,10 @@ void SoftAttachmentModel::updateClusterMatrices() {
     if (!_needsUpdateClusterMatrices) {
         return;
     }
+    if (!isLoaded()) {
+        return;
+    }
+
     _needsUpdateClusterMatrices = false;
 
     const FBXGeometry& geometry = getFBXGeometry();

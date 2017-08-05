@@ -15,6 +15,7 @@
 #include <stdint.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtx/component_wise.hpp>
 
 #include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
@@ -85,8 +86,9 @@ public:
 
     EntityPropertyFlags getChangedProperties() const;
 
-    bool parentDependentPropertyChanged() const; // was there a changed in a property that requires parent info to interpret?
-    bool parentRelatedPropertyChanged() const; // parentDependentPropertyChanged or parentID or parentJointIndex
+    bool transformChanged() const;
+    bool parentRelatedPropertyChanged() const;
+    bool queryAACubeRelatedPropertyChanged() const;
 
     AABox getAABox() const;
 
@@ -169,6 +171,7 @@ public:
     DEFINE_PROPERTY(PROP_RADIUS_FINISH, RadiusFinish, radiusFinish, float, ParticleEffectEntityItem::DEFAULT_RADIUS_FINISH);
     DEFINE_PROPERTY(PROP_EMITTER_SHOULD_TRAIL, EmitterShouldTrail, emitterShouldTrail, bool, ParticleEffectEntityItem::DEFAULT_EMITTER_SHOULD_TRAIL);
     DEFINE_PROPERTY_REF(PROP_MARKETPLACE_ID, MarketplaceID, marketplaceID, QString, ENTITY_ITEM_DEFAULT_MARKETPLACE_ID);
+    DEFINE_PROPERTY_REF(PROP_SHOULD_HIGHLIGHT, ShouldHighlight, shouldHighlight, bool, ENTITY_ITEM_DEFAULT_SHOULD_HIGHLIGHT);
     DEFINE_PROPERTY_GROUP(KeyLight, keyLight, KeyLightPropertyGroup);
     DEFINE_PROPERTY_REF(PROP_VOXEL_VOLUME_SIZE, VoxelVolumeSize, voxelVolumeSize, glm::vec3, PolyVoxEntityItem::DEFAULT_VOXEL_VOLUME_SIZE);
     DEFINE_PROPERTY_REF(PROP_VOXEL_DATA, VoxelData, voxelData, QByteArray, PolyVoxEntityItem::DEFAULT_VOXEL_DATA);

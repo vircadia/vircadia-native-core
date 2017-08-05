@@ -94,9 +94,25 @@ StackView {
         property bool keyboardEnabled: false
         property bool keyboardRaised: false
         property bool punctuationMode: false
-        
+
         width: parent.width
         height: parent.height
+
+        MouseArea {
+            anchors {
+                top: parent.top
+                left: parent.left
+                right: parent.right
+                bottom: keyboard.top
+            }
+
+            propagateComposedEvents: true
+            onPressed: {
+                parent.forceActiveFocus();
+                addressBarDialog.keyboardEnabled = false;
+                mouse.accepted = false;
+            }
+        }
 
         anchors {
             right: parent.right
@@ -227,9 +243,9 @@ StackView {
                 MouseArea {
                     anchors.fill: parent;
                     onClicked: {
-                        if (!addressLine.focus || !HMD.active) {
-                            addressLine.focus = true;
-                            addressLine.forceActiveFocus();
+                        addressLine.focus = true;
+                        addressLine.forceActiveFocus();
+                        if (HMD.active) {
                             addressBarDialog.keyboardEnabled = HMD.active;
                         }
                         tabletRoot.playButtonClickSound();

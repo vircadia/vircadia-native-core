@@ -85,7 +85,22 @@ void AvatarMixer::handleReplicatedPacket(QSharedPointer<ReceivedMessage> message
     auto nodeList = DependencyManager::get<NodeList>();
     auto nodeID = QUuid::fromRfc4122(message->peek(NUM_BYTES_RFC4122_UUID));
 
-    auto replicatedNode = addOrUpdateReplicatedNode(nodeID, message->getSenderSockAddr());
+    SharedNodePointer replicatedNode;
+
+    if (message->getType() == PacketType::ReplicatedKillAvatar) {
+        // this is a kill packet, which we should only process if we already have the node in our list
+        // since it of course does not make sense to add a node just to remove it an instant later
+        replicatedNode = nodeList->nodeWithUUID(nodeID);
+
+        if (!replicatedNode) {
+            return;
+        }
+    } else {
+        replicatedNode = addOrUpdateReplicatedNode(nodeID, message->getSenderSockAddr());
+    }
+
+    // we better have a node to work with at this point
+    assert(replicatedNode);
 
     if (message->getType() == PacketType::ReplicatedAvatarIdentity) {
         handleAvatarIdentityPacket(message, replicatedNode);
@@ -229,7 +244,7 @@ void AvatarMixer::start() {
             auto start = usecTimestampNow();
             nodeList->nestedEach([&](NodeList::const_iterator cbegin, NodeList::const_iterator cend) {
                 std::for_each(cbegin, cend, [&](const SharedNodePointer& node) {
-                    if (node->getType() == NodeType::Agent && !node->isUpstream()) {
+                    if (node->getType() == NodeType::Agent) {
                         manageIdentityData(node);
                     }
 
@@ -285,6 +300,13 @@ void AvatarMixer::start() {
 // is guaranteed to not be accessed by other thread
 void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
     AvatarMixerClientData* nodeData = reinterpret_cast<AvatarMixerClientData*>(node->getLinkedData());
+
+    // there is no need to manage identity data we haven't received yet
+    // so bail early if we've never received an identity packet for this avatar
+    if (!nodeData || !nodeData->getAvatar().hasProcessedFirstIdentity()) {
+        return;
+    }
+
     bool sendIdentity = false;
     if (nodeData && nodeData->getAvatarSessionDisplayNameMustChange()) {
         AvatarData& avatar = nodeData->getAvatar();
@@ -325,8 +347,8 @@ void AvatarMixer::manageIdentityData(const SharedNodePointer& node) {
             sendIdentity = true;
         }
     }
-    if (sendIdentity) {
-
+    if (sendIdentity && !node->isUpstream()) {
+        sendIdentityPacket(nodeData, node); // Tell node whose name changed about its new session display name or avatar.
         // since this packet includes a change to either the skeleton model URL or the display name
         // it needs a new sequence number
         nodeData->getAvatar().pushIdentitySequenceNumber();

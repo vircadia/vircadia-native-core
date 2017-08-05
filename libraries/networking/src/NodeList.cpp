@@ -20,6 +20,7 @@
 #include <QtNetwork/QHostInfo>
 #include <QtNetwork/QNetworkInterface>
 
+#include <shared/QtHelpers.h>
 #include <ThreadHelpers.h>
 #include <LogHandler.h>
 #include <UUID.h>
@@ -232,7 +233,7 @@ void NodeList::processICEPingPacket(QSharedPointer<ReceivedMessage> message) {
 
 void NodeList::reset() {
     if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "reset", Qt::BlockingQueuedConnection);
+        QMetaObject::invokeMethod(this, "reset");
         return;
     }
 
@@ -240,10 +241,6 @@ void NodeList::reset() {
 
     _numNoReplyDomainCheckIns = 0;
 
-    // lock and clear our set of radius ignored IDs
-    _radiusIgnoredSetLock.lockForWrite();
-    _radiusIgnoredNodeIDs.clear();
-    _radiusIgnoredSetLock.unlock();
     // lock and clear our set of ignored IDs
     _ignoredSetLock.lockForWrite();
     _ignoredNodeIDs.clear();
@@ -330,7 +327,7 @@ void NodeList::sendDomainServerCheckIn() {
                 << "but no keypair is present. Waiting for keypair generation to complete.";
             accountManager->generateNewUserKeypair();
 
-            // don't send the check in packet - wait for the keypair first
+            // don't send the check in packet - wait for the new public key to be available to the domain-server first
             return;
         }
 
@@ -809,22 +806,6 @@ void NodeList::sendIgnoreRadiusStateToNode(const SharedNodePointer& destinationN
     sendPacket(std::move(ignorePacket), *destinationNode);
 }
 
-void NodeList::radiusIgnoreNodeBySessionID(const QUuid& nodeID, bool radiusIgnoreEnabled) {
-    if (radiusIgnoreEnabled) {
-        QReadLocker radiusIgnoredSetLocker{ &_radiusIgnoredSetLock }; // read lock for insert
-        // add this nodeID to our set of ignored IDs
-        _radiusIgnoredNodeIDs.insert(nodeID);
-    } else {
-        QWriteLocker radiusIgnoredSetLocker{ &_radiusIgnoredSetLock }; // write lock for unsafe_erase
-        _radiusIgnoredNodeIDs.unsafe_erase(nodeID);
-    }
-}
-
-bool NodeList::isRadiusIgnoringNode(const QUuid& nodeID) const {
-    QReadLocker radiusIgnoredSetLocker{ &_radiusIgnoredSetLock }; // read lock for reading
-    return _radiusIgnoredNodeIDs.find(nodeID) != _radiusIgnoredNodeIDs.cend();
-}
-
 void NodeList::ignoreNodeBySessionID(const QUuid& nodeID, bool ignoreEnabled) {
     // enumerate the nodes to send a reliable ignore packet to each that can leverage it
     if (!nodeID.isNull() && _sessionUUID != nodeID) {
@@ -949,7 +930,7 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
 
         if (_personalMutedNodeIDs.size() > 0) {
             // setup a packet list so we can send the stream of ignore IDs
-            auto personalMutePacketList = NLPacketList::create(PacketType::NodeIgnoreRequest, QByteArray(), true);
+            auto personalMutePacketList = NLPacketList::create(PacketType::NodeIgnoreRequest, QByteArray(), true, true);
 
             // Force the "enabled" flag in this packet to true
             personalMutePacketList->writePrimitive(true);
@@ -976,7 +957,7 @@ void NodeList::maybeSendIgnoreSetToNode(SharedNodePointer newNode) {
 
         if (_ignoredNodeIDs.size() > 0) {
             // setup a packet list so we can send the stream of ignore IDs
-            auto ignorePacketList = NLPacketList::create(PacketType::NodeIgnoreRequest, QByteArray(), true);
+            auto ignorePacketList = NLPacketList::create(PacketType::NodeIgnoreRequest, QByteArray(), true, true);
 
             // Force the "enabled" flag in this packet to true
             ignorePacketList->writePrimitive(true);

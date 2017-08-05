@@ -20,7 +20,7 @@
 void FileResourceRequest::doSend() {
     auto statTracker = DependencyManager::get<StatTracker>();
     statTracker->incrementStat(STAT_FILE_REQUEST_STARTED);
-
+    int fileSize = 0;
     QString filename = _url.toLocalFile();
     
     // sometimes on windows, we see the toLocalFile() return null,
@@ -53,6 +53,7 @@ void FileResourceRequest::doSend() {
                     }
 
                     _result = ResourceRequest::Success;
+                    fileSize = file.size();
                 }
 
             } else {
@@ -68,6 +69,8 @@ void FileResourceRequest::doSend() {
 
     if (_result == ResourceRequest::Success) {
         statTracker->incrementStat(STAT_FILE_REQUEST_SUCCESS);
+        // Recording FILE bytes downloaded in stats
+        statTracker->updateStat(STAT_FILE_RESOURCE_TOTAL_BYTES,fileSize);
     } else {
         statTracker->incrementStat(STAT_FILE_REQUEST_FAILED);
     }

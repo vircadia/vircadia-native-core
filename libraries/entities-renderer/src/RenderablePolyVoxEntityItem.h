@@ -12,20 +12,35 @@
 #ifndef hifi_RenderablePolyVoxEntityItem_h
 #define hifi_RenderablePolyVoxEntityItem_h
 
-#include <QSemaphore>
 #include <atomic>
+
+#include <QSemaphore>
 
 #include <PolyVoxCore/SimpleVolume.h>
 #include <PolyVoxCore/Raycast.h>
 
+#include <gpu/Context.h>
+#include <model/Forward.h>
 #include <TextureCache.h>
+#include <PolyVoxEntityItem.h>
 
-#include "PolyVoxEntityItem.h"
 #include "RenderableEntityItem.h"
-#include "gpu/Context.h"
 
 class PolyVoxPayload {
 public:
+
+    static uint8_t CUSTOM_PIPELINE_NUMBER;
+    static render::ShapePipelinePointer shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key);
+    static void registerShapePipeline() {
+        if (!CUSTOM_PIPELINE_NUMBER) {
+            CUSTOM_PIPELINE_NUMBER = render::ShapePipeline::registerCustomShapePipelineFactory(shapePipelineFactory);
+        }
+    }
+    
+    static const int MATERIAL_GPU_SLOT = 3;
+    static std::shared_ptr<gpu::Pipeline> _pipeline;
+    static std::shared_ptr<gpu::Pipeline> _wireframePipeline;
+
     PolyVoxPayload(EntityItemPointer owner) : _owner(owner), _bounds(AABox()) { }
     typedef render::Payload<PolyVoxPayload> Payload;
     typedef Payload::DataPointer Pointer;
@@ -38,6 +53,7 @@ namespace render {
    template <> const ItemKey payloadGetKey(const PolyVoxPayload::Pointer& payload);
    template <> const Item::Bound payloadGetBound(const PolyVoxPayload::Pointer& payload);
    template <> void payloadRender(const PolyVoxPayload::Pointer& payload, RenderArgs* args);
+   template <> const ShapeKey shapeGetShapeKey(const PolyVoxPayload::Pointer& payload);
 }
 
 
@@ -166,10 +182,7 @@ private:
     NetworkTexturePointer _yTexture;
     NetworkTexturePointer _zTexture;
 
-    const int MATERIAL_GPU_SLOT = 3;
     render::ItemID _myItem{ render::Item::INVALID_ITEM_ID };
-    static gpu::PipelinePointer _pipeline;
-    static gpu::PipelinePointer _wireframePipeline;
 
     ShapeInfo _shapeInfo;
 

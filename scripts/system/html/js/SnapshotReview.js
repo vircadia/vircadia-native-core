@@ -20,7 +20,9 @@ var blastShareText = "Blast to my Connections",
     hifiShareText = "Share to Snaps Feed",
     hifiAlreadySharedText = "Already Shared to Snaps Feed",
     facebookShareText = "Share to Facebook",
-    twitterShareText = "Share to Twitter";
+    twitterShareText = "Share to Twitter",
+    shareButtonLabelTextActive = "SHARE&#58;",
+    shareButtonLabelTextInactive = "SHARE";
 
 function fileExtensionMatches(filePath, extension) {
     return filePath.split('.').pop().toLowerCase() === extension;
@@ -138,6 +140,8 @@ function selectImageToShare(selectedID, isSelected) {
     var imageContainer = document.getElementById(selectedID),
         image = document.getElementById(selectedID + 'img'),
         shareBar = document.getElementById(selectedID + "shareBar"),
+        showShareButtonsDots = document.getElementById(selectedID + "showShareButtonsDots"),
+        showShareButtonsLabel = document.getElementById(selectedID + "showShareButtonsLabel"),
         shareButtonsDiv = document.getElementById(selectedID + "shareButtonsDiv"),
         shareBarHelp = document.getElementById(selectedID + "shareBarHelp"),
         showShareButtonsButtonDiv = document.getElementById(selectedID + "showShareButtonsButtonDiv"),
@@ -155,6 +159,9 @@ function selectImageToShare(selectedID, isSelected) {
 
         shareBar.style.backgroundColor = "rgba(0, 0, 0, 0.45)";
         shareBar.style.pointerEvents = "initial";
+
+        showShareButtonsDots.style.visibility = "hidden";
+        showShareButtonsLabel.innerHTML = shareButtonLabelTextActive;
 
         shareButtonsDiv.style.visibility = "visible";
         shareBarHelp.style.visibility = "visible";
@@ -176,6 +183,9 @@ function selectImageToShare(selectedID, isSelected) {
         shareBar.style.backgroundColor = "rgba(0, 0, 0, 0.0)";
         shareBar.style.pointerEvents = "none";
 
+        showShareButtonsDots.style.visibility = "visible";
+        showShareButtonsLabel.innerHTML = shareButtonLabelTextInactive;
+
         shareButtonsDiv.style.visibility = "hidden";
         shareBarHelp.style.visibility = "hidden";
     }
@@ -185,6 +195,7 @@ function createShareBar(parentID, isLoggedIn, canShare, isGif, blastButtonDisabl
         shareBarHelpID = parentID + "shareBarHelp",
         shareButtonsDivID = parentID + "shareButtonsDiv",
         showShareButtonsButtonDivID = parentID + "showShareButtonsButtonDiv",
+        showShareButtonsDotsID = parentID + "showShareButtonsDots",
         showShareButtonsLabelID = parentID + "showShareButtonsLabel",
         blastToConnectionsButtonID = parentID + "blastToConnectionsButton",
         shareWithEveryoneButtonID = parentID + "shareWithEveryoneButton",
@@ -199,8 +210,8 @@ function createShareBar(parentID, isLoggedIn, canShare, isGif, blastButtonDisabl
         if (canShare) {
             shareBarInnerHTML = '<div class="shareControlsHelp" id="' + shareBarHelpID + '" style="visibility:hidden;' + ((canBlast && blastButtonDisabled || !canBlast && hifiButtonDisabled) ? "background-color:#000;opacity:0.5;" : "") + '"></div>' +
                 '<div class="showShareButtonsButtonDiv inactive" id="' + showShareButtonsButtonDivID + '" onclick="selectImageToShare(' + parentID + ', true)">' +
-                    '<label id="' + showShareButtonsLabelID + '">SHARE</label>' +
-                    '<span class="showShareButtonDots">' +
+                    '<label id="' + showShareButtonsLabelID + '">' + shareButtonLabelTextInactive + '</label>' +
+                    '<span id="' + showShareButtonsDotsID + '" class="showShareButtonDots">' +
                         '&#xe019;' +
                     '</div>' +
                 '</div>' +
@@ -217,7 +228,7 @@ function createShareBar(parentID, isLoggedIn, canShare, isGif, blastButtonDisabl
             document.getElementById(parentID + 'img').onclick = function () { selectImageToShare(parentID, true); };
         } else {
             shareBarInnerHTML = '<div class="showShareButtonsButtonDiv inactive" id="' + showShareButtonsButtonDivID + '" onclick="selectImageToShare(' + parentID + ', true)">' +
-                    '<label id="' + showShareButtonsLabelID + '">SHARE</label>' +
+                    '<label id="' + showShareButtonsLabelID + '">' + shareButtonLabelTextInactive + '</label>' +
                     '<span class="showShareButtonDots">' +
                         '&#xe019;' +
                     '</div>' +
@@ -230,7 +241,7 @@ function createShareBar(parentID, isLoggedIn, canShare, isGif, blastButtonDisabl
         }
     } else {
         shareBarInnerHTML = '<div class="showShareButtonsButtonDiv inactive" id="' + showShareButtonsButtonDivID + '" onclick="selectImageToShare(' + parentID + ', true)">' +
-                '<label id="' + showShareButtonsLabelID + '">SHARE</label>' +
+                '<label id="' + showShareButtonsLabelID + '">' + shareButtonLabelTextInactive + '</label>' +
                 '<span class="showShareButtonDots">' +
                     '&#xe019;' +
                 '</div>' +

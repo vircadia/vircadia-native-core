@@ -20,7 +20,7 @@ Overlay::Overlay() :
     _renderItemID(render::Item::INVALID_ITEM_ID),
     _isLoaded(true),
     _alpha(DEFAULT_ALPHA),
-    _pulse(0.0f),
+    _pulse(1.0f),
     _pulseMax(0.0f),
     _pulseMin(0.0f),
     _pulsePeriod(1.0f),

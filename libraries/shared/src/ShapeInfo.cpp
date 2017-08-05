@@ -15,6 +15,9 @@
 
 #include "NumericalConstants.h" // for MILLIMETERS_PER_METER
 
+// Bullet doesn't support arbitrarily small shapes
+const float MIN_HALF_EXTENT = 0.005f; // 0.5 cm
+
 void ShapeInfo::clear() {
     _url.clear();
     _pointCollection.clear();
@@ -26,14 +29,21 @@ void ShapeInfo::clear() {
 }
 
 void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString url) {
+    //TODO WL21389: Does this need additional cases and handling added?
+    _url = "";
     _type = type;
-    _halfExtents = halfExtents;
+    setHalfExtents(halfExtents);
     switch(type) {
         case SHAPE_TYPE_NONE:
             _halfExtents = glm::vec3(0.0f);
             break;
         case SHAPE_TYPE_BOX:
-        case SHAPE_TYPE_SPHERE:
+            break;
+        case SHAPE_TYPE_SPHERE: {
+                float radius = glm::length(halfExtents) / SQUARE_ROOT_OF_3;
+                radius = glm::max(radius, MIN_HALF_EXTENT);
+                _halfExtents = glm::vec3(radius);
+            }
             break;
         case SHAPE_TYPE_COMPOUND:
         case SHAPE_TYPE_STATIC_MESH:
@@ -46,28 +56,37 @@ void ShapeInfo::setParams(ShapeType type, const glm::vec3& halfExtents, QString 
 }
 
 void ShapeInfo::setBox(const glm::vec3& halfExtents) {
+    //TODO WL21389:  Should this pointlist clearance added in case
+    //              this is a re-purposed instance?
+    // See https://github.com/highfidelity/hifi/pull/11024#discussion_r128885491
     _url = "";
     _type = SHAPE_TYPE_BOX;
-    _halfExtents = halfExtents;
+    setHalfExtents(halfExtents);
     _doubleHashKey.clear();
 }
 
 void ShapeInfo::setSphere(float radius) {
+    //TODO WL21389: See comment in setBox regarding clearance
     _url = "";
     _type = SHAPE_TYPE_SPHERE;
-    _halfExtents = glm::vec3(radius, radius, radius);
+    radius = glm::max(radius, MIN_HALF_EXTENT);
+    _halfExtents = glm::vec3(radius);
     _doubleHashKey.clear();
 }
 
 void ShapeInfo::setPointCollection(const ShapeInfo::PointCollection& pointCollection) {
+    //TODO WL21389: May need to skip resetting type here.
     _pointCollection = pointCollection;
     _type = (_pointCollection.size() > 0) ? SHAPE_TYPE_COMPOUND : SHAPE_TYPE_NONE;
     _doubleHashKey.clear();
 }
 
 void ShapeInfo::setCapsuleY(float radius, float halfHeight) {
+    //TODO WL21389: See comment in setBox regarding clearance
     _url = "";
     _type = SHAPE_TYPE_CAPSULE_Y;
+    radius = glm::max(radius, MIN_HALF_EXTENT);
+    halfHeight = glm::max(halfHeight, 0.0f);
     _halfExtents = glm::vec3(radius, halfHeight, radius);
     _doubleHashKey.clear();
 }
@@ -105,6 +124,7 @@ int ShapeInfo::getLargestSubshapePointCount() const {
 }
 
 float ShapeInfo::computeVolume() const {
+    //TODO WL21389: Add support for other ShapeTypes( CYLINDER_X, CYLINDER_Y, etc).
     const float DEFAULT_VOLUME = 1.0f;
     float volume = DEFAULT_VOLUME;
     switch(_type) {
@@ -124,7 +144,10 @@ float ShapeInfo::computeVolume() const {
         }
         case SHAPE_TYPE_CAPSULE_Y: {
             float radius = _halfExtents.x;
-            volume = PI * radius * radius * (2.0f * (_halfExtents.y - _halfExtents.x) + 4.0f * radius / 3.0f);
+            // Need to offset halfExtents.y by x to account for the system treating
+            // the y extent of the capsule as the cylindrical height + spherical radius.
+            float cylinderHeight = 2.0f * (_halfExtents.y - _halfExtents.x);
+            volume = PI * radius * radius * (cylinderHeight + 4.0f * radius / 3.0f);
             break;
         }
         default:
@@ -135,6 +158,7 @@ float ShapeInfo::computeVolume() const {
 }
 
 bool ShapeInfo::contains(const glm::vec3& point) const {
+    //TODO WL21389:  Add support for other ShapeTypes like Ellipsoid/Compound.
     switch(_type) {
         case SHAPE_TYPE_SPHERE:
             return glm::length(point) <= _halfExtents.x;
@@ -179,6 +203,7 @@ bool ShapeInfo::contains(const glm::vec3& point) const {
 }
 
 const DoubleHashKey& ShapeInfo::getHash() const {
+    //TODO WL21389: Need to include the pointlist for SIMPLE_HULL in hash
     // NOTE: we cache the key so we only ever need to compute it once for any valid ShapeInfo instance.
     if (_doubleHashKey.isNull() && _type != SHAPE_TYPE_NONE) {
         bool useOffset = glm::length2(_offset) > MIN_SHAPE_OFFSET * MIN_SHAPE_OFFSET;
@@ -238,4 +263,8 @@ const DoubleHashKey& ShapeInfo::getHash() const {
         }
     }
     return _doubleHashKey;
+}
+
+void ShapeInfo::setHalfExtents(const glm::vec3& halfExtents) {
+    _halfExtents = glm::max(halfExtents, glm::vec3(MIN_HALF_EXTENT));
 }

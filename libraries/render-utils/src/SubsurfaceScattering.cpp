@@ -532,9 +532,11 @@ void DebugSubsurfaceScattering::run(const render::RenderContextPointer& renderCo
 
 
 
-
-    const auto light = DependencyManager::get<DeferredLightingEffect>()->getLightStage()->getLight(0);
-
+    auto lightStage = renderContext->_scene->getStage<LightStage>();
+    assert(lightStage);
+   // const auto light = DependencyManager::get<DeferredLightingEffect>()->getLightStage()->getLight(0);
+    const auto light = lightStage->getLight(0);
+    
     gpu::doInBatch(args->_context, [=](gpu::Batch& batch) {
         batch.enableStereo(false);
 

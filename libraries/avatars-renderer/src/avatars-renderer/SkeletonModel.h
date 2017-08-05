@@ -35,7 +35,7 @@ public:
 
     void simulate(float deltaTime, bool fullUpdate = true) override;
     void updateRig(float deltaTime, glm::mat4 parentTransform) override;
-    void updateAttitude();
+    void updateAttitude(const glm::quat& orientation);
 
     /// Returns the index of the left hand joint, or -1 if not found.
     int getLeftHandJointIndex() const { return isActive() ? getFBXGeometry().leftHandJointIndex : -1; }
@@ -96,7 +96,7 @@ public:
     /// \return whether or not the head was found.
     glm::vec3 getDefaultEyeModelPosition() const;
 
-    void renderBoundingCollisionShapes(gpu::Batch& batch, float scale, float alpha);
+    void renderBoundingCollisionShapes(RenderArgs* args, gpu::Batch& batch, float scale, float alpha);
     float getBoundingCapsuleRadius() const { return _boundingCapsuleRadius; }
     float getBoundingCapsuleHeight() const { return _boundingCapsuleHeight; }
     const glm::vec3 getBoundingCapsuleOffset() const { return _boundingCapsuleLocalOffset; }
