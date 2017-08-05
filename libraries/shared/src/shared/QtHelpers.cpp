@@ -11,10 +11,23 @@
 #include <QtCore/QThread>
 #include <QtCore/QCoreApplication>
 #include <QtCore/QLoggingCategory>
+#include <QtCore/QReadWriteLock>
 
+#include "../Profile.h"
 Q_LOGGING_CATEGORY(thread_safety, "hifi.thread_safety")
 
 namespace hifi { namespace qt {
+
+static QHash<QThread*, QString> threadHash;
+static QReadWriteLock threadHashLock;
+
+void addBlockingForbiddenThread(const QString& name, QThread* thread) {
+    if (!thread) {
+        thread = QThread::currentThread();
+    }
+    QWriteLocker locker(&threadHashLock);
+    threadHash[thread] = name;
+}
 
 bool blockingInvokeMethod(
     const char* function,
@@ -30,9 +43,23 @@ bool blockingInvokeMethod(
     QGenericArgument val7,
     QGenericArgument val8,
     QGenericArgument val9) {
-    if (QThread::currentThread() == qApp->thread()) {
+    auto currentThread = QThread::currentThread();
+    if (currentThread == qApp->thread()) {
         qCWarning(thread_safety) << "BlockingQueuedConnection invoked on main thread from " << function;
+        return QMetaObject::invokeMethod(obj, member,
+            Qt::BlockingQueuedConnection, ret, val0, val1, val2, val3, val4, val5, val6, val7, val8, val9);
+    } 
+
+    {
+        QReadLocker locker(&threadHashLock);
+        for (const auto& thread : threadHash.keys()) {
+            if (currentThread == thread) {
+                qCWarning(thread_safety) << "BlockingQueuedConnection invoked on forbidden thread " << threadHash[thread];
+            }
+        }
     }
+
+    PROFILE_RANGE(app, function);
     return QMetaObject::invokeMethod(obj, member,
             Qt::BlockingQueuedConnection, ret, val0, val1, val2, val3, val4, val5, val6, val7, val8, val9);
 }

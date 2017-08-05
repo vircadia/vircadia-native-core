@@ -57,7 +57,7 @@ public:
     virtual QObject* getRootItem() override;
 
 private:
-    bool buildWebSurface(QSharedPointer<EntityTreeRenderer> renderer);
+    bool buildWebSurface();
     void destroyWebSurface();
     glm::vec2 getWindowSize() const;
 

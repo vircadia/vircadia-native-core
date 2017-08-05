@@ -853,6 +853,8 @@ Section "-Core installation"
   ; Rename the incorrectly cased Raleway font
   Rename "$INSTDIR\resources\qml\styles-uit\RalewaySemibold.qml" "$INSTDIR\resources\qml\styles-uit\RalewaySemiBold.qml"
 
+  ExecWait "$INSTDIR\vcredist_x64.exe /install /q /norestart"
+
   ; Remove the Old Interface directory and vcredist_x64.exe (from installs prior to Server Console)
   RMDir /r "$INSTDIR\Interface"
   Delete "$INSTDIR\vcredist_x64.exe"
