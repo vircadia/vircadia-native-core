@@ -341,7 +341,7 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
         highlightedItem,
         highlightedSource,
         isHighlightingButton,
-        pressedItem,
+        pressedItem = null,
         pressedSource,
         isButtonPressed,
 
@@ -468,6 +468,7 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
         var intersectedItem = -1,
             intersectionItems,
             parentProperties,
+            localPosition,
             BUTTON_PRESS_DELTA = 0.004,
             parameterValue,
             enableGroupButton,
@@ -524,27 +525,28 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
             highlightedSource = intersectionOverlays;
         }
 
-        // Press button.
-        if (intersectedItem !== pressedItem || intersectionOverlays !== pressedSource
+        // Press/unpress button.
+        if ((pressedItem && intersectedItem !== pressedItem.index) || intersectionOverlays !== pressedSource
                 || controlHand.triggerClicked() !== isButtonPressed) {
-            if (pressedItem !== NONE) {
+            if (pressedItem) {
                 // Unpress previous button.
-                if (intersectionItems) {
-                    Overlays.editOverlay(intersectionOverlays[pressedItem], {
-                        localPosition: intersectionItems[pressedItem].properties.localPosition
-                    });
-                }
-                pressedItem = NONE;
+                Overlays.editOverlay(intersectionOverlays[pressedItem.index], {
+                    localPosition: pressedItem.localPosition
+                });
+                pressedItem = null;
             }
             isButtonPressed = isHighlightingButton && controlHand.triggerClicked();
             if (isButtonPressed && (intersectionEnabled === null || intersectionEnabled[intersectedItem])) {
                 // Press new button.
+                localPosition = intersectionItems[intersectedItem].properties.localPosition;
                 Overlays.editOverlay(intersectionOverlays[intersectedItem], {
-                    localPosition: Vec3.sum(intersectionItems[intersectedItem].properties.localPosition,
-                        { x: 0, y: 0, z: BUTTON_PRESS_DELTA })
+                    localPosition: Vec3.sum(localPosition, { x: 0, y: 0, z: BUTTON_PRESS_DELTA })
                 });
-                pressedItem = intersectedItem;
                 pressedSource = intersectionOverlays;
+                pressedItem = {
+                    index: intersectedItem,
+                    localPosition: localPosition
+                };
 
                 // Button press actions.
                 if (intersectionOverlays === menuOverlays) {
@@ -652,7 +654,7 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
         highlightedItem = NONE;
         highlightedSource = null;
         isHighlightingButton = false;
-        pressedItem = NONE;
+        pressedItem = null;
         pressedSource = null;
         isButtonPressed = false;
         isGroupButtonEnabled = false;
