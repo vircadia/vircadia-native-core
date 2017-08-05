@@ -37,6 +37,8 @@ public slots:
     Q_INVOKABLE void setIgnoreAvatars(QUuid uid, const QScriptValue& ignoreAvatars) { DependencyManager::get<LaserPointerManager>()->setIgnoreAvatars(uid, ignoreAvatars); }
     Q_INVOKABLE void setIncludeAvatars(QUuid uid, const QScriptValue& includeAvatars) { DependencyManager::get<LaserPointerManager>()->setIncludeAvatars(uid, includeAvatars); }
 
+    Q_INVOKABLE void setLockEndUUID(QUuid uid, QUuid objectID, const bool isOverlay) { DependencyManager::get<LaserPointerManager>()->setLockEndUUID(uid, objectID, isOverlay); }
+
 private:
     const RenderState buildRenderState(const QVariantMap & propMap);
 

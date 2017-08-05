@@ -144,3 +144,11 @@ void LaserPointerManager::setIncludeAvatars(QUuid uid, const QScriptValue& inclu
         _laserPointers[uid]->setIncludeAvatars(includeAvatars);
     }
 }
+
+void LaserPointerManager::setLockEndUUID(QUuid uid, QUuid objectID, const bool isOverlay) {
+    QReadLocker lock(&_containsLock);
+    if (_laserPointers.contains(uid)) {
+        QWriteLocker laserLock(_laserPointerLocks[uid].get());
+        _laserPointers[uid]->setLockEndUUID(objectID, isOverlay);
+    }
+}

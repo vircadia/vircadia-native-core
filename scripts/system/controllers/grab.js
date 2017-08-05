@@ -266,7 +266,6 @@ function Grabber() {
     this.mouseRayEntities = LaserPointers.createLaserPointer({
         joint: "Mouse",
         filter: RayPick.PICK_ENTITIES,
-        lockEnd: true,
         faceAvatar: true,
         enabled: true
     });
@@ -341,6 +340,7 @@ Grabber.prototype.pressEvent = function(event) {
     }
 
     LaserPointers.setRenderState(this.mouseRayEntities, "grabbed");
+    LaserPointers.setLockEndUUID(this.mouseRayEntities, pickResults.objectID, false);
 
     mouse.startDrag(event);
 

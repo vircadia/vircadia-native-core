@@ -1438,6 +1438,11 @@ function MyController(hand) {
         }
         LaserPointers.enableLaserPointer(laserPointerID);
         LaserPointers.setRenderState(laserPointerID, mode);
+        if (this.state === STATE_DISTANCE_HOLDING || this.state === STATE_DISTANCE_ROTATING) {
+            LaserPointers.setLockEndUUID(laserPointerID, this.grabbedThingID, this.grabbedIsOverlay);
+        } else {
+            LaserPointers.setLockEndUUID(laserPointerID, null, false);
+        }
     };
 
     this.laserPointerOff = function() {

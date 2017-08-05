@@ -68,6 +68,8 @@ public:
     void setIgnoreAvatars(const QScriptValue& ignoreAvatars) { DependencyManager::get<RayPickManager>()->setIgnoreAvatars(_rayPickUID, ignoreAvatars); }
     void setIncludeAvatars(const QScriptValue& includeAvatars) { DependencyManager::get<RayPickManager>()->setIncludeAvatars(_rayPickUID, includeAvatars); }
 
+    void setLockEndUUID(QUuid objectID, const bool isOverlay) { _objectLockEnd = QPair<QUuid, bool>(objectID, isOverlay); }
+
     void update();
 
 private:
@@ -78,6 +80,7 @@ private:
     bool _faceAvatar;
     bool _centerEndY;
     bool _lockEnd;
+    QPair<QUuid, bool> _objectLockEnd { QPair<QUuid, bool>(QUuid(), false)};
 
     QUuid _rayPickUID;
 

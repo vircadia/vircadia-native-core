@@ -41,6 +41,8 @@ public:
     void setIgnoreAvatars(QUuid uid, const QScriptValue& ignoreAvatars);
     void setIncludeAvatars(QUuid uid, const QScriptValue& includeAvatars);
 
+    void setLockEndUUID(QUuid uid, QUuid objectID, const bool isOverlay);
+
     void update();
 
 private:

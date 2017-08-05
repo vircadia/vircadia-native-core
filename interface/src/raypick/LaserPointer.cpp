@@ -123,15 +123,36 @@ void LaserPointer::updateRenderState(const RenderState& renderState, const Inter
         qApp->getOverlays().editOverlay(renderState.getStartID(), startProps);
     }
     glm::vec3 endVec;
-    if (defaultState || !_lockEnd || type == IntersectionType::HUD) {
+    if (((defaultState || !_lockEnd) && _objectLockEnd.first.isNull()) || type == IntersectionType::HUD) {
         endVec = pickRay.origin + pickRay.direction * distance;
     } else {
-        if (type == IntersectionType::ENTITY) {
-            endVec = DependencyManager::get<EntityScriptingInterface>()->getEntityTransform(objectID)[3];
-        } else if (type == IntersectionType::OVERLAY) {
-            endVec = vec3FromVariant(qApp->getOverlays().getProperty(objectID, "position").value);
-        } else if (type == IntersectionType::AVATAR) {
-            endVec = DependencyManager::get<AvatarHashMap>()->getAvatar(objectID)->getPosition();
+        if (!_objectLockEnd.first.isNull()) {
+            glm::vec3 pos;
+            glm::quat rot;
+            glm::vec3 dim;
+            glm::vec3 registrationPoint;
+            if (_objectLockEnd.second) {
+                pos = vec3FromVariant(qApp->getOverlays().getProperty(_objectLockEnd.first, "position").value);
+                rot = quatFromVariant(qApp->getOverlays().getProperty(_objectLockEnd.first, "rotation").value);
+                dim = vec3FromVariant(qApp->getOverlays().getProperty(_objectLockEnd.first, "dimensions").value);
+                registrationPoint = glm::vec3(0.5f);
+            } else {
+                EntityItemProperties props = DependencyManager::get<EntityScriptingInterface>()->getEntityProperties(_objectLockEnd.first);
+                pos = props.getPosition();
+                rot = props.getRotation();
+                dim = props.getDimensions();
+                registrationPoint = props.getRegistrationPoint();
+            }
+            const glm::vec3 DEFAULT_REGISTRATION_POINT = glm::vec3(0.5f);
+            endVec = pos + rot * (dim * (DEFAULT_REGISTRATION_POINT - registrationPoint));
+        } else {
+            if (type == IntersectionType::ENTITY) {
+                endVec = DependencyManager::get<EntityScriptingInterface>()->getEntityTransform(objectID)[3];
+            } else if (type == IntersectionType::OVERLAY) {
+                endVec = vec3FromVariant(qApp->getOverlays().getProperty(objectID, "position").value);
+            } else if (type == IntersectionType::AVATAR) {
+                endVec = DependencyManager::get<AvatarHashMap>()->getAvatar(objectID)->getPosition();
+            }
         }
     }
     QVariant end = vec3toVariant(endVec);
