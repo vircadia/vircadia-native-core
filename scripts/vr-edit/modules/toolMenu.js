@@ -244,9 +244,6 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
             ]
         },
 
-        GROUP_BUTTON_INDEX = 1,
-        UNGROUP_BUTTON_INDEX = 2,
-
         MENU_ITEMS = [
             {
                 id: "toolsMenuPanel",
@@ -347,8 +344,11 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
         pressedItem,
         pressedSource,
         isButtonPressed,
+
         isGroupButtonEnabled,
         isUngroupButtonEnabled,
+        groupButtonIndex,
+        ungroupButtonIndex,
 
         isDisplaying = false,
 
@@ -427,8 +427,8 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
 
         // Special handling for Group options.
         if (toolOptions === "groupOptions") {
-            optionsEnabled[GROUP_BUTTON_INDEX] = false;
-            optionsEnabled[UNGROUP_BUTTON_INDEX] = false;
+            optionsEnabled[groupButtonIndex] = false;
+            optionsEnabled[ungroupButtonIndex] = false;
         }
     }
 
@@ -570,23 +570,23 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
             enableGroupButton = groupsCount > 1;
             if (enableGroupButton !== isGroupButtonEnabled) {
                 isGroupButtonEnabled = enableGroupButton;
-                Overlays.editOverlay(optionsOverlays[GROUP_BUTTON_INDEX], {
+                Overlays.editOverlay(optionsOverlays[groupButtonIndex], {
                     color: isGroupButtonEnabled
-                        ? OPTONS_PANELS.groupOptions[GROUP_BUTTON_INDEX].enabledColor
-                        : OPTONS_PANELS.groupOptions[GROUP_BUTTON_INDEX].properties.color
+                        ? OPTONS_PANELS.groupOptions[groupButtonIndex].enabledColor
+                        : OPTONS_PANELS.groupOptions[groupButtonIndex].properties.color
                 });
-                optionsEnabled[GROUP_BUTTON_INDEX] = enableGroupButton;
+                optionsEnabled[groupButtonIndex] = enableGroupButton;
             }
 
             enableUngroupButton = groupsCount === 1 && entitiesCount > 1;
             if (enableUngroupButton !== isUngroupButtonEnabled) {
                 isUngroupButtonEnabled = enableUngroupButton;
-                Overlays.editOverlay(optionsOverlays[UNGROUP_BUTTON_INDEX], {
+                Overlays.editOverlay(optionsOverlays[ungroupButtonIndex], {
                     color: isUngroupButtonEnabled
-                        ? OPTONS_PANELS.groupOptions[UNGROUP_BUTTON_INDEX].enabledColor
-                        : OPTONS_PANELS.groupOptions[UNGROUP_BUTTON_INDEX].properties.color
+                        ? OPTONS_PANELS.groupOptions[ungroupButtonIndex].enabledColor
+                        : OPTONS_PANELS.groupOptions[ungroupButtonIndex].properties.color
                 });
-                optionsEnabled[UNGROUP_BUTTON_INDEX] = enableUngroupButton;
+                optionsEnabled[ungroupButtonIndex] = enableUngroupButton;
             }
         }
     }
@@ -596,6 +596,7 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
         var handJointIndex,
             properties,
             parentID,
+            id,
             i,
             length;
 
@@ -656,6 +657,17 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
         isButtonPressed = false;
         isGroupButtonEnabled = false;
         isUngroupButtonEnabled = false;
+
+        // Special handling for Group options.
+        for (i = 0, length = OPTONS_PANELS.groupOptions.length; i < length; i += 1) {
+            id = OPTONS_PANELS.groupOptions[i].id; 
+            if (id === "groupButton") {
+                groupButtonIndex = i;
+            }
+            if (id === "ungroupButton") {
+                ungroupButtonIndex = i;
+            }
+        }
 
         isDisplaying = true;
     }
