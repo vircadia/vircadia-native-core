@@ -43,8 +43,8 @@ var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 // Independent and Entity mode make people sick; disable them in hmd.
 var desktopOnlyViews = ['Independent Mode', 'Entity Mode'];
 
-var switchToVR = "Enter VR";
-var switchToDesktop = "Exit VR";
+var switchToVR = "ENTER VR";
+var switchToDesktop = "EXIT VR";
 
 function onHmdChanged(isHmd) {
     HMD.closeTablet();
