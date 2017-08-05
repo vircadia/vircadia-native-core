@@ -217,7 +217,7 @@
             toolIcon.setColor(color);
         }
 
-        function clearToolIcon() {
+        function clearTool() {
             toolIcon.clear();
             toolMenu.clearTool();
         }
@@ -272,7 +272,7 @@
             setHand: setHand,
             setToolIcon: setToolIcon,
             setToolColor: setToolColor,
-            clearToolIcon: clearToolIcon,
+            clearTool: clearTool,
             SCALE_TOOL: toolIcon.SCALE_TOOL,
             CLONE_TOOL: toolIcon.CLONE_TOOL,
             GROUP_TOOL: toolIcon.GROUP_TOOL,
@@ -803,7 +803,7 @@
             if (!wasGripClicked && isGripClicked && (toolSelected !== TOOL_NONE)) {
                 toolSelected = TOOL_NONE;
                 grouping.clear();
-                ui.clearToolIcon();
+                ui.clearTool();
             }
         }
 

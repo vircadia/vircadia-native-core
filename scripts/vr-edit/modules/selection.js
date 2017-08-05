@@ -329,6 +329,9 @@ Selection = function (side) {
 
     function applyColor(color) {
         // Entities without a color property simply ignore the edit.
+        var i,
+            length;
+
         for (i = 0, length = selection.length; i < length; i += 1) {
             Entities.editEntity(selection[i].id, {
                 color: color
