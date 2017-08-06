@@ -23,6 +23,7 @@
 #include "DependencyManager.h"
 #include "ViewFrustum.h"
 #include "GeometryCache.h"
+#include "FramebufferCache.h"
 /*
 #include "fxaa_vert.h"
 #include "fxaa_frag.h"
