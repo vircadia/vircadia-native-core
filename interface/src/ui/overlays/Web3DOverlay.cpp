@@ -252,7 +252,7 @@ void Web3DOverlay::render(RenderArgs* args) {
             if (overlayID == selfOverlayID && (self->_pressed || (!self->_activeTouchPoints.empty() && self->_touchBeginAccepted))) {
                 PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
                                       event.getButton(), event.getButtons(), event.getKeyboardModifiers());
-                forwardPointerEvent(overlayID, event);
+                forwardPointerEvent(overlayID, endEvent);
             }
         });
 
