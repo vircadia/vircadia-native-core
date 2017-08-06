@@ -125,7 +125,7 @@ public:
     };
 
     const static QHash<PacketTypeEnum::Value, PacketTypeEnum::Value> getReplicatedPacketMapping() {
-        const QHash<PacketTypeEnum::Value, PacketTypeEnum::Value> REPLICATED_PACKET_MAPPING {
+        const static QHash<PacketTypeEnum::Value, PacketTypeEnum::Value> REPLICATED_PACKET_MAPPING {
             { PacketTypeEnum::Value::MicrophoneAudioNoEcho, PacketTypeEnum::Value::ReplicatedMicrophoneAudioNoEcho },
             { PacketTypeEnum::Value::MicrophoneAudioWithEcho, PacketTypeEnum::Value::ReplicatedMicrophoneAudioWithEcho },
             { PacketTypeEnum::Value::InjectAudio, PacketTypeEnum::Value::ReplicatedInjectAudio },
@@ -134,12 +134,11 @@ public:
             { PacketTypeEnum::Value::KillAvatar, PacketTypeEnum::Value::ReplicatedKillAvatar },
             { PacketTypeEnum::Value::BulkAvatarData, PacketTypeEnum::Value::ReplicatedBulkAvatarData }
         };
-
         return REPLICATED_PACKET_MAPPING;
     }
 
     const static QSet<PacketTypeEnum::Value> getNonVerifiedPackets() {
-        const QSet<PacketTypeEnum::Value> NON_VERIFIED_PACKETS = QSet<PacketTypeEnum::Value>()
+        const static QSet<PacketTypeEnum::Value> NON_VERIFIED_PACKETS = QSet<PacketTypeEnum::Value>()
             << PacketTypeEnum::Value::NodeJsonStats << PacketTypeEnum::Value::EntityQuery
             << PacketTypeEnum::Value::OctreeDataNack << PacketTypeEnum::Value::EntityEditNack
             << PacketTypeEnum::Value::DomainListRequest << PacketTypeEnum::Value::StopNode
@@ -149,7 +148,7 @@ public:
     }
 
     const static QSet<PacketTypeEnum::Value> getNonSourcedPackets() {
-        const QSet<PacketTypeEnum::Value> NON_SOURCED_PACKETS = QSet<PacketTypeEnum::Value>()
+        const static QSet<PacketTypeEnum::Value> NON_SOURCED_PACKETS = QSet<PacketTypeEnum::Value>()
             << PacketTypeEnum::Value::StunResponse << PacketTypeEnum::Value::CreateAssignment
             << PacketTypeEnum::Value::RequestAssignment << PacketTypeEnum::Value::DomainServerRequireDTLS
             << PacketTypeEnum::Value::DomainConnectRequest << PacketTypeEnum::Value::DomainList
