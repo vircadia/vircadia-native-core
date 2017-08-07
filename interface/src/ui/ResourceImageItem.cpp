@@ -8,13 +8,14 @@
 // See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-//#include "Application.h"
 #include "ResourceImageItem.h"
 
 #include <QOpenGLFramebufferObjectFormat>
 #include <QOpenGLFunctions>
 #include <QOpenGLExtraFunctions>
 #include <QOpenGLContext>
+
+#include <plugins/DisplayPlugin.h>
 
 ResourceImageItem::ResourceImageItem() : QQuickFramebufferObject() {
     auto textureCache = DependencyManager::get<TextureCache>();

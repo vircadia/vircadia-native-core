@@ -129,8 +129,7 @@ public:
     virtual DisplayPluginPointer getActiveDisplayPlugin() const override;
 
     enum Event {
-        Present = DisplayPlugin::Present,
-        Paint,
+        Paint = QEvent::User + 1,
         Idle,
         Lambda
     };
@@ -332,14 +331,14 @@ public slots:
     // FIXME: Move addAssetToWorld* methods to own class?
     void addAssetToWorldFromURL(QString url);
     void addAssetToWorldFromURLRequestFinished();
-    void addAssetToWorld(QString filePath);
+    void addAssetToWorld(QString filePath, QString zipFile, bool isZip);
     void addAssetToWorldUnzipFailure(QString filePath);
     void addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy);
     void addAssetToWorldUpload(QString filePath, QString mapping);
     void addAssetToWorldSetMapping(QString filePath, QString mapping, QString hash);
     void addAssetToWorldAddEntity(QString filePath, QString mapping);
 
-    void handleUnzip(QString sourceFile, QString destinationFile, bool autoAdd);
+    void handleUnzip(QString sourceFile, QStringList destinationFile, bool autoAdd, bool isZip);
 
     FileScriptingInterface* getFileDownloadInterface() { return _fileDownload; }
 
@@ -409,6 +408,7 @@ private slots:
     void clearDomainOctreeDetails();
     void clearDomainAvatars();
     void onAboutToQuit();
+    void onPresent(quint32 frameCount);
 
     void resettingDomain();
 
@@ -455,8 +455,8 @@ private:
 
     void cleanupBeforeQuit();
 
-    bool shouldPaint(float nsecsElapsed);
-    void idle(float nsecsElapsed);
+    bool shouldPaint();
+    void idle();
     void update(float deltaTime);
 
     // Various helper functions called during update()
@@ -481,6 +481,7 @@ private:
 
     bool importJSONFromURL(const QString& urlString);
     bool importSVOFromURL(const QString& urlString);
+    bool importFromZIP(const QString& filePath);
 
     bool nearbyEntitiesAreReadyForPhysics();
     int processOctreeStats(ReceivedMessage& message, SharedNodePointer sendingNode);
@@ -518,6 +519,7 @@ private:
 
     OffscreenGLCanvas* _offscreenContext { nullptr };
     DisplayPluginPointer _displayPlugin;
+    QMetaObject::Connection _displayPluginPresentConnection;
     mutable std::mutex _displayPluginLock;
     InputPluginList _activeInputPlugins;
 
