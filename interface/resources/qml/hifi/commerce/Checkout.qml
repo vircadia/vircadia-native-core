@@ -219,8 +219,45 @@ Rectangle {
     //
     // ACTION BUTTONS START
     //
+    Item {
+        id: actionButtonsContainer;
+        // Size
+        width: checkoutRoot.width;
+        height: 40;
+        // Anchors
+        anchors.left: parent.left;
+        anchors.top: itemDescriptionContainer.bottom;
 
-    
+        // "Cancel" button
+        HifiControlsUit.Button {
+            color: hifi.buttons.black;
+            colorScheme: hifi.colorSchemes.dark;
+            anchors.top: parent.top;
+            anchors.topMargin: 3;
+            anchors.bottom: parent.bottom;
+            anchors.bottomMargin: 3;
+            anchors.left: parent.left;
+            anchors.leftMargin: 20;
+            width: parent.width/2 - anchors.leftMargin*2;
+            text: "Cancel"
+            //onClicked: deleteAttachment(root.attachment);
+        }
+
+        // "Buy" button
+        HifiControlsUit.Button {
+            color: hifi.buttons.black;
+            colorScheme: hifi.colorSchemes.dark;
+            anchors.top: parent.top;
+            anchors.topMargin: 3;
+            anchors.bottom: parent.bottom;
+            anchors.bottomMargin: 3;
+            anchors.right: parent.right;
+            anchors.rightMargin: 20;
+            width: parent.width/2 - anchors.rightMargin*2;
+            text: "Buy"
+            //onClicked: deleteAttachment(root.attachment);
+        }
+    }
     //
     // ACTION BUTTONS END
     //
