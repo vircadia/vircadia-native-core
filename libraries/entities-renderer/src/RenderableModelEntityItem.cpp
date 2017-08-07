@@ -282,7 +282,8 @@ bool RenderableModelEntityItem::getAnimationFrame() {
 
         const QVector<FBXAnimationFrame>&  frames = animation->getFramesReference(); // NOTE: getFrames() is too heavy
         auto& fbxJoints = animation->getGeometry().joints;
-
+        auto& originalFbxJoints = _model->getFBXGeometry().joints; // model-> isLoaded above makes sure this doesnt crash to an assert!
+        
         int frameCount = frames.size();
         if (frameCount > 0) {
             int animationCurrentFrame = (int)(glm::floor(getAnimationCurrentFrame())) % frameCount;
@@ -309,9 +310,18 @@ bool RenderableModelEntityItem::getAnimationFrame() {
                     int index = _jointMapping[j];
                     if (index >= 0) {
                         glm::mat4 translationMat;
-                        if (index < translations.size()) {
+
+                        bool _removeme_flag = false;
+                        // this is the part to attack.
+                        // S omethings off even with the original Joints.
+                        if (!_removeme_flag ){
+                           
+                            translationMat = glm::translate(originalFbxJoints[index].translation);
+                                
+                        } else if (_removeme_flag && index < translations.size()) {
                             translationMat = glm::translate(translations[index]);
-                        }
+                        } 
+                       
                         glm::mat4 rotationMat;
                         if (index < rotations.size()) {
                             rotationMat = glm::mat4_cast(fbxJoints[index].preRotation * rotations[index] * fbxJoints[index].postRotation);
