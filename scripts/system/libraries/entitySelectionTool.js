@@ -2392,13 +2392,30 @@ SelectionDisplay = (function() {
         greatestDimension: 0.0,
         startingDistance: 0.0,
         startingElevation: 0.0,
-        onBegin: function(event,isAltFromGrab) {
+        onBegin: function(event,isAltFromGrab, intersectInfo) {
+            var wantDebug = true;
+            if(wantDebug){
+                print("================== TRANSLATE_XZ(Beg) -> =======================");
+                Vec3.print("    intersectInfo.queryRay", intersectInfo.queryRay);
+                Vec3.print("    intersectInfo.queryRay.origin", intersectInfo.queryRay.origin);
+                Vec3.print("    intersectInfo.results.intersection", intersectInfo.results.intersection);
+            }
+
             SelectionManager.saveProperties();
             startPosition = SelectionManager.worldPosition;
-            var dimensions = SelectionManager.worldDimensions;
+            mode = translateXZTool.mode;
 
-            var pickRay = generalComputePickRay(event.x, event.y);
-            initialXZPick = rayPlaneIntersection(pickRay, translateXZTool.pickPlanePosition, {
+            translateXZTool.pickPlanePosition = intersectInfo.results.intersection;
+            translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, SelectionManager.worldDimensions.y), SelectionManager.worldDimensions.z);
+            translateXZTool.startingDistance = Vec3.distance(intersectInfo.queryRay.origin, SelectionManager.position);
+            translateXZTool.startingElevation = translateXZTool.elevation(intersectInfo.queryRay.origin, translateXZTool.pickPlanePosition);
+            if (wantDebug) {
+                print("    longest dimension: " + translateXZTool.greatestDimension);
+                print("    starting distance: " + translateXZTool.startingDistance);
+                print("    starting elevation: " + translateXZTool.startingElevation);
+            }
+
+            initialXZPick = rayPlaneIntersection(intersectInfo.queryRay, translateXZTool.pickPlanePosition, {
                 x: 0,
                 y: 1,
                 z: 0
@@ -2424,6 +2441,9 @@ SelectionDisplay = (function() {
             }
 
             isConstrained = false;
+            if(wantDebug){
+                print("================== TRANSLATE_XZ(End) <- =======================");
+            }
         },
         onEnd: function(event, reason) {
             pushCommandForSelections(duplicatedEntityIDs);
@@ -2452,8 +2472,10 @@ SelectionDisplay = (function() {
             // this will happen when someone drags across the horizon from the side they started on.
             if (!pick) {
                 if (wantDebug) {
-                    print("Pick ray does not intersect XZ plane.");
+                    print("    "+ translateXZTool.mode + "Pick ray does not intersect XZ plane.");
                 }
+                
+                //--EARLY EXIT--( Invalid ray detected. )
                 return;
             }
 
@@ -2468,8 +2490,10 @@ SelectionDisplay = (function() {
             if ((translateXZTool.startingElevation > 0.0 && elevation < MIN_ELEVATION) ||
                 (translateXZTool.startingElevation < 0.0 && elevation > -MIN_ELEVATION)) {
                 if (wantDebug) {
-                    print("too close to horizon!");
+                    print("    "+ translateXZTool.mode + " - too close to horizon!");
                 }
+
+                //--EARLY EXIT--( Don't proceed past the reached limit. )
                 return;
             }
 
@@ -3610,9 +3634,24 @@ SelectionDisplay = (function() {
     addGrabberTool(yawHandle, {
         mode: "ROTATE_YAW",
         onBegin: function(event) {
-            print("================== HANDLE_ROLL(Beg) -> =======================");
+            var wantDebug = true;
+            if (wantDebug) {
+                print("================== HANDLE_YAW(Beg) -> =======================");
+            }
             SelectionManager.saveProperties();
             initialPosition = SelectionManager.worldPosition;
+            mode = "ROTATE_YAW";
+            rotationNormal = yawNormal;
+            //note: It's expected that the intersection is passed when this is called.
+            if (arguments.length >= 2 ) {
+                yawZero = arguments[ 1 ];
+            } else {
+                print("ERROR( yawHandle.onBegin ) - Intersection wasn't passed!");
+            }
+
+            if (wantDebug) {
+                Vec3.print("    yawZero: ", yawZero);
+            }
 
             // Size the overlays to the current selection size
             var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
@@ -3623,15 +3662,19 @@ SelectionDisplay = (function() {
             var outerAlpha = 0.2;
             Overlays.editOverlay(rotateOverlayInner, {
                 visible: true,
+                rotation: yawHandleRotation,
+                position: yawCenter,
                 size: innerRadius,
                 innerRadius: 0.9,
                 startAt: 0,
                 endAt: 360,
-                alpha: innerAlpha
+                alpha: innerAlpha,
             });
 
             Overlays.editOverlay(rotateOverlayOuter, {
                 visible: true,
+                rotation: yawHandleRotation,
+                position: yawCenter,
                 size: outerRadius,
                 innerRadius: 0.9,
                 startAt: 0,
@@ -3641,10 +3684,18 @@ SelectionDisplay = (function() {
 
             Overlays.editOverlay(rotateOverlayCurrent, {
                 visible: true,
+                rotation: yawHandleRotation,
+                position: yawCenter,
                 size: outerRadius,
                 startAt: 0,
                 endAt: 0,
                 innerRadius: 0.9,
+            });
+
+            Overlays.editOverlay(rotateOverlayTarget, {
+                visible: true,
+                rotation: yawHandleRotation,
+                position: yawCenter
             });
 
             Overlays.editOverlay(rotationDegreesDisplay, {
@@ -3652,7 +3703,9 @@ SelectionDisplay = (function() {
             });
 
             updateRotationDegreesOverlay(0, yawHandleRotation, yawCenter);
-            print("================== HANDLE_YAW(Beg) <- =======================");
+            if(wantDebug){
+                print("================== HANDLE_YAW(Beg) <- =======================");
+            }
         },
         onEnd: function(event, reason) {
             print("================== HANDLE_YAW(End) -> =======================");
@@ -3784,10 +3837,25 @@ SelectionDisplay = (function() {
     // PITCH GRABBER TOOL DEFINITION
     addGrabberTool(pitchHandle, {
         mode: "ROTATE_PITCH",
-        onBegin: function(event) {
-            print("================== HANDLE_PITCH(Beg) -> =======================");
+        onBegin: function (event) {
+            var wantDebug = true;
+            if (wantDebug){
+                print("================== HANDLE_PITCH(Beg) -> =======================");
+            }
             SelectionManager.saveProperties();
             initialPosition = SelectionManager.worldPosition;
+            mode = "ROTATE_PITCH";
+            rotationNormal = pitchNormal;
+            //note: It's expected that the intersection is passed when this is called.
+            if (arguments.length >= 2 ) {
+                pitchZero = arguments[ 1 ];
+            } else {
+                print("ERROR( pitchHandle.onBegin ) - Intersection wasn't passed!");
+            }
+            
+            if (wantDebug) {
+                Vec3.print("    pitchZero: ", pitchZero);
+            }
 
             // Size the overlays to the current selection size
             var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
@@ -3798,6 +3866,8 @@ SelectionDisplay = (function() {
             var outerAlpha = 0.2;
             Overlays.editOverlay(rotateOverlayInner, {
                 visible: true,
+                rotation: pitchHandleRotation,
+                position: pitchCenter,
                 size: innerRadius,
                 innerRadius: 0.9,
                 startAt: 0,
@@ -3807,6 +3877,8 @@ SelectionDisplay = (function() {
 
             Overlays.editOverlay(rotateOverlayOuter, {
                 visible: true,
+                rotation: pitchHandleRotation,
+                position: pitchCenter,
                 size: outerRadius,
                 innerRadius: 0.9,
                 startAt: 0,
@@ -3816,6 +3888,8 @@ SelectionDisplay = (function() {
 
             Overlays.editOverlay(rotateOverlayCurrent, {
                 visible: true,
+                rotation: pitchHandleRotation,
+                position: pitchCenter,
                 size: outerRadius,
                 startAt: 0,
                 endAt: 0,
@@ -3826,8 +3900,16 @@ SelectionDisplay = (function() {
                 visible: true,
             });
 
+            Overlays.editOverlay(rotateOverlayTarget, {
+                visible: true,
+                rotation: pitchHandleRotation,
+                position: pitchCenter
+            });
+
             updateRotationDegreesOverlay(0, pitchHandleRotation, pitchCenter);
-            print("================== HANDLE_PITCH(Beg) <- =======================");
+            if(wantDebug){
+                print("================== HANDLE_PITCH(Beg) <- =======================");
+            }
         },
         onEnd: function(event, reason) {
             print("================== HANDLE_PITCH(End) -> =======================");
@@ -3847,7 +3929,7 @@ SelectionDisplay = (function() {
             pushCommandForSelections();
             print("================== HANDLE_PITCH(End) <- =======================");
         },
-        onMove: function(event) {
+        onMove: function (event) {
             print("================== HANDLE_PITCH(Mve) -> =======================");
             var pickRay = generalComputePickRay(event.x, event.y);
             Overlays.editOverlay(selectionBox, {
@@ -3949,10 +4031,25 @@ SelectionDisplay = (function() {
     // ROLL GRABBER TOOL DEFINITION
     addGrabberTool(rollHandle, {
         mode: "ROTATE_ROLL",
-        onBegin: function(event) {
-            print("================== HANDLE_ROLL(Beg) -> =======================");
+        onBegin: function (event) {
+            var wantDebug = true;
+            if(wantDebug){
+                print("================== HANDLE_ROLL(Beg) -> =======================");
+            }
             SelectionManager.saveProperties();
             initialPosition = SelectionManager.worldPosition;
+            mode = "ROTATE_ROLL";
+            rotationNormal = rollNormal;
+            //note: It's expected that the intersection is passed when this is called.
+            if (arguments.length >= 2 ) {
+                rollZero = arguments[ 1 ];
+            } else {
+                print("ERROR( rollHandle.onBegin ) - Intersection wasn't passed!");
+            }
+            
+            if (wantDebug) {
+                Vec3.print("    rollZero: ", rollZero);
+            }
 
             // Size the overlays to the current selection size
             var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
@@ -3963,6 +4060,8 @@ SelectionDisplay = (function() {
             var outerAlpha = 0.2;
             Overlays.editOverlay(rotateOverlayInner, {
                 visible: true,
+                rotation: rollHandleRotation,
+                position: rollCenter,
                 size: innerRadius,
                 innerRadius: 0.9,
                 startAt: 0,
@@ -3972,6 +4071,8 @@ SelectionDisplay = (function() {
 
             Overlays.editOverlay(rotateOverlayOuter, {
                 visible: true,
+                rotation: rollHandleRotation,
+                position: rollCenter,
                 size: outerRadius,
                 innerRadius: 0.9,
                 startAt: 0,
@@ -3981,6 +4082,8 @@ SelectionDisplay = (function() {
 
             Overlays.editOverlay(rotateOverlayCurrent, {
                 visible: true,
+                rotation: rollHandleRotation,
+                position: rollCenter,
                 size: outerRadius,
                 startAt: 0,
                 endAt: 0,
@@ -3991,10 +4094,18 @@ SelectionDisplay = (function() {
                 visible: true,
             });
 
+            Overlays.editOverlay(rotateOverlayTarget, {
+                visible: true,
+                rotation: rollHandleRotation,
+                position: rollCenter
+            });
+
             updateRotationDegreesOverlay(0, rollHandleRotation, rollCenter);
-            print("================== HANDLE_ROLL(Beg) <- =======================");
+            if(wantDebug){
+                print("================== HANDLE_ROLL(Beg) <- =======================");
+            }
         },
-        onEnd: function(event, reason) {
+        onEnd: function (event, reason) {
             print("================== HANDLE_ROLL(End) -> =======================");
             Overlays.editOverlay(rotateOverlayInner, {
                 visible: false
@@ -4141,11 +4252,68 @@ SelectionDisplay = (function() {
         }
     };
 
+
+    // FUNCTION DEF(s): Intersection Check Helpers
+    function testRayIntersect(queryRay, overlayIncludes, overlayExcludes) {
+        var wantDebug = true;
+        if ((queryRay === undefined) || (queryRay === null)) {
+            if (wantDebug) {
+                print("testRayIntersect - EARLY EXIT -> queryRay is undefined OR null!");
+            }
+            return null;
+        }
+
+        var intersectObj = Overlays.findRayIntersection(queryRay, true, overlayIncludes, overlayExcludes);
+
+        if (wantDebug) {
+            if ( ! overlayIncludes ){
+                print("testRayIntersect - no overlayIncludes provided.");
+            }
+            if ( ! overlayExcludes ){
+                print("testRayIntersect - no overlayExcludes provided.");
+            }
+            print("testRayIntersect - Hit: " + intersectObj.intersects);
+            print("    intersectObj.overlayID:" + intersectObj.overlayID + "[" + overlayNames[intersectObj.overlayID] + "]");
+            print("        OverlayName: " + overlayNames[intersectObj.overlayID]);
+            print("    intersectObj.distance:" + intersectObj.distance);
+            print("    intersectObj.face:" + intersectObj.face);
+            Vec3.print("    intersectObj.intersection:", intersectObj.intersection);
+        }
+
+        return intersectObj;
+    }
+
+    function checkIntersectWithHUD(queryRay) {
+        var intersectObj = testRayIntersect(queryRay, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
+
+        return intersectObj;
+    }
+
+    function checkIntersectWithNonSelectionItems(queryRay) {
+        var intersectObj = testRayIntersect(queryRay, null, [yawHandle, pitchHandle, rollHandle, selectionBox]);
+
+        return intersectObj;
+    }
+
+    function checkIntersectWithRotationHandles(queryRay) {
+        var intersectObj = testRayIntersect(queryRay, [yawHandle, pitchHandle, rollHandle]);
+
+        return intersectObj;
+    }
+
+    function checkIntersectWithSelectionBox(queryRay) {
+        var intersectObj = testRayIntersect(queryRay, [selectionBox]);
+
+        return intersectObj;
+    }
+    //--------------------
+
+    //---------------------------------------
     // FUNCTION: MOUSE PRESS EVENT
-    that.mousePressEvent = function(event) {
-        var wantDebug = false;
-        if ( wantDebug ) {
-            print( "=============== eST::MousePressEvent BEG =======================");
+    that.mousePressEvent = function (event) {
+        var wantDebug = true;
+        if (wantDebug) {
+            print("=============== eST::MousePressEvent BEG =======================");
         }
         if (!event.isLeftButton && !that.triggered) {
             // if another mouse button than left is pressed ignore it
@@ -4155,28 +4323,18 @@ SelectionDisplay = (function() {
         var somethingClicked = false;
         var pickRay = generalComputePickRay(event.x, event.y);
 
-        var result = Overlays.findRayIntersection(pickRay, true, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
-        if (result.intersects) {
+        var results_checkHUD = checkIntersectWithHUD(pickRay);
+        if (results_checkHUD.intersects) {
             // mouse clicks on the tablet should override the edit affordances
             return false;
         }
 
-        entityIconOverlayManager.setIconsSelectable(selectionManager.selections,true);
+        entityIconOverlayManager.setIconsSelectable(selectionManager.selections, true);
 
         // ignore ray intersection for our selection box and yaw/pitch/roll
-        result = Overlays.findRayIntersection(pickRay, true, null, [ yawHandle, pitchHandle, rollHandle, selectionBox ] );
-        if (result.intersects) {
-            if (wantDebug) {
-                print("something intersects... ");
-                print("   result.overlayID:" + result.overlayID + "[" + overlayNames[result.overlayID] + "]");
-                print("   result.intersects:" + result.intersects);
-                print("   result.overlayID:" + result.overlayID);
-                print("   result.distance:" + result.distance);
-                print("   result.face:" + result.face);
-                Vec3.print("   result.intersection:", result.intersection);
-            }
-
-            var tool = grabberTools[result.overlayID];
+        var results_checkNonSelection = checkIntersectWithNonSelectionItems(pickRay);
+        if (results_checkNonSelection.intersects) {
+            var tool = grabberTools[results_checkNonSelection.overlayID];
             if (tool) {
                 if (wantDebug) {
                     print("Intersected with known table tool( mode: " + tool.mode + " )");
@@ -4184,99 +4342,20 @@ SelectionDisplay = (function() {
                 activeTool = tool;
                 mode = tool.mode;
                 somethingClicked = 'tool';
-                if (activeTool && activeTool.onBegin) {
+                if (activeTool.onBegin) {
                     activeTool.onBegin(event);
+                } else if (wantDebug) {
+                        print("    ActiveTool( " + activeTool.mode + " ) missing onBegin");
                 }
             } else {
-                if (wantDebug) {
-                    print("Intersected with unregistered tool...");
-                }
-                switch (result.overlayID) {
-                    case grabberMoveUp:
-                        if (wantDebug){
-                            print("grabberMoveUp");
-                        }
-                        mode = "TRANSLATE_UP_DOWN";
-                        somethingClicked = mode;
-
-                        // in translate mode, we hide our stretch handles...
-                        for (var i = 0; i < stretchHandles.length; i++) {
-                            Overlays.editOverlay(stretchHandles[i], {
-                                visible: false
-                            });
-                        }
-                        break;
-
-
-                    case grabberNEAR:
-                    case grabberEdgeTN: // TODO: maybe this should be TOP+NEAR stretching?
-                    case grabberEdgeBN: // TODO: maybe this should be BOTTOM+FAR stretching?
-                        if(wantDebug){
-                            print("grabberNear variant");
-                        }
-                        mode = "STRETCH_NEAR";
-                        somethingClicked = mode;
-                        break;
-
-                    case grabberFAR:
-                    case grabberEdgeTF: // TODO: maybe this should be TOP+FAR stretching?
-                    case grabberEdgeBF: // TODO: maybe this should be BOTTOM+FAR stretching?
-                        if(wantDebug){
-                            print("grabberFar variant");
-                        }
-                        mode = "STRETCH_FAR";
-                        somethingClicked = mode;
-                        break;
-                    case grabberTOP:
-                        if(wantDebug){
-                            print("grabberTOP");
-                        }
-                        mode = "STRETCH_TOP";
-                        somethingClicked = mode;
-                        break;
-                    case grabberBOTTOM:
-                        if(wantDebug){
-                            print("grabberBOTTOM");
-                        }
-                        mode = "STRETCH_BOTTOM";
-                        somethingClicked = mode;
-                        break;
-                    case grabberRIGHT:
-                    case grabberEdgeTR: // TODO: maybe this should be TOP+RIGHT stretching?
-                    case grabberEdgeBR: // TODO: maybe this should be BOTTOM+RIGHT stretching?
-                        if(wantDebug){
-                            print("grabberRight variant");
-                        }
-                        mode = "STRETCH_RIGHT";
-                        somethingClicked = mode;
-                        break;
-                    case grabberLEFT:
-                    case grabberEdgeTL: // TODO: maybe this should be TOP+LEFT stretching?
-                    case grabberEdgeBL: // TODO: maybe this should be BOTTOM+LEFT stretching?
-                        if(wantDebug){
-                            print("grabberLeft variant");
-                        }
-                        mode = "STRETCH_LEFT";
-                        somethingClicked = mode;
-                        break;
-
-                    default:
-                        if(wantDebug){
-                            print("UNKNOWN( " + result.overlayID + " )");
-                        }
-                        mode = "UNKNOWN";
-                        break;
-                }
-                if(wantDebug){
-                    print("  Unregistered Tool Mode: " + mode );
-                }
-            }
-        }
+                mode = "UNKNOWN";
+            }//--End_if(tool)
+        }//--End_if(results_checkNonSelection.intersects)
 
         // if one of the items above was clicked, then we know we are in translate or stretch mode, and we
         // should hide our rotate handles...
         if (somethingClicked) {
-            if(wantDebug){
+            if (wantDebug) {
                 print("    Trying to hide PitchYawRoll Handles");
             }
             Overlays.editOverlay(yawHandle, {
@@ -4307,133 +4386,45 @@ SelectionDisplay = (function() {
 
 
             // Only intersect versus yaw/pitch/roll.
-            result = Overlays.findRayIntersection(pickRay, true, [ yawHandle, pitchHandle, rollHandle ] );
-
-            var overlayOrientation;
-            var overlayCenter;
-
+            var results_checkRotationHandles = checkIntersectWithRotationHandles(pickRay);
             var properties = Entities.getEntityProperties(selectionManager.selections[0]);
             var angles = Quat.safeEulerAngles(properties.rotation);
             var pitch = angles.x;
             var yaw = angles.y;
             var roll = angles.z;
 
+            //TODO_Case6491:  Should these only be updated when we actually touched
+            //                a handle. (The answer is most likley: Yes)  Potentially move chunk
+            //                to either tool's onBegin or before rayCast here when refactored.
             originalRotation = properties.rotation;
             originalPitch = pitch;
             originalYaw = yaw;
             originalRoll = roll;
 
-            if (result.intersects) {
-                var resultTool = grabberTools[result.overlayID];
-                if(wantDebug){
+            if (results_checkRotationHandles.intersects) {
+                var resultTool = grabberTools[results_checkRotationHandles.overlayID];
+                if (wantDebug) {
                     print("Intersection detected with handle...");
                 }
                 if (resultTool) {
-                    if(wantDebug){
+                    if (wantDebug) {
                         print("    " + resultTool.mode);
                     }
                     activeTool = resultTool;
-                    mode = resultTool.mode;
-                    somethingClicked = 'tool';
-                    if (activeTool && activeTool.onBegin) {
-                        if(wantDebug){
-                            print("    Triggering Tool's onBegin");
-                        }
-                        activeTool.onBegin(event);
-                    } else if(wantDebug) {
-                        print("    Tool's missing onBegin");
+                    somethingClicked = resultTool.mode;
+                    if(activeTool.onBegin) {
+                        activeTool.onBegin(event, results_checkRotationHandles.intersection);
+                    } else if (wantDebug) {
+                        print("    ActiveTool( " + activeTool.mode + " ) missing onBegin");
                     }
-                }
-                switch (result.overlayID) {
-                    case yawHandle:
-                        if(wantDebug){
-                            print("Handle_YAW");
-                        }
-                        mode = "ROTATE_YAW";
-                        somethingClicked = mode;
-                        overlayOrientation = yawHandleRotation;
-                        overlayCenter = yawCenter;
-                        yawZero = result.intersection;
-                        rotationNormal = yawNormal;
-                        if(wantDebug){
-                            print("rotationNormal set to: " + rotationNormal.x + ", " + rotationNormal.y + ", " + rotationNormal.z);
-                        }
-                        break;
+                }//--End_If(resultTool)
+            }//--End_If(results_checkRotationHandles.intersects)
 
-                    case pitchHandle:
-                        if(wantDebug){
-                            print("Handle_PITCH");
-                        }
-                        mode = "ROTATE_PITCH";
-                        initialPosition = SelectionManager.worldPosition;
-                        somethingClicked = mode;
-                        overlayOrientation = pitchHandleRotation;
-                        overlayCenter = pitchCenter;
-                        pitchZero = result.intersection;
-                        rotationNormal = pitchNormal;
-                        if(wantDebug){
-                            print("rotationNormal set to: " + rotationNormal.x + ", " + rotationNormal.y + ", " + rotationNormal.z);
-                        }
-                        break;
+             if (somethingClicked) {
 
-                    case rollHandle:
-                        if(wantDebug){
-                            print("Handle_ROLL");
-                        }
-                        mode = "ROTATE_ROLL";
-                        somethingClicked = mode;
-                        overlayOrientation = rollHandleRotation;
-                        overlayCenter = rollCenter;
-                        rollZero = result.intersection;
-                        rotationNormal = rollNormal;
-                        if(wantDebug){
-                            print("rotationNormal set to: " + rotationNormal.x + ", " + rotationNormal.y + ", " + rotationNormal.z);
-                        }
-                        break;
-
-                    default:
-                        if (wantDebug) {
-                            print("mousePressEvent()...... " + overlayNames[result.overlayID]);
-                        }
-                        mode = "UNKNOWN";
-                        break;
-                }
-            }
-            if (wantDebug) {
-                print("    somethingClicked:" + somethingClicked);
-                print("                mode:" + mode);
-            }
-
-            if (somethingClicked) {
-
-                if(wantDebug){
-                    print("    Trying to show rotateOverlay Handles");
-                }
-                Overlays.editOverlay(rotateOverlayTarget, {
-                    visible: true,
-                    rotation: overlayOrientation,
-                    position: overlayCenter
-                });
-                Overlays.editOverlay(rotateOverlayInner, {
-                    visible: true,
-                    rotation: overlayOrientation,
-                    position: overlayCenter
-                });
-                Overlays.editOverlay(rotateOverlayOuter, {
-                    visible: true,
-                    rotation: overlayOrientation,
-                    position: overlayCenter,
-                    startAt: 0,
-                    endAt: 360
-                });
-                Overlays.editOverlay(rotateOverlayCurrent, {
-                    visible: true,
-                    rotation: overlayOrientation,
-                    position: overlayCenter,
-                    startAt: 0,
-                    endAt: 0
-                });
-                if(wantDebug){
+                if (wantDebug) {
+                    print("    somethingClicked:" + somethingClicked);
+                    print("                mode:" + mode);
                     print("    Trying to hide PitchYawRoll Handles");
                 }
                 Overlays.editOverlay(yawHandle, {
@@ -4541,49 +4532,31 @@ SelectionDisplay = (function() {
 
         if (!somethingClicked) {
             // Only intersect versus selectionBox.
-            result = Overlays.findRayIntersection(pickRay, true, [selectionBox]);
-            if (result.intersects) {
-                switch (result.overlayID) {
-                    case selectionBox:
-                        activeTool = translateXZTool;
-                        if(wantDebug){
-                            print("Clicked selectionBox, Activating Tool: " + activeTool.mode );
-                        }
-                        translateXZTool.pickPlanePosition = result.intersection;
-                        translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, SelectionManager.worldDimensions.y),
-                            SelectionManager.worldDimensions.z);
-                        if (wantDebug) {
-                            print("longest dimension: " + translateXZTool.greatestDimension);
-                            translateXZTool.startingDistance = Vec3.distance(pickRay.origin, SelectionManager.position);
-                            print("starting distance: " + translateXZTool.startingDistance);
-                            translateXZTool.startingElevation = translateXZTool.elevation(pickRay.origin, translateXZTool.pickPlanePosition);
-                            print(" starting elevation: " + translateXZTool.startingElevation);
-                        }
-
-                        mode = translateXZTool.mode;
-                        activeTool.onBegin(event);
-                        somethingClicked = 'selectionBox';
-                        break;
-                    default:
-                        if (wantDebug) {
-                            print("mousePressEvent()...... " + overlayNames[result.overlayID]);
-                        }
-                        mode = "UNKNOWN";
-                        break;
+            var results_checkSelectionBox = checkIntersectWithSelectionBox( pickRay );
+            if (results_checkSelectionBox.intersects) {
+                activeTool = translateXZTool;
+                if(wantDebug){
+                    print("Clicked selectionBox, Activating Tool: " + activeTool.mode );
                 }
+                var intersectInfo = {
+                    queryRay: pickRay,
+                    results: results_checkSelectionBox
+                };
+                activeTool.onBegin(event, null, intersectInfo);
+                somethingClicked = 'selectionBox';
             }
         }
 
         if (somethingClicked) {
-            pickRay = generalComputePickRay(event.x, event.y);
             if (wantDebug) {
-                print("mousePressEvent()...... " + overlayNames[result.overlayID]);
+                print("mousePressEvent()...... " + somethingClicked);
+                print("    mode: " + mode);
             }
         }
 
         // reset everything as intersectable...
         // TODO: we could optimize this since some of these were already flipped back(i.e:  just get rid of this)
-        if(wantDebug){
+        if (wantDebug) {
             print("Trying to set SelectionBox & PitchYawRoll Handles to NOT_IGNORE Rays");
         }
         Overlays.editOverlay(selectionBox, {
@@ -4599,8 +4572,8 @@ SelectionDisplay = (function() {
             ignoreRayIntersection: false
         });
 
-        if ( wantDebug ) {
-            print( "=============== eST::MousePressEvent END =======================");
+        if (wantDebug) {
+            print("=============== eST::MousePressEvent END =======================");
         }
 
         return somethingClicked;
@@ -4613,18 +4586,18 @@ SelectionDisplay = (function() {
             print( "=============== eST::MouseMoveEvent BEG =======================");
         }
         if (activeTool) {
-            if(wantDebug){
+            if (wantDebug) {
                 print("    Trigger ActiveTool( " + activeTool.mode + " )'s onMove");
             }
             activeTool.onMove(event);
-            
-            if(wantDebug){
+
+            if (wantDebug) {
                 print("    Trigger SelectionManager::update");
             }
             SelectionManager._update();
-            
-            if(wantDebug){
-                print( "=============== eST::MouseMoveEvent END =======================");
+
+            if (wantDebug) {
+                print("=============== eST::MouseMoveEvent END =======================");
             }
             //--EARLY EXIT--( Move handled via active tool)
             return true;
@@ -4710,7 +4683,7 @@ SelectionDisplay = (function() {
                     pickedAlpha = grabberAlpha;
                     highlightNeeded = true;
                     break;
-                    
+
                 default:
                     if (previousHandle) {
                         Overlays.editOverlay(previousHandle, {
