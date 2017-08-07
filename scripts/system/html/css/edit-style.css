@@ -267,18 +267,17 @@ input[type=number] {
     padding-right: 3px;
 }
 input[type=number]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
     opacity: 1.0;
     display: block;
     position: relative;
     width: 10px;
-    height: 100%;
+    height: 90%;
     overflow: hidden;
     font-family: hifi-glyphs;
-    font-size: 46px;
+    font-size: 32px;
     color: #afafaf;
     cursor: pointer;
-    /*background-color: #000000;*/
+    background-color: #000000;
 }
 input[type=number]::-webkit-inner-spin-button:before,
 input[type=number]::-webkit-inner-spin-button:after {
