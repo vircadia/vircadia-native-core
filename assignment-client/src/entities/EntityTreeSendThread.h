@@ -16,36 +16,71 @@
 
 #include "../octree/OctreeSendThread.h"
 
+#include <AACube.h>
+
 #include "EntityTreeElement.h"
+
+const float SQRT_TWO_OVER_TWO = 0.7071067811865;
+const float DEFAULT_VIEW_RADIUS = 10.0f;
 
 class EntityNodeData;
 class EntityItem;
 
-class PrioritizedEntity {
-public:
-    PrioritizedEntity(EntityItemPointer entity) : _weakEntity(entity) { }
-    void updatePriority(const ViewFrustum& view);
-    EntityItemPointer getEntity() const { return _weakEntity.lock(); }
-    float getPriority() const { return _priority; }
-
-    class Compare {
-    public:
-        bool operator() (const PrioritizedEntity& A, const PrioritizedEntity& B) { return A._priority < B._priority; }
-    };
-
-    friend class Compare;
-
-private:
-    EntityItemWeakPointer _weakEntity;
-    float _priority { 0.0f };
-};
-using EntityPriorityQueue = std::priority_queue< PrioritizedEntity, std::vector<PrioritizedEntity>, PrioritizedEntity::Compare >;
 
 class TreeTraversalPath {
 public:
+    class ConicalView {
+    public:
+        ConicalView() {}
+        ConicalView(const ViewFrustum& viewFrustum) { set(viewFrustum); }
+        void set(const ViewFrustum& viewFrustum);
+        float computePriority(const AACube& cube) const;
+        float computePriority(const EntityItemPointer& entity) const;
+    private:
+        glm::vec3 _position { 0.0f, 0.0f, 0.0f };
+        glm::vec3 _direction { 0.0f, 0.0f, 1.0f };
+        float _sinAngle { SQRT_TWO_OVER_TWO };
+        float _cosAngle { SQRT_TWO_OVER_TWO };
+        float _radius { DEFAULT_VIEW_RADIUS };
+    };
+
+    class PrioritizedEntity {
+    public:
+        PrioritizedEntity(EntityItemPointer entity, float priority) : _weakEntity(entity), _priority(priority) { }
+        float updatePriority(const ConicalView& view);
+        EntityItemPointer getEntity() const { return _weakEntity.lock(); }
+        float getPriority() const { return _priority; }
+
+        class Compare {
+        public:
+            bool operator() (const PrioritizedEntity& A, const PrioritizedEntity& B) { return A._priority < B._priority; }
+        };
+        friend class Compare;
+
+    private:
+        EntityItemWeakPointer _weakEntity;
+        float _priority;
+    };
+
+    class Fork {
+    public:
+        Fork(EntityTreeElementPointer& element);
+
+        EntityTreeElementPointer getNextElementFirstTime(const ViewFrustum& view);
+        EntityTreeElementPointer getNextElementAgain(const ViewFrustum& view, uint64_t lastTime);
+        EntityTreeElementPointer getNextElementDifferential(const ViewFrustum& view, const ViewFrustum& lastView, uint64_t lastTime);
+
+        int8_t getNextIndex() const { return _nextIndex; }
+        void initRootNextIndex() { _nextIndex = -1; }
+
+    protected:
+        EntityTreeElementWeakPointer _weakElement;
+        int8_t _nextIndex;
+    };
+
     TreeTraversalPath();
 
-    void startNewTraversal(const ViewFrustum& view, EntityTreeElementPointer root);
+    void startNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root);
 
     EntityTreeElementPointer getNextElement();
 
@@ -55,33 +90,20 @@ public:
     size_t size() const { return _forks.size(); } // adebug
     void dump() const;
 
-    class Fork {
-    public:
-        Fork(EntityTreeElementPointer& element);
-
-        EntityTreeElementPointer getNextElement(const ViewFrustum& view);
-        EntityTreeElementPointer getNextElementAgain(const ViewFrustum& view, uint64_t oldTime);
-        EntityTreeElementPointer getNextElementDelta(const ViewFrustum& newView, const ViewFrustum& oldView, uint64_t oldTime);
-        int8_t getNextIndex() const { return _nextIndex; }
-        void initRootNextIndex() { _nextIndex = -1; }
-
-    protected:
-        EntityTreeElementWeakPointer _weakElement;
-        int8_t _nextIndex;
-    };
+    const ViewFrustum& getCurrentView() const { return _currentView; }
+    //float computePriority(EntityItemPointer& entity) const { return _computePriorityCallback(entity); }
 
 protected:
-    EntityTreeElementPointer traverseFirstTime();
-    EntityTreeElementPointer traverseAgain();
-    EntityTreeElementPointer traverseDelta();
-
     ViewFrustum _currentView;
-    ViewFrustum _lastCompletedView;
+    ViewFrustum _completedView;
     std::vector<Fork> _forks;
-    std::function<EntityTreeElementPointer()> _traversalCallback { nullptr };
-    uint64_t _startOfLastCompletedTraversal { 0 };
+    std::function<EntityTreeElementPointer()> _getNextElementCallback { nullptr };
+    //std::function<float(EntityItemPointer)> _computePriorityCallback { nullptr };
+    uint64_t _startOfCompletedTraversal { 0 };
     uint64_t _startOfCurrentTraversal { 0 };
 };
+
+using EntityPriorityQueue = std::priority_queue< TreeTraversalPath::PrioritizedEntity, std::vector<TreeTraversalPath::PrioritizedEntity>, TreeTraversalPath::PrioritizedEntity::Compare >;
 
 
 class EntityTreeSendThread : public OctreeSendThread {
