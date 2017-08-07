@@ -96,3 +96,14 @@ float accumulateTime(float startFrame, float endFrame, float timeScale, float cu
     return frame;
 }
 
+// rotate bone's y-axis with target.
+AnimPose boneLookAt(const glm::vec3& target, const AnimPose& bone) {
+    glm::vec3 u, v, w;
+    generateBasisVectors(target - bone.trans(), bone.rot() * Vectors::UNIT_X, u, v, w);
+    glm::mat4 lookAt(glm::vec4(v, 0.0f),
+                     glm::vec4(u, 0.0f),
+                     // AJT: TODO REVISIT THIS, this could be -w.
+                     glm::vec4(glm::normalize(glm::cross(v, u)), 0.0f),
+                     glm::vec4(bone.trans(), 1.0f));
+    return AnimPose(lookAt);
+}

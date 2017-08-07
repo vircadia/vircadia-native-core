@@ -70,6 +70,9 @@ public:
         NumSolutionSources,
     };
 
+    void setSecondaryTargetInRigFrame(int jointIndex, const AnimPose& pose);
+    void clearSecondaryTarget(int jointIndex);
+
     void setSolutionSource(SolutionSource solutionSource) { _solutionSource = solutionSource; }
     void setSolutionSourceVar(const QString& solutionSourceVar) { _solutionSourceVar = solutionSourceVar; }
 
@@ -88,6 +91,7 @@ protected:
     void initRelativePosesFromSolutionSource(SolutionSource solutionSource, const AnimPoseVec& underPose);
     void blendToPoses(const AnimPoseVec& targetPoses, const AnimPoseVec& underPose, float blendFactor);
     void preconditionRelativePosesToAvoidLimbLock(const AnimContext& context, const std::vector<IKTarget>& targets);
+    void setSecondaryTargets(const AnimContext& context);
     AnimPose applyHipsOffset() const;
 
     // used to pre-compute information about each joint influeced by a spline IK target.
@@ -141,6 +145,8 @@ protected:
     AnimPoseVec _defaultRelativePoses; // poses of the relaxed state
     AnimPoseVec _relativePoses; // current relative poses
     AnimPoseVec _limitCenterPoses;  // relative
+
+    std::map<int, AnimPose> _secondaryTargetsInRigFrame;
 
     mutable std::map<int, std::vector<SplineJointInfo>> _splineJointInfoMap;
 

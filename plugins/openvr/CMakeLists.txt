@@ -18,6 +18,7 @@ if (WIN32)
     include_hifi_library_headers(octree)
 
     add_dependency_external_projects(OpenVR)
+
     find_package(OpenVR REQUIRED)
     target_include_directories(${TARGET_NAME} PRIVATE ${OPENVR_INCLUDE_DIRS})
     target_link_libraries(${TARGET_NAME} ${OPENVR_LIBRARIES})
