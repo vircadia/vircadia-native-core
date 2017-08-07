@@ -196,8 +196,6 @@ GLBackend::GLBackend() {
 
 
 GLBackend::~GLBackend() {
-    resetStages();
-
     killInput();
     killTransform();
 }

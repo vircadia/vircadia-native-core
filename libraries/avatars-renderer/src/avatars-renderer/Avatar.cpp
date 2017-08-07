@@ -151,11 +151,6 @@ glm::vec3 Avatar::getNeckPosition() const {
     return _skeletonModel->getNeckPosition(neckPosition) ? neckPosition : getPosition();
 }
 
-
-glm::quat Avatar::getWorldAlignedOrientation () const {
-    return computeRotationFromBodyToWorldUp() * getOrientation();
-}
-
 AABox Avatar::getBounds() const {
     if (!_skeletonModel->isRenderable() || _skeletonModel->needsFixupInScene()) {
         // approximately 2m tall, scaled to user request.
@@ -436,6 +431,11 @@ void Avatar::slamPosition(const glm::vec3& newPosition) {
     _lastVelocity = glm::vec3(0.0f);
 }
 
+void Avatar::updateAttitude(const glm::quat& orientation) {
+    _skeletonModel->updateAttitude(orientation);
+	_worldUpDirection = orientation * Vectors::UNIT_Y;
+}
+
 void Avatar::applyPositionDelta(const glm::vec3& delta) {
     setPosition(getPosition() + delta);
     _positionDeltaAccumulator += delta;
@@ -626,22 +626,6 @@ void Avatar::render(RenderArgs* renderArgs) {
             }
         }
     }
-}
-
-glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
-    glm::quat orientation = getOrientation();
-    glm::vec3 currentUp = orientation * IDENTITY_UP;
-    float angle = acosf(glm::clamp(glm::dot(currentUp, _worldUpDirection), -1.0f, 1.0f));
-    if (angle < EPSILON) {
-        return glm::quat();
-    }
-    glm::vec3 axis;
-    if (angle > 179.99f * RADIANS_PER_DEGREE) { // 180 degree rotation; must use another axis
-        axis = orientation * IDENTITY_RIGHT;
-    } else {
-        axis = glm::normalize(glm::cross(currentUp, _worldUpDirection));
-    }
-    return glm::angleAxis(angle * proportion, axis);
 }
 
 void Avatar::fixupModelsInScene(const render::ScenePointer& scene) {
@@ -915,17 +899,34 @@ glm::vec3 Avatar::getDefaultJointTranslation(int index) const {
 }
 
 glm::quat Avatar::getAbsoluteDefaultJointRotationInObjectFrame(int index) const {
-    glm::quat rotation;
-    glm::quat rot = _skeletonModel->getRig().getAnimSkeleton()->getAbsoluteDefaultPose(index).rot();
-    return Quaternions::Y_180 * rot;
+    // To make this thread safe, we hold onto the model by smart ptr, which prevents it from being deleted while we are accessing it.
+    auto model = getSkeletonModel();
+    if (model) {
+        auto skeleton = model->getRig().getAnimSkeleton();
+        if (skeleton && index >= 0 && index < skeleton->getNumJoints()) {
+            // The rotation part of the geometry-to-rig transform is always identity so we can skip it.
+            // Y_180 is to convert from rig-frame into avatar-frame
+            return Quaternions::Y_180 * skeleton->getAbsoluteDefaultPose(index).rot();
+        }
+    }
+    return Quaternions::Y_180;
 }
 
 glm::vec3 Avatar::getAbsoluteDefaultJointTranslationInObjectFrame(int index) const {
-    glm::vec3 translation;
-    const Rig& rig = _skeletonModel->getRig();
-    glm::vec3 trans = rig.getAnimSkeleton()->getAbsoluteDefaultPose(index).trans();
-    glm::mat4 y180Mat = createMatFromQuatAndPos(Quaternions::Y_180, glm::vec3());
-    return transformPoint(y180Mat * rig.getGeometryToRigTransform(), trans);
+    // To make this thread safe, we hold onto the model by smart ptr, which prevents it from being deleted while we are accessing it.
+    auto model = getSkeletonModel();
+    if (model) {
+        const Rig& rig = model->getRig();
+        auto skeleton = rig.getAnimSkeleton();
+        if (skeleton && index >= 0 && index < skeleton->getNumJoints()) {
+            // trans is in geometry frame.
+            glm::vec3 trans = skeleton->getAbsoluteDefaultPose(index).trans();
+            // Y_180 is to convert from rig-frame into avatar-frame
+            glm::mat4 geomToAvatarMat = Matrices::Y_180 * rig.getGeometryToRigTransform();
+            return transformPoint(geomToAvatarMat, trans);
+        }
+    }
+    return Vectors::ZERO;
 }
 
 glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
@@ -1401,14 +1402,14 @@ glm::quat Avatar::getUncachedRightPalmRotation() const {
     return rightPalmRotation;
 }
 
-void Avatar::setPosition(const glm::vec3& position) {
-    AvatarData::setPosition(position);
-    updateAttitude();
+void Avatar::setPositionViaScript(const glm::vec3& position) {
+    setPosition(position);
+    updateAttitude(getOrientation());
 }
 
-void Avatar::setOrientation(const glm::quat& orientation) {
-    AvatarData::setOrientation(orientation);
-    updateAttitude();
+void Avatar::setOrientationViaScript(const glm::quat& orientation) {
+    setOrientation(orientation);
+    updateAttitude(orientation);
 }
 
 void Avatar::updatePalms() {

@@ -605,3 +605,55 @@ float coneSphereAngle(const glm::vec3& coneCenter, const glm::vec3& coneDirectio
 
     return glm::max(0.0f, theta - phi);
 }
+
+// given a set of points, compute a best fit plane that passes as close as possible through all the points.
+// http://www.ilikebigbits.com/blog/2015/3/2/plane-from-points
+bool findPlaneFromPoints(const glm::vec3* points, size_t numPoints, glm::vec3& planeNormalOut, glm::vec3& pointOnPlaneOut) {
+    if (numPoints < 3) {
+        return false;
+    }
+    glm::vec3 sum;
+    for (size_t i = 0; i < numPoints; i++) {
+        sum += points[i];
+    }
+    glm::vec3 centroid = sum * (1.0f / (float)numPoints);
+    float xx = 0.0f, xy = 0.0f, xz = 0.0f;
+    float yy = 0.0f, yz = 0.0f, zz = 0.0f;
+
+    for (size_t i = 0; i < numPoints; i++) {
+        glm::vec3 r = points[i] - centroid;
+        xx += r.x * r.x;
+        xy += r.x * r.y;
+        xz += r.x * r.z;
+        yy += r.y * r.y;
+        yz += r.y * r.z;
+        zz += r.z * r.z;
+    }
+
+    float det_x = yy * zz - yz * yz;
+    float det_y = xx * zz - xz * xz;
+    float det_z = xx * yy - xy * xy;
+    float det_max = std::max(std::max(det_x, det_y), det_z);
+
+    if (det_max == 0.0f) {
+        return false; // The points don't span a plane
+    }
+
+    glm::vec3 dir;
+    if (det_max == det_x) {
+        float a = (xz * yz - xy * zz) / det_x;
+        float b = (xy * yz - xz * yy) / det_x;
+        dir = glm::vec3(1.0f, a, b);
+    } else if (det_max == det_y) {
+        float a = (yz * xz - xy * zz) / det_y;
+        float b = (xy * xz - yz * xx) / det_y;
+        dir = glm::vec3(a, 1.0f, b);
+    } else {
+        float a = (yz * xy - xz * yy) / det_z;
+        float b = (xz * xy - yz * xx) / det_z;
+        dir = glm::vec3(a, b, 1.0f);
+    }
+    pointOnPlaneOut = centroid;
+    planeNormalOut = glm::normalize(dir);
+    return true;
+}

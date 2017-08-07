@@ -329,6 +329,7 @@ void initializeQmlEngine(QQmlEngine* engine, QQuickWindow* window) {
     rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
     rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
     rootContext->setContextProperty("HFTabletWebEngineProfile", new HFTabletWebEngineProfile(rootContext));
+    rootContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
 }
 
 QQmlEngine* acquireEngine(QQuickWindow* window) {

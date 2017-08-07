@@ -43,6 +43,7 @@ enum AudioListenerMode {
     FROM_CAMERA,
     CUSTOM
 };
+
 Q_DECLARE_METATYPE(AudioListenerMode);
 
 class MyAvatar : public Avatar {
@@ -140,6 +141,9 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(bool hmdRollControlEnabled READ getHMDRollControlEnabled WRITE setHMDRollControlEnabled)
     Q_PROPERTY(float hmdRollControlDeadZone READ getHMDRollControlDeadZone WRITE setHMDRollControlDeadZone)
     Q_PROPERTY(float hmdRollControlRate READ getHMDRollControlRate WRITE setHMDRollControlRate)
+
+    const QString DOMINANT_LEFT_HAND = "left";
+    const QString DOMINANT_RIGHT_HAND = "right";
 
 public:
     enum DriveKeys {
@@ -339,6 +343,9 @@ public:
     Q_INVOKABLE bool getClearOverlayWhenMoving() const { return _clearOverlayWhenMoving; }
     Q_INVOKABLE void setClearOverlayWhenMoving(bool on) { _clearOverlayWhenMoving = on; }
 
+    Q_INVOKABLE void setDominantHand(const QString& hand);
+    Q_INVOKABLE QString getDominantHand() const { return _dominantHand; }
+
     Q_INVOKABLE void setHMDLeanRecenterEnabled(bool value) { _hmdLeanRecenterEnabled = value; }
     Q_INVOKABLE bool getHMDLeanRecenterEnabled() const { return _hmdLeanRecenterEnabled; }
 
@@ -424,7 +431,6 @@ public:
     Q_INVOKABLE QString getFullAvatarModelName() const { return _fullAvatarModelName; }
     void resetFullAvatarURL();
 
-
     virtual void setAttachmentData(const QVector<AttachmentData>& attachmentData) override;
 
     MyCharacterController* getCharacterController() { return &_characterController; }
@@ -432,6 +438,7 @@ public:
 
     void updateMotors();
     void prepareForPhysicsSimulation();
+    void nextAttitude(glm::vec3 position, glm::quat orientation); // Can be safely called at any time.
     void harvestResultsFromPhysicsSimulation(float deltaTime);
 
     const QString& getCollisionSoundURL() { return _collisionSoundURL; }
@@ -466,49 +473,12 @@ public:
 
     virtual void rebuildCollisionShape() override;
 
-    void setHandControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right);
-    controller::Pose getLeftHandControllerPoseInSensorFrame() const;
-    controller::Pose getRightHandControllerPoseInSensorFrame() const;
-    controller::Pose getLeftHandControllerPoseInWorldFrame() const;
-    controller::Pose getRightHandControllerPoseInWorldFrame() const;
-    controller::Pose getLeftHandControllerPoseInAvatarFrame() const;
-    controller::Pose getRightHandControllerPoseInAvatarFrame() const;
-
-    typedef std::map<int, std::pair<controller::Pose, QString>> FingerPosesMap;
-    void setFingerControllerPosesInSensorFrame(const FingerPosesMap& left, const FingerPosesMap& right);
-    FingerPosesMap getLeftHandFingerControllerPosesInSensorFrame() const;
-    FingerPosesMap getRightHandFingerControllerPosesInSensorFrame() const;
-
-    void setFootControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right);
-    controller::Pose getLeftFootControllerPoseInSensorFrame() const;
-    controller::Pose getRightFootControllerPoseInSensorFrame() const;
-    controller::Pose getLeftFootControllerPoseInWorldFrame() const;
-    controller::Pose getRightFootControllerPoseInWorldFrame() const;
-    controller::Pose getLeftFootControllerPoseInAvatarFrame() const;
-    controller::Pose getRightFootControllerPoseInAvatarFrame() const;
-
-    void setSpineControllerPosesInSensorFrame(const controller::Pose& hips, const controller::Pose& spine2);
-    controller::Pose getHipsControllerPoseInSensorFrame() const;
-    controller::Pose getSpine2ControllerPoseInSensorFrame() const;
-    controller::Pose getHipsControllerPoseInWorldFrame() const;
-    controller::Pose getSpine2ControllerPoseInWorldFrame() const;
-    controller::Pose getHipsControllerPoseInAvatarFrame() const;
-    controller::Pose getSpine2ControllerPoseInAvatarFrame() const;
-
-    void setHeadControllerPoseInSensorFrame(const controller::Pose& head);
-    controller::Pose getHeadControllerPoseInSensorFrame() const;
-    controller::Pose getHeadControllerPoseInWorldFrame() const;
-    controller::Pose getHeadControllerPoseInAvatarFrame() const;
     const glm::vec2& getHeadControllerFacingMovingAverage() const { return _headControllerFacingMovingAverage; }
 
-
-    void setArmControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right);
-    controller::Pose getLeftArmControllerPoseInSensorFrame() const;
-    controller::Pose getRightArmControllerPoseInSensorFrame() const;
-    controller::Pose getLeftArmControllerPoseInWorldFrame() const;
-    controller::Pose getRightArmControllerPoseInWorldFrame() const;
-    controller::Pose getLeftArmControllerPoseInAvatarFrame() const;
-    controller::Pose getRightArmControllerPoseInAvatarFrame() const;
+    void setControllerPoseInSensorFrame(controller::Action action, const controller::Pose& pose);
+    controller::Pose getControllerPoseInSensorFrame(controller::Action action) const;
+    controller::Pose getControllerPoseInWorldFrame(controller::Action action) const;
+    controller::Pose getControllerPoseInAvatarFrame(controller::Action action) const;
 
     bool hasDriveInput() const;
 
@@ -550,7 +520,6 @@ public:
 
     Q_INVOKABLE bool isUp(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) > 0.0f; }; // true iff direction points up wrt avatar's definition of up.
     Q_INVOKABLE bool isDown(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) < 0.0f; };
-
 
 public slots:
     void increaseSize();
@@ -609,6 +578,7 @@ signals:
     void wentAway();
     void wentActive();
     void skeletonChanged();
+    void dominantHandChanged(const QString& hand);
 
 private:
 
@@ -720,6 +690,7 @@ private:
     QUrl _fstAnimGraphOverrideUrl;
     bool _useSnapTurn { true };
     bool _clearOverlayWhenMoving { true };
+    QString _dominantHand { DOMINANT_RIGHT_HAND };
 
     const float ROLL_CONTROL_DEAD_ZONE_DEFAULT = 8.0f; // deg
     const float ROLL_CONTROL_RATE_DEFAULT = 2.5f; // deg/sec/deg
@@ -796,18 +767,9 @@ private:
     bool _hoverReferenceCameraFacingIsCaptured { false };
     glm::vec3 _hoverReferenceCameraFacing { 0.0f, 0.0f, -1.0f }; // hmd sensor space
 
-    // These are stored in SENSOR frame
-    ThreadSafeValueCache<controller::Pose> _leftHandControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _rightHandControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<FingerPosesMap> _leftHandFingerPosesInSensorFramceCache { };
-    ThreadSafeValueCache<FingerPosesMap> _rightHandFingerPosesInSensorFramceCache { };
-    ThreadSafeValueCache<controller::Pose> _leftFootControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _rightFootControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _hipsControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _spine2ControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _headControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _leftArmControllerPoseInSensorFrameCache { controller::Pose() };
-    ThreadSafeValueCache<controller::Pose> _rightArmControllerPoseInSensorFrameCache { controller::Pose() };
+    // all poses are in sensor-frame
+    std::map<controller::Action, controller::Pose> _controllerPoseMap;
+    mutable std::mutex _controllerPoseMapMutex;
 
     bool _hmdLeanRecenterEnabled = true;
     AnimPose _prePhysicsRoomPose;

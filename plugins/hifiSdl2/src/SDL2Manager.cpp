@@ -11,8 +11,10 @@
 
 #include <qapplication.h>
 
-#include <PerfStat.h>
 #include <controllers/UserInputMapper.h>
+#include <PerfStat.h>
+#include <Preferences.h>
+#include <SettingHandle.h>
 
 #include "SDL2Manager.h"
 
@@ -38,10 +40,13 @@ static_assert(
     (int)controller::RY == (int)SDL_CONTROLLER_AXIS_RIGHTY &&
     (int)controller::LT == (int)SDL_CONTROLLER_AXIS_TRIGGERLEFT &&
     (int)controller::RT == (int)SDL_CONTROLLER_AXIS_TRIGGERRIGHT,
-    "SDL2 equvalence: Enums and values from StandardControls.h are assumed to match enums from SDL_gamecontroller.h");
+    "SDL2 equivalence: Enums and values from StandardControls.h are assumed to match enums from SDL_gamecontroller.h");
 
 
 const char* SDL2Manager::NAME = "SDL2";
+const char* SDL2Manager::SDL2_ID_STRING = "SDL2";
+
+const bool DEFAULT_ENABLED = false;
 
 SDL_JoystickID SDL2Manager::getInstanceId(SDL_GameController* controller) {
     SDL_Joystick* joystick = SDL_GameControllerGetJoystick(controller);
@@ -49,6 +54,20 @@ SDL_JoystickID SDL2Manager::getInstanceId(SDL_GameController* controller) {
 }
 
 void SDL2Manager::init() {
+    loadSettings();
+
+    auto preferences = DependencyManager::get<Preferences>();
+    static const QString SDL2_PLUGIN { "Game Controller" };
+    {
+        auto getter = [this]()->bool { return _isEnabled; };
+        auto setter = [this](bool value) {
+            _isEnabled = value;
+            saveSettings();
+        };
+        auto preference = new CheckPreference(SDL2_PLUGIN, "Enabled", getter, setter);
+        preferences->addPreference(preference);
+    }
+
     bool initSuccess = (SDL_Init(SDL_INIT_GAMECONTROLLER | SDL_INIT_HAPTIC) == 0);
 
     if (initSuccess) {
@@ -110,6 +129,27 @@ void SDL2Manager::deactivate() {
     InputPlugin::deactivate();
 }
 
+const char* SETTINGS_ENABLED_KEY = "enabled";
+
+void SDL2Manager::saveSettings() const {
+    Settings settings;
+    QString idString = getID();
+    settings.beginGroup(idString);
+    {
+        settings.setValue(QString(SETTINGS_ENABLED_KEY), _isEnabled);
+    }
+    settings.endGroup();
+}
+
+void SDL2Manager::loadSettings() {
+    Settings settings;
+    QString idString = getID();
+    settings.beginGroup(idString);
+    {
+        _isEnabled = settings.value(SETTINGS_ENABLED_KEY, QVariant(DEFAULT_ENABLED)).toBool();
+    }
+    settings.endGroup();
+}
 
 bool SDL2Manager::isSupported() const {
     return true;
@@ -122,6 +162,10 @@ void SDL2Manager::pluginFocusOutEvent() {
 }
 
 void SDL2Manager::pluginUpdate(float deltaTime, const controller::InputCalibrationData& inputCalibrationData) {
+    if (!_isEnabled) {
+        return;
+    }
+
     if (_isInitialized) {
         auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
         for (auto joystick : _openJoysticks) {
