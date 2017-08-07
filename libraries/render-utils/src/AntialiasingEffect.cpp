@@ -211,7 +211,8 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
         
         gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("colorTexture"), 0));
+        slotBindings.insert(gpu::Shader::Binding(std::string("historyTexture"), 0));
+        slotBindings.insert(gpu::Shader::Binding(std::string("colorTexture"), 1));
         
         gpu::Shader::makeProgram(*program, slotBindings);
         
@@ -220,10 +221,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         
         PrepareStencil::testMask(*state);
-        
-    //    state->setDepthTest(false, false, gpu::LESS_EQUAL);
-        state->setBlendFunction(true, gpu::State::BlendArg::SRC_ALPHA, gpu::State::BlendOp::BLEND_OP_ADD, gpu::State::BlendArg::INV_SRC_ALPHA );
-        
+                
         // Good to go add the brand new pipeline
         _antialiasingPipeline = gpu::Pipeline::create(program, state);
     }
@@ -245,6 +243,8 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         PrepareStencil::testMask(*state);
 
+       state->setBlendFunction(true, gpu::State::BlendArg::SRC_ALPHA, gpu::State::BlendOp::BLEND_OP_ADD, gpu::State::BlendArg::INV_SRC_ALPHA );
+    
         // Good to go add the brand new pipeline
         _blendPipeline = gpu::Pipeline::create(program, state);
     }
@@ -262,13 +262,16 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setViewportTransform(args->_viewport);
 
         // TAA step
-        batch.setResourceTexture(0, sourceBuffer->getRenderBuffer(0));
+        getAntialiasingPipeline();
+        batch.setResourceTexture(0, _antialiasingTexture);
+        batch.setResourceTexture(1, sourceBuffer->getRenderBuffer(0));
         batch.setFramebuffer(_antialiasingBuffer);
         batch.setPipeline(getAntialiasingPipeline());
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         // Blend step
-        batch.setResourceTexture(0, _antialiasingTexture);
+     //   batch.setResourceTexture(0, _antialiasingTexture);
+        batch.setResourceTexture(1, nullptr);
         batch.setFramebuffer(sourceBuffer);
         batch.setPipeline(getBlendPipeline());
         batch.draw(gpu::TRIANGLE_STRIP, 4);

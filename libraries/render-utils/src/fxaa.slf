@@ -23,13 +23,39 @@ precision mediump int;
 #endif
 
 uniform sampler2D colorTexture;
+uniform sampler2D historyTexture;
 uniform vec2 texcoordOffset;
 
 in vec2 varTexCoord0;
 out vec4 outFragColor;
 
 void main() {
-    outFragColor = vec4(texture(colorTexture, varTexCoord0).xyz, 0.3);
+  //  outFragColor = vec4(texture(colorTexture, varTexCoord0).xyz, 0.3);
+
+// v2
+    float ModulationFactor = 1.0 / 16.0;
+
+    vec3 CurrentSubpixel = textureLod(colorTexture, varTexCoord0, 0.0).rgb;
+    vec3 History = textureLod(historyTexture, varTexCoord0, 0.0).rgb;
+
+    vec3 NearColor0 = textureLodOffset(colorTexture, varTexCoord0, 0.0, ivec2(1, 0)).xyz;
+    vec3 NearColor1 = textureLodOffset(colorTexture, varTexCoord0, 0.0, ivec2(0, 1)).xyz;
+    vec3 NearColor2 = textureLodOffset(colorTexture, varTexCoord0, 0.0, ivec2(-1, 0)).xyz;
+    vec3 NearColor3 = textureLodOffset(colorTexture, varTexCoord0, 0.0, ivec2(0, -1)).xyz;
+
+    vec3 BoxMin = min(CurrentSubpixel, min(NearColor0, min(NearColor1, min(NearColor2, NearColor3))));
+    vec3 BoxMax = max(CurrentSubpixel, max(NearColor0, max(NearColor1, max(NearColor2, NearColor3))));;
+
+    History = clamp(History, BoxMin, BoxMax);
+
+    //if (gl_FragCoord.x > 800) {
+        outFragColor.xyz = History;
+        outFragColor.w = ModulationFactor;
+  /*  } else {
+        outFragColor.xyz = CurrentSubpixel;
+        outFragColor.w = 1.0;
+
+    }*/
  /*   // filter width limit for dependent "two-tap" texture samples
     float FXAA_SPAN_MAX = 8.0;
 
