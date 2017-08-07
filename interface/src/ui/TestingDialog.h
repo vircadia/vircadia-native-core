@@ -29,7 +29,7 @@ public:
 
 private:
     std::unique_ptr<JSConsole> _console;
-    ScriptEngine* _engine;
+    QSharedPointer<ScriptEngine> _engine;
 };
 
 #endif

@@ -1,28 +1,25 @@
 ### Dependencies
 
-* [cmake](https://cmake.org/download/) ~> 3.3.2
-* [Qt](https://www.qt.io/download-open-source) ~> 5.6.2
-* [OpenSSL](https://www.openssl.org/community/binaries.html)
-  * IMPORTANT: Use the latest available version of OpenSSL to avoid security vulnerabilities.
-* [VHACD](https://github.com/virneo/v-hacd)(clone this repository)(Optional)
+- [cmake](https://cmake.org/download/):  3.9
+- [Qt](https://www.qt.io/download-open-source):   5.9.1
+- [OpenSSL](https://www.openssl.org/): Use the latest available version of OpenSSL to avoid security vulnerabilities.
+- [VHACD](https://github.com/virneo/v-hacd)(clone this repository)(Optional)
 
-#### CMake External Project Dependencies
+### CMake External Project Dependencies
 
-* [boostconfig](https://github.com/boostorg/config) ~> 1.58
-* [Bullet Physics Engine](https://github.com/bulletphysics/bullet3/releases) ~> 2.83
-* [GLEW](http://glew.sourceforge.net/)
-* [glm](https://glm.g-truc.net/0.9.5/index.html) ~> 0.9.5.4
-* [gverb](https://github.com/highfidelity/gverb)
-* [Oculus SDK](https://developer.oculus.com/downloads/) ~> 0.6 (Win32) / 0.5 (Mac / Linux)
-* [oglplus](http://oglplus.org/) ~> 0.63
-* [OpenVR](https://github.com/ValveSoftware/openvr) ~> 0.91 (Win32 only)
-* [Polyvox](http://www.volumesoffun.com/) ~> 0.2.1
-* [QuaZip](https://sourceforge.net/projects/quazip/files/quazip/) ~> 0.7.1
-* [SDL2](https://www.libsdl.org/download-2.0.php) ~> 2.0.3
-* [soxr](https://sourceforge.net/p/soxr/wiki/Home/) ~> 0.1.1
-* [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/) ~> 4.3
-* [Sixense](http://sixense.com/) ~> 071615
-* [zlib](http://www.zlib.net/) ~> 1.28 (Win32 only)
+These dependencies need not be installed manually. They are automatically downloaded on the platforms where they are required.  
+- [Bullet Physics Engine](https://github.com/bulletphysics/bullet3/releases):  2.83
+- [GLEW](http://glew.sourceforge.net/):   1.13
+- [glm](https://glm.g-truc.net/0.9.8/index.html):  0.9.8
+- [Oculus SDK](https://developer.oculus.com/downloads/):   1.11 (Win32) / 0.5 (Mac)
+- [OpenVR](https://github.com/ValveSoftware/openvr):   1.0.6 (Win32 only)
+- [Polyvox](http://www.volumesoffun.com/):   0.2.1
+- [QuaZip](https://sourceforge.net/projects/quazip/files/quazip/):   0.7.3
+- [SDL2](https://www.libsdl.org/download-2.0.php):   2.0.3
+- [Intel Threading Building Blocks](https://www.threadingbuildingblocks.org/):   4.3
+- [Sixense](http://sixense.com/):   071615
+- [zlib](http://www.zlib.net/):   1.28 (Win32 only)
+- nVidia Texture Tools:   2.1
 
 The above dependencies will be downloaded, built, linked and included automatically by CMake where we require them. The CMakeLists files that handle grabbing each of the following external dependencies can be found in the [cmake/externals folder](cmake/externals). The resulting downloads, source files and binaries will be placed in the `build/ext` folder in each of the subfolders for each external project.
 

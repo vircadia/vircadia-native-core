@@ -364,7 +364,7 @@ private:
     AudioIOStats _stats;
 
     AudioGate* _audioGate { nullptr };
-    bool _audioGateOpen { false };
+    bool _audioGateOpen { true };
 
     AudioPositionGetter _positionGetter;
     AudioOrientationGetter _orientationGetter;
