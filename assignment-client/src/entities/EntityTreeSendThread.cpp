@@ -167,7 +167,6 @@ void TreeTraversalPath::startNewTraversal(const ViewFrustum& viewFrustum, Entity
         };
     } else {
         _currentView = viewFrustum;
-
         _getNextElementCallback = [&]() {
             return _forks.back().getNextElementDifferential(_currentView, _completedView, _startOfCompletedTraversal);
         };
@@ -296,17 +295,14 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
         }
     }
     if (!_path.empty()) {
-        int32_t numElements = 0;
         uint64_t t0 = usecTimestampNow();
         uint64_t now = t0;
 
-        uint32_t numEntities = 0;
-        EntityTreeElementPointer nextElement = _path.getNextElement();
         const ViewFrustum& currentView = _path.getCurrentView();
         TreeTraversalPath::ConicalView conicalView(currentView);
+        EntityTreeElementPointer nextElement = _path.getNextElement();
         while (nextElement) {
             nextElement->forEachEntity([&](EntityItemPointer entity) {
-                ++numEntities;
                 bool success = false;
                 AACube cube = entity->getQueryAACube(success);
                 if (success) {
@@ -322,7 +318,6 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
                     _sendQueue.push(TreeTraversalPath::PrioritizedEntity(entity, WHEN_IN_DOUBT_PRIORITY));
                 }
             });
-            ++numElements;
 
             now = usecTimestampNow();
             const uint64_t PARTIAL_TRAVERSAL_TIME_BUDGET = 100000; // usec
@@ -348,9 +343,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
         // so we "clear" _sendQueue by setting it equal to an empty queue
         _sendQueue = EntityPriorityQueue();
         std::cout << "adebug -end"
-            << "  E = " << numElements
-            << "  e = " << numEntities
-            << "  Q = " << sendQueueSize
+            << "  Q.size = " << sendQueueSize
             << "  dt = " << dt1 << std::endl;  // adebug
         std::cout << "adebug" << std::endl;     // adebug
     }

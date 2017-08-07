@@ -91,14 +91,12 @@ public:
     void dump() const;
 
     const ViewFrustum& getCurrentView() const { return _currentView; }
-    //float computePriority(EntityItemPointer& entity) const { return _computePriorityCallback(entity); }
 
 protected:
     ViewFrustum _currentView;
     ViewFrustum _completedView;
     std::vector<Fork> _forks;
     std::function<EntityTreeElementPointer()> _getNextElementCallback { nullptr };
-    //std::function<float(EntityItemPointer)> _computePriorityCallback { nullptr };
     uint64_t _startOfCompletedTraversal { 0 };
     uint64_t _startOfCurrentTraversal { 0 };
 };
