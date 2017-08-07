@@ -23,7 +23,8 @@ Selection = function (side) {
         scaleCenter,
         scaleRootOffset,
         scaleRootOrientation,
-        ENTITY_TYPE = "entity";
+        ENTITY_TYPE = "entity",
+        ENTITY_TYPES_WITH_COLOR = ["Box", "Sphere", "Shape", "ParticleEffect"];
 
     if (!this instanceof Selection) {
         return new Selection(side);
@@ -329,14 +330,39 @@ Selection = function (side) {
 
     function applyColor(color) {
         // Entities without a color property simply ignore the edit.
-        var i,
+        var properties,
+            isError = true,
+            i,
             length;
 
         for (i = 0, length = selection.length; i < length; i += 1) {
-            Entities.editEntity(selection[i].id, {
-                color: color
-            });
+            properties = Entities.getEntityProperties(selection[i].id, "color");
+            if (ENTITY_TYPES_WITH_COLOR.indexOf(properties.type) !== -1) {
+                Entities.editEntity(selection[i].id, {
+                    color: color
+                });
+                isError = false;
+            }
         }
+
+        if (isError) {
+            // TODO
+            print("TODO: Error beep");
+        }
+    }
+
+    function getColor(entityID) {
+        var properties;
+
+        properties = Entities.getEntityProperties(entityID, "color");
+        if (ENTITY_TYPES_WITH_COLOR.indexOf(properties.type) === -1) {
+            // Some entities don't have a color property.
+            // TODO
+            print("TODO: Error beep");
+            return null;
+        }
+
+        return properties.color;
     }
 
     function clear() {
@@ -374,6 +400,7 @@ Selection = function (side) {
         finishEditing: finishEditing,
         cloneEntities: cloneEntities,
         applyColor: applyColor,
+        getColor: getColor,
         deleteEntities: deleteEntities,
         clear: clear,
         destroy: destroy

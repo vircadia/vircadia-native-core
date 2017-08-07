@@ -103,7 +103,7 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
             "circle": {
                 overlay: "circle3d",
                 properties: {
-                    size: 0.015,
+                    size: 0.01,
                     localPosition: { x: 0.0, y: 0.0, z: -0.01 },
                     localRotation: Quat.fromVec3Degrees({ x: 0, y: 180, z: 180 }),
                     color: { red: 128, green: 128, blue: 128 },
@@ -233,12 +233,25 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                     id: "currentColor",
                     type: "circle",
                     properties: {
-                        localPosition: { x: 0.025, y: 0.0325, z: -0.007 }
+                        localPosition: { x: 0.025, y: 0.02, z: -0.007 }
                     },
                     setting: {
                         key: "VREdit.colorTool.currentColor",
                         property: "color",
                         defaultValue: { red: 128, green: 128, blue: 128 }
+                    }
+                },
+                {
+                    id: "pickColor",
+                    type: "button",
+                    properties: {
+                        dimensions: { x: 0.04, y: 0.02, z: 0.01 },
+                        localPosition: { x: 0.025, y: 0.045, z: -0.005 },
+                        color: { red: 255, green: 255, blue: 255 }
+                    },
+                    label: "    PICK",
+                    callback: {
+                        method: "pickColorTool"
                     }
                 }
             ]
@@ -662,7 +675,7 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
 
         // Special handling for Group options.
         for (i = 0, length = OPTONS_PANELS.groupOptions.length; i < length; i += 1) {
-            id = OPTONS_PANELS.groupOptions[i].id; 
+            id = OPTONS_PANELS.groupOptions[i].id;
             if (id === "groupButton") {
                 groupButtonIndex = i;
             }
@@ -708,6 +721,7 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
         setHand: setHand,
         entityIDs: getEntityIDs,
         clearTool: clearTool,
+        doCommand: doCommand,
         update: update,
         display: display,
         clear: clear,

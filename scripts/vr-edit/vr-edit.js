@@ -27,7 +27,8 @@
         TOOL_CLONE = 2,
         TOOL_GROUP = 3,
         TOOL_COLOR = 4,
-        TOOL_DELETE = 5,
+        TOOL_PICK_COLOR = 5,
+        TOOL_DELETE = 6,
         toolSelected = TOOL_NONE,
         colorToolColor = { red: 128, green: 128, blue: 128 },
 
@@ -243,6 +244,10 @@
             }
         }
 
+        function doPickColor(color) {
+            toolMenu.doCommand("setCurrentColor", color);
+        }
+
         function clear() {
             leftInputs.setUIEntities([]);
             rightInputs.setUIEntities([]);
@@ -277,9 +282,11 @@
             CLONE_TOOL: toolIcon.CLONE_TOOL,
             GROUP_TOOL: toolIcon.GROUP_TOOL,
             COLOR_TOOL: toolIcon.COLOR_TOOL,
+            PICK_COLOR_TOOL: toolIcon.PICK_COLOR_TOOL,
             DELETE_TOOL: toolIcon.DELETE_TOOL,
             display: display,
             updateUIEntities: setUIEntities,
+            doPickColor: doPickColor,
             update: update,
             clear: clear,
             destroy: destroy
@@ -810,7 +817,8 @@
 
         function update() {
             var previousState = editorState,
-                doUpdateState;
+                doUpdateState,
+                color;
 
             intersection = getIntersection();
             isTriggerClicked = hand.triggerClicked();
@@ -856,6 +864,16 @@
                         setState(EDITOR_GROUPING);
                     } else if (toolSelected === TOOL_COLOR) {
                         selection.applyColor(colorToolColor);
+                    } else if (toolSelected === TOOL_PICK_COLOR) {
+                        color = selection.getColor(intersection.entityID);
+                        if (color) {
+                            colorToolColor = color;
+                            ui.doPickColor(colorToolColor);
+                            ui.setToolColor(colorToolColor);
+                        }
+                        toolSelected = TOOL_COLOR;
+                        ui.setToolIcon(ui.COLOR_TOOL);
+                        ui.setToolColor(colorToolColor);
                     } else if (toolSelected === TOOL_DELETE) {
                         setState(EDITOR_HIGHLIGHTING);
                         selection.deleteEntities();
@@ -913,6 +931,16 @@
                         setState(EDITOR_GROUPING);
                     } else if (toolSelected === TOOL_COLOR) {
                         selection.applyColor(colorToolColor);
+                    } else if (toolSelected === TOOL_PICK_COLOR) {
+                        color = selection.getColor(intersection.entityID);
+                        if (color) {
+                            colorToolColor = color;
+                            ui.doPickColor(colorToolColor);
+                            ui.setToolColor(colorToolColor);
+                        }
+                        toolSelected = TOOL_COLOR;
+                        ui.setToolIcon(ui.COLOR_TOOL);
+                        ui.setToolColor(colorToolColor);
                     } else if (toolSelected === TOOL_DELETE) {
                         selection.deleteEntities();
                         setState(EDITOR_SEARCHING);
@@ -1265,6 +1293,11 @@
             colorToolColor = parameter;
             ui.updateUIEntities();
             break;
+        case "pickColorTool":
+            toolSelected = TOOL_PICK_COLOR;
+            ui.setToolIcon(ui.PICK_COLOR_TOOL);
+            ui.updateUIEntities();
+            break;
         case "deleteTool":
             grouping.clear();
             toolSelected = TOOL_DELETE;
@@ -1278,6 +1311,10 @@
             grouping.ungroup();
             break;
         case "setColor":
+            if (toolSelected === TOOL_PICK_COLOR) {
+                toolSelected = TOOL_COLOR;
+                ui.setToolIcon(ui.COLOR_TOOL);
+            }
             ui.setToolColor(parameter);
             colorToolColor = parameter;
             break;
