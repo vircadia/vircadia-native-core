@@ -15,7 +15,7 @@ var COLLISION_HULL_URL = Script.resolvePath('resources/Parent-Tool-CollisionHull
 
 // the fbx model needs to be rotated from where it would naturally face when it first initializes
 var ROT_Y_180 = {x: 0, y: 1, z: 0, w: 0};
-var START_ROTATION = Quat.normalize(Quat.multiply(ROT_Y_180, Camera.getOrientation()));
+var START_ROTATION = Quat.normalize(Quat.multiply(Camera.getOrientation(), ROT_Y_180));
 var START_POSITION = Vec3.sum(Vec3.sum(MyAvatar.position, { x: 0, y: 0.5, z: 0 }), Vec3.multiply(0.7, Quat.getForward(Camera.getOrientation())));
 
 
