@@ -22,7 +22,7 @@ Item {
     property real headerTextPixelSize: 22
     property real popupTextPixelSize: 16
     property real headerTextMargin: -5
-    property real headerGlyphMargin: -10
+    property real headerGlyphMargin: -15
     FontLoader { id: ralewayRegular; source: "../../fonts/Raleway-Regular.ttf"; }
     FontLoader { id: ralewaySemiBold; source: "../../fonts/Raleway-SemiBold.ttf"; }
     visible: false
