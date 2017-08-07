@@ -59,6 +59,11 @@
         tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
         tablet.webEventReceived.connect(function (message) {
 
+            if (message.type === "CHECKOUT") {
+                print("ZRF: Buy Button Clicked: ", JSON.stringify(message));
+                //tablet.pushOntoStack("");
+            }
+
             if (message === GOTO_DIRECTORY) {
                 tablet.gotoWebScreen(MARKETPLACES_URL, MARKETPLACES_INJECT_SCRIPT_URL);
             }

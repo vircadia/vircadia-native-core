@@ -87,8 +87,26 @@
         });
     }
 
+    function buyButtonClicked(name, author, price) {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "CHECKOUT",
+            itemName: name,
+            itemAuthor: author,
+            itemPrice: price
+        }));
+    }
+
     function injectHiFiCode() {
-        // Nothing to do.
+        $('#side-info').find('.btn').attr('href', '#')
+        $('#side-info').find('.btn').on('click', function () {
+            buyButtonClicked("TEST ITEM", "Zach Fox", 10);
+        });
+
+        $('.item-footer').find('#price-or-edit').find('a').attr('href', '#')
+        $('.item-footer').find('#price-or-edit').find('a').on('click', function () {
+            buyButtonClicked("TEST ITEM", "Zach Fox", 10);
+        });
+
     }
 
     function updateClaraCode() {
