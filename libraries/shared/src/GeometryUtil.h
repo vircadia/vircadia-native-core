@@ -163,5 +163,7 @@ private:
     static void copyCleanArray(int& lengthA, glm::vec2* vertexArrayA, int& lengthB, glm::vec2* vertexArrayB);
 };
 
+// given a set of points, compute a best fit plane that passes as close as possible through all the points.
+bool findPlaneFromPoints(const glm::vec3* points, size_t numPoints, glm::vec3& planeNormalOut, glm::vec3& pointOnPlaneOut);
 
 #endif // hifi_GeometryUtil_h
