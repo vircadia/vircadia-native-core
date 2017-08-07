@@ -74,11 +74,11 @@ QVariant AudioDeviceList::data(const QModelIndex& index, int role) const {
     }
 
     if (role == DisplayRole) {
-        return _devices.at(index.row()).display;
+        return _devices.at(index.row())->display;
     } else if (role == CheckStateRole) {
-        return _devices.at(index.row()).selected;
+        return _devices.at(index.row())->selected;
     } else if (role == InfoRole) {
-        return QVariant::fromValue<QAudioDeviceInfo>(_devices.at(index.row()).info);
+        return QVariant::fromValue<QAudioDeviceInfo>(_devices.at(index.row())->info);
     } else {
         return QVariant();
     }
@@ -90,7 +90,7 @@ QVariant AudioInputDeviceList::data(const QModelIndex& index, int role) const {
     }
 
     if (role == PeakRole) {
-        return std::static_pointer_cast<AudioInputDevice>(_devices.at(index.row())).peak;
+        return std::static_pointer_cast<AudioInputDevice>(_devices.at(index.row()))->peak;
     } else {
         return AudioDeviceList::data(index, role);
     }
