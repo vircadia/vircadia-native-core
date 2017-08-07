@@ -295,6 +295,12 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
             // persist the new config so the user config file has the correctly merged config
             persistToFile();
         }
+
+        if (oldVersion < 1.8) {
+            // This was prior to addition of domain content replacement, add that to localhost permissions by default
+            _standardAgentPermissions[NodePermissions::standardNameLocalhost]->set(NodePermissions::Permission::canReplaceDomainContent);
+            packPermissions();
+        }
     }
 
     unpackPermissions();
