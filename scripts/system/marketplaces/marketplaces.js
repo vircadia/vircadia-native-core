@@ -60,7 +60,7 @@
         tablet.webEventReceived.connect(function (message) {
 
             if (message.type === "CHECKOUT") {
-                print("ZRF: Buy Button Clicked: ", JSON.stringify(message));
+                console.log("ZRF: Buy Button Clicked: ", JSON.stringify(message));
                 //tablet.pushOntoStack("");
             }
 

@@ -97,16 +97,19 @@
     }
 
     function injectHiFiCode() {
-        $('#side-info').find('.btn').attr('href', '#')
-        $('#side-info').find('.btn').on('click', function () {
-            buyButtonClicked("TEST ITEM", "Zach Fox", 10);
-        });
-
+        console.log("ZRF INJECTING HIFI CODE");
         $('.item-footer').find('#price-or-edit').find('a').attr('href', '#')
         $('.item-footer').find('#price-or-edit').find('a').on('click', function () {
             buyButtonClicked("TEST ITEM", "Zach Fox", 10);
         });
+    }
 
+    function injectHiFiItemPageCode() {
+        console.log("ZRF INJECTING HIFI ITEM PAGE CODE");
+        $('#side-info').find('.btn').attr('href', '#')
+        $('#side-info').find('.btn').on('click', function () {
+            buyButtonClicked("TEST ITEM", "Zach Fox", 10);
+        });
     }
 
     function updateClaraCode() {
@@ -353,6 +356,9 @@
                 break;
             case HIFI:
                 injectHiFiCode();
+                break;
+            case HIFI_ITEM_PAGE:
+                injectHiFiItemPageCode();
                 break;
             case CLARA:
                 injectClaraCode();
