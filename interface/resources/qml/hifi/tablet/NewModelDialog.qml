@@ -65,7 +65,8 @@ Rectangle {
                 onClicked: {
                     newModelDialog.keyboardEnabled = HMD.active
                     parent.focus = true;
-                    parent.forceActiveFocus()
+                    parent.forceActiveFocus();
+                    modelURL.cursorPosition = modelURL.positionAt(mouseX, mouseY, TextInput.CursorBetweenCharaters);
                 }
             }
         }
@@ -144,7 +145,9 @@ Rectangle {
                     model: ["No Collision",
                             "Basic - Whole model",
                             "Good - Sub-meshes",
-                            "Exact - All polygons"]
+                            "Exact - All polygons", 
+                            "Box", 
+                            "Sphere"]
                 }
 
                 Row {

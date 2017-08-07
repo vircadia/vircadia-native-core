@@ -69,7 +69,7 @@ static AvatarMixerSlave slave;
 
 void AvatarMixerSlavePool::processIncomingPackets(ConstIter begin, ConstIter end) {
     _function = &AvatarMixerSlave::processIncomingPackets;
-    _configure = [&](AvatarMixerSlave& slave) { 
+    _configure = [=](AvatarMixerSlave& slave) { 
         slave.configure(begin, end);
     };
     run(begin, end);
@@ -79,7 +79,7 @@ void AvatarMixerSlavePool::broadcastAvatarData(ConstIter begin, ConstIter end,
                                                p_high_resolution_clock::time_point lastFrameTimestamp,
                                                float maxKbpsPerNode, float throttlingRatio) {
     _function = &AvatarMixerSlave::broadcastAvatarData;
-    _configure = [&](AvatarMixerSlave& slave) { 
+    _configure = [=](AvatarMixerSlave& slave) { 
         slave.configureBroadcast(begin, end, lastFrameTimestamp, maxKbpsPerNode, throttlingRatio);
    };
     run(begin, end);

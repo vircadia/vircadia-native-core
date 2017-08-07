@@ -27,7 +27,7 @@ protected:
     void setProperties(const QVariantMap& properties);
     QVariant getProperty(const QString& property);
 
-    void pointTransformAtCamera(Transform& transform, glm::quat offsetRotation = {1, 0, 0, 0});
+    bool pointTransformAtCamera(Transform& transform, glm::quat offsetRotation = {1, 0, 0, 0});
 
 private:
     bool _isFacingAvatar = false;

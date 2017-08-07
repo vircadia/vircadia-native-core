@@ -81,9 +81,6 @@ private slots:
     void processAgentAvatar();
     void processAgentAvatarAudio();
 
-signals:
-    void startAvatarAudioTimer();
-    void stopAvatarAudioTimer();
 private:
     void negotiateAudioFormat();
     void selectAudioFormat(const QString& selectedCodecName);
@@ -112,13 +109,13 @@ private:
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
 
     AudioGate _audioGate;
-    bool _audioGateOpen { false };
+    bool _audioGateOpen { true };
     bool _isNoiseGateEnabled { false };
 
     CodecPluginPointer _codec;
     QString _selectedCodecName;
     Encoder* _encoder { nullptr };
-    QThread _avatarAudioTimerThread;
+    QTimer _avatarAudioTimer;
     bool _flushEncoder { false };
 };
 

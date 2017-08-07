@@ -83,6 +83,11 @@ static const QMap<QString, int>& getBlendshapesLookupMap() {
     return blendshapeLookupMap;
 }
 
+int HeadData::getNumSummedBlendshapeCoefficients() const {
+    int maxSize = std::max(_blendshapeCoefficients.size(), _transientBlendshapeCoefficients.size());
+    return maxSize;
+}
+
 const QVector<float>& HeadData::getSummedBlendshapeCoefficients() {
     int maxSize = std::max(_blendshapeCoefficients.size(), _transientBlendshapeCoefficients.size());
     if (_summedBlendshapeCoefficients.size() != maxSize) {

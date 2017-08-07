@@ -34,16 +34,13 @@ protected:
     virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); notifyBoundChanged(); }
     virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); notifyBoundChanged(); }
 
-    void notifyBoundChanged();
+    void notifyBoundChanged();    
 
-    void createPipelines();
-    
     render::ScenePointer _scene;
     render::ItemID _renderItemId{ render::Item::INVALID_ITEM_ID };
     
     NetworkTexturePointer _texture;
-    gpu::PipelinePointer _untexturedPipeline;
-    gpu::PipelinePointer _texturedPipeline;
+
 };
 
 

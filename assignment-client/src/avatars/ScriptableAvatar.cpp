@@ -19,7 +19,7 @@
 #include "ScriptableAvatar.h"
 
 
-QByteArray ScriptableAvatar::toByteArrayStateful(AvatarDataDetail dataDetail) {
+QByteArray ScriptableAvatar::toByteArrayStateful(AvatarDataDetail dataDetail, bool dropFaceTracking) {
     _globalPosition = getPosition();
     return AvatarData::toByteArrayStateful(dataDetail);
 }

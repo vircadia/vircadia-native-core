@@ -33,7 +33,7 @@ Rectangle {
 
     // only show the title if loaded through a "loader"
     function showTitle() {
-        return root.parent.objectName == "loader";
+        return (root.parent !== null) && root.parent.objectName == "loader";
     }
 
     property bool showPeaks: true;
@@ -135,27 +135,29 @@ Rectangle {
             delegate: Item {
                 width: parent.width;
                 height: 36;
+                
+                AudioControls.CheckBox {
+                    id: checkbox
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: parent.left
+                    text: display;
+                    wrap: false;
+                    checked: selected;
+                    enabled: false;
+                }
 
-                RowLayout {
-                    width: parent.width;
+                MouseArea {
+                    anchors.fill: checkbox
+                    onClicked: Audio.setInputDevice(info);
+                }
 
-                    AudioControls.CheckBox {
-                        Layout.maximumWidth: parent.width - inputPeak.width - 40;
-                        text: display;
-                        wrap: false;
-                        checked: selected;
-                        onClicked: {
-                            selected = checked;
-                            checked = Qt.binding(function() { return selected; }); // restore binding
-                        }
-                    }
-                    InputPeak {
-                        id: inputPeak;
-                        visible: Audio.devices.input.peakValuesAvailable;
-                        peak: model.peak;
-                        Layout.alignment: Qt.AlignRight;
-                        Layout.rightMargin: 30;
-                    }
+                InputPeak {
+                    id: inputPeak;
+                    visible: Audio.devices.input.peakValuesAvailable;
+                    peak: model.peak;
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.right: parent.right
+                    anchors.rightMargin: 30
                 }
             }
         }
@@ -193,13 +195,19 @@ Rectangle {
             delegate: Item {
                 width: parent.width;
                 height: 36;
+
                 AudioControls.CheckBox {
+                    id: checkbox
+                    anchors.verticalCenter: parent.verticalCenter
+                    anchors.left: parent.left
                     text: display;
                     checked: selected;
-                    onClicked: {
-                        selected = checked;
-                        checked = Qt.binding(function() { return selected; }); // restore binding
-                    }
+                    enabled: false;
+                }
+
+                MouseArea {
+                    anchors.fill: checkbox
+                    onClicked: Audio.setOutputDevice(info);
                 }
             }
         }

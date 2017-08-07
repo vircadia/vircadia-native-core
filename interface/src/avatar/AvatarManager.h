@@ -22,11 +22,11 @@
 #include <SimpleMovingAverage.h>
 #include <shared/RateCounter.h>
 #include <avatars-renderer/ScriptAvatar.h>
+#include <AudioInjector.h>
 
 #include "AvatarMotionState.h"
 #include "MyAvatar.h"
 
-class AudioInjector;
 
 class AvatarManager : public AvatarHashMap {
     Q_OBJECT
@@ -104,7 +104,7 @@ private:
     std::shared_ptr<MyAvatar> _myAvatar;
     quint64 _lastSendAvatarDataTime = 0; // Controls MyAvatar send data rate.
 
-    std::list<QPointer<AudioInjector>> _collisionInjectors;
+    std::list<AudioInjectorPointer> _collisionInjectors;
 
     RateCounter<> _myAvatarSendRate;
     int _numAvatarsUpdated { 0 };
