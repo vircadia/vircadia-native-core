@@ -58,7 +58,7 @@ ScrollingWindow {
                 popupRadius: 0
                 headerGlyphSize: 20
                 headerTextMargin: 2
-                headerGlyphMargin: 0
+                headerGlyphMargin: -3
             }
         }
     }
