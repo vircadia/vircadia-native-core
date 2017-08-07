@@ -63,7 +63,7 @@
             if (parsedJsonMessage.type === "CHECKOUT") {
                 console.log("ZRF: Buy Button Clicked: " + JSON.stringify(parsedJsonMessage));
                 tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
-                tablet.sendToQml({ method: 'updateCheckoutQML', params: message });
+                tablet.sendToQml({ method: 'updateCheckoutQML', params: parsedJsonMessage });
             }
 
             if (message === GOTO_DIRECTORY) {

@@ -73,119 +73,156 @@ Rectangle {
         id: itemDescriptionContainer;
         // Size
         width: checkoutRoot.width;
-        height: 150;
+        height: childrenRect.height + 20;
         // Anchors
         anchors.left: parent.left;
         anchors.top: titleBarContainer.bottom;
 
         // Item Name text
-        RalewaySemiBold {
-            id: itemNameTextLabel;
-            text: "Item Name:";
-            // Text size
-            size: 16;
+        Item {
+            id: itemNameContainer; 
             // Anchors
             anchors.top: parent.top;
             anchors.topMargin: 4;
             anchors.left: parent.left;
             anchors.leftMargin: 16;
-            // Style
-            color: hifi.colors.lightGrayText;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
+            anchors.right: parent.right;
+            anchors.rightMargin: 16;
+            height: childrenRect.height;
+
+            RalewaySemiBold {
+                id: itemNameTextLabel;
+                text: "Item Name:";
+                // Anchors
+                anchors.top: parent.top;
+                anchors.left: parent.left;
+                width: paintedWidth;
+                // Text size
+                size: 16;
+                // Style
+                color: hifi.colors.lightGrayText;
+                // Alignment
+                horizontalAlignment: Text.AlignHLeft;
+                verticalAlignment: Text.AlignVCenter;
+            }
+            RalewayRegular {
+                id: itemNameText;
+                // Text size
+                size: itemNameTextLabel.size;
+                // Anchors
+                anchors.top: parent.top;
+                anchors.left: itemNameTextLabel.right;
+                anchors.leftMargin: 16;
+                width: paintedWidth;
+                // Style
+                color: hifi.colors.lightGrayText;
+                // Alignment
+                horizontalAlignment: Text.AlignHLeft;
+                verticalAlignment: Text.AlignVCenter;
+            }
         }
-        RalewayRegular {
-            id: itemNameText;
-            // Text size
-            size: itemNameTextLabel.size;
-            // Anchors
-            anchors.top: itemNameTextLabel.top;
-            anchors.topMargin: itemNameTextLabel.anchors.topMargin;
-            anchors.left: itemNameTextLabel.right;
-            anchors.leftMargin: 16;
-            // Style
-            color: hifi.colors.lightGrayText;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
-        }
+    
         
         // Item Author text
-        RalewaySemiBold {
-            id: itemAuthorTextLabel;
-            text: "Item Author:";
-            // Text size
-            size: 16;
+        Item {
+            id: itemAuthorContainer; 
             // Anchors
-            anchors.top: itemNameTextLabel.bottom;
+            anchors.top: itemNameContainer.bottom;
             anchors.topMargin: 4;
             anchors.left: parent.left;
             anchors.leftMargin: 16;
-            // Style
-            color: hifi.colors.lightGrayText;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
-        }
-        RalewayRegular {
-            id: itemAuthorText;
-            // Text size
-            size: itemAuthorTextLabel.size;
-            // Anchors
-            anchors.top: itemAuthorTextLabel.top;
-            anchors.topMargin: itemAuthorTextLabel.anchors.topMargin;
-            anchors.left: itemAuthorTextLabel.right;
-            anchors.leftMargin: 16;
-            // Style
-            color: hifi.colors.lightGrayText;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
+            anchors.right: parent.right;
+            anchors.rightMargin: 16;
+            height: childrenRect.height;
+
+            RalewaySemiBold {
+                id: itemAuthorTextLabel;
+                text: "Item Author:";
+                // Anchors
+                anchors.top: parent.top;
+                anchors.left: parent.left;
+                width: paintedWidth;
+                // Text size
+                size: 16;
+                // Style
+                color: hifi.colors.lightGrayText;
+                // Alignment
+                horizontalAlignment: Text.AlignHLeft;
+                verticalAlignment: Text.AlignVCenter;
+            }
+            RalewayRegular {
+                id: itemAuthorText;
+                // Text size
+                size: itemAuthorTextLabel.size;
+                // Anchors
+                anchors.top: parent.top;
+                anchors.left: itemAuthorTextLabel.right;
+                anchors.leftMargin: 16;
+                width: paintedWidth;
+                // Style
+                color: hifi.colors.lightGrayText;
+                // Alignment
+                horizontalAlignment: Text.AlignHLeft;
+                verticalAlignment: Text.AlignVCenter;
+            }
         }
         
         // Item Price text
-        RalewaySemiBold {
-            id: itemPriceTextLabel;
-            text: "Item Price:";
-            // Text size
-            size: 16;
+        Item {
+            id: itemPriceContainer; 
             // Anchors
-            anchors.top: itemAuthorTextLabel.bottom;
+            anchors.top: itemAuthorContainer.bottom;
             anchors.topMargin: 4;
             anchors.left: parent.left;
             anchors.leftMargin: 16;
-            // Style
-            color: hifi.colors.lightGrayText;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
-        }
-        RalewayRegular {
-            id: itemPriceText;
-            // Text size
-            size: itemPriceTextLabel.size;
-            // Anchors
-            anchors.top: itemPriceTextLabel.top;
-            anchors.topMargin: itemPriceTextLabel.anchors.topMargin;
-            anchors.left: itemPriceTextLabel.right;
-            anchors.leftMargin: 16;
-            // Style
-            color: hifi.colors.lightGrayText;
-            // Alignment
-            horizontalAlignment: Text.AlignHLeft;
-            verticalAlignment: Text.AlignVCenter;
-        }
-
-        // Separator
-        HifiControlsUit.Separator {
-            anchors.left: parent.left;
             anchors.right: parent.right;
-            anchors.bottom: parent.bottom;
+            anchors.rightMargin: 16;
+            height: childrenRect.height;
+
+            RalewaySemiBold {
+                id: itemPriceTextLabel;
+                text: "Item Price:";
+                // Anchors
+                anchors.top: parent.top;
+                anchors.left: parent.left;
+                width: paintedWidth;
+                // Text size
+                size: 20;
+                // Style
+                color: hifi.colors.lightGrayText;
+                // Alignment
+                horizontalAlignment: Text.AlignHLeft;
+                verticalAlignment: Text.AlignVCenter;
+            }
+            RalewayRegular {
+                id: itemPriceText;
+                // Text size
+                size: itemPriceTextLabel.size;
+                // Anchors
+                anchors.top: parent.top;
+                anchors.left: itemPriceTextLabel.right;
+                anchors.leftMargin: 16;
+                width: paintedWidth;
+                // Style
+                color: hifi.colors.lightGrayText;
+                // Alignment
+                horizontalAlignment: Text.AlignHLeft;
+                verticalAlignment: Text.AlignVCenter;
+            }
         }
     }
     //
     // ITEM DESCRIPTION END
+    //
+
+    
+    //
+    // ACTION BUTTONS START
+    //
+
+    
+    //
+    // ACTION BUTTONS END
     //
 
     //
@@ -205,13 +242,12 @@ Rectangle {
     // Called when a message is received from a script.
     //
     function fromScript(message) {
-        console.log("ZRF:", JSON.stringify(message));
         switch (message.method) {
             case 'updateCheckoutQML':
                 console.log("ZRF:", JSON.stringify(message));
-                itemNameText.text = message.itemName;
-                itemAuthorText.text = message.itemAuthor;
-                itemAuthorText.text = message.itemPrice;
+                itemNameText.text = message.params.itemName;
+                itemAuthorText.text = message.params.itemAuthor;
+                itemPriceText.text = message.params.itemPrice;
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
