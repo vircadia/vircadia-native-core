@@ -69,7 +69,7 @@ QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& propert
         }
     }
 
-    return DependencyManager::get<LaserPointerManager>()->createLaserPointer(propertyMap, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, enabled);
+    return qApp->getLaserPointerManager().createLaserPointer(propertyMap, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, enabled);
 }
 
 void LaserPointerScriptingInterface::editRenderState(QUuid uid, const QString& renderState, const QVariant& properties) {
@@ -90,7 +90,7 @@ void LaserPointerScriptingInterface::editRenderState(QUuid uid, const QString& r
         endProps = propMap["end"];
     }
 
-    DependencyManager::get<LaserPointerManager>()->editRenderState(uid, renderState, startProps, pathProps, endProps);
+    qApp->getLaserPointerManager().editRenderState(uid, renderState, startProps, pathProps, endProps);
 }
 
 const RenderState LaserPointerScriptingInterface::buildRenderState(const QVariantMap& propMap) {

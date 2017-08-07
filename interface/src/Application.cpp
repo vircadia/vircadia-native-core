@@ -602,7 +602,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<ContextOverlayInterface>();
 
     DependencyManager::set<LaserPointerScriptingInterface>();
-    DependencyManager::set<LaserPointerManager>();
     DependencyManager::set<RayPickManager>();
 
     return previousSessionCrashed;
@@ -5049,7 +5048,7 @@ void Application::update(float deltaTime) {
 
     {
         PROFILE_RANGE(app, "LaserPointerManager");
-        DependencyManager::get<LaserPointerManager>()->update();
+        _laserPointerManager.update();
     }
 
     // Update _viewFrustum with latest camera and view frustum data...

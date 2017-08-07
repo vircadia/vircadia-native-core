@@ -59,8 +59,6 @@ void RayPickManager::update() {
             continue;
         }
 
-        // TODO:
-        // get rid of this and make PickRay hashable
         QPair<glm::vec3, glm::vec3> rayKey = QPair<glm::vec3, glm::vec3>(ray.origin, ray.direction);
         RayPickResult res;
 

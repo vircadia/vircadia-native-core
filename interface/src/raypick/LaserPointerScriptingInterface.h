@@ -16,6 +16,7 @@
 #include "LaserPointerManager.h"
 #include "RegisteredMetaTypes.h"
 #include "DependencyManager.h"
+#include "Application.h"
 
 class LaserPointerScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
@@ -23,21 +24,21 @@ class LaserPointerScriptingInterface : public QObject, public Dependency {
 
 public slots:
     Q_INVOKABLE QUuid createLaserPointer(const QVariant& properties);
-    Q_INVOKABLE void enableLaserPointer(QUuid uid) { DependencyManager::get<LaserPointerManager>()->enableLaserPointer(uid); }
-    Q_INVOKABLE void disableLaserPointer(QUuid uid) { DependencyManager::get<LaserPointerManager>()->disableLaserPointer(uid); }
-    Q_INVOKABLE void removeLaserPointer(QUuid uid) { DependencyManager::get<LaserPointerManager>()->removeLaserPointer(uid); }
+    Q_INVOKABLE void enableLaserPointer(QUuid uid) { qApp->getLaserPointerManager().enableLaserPointer(uid); }
+    Q_INVOKABLE void disableLaserPointer(QUuid uid) { qApp->getLaserPointerManager().disableLaserPointer(uid); }
+    Q_INVOKABLE void removeLaserPointer(QUuid uid) { qApp->getLaserPointerManager().removeLaserPointer(uid); }
     Q_INVOKABLE void editRenderState(QUuid uid, const QString& renderState, const QVariant& properties);
-    Q_INVOKABLE void setRenderState(QUuid uid, const QString& renderState) { DependencyManager::get<LaserPointerManager>()->setRenderState(uid, renderState); }
-    Q_INVOKABLE RayPickResult getPrevRayPickResult(QUuid uid) { return DependencyManager::get<LaserPointerManager>()->getPrevRayPickResult(uid); }
+    Q_INVOKABLE void setRenderState(QUuid uid, const QString& renderState) { qApp->getLaserPointerManager().setRenderState(uid, renderState); }
+    Q_INVOKABLE RayPickResult getPrevRayPickResult(QUuid uid) { return qApp->getLaserPointerManager().getPrevRayPickResult(uid); }
 
-    Q_INVOKABLE void setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities) { DependencyManager::get<LaserPointerManager>()->setIgnoreEntities(uid, ignoreEntities); }
-    Q_INVOKABLE void setIncludeEntities(QUuid uid, const QScriptValue& includeEntities) { DependencyManager::get<LaserPointerManager>()->setIncludeEntities(uid, includeEntities); }
-    Q_INVOKABLE void setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays) { DependencyManager::get<LaserPointerManager>()->setIgnoreOverlays(uid, ignoreOverlays); }
-    Q_INVOKABLE void setIncludeOverlays(QUuid uid, const QScriptValue& includeOverlays) { DependencyManager::get<LaserPointerManager>()->setIncludeOverlays(uid, includeOverlays); }
-    Q_INVOKABLE void setIgnoreAvatars(QUuid uid, const QScriptValue& ignoreAvatars) { DependencyManager::get<LaserPointerManager>()->setIgnoreAvatars(uid, ignoreAvatars); }
-    Q_INVOKABLE void setIncludeAvatars(QUuid uid, const QScriptValue& includeAvatars) { DependencyManager::get<LaserPointerManager>()->setIncludeAvatars(uid, includeAvatars); }
+    Q_INVOKABLE void setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities) { qApp->getLaserPointerManager().setIgnoreEntities(uid, ignoreEntities); }
+    Q_INVOKABLE void setIncludeEntities(QUuid uid, const QScriptValue& includeEntities) { qApp->getLaserPointerManager().setIncludeEntities(uid, includeEntities); }
+    Q_INVOKABLE void setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays) { qApp->getLaserPointerManager().setIgnoreOverlays(uid, ignoreOverlays); }
+    Q_INVOKABLE void setIncludeOverlays(QUuid uid, const QScriptValue& includeOverlays) { qApp->getLaserPointerManager().setIncludeOverlays(uid, includeOverlays); }
+    Q_INVOKABLE void setIgnoreAvatars(QUuid uid, const QScriptValue& ignoreAvatars) { qApp->getLaserPointerManager().setIgnoreAvatars(uid, ignoreAvatars); }
+    Q_INVOKABLE void setIncludeAvatars(QUuid uid, const QScriptValue& includeAvatars) { qApp->getLaserPointerManager().setIncludeAvatars(uid, includeAvatars); }
 
-    Q_INVOKABLE void setLockEndUUID(QUuid uid, QUuid objectID, const bool isOverlay) { DependencyManager::get<LaserPointerManager>()->setLockEndUUID(uid, objectID, isOverlay); }
+    Q_INVOKABLE void setLockEndUUID(QUuid uid, QUuid objectID, const bool isOverlay) { qApp->getLaserPointerManager().setLockEndUUID(uid, objectID, isOverlay); }
 
 private:
     const RenderState buildRenderState(const QVariantMap & propMap);

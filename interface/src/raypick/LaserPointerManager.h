@@ -17,12 +17,10 @@
 #include <glm/glm.hpp>
 
 #include "LaserPointer.h"
-#include "DependencyManager.h"
 
 class RayPickResult;
 
-class LaserPointerManager : public Dependency {
-    SINGLETON_DEPENDENCY
+class LaserPointerManager {
 
 public:
     QUuid createLaserPointer(const QVariantMap& rayProps, const QHash<QString, RenderState>& renderStates, QHash<QString, QPair<float, RenderState>>& defaultRenderStates,
