@@ -97,7 +97,6 @@
     }
 
     function injectHiFiCode() {
-        console.log("ZRF INJECTING HIFI CODE");
         $('.item-footer').find('#price-or-edit').find('a').attr('href', '#')
         $('.item-footer').find('#price-or-edit').find('a').on('click', function () {
             buyButtonClicked("TEST ITEM", "Zach Fox", 10);
@@ -105,10 +104,9 @@
     }
 
     function injectHiFiItemPageCode() {
-        console.log("ZRF INJECTING HIFI ITEM PAGE CODE");
         $('#side-info').find('.btn').attr('href', '#')
         $('#side-info').find('.btn').on('click', function () {
-            buyButtonClicked("TEST ITEM", "Zach Fox", 10);
+            buyButtonClicked($('#top-center').find('h1').text(), $('#creator').find('.value').text(), 10);
         });
     }
 
@@ -344,9 +342,11 @@
         var DIRECTORY = 0;
         var HIFI = 1;
         var CLARA = 2;
+        var HIFI_ITEM_PAGE = 3;
         var pageType = DIRECTORY;
 
         if (location.href.indexOf("highfidelity.com/") !== -1) { pageType = HIFI; }
+        if (location.href.indexOf("highfidelity.com/marketplace/items/") !== -1) { pageType = HIFI_ITEM_PAGE; }
         if (location.href.indexOf("clara.io/") !== -1) { pageType = CLARA; }
 
         injectCommonCode(pageType === DIRECTORY);

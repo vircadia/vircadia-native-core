@@ -19,6 +19,7 @@
     var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
     var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
+    var MARKETPLACE_CHECKOUT_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/Checkout.qml";
 
     var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
     // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
@@ -58,10 +59,11 @@
         UserActivityLogger.openedMarketplace();
         tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
         tablet.webEventReceived.connect(function (message) {
-
-            if (message.type === "CHECKOUT") {
-                console.log("ZRF: Buy Button Clicked: ", JSON.stringify(message));
-                //tablet.pushOntoStack("");
+            var parsedJsonMessage = JSON.parse(message);
+            if (parsedJsonMessage.type === "CHECKOUT") {
+                console.log("ZRF: Buy Button Clicked: " + JSON.stringify(parsedJsonMessage));
+                tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
+                tablet.sendToQml({ method: 'updateCheckoutQML', params: message });
             }
 
             if (message === GOTO_DIRECTORY) {
