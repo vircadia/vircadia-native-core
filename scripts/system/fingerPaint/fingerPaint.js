@@ -946,12 +946,13 @@
             case "switchAnimatedBrush":
                 var animatedBrushes = Settings.getValue("currentAnimatedBrushes", []);
                 var brushSettingsIndex = animatedBrushes.indexOf(event.animatedBrushID);
-                if (brushSettingsIndex > -1) { //already exists so we are disabling it
+                if (!event.enabled && brushSettingsIndex > -1) { //already exists so we are disabling it
                     animatedBrushes.splice(brushSettingsIndex, 1);
-                } else { //doesn't exist yet so we are just adding it
+                } else if (event.enabled && brushSettingsIndex == -1) { //doesn't exist yet so we are just adding it
                     animatedBrushes.push(event.animatedBrushID);
                 }
                 Settings.setValue("currentAnimatedBrushes", animatedBrushes);
+                print("Setting animated brushes: " + JSON.stringify(animatedBrushes));
                 AnimatedBrushesInfo[event.animatedBrushName].isEnabled = event.enabled;
                 AnimatedBrushesInfo[event.animatedBrushName].settings = event.settings;
                 break;
