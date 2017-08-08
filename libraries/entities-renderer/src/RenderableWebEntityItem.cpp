@@ -69,7 +69,7 @@ RenderableWebEntityItem::~RenderableWebEntityItem() {
     }
 }
 
-bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer> renderer) {
+bool RenderableWebEntityItem::buildWebSurface() {
     if (_currentWebCount >= MAX_CONCURRENT_WEB_VIEWS) {
         qWarning() << "Too many concurrent web views to create new view";
         return false;
@@ -132,6 +132,8 @@ bool RenderableWebEntityItem::buildWebSurface(QSharedPointer<EntityTreeRenderer>
             handlePointerEvent(event);
         }
     };
+
+    auto renderer = DependencyManager::get<EntityTreeRenderer>();
     _mousePressConnection = QObject::connect(renderer.data(), &EntityTreeRenderer::mousePressOnEntity, forwardPointerEvent);
     _mouseReleaseConnection = QObject::connect(renderer.data(), &EntityTreeRenderer::mouseReleaseOnEntity, forwardPointerEvent);
     _mouseMoveConnection = QObject::connect(renderer.data(), &EntityTreeRenderer::mouseMoveOnEntity, forwardPointerEvent);
@@ -185,8 +187,7 @@ void RenderableWebEntityItem::render(RenderArgs* args) {
     #endif
 
     if (!_webSurface) {
-        auto renderer = qSharedPointerCast<EntityTreeRenderer>(args->_renderData);
-        if (!buildWebSurface(renderer)) {
+        if (!buildWebSurface()) {
             return;
         }
         _fadeStartTime = usecTimestampNow();

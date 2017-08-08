@@ -22,23 +22,17 @@ macro(GENERATE_INSTALLERS)
   set(CPACK_PACKAGE_FILE_NAME "HighFidelity-Beta-${BUILD_VERSION}")
   set(CPACK_NSIS_DISPLAY_NAME ${_DISPLAY_NAME})
   set(CPACK_NSIS_PACKAGE_NAME ${_DISPLAY_NAME})
+  if (PR_BUILD)
+    set(CPACK_NSIS_COMPRESSOR "/SOLID bzip2")
+  endif ()
   set(CPACK_PACKAGE_INSTALL_DIRECTORY ${_DISPLAY_NAME})
 
+
   if (WIN32)
-    # include CMake module that will install compiler system libraries
-    # so that we have msvcr120 and msvcp120 installed with targets
-    set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION ${INTERFACE_INSTALL_DIR})
-
-    # as long as we're including sixense plugin with installer
-    # we need re-distributables for VS 2011 as well
-    # this should be removed if/when sixense support is pulled
-    set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS
-      "${EXTERNALS_BINARY_DIR}/sixense/project/src/sixense/samples/win64/msvcr100.dll"
-      "${EXTERNALS_BINARY_DIR}/sixense/project/src/sixense/samples/win64/msvcp100.dll"
-    )
-
+    # Do not install the Visual Studio C runtime libraries.  The installer will do this automatically
+    set(CMAKE_INSTALL_SYSTEM_RUNTIME_LIBS_SKIP TRUE)
+    
     include(InstallRequiredSystemLibraries)
-
     set(CPACK_NSIS_MUI_ICON "${HF_CMAKE_DIR}/installer/installer.ico")
 
     # install and reference the Add/Remove icon
@@ -90,3 +84,4 @@ macro(GENERATE_INSTALLERS)
 
   include(CPack)
 endmacro()
+

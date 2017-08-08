@@ -9,12 +9,12 @@
 //
 
 (function() {
-    Script.include(Script.resolvePath("pUtils.js"));
-    var TIMEOUT = 150;
-    var TEXGRAY = Script.resolvePath("xylotex_bar_gray.png");
-    var TEXBLACK = Script.resolvePath("xylotex_bar_black.png");
+    var TIMEOUT = 50; // at 30 ms, the key's color sometimes fails to switch when hit
+    var TEXTURE_GRAY = Script.resolvePath("xylotex_bar_gray.png");
+    var TEXTURE_BLACK = Script.resolvePath("xylotex_bar_black.png");
+    var IS_DEBUG = false;
     var _this;
-
+ 
     function XylophoneKey() {
         _this = this;
     }
@@ -22,7 +22,7 @@
     XylophoneKey.prototype = {
         sound: null,
         isWaiting: false,
-        homePos: null,
+        homePosition: null,
         injector: null,
 
         preload: function(entityID) {
@@ -34,31 +34,66 @@
 
         collisionWithEntity: function(thisEntity, otherEntity, collision) {
             if (collision.type === 0) {
-                _this.hit();
+                _this.hit(otherEntity);                
             }
         },
 
-        clickDownOnEntity: function() {
-            _this.hit();
+        clickDownOnEntity: function(otherEntity) {
+            _this.hit(otherEntity);
         },
 
-        hit: function() {
+        hit: function(otherEntity) {
             if (!_this.isWaiting) {
                 _this.isWaiting = true;
-                _this.homePos = Entities.getEntityProperties(_this.entityID, ["position"]).position;
-                _this.injector = Audio.playSound(_this.sound, {position: _this.homePos, volume: 1});
-                editEntityTextures(_this.entityID, "file5", TEXGRAY);
+                _this.homePosition = Entities.getEntityProperties(_this.entityID, ["position"]).position;
+                _this.injector = Audio.playSound(_this.sound, {position: _this.homePosition, volume: 1});
+                _this.editEntityTextures(_this.entityID, "file5", TEXTURE_GRAY);
+                
+                var HAPTIC_STRENGTH = 1;
+                var HAPTIC_DURATION = 20;                
+                var userData = JSON.parse(Entities.getEntityProperties(otherEntity, 'userData').userData);
+                if (userData.hasOwnProperty('hand')){
+                    Controller.triggerHapticPulse(HAPTIC_STRENGTH, HAPTIC_DURATION, userData.hand);
+                }
+
                 _this.timeout();
             }
         },
 
         timeout: function() {
             Script.setTimeout(function() {
-                editEntityTextures(_this.entityID, "file5", TEXBLACK);
+                _this.editEntityTextures(_this.entityID, "file5", TEXTURE_BLACK);
                 _this.isWaiting = false;
             }, TIMEOUT);
+        },
+
+        getEntityTextures: function(id) {
+            var results = null;
+            var properties = Entities.getEntityProperties(id, "textures");
+            if (properties.textures) { 
+                try {
+                    results = JSON.parse(properties.textures);
+                } catch (err) {
+                    if (IS_DEBUG) {
+                        print(err);
+                        print(properties.textures);
+                    }
+                }
+            }
+            return results ? results : {};
+        },
+
+        setEntityTextures: function(id, textureList) {
+            var json = JSON.stringify(textureList);
+            Entities.editEntity(id, {textures: json});
+        },
+
+        editEntityTextures: function(id, textureName, textureURL) {
+            var textureList = _this.getEntityTextures(id);
+            textureList[textureName] = textureURL;
+            _this.setEntityTextures(id, textureList);
+        }
     };
 
     return new XylophoneKey();
-
 });

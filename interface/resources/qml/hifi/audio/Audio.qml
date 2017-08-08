@@ -33,7 +33,7 @@ Rectangle {
 
     // only show the title if loaded through a "loader"
     function showTitle() {
-        return root.parent.objectName == "loader";
+        return (root.parent !== null) && root.parent.objectName == "loader";
     }
 
     Column {

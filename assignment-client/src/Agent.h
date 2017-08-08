@@ -109,7 +109,7 @@ private:
     QHash<QUuid, quint16> _outgoingScriptAudioSequenceNumbers;
 
     AudioGate _audioGate;
-    bool _audioGateOpen { false };
+    bool _audioGateOpen { true };
     bool _isNoiseGateEnabled { false };
 
     CodecPluginPointer _codec;
