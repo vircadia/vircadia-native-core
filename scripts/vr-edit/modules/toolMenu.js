@@ -290,6 +290,15 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         method: "pickColorTool"
                     }
                 }
+            ],
+            physicsOptions: [
+                {
+                    id: "physicsOptionsPanel",
+                    type: "panel",
+                    properties: {
+                        localPosition: { x: 0.055, y: 0.0, z: -0.005 }
+                    }
+                }
             ]
         },
 
@@ -350,6 +359,19 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 callback: {
                     method: "colorTool",
                     parameter: "currentColor.color"
+                }
+            },
+            {
+                id: "physicsButton",
+                type: "button",
+                properties: {
+                    localPosition: { x: -0.022, y: 0.04, z: -0.005 },
+                    color: { red: 60, green: 60, blue: 240 }
+                },
+                label: "PHYSICS",
+                toolOptions: "physicsOptions",
+                callback: {
+                    method: "physicsTool"
                 }
             },
             {
