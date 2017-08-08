@@ -240,7 +240,9 @@ Rectangle {
             anchors.leftMargin: 20;
             width: parent.width/2 - anchors.leftMargin*2;
             text: "Cancel"
-            //onClicked: deleteAttachment(root.attachment);
+            onClicked: {
+                sendToScript({method: 'checkout_cancelClicked'});
+            }
         }
 
         // "Buy" button
@@ -255,7 +257,9 @@ Rectangle {
             anchors.rightMargin: 20;
             width: parent.width/2 - anchors.rightMargin*2;
             text: "Buy"
-            //onClicked: deleteAttachment(root.attachment);
+            onClicked: {
+                sendToScript({method: 'checkout_buyClicked'});
+            }
         }
     }
     //
@@ -281,7 +285,6 @@ Rectangle {
     function fromScript(message) {
         switch (message.method) {
             case 'updateCheckoutQML':
-                console.log("ZRF:", JSON.stringify(message));
                 itemNameText.text = message.params.itemName;
                 itemAuthorText.text = message.params.itemAuthor;
                 itemPriceText.text = message.params.itemPrice;
