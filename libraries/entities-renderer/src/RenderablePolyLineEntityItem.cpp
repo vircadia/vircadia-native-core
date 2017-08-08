@@ -153,6 +153,7 @@ void RenderablePolyLineEntityItem::updateGeometry() {
     float accumulatedDistance = 0.0f;
     float distanceToLastPoint = 0.0f;
     float accumulatedStrokeWidth = 0.0f;
+    float strokeWidth = 0.0f;
     bool doesStrokeWidthVary = false;
 
     for (int i = 0; i < _strokeWidths.size(); i++) {
@@ -164,26 +165,25 @@ void RenderablePolyLineEntityItem::updateGeometry() {
 
     for (int i = 0; i < _vertices.size() / 2; i++) {
         vCoord = 0.0f;
-        if (!_isUVModeStretch && vertexIndex > 2) {
+
+        if (!_isUVModeStretch && vertexIndex >= 2) {
             distanceToLastPoint = glm::distance(_vertices.at(vertexIndex), _vertices.at(vertexIndex - 2));
+            accumulatedDistance += distanceToLastPoint;
+            strokeWidth = 2 * _strokeWidths[i];
+
             if (doesStrokeWidthVary) {
                 //If the stroke varies along the line the texture will stretch more or less depending on the speed
                 //because it looks better than using the same method as below
-                accumulatedStrokeWidth += 2 * _strokeWidths[i];
-                float strokeWidth = 2 * _strokeWidths[i];
-                float newUcoord = glm::ceil(
-                    (_textureAspectRatio * (accumulatedDistance + distanceToLastPoint)) / (accumulatedStrokeWidth / i));
+                accumulatedStrokeWidth += strokeWidth;
+                float newUcoord = glm::ceil((_textureAspectRatio * accumulatedDistance) / (accumulatedStrokeWidth / i));
                 float increaseValue = newUcoord - uCoord;
                 increaseValue = increaseValue > 0 ? increaseValue : 1;
                 uCoord += increaseValue;
             } else {
                 //If the stroke width is constant then the textures should keep the aspect ratio along the line
-                uCoord = (_textureAspectRatio * (accumulatedDistance + distanceToLastPoint)) / (2 * _strokeWidths[i]);
+                uCoord = (_textureAspectRatio * accumulatedDistance) / strokeWidth;
             }
-            
-            accumulatedDistance += distanceToLastPoint;
         }
-
 
         vec3 color = _strokeColors.size() == _normals.size() ? _strokeColors.at(i) : toGlm(getXColor());
 
@@ -205,6 +205,7 @@ void RenderablePolyLineEntityItem::updateGeometry() {
         _numVertices += 2;
         uCoord += uCoordInc;
     }
+
 
     _pointsChanged = false;
     _normalsChanged = false;
