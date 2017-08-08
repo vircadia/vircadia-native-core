@@ -31,4 +31,6 @@ inline glm::quat safeLerp(const glm::quat& a, const glm::quat& b, float alpha) {
     return glm::normalize(glm::lerp(a, bTemp, alpha));
 }
 
+AnimPose boneLookAt(const glm::vec3& target, const AnimPose& bone);
+
 #endif

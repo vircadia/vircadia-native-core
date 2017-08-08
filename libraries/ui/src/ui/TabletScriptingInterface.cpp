@@ -28,11 +28,9 @@ const QString SYSTEM_TOOLBAR = "com.highfidelity.interface.toolbar.system";
 const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 
 TabletScriptingInterface::TabletScriptingInterface() {
-    qCDebug(uiLogging) << "Building tablet scripting interface";
 }
 
 TabletScriptingInterface::~TabletScriptingInterface() {
-    qCDebug(uiLogging) << "Destroying tablet scripting interface";
 }
 
 ToolbarProxy* TabletScriptingInterface::getSystemToolbarProxy() {
@@ -191,7 +189,6 @@ TabletProxy::TabletProxy(QObject* parent, const QString& name) : QObject(parent)
 }
 
 TabletProxy::~TabletProxy() {
-    qCDebug(uiLogging) << "Destroying tablet proxy " << _name;
     if (QThread::currentThread() != thread()) {
         qCWarning(uiLogging) << "Destroying tablet proxy on wrong thread" << _name;
     }
@@ -846,7 +843,6 @@ TabletButtonProxy::TabletButtonProxy(const QVariantMap& properties) :
 }
 
 TabletButtonProxy::~TabletButtonProxy() {
-    qCDebug(uiLogging) << "Destroying tablet button proxy " ;
     if (QThread::currentThread() != thread()) {
         qCWarning(uiLogging) << "Destroying tablet button proxy on wrong thread";
     }
