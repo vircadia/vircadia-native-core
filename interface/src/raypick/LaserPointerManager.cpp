@@ -9,13 +9,12 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "LaserPointerManager.h"
-#include "LaserPointer.h"
 #include "RayPick.h"
 
 QUuid LaserPointerManager::createLaserPointer(const QVariantMap& rayProps, const QHash<QString, RenderState>& renderStates, QHash<QString, QPair<float, RenderState>>& defaultRenderStates,
     const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) {
     std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(rayProps, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, enabled);
-    if (laserPointer->getRayUID() != 0) {
+    if (!laserPointer->getRayUID().isNull()) {
         QWriteLocker lock(&_addLock);
         QUuid id = QUuid::createUuid();
         _laserPointersToAdd.enqueue(QPair<QUuid, std::shared_ptr<LaserPointer>>(id, laserPointer));

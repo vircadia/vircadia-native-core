@@ -194,7 +194,7 @@ QUuid RayPickManager::createRayPick(const QVariantMap& rayProps) {
         return id;
     }
 
-    return 0;
+    return QUuid();
 }
 
 void RayPickManager::removeRayPick(const QUuid uid) {

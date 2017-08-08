@@ -38,27 +38,12 @@ LaserPointer::LaserPointer(const QVariantMap& rayProps, const QHash<QString, Ren
 
 LaserPointer::~LaserPointer() {
     DependencyManager::get<RayPickManager>()->removeRayPick(_rayPickUID);
+
     for (RenderState& renderState : _renderStates) {
-        if (!renderState.getStartID().isNull()) {
-            qApp->getOverlays().deleteOverlay(renderState.getStartID());
-        }
-        if (!renderState.getPathID().isNull()) {
-            qApp->getOverlays().deleteOverlay(renderState.getPathID());
-        }
-        if (!renderState.getEndID().isNull()) {
-            qApp->getOverlays().deleteOverlay(renderState.getEndID());
-        }
+        renderState.deleteOverlays();
     }
     for (QPair<float, RenderState>& renderState : _defaultRenderStates) {
-        if (!renderState.second.getStartID().isNull()) {
-            qApp->getOverlays().deleteOverlay(renderState.second.getStartID());
-        }
-        if (!renderState.second.getPathID().isNull()) {
-            qApp->getOverlays().deleteOverlay(renderState.second.getPathID());
-        }
-        if (!renderState.second.getEndID().isNull()) {
-            qApp->getOverlays().deleteOverlay(renderState.second.getEndID());
-        }
+        renderState.second.deleteOverlays();
     }
 }
 
@@ -228,5 +213,17 @@ RenderState::RenderState(const OverlayID& startID, const OverlayID& pathID, cons
     }
     if (!_endID.isNull()) {
         _endIgnoreRays = qApp->getOverlays().getOverlay(_endID)->getProperty("ignoreRayIntersection").toBool();
+    }
+}
+
+void RenderState::deleteOverlays() {
+    if (!_startID.isNull()) {
+        qApp->getOverlays().deleteOverlay(_startID);
+    }
+    if (!_pathID.isNull()) {
+        qApp->getOverlays().deleteOverlay(_pathID);
+    }
+    if (!_endID.isNull()) {
+        qApp->getOverlays().deleteOverlay(_endID);
     }
 }

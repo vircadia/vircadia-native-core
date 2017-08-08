@@ -36,6 +36,8 @@ public:
     const bool& doesPathIgnoreRays() const { return _pathIgnoreRays; }
     const bool& doesEndIgnoreRays() const { return _endIgnoreRays; }
 
+    void deleteOverlays();
+
 private:
     OverlayID _startID;
     OverlayID _pathID;

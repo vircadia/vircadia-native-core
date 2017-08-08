@@ -30,11 +30,13 @@ enum RayPickMask {
     PICK_AVATARS = 1 << 2,
     PICK_HUD = 1 << 3,
 
+    // NOT YET IMPLEMENTED
     PICK_BOUNDING_BOX = 1 << 4, // if not set, picks again physics mesh (can't pick against graphics mesh, yet)
 
     PICK_INCLUDE_INVISIBLE = 1 << 5, // if not set, will not intersect invisible elements, otherwise, intersects both visible and invisible elements
     PICK_INCLUDE_NONCOLLIDABLE = 1 << 6, // if not set, will not intersect noncollidable elements, otherwise, intersects both collidable and noncollidable elements
 
+    // NOT YET IMPLEMENTED
     PICK_ALL_INTERSECTIONS = 1 << 7 // if not set, returns closest intersection, otherwise, returns list of all intersections
 };
 
