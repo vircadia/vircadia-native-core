@@ -188,22 +188,7 @@ Antialiasing::~Antialiasing() {
 }
 
 const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
-    int width = DependencyManager::get<FramebufferCache>()->getFrameBufferSize().width();
-    int height = DependencyManager::get<FramebufferCache>()->getFrameBufferSize().height();
-    
-    if (_antialiasingBuffer && _antialiasingBuffer->getSize() != uvec2(width, height)) {
-        _antialiasingBuffer.reset();
-    }
-    
-    if (!_antialiasingBuffer) {
-        // Link the antialiasing FBO to texture
-        _antialiasingBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("antialiasing"));
-        auto format = gpu::Element::COLOR_SRGBA_32; // DependencyManager::get<FramebufferCache>()->getLightingTexture()->getTexelFormat();
-        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
-        _antialiasingTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, defaultSampler);
-        _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
-    }
-    
+   
     if (!_antialiasingPipeline) {
         
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
@@ -257,6 +242,25 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
     
     RenderArgs* args = renderContext->args;
     
+    int width = sourceBuffer->getWidth();
+    int height = sourceBuffer->getHeight();
+
+    if (_antialiasingBuffer) {
+        if (_antialiasingBuffer->getSize() != uvec2(width, height) || (sourceBuffer && (_antialiasingBuffer->getRenderBuffer(1) != sourceBuffer->getRenderBuffer(0)))) {
+            _antialiasingBuffer.reset();
+        }
+    }
+
+    if (!_antialiasingBuffer) {
+        // Link the antialiasing FBO to texture
+        _antialiasingBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("antialiasing"));
+        auto format = gpu::Element::COLOR_SRGBA_32; // DependencyManager::get<FramebufferCache>()->getLightingTexture()->getTexelFormat();
+        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
+        _antialiasingTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, defaultSampler);
+        _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
+        _antialiasingBuffer->setRenderBuffer(1, sourceBuffer->getRenderBuffer(0));
+    }
+
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setViewportTransform(args->_viewport);
@@ -268,14 +272,15 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setFramebuffer(_antialiasingBuffer);
         batch.setPipeline(getAntialiasingPipeline());
         batch.draw(gpu::TRIANGLE_STRIP, 4);
+        batch.setFramebuffer(sourceBuffer);
 
         // Blend step
      //   batch.setResourceTexture(0, _antialiasingTexture);
-        batch.setResourceTexture(1, nullptr);
+   /*     batch.setResourceTexture(1, nullptr);
         batch.setFramebuffer(sourceBuffer);
         batch.setPipeline(getBlendPipeline());
         batch.draw(gpu::TRIANGLE_STRIP, 4);
-
+        */
     });
 }
 
