@@ -245,7 +245,7 @@
         }
 
         function doPickColor(color) {
-            toolMenu.doCommand("setCurrentColor", color);
+            toolMenu.doCommand("setColorFromPick", color);
         }
 
         function clear() {

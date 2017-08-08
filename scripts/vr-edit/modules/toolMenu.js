@@ -82,6 +82,17 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                     visible: true
                 }
             },
+            "swatch": {
+                overlay: "cube",
+                properties: {
+                    dimensions: { x: 0.03, y: 0.03, z: 0.01 },
+                    localRotation: Quat.ZERO,
+                    alpha: 1.0,
+                    solid: false,  // False indicates "no color assigned"
+                    ignoreRayIntersection: false,
+                    visible: true
+                }
+            },
             "label": {
                 overlay: "text3d",
                 properties: {
@@ -163,69 +174,57 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                 },
                 {
                     id: "colorSwatch1",
-                    type: "button",
+                    type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
                         localPosition: { x: -0.035, y: 0.02, z: -0.005 },
-                        color: { red: 255, green: 0, blue: 0 }
+                        color: { red: 255, green: 0, blue: 0 },
+                        solid: true
                     },
                     command: {
-                        method: "setCurrentColor",
-                        parameter: "colorSwatch1.color"
-                    },
-                    callback: {
-                        method: "setColor",
+                        method: "setColorPerSwatch",
                         parameter: "colorSwatch1.color"
                     }
                 },
                 {
                     id: "colorSwatch2",
-                    type: "button",
+                    type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
                         localPosition: { x: -0.01, y: 0.02, z: -0.005 },
-                        color: { red: 0, green: 255, blue: 0 }
+                        color: { red: 0, green: 255, blue: 0 },
+                        solid: true
                     },
                     command: {
-                        method: "setCurrentColor",
-                        parameter: "colorSwatch2.color"
-                    },
-                    callback: {
-                        method: "setColor",
+                        method: "setColorPerSwatch",
                         parameter: "colorSwatch2.color"
                     }
                 },
                 {
                     id: "colorSwatch3",
-                    type: "button",
+                    type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
                         localPosition: { x: -0.035, y: 0.045, z: -0.005 },
-                        color: { red: 0, green: 0, blue: 255 }
+                        color: { red: 128, green: 128, blue: 128 },
+                        solid: false
                     },
                     command: {
-                        method: "setCurrentColor",
-                        parameter: "colorSwatch3.color"
-                    },
-                    callback: {
-                        method: "setColor",
+                        method: "setColorPerSwatch",
                         parameter: "colorSwatch3.color"
                     }
                 },
                 {
                     id: "colorSwatch4",
-                    type: "button",
+                    type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
                         localPosition: { x: -0.01, y: 0.045, z: -0.005 },
-                        color: { red: 255, green: 255, blue: 255 }
+                        color: { red: 128, green: 128, blue: 128 },
+                        solid: false
                     },
                     command: {
-                        method: "setCurrentColor",
-                        parameter: "colorSwatch4.color"
-                    },
-                    callback: {
-                        method: "setColor",
+                        method: "setColorPerSwatch",
                         parameter: "colorSwatch4.color"
                     }
                 },
@@ -462,8 +461,34 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
     }
 
     function doCommand(command, parameter) {
+        var parameters,
+            hasColor,
+            value;
+
         switch (command) {
-        case "setCurrentColor":
+        case "setColorPerSwatch":
+            parameters = parameter.split(".");
+            hasColor = Overlays.getProperty(optionsOverlays[optionsOverlaysIDs.indexOf(parameters[0])], "solid");
+            if (hasColor) {
+                // Swatch has a color; set current fill color to swatch color.
+                value = evaluateParameter(parameter);
+                Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf("currentColor")], {
+                    color: value
+                });
+                if (optionsSettings.currentColor) {
+                    Settings.setValue(optionsSettings.currentColor.key, value);
+                }
+                doCallback("setColor", value);
+            } else {
+                // Swatch has no color; set swatch color to current fill color.
+                value = Overlays.getProperty(optionsOverlays[optionsOverlaysIDs.indexOf("currentColor")], "color");
+                Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf(parameters[0])], {
+                    color: value,
+                    solid: true
+                });
+            }
+            break;
+        case "setColorFromPick":
             Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf("currentColor")], {
                 color: parameter
             });
@@ -474,7 +499,6 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
         default:
             // TODO: Log error.
         }
-
     }
 
     function update(intersectionOverlayID, groupsCount, entitiesCount) {
@@ -483,6 +507,7 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
             parentProperties,
             localPosition,
             BUTTON_PRESS_DELTA = 0.004,
+            parameter,
             parameterValue,
             enableGroupButton,
             enableUngroupButton;
@@ -509,8 +534,9 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
 
         // Highlight clickable item.
         if (intersectedItem !== highlightedItem || intersectionOverlays !== highlightedSource) {
-            if (intersectedItem !== -1 && intersectionItems[intersectedItem].callback !== undefined) {
-                // Highlight new button. (The existence of a callback infers that the item is a button.)
+            if (intersectedItem !== -1 && (intersectionItems[intersectedItem].command !== undefined
+                    || intersectionItems[intersectedItem].callback !== undefined)) {
+                // Highlight new button. (The existence of a command or callback infers that the item is a button.)
                 parentProperties = Overlays.getProperties(intersectionOverlays[intersectedItem],
                     ["dimensions", "localPosition"]);
                 Overlays.editOverlay(highlightOverlay, {
@@ -567,9 +593,9 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                 }
                 if (intersectionItems[intersectedItem].command) {
                     if (intersectionItems[intersectedItem].command.parameter) {
-                        parameterValue = evaluateParameter(intersectionItems[intersectedItem].command.parameter);
+                        parameter = intersectionItems[intersectedItem].command.parameter;
                     }
-                    doCommand(intersectionItems[intersectedItem].command.method, parameterValue);
+                    doCommand(intersectionItems[intersectedItem].command.method, parameter);
                 }
                 if (intersectionItems[intersectedItem].callback) {
                     if (intersectionItems[intersectedItem].callback.parameter) {
