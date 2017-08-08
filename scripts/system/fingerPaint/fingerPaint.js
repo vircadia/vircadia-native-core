@@ -865,7 +865,7 @@
                 restoreLastValues();
                 tablet.gotoWebScreen(APP_URL + "?" + encodeURIComponent(JSON.stringify(_savedSettings)));
                 break;
-                
+
             case "changeTab":
                 Settings.setValue("currentTab", event.currentTab);
                 break;
@@ -1075,7 +1075,7 @@
     }
 
     function mouseStartLine(event){
-        if (event.isLeftButton && _rightBrush) {
+        if (event.isLeftButton && _rightBrush && !_rightBrush.isDrawingLine()) {
             _isMouseDrawing = true;
             _rightBrush.startLine(getFingerPosition(event.x, event.y), MAX_LINE_WIDTH);
         }
