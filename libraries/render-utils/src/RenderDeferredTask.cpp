@@ -40,7 +40,7 @@
 #include "ToneMappingEffect.h"
 #include "SubsurfaceScattering.h"
 #include "PickItemsJob.h"
-#include "RenderOutline.h"
+#include "OutlineEffect.h"
 
 #include <gpu/StandardShaderLib.h>
 
@@ -95,7 +95,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<DrawStateSortDeferred>("DrawOpaqueOutlined", opaqueOutlineInputs, shapePlumber);
 
     // Retrieve z value of the outlined objects
-    const auto outlinedZBuffer = task.addJob<PrepareOutline>("PrepareOutline", deferredFramebuffer);
+    const auto outlinePrepareInputs = PrepareOutline::Input(deferredFramebuffer, outlinedOpaques).hasVarying();
+    const auto outlinedFrameBuffer = task.addJob<PrepareOutline>("PrepareOutline", outlinePrepareInputs);
 
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).hasVarying();
@@ -198,6 +199,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
         const auto debugAmbientOcclusionInputs = DebugAmbientOcclusion::Inputs(deferredFrameTransform, deferredFramebuffer, linearDepthTarget, ambientOcclusionUniforms).hasVarying();
         task.addJob<DebugAmbientOcclusion>("DebugAmbientOcclusion", debugAmbientOcclusionInputs);
+
+        // Debug outline
+        task.addJob<DebugOutline>("DebugOutline", outlinedFrameBuffer);
 
         // Scene Octree Debugging job
         {
