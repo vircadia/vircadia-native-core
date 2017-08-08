@@ -934,6 +934,7 @@
             case "changeBrushHand":
                 Settings.setValue("currentDrawingHand", event.DrawingHand == "left");
                 _isLeftHandDominant = event.DrawingHand == "left";
+                _isTabletFocused = false;
                 updateHandAnimations();
                 break;
 
