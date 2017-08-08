@@ -6,6 +6,11 @@ link_hifi_libraries(networking shared image gpu ktx fbx baking model)
 
 setup_memory_debugger()
 
+add_dependency_external_projects(draco)
+find_package(Draco REQUIRED)
+target_include_directories(${TARGET_NAME} SYSTEM PRIVATE ${DRACO_INCLUDE_DIRS})
+target_link_libraries(${TARGET_NAME} ${DRACO_LIBRARY} ${DRACO_ENCODER_LIBRARY})
+
 if (WIN32)
   package_libraries_for_deployment()
 endif ()
