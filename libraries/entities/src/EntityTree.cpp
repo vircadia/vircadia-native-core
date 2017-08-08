@@ -383,9 +383,6 @@ bool EntityTree::updateEntity(EntityItemPointer entity, const EntityItemProperti
         UpdateEntityOperator theOperator(getThisPointer(), containingElement, entity, newQueryAACube);
         recurseTreeWithOperator(&theOperator);
         entity->setProperties(properties);
-        if (getIsServer()) {
-            entity->updateLastEditedFromRemote();
-        }
 
         // if the entity has children, run UpdateEntityOperator on them.  If the children have children, recurse
         QQueue<SpatiallyNestablePointer> toProcess;
