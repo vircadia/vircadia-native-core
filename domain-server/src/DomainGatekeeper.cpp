@@ -385,7 +385,7 @@ SharedNodePointer DomainGatekeeper::processAgentConnectRequest(const NodeConnect
             // user is attempting to prove their identity to us, but we don't have enough information
             sendConnectionTokenPacket(username, nodeConnection.senderSockAddr);
             // ask for their public key right now to make sure we have it
-            requestUserPublicKey(username);
+            requestUserPublicKey(username, true);
             getGroupMemberships(username); // optimistically get started on group memberships
 #ifdef WANT_DEBUG
             qDebug() << "stalling login because we have no username-signature:" << username;
@@ -521,7 +521,10 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
                                            const HifiSockAddr& senderSockAddr) {
     // it's possible this user can be allowed to connect, but we need to check their username signature
     auto lowerUsername = username.toLower();
-    QByteArray publicKeyArray = _userPublicKeys.value(lowerUsername);
+    KeyFlagPair publicKeyPair = _userPublicKeys.value(lowerUsername);
+
+    QByteArray publicKeyArray = publicKeyPair.first;
+    bool isOptimisticKey = publicKeyPair.second;
 
     const QUuid& connectionToken = _connectionTokenHash.value(lowerUsername);
 
@@ -555,10 +558,16 @@ bool DomainGatekeeper::verifyUserSignature(const QString& username,
                 return true;
 
             } else {
-                if (!senderSockAddr.isNull()) {
-                    qDebug() << "Error decrypting username signature for " << username << "- denying connection.";
+                // we only send back a LoginError if this wasn't an "optimistic" key
+                // (a key that we hoped would work but is probably stale)
+
+                if (!senderSockAddr.isNull() && !isOptimisticKey) {
+                    qDebug() << "Error decrypting username signature for" << username << "- denying connection.";
                     sendConnectionDeniedPacket("Error decrypting username signature.", senderSockAddr,
                         DomainHandler::ConnectionRefusedReason::LoginError);
+                } else if (!senderSockAddr.isNull()) {
+                    qDebug() << "Error decrypting username signature for" << username << "with optimisitic key -"
+                        << "re-requesting public key and delaying connection";
                 }
 
                 // free up the public key, we don't need it anymore
@@ -604,20 +613,7 @@ bool DomainGatekeeper::isWithinMaxCapacity() {
     return true;
 }
 
-
-void DomainGatekeeper::preloadAllowedUserPublicKeys() {
-    QStringList allowedUsers = _server->_settingsManager.getAllNames();
-
-    if (allowedUsers.size() > 0) {
-        // in the future we may need to limit how many requests here - for now assume that lists of allowed users are not
-        // going to create > 100 requests
-        foreach(const QString& username, allowedUsers) {
-            requestUserPublicKey(username);
-        }
-    }
-}
-
-void DomainGatekeeper::requestUserPublicKey(const QString& username) {
+void DomainGatekeeper::requestUserPublicKey(const QString& username, bool isOptimistic) {
     // don't request public keys for the standard psuedo-account-names
     if (NodePermissions::standardNames.contains(username, Qt::CaseInsensitive)) {
         return;
@@ -628,7 +624,7 @@ void DomainGatekeeper::requestUserPublicKey(const QString& username) {
         // public-key request for this username is already flight, not rerequesting
         return;
     }
-    _inFlightPublicKeyRequests += lowerUsername;
+    _inFlightPublicKeyRequests.insert(lowerUsername, isOptimistic);
 
     // even if we have a public key for them right now, request a new one in case it has just changed
     JSONCallbackParameters callbackParams;
@@ -640,7 +636,7 @@ void DomainGatekeeper::requestUserPublicKey(const QString& username) {
 
     const QString USER_PUBLIC_KEY_PATH = "api/v1/users/%1/public_key";
 
-    qDebug() << "Requesting public key for user" << username;
+    qDebug().nospace() << "Requesting " << (isOptimistic ? "optimistic " : " ") << "public key for user " << username;
 
     DependencyManager::get<AccountManager>()->sendRequest(USER_PUBLIC_KEY_PATH.arg(username),
                                               AccountManagerAuth::None,
@@ -662,16 +658,21 @@ void DomainGatekeeper::publicKeyJSONCallback(QNetworkReply& requestReply) {
     QJsonObject jsonObject = QJsonDocument::fromJson(requestReply.readAll()).object();
     QString username = extractUsernameFromPublicKeyRequest(requestReply);
 
+    bool isOptimisticKey = _inFlightPublicKeyRequests.take(username);
+
     if (jsonObject["status"].toString() == "success" && !username.isEmpty()) {
         // pull the public key as a QByteArray from this response
         const QString JSON_DATA_KEY = "data";
         const QString JSON_PUBLIC_KEY_KEY = "public_key";
 
-        _userPublicKeys[username.toLower()] =
-            QByteArray::fromBase64(jsonObject[JSON_DATA_KEY].toObject()[JSON_PUBLIC_KEY_KEY].toString().toUtf8());
-    }
+        qDebug().nospace() << "Extracted " << (isOptimisticKey ? "optimistic " : " ") << "public key for " << username.toLower();
 
-    _inFlightPublicKeyRequests.remove(username);
+        _userPublicKeys[username.toLower()] =
+            {
+                QByteArray::fromBase64(jsonObject[JSON_DATA_KEY].toObject()[JSON_PUBLIC_KEY_KEY].toString().toUtf8()),
+                isOptimisticKey
+            };
+    }
 }
 
 void DomainGatekeeper::publicKeyJSONErrorCallback(QNetworkReply& requestReply) {

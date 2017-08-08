@@ -49,7 +49,7 @@
     Var STR_CONTAINS_VAR_3
     Var STR_CONTAINS_VAR_4
     Var STR_RETURN_VAR
-    
+        
     Function StrContains
       Exch $STR_NEEDLE
       Exch 1
@@ -343,22 +343,29 @@ SectionEnd
 ;--------------------------------
 ;Pages
   !insertmacro MUI_PAGE_WELCOME
-
+  
   !insertmacro MUI_PAGE_LICENSE "@CPACK_RESOURCE_FILE_LICENSE@"
+  
+  Page custom InstallTypesPage ReadInstallTypes
+  
+  !define MUI_PAGE_CUSTOMFUNCTION_PRE AbortFunction
   !insertmacro MUI_PAGE_DIRECTORY
-
+  
   ;Start Menu Folder Page Configuration
   !define MUI_STARTMENUPAGE_REGISTRY_ROOT "HKLM"
   !define MUI_STARTMENUPAGE_REGISTRY_KEY "Software\@CPACK_PACKAGE_VENDOR@\@CPACK_PACKAGE_INSTALL_REGISTRY_KEY@"
   !define MUI_STARTMENUPAGE_REGISTRY_VALUENAME "Start Menu Folder"
+  
+  !define MUI_PAGE_CUSTOMFUNCTION_PRE AbortFunction
   !insertmacro MUI_PAGE_STARTMENU Application $STARTMENU_FOLDER
-
+  
+  !define MUI_PAGE_CUSTOMFUNCTION_PRE AbortFunction
   @CPACK_NSIS_PAGE_COMPONENTS@
-
+    
   Page custom PostInstallOptionsPage ReadPostInstallOptions
 
   !insertmacro MUI_PAGE_INSTFILES
-
+  
   !insertmacro MUI_UNPAGE_CONFIRM
   !insertmacro MUI_UNPAGE_INSTFILES
 
@@ -442,6 +449,10 @@ Var CleanInstallCheckbox
 Var CurrentOffset
 Var OffsetUnits
 Var CopyFromProductionCheckbox
+Var ExpressInstallRadioButton
+Var CustomInstallRadioButton
+Var InstallTypeDialog
+Var Express
 
 !macro SetPostInstallOption Checkbox OptionName Default
   ; reads the value for the given post install option to the registry
@@ -459,15 +470,71 @@ Var CopyFromProductionCheckbox
   ${EndIf}
 !macroend
 
+Function InstallTypesPage
+  !insertmacro MUI_HEADER_TEXT "Choose Installation Type" "Express or Custom Install"
+  
+  nsDialogs::Create 1018
+  Pop $InstallTypeDialog
+  
+  ${If} $InstallTypeDialog == error
+    Abort
+  ${EndIf}
+  
+  StrCpy $CurrentOffset 0
+  StrCpy $OffsetUnits u
+  StrCpy $Express "0"  
+  
+  ${NSD_CreateRadioButton} 30% $CurrentOffset$OffsetUnits 100% 10u "Express Install (Recommended)"; $\nInstalls High Fidelity Interface and High Fidelity Sandbox"
+  pop $ExpressInstallRadioButton
+  ${NSD_OnClick} $ExpressInstallRadioButton ChangeExpressLabel
+  IntOp $CurrentOffset $CurrentOffset + 15
+  
+  ${NSD_CreateRadiobutton} 30% $CurrentOffset$OffsetUnits 100% 10u "Custom Install (Advanced)"
+  pop $CustomInstallRadioButton
+  ${NSD_OnClick} $CustomInstallRadioButton ChangeCustomLabel 
+  
+  ; Express Install selected by default
+  ${NSD_Check} $ExpressInstallRadioButton
+  Call ChangeExpressLabel
+  
+  nsDialogs::Show
+FunctionEnd
+
+Function ChangeExpressLabel
+  Push $R1
+  GetDlgItem $R1 $HWNDPARENT 1
+  SendMessage $R1 ${WM_SETTEXT} 0 "STR:Install"
+  Pop $R1
+FunctionEnd
+
+Function ChangeCustomLabel
+  Push $R1
+  GetDlgItem $R1 $HWNDPARENT 1
+  SendMessage $R1 ${WM_SETTEXT} 0 "STR:Next >"
+  Pop $R1
+FunctionEnd
+
+Function AbortFunction
+  ; Check if Express is set, if so, abort the post install options page
+  StrCmp $Express "1" 0 end
+  Abort
+  end:
+FunctionEnd  
+
 Function PostInstallOptionsPage
   !insertmacro MUI_HEADER_TEXT "Setup Options" ""
 
   nsDialogs::Create 1018
   Pop $PostInstallDialog
-
+  
   ${If} $PostInstallDialog == error
     Abort
   ${EndIf}
+  
+  ; Check if Express is set, if so, abort the post install options page
+  StrCmp $Express "1" 0 end
+  Abort
+  end:
 
   StrCpy $CurrentOffset 0
   StrCpy $OffsetUnits u
@@ -549,7 +616,7 @@ Function PostInstallOptionsPage
     ${NSD_CreateCheckbox} 0 $CurrentOffset$OffsetUnits 100% 10u "&Copy settings and content from production install"
     Pop $CopyFromProductionCheckbox
 
-    ${NSD_SetState} $CopyFromProductionCheckbox ${BST_CHECKED}
+    ${NSD_SetState} $CopyFromProductionCheckbox ${BST_UNCHECKED}
   ${EndIf}
   
   nsDialogs::Show
@@ -567,6 +634,31 @@ Var LaunchServerNowState
 Var LaunchClientNowState
 Var CopyFromProductionState
 Var CleanInstallState
+Var ExpressInstallState
+Var CustomInstallState
+
+Function ReadInstallTypes
+  ; check if the user asked for express/custom install
+  ${NSD_GetState} $ExpressInstallRadioButton $ExpressInstallState
+  ${NSD_GetState} $CustomInstallRadioButton $CustomInstallState
+  
+  ${If} $ExpressInstallState == ${BST_CHECKED}
+    StrCpy $Express "1"
+    
+    StrCpy $DesktopClientState ${BST_CHECKED}  
+    StrCpy $ServerStartupState ${BST_CHECKED} 
+    StrCpy $LaunchServerNowState ${BST_CHECKED}
+    StrCpy $LaunchClientNowState ${BST_CHECKED}
+    StrCpy $CleanInstallState ${BST_UNCHECKED}
+    StrCpy $DesktopServerState ${BST_UNCHECKED}
+
+    ${If} @PR_BUILD@ == 1
+      StrCpy $CopyFromProductionState ${BST_UNCHECKED}
+    ${EndIf}
+    
+  ${EndIf}
+  
+FunctionEnd
 
 Function ReadPostInstallOptions
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
@@ -624,6 +716,7 @@ Function HandlePostInstallOptions
       !insertmacro WritePostInstallOption @CONSOLE_DESKTOP_SHORTCUT_REG_KEY@ NO
     ${EndIf}
 
+    
     ; check if the user asked to have Sandbox launched every startup
     ${If} $ServerStartupState == ${BST_CHECKED}
       ; in case we added a shortcut in the global context, pull that now
@@ -749,6 +842,8 @@ Section "-Core installation"
   ; Rename the incorrectly cased Raleway font
   Rename "$INSTDIR\resources\qml\styles-uit\RalewaySemibold.qml" "$INSTDIR\resources\qml\styles-uit\RalewaySemiBold.qml"
 
+  ExecWait "$INSTDIR\vcredist_x64.exe /install /q /norestart"
+  
   ; Remove the Old Interface directory and vcredist_x64.exe (from installs prior to Server Console)
   RMDir /r "$INSTDIR\Interface"
   Delete "$INSTDIR\vcredist_x64.exe"
@@ -848,9 +943,9 @@ Section "-Core installation"
   Call ConditionalAddToRegisty
 
   !insertmacro MUI_STARTMENU_WRITE_END
-
-@CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
-
+  
+  @CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
+  
   ; Handle whichever post install options were set
   Call HandlePostInstallOptions
 
