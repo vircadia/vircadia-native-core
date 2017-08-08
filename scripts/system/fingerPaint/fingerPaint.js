@@ -861,6 +861,11 @@
                 _isTabletFocused = false; //make sure we can set the focus on the tablet again
                 break;
 
+            case "reloadPage":
+                restoreLastValues();
+                tablet.gotoWebScreen(APP_URL + "?" + encodeURIComponent(JSON.stringify(_savedSettings)));
+                break;
+                
             case "changeTab":
                 Settings.setValue("currentTab", event.currentTab);
                 break;

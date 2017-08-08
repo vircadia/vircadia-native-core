@@ -102,20 +102,9 @@
             document.getElementById("brushesTab").contentWindow.postMessage(message, "*");
         }
     });
-    //Accept events function() from iframes
-    //https://stackoverflow.com/questions/8822907/html5-cross-browser-iframe-postmessage-child-to-parent
-    var eventMethod = window.addEventListener ? "addEventListener" : "attachEvent";
-    var eventer = window[eventMethod];
-    var messageEvent = eventMethod == "attachEvent" ? "onmessage" : "message";
 
     //restore last opened tab
     selectTab(JSON.parse(decodeURIComponent(window.location.search).substring(1)).currentTab);    
-   
-    // Listen to message from child window
-    eventer(messageEvent, function(e) {
-        EventBridge.emitWebEvent(e.data);
-    }, false);
-
 
     //Undo related logic
     function setUndoState(disabled) {
@@ -131,6 +120,13 @@
         var undoEvent = {"type": "undo"};
         EventBridge.emitWebEvent(JSON.stringify(undoEvent));
     }
+
+    window.onbeforeunload = function (e) {
+        var reloadPageEvent = {
+            "type" : "reloadPage",
+        };
+        EventBridge.emitWebEvent(JSON.stringify(reloadPageEvent));
+    };
 
     var undoState = JSON.parse(decodeURIComponent(window.location.search).substring(1));
     setUndoState(undoState.undoDisable);
