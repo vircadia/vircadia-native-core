@@ -10,7 +10,7 @@
 
 /* global ToolMenu */
 
-ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
+ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     // Tool menu displayed on top of forearm.
 
     "use strict";
@@ -467,7 +467,7 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                             properties.solid = true;
                         }
                         if (optionsItems[i].setting.callback) {
-                            doCallback(optionsItems[i].setting.callback.method, value);
+                            uiCommandCallback(optionsItems[i].setting.callback.method, value);
                         }
                     }
                 }
@@ -527,7 +527,7 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                 if (optionsSettings.currentColor) {
                     Settings.setValue(optionsSettings.currentColor.key, value);
                 }
-                doCallback("setColor", value);
+                uiCommandCallback("setColor", value);
             } else {
                 // Swatch has no color; set swatch color to current fill color.
                 value = Overlays.getProperty(optionsOverlays[optionsOverlaysIDs.indexOf("currentColor")], "color");
@@ -671,7 +671,7 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                     if (intersectionItems[intersectedItem].callback.parameter) {
                         parameterValue = evaluateParameter(intersectionItems[intersectedItem].callback.parameter);
                     }
-                    doCallback(intersectionItems[intersectedItem].callback.method, parameterValue);
+                    uiCommandCallback(intersectionItems[intersectedItem].callback.method, parameterValue);
                 }
             }
         }

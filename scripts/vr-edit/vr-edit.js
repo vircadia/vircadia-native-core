@@ -179,7 +179,7 @@
     };
 
 
-    UI = function (side, leftInputs, rightInputs, setToolCallback) {
+    UI = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // Tool menu and Create palette.
 
         var // Primary objects.
@@ -197,8 +197,8 @@
         }
 
         toolIcon = new ToolIcon(otherHand(side));
-        toolMenu = new ToolMenu(side, leftInputs, rightInputs, setToolCallback);
-        createPalette = new CreatePalette(side, leftInputs, rightInputs);
+        toolMenu = new ToolMenu(side, leftInputs, rightInputs, uiCommandCallback);
+        createPalette = new CreatePalette(side, leftInputs, rightInputs, uiCommandCallback);
 
         getIntersection = side === LEFT_HAND ? rightInputs.intersection : leftInputs.intersection;
 
@@ -331,6 +331,7 @@
             isGripClicked = false,
             wasGripClicked = false,
             hoveredOverlayID = null,
+            isAutoGrab = false,
 
             // Position values.
             initialHandOrientationInverse,
@@ -380,6 +381,11 @@
         function hoverHandle(overlayID) {
             // Highlights handle if overlayID is a handle, otherwise unhighlights currently highlighted handle if any.
             handles.hover(overlayID);
+        }
+
+        function enableAutoGrab() {
+            // Used to grab entity created from Create palette.
+            isAutoGrab = true;
         }
 
         function isHandle(overlayID) {
@@ -849,10 +855,12 @@
                         && otherEditor.isHandle(intersection.overlayID)) {
                     highlightedEntityID = otherEditor.rootEntityID();
                     setState(EDITOR_HANDLE_SCALING);
-                } else if (intersection.entityID && intersection.editableEntity && (wasTriggerClicked || !isTriggerClicked)) {
+                } else if (intersection.entityID && intersection.editableEntity
+                        && (wasTriggerClicked || !isTriggerClicked) && !isAutoGrab) {
                     highlightedEntityID = Entities.rootOf(intersection.entityID);
                     setState(EDITOR_HIGHLIGHTING);
-                } else if (intersection.entityID && intersection.editableEntity && !wasTriggerClicked && isTriggerClicked) {
+                } else if (intersection.entityID && intersection.editableEntity
+                        && (!wasTriggerClicked || isAutoGrab) && isTriggerClicked) {
                     highlightedEntityID = Entities.rootOf(intersection.entityID);
                     if (otherEditor.isEditing(highlightedEntityID)) {
                         if (toolSelected !== TOOL_SCALE) {
@@ -1067,6 +1075,7 @@
 
             wasTriggerClicked = isTriggerClicked;
             wasGripClicked = isGripClicked;
+            isAutoGrab = isAutoGrab && isTriggerClicked;
 
             if (DEBUG && editorState !== previousState) {
                 debug(side, EDITOR_STATE_STRINGS[editorState]);
@@ -1115,6 +1124,7 @@
         return {
             setReferences: setReferences,
             hoverHandle: hoverHandle,
+            enableAutoGrab: enableAutoGrab,
             isHandle: isHandle,
             isEditing: isEditing,
             isScaling: isScaling,
@@ -1317,6 +1327,10 @@
             }
             ui.setToolColor(parameter);
             colorToolColor = parameter;
+            break;
+        case "autoGrab":
+            editors[LEFT_HAND].enableAutoGrab();
+            editors[RIGHT_HAND].enableAutoGrab();
             break;
         default:
             debug("ERROR: Unexpected command in onUICommand()!");

@@ -10,7 +10,7 @@
 
 /* global CreatePalette */
 
-CreatePalette = function (side, leftInputs, rightInputs) {
+CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
     // Tool menu displayed on top of forearm.
 
     "use strict";
@@ -108,7 +108,8 @@ CreatePalette = function (side, leftInputs, rightInputs) {
     }
 
     function update(intersectionOverlayID) {
-        var CREATE_OFFSET = { x: 0, y: 0.05, z: -0.02 };
+        var entityID,
+            CREATE_OFFSET = { x: 0, y: 0.05, z: -0.02 };
         // Highlight cube.
         if (intersectionOverlayID === cubeOverlay !== isHighlightingCube) {
             isHighlightingCube = !isHighlightingCube;
@@ -126,7 +127,8 @@ CreatePalette = function (side, leftInputs, rightInputs) {
                     Vec3.multiplyQbyV(controlHand.orientation(),
                         Vec3.sum({ x: 0, y: CUBE_ENTITY_PROPERTIES.dimensions.z / 2, z: 0 }, CREATE_OFFSET)));
                 CUBE_ENTITY_PROPERTIES.rotation = controlHand.orientation();
-                Entities.addEntity(CUBE_ENTITY_PROPERTIES);
+                entityID = Entities.addEntity(CUBE_ENTITY_PROPERTIES);
+                uiCommandCallback("autoGrab");
             } else {
                 Overlays.editOverlay(cubeOverlay, {
                     localPosition: CUBE_PROPERTIES.localPosition
