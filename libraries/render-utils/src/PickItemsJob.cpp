@@ -10,22 +10,22 @@
 //
 #include "PickItemsJob.h"
 
+PickItemsJob::PickItemsJob() {
+}
+
 void PickItemsJob::configure(const Config& config) {
-	_isEnabled = config.isEnabled;
 }
 
 void PickItemsJob::run(const render::RenderContextPointer& renderContext, const PickItemsJob::Input& input, PickItemsJob::Output& output) {
     output.clear();
 
-	if (_isEnabled) {
-		float minIsectDistance = std::numeric_limits<float>::max();
-		auto& itemBounds = input;
-		auto itemID = findNearestItem(renderContext, itemBounds, minIsectDistance);
+    float minIsectDistance = std::numeric_limits<float>::max();
+    auto& itemBounds = input;
+    auto itemID = findNearestItem(renderContext, itemBounds, minIsectDistance);
 
-        if (render::Item::isValidID(itemID)) {
-            output.emplace_back(itemID);
-        }
-	}
+    if (render::Item::isValidID(itemID)) {
+        output.emplace_back(itemID);
+    }
 }
 
 render::ItemID PickItemsJob::findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const {

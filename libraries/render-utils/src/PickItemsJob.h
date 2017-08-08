@@ -15,16 +15,10 @@
 #include <render/Engine.h>
 
 class PickItemsConfig : public render::Job::Config {
-	Q_OBJECT
-		Q_PROPERTY(bool isEnabled MEMBER isEnabled NOTIFY dirty)
 
 public:
 
-	bool isEnabled{ false };
-
-signals:
-
-	void dirty();
+    PickItemsConfig() : render::Job::Config(false) {}
 };
 
 class PickItemsJob {
@@ -36,7 +30,7 @@ public:
 	using Output = render::ItemBounds;
 	using JobModel = render::Job::ModelIO<PickItemsJob, Input, Output, Config>;
 
-	PickItemsJob() {}
+    PickItemsJob();
 
 	void configure(const Config& config);
 	void run(const render::RenderContextPointer& renderContext, const PickItemsJob::Input& input, PickItemsJob::Output& output);
