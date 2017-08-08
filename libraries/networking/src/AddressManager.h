@@ -55,7 +55,8 @@ public:
         DomainPathResponse,
         Internal,
         AttemptedRefresh,
-        Suggestions
+        Suggestions,
+        VisitUserFromPAL
     };
 
     bool isConnected();
@@ -95,7 +96,7 @@ public slots:
     void goToLocalSandbox(QString path = "", LookupTrigger trigger = LookupTrigger::StartupFromSettings) { handleUrl(SANDBOX_HIFI_ADDRESS + path, trigger); }
     void goToEntry(LookupTrigger trigger = LookupTrigger::StartupFromSettings) { handleUrl(DEFAULT_HIFI_ADDRESS, trigger); }
 
-    void goToUser(const QString& username);
+    void goToUser(const QString& username, bool shouldMatchOrientation = true);
 
     void refreshPreviousLookup();
 

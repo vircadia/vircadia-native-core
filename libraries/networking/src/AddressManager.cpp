@@ -665,6 +665,11 @@ bool AddressManager::handleViewpoint(const QString& viewpointString, bool should
                 }
             }
 
+            if (trigger == LookupTrigger::VisitUserFromPAL) {
+                qCDebug(networking) << "trigger is VisitUserFromPAL -- applying Quat.cancelOutRollAndPitch";
+                newOrientation = cancelOutRollAndPitch(newOrientation);                
+            }
+
             emit locationChangeRequired(newPosition, orientationChanged, newOrientation, shouldFace);
 
         } else {
@@ -729,13 +734,14 @@ bool AddressManager::setDomainInfo(const QString& hostname, quint16 port, Lookup
     return hostChanged;
 }
 
-void AddressManager::goToUser(const QString& username) {
+void AddressManager::goToUser(const QString& username, bool shouldMatchOrientation) {
     QString formattedUsername = QUrl::toPercentEncoding(username);
 
-    // for history storage handling we remember how this lookup was trigged - for a username it's always user input
+    // for history storage handling we remember how this lookup was triggered - for a username it's always user input
     QVariantMap requestParams;
-    requestParams.insert(LOOKUP_TRIGGER_KEY, static_cast<int>(LookupTrigger::UserInput));
-
+    requestParams.insert(LOOKUP_TRIGGER_KEY, static_cast<int>(
+        shouldMatchOrientation ? LookupTrigger::UserInput : LookupTrigger::VisitUserFromPAL
+    ));
     // this is a username - pull the captured name and lookup that user's location
     DependencyManager::get<AccountManager>()->sendRequest(GET_USER_LOCATION.arg(formattedUsername),
                                               AccountManagerAuth::Optional,
@@ -841,8 +847,8 @@ void AddressManager::addCurrentAddressToHistory(LookupTrigger trigger) {
             // and do not but it into the back stack
             _forwardStack.push(currentAddress());
         } else {
-            if (trigger == LookupTrigger::UserInput) {
-                // anyime the user has manually looked up an address we know we should clear the forward stack
+            if (trigger == LookupTrigger::UserInput || trigger == LookupTrigger::VisitUserFromPAL) {
+                // anyime the user has actively triggered an address we know we should clear the forward stack
                 _forwardStack.clear();
 
                 emit goForwardPossible(false);

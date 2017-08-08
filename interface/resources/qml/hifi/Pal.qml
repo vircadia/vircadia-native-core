@@ -830,7 +830,7 @@ Rectangle {
                         hoverEnabled: enabled
                         enabled: connectionsNameCard.selected && pal.activeTab == "connectionsTab"
                         onClicked: {
-                            AddressManager.goToUser(model.userName);
+                            AddressManager.goToUser(model.userName, false);
                             UserActivityLogger.palAction("go_to_user", model.userName);
                         }
                         onEntered: connectionsLocationData.color = hifi.colors.blueHighlight;
