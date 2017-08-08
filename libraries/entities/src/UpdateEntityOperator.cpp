@@ -213,6 +213,7 @@ bool UpdateEntityOperator::preRecursion(const OctreeElementPointer& element) {
                 if (_wantDebug) {
                     qCDebug(entities) << "    *** This is the same OLD ELEMENT ***";
                 }
+                _containingElement->bumpChangedContent();
             } else {
                 // otherwise, this is an add case.
                 if (oldElement) {
