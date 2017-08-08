@@ -18,7 +18,7 @@
 
 #include "EntityTreeElement.h"
 
-const float SQRT_TWO_OVER_TWO = 0.7071067811865;
+const float SQRT_TWO_OVER_TWO = 0.7071067811865f;
 const float DEFAULT_VIEW_RADIUS = 10.0f;
 
 // ConicalView is an approximation of a ViewFrustum for fast calculation of sort priority.
