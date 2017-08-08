@@ -434,6 +434,9 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
             length;
 
         // Close current panel, if any.
+        Overlays.editOverlay(highlightOverlay, {
+            parentID: menuOriginOverlay
+        });
         for (i = 0, length = optionsOverlays.length; i < length; i += 1) {
             Overlays.deleteOverlay(optionsOverlays[i]);
         }
