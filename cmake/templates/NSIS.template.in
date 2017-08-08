@@ -939,7 +939,7 @@ Section "-Core installation"
   Push "StartMenu"
   Push "$STARTMENU_FOLDER"
   Call ConditionalAddToRegisty
-
+  
   !insertmacro MUI_STARTMENU_WRITE_END
   
   @CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
