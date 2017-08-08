@@ -30,6 +30,8 @@ const Element Element::VEC2NU8_XY{ VEC2, NUINT8, XY };
 
 const Element Element::COLOR_R11G11B10{ SCALAR, FLOAT, R11G11B10 };
 const Element Element::VEC4F_COLOR_RGBA{ VEC4, FLOAT, RGBA };
+const Element Element::COLOR_RED_FLOAT{ SCALAR, FLOAT, RED };
+const Element Element::COLOR_RED_HALF{ SCALAR, HALF, RED };
 const Element Element::VEC2F_UV{ VEC2, FLOAT, UV };
 const Element Element::VEC2F_XY{ VEC2, FLOAT, XY };
 const Element Element::VEC3F_XYZ{ VEC3, FLOAT, XYZ };

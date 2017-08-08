@@ -39,6 +39,8 @@
 #include "AntialiasingEffect.h"
 #include "ToneMappingEffect.h"
 #include "SubsurfaceScattering.h"
+#include "PickItemsJob.h"
+#include "RenderOutline.h"
 
 #include <gpu/StandardShaderLib.h>
 
@@ -84,6 +86,16 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     // draw a stencil mask in hidden regions of the framebuffer.
     task.addJob<PrepareStencil>("PrepareStencil", primaryFramebuffer);
+
+    // Select items that need to be outlined
+    const auto outlinedOpaques = task.addJob<PickItemsJob>("PickOutlined", opaques);
+
+    // Render opaque outline objects first in DeferredBuffer
+    const auto opaqueOutlineInputs = DrawStateSortDeferred::Inputs(outlinedOpaques, lightingModel).hasVarying();
+    task.addJob<DrawStateSortDeferred>("DrawOpaqueOutlined", opaqueOutlineInputs, shapePlumber);
+
+    // Retrieve z value of the outlined objects
+    const auto outlinedZBuffer = task.addJob<PrepareOutline>("PrepareOutline", deferredFramebuffer);
 
     // Render opaque objects in DeferredBuffer
     const auto opaqueInputs = DrawStateSortDeferred::Inputs(opaques, lightingModel).hasVarying();
