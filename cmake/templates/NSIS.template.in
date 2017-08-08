@@ -942,7 +942,7 @@ Section "-Core installation"
   
   !insertmacro MUI_STARTMENU_WRITE_END
   
-  @CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
+@CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
   
   ; Handle whichever post install options were set
   Call HandlePostInstallOptions
