@@ -6125,11 +6125,12 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
 }
 
 bool Application::askToReplaceDomainContent(const QString& url) {
-
+    QString methodDetails;
     if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
         // Create a confirmation dialog when this call is made
         const int MAX_CHARACTERS_PER_LINE = 90;
-        static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set. If you want to restore your domain from the current domain content, save a manual backup of your"
+        static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set." 
+            "If you want to restore your domain from the current domain content, save a manual backup of your"
             "models.json.gz file, usually stored at:", MAX_CHARACTERS_PER_LINE) + 
             "\nC:/Users/[username]/AppData/Roaming/High Fidelity/assignment-client/entities/models.json.gz";
 
@@ -6151,11 +6152,20 @@ bool Application::askToReplaceDomainContent(const QString& url) {
                 return true;
             });
             DependencyManager::get<AddressManager>()->handleLookupString(DOMAIN_SPAWNING_POINT);
-
+            methodDetails = "SuccessfulRequestToReplaceContent";
+        } else {
+            methodDetails = "UserDeclinedToReplaceContent";
         }
     } else {
-        OffscreenUi::warning("Unable to replace content", "You do not have permissions to replace domain content", QMessageBox::Ok, QMessageBox::Ok);
+        methodDetails = "UserDoesNotHavePermissionToReplaceContent";
+        OffscreenUi::warning("Unable to replace content", "You do not have permissions to replace domain content", 
+                             QMessageBox::Ok, QMessageBox::Ok);
     }
+    QJsonObject messageProperties = { 
+        { "status", methodDetails },
+        { "content_set_url", url }
+    };
+    UserActivityLogger::getInstance().logAction("replace_domain_content", messageProperties);
     return false;
    
 }
