@@ -248,6 +248,14 @@ void EntityTreeSendThread::preDistributionProcessing() {
 
 void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
             bool viewFrustumChanged, bool isFullScene) {
+    // BEGIN EXPERIMENTAL DIFFERENTIAL TRAVERSAL
+    {
+        // DEBUG HACK: trigger traversal (Again) every so often
+        const uint64_t TRAVERSE_AGAIN_PERIOD = 2 * USECS_PER_SECOND;
+        if (!viewFrustumChanged && usecTimestampNow() > _startOfCompletedTraversal + TRAVERSE_AGAIN_PERIOD) {
+            viewFrustumChanged = true;
+        }
+    }
     if (nodeData->getUsesFrustum()) {
         if (viewFrustumChanged) {
             ViewFrustum viewFrustum;
@@ -292,6 +300,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
             std::cout << "adebug" << std::endl;     // adebug
         }
     }
+    // END EXPERIMENTAL DIFFERENTIAL TRAVERSAL
 
     OctreeSendThread::traverseTreeAndSendContents(node, nodeData, viewFrustumChanged, isFullScene);
 }
