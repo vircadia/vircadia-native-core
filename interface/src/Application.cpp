@@ -257,7 +257,7 @@ static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 
 static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 
-static const QString DOMAIN_ORIGIN = "/0, 0, 0";
+static const QString DOMAIN_SPAWNING_POINT = "/0, -200, 0";
 
 const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
@@ -6129,7 +6129,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
     if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
         // Create a confirmation dialog when this call is made
         const int MAX_CHARACTERS_PER_LINE = 90;
-        static const QString infoText = simpleWordWrap("Your domain's content will be replaced, but backup files will not immediately be changed. Save a manual backup of your"
+        static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set. If you want to restore your domain from the current domain content, save a manual backup of your"
             "models.json.gz file, usually stored at:", MAX_CHARACTERS_PER_LINE) + 
             "\nC:/Users/[username]/AppData/Roaming/High Fidelity/assignment-client/entities/models.json.gz";
 
@@ -6150,7 +6150,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
                 limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
                 return true;
             });
-            DependencyManager::get<AddressManager>()->handleLookupString(DOMAIN_ORIGIN);
+            DependencyManager::get<AddressManager>()->handleLookupString(DOMAIN_SPAWNING_POINT);
 
         }
     } else {
