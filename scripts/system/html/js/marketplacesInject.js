@@ -25,6 +25,8 @@
     var canWriteAssets = false;
     var xmlHttpRequest = null;
     var isPreparing = false;  // Explicitly track download request status.
+
+    var confirmPurchases = true;
     
     function injectCommonCode(isDirectoryPage) {
 
@@ -97,17 +99,21 @@
     }
 
     function injectHiFiCode() {
-        $('.item-footer').find('#price-or-edit').find('a').attr('href', '#')
-        $('.item-footer').find('#price-or-edit').find('a').on('click', function () {
-            buyButtonClicked("TEST ITEM", "Zach Fox", 10);
-        });
+        if (confirmPurchases) {
+            $('.item-footer').find('#price-or-edit').find('a').attr('href', '#')
+            $('.item-footer').find('#price-or-edit').find('a').on('click', function () {
+                buyButtonClicked("TEST ITEM", "Zach Fox", 10);
+            });
+        }
     }
 
     function injectHiFiItemPageCode() {
-        $('#side-info').find('.btn').attr('href', '#')
-        $('#side-info').find('.btn').on('click', function () {
-            buyButtonClicked($('#top-center').find('h1').text(), $('#creator').find('.value').text(), 10);
-        });
+        if (confirmPurchases) {
+            $('#side-info').find('.btn').attr('href', '#')
+            $('#side-info').find('.btn').on('click', function () {
+                buyButtonClicked($('#top-center').find('h1').text(), $('#creator').find('.value').text(), 10);
+            });
+        }
     }
 
     function updateClaraCode() {

@@ -192,7 +192,6 @@
     function fromQml(message) {
         switch (message.method) {
             case 'checkout_cancelClicked':
-                print('fromQml: ' + JSON.stringify(message));
                 tablet.popFromStack();
                 break;
             case 'checkout_buyClicked':
