@@ -140,7 +140,7 @@
     </div>
     
     <div class="behavior-group property checkbox animationBrush">
-        <input onchange="setAnimatedBrush(this)" animationType="animatedHueBrush" type="checkbox" id="animatedBrush"></input>
+        <input onchange="setAnimatedBrush(this)" type="checkbox" id="animatedBrush"></input>
         <label for="animatedBrush">Use Hue Animation</label>
     </div>
 
@@ -410,34 +410,6 @@
         EventBridge.emitWebEvent(JSON.stringify(changedBrushEvent));
     }
 
-    function calculateAnimatedAxis(checkbox) {
-        if (checkbox.getAttribute("animationType") == "animatedRotationBrush") {
-            return {
-                axis: {
-                    x: document.getElementById("pitchRotationBrush").checked ? 1 : 0,
-                    y: document.getElementById("rollRotationBrush").checked ? 1 : 0,
-                    z: document.getElementById("yawRotationBrush").checked ? 1 : 0
-                }
-            }
-        }
-        if (checkbox.getAttribute("animationType") == "animatedTranslationBrush") {
-            return {
-                axis: {
-                    x: document.getElementById("xTranslationBrush").checked ? 1 : 0,
-                    y: document.getElementById("yTranslationBrush").checked ? 1 : 0,
-                    z: document.getElementById("zTranslationBrush").checked ? 1 : 0
-                }
-            }
-        } else return null;
-    }
-
-    function calculateEnabledStatus(checkbox, settings) {        
-        if (checkbox.getAttribute("animationType") == "animatedHueBrush") {
-            return checkbox.checked;
-        } 
-        return settings.axis.x == 1 || settings.axis.y == 1 || settings.axis.z == 1;
-    }
-
     function switchDynamicBrushEnabledStatus(checkbox) {
         var isAnyAnimatedChecked = false;
         $(".animationBrush").each(function( index ) {
@@ -460,12 +432,11 @@
 
     function setAnimatedBrush(checkbox) {
         switchDynamicBrushEnabledStatus();
-        var settings = calculateAnimatedAxis(checkbox);
         var switchAnimatedBrushEvent = {
-            "type"            : "switchAnimatedBrush",
-            "animatedBrushName": checkbox.getAttribute("animationType"),
-            "enabled"         : calculateEnabledStatus(checkbox, settings),
-            "settings"        : settings,
+            "type"             : "switchAnimatedBrush",
+            "animatedBrushName": "animatedHueBrush",
+            "enabled"          : checkbox.checked,
+            "settings"         : null,
             "animatedBrushID"  : checkbox.id
         };
         EventBridge.emitWebEvent(JSON.stringify(switchAnimatedBrushEvent));
@@ -533,6 +504,8 @@
             var animatedBrushes = brushData.currentAnimatedBrushes;
             for (var i = 0; i < animatedBrushes.length; i++) {
                 document.getElementById(animatedBrushes[i]).checked = true;
+                //Fix for onchange not being called (this appears to be the only checkbox where this happens)
+                $("#" + animatedBrushes[i]).trigger("change");
             }
             switchDynamicBrushEnabledStatus();
         }
