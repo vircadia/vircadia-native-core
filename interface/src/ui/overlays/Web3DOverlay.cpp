@@ -127,8 +127,9 @@ QString Web3DOverlay::pickURL() {
     QUrl sourceUrl(_url);
     if (sourceUrl.scheme() == "http" || sourceUrl.scheme() == "https" ||
         _url.toLower().endsWith(".htm") || _url.toLower().endsWith(".html")) {
-
-        _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
+        if (_webSurface) {
+            _webSurface->setBaseUrl(QUrl::fromLocalFile(PathUtils::resourcesPath() + "/qml/"));
+        }
         return "Web3DOverlay.qml";
     } else {
         return QUrl::fromLocalFile(PathUtils::resourcesPath()).toString() + "/" + _url;
@@ -252,7 +253,7 @@ void Web3DOverlay::render(RenderArgs* args) {
             if (overlayID == selfOverlayID && (self->_pressed || (!self->_activeTouchPoints.empty() && self->_touchBeginAccepted))) {
                 PointerEvent endEvent(PointerEvent::Release, event.getID(), event.getPos2D(), event.getPos3D(), event.getNormal(), event.getDirection(),
                                       event.getButton(), event.getButtons(), event.getKeyboardModifiers());
-                forwardPointerEvent(overlayID, event);
+                forwardPointerEvent(overlayID, endEvent);
             }
         });
 
@@ -597,7 +598,7 @@ void Web3DOverlay::setScriptURL(const QString& scriptURL) {
     }
 }
 
-glm::vec2 Web3DOverlay::getSize() {
+glm::vec2 Web3DOverlay::getSize() const {
     return _resolution / _dpi * INCHES_TO_METERS * getDimensions();
 };
 

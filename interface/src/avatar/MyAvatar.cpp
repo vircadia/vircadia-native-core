@@ -429,7 +429,7 @@ void MyAvatar::update(float deltaTime) {
     }
 
 #ifdef DEBUG_DRAW_HMD_MOVING_AVERAGE
-    glm::vec3 p = transformPoint(getSensorToWorldMatrix(), getHeadControllerPoseInAvatarFrame() *
+    glm::vec3 p = transformPoint(getSensorToWorldMatrix(), getControllerPoseInAvatarFrame(controller::Pose::HEAD) *
                                  glm::vec3(_headControllerFacingMovingAverage.x, 0.0f, _headControllerFacingMovingAverage.y));
     DebugDraw::getInstance().addMarker("facing-avg", getOrientation(), p, glm::vec4(1.0f));
     p = transformPoint(getSensorToWorldMatrix(), getHMDSensorPosition() +
@@ -664,7 +664,7 @@ void MyAvatar::updateFromHMDSensorMatrix(const glm::mat4& hmdSensorMatrix) {
 
     _hmdSensorPosition = newHmdSensorPosition;
     _hmdSensorOrientation = glm::quat_cast(hmdSensorMatrix);
-    auto headPose = _headControllerPoseInSensorFrameCache.get();
+    auto headPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
     if (headPose.isValid()) {
         _headControllerFacing = getFacingDir2D(headPose.rotation);
     } else {
@@ -760,37 +760,37 @@ void MyAvatar::updateFromTrackers(float deltaTime) {
 }
 
 glm::vec3 MyAvatar::getLeftHandPosition() const {
-    auto pose = getLeftHandControllerPoseInAvatarFrame();
+    auto pose = getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND);
     return pose.isValid() ? pose.getTranslation() : glm::vec3(0.0f);
 }
 
 glm::vec3 MyAvatar::getRightHandPosition() const {
-    auto pose = getRightHandControllerPoseInAvatarFrame();
+    auto pose = getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND);
     return pose.isValid() ? pose.getTranslation() : glm::vec3(0.0f);
 }
 
 glm::vec3 MyAvatar::getLeftHandTipPosition() const {
     const float TIP_LENGTH = 0.3f;
-    auto pose = getLeftHandControllerPoseInAvatarFrame();
+    auto pose = getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND);
     return pose.isValid() ? pose.getTranslation() * pose.getRotation() + glm::vec3(0.0f, TIP_LENGTH, 0.0f) : glm::vec3(0.0f);
 }
 
 glm::vec3 MyAvatar::getRightHandTipPosition() const {
     const float TIP_LENGTH = 0.3f;
-    auto pose = getRightHandControllerPoseInAvatarFrame();
+    auto pose = getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND);
     return pose.isValid() ? pose.getTranslation() * pose.getRotation() + glm::vec3(0.0f, TIP_LENGTH, 0.0f) : glm::vec3(0.0f);
 }
 
 controller::Pose MyAvatar::getLeftHandPose() const {
-    return getLeftHandControllerPoseInAvatarFrame();
+    return getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND);
 }
 
 controller::Pose MyAvatar::getRightHandPose() const {
-    return getRightHandControllerPoseInAvatarFrame();
+    return getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND);
 }
 
 controller::Pose MyAvatar::getLeftHandTipPose() const {
-    auto pose = getLeftHandControllerPoseInAvatarFrame();
+    auto pose = getLeftHandPose();
     glm::vec3 tipTrans = getLeftHandTipPosition();
     pose.velocity += glm::cross(pose.getAngularVelocity(), pose.getTranslation() - tipTrans);
     pose.translation = tipTrans;
@@ -798,7 +798,7 @@ controller::Pose MyAvatar::getLeftHandTipPose() const {
 }
 
 controller::Pose MyAvatar::getRightHandTipPose() const {
-    auto pose = getRightHandControllerPoseInAvatarFrame();
+    auto pose = getRightHandPose();
     glm::vec3 tipTrans = getRightHandTipPosition();
     pose.velocity += glm::cross(pose.getAngularVelocity(), pose.getTranslation() - tipTrans);
     pose.translation = tipTrans;
@@ -1430,159 +1430,43 @@ void MyAvatar::rebuildCollisionShape() {
     _characterController.setLocalBoundingBox(corner, diagonal);
 }
 
-
-void MyAvatar::setHandControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right) {
-    _leftHandControllerPoseInSensorFrameCache.set(left);
-    _rightHandControllerPoseInSensorFrameCache.set(right);
+void MyAvatar::setControllerPoseInSensorFrame(controller::Action action, const controller::Pose& pose) {
+    std::lock_guard<std::mutex> guard(_controllerPoseMapMutex);
+    auto iter = _controllerPoseMap.find(action);
+    if (iter != _controllerPoseMap.end()) {
+        iter->second = pose;
+    } else {
+        _controllerPoseMap.insert({ action, pose });
+    }
 }
 
-controller::Pose MyAvatar::getLeftHandControllerPoseInSensorFrame() const {
-    return _leftHandControllerPoseInSensorFrameCache.get();
+controller::Pose MyAvatar::getControllerPoseInSensorFrame(controller::Action action) const {
+    std::lock_guard<std::mutex> guard(_controllerPoseMapMutex);
+    auto iter = _controllerPoseMap.find(action);
+    if (iter != _controllerPoseMap.end()) {
+        return iter->second;
+    } else {
+        return controller::Pose(); // invalid pose
+    }
 }
 
-controller::Pose MyAvatar::getRightHandControllerPoseInSensorFrame() const {
-    return _rightHandControllerPoseInSensorFrameCache.get();
+controller::Pose MyAvatar::getControllerPoseInWorldFrame(controller::Action action) const {
+    auto pose = getControllerPoseInSensorFrame(action);
+    if (pose.valid) {
+        return pose.transform(getSensorToWorldMatrix());
+    } else {
+        return controller::Pose(); // invalid pose
+    }
 }
 
-controller::Pose MyAvatar::getLeftHandControllerPoseInWorldFrame() const {
-    return _leftHandControllerPoseInSensorFrameCache.get().transform(getSensorToWorldMatrix());
-}
-
-controller::Pose MyAvatar::getRightHandControllerPoseInWorldFrame() const {
-    return _rightHandControllerPoseInSensorFrameCache.get().transform(getSensorToWorldMatrix());
-}
-
-controller::Pose MyAvatar::getLeftHandControllerPoseInAvatarFrame() const {
-    glm::mat4 invAvatarMatrix = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
-    return getLeftHandControllerPoseInWorldFrame().transform(invAvatarMatrix);
-}
-
-controller::Pose MyAvatar::getRightHandControllerPoseInAvatarFrame() const {
-    glm::mat4 invAvatarMatrix = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
-    return getRightHandControllerPoseInWorldFrame().transform(invAvatarMatrix);
-}
-
-void MyAvatar::setFingerControllerPosesInSensorFrame(const FingerPosesMap& left, const FingerPosesMap& right) {
-    _leftHandFingerPosesInSensorFramceCache.set(left);
-    _rightHandFingerPosesInSensorFramceCache.set(right);
-}
-
-MyAvatar::FingerPosesMap MyAvatar::getLeftHandFingerControllerPosesInSensorFrame() const {
-    return _leftHandFingerPosesInSensorFramceCache.get();
-}
-
-MyAvatar::FingerPosesMap MyAvatar::getRightHandFingerControllerPosesInSensorFrame() const {
-    return _rightHandFingerPosesInSensorFramceCache.get();
-}
-
-void MyAvatar::setFootControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right) {
-    _leftFootControllerPoseInSensorFrameCache.set(left);
-    _rightFootControllerPoseInSensorFrameCache.set(right);
-}
-
-controller::Pose MyAvatar::getLeftFootControllerPoseInSensorFrame() const {
-    return _leftFootControllerPoseInSensorFrameCache.get();
-}
-
-controller::Pose MyAvatar::getRightFootControllerPoseInSensorFrame() const {
-    return _rightFootControllerPoseInSensorFrameCache.get();
-}
-
-controller::Pose MyAvatar::getLeftFootControllerPoseInWorldFrame() const {
-    return _leftFootControllerPoseInSensorFrameCache.get().transform(getSensorToWorldMatrix());
-}
-
-controller::Pose MyAvatar::getRightFootControllerPoseInWorldFrame() const {
-    return _rightFootControllerPoseInSensorFrameCache.get().transform(getSensorToWorldMatrix());
-}
-
-controller::Pose MyAvatar::getLeftFootControllerPoseInAvatarFrame() const {
-    glm::mat4 invAvatarMatrix = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
-    return getLeftFootControllerPoseInWorldFrame().transform(invAvatarMatrix);
-}
-
-controller::Pose MyAvatar::getRightFootControllerPoseInAvatarFrame() const {
-    glm::mat4 invAvatarMatrix = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
-    return getRightFootControllerPoseInWorldFrame().transform(invAvatarMatrix);
-}
-
-void MyAvatar::setSpineControllerPosesInSensorFrame(const controller::Pose& hips, const controller::Pose& spine2) {
-    _hipsControllerPoseInSensorFrameCache.set(hips);
-    _spine2ControllerPoseInSensorFrameCache.set(spine2);
-}
-
-controller::Pose MyAvatar::getHipsControllerPoseInSensorFrame() const {
-    return _hipsControllerPoseInSensorFrameCache.get();
-}
-
-controller::Pose MyAvatar::getSpine2ControllerPoseInSensorFrame() const {
-    return _spine2ControllerPoseInSensorFrameCache.get();
-}
-
-controller::Pose MyAvatar::getHipsControllerPoseInWorldFrame() const {
-    return _hipsControllerPoseInSensorFrameCache.get().transform(getSensorToWorldMatrix());
-}
-
-controller::Pose MyAvatar::getSpine2ControllerPoseInWorldFrame() const {
-    return _spine2ControllerPoseInSensorFrameCache.get().transform(getSensorToWorldMatrix());
-}
-
-controller::Pose MyAvatar::getHipsControllerPoseInAvatarFrame() const {
-    glm::mat4 invAvatarMatrix = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
-    return getHipsControllerPoseInWorldFrame().transform(invAvatarMatrix);
-}
-
-controller::Pose MyAvatar::getSpine2ControllerPoseInAvatarFrame() const {
-    glm::mat4 invAvatarMatrix = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
-    return getSpine2ControllerPoseInWorldFrame().transform(invAvatarMatrix);
-}
-
-void MyAvatar::setHeadControllerPoseInSensorFrame(const controller::Pose& head) {
-    _headControllerPoseInSensorFrameCache.set(head);
-}
-
-controller::Pose MyAvatar::getHeadControllerPoseInSensorFrame() const {
-    return _headControllerPoseInSensorFrameCache.get();
-}
-
-controller::Pose MyAvatar::getHeadControllerPoseInWorldFrame() const {
-    return _headControllerPoseInSensorFrameCache.get().transform(getSensorToWorldMatrix());
-}
-
-controller::Pose MyAvatar::getHeadControllerPoseInAvatarFrame() const {
-    glm::mat4 invAvatarMatrix = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
-    return getHeadControllerPoseInWorldFrame().transform(invAvatarMatrix);
-}
-
-void MyAvatar::setArmControllerPosesInSensorFrame(const controller::Pose& left, const controller::Pose& right) {
-    _leftArmControllerPoseInSensorFrameCache.set(left);
-    _rightArmControllerPoseInSensorFrameCache.set(right);
-}
-
-controller::Pose MyAvatar::getLeftArmControllerPoseInSensorFrame() const {
-    return _leftArmControllerPoseInSensorFrameCache.get();
-}
-
-controller::Pose MyAvatar::getRightArmControllerPoseInSensorFrame() const {
-    return _rightArmControllerPoseInSensorFrameCache.get();
-}
-
-controller::Pose MyAvatar::getLeftArmControllerPoseInWorldFrame() const {
-    return getLeftArmControllerPoseInSensorFrame().transform(getSensorToWorldMatrix());
-}
-
-controller::Pose MyAvatar::getRightArmControllerPoseInWorldFrame() const {
-    return getRightArmControllerPoseInSensorFrame().transform(getSensorToWorldMatrix());
-}
-
-controller::Pose MyAvatar::getLeftArmControllerPoseInAvatarFrame() const {
-    glm::mat4 worldToAvatarMat = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
-    return getLeftArmControllerPoseInWorldFrame().transform(worldToAvatarMat);
-}
-
-controller::Pose MyAvatar::getRightArmControllerPoseInAvatarFrame() const {
-    glm::mat4 worldToAvatarMat = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
-    return getRightArmControllerPoseInWorldFrame().transform(worldToAvatarMat);
+controller::Pose MyAvatar::getControllerPoseInAvatarFrame(controller::Action action) const {
+    auto pose = getControllerPoseInWorldFrame(action);
+    if (pose.valid) {
+        glm::mat4 invAvatarMatrix = glm::inverse(createMatFromQuatAndPos(getOrientation(), getPosition()));
+        return pose.transform(invAvatarMatrix);
+    } else {
+        return controller::Pose(); // invalid pose
+    }
 }
 
 void MyAvatar::updateMotors() {
@@ -1645,7 +1529,7 @@ void MyAvatar::prepareForPhysicsSimulation() {
     _characterController.setParentVelocity(parentVelocity);
 
     _characterController.setPositionAndOrientation(getPosition(), getOrientation());
-    auto headPose = getHeadControllerPoseInAvatarFrame();
+    auto headPose = getControllerPoseInAvatarFrame(controller::Action::HEAD);
     if (headPose.isValid()) {
         _follow.prePhysicsUpdate(*this, deriveBodyFromHMDSensor(), _bodySensorMatrix, hasDriveInput());
     } else {
@@ -1899,8 +1783,8 @@ void MyAvatar::postUpdate(float deltaTime) {
     }
 
     if (_enableDebugDrawHandControllers) {
-        auto leftHandPose = getLeftHandControllerPoseInWorldFrame();
-        auto rightHandPose = getRightHandControllerPoseInWorldFrame();
+        auto leftHandPose = getControllerPoseInWorldFrame(controller::Action::LEFT_HAND);
+        auto rightHandPose = getControllerPoseInWorldFrame(controller::Action::RIGHT_HAND);
 
         if (leftHandPose.isValid()) {
             DebugDraw::getInstance().addMarker("leftHandController", leftHandPose.getRotation(), leftHandPose.getTranslation(), glm::vec4(1));
@@ -2053,7 +1937,7 @@ void MyAvatar::updateOrientation(float deltaTime) {
 
     getHead()->setBasePitch(getHead()->getBasePitch() + getDriveKey(PITCH) * _pitchSpeed * deltaTime);
 
-    auto headPose = getHeadControllerPoseInAvatarFrame();
+    auto headPose = getControllerPoseInAvatarFrame(controller::Action::HEAD);
     if (headPose.isValid()) {
         glm::quat localOrientation = headPose.rotation * Quaternions::Y_180;
         // these angles will be in radians
@@ -2689,10 +2573,10 @@ bool MyAvatar::isDriveKeyDisabled(DriveKeys key) const {
 glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     glm::vec3 headPosition;
     glm::quat headOrientation;
-    auto headPose = getHeadControllerPoseInSensorFrame();
+    auto headPose = getControllerPoseInSensorFrame(controller::Action::HEAD);
     if (headPose.isValid()) {
-        headPosition = getHeadControllerPoseInSensorFrame().translation;
-        headOrientation = getHeadControllerPoseInSensorFrame().rotation * Quaternions::Y_180;
+        headPosition = headPose.translation;
+        headOrientation = headPose.rotation * Quaternions::Y_180;
     }
     const glm::quat headOrientationYawOnly = cancelOutRollAndPitch(headOrientation);
 
@@ -3002,19 +2886,19 @@ glm::quat MyAvatar::getAbsoluteJointRotationInObjectFrame(int index) const {
 
     switch (index) {
         case CONTROLLER_LEFTHAND_INDEX: {
-            return getLeftHandControllerPoseInAvatarFrame().getRotation();
+            return getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).getRotation();
         }
         case CONTROLLER_RIGHTHAND_INDEX: {
-            return getRightHandControllerPoseInAvatarFrame().getRotation();
+            return getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).getRotation();
         }
         case CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX: {
-            auto pose = _leftHandControllerPoseInSensorFrameCache.get();
+            auto pose = getControllerPoseInSensorFrame(controller::Action::LEFT_HAND);
             glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
             glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
             return glmExtractRotation(result);
         }
         case CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX: {
-            auto pose = _rightHandControllerPoseInSensorFrameCache.get();
+            auto pose = getControllerPoseInSensorFrame(controller::Action::RIGHT_HAND);
             glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
             glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
             return glmExtractRotation(result);
@@ -3039,19 +2923,19 @@ glm::vec3 MyAvatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
 
     switch (index) {
         case CONTROLLER_LEFTHAND_INDEX: {
-            return getLeftHandControllerPoseInAvatarFrame().getTranslation();
+            return getControllerPoseInAvatarFrame(controller::Action::LEFT_HAND).getTranslation();
         }
         case CONTROLLER_RIGHTHAND_INDEX: {
-            return getRightHandControllerPoseInAvatarFrame().getTranslation();
+            return getControllerPoseInAvatarFrame(controller::Action::RIGHT_HAND).getTranslation();
         }
         case CAMERA_RELATIVE_CONTROLLER_LEFTHAND_INDEX: {
-            auto pose = _leftHandControllerPoseInSensorFrameCache.get();
+            auto pose = getControllerPoseInSensorFrame(controller::Action::LEFT_HAND);
             glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
             glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
             return extractTranslation(result);
         }
         case CAMERA_RELATIVE_CONTROLLER_RIGHTHAND_INDEX: {
-            auto pose = _rightHandControllerPoseInSensorFrameCache.get();
+            auto pose = getControllerPoseInSensorFrame(controller::Action::RIGHT_HAND);
             glm::mat4 controllerSensorMatrix = createMatFromQuatAndPos(pose.rotation, pose.translation);
             glm::mat4 result = computeCameraRelativeHandControllerMatrix(controllerSensorMatrix);
             return extractTranslation(result);

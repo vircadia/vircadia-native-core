@@ -65,10 +65,7 @@
 
         // Footer actions.
         $("#back-button").on("click", function () {
-            if (window.history.state != null) window.history.back();
-                // to fix back button issue when in directory
-                //else window.location = "http://www.highfidelity.com/marketplace";
-            else window.location = "https://metaverse.highfidelity.com/marketplace?";
+            (window.history.state != null) ? window.history.back() : window.location = "https://metaverse.highfidelity.com/marketplace?";
         });
         $("#all-markets").on("click", function () {
             EventBridge.emitWebEvent(GOTO_DIRECTORY);

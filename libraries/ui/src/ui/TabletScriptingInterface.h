@@ -232,6 +232,7 @@ protected slots:
     void addButtonsToHomeScreen();
     void desktopWindowClosed();
     void emitWebEvent(const QVariant& msg);
+    void onTabletShown();
 protected:
     void removeButtonsFromHomeScreen();
     void loadHomeScreen(bool forceOntoHomeScreen);
@@ -252,6 +253,7 @@ protected:
     enum class State { Uninitialized, Home, Web, Menu, QML };
     State _state { State::Uninitialized };
     bool _landscape { false };
+    bool _showRunningScripts { false };
 };
 
 Q_DECLARE_METATYPE(TabletProxy*);

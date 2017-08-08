@@ -40,8 +40,8 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool
     if (!isZip) {
         tempDir.remove(fileName);
     } else {
-        QTemporaryDir blocks;
-        tempDir = blocks.path();
+        QTemporaryDir zipTemp;
+        tempDir = zipTemp.path();
         path.remove("file:///");
     }
     
@@ -76,8 +76,7 @@ QStringList FileScriptingInterface::unzipFile(QString path, QString tempDir) {
 
     if (!list.isEmpty()) {
         return list;
-    }
-    else {
+    } else {
         qCDebug(scriptengine) << "Extraction failed";
         return list;
     }

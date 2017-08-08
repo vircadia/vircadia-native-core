@@ -109,6 +109,23 @@
 
         { "from": "Standard.Head", "to": "Actions.Head" },
         { "from": "Standard.LeftArm", "to": "Actions.LeftArm" },
-        { "from": "Standard.RightArm", "to": "Actions.RightArm" }
+        { "from": "Standard.RightArm", "to": "Actions.RightArm" },
+        
+        { "from": "Standard.TrackedObject00", "to" : "Actions.TrackedObject00" },
+        { "from": "Standard.TrackedObject01", "to" : "Actions.TrackedObject01" },
+        { "from": "Standard.TrackedObject02", "to" : "Actions.TrackedObject02" },
+        { "from": "Standard.TrackedObject03", "to" : "Actions.TrackedObject03" },
+        { "from": "Standard.TrackedObject04", "to" : "Actions.TrackedObject04" },
+        { "from": "Standard.TrackedObject05", "to" : "Actions.TrackedObject05" },
+        { "from": "Standard.TrackedObject06", "to" : "Actions.TrackedObject06" },
+        { "from": "Standard.TrackedObject07", "to" : "Actions.TrackedObject07" },
+        { "from": "Standard.TrackedObject08", "to" : "Actions.TrackedObject08" },
+        { "from": "Standard.TrackedObject09", "to" : "Actions.TrackedObject09" },
+        { "from": "Standard.TrackedObject10", "to" : "Actions.TrackedObject10" },
+        { "from": "Standard.TrackedObject11", "to" : "Actions.TrackedObject11" },
+        { "from": "Standard.TrackedObject12", "to" : "Actions.TrackedObject12" },
+        { "from": "Standard.TrackedObject13", "to" : "Actions.TrackedObject13" },
+        { "from": "Standard.TrackedObject14", "to" : "Actions.TrackedObject14" },
+        { "from": "Standard.TrackedObject15", "to" : "Actions.TrackedObject15" }
     ]
 }
