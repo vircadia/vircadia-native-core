@@ -307,14 +307,10 @@
                 Entities.editEntity(_entityID, editItemProperties);
 
             } else if (_isContinuousLine && _strokePoints.length >= MAX_POINTS_PER_LINE) {
-                print("restarting to draw line");
                 finishLine(position, width);
                 _shouldKeepDrawing = true;
                 startLine(_lastPosition, width);
             }
-
-            if (_strokePoints.length >= MAX_POINTS_PER_LINE)
-                print("restarting to draw linea asdasdadwe");
             _lastPosition = position;
         }
 
@@ -642,14 +638,25 @@
         var strokeColor = _leftBrush.getStrokeColor();
         var strokeWidth = _leftBrush.getStrokeWidth()*0.06;
         if (_inkSourceOverlay == null){
-            _inkSourceOverlay = Overlays.addOverlay("sphere", { parentID: MyAvatar.sessionUUID, parentJointIndex: MyAvatar.getJointIndex(handLiteral === "left" ? "LeftHandIndex4" : "RightHandIndex4"), localPosition: { x: 0, y: 0, z: 0 }, size: strokeWidth, color: strokeColor , solid: true });
+            _inkSourceOverlay = Overlays.addOverlay(
+                "sphere", 
+                { 
+                    parentID: MyAvatar.sessionUUID, 
+                    parentJointIndex: MyAvatar.getJointIndex(handLiteral === "left" ? "LeftHandIndex4" : "RightHandIndex4"),
+                    localPosition: { x: 0, y: 0, z: 0 }, 
+                    size: strokeWidth, 
+                    color: strokeColor, 
+                    solid: true 
+                });
         } else {
-            Overlays.editOverlay(_inkSourceOverlay, {
-                parentJointIndex: MyAvatar.getJointIndex(handLiteral === "left" ? "LeftHandIndex4" : "RightHandIndex4"),
-                localPosition: { x: 0, y: 0, z: 0 },
-                size: strokeWidth, 
-                color: strokeColor 
-            });
+            Overlays.editOverlay(
+                _inkSourceOverlay, 
+                {
+                    parentJointIndex: MyAvatar.getJointIndex(handLiteral === "left" ? "LeftHandIndex4" : "RightHandIndex4"),
+                    localPosition: { x: 0, y: 0, z: 0 },
+                    size: strokeWidth, 
+                    color: strokeColor 
+                });
         }
 
     }
@@ -967,7 +974,8 @@
             print(animationName);
             if (AnimatedBrushesInfo[animationName].isEnabled) {
                 var prevUserData = Entities.getEntityProperties(entityID).userData;
-                prevUserData = prevUserData == "" ? new Object() : JSON.parse(prevUserData); //preserve other possible user data
+                //preserve other possible user data
+                prevUserData = prevUserData == "" ? new Object() : JSON.parse(prevUserData); 
                 if (prevUserData.animations == null) {
                     prevUserData.animations = {};
                 }
@@ -992,14 +1000,23 @@
     }
 
     function onHmdChanged(isHMDActive) { 
-        var HMDInfo = Settings.getValue("wasFingerPaintingWhenHMDClosed", {isHMDActive: true, wasFingerPainting: false});
+        var HMDInfo = Settings.getValue("wasFingerPaintingWhenHMDClosed", 
+            {
+                isHMDActive: true, 
+                wasFingerPainting: false
+            });
+
         if (!_isFingerPainting && HMDInfo.wasFingerPainting) {
             _shouldRestoreTablet = true;
             HMD.openTablet();
         }
         if (isHMDActive != HMDInfo.isHMDActive) { //check if state is different as some times it will be the same
             //onHmdChanged seems to be called twice (once before and once after fingerpaint is over)
-            Settings.setValue("wasFingerPaintingWhenHMDClosed", {isHMDActive: isHMDActive, wasFingerPainting: _isFingerPainting});
+            Settings.setValue("wasFingerPaintingWhenHMDClosed", 
+                {
+                    isHMDActive: isHMDActive, 
+                    wasFingerPainting: _isFingerPainting
+                });
         }
     }
 
