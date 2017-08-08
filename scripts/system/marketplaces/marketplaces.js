@@ -61,9 +61,9 @@
         tablet.webEventReceived.connect(function (message) {
             var parsedJsonMessage = JSON.parse(message);
             if (parsedJsonMessage.type === "CHECKOUT") {
-                console.log("ZRF: Buy Button Clicked: " + JSON.stringify(parsedJsonMessage));
-                tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
+                console.log("ZRF: Checkout (Get) Button Clicked: " + JSON.stringify(parsedJsonMessage));
                 tablet.sendToQml({ method: 'updateCheckoutQML', params: parsedJsonMessage });
+                tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
             }
 
             if (message === GOTO_DIRECTORY) {
