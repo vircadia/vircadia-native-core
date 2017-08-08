@@ -72,6 +72,7 @@ TraversalWaypoint::TraversalWaypoint(EntityTreeElementPointer& element) : _nextI
 }
 
 void TraversalWaypoint::getNextVisibleElementFirstTime(VisibleElement& next, const ViewFrustum& view) {
+    // TODO: add LOD culling of elements
     // NOTE: no need to set next.intersection in the "FirstTime" context
     if (_nextIndex == -1) {
         // only get here for the root TraversalWaypoint at the very beginning of traversal
@@ -96,6 +97,7 @@ void TraversalWaypoint::getNextVisibleElementFirstTime(VisibleElement& next, con
 }
 
 void TraversalWaypoint::getNextVisibleElementAgain(VisibleElement& next, const ViewFrustum& view, uint64_t lastTime) {
+    // TODO: add LOD culling of elements
     if (_nextIndex == -1) {
         // only get here for the root TraversalWaypoint at the very beginning of traversal
         // safe to assume this element intersects view
@@ -132,6 +134,7 @@ void TraversalWaypoint::getNextVisibleElementAgain(VisibleElement& next, const V
 
 void TraversalWaypoint::getNextVisibleElementDifferential(VisibleElement& next,
         const ViewFrustum& view, const ViewFrustum& lastView, uint64_t lastTime) {
+    // TODO: add LOD culling of elements
     if (_nextIndex == -1) {
         // only get here for the root TraversalWaypoint at the very beginning of traversal
         // safe to assume this element intersects view
