@@ -20,7 +20,7 @@
 include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
 hifi_library_search_hints("draco")
 
-find_path(DRACO_INCLUDE_DIRS draco/core/draco_types.h PATH_SUFFIXES include/draco/src HINTS ${DRACO_SEARCH_DIRS})
+find_path(DRACO_INCLUDE_DIRS draco/core/draco_types.h PATH_SUFFIXES include/draco/src include HINTS ${DRACO_SEARCH_DIRS})
 
 find_library(DRACO_LIBRARY draco PATH_SUFFIXES "lib" HINTS ${DRACO_SEARCH_DIRS})
 find_library(DRACO_ENCODER_LIBRARY draco PATH_SUFFIXES "lib" HINTS ${DRACO_SEARCH_DIRS})

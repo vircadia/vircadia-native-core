@@ -21,7 +21,12 @@ set_target_properties(${EXTERNAL_NAME} PROPERTIES FOLDER "hidden/externals")
 ExternalProject_Get_Property(${EXTERNAL_NAME} INSTALL_DIR)
 
 string(TOUPPER ${EXTERNAL_NAME} EXTERNAL_NAME_UPPER)
-set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include/draco/src CACHE PATH "List of Draco include directories")
+
+if (UNIX)
+  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include/draco/src CACHE PATH "List of Draco include directories")
+else ()
+  set(${EXTERNAL_NAME_UPPER}_INCLUDE_DIRS ${INSTALL_DIR}/include CACHE PATH "List of Draco include directories")
+endif ()
 
 if (UNIX)
   set(LIB_PREFIX "lib")
