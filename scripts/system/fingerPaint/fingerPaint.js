@@ -977,7 +977,6 @@
 
     function addAnimationToBrush(entityID) {
         Object.keys(AnimatedBrushesInfo).forEach(function(animationName) {
-            print(animationName);
             if (AnimatedBrushesInfo[animationName].isEnabled) {
                 var prevUserData = Entities.getEntityProperties(entityID).userData;
                 //preserve other possible user data

@@ -7,6 +7,10 @@
         //print("After adding script 2 : " + JSON.stringify(Entities.getEntityProperties(entityID)));
         
         self.intervalID = Script.setInterval(function() {
+            if (MyAvatar.sessionUUID != Entities.getEntityProperties(entityID).lastEditedBy) {
+                Script.clearInterval(self.intervalID);
+                return;
+            }
             if (Vec3.withinEpsilon(MyAvatar.position, Entities.getEntityProperties(entityID).position, MIN_PLAY_DISTANCE)) {
                 var userData = Entities.getEntityProperties(entityID).userData;
                 if (userData) {
