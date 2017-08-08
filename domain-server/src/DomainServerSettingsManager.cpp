@@ -297,6 +297,7 @@ void DomainServerSettingsManager::setupConfigMap(const QStringList& argumentList
         }
 
         if (oldVersion < 1.8) {
+            unpackPermissions();
             // This was prior to addition of domain content replacement, add that to localhost permissions by default
             _standardAgentPermissions[NodePermissions::standardNameLocalhost]->set(NodePermissions::Permission::canReplaceDomainContent);
             packPermissions();
