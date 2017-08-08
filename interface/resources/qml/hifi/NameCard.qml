@@ -339,7 +339,7 @@ Item {
             enabled: selected && pal.activeTab == "nearbyTab" && thisNameCard.userName !== "" && isPresent;
             hoverEnabled: enabled
             onClicked: {
-                goToUserInDomain(thisNameCard.uuid);
+                goToUserInDomain(thisNameCard.uuid, false);
                 UserActivityLogger.palAction("go_to_user_in_domain", thisNameCard.uuid);
             }
             onEntered: {
