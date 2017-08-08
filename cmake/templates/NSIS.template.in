@@ -484,16 +484,14 @@ Function InstallTypesPage
   StrCpy $OffsetUnits u
   StrCpy $Express "0"  
   
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
-    ${NSD_CreateRadioButton} 30% $CurrentOffset$OffsetUnits 100% 10u "Express Install (Recommended)"; $\nInstalls High Fidelity Interface and High Fidelity Sandbox"
-    pop $ExpressInstallRadioButton
-    ${NSD_OnClick} $ExpressInstallRadioButton ChangeExpressLabel
-    IntOp $CurrentOffset $CurrentOffset + 15
+  ${NSD_CreateRadioButton} 30% $CurrentOffset$OffsetUnits 100% 10u "Express Install (Recommended)"; $\nInstalls High Fidelity Interface and High Fidelity Sandbox"
+  pop $ExpressInstallRadioButton
+  ${NSD_OnClick} $ExpressInstallRadioButton ChangeExpressLabel
+  IntOp $CurrentOffset $CurrentOffset + 15
   
-    ${NSD_CreateRadiobutton} 30% $CurrentOffset$OffsetUnits 100% 10u "Custom Install (Advanced)"
-    pop $CustomInstallRadioButton
-    ${NSD_OnClick} $CustomInstallRadioButton ChangeCustomLabel 
-  ${EndIf}
+  ${NSD_CreateRadiobutton} 30% $CurrentOffset$OffsetUnits 100% 10u "Custom Install (Advanced)"
+  pop $CustomInstallRadioButton
+  ${NSD_OnClick} $CustomInstallRadioButton ChangeCustomLabel 
   
   ; Express Install selected by default
   ${NSD_Check} $ExpressInstallRadioButton
@@ -651,9 +649,11 @@ Function ReadInstallTypes
     StrCpy $ServerStartupState ${BST_CHECKED} 
     StrCpy $LaunchServerNowState ${BST_CHECKED}
     StrCpy $LaunchClientNowState ${BST_CHECKED}
+    StrCpy $CleanInstallState ${BST_UNCHECKED}
+    StrCpy $DesktopServerState ${BST_UNCHECKED}
 
     ${If} @PR_BUILD@ == 1
-      ${NSD_SetState} $CopyFromProductionCheckbox ${BST_UNCHECKED}
+      StrCpy $CopyFromProductionState ${BST_UNCHECKED}
     ${EndIf}
     
   ${EndIf}
@@ -842,6 +842,8 @@ Section "-Core installation"
   ; Rename the incorrectly cased Raleway font
   Rename "$INSTDIR\resources\qml\styles-uit\RalewaySemibold.qml" "$INSTDIR\resources\qml\styles-uit\RalewaySemiBold.qml"
 
+  ExecWait "$INSTDIR\vcredist_x64.exe /install /q /norestart"
+  
   ; Remove the Old Interface directory and vcredist_x64.exe (from installs prior to Server Console)
   RMDir /r "$INSTDIR\Interface"
   Delete "$INSTDIR\vcredist_x64.exe"
@@ -939,10 +941,10 @@ Section "-Core installation"
   Push "StartMenu"
   Push "$STARTMENU_FOLDER"
   Call ConditionalAddToRegisty
-  
+
   !insertmacro MUI_STARTMENU_WRITE_END
   
-@CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
+  @CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
   
   ; Handle whichever post install options were set
   Call HandlePostInstallOptions
