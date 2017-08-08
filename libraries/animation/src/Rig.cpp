@@ -1399,24 +1399,25 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
     _animVars.set("isTalking", params.isTalking);
     _animVars.set("notIsTalking", !params.isTalking);
 
-    bool headEnabled = params.controllerActiveFlags[ControllerType_Head];
-    bool leftHandEnabled = params.controllerActiveFlags[ControllerType_LeftHand];
-    bool rightHandEnabled = params.controllerActiveFlags[ControllerType_RightHand];
-    bool hipsEnabled = params.controllerActiveFlags[ControllerType_Hips];
-    bool leftFootEnabled = params.controllerActiveFlags[ControllerType_LeftFoot];
-    bool rightFootEnabled = params.controllerActiveFlags[ControllerType_RightFoot];
-    bool leftArmEnabled = params.controllerActiveFlags[ControllerType_LeftArm];
-    bool rightArmEnabled = params.controllerActiveFlags[ControllerType_RightArm];
-    bool spine2Enabled = params.controllerActiveFlags[ControllerType_Spine2];
+    bool headEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_Head];
+    bool leftHandEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_LeftHand];
+    bool rightHandEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_RightHand];
+    bool hipsEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_Hips];
+    bool leftFootEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_LeftFoot];
+    bool rightFootEnabled = params.primaryControllerActiveFlags[PrimaryControllerType_RightFoot];
+    bool spine2Enabled = params.primaryControllerActiveFlags[PrimaryControllerType_Spine2];
 
-    updateHead(headEnabled, hipsEnabled, params.controllerPoses[ControllerType_Head]);
+    bool leftArmEnabled = params.secondaryControllerActiveFlags[SecondaryControllerType_LeftArm];
+    bool rightArmEnabled = params.secondaryControllerActiveFlags[SecondaryControllerType_RightArm];
+
+    updateHead(headEnabled, hipsEnabled, params.primaryControllerPoses[PrimaryControllerType_Head]);
 
     updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, leftArmEnabled, rightArmEnabled, dt,
-                params.controllerPoses[ControllerType_LeftHand], params.controllerPoses[ControllerType_RightHand],
+                params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
                 params.bodyCapsuleRadius, params.bodyCapsuleHalfHeight, params.bodyCapsuleLocalOffset);
 
     updateFeet(leftFootEnabled, rightFootEnabled,
-               params.controllerPoses[ControllerType_LeftFoot], params.controllerPoses[ControllerType_RightFoot]);
+               params.primaryControllerPoses[PrimaryControllerType_LeftFoot], params.primaryControllerPoses[PrimaryControllerType_RightFoot]);
 
     // if the hips or the feet are being controlled.
     if (hipsEnabled || rightFootEnabled || leftFootEnabled) {
@@ -1437,34 +1438,46 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
 
     if (hipsEnabled) {
         _animVars.set("hipsType", (int)IKTarget::Type::RotationAndPosition);
-        _animVars.set("hipsPosition", params.controllerPoses[ControllerType_Hips].trans());
-        _animVars.set("hipsRotation", params.controllerPoses[ControllerType_Hips].rot());
+        _animVars.set("hipsPosition", params.primaryControllerPoses[PrimaryControllerType_Hips].trans());
+        _animVars.set("hipsRotation", params.primaryControllerPoses[PrimaryControllerType_Hips].rot());
     } else {
         _animVars.set("hipsType", (int)IKTarget::Type::Unknown);
     }
 
     if (hipsEnabled && spine2Enabled) {
         _animVars.set("spine2Type", (int)IKTarget::Type::Spline);
-        _animVars.set("spine2Position", params.controllerPoses[ControllerType_Spine2].trans());
-        _animVars.set("spine2Rotation", params.controllerPoses[ControllerType_Spine2].rot());
+        _animVars.set("spine2Position", params.primaryControllerPoses[PrimaryControllerType_Spine2].trans());
+        _animVars.set("spine2Rotation", params.primaryControllerPoses[PrimaryControllerType_Spine2].rot());
     } else {
         _animVars.set("spine2Type", (int)IKTarget::Type::Unknown);
     }
 
-    if (leftArmEnabled) {
-        _animVars.set("leftArmType", (int)IKTarget::Type::RotationAndPosition);
-        _animVars.set("leftArmPosition", params.controllerPoses[ControllerType_LeftArm].trans());
-        _animVars.set("leftArmRotation", params.controllerPoses[ControllerType_LeftArm].rot());
-    } else {
-        _animVars.set("leftArmType", (int)IKTarget::Type::Unknown);
-    }
+    // set secondary targets
+    static const std::vector<QString> secondaryControllerJointNames = {
+        "LeftShoulder",
+        "RightShoulder",
+        "LeftArm",
+        "RightArm",
+        "LeftForeArm",
+        "RightForeArm",
+        "LeftUpLeg",
+        "RightUpLeg",
+        "LeftLeg",
+        "RightLeg",
+        "LeftToeBase",
+        "RightToeBase"
+    };
 
-    if (rightArmEnabled) {
-        _animVars.set("rightArmType", (int)IKTarget::Type::RotationAndPosition);
-        _animVars.set("rightArmPosition", params.controllerPoses[ControllerType_RightArm].trans());
-        _animVars.set("rightArmRotation", params.controllerPoses[ControllerType_RightArm].rot());
-    } else {
-        _animVars.set("rightArmType", (int)IKTarget::Type::Unknown);
+    std::shared_ptr<AnimInverseKinematics> ikNode = getAnimInverseKinematicsNode();
+    for (int i = 0; i < (int)NumSecondaryControllerTypes; i++) {
+        int index = indexOfJoint(secondaryControllerJointNames[i]);
+        if (index >= 0) {
+            if (params.secondaryControllerActiveFlags[i]) {
+                ikNode->setSecondaryTargetInRigFrame(index, params.secondaryControllerPoses[i]);
+            } else {
+                ikNode->clearSecondaryTarget(index);
+            }
+        }
     }
 }
 

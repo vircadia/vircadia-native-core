@@ -144,10 +144,10 @@ void AvatarMixer::optionallyReplicatePacket(ReceivedMessage& message, const Node
         // check if this is a packet type we replicate
         // which means it must be a packet type present in REPLICATED_PACKET_MAPPING or must be the
         // replicated version of one of those packet types
-        PacketType replicatedType = REPLICATED_PACKET_MAPPING.value(message.getType());
+        PacketType replicatedType = PacketTypeEnum::getReplicatedPacketMapping().value(message.getType());
 
         if (replicatedType == PacketType::Unknown) {
-            if (REPLICATED_PACKET_MAPPING.key(message.getType()) != PacketType::Unknown) {
+            if (PacketTypeEnum::getReplicatedPacketMapping().key(message.getType()) != PacketType::Unknown) {
                 replicatedType = message.getType();
             } else {
                 qDebug() << __FUNCTION__ << "called without replicatable packet type - returning";

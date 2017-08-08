@@ -126,24 +126,6 @@
                                     "weightVar": "headWeight",
                                     "weight": 4.0,
                                     "flexCoefficients": [1, 0.5, 0.25, 0.2, 0.1]
-                                },
-                                {
-                                    "jointName": "LeftArm",
-                                    "positionVar": "leftArmPosition",
-                                    "rotationVar": "leftArmRotation",
-                                    "typeVar": "leftArmType",
-                                    "weightVar": "leftArmWeight",
-                                    "weight": 0.75,
-                                    "flexCoefficients": [1.0, 0.35, 0.2, 0.1, 0.05, 0.0, 0.0, 0.0]
-                                },
-                                {
-                                    "jointName": "RightArm",
-                                    "positionVar": "rightArmPosition",
-                                    "rotationVar": "rightArmRotation",
-                                    "typeVar": "rightArmType",
-                                    "weightVar": "rightArmWeight",
-                                    "weight": 0.75,
-                                    "flexCoefficients": [1.0, 0.35, 0.2, 0.1, 0.05, 0.0, 0.0, 0.0]
                                 }
                             ]
                         },

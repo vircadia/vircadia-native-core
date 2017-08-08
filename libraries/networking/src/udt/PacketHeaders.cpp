@@ -22,38 +22,6 @@
 Q_DECLARE_METATYPE(PacketType);
 int packetTypeMetaTypeId = qRegisterMetaType<PacketType>();
 
-const QSet<PacketType> NON_VERIFIED_PACKETS = QSet<PacketType>()
-    << PacketType::NodeJsonStats << PacketType::EntityQuery
-    << PacketType::OctreeDataNack << PacketType::EntityEditNack
-    << PacketType::DomainListRequest << PacketType::StopNode
-    << PacketType::DomainDisconnectRequest << PacketType::UsernameFromIDRequest
-    << PacketType::NodeKickRequest << PacketType::NodeMuteRequest;
-
-const QSet<PacketType> NON_SOURCED_PACKETS = QSet<PacketType>()
-    << PacketType::StunResponse << PacketType::CreateAssignment << PacketType::RequestAssignment
-    << PacketType::DomainServerRequireDTLS << PacketType::DomainConnectRequest
-    << PacketType::DomainList << PacketType::DomainConnectionDenied
-    << PacketType::DomainServerPathQuery << PacketType::DomainServerPathResponse
-    << PacketType::DomainServerAddedNode << PacketType::DomainServerConnectionToken
-    << PacketType::DomainSettingsRequest << PacketType::DomainSettings
-    << PacketType::ICEServerPeerInformation << PacketType::ICEServerQuery << PacketType::ICEServerHeartbeat
-    << PacketType::ICEServerHeartbeatACK << PacketType::ICEPing << PacketType::ICEPingReply
-    << PacketType::ICEServerHeartbeatDenied << PacketType::AssignmentClientStatus << PacketType::StopNode
-    << PacketType::DomainServerRemovedNode << PacketType::UsernameFromIDReply << PacketType::OctreeFileReplacement
-    << PacketType::ReplicatedMicrophoneAudioNoEcho << PacketType::ReplicatedMicrophoneAudioWithEcho
-    << PacketType::ReplicatedInjectAudio << PacketType::ReplicatedSilentAudioFrame
-    << PacketType::ReplicatedAvatarIdentity << PacketType::ReplicatedKillAvatar << PacketType::ReplicatedBulkAvatarData;
-
-const QHash<PacketType, PacketType> REPLICATED_PACKET_MAPPING {
-    { PacketType::MicrophoneAudioNoEcho, PacketType::ReplicatedMicrophoneAudioNoEcho },
-    { PacketType::MicrophoneAudioWithEcho, PacketType::ReplicatedMicrophoneAudioWithEcho },
-    { PacketType::InjectAudio, PacketType::ReplicatedInjectAudio },
-    { PacketType::SilentAudioFrame, PacketType::ReplicatedSilentAudioFrame },
-    { PacketType::AvatarIdentity, PacketType::ReplicatedAvatarIdentity },
-    { PacketType::KillAvatar, PacketType::ReplicatedKillAvatar },
-    { PacketType::BulkAvatarData, PacketType::ReplicatedBulkAvatarData }
-};
-
 PacketVersion versionForPacketType(PacketType packetType) {
     switch (packetType) {
         case PacketType::DomainList:
@@ -62,7 +30,7 @@ PacketVersion versionForPacketType(PacketType packetType) {
         case PacketType::EntityEdit:
         case PacketType::EntityData:
         case PacketType::EntityPhysics:
-            return VERSION_ENTITIES_BULLET_DYNAMICS;
+            return VERSION_ENTITIES_HAS_SHOULD_HIGHLIGHT;
         case PacketType::EntityQuery:
             return static_cast<PacketVersion>(EntityQueryPacketVersion::JSONFilterWithFamilyTree);
         case PacketType::AvatarIdentity:
