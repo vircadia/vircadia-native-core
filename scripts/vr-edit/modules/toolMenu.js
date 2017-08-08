@@ -58,6 +58,8 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
             visible: true
         },
 
+        NO_SWATCH_COLOR = { red: 128, green: 128, blue: 128 },
+
         UI_ELEMENTS = {
             "panel": {
                 overlay: "cube",
@@ -87,8 +89,9 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                 properties: {
                     dimensions: { x: 0.03, y: 0.03, z: 0.01 },
                     localRotation: Quat.ZERO,
+                    color: NO_SWATCH_COLOR,
                     alpha: 1.0,
-                    solid: false,  // False indicates "no color assigned"
+                    solid: false,  // False indicates "no swatch color assigned"
                     ignoreRayIntersection: false,
                     visible: true
                 }
@@ -184,6 +187,10 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                     command: {
                         method: "setColorPerSwatch",
                         parameter: "colorSwatch1.color"
+                    },
+                    onGripClicked: {
+                        method: "clearSwatch",
+                        parameter: "colorSwatch1"
                     }
                 },
                 {
@@ -198,6 +205,10 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                     command: {
                         method: "setColorPerSwatch",
                         parameter: "colorSwatch2.color"
+                    },
+                    onGripClicked: {
+                        method: "clearSwatch",
+                        parameter: "colorSwatch2"
                     }
                 },
                 {
@@ -205,13 +216,15 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                     type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.035, y: 0.045, z: -0.005 },
-                        color: { red: 128, green: 128, blue: 128 },
-                        solid: false
+                        localPosition: { x: -0.035, y: 0.045, z: -0.005 }
                     },
                     command: {
                         method: "setColorPerSwatch",
                         parameter: "colorSwatch3.color"
+                    },
+                    onGripClicked: {
+                        method: "clearSwatch",
+                        parameter: "colorSwatch3"
                     }
                 },
                 {
@@ -219,13 +232,15 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                     type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.01, y: 0.045, z: -0.005 },
-                        color: { red: 128, green: 128, blue: 128 },
-                        solid: false
+                        localPosition: { x: -0.01, y: 0.045, z: -0.005 }
                     },
                     command: {
                         method: "setColorPerSwatch",
                         parameter: "colorSwatch4.color"
+                    },
+                    onGripClicked: {
+                        method: "clearSwatch",
+                        parameter: "colorSwatch4"
                     }
                 },
                 {
@@ -356,6 +371,7 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
         pressedItem = null,
         pressedSource,
         isButtonPressed,
+        isGripClicked,
 
         isGroupButtonEnabled,
         isUngroupButtonEnabled,
@@ -501,6 +517,19 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
         }
     }
 
+    function doGripClicked(command, parameter) {
+        switch (command) {
+        case "clearSwatch":
+            Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf(parameter)], {
+                color: NO_SWATCH_COLOR,
+                solid: false
+            });
+            break;
+        default:
+            // TODO: Log error.
+        }
+    }
+
     function update(intersectionOverlayID, groupsCount, entitiesCount) {
         var intersectedItem = -1,
             intersectionItems,
@@ -606,6 +635,18 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
             }
         }
 
+        // Grip click.
+        if (controlHand.gripClicked() !== isGripClicked) {
+            isGripClicked = !isGripClicked;
+            if (isGripClicked && intersectionItems && intersectedItem && intersectionItems[intersectedItem].onGripClicked) {
+                controlHand.setGripClickedHandled();
+                if (intersectionItems[intersectedItem].onGripClicked.parameter) {
+                    parameter = intersectionItems[intersectedItem].onGripClicked.parameter;
+                }
+                doGripClicked(intersectionItems[intersectedItem].onGripClicked.method, parameter);
+            }
+        }
+
         // Special handling for Group options.
         if (optionsItems && optionsItems === OPTONS_PANELS.groupOptions) {
             enableGroupButton = groupsCount > 1;
@@ -696,6 +737,7 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
         pressedItem = null;
         pressedSource = null;
         isButtonPressed = false;
+        isGripClicked = false;
         isGroupButtonEnabled = false;
         isUngroupButtonEnabled = false;
 
