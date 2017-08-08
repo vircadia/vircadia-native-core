@@ -1,4 +1,3 @@
-<!--Note: change the parent postmessage second parameter due to possible security issues-->
 <link rel="stylesheet" type="text/css" href="../../html/css/edit-style.css">
 <script type="text/javascript" src="../../html/js/keyboardControl.js"></script>
 <script src="../../html/js/jquery-2.1.4.min.js"></script>
@@ -374,7 +373,7 @@
             "type"     : "changeLineWidth",
             "brushWidth":  e.value
         };
-        parent.postMessage(JSON.stringify(changeLineWidthEvent), "*");
+        EventBridge.emitWebEvent(JSON.stringify(changeLineWidthEvent));
     }
 
     function switchPressureSensitiveWidth(checkbox) {
@@ -383,7 +382,7 @@
             "type"    : "switchTriggerPressureWidth",
             "enabled" : checkbox.checked,
         };
-        parent.postMessage(JSON.stringify(switchPressureSensitiveWidthEvent), "*");
+        EventBridge.emitWebEvent(JSON.stringify(switchPressureSensitiveWidthEvent));
     }
 
     function changePaintBrush(brushIndex) {
@@ -408,7 +407,7 @@
             "brushID"  : brushIndex
         };
 
-        parent.postMessage(JSON.stringify(changedBrushEvent), "*");
+        EventBridge.emitWebEvent(JSON.stringify(changedBrushEvent));
     }
 
     function calculateAnimatedAxis(checkbox) {
@@ -469,7 +468,7 @@
             "settings"        : settings,
             "animatedBrushID"  : checkbox.id
         };
-        parent.postMessage(JSON.stringify(switchAnimatedBrushEvent), "*");
+        EventBridge.emitWebEvent(JSON.stringify(switchAnimatedBrushEvent));
     }
 
     function setDynamicBrush(checkbox) {
@@ -479,7 +478,7 @@
             "enabled"         : checkbox.checked,
             "dynamicBrushId"  : checkbox.id
         };
-        parent.postMessage(JSON.stringify(switchDynamicBrushEvent), "*");
+        EventBridge.emitWebEvent(JSON.stringify(switchDynamicBrushEvent));
     }
 
     function setContinuosLineMode(checkbox) {
@@ -487,7 +486,7 @@
             "type"    : "switchIsContinuous",
             "enabled" : checkbox.checked,
         };
-        parent.postMessage(JSON.stringify(switchContinuousDrawModeEvent), "*");
+        EventBridge.emitWebEvent(JSON.stringify(switchContinuousDrawModeEvent));
     }
 
     function resizeImage(image, width, height) {

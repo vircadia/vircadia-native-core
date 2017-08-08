@@ -1,4 +1,3 @@
-<!--Note: change the parent postmessage second parameter due to possible security issues-->
 <link rel="stylesheet" type="text/css" href="../../html/css/edit-style.css">
 <link rel="stylesheet" type="text/css" href="../../html/css/colpick.css">
 <script type="text/javascript" src="../../html/js/eventBridgeLoader.js"></script>
@@ -121,7 +120,7 @@
             "origin"  : currentSelectedColorOrigin,
         };
         setColorInTable(colorArray);
-        parent.postMessage(JSON.stringify(changedColorEvent), "*");
+        EventBridge.emitWebEvent(JSON.stringify(changedColorEvent));
     }
 
     function updateFromCustomPicker(colorArray) {
@@ -199,7 +198,7 @@
                 "green"    : colorArray[1],
                 "blue"     : colorArray[2]
             };
-            parent.postMessage(JSON.stringify(addCustomColorEvent), "*");
+            EventBridge.emitWebEvent(JSON.stringify(addCustomColorEvent));
         }
     }
 
