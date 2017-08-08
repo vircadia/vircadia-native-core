@@ -518,7 +518,6 @@ FunctionEnd
 
 Function AbortFunction
   ; Check if Express is set, if so, abort the post install options page
-  ; Call HandleInstallTypes ; Sets Express if ExpressInstallRadioButton is checked
   StrCmp $Express "1" 0 end
   Abort
   end:
@@ -942,9 +941,9 @@ Section "-Core installation"
   Call ConditionalAddToRegisty
 
   !insertmacro MUI_STARTMENU_WRITE_END
-
+  
   @CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
-
+  
   ; Handle whichever post install options were set
   Call HandlePostInstallOptions
 
