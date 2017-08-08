@@ -241,7 +241,6 @@ void ContextOverlayInterface::contextOverlays_hoverLeaveEntity(const EntityItemI
 }
 
 static const QString MARKETPLACE_BASE_URL = "https://metaverse.highfidelity.com/marketplace/items/";
-static const QString MARKETPLACES_INJECT_SCRIPT_PATH = PathUtils::resourcesPath() + "../scripts/system/html/js/marketplacesInject.js";
 
 void ContextOverlayInterface::openMarketplace() {
     // lets open the tablet and go to the current item in
@@ -251,6 +250,7 @@ void ContextOverlayInterface::openMarketplace() {
         auto tablet = dynamic_cast<TabletProxy*>(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
         // construct the url to the marketplace item
         QString url = MARKETPLACE_BASE_URL + _entityMarketplaceID;
+        QString MARKETPLACES_INJECT_SCRIPT_PATH = "file:///" + qApp->applicationDirPath() + "/scripts/system/html/js/marketplacesInject.js";
         tablet->gotoWebScreen(url, MARKETPLACES_INJECT_SCRIPT_PATH);
         _hmdScriptingInterface->openTablet();
         _isInMarketplaceInspectionMode = true;
