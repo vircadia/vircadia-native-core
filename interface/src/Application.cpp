@@ -229,6 +229,7 @@ static const QString FBX_EXTENSION  = ".fbx";
 static const QString OBJ_EXTENSION  = ".obj";
 static const QString AVA_JSON_EXTENSION = ".ava.json";
 static const QString WEB_VIEW_TAG = "noDownload=true";
+static const QString ZIP_EXTENSION = ".zip";
 
 static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
 
@@ -260,7 +261,8 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl },
     { JSON_EXTENSION, &Application::importJSONFromURL },
     { JS_EXTENSION, &Application::askToLoadScript },
-    { FST_EXTENSION, &Application::askToSetAvatarUrl }
+    { FST_EXTENSION, &Application::askToSetAvatarUrl },
+    { ZIP_EXTENSION, &Application::importFromZIP }
 };
 
 class DeadlockWatchdogThread : public QThread {
@@ -2779,6 +2781,15 @@ void Application::onPresent(quint32 frameCount) {
     }
 }
 
+bool Application::importFromZIP(const QString& filePath) {
+    qDebug() << "A zip file has been dropped in: " << filePath;
+    QUrl empty;
+    qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true);
+    return true;
+}
+
+bool _renderRequested { false };
+
 bool Application::event(QEvent* event) {
     if (!Menu::getInstance()) {
         return false;
@@ -4405,10 +4416,9 @@ void Application::updateMyAvatarLookAtPosition() {
             }
         } else {
             //  I am not looking at anyone else, so just look forward
-            auto headPose = myAvatar->getHeadControllerPoseInSensorFrame();
+            auto headPose = myAvatar->getControllerPoseInWorldFrame(controller::Action::HEAD);
             if (headPose.isValid()) {
-                glm::mat4 worldHeadMat = myAvatar->getSensorToWorldMatrix() * headPose.getMatrix();
-                lookAtSpot = transformPoint(worldHeadMat, glm::vec3(0.0f, 0.0f, TREE_SCALE));
+                lookAtSpot = transformPoint(headPose.getMatrix(), glm::vec3(0.0f, 0.0f, TREE_SCALE));
             } else {
                 lookAtSpot = myAvatar->getHead()->getEyePosition() +
                     (myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
@@ -4822,52 +4832,76 @@ void Application::update(float deltaTime) {
         myAvatar->setDriveKey(MyAvatar::ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
     }
 
-    controller::Pose leftHandPose = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
-    controller::Pose rightHandPose = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
-    auto myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
-    auto worldToSensorMatrix = glm::inverse(myAvatar->getSensorToWorldMatrix());
-    auto avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
-    myAvatar->setHandControllerPosesInSensorFrame(leftHandPose.transform(avatarToSensorMatrix), rightHandPose.transform(avatarToSensorMatrix));
+    static const std::vector<controller::Action> avatarControllerActions = {
+        controller::Action::LEFT_HAND,
+        controller::Action::RIGHT_HAND,
+        controller::Action::LEFT_FOOT,
+        controller::Action::RIGHT_FOOT,
+        controller::Action::HIPS,
+        controller::Action::SPINE2,
+        controller::Action::HEAD,
+        controller::Action::LEFT_HAND_THUMB1,
+        controller::Action::LEFT_HAND_THUMB2,
+        controller::Action::LEFT_HAND_THUMB3,
+        controller::Action::LEFT_HAND_THUMB4,
+        controller::Action::LEFT_HAND_INDEX1,
+        controller::Action::LEFT_HAND_INDEX2,
+        controller::Action::LEFT_HAND_INDEX3,
+        controller::Action::LEFT_HAND_INDEX4,
+        controller::Action::LEFT_HAND_MIDDLE1,
+        controller::Action::LEFT_HAND_MIDDLE2,
+        controller::Action::LEFT_HAND_MIDDLE3,
+        controller::Action::LEFT_HAND_MIDDLE4,
+        controller::Action::LEFT_HAND_RING1,
+        controller::Action::LEFT_HAND_RING2,
+        controller::Action::LEFT_HAND_RING3,
+        controller::Action::LEFT_HAND_RING4,
+        controller::Action::LEFT_HAND_PINKY1,
+        controller::Action::LEFT_HAND_PINKY2,
+        controller::Action::LEFT_HAND_PINKY3,
+        controller::Action::LEFT_HAND_PINKY4,
+        controller::Action::RIGHT_HAND_THUMB1,
+        controller::Action::RIGHT_HAND_THUMB2,
+        controller::Action::RIGHT_HAND_THUMB3,
+        controller::Action::RIGHT_HAND_THUMB4,
+        controller::Action::RIGHT_HAND_INDEX1,
+        controller::Action::RIGHT_HAND_INDEX2,
+        controller::Action::RIGHT_HAND_INDEX3,
+        controller::Action::RIGHT_HAND_INDEX4,
+        controller::Action::RIGHT_HAND_MIDDLE1,
+        controller::Action::RIGHT_HAND_MIDDLE2,
+        controller::Action::RIGHT_HAND_MIDDLE3,
+        controller::Action::RIGHT_HAND_MIDDLE4,
+        controller::Action::RIGHT_HAND_RING1,
+        controller::Action::RIGHT_HAND_RING2,
+        controller::Action::RIGHT_HAND_RING3,
+        controller::Action::RIGHT_HAND_RING4,
+        controller::Action::RIGHT_HAND_PINKY1,
+        controller::Action::RIGHT_HAND_PINKY2,
+        controller::Action::RIGHT_HAND_PINKY3,
+        controller::Action::RIGHT_HAND_PINKY4,
+        controller::Action::LEFT_ARM,
+        controller::Action::RIGHT_ARM,
+        controller::Action::LEFT_SHOULDER,
+        controller::Action::RIGHT_SHOULDER,
+        controller::Action::LEFT_FORE_ARM,
+        controller::Action::RIGHT_FORE_ARM,
+        controller::Action::LEFT_LEG,
+        controller::Action::RIGHT_LEG,
+        controller::Action::LEFT_UP_LEG,
+        controller::Action::RIGHT_UP_LEG,
+        controller::Action::LEFT_TOE_BASE,
+        controller::Action::RIGHT_TOE_BASE
+    };
 
-    // If have previously done finger poses or there are new valid finger poses, update finger pose values. This so that if
-    // fingers are not being controlled, finger joints are not updated in MySkeletonModel.
-    // Assumption: Finger poses are either all present and valid or not present at all; thus can test just one joint.
-    MyAvatar::FingerPosesMap leftHandFingerPoses;
-    if (myAvatar->getLeftHandFingerControllerPosesInSensorFrame().size() > 0
-            || userInputMapper->getPoseState(controller::Action::LEFT_HAND_THUMB1).isValid()) {
-        for (int i = (int)controller::Action::LEFT_HAND_THUMB1; i <= (int)controller::Action::LEFT_HAND_PINKY4; i++) {
-            leftHandFingerPoses[i] = {
-                userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix),
-                userInputMapper->getActionName((controller::Action)i)
-            };
-        }
+    // copy controller poses from userInputMapper to myAvatar.
+    glm::mat4 myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
+    glm::mat4 worldToSensorMatrix = glm::inverse(myAvatar->getSensorToWorldMatrix());
+    glm::mat4 avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
+    for (auto& action : avatarControllerActions) {
+        controller::Pose pose = userInputMapper->getPoseState(action);
+        myAvatar->setControllerPoseInSensorFrame(action, pose.transform(avatarToSensorMatrix));
     }
-    MyAvatar::FingerPosesMap rightHandFingerPoses;
-    if (myAvatar->getRightHandFingerControllerPosesInSensorFrame().size() > 0
-        || userInputMapper->getPoseState(controller::Action::RIGHT_HAND_THUMB1).isValid()) {
-        for (int i = (int)controller::Action::RIGHT_HAND_THUMB1; i <= (int)controller::Action::RIGHT_HAND_PINKY4; i++) {
-            rightHandFingerPoses[i] = {
-                userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix),
-                userInputMapper->getActionName((controller::Action)i)
-            };
-        }
-    }
-    myAvatar->setFingerControllerPosesInSensorFrame(leftHandFingerPoses, rightHandFingerPoses);
-
-    controller::Pose leftFootPose = userInputMapper->getPoseState(controller::Action::LEFT_FOOT);
-    controller::Pose rightFootPose = userInputMapper->getPoseState(controller::Action::RIGHT_FOOT);
-    myAvatar->setFootControllerPosesInSensorFrame(leftFootPose.transform(avatarToSensorMatrix), rightFootPose.transform(avatarToSensorMatrix));
-
-    controller::Pose hipsPose = userInputMapper->getPoseState(controller::Action::HIPS);
-    controller::Pose spine2Pose = userInputMapper->getPoseState(controller::Action::SPINE2);
-    myAvatar->setSpineControllerPosesInSensorFrame(hipsPose.transform(avatarToSensorMatrix), spine2Pose.transform(avatarToSensorMatrix));
-
-    controller::Pose headPose = userInputMapper->getPoseState(controller::Action::HEAD);
-    myAvatar->setHeadControllerPoseInSensorFrame(headPose.transform(avatarToSensorMatrix));
-
-    controller::Pose leftArmPose = userInputMapper->getPoseState(controller::Action::LEFT_ARM);
-    controller::Pose rightArmPose = userInputMapper->getPoseState(controller::Action::RIGHT_ARM);
-    myAvatar->setArmControllerPosesInSensorFrame(leftArmPose.transform(avatarToSensorMatrix), rightArmPose.transform(avatarToSensorMatrix));
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
@@ -6218,7 +6252,7 @@ void Application::addAssetToWorldFromURLRequestFinished() {
             if (tempFile.open(QIODevice::WriteOnly)) {
                 tempFile.write(request->getData());
                 addAssetToWorldInfoClear(filename);  // Remove message from list; next one added will have a different key.
-                qApp->getFileDownloadInterface()->runUnzip(downloadPath, url, true);
+                qApp->getFileDownloadInterface()->runUnzip(downloadPath, url, true, false);
             } else {
                 QString errorInfo = "Couldn't open temporary file for download";
                 qWarning(interfaceapp) << errorInfo;
@@ -6248,12 +6282,18 @@ void Application::addAssetToWorldUnzipFailure(QString filePath) {
     addAssetToWorldError(filename, "Couldn't unzip file " + filename + ".");
 }
 
-void Application::addAssetToWorld(QString filePath) {
+void Application::addAssetToWorld(QString filePath, QString zipFile, bool isZip) {
     // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
-
-    QString path = QUrl(filePath).toLocalFile();
+    QString mapping;
+    QString path = filePath;
     QString filename = filenameFromPath(path);
-    QString mapping = "/" + filename;
+    if (isZip) {
+        QString assetFolder = zipFile.section("/", -1);
+        assetFolder.remove(".zip");
+        mapping = "/" + assetFolder + "/" + filename;
+    } else {
+        mapping = "/" + filename;
+    }
 
     // Test repeated because possibly different code paths.
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
@@ -6334,7 +6374,13 @@ void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, Q
             qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
-            addAssetToWorldAddEntity(filePath, mapping);
+            // to prevent files that aren't models from being loaded into world automatically
+            if (filePath.endsWith(".obj") || filePath.endsWith(".fbx")) {
+                addAssetToWorldAddEntity(filePath, mapping);
+            } else {
+                qCDebug(interfaceapp) << "Zipped contents are not supported entity files";
+                addAssetToWorldInfoDone(filenameFromPath(filePath));
+            }
         }
         request->deleteLater();
     });
@@ -6624,15 +6670,18 @@ void Application::onAssetToWorldMessageBoxClosed() {
 }
 
 
-void Application::handleUnzip(QString zipFile, QString unzipFile, bool autoAdd) {
+void Application::handleUnzip(QString zipFile, QStringList unzipFile, bool autoAdd, bool isZip) {
     if (autoAdd) {
         if (!unzipFile.isEmpty()) {
-            addAssetToWorld(unzipFile);
+            for (int i = 0; i < unzipFile.length(); i++) {
+                qCDebug(interfaceapp) << "Preparing file for asset server: " << unzipFile.at(i);
+                addAssetToWorld(unzipFile.at(i), zipFile, isZip);
+            }
         } else {
             addAssetToWorldUnzipFailure(zipFile);
         }
     } else {
-        showAssetServerWidget(unzipFile);
+        showAssetServerWidget(unzipFile.first());
     }
 }
 
