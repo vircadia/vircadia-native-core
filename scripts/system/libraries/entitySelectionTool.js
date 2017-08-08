@@ -3629,6 +3629,38 @@ SelectionDisplay = (function() {
         print( "<--- updateRotationDegreesOverlay ---" );
     }
 
+    // FUNCTION DEF: updateSelectionsRotation
+    //    Helper func used by rotation grabber tools 
+    function updateSelectionsRotation( rotationChange ) {
+        if ( ! rotationChange ) {
+            print("ERROR( updateSelectionsRotation ) - Invalid arg specified!!");
+
+            //--EARLY EXIT--
+            return;
+        }
+        
+        // Entities should only reposition if we are rotating multiple selections around
+        // the selections center point.  Otherwise, the rotation will be around the entities
+        // registration point which does not need repositioning.
+        var reposition = (SelectionManager.selections.length > 1);
+        for (var i = 0; i < SelectionManager.selections.length; i++) {
+            var entityID = SelectionManager.selections[i];
+            var initialProperties = SelectionManager.savedProperties[entityID];
+
+            var newProperties = {
+                rotation: Quat.multiply(rotationChange, initialProperties.rotation),
+            };
+
+            if (reposition) {
+                var dPos = Vec3.subtract(initialProperties.position, initialPosition);
+                dPos = Vec3.multiplyQbyV(rotationChange, dPos);
+                newProperties.position = Vec3.sum(initialPosition, dPos);
+            }
+
+            Entities.editEntity(entityID, newProperties);
+        }
+    }
+
     // YAW GRABBER TOOL DEFINITION
     var initialPosition = SelectionManager.worldPosition;
     addGrabberTool(yawHandle, {
@@ -3756,27 +3788,7 @@ SelectionDisplay = (function() {
                     z: 0
                 });
 
-                // Entities should only reposition if we are rotating multiple selections around
-                // the selections center point.  Otherwise, the rotation will be around the entities
-                // registration point which does not need repositioning.
-                var reposition = SelectionManager.selections.length > 1;
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var entityID = SelectionManager.selections[i];
-                    var properties = Entities.getEntityProperties(entityID);
-                    var initialProperties = SelectionManager.savedProperties[entityID];
-
-                    var newProperties = {
-                        rotation: Quat.multiply(yawChange, initialProperties.rotation),
-                    };
-
-                    if (reposition) {
-                        var dPos = Vec3.subtract(initialProperties.position, initialPosition);
-                        dPos = Vec3.multiplyQbyV(yawChange, dPos);
-                        newProperties.position = Vec3.sum(initialPosition, dPos);
-                    }
-
-                    Entities.editEntity(entityID, newProperties);
-                }
+                updateSelectionsRotation( yawChange );
 
                 updateRotationDegreesOverlay(angleFromZero, yawHandleRotation, yawCenter);
 
@@ -3961,17 +3973,7 @@ SelectionDisplay = (function() {
                     z: 0
                 });
 
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var entityID = SelectionManager.selections[i];
-                    var initialProperties = SelectionManager.savedProperties[entityID];
-                    var dPos = Vec3.subtract(initialProperties.position, initialPosition);
-                    dPos = Vec3.multiplyQbyV(pitchChange, dPos);
-
-                    Entities.editEntity(entityID, {
-                        position: Vec3.sum(initialPosition, dPos),
-                        rotation: Quat.multiply(pitchChange, initialProperties.rotation),
-                    });
-                }
+                updateSelectionsRotation( pitchChange );
 
                 updateRotationDegreesOverlay(angleFromZero, pitchHandleRotation, pitchCenter);
 
@@ -4154,17 +4156,8 @@ SelectionDisplay = (function() {
                     y: 0,
                     z: angleFromZero
                 });
-                for (var i = 0; i < SelectionManager.selections.length; i++) {
-                    var entityID = SelectionManager.selections[i];
-                    var initialProperties = SelectionManager.savedProperties[entityID];
-                    var dPos = Vec3.subtract(initialProperties.position, initialPosition);
-                    dPos = Vec3.multiplyQbyV(rollChange, dPos);
 
-                    Entities.editEntity(entityID, {
-                        position: Vec3.sum(initialPosition, dPos),
-                        rotation: Quat.multiply(rollChange, initialProperties.rotation),
-                    });
-                }
+                updateSelectionsRotation( rollChange );
 
                 updateRotationDegreesOverlay(angleFromZero, rollHandleRotation, rollCenter);
 
