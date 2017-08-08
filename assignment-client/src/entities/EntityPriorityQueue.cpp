@@ -36,6 +36,13 @@ float ConicalView::computePriority(const AACube& cube) const {
     if (d < _radius + r) {
         return r;
     }
+    // We check the angle between the center of the cube and the _direction of the view.
+    // If it is less than the sum of the half-angle from center of cone to outer edge plus
+    // the half apparent angle of the bounding sphere then it is in view.
+    //
+    // The math here is left as an exercise for the reader with the following hints:
+    // (1) We actually check the dot product of the cube's local position rather than the angle and
+    // (2) we take advantage of this trig identity: cos(A+B) = cos(A)*cos(B) - sin(A)*sin(B)
     if (glm::dot(p, _direction) > sqrtf(d * d - r * r) * _cosAngle - r * _sinAngle) {
         const float AVOID_DIVIDE_BY_ZERO = 0.001f;
         return r / (d + AVOID_DIVIDE_BY_ZERO);
