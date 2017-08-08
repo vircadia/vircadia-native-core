@@ -184,6 +184,11 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                         color: { red: 255, green: 0, blue: 0 },
                         solid: true
                     },
+                    setting: {
+                        key: "VREdit.colorTool.swatch1Color",
+                        property: "color"
+                        // Default value is set in properties, above.
+                    },
                     command: {
                         method: "setColorPerSwatch",
                         parameter: "colorSwatch1.color"
@@ -202,6 +207,11 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                         color: { red: 0, green: 255, blue: 0 },
                         solid: true
                     },
+                    setting: {
+                        key: "VREdit.colorTool.swatch2Color",
+                        property: "color"
+                        // Default value is set in properties, above.
+                    },
                     command: {
                         method: "setColorPerSwatch",
                         parameter: "colorSwatch2.color"
@@ -217,6 +227,12 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
                         localPosition: { x: -0.035, y: 0.045, z: -0.005 }
+                        // Default to empty swatch.
+                    },
+                    setting: {
+                        key: "VREdit.colorTool.swatch3Color",
+                        property: "color"
+                        // Default value is set in properties, above.
                     },
                     command: {
                         method: "setColorPerSwatch",
@@ -233,6 +249,12 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
                         localPosition: { x: -0.01, y: 0.045, z: -0.005 }
+                        // Default to empty swatch.
+                    },
+                    setting: {
+                        key: "VREdit.colorTool.swatch4Color",
+                        property: "color"
+                        // Default value is set in properties, above.
                     },
                     command: {
                         method: "setColorPerSwatch",
@@ -435,9 +457,15 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
                     if (value === "") {
                         value = optionsItems[i].setting.defaultValue;
                     }
-                    properties[optionsItems[i].setting.property] = value;
-                    if (optionsItems[i].setting.callback) {
-                        doCallback(optionsItems[i].setting.callback.method, value);
+                    if (value) {
+                        properties[optionsItems[i].setting.property] = value;
+                        if (optionsItems[i].type === "swatch") {
+                            // Special case for when swatch color is defined.
+                            properties.solid = true;
+                        }
+                        if (optionsItems[i].setting.callback) {
+                            doCallback(optionsItems[i].setting.callback.method, value);
+                        }
                     }
                 }
                 optionsOverlays.push(Overlays.addOverlay(UI_ELEMENTS[optionsItems[i].type].overlay, properties));
@@ -478,13 +506,15 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
 
     function doCommand(command, parameter) {
         var parameters,
+            overlayID,
             hasColor,
             value;
 
         switch (command) {
         case "setColorPerSwatch":
             parameters = parameter.split(".");
-            hasColor = Overlays.getProperty(optionsOverlays[optionsOverlaysIDs.indexOf(parameters[0])], "solid");
+            overlayID = optionsOverlaysIDs.indexOf(parameters[0]);
+            hasColor = Overlays.getProperty(optionsOverlays[overlayID], "solid");
             if (hasColor) {
                 // Swatch has a color; set current fill color to swatch color.
                 value = evaluateParameter(parameter);
@@ -498,10 +528,13 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
             } else {
                 // Swatch has no color; set swatch color to current fill color.
                 value = Overlays.getProperty(optionsOverlays[optionsOverlaysIDs.indexOf("currentColor")], "color");
-                Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf(parameters[0])], {
+                Overlays.editOverlay(optionsOverlays[overlayID], {
                     color: value,
                     solid: true
                 });
+                if (optionsSettings[parameters[0]]) {
+                    Settings.setValue(optionsSettings[parameters[0]].key, value);
+                }
             }
             break;
         case "setColorFromPick":
@@ -518,12 +551,17 @@ ToolMenu = function (side, leftInputs, rightInputs, doCallback) {
     }
 
     function doGripClicked(command, parameter) {
+        var overlayID;
         switch (command) {
         case "clearSwatch":
-            Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf(parameter)], {
+            overlayID = optionsOverlaysIDs.indexOf(parameter);
+            Overlays.editOverlay(optionsOverlays[overlayID], {
                 color: NO_SWATCH_COLOR,
                 solid: false
             });
+            if (optionsSettings[parameter]) {
+                Settings.setValue(optionsSettings[parameter].key, null);  // Deleted settings value.
+            }
             break;
         default:
             // TODO: Log error.
