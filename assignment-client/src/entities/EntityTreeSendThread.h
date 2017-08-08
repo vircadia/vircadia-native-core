@@ -60,13 +60,19 @@ private:
     float _priority;
 };
 
+class VisibleElement {
+public:
+    EntityTreeElementPointer element;
+    ViewFrustum::intersection intersection { ViewFrustum::OUTSIDE };
+};
+
 class Fork {
 public:
     Fork(EntityTreeElementPointer& element);
 
-    EntityTreeElementPointer getNextElementFirstTime(const ViewFrustum& view);
-    EntityTreeElementPointer getNextElementAgain(const ViewFrustum& view, uint64_t lastTime);
-    EntityTreeElementPointer getNextElementDifferential(const ViewFrustum& view, const ViewFrustum& lastView, uint64_t lastTime);
+    void getNextVisibleElementFirstTime(VisibleElement& next, const ViewFrustum& view);
+    void getNextVisibleElementAgain(VisibleElement& next, const ViewFrustum& view, uint64_t lastTime);
+    void getNextVisibleElementDifferential(VisibleElement& next, const ViewFrustum& view, const ViewFrustum& lastView, uint64_t lastTime);
 
     int8_t getNextIndex() const { return _nextIndex; }
     void initRootNextIndex() { _nextIndex = -1; }
@@ -94,14 +100,16 @@ private:
     bool addDescendantsToExtraFlaggedEntities(const QUuid& filteredEntityID, EntityItem& entityItem, EntityNodeData& nodeData);
 
     void startNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root);
-    EntityTreeElementPointer getNextElement();
-    void dump() const;
+    void getNextVisibleElement(VisibleElement& element);
+    void dump() const; // DEBUG method, delete later
 
     EntityPriorityQueue _sendQueue;
     ViewFrustum _currentView;
     ViewFrustum _completedView;
-    std::vector<Fork> _forks;
-    std::function<EntityTreeElementPointer()> _getNextElementCallback { nullptr };
+    ConicalView _conicalView; // optimized view for fast priority calculations
+    std::vector<Fork> _traversalPath;
+    std::function<void (VisibleElement&)> _getNextVisibleElementCallback { nullptr };
+    std::function<void (VisibleElement&)> _scanNextElementCallback { nullptr };
     uint64_t _startOfCompletedTraversal { 0 };
     uint64_t _startOfCurrentTraversal { 0 };
 };
