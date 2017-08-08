@@ -31,7 +31,6 @@ AnimatedBrushClass.prototype.updateUserData = function(entityID, animatedBrushOb
         }
         prevUserData.timeFromLastAnimation = Date.now();
         Entities.editEntity(entityID, {userData: JSON.stringify(prevUserData)});
-        print(JSON.stringify(Entities.getEntityProperties(entityID)));
     }
 }
 
