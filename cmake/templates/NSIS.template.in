@@ -518,7 +518,7 @@ FunctionEnd
 
 Function AbortFunction
   ; Check if Express is set, if so, abort the post install options page
-  Call HandleInstallTypes ; Sets Express if ExpressInstallRadioButton is checked and installs with defaults
+  ; Call HandleInstallTypes ; Sets Express if ExpressInstallRadioButton is checked
   StrCmp $Express "1" 0 end
   Abort
   end:
@@ -529,10 +529,15 @@ Function PostInstallOptionsPage
 
   nsDialogs::Create 1018
   Pop $PostInstallDialog
-
+  
   ${If} $PostInstallDialog == error
     Abort
   ${EndIf}
+  
+  ; Check if Express is set, if so, abort the post install options page
+  StrCmp $Express "1" 0 end
+  Abort
+  end:
 
   StrCpy $CurrentOffset 0
   StrCpy $OffsetUnits u
@@ -617,12 +622,6 @@ Function PostInstallOptionsPage
     ${NSD_SetState} $CopyFromProductionCheckbox ${BST_UNCHECKED}
   ${EndIf}
   
-  ; Check if Express is set, if so, abort the post install options page
-  Call HandleInstallTypes ; Sets Express if ExpressInstallRadioButton is checked and installs with defaults
-  StrCmp $Express "1" 0 end
-  Abort
-  end:
-  
   nsDialogs::Show
 FunctionEnd
 
@@ -638,15 +637,28 @@ Var LaunchServerNowState
 Var LaunchClientNowState
 Var CopyFromProductionState
 Var CleanInstallState
-Var ExpressInstallState 
+Var ExpressInstallState
 Var CustomInstallState
 
 Function ReadInstallTypes
-  ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
-    ; check if the user asked for express/custom install
-    ${NSD_GetState} $ExpressInstallRadioButton $ExpressInstallState
-    ${NSD_GetState} $CustomInstallRadioButton $CustomInstallState
+  ; check if the user asked for express/custom install
+  ${NSD_GetState} $ExpressInstallRadioButton $ExpressInstallState
+  ${NSD_GetState} $CustomInstallRadioButton $CustomInstallState
+  
+  ${If} $ExpressInstallState == ${BST_CHECKED}
+    StrCpy $Express "1"
+    
+    StrCpy $DesktopClientState ${BST_CHECKED}  
+    StrCpy $ServerStartupState ${BST_CHECKED} 
+    StrCpy $LaunchServerNowState ${BST_CHECKED}
+    StrCpy $LaunchClientNowState ${BST_CHECKED}
+
+    ${If} @PR_BUILD@ == 1
+      ${NSD_SetState} $CopyFromProductionCheckbox ${BST_UNCHECKED}
+    ${EndIf}
+    
   ${EndIf}
+  
 FunctionEnd
 
 Function ReadPostInstallOptions
@@ -681,28 +693,6 @@ Function ReadPostInstallOptions
   ${If} ${SectionIsSelected} ${@CLIENT_COMPONENT_NAME@}
     ; check if the user asked for a clean install
     ${NSD_GetState} $CleanInstallCheckbox $CleanInstallState
-  ${EndIf}
-FunctionEnd
-
-Function HandleInstallTypes
-  ${If} $ExpressInstallState == ${BST_CHECKED}
-    
-    StrCpy $Express "1"
-    
-    ; over ride custom checkboxes and select defaults 
-    ${NSD_SetState} $DesktopClientCheckbox ${BST_CHECKED} 
-    ${NSD_SetState} $ServerStartupCheckbox ${BST_CHECKED} 
-    ${NSD_SetState} $LaunchServerNowCheckbox ${BST_CHECKED}
-    ${NSD_SetState} $LaunchClientNowCheckbox ${BST_CHECKED}
-    
-    ${If} @PR_BUILD@ == 1
-      ${NSD_SetState} $CopyFromProductionCheckbox ${BST_UNCHECKED}
-    ${EndIf}    
-    
-    ; call ReadPostInstallOptions and HandlePostInstallOptions with defaults selected
-    Call ReadPostInstallOptions 
-    Call HandlePostInstallOptions 
-      
   ${EndIf}
 FunctionEnd
 
@@ -953,7 +943,7 @@ Section "-Core installation"
 
   !insertmacro MUI_STARTMENU_WRITE_END
 
-@CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
+  @CPACK_NSIS_EXTRA_INSTALL_COMMANDS@
 
   ; Handle whichever post install options were set
   Call HandlePostInstallOptions
