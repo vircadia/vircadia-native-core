@@ -808,10 +808,10 @@ AnimationDetails::AnimationDetails() :
 }
 
 AnimationDetails::AnimationDetails(QString role, QUrl url, float fps, float priority, bool loop,
-    bool hold, bool startAutomatically, float firstFrame, float lastFrame, bool running, float currentFrame) :
+    bool hold, bool startAutomatically, float firstFrame, float lastFrame, bool running, float currentFrame, bool allowTranslation) :
     role(role), url(url), fps(fps), priority(priority), loop(loop), hold(hold),
     startAutomatically(startAutomatically), firstFrame(firstFrame), lastFrame(lastFrame),
-    running(running), currentFrame(currentFrame) {
+    running(running), currentFrame(currentFrame), allowTranslation(allowTranslation) {
 }
 
 
@@ -828,6 +828,7 @@ QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const Animatio
     obj.setProperty("lastFrame", details.lastFrame);
     obj.setProperty("running", details.running);
     obj.setProperty("currentFrame", details.currentFrame);
+    obj.setProperty("allowTranslation", details.allowTranslation);
     return obj;
 }
 

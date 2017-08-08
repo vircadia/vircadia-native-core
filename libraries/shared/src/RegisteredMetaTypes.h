@@ -174,7 +174,7 @@ class AnimationDetails {
 public:
     AnimationDetails();
     AnimationDetails(QString role, QUrl url, float fps, float priority, bool loop,
-        bool hold, bool startAutomatically, float firstFrame, float lastFrame, bool running, float currentFrame);
+        bool hold, bool startAutomatically, float firstFrame, float lastFrame, bool running, float currentFrame, bool allowTranslation);
 
     QString role;
     QUrl url;
@@ -187,6 +187,7 @@ public:
     float lastFrame;
     bool running;
     float currentFrame;
+    bool allowTranslation;
 };
 Q_DECLARE_METATYPE(AnimationDetails);
 QScriptValue animationDetailsToScriptValue(QScriptEngine* engine, const AnimationDetails& event);

@@ -35,6 +35,9 @@ public:
     void setHold(bool hold) { _hold = hold; }
     bool getHold() const { return _hold; }
     
+    void setAllowTranslation(bool value) { _allowTranslation = value; }
+    bool getAllowTranslation() const { return _allowTranslation; }
+
     void setStartAutomatically(bool startAutomatically);
     bool getStartAutomatically() const { return _startAutomatically; }
     
@@ -67,6 +70,7 @@ private:
     float _fps;
     bool _loop;
     bool _hold;
+    bool _allowTranslation;
     bool _startAutomatically;
     float _firstFrame;
     float _lastFrame;

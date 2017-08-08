@@ -144,6 +144,10 @@ int ModelEntityItem::readEntitySubclassDataFromBuffer(const unsigned char* data,
         dataAt += bytesFromAnimation;
     }
 
+    if (args.bitstreamVersion < VERSION_ENTITIES_ANIMATION_ALLOW_TRANSLATION_PROPERTIES){
+        READ_ENTITY_PROPERTY(PROP_ANIMATION_ALLOW_TRANSLATION, bool, setAnimationAllowTranslation);
+    }
+
     READ_ENTITY_PROPERTY(PROP_SHAPE_TYPE, ShapeType, setShapeType);
 
     if (animationPropertiesChanged) {
@@ -345,6 +349,10 @@ void ModelEntityItem::setAnimationSettings(const QString& value) {
         setAnimationHold(hold);
     }
 
+    if (settingsMap.contains("allowTranslation")) {
+        bool allowTranslation = settingsMap["allowTranslation"].toBool();
+        setAnimationAllowTranslation(allowTranslation);
+    }
     _dirtyFlags |= Simulation::DIRTY_UPDATEABLE;
 }
 

@@ -87,7 +87,10 @@ public:
 
     void setAnimationCurrentFrame(float value) { _animationLoop.setCurrentFrame(value); }
     void setAnimationIsPlaying(bool value);
-    void setAnimationFPS(float value);
+    void setAnimationFPS(float value); 
+
+    void setAnimationAllowTranslation(bool value) { _animationProperties.setAllowTranslation(value); };
+    bool getAnimationAllowTranslation() const { return _animationProperties.getAllowTranslation(); };
 
     void setAnimationLoop(bool loop) { _animationLoop.setLoop(loop); }
     bool getAnimationLoop() const { return _animationLoop.getLoop(); }
