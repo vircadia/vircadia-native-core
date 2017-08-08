@@ -78,24 +78,15 @@ void LaserPointer::setRenderState(const QString& state) {
 }
 
 void LaserPointer::editRenderState(const QString& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) {
-    _renderStates[state].setStartID(updateRenderStateOverlay(_renderStates[state].getStartID(), startProps));
-    _renderStates[state].setPathID(updateRenderStateOverlay(_renderStates[state].getPathID(), pathProps));
-    _renderStates[state].setEndID(updateRenderStateOverlay(_renderStates[state].getEndID(), endProps));
+    updateRenderStateOverlay(_renderStates[state].getStartID(), startProps);
+    updateRenderStateOverlay(_renderStates[state].getPathID(), pathProps);
+    updateRenderStateOverlay(_renderStates[state].getEndID(), endProps);
 }
 
-OverlayID LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant& props) {
-    if (props.isValid()) {
-        if (!id.isNull()) {
-            qApp->getOverlays().editOverlay(id, props);
-            return id;
-        } else {
-            QVariantMap propsMap = props.toMap();
-            if (propsMap["type"].isValid()) {
-                return qApp->getOverlays().addOverlay(propsMap["type"].toString(), props);
-            }
-        }
+void LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant& props) {
+    if (!id.isNull() && props.isValid()) {
+        qApp->getOverlays().editOverlay(id, props);
     }
-    return OverlayID();
 }
 
 void LaserPointer::updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const bool defaultState) {

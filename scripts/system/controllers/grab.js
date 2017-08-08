@@ -263,11 +263,13 @@ function Grabber() {
         enabled: true
     });
     RayPick.setIncludeOverlays(this.mouseRayOverlays, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
+    var renderStates = [{name: "grabbed", end: beacon}];
     this.mouseRayEntities = LaserPointers.createLaserPointer({
         joint: "Mouse",
         filter: RayPick.PICK_ENTITIES,
         faceAvatar: true,
-        enabled: true
+        enabled: true,
+        renderStates: renderStates
     });
 }
 

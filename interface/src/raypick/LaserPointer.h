@@ -29,9 +29,6 @@ public:
     const OverlayID& getStartID() const { return _startID; }
     const OverlayID& getPathID() const { return _pathID; }
     const OverlayID& getEndID() const { return _endID; }
-    void setStartID(const OverlayID& startID) { _startID = startID; }
-    void setPathID(const OverlayID& pathID) { _pathID = pathID; }
-    void setEndID(const OverlayID& endID) { _endID = endID; }
     const bool& doesStartIgnoreRays() const { return _startIgnoreRays; }
     const bool& doesPathIgnoreRays() const { return _pathIgnoreRays; }
     const bool& doesEndIgnoreRays() const { return _endIgnoreRays; }
@@ -61,6 +58,7 @@ public:
     const RayPickResult getPrevRayPickResult() { return DependencyManager::get<RayPickManager>()->getPrevRayPickResult(_rayPickUID); }
 
     void setRenderState(const QString& state);
+    // You cannot use editRenderState to change the overlay type of any part of the laser pointer.  You can only edit the properties of the existing overlays.
     void editRenderState(const QString& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps);
 
     void setIgnoreEntities(const QScriptValue& ignoreEntities) { DependencyManager::get<RayPickManager>()->setIgnoreEntities(_rayPickUID, ignoreEntities); }
@@ -86,7 +84,7 @@ private:
 
     QUuid _rayPickUID;
 
-    OverlayID updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
+    void updateRenderStateOverlay(const OverlayID& id, const QVariant& props);
     void updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const bool defaultState);
     void disableRenderState(const RenderState& renderState);
 };
