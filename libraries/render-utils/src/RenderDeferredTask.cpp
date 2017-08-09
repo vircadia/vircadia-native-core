@@ -88,7 +88,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<PrepareStencil>("PrepareStencil", primaryFramebuffer);
 
     // Select items that need to be outlined
-    const auto outlinedOpaques = task.addJob<PickItemsJob>("PickOutlined", opaques);
+    const auto outlinedOpaques = task.addJob<PickItemsJob>("PickOutlined", opaques,
+        // Pick only shapes so exclude meta
+        render::ItemKey::Builder().withTypeShape().build()._flags, render::ItemKey::Builder().withTypeMeta().build()._flags);
 
     // Render opaque outline objects first in DeferredBuffer
     const auto opaqueOutlineInputs = DrawStateSortDeferred::Inputs(outlinedOpaques, lightingModel).hasVarying();

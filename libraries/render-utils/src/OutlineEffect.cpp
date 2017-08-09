@@ -48,10 +48,11 @@ void OutlineFramebuffer::allocate() {
 
     auto width = _frameSize.x;
     auto height = _frameSize.y;
-    auto colorFormat = gpu::Element::VEC4F_COLOR_RGBA; // TODO : find a more compact format
+    auto format = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RED);
 
-    _depthFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("outlineDepth", colorFormat, width, height));
-    _depthTexture = _depthFramebuffer->getRenderBuffer(0);
+    _depthTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(format, width, height));
+    _depthFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("outlineDepth"));
+    _depthFramebuffer->setRenderBuffer(0, _depthTexture);
 }
 
 gpu::FramebufferPointer OutlineFramebuffer::getDepthFramebuffer() {
@@ -72,9 +73,9 @@ void PrepareOutline::run(const render::RenderContextPointer& renderContext, cons
     auto outlinedItems = input.get1();
 
     if (!outlinedItems.empty()) {
-        glm::uvec2 frameSize(renderContext->args->_viewport.z, renderContext->args->_viewport.w);
         auto args = renderContext->args;
         auto deferredFrameBuffer = input.get0();
+        auto frameSize = deferredFrameBuffer->getFrameSize();
 
         if (!_outlineFramebuffer) {
             _outlineFramebuffer = std::make_shared<OutlineFramebuffer>();
@@ -99,9 +100,6 @@ void PrepareOutline::run(const render::RenderContextPointer& renderContext, cons
         }
 
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
-            auto depthBuffer = deferredFrameBuffer->getPrimaryDepthTexture();
-
-            // Copy depth to texture as we will overwrite
             batch.enableStereo(false);
 
             batch.setViewportTransform(args->_viewport);
@@ -111,7 +109,7 @@ void PrepareOutline::run(const render::RenderContextPointer& renderContext, cons
 
             batch.setFramebuffer(_outlineFramebuffer->getDepthFramebuffer());
             batch.setPipeline(_copyDepthPipeline);
-            batch.setResourceTexture(0, depthBuffer);
+            batch.setResourceTexture(0, deferredFrameBuffer->getPrimaryDepthTexture());
             batch.draw(gpu::TRIANGLE_STRIP, 4);
 
             // Restore previous frame buffer
@@ -199,7 +197,6 @@ const gpu::PipelinePointer& DebugOutline::getDebugPipeline() {
 
         auto state = std::make_shared<gpu::State>();
         state->setDepthTest(gpu::State::DepthTest(false));
-        state->setColorWriteMask(true, false, false, false);
         _debugPipeline = gpu::Pipeline::create(program, state);
     }
 
