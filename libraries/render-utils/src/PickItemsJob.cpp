@@ -10,7 +10,7 @@
 //
 #include "PickItemsJob.h"
 
-PickItemsJob::PickItemsJob() {
+PickItemsJob::PickItemsJob(render::ItemKey::Flags validKeys, render::ItemKey::Flags excludeKeys) : _validKeys{ validKeys }, _excludeKeys{ excludeKeys } {
 }
 
 void PickItemsJob::configure(const Config& config) {
@@ -21,28 +21,31 @@ void PickItemsJob::run(const render::RenderContextPointer& renderContext, const 
 
     float minIsectDistance = std::numeric_limits<float>::max();
     auto& itemBounds = input;
-    auto itemID = findNearestItem(renderContext, itemBounds, minIsectDistance);
+    auto item = findNearestItem(renderContext, itemBounds, minIsectDistance);
 
-    if (render::Item::isValidID(itemID)) {
-        output.emplace_back(itemID);
+    if (render::Item::isValidID(item.id)) {
+        output.push_back(item);
     }
 }
 
-render::ItemID PickItemsJob::findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const {
+render::ItemBound PickItemsJob::findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const {
 	const glm::vec3 rayOrigin = renderContext->args->getViewFrustum().getPosition();
 	const glm::vec3 rayDirection = renderContext->args->getViewFrustum().getDirection();
 	BoxFace face;
 	glm::vec3 normal;
 	float isectDistance;
-	render::ItemID nearestItem = render::Item::INVALID_ITEM_ID;
+	render::ItemBound nearestItem( render::Item::INVALID_ITEM_ID );
 	const float minDistance = 1.f;
 	const float maxDistance = 50.f;
+    render::ItemKey itemKey;
 
 	for (const auto& itemBound : inputs) {
 		if (!itemBound.bound.contains(rayOrigin) && itemBound.bound.findRayIntersection(rayOrigin, rayDirection, isectDistance, face, normal)) {
 			auto& item = renderContext->_scene->getItem(itemBound.id);
-			if (item.getKey().isWorldSpace() && isectDistance>minDistance && isectDistance < minIsectDistance && isectDistance<maxDistance) {
-				nearestItem = itemBound.id;
+            itemKey = item.getKey();
+			if (itemKey.isWorldSpace() && isectDistance>minDistance && isectDistance < minIsectDistance && isectDistance<maxDistance
+                && (itemKey._flags & _validKeys)!=0 && (itemKey._flags & _excludeKeys)==0) {
+				nearestItem = itemBound;
 				minIsectDistance = isectDistance;
 			}
 		}

@@ -13,6 +13,7 @@
 #define hifi_render_utils_PickItemsJob_h
 
 #include <render/Engine.h>
+#include <render/Item.h>
 
 class PickItemsConfig : public render::Job::Config {
 
@@ -30,16 +31,17 @@ public:
 	using Output = render::ItemBounds;
 	using JobModel = render::Job::ModelIO<PickItemsJob, Input, Output, Config>;
 
-    PickItemsJob();
+    PickItemsJob(render::ItemKey::Flags validKeys = render::ItemKey::Builder().withTypeMeta().withTypeShape().build()._flags, render::ItemKey::Flags excludeKeys = 0);
 
 	void configure(const Config& config);
 	void run(const render::RenderContextPointer& renderContext, const PickItemsJob::Input& input, PickItemsJob::Output& output);
 
 private:
 
-	bool _isEnabled{ false };
+    render::ItemKey::Flags _validKeys;
+    render::ItemKey::Flags _excludeKeys;
 
-	render::ItemID findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const;
+	render::ItemBound findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const;
 };
 
 #endif // hifi_render_utils_PickItemsJob_h
