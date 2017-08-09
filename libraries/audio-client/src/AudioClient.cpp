@@ -1078,33 +1078,6 @@ void AudioClient::handleAudioInput(QByteArray& audioBuffer) {
     _stats.sentPacket();
 }
 
-void AudioClient::handleDummyAudioInput() {
-
-    // the dummy input is always silent
-    _lastInputLoudness = 0.0f;
-    _timeSinceLastClip = 0.0f;
-
-    emit inputLoudnessChanged(_lastInputLoudness);
-
-    _audioGateOpen = false;
-
-    auto packetType = PacketType::SilentAudioFrame;
-    _silentOutbound.increment();
-
-    Transform audioTransform;
-    audioTransform.setTranslation(_positionGetter());
-    audioTransform.setRotation(_orientationGetter());
-
-    const int numNetworkBytes = _isStereoInput
-        ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
-        : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
-
-    emitAudioPacket(nullptr, numNetworkBytes, _outgoingAvatarAudioSequenceNumber,
-            audioTransform, avatarBoundingBoxCorner, avatarBoundingBoxScale,
-            packetType, _selectedCodecName);
-    _stats.sentPacket();
-}
-
 void AudioClient::handleMicAudioInput() {
     if (!_inputDevice || _isPlayingBackRecording) {
         return;
@@ -1151,6 +1124,15 @@ void AudioClient::handleMicAudioInput() {
         QByteArray audioBuffer(reinterpret_cast<char*>(networkAudioSamples), numNetworkBytes);
         handleAudioInput(audioBuffer);
     }
+}
+
+void AudioClient::handleDummyAudioInput() {
+    const int numNetworkBytes = _isStereoInput
+        ? AudioConstants::NETWORK_FRAME_BYTES_STEREO
+        : AudioConstants::NETWORK_FRAME_BYTES_PER_CHANNEL;
+
+    QByteArray audioBuffer(numNetworkBytes, 0); // silent
+    handleAudioInput(audioBuffer);
 }
 
 void AudioClient::handleRecordedAudioInput(const QByteArray& audio) {
@@ -1527,10 +1509,14 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
     if (!_audioInput) {
         qCDebug(audioclient) << "No audio input device is available, using dummy input.";
 
-        QTimer* _dummyAudioInput = new QTimer(this);
-        connect(_dummyAudioInput, SIGNAL(timeout()), this, SLOT(handleDummyAudioInput()));
+        _inputFormat = _desiredInputFormat;
+
+        _audioGate = new AudioGate(_desiredInputFormat.sampleRate(), _desiredInputFormat.channelCount());
+        qCDebug(audioclient) << "Noise gate created with" << _desiredInputFormat.channelCount() << "channels.";
 
         // generate audio callbacks at the network sample rate
+        QTimer* _dummyAudioInput = new QTimer(this);
+        connect(_dummyAudioInput, SIGNAL(timeout()), this, SLOT(handleDummyAudioInput()));
         _dummyAudioInput->start((int)(AudioConstants::NETWORK_FRAME_MSECS + 0.5f));
     }
 
