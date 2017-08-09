@@ -207,7 +207,14 @@
                 //tablet.popFromStack();
                 break;
             case 'checkout_buyClicked':
-                print("fromQml: " + JSON.stringify(message));
+                if (message.success === true) {
+                    tablet.gotoWebScreen(message.itemHref);
+                    Script.setTimeout(function () {
+                        tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
+                    }, 100);
+                } else {
+                    tablet.sendToQml({ method: 'buyFailed' });
+                }
                 //tablet.popFromStack();
                 break;
             default:
