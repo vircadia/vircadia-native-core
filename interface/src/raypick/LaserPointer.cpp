@@ -197,13 +197,13 @@ RenderState::RenderState(const OverlayID& startID, const OverlayID& pathID, cons
     _startID(startID), _pathID(pathID), _endID(endID)
 {
     if (!_startID.isNull()) {
-        _startIgnoreRays = qApp->getOverlays().getOverlay(_startID)->getProperty("ignoreRayIntersection").toBool();
+        _startIgnoreRays = qApp->getOverlays().getProperty(_startID, "ignoreRayIntersection").value.toBool();
     }
     if (!_pathID.isNull()) {
-        _pathIgnoreRays = qApp->getOverlays().getOverlay(_pathID)->getProperty("ignoreRayIntersection").toBool();
+        _pathIgnoreRays = qApp->getOverlays().getProperty(_pathID, "ignoreRayIntersection").value.toBool();
     }
     if (!_endID.isNull()) {
-        _endIgnoreRays = qApp->getOverlays().getOverlay(_endID)->getProperty("ignoreRayIntersection").toBool();
+        _endIgnoreRays = qApp->getOverlays().getProperty(_endID, "ignoreRayIntersection").value.toBool();
     }
 }
 

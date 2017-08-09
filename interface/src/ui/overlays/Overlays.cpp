@@ -534,15 +534,15 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray,
     const QVector<OverlayID> overlaysToInclude = qVectorOverlayIDFromScriptValue(overlayIDsToInclude);
     const QVector<OverlayID> overlaysToDiscard = qVectorOverlayIDFromScriptValue(overlayIDsToDiscard);
 
-    return findRayIntersectionInternal(ray, precisionPicking,
-                                       overlaysToInclude, overlaysToDiscard, visibleOnly, collidableOnly);
+    return findRayIntersection(ray, precisionPicking,
+                               overlaysToInclude, overlaysToDiscard, visibleOnly, collidableOnly);
 }
 
 
-RayToOverlayIntersectionResult Overlays::findRayIntersectionInternal(const PickRay& ray, bool precisionPicking,
-                                                                     const QVector<OverlayID>& overlaysToInclude,
-                                                                     const QVector<OverlayID>& overlaysToDiscard,
-                                                                     bool visibleOnly, bool collidableOnly) {
+RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray, bool precisionPicking,
+                                                             const QVector<OverlayID>& overlaysToInclude,
+                                                             const QVector<OverlayID>& overlaysToDiscard,
+                                                             bool visibleOnly, bool collidableOnly) {
     float bestDistance = std::numeric_limits<float>::max();
     bool bestIsFront = false;
 
@@ -908,21 +908,21 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionForMouseEvent(PickRa
 
     // first priority is tablet screen
     overlaysToInclude << qApp->getTabletScreenID();
-    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDiscard);
+    rayPickResult = findRayIntersection(ray, true, overlaysToInclude, overlaysToDiscard);
     if (rayPickResult.intersects) {
         return rayPickResult;
     }
     // then tablet home button
     overlaysToInclude.clear();
     overlaysToInclude << qApp->getTabletHomeButtonID();
-    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDiscard);
+    rayPickResult = findRayIntersection(ray, true, overlaysToInclude, overlaysToDiscard);
     if (rayPickResult.intersects) {
         return rayPickResult;
     }
     // then tablet frame
     overlaysToInclude.clear();
     overlaysToInclude << OverlayID(qApp->getTabletFrameID());
-    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDiscard);
+    rayPickResult = findRayIntersection(ray, true, overlaysToInclude, overlaysToDiscard);
     if (rayPickResult.intersects) {
         return rayPickResult;
     }

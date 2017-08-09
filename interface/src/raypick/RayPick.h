@@ -14,6 +14,9 @@
 #include <stdint.h>
 #include "RegisteredMetaTypes.h"
 
+#include "EntityItemID.h"
+#include "ui/overlays/Overlay.h"
+
 class RayPick {
 
 public:
@@ -31,18 +34,18 @@ public:
 
     void setRayPickResult(const RayPickResult& rayPickResult) { _prevResult = rayPickResult; }
 
-    const QScriptValue& getIgnoreEntites() { return _ignoreEntities; }
-    const QScriptValue& getIncludeEntites() { return _includeEntities; }
-    const QScriptValue& getIgnoreOverlays() { return _ignoreOverlays; }
-    const QScriptValue& getIncludeOverlays() { return _includeOverlays; }
-    const QScriptValue& getIgnoreAvatars() { return _ignoreAvatars; }
-    const QScriptValue& getIncludeAvatars() { return _includeAvatars; }
-    void setIgnoreEntities(const QScriptValue& ignoreEntities) { _ignoreEntities = ignoreEntities; }
-    void setIncludeEntities(const QScriptValue& includeEntities) { _includeEntities = includeEntities; }
-    void setIgnoreOverlays(const QScriptValue& ignoreOverlays) { _ignoreOverlays = ignoreOverlays; }
-    void setIncludeOverlays(const QScriptValue& includeOverlays) { _includeOverlays = includeOverlays; }
-    void setIgnoreAvatars(const QScriptValue& ignoreAvatars) { _ignoreAvatars = ignoreAvatars; }
-    void setIncludeAvatars(const QScriptValue& includeAvatars) { _includeAvatars = includeAvatars; }
+    const QVector<EntityItemID>& getIgnoreEntites() { return _ignoreEntities; }
+    const QVector<EntityItemID>& getIncludeEntites() { return _includeEntities; }
+    const QVector<OverlayID>& getIgnoreOverlays() { return _ignoreOverlays; }
+    const QVector<OverlayID>& getIncludeOverlays() { return _includeOverlays; }
+    const QVector<EntityItemID>& getIgnoreAvatars() { return _ignoreAvatars; }
+    const QVector<EntityItemID>& getIncludeAvatars() { return _includeAvatars; }
+    void setIgnoreEntities(const QScriptValue& ignoreEntities) { _ignoreEntities = qVectorEntityItemIDFromScriptValue(ignoreEntities); }
+    void setIncludeEntities(const QScriptValue& includeEntities) { _includeEntities = qVectorEntityItemIDFromScriptValue(includeEntities); }
+    void setIgnoreOverlays(const QScriptValue& ignoreOverlays) { _ignoreOverlays = qVectorOverlayIDFromScriptValue(ignoreOverlays); }
+    void setIncludeOverlays(const QScriptValue& includeOverlays) { _includeOverlays = qVectorOverlayIDFromScriptValue(includeOverlays); }
+    void setIgnoreAvatars(const QScriptValue& ignoreAvatars) { _ignoreAvatars = qVectorEntityItemIDFromScriptValue(ignoreAvatars); }
+    void setIncludeAvatars(const QScriptValue& includeAvatars) { _includeAvatars = qVectorEntityItemIDFromScriptValue(includeAvatars); }
 
 private:
     uint16_t _filter;
@@ -50,12 +53,12 @@ private:
     bool _enabled;
     RayPickResult _prevResult;
 
-    QScriptValue _ignoreEntities;
-    QScriptValue _includeEntities;
-    QScriptValue _ignoreOverlays;
-    QScriptValue _includeOverlays;
-    QScriptValue _ignoreAvatars;
-    QScriptValue _includeAvatars;
+    QVector<EntityItemID> _ignoreEntities;
+    QVector<EntityItemID> _includeEntities;
+    QVector<OverlayID> _ignoreOverlays;
+    QVector<OverlayID> _includeOverlays;
+    QVector<EntityItemID> _ignoreAvatars;
+    QVector<EntityItemID> _includeAvatars;
 };
 
 #endif // hifi_RayPick_h
