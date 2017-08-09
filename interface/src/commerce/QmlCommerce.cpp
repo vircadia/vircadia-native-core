@@ -12,5 +12,19 @@
 #include "QmlCommerce.h"
 #include "Application.h"
 #include "DependencyManager.h"
+#include "Ledger.h"
+#include "Wallet.h"
 
 HIFI_QML_DEF(QmlCommerce)
+
+bool QmlCommerce::buy(const QString& assetId, int cost, const QString& buyerUsername) {
+    auto ledger = DependencyManager::get<Ledger>();
+    auto wallet = DependencyManager::get<Wallet>();
+    QStringList keys = wallet->listPublicKeys();
+    if (keys.count == 0) {
+        return false;
+    }
+    QString key = keys[0];
+    // For now, we receive at the same key that pays for it.
+    return ledger->buy(key, cost, assetId, key, buyerUsername);
+}

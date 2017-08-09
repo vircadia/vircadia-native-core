@@ -20,6 +20,14 @@ class Wallet : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
+public:
+    bool createIfNeeded();
+    bool generateKeyPair();
+    QStringList listPublicKeys();
+    QString signWithKey(const QString& text, const QString& key);
+
+private:
+    QStringList _publicKeys{};
 };
 
 #endif // hifi_Wallet_h

@@ -20,6 +20,9 @@ class Ledger : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
 
+public:
+    bool buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const QString& buyerUsername = "");
+    bool receiveAt(const QString& hfc_key);
 };
 
 #endif // hifi_Ledger_h

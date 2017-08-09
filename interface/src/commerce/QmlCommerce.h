@@ -21,6 +21,8 @@ class QmlCommerce : public OffscreenQmlDialog {
     Q_OBJECT
     HIFI_QML_DECL
 
+protected:
+    Q_INVOKABLE bool buy(const QString& assetId, int cost, const QString& buyerUsername = "");
 };
 
 #endif // hifi_QmlCommerce_h

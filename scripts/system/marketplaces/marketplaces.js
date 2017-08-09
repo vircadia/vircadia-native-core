@@ -197,6 +197,7 @@
                 //tablet.popFromStack();
                 break;
             case 'checkout_buyClicked':
+                print("fromQml: " + JSON.stringify(message));
                 //tablet.popFromStack();
                 break;
             default:

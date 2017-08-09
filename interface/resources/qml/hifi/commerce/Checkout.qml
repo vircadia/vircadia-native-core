@@ -27,6 +27,9 @@ Rectangle {
     property string itemId; 
     // Style
     color: hifi.colors.baseGray;
+    Hifi.QmlCommerce {
+        id: commerce;
+    }
 
     //
     // TITLE BAR START
@@ -259,7 +262,7 @@ Rectangle {
             width: parent.width/2 - anchors.rightMargin*2;
             text: "Buy"
             onClicked: {
-                sendToScript({method: 'checkout_buyClicked', params: itemId});
+                sendToScript({method: 'checkout_buyClicked', params: {success: commerce.buy(itemId, parseInt(itemPriceText.text))}});
             }
         }
     }
@@ -290,6 +293,7 @@ Rectangle {
                 itemNameText.text = message.params.itemName;
                 itemAuthorText.text = message.params.itemAuthor;
                 itemPriceText.text = message.params.itemPrice;
+                itemId = message.params.itemId;
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
