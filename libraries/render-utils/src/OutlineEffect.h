@@ -81,13 +81,13 @@ class DrawOutlineConfig : public render::Job::Config {
         Q_PROPERTY(float colorB READ getColorB WRITE setColorB NOTIFY dirty)
 public:
 
-    void setColorR(float value) { color.r = value; }
+    void setColorR(float value) { color.r = value; emit dirty(); }
     float getColorR() const { return color.r; }
 
-    void setColorG(float value) { color.g = value; }
+    void setColorG(float value) { color.g = value; emit dirty(); }
     float getColorG() const { return color.g; }
 
-    void setColorB(float value) { color.b = value; }
+    void setColorB(float value) { color.b = value; emit dirty(); }
     float getColorB() const { return color.b; }
 
     float width{ 5.f };

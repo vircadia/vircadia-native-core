@@ -35,6 +35,7 @@ void main(void) {
 
 	//float sceneDepth = texture(sceneDepthMap, varTexCoord0).x;
     float outlineIntensity = 0.0;
+    float weight = 0.0;
     {
         const float deltaUv = params._size / BLUR_KERNEL_SIZE;
         vec2 uv;
@@ -46,14 +47,20 @@ void main(void) {
             uv = startUv;
             startUv.y += deltaUv;
 
-            for (x=0 ; x<BLUR_KERNEL_SIZE ; x++) {
-                outlinedDepth = texture(outlinedDepthMap, uv).x;
-                outlineIntensity += (outlinedDepth < FAR_DISTANCE) ? 1.0 : 0.0;
-                uv.x += deltaUv;
+            if (uv.y>=0.0 && uv.y<=1.0) {
+                for (x=0 ; x<BLUR_KERNEL_SIZE ; x++) {
+                    if (uv.x>=0.0 && uv.x<=1.0)
+                    {
+                        outlinedDepth = texture(outlinedDepthMap, uv).x;
+                        outlineIntensity += (outlinedDepth < FAR_DISTANCE) ? 1.0 : 0.0;
+                        weight += 1.f;
+                    }
+                    uv.x += deltaUv;
+                }
             }
         }
 
-        outlineIntensity /= BLUR_KERNEL_SIZE*BLUR_KERNEL_SIZE;
+        outlineIntensity /= weight;
     }
 
     if (outlineIntensity < 1e-3) {
