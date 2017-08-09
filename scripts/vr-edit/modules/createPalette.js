@@ -17,8 +17,8 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     var paletteOriginOverlay,
         palettePanelOverlay,
-        cubeOverlay,
-        cubeHighlightOverlay,
+        highlightOverlay,
+        paletteItemOverlays = [],
 
         LEFT_HAND = 0,
 
@@ -51,18 +51,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             visible: true
         },
 
-        CUBE_PROPERTIES = {
-            dimensions: { x: 0.03, y: 0.03, z: 0.03 },
-            localPosition: { x: 0.02, y: 0.02, z: 0.0 },
-            localRotation: Quat.ZERO,
-            color: { red: 240, green: 0, blue: 0 },
-            alpha: 1.0,
-            solid: true,
-            ignoreRayIntersection: false,
-            visible: true
-        },
-
-        CUBE_HIGHLIGHT_PROPERTIES = {
+        HIGHLIGHT_PROPERTIES = {
             dimensions: { x: 0.034, y: 0.034, z: 0.034 },
             localPosition: { x: 0.02, y: 0.02, z: 0.0 },
             localRotation: Quat.ZERO,
@@ -74,16 +63,99 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             visible: false
         },
 
-        CUBE_ENTITY_PROPERTIES = {
-            type: "Box",
-            dimensions: { x: 0.2, y: 0.2, z: 0.2 },
-            color: { red: 192, green: 192, blue: 192 }
-        },
+        PALETTE_ITEMS = [
+            {
+                overlay: {
+                    type: "cube",
+                    properties: {
+                        dimensions: { x: 0.03, y: 0.03, z: 0.03 },
+                        localPosition: { x: 0.02, y: 0.02, z: 0.0 },
+                        localRotation: Quat.ZERO,
+                        color: { red: 240, green: 0, blue: 0 },
+                        alpha: 1.0,
+                        solid: true,
+                        ignoreRayIntersection: false,
+                        visible: true
+                    }
+                },
+                entity: {
+                    type: "Box",
+                    dimensions: { x: 0.2, y: 0.2, z: 0.2 },
+                    color: { red: 192, green: 192, blue: 192 }
+                }
+            },
+            {
+                overlay: {
+                    type: "shape",
+                    properties: {
+                        shape: "Cylinder",
+                        dimensions: { x: 0.03, y: 0.03, z: 0.03 },
+                        localPosition: { x: 0.06, y: 0.02, z: 0.0 },
+                        localRotation: Quat.fromVec3Degrees({ x: -90, y: 0, z: 0 }),
+                        color: { red: 240, green: 0, blue: 0 },
+                        alpha: 1.0,
+                        solid: true,
+                        ignoreRayIntersection: false,
+                        visible: true
+                    }
+                },
+                entity: {
+                    type: "Shape",
+                    shape: "Cylinder",
+                    dimensions: { x: 0.2, y: 0.2, z: 0.2 },
+                    color: { red: 192, green: 192, blue: 192 }
+                }
+            },
+            {
+                overlay: {
+                    type: "shape",
+                    properties: {
+                        shape: "Cone",
+                        dimensions: { x: 0.03, y: 0.03, z: 0.03 },
+                        localPosition: { x: 0.10, y: 0.02, z: 0.0 },
+                        localRotation: Quat.fromVec3Degrees({ x: -90, y: 0, z: 0 }),
+                        color: { red: 240, green: 0, blue: 0 },
+                        alpha: 1.0,
+                        solid: true,
+                        ignoreRayIntersection: false,
+                        visible: true
+                    }
+                },
+                entity: {
+                    type: "Shape",
+                    shape: "Cone",
+                    dimensions: { x: 0.2, y: 0.2, z: 0.2 },
+                    color: { red: 192, green: 192, blue: 192 }
+                }
+            },
+            {
+                overlay: {
+                    type: "sphere",
+                    properties: {
+                        dimensions: { x: 0.03, y: 0.03, z: 0.03 },
+                        localPosition: { x: 0.14, y: 0.02, z: 0.0 },
+                        localRotation: Quat.ZERO,
+                        color: { red: 240, green: 0, blue: 0 },
+                        alpha: 1.0,
+                        solid: true,
+                        ignoreRayIntersection: false,
+                        visible: true
+                    }
+                },
+                entity: {
+                    type: "Sphere",
+                    dimensions: { x: 0.2, y: 0.2, z: 0.2 },
+                    color: { red: 192, green: 192, blue: 192 }
+                }
+            }
+        ],
 
         isDisplaying = false,
 
-        isHighlightingCube = false,
-        isCubePressed = false,
+        NONE = -1,
+        highlightedItem = NONE,
+        pressedItem = NONE,
+        wasTriggerClicked = false,
 
         // References.
         controlHand;
@@ -104,43 +176,70 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
     setHand(side);
 
     function getEntityIDs() {
-        return [palettePanelOverlay, cubeOverlay];
+        return [palettePanelOverlay].concat(paletteItemOverlays);
     }
 
     function update(intersectionOverlayID) {
-        var entityID,
-            CREATE_OFFSET = { x: 0, y: 0.05, z: -0.02 };
+        var itemIndex,
+            isTriggerClicked,
+            properties,
+            PRESS_DELTA = { x: 0, y: 0, z: 0.01 },
+            CREATE_OFFSET = { x: 0, y: 0.05, z: -0.02 },
+            INVERSE_HAND_BASIS_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 0, z: -90 });
+
         // Highlight cube.
-        if (intersectionOverlayID === cubeOverlay !== isHighlightingCube) {
-            isHighlightingCube = !isHighlightingCube;
-            Overlays.editOverlay(cubeHighlightOverlay, { visible: isHighlightingCube });
+        itemIndex = paletteItemOverlays.indexOf(intersectionOverlayID);
+        if (itemIndex !== NONE) {
+            if (highlightedItem !== itemIndex) {
+                Overlays.editOverlay(highlightOverlay, {
+                    parentID: intersectionOverlayID,
+                    localPosition: Vec3.ZERO,
+                    visible: true
+                });
+                highlightedItem = itemIndex;
+            }
+        } else {
+            Overlays.editOverlay(highlightOverlay, {
+                visible: false
+            });
+            highlightedItem = NONE;
         }
 
-        // Cube click.
-        if (isHighlightingCube && controlHand.triggerClicked() !== isCubePressed) {
-            isCubePressed = controlHand.triggerClicked();
-            if (isCubePressed) {
-                Overlays.editOverlay(cubeOverlay, {
-                    localPosition: Vec3.sum(CUBE_PROPERTIES.localPosition, { x: 0, y: 0, z: 0.01 })
-                });
-                CUBE_ENTITY_PROPERTIES.position = Vec3.sum(controlHand.palmPosition(),
-                    Vec3.multiplyQbyV(controlHand.orientation(),
-                        Vec3.sum({ x: 0, y: CUBE_ENTITY_PROPERTIES.dimensions.z / 2, z: 0 }, CREATE_OFFSET)));
-                CUBE_ENTITY_PROPERTIES.rotation = controlHand.orientation();
-                entityID = Entities.addEntity(CUBE_ENTITY_PROPERTIES);
-                uiCommandCallback("autoGrab");
-            } else {
-                Overlays.editOverlay(cubeOverlay, {
-                    localPosition: CUBE_PROPERTIES.localPosition
-                });
-            }
+        // Unpress currently pressed item.
+        if (pressedItem !== NONE && pressedItem !== itemIndex) {
+            Overlays.editOverlay(paletteItemOverlays[pressedItem], {
+                localPosition: PALETTE_ITEMS[pressedItem].overlay.properties.localPosition
+            });
+            pressedItem = NONE;
         }
+
+        // Press item and create new entity.
+        isTriggerClicked = controlHand.triggerClicked();
+        if (highlightedItem !== NONE && pressedItem === NONE && isTriggerClicked && !wasTriggerClicked) {
+            Overlays.editOverlay(paletteItemOverlays[itemIndex], {
+                localPosition: Vec3.sum(PALETTE_ITEMS[itemIndex].overlay.properties.localPosition, PRESS_DELTA)
+            });
+            pressedItem = itemIndex;
+
+            properties = Object.clone(PALETTE_ITEMS[itemIndex].entity);
+            properties.position = Vec3.sum(controlHand.palmPosition(),
+                Vec3.multiplyQbyV(controlHand.orientation(),
+                    Vec3.sum({ x: 0, y: properties.dimensions.z / 2, z: 0 }, CREATE_OFFSET)));
+            properties.rotation = Quat.multiply(controlHand.orientation(), INVERSE_HAND_BASIS_ROTATION);
+            Entities.addEntity(properties);
+
+            uiCommandCallback("autoGrab");  // TODO: Could pass entity ID through to autoGrab.
+        }
+
+        wasTriggerClicked = isTriggerClicked;
     }
 
     function display() {
         // Creates and shows menu entities.
         var handJointIndex,
-            properties;
+            properties,
+            i,
+            length;
 
         if (isDisplaying) {
             return;
@@ -161,30 +260,37 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         properties.localPosition = Vec3.sum(PALETTE_ROOT_POSITION, { x: lateralOffset, y: 0, z: 0 });
         paletteOriginOverlay = Overlays.addOverlay("sphere", properties);
 
-        // Create palette items.
+        // Create palette.
         properties = Object.clone(PALETTE_PANEL_PROPERTIES);
         properties.parentID = paletteOriginOverlay;
         palettePanelOverlay = Overlays.addOverlay("cube", properties);
-        properties = Object.clone(CUBE_PROPERTIES);
-        properties.parentID = paletteOriginOverlay;
-        cubeOverlay = Overlays.addOverlay("cube", properties);
+        for (i = 0, length = PALETTE_ITEMS.length; i < length; i += 1) {
+            properties = Object.clone(PALETTE_ITEMS[i].overlay.properties);
+            properties.parentID = paletteOriginOverlay;
+            paletteItemOverlays[i] = Overlays.addOverlay(PALETTE_ITEMS[i].overlay.type, properties);
+        }
 
         // Prepare cube highlight overlay.
-        properties = Object.clone(CUBE_HIGHLIGHT_PROPERTIES);
+        properties = Object.clone(HIGHLIGHT_PROPERTIES);
         properties.parentID = paletteOriginOverlay;
-        cubeHighlightOverlay = Overlays.addOverlay("cube", properties);
+        highlightOverlay = Overlays.addOverlay("cube", properties);
 
         isDisplaying = true;
     }
 
     function clear() {
         // Deletes menu entities.
+        var i,
+            length;
+
         if (!isDisplaying) {
             return;
         }
 
-        Overlays.deleteOverlay(cubeHighlightOverlay);
-        Overlays.deleteOverlay(cubeOverlay);
+        Overlays.deleteOverlay(highlightOverlay);
+        for (i = 0, length = paletteItemOverlays.length; i < length; i += 1) {
+            Overlays.deleteOverlay(paletteItemOverlays[i]);
+        }
         Overlays.deleteOverlay(palettePanelOverlay);
         Overlays.deleteOverlay(paletteOriginOverlay);
 
