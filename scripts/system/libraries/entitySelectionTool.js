@@ -306,11 +306,6 @@ SelectionDisplay = (function() {
     var rollNormal;
     var rotationNormal;
 
-    var originalRotation;
-    var originalPitch;
-    var originalYaw;
-    var originalRoll;
-
 
     var handleColor = {
         red: 255,
@@ -2375,6 +2370,28 @@ SelectionDisplay = (function() {
         }
     };
 
+    // FUNCTION: SET ROTATION HANDLES VISIBLE
+    that.setRotationHandlesVisible = function(isVisible) {
+        var visibilityUpdate = { visible: isVisible };
+        Overlays.editOverlay(yawHandle, visibilityUpdate);
+        Overlays.editOverlay(pitchHandle, visibilityUpdate);
+        Overlays.editOverlay(rollHandle, visibilityUpdate);
+    };
+
+    // FUNCTION: SET STRETCH HANDLES VISIBLE
+    that.setStretchHandlesVisible = function(isVisible) {
+        var numHandles = stretchHandles.length;
+        var visibilityUpdate = { visible: isVisible };
+        for (var handleIndex = 0; handleIndex < numHandles; ++handleIndex) {
+            Overlays.editOverlay(stretchHandles[ handleIndex ], visibilityUpdate);
+        }
+    };
+
+    // FUNCTION: SET GRABBER MOVE UP VISIBLE
+    that.setGrabberMoveUpVisible = function(isVisible) {
+        Overlays.editOverlay(grabberMoveUp, { visible: isVisible });
+    };
+
     // FUNCTION: UNSELECT
     // TODO?: Needs implementation
     that.unselect = function(entityID) {};
@@ -2392,7 +2409,7 @@ SelectionDisplay = (function() {
         greatestDimension: 0.0,
         startingDistance: 0.0,
         startingElevation: 0.0,
-        onBegin: function(event,isAltFromGrab, intersectInfo) {
+        onBegin: function(event,isAltFromGrab,intersectInfo) {
             var wantDebug = false;
             if(wantDebug){
                 print("================== TRANSLATE_XZ(Beg) -> =======================");
@@ -2402,6 +2419,9 @@ SelectionDisplay = (function() {
             }
 
             SelectionManager.saveProperties();
+            that.setRotationHandlesVisible( false );
+            that.setGrabberMoveUpVisible( false );
+
             startPosition = SelectionManager.worldPosition;
             mode = translateXZTool.mode;
 
@@ -2603,7 +2623,7 @@ SelectionDisplay = (function() {
     var upDownPickNormal = null;
     addGrabberTool(grabberMoveUp, {
         mode: "TRANSLATE_UP_DOWN",
-        onBegin: function(event) {
+        onBegin: function(event, intersectResult) {
             pickRay = generalComputePickRay(event.x, event.y);
 
             upDownPickNormal = Quat.getForward(lastCameraOrientation);
@@ -2613,6 +2633,8 @@ SelectionDisplay = (function() {
             lastXYPick = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, upDownPickNormal);
 
             SelectionManager.saveProperties();
+            that.setGrabberMoveUpVisible( true );
+            that.setRotationHandlesVisible( false );
 
             // Duplicate entities if alt is pressed.  This will make a
             // copy of the selected entities and move the _original_ entities, not
@@ -2676,15 +2698,23 @@ SelectionDisplay = (function() {
     // GRABBER TOOL: GRABBER CLONER
     addGrabberTool(grabberCloner, {
         mode: "CLONE",
-        onBegin: function(event) {
+        onBegin: function(event, intersectResult) {
 
             var pickRay = generalComputePickRay(event.x, event.y);
+            //TODO_Case6491:  This may be doing duplicate works that's handled
+            //                within translateXZTool.onBegin.  Verify and if so
+            //                remove...
             var result = Overlays.findRayIntersection(pickRay);
             translateXZTool.pickPlanePosition = result.intersection;
             translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, SelectionManager.worldDimensions.y),
                 SelectionManager.worldDimensions.z);
 
-            translateXZTool.onBegin(event,true);
+            var intersectInfo = {
+                queryRay: pickRay,
+                results: intersectResult
+            };
+
+            translateXZTool.onBegin(event,true,intersectInfo);
         },
         elevation: function (event) {
             translateXZTool.elevation(event);
@@ -2715,6 +2745,7 @@ SelectionDisplay = (function() {
     // direction - direction to stretch in
     // pivot - point to use as a pivot
     // offset - the position of the overlay tool relative to the selections center position
+    // @return: tool obj
     var makeStretchTool = function(stretchMode, direction, pivot, offset, customOnMove) {
         //  directionFor3DStretch - direction and pivot for 3D stretch
         //  distanceFor3DStretch - distance from the intersection point and the handController 
@@ -2756,7 +2787,7 @@ SelectionDisplay = (function() {
         var pickRayPosition3D = null;
         var rotation = null;
 
-        var onBegin = function(event) {
+        var onBegin = function(event, intersectResult) {
             var properties = Entities.getEntityProperties(SelectionManager.selections[0]);
             initialProperties = properties;
             rotation = spaceMode == SPACE_LOCAL ? properties.rotation : Quat.fromPitchYawRollDegrees(0, 0, 0);
@@ -3668,6 +3699,10 @@ SelectionDisplay = (function() {
         }
 
         SelectionManager.saveProperties();
+        that.setRotationHandlesVisible( false );
+        that.setStretchHandlesVisible( false );
+        that.setGrabberMoveUpVisible( false );
+
         initialPosition = SelectionManager.worldPosition;
         mode = rotMode;
         rotationNormal = rotNormal;
@@ -3871,10 +3906,10 @@ SelectionDisplay = (function() {
     var initialPosition = SelectionManager.worldPosition;
     addGrabberTool(yawHandle, {
         mode: "ROTATE_YAW",
-        onBegin: function(event, zeroPoint) {
-            //note: It's expected that the intersection is passed when this is called.
+        onBegin: function(event, intersectResult) {
+            //note: It's expected that the intersect result is passed when this is called.
             //      validity will be checked later as a pre-requisite for onMove handling.
-            yawZero = zeroPoint;
+            yawZero = intersectResult.intersection;
 
             helperRotationHandleOnBegin( "ROTATE_YAW", yawNormal, yawCenter, yawHandleRotation );
         },
@@ -3890,10 +3925,10 @@ SelectionDisplay = (function() {
     // PITCH GRABBER TOOL DEFINITION
     addGrabberTool(pitchHandle, {
         mode: "ROTATE_PITCH",
-        onBegin: function (event, zeroPoint) {
-            //note: It's expected that the intersection is passed when this is called.
+        onBegin: function (event, intersectResult) {
+            //note: It's expected that the intersect result is passed when this is called.
             //      validity will be checked later as a pre-requisite for onMove handling.
-            pitchZero = zeroPoint;
+            pitchZero = intersectResult.intersection;
 
             helperRotationHandleOnBegin( "ROTATE_PITCH", pitchNormal, pitchCenter, pitchHandleRotation );
         },
@@ -3909,10 +3944,10 @@ SelectionDisplay = (function() {
     // ROLL GRABBER TOOL DEFINITION
     addGrabberTool(rollHandle, {
         mode: "ROTATE_ROLL",
-        onBegin: function (event, zeroPoint) {
-            //note: It's expected that the intersection is passed when this is called.
+        onBegin: function (event, intersectResult) {
+            //note: It's expected that the intersect result is passed when this is called.
             //      validity will be checked later as a pre-requisite for onMove handling.
-            rollZero = zeroPoint;
+            rollZero = intersectResult.intersection;
 
             helperRotationHandleOnBegin( "ROTATE_ROLL", rollNormal, rollCenter, rollHandleRotation );
         },
@@ -3985,30 +4020,6 @@ SelectionDisplay = (function() {
         return intersectObj;
     }
 
-    function checkIntersectWithHUD(queryRay) {
-        var intersectObj = testRayIntersect(queryRay, [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID]);
-
-        return intersectObj;
-    }
-
-    function checkIntersectWithNonSelectionItems(queryRay) {
-        var intersectObj = testRayIntersect(queryRay, null, [yawHandle, pitchHandle, rollHandle, selectionBox]);
-
-        return intersectObj;
-    }
-
-    function checkIntersectWithRotationHandles(queryRay) {
-        var intersectObj = testRayIntersect(queryRay, [yawHandle, pitchHandle, rollHandle]);
-
-        return intersectObj;
-    }
-
-    function checkIntersectWithSelectionBox(queryRay) {
-        var intersectObj = testRayIntersect(queryRay, [selectionBox]);
-
-        return intersectObj;
-    }
-
     // FUNCTION: MOUSE PRESS EVENT
     that.mousePressEvent = function (event) {
         var wantDebug = false;
@@ -4016,267 +4027,66 @@ SelectionDisplay = (function() {
             print("=============== eST::MousePressEvent BEG =======================");
         }
         if (!event.isLeftButton && !that.triggered) {
-            // if another mouse button than left is pressed ignore it
+            //--EARLY EXIT-(if another mouse button than left is pressed ignore it)
             return false;
         }
 
-        var somethingClicked = false;
         var pickRay = generalComputePickRay(event.x, event.y);
-
-        var results_checkHUD = checkIntersectWithHUD(pickRay);
-        if (results_checkHUD.intersects) {
-            // mouse clicks on the tablet should override the edit affordances
-            return false;
-        }
-
-        entityIconOverlayManager.setIconsSelectable(selectionManager.selections, true);
-
-        // ignore ray intersection for our selection box and yaw/pitch/roll
-        var results_checkNonSelection = checkIntersectWithNonSelectionItems(pickRay);
-        if (results_checkNonSelection.intersects) {
-            var tool = grabberTools[results_checkNonSelection.overlayID];
-            if (tool) {
-                if (wantDebug) {
-                    print("Intersected with known table tool( mode: " + tool.mode + " )");
-                }
-                activeTool = tool;
-                mode = tool.mode;
-                somethingClicked = 'tool';
-                if (activeTool.onBegin) {
-                    activeTool.onBegin(event);
-                } else if (wantDebug) {
-                        print("    ActiveTool( " + activeTool.mode + " ) missing onBegin");
-                }
-            } else {
-                mode = "UNKNOWN";
-            }//--End_if(tool)
-        }//--End_if(results_checkNonSelection.intersects)
-
-        // if one of the items above was clicked, then we know we are in translate or stretch mode, and we
-        // should hide our rotate handles...
-        if (somethingClicked) {
-            if (wantDebug) {
-                print("    Trying to hide PitchYawRoll Handles");
-            }
-            Overlays.editOverlay(yawHandle, {
-                visible: false
-            });
-            Overlays.editOverlay(pitchHandle, {
-                visible: false
-            });
-            Overlays.editOverlay(rollHandle, {
-                visible: false
-            });
-
-            if (mode != "TRANSLATE_UP_DOWN") {
-                if(wantDebug){
-                    print("    Trying to hide GrabberMoveUp");
-                }
-                Overlays.editOverlay(grabberMoveUp, {
-                    visible: false
-                });
+        //TODO_Case6491:  Move this out to setup just to make it once
+        var interactiveOverlays = [HMD.tabletID, HMD.tabletScreenID, HMD.homeButtonID, selectionBox];
+        for (var key in grabberTools) {
+            if (grabberTools.hasOwnProperty(key)) {
+                interactiveOverlays.push( key );
             }
         }
 
-        if (!somethingClicked) {
-
-            if (wantDebug) {
-                print("rotate handle case...");
+        mode = "UNKNOWN";
+        var results = testRayIntersect( pickRay, interactiveOverlays );
+        if ( results.intersects ){
+            var hitOverlayID = results.overlayID;
+            if ( (hitOverlayID == HMD.tabletID) || (hitOverlayID == HMD.tabletScreenID) || (hitOverlayID == HMD.homeButtonID) ) {
+                //--EARLY EXIT-(mouse clicks on the tablet should override the edit affordances)
+                return false;
             }
 
+            entityIconOverlayManager.setIconsSelectable(selectionManager.selections, true);
+            //TODO_Case6491:  Merge if..else( selectionBox ) when onBegin of transXZ is normalized.
+            if ( hitOverlayID == selectionBox ) {
 
-            // Only intersect versus yaw/pitch/roll.
-            var results_checkRotationHandles = checkIntersectWithRotationHandles(pickRay);
-            var properties = Entities.getEntityProperties(selectionManager.selections[0]);
-            var angles = Quat.safeEulerAngles(properties.rotation);
-            var pitch = angles.x;
-            var yaw = angles.y;
-            var roll = angles.z;
-
-            //TODO_Case6491:  Should these only be updated when we actually touched
-            //                a handle. (The answer is most likley: Yes)  Potentially move chunk
-            //                to either tool's onBegin or before rayCast here when refactored.
-            originalRotation = properties.rotation;
-            originalPitch = pitch;
-            originalYaw = yaw;
-            originalRoll = roll;
-
-            if (results_checkRotationHandles.intersects) {
-                var resultTool = grabberTools[results_checkRotationHandles.overlayID];
-                if (wantDebug) {
-                    print("Intersection detected with handle...");
-                }
-                if (resultTool) {
-                    if (wantDebug) {
-                        print("    " + resultTool.mode);
-                    }
-                    activeTool = resultTool;
-                    somethingClicked = resultTool.mode;
-                    if(activeTool.onBegin) {
-                        activeTool.onBegin(event, results_checkRotationHandles.intersection);
-                    } else if (wantDebug) {
-                        print("    ActiveTool( " + activeTool.mode + " ) missing onBegin");
-                    }
-                }//--End_If(resultTool)
-            }//--End_If(results_checkRotationHandles.intersects)
-
-             if (somethingClicked) {
-
-                if (wantDebug) {
-                    print("    somethingClicked:" + somethingClicked);
-                    print("                mode:" + mode);
-                    print("    Trying to hide PitchYawRoll Handles");
-                }
-                Overlays.editOverlay(yawHandle, {
-                    visible: false
-                });
-                Overlays.editOverlay(pitchHandle, {
-                    visible: false
-                });
-                Overlays.editOverlay(rollHandle, {
-                    visible: false
-                });
-
-                if(wantDebug){
-                    print("    Trying to hide Non-Light GrabberHandles");
-                }
-
-                Overlays.editOverlay(grabberCloner, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberMoveUp, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberLBN, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberLBF, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberRBN, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberRBF, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberLTN, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberLTF, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberRTN, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberRTF, {
-                    visible: false
-                });
-
-                Overlays.editOverlay(grabberTOP, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberBOTTOM, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberLEFT, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberRIGHT, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberNEAR, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberFAR, {
-                    visible: false
-                });
-
-                Overlays.editOverlay(grabberEdgeTR, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberEdgeTL, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberEdgeTF, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberEdgeTN, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberEdgeBR, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberEdgeBL, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberEdgeBF, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberEdgeBN, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberEdgeNR, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberEdgeNL, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberEdgeFR, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberEdgeFL, {
-                    visible: false
-                });
-            }
-        }
-
-        if (!somethingClicked) {
-            // Only intersect versus selectionBox.
-            var results_checkSelectionBox = checkIntersectWithSelectionBox( pickRay );
-            if (results_checkSelectionBox.intersects) {
                 activeTool = translateXZTool;
                 if(wantDebug){
-                    print("Clicked selectionBox, Activating Tool: " + activeTool.mode );
+                    print("    Clicked selectionBox, Activating Tool: " + activeTool.mode );
                 }
                 var intersectInfo = {
                     queryRay: pickRay,
-                    results: results_checkSelectionBox
+                    results: results
                 };
+
                 activeTool.onBegin(event, null, intersectInfo);
-                somethingClicked = 'selectionBox';
-            }
-        }
-
-        if (somethingClicked) {
-            if (wantDebug) {
-                print("mousePressEvent()...... " + somethingClicked);
-                print("    mode: " + mode);
-            }
-        }
-
-        // reset everything as intersectable...
-        // TODO: we could optimize this since some of these were already flipped back(i.e:  just get rid of this)
-        if (wantDebug) {
-            print("Trying to set SelectionBox & PitchYawRoll Handles to NOT_IGNORE Rays");
-        }
-        Overlays.editOverlay(selectionBox, {
-            ignoreRayIntersection: false
-        });
-        Overlays.editOverlay(yawHandle, {
-            ignoreRayIntersection: false
-        });
-        Overlays.editOverlay(pitchHandle, {
-            ignoreRayIntersection: false
-        });
-        Overlays.editOverlay(rollHandle, {
-            ignoreRayIntersection: false
-        });
+            } else { //...see if a tool was hit as that's the only thing left that we care about.
+                var hitTool = grabberTools[ hitOverlayID ];
+                if ( hitTool ) {
+                    activeTool = hitTool;
+                    mode = activeTool.mode; //< TODO: Is this centrally handled in all tool begins?
+                    if (activeTool.onBegin) {
+                        activeTool.onBegin(event, results);
+                    } else {
+                        print("ERROR: entitySelectionTool.mousePressEvent - ActiveTool( " + activeTool.mode + " ) missing onBegin");
+                    }
+                } else {
+                    print("ERROR: entitySelectionTool.mousePressEvent - Hit unexpected object, check interactiveOverlays");
+                }//--End_if( hitTool )
+            }//--End_if( hitOverlayID == selectionBox )
+        }//--End_If( results.intersects )
 
         if (wantDebug) {
+            print("    SelectionDisplay.mode: " + mode );
             print("=============== eST::MousePressEvent END =======================");
         }
 
-        return somethingClicked;
+        // If mode is known then we successfully handled this;
+        // otherwise, we're missing a tool or a tool.onBegin.
+        return (mode != "UNKNOWN");
     };
 
     // FUNCTION: MOUSE MOVE EVENT
