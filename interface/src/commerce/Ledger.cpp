@@ -23,8 +23,8 @@ bool Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, cons
     transaction["asset_id"] = asset_id;
     transaction["inventory_key"] = inventory_key;
     transaction["inventory_buyer_username"] = buyerUsername;
-    QJsonDocument transctionDoc{ transaction };
-    QString transactionString = transctionDoc.toJson(QJsonDocument::Compact);
+    QJsonDocument transactionDoc{ transaction };
+    QString transactionString = transactionDoc.toJson(QJsonDocument::Compact);
     
     auto wallet = DependencyManager::get<Wallet>();
     QString signature = wallet->signWithKey(transactionString, hfc_key);

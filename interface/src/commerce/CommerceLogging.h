@@ -1,6 +1,6 @@
 //
 //  CommerceLogging.h
-//  interface/src
+//  interface/src/commerce
 //
 //  Created by Howard Stearns on 8/9/17.
 //  Copyright 2017 High Fidelity, Inc.
