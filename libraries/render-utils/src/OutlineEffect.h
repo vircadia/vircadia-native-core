@@ -76,6 +76,7 @@ private:
 class DrawOutlineConfig : public render::Job::Config {
     Q_OBJECT
         Q_PROPERTY(float width MEMBER width NOTIFY dirty)
+        Q_PROPERTY(float intensity MEMBER intensity NOTIFY dirty)
         Q_PROPERTY(float colorR READ getColorR WRITE setColorR NOTIFY dirty)
         Q_PROPERTY(float colorG READ getColorG WRITE setColorG NOTIFY dirty)
         Q_PROPERTY(float colorB READ getColorB WRITE setColorB NOTIFY dirty)
@@ -90,8 +91,9 @@ public:
     void setColorB(float value) { color.b = value; emit dirty(); }
     float getColorB() const { return color.b; }
 
-    float width{ 5.f };
     glm::vec3 color{ 1.f, 0.7f, 0.2f };
+    float width{ 5.f };
+    float intensity{ 1.f };
 
 signals:
     void dirty();
@@ -125,6 +127,7 @@ private:
     OutlineConfigurationBuffer _configuration;
     glm::vec3 _color;
     float _size;
+    float _intensity;
 };
 
 class DebugOutlineConfig : public render::Job::Config {

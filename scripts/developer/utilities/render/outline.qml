@@ -45,6 +45,15 @@ Item {
             width: 230
         }  
         ConfigSlider {
+            label: "Intensity"
+            integral: false
+            config: root.drawConfig
+            property: "intensity"
+            max: 1.0
+            min: 0.0
+            width: 230
+        }  
+        ConfigSlider {
             label: "Color R"
             integral: false
             config: root.drawConfig

@@ -9,6 +9,7 @@ struct OutlineParameters
 {
 	VEC3 _color;
     float _size;
+    float _intensity;
 };
 
 // <@if 1@>

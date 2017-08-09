@@ -66,5 +66,6 @@ void main(void) {
     if (outlineIntensity < 1e-3) {
         discard;
     }
+    outlineIntensity = min(1.0, outlineIntensity * params._intensity);
 	outFragColor = vec4(params._color.rgb, outlineIntensity);
 }

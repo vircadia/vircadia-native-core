@@ -130,7 +130,8 @@ DrawOutline::DrawOutline() {
 
 void DrawOutline::configure(const Config& config) {
     _color = config.color;
-    _size = config.width;
+    _size = config.width / 1024.f;
+    _intensity = config.intensity * 10.f;
 }
 
 void DrawOutline::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
@@ -147,7 +148,8 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
             {
                 auto& configuration = _configuration.edit();
                 configuration._color = _color;
-                configuration._size = _size / 1024.f;
+                configuration._size = _size;
+                configuration._intensity = _intensity;
             }
 
             gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
