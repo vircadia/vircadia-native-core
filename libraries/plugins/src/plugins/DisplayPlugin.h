@@ -109,24 +109,6 @@ public:
         RightHand = 0x02,
     };
 
-    enum class HandLaserMode {
-        None, // Render no hand lasers
-        Overlay, // Render hand lasers only if they intersect with the UI layer, and stop at the UI layer
-    };
-
-    virtual bool setHandLaser(
-        uint32_t hands, // Bits from the Hand enum
-        HandLaserMode mode, // Mode in which to render
-        const vec4& color = vec4(1), // The color of the rendered laser
-        const vec3& direction = vec3(0, 0, -1) // The direction in which to render the hand lasers
-        ) {
-        return false;
-    }
-
-    virtual bool setExtraLaser(HandLaserMode mode, const vec4& color, const glm::vec3& sensorSpaceStart, const vec3& sensorSpaceDirection) {
-        return false;
-    }
-
     virtual bool suppressKeyboard() { return false;  }
     virtual void unsuppressKeyboard() {};
     virtual bool isKeyboardVisible() { return false; }
