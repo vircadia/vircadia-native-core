@@ -615,7 +615,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
     }
 
-    function update(intersectionOverlayID, groupsCount, entitiesCount) {
+    function update(intersection, groupsCount, entitiesCount) {
         var intersectedItem = -1,
             intersectionItems,
             parentProperties,
@@ -624,17 +624,21 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             parameter,
             parameterValue,
             enableGroupButton,
-            enableUngroupButton;
+            enableUngroupButton,
+            sliderProperties,
+            overlayDimensions,
+            basePoint,
+            fraction;
 
         // Intersection details.
-        if (intersectionOverlayID) {
-            intersectedItem = menuOverlays.indexOf(intersectionOverlayID);
+        if (intersection.overlayID) {
+            intersectedItem = menuOverlays.indexOf(intersection.overlayID);
             if (intersectedItem !== -1) {
                 intersectionItems = MENU_ITEMS;
                 intersectionOverlays = menuOverlays;
                 intersectionEnabled = null;
             } else {
-                intersectedItem = optionsOverlays.indexOf(intersectionOverlayID);
+                intersectedItem = optionsOverlays.indexOf(intersection.overlayID);
                 if (intersectedItem !== -1) {
                     intersectionItems = optionsItems;
                     intersectionOverlays = optionsOverlays;
@@ -730,6 +734,21 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
                 doGripClicked(intersectionItems[intersectedItem].onGripClicked.method, parameter);
             }
+        }
+
+        // Slider update.
+        if (intersectionItems && intersectionItems[intersectedItem].type === "slider" && controlHand.triggerClicked()) {
+            sliderProperties = Overlays.getProperties(intersection.overlayID, ["position", "orientation"]);
+            overlayDimensions = intersectionItems[intersectedItem].properties.dimensions;
+            if (overlayDimensions === undefined) {
+                overlayDimensions = UI_ELEMENTS.slider.properties.dimensions;
+            }
+            basePoint = Vec3.sum(sliderProperties.position,
+                Vec3.multiplyQbyV(sliderProperties.orientation, { x: 0, y: overlayDimensions.y / 2, z: 0 }));
+            fraction = Vec3.dot(Vec3.subtract(basePoint, intersection.intersection),
+                Vec3.multiplyQbyV(sliderProperties.orientation, Vec3.UNIT_Y)) / overlayDimensions.y;
+
+            uiCommandCallback(intersectionItems[intersectedItem].callback.method, fraction);
         }
 
         // Special handling for Group options.

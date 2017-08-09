@@ -238,9 +238,12 @@
         }
 
         function update() {
+            var intersection;
+
             if (isDisplaying) {
-                toolMenu.update(getIntersection().overlayID, grouping.groupsCount(), grouping.entitiesCount());
-                createPalette.update(getIntersection().overlayID);
+                intersection = getIntersection();
+                toolMenu.update(intersection, grouping.groupsCount(), grouping.entitiesCount());
+                createPalette.update(intersection.overlayID);
                 toolIcon.update();
             }
         }
@@ -1344,7 +1347,10 @@
             editors[RIGHT_HAND].enableAutoGrab();
             break;
         case "setSliderValue":
-            print("$$$$$$$ setSliderValue = " + JSON.stringify(parameter));
+            if (parameter !== undefined) {
+                // TODO
+                print("setSliderValue = " + parameter);
+            }
             break;
         default:
             debug("ERROR: Unexpected command in onUICommand()! " + command);
