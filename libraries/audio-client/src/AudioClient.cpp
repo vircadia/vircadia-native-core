@@ -1515,7 +1515,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
         qCDebug(audioclient) << "Noise gate created with" << _desiredInputFormat.channelCount() << "channels.";
 
         // generate audio callbacks at the network sample rate
-        QTimer* _dummyAudioInput = new QTimer(this);
+        _dummyAudioInput = new QTimer(this);
         connect(_dummyAudioInput, SIGNAL(timeout()), this, SLOT(handleDummyAudioInput()));
         _dummyAudioInput->start((int)(AudioConstants::NETWORK_FRAME_MSECS + 0.5f));
     }
