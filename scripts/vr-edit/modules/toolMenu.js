@@ -128,7 +128,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
-            "slider": {
+            "barSlider": {
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.03, y: 0.1, z: 0.01 },
@@ -140,7 +140,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
-            "sliderValue": {
+            "barSliderValue": {
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.03, y: 0.03, z: 0.01 },
@@ -153,7 +153,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
-            "sliderRemainder": {
+            "barSliderRemainder": {
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.03, y: 0.07, z: 0.01 },
@@ -340,7 +340,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 {
                     id: "physicsSlider",
-                    type: "slider",
+                    type: "barSlider",
                     properties: {
                         localPosition: { x: -0.02, y: 0.0, z: -0.005 }
                     },
@@ -551,14 +551,14 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties.parentID = optionsOverlays[optionsOverlays.length - 1];
                     Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
                 }
-                if (optionsItems[i].type === "slider") {
+                if (optionsItems[i].type === "barSlider") {
                     optionsOverlaysAuxiliaries[i] = {};
-                    properties = Object.clone(UI_ELEMENTS.sliderValue.properties);
+                    properties = Object.clone(UI_ELEMENTS.barSliderValue.properties);
                     properties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                    optionsOverlaysAuxiliaries[i].value = Overlays.addOverlay(UI_ELEMENTS.sliderValue.overlay, properties);
-                    properties = Object.clone(UI_ELEMENTS.sliderRemainder.properties);
+                    optionsOverlaysAuxiliaries[i].value = Overlays.addOverlay(UI_ELEMENTS.barSliderValue.overlay, properties);
+                    properties = Object.clone(UI_ELEMENTS.barSliderRemainder.properties);
                     properties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                    optionsOverlaysAuxiliaries[i].remainder = Overlays.addOverlay(UI_ELEMENTS.sliderRemainder.overlay,
+                    optionsOverlaysAuxiliaries[i].remainder = Overlays.addOverlay(UI_ELEMENTS.barSliderRemainder.overlay,
                         properties);
                 }
                 parentID = optionsOverlays[0];  // Menu buttons parent to menu panel.
@@ -775,12 +775,12 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
         }
 
-        // Slider update.
-        if (intersectionItems && intersectionItems[intersectedItem].type === "slider" && controlHand.triggerClicked()) {
+        // Bar slider update.
+        if (intersectionItems && intersectionItems[intersectedItem].type === "barSlider" && controlHand.triggerClicked()) {
             sliderProperties = Overlays.getProperties(intersection.overlayID, ["position", "orientation"]);
             overlayDimensions = intersectionItems[intersectedItem].properties.dimensions;
             if (overlayDimensions === undefined) {
-                overlayDimensions = UI_ELEMENTS.slider.properties.dimensions;
+                overlayDimensions = UI_ELEMENTS.barSlider.properties.dimensions;
             }
             basePoint = Vec3.sum(sliderProperties.position,
                 Vec3.multiplyQbyV(sliderProperties.orientation, { x: 0, y: overlayDimensions.y / 2, z: 0 }));
