@@ -10,6 +10,7 @@
 //
 
 /* eslint-env commonjs */
+/* global console */
 // @module doppleganger
 //
 // This module contains the `Doppleganger` class implementation for creating an inspectable replica of
@@ -24,9 +25,13 @@
 
 module.exports = Doppleganger;
 
+Doppleganger.version = '0.0.1a';
+log(Doppleganger.version);
+
 var _modelHelper = require('./model-helper.js'),
     modelHelper = _modelHelper.modelHelper,
-    ModelReadyWatcher = _modelHelper.ModelReadyWatcher;
+    ModelReadyWatcher = _modelHelper.ModelReadyWatcher,
+    utils = require('./utils.js');
 
 // @property {bool} - toggle verbose debug logging on/off
 Doppleganger.WANT_DEBUG = false;
@@ -48,16 +53,16 @@ function Doppleganger(options) {
     this.autoUpdate = 'autoUpdate' in options ? options.autoUpdate : true;
 
     // @public
-    this.active = false;   // whether doppleganger is currently being displayed/updated
+    this.active = false; // whether doppleganger is currently being displayed/updated
     this.objectID = null; // current doppleganger's Overlay or Entity id
-    this.frame = 0;        // current joint update frame
+    this.frame = 0; // current joint update frame
 
     // @signal - emitted when .active state changes
-    this.activeChanged = signal(function(active, reason) {});
+    this.activeChanged = utils.signal(function(active, reason) {});
     // @signal - emitted once model is either loaded or errors out
-    this.modelLoaded = signal(function(error, result){});
+    this.modelLoaded = utils.signal(function(error, result){});
     // @signal - emitted each time the model's joint data has been synchronized
-    this.jointsUpdated = signal(function(objectID){});
+    this.jointsUpdated = utils.signal(function(objectID){});
 }
 
 Doppleganger.prototype = {
@@ -118,11 +123,12 @@ Doppleganger.prototype = {
                 rotations = outRotations;
                 translations = outTranslations;
             }
-            modelHelper.editObject(this.objectID, {
+            var jointUpdates = {
                 jointRotations: rotations,
                 jointTranslations: translations
-            });
-            this.jointsUpdated(this.objectID);
+            };
+            modelHelper.editObject(this.objectID, jointUpdates);
+            this.jointsUpdated(this.objectID, jointUpdates);
         } catch (e) {
             log('.update error: '+ e, index, e.stack);
             this.stop('update_error');
@@ -134,7 +140,7 @@ Doppleganger.prototype = {
     // @param {vec3} [options.position=(in front of avatar)] - starting position
     // @param {quat} [options.orientation=avatar.orientation] - starting orientation
     start: function(options) {
-        options = assign(this.options, options);
+        options = utils.assign(this.options, options);
         if (this.objectID) {
             log('start() called but object model already exists', this.objectID);
             return;
@@ -194,11 +200,11 @@ Doppleganger.prototype = {
                 return this.stop(error);
             }
             debugPrint('model ('+modelHelper.type(this.objectID)+')' + ' is ready; # joints == ' + result.jointNames.length);
-            var naturalDimensions = modelHelper.getProperties(this.objectID, ['naturalDimensions']).naturalDimensions;
+            var naturalDimensions = this.naturalDimensions = modelHelper.getProperties(this.objectID, ['naturalDimensions']).naturalDimensions;
             debugPrint('naturalDimensions:', JSON.stringify(naturalDimensions));
             var props = { visible: true };
             if (naturalDimensions) {
-                props.dimensions = Vec3.multiply(this.scale, naturalDimensions);
+                props.dimensions = this.dimensions = Vec3.multiply(this.scale, naturalDimensions);
             }
             debugPrint('scaledDimensions:', this.scale, JSON.stringify(props.dimensions));
             modelHelper.editObject(this.objectID, props);
@@ -296,220 +302,18 @@ Doppleganger.prototype = {
         } else {
             debugPrint('creating Script.setInterval thread @ ~', Doppleganger.TARGET_FPS +'fps');
             var timeout = 1000 / Doppleganger.TARGET_FPS;
-            this._interval = Script.setInterval(bind(this, 'update'), timeout);
+            this._interval = Script.setInterval(utils.bind(this, 'update'), timeout);
         }
     }
 
 };
 
-// @function - bind a function to a `this` context
-// @param {Object} - the `this` context
-// @param {Function|String} - function or method name
-function bind(thiz, method) {
-    method = thiz[method] || method;
-    return function() {
-        return method.apply(thiz, arguments);
-    };
-}
-
-// @function - Qt signal polyfill
-function signal(template) {
-    var callbacks = [];
-    return Object.defineProperties(function() {
-        var args = [].slice.call(arguments);
-        callbacks.forEach(function(obj) {
-            obj.handler.apply(obj.scope, args);
-        });
-    }, {
-        connect: { value: function(scope, handler) {
-            var callback = {scope: scope, handler: scope[handler] || handler || scope};
-            if (!callback.handler || !callback.handler.apply) {
-                throw new Error('invalid arguments to connect:' + [template, scope, handler]);
-            }
-            callbacks.push({scope: scope, handler: scope[handler] || handler || scope});
-        }},
-        disconnect: { value: function(scope, handler) {
-            var match = {scope: scope, handler: scope[handler] || handler || scope};
-            callbacks = callbacks.filter(function(obj) {
-                return !(obj.scope === match.scope && obj.handler === match.handler);
-            });
-        }}
-    });
-}
-
-// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign#Polyfill
-/* eslint-disable */
-function assign(target, varArgs) { // .length of function is 2
-    'use strict';
-    if (target == null) { // TypeError if undefined or null
-        throw new TypeError('Cannot convert undefined or null to object');
-    }
-
-    var to = Object(target);
-
-    for (var index = 1; index < arguments.length; index++) {
-        var nextSource = arguments[index];
-
-        if (nextSource != null) { // Skip over if undefined or null
-            for (var nextKey in nextSource) {
-                // Avoid bugs when hasOwnProperty is shadowed
-                if (Object.prototype.hasOwnProperty.call(nextSource, nextKey)) {
-                    to[nextKey] = nextSource[nextKey];
-                }
-            }
-        }
-    }
-    return to;
-}
-/* eslint-enable */
-// //https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Object/assign#Polyfill
-
 // @function - debug logging
 function log() {
-    print('doppleganger | ' + [].slice.call(arguments).join(' '));
+    // eslint-disable-next-line no-console
+    (typeof console === 'object' ? console.log : print)('doppleganger | ' + [].slice.call(arguments).join(' '));
 }
 
 function debugPrint() {
     Doppleganger.WANT_DEBUG && log.apply(this, arguments);
 }
-
-// -- ADVANCED DEBUGGING --
-// @function - Add debug joint indicators / extra debugging info.
-// @param {Doppleganger} - existing Doppleganger instance to add controls to
-//
-// @note:
-//   * rightclick toggles mirror mode on/off
-//   * shift-rightclick toggles the debug indicators on/off
-//   * clicking on an indicator displays the joint name and mirrored joint name in the debug log.
-//
-// Example use:
-//    var doppleganger = new Doppleganger();
-//    Doppleganger.addDebugControls(doppleganger);
-Doppleganger.addDebugControls = function(doppleganger) {
-    DebugControls.COLOR_DEFAULT = { red: 255, blue: 255, green: 255 };
-    DebugControls.COLOR_SELECTED = { red: 0, blue: 255, green: 0 };
-
-    function DebugControls() {
-        this.enableIndicators = true;
-        this.selectedJointName = null;
-        this.debugOverlayIDs = undefined;
-        this.jointSelected = signal(function(result) {});
-    }
-    DebugControls.prototype = {
-        start: function() {
-            if (!this.onMousePressEvent) {
-                this.onMousePressEvent = this._onMousePressEvent;
-                Controller.mousePressEvent.connect(this, 'onMousePressEvent');
-            }
-        },
-
-        stop: function() {
-            this.removeIndicators();
-            if (this.onMousePressEvent) {
-                Controller.mousePressEvent.disconnect(this, 'onMousePressEvent');
-                delete this.onMousePressEvent;
-            }
-        },
-
-        createIndicators: function(jointNames) {
-            this.jointNames = jointNames;
-            return jointNames.map(function(name, i) {
-                return Overlays.addOverlay('shape', {
-                    shape: 'Icosahedron',
-                    scale: 0.1,
-                    solid: false,
-                    alpha: 0.5
-                });
-            });
-        },
-
-        removeIndicators: function() {
-            if (this.debugOverlayIDs) {
-                this.debugOverlayIDs.forEach(Overlays.deleteOverlay);
-                this.debugOverlayIDs = undefined;
-            }
-        },
-
-        onJointsUpdated: function(overlayID) {
-            if (!this.enableIndicators) {
-                return;
-            }
-            var jointNames = Overlays.getProperty(overlayID, 'jointNames'),
-                jointOrientations = Overlays.getProperty(overlayID, 'jointOrientations'),
-                jointPositions = Overlays.getProperty(overlayID, 'jointPositions'),
-                selectedIndex = jointNames.indexOf(this.selectedJointName);
-
-            if (!this.debugOverlayIDs) {
-                this.debugOverlayIDs = this.createIndicators(jointNames);
-            }
-
-            // batch all updates into a single call (using the editOverlays({ id: {props...}, ... }) API)
-            var updatedOverlays = this.debugOverlayIDs.reduce(function(updates, id, i) {
-                updates[id] = {
-                    position: jointPositions[i],
-                    rotation: jointOrientations[i],
-                    color: i === selectedIndex ? DebugControls.COLOR_SELECTED : DebugControls.COLOR_DEFAULT,
-                    solid: i === selectedIndex
-                };
-                return updates;
-            }, {});
-            Overlays.editOverlays(updatedOverlays);
-        },
-
-        _onMousePressEvent: function(evt) {
-            if (!evt.isLeftButton || !this.enableIndicators || !this.debugOverlayIDs) {
-                return;
-            }
-            var ray = Camera.computePickRay(evt.x, evt.y),
-                hit = Overlays.findRayIntersection(ray, true, this.debugOverlayIDs);
-
-            hit.jointIndex = this.debugOverlayIDs.indexOf(hit.overlayID);
-            hit.jointName = this.jointNames[hit.jointIndex];
-            this.jointSelected(hit);
-        }
-    };
-
-    if ('$debugControls' in doppleganger) {
-        throw new Error('only one set of debug controls can be added per doppleganger');
-    }
-    var debugControls = new DebugControls();
-    doppleganger.$debugControls = debugControls;
-
-    function onMousePressEvent(evt) {
-        if (evt.isRightButton) {
-            if (evt.isShifted) {
-                debugControls.enableIndicators = !debugControls.enableIndicators;
-                if (!debugControls.enableIndicators) {
-                    debugControls.removeIndicators();
-                }
-            } else {
-                doppleganger.mirrored = !doppleganger.mirrored;
-            }
-        }
-    }
-
-    doppleganger.activeChanged.connect(function(active) {
-        if (active) {
-            debugControls.start();
-            doppleganger.jointsUpdated.connect(debugControls, 'onJointsUpdated');
-            Controller.mousePressEvent.connect(onMousePressEvent);
-        } else {
-            Controller.mousePressEvent.disconnect(onMousePressEvent);
-            doppleganger.jointsUpdated.disconnect(debugControls, 'onJointsUpdated');
-            debugControls.stop();
-        }
-    });
-
-    debugControls.jointSelected.connect(function(hit) {
-        debugControls.selectedJointName = hit.jointName;
-        if (hit.jointIndex < 0) {
-            return;
-        }
-        hit.mirroredJointName = modelHelper.deriveMirroredJointNames([hit.jointName])[0];
-        log('selected joint:', JSON.stringify(hit, 0, 2));
-    });
-
-    Script.scriptEnding.connect(debugControls, 'removeIndicators');
-
-    return doppleganger;
-};

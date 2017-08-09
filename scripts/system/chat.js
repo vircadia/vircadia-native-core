@@ -43,6 +43,7 @@
     var speechBubbleOffset = {x: 0, y: 0.3, z: 0.0}; // The offset from the joint to whic the speech bubble is attached.
     var speechBubbleJointName = 'Head'; // The name of the joint to which the speech bubble is attached.
     var speechBubbleLineHeight = 0.05; // The height of a line of text in the speech bubble.
+    var SPEECH_BUBBLE_MAX_WIDTH = 1; // meters
 
     // Load the persistent variables from the Settings, with defaults.
     function loadSettings() {
@@ -645,8 +646,16 @@
         //print("updateSpeechBubble:", "speechBubbleMessage", speechBubbleMessage, "textSize", textSize.width, textSize.height);
 
         var fudge = 0.02;
+
         var width = textSize.width + fudge;
-        var height = textSize.height + fudge;
+        var height = speechBubbleLineHeight + fudge;
+
+        if (textSize.width >= SPEECH_BUBBLE_MAX_WIDTH) {
+            var numLines = Math.ceil(width);
+            height = speechBubbleLineHeight * numLines + fudge;
+            width = SPEECH_BUBBLE_MAX_WIDTH;
+        } 
+
         dimensions = {
             x: width,
             y: height,
@@ -672,6 +681,7 @@
             Vec3.sum(
                 headPosition,
                 rotatedOffset);
+        position.y += height / 2; // offset based on half of bubble height
         speechBubbleParams.position = position;
 
         if (!speechBubbleTextID) {

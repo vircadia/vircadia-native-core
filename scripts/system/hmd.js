@@ -40,21 +40,23 @@ function updateControllerDisplay() {
 var button;
 var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
-// Independent and Entity mode make people sick. Third Person and Mirror have traps that we need to work through.
-// Disable them in hmd.
-var desktopOnlyViews = ['Mirror', 'Independent Mode', 'Entity Mode'];
+// Independent and Entity mode make people sick; disable them in hmd.
+var desktopOnlyViews = ['Independent Mode', 'Entity Mode'];
+
+var switchToVR = "ENTER VR";
+var switchToDesktop = "EXIT VR";
 
 function onHmdChanged(isHmd) {
     HMD.closeTablet();
     if (isHmd) {
         button.editProperties({
             icon: "icons/tablet-icons/switch-desk-i.svg",
-            text: "DESKTOP"
+            text: switchToDesktop
         });
     } else {
         button.editProperties({
             icon: "icons/tablet-icons/switch-vr-i.svg",
-            text: "VR"
+            text: switchToVR
         });
     }
     desktopOnlyViews.forEach(function (view) {
@@ -71,7 +73,7 @@ function onClicked() {
 if (headset) {
     button = tablet.addButton({
         icon: HMD.active ? "icons/tablet-icons/switch-desk-i.svg" : "icons/tablet-icons/switch-vr-i.svg",
-        text: HMD.active ? "DESKTOP" : "VR",
+        text: HMD.active ? switchToDesktop : switchToVR,
         sortOrder: 2
     });
     onHmdChanged(HMD.active);

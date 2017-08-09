@@ -1001,7 +1001,10 @@ int EntityTreeElement::readElementDataFromBuffer(const unsigned char* data, int 
                         if (!bestFitBefore && bestFitAfter) {
                             // This is the case where the entity existed, and is in some element in our tree...
                             if (currentContainingElement.get() != this) {
-                                currentContainingElement->removeEntityItem(entityItem);
+                                // if the currentContainingElement is non-null, remove the entity from it
+                                if (currentContainingElement) {
+                                    currentContainingElement->removeEntityItem(entityItem);
+                                }
                                 addEntityItem(entityItem);
                             }
                         }

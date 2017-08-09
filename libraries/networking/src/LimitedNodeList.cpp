@@ -220,7 +220,7 @@ bool LimitedNodeList::packetVersionMatch(const udt::Packet& packet) {
         const HifiSockAddr& senderSockAddr = packet.getSenderSockAddr();
         QUuid sourceID;
 
-        if (NON_SOURCED_PACKETS.contains(headerType)) {
+        if (PacketTypeEnum::getNonSourcedPackets().contains(headerType)) {
             hasBeenOutput = versionDebugSuppressMap.contains(senderSockAddr, headerType);
 
             if (!hasBeenOutput) {
@@ -256,8 +256,8 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
 
     PacketType headerType = NLPacket::typeInHeader(packet);
 
-    if (NON_SOURCED_PACKETS.contains(headerType)) {
-        if (REPLICATED_PACKET_MAPPING.key(headerType) != PacketType::Unknown) {
+    if (PacketTypeEnum::getNonSourcedPackets().contains(headerType)) {
+        if (PacketTypeEnum::getReplicatedPacketMapping().key(headerType) != PacketType::Unknown) {
             // this is a replicated packet type - make sure the socket that sent it to us matches
             // one from one of our current upstream nodes
 
@@ -298,7 +298,7 @@ bool LimitedNodeList::packetSourceAndHashMatchAndTrackBandwidth(const udt::Packe
         SharedNodePointer matchingNode = nodeWithUUID(sourceID);
 
         if (matchingNode) {
-            if (!NON_VERIFIED_PACKETS.contains(headerType)) {
+            if (!PacketTypeEnum::getNonVerifiedPackets().contains(headerType)) {
 
                 QByteArray packetHeaderHash = NLPacket::verificationHashInHeader(packet);
                 QByteArray expectedHash = NLPacket::hashForPacketAndSecret(packet, matchingNode->getConnectionSecret());
@@ -345,13 +345,13 @@ void LimitedNodeList::collectPacketStats(const NLPacket& packet) {
 }
 
 void LimitedNodeList::fillPacketHeader(const NLPacket& packet, const QUuid& connectionSecret) {
-    if (!NON_SOURCED_PACKETS.contains(packet.getType())) {
+    if (!PacketTypeEnum::getNonSourcedPackets().contains(packet.getType())) {
         packet.writeSourceID(getSessionUUID());
     }
 
     if (!connectionSecret.isNull()
-        && !NON_SOURCED_PACKETS.contains(packet.getType())
-        && !NON_VERIFIED_PACKETS.contains(packet.getType())) {
+        && !PacketTypeEnum::getNonSourcedPackets().contains(packet.getType())
+        && !PacketTypeEnum::getNonVerifiedPackets().contains(packet.getType())) {
         packet.writeVerificationHashGivenSecret(connectionSecret);
     }
 }

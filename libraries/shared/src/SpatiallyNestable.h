@@ -102,11 +102,11 @@ public:
     virtual glm::vec3 getParentAngularVelocity(bool& success) const;
 
     virtual AACube getMaximumAACube(bool& success) const;
-    virtual bool checkAndAdjustQueryAACube();
-    virtual bool computePuffedQueryAACube();
+    bool checkAndMaybeUpdateQueryAACube();
+    void updateQueryAACube();
 
     virtual void setQueryAACube(const AACube& queryAACube);
-    virtual bool queryAABoxNeedsUpdate() const;
+    virtual bool queryAACubeNeedsUpdate() const;
     void forceQueryAACubeUpdate() { _queryAACubeSet = false; }
     virtual AACube getQueryAACube(bool& success) const;
     virtual AACube getQueryAACube() const;
@@ -197,7 +197,7 @@ protected:
     mutable QHash<QUuid, SpatiallyNestableWeakPointer> _children;
 
     virtual void locationChanged(bool tellPhysics = true); // called when a this object's location has changed
-    virtual void dimensionsChanged() { } // called when a this object's dimensions have changed
+    virtual void dimensionsChanged() { _queryAACubeSet = false; } // called when a this object's dimensions have changed
     virtual void parentDeleted() { } // called on children of a deleted parent
 
     // _queryAACube is used to decide where something lives in the octree

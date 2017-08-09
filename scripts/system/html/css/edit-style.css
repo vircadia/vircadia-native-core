@@ -267,18 +267,17 @@ input[type=number] {
     padding-right: 3px;
 }
 input[type=number]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
     opacity: 1.0;
     display: block;
     position: relative;
     width: 10px;
-    height: 100%;
+    height: 90%;
     overflow: hidden;
     font-family: hifi-glyphs;
-    font-size: 46px;
+    font-size: 32px;
     color: #afafaf;
     cursor: pointer;
-    /*background-color: #000000;*/
+    background-color: #000000;
 }
 input[type=number]::-webkit-inner-spin-button:before,
 input[type=number]::-webkit-inner-spin-button:after {
@@ -449,8 +448,68 @@ input[type=checkbox]:checked + label:hover {
     border: 1.5pt solid black;
 }
 
+.shape-section, .light-section, .model-section, .web-section, .hyperlink-section, .text-section, .zone-section {
+    display: table;
+}
 
-.section-header, .sub-section-header, hr {
+
+
+#properties-list fieldset {
+    position: relative;
+    /* 0.1px on the top is to prevent margin collapsing between this and it's first child */
+    margin: 21px -21px 0px -21px;
+    padding: 0.1px 21px 0px 21px;
+    border: none;
+    border-top: 1px rgb(90,90,90) solid;
+    box-shadow: 0px -1px 0px rgb(37,37,37);
+}
+
+#properties-list fieldset.fstuple, #properties-list fieldset.fsrow {
+    margin-top: 21px;
+    border: none;
+    box-shadow: none;
+}
+
+#properties-list > fieldset[data-collapsed="true"] + fieldset {
+    margin-top: 0px;
+}
+
+#properties-list > fieldset[data-collapsed="true"] > *:not(legend) {
+     display: none !important;
+}
+
+#properties-list legend + fieldset {
+    margin-top: 0px;
+    border: none;
+    box-shadow: none;
+}
+
+#properties-list > fieldset#properties-header {
+    margin-top: 0px;
+    padding-bottom: 0px;
+}
+
+
+
+#properties-list > fieldset > legend {
+    position: relative;
+    display: table;
+    width: 100%;
+    margin: 21px -21px 0 -21px;
+    padding: 14px 21px 0 21px;
+    font-family: Raleway-Regular;
+    font-size: 12px;
+    color: #afafaf;
+    height: 28px;
+    text-transform: uppercase;
+    outline: none;
+    background-color: #404040;
+    border: none;
+    border-top: 1px rgb(90,90,90) solid;
+    box-shadow: 0 -1px 0 rgb(37,37,37), 0 4px 4px 0 rgba(0,0,0,0.75);
+}
+
+div.section-header, .sub-section-header, hr {
     display: table;
     width: 100%;
     margin: 21px -21px 0 -21px;
@@ -463,16 +522,18 @@ input[type=checkbox]:checked + label:hover {
     outline: none;
 }
 
-.section-header {
-    position: relative;
-    background: #404040 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAqCAIAAAAbNW1vAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAAAmSURBVChTY1BFAgzhSIDBAQmMcoYHRwIJMCgjAQZ9JMBgBQdWVgBh5XmBV5A2FQAAAABJRU5ErkJggg==) repeat-x top left;
+
+
+.column .sub-section-header {
+    background-image: none;
+    padding-top: 0;
 }
 
 .sub-section-header, .no-collapse, hr {
     background: #404040 url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAYAAACp8Z5+AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsQAAA7EAZUrDhsAAAAjSURBVBhXY1RVVf3PgARYjIyMoEwIYHRwcEBRwQSloYCBAQCwjgPMiI7W2QAAAABJRU5ErkJggg==) repeat-x top left;
 }
 
-.section-header:first-child {
+div.section-header:first-child {
     margin-top: -2px;
     padding-top: 0;
     background: none;
@@ -483,7 +544,7 @@ input[type=checkbox]:checked + label:hover {
     margin-bottom: -10px;
 }
 
-.section-header span {
+#properties-list > fieldset > legend span, .section-header span {
     font-family: HiFi-Glyphs;
     font-size: 30px;
     float: right;
@@ -537,11 +598,28 @@ hr {
     font-size: 13px;
 }
 
+.property legend, .number legend {
+    display: table-cell;
+    vertical-align: middle;
+    font-family: Raleway-SemiBold;
+    font-size: 14px;
+}
+.property legend .unit, .number legend .unit {
+    margin-left: 8px;
+    font-family: Raleway-Light;
+    font-size: 13px;
+}
+
 .value {
     display: block;
     min-height: 18px;
 }
 .value label {
+    display: inline-block;
+    vertical-align: top;
+    width: 48px;
+}
+.value legend {
     display: inline-block;
     vertical-align: top;
     width: 48px;
@@ -567,6 +645,13 @@ hr {
 }
 
 .text label, .url label, .number label, .textarea label, .rgb label, .xyz label, .pyr label, .dropdown label, .gen label {
+    float: left;
+    margin-left: 1px;
+    margin-bottom: 3px;
+    margin-top: -2px;
+}
+
+.text legend, .url legend, .number legend, .textarea legend, .rgb legend, .xyz legend, .pyr legend, .dropdown legend, .gen legend {
     float: left;
     margin-left: 1px;
     margin-bottom: 3px;
@@ -715,6 +800,14 @@ div.refresh input[type="button"] {
     display: none !important;
 }
 
+#property-color-control1 {
+    display: table-cell;
+    float: none;
+}
+
+#property-color-control1 + label  {
+    border-left: 20px transparent solid;
+}
 
 .rgb label {
     float: left;
@@ -722,6 +815,15 @@ div.refresh input[type="button"] {
     margin-left: 21px;
 }
 .rgb label + * {
+    clear: both;
+}
+
+.rgb legend {
+    float: left;
+    margin-top: 10px;
+    margin-left: 21px;
+}
+.rgb legend + * {
     clear: both;
 }
 
@@ -814,6 +916,42 @@ tuple, .blue:focus, .tuple .z:focus, .tuple .roll:focus {
     display: table-cell;
     width: 50%;
 }
+
+#properties-list fieldset .two-column {
+    padding-top:21px;
+    display: flex;
+}
+
+#properties-list .two-column  fieldset {
+    /*display: table-cell;*/
+    width: 50%;
+    margin: 0;
+    padding: 0;
+    border-top: none;
+    box-shadow: none;
+}
+
+#properties-list .two-column  fieldset legend {
+    display: table;
+    width: 100%;
+    margin: 21px -21px 0px -21px;
+    padding: 0px 0px 0px 21px;
+    font-family: Raleway-Regular;
+    font-size: 12px;
+    color: #afafaf;
+    height: 28px;
+    text-transform: uppercase;
+    outline: none;
+}
+
+fieldset .checkbox-sub-props {
+     margin-top: 0;
+ }
+
+fieldset .checkbox-sub-props .property:first-child {
+    margin-top: 0;
+}
+
 .column {
     vertical-align: top;
 }
@@ -1155,9 +1293,11 @@ th#entity-hasScript {
 }
 
 
-#properties-header {
+#properties-list #properties-header {
     display: table-row;
     height: 28px;
+    border-top: none;
+    box-shadow: none;
 }
 
 #properties-header .property {
@@ -1261,4 +1401,261 @@ input#reset-to-natural-dimensions {
     margin-top:5px;
     font-size:16px;
     display:none;
+}
+
+#properties-list #collision-info > fieldset:first-of-type {
+    border-top: none !important;
+    box-shadow: none;
+    margin-top: 0;
+}
+
+#properties-list {
+    display: flex;
+    flex-direction: column;
+}
+
+/* -----   Order of Menu items for Primitive   ----- */
+#properties-list.ShapeMenu #general,
+#properties-list.BoxMenu #general,
+#properties-list.SphereMenu #general {
+    order: 1;
+}
+
+#properties-list.ShapeMenu #collision-info,
+#properties-list.BoxMenu #collision-info,
+#properties-list.SphereMenu #collision-info {
+    order: 2;
+}
+
+#properties-list.ShapeMenu #physical,
+#properties-list.BoxMenu #physical,
+#properties-list.SphereMenu #physical {
+    order: 3;
+}
+
+#properties-list.ShapeMenu #spatial,
+#properties-list.BoxMenu #spatial,
+#properties-list.SphereMenu #spatial {
+    order: 4;
+}
+
+#properties-list.ShapeMenu #behavior,
+#properties-list.BoxMenu #behavior,
+#properties-list.SphereMenu #behavior {
+    order: 5;
+}
+
+#properties-list.ShapeMenu #hyperlink,
+#properties-list.BoxMenu #hyperlink,
+#properties-list.SphereMenu #hyperlink {
+    order: 6;
+}
+
+#properties-list.ShapeMenu #light,
+#properties-list.BoxMenu #light,
+#properties-list.SphereMenu #light,
+#properties-list.ShapeMenu #model,
+#properties-list.BoxMenu #model,
+#properties-list.SphereMenu #model,
+#properties-list.ShapeMenu #zone,
+#properties-list.BoxMenu #zone,
+#properties-list.SphereMenu #zone,
+#properties-list.ShapeMenu #text,
+#properties-list.BoxMenu #text,
+#properties-list.SphereMenu #text,
+#properties-list.ShapeMenu #web,
+#properties-list.BoxMenu #web,
+#properties-list.SphereMenu #web {
+    display: none;
+}
+
+
+/* -----   Order of Menu items for Light   ----- */
+#properties-list.LightMenu #general {
+    order: 1;
+}
+#properties-list.LightMenu #light {
+    order: 2;
+}
+#properties-list.LightMenu #physical {
+    order: 3;
+}
+#properties-list.LightMenu #spatial {
+    order: 4;
+}
+#properties-list.LightMenu #behavior {
+    order: 5;
+}
+#properties-list.LightMenu #collision-info {
+    order: 6;
+}
+#properties-list.LightMenu #hyperlink {
+    order: 7;
+}
+/* sections to hide    */
+#properties-list.LightMenu #model,
+#properties-list.LightMenu #zone,
+#properties-list.LightMenu #text,
+#properties-list.LightMenu #web {
+    display: none;
+}
+/* items to hide */
+#properties-list.LightMenu .shape-group.shape-section.property.dropdown,
+#properties-list.LightMenu color-section.color-control1 {
+    display: none
+}
+
+
+/* -----   Order of Menu items for Model   ----- */
+#properties-list.ModelMenu #general {
+    order: 1;
+}
+#properties-list.ModelMenu #model {
+    order: 2;
+}
+#properties-list.ModelMenu #collision-info {
+    order: 3;
+}
+#properties-list.ModelMenu #physical {
+    order: 4;
+}
+#properties-list.ModelMenu #spatial {
+    order: 5;
+}
+#properties-list.ModelMenu #behavior {
+    order: 6;
+}
+#properties-list.ModelMenu #hyperlink {
+    order: 7;
+}
+/* sections to hide    */
+#properties-list.ModelMenu #light,
+#properties-list.ModelMenu #zone,
+#properties-list.ModelMenu #text,
+#properties-list.ModelMenu #web {
+    display: none;
+}
+/* items to hide */
+#properties-list.ModelMenu .shape-group.shape-section.property.dropdown,
+#properties-list.ModelMenu .color-section.color-control1 {
+    display: none
+}
+
+
+/* -----   Order of Menu items for Zone   ----- */
+#properties-list.ZoneMenu #general {
+    order: 1;
+}
+#properties-list.ZoneMenu #zone {
+    order: 2;
+}
+#properties-list.ZoneMenu #physical {
+    order: 3;
+}
+#properties-list.ZoneMenu #spatial {
+    order: 4;
+}
+#properties-list.ZoneMenu #behavior {
+    order: 5;
+}
+#properties-list.ZoneMenu #collision-info {
+    order: 6;
+}
+#properties-list.ZoneMenu #hyperlink {
+    order: 7;
+}
+/* sections to hide    */
+#properties-list.ZoneMenu #light,
+#properties-list.ZoneMenu #model,
+#properties-list.ZoneMenu #text,
+#properties-list.ZoneMenu #web {
+    display: none;
+}
+/* items to hide */
+#properties-list.ZoneMenu .shape-group.shape-section.property.dropdown,
+#properties-list.ZoneMenu .color-section.color-control1 {
+    display: none
+}
+
+
+/* -----   Order of Menu items for Web   ----- */
+#properties-list.WebMenu #general {
+    order: 1;
+}
+#properties-list.WebMenu #web {
+    order: 2;
+}
+#properties-list.WebMenu #collision-info {
+    order: 3;
+}
+#properties-list.WebMenu #physical {
+    order: 4;
+}
+#properties-list.WebMenu #spatial {
+    order: 5;
+}
+#properties-list.WebMenu #behavior {
+    order: 6;
+}
+#properties-list.WebMenu #hyperlink {
+    order: 7;
+}
+/* sections to hide    */
+#properties-list.WebMenu #light,
+#properties-list.WebMenu #model,
+#properties-list.WebMenu #zone,
+#properties-list.WebMenu #text {
+    display: none;
+}
+/* items to hide */
+#properties-list.WebMenu .shape-group.shape-section.property.dropdown,
+#properties-list.WebMenu .color-section.color-control1 {
+    display: none;
+}
+
+
+
+/* -----   Order of Menu items for Text   ----- */
+#properties-list.TextMenu #general {
+    order: 1;
+}
+#properties-list.TextMenu #text {
+    order: 2;
+}
+#properties-list.TextMenu #collision-info {
+    order: 3;
+}
+#properties-list.TextMenu #physical {
+    order: 4;
+}
+#properties-list.TextMenu #spatial {
+    order: 5;
+}
+#properties-list.TextMenu #behavior {
+    order: 6;
+}
+#properties-list.TextMenu #hyperlink {
+    order: 7;
+}
+/* sections to hide    */
+#properties-list.TextMenu #light,
+#properties-list.TextMenu #model,
+#properties-list.TextMenu #zone,
+#properties-list.TextMenu #web {
+    display: none;
+}
+/* items to hide */
+#properties-list.TextMenu .shape-group.shape-section.property.dropdown,
+#properties-list.TextMenu .color-section.color-control1 {
+    display: none
+}
+
+
+/* Currently always hidden */
+#properties-list #polyvox {
+    display: none;
+}
+
+.skybox-section {
+    display: none;
 }

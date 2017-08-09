@@ -25,6 +25,8 @@
     var canWriteAssets = false;
     var xmlHttpRequest = null;
     var isPreparing = false;  // Explicitly track download request status.
+
+    var confirmAllPurchases = false; // Set this to "true" to cause Checkout.qml to popup for all items, even if free
     
     function injectCommonCode(isDirectoryPage) {
 
@@ -33,8 +35,8 @@
         $("head").append(
             '<style>' +
                 '#marketplace-navigation { font-family: Arial, Helvetica, sans-serif; width: 100%; height: 50px; background: #00b4ef; position: fixed; bottom: 0; z-index: 1000; }' +
-                '#marketplace-navigation .glyph { margin-left: 20px; margin-right: 3px; font-family: sans-serif; color: #fff; font-size: 24px; line-height: 50px; }' +
-                '#marketplace-navigation .text { color: #fff; font-size: 18px; line-height: 50px; vertical-align: top; position: relative; top: 1px; }' +
+                '#marketplace-navigation .glyph { margin-left: 10px; margin-right: 3px; font-family: sans-serif; color: #fff; font-size: 24px; line-height: 50px; }' +
+                '#marketplace-navigation .text { color: #fff; font-size: 16px; line-height: 50px; vertical-align: top; position: relative; top: 1px; }' +
                 '#marketplace-navigation input#back-button { position: absolute; left: 20px; margin-top: 12px; padding-left: 0; padding-right: 5px; }' +
                 '#marketplace-navigation input#all-markets { position: absolute; right: 20px; margin-top: 12px; padding-left: 15px; padding-right: 15px; }' +
                 '#marketplace-navigation .right { position: absolute; right: 20px; }' +
@@ -57,7 +59,7 @@
         $("body").append(
             '<div id="marketplace-navigation">' +
                 (!isInitialHiFiPage ? '<input id="back-button" type="button" class="white" value="&lt; Back" />' : '') +
-                (isInitialHiFiPage ? '<span class="glyph">&#x1f6c8;</span> <span class="text">See also other marketplaces.</span>' : '') +
+                (isInitialHiFiPage ? '<span class="glyph">&#x1f6c8;</span> <span class="text">Get items from Clara.io!</span>' : '') +
                 (!isDirectoryPage ? '<input id="all-markets" type="button" class="white" value="See All Markets" />' : '') +
                 (isDirectoryPage ? '<span class="right"><span class="glyph">&#x1f6c8;</span> <span class="text">Select a marketplace to explore.</span><span>' : '') +
             '</div>'
@@ -65,7 +67,7 @@
 
         // Footer actions.
         $("#back-button").on("click", function () {
-            window.history.back();
+            (document.referrer !== "") ? window.history.back() : window.location = "https://metaverse.highfidelity.com/marketplace?";
         });
         $("#all-markets").on("click", function () {
             EventBridge.emitWebEvent(GOTO_DIRECTORY);
@@ -87,8 +89,59 @@
         });
     }
 
+    function buyButtonClicked(id, name, author, price) {
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "CHECKOUT",
+            itemId: id,
+            itemName: name,
+            itemAuthor: author,
+            itemPrice: price
+        }));
+    }
+
+    function injectBuyButtonOnMainPage() {
+        $('.grid-item').find('#price-or-edit').find('a').attr('href', '#');
+        $('.grid-item').find('#price-or-edit').find('.price').text("BUY");
+        $('.grid-item').find('#price-or-edit').find('a').on('click', function () {
+            buyButtonClicked($(this).closest('.grid-item').attr('data-item-id'),
+                $(this).closest('.grid-item').find('.item-title').text(),
+                $(this).closest('.grid-item').find('.creator').find('.value').text(),
+                10);
+        });
+    }
+
     function injectHiFiCode() {
-        // Nothing to do.
+        if (confirmAllPurchases) {
+            var target = document.getElementById('templated-items');
+            // MutationObserver is necessary because the DOM is populated after the page is loaded.
+            // We're searching for changes to the element whose ID is '#templated-items' - this is
+            //     the element that gets filled in by the AJAX.
+            var observer = new MutationObserver(function (mutations) {
+                mutations.forEach(function (mutation) {
+                    injectBuyButtonOnMainPage();
+                });
+                //observer.disconnect();
+            });
+            var config = { attributes: true, childList: true, characterData: true };
+            observer.observe(target, config);
+
+            // Try this here in case it works (it will if the user just pressed the "back" button,
+            //     since that doesn't trigger another AJAX request.
+            injectBuyButtonOnMainPage();
+        }
+    }
+
+    function injectHiFiItemPageCode() {
+        if (confirmAllPurchases) {
+            $('#side-info').find('.btn').attr('href', '#');
+            $('#side-info').find('.btn').html('<span class="glyphicon glyphicon-download"></span>Buy Item  ');
+            $('#side-info').find('.btn').on('click', function () {
+                buyButtonClicked(window.location.pathname.split("/")[3],
+                    $('#top-center').find('h1').text(),
+                    $('#creator').find('.value').text(),
+                    10);
+            });
+        }
     }
 
     function updateClaraCode() {
@@ -308,24 +361,15 @@
         }
     }
 
-    function onLoad() {
-
-        EventBridge.scriptEventReceived.connect(function (message) {
-            if (message.slice(0, CAN_WRITE_ASSETS.length) === CAN_WRITE_ASSETS) {
-                canWriteAssets = message.slice(-4) === "true";
-            }
-
-            if (message.slice(0, CLARA_IO_CANCEL_DOWNLOAD.length) === CLARA_IO_CANCEL_DOWNLOAD) {
-                cancelClaraDownload();
-            }
-        });
-
+    function injectCode() {
         var DIRECTORY = 0;
         var HIFI = 1;
         var CLARA = 2;
+        var HIFI_ITEM_PAGE = 3;
         var pageType = DIRECTORY;
 
         if (location.href.indexOf("highfidelity.com/") !== -1) { pageType = HIFI; }
+        if (location.href.indexOf("highfidelity.com/marketplace/items/") !== -1) { pageType = HIFI_ITEM_PAGE; }
         if (location.href.indexOf("clara.io/") !== -1) { pageType = CLARA; }
 
         injectCommonCode(pageType === DIRECTORY);
@@ -336,13 +380,38 @@
             case HIFI:
                 injectHiFiCode();
                 break;
+            case HIFI_ITEM_PAGE:
+                injectHiFiItemPageCode();
+                break;
             case CLARA:
                 injectClaraCode();
                 break;
         }
     }
 
+    function onLoad() {
+        EventBridge.scriptEventReceived.connect(function (message) {
+            var parsedJsonMessage = JSON.parse(message);
+
+            if (message.slice(0, CAN_WRITE_ASSETS.length) === CAN_WRITE_ASSETS) {
+                canWriteAssets = message.slice(-4) === "true";
+            } else if (message.slice(0, CLARA_IO_CANCEL_DOWNLOAD.length) === CLARA_IO_CANCEL_DOWNLOAD) {
+                cancelClaraDownload();
+            } else if (parsedJsonMessage.type === "marketplaces") {
+                if (parsedJsonMessage.action === "inspectionModeSetting") {
+                    confirmAllPurchases = !!parsedJsonMessage.data;
+                    injectCode();
+                }
+            }
+        });
+
+        // Request inspection mode setting
+        // Code is injected into the webpage after the setting comes back.
+        EventBridge.emitWebEvent(JSON.stringify({
+            type: "REQUEST_SETTING"
+        }));
+    }
+
     // Load / unload.
     window.addEventListener("load", onLoad);  // More robust to Web site issues than using $(document).ready().
-
 }());

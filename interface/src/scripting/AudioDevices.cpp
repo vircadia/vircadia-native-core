@@ -12,6 +12,7 @@
 #include <map>
 
 #include <shared/QtHelpers.h>
+#include <plugins/DisplayPlugin.h>
 
 #include "AudioDevices.h"
 

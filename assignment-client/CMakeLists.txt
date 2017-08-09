@@ -13,7 +13,7 @@ setup_memory_debugger()
 link_hifi_libraries(
   audio avatars octree gpu model fbx entities
   networking animation recording shared script-engine embedded-webserver
-  physics plugins
+  controllers physics plugins midi
 )
 
 if (WIN32)

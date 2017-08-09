@@ -134,9 +134,9 @@ bool AvatarActionHold::getTarget(float deltaTimeStep, glm::quat& rotation, glm::
             // fetch the hand controller pose
             controller::Pose pose;
             if (isRightHand) {
-                pose = myAvatar->getRightHandControllerPoseInWorldFrame();
+                pose = myAvatar->getControllerPoseInWorldFrame(controller::Action::RIGHT_HAND);
             } else {
-                pose = myAvatar->getLeftHandControllerPoseInWorldFrame();
+                pose = myAvatar->getControllerPoseInWorldFrame(controller::Action::LEFT_HAND);
             }
 
             if (pose.isValid()) {
