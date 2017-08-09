@@ -10,6 +10,9 @@ struct OutlineParameters
 	VEC3 _color;
     float _size;
     float _intensity;
+    float _fillOpacityUnoccluded;
+    float _fillOpacityOccluded;
+    float _threshold;
 };
 
 // <@if 1@>

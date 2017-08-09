@@ -14,7 +14,7 @@ var qml = Script.resolvePath('outline.qml');
 var window = new OverlayWindow({
     title: 'Outline',
     source: qml,
-    width: 250, 
-    height: 250,
+    width: 285, 
+    height: 370,
 });
 window.closed.connect(function() { Script.stop(); });

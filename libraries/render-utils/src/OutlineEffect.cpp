@@ -131,7 +131,10 @@ DrawOutline::DrawOutline() {
 void DrawOutline::configure(const Config& config) {
     _color = config.color;
     _size = config.width / 1024.f;
-    _intensity = config.intensity * 10.f;
+    _fillOpacityUnoccluded = config.fillOpacityUnoccluded;
+    _fillOpacityOccluded = config.fillOpacityOccluded;
+    _threshold = config.glow ? 1.f : 0.f;
+    _intensity = config.intensity * (config.glow ? 2.f : 1.f);
 }
 
 void DrawOutline::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
@@ -150,6 +153,9 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
                 configuration._color = _color;
                 configuration._size = _size;
                 configuration._intensity = _intensity;
+                configuration._fillOpacityUnoccluded = _fillOpacityUnoccluded;
+                configuration._fillOpacityOccluded = _fillOpacityOccluded;
+                configuration._threshold = _threshold;
             }
 
             gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {

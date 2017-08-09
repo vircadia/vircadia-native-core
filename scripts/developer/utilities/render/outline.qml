@@ -35,6 +35,13 @@ Item {
                 root.debugConfig["viewOutlinedDepth"] = checked;
             }
         }
+        CheckBox {
+            text: "Glow"
+            checked: root.drawConfig["glow"]
+            onCheckedChanged: {
+                root.drawConfig["glow"] = checked;
+            }
+        }
         ConfigSlider {
             label: "Width"
             integral: false
@@ -42,7 +49,7 @@ Item {
             property: "width"
             max: 15.0
             min: 0.0
-            width: 230
+            width: 280
         }  
         ConfigSlider {
             label: "Intensity"
@@ -51,34 +58,70 @@ Item {
             property: "intensity"
             max: 1.0
             min: 0.0
-            width: 230
+            width: 280
         }  
-        ConfigSlider {
-            label: "Color R"
-            integral: false
-            config: root.drawConfig
-            property: "colorR"
-            max: 1.0
-            min: 0.0
-            width: 230
-        }  
-        ConfigSlider {
-            label: "Color G"
-            integral: false
-            config: root.drawConfig
-            property: "colorG"
-            max: 1.0
-            min: 0.0
-            width: 230
-        }  
-        ConfigSlider {
-            label: "Color B"
-            integral: false
-            config: root.drawConfig
-            property: "colorB"
-            max: 1.0
-            min: 0.0
-            width: 230
-        }  
+
+        GroupBox {
+            title: "Color"
+            width: 280
+            Column {
+                spacing: 8
+
+                ConfigSlider {
+                    label: "Red"
+                    integral: false
+                    config: root.drawConfig
+                    property: "colorR"
+                    max: 1.0
+                    min: 0.0
+                    width: 270
+                }  
+                ConfigSlider {
+                    label: "Green"
+                    integral: false
+                    config: root.drawConfig
+                    property: "colorG"
+                    max: 1.0
+                    min: 0.0
+                    width: 270
+                }  
+                ConfigSlider {
+                    label: "Blue"
+                    integral: false
+                    config: root.drawConfig
+                    property: "colorB"
+                    max: 1.0
+                    min: 0.0
+                    width: 270
+                }
+            }
+        }
+
+        GroupBox {
+            title: "Fill Opacity"
+            width: 280
+            Column {
+                spacing: 8
+
+                ConfigSlider {
+                    label: "Unoccluded"
+                    integral: false
+                    config: root.drawConfig
+                    property: "fillOpacityUnoccluded"
+                    max: 1.0
+                    min: 0.0
+                    width: 270
+                }  
+                ConfigSlider {
+                    label: "Occluded"
+                    integral: false
+                    config: root.drawConfig
+                    property: "fillOpacityOccluded"
+                    max: 1.0
+                    min: 0.0
+                    width: 270
+                }  
+            }
+        }
     }
 }
