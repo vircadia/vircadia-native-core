@@ -22,7 +22,7 @@ Highlights = function (side) {
         GROUP_COLOR = { red: 220, green: 60, blue: 220 },
         HAND_HIGHLIGHT_ALPHA = 0.35,
         ENTITY_HIGHLIGHT_ALPHA = 0.8,
-        HAND_HIGHLIGHT_DIMENSIONS = { x: 0.2, y: 0.2, z: 0.2 },
+        HAND_HIGHLIGHT_DIMENSIONS = { x: 0.1, y: 0.1, z: 0.1 },
         HAND_HIGHLIGHT_OFFSET = { x: 0.0, y: 0.11, z: 0.02 },
         LEFT_HAND = 0;
 

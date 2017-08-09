@@ -31,7 +31,7 @@ Hand = function (side) {
         TRIGGER_OFF_VALUE = 0.1,  // Per handControllerGrab.js.
         TRIGGER_CLICKED_VALUE = 1.0,
 
-        NEAR_GRAB_RADIUS = 0.1,  // Per handControllerGrab.js.
+        NEAR_GRAB_RADIUS = 0.05,  // Different from handControllerGrab.js's value of 0.1.
         NEAR_HOVER_RADIUS = 0.025,
 
         LEFT_HAND = 0,
