@@ -192,10 +192,13 @@
     function fromQml(message) {
         switch (message.method) {
             case 'checkout_cancelClicked':
-                tablet.popFromStack();
+                tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.params, MARKETPLACES_INJECT_SCRIPT_URL);
+                // TODO: Make Marketplace a QML app that's a WebView wrapper so we can use the app stack.
+                // I don't think this is trivial to do since we also want to inject some JS into the DOM.
+                //tablet.popFromStack();
                 break;
             case 'checkout_buyClicked':
-                tablet.popFromStack();
+                //tablet.popFromStack();
                 break;
             default:
                 print('Unrecognized message from Checkout.qml: ' + JSON.stringify(message));

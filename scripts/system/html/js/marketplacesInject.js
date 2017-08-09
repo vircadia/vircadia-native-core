@@ -67,7 +67,7 @@
 
         // Footer actions.
         $("#back-button").on("click", function () {
-            (window.history.state != null) ? window.history.back() : window.location = "https://metaverse.highfidelity.com/marketplace?";
+            (document.referrer !== "") ? window.history.back() : window.location = "https://metaverse.highfidelity.com/marketplace?";
         });
         $("#all-markets").on("click", function () {
             EventBridge.emitWebEvent(GOTO_DIRECTORY);
@@ -89,13 +89,25 @@
         });
     }
 
-    function buyButtonClicked(name, author, price) {
+    function buyButtonClicked(id, name, author, price) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "CHECKOUT",
+            itemId: id,
             itemName: name,
             itemAuthor: author,
             itemPrice: price
         }));
+    }
+
+    function injectBuyButtonOnMainPage() {
+        $('.grid-item').find('#price-or-edit').find('a').attr('href', '#');
+        $('.grid-item').find('#price-or-edit').find('.price').text("BUY");
+        $('.grid-item').find('#price-or-edit').find('a').on('click', function () {
+            buyButtonClicked($(this).closest('.grid-item').attr('data-item-id'),
+                $(this).closest('.grid-item').find('.item-title').text(),
+                $(this).closest('.grid-item').find('.creator').find('.value').text(),
+                10);
+        });
     }
 
     function injectHiFiCode() {
@@ -103,21 +115,19 @@
             var target = document.getElementById('templated-items');
             // MutationObserver is necessary because the DOM is populated after the page is loaded.
             // We're searching for changes to the element whose ID is '#templated-items' - this is
-            // the element that gets filled in by the AJAX.
+            //     the element that gets filled in by the AJAX.
             var observer = new MutationObserver(function (mutations) {
                 mutations.forEach(function (mutation) {
-                    console.log(mutation.type);
-                    $('.grid-item').find('#price-or-edit').find('a').attr('href', '#');
-                    $('.grid-item').find('#price-or-edit').find('.price').text("BUY");
-                    $('.grid-item').find('#price-or-edit').find('a').on('click', function () {
-                        buyButtonClicked($(this).closest('.grid-item').find('.item-title').text(), $(this).closest('.grid-item').find('.creator').find('.value').text(), 10);
-                    });
+                    injectBuyButtonOnMainPage();
                 });
-
                 //observer.disconnect();
             });
             var config = { attributes: true, childList: true, characterData: true };
             observer.observe(target, config);
+
+            // Try this here in case it works (it will if the user just pressed the "back" button,
+            //     since that doesn't trigger another AJAX request.
+            injectBuyButtonOnMainPage();
         }
     }
 
@@ -126,7 +136,10 @@
             $('#side-info').find('.btn').attr('href', '#');
             $('#side-info').find('.btn').html('<span class="glyphicon glyphicon-download"></span>Buy Item  ');
             $('#side-info').find('.btn').on('click', function () {
-                buyButtonClicked($('#top-center').find('h1').text(), $('#creator').find('.value').text(), 10);
+                buyButtonClicked(window.location.pathname.split("/")[3],
+                    $('#top-center').find('h1').text(),
+                    $('#creator').find('.value').text(),
+                    10);
             });
         }
     }

@@ -24,6 +24,7 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     id: checkoutRoot;
+    property string itemId; 
     // Style
     color: hifi.colors.baseGray;
 
@@ -241,7 +242,7 @@ Rectangle {
             width: parent.width/2 - anchors.leftMargin*2;
             text: "Cancel"
             onClicked: {
-                sendToScript({method: 'checkout_cancelClicked'});
+                sendToScript({method: 'checkout_cancelClicked', params: itemId});
             }
         }
 
@@ -258,7 +259,7 @@ Rectangle {
             width: parent.width/2 - anchors.rightMargin*2;
             text: "Buy"
             onClicked: {
-                sendToScript({method: 'checkout_buyClicked'});
+                sendToScript({method: 'checkout_buyClicked', params: itemId});
             }
         }
     }
@@ -285,6 +286,7 @@ Rectangle {
     function fromScript(message) {
         switch (message.method) {
             case 'updateCheckoutQML':
+                itemId = message.params.itemId;
                 itemNameText.text = message.params.itemName;
                 itemAuthorText.text = message.params.itemAuthor;
                 itemPriceText.text = message.params.itemPrice;
