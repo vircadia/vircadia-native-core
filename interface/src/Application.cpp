@@ -2779,7 +2779,8 @@ bool Application::importFromZIP(const QString& filePath) {
     QUrl empty;
     // handle Blocks download from Marketplace
     if (filePath.contains("vr.google.com/downloads")) {
-        qApp->getFileDownloadInterface()->runUnzip("", filePath, true, true);
+        addAssetToWorldFromURL(filePath);
+        //qApp->getFileDownloadInterface()->runUnzip("", filePath, true, true);
     } else {
         qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true);
     }
@@ -6220,8 +6221,16 @@ void Application::showAssetServerWidget(QString filePath) {
 
 void Application::addAssetToWorldFromURL(QString url) {
     qInfo(interfaceapp) << "Download model and add to world from" << url;
-
-    QString filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
+    
+    QString filename;
+    if (url.contains("filename")) {
+        filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
+    }
+    if (url.contains("vr.google.com/downloads")) {
+        QRegExp blocksName("\/.*\.zip");
+        //filename = url.section(blocksName);
+        filename = "blocks";
+    }
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         QString errorInfo = "You do not have permissions to write to the Asset Server.";
@@ -6242,7 +6251,15 @@ void Application::addAssetToWorldFromURLRequestFinished() {
     auto url = request->getUrl().toString();
     auto result = request->getResult();
 
-    QString filename = url.section("filename=", 1, 1);  // Filename from trailing "?filename=" URL parameter.
+    QString filename;
+    if (url.contains("filename")) {
+        filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
+    }
+    if (url.contains("vr.google.com/downloads")) {
+        QRegExp blocksName("\/.*\.zip");
+        //filename = url.section(blocksName);
+        filename = "blocks";
+    }
 
     if (result == ResourceRequest::Success) {
         qInfo(interfaceapp) << "Downloaded model from" << url;

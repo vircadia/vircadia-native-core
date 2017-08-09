@@ -34,10 +34,10 @@ FileScriptingInterface::FileScriptingInterface(QObject* parent) : QObject(parent
 
 void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool isZip) {
     qCDebug(scriptengine) << "Url that was downloaded: " + url.toString();
-    if ((url.toString()).contains("vr.google.com/downloads")) {
+    /*if ((url.toString()).contains("vr.google.com/downloads")) {
 
         path = downloadBlocksZip(url);
-    }
+    }*/
     qCDebug(scriptengine) << "Path where download is saved: " + path;
     QString fileName = "/" + path.section("/", -1);
     QString tempDir = path;
