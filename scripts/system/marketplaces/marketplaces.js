@@ -58,51 +58,6 @@
     function showMarketplace() {
         UserActivityLogger.openedMarketplace();
         tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
-        tablet.webEventReceived.connect(function (message) {
-            var parsedJsonMessage = JSON.parse(message);
-            if (parsedJsonMessage.type === "CHECKOUT") {
-                tablet.sendToQml({ method: 'updateCheckoutQML', params: parsedJsonMessage });
-                tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
-            }
-
-            if (message === GOTO_DIRECTORY) {
-                tablet.gotoWebScreen(MARKETPLACES_URL, MARKETPLACES_INJECT_SCRIPT_URL);
-            }
-
-            if (message === QUERY_CAN_WRITE_ASSETS) {
-                tablet.emitScriptEvent(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
-            }
-
-            if (message === WARN_USER_NO_PERMISSIONS) {
-                Window.alert(NO_PERMISSIONS_ERROR_MESSAGE);
-            }
-
-            if (message.slice(0, CLARA_IO_STATUS.length) === CLARA_IO_STATUS) {
-                if (isDownloadBeingCancelled) {
-                    return;
-                }
-
-                var text = message.slice(CLARA_IO_STATUS.length);
-                if (messageBox === null) {
-                    messageBox = Window.openMessageBox(CLARA_DOWNLOAD_TITLE, text, CANCEL_BUTTON, NO_BUTTON);
-                } else {
-                    Window.updateMessageBox(messageBox, CLARA_DOWNLOAD_TITLE, text, CANCEL_BUTTON, NO_BUTTON);
-                }
-                return;
-            }
-
-            if (message.slice(0, CLARA_IO_DOWNLOAD.length) === CLARA_IO_DOWNLOAD) {
-                if (messageBox !== null) {
-                    Window.closeMessageBox(messageBox);
-                    messageBox = null;
-                }
-                return;
-            }
-
-            if (message === CLARA_IO_CANCELLED_DOWNLOAD) {
-                isDownloadBeingCancelled = false;
-            }
-        });
     }
 
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
@@ -145,12 +100,67 @@
     tablet.screenChanged.connect(onScreenChanged);
     Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);
 
+    function onMessage(message) {
+        var parsedJsonMessage = JSON.parse(message);
+        if (parsedJsonMessage.type === "CHECKOUT") {
+            tablet.sendToQml({ method: 'updateCheckoutQML', params: parsedJsonMessage });
+            tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
+        } else if (parsedJsonMessage.type === "REQUEST_SETTING") {
+            tablet.emitScriptEvent(JSON.stringify({
+                type: "marketplaces",
+                action: "inspectionModeSetting",
+                data: Settings.getValue("inspectionMode", false)
+            }));
+        }
+
+        if (message === GOTO_DIRECTORY) {
+            tablet.gotoWebScreen(MARKETPLACES_URL, MARKETPLACES_INJECT_SCRIPT_URL);
+        }
+
+        if (message === QUERY_CAN_WRITE_ASSETS) {
+            tablet.emitScriptEvent(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
+        }
+
+        if (message === WARN_USER_NO_PERMISSIONS) {
+            Window.alert(NO_PERMISSIONS_ERROR_MESSAGE);
+        }
+
+        if (message.slice(0, CLARA_IO_STATUS.length) === CLARA_IO_STATUS) {
+            if (isDownloadBeingCancelled) {
+                return;
+            }
+
+            var text = message.slice(CLARA_IO_STATUS.length);
+            if (messageBox === null) {
+                messageBox = Window.openMessageBox(CLARA_DOWNLOAD_TITLE, text, CANCEL_BUTTON, NO_BUTTON);
+            } else {
+                Window.updateMessageBox(messageBox, CLARA_DOWNLOAD_TITLE, text, CANCEL_BUTTON, NO_BUTTON);
+            }
+            return;
+        }
+
+        if (message.slice(0, CLARA_IO_DOWNLOAD.length) === CLARA_IO_DOWNLOAD) {
+            if (messageBox !== null) {
+                Window.closeMessageBox(messageBox);
+                messageBox = null;
+            }
+            return;
+        }
+
+        if (message === CLARA_IO_CANCELLED_DOWNLOAD) {
+            isDownloadBeingCancelled = false;
+        }
+    }
+
+    tablet.webEventReceived.connect(onMessage);
+
     Script.scriptEnding.connect(function () {
         if (onMarketplaceScreen) {
             tablet.gotoHomeScreen();
         }
         tablet.removeButton(marketplaceButton);
         tablet.screenChanged.disconnect(onScreenChanged);
+        tablet.webEventReceived.disconnect(onMessage);
         Entities.canWriteAssetsChanged.disconnect(onCanWriteAssetsChanged);
     });
 
