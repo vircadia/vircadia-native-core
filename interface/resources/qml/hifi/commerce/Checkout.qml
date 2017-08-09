@@ -293,7 +293,6 @@ Rectangle {
                 itemNameText.text = message.params.itemName;
                 itemAuthorText.text = message.params.itemAuthor;
                 itemPriceText.text = message.params.itemPrice;
-                itemId = message.params.itemId;
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
