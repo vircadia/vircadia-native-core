@@ -69,7 +69,7 @@ gpu::TexturePointer OutlineFramebuffer::getDepthTexture() {
     return _depthTexture;
 }
 
-void PrepareOutline::run(const render::RenderContextPointer& renderContext, const PrepareOutline::Input& input, PrepareOutline::Output& output) {
+void PrepareOutline::run(const render::RenderContextPointer& renderContext, const PrepareOutline::Inputs& input, PrepareOutline::Output& output) {
     auto outlinedItems = input.get1();
 
     if (!outlinedItems.empty()) {
@@ -137,8 +137,10 @@ void DebugOutline::configure(const Config& config) {
     _isDisplayDepthEnabled = config.viewOutlinedDepth;
 }
 
-void DebugOutline::run(const render::RenderContextPointer& renderContext, const Input& input) {
-    if (_isDisplayDepthEnabled && input) {
+void DebugOutline::run(const render::RenderContextPointer& renderContext, const Inputs& input) {
+    const auto outlineFramebuffer = input;
+
+    if (_isDisplayDepthEnabled && outlineFramebuffer) {
         assert(renderContext->args);
         assert(renderContext->args->hasViewFrustum());
         RenderArgs* args = renderContext->args;
@@ -158,7 +160,8 @@ void DebugOutline::run(const render::RenderContextPointer& renderContext, const 
             batch.setModelTransform(Transform());
 
             batch.setPipeline(getDebugPipeline());
-            batch.setResourceTexture(0, input->getDepthTexture());
+            batch.setResourceTexture(0, outlineFramebuffer->getDepthTexture());
+
             const glm::vec4 color(1.0f, 0.5f, 0.2f, 1.0f);
             const glm::vec2 bottomLeft(-1.0f, -1.0f);
             const glm::vec2 topRight(1.0f, 1.0f);
@@ -179,8 +182,9 @@ const gpu::PipelinePointer& DebugOutline::getDebugPipeline() {
             "Could not find source placeholder");
         static const std::string DEFAULT_DEPTH_SHADER{
             "vec4 getFragmentColor() {"
-            "    float depth = texture(depthMap, uv).x;"
-            "    return vec4(vec3(depth), 1.0);"
+            "   float Zdb = texelFetch(depthMap, ivec2(gl_FragCoord.xy), 0).x;"
+            "   Zdb = 1.0-(1.0-Zdb)*100;"
+            "   return vec4(Zdb, Zdb, Zdb, 1.0);"
             " }"
         };
 

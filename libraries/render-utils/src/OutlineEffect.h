@@ -58,14 +58,14 @@ class PrepareOutline {
 
 public:
 
-    using Input = render::VaryingSet2<DeferredFramebufferPointer, render::ItemBounds>;
+    using Inputs = render::VaryingSet2<DeferredFramebufferPointer, render::ItemBounds>;
 	// Output will contain outlined objects only z-depth texture
 	using Output = OutlineFramebufferPointer;
-	using JobModel = render::Job::ModelIO<PrepareOutline, Input, Output>;
+	using JobModel = render::Job::ModelIO<PrepareOutline, Inputs, Output>;
 
 	PrepareOutline() {}
 
-	void run(const render::RenderContextPointer& renderContext, const PrepareOutline::Input& input, PrepareOutline::Output& output);
+	void run(const render::RenderContextPointer& renderContext, const PrepareOutline::Inputs& input, PrepareOutline::Output& output);
 
 private:
 
@@ -88,15 +88,15 @@ signals:
 
 class DebugOutline {
 public:
-    using Input = OutlineFramebufferPointer;
+    using Inputs = OutlineFramebufferPointer;
     using Config = DebugOutlineConfig;
-    using JobModel = render::Job::ModelI<DebugOutline, Input, Config>;
+    using JobModel = render::Job::ModelI<DebugOutline, Inputs, Config>;
 
     DebugOutline();
     ~DebugOutline();
 
     void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, const Input& inputs);
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
 private:
 

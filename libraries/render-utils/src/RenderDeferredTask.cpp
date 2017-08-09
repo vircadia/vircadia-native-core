@@ -97,7 +97,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<DrawStateSortDeferred>("DrawOpaqueOutlined", opaqueOutlineInputs, shapePlumber);
 
     // Retrieve z value of the outlined objects
-    const auto outlinePrepareInputs = PrepareOutline::Input(deferredFramebuffer, outlinedOpaques).hasVarying();
+    const auto outlinePrepareInputs = PrepareOutline::Inputs(deferredFramebuffer, outlinedOpaques).hasVarying();
     const auto outlinedFrameBuffer = task.addJob<PrepareOutline>("PrepareOutline", outlinePrepareInputs);
 
     // Render opaque objects in DeferredBuffer
