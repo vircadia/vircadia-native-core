@@ -160,6 +160,7 @@ AudioClient::AudioClient() :
     AbstractAudioInterface(),
     _gate(this),
     _audioInput(NULL),
+    _dummyAudioInput(NULL),
     _desiredInputFormat(),
     _inputFormat(),
     _numInputCallbackBytes(0),
@@ -1423,11 +1424,19 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
         _inputDeviceInfo = QAudioDeviceInfo();
     }
 
+    if (_dummyAudioInput) {
+        _dummyAudioInput->stop();
+
+        _dummyAudioInput->deleteLater();
+        _dummyAudioInput = NULL;
+    }
+
     if (_inputToNetworkResampler) {
         // if we were using an input to network resampler, delete it here
         delete _inputToNetworkResampler;
         _inputToNetworkResampler = NULL;
     }
+
     if (_audioGate) {
         delete _audioGate;
         _audioGate = nullptr;
@@ -1483,6 +1492,19 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
                 }
             }
         }
+    }
+
+    // If there is no input device, use the dummy input device.
+    // It generates audio callbacks on a timer to simulate a mic stream of silent packets.
+    // This enables clients without a mic to still receive an audio stream from the mixer.
+    if (!_audioInput) {
+        qCDebug(audioclient) << "No audio input device is available, using dummy input.";
+
+        QTimer* _dummyAudioInput = new QTimer(this);
+        //connect(_dummyAudioInput, &QTimer::timeout, this, SLOT(handleDummyAudioInput()));
+
+        // generate audio callbacks at the network sample rate
+        _dummyAudioInput->start((int)(AudioConstants::NETWORK_FRAME_MSECS + 0.5f));
     }
 
     return supportedFormat;

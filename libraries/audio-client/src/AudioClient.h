@@ -277,6 +277,7 @@ private:
 
     Mutex _injectorsMutex;
     QAudioInput* _audioInput;
+    QTimer* _dummyAudioInput;
     QAudioFormat _desiredInputFormat;
     QAudioFormat _inputFormat;
     QIODevice* _inputDevice;
