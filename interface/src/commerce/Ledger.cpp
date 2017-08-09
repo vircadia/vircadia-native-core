@@ -36,7 +36,7 @@ bool Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, cons
     return true; // FIXME send to server.
 }
 
-bool receiveAt(const QString& hfc_key) {
+bool Ledger::receiveAt(const QString& hfc_key) {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (!accountManager->isLoggedIn()) {
         qCWarning(commerce) << "Cannot set receiveAt when not logged in.";

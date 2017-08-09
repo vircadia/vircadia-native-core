@@ -21,7 +21,7 @@ bool QmlCommerce::buy(const QString& assetId, int cost, const QString& buyerUser
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList keys = wallet->listPublicKeys();
-    if (keys.count == 0) {
+    if (keys.count() == 0) {
         return false;
     }
     QString key = keys[0];
