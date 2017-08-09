@@ -14,6 +14,8 @@
 
 #include "../octree/OctreeSendThread.h"
 
+#include <DiffTraversal.h>
+
 #include "EntityPriorityQueue.h"
 
 class EntityNodeData;
@@ -22,7 +24,7 @@ class EntityItem;
 class EntityTreeSendThread : public OctreeSendThread {
 
 public:
-    EntityTreeSendThread(OctreeServer* myServer, const SharedNodePointer& node);
+    EntityTreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) : OctreeSendThread(myServer, node) { }
 
 protected:
     void preDistributionProcessing() override;
@@ -35,18 +37,10 @@ private:
     bool addDescendantsToExtraFlaggedEntities(const QUuid& filteredEntityID, EntityItem& entityItem, EntityNodeData& nodeData);
 
     void startNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root);
-    void getNextVisibleElement(VisibleElement& element);
-    void dump() const; // DEBUG method, delete later
 
+    DiffTraversal _traversal;
     EntityPriorityQueue _sendQueue;
-    ViewFrustum _currentView;
-    ViewFrustum _completedView;
-    ConicalView _conicalView; // optimized view for fast priority calculations
-    std::vector<TraversalWaypoint> _traversalPath;
-    std::function<void (VisibleElement&)> _getNextVisibleElementCallback { nullptr };
-    std::function<void (VisibleElement&)> _scanNextElementCallback { nullptr };
-    uint64_t _startOfCompletedTraversal { 0 };
-    uint64_t _startOfCurrentTraversal { 0 };
+    ConicalView _conicalView; // cached optimized view for fast priority calculations
 };
 
 #endif // hifi_EntityTreeSendThread_h

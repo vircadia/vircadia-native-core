@@ -10,18 +10,11 @@
 //
 
 #include "EntityTreeSendThread.h"
-#include <iostream> // adebug
 
 #include <EntityNodeData.h>
 #include <EntityTypes.h>
 
 #include "EntityServer.h"
-
-EntityTreeSendThread::EntityTreeSendThread(OctreeServer* myServer, const SharedNodePointer& node)
-    : OctreeSendThread(myServer, node) {
-    const int32_t MIN_PATH_DEPTH = 16;
-    _traversalPath.reserve(MIN_PATH_DEPTH);
-}
 
 void EntityTreeSendThread::preDistributionProcessing() {
     auto node = _node.toStrongRef();
@@ -90,14 +83,14 @@ void EntityTreeSendThread::preDistributionProcessing() {
 void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
             bool viewFrustumChanged, bool isFullScene) {
     // BEGIN EXPERIMENTAL DIFFERENTIAL TRAVERSAL
-    {
-        // DEBUG HACK: trigger traversal (Again) every so often
-        const uint64_t TRAVERSE_AGAIN_PERIOD = 2 * USECS_PER_SECOND;
-        if (!viewFrustumChanged && usecTimestampNow() > _startOfCompletedTraversal + TRAVERSE_AGAIN_PERIOD) {
-            viewFrustumChanged = true;
-        }
-    }
     if (nodeData->getUsesFrustum()) {
+        {
+            // DEBUG HACK: trigger traversal (Again) every so often
+            const uint64_t TRAVERSE_AGAIN_PERIOD = 4 * USECS_PER_SECOND;
+            if (!viewFrustumChanged && usecTimestampNow() > _traversal.getStartOfCompletedTraversal() + TRAVERSE_AGAIN_PERIOD) {
+                viewFrustumChanged = true;
+            }
+        }
         if (viewFrustumChanged) {
             ViewFrustum viewFrustum;
             nodeData->copyCurrentViewFrustum(viewFrustum);
@@ -105,28 +98,14 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
             startNewTraversal(viewFrustum, root);
         }
     }
-    if (!_traversalPath.empty()) {
+    if (!_traversal.finished()) {
         uint64_t startTime = usecTimestampNow();
-        uint64_t now = startTime;
 
-        VisibleElement next;
-        getNextVisibleElement(next);
-        while (next.element) {
-            if (next.element->hasContent()) {
-                _scanNextElementCallback(next);
-            }
+        const uint64_t TIME_BUDGET = 100000; // usec
+        _traversal.traverse(TIME_BUDGET);
 
-            // TODO: pick a reasonable budget for each partial traversal
-            const uint64_t PARTIAL_TRAVERSAL_TIME_BUDGET = 100000; // usec
-            now = usecTimestampNow();
-            if (now - startTime > PARTIAL_TRAVERSAL_TIME_BUDGET) {
-                break;
-            }
-            getNextVisibleElement(next);
-        }
-
-        uint64_t dt = now - startTime;
-        std::cout << "adebug traversal complete " << "  Q.size = " << _sendQueue.size() << "  dt = " << dt << std::endl;  // adebug
+        uint64_t dt = usecTimestampNow() - startTime;
+        std::cout << "adebug  traversal complete " << "  Q.size = " << _sendQueue.size() << "  dt = " << dt << std::endl;  // adebug
     }
     if (!_sendQueue.empty()) {
         // print what needs to be sent
@@ -134,11 +113,9 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
             PrioritizedEntity entry = _sendQueue.top();
             EntityItemPointer entity = entry.getEntity();
             if (entity) {
-                std::cout << "adebug    '" << entity->getName().toStdString() << "'"
-                    << "  :  " << entry.getPriority() << std::endl;  // adebug
+                std::cout << "adebug    send '" << entity->getName().toStdString() << "'" << "  :  " << entry.getPriority() << std::endl;  // adebug
             }
             _sendQueue.pop();
-            std::cout << "adebug" << std::endl;     // adebug
         }
     }
     // END EXPERIMENTAL DIFFERENTIAL TRAVERSAL
@@ -195,39 +172,29 @@ bool EntityTreeSendThread::addDescendantsToExtraFlaggedEntities(const QUuid& fil
     return hasNewChild || hasNewDescendants;
 }
 
-void EntityTreeSendThread::startNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root) {
+void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTreeElementPointer root) {
+    DiffTraversal::Type type = _traversal.prepareNewTraversal(view, root);
     // there are three types of traversal:
     //
     //      (1) FirstTime = at login --> find everything in view
-    //      (2) Again = view hasn't changed --> find what has changed since last complete traversal
+    //      (2) Repeat = view hasn't changed --> find what has changed since last complete traversal
     //      (3) Differential = view has changed --> find what has changed or in new view but not old
     //
-    // For each traversal type we define two callback lambdas:
-    //
-    //      _getNextVisibleElementCallback = identifies elements that need to be traversed,i
-    //          updates VisibleElement ref argument with pointer-to-element and view-intersection
-    //          (INSIDE, INTERSECT, or OUTSIDE)
-    //
-    //      _scanNextElementCallback = identifies entities that need to be appended to _sendQueue
+    // The "scanCallback" we provide to the traversal depends on the type:
     //
     // The _conicalView is updated here as a cached view approximation used by the lambdas for efficient
     // computation of entity sorting priorities.
     //
-    if (_startOfCompletedTraversal == 0) {
-        // first time
-        _currentView = viewFrustum;
-        _conicalView.set(_currentView);
+    _conicalView.set(_traversal.getCurrentView());
 
-        _getNextVisibleElementCallback = [&](VisibleElement& next) {
-            _traversalPath.back().getNextVisibleElementFirstTime(next, _currentView);
-        };
-
-        _scanNextElementCallback = [&](VisibleElement& next) {
+    switch (type) {
+    case DiffTraversal::First:
+        _traversal.setScanCallback([&] (DiffTraversal::VisibleElement& next) {
             next.element->forEachEntity([&](EntityItemPointer entity) {
                 bool success = false;
                 AACube cube = entity->getQueryAACube(success);
                 if (success) {
-                    if (_currentView.cubeIntersectsKeyhole(cube)) {
+                    if (_traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
                         float priority = _conicalView.computePriority(cube);
                         _sendQueue.push(PrioritizedEntity(entity, priority));
                     }
@@ -236,21 +203,18 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& viewFrustum, Ent
                     _sendQueue.push(PrioritizedEntity(entity, WHEN_IN_DOUBT_PRIORITY));
                 }
             });
-        };
-    } else if (_currentView.isVerySimilar(viewFrustum)) {
-        // again
-        _getNextVisibleElementCallback = [&](VisibleElement& next) {
-            _traversalPath.back().getNextVisibleElementAgain(next, _currentView, _startOfCompletedTraversal);
-        };
-
-        _scanNextElementCallback = [&](VisibleElement& next) {
-            if (next.element->getLastChangedContent() > _startOfCompletedTraversal) {
+        });
+        break;
+    case DiffTraversal::Repeat:
+        _traversal.setScanCallback([&] (DiffTraversal::VisibleElement& next) {
+            if (next.element->getLastChangedContent() > _traversal.getStartOfCompletedTraversal()) {
+                uint64_t timestamp = _traversal.getStartOfCompletedTraversal();
                 next.element->forEachEntity([&](EntityItemPointer entity) {
-                    if (entity->getLastEdited() > _startOfCompletedTraversal) {
+                    if (entity->getLastEdited() > timestamp) {
                         bool success = false;
                         AACube cube = entity->getQueryAACube(success);
                         if (success) {
-                            if (next.intersection == ViewFrustum::INSIDE || _currentView.cubeIntersectsKeyhole(cube)) {
+                            if (next.intersection == ViewFrustum::INSIDE || _traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
                                 float priority = _conicalView.computePriority(cube);
                                 _sendQueue.push(PrioritizedEntity(entity, priority));
                             }
@@ -261,26 +225,20 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& viewFrustum, Ent
                     }
                 });
             }
-        };
-    } else {
-        // differential
-        _currentView = viewFrustum;
-        _conicalView.set(_currentView);
-
-        _getNextVisibleElementCallback = [&](VisibleElement& next) {
-            _traversalPath.back().getNextVisibleElementDifferential(next, _currentView, _completedView, _startOfCompletedTraversal);
-        };
-
-        _scanNextElementCallback = [&](VisibleElement& next) {
-            // NOTE: for differential case next.intersection is against _completedView not _currentView
-            if (next.element->getLastChangedContent() > _startOfCompletedTraversal || next.intersection != ViewFrustum::INSIDE) {
+        });
+        break;
+    case DiffTraversal::Differential:
+        _traversal.setScanCallback([&] (DiffTraversal::VisibleElement& next) {
+            // NOTE: for Differential case: next.intersection is against completedView not currentView
+            uint64_t timestamp = _traversal.getStartOfCompletedTraversal();
+            if (next.element->getLastChangedContent() > timestamp || next.intersection != ViewFrustum::INSIDE) {
                 next.element->forEachEntity([&](EntityItemPointer entity) {
                     bool success = false;
                     AACube cube = entity->getQueryAACube(success);
                     if (success) {
-                        if (_currentView.cubeIntersectsKeyhole(cube) &&
-                                (entity->getLastEdited() > _startOfCompletedTraversal ||
-                                    !_completedView.cubeIntersectsKeyhole(cube))) {
+                        if (_traversal.getCurrentView().cubeIntersectsKeyhole(cube) &&
+                                (entity->getLastEdited() > timestamp ||
+                                    !_traversal.getCompletedView().cubeIntersectsKeyhole(cube))) {
                             float priority = _conicalView.computePriority(cube);
                             _sendQueue.push(PrioritizedEntity(entity, priority));
                         }
@@ -290,55 +248,8 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& viewFrustum, Ent
                     }
                 });
             }
-        };
-    }
-
-    _traversalPath.clear();
-    assert(root);
-    _traversalPath.push_back(TraversalWaypoint(root));
-    // set root fork's index such that root element returned at getNextElement()
-    _traversalPath.back().initRootNextIndex();
-
-    _startOfCurrentTraversal = usecTimestampNow();
-}
-
-void EntityTreeSendThread::getNextVisibleElement(VisibleElement& next) {
-    if (_traversalPath.empty()) {
-        next.element.reset();
-        next.intersection = ViewFrustum::OUTSIDE;
-        return;
-    }
-    _getNextVisibleElementCallback(next);
-    if (next.element) {
-        int8_t nextIndex = _traversalPath.back().getNextIndex();
-        if (nextIndex > 0) {
-            // next.element needs to be added to the path
-            _traversalPath.push_back(TraversalWaypoint(next.element));
-        }
-    } else {
-        // we're done at this level
-        while (!next.element) {
-            // pop one level
-            _traversalPath.pop_back();
-            if (_traversalPath.empty()) {
-                // we've traversed the entire tree
-                _completedView = _currentView;
-                _startOfCompletedTraversal = _startOfCurrentTraversal;
-                return;
-            }
-            // keep looking for next
-            _getNextVisibleElementCallback(next);
-            if (next.element) {
-                // we've descended one level so add it to the path
-                _traversalPath.push_back(TraversalWaypoint(next.element));
-            }
-        }
+        });
+        break;
     }
 }
 
-// DEBUG method: delete later
-void EntityTreeSendThread::dump() const {
-    for (size_t i = 0; i < _traversalPath.size(); ++i) {
-        std::cout << (int32_t)(_traversalPath[i].getNextIndex()) << "-->";
-    }
-}
