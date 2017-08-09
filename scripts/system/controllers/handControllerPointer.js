@@ -160,7 +160,7 @@ var systemLaserOn = false;
 
 var triggerPath = {
     type: "line3d",
-    color: LASER_SEARCH_COLOR,
+    color: LASER_TRIGGER_COLOR,
     ignoreRayIntersection: true,
     visible: true,
     alpha: LASER_ALPHA,
@@ -171,7 +171,7 @@ var triggerPath = {
 var triggerEnd = {
     type: "sphere",
     dimensions: {x: END_DIAMETER, y: END_DIAMETER, z: END_DIAMETER},
-    color: LASER_SEARCH_COLOR,
+    color: LASER_TRIGGER_COLOR,
     ignoreRayIntersection: true,
     visible: true,
     alpha: LASER_ALPHA,
@@ -181,7 +181,7 @@ var triggerEnd = {
 
 var searchPath = {
     type: "line3d",
-    color: LASER_TRIGGER_COLOR,
+    color: LASER_SEARCH_COLOR,
     ignoreRayIntersection: true,
     visible: true,
     alpha: LASER_ALPHA,
@@ -192,7 +192,7 @@ var searchPath = {
 var searchEnd = {
     type: "sphere",
     dimensions: {x: END_DIAMETER, y: END_DIAMETER, z: END_DIAMETER},
-    color: LASER_TRIGGER_COLOR,
+    color: LASER_SEARCH_COLOR,
     ignoreRayIntersection: true,
     visible: true,
     alpha: LASER_ALPHA,

@@ -3442,6 +3442,7 @@ function MyController(hand) {
     };
 
     this.offEnter = function() {
+        var existingSearchDistance = this.searchSphereDistance;
         this.release();
 
         if (hoveredEntityID) {
