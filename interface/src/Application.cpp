@@ -6129,10 +6129,9 @@ bool Application::askToReplaceDomainContent(const QString& url) {
     if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
         // Create a confirmation dialog when this call is made
         const int MAX_CHARACTERS_PER_LINE = 90;
-        static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set." 
-            "If you want to restore your domain from the current domain content, save a manual backup of your"
-            "models.json.gz file, usually stored at:", MAX_CHARACTERS_PER_LINE) + 
-            "\nC:/Users/[username]/AppData/Roaming/High Fidelity/assignment-client/entities/models.json.gz";
+        static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set. "
+            "If you want to save what you have now, create a backup bfore proceeding.For more information about backing up "
+            "and restoring content, visit the documentation page at <link>.", MAX_CHARACTERS_PER_LINE);
 
         bool agreeToReplaceContent = false; // assume false
         agreeToReplaceContent = QMessageBox::Yes == OffscreenUi::question("Are you sure you want to replace this domain's content set?",
