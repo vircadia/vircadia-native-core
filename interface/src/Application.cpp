@@ -6130,7 +6130,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
         // Create a confirmation dialog when this call is made
         const int MAX_CHARACTERS_PER_LINE = 90;
         static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set. "
-            "If you want to save what you have now, create a backup bfore proceeding.For more information about backing up "
+            "If you want to save what you have now, create a backup before proceeding. For more information about backing up "
             "and restoring content, visit the documentation page at <link>.", MAX_CHARACTERS_PER_LINE);
 
         bool agreeToReplaceContent = false; // assume false
