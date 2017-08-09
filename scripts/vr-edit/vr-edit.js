@@ -28,7 +28,8 @@
         TOOL_GROUP = 3,
         TOOL_COLOR = 4,
         TOOL_PICK_COLOR = 5,
-        TOOL_DELETE = 6,
+        TOOL_PHYSICS = 6,
+        TOOL_DELETE = 7,
         toolSelected = TOOL_NONE,
         colorToolColor = { red: 128, green: 128, blue: 128 },
 
@@ -283,6 +284,7 @@
             GROUP_TOOL: toolIcon.GROUP_TOOL,
             COLOR_TOOL: toolIcon.COLOR_TOOL,
             PICK_COLOR_TOOL: toolIcon.PICK_COLOR_TOOL,
+            PHYSICS_TOOL: toolIcon.PHYSICS_TOOL,
             DELETE_TOOL: toolIcon.DELETE_TOOL,
             display: display,
             updateUIEntities: setUIEntities,
@@ -882,6 +884,8 @@
                         toolSelected = TOOL_COLOR;
                         ui.setToolIcon(ui.COLOR_TOOL);
                         ui.setToolColor(colorToolColor);
+                    } else if (toolSelected === TOOL_PHYSICS) {
+                        selection.applyPhysics();
                     } else if (toolSelected === TOOL_DELETE) {
                         setState(EDITOR_HIGHLIGHTING);
                         selection.deleteEntities();
@@ -949,6 +953,8 @@
                         toolSelected = TOOL_COLOR;
                         ui.setToolIcon(ui.COLOR_TOOL);
                         ui.setToolColor(colorToolColor);
+                    } else if (toolSelected === TOOL_PHYSICS) {
+                        selection.applyPhysics();
                     } else if (toolSelected === TOOL_DELETE) {
                         selection.deleteEntities();
                         setState(EDITOR_SEARCHING);
@@ -1308,6 +1314,11 @@
             ui.setToolIcon(ui.PICK_COLOR_TOOL);
             ui.updateUIEntities();
             break;
+        case "physicsTool":
+            toolSelected = TOOL_PHYSICS;
+            ui.setToolIcon(ui.PHYSICS_TOOL);
+            ui.updateUIEntities();
+            break;
         case "deleteTool":
             grouping.clear();
             toolSelected = TOOL_DELETE;
@@ -1332,8 +1343,11 @@
             editors[LEFT_HAND].enableAutoGrab();
             editors[RIGHT_HAND].enableAutoGrab();
             break;
+        case "setSliderValue":
+            print("$$$$$$$ setSliderValue = " + JSON.stringify(parameter));
+            break;
         default:
-            debug("ERROR: Unexpected command in onUICommand()!");
+            debug("ERROR: Unexpected command in onUICommand()! " + command);
         }
     }
 

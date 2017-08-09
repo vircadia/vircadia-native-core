@@ -365,6 +365,10 @@ Selection = function (side) {
         return properties.color;
     }
 
+    function applyPhysics() {
+        // TODO
+    }
+
     function clear() {
         selection = [];
         selectedEntityID = null;
@@ -401,6 +405,7 @@ Selection = function (side) {
         cloneEntities: cloneEntities,
         applyColor: applyColor,
         getColor: getColor,
+        applyPhysics: applyPhysics,
         deleteEntities: deleteEntities,
         clear: clear,
         destroy: destroy

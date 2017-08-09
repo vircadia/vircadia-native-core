@@ -126,6 +126,18 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     ignoreRayIntersection: true,
                     visible: true
                 }
+            },
+            "slider": {
+                overlay: "cube",
+                properties: {
+                    dimensions: { x: 0.03, y: 0.1, z: 0.01 },
+                    localRotation: Quat.ZERO,
+                    color: { red: 128, green: 128, blue: 255 },
+                    alpha: 0.1,
+                    solid: true,
+                    ignoreRayIntersection: false,
+                    visible: true
+                }
             }
         },
 
@@ -297,6 +309,16 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "panel",
                     properties: {
                         localPosition: { x: 0.055, y: 0.0, z: -0.005 }
+                    }
+                },
+                {
+                    id: "physicsSlider",
+                    type: "slider",
+                    properties: {
+                        localPosition: { x: -0.02, y: 0.0, z: -0.005 }
+                    },
+                    callback: {
+                        method: "setSliderValue"
                     }
                 }
             ]

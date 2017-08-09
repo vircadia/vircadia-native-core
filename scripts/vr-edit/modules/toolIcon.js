@@ -20,7 +20,8 @@ ToolIcon = function (side) {
         GROUP_TOOL = 2,
         COLOR_TOOL = 3,
         PICK_COLOR_TOOL = 4,
-        DELETE_TOOL = 5,
+        PHYSICS_TOOL = 5,
+        DELETE_TOOL = 6,
 
         ICON_COLORS = [
             { red: 0, green: 240, blue: 240 },
@@ -28,6 +29,7 @@ ToolIcon = function (side) {
             { red: 220, green: 60, blue: 220 },
             { red: 220, green: 220, blue: 220 },
             { red: 0, green: 0, blue: 0 },
+            { red: 60, green: 60, blue: 240 },
             { red: 240, green: 60, blue: 60 }
         ],
 
@@ -114,6 +116,7 @@ ToolIcon = function (side) {
         GROUP_TOOL: GROUP_TOOL,
         COLOR_TOOL: COLOR_TOOL,
         PICK_COLOR_TOOL: PICK_COLOR_TOOL,
+        PHYSICS_TOOL: PHYSICS_TOOL,
         DELETE_TOOL: DELETE_TOOL,
         setHand: setHand,
         update: update,
