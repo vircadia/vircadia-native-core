@@ -19,6 +19,7 @@
     var MARKETPLACE_URL_INITIAL = MARKETPLACE_URL + "?";  // Append "?" to signal injected script that it's the initial page.
     var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
+    var MARKETPLACE_CHECKOUT_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/Checkout.qml";
 
     var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
     // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
@@ -57,46 +58,6 @@
     function showMarketplace() {
         UserActivityLogger.openedMarketplace();
         tablet.gotoWebScreen(MARKETPLACE_URL_INITIAL, MARKETPLACES_INJECT_SCRIPT_URL);
-        tablet.webEventReceived.connect(function (message) {
-
-            if (message === GOTO_DIRECTORY) {
-                tablet.gotoWebScreen(MARKETPLACES_URL, MARKETPLACES_INJECT_SCRIPT_URL);
-            }
-
-            if (message === QUERY_CAN_WRITE_ASSETS) {
-                tablet.emitScriptEvent(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
-            }
-
-            if (message === WARN_USER_NO_PERMISSIONS) {
-                Window.alert(NO_PERMISSIONS_ERROR_MESSAGE);
-            }
-
-            if (message.slice(0, CLARA_IO_STATUS.length) === CLARA_IO_STATUS) {
-                if (isDownloadBeingCancelled) {
-                    return;
-                }
-
-                var text = message.slice(CLARA_IO_STATUS.length);
-                if (messageBox === null) {
-                    messageBox = Window.openMessageBox(CLARA_DOWNLOAD_TITLE, text, CANCEL_BUTTON, NO_BUTTON);
-                } else {
-                    Window.updateMessageBox(messageBox, CLARA_DOWNLOAD_TITLE, text, CANCEL_BUTTON, NO_BUTTON);
-                }
-                return;
-            }
-
-            if (message.slice(0, CLARA_IO_DOWNLOAD.length) === CLARA_IO_DOWNLOAD) {
-                if (messageBox !== null) {
-                    Window.closeMessageBox(messageBox);
-                    messageBox = null;
-                }
-                return;
-            }
-
-            if (message === CLARA_IO_CANCELLED_DOWNLOAD) {
-                isDownloadBeingCancelled = false;
-            }
-        });
     }
 
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
@@ -124,7 +85,8 @@
     }
 
     function onScreenChanged(type, url) {
-        onMarketplaceScreen = type === "Web" && url === MARKETPLACE_URL_INITIAL
+        onMarketplaceScreen = type === "Web" && url === MARKETPLACE_URL_INITIAL;
+        wireEventBridge(type === "QML" && url === MARKETPLACE_CHECKOUT_QML_PATH);
         // for toolbar mode: change button to active when window is first openend, false otherwise.
         marketplaceButton.editProperties({ isActive: onMarketplaceScreen });
         if (type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1) {
@@ -138,13 +100,119 @@
     tablet.screenChanged.connect(onScreenChanged);
     Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);
 
+    function onMessage(message) {
+        var parsedJsonMessage = JSON.parse(message);
+        if (parsedJsonMessage.type === "CHECKOUT") {
+            tablet.sendToQml({ method: 'updateCheckoutQML', params: parsedJsonMessage });
+            tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
+        } else if (parsedJsonMessage.type === "REQUEST_SETTING") {
+            tablet.emitScriptEvent(JSON.stringify({
+                type: "marketplaces",
+                action: "inspectionModeSetting",
+                data: Settings.getValue("inspectionMode", false)
+            }));
+        }
+
+        if (message === GOTO_DIRECTORY) {
+            tablet.gotoWebScreen(MARKETPLACES_URL, MARKETPLACES_INJECT_SCRIPT_URL);
+        }
+
+        if (message === QUERY_CAN_WRITE_ASSETS) {
+            tablet.emitScriptEvent(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
+        }
+
+        if (message === WARN_USER_NO_PERMISSIONS) {
+            Window.alert(NO_PERMISSIONS_ERROR_MESSAGE);
+        }
+
+        if (message.slice(0, CLARA_IO_STATUS.length) === CLARA_IO_STATUS) {
+            if (isDownloadBeingCancelled) {
+                return;
+            }
+
+            var text = message.slice(CLARA_IO_STATUS.length);
+            if (messageBox === null) {
+                messageBox = Window.openMessageBox(CLARA_DOWNLOAD_TITLE, text, CANCEL_BUTTON, NO_BUTTON);
+            } else {
+                Window.updateMessageBox(messageBox, CLARA_DOWNLOAD_TITLE, text, CANCEL_BUTTON, NO_BUTTON);
+            }
+            return;
+        }
+
+        if (message.slice(0, CLARA_IO_DOWNLOAD.length) === CLARA_IO_DOWNLOAD) {
+            if (messageBox !== null) {
+                Window.closeMessageBox(messageBox);
+                messageBox = null;
+            }
+            return;
+        }
+
+        if (message === CLARA_IO_CANCELLED_DOWNLOAD) {
+            isDownloadBeingCancelled = false;
+        }
+    }
+
+    tablet.webEventReceived.connect(onMessage);
+
     Script.scriptEnding.connect(function () {
         if (onMarketplaceScreen) {
             tablet.gotoHomeScreen();
         }
         tablet.removeButton(marketplaceButton);
         tablet.screenChanged.disconnect(onScreenChanged);
+        tablet.webEventReceived.disconnect(onMessage);
         Entities.canWriteAssetsChanged.disconnect(onCanWriteAssetsChanged);
     });
+
+
+
+    // Function Name: wireEventBridge()
+    //
+    // Description:
+    //   -Used to connect/disconnect the script's response to the tablet's "fromQml" signal. Set the "on" argument to enable or
+    //    disable to event bridge.
+    //
+    // Relevant Variables:
+    //   -hasEventBridge: true/false depending on whether we've already connected the event bridge.
+    var hasEventBridge = false;
+    function wireEventBridge(on) {
+        if (!tablet) {
+            print("Warning in wireEventBridge(): 'tablet' undefined!");
+            return;
+        }
+        if (on) {
+            if (!hasEventBridge) {
+                tablet.fromQml.connect(fromQml);
+                hasEventBridge = true;
+            }
+        } else {
+            if (hasEventBridge) {
+                tablet.fromQml.disconnect(fromQml);
+                hasEventBridge = false;
+            }
+        }
+    }
+
+    // Function Name: fromQml()
+    //
+    // Description:
+    //   -Called when a message is received from Checkout.qml. The "message" argument is what is sent from the Checkout QML
+    //    in the format "{method, params}", like json-rpc.
+    function fromQml(message) {
+        switch (message.method) {
+            case 'checkout_cancelClicked':
+                tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.params, MARKETPLACES_INJECT_SCRIPT_URL);
+                // TODO: Make Marketplace a QML app that's a WebView wrapper so we can use the app stack.
+                // I don't think this is trivial to do since we also want to inject some JS into the DOM.
+                //tablet.popFromStack();
+                break;
+            case 'checkout_buyClicked':
+                print("fromQml: " + JSON.stringify(message));
+                //tablet.popFromStack();
+                break;
+            default:
+                print('Unrecognized message from Checkout.qml: ' + JSON.stringify(message));
+        }
+    }
 
 }()); // END LOCAL_SCOPE
