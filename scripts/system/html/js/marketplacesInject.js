@@ -80,10 +80,9 @@
 
         // Add button links.
 
-        /* Blocks not yet implemented 
         $('#exploreBlocksMarketplace').on('click', function () {
             window.location = "https://vr.google.com/objects";
-        });*/
+        });
         $('#exploreClaraMarketplace').on('click', function () {
             window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
@@ -157,7 +156,7 @@
 
                 // One file request at a time.
                 if (isPreparing) {
-                    console.log("WARNIKNG: Clara.io FBX: Prepare only one download at a time");
+                    console.log("WARNING: Clara.io FBX: Prepare only one download at a time");
                     return;
                 }
 
@@ -347,7 +346,6 @@
         if (location.href.indexOf("google.com/") !== -1) { pageType = BLOCKS; }
         if (location.href.indexOf("clara.io/") !== -1) { pageType = CLARA; }
 
-        //if (pageType != BLOCKS) 
         injectCommonCode(pageType === DIRECTORY);
         switch (pageType) {
             case DIRECTORY:
@@ -358,7 +356,7 @@
                 break;
             case BLOCKS:
                 console.log("in Blocks");
-                //injectBlocksCode();
+                injectBlocksCode();
                 console.log("blocks injection");
                 break;
             case CLARA:

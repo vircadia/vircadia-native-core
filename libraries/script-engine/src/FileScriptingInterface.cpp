@@ -34,6 +34,10 @@ FileScriptingInterface::FileScriptingInterface(QObject* parent) : QObject(parent
 
 void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool isZip) {
     qCDebug(scriptengine) << "Url that was downloaded: " + url.toString();
+    if ((url.toString()).contains("vr.google.com/downloads")) {
+
+        path = downloadBlocksZip(url);
+    }
     qCDebug(scriptengine) << "Path where download is saved: " + path;
     QString fileName = "/" + path.section("/", -1);
     QString tempDir = path;
@@ -52,10 +56,10 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool
     }
 
     QStringList fileList = unzipFile(path, tempDir);
-    QString filename = QUrl::fromLocalFile(fileList.first()).toString();
+    //QString filename = QUrl::fromLocalFile(fileList.first()).toString();
     
-    if (filename != "") {
-        qCDebug(scriptengine) << "File to upload: " + filename;
+    if (!fileList.isEmpty()) {
+        qCDebug(scriptengine) << "File to upload: " + fileList.first();
     }
     else {
         qCDebug(scriptengine) << "Unzip failed";
@@ -109,6 +113,18 @@ QString FileScriptingInterface::convertUrlToPath(QUrl url) {
     newUrl = oldUrl.section("filename=", 1, 1);
     qCDebug(scriptengine) << "Filename should be: " + newUrl;
     return newUrl;
+}
+
+// handles a download from Blocks in the marketplace
+QString FileScriptingInterface::downloadBlocksZip(QUrl url) {
+    qCDebug(scriptengine) << "Made it to the download blocks! " << url.toString();
+
+    /*auto request = DependencyManager::get<ResourceManager>()->createResourceRequest(nullptr, url);
+    connect(request, &ResourceRequest::finished, this, [this, url] {
+        unzipFile(url, ""); // so intellisense isn't mad
+    });
+    request->send();*/
+    return url.toString();
 }
 
 // this function is not in use

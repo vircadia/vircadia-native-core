@@ -2774,18 +2774,23 @@ bool Application::importSVOFromURL(const QString& urlString) {
     return true;
 }
 
+bool Application::importFromZIP(const QString& filePath) {
+    qDebug() << "A zip file has been dropped in: " << filePath;
+    QUrl empty;
+    // handle Blocks download from Marketplace
+    if (filePath.contains("vr.google.com/downloads")) {
+        qApp->getFileDownloadInterface()->runUnzip("", filePath, true, true);
+    } else {
+        qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true);
+    }
+    return true;
+}
+
 void Application::onPresent(quint32 frameCount) {
     if (shouldPaint()) {
         postEvent(this, new QEvent(static_cast<QEvent::Type>(Idle)), Qt::HighEventPriority);
         postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
     }
-}
-
-bool Application::importFromZIP(const QString& filePath) {
-    qDebug() << "A zip file has been dropped in: " << filePath;
-    QUrl empty;
-    qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true);
-    return true;
 }
 
 bool _renderRequested { false };

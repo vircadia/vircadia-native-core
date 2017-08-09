@@ -34,6 +34,7 @@ private:
     bool isTempDir(QString tempDir);
     QStringList unzipFile(QString path, QString tempDir);
     void recursiveFileScan(QFileInfo file, QString* dirName);
+    QString downloadBlocksZip(QUrl url);
     void downloadZip(QString path, const QString link);
 
 };
