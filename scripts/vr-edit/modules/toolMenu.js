@@ -128,6 +128,19 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
+            "image": {
+                overlay: "image3d",
+                properties: {
+                    dimensions: { x: 0.1, y: 0.1 },
+                    localPosition: { x: 0, y: 0, z: 0 },
+                    localRotation: Quat.ZERO,
+                    color: { red: 255, green: 255, blue: 255 },
+                    alpha: 1.0,
+                    ignoreRayIntersection: true,
+                    isFacingAvatar: false,
+                    visible: true
+                }
+            },
             "barSlider": {
                 overlay: "cube",
                 properties: {
@@ -526,6 +539,9 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 properties = Object.clone(UI_ELEMENTS[optionsItems[i].type].properties);
                 properties = Object.merge(properties, optionsItems[i].properties);
                 properties.parentID = parentID;
+                if (properties.url) {
+                    properties.url = Script.resolvePath(properties.url);
+                }
                 if (optionsItems[i].setting) {
                     optionsSettings[optionsItems[i].id] = { key: optionsItems[i].setting.key };
                     value = Settings.getValue(optionsItems[i].setting.key);
