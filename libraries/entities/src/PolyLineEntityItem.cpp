@@ -182,15 +182,27 @@ void PolyLineEntityItem::calculateScaleAndRegistrationPoint() {
 			EntityItem::setRegistrationPoint(glm::vec3(0.0f, 0.0f, 0.0f));
 			return;
 		}
+        
+        // Find the max width of the strokes so we can account for that in the size of the bounding box
+        float maxWidth = 0.0f;
+        for (int i = 0; i < _strokeWidths.size(); ++i) {
+            if (_strokeWidths.at(i) > maxWidth) {
+                maxWidth = _strokeWidths.at(i);
+                qCDebug(entities) << "TTTTT " << maxWidth;
+            }
+        }
 
 		glm::vec3 result;
-		result.x = fabsf(high.x) + fabsf(low.x);
-		result.y = fabsf(high.y) + fabsf(low.y);
-		result.z = fabsf(high.z) + fabsf(low.z);
+        float halfLineWidth = (maxWidth > 0.0f) ? maxWidth * 0.5f : 0.0f;
+        result.x = fabsf(high.x) + fabsf(low.x) + halfLineWidth;
+        result.y = fabsf(high.y) + fabsf(low.y) + halfLineWidth;
+        result.z = fabsf(high.z) + fabsf(low.z) + halfLineWidth;
 		SpatiallyNestable::setScale(result);
 
+        // Center the poly line in the bounding box
 		glm::vec3 point = _points.at(0);
 		glm::vec3 startPointInScaleSpace = point - low;
+        startPointInScaleSpace += glm::vec3(halfLineWidth * 0.5f);
 		glm::vec3 newRegistrationPoint = startPointInScaleSpace / result;
 		EntityItem::setRegistrationPoint(newRegistrationPoint);
 	} else {
