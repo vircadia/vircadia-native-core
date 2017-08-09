@@ -3661,557 +3661,266 @@ SelectionDisplay = (function() {
         }
     }
 
+    function helperRotationHandleOnBegin( rotMode, rotNormal, rotCenter, handleRotation ) {
+        var wantDebug = false;
+        if (wantDebug) {
+            print("================== " + rotMode + "(onBegin) -> =======================");
+        }
+
+        SelectionManager.saveProperties();
+        initialPosition = SelectionManager.worldPosition;
+        mode = rotMode;
+        rotationNormal = rotNormal;
+
+        // Size the overlays to the current selection size
+        var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
+        var halfDimensions = Vec3.multiply(selectionManager.worldDimensions, 0.5);
+        innerRadius = diagonal;
+        outerRadius = diagonal * 1.15;
+        var innerAlpha = 0.2;
+        var outerAlpha = 0.2;
+        Overlays.editOverlay(rotateOverlayInner, {
+            visible: true,
+            rotation: handleRotation,
+            position: rotCenter,
+            size: innerRadius,
+            innerRadius: 0.9,
+            startAt: 0,
+            endAt: 360,
+            alpha: innerAlpha,
+        });
+
+        Overlays.editOverlay(rotateOverlayOuter, {
+            visible: true,
+            rotation: handleRotation,
+            position: rotCenter,
+            size: outerRadius,
+            innerRadius: 0.9,
+            startAt: 0,
+            endAt: 360,
+            alpha: outerAlpha,
+        });
+
+        Overlays.editOverlay(rotateOverlayCurrent, {
+            visible: true,
+            rotation: handleRotation,
+            position: rotCenter,
+            size: outerRadius,
+            startAt: 0,
+            endAt: 0,
+            innerRadius: 0.9,
+        });
+
+        Overlays.editOverlay(rotateOverlayTarget, {
+            visible: true,
+            rotation: handleRotation,
+            position: rotCenter
+        });
+
+        Overlays.editOverlay(rotationDegreesDisplay, {
+            visible: true,
+        });
+
+        updateRotationDegreesOverlay(0, handleRotation, rotCenter);
+        if (wantDebug) {
+            print("================== " + rotMode + "(onBegin) <- =======================");
+        }
+    }//--End_Function( helperRotationHandleOnBegin )
+
+    function helperRotationHandleOnMove( event, rotMode, rotZero, rotCenter, handleRotation ) {
+
+        if ( ! (rotMode == "ROTATE_YAW" || rotMode == "ROTATE_PITCH" || rotMode == "ROTATE_ROLL") ) {
+            print("ERROR( handleRotationHandleOnMove ) - Encountered Unknown/Invalid RotationMode: " + rotMode );
+
+            //--EARLY EXIT--
+            return;
+        } else if ( ! rotZero ) {
+            print("ERROR( handleRotationHandleOnMove ) - Invalid RotationZero Specified" );
+
+            //--EARLY EXIT--
+            return;
+        }
+
+        var wantDebug = false;
+        if (wantDebug) {
+            print("================== "+ rotMode + "(onMove) -> =======================");
+            Vec3.print("    rotZero: ", rotZero);
+        }
+        var pickRay = generalComputePickRay(event.x, event.y);
+        Overlays.editOverlay(selectionBox, {
+            visible: false
+        });
+        Overlays.editOverlay(baseOfEntityProjectionOverlay, {
+            visible: false
+        });
+
+        var result = Overlays.findRayIntersection(pickRay, true, [rotateOverlayTarget]);
+        if (result.intersects) {
+            var centerToZero = Vec3.subtract(rotZero, rotCenter);
+            var centerToIntersect = Vec3.subtract(result.intersection, rotCenter);
+            if (wantDebug) {
+                Vec3.print("    RotationNormal: ", rotationNormal);
+            }
+            // Note: orientedAngle which wants normalized centerToZero and centerToIntersect
+            //             handles that internally, so it's to pass unnormalized vectors here.
+            var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
+
+            var distanceFromCenter = Vec3.distance(rotCenter, result.intersection);
+            var snapToInner = distanceFromCenter < innerRadius;
+            var snapAngle = snapToInner ? innerSnapAngle : 1.0;
+            angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
+
+            var rotChange = null;
+            switch( rotMode ) {
+                case "ROTATE_YAW":
+                    rotChange = Quat.fromVec3Degrees( {x: 0, y: angleFromZero, z: 0} );
+                break;
+                case "ROTATE_PITCH":
+                    rotChange = Quat.fromVec3Degrees( {x: angleFromZero, y: 0, z: 0} );
+                break;
+                case "ROTATE_ROLL":
+                    rotChange = Quat.fromVec3Degrees( {x: 0, y: 0, z: angleFromZero} );
+                break;
+            }
+            updateSelectionsRotation( rotChange );
+
+            updateRotationDegreesOverlay(angleFromZero, handleRotation, rotCenter);
+
+            // update the rotation display accordingly...
+            var startAtCurrent = 0;
+            var endAtCurrent = angleFromZero;
+            var startAtRemainder = angleFromZero;
+            var endAtRemainder = 360;
+            if (angleFromZero < 0) {
+                startAtCurrent = 360 + angleFromZero;
+                endAtCurrent = 360;
+                startAtRemainder = 0;
+                endAtRemainder = startAtCurrent;
+            }
+            if (snapToInner) {
+                Overlays.editOverlay(rotateOverlayOuter, {
+                    startAt: 0,
+                    endAt: 360
+                });
+                Overlays.editOverlay(rotateOverlayInner, {
+                    startAt: startAtRemainder,
+                    endAt: endAtRemainder
+                });
+                Overlays.editOverlay(rotateOverlayCurrent, {
+                    startAt: startAtCurrent,
+                    endAt: endAtCurrent,
+                    size: innerRadius,
+                    majorTickMarksAngle: innerSnapAngle,
+                    minorTickMarksAngle: 0,
+                    majorTickMarksLength: -0.25,
+                    minorTickMarksLength: 0,
+                });
+            } else {
+                Overlays.editOverlay(rotateOverlayInner, {
+                    startAt: 0,
+                    endAt: 360
+                });
+                Overlays.editOverlay(rotateOverlayOuter, {
+                    startAt: startAtRemainder,
+                    endAt: endAtRemainder
+                });
+                Overlays.editOverlay(rotateOverlayCurrent, {
+                    startAt: startAtCurrent,
+                    endAt: endAtCurrent,
+                    size: outerRadius,
+                    majorTickMarksAngle: 45.0,
+                    minorTickMarksAngle: 5,
+                    majorTickMarksLength: 0.25,
+                    minorTickMarksLength: 0.1,
+                });
+            }
+        }//--End_If( results.intersects )
+
+        if (wantDebug) {
+            print("================== "+ rotMode + "(onMove) <- =======================");
+        }
+    }//--End_Function( helperRotationHandleOnMove )
+
+    function helperRotationHandleOnEnd() {
+        var wantDebug = false;
+        if (wantDebug) {
+            print("================== " + mode + "(onEnd) -> =======================");            
+        }
+        Overlays.editOverlay(rotateOverlayInner, {
+            visible: false
+        });
+        Overlays.editOverlay(rotateOverlayOuter, {
+            visible: false
+        });
+        Overlays.editOverlay(rotateOverlayCurrent, {
+            visible: false
+        });
+        Overlays.editOverlay(rotationDegreesDisplay, {
+            visible: false
+        });
+
+        pushCommandForSelections();
+
+        if (wantDebug) {
+            print("================== " + mode + "(onEnd) <- =======================");            
+        }
+    }//--End_Function( helperRotationHandleOnEnd )
+
+
     // YAW GRABBER TOOL DEFINITION
     var initialPosition = SelectionManager.worldPosition;
     addGrabberTool(yawHandle, {
         mode: "ROTATE_YAW",
-        onBegin: function(event) {
-            var wantDebug = false;
-            if (wantDebug) {
-                print("================== HANDLE_YAW(Beg) -> =======================");
-            }
-            SelectionManager.saveProperties();
-            initialPosition = SelectionManager.worldPosition;
-            mode = "ROTATE_YAW";
-            rotationNormal = yawNormal;
+        onBegin: function(event, zeroPoint) {
             //note: It's expected that the intersection is passed when this is called.
-            if (arguments.length >= 2 ) {
-                yawZero = arguments[ 1 ];
-            } else {
-                print("ERROR( yawHandle.onBegin ) - Intersection wasn't passed!");
-            }
+            //      validity will be checked later as a pre-requisite for onMove handling.
+            yawZero = zeroPoint;
 
-            if (wantDebug) {
-                Vec3.print("    yawZero: ", yawZero);
-            }
-
-            // Size the overlays to the current selection size
-            var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
-            var halfDimensions = Vec3.multiply(selectionManager.worldDimensions, 0.5);
-            innerRadius = diagonal;
-            outerRadius = diagonal * 1.15;
-            var innerAlpha = 0.2;
-            var outerAlpha = 0.2;
-            Overlays.editOverlay(rotateOverlayInner, {
-                visible: true,
-                rotation: yawHandleRotation,
-                position: yawCenter,
-                size: innerRadius,
-                innerRadius: 0.9,
-                startAt: 0,
-                endAt: 360,
-                alpha: innerAlpha,
-            });
-
-            Overlays.editOverlay(rotateOverlayOuter, {
-                visible: true,
-                rotation: yawHandleRotation,
-                position: yawCenter,
-                size: outerRadius,
-                innerRadius: 0.9,
-                startAt: 0,
-                endAt: 360,
-                alpha: outerAlpha,
-            });
-
-            Overlays.editOverlay(rotateOverlayCurrent, {
-                visible: true,
-                rotation: yawHandleRotation,
-                position: yawCenter,
-                size: outerRadius,
-                startAt: 0,
-                endAt: 0,
-                innerRadius: 0.9,
-            });
-
-            Overlays.editOverlay(rotateOverlayTarget, {
-                visible: true,
-                rotation: yawHandleRotation,
-                position: yawCenter
-            });
-
-            Overlays.editOverlay(rotationDegreesDisplay, {
-                visible: true,
-            });
-
-            updateRotationDegreesOverlay(0, yawHandleRotation, yawCenter);
-            if(wantDebug){
-                print("================== HANDLE_YAW(Beg) <- =======================");
-            }
+            helperRotationHandleOnBegin( "ROTATE_YAW", yawNormal, yawCenter, yawHandleRotation );
         },
         onEnd: function(event, reason) {
-            print("================== HANDLE_YAW(End) -> =======================");
-            Overlays.editOverlay(rotateOverlayInner, {
-                visible: false
-            });
-            Overlays.editOverlay(rotateOverlayOuter, {
-                visible: false
-            });
-            Overlays.editOverlay(rotateOverlayCurrent, {
-                visible: false
-            });
-            Overlays.editOverlay(rotationDegreesDisplay, {
-                visible: false
-            });
-
-            pushCommandForSelections();
-            print("================== HANDLE_YAW(End) <- =======================");
+            helperRotationHandleOnEnd();
         },
         onMove: function(event) {
-            print("================== HANDLE_YAW(Mve) -> =======================");
-            var pickRay = generalComputePickRay(event.x, event.y);
-            Overlays.editOverlay(selectionBox, {
-                visible: false
-            });
-            Overlays.editOverlay(baseOfEntityProjectionOverlay, {
-                visible: false
-            });
-
-            var result = Overlays.findRayIntersection(pickRay, true, [rotateOverlayTarget]);
-
-            if (result.intersects) {
-                var center = yawCenter;
-                var zero = yawZero;
-                var centerToZero = Vec3.subtract(zero, center);
-                var centerToIntersect = Vec3.subtract(result.intersection, center);
-                // Note: orientedAngle which wants normalized centerToZero and centerToIntersect
-                //             handles that internally, so it's to pass unnormalized vectors here.
-                print("    RotNormal - X: " + rotationNormal.x + " Y: " + rotationNormal.y + " Z: " + rotationNormal.z);
-                var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
-                var distanceFromCenter = Vec3.distance(center, result.intersection);
-                var snapToInner = distanceFromCenter < innerRadius;
-                var snapAngle = snapToInner ? innerSnapAngle : 1.0;
-                angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
-                var yawChange = Quat.fromVec3Degrees({
-                    x: 0,
-                    y: angleFromZero,
-                    z: 0
-                });
-
-                updateSelectionsRotation( yawChange );
-
-                updateRotationDegreesOverlay(angleFromZero, yawHandleRotation, yawCenter);
-
-                // update the rotation display accordingly...
-                var startAtCurrent = 0;
-                var endAtCurrent = angleFromZero;
-                var startAtRemainder = angleFromZero;
-                var endAtRemainder = 360;
-                if (angleFromZero < 0) {
-                    startAtCurrent = 360 + angleFromZero;
-                    endAtCurrent = 360;
-                    startAtRemainder = 0;
-                    endAtRemainder = startAtCurrent;
-                }
-                if (snapToInner) {
-                    Overlays.editOverlay(rotateOverlayOuter, {
-                        startAt: 0,
-                        endAt: 360
-                    });
-                    Overlays.editOverlay(rotateOverlayInner, {
-                        startAt: startAtRemainder,
-                        endAt: endAtRemainder
-                    });
-                    Overlays.editOverlay(rotateOverlayCurrent, {
-                        startAt: startAtCurrent,
-                        endAt: endAtCurrent,
-                        size: innerRadius,
-                        majorTickMarksAngle: innerSnapAngle,
-                        minorTickMarksAngle: 0,
-                        majorTickMarksLength: -0.25,
-                        minorTickMarksLength: 0,
-                    });
-                } else {
-                    Overlays.editOverlay(rotateOverlayInner, {
-                        startAt: 0,
-                        endAt: 360
-                    });
-                    Overlays.editOverlay(rotateOverlayOuter, {
-                        startAt: startAtRemainder,
-                        endAt: endAtRemainder
-                    });
-                    Overlays.editOverlay(rotateOverlayCurrent, {
-                        startAt: startAtCurrent,
-                        endAt: endAtCurrent,
-                        size: outerRadius,
-                        majorTickMarksAngle: 45.0,
-                        minorTickMarksAngle: 5,
-                        majorTickMarksLength: 0.25,
-                        minorTickMarksLength: 0.1,
-                    });
-                }
-
-            }
-            print("================== HANDLE_YAW(Mve) <- =======================");
+            helperRotationHandleOnMove( event, "ROTATE_YAW", yawZero, yawCenter, yawHandleRotation );
         }
     });
+
 
     // PITCH GRABBER TOOL DEFINITION
     addGrabberTool(pitchHandle, {
         mode: "ROTATE_PITCH",
-        onBegin: function (event) {
-            var wantDebug = false;
-            if (wantDebug){
-                print("================== HANDLE_PITCH(Beg) -> =======================");
-            }
-            SelectionManager.saveProperties();
-            initialPosition = SelectionManager.worldPosition;
-            mode = "ROTATE_PITCH";
-            rotationNormal = pitchNormal;
+        onBegin: function (event, zeroPoint) {
             //note: It's expected that the intersection is passed when this is called.
-            if (arguments.length >= 2 ) {
-                pitchZero = arguments[ 1 ];
-            } else {
-                print("ERROR( pitchHandle.onBegin ) - Intersection wasn't passed!");
-            }
-            
-            if (wantDebug) {
-                Vec3.print("    pitchZero: ", pitchZero);
-            }
+            //      validity will be checked later as a pre-requisite for onMove handling.
+            pitchZero = zeroPoint;
 
-            // Size the overlays to the current selection size
-            var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
-            var halfDimensions = Vec3.multiply(selectionManager.worldDimensions, 0.5);
-            innerRadius = diagonal;
-            outerRadius = diagonal * 1.15;
-            var innerAlpha = 0.2;
-            var outerAlpha = 0.2;
-            Overlays.editOverlay(rotateOverlayInner, {
-                visible: true,
-                rotation: pitchHandleRotation,
-                position: pitchCenter,
-                size: innerRadius,
-                innerRadius: 0.9,
-                startAt: 0,
-                endAt: 360,
-                alpha: innerAlpha
-            });
-
-            Overlays.editOverlay(rotateOverlayOuter, {
-                visible: true,
-                rotation: pitchHandleRotation,
-                position: pitchCenter,
-                size: outerRadius,
-                innerRadius: 0.9,
-                startAt: 0,
-                endAt: 360,
-                alpha: outerAlpha,
-            });
-
-            Overlays.editOverlay(rotateOverlayCurrent, {
-                visible: true,
-                rotation: pitchHandleRotation,
-                position: pitchCenter,
-                size: outerRadius,
-                startAt: 0,
-                endAt: 0,
-                innerRadius: 0.9,
-            });
-
-            Overlays.editOverlay(rotationDegreesDisplay, {
-                visible: true,
-            });
-
-            Overlays.editOverlay(rotateOverlayTarget, {
-                visible: true,
-                rotation: pitchHandleRotation,
-                position: pitchCenter
-            });
-
-            updateRotationDegreesOverlay(0, pitchHandleRotation, pitchCenter);
-            if(wantDebug){
-                print("================== HANDLE_PITCH(Beg) <- =======================");
-            }
+            helperRotationHandleOnBegin( "ROTATE_PITCH", pitchNormal, pitchCenter, pitchHandleRotation );
         },
         onEnd: function(event, reason) {
-            print("================== HANDLE_PITCH(End) -> =======================");
-            Overlays.editOverlay(rotateOverlayInner, {
-                visible: false
-            });
-            Overlays.editOverlay(rotateOverlayOuter, {
-                visible: false
-            });
-            Overlays.editOverlay(rotateOverlayCurrent, {
-                visible: false
-            });
-            Overlays.editOverlay(rotationDegreesDisplay, {
-                visible: false
-            });
-
-            pushCommandForSelections();
-            print("================== HANDLE_PITCH(End) <- =======================");
+            helperRotationHandleOnEnd();
         },
         onMove: function (event) {
-            print("================== HANDLE_PITCH(Mve) -> =======================");
-            var pickRay = generalComputePickRay(event.x, event.y);
-            Overlays.editOverlay(selectionBox, {
-                visible: false
-            });
-            Overlays.editOverlay(baseOfEntityProjectionOverlay, {
-                visible: false
-            });
-            var result = Overlays.findRayIntersection(pickRay, true, [rotateOverlayTarget]);
-
-            if (result.intersects) {
-                var center = pitchCenter;
-                var zero = pitchZero;
-                var centerToZero = Vec3.subtract(zero, center);
-                var centerToIntersect = Vec3.subtract(result.intersection, center);
-                // Note: orientedAngle which wants normalized centerToZero & centerToIntersect, handles
-                //       this internally, so it's fine to pass non-normalized versions here.
-                print("    RotNormal - X: " + rotationNormal.x + " Y: " + rotationNormal.y + " Z: " + rotationNormal.z);
-                var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
-
-                var distanceFromCenter = Vec3.distance(center, result.intersection);
-                var snapToInner = distanceFromCenter < innerRadius;
-                var snapAngle = snapToInner ? innerSnapAngle : 1.0;
-                angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
-
-                var pitchChange = Quat.fromVec3Degrees({
-                    x: angleFromZero,
-                    y: 0,
-                    z: 0
-                });
-
-                updateSelectionsRotation( pitchChange );
-
-                updateRotationDegreesOverlay(angleFromZero, pitchHandleRotation, pitchCenter);
-
-                // update the rotation display accordingly...
-                var startAtCurrent = 0;
-                var endAtCurrent = angleFromZero;
-                var startAtRemainder = angleFromZero;
-                var endAtRemainder = 360;
-                if (angleFromZero < 0) {
-                    startAtCurrent = 360 + angleFromZero;
-                    endAtCurrent = 360;
-                    startAtRemainder = 0;
-                    endAtRemainder = startAtCurrent;
-                }
-                if (snapToInner) {
-                    Overlays.editOverlay(rotateOverlayOuter, {
-                        startAt: 0,
-                        endAt: 360
-                    });
-                    Overlays.editOverlay(rotateOverlayInner, {
-                        startAt: startAtRemainder,
-                        endAt: endAtRemainder
-                    });
-                    Overlays.editOverlay(rotateOverlayCurrent, {
-                        startAt: startAtCurrent,
-                        endAt: endAtCurrent,
-                        size: innerRadius,
-                        majorTickMarksAngle: innerSnapAngle,
-                        minorTickMarksAngle: 0,
-                        majorTickMarksLength: -0.25,
-                        minorTickMarksLength: 0,
-                    });
-                } else {
-                    Overlays.editOverlay(rotateOverlayInner, {
-                        startAt: 0,
-                        endAt: 360
-                    });
-                    Overlays.editOverlay(rotateOverlayOuter, {
-                        startAt: startAtRemainder,
-                        endAt: endAtRemainder
-                    });
-                    Overlays.editOverlay(rotateOverlayCurrent, {
-                        startAt: startAtCurrent,
-                        endAt: endAtCurrent,
-                        size: outerRadius,
-                        majorTickMarksAngle: 45.0,
-                        minorTickMarksAngle: 5,
-                        majorTickMarksLength: 0.25,
-                        minorTickMarksLength: 0.1,
-                    });
-                }
-            }
-            print("================== HANDLE_PITCH(Mve) <- =======================");
+            helperRotationHandleOnMove( event, "ROTATE_PITCH", pitchZero, pitchCenter, pitchHandleRotation );
         }
     });
+
 
     // ROLL GRABBER TOOL DEFINITION
     addGrabberTool(rollHandle, {
         mode: "ROTATE_ROLL",
-        onBegin: function (event) {
-            var wantDebug = false;
-            if(wantDebug){
-                print("================== HANDLE_ROLL(Beg) -> =======================");
-            }
-            SelectionManager.saveProperties();
-            initialPosition = SelectionManager.worldPosition;
-            mode = "ROTATE_ROLL";
-            rotationNormal = rollNormal;
+        onBegin: function (event, zeroPoint) {
             //note: It's expected that the intersection is passed when this is called.
-            if (arguments.length >= 2 ) {
-                rollZero = arguments[ 1 ];
-            } else {
-                print("ERROR( rollHandle.onBegin ) - Intersection wasn't passed!");
-            }
-            
-            if (wantDebug) {
-                Vec3.print("    rollZero: ", rollZero);
-            }
+            //      validity will be checked later as a pre-requisite for onMove handling.
+            rollZero = zeroPoint;
 
-            // Size the overlays to the current selection size
-            var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
-            var halfDimensions = Vec3.multiply(selectionManager.worldDimensions, 0.5);
-            innerRadius = diagonal;
-            outerRadius = diagonal * 1.15;
-            var innerAlpha = 0.2;
-            var outerAlpha = 0.2;
-            Overlays.editOverlay(rotateOverlayInner, {
-                visible: true,
-                rotation: rollHandleRotation,
-                position: rollCenter,
-                size: innerRadius,
-                innerRadius: 0.9,
-                startAt: 0,
-                endAt: 360,
-                alpha: innerAlpha
-            });
-
-            Overlays.editOverlay(rotateOverlayOuter, {
-                visible: true,
-                rotation: rollHandleRotation,
-                position: rollCenter,
-                size: outerRadius,
-                innerRadius: 0.9,
-                startAt: 0,
-                endAt: 360,
-                alpha: outerAlpha,
-            });
-
-            Overlays.editOverlay(rotateOverlayCurrent, {
-                visible: true,
-                rotation: rollHandleRotation,
-                position: rollCenter,
-                size: outerRadius,
-                startAt: 0,
-                endAt: 0,
-                innerRadius: 0.9,
-            });
-
-            Overlays.editOverlay(rotationDegreesDisplay, {
-                visible: true,
-            });
-
-            Overlays.editOverlay(rotateOverlayTarget, {
-                visible: true,
-                rotation: rollHandleRotation,
-                position: rollCenter
-            });
-
-            updateRotationDegreesOverlay(0, rollHandleRotation, rollCenter);
-            if(wantDebug){
-                print("================== HANDLE_ROLL(Beg) <- =======================");
-            }
+            helperRotationHandleOnBegin( "ROTATE_ROLL", rollNormal, rollCenter, rollHandleRotation );
         },
         onEnd: function (event, reason) {
-            print("================== HANDLE_ROLL(End) -> =======================");
-            Overlays.editOverlay(rotateOverlayInner, {
-                visible: false
-            });
-            Overlays.editOverlay(rotateOverlayOuter, {
-                visible: false
-            });
-            Overlays.editOverlay(rotateOverlayCurrent, {
-                visible: false
-            });
-            Overlays.editOverlay(rotationDegreesDisplay, {
-                visible: false
-            });
-
-            pushCommandForSelections();
-            print("================== HANDLE_ROLL(End) <- =======================");
+            helperRotationHandleOnEnd();
         },
         onMove: function(event) {
-            print("================== HANDLE_ROLL(Mve) -> =======================");
-            var pickRay = generalComputePickRay(event.x, event.y);
-            Overlays.editOverlay(selectionBox, {
-                visible: false
-            });
-            Overlays.editOverlay(baseOfEntityProjectionOverlay, {
-                visible: false
-            });
-            var result = Overlays.findRayIntersection(pickRay, true, [rotateOverlayTarget]);
-
-            if (result.intersects) {
-                var center = rollCenter;
-                var zero = rollZero;
-                var centerToZero = Vec3.subtract(zero, center);
-                var centerToIntersect = Vec3.subtract(result.intersection, center);
-                // Note: orientedAngle which wants normalized centerToZero & centerToIntersect, handles
-                //       this internally, so it's fine to pass non-normalized versions here.
-                print("    RotNormal - X: " + rotationNormal.x + " Y: " + rotationNormal.y + " Z: " + rotationNormal.z);
-                var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
-
-                var distanceFromCenter = Vec3.distance(center, result.intersection);
-                var snapToInner = distanceFromCenter < innerRadius;
-                var snapAngle = snapToInner ? innerSnapAngle : 1.0;
-                angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
-
-                var rollChange = Quat.fromVec3Degrees({
-                    x: 0,
-                    y: 0,
-                    z: angleFromZero
-                });
-
-                updateSelectionsRotation( rollChange );
-
-                updateRotationDegreesOverlay(angleFromZero, rollHandleRotation, rollCenter);
-
-                // update the rotation display accordingly...
-                var startAtCurrent = 0;
-                var endAtCurrent = angleFromZero;
-                var startAtRemainder = angleFromZero;
-                var endAtRemainder = 360;
-                if (angleFromZero < 0) {
-                    startAtCurrent = 360 + angleFromZero;
-                    endAtCurrent = 360;
-                    startAtRemainder = 0;
-                    endAtRemainder = startAtCurrent;
-                }
-                if (snapToInner) {
-                    Overlays.editOverlay(rotateOverlayOuter, {
-                        startAt: 0,
-                        endAt: 360
-                    });
-                    Overlays.editOverlay(rotateOverlayInner, {
-                        startAt: startAtRemainder,
-                        endAt: endAtRemainder
-                    });
-                    Overlays.editOverlay(rotateOverlayCurrent, {
-                        startAt: startAtCurrent,
-                        endAt: endAtCurrent,
-                        size: innerRadius,
-                        majorTickMarksAngle: innerSnapAngle,
-                        minorTickMarksAngle: 0,
-                        majorTickMarksLength: -0.25,
-                        minorTickMarksLength: 0,
-                    });
-                } else {
-                    Overlays.editOverlay(rotateOverlayInner, {
-                        startAt: 0,
-                        endAt: 360
-                    });
-                    Overlays.editOverlay(rotateOverlayOuter, {
-                        startAt: startAtRemainder,
-                        endAt: endAtRemainder
-                    });
-                    Overlays.editOverlay(rotateOverlayCurrent, {
-                        startAt: startAtCurrent,
-                        endAt: endAtCurrent,
-                        size: outerRadius,
-                        majorTickMarksAngle: 45.0,
-                        minorTickMarksAngle: 5,
-                        majorTickMarksLength: 0.25,
-                        minorTickMarksLength: 0.1,
-                    });
-                }
-            }
-            print("================== HANDLE_ROLL(Mve) <- =======================");
-
+            helperRotationHandleOnMove( event, "ROTATE_ROLL", rollZero, rollCenter, rollHandleRotation );
         }
     });
 
