@@ -196,8 +196,8 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
         
         gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("historyTexture"), 0));
-        slotBindings.insert(gpu::Shader::Binding(std::string("colorTexture"), 1));
+       // slotBindings.insert(gpu::Shader::Binding(std::string("historyTexture"), 0));
+        slotBindings.insert(gpu::Shader::Binding(std::string("colorTexture"), 0));
         
         gpu::Shader::makeProgram(*program, slotBindings);
         
@@ -206,7 +206,8 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         
         PrepareStencil::testMask(*state);
-                
+        state->setBlendFunction(true, gpu::State::BlendArg::SRC_ALPHA, gpu::State::BlendOp::BLEND_OP_ADD, gpu::State::BlendArg::INV_SRC_ALPHA);
+
         // Good to go add the brand new pipeline
         _antialiasingPipeline = gpu::Pipeline::create(program, state);
     }
@@ -228,7 +229,6 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         PrepareStencil::testMask(*state);
 
-       state->setBlendFunction(true, gpu::State::BlendArg::SRC_ALPHA, gpu::State::BlendOp::BLEND_OP_ADD, gpu::State::BlendArg::INV_SRC_ALPHA );
     
         // Good to go add the brand new pipeline
         _blendPipeline = gpu::Pipeline::create(program, state);
@@ -246,7 +246,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
     int height = sourceBuffer->getHeight();
 
     if (_antialiasingBuffer) {
-        if (_antialiasingBuffer->getSize() != uvec2(width, height) || (sourceBuffer && (_antialiasingBuffer->getRenderBuffer(1) != sourceBuffer->getRenderBuffer(0)))) {
+        if (_antialiasingBuffer->getSize() != uvec2(width, height)) {// || (sourceBuffer && (_antialiasingBuffer->getRenderBuffer(1) != sourceBuffer->getRenderBuffer(0)))) {
             _antialiasingBuffer.reset();
         }
     }
@@ -258,7 +258,6 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
         _antialiasingTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, defaultSampler);
         _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
-        _antialiasingBuffer->setRenderBuffer(1, sourceBuffer->getRenderBuffer(0));
     }
 
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
@@ -267,20 +266,16 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 
         // TAA step
         getAntialiasingPipeline();
-        batch.setResourceTexture(0, _antialiasingTexture);
-        batch.setResourceTexture(1, sourceBuffer->getRenderBuffer(0));
+        batch.setResourceTexture(0, sourceBuffer->getRenderBuffer(0));
         batch.setFramebuffer(_antialiasingBuffer);
         batch.setPipeline(getAntialiasingPipeline());
         batch.draw(gpu::TRIANGLE_STRIP, 4);
-        batch.setFramebuffer(sourceBuffer);
 
         // Blend step
-     //   batch.setResourceTexture(0, _antialiasingTexture);
-   /*     batch.setResourceTexture(1, nullptr);
+        batch.setResourceTexture(0, _antialiasingTexture);
         batch.setFramebuffer(sourceBuffer);
         batch.setPipeline(getBlendPipeline());
         batch.draw(gpu::TRIANGLE_STRIP, 4);
-        */
     });
 }
 

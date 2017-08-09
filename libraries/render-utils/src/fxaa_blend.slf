@@ -21,7 +21,4 @@ uniform sampler2D colorTexture;
 
 void main(void) {
     outFragColor = texture(colorTexture, varTexCoord0);
-    if (gl_FragCoord.x > 800) {
-    outFragColor.w = 1.0;
-    }
 }
