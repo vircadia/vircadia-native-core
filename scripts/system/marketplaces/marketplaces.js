@@ -61,7 +61,6 @@
         tablet.webEventReceived.connect(function (message) {
             var parsedJsonMessage = JSON.parse(message);
             if (parsedJsonMessage.type === "CHECKOUT") {
-                console.log("ZRF: Checkout (Get) Button Clicked: " + JSON.stringify(parsedJsonMessage));
                 tablet.sendToQml({ method: 'updateCheckoutQML', params: parsedJsonMessage });
                 tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
             }
