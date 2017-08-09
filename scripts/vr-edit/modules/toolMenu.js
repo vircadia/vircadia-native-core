@@ -24,6 +24,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         optionsOverlays = [],
         optionsOverlaysIDs = [],  // Text ids (names) of options overlays.
+        optionsOverlaysAuxiliaries = [],
         optionsEnabled = [],
         optionsSettings = {},
 
@@ -133,9 +134,35 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     dimensions: { x: 0.03, y: 0.1, z: 0.01 },
                     localRotation: Quat.ZERO,
                     color: { red: 128, green: 128, blue: 255 },
-                    alpha: 0.1,
+                    alpha: 0.0,
                     solid: true,
                     ignoreRayIntersection: false,
+                    visible: true
+                }
+            },
+            "sliderValue": {
+                overlay: "cube",
+                properties: {
+                    dimensions: { x: 0.03, y: 0.03, z: 0.01 },
+                    localPosition: { x: 0, y: 0.035, z: 0 },
+                    localRotation: Quat.ZERO,
+                    color: { red: 100, green: 240, blue: 100 },
+                    alpha: 1.0,
+                    solid: true,
+                    ignoreRayIntersection: true,
+                    visible: true
+                }
+            },
+            "sliderRemainder": {
+                overlay: "cube",
+                properties: {
+                    dimensions: { x: 0.03, y: 0.07, z: 0.01 },
+                    localPosition: { x: 0, y: -0.015, z: 0 },
+                    localRotation: Quat.ZERO,
+                    color: { red: 64, green: 64, blue: 64 },
+                    alpha: 1.0,
+                    solid: true,
+                    ignoreRayIntersection: true,
                     visible: true
                 }
             }
@@ -487,6 +514,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         optionsOverlays = [];
 
         optionsOverlaysIDs = [];
+        optionsOverlaysAuxiliaries = [];
         optionsEnabled = [];
         optionsItems = null;
 
@@ -522,6 +550,16 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties.text = optionsItems[i].label;
                     properties.parentID = optionsOverlays[optionsOverlays.length - 1];
                     Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
+                }
+                if (optionsItems[i].type === "slider") {
+                    optionsOverlaysAuxiliaries[i] = {};
+                    properties = Object.clone(UI_ELEMENTS.sliderValue.properties);
+                    properties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                    optionsOverlaysAuxiliaries[i].value = Overlays.addOverlay(UI_ELEMENTS.sliderValue.overlay, properties);
+                    properties = Object.clone(UI_ELEMENTS.sliderRemainder.properties);
+                    properties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                    optionsOverlaysAuxiliaries[i].remainder = Overlays.addOverlay(UI_ELEMENTS.sliderRemainder.overlay,
+                        properties);
                 }
                 parentID = optionsOverlays[0];  // Menu buttons parent to menu panel.
                 optionsEnabled.push(true);
@@ -628,7 +666,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             sliderProperties,
             overlayDimensions,
             basePoint,
-            fraction;
+            fraction,
+            otherFraction;
 
         // Intersection details.
         if (intersection.overlayID) {
@@ -747,6 +786,16 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 Vec3.multiplyQbyV(sliderProperties.orientation, { x: 0, y: overlayDimensions.y / 2, z: 0 }));
             fraction = Vec3.dot(Vec3.subtract(basePoint, intersection.intersection),
                 Vec3.multiplyQbyV(sliderProperties.orientation, Vec3.UNIT_Y)) / overlayDimensions.y;
+            otherFraction = 1.0 - fraction;
+
+            Overlays.editOverlay(optionsOverlaysAuxiliaries[intersectedItem].value, {
+                localPosition: { x: 0, y: (0.5 - fraction / 2) * overlayDimensions.y, z: 0 },
+                dimensions: { x: overlayDimensions.x, y: fraction * overlayDimensions.y, z: overlayDimensions.z }
+            });
+            Overlays.editOverlay(optionsOverlaysAuxiliaries[intersectedItem].remainder, {
+                localPosition: { x: 0, y: (-0.5 + otherFraction / 2) * overlayDimensions.y, z: 0 },
+                dimensions: { x: overlayDimensions.x, y: otherFraction * overlayDimensions.y, z: overlayDimensions.z }
+            });
 
             uiCommandCallback(intersectionItems[intersectedItem].callback.method, fraction);
         }
@@ -871,6 +920,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         Overlays.deleteOverlay(highlightOverlay);
         for (i = 0, length = optionsOverlays.length; i < length; i += 1) {
             Overlays.deleteOverlay(optionsOverlays[i]);
+            // Any auxiliary overlays parented to this overlay are automatically deleted.
         }
         optionsOverlays = [];
 
