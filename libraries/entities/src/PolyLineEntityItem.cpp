@@ -188,7 +188,6 @@ void PolyLineEntityItem::calculateScaleAndRegistrationPoint() {
         for (int i = 0; i < _strokeWidths.size(); ++i) {
             if (_strokeWidths.at(i) > maxWidth) {
                 maxWidth = _strokeWidths.at(i);
-                qCDebug(entities) << "TTTTT " << maxWidth;
             }
         }
 
