@@ -26,7 +26,7 @@
     var xmlHttpRequest = null;
     var isPreparing = false;  // Explicitly track download request status.
 
-    var confirmPurchases = true;
+    var confirmAllPurchases = false; // Set this to "true" to cause Checkout.qml to popup for all items, even if free
     
     function injectCommonCode(isDirectoryPage) {
 
@@ -111,7 +111,7 @@
     }
 
     function injectHiFiCode() {
-        if (confirmPurchases) {
+        if (confirmAllPurchases) {
             var target = document.getElementById('templated-items');
             // MutationObserver is necessary because the DOM is populated after the page is loaded.
             // We're searching for changes to the element whose ID is '#templated-items' - this is
@@ -132,7 +132,7 @@
     }
 
     function injectHiFiItemPageCode() {
-        if (confirmPurchases) {
+        if (confirmAllPurchases) {
             $('#side-info').find('.btn').attr('href', '#');
             $('#side-info').find('.btn').html('<span class="glyphicon glyphicon-download"></span>Buy Item  ');
             $('#side-info').find('.btn').on('click', function () {
