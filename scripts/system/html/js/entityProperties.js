@@ -488,6 +488,7 @@ function loaded() {
     openEventBridge(function() {
 
         var allSections = [];
+        var elPropertiesList = document.getElementById("properties-list");
         var elID = document.getElementById("property-id");
         var elType = document.getElementById("property-type");
         var elTypeIcon = document.getElementById("type-icon");
@@ -574,7 +575,8 @@ function loaded() {
         var elJSONEditor = document.getElementById("userdata-editor");
         var elNewJSONEditor = document.getElementById('userdata-new-editor');
         var elColorSections = document.querySelectorAll(".color-section");
-        var elColor = document.getElementById("property-color");
+        var elColorControl1 = document.getElementById("property-color-control1");
+        var elColorControl2 = document.getElementById("property-color-control2");
         var elColorRed = document.getElementById("property-color-red");
         var elColorGreen = document.getElementById("property-color-green");
         var elColorBlue = document.getElementById("property-color-blue");
@@ -688,7 +690,10 @@ function loaded() {
                 data = JSON.parse(data);
                 if (data.type == "server_script_status") {
                     elServerScriptError.value = data.errorInfo;
-                    elServerScriptError.style.display = data.errorInfo ? "block" : "none";
+                    // If we just set elServerScriptError's diplay to block or none, we still end up with
+                    //it's parent contributing 21px bottom padding even when elServerScriptError is display:none.
+                    // So set it's parent to block or none
+                    elServerScriptError.parentElement.style.display = data.errorInfo ? "block" : "none";
                     if (data.statusRetrieved === false) {
                         elServerScriptStatus.innerText = "Failed to retrieve status";
                     } else if (data.isRunning) {
@@ -714,6 +719,7 @@ function loaded() {
                         elTypeIcon.style.display = "none";
                         elType.innerHTML = "<i>No selection</i>";
                         elID.value = "";
+                        elPropertiesList.className = '';
                         disableProperties();
                     } else if (data.selections && data.selections.length > 1) {
                         deleteJSONEditor();
@@ -742,6 +748,7 @@ function loaded() {
                         elType.innerHTML = type + " (" + data.selections.length + ")";
                         elTypeIcon.innerHTML = ICON_FOR_TYPE[type];
                         elTypeIcon.style.display = "inline-block";
+                        elPropertiesList.className = '';
 
                         elID.value = "";
 
@@ -758,6 +765,7 @@ function loaded() {
                         lastEntityID = '"' + properties.id + '"';
                         elID.value = properties.id;
 
+                        elPropertiesList.className = properties.type + 'Menu';
                         elType.innerHTML = properties.type;
                         elTypeIcon.innerHTML = ICON_FOR_TYPE[properties.type];
                         elTypeIcon.style.display = "inline-block";
@@ -892,48 +900,20 @@ function loaded() {
                         elHyperlinkHref.value = properties.href;
                         elDescription.value = properties.description;
 
-                        for (var i = 0; i < allSections.length; i++) {
-                            for (var j = 0; j < allSections[i].length; j++) {
-                                allSections[i][j].style.display = 'none';
-                            }
-                        }
-
-                        for (var i = 0; i < elHyperlinkSections.length; i++) {
-                            elHyperlinkSections[i].style.display = 'table';
-                        }
 
                         if (properties.type == "Shape" || properties.type == "Box" || properties.type == "Sphere") {
-                            for (var i = 0; i < elShapeSections.length; i++) {
-                                elShapeSections[i].style.display = 'table';
-                            }
                             elShape.value = properties.shape;
                             setDropdownText(elShape);
-
-                        } else {
-                            for (var i = 0; i < elShapeSections.length; i++) {
-                                elShapeSections[i].style.display = 'none';
-                            }
                         }
 
                         if (properties.type == "Shape" || properties.type == "Box" || properties.type == "Sphere" || properties.type == "ParticleEffect") {
-                            for (var i = 0; i < elColorSections.length; i++) {
-                                elColorSections[i].style.display = 'table';
-                            }
                             elColorRed.value = properties.color.red;
                             elColorGreen.value = properties.color.green;
                             elColorBlue.value = properties.color.blue;
-                            elColor.style.backgroundColor = "rgb(" + properties.color.red + "," + properties.color.green + "," + properties.color.blue + ")";
-                        } else {
-                            for (var i = 0; i < elColorSections.length; i++) {
-                                elColorSections[i].style.display = 'none';
-                            }
+                            elColorControl1.style.backgroundColor = elColorControl2.style.backgroundColor = "rgb(" + properties.color.red + "," + properties.color.green + "," + properties.color.blue + ")";
                         }
 
                         if (properties.type == "Model") {
-                            for (var i = 0; i < elModelSections.length; i++) {
-                                elModelSections[i].style.display = 'table';
-                            }
-
                             elModelURL.value = properties.modelURL;
                             elShapeType.value = properties.shapeType;
                             setDropdownText(elShapeType);
@@ -951,20 +931,9 @@ function loaded() {
                             elModelOriginalTextures.value = properties.originalTextures;
                             setTextareaScrolling(elModelOriginalTextures);
                         } else if (properties.type == "Web") {
-                            for (var i = 0; i < elWebSections.length; i++) {
-                                elWebSections[i].style.display = 'table';
-                            }
-                            for (var i = 0; i < elHyperlinkSections.length; i++) {
-                                elHyperlinkSections[i].style.display = 'none';
-                            }
-
                             elWebSourceURL.value = properties.sourceUrl;
                             elWebDPI.value = properties.dpi;
                         } else if (properties.type == "Text") {
-                            for (var i = 0; i < elTextSections.length; i++) {
-                                elTextSections[i].style.display = 'table';
-                            }
-
                             elTextText.value = properties.text;
                             elTextLineHeight.value = properties.lineHeight.toFixed(4);
                             elTextFaceCamera.checked = properties.faceCamera;
@@ -976,10 +945,6 @@ function loaded() {
                             elTextBackgroundColorGreen.value = properties.backgroundColor.green;
                             elTextBackgroundColorBlue.value = properties.backgroundColor.blue;
                         } else if (properties.type == "Light") {
-                            for (var i = 0; i < elLightSections.length; i++) {
-                                elLightSections[i].style.display = 'table';
-                            }
-
                             elLightSpotLight.checked = properties.isSpotlight;
 
                             elLightColor.style.backgroundColor = "rgb(" + properties.color.red + "," + properties.color.green + "," + properties.color.blue + ")";
@@ -992,10 +957,6 @@ function loaded() {
                             elLightExponent.value = properties.exponent.toFixed(2);
                             elLightCutoff.value = properties.cutoff.toFixed(2);
                         } else if (properties.type == "Zone") {
-                            for (var i = 0; i < elZoneSections.length; i++) {
-                                elZoneSections[i].style.display = 'table';
-                            }
-
                             elZoneStageSunModelEnabled.checked = properties.stage.sunModelEnabled;
                             elZoneKeyLightColor.style.backgroundColor = "rgb(" + properties.keyLight.color.red + "," + properties.keyLight.color.green + "," + properties.keyLight.color.blue + ")";
                             elZoneKeyLightColorRed.value = properties.keyLight.color.red;
@@ -1032,10 +993,6 @@ function loaded() {
 
                             showElements(document.getElementsByClassName('skybox-section'), elZoneBackgroundMode.value == 'skybox');
                         } else if (properties.type == "PolyVox") {
-                            for (var i = 0; i < elPolyVoxSections.length; i++) {
-                                elPolyVoxSections[i].style.display = 'table';
-                            }
-
                             elVoxelVolumeSizeX.value = properties.voxelVolumeSize.x.toFixed(2);
                             elVoxelVolumeSizeY.value = properties.voxelVolumeSize.y.toFixed(2);
                             elVoxelVolumeSizeZ.value = properties.voxelVolumeSize.z.toFixed(2);
@@ -1235,20 +1192,41 @@ function loaded() {
         elColorRed.addEventListener('change', colorChangeFunction);
         elColorGreen.addEventListener('change', colorChangeFunction);
         elColorBlue.addEventListener('change', colorChangeFunction);
-        colorPickers.push($('#property-color').colpick({
+        colorPickers.push($('#property-color-control1').colpick({
             colorScheme: 'dark',
             layout: 'hex',
             color: '000000',
             onShow: function(colpick) {
-                $('#property-color').attr('active', 'true');
+                $('#property-color-control1').attr('active', 'true');
             },
             onHide: function(colpick) {
-                $('#property-color').attr('active', 'false');
+                $('#property-color-control1').attr('active', 'false');
             },
             onSubmit: function(hsb, hex, rgb, el) {
                 $(el).css('background-color', '#' + hex);
                 $(el).colpickHide();
                 emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
+                // Keep the companion control in sync
+                elColorControl2.style.backgroundColor = "rgb(" + rgb.r + "," + rgb.g + "," + rgb.b + ")";
+            }
+        }));
+        colorPickers.push($('#property-color-control2').colpick({
+            colorScheme: 'dark',
+            layout: 'hex',
+            color: '000000',
+            onShow: function(colpick) {
+                $('#property-color-control2').attr('active', 'true');
+            },
+            onHide: function(colpick) {
+                $('#property-color-control2').attr('active', 'false');
+            },
+            onSubmit: function(hsb, hex, rgb, el) {
+                $(el).css('background-color', '#' + hex);
+                $(el).colpickHide();
+                emitColorPropertyUpdate('color', rgb.r, rgb.g, rgb.b);
+                // Keep the companion control in sync
+                elColorControl1.style.backgroundColor = "rgb(" + rgb.r + "," + rgb.g + "," + rgb.b + ")";
+
             }
         }));
 
@@ -1512,11 +1490,9 @@ function loaded() {
     var elCollapsible = document.getElementsByClassName("section-header");
 
     var toggleCollapsedEvent = function(event) {
-        var element = event.target;
-        if (element.nodeName !== "DIV") {
-            element = element.parentNode;
-        }
-        var isCollapsed = element.getAttribute("collapsed") !== "true";
+        var element = event.target.parentNode.parentNode;
+        var isCollapsed = element.dataset.collapsed !== "true";
+        element.dataset.collapsed = isCollapsed ? "true" : false
         element.setAttribute("collapsed", isCollapsed ? "true" : "false");
         element.getElementsByTagName("span")[0].textContent = isCollapsed ? "L" : "M";
     };
