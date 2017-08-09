@@ -400,7 +400,8 @@
                 break;
             case CLARA:
                 injectClaraCode();
-                break;            case BLOCKS:
+                break;
+            case BLOCKS:
                 console.log("in Blocks");
                 injectBlocksCode();
                 console.log("blocks injection");
