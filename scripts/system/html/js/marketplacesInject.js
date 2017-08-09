@@ -100,16 +100,31 @@
 
     function injectHiFiCode() {
         if (confirmPurchases) {
-            $('.item-footer').find('#price-or-edit').find('a').attr('href', '#')
-            $('.item-footer').find('#price-or-edit').find('a').on('click', function () {
-                buyButtonClicked("TEST ITEM", "Zach Fox", 10);
+            var target = document.getElementById('templated-items');
+            // MutationObserver is necessary because the DOM is populated after the page is loaded.
+            // We're searching for changes to the element whose ID is '#templated-items' - this is
+            // the element that gets filled in by the AJAX.
+            var observer = new MutationObserver(function (mutations) {
+                mutations.forEach(function (mutation) {
+                    console.log(mutation.type);
+                    $('.grid-item').find('#price-or-edit').find('a').attr('href', '#');
+                    $('.grid-item').find('#price-or-edit').find('.price').text("BUY");
+                    $('.grid-item').find('#price-or-edit').find('a').on('click', function () {
+                        buyButtonClicked($(this).closest('.grid-item').find('.item-title').text(), $(this).closest('.grid-item').find('.creator').find('.value').text(), 10);
+                    });
+                });
+
+                //observer.disconnect();
             });
+            var config = { attributes: true, childList: true, characterData: true };
+            observer.observe(target, config);
         }
     }
 
     function injectHiFiItemPageCode() {
         if (confirmPurchases) {
-            $('#side-info').find('.btn').attr('href', '#')
+            $('#side-info').find('.btn').attr('href', '#');
+            $('#side-info').find('.btn').html('<span class="glyphicon glyphicon-download"></span>Buy Item  ');
             $('#side-info').find('.btn').on('click', function () {
                 buyButtonClicked($('#top-center').find('h1').text(), $('#creator').find('.value').text(), 10);
             });
