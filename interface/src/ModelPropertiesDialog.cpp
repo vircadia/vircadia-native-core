@@ -201,7 +201,7 @@ void ModelPropertiesDialog::chooseTextureDirectory() {
         return;
     }
     if (!directory.startsWith(_basePath)) {
-        OffscreenUi::warning(NULL, "Invalid texture directory", "Texture directory must be child of base path.");
+        OffscreenUi::asyncWarning(NULL, "Invalid texture directory", "Texture directory must be child of base path.");
         return;
     }
     _textureDirectory->setText(directory.length() == _basePath.length() ? "." : directory.mid(_basePath.length() + 1));

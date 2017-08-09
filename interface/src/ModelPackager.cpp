@@ -79,7 +79,7 @@ bool ModelPackager::loadModel() {
     if (_modelFile.completeSuffix().contains("fst")) {
         QFile fst(_modelFile.filePath());
         if (!fst.open(QFile::ReadOnly | QFile::Text)) {
-            OffscreenUi::warning(NULL,
+            OffscreenUi::asyncWarning(NULL,
                                  QString("ModelPackager::loadModel()"),
                                  QString("Could not open FST file %1").arg(_modelFile.filePath()),
                                  QMessageBox::Ok);
@@ -98,7 +98,7 @@ bool ModelPackager::loadModel() {
     // open the fbx file
     QFile fbx(_fbxInfo.filePath());
     if (!_fbxInfo.exists() || !_fbxInfo.isFile() || !fbx.open(QIODevice::ReadOnly)) {
-        OffscreenUi::warning(NULL,
+        OffscreenUi::asyncWarning(NULL,
                              QString("ModelPackager::loadModel()"),
                              QString("Could not open FBX file %1").arg(_fbxInfo.filePath()),
                              QMessageBox::Ok);
@@ -408,7 +408,7 @@ bool ModelPackager::copyTextures(const QString& oldDir, const QDir& newDir) {
     }
     
     if (!errors.isEmpty()) {
-        OffscreenUi::warning(nullptr, "ModelPackager::copyTextures()",
+        OffscreenUi::asyncWarning(nullptr, "ModelPackager::copyTextures()",
                              "Missing textures:" + errors);
         qCDebug(interfaceapp) << "ModelPackager::copyTextures():" << errors;
         return false;

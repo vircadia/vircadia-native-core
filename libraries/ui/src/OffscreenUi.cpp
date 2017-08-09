@@ -91,6 +91,12 @@ QObject* OffscreenUi::getFlags() {
     return offscreenFlags;
 }
 
+void OffscreenUi::removeModalDialog(QObject* modal) {
+    if (modal) {
+        _modalDialogListeners.removeOne(modal);
+    }
+}
+
 void OffscreenUi::create(QOpenGLContext* context) {
     OffscreenQmlSurface::create(context);
     auto myContext = getSurfaceContext();
@@ -204,6 +210,9 @@ private slots:
     void onSelected(int button) {
         _result = button;
         _finished = true;
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        emit offscreenUi->response(static_cast<QMessageBox::StandardButton>(_result.toInt()));
+        offscreenUi->removeModalDialog(qobject_cast<QObject*>(this));
         disconnect(_dialog);
     }
 };
@@ -263,6 +272,21 @@ QMessageBox::StandardButton OffscreenUi::messageBox(Icon icon, const QString& ti
     return static_cast<QMessageBox::StandardButton>(waitForMessageBoxResult(createMessageBox(icon, title, text, buttons, defaultButton)));
 }
 
+void OffscreenUi::asyncMessageBox(Icon icon, const QString& title, const QString& text, QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "asyncMessageBox",
+                               Q_ARG(Icon, icon),
+                               Q_ARG(QString, title),
+                               Q_ARG(QString, text),
+                               Q_ARG(QMessageBox::StandardButtons, buttons),
+                               Q_ARG(QMessageBox::StandardButton, defaultButton));
+    }
+
+    MessageBoxListener* messageBoxListener = new MessageBoxListener(createMessageBox(icon, title, text, buttons, defaultButton));
+    QObject* modalDialog = qobject_cast<QObject*>(messageBoxListener);
+    _modalDialogListeners.push_back(modalDialog);
+}
+
 QMessageBox::StandardButton OffscreenUi::critical(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
     return DependencyManager::get<OffscreenUi>()->messageBox(OffscreenUi::Icon::ICON_CRITICAL, title, text, buttons, defaultButton);
@@ -275,11 +299,18 @@ QMessageBox::StandardButton OffscreenUi::question(const QString& title, const QS
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
     return DependencyManager::get<OffscreenUi>()->messageBox(OffscreenUi::Icon::ICON_QUESTION, title, text, buttons, defaultButton);
 }
+void OffscreenUi::asyncQuestion(const QString& title, const QString& text,
+    QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+    DependencyManager::get<OffscreenUi>()->asyncMessageBox(OffscreenUi::Icon::ICON_QUESTION, title, text, buttons, defaultButton);
+}
 QMessageBox::StandardButton OffscreenUi::warning(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
     return DependencyManager::get<OffscreenUi>()->messageBox(OffscreenUi::Icon::ICON_WARNING, title, text, buttons, defaultButton);
 }
-
+void OffscreenUi::asyncWarning(const QString& title, const QString& text,
+    QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+    DependencyManager::get<OffscreenUi>()->asyncMessageBox(OffscreenUi::Icon::ICON_WARNING, title, text, buttons, defaultButton);
+}
 
 
 class InputDialogListener : public ModalDialogListener {

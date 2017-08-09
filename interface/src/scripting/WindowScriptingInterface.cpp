@@ -59,7 +59,7 @@ WindowScriptingInterface::WindowScriptingInterface() {
             QUrl url(urlString);
             emit svoImportRequested(url.url());
         } else {
-            OffscreenUi::warning("Import SVO Error", "You need to be running edit.js to import entities.");
+            OffscreenUi::asyncWarning("Import SVO Error", "You need to be running edit.js to import entities.");
         }
     });
 
@@ -103,7 +103,7 @@ void WindowScriptingInterface::raiseMainWindow() {
 /// \param const QString& message message to display
 /// \return QScriptValue::UndefinedValue
 void WindowScriptingInterface::alert(const QString& message) {
-    OffscreenUi::warning("", message);
+    OffscreenUi::asyncWarning("", message);
 }
 
 /// Display a confirmation box with the options 'Yes' and 'No'

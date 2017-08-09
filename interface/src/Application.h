@@ -428,7 +428,6 @@ private slots:
 
     bool askToWearAvatarAttachmentUrl(const QString& url);
     void displayAvatarAttachmentWarning(const QString& message) const;
-    bool displayAvatarAttachmentConfirmationDialog(const QString& name) const;
 
     void setSessionUUID(const QUuid& sessionUUID) const;
 
