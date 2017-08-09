@@ -14,17 +14,19 @@ PickItemsJob::PickItemsJob(render::ItemKey::Flags validKeys, render::ItemKey::Fl
 }
 
 void PickItemsJob::configure(const Config& config) {
+    _isEnabled = config.pick;
 }
 
 void PickItemsJob::run(const render::RenderContextPointer& renderContext, const PickItemsJob::Input& input, PickItemsJob::Output& output) {
     output.clear();
+    if (_isEnabled) {
+        float minIsectDistance = std::numeric_limits<float>::max();
+        auto& itemBounds = input;
+        auto item = findNearestItem(renderContext, itemBounds, minIsectDistance);
 
-    float minIsectDistance = std::numeric_limits<float>::max();
-    auto& itemBounds = input;
-    auto item = findNearestItem(renderContext, itemBounds, minIsectDistance);
-
-    if (render::Item::isValidID(item.id)) {
-        output.push_back(item);
+        if (render::Item::isValidID(item.id)) {
+            output.push_back(item);
+        }
     }
 }
 

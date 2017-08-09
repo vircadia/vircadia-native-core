@@ -73,6 +73,60 @@ private:
     gpu::PipelinePointer _copyDepthPipeline;
 };
 
+class DrawOutlineConfig : public render::Job::Config {
+    Q_OBJECT
+        Q_PROPERTY(float width MEMBER width NOTIFY dirty)
+        Q_PROPERTY(float colorR READ getColorR WRITE setColorR NOTIFY dirty)
+        Q_PROPERTY(float colorG READ getColorG WRITE setColorG NOTIFY dirty)
+        Q_PROPERTY(float colorB READ getColorB WRITE setColorB NOTIFY dirty)
+public:
+
+    void setColorR(float value) { color.r = value; }
+    float getColorR() const { return color.r; }
+
+    void setColorG(float value) { color.g = value; }
+    float getColorG() const { return color.g; }
+
+    void setColorB(float value) { color.b = value; }
+    float getColorB() const { return color.b; }
+
+    float width{ 5.f };
+    glm::vec3 color{ 1.f, 0.7f, 0.2f };
+
+signals:
+    void dirty();
+};
+
+class DrawOutline {
+public:
+    using Inputs = render::VaryingSet2<DeferredFramebufferPointer, OutlineFramebufferPointer>;
+    using Config = DrawOutlineConfig;
+    using JobModel = render::Job::ModelI<DrawOutline, Inputs, Config>;
+
+    DrawOutline();
+
+    void configure(const Config& config);
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
+
+private:
+
+    enum {
+        SCENE_DEPTH_SLOT = 0,
+        OUTLINED_DEPTH_SLOT
+    };
+
+#include "Outline_shared.slh"
+
+    using OutlineConfigurationBuffer = gpu::StructBuffer<OutlineParameters>;
+
+    const gpu::PipelinePointer& getPipeline();
+
+    gpu::PipelinePointer _pipeline;
+    OutlineConfigurationBuffer _configuration;
+    glm::vec3 _color;
+    float _size;
+};
+
 class DebugOutlineConfig : public render::Job::Config {
     Q_OBJECT
         Q_PROPERTY(bool viewOutlinedDepth MEMBER viewOutlinedDepth NOTIFY dirty)
@@ -84,7 +138,6 @@ public:
 signals:
     void dirty();
 };
-
 
 class DebugOutline {
 public:

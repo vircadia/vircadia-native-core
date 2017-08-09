@@ -169,6 +169,10 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto toneMappingInputs = render::Varying(ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer));
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
+    // Draw outline
+    const auto outlineInputs = DrawOutline::Inputs(deferredFramebuffer, outlinedFrameBuffer).hasVarying();
+    task.addJob<DrawOutline>("DrawOutline", outlineInputs);
+
     { // DEbug the bounds of the rendered items, still look at the zbuffer
         task.addJob<DrawBounds>("DrawMetaBounds", metas);
         task.addJob<DrawBounds>("DrawOpaqueBounds", opaques);

@@ -18,6 +18,7 @@
 #include "surfaceGeometry_copyDepth_frag.h"
 #include "debug_deferred_buffer_vert.h"
 #include "debug_deferred_buffer_frag.h"
+#include "Outline_frag.h"
 
 OutlineFramebuffer::OutlineFramebuffer() {
 }
@@ -99,6 +100,8 @@ void PrepareOutline::run(const render::RenderContextPointer& renderContext, cons
             _copyDepthPipeline = gpu::Pipeline::create(program, state);
         }
 
+        // TODO : Instead of copying entire buffer, we should only copy the sub rect containing the outlined object
+        // grown to take into account blur width
         gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
             batch.enableStereo(false);
 
@@ -120,6 +123,69 @@ void PrepareOutline::run(const render::RenderContextPointer& renderContext, cons
     } else {
         output = nullptr;
     }
+}
+
+DrawOutline::DrawOutline() {
+}
+
+void DrawOutline::configure(const Config& config) {
+    _color = config.color;
+    _size = config.width;
+}
+
+void DrawOutline::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
+    auto mainFrameBuffer = inputs.get0();
+
+    if (mainFrameBuffer) {
+        auto sceneDepthBuffer = mainFrameBuffer->getPrimaryDepthTexture();
+        auto outlinedDepthBuffer = inputs.get1();
+        auto pipeline = getPipeline();
+
+        if (outlinedDepthBuffer) {
+            auto framebufferSize = glm::ivec2(sceneDepthBuffer->getDimensions());
+            auto args = renderContext->args;
+            {
+                auto& configuration = _configuration.edit();
+                configuration._color = _color;
+                configuration._size = _size / 1024.f;
+            }
+
+            gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
+                batch.enableStereo(false);
+
+                batch.setViewportTransform(args->_viewport);
+                batch.setProjectionTransform(glm::mat4());
+                batch.resetViewTransform();
+                batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport));
+                batch.setPipeline(pipeline);
+
+                batch.setUniformBuffer(0, _configuration);
+                batch.setResourceTexture(SCENE_DEPTH_SLOT, sceneDepthBuffer);
+                batch.setResourceTexture(OUTLINED_DEPTH_SLOT, outlinedDepthBuffer->getDepthTexture());
+                batch.draw(gpu::TRIANGLE_STRIP, 4);
+            });
+        }
+    }
+}
+
+const gpu::PipelinePointer& DrawOutline::getPipeline() {
+    if (!_pipeline) {
+        auto vs = gpu::StandardShaderLib::getDrawViewportQuadTransformTexcoordVS();
+        auto ps = gpu::Shader::createPixel(std::string(Outline_frag));
+        gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
+
+        gpu::Shader::BindingSet slotBindings;
+        slotBindings.insert(gpu::Shader::Binding("outlineParamsBuffer", 0));
+        slotBindings.insert(gpu::Shader::Binding("sceneDepthMap", SCENE_DEPTH_SLOT));
+        slotBindings.insert(gpu::Shader::Binding("outlinedDepthMap", OUTLINED_DEPTH_SLOT));
+        gpu::Shader::makeProgram(*program, slotBindings);
+
+        gpu::StatePointer state = gpu::StatePointer(new gpu::State());
+        state->setDepthTest(false);
+        state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
+        _pipeline = gpu::Pipeline::create(program, state);
+    }
+    return _pipeline;
 }
 
 DebugOutline::DebugOutline() {

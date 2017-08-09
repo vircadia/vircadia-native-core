@@ -16,10 +16,15 @@
 #include <render/Item.h>
 
 class PickItemsConfig : public render::Job::Config {
+    Q_OBJECT
+        Q_PROPERTY(bool pick MEMBER pick NOTIFY dirty)
 
 public:
 
-    PickItemsConfig() : render::Job::Config(false) {}
+    bool pick{ false };
+
+signals:
+    void dirty();
 };
 
 class PickItemsJob {
@@ -40,6 +45,7 @@ private:
 
     render::ItemKey::Flags _validKeys;
     render::ItemKey::Flags _excludeKeys;
+    bool _isEnabled{ false };
 
 	render::ItemBound findNearestItem(const render::RenderContextPointer& renderContext, const render::ItemBounds& inputs, float& minIsectDistance) const;
 };

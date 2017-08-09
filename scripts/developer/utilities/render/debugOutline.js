@@ -15,6 +15,6 @@ var window = new OverlayWindow({
     title: 'Outline',
     source: qml,
     width: 250, 
-    height: 80,
+    height: 250,
 });
 window.closed.connect(function() { Script.stop(); });

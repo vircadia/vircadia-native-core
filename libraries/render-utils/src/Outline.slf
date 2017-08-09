@@ -1,0 +1,63 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//
+//  Add outline effect based on two zbuffers : one containing the total scene z and another 
+//  with the z of only the objects to be outlined
+//
+//  Created by Olivier Prat on 08/09/2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include Outline_shared.slh@>
+
+uniform outlineParamsBuffer {
+	OutlineParameters params;
+};
+
+uniform sampler2D sceneDepthMap;
+uniform sampler2D outlinedDepthMap;
+
+in vec2 varTexCoord0;
+out vec4 outFragColor;
+
+const int BLUR_KERNEL_SIZE = 9;
+const float FAR_DISTANCE = 1.0;
+
+void main(void) {
+	float outlinedDepth = texture(outlinedDepthMap, varTexCoord0).x;
+    if (outlinedDepth < FAR_DISTANCE) {
+        // We're not on the far plane so we are on the outlined object, thus no outline to do!
+        discard;
+    }
+
+	//float sceneDepth = texture(sceneDepthMap, varTexCoord0).x;
+    float outlineIntensity = 0.0;
+    {
+        const float deltaUv = params._size / BLUR_KERNEL_SIZE;
+        vec2 uv;
+        vec2 startUv = varTexCoord0 - vec2(params._size, params._size) / 2.0; 
+        int x;
+        int y;
+
+        for (y=0 ; y<BLUR_KERNEL_SIZE ; y++) {
+            uv = startUv;
+            startUv.y += deltaUv;
+
+            for (x=0 ; x<BLUR_KERNEL_SIZE ; x++) {
+                outlinedDepth = texture(outlinedDepthMap, uv).x;
+                outlineIntensity += (outlinedDepth < FAR_DISTANCE) ? 1.0 : 0.0;
+                uv.x += deltaUv;
+            }
+        }
+
+        outlineIntensity /= BLUR_KERNEL_SIZE*BLUR_KERNEL_SIZE;
+    }
+
+    if (outlineIntensity < 1e-3) {
+        discard;
+    }
+	outFragColor = vec4(params._color.rgb, outlineIntensity);
+}
