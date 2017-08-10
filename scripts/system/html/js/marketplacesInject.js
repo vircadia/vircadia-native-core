@@ -151,9 +151,9 @@
 
             // Try this here in case it works (it will if the user just pressed the "back" button,
             //     since that doesn't trigger another AJAX request.
-            injectBuyButtonOnMainPage();
+            injectBuyButtonOnMainPage;
+            addInventoryButton();
         }
-        addInventoryButton();
     }
 
     function injectHiFiItemPageCode() {
@@ -168,8 +168,8 @@
                     10,
                     href);
             });
+            addInventoryButton();
         }
-        addInventoryButton();
     }
 
     function updateClaraCode() {
