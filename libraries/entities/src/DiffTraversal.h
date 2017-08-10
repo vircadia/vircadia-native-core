@@ -33,8 +33,9 @@ public:
     class View {
     public:
         ViewFrustum viewFrustum;
+        uint64_t startTime { 0 };
         float rootSizeScale { 1.0f };
-        float rootLevel { 0.0f };
+        int32_t lodLevelOffset { 0 };
     };
 
     // Waypoint is an bookmark in a "path" of waypoints during a traversal.
@@ -44,7 +45,7 @@ public:
 
         void getNextVisibleElementFirstTime(VisibleElement& next, const View& view);
         void getNextVisibleElementRepeat(VisibleElement& next, const View& view, uint64_t lastTime);
-        void getNextVisibleElementDifferential(VisibleElement& next, const View& view, const View& lastView, uint64_t lastTime);
+        void getNextVisibleElementDifferential(VisibleElement& next, const View& view, const View& lastView);
 
         int8_t getNextIndex() const { return _nextIndex; }
         void initRootNextIndex() { _nextIndex = -1; }
@@ -58,12 +59,12 @@ public:
 
     DiffTraversal();
 
-    DiffTraversal::Type prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root);
+    Type prepareNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset);
 
     const ViewFrustum& getCurrentView() const { return _currentView.viewFrustum; }
     const ViewFrustum& getCompletedView() const { return _completedView.viewFrustum; }
 
-    uint64_t getStartOfCompletedTraversal() const { return _startOfCompletedTraversal; }
+    uint64_t getStartOfCompletedTraversal() const { return _completedView.startTime; }
     bool finished() const { return _path.empty(); }
 
     void setScanCallback(std::function<void (VisibleElement&)> cb);
@@ -79,12 +80,6 @@ private:
     std::vector<Waypoint> _path;
     std::function<void (VisibleElement&)> _getNextVisibleElementCallback { nullptr };
     std::function<void (VisibleElement&)> _scanElementCallback { [](VisibleElement& e){} };
-    uint64_t _startOfCompletedTraversal { 0 };
-    uint64_t _startOfCurrentTraversal { 0 };
-
-    // LOD stuff
-    float _rootSizeScale { 1.0f };
-    uint32_t _rootLevel { 0 };
 };
 
 #endif // hifi_EntityPriorityQueue_h

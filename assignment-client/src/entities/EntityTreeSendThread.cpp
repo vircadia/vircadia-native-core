@@ -95,7 +95,8 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
             ViewFrustum viewFrustum;
             nodeData->copyCurrentViewFrustum(viewFrustum);
             EntityTreeElementPointer root = std::dynamic_pointer_cast<EntityTreeElement>(_myServer->getOctree()->getRoot());
-            startNewTraversal(viewFrustum, root);
+            int32_t lodLevelOffset = nodeData->getBoundaryLevelAdjust() + (viewFrustumChanged ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
+            startNewTraversal(viewFrustum, root, lodLevelOffset);
         }
     }
     if (!_traversal.finished()) {
@@ -172,8 +173,8 @@ bool EntityTreeSendThread::addDescendantsToExtraFlaggedEntities(const QUuid& fil
     return hasNewChild || hasNewDescendants;
 }
 
-void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTreeElementPointer root) {
-    DiffTraversal::Type type = _traversal.prepareNewTraversal(view, root);
+void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTreeElementPointer root, int32_t lodLevelOffset) {
+    DiffTraversal::Type type = _traversal.prepareNewTraversal(view, root, lodLevelOffset);
     // there are three types of traversal:
     //
     //      (1) FirstTime = at login --> find everything in view
