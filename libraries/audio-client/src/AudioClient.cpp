@@ -1514,7 +1514,7 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
     // This enables clients without a mic to still receive an audio stream from the mixer.
     if (!_audioInput) {
         qCDebug(audioclient) << "Audio input device is not available, using dummy input.";
-        _inputDeviceInfo = QAudioDeviceInfo();;
+        _inputDeviceInfo = QAudioDeviceInfo();
         emit deviceChanged(QAudio::AudioInput, _inputDeviceInfo);
 
         _inputFormat = _desiredInputFormat;
