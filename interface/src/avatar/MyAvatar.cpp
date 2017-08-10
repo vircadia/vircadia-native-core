@@ -1805,6 +1805,37 @@ void MyAvatar::postUpdate(float deltaTime) {
     AnimPose postUpdateRoomPose(_sensorToWorldMatrix);
 
     updateHoldActions(_prePhysicsRoomPose, postUpdateRoomPose);
+
+    bool _enableDebugDrawDetailedCollision = true;
+    if (_enableDebugDrawDetailedCollision) {
+        AnimPose rigToWorldPose(glm::vec3(1.0f), Quaternions::Y_180 * getRotation(), getPosition());
+        const int NUM_DEBUG_COLORS = 7;
+        const glm::vec4 DEBUG_COLORS[NUM_DEBUG_COLORS] = {
+            glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+            glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+            glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),
+            glm::vec4(0.25f, 0.25f, 1.0f, 1.0f),
+            glm::vec4(1.0f, 1.0f, 0.0f, 1.0f),
+            glm::vec4(0.25f, 1.0f, 1.0f, 1.0f),
+            glm::vec4(1.0f, 0.25f, 1.0f, 1.0f),
+        };
+
+        if (_skeletonModel && _skeletonModel->isLoaded()) {
+            const Rig& rig = _skeletonModel->getRig();
+            const FBXGeometry& geometry = _skeletonModel->getFBXGeometry();
+            for (int i = 0; i < rig.getJointStateCount(); i++) {
+                AnimPose jointPose;
+                rig.getAbsoluteJointPoseInRigFrame(i, jointPose);
+                const FBXJointShapeInfo& shapeInfo = geometry.joints[i].shapeInfo;
+                const AnimPose pose = rigToWorldPose * jointPose;
+                for (int j = 0; j < shapeInfo.debugLines.size() / 2; j++) {
+                    glm::vec3 pointA = pose.xformPoint(shapeInfo.debugLines[2 * j]);
+                    glm::vec3 pointB = pose.xformPoint(shapeInfo.debugLines[2 * j + 1]);
+                    DebugDraw::getInstance().drawRay(pointA, pointB, DEBUG_COLORS[i % NUM_DEBUG_COLORS]);
+                }
+            }
+        }
+    }
 }
 
 void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
