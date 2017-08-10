@@ -93,24 +93,29 @@
         });
     }
 
-    function buyButtonClicked(id, name, author, price) {
+    function buyButtonClicked(id, name, author, price, href) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "CHECKOUT",
             itemId: id,
             itemName: name,
             itemAuthor: author,
-            itemPrice: price
+            itemPrice: price,
+            itemHref: href
         }));
     }
 
     function injectBuyButtonOnMainPage() {
-        $('.grid-item').find('#price-or-edit').find('a').attr('href', '#');
+        $('.grid-item').find('#price-or-edit').find('a').each(function() {
+            $(this).attr('data-href', $(this).attr('href'));
+            $(this).attr('href', '#');
+            });
         $('.grid-item').find('#price-or-edit').find('.price').text("BUY");
         $('.grid-item').find('#price-or-edit').find('a').on('click', function () {
             buyButtonClicked($(this).closest('.grid-item').attr('data-item-id'),
                 $(this).closest('.grid-item').find('.item-title').text(),
                 $(this).closest('.grid-item').find('.creator').find('.value').text(),
-                10);
+                10,
+                $(this).attr('data-href'));
         });
     }
 
@@ -137,13 +142,15 @@
 
     function injectHiFiItemPageCode() {
         if (confirmAllPurchases) {
+            var href = $('#side-info').find('.btn').attr('href');
             $('#side-info').find('.btn').attr('href', '#');
             $('#side-info').find('.btn').html('<span class="glyphicon glyphicon-download"></span>Buy Item  ');
             $('#side-info').find('.btn').on('click', function () {
                 buyButtonClicked(window.location.pathname.split("/")[3],
                     $('#top-center').find('h1').text(),
                     $('#creator').find('.value').text(),
-                    10);
+                    10,
+                    href);
             });
         }
     }
@@ -415,16 +422,18 @@
 
     function onLoad() {
         EventBridge.scriptEventReceived.connect(function (message) {
-            var parsedJsonMessage = JSON.parse(message);
-
             if (message.slice(0, CAN_WRITE_ASSETS.length) === CAN_WRITE_ASSETS) {
                 canWriteAssets = message.slice(-4) === "true";
             } else if (message.slice(0, CLARA_IO_CANCEL_DOWNLOAD.length) === CLARA_IO_CANCEL_DOWNLOAD) {
                 cancelClaraDownload();
-            } else if (parsedJsonMessage.type === "marketplaces") {
-                if (parsedJsonMessage.action === "inspectionModeSetting") {
-                    confirmAllPurchases = !!parsedJsonMessage.data;
-                    injectCode();
+            } else {
+                var parsedJsonMessage = JSON.parse(message);
+                
+                if (parsedJsonMessage.type === "marketplaces") {
+                    if (parsedJsonMessage.action === "inspectionModeSetting") {
+                        confirmAllPurchases = !!parsedJsonMessage.data;
+                        injectCode();
+                    }
                 }
             }
         });
