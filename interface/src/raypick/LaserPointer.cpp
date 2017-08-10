@@ -13,7 +13,7 @@
 #include "Application.h"
 #include "avatar/AvatarManager.h"
 
-LaserPointer::LaserPointer(const QVariantMap& rayProps, const QHash<QString, RenderState>& renderStates, QHash<QString, QPair<float, RenderState>>& defaultRenderStates,
+LaserPointer::LaserPointer(const QVariantMap& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
         const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) :
     _renderingEnabled(enabled),
     _renderStates(renderStates),
@@ -24,14 +24,14 @@ LaserPointer::LaserPointer(const QVariantMap& rayProps, const QHash<QString, Ren
 {
     _rayPickUID = DependencyManager::get<RayPickManager>()->createRayPick(rayProps);
 
-    for (QString& state : _renderStates.keys()) {
-        if (!enabled || state != _currentRenderState) {
-            disableRenderState(_renderStates[state]);
+    for (auto& state : _renderStates) {
+        if (!enabled || state.first != _currentRenderState) {
+            disableRenderState(state.second);
         }
     }
-    for (QString& state : _defaultRenderStates.keys()) {
-        if (!enabled || state != _currentRenderState) {
-            disableRenderState(_defaultRenderStates[state].second);
+    for (auto& state : _defaultRenderStates) {
+        if (!enabled || state.first != _currentRenderState) {
+            disableRenderState(state.second.second);
         }
     }
 }
@@ -39,11 +39,11 @@ LaserPointer::LaserPointer(const QVariantMap& rayProps, const QHash<QString, Ren
 LaserPointer::~LaserPointer() {
     DependencyManager::get<RayPickManager>()->removeRayPick(_rayPickUID);
 
-    for (RenderState& renderState : _renderStates) {
-        renderState.deleteOverlays();
-    }
-    for (QPair<float, RenderState>& renderState : _defaultRenderStates) {
+    for (auto& renderState : _renderStates) {
         renderState.second.deleteOverlays();
+    }
+    for (auto& renderState : _defaultRenderStates) {
+        renderState.second.second.deleteOverlays();
     }
 }
 
@@ -55,29 +55,29 @@ void LaserPointer::enable() {
 void LaserPointer::disable() {
     DependencyManager::get<RayPickManager>()->disableRayPick(_rayPickUID);
     _renderingEnabled = false;
-    if (!_currentRenderState.isEmpty()) {
-        if (_renderStates.contains(_currentRenderState)) {
+    if (!_currentRenderState.empty()) {
+        if (_renderStates.find(_currentRenderState) != _renderStates.end()) {
             disableRenderState(_renderStates[_currentRenderState]);
         }
-        if (_defaultRenderStates.contains(_currentRenderState)) {
+        if (_defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
             disableRenderState(_defaultRenderStates[_currentRenderState].second);
         }
     }
 }
 
-void LaserPointer::setRenderState(const QString& state) {
-    if (!_currentRenderState.isEmpty() && state != _currentRenderState) {
-        if (_renderStates.contains(_currentRenderState)) {
+void LaserPointer::setRenderState(const std::string& state) {
+    if (!_currentRenderState.empty() && state != _currentRenderState) {
+        if (_renderStates.find(_currentRenderState) != _renderStates.end()) {
             disableRenderState(_renderStates[_currentRenderState]);
         }
-        if (_defaultRenderStates.contains(_currentRenderState)) {
+        if (_defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
             disableRenderState(_defaultRenderStates[_currentRenderState].second);
         }
     }
     _currentRenderState = state;
 }
 
-void LaserPointer::editRenderState(const QString& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) {
+void LaserPointer::editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps) {
     updateRenderStateOverlay(_renderStates[state].getStartID(), startProps);
     updateRenderStateOverlay(_renderStates[state].getPathID(), pathProps);
     updateRenderStateOverlay(_renderStates[state].getEndID(), endProps);
@@ -181,13 +181,13 @@ void LaserPointer::disableRenderState(const RenderState& renderState) {
 
 void LaserPointer::update() {
     RayPickResult prevRayPickResult = DependencyManager::get<RayPickManager>()->getPrevRayPickResult(_rayPickUID);
-    if (_renderingEnabled && !_currentRenderState.isEmpty() && _renderStates.contains(_currentRenderState) && prevRayPickResult.type != IntersectionType::NONE) {
+    if (_renderingEnabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() && prevRayPickResult.type != IntersectionType::NONE) {
         updateRenderState(_renderStates[_currentRenderState], prevRayPickResult.type, prevRayPickResult.distance, prevRayPickResult.objectID, false);
         disableRenderState(_defaultRenderStates[_currentRenderState].second);
-    } else if (_renderingEnabled && !_currentRenderState.isEmpty() && _defaultRenderStates.contains(_currentRenderState)) {
+    } else if (_renderingEnabled && !_currentRenderState.empty() && _defaultRenderStates.find(_currentRenderState) != _defaultRenderStates.end()) {
         disableRenderState(_renderStates[_currentRenderState]);
         updateRenderState(_defaultRenderStates[_currentRenderState].second, IntersectionType::NONE, _defaultRenderStates[_currentRenderState].first, QUuid(), true);
-    } else if (!_currentRenderState.isEmpty()) {
+    } else if (!_currentRenderState.empty()) {
         disableRenderState(_renderStates[_currentRenderState]);
         disableRenderState(_defaultRenderStates[_currentRenderState].second);
     }

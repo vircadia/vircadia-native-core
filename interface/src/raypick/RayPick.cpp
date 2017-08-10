@@ -10,7 +10,7 @@
 //
 #include "RayPick.h"
 
-RayPick::RayPick(const uint16_t filter, const float maxDistance, const bool enabled) :
+RayPick::RayPick(const RayPickFilter& filter, const float maxDistance, const bool enabled) :
     _filter(filter),
     _maxDistance(maxDistance),
     _enabled(enabled)

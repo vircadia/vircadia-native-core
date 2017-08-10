@@ -11,34 +11,19 @@
 #ifndef hifi_RayPickManager_h
 #define hifi_RayPickManager_h
 
-#include <QHash>
-#include <QQueue>
-#include <QReadWriteLock>
+#include "RayPick.h"
+
 #include <memory>
+#include <shared_mutex>
 #include <QtCore/QObject>
 
 #include "RegisteredMetaTypes.h"
 #include "DependencyManager.h"
 
-class RayPick;
+#include <unordered_map>
+#include <queue>
+
 class RayPickResult;
-
-enum RayPickMask {
-    PICK_NOTHING = 0,
-    PICK_ENTITIES = 1 << 0,
-    PICK_OVERLAYS = 1 << 1,
-    PICK_AVATARS = 1 << 2,
-    PICK_HUD = 1 << 3,
-
-    // NOT YET IMPLEMENTED
-    PICK_BOUNDING_BOX = 1 << 4, // if not set, picks again physics mesh (can't pick against graphics mesh, yet)
-
-    PICK_INCLUDE_INVISIBLE = 1 << 5, // if not set, will not intersect invisible elements, otherwise, intersects both visible and invisible elements
-    PICK_INCLUDE_NONCOLLIDABLE = 1 << 6, // if not set, will not intersect noncollidable elements, otherwise, intersects both collidable and noncollidable elements
-
-    // NOT YET IMPLEMENTED
-    PICK_ALL_INTERSECTIONS = 1 << 7 // if not set, returns closest intersection, otherwise, returns list of all intersections
-};
 
 class RayPickManager : public QObject, public Dependency {
     Q_OBJECT
@@ -78,33 +63,36 @@ public slots:
 
 private:
     QHash<QUuid, std::shared_ptr<RayPick>> _rayPicks;
-    QHash<QUuid, std::shared_ptr<QReadWriteLock>> _rayPickLocks;
-    QReadWriteLock _addLock;
-    QQueue<QPair<QUuid, std::shared_ptr<RayPick>>> _rayPicksToAdd;
-    QReadWriteLock _removeLock;
-    QQueue<QUuid> _rayPicksToRemove;
-    QReadWriteLock _containsLock;
+    QHash<QUuid, std::shared_ptr<std::shared_mutex>> _rayPickLocks;
+    std::shared_mutex _addLock;
+    std::queue<std::pair<QUuid, std::shared_ptr<RayPick>>> _rayPicksToAdd;
+    std::shared_mutex _removeLock;
+    std::queue<QUuid> _rayPicksToRemove;
+    std::shared_mutex _containsLock;
 
-    typedef QHash<QPair<glm::vec3, glm::vec3>, QHash<unsigned int, RayPickResult>> RayPickCache;
+    typedef QHash<QPair<glm::vec3, glm::vec3>, std::unordered_map<RayPickFilter::Flags, RayPickResult>> RayPickCache;
 
     // Returns true if this ray exists in the cache, and if it does, update res if the cached result is closer
-    bool checkAndCompareCachedResults(QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache, RayPickResult& res, unsigned int mask);
-    void cacheResult(const bool intersects, const RayPickResult& resTemp, unsigned int mask, RayPickResult& res, QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache);
+    bool checkAndCompareCachedResults(QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache, RayPickResult& res, const RayPickFilter::Flags& mask);
+    void cacheResult(const bool intersects, const RayPickResult& resTemp, const RayPickFilter::Flags& mask, RayPickResult& res, QPair<glm::vec3, glm::vec3>& ray, RayPickCache& cache);
 
-    unsigned int PICK_NOTHING() { return RayPickMask::PICK_NOTHING; }
-    unsigned int PICK_ENTITIES() { return RayPickMask::PICK_ENTITIES; }
-    unsigned int PICK_OVERLAYS() { return RayPickMask::PICK_OVERLAYS; }
-    unsigned int PICK_AVATARS() { return RayPickMask::PICK_AVATARS; }
-    unsigned int PICK_HUD() { return RayPickMask::PICK_HUD; }
-    unsigned int PICK_BOUNDING_BOX() { return RayPickMask::PICK_BOUNDING_BOX; }
-    unsigned int PICK_INCLUDE_INVISIBLE() { return RayPickMask::PICK_INCLUDE_INVISIBLE; }
-    unsigned int PICK_INCLUDE_NONCOLLIDABLE() { return RayPickMask::PICK_INCLUDE_NONCOLLIDABLE; }
-    unsigned int PICK_ALL_INTERSECTIONS() { return RayPickMask::PICK_ALL_INTERSECTIONS; }
+    unsigned int PICK_NOTHING() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_NOTHING); }
+    unsigned int PICK_ENTITIES() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_ENTITIES); }
+    unsigned int PICK_OVERLAYS() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_OVERLAYS); }
+    unsigned int PICK_AVATARS() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_AVATARS); }
+    unsigned int PICK_HUD() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_HUD); }
+    unsigned int PICK_BOUNDING_BOX() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_COURSE); }
+    unsigned int PICK_INCLUDE_INVISIBLE() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_INCLUDE_INVISIBLE); }
+    unsigned int PICK_INCLUDE_NONCOLLIDABLE() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_INCLUDE_NONCOLLIDABLE); }
+    unsigned int PICK_ALL_INTERSECTIONS() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_ALL_INTERSECTIONS); }
     unsigned int INTERSECTED_NONE() { return IntersectionType::NONE; }
     unsigned int INTERSECTED_ENTITY() { return IntersectionType::ENTITY; }
     unsigned int INTERSECTED_OVERLAY() { return IntersectionType::OVERLAY; }
     unsigned int INTERSECTED_AVATAR() { return IntersectionType::AVATAR; }
     unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
+
+    typedef std::lock_guard<std::shared_mutex> WriteLock;
+    typedef std::shared_lock<std::shared_mutex> ReadLock;
 
 };
 

@@ -11,9 +11,8 @@
 #ifndef hifi_LaserPointerManager_h
 #define hifi_LaserPointerManager_h
 
-#include <QHash>
-#include <QString>
 #include <memory>
+#include <shared_mutex>
 #include <glm/glm.hpp>
 
 #include "LaserPointer.h"
@@ -23,13 +22,13 @@ class RayPickResult;
 class LaserPointerManager {
 
 public:
-    QUuid createLaserPointer(const QVariantMap& rayProps, const QHash<QString, RenderState>& renderStates, QHash<QString, QPair<float, RenderState>>& defaultRenderStates,
+    QUuid createLaserPointer(const QVariantMap& rayProps, const LaserPointer::RenderStateMap& renderStates, const LaserPointer::DefaultRenderStateMap& defaultRenderStates,
         const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled);
     void removeLaserPointer(const QUuid uid);
     void enableLaserPointer(const QUuid uid);
     void disableLaserPointer(const QUuid uid);
-    void setRenderState(QUuid uid, const QString& renderState);
-    void editRenderState(QUuid uid, const QString& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps);
+    void setRenderState(QUuid uid, const std::string& renderState);
+    void editRenderState(QUuid uid, const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps);
     const RayPickResult getPrevRayPickResult(const QUuid uid);
 
     void setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities);
@@ -45,12 +44,15 @@ public:
 
 private:
     QHash<QUuid, std::shared_ptr<LaserPointer>> _laserPointers;
-    QHash<QUuid, std::shared_ptr<QReadWriteLock>> _laserPointerLocks;
-    QReadWriteLock _addLock;
-    QQueue<QPair<QUuid, std::shared_ptr<LaserPointer>>> _laserPointersToAdd;
-    QReadWriteLock _removeLock;
-    QQueue<QUuid> _laserPointersToRemove;
-    QReadWriteLock _containsLock;
+    QHash<QUuid, std::shared_ptr<std::shared_mutex>> _laserPointerLocks;
+    std::shared_mutex _addLock;
+    std::queue<std::pair<QUuid, std::shared_ptr<LaserPointer>>> _laserPointersToAdd;
+    std::shared_mutex _removeLock;
+    std::queue<QUuid> _laserPointersToRemove;
+    std::shared_mutex _containsLock;
+
+    typedef std::lock_guard<std::shared_mutex> WriteLock;
+    typedef std::shared_lock<std::shared_mutex> ReadLock;
 
 };
 
