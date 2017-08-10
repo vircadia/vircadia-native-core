@@ -10,7 +10,7 @@
 
 /* global ToolIcon */
 
-ToolIcon = function (side) {
+ToolIcon = function (App, side) {
     // Tool icon displayed on non-dominant hand.
 
     "use strict";
@@ -80,7 +80,7 @@ ToolIcon = function (side) {
         if (handJointIndex === -1) {
             // Don't display if joint isn't available (yet) to attach to.
             // User can clear this condition by toggling the app off and back on once avatar finishes loading.
-            // TODO: Log error.
+            App.log(side, "ERROR: ToolIcon: Hand joint index isn't available!");
             return;
         }
 

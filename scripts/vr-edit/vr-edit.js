@@ -34,6 +34,7 @@
         colorToolColor = { red: 128, green: 128, blue: 128 },
 
         // Primary objects
+        App,
         Inputs,
         inputs = [],
         UI,
@@ -79,27 +80,34 @@
     Script.include("./modules/toolMenu.js");
 
 
-    function log(message) {
-        print(APP_NAME + ": " + message);
+    function log(side, message) {
+        // Optional parameter: side.
+        var hand = "",
+            HAND_LETTERS = ["L", "R"];
+        if (side === 0 || side === 1) {
+            hand = HAND_LETTERS[side] + " ";
+        } else {
+            message = side;
+        }
+        print(APP_NAME + ": " + hand + message);
     }
 
     function debug(side, message) {
         // Optional parameter: side.
-        var hand = "",
-            HAND_LETTERS = ["L", "R"];
         if (DEBUG) {
-            if (side === 0 || side === 1) {
-                hand = HAND_LETTERS[side] + " ";
-            } else {
-                message = side;
-            }
-            log(hand + message);
+            log(side, message);
         }
     }
 
     function otherHand(hand) {
         return (hand + 1) % 2;
     }
+
+    App = {
+        log: log,
+        debug: debug,
+        DEBUG: DEBUG
+    };
 
 
     Inputs = function (side) {
@@ -180,7 +188,7 @@
     };
 
 
-    UI = function (side, leftInputs, rightInputs, uiCommandCallback) {
+    UI = function (App, side, leftInputs, rightInputs, uiCommandCallback) {
         // Tool menu and Create palette.
 
         var // Primary objects.
@@ -197,9 +205,9 @@
             return new UI();
         }
 
-        toolIcon = new ToolIcon(otherHand(side));
-        toolMenu = new ToolMenu(side, leftInputs, rightInputs, uiCommandCallback);
-        createPalette = new CreatePalette(side, leftInputs, rightInputs, uiCommandCallback);
+        toolIcon = new ToolIcon(App, otherHand(side));
+        toolMenu = new ToolMenu(App, side, leftInputs, rightInputs, uiCommandCallback);
+        createPalette = new CreatePalette(App, side, leftInputs, rightInputs, uiCommandCallback);
 
         getIntersection = side === LEFT_HAND ? rightInputs.intersection : leftInputs.intersection;
 
@@ -807,8 +815,8 @@
                 STATE_MACHINE[EDITOR_STATE_STRINGS[editorState]].exit();
                 STATE_MACHINE[EDITOR_STATE_STRINGS[state]].enter();
                 editorState = state;
-            } else if (DEBUG) {
-                log("ERROR: Null state transition: " + state + "!");
+            } else {
+                log(side, "ERROR: Editor: Null state transition: " + state + "!");
             }
         }
 
@@ -897,7 +905,7 @@
                         setState(EDITOR_GRABBING);
                     }
                 } else {
-                    debug(side, "ERROR: Unexpected condition in EDITOR_SEARCHING!");
+                    log(side, "ERROR: Editor: Unexpected condition in EDITOR_SEARCHING!");
                 }
                 break;
             case EDITOR_HIGHLIGHTING:
@@ -938,7 +946,7 @@
                         if (toolSelected !== TOOL_SCALE) {
                             setState(EDITOR_DIRECT_SCALING);
                         } else {
-                            debug(side, "ERROR: Unexpected condition in EDITOR_HIGHLIGHTING! A");
+                            log(side, "ERROR: Editor: Unexpected condition A in EDITOR_HIGHLIGHTING!");
                         }
                     } else if (toolSelected === TOOL_CLONE) {
                         setState(EDITOR_CLONING);
@@ -967,7 +975,7 @@
                 } else if (!intersection.entityID || !intersection.editableEntity) {
                     setState(EDITOR_SEARCHING);
                 } else {
-                    debug(side, "ERROR: Unexpected condition in EDITOR_HIGHLIGHTING! B");
+                    log(side, "ERROR: Editor: Unexpected condition B in EDITOR_HIGHLIGHTING!");
                 }
                 break;
             case EDITOR_GRABBING:
@@ -996,7 +1004,7 @@
                         setState(EDITOR_SEARCHING);
                     }
                 } else {
-                    debug(side, "ERROR: Unexpected condition in EDITOR_GRABBING!");
+                    log(side, "ERROR: Editor: Unexpected condition in EDITOR_GRABBING!");
                 }
                 break;
             case EDITOR_DIRECT_SCALING:
@@ -1023,7 +1031,7 @@
                     // Grab highlightEntityID that was scaling and has already been set.
                     setState(EDITOR_GRABBING);
                 } else {
-                    debug(side, "ERROR: Unexpected condition in EDITOR_DIRECT_SCALING!");
+                    log(side, "ERROR: Editor: Unexpected condition in EDITOR_DIRECT_SCALING!");
                 }
                 break;
             case EDITOR_HANDLE_SCALING:
@@ -1049,7 +1057,7 @@
                     // Grab highlightEntityID that was scaling and has already been set.
                     setState(EDITOR_GRABBING);
                 } else {
-                    debug(side, "ERROR: Unexpected condition in EDITOR_HANDLE_SCALING!");
+                    log(side, "ERROR: Editor: Unexpected condition in EDITOR_HANDLE_SCALING!");
                 }
                 break;
             case EDITOR_CLONING:
@@ -1066,7 +1074,7 @@
                         setState(EDITOR_SEARCHING);
                     }
                 } else {
-                    debug(side, "ERROR: Unexpected condition in EDITOR_CLONING!");
+                    log(side, "ERROR: Editor: Unexpected condition in EDITOR_CLONING!");
                 }
                 break;
             case EDITOR_GROUPING:
@@ -1353,7 +1361,7 @@
             }
             break;
         default:
-            debug("ERROR: Unexpected command in onUICommand()! " + command);
+            log("ERROR: Unexpected command in onUICommand(): " + command);
         }
     }
 
@@ -1432,7 +1440,7 @@
         inputs[RIGHT_HAND] = new Inputs(RIGHT_HAND);
 
         // UI object.
-        ui = new UI(otherHand(dominantHand), inputs[LEFT_HAND], inputs[RIGHT_HAND], onUICommand);
+        ui = new UI(App, otherHand(dominantHand), inputs[LEFT_HAND], inputs[RIGHT_HAND], onUICommand);
 
         // Editor objects.
         editors[LEFT_HAND] = new Editor(LEFT_HAND);

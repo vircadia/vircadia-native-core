@@ -10,7 +10,7 @@
 
 /* global ToolMenu */
 
-ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
+ToolMenu = function (App, side, leftInputs, rightInputs, uiCommandCallback) {
     // Tool menu displayed on top of forearm.
 
     "use strict";
@@ -840,7 +840,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
             break;
         default:
-            // TODO: Log error.
+            App.log(side, "ERROR: ToolMenu: Unexpected command! " + command);
         }
     }
 
@@ -858,7 +858,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
             break;
         default:
-            // TODO: Log error.
+            App.log(side, "ERROR: ToolMenu: Unexpected command! " + command);
         }
     }
 
@@ -1103,7 +1103,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         if (handJointIndex === NONE) {
             // Don't display if joint isn't available (yet) to attach to.
             // User can clear this condition by toggling the app off and back on once avatar finishes loading.
-            // TODO: Log error.
+            App.log(side, "ERROR: ToolMenu: Hand joint index isn't available!");
             return;
         }
 
