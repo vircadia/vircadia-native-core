@@ -318,6 +318,7 @@ template <> const ShapeKey shapeGetShapeKey(const ModelMeshPartPayload::Pointer&
 template <> void payloadRender(const ModelMeshPartPayload::Pointer& payload, RenderArgs* args) {
     return payload->render(args);
 }
+
 }
 
 ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int _meshIndex, int partIndex, int shapeIndex, const Transform& transform, const Transform& offsetTransform) :
@@ -327,6 +328,7 @@ ModelMeshPartPayload::ModelMeshPartPayload(ModelPointer model, int _meshIndex, i
     assert(model && model->isLoaded());
     _model = model;
     auto& modelMesh = model->getGeometry()->getMeshes().at(_meshIndex);
+
     updateMeshPart(modelMesh, partIndex);
 
     updateTransform(transform, offsetTransform);
@@ -389,10 +391,6 @@ ItemKey ModelMeshPartPayload::getKey() const {
             if (matKey.isTranslucent()) {
                 builder.withTransparent();
             }
-        }
-
-        if (_fadeState != FADE_COMPLETE) {
-            builder.withTransparent();
         }
     }
     return builder.build();
@@ -465,7 +463,7 @@ ShapeKey ModelMeshPartPayload::getShapeKey() const {
     ShapeKey::Builder builder;
     builder.withMaterial();
 
-    if (isTranslucent || _fadeState != FADE_COMPLETE) {
+    if (isTranslucent) {
         builder.withTranslucent();
     }
     if (hasTangents) {
@@ -510,9 +508,8 @@ void ModelMeshPartPayload::bindMesh(gpu::Batch& batch) {
         }
     }
 
-    if (_fadeState != FADE_COMPLETE) {
-        batch._glColor4f(1.0f, 1.0f, 1.0f, computeFadeAlpha());
-    } else if (!_hasColorAttrib) {
+    // TODO: Get rid of that extra call
+    if (!_hasColorAttrib) {
         batch._glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
     }
 }
@@ -525,45 +522,17 @@ void ModelMeshPartPayload::bindTransform(gpu::Batch& batch, const ShapePipeline:
     batch.setModelTransform(_transform);
 }
 
-float ModelMeshPartPayload::computeFadeAlpha() {
-    if (_fadeState == FADE_WAITING_TO_START) {
-        return 0.0f;
-    }
-    float fadeAlpha = 1.0f;
-    const float INV_FADE_PERIOD = 1.0f / (float)(1 * USECS_PER_SECOND);
-    float fraction = (float)(usecTimestampNow() - _fadeStartTime) * INV_FADE_PERIOD;
-    if (fraction < 1.0f) {
-        fadeAlpha = Interpolate::simpleNonLinearBlend(fraction);
-    }
-    if (fadeAlpha >= 1.0f) {
-        _fadeState = FADE_COMPLETE;
-        // when fade-in completes we flag model for one last "render item update"
-        ModelPointer model = _model.lock();
-        if (model) {
-            model->setRenderItemsNeedUpdate();
-        }
-        return 1.0f;
-    }
-    return Interpolate::simpleNonLinearBlend(fadeAlpha);
-}
-
 void ModelMeshPartPayload::render(RenderArgs* args) {
     PerformanceTimer perfTimer("ModelMeshPartPayload::render");
 
     ModelPointer model = _model.lock();
-    if (!model || !model->addedToScene() || !model->isVisible()) {
+    if (!model || !model->isAddedToScene() || !model->isVisible()) {
         return; // bail asap
     }
 
-    if (_fadeState == FADE_WAITING_TO_START) {
+    if (_state == WAITING_TO_START) {
         if (model->isLoaded()) {
-            // FIXME as far as I can tell this is the ONLY reason render-util depends on entities.
-            if (EntityItem::getEntitiesShouldFadeFunction()()) {
-                _fadeStartTime = usecTimestampNow();
-                _fadeState = FADE_IN_PROGRESS;
-            } else {
-                _fadeState = FADE_COMPLETE;
-            }
+            _state = STARTED;
             model->setRenderItemsNeedUpdate();
         } else {
             return;

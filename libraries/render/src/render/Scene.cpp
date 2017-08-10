@@ -13,13 +13,16 @@
 #include <numeric>
 #include <gpu/Batch.h>
 #include "Logging.h"
+#include "TransitionStage.h"
+
+// Comment this to disable transitions (fades)
+#define SCENE_ENABLE_TRANSITIONS
 
 using namespace render;
 
 void Transaction::resetItem(ItemID id, const PayloadPointer& payload) {
     if (payload) {
-        _resetItems.emplace_back(id);
-        _resetPayloads.emplace_back(payload);
+        _resetItems.emplace_back(Reset{ id, payload });
     } else {
         qCDebug(renderlogging) << "WARNING: Transaction::resetItem with a null payload!";
         removeItem(id);
@@ -30,9 +33,24 @@ void Transaction::removeItem(ItemID id) {
     _removedItems.emplace_back(id);
 }
 
+void Transaction::addTransitionToItem(ItemID id, Transition::Type transition, ItemID boundId) {
+    _addedTransitions.emplace_back(TransitionAdd{ id, transition, boundId });
+}
+
+void Transaction::removeTransitionFromItem(ItemID id) {
+    _addedTransitions.emplace_back(TransitionAdd{ id, Transition::NONE, render::Item::INVALID_ITEM_ID });
+}
+
+void Transaction::reApplyTransitionToItem(ItemID id) {
+    _reAppliedTransitions.emplace_back(TransitionReApply{ id });
+}
+
+void Transaction::queryTransitionOnItem(ItemID id, TransitionQueryFunc func) {
+    _queriedTransitions.emplace_back(TransitionQuery{ id, func });
+}
+
 void Transaction::updateItem(ItemID id, const UpdateFunctorPointer& functor) {
-    _updatedItems.emplace_back(id);
-    _updateFunctors.emplace_back(functor);
+    _updatedItems.emplace_back(Update{ id, functor });
 }
 
 void Transaction::resetSelection(const Selection& selection) {
@@ -41,11 +59,12 @@ void Transaction::resetSelection(const Selection& selection) {
 
 void Transaction::merge(const Transaction& transaction) {
     _resetItems.insert(_resetItems.end(), transaction._resetItems.begin(), transaction._resetItems.end());
-    _resetPayloads.insert(_resetPayloads.end(), transaction._resetPayloads.begin(), transaction._resetPayloads.end());
     _removedItems.insert(_removedItems.end(), transaction._removedItems.begin(), transaction._removedItems.end());
     _updatedItems.insert(_updatedItems.end(), transaction._updatedItems.begin(), transaction._updatedItems.end());
-    _updateFunctors.insert(_updateFunctors.end(), transaction._updateFunctors.begin(), transaction._updateFunctors.end());
     _resetSelections.insert(_resetSelections.end(), transaction._resetSelections.begin(), transaction._resetSelections.end());
+    _addedTransitions.insert(_addedTransitions.end(), transaction._addedTransitions.begin(), transaction._addedTransitions.end());
+    _queriedTransitions.insert(_queriedTransitions.end(), transaction._queriedTransitions.begin(), transaction._queriedTransitions.end());
+    _reAppliedTransitions.insert(_reAppliedTransitions.end(), transaction._reAppliedTransitions.begin(), transaction._reAppliedTransitions.end());
 }
 
 
@@ -104,17 +123,23 @@ void Scene::processTransactionQueue() {
         // capture anything coming from the transaction
 
         // resets and potential NEW items
-        resetItems(consolidatedTransaction._resetItems, consolidatedTransaction._resetPayloads);
+        resetItems(consolidatedTransaction._resetItems);
 
         // Update the numItemsAtomic counter AFTER the reset changes went through
         _numAllocatedItems.exchange(maxID);
 
         // updates
-        updateItems(consolidatedTransaction._updatedItems, consolidatedTransaction._updateFunctors);
+        updateItems(consolidatedTransaction._updatedItems);
 
         // removes
         removeItems(consolidatedTransaction._removedItems);
 
+#ifdef SCENE_ENABLE_TRANSITIONS
+        // add transitions
+        transitionItems(consolidatedTransaction._addedTransitions);
+        reApplyTransitions(consolidatedTransaction._reAppliedTransitions);
+        queryTransitionItems(consolidatedTransaction._queriedTransitions);
+#endif
         // Update the numItemsAtomic counter AFTER the pending changes went through
         _numAllocatedItems.exchange(maxID);
     }
@@ -127,34 +152,31 @@ void Scene::processTransactionQueue() {
     }
 }
 
-void Scene::resetItems(const ItemIDs& ids, Payloads& payloads) {
-    auto resetPayload = payloads.begin();
-    for (auto resetID : ids) {
+void Scene::resetItems(const Transaction::Resets& transactions) {
+    for (auto& reset : transactions) {
         // Access the true item
-        auto& item = _items[resetID];
+        auto itemId = std::get<0>(reset);
+        auto& item = _items[itemId];
         auto oldKey = item.getKey();
         auto oldCell = item.getCell();
 
         // Reset the item with a new payload
-        item.resetPayload(*resetPayload);
+        item.resetPayload(std::get<1>(reset));
         auto newKey = item.getKey();
 
         // Update the item's container
         assert((oldKey.isSpatial() == newKey.isSpatial()) || oldKey._flags.none());
         if (newKey.isSpatial()) {
-            auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), resetID, newKey);
+            auto newCell = _masterSpatialTree.resetItem(oldCell, oldKey, item.getBound(), itemId, newKey);
             item.resetCell(newCell, newKey.isSmall());
         } else {
-            _masterNonspatialSet.insert(resetID);
+            _masterNonspatialSet.insert(itemId);
         }
-
-        // next loop
-        resetPayload++;
     }
 }
 
-void Scene::removeItems(const ItemIDs& ids) {
-    for (auto removedID :ids) {
+void Scene::removeItems(const Transaction::Removes& transactions) {
+    for (auto removedID : transactions) {
         // Access the true item
         auto& item = _items[removedID];
         auto oldCell = item.getCell();
@@ -167,17 +189,18 @@ void Scene::removeItems(const ItemIDs& ids) {
             _masterNonspatialSet.erase(removedID);
         }
 
+        // Remove the transition to prevent updating it for nothing
+        resetItemTransition(removedID);
+
         // Kill it
         item.kill();
     }
 }
 
-void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
-
-    auto updateFunctor = functors.begin();
-    for (auto updateID : ids) {
+void Scene::updateItems(const Transaction::Updates& transactions) {
+    for (auto& update : transactions) {
+        auto updateID = std::get<0>(update);
         if (updateID == Item::INVALID_ITEM_ID) {
-            updateFunctor++;
             continue;
         }
 
@@ -187,7 +210,7 @@ void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
         auto oldKey = item.getKey();
 
         // Update the item
-        item.update((*updateFunctor));
+        item.update(std::get<1>(update));
         auto newKey = item.getKey();
 
         // Update the item's container
@@ -209,10 +232,107 @@ void Scene::updateItems(const ItemIDs& ids, UpdateFunctors& functors) {
                 _masterNonspatialSet.insert(updateID);
             }
         }
+    }
+}
 
+void Scene::transitionItems(const Transaction::TransitionAdds& transactions) {
+    auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
 
-        // next loop
-        updateFunctor++;
+    for (auto& add : transactions) {
+        auto itemId = std::get<0>(add);
+        // Access the true item
+        const auto& item = _items[itemId];
+        auto transitionId = item.getTransitionId();
+        auto transitionType = std::get<1>(add);
+        auto boundId = std::get<2>(add);
+
+        // Remove pre-existing transition, if need be
+        if (!TransitionStage::isIndexInvalid(transitionId)) {
+            transitionStage->removeTransition(transitionId);
+            transitionId = TransitionStage::INVALID_INDEX;
+        }
+        // Add a new one.
+        if (transitionType != Transition::NONE) {
+            transitionId = transitionStage->addTransition(itemId, transitionType, boundId);
+        }
+
+        setItemTransition(itemId, transitionId);
+    }
+}
+
+void Scene::reApplyTransitions(const Transaction::TransitionReApplies& transactions) {
+    for (auto itemId : transactions) {
+        // Access the true item
+        const auto& item = _items[itemId];
+        auto transitionId = item.getTransitionId();
+        setItemTransition(itemId, transitionId);
+    }
+}
+
+void Scene::queryTransitionItems(const Transaction::TransitionQueries& transactions) {
+    auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
+
+    for (auto& query : transactions) {
+        auto itemId = std::get<0>(query);
+        // Access the true item
+        const auto& item = _items[itemId];
+        auto func = std::get<1>(query);
+        if (item.exist() && func != nullptr) {
+            auto transitionId = item.getTransitionId();
+
+            if (!TransitionStage::isIndexInvalid(transitionId)) {
+                auto& transition = transitionStage->getTransition(transitionId);
+                func(itemId, &transition);
+            } else {
+                func(itemId, nullptr);
+            }
+        }
+    }
+}
+
+void Scene::collectSubItems(ItemID parentId, ItemIDs& subItems) const {
+    // Access the true item
+    auto& item = _items[parentId];
+
+    if (item.exist()) {
+        // Recursivelly collect the subitems
+        auto subItemBeginIndex = subItems.size();
+        auto subItemCount = item.fetchMetaSubItems(subItems);
+        for (auto i = subItemBeginIndex; i < (subItemBeginIndex + subItemCount); i++) {
+            auto subItemId = subItems[i];
+            // Bizarrely, subItemId == parentId can happen for metas... See metaFetchMetaSubItems in RenderableEntityItem.cpp
+            if (subItemId != parentId) {
+                collectSubItems(subItemId, subItems);
+            }
+        }
+    }
+}
+
+void Scene::setItemTransition(ItemID itemId, Index transitionId) {
+    // Access the true item
+    auto& item = _items[itemId];
+
+    item.setTransitionId(transitionId);
+    if (item.exist()) {
+        ItemIDs subItems;
+
+        // Sub-items share the same transition Id
+        collectSubItems(itemId, subItems);
+        for (auto subItemId : subItems) {
+            // Curiously... this can happen
+            if (subItemId != itemId) {
+                setItemTransition(subItemId, transitionId);
+            }
+        }
+    }
+}
+
+void Scene::resetItemTransition(ItemID itemId) {
+    auto& item = _items[itemId];
+    if (!render::TransitionStage::isIndexInvalid(item.getTransitionId())) {
+        auto transitionStage = getStage<TransitionStage>(TransitionStage::getName());
+        transitionStage->removeTransition(item.getTransitionId());
+        setItemTransition(itemId, render::TransitionStage::INVALID_INDEX);
     }
 }
 
@@ -227,8 +347,8 @@ Selection Scene::getSelection(const Selection::Name& name) const {
     }
 }
 
-void Scene::resetSelections(const Selections& selections) {
-    for (auto selection : selections) {
+void Scene::resetSelections(const Transaction::SelectionResets& transactions) {
+    for (auto selection : transactions) {
         auto found = _selections.find(selection.getName());
         if (found == _selections.end()) {
             _selections.insert(SelectionMap::value_type(selection.getName(), selection));
