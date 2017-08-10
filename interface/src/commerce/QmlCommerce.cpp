@@ -17,7 +17,7 @@
 
 HIFI_QML_DEF(QmlCommerce)
 
-bool QmlCommerce::buy(const QString& assetId, int cost, const QString& buyerUsername) {
+void QmlCommerce::buy(const QString& assetId, int cost, const QString& buyerUsername) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList keys = wallet->listPublicKeys();
@@ -26,5 +26,20 @@ bool QmlCommerce::buy(const QString& assetId, int cost, const QString& buyerUser
     }
     QString key = keys[0];
     // For now, we receive at the same key that pays for it.
-    return ledger->buy(key, cost, assetId, key, buyerUsername);
+    bool success = ledger->buy(key, cost, assetId, key, buyerUsername);
+    // FIXME: until we start talking to server, report post-transaction balance and inventory so we can see log for testing.
+    balance();
+    inventory();
+    return success;
 }
+
+int QmlCommerce::balance() {
+    auto ledger = DependencyManager::get<Ledger>();
+    auto wallet = DependencyManager::get<Wallet>();
+    return ledger->balance(wallet->listPublicKeys());
+}
+QStringList QmlCommerce::inventory() {
+    auto ledger = DependencyManager::get<Ledger>();
+    auto wallet = DependencyManager::get<Wallet>();
+    return ledger->inventory(wallet->listPublicKeys());
+ }
