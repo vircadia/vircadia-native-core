@@ -33,7 +33,19 @@ if (typeof Uuid.SELF !== "string") {
 }
 
 if (typeof Entities.rootOf !== "function") {
+    Entities.rootOfCache = {
+        CACHE_ENTRY_EXPIRY_TIME: 1000  // ms
+    };
+
     Entities.rootOf = function (entityID) {
+        if (Entities.rootOfCache[entityID]) {
+            if (Date.now() - Entities.rootOfCache[entityID].timeStamp
+                    < Entities.rootOfCache.CACHE_ENTRY_EXPIRY_TIME) {
+                return Entities.rootOfCache[entityID].rootOf;
+            }
+            delete Entities.rootOfCache[entityID];
+        }
+
         var rootEntityID,
             entityProperties,
             PARENT_PROPERTIES = ["parentID"];
@@ -43,6 +55,11 @@ if (typeof Entities.rootOf !== "function") {
             rootEntityID = entityProperties.parentID;
             entityProperties = Entities.getEntityProperties(rootEntityID, PARENT_PROPERTIES);
         }
+
+        Entities.rootOfCache[entityID] = {
+            rootOf: rootEntityID,
+            timeStamp: Date.now()
+        };
         return rootEntityID;
     };
 }
@@ -71,6 +88,7 @@ if (typeof Entities.hasEditableRoot !== "function") {
             properties = Entities.getEntityProperties(properties.parentID, EDITIBLE_ENTITY_QUERY_PROPERTYES);
         }
         isEditable = properties.visible && !properties.locked && NONEDITABLE_ENTITY_TYPES.indexOf(properties.type) === -1;
+
         Entities.hasEditableRootCache[entityID] = {
             hasEditableRoot: isEditable,
             timeStamp: Date.now()
