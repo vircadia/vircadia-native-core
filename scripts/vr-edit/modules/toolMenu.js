@@ -144,9 +144,9 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             "barSlider": {
                 overlay: "cube",
                 properties: {
-                    dimensions: { x: 0.03, y: 0.1, z: 0.01 },
+                    dimensions: { x: 0.02, y: 0.1, z: 0.01 },
                     localRotation: Quat.ZERO,
-                    color: { red: 128, green: 128, blue: 255 },
+                    color: { red: 128, green: 128, blue: 128 },
                     alpha: 0.0,
                     solid: true,
                     ignoreRayIntersection: false,
@@ -156,7 +156,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             "barSliderValue": {
                 overlay: "cube",
                 properties: {
-                    dimensions: { x: 0.03, y: 0.03, z: 0.01 },
+                    dimensions: { x: 0.02, y: 0.03, z: 0.01 },
                     localPosition: { x: 0, y: 0.035, z: 0 },
                     localRotation: Quat.ZERO,
                     color: { red: 100, green: 240, blue: 100 },
@@ -169,10 +169,38 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             "barSliderRemainder": {
                 overlay: "cube",
                 properties: {
-                    dimensions: { x: 0.03, y: 0.07, z: 0.01 },
+                    dimensions: { x: 0.02, y: 0.07, z: 0.01 },
                     localPosition: { x: 0, y: -0.015, z: 0 },
                     localRotation: Quat.ZERO,
                     color: { red: 64, green: 64, blue: 64 },
+                    alpha: 1.0,
+                    solid: true,
+                    ignoreRayIntersection: true,
+                    visible: true
+                }
+            },
+            "imageSlider": {
+                overlay: "cube",
+                properties: {
+                    dimensions: { x: 0.02, y: 0.1, z: 0.01 },
+                    localRotation: Quat.ZERO,
+                    color: { red: 128, green: 128, blue: 128 },
+                    alpha: 1.0,
+                    solid: true,
+                    ignoreRayIntersection: false,
+                    visible: true
+                },
+                useBaseColor: false,
+                imageURL: null,
+                imageOverlayURL: null
+            },
+            "sliderPointer": {
+                overlay: "shape",
+                properties: {
+                    shape: "Cone",
+                    dimensions: { x: 0.01, y: 0.01, z: 0.01 },
+                    localRotation: Quat.fromVec3Degrees({ x: 0, y: 0, z: -90 }),
+                    color: { red: 180, green: 180, blue: 180 },
                     alpha: 1.0,
                     solid: true,
                     ignoreRayIntersection: true,
@@ -360,6 +388,20 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     callback: {
                         method: "setSliderValue"
                     }
+                },
+                {
+                    id: "colorSlider",
+                    type: "imageSlider",
+                    properties: {
+                        localPosition: { x: 0.02, y: 0.0, z: -0.005 },
+                        color: { red: 255, green: 0, blue: 0 }
+                    },
+                    useBaseColor: true,
+                    imageURL: "../assets/slider-white.png",
+                    imageOverlayURL: "../assets/slider-white-alpha.png",
+                    callback: {
+                        method: "setSliderValue"
+                    }
                 }
             ]
         },
@@ -512,8 +554,12 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     function openOptions(toolOptions) {
         var properties,
+            childProperties,
+            auxiliaryProperties,
             parentID,
             value,
+            imageOffset,
+            IMAGE_OFFSET = 0.0005,
             i,
             length;
 
@@ -567,15 +613,62 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties.parentID = optionsOverlays[optionsOverlays.length - 1];
                     Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
                 }
+
                 if (optionsItems[i].type === "barSlider") {
                     optionsOverlaysAuxiliaries[i] = {};
-                    properties = Object.clone(UI_ELEMENTS.barSliderValue.properties);
-                    properties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                    optionsOverlaysAuxiliaries[i].value = Overlays.addOverlay(UI_ELEMENTS.barSliderValue.overlay, properties);
-                    properties = Object.clone(UI_ELEMENTS.barSliderRemainder.properties);
-                    properties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                    auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderValue.properties);
+                    auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                    optionsOverlaysAuxiliaries[i].value = Overlays.addOverlay(UI_ELEMENTS.barSliderValue.overlay,
+                        auxiliaryProperties);
+                    auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderRemainder.properties);
+                    auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                     optionsOverlaysAuxiliaries[i].remainder = Overlays.addOverlay(UI_ELEMENTS.barSliderRemainder.overlay,
-                        properties);
+                        auxiliaryProperties);
+                }
+                if (optionsItems[i].type === "imageSlider") {
+                    imageOffset = 0.0;
+
+                    // Primary image.
+                    if (optionsItems[i].imageURL) {
+                        childProperties = Object.clone(UI_ELEMENTS.image.properties);
+                        childProperties.url = Script.resolvePath(optionsItems[i].imageURL);
+                        childProperties.scale = properties.dimensions.y;
+                        imageOffset += IMAGE_OFFSET;
+                        childProperties.emissive = true;
+                        if (optionsItems[i].useBaseColor) {
+                            childProperties.color = properties.color;
+                        }
+                        childProperties.localPosition = { x: 0, y: 0, z: -properties.dimensions.z / 2 - imageOffset };
+                        childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                        Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
+                    }
+
+                    // Overlay image.
+                    if (optionsItems[i].imageOverlayURL) {
+                        childProperties = Object.clone(UI_ELEMENTS.image.properties);
+                        childProperties.url = Script.resolvePath(optionsItems[i].imageOverlayURL);
+                        childProperties.drawInFront = true;  // TODO: Work-around for rendering bug; remove when bug fixed.
+                        childProperties.scale = properties.dimensions.y;
+                        imageOffset += IMAGE_OFFSET;
+                        childProperties.localPosition = { x: 0, y: 0, z: -properties.dimensions.z / 2 - imageOffset };
+                        childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                        Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
+                    }
+
+                    // Value pointers.
+                    optionsOverlaysAuxiliaries[i] = {};
+                    optionsOverlaysAuxiliaries[i].offset =
+                        { x: -properties.dimensions.x / 2, y: 0, z: -properties.dimensions.z / 2 - imageOffset };
+                    auxiliaryProperties = Object.clone(UI_ELEMENTS.sliderPointer.properties);
+                    auxiliaryProperties.localPosition = optionsOverlaysAuxiliaries[i].offset;
+                    auxiliaryProperties.drawInFront = true;  // TODO: Accommodate work-around above; remove when bug fixed.
+                    auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                    optionsOverlaysAuxiliaries[i].value = Overlays.addOverlay(UI_ELEMENTS.sliderPointer.overlay,
+                        auxiliaryProperties);
+                    auxiliaryProperties.localPosition = { x: 0, y: properties.dimensions.x, z: 0 };
+                    auxiliaryProperties.localRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
+                    auxiliaryProperties.parentID = optionsOverlaysAuxiliaries[i].value;
+                    Overlays.addOverlay(UI_ELEMENTS.sliderPointer.overlay, auxiliaryProperties);
                 }
                 parentID = optionsOverlays[0];  // Menu buttons parent to menu panel.
                 optionsEnabled.push(true);
@@ -811,6 +904,25 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             Overlays.editOverlay(optionsOverlaysAuxiliaries[intersectedItem].remainder, {
                 localPosition: { x: 0, y: (-0.5 + otherFraction / 2) * overlayDimensions.y, z: 0 },
                 dimensions: { x: overlayDimensions.x, y: otherFraction * overlayDimensions.y, z: overlayDimensions.z }
+            });
+
+            uiCommandCallback(intersectionItems[intersectedItem].callback.method, fraction);
+        }
+
+        // Image slider update.
+        if (intersectionItems && intersectionItems[intersectedItem].type === "imageSlider" && controlHand.triggerClicked()) {
+            sliderProperties = Overlays.getProperties(intersection.overlayID, ["position", "orientation"]);
+            overlayDimensions = intersectionItems[intersectedItem].properties.dimensions;
+            if (overlayDimensions === undefined) {
+                overlayDimensions = UI_ELEMENTS.imageSlider.properties.dimensions;
+            }
+            basePoint = Vec3.sum(sliderProperties.position,
+                Vec3.multiplyQbyV(sliderProperties.orientation, { x: 0, y: overlayDimensions.y / 2, z: 0 }));
+            fraction = Vec3.dot(Vec3.subtract(basePoint, intersection.intersection),
+                Vec3.multiplyQbyV(sliderProperties.orientation, Vec3.UNIT_Y)) / overlayDimensions.y;
+            Overlays.editOverlay(optionsOverlaysAuxiliaries[intersectedItem].value, {
+                localPosition: Vec3.sum(optionsOverlaysAuxiliaries[intersectedItem].offset,
+                    { x: 0, y: (0.5 - fraction) * overlayDimensions.y, z: 0 })
             });
 
             uiCommandCallback(intersectionItems[intersectedItem].callback.method, fraction);
