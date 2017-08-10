@@ -13,6 +13,7 @@
 #include "AssetServer.h"
 
 #include <thread>
+#include <memory>
 
 #include <QtCore/QCoreApplication>
 #include <QtCore/QCryptographicHash>
@@ -27,17 +28,16 @@
 #include <QtCore/QVector>
 #include <qurlquery.h>
 
+#include <ClientServerUtils.h>
+#include <FBXBaker.h>
+#include <NodeType.h>
 #include <SharedUtil.h>
 #include <PathUtils.h>
 
-#include "NetworkLogging.h"
-#include "NodeType.h"
+#include "AssetServerLogging.h"
 #include "SendAssetTask.h"
 #include "UploadAssetTask.h"
-#include <ClientServerUtils.h>
-#include <FBXBaker.h>
 
-#include <memory>
 
 static const uint8_t MIN_CORES_FOR_MULTICORE = 4;
 static const uint8_t CPU_AFFINITY_COUNT_HIGH = 2;
@@ -196,7 +196,7 @@ void updateConsumedCores() {
     if (isInterfaceRunning) {
         coreCount = coreCount > MIN_CORES_FOR_MULTICORE ? CPU_AFFINITY_COUNT_HIGH : CPU_AFFINITY_COUNT_LOW;
     } 
-    qDebug() << "Setting max consumed cores to " << coreCount;
+    qCDebug(asset_server) << "Setting max consumed cores to " << coreCount;
     setMaxCores(coreCount);
 }
 
@@ -236,7 +236,7 @@ AssetServer::AssetServer(ReceivedMessage& message) :
 
 void AssetServer::run() {
 
-    qDebug() << "Waiting for connection to domain to request settings from domain-server.";
+    qCDebug(asset_server) << "Waiting for connection to domain to request settings from domain-server.";
 
     // wait until we have the domain-server settings, otherwise we bail
     DomainHandler& domainHandler = DependencyManager::get<NodeList>()->getDomainHandler();
@@ -257,7 +257,7 @@ void AssetServer::completeSetup() {
     static const QString ASSET_SERVER_SETTINGS_KEY = "asset_server";
 
     if (!settingsObject.contains(ASSET_SERVER_SETTINGS_KEY)) {
-        qCritical() << "Received settings from the domain-server with no asset-server section. Stopping assignment.";
+        qCCritical(asset_server) << "Received settings from the domain-server with no asset-server section. Stopping assignment.";
         setFinished(true);
         return;
     }
@@ -272,7 +272,7 @@ void AssetServer::completeSetup() {
         const int BITS_PER_MEGABITS = 1000 * 1000;
         int maxBandwidth = maxBandwidthFloat * BITS_PER_MEGABITS;
         nodeList->setConnectionMaxBandwidth(maxBandwidth);
-        qInfo() << "Set maximum bandwith per connection to" << maxBandwidthFloat << "Mb/s."
+        qCInfo(asset_server) << "Set maximum bandwith per connection to" << maxBandwidthFloat << "Mb/s."
                     " (" << maxBandwidth << "bits/s)";
     }
 
@@ -281,7 +281,7 @@ void AssetServer::completeSetup() {
     auto assetsJSONValue = assetServerObject[ASSETS_PATH_OPTION];
 
     if (!assetsJSONValue.isString()) {
-        qCritical() << "Received an assets path from the domain-server that could not be parsed. Stopping assignment.";
+        qCCritical(asset_server) << "Received an assets path from the domain-server that could not be parsed. Stopping assignment.";
         setFinished(true);
         return;
     }
@@ -298,19 +298,19 @@ void AssetServer::completeSetup() {
 
     _resourcesDirectory = QDir(absoluteFilePath);
 
-    qDebug() << "Creating resources directory";
+    qCDebug(asset_server) << "Creating resources directory";
     _resourcesDirectory.mkpath(".");
     _filesDirectory = _resourcesDirectory;
 
     if (!_resourcesDirectory.mkpath(ASSET_FILES_SUBDIR) || !_filesDirectory.cd(ASSET_FILES_SUBDIR)) {
-        qCritical() << "Unable to create file directory for asset-server files. Stopping assignment.";
+        qCCritical(asset_server) << "Unable to create file directory for asset-server files. Stopping assignment.";
         setFinished(true);
         return;
     }
 
     // load whatever mappings we currently have from the local file
     if (loadMappingsFromFile()) {
-        qInfo() << "Serving files from: " << _filesDirectory.path();
+        qCInfo(asset_server) << "Serving files from: " << _filesDirectory.path();
 
         // Check the asset directory to output some information about what we have
         auto files = _filesDirectory.entryList(QDir::Files);
@@ -318,7 +318,7 @@ void AssetServer::completeSetup() {
         QRegExp hashFileRegex { ASSET_HASH_REGEX_STRING };
         auto hashedFiles = files.filter(hashFileRegex);
 
-        qInfo() << "There are" << hashedFiles.size() << "asset files in the asset directory.";
+        qCInfo(asset_server) << "There are" << hashedFiles.size() << "asset files in the asset directory.";
 
         if (_fileMappings.count() > 0) {
             cleanupUnmappedFiles();
@@ -328,7 +328,7 @@ void AssetServer::completeSetup() {
 
         bakeAssets();
     } else {
-        qCritical() << "Asset Server assignment will not continue because mapping file could not be loaded.";
+        qCCritical(asset_server) << "Asset Server assignment will not continue because mapping file could not be loaded.";
         setFinished(true);
     }
 }
@@ -341,7 +341,7 @@ void AssetServer::cleanupUnmappedFiles() {
     // grab the currently mapped hashes
     auto mappedHashes = _fileMappings.values();
 
-    qInfo() << "Performing unmapped asset cleanup.";
+    qCInfo(asset_server) << "Performing unmapped asset cleanup.";
 
     for (const auto& fileInfo : files) {
         if (hashFileRegex.exactMatch(fileInfo.fileName())) {
@@ -350,9 +350,9 @@ void AssetServer::cleanupUnmappedFiles() {
                 QFile removeableFile { fileInfo.absoluteFilePath() };
 
                 if (removeableFile.remove()) {
-                    qDebug() << "\tDeleted" << fileInfo.fileName() << "from asset files directory since it is unmapped.";
+                    qCDebug(asset_server) << "\tDeleted" << fileInfo.fileName() << "from asset files directory since it is unmapped.";
                 } else {
-                    qDebug() << "\tAttempt to delete unmapped file" << fileInfo.fileName() << "failed";
+                    qCDebug(asset_server) << "\tAttempt to delete unmapped file" << fileInfo.fileName() << "failed";
                 }
             }
         }
@@ -538,7 +538,7 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, Sh
     MessageID messageID;
 
     if (message->getSize() < qint64(SHA256_HASH_LENGTH + sizeof(messageID))) {
-        qDebug() << "ERROR bad file request";
+        qCDebug(asset_server) << "ERROR bad file request";
         return;
     }
 
@@ -557,11 +557,11 @@ void AssetServer::handleAssetGetInfo(QSharedPointer<ReceivedMessage> message, Sh
     QFileInfo fileInfo { _filesDirectory.filePath(fileName) };
 
     if (fileInfo.exists() && fileInfo.isReadable()) {
-        qDebug() << "Opening file: " << fileInfo.filePath();
+        qCDebug(asset_server) << "Opening file: " << fileInfo.filePath();
         replyPacket->writePrimitive(AssetServerError::NoError);
         replyPacket->writePrimitive(fileInfo.size());
     } else {
-        qDebug() << "Asset not found: " << QString(hexHash);
+        qCDebug(asset_server) << "Asset not found: " << QString(hexHash);
         replyPacket->writePrimitive(AssetServerError::AssetNotFound);
     }
 
@@ -574,7 +574,7 @@ void AssetServer::handleAssetGet(QSharedPointer<ReceivedMessage> message, Shared
     auto minSize = qint64(sizeof(MessageID) + SHA256_HASH_LENGTH + sizeof(DataOffset) + sizeof(DataOffset));
 
     if (message->getSize() < minSize) {
-        qDebug() << "ERROR bad file request";
+        qCDebug(asset_server) << "ERROR bad file request";
         return;
     }
 
@@ -586,7 +586,7 @@ void AssetServer::handleAssetGet(QSharedPointer<ReceivedMessage> message, Shared
 void AssetServer::handleAssetUpload(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode) {
 
     if (senderNode->getCanWriteToAssetServer()) {
-        qDebug() << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(senderNode->getUUID());
+        qCDebug(asset_server) << "Starting an UploadAssetTask for upload from" << uuidStringWithoutCurlyBraces(senderNode->getUUID());
 
         auto task = new UploadAssetTask(message, senderNode, _filesDirectory);
         _transferTaskPool.start(task);
@@ -701,12 +701,12 @@ bool AssetServer::loadMappingsFromFile() {
                     bool shouldDrop = false;
 
                     if (!isValidFilePath(it.key())) {
-                        qWarning() << "Will not keep mapping for" << it.key() << "since it is not a valid path.";
+                        qCWarning(asset_server) << "Will not keep mapping for" << it.key() << "since it is not a valid path.";
                         shouldDrop = true;
                     }
 
                     if (!isValidHash(it.value().toString())) {
-                        qWarning() << "Will not keep mapping for" << it.key() << "since it does not have a valid hash.";
+                        qCWarning(asset_server) << "Will not keep mapping for" << it.key() << "since it does not have a valid hash.";
                         shouldDrop = true;
                     }
 
@@ -717,15 +717,15 @@ bool AssetServer::loadMappingsFromFile() {
                     }
                 }
 
-                qInfo() << "Loaded" << _fileMappings.count() << "mappings from map file at" << mapFilePath;
+                qCInfo(asset_server) << "Loaded" << _fileMappings.count() << "mappings from map file at" << mapFilePath;
                 return true;
             }
         }
 
-        qCritical() << "Failed to read mapping file at" << mapFilePath;
+        qCCritical(asset_server) << "Failed to read mapping file at" << mapFilePath;
         return false;
     } else {
-        qInfo() << "No existing mappings loaded from file since no file was found at" << mapFilePath;
+        qCInfo(asset_server) << "No existing mappings loaded from file since no file was found at" << mapFilePath;
     }
 
     return true;
@@ -740,13 +740,13 @@ bool AssetServer::writeMappingsToFile() {
         QJsonDocument jsonDocument { jsonObject };
 
         if (mapFile.write(jsonDocument.toJson()) != -1) {
-            qDebug() << "Wrote JSON mappings to file at" << mapFilePath;
+            qCDebug(asset_server) << "Wrote JSON mappings to file at" << mapFilePath;
             return true;
         } else {
-            qWarning() << "Failed to write JSON mappings to file at" << mapFilePath;
+            qCWarning(asset_server) << "Failed to write JSON mappings to file at" << mapFilePath;
         }
     } else {
-        qWarning() << "Failed to open map file at" << mapFilePath;
+        qCWarning(asset_server) << "Failed to open map file at" << mapFilePath;
     }
 
     return false;
@@ -756,12 +756,12 @@ bool AssetServer::setMapping(AssetPath path, AssetHash hash) {
     path = path.trimmed();
 
     if (!isValidFilePath(path)) {
-        qWarning() << "Cannot set a mapping for invalid path:" << path << "=>" << hash;
+        qCWarning(asset_server) << "Cannot set a mapping for invalid path:" << path << "=>" << hash;
         return false;
     }
 
     if (!isValidHash(hash)) {
-        qWarning() << "Cannot set a mapping for invalid hash" << path << "=>" << hash;
+        qCWarning(asset_server) << "Cannot set a mapping for invalid hash" << path << "=>" << hash;
         return false;
     }
 
@@ -774,7 +774,7 @@ bool AssetServer::setMapping(AssetPath path, AssetHash hash) {
     // attempt to write to file
     if (writeMappingsToFile()) {
         // persistence succeeded, we are good to go
-        qDebug() << "Set mapping:" << path << "=>" << hash;
+        qCDebug(asset_server) << "Set mapping:" << path << "=>" << hash;
         maybeBake(path, hash);
         return true;
     } else {
@@ -785,7 +785,7 @@ bool AssetServer::setMapping(AssetPath path, AssetHash hash) {
             _fileMappings[path] = oldMapping;
         }
 
-        qWarning() << "Failed to persist mapping:" << path << "=>" << hash;
+        qCWarning(asset_server) << "Failed to persist mapping:" << path << "=>" << hash;
 
         return false;
     }
@@ -825,9 +825,9 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
 
             auto sizeNow = _fileMappings.size();
             if (sizeBefore != sizeNow) {
-                qDebug() << "Deleted" << sizeBefore - sizeNow << "mappings in folder: " << path;
+                qCDebug(asset_server) << "Deleted" << sizeBefore - sizeNow << "mappings in folder: " << path;
             } else {
-                qDebug() << "Did not find any mappings to delete in folder:" << path;
+                qCDebug(asset_server) << "Did not find any mappings to delete in folder:" << path;
             }
 
         } else {
@@ -836,9 +836,9 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
                 // add this hash to the list we need to check for asset removal from server
                 hashesToCheckForDeletion << oldMapping.toString();
 
-                qDebug() << "Deleted a mapping:" << path << "=>" << oldMapping.toString();
+                qCDebug(asset_server) << "Deleted a mapping:" << path << "=>" << oldMapping.toString();
             } else {
-                qDebug() << "Unable to delete a mapping that was not found:" << path;
+                qCDebug(asset_server) << "Unable to delete a mapping that was not found:" << path;
             }
         }
     }
@@ -864,15 +864,15 @@ bool AssetServer::deleteMappings(AssetPathList& paths) {
             QFile removeableFile { _filesDirectory.absoluteFilePath(hash) };
 
             if (removeableFile.remove()) {
-                qDebug() << "\tDeleted" << hash << "from asset files directory since it is now unmapped.";
+                qCDebug(asset_server) << "\tDeleted" << hash << "from asset files directory since it is now unmapped.";
             } else {
-                qDebug() << "\tAttempt to delete unmapped file" << hash << "failed";
+                qCDebug(asset_server) << "\tAttempt to delete unmapped file" << hash << "failed";
             }
         }
 
         return true;
     } else {
-        qWarning() << "Failed to persist deleted mappings, rolling back";
+        qCWarning(asset_server) << "Failed to persist deleted mappings, rolling back";
 
         // we didn't delete the previous mapping, put it back in our in-memory representation
         _fileMappings = oldMappings;
@@ -886,7 +886,7 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
     newPath = newPath.trimmed();
 
     if (!isValidFilePath(oldPath) || !isValidFilePath(newPath)) {
-        qWarning() << "Cannot perform rename with invalid paths - both should have leading forward and no ending slashes:"
+        qCWarning(asset_server) << "Cannot perform rename with invalid paths - both should have leading forward and no ending slashes:"
             << oldPath << "=>" << newPath;
 
         return false;
@@ -896,7 +896,7 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
     if (pathIsFolder(oldPath)) {
         if (!pathIsFolder(newPath)) {
             // we were asked to rename a path to a folder to a path that isn't a folder, this is a fail
-            qWarning() << "Cannot rename mapping from folder path" << oldPath << "to file path" << newPath;
+            qCWarning(asset_server) << "Cannot rename mapping from folder path" << oldPath << "to file path" << newPath;
 
             return false;
         }
@@ -922,21 +922,21 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
 
         if (writeMappingsToFile()) {
             // persisted the changed mappings, return success
-            qDebug() << "Renamed folder mapping:" << oldPath << "=>" << newPath;
+            qCDebug(asset_server) << "Renamed folder mapping:" << oldPath << "=>" << newPath;
 
             return true;
         } else {
             // couldn't persist the renamed paths, rollback and return failure
             _fileMappings = oldMappings;
 
-            qWarning() << "Failed to persist renamed folder mapping:" << oldPath << "=>" << newPath;
+            qCWarning(asset_server) << "Failed to persist renamed folder mapping:" << oldPath << "=>" << newPath;
 
             return false;
         }
     } else {
         if (pathIsFolder(newPath)) {
             // we were asked to rename a path to a file to a path that is a folder, this is a fail
-            qWarning() << "Cannot rename mapping from file path" << oldPath << "to folder path" << newPath;
+            qCWarning(asset_server) << "Cannot rename mapping from file path" << oldPath << "to folder path" << newPath;
 
             return false;
         }
@@ -952,7 +952,7 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
 
             if (writeMappingsToFile()) {
                 // persisted the renamed mapping, return success
-                qDebug() << "Renamed mapping:" << oldPath << "=>" << newPath;
+                qCDebug(asset_server) << "Renamed mapping:" << oldPath << "=>" << newPath;
 
                 return true;
             } else {
@@ -967,7 +967,7 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
                     _fileMappings.remove(newPath);
                 }
 
-                qDebug() << "Failed to persist renamed mapping:" << oldPath << "=>" << newPath;
+                qCDebug(asset_server) << "Failed to persist renamed mapping:" << oldPath << "=>" << newPath;
 
                 return false;
             }
