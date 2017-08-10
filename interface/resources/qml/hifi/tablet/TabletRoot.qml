@@ -93,6 +93,11 @@ Item {
         loader.source = "";
         loader.source = "TabletWebView.qml";
     }
+
+    function loadTabletWebBase() {
+        loader.source = "";
+        loader.source = "../../controls/TabletWebView.qml";
+    }
         
     function returnToPreviousApp() {
         tabletApps.remove(currentApp);

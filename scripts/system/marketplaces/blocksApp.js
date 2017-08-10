@@ -10,7 +10,7 @@
 	});
 
 	function onClicked() {
-		tablet.gotoWebScreen(APP_URL);
+		tablet.gotoWebScreen(APP_URL, "", true);
 	}
 	button.clicked.connect(onClicked);
 
