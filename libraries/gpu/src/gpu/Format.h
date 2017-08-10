@@ -314,8 +314,6 @@ public:
     static const Element COLOR_COMPRESSED_SRGBA_HIGH;
     static const Element VEC2NU8_XY;
     static const Element VEC4F_COLOR_RGBA;
-    static const Element COLOR_RED_FLOAT;
-    static const Element COLOR_RED_HALF;
     static const Element VEC2F_UV;
     static const Element VEC2F_XY;
     static const Element VEC3F_XYZ;
