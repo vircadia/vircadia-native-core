@@ -388,6 +388,8 @@
             otherEditor = editor;  // Object.
 
             laserOffset = laser.handOffset();  // Value.
+
+            highlights.setHandHighlightRadius(hand.getNearGrabRadius());
         }
 
 

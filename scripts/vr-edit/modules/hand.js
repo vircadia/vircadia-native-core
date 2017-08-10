@@ -97,6 +97,10 @@ Hand = function (side) {
         return intersection;
     }
 
+    function getNearGrabRadius() {
+        return NEAR_GRAB_RADIUS;
+    }
+
     function update() {
         var gripValue,
             overlayID,
@@ -213,6 +217,7 @@ Hand = function (side) {
         gripClicked: gripClicked,
         setGripClickedHandled: setGripClickedHandled,
         intersection: getIntersection,
+        getNearGrabRadius: getNearGrabRadius,
         update: update,
         clear: clear,
         destroy: destroy

@@ -22,7 +22,6 @@ Highlights = function (side) {
         GROUP_COLOR = { red: 220, green: 60, blue: 220 },
         HAND_HIGHLIGHT_ALPHA = 0.35,
         ENTITY_HIGHLIGHT_ALPHA = 0.8,
-        HAND_HIGHLIGHT_DIMENSIONS = { x: 0.1, y: 0.1, z: 0.1 },
         HAND_HIGHLIGHT_OFFSET = { x: 0.0, y: 0.11, z: 0.02 },
         LEFT_HAND = 0;
 
@@ -31,7 +30,7 @@ Highlights = function (side) {
     }
 
     handOverlay = Overlays.addOverlay("sphere", {
-        dimensions: HAND_HIGHLIGHT_DIMENSIONS,
+        dimension: Vec3.ZERO,
         parentID: Uuid.SELF,
         parentJointIndex: MyAvatar.getJointIndex(side === LEFT_HAND
             ? "_CONTROLLER_LEFTHAND"
@@ -43,6 +42,13 @@ Highlights = function (side) {
         ignoreRayIntersection: true,
         visible: false
     });
+
+    function setHandHighlightRadius(radius) {
+        var dimension = 2 * radius;
+        Overlays.editOverlay(handOverlay, {
+            dimensions: { x: dimension, y: dimension, z: dimension }
+        });
+    }
 
     function maybeAddEntityOverlay(index) {
         if (index >= entityOverlays.length) {
@@ -115,6 +121,7 @@ Highlights = function (side) {
         HIGHLIGHT_COLOR: HIGHLIGHT_COLOR,
         SCALE_COLOR: SCALE_COLOR,
         GROUP_COLOR: GROUP_COLOR,
+        setHandHighlightRadius: setHandHighlightRadius,
         display: display,
         clear: clear,
         destroy: destroy
