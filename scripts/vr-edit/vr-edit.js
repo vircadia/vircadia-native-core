@@ -431,7 +431,7 @@
             selection.startEditing();
         }
 
-        function stopEditing() {
+        function finishEditing() {
             selection.finishEditing();
         }
 
@@ -698,7 +698,7 @@
         }
 
         function exitEditorGrabbing() {
-            stopEditing();
+            finishEditing();
             handles.clear();
             laser.clearLength();
             laser.enable();
@@ -924,7 +924,7 @@
                         highlightedEntityID = Entities.rootOf(intersection.entityID);
                         doUpdateState = true;
                     }
-                    if (toolSelected === TOOL_SCALE !== wasScaleTool) {
+                    if ((toolSelected === TOOL_SCALE) !== wasScaleTool) {
                         wasScaleTool = toolSelected === TOOL_SCALE;
                         doUpdateState = true;
                     }
@@ -982,7 +982,7 @@
                 if (hand.valid() && isTriggerClicked && !isGripClicked) {
                     // Don't test for intersection.intersected because when scaling with handles intersection may lag behind.
                     // No transition.
-                    if (toolSelected === TOOL_SCALE !== wasScaleTool) {
+                    if ((toolSelected === TOOL_SCALE) !== wasScaleTool) {
                         updateState();
                         wasScaleTool = toolSelected === TOOL_SCALE;
                     }
