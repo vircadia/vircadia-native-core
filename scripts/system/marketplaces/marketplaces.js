@@ -131,8 +131,8 @@
         } else {
             var parsedJsonMessage = JSON.parse(message);
             if (parsedJsonMessage.type === "CHECKOUT") {
-                tablet.sendToQml({ method: 'updateCheckoutQML', params: parsedJsonMessage });
                 tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
+                tablet.sendToQml({ method: 'updateCheckoutQML', params: parsedJsonMessage });
             } else if (parsedJsonMessage.type === "REQUEST_SETTING") {
                 tablet.emitScriptEvent(JSON.stringify({
                     type: "marketplaces",
