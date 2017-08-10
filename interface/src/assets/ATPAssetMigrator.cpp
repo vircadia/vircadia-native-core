@@ -354,7 +354,7 @@ void ATPAssetMigrator::saveEntityServerFile() {
                 infoMessage += "You can re-attempt migration on those models\nby restarting this process with the newly saved file.";
             }
 
-            OffscreenUi::information(_dialogParent, "Success", infoMessage);
+            OffscreenUi::asyncInformation(_dialogParent, "Success", infoMessage);
         } else {
             OffscreenUi::asyncWarning(_dialogParent, "Error", "Could not gzip JSON data for new entities file.");
         }

@@ -172,7 +172,7 @@ protected:
 
     virtual QVariant waitForResult() {
         while (!_finished) {
-            QCoreApplication::processEvents();
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 100);
         }
         return _result;
     }
@@ -295,6 +295,17 @@ QMessageBox::StandardButton OffscreenUi::information(const QString& title, const
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
     return DependencyManager::get<OffscreenUi>()->messageBox(OffscreenUi::Icon::ICON_INFORMATION, title, text, buttons, defaultButton);
 }
+
+void OffscreenUi::asyncCritical(const QString& title, const QString& text,
+    QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+    DependencyManager::get<OffscreenUi>()->asyncMessageBox(OffscreenUi::Icon::ICON_CRITICAL, title, text, buttons, defaultButton);
+}
+
+void OffscreenUi::asyncInformation(const QString& title, const QString& text,
+    QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
+    DependencyManager::get<OffscreenUi>()->asyncMessageBox(OffscreenUi::Icon::ICON_INFORMATION, title, text, buttons, defaultButton);
+}
+
 QMessageBox::StandardButton OffscreenUi::question(const QString& title, const QString& text,
     QMessageBox::StandardButtons buttons, QMessageBox::StandardButton defaultButton) {
     return DependencyManager::get<OffscreenUi>()->messageBox(OffscreenUi::Icon::ICON_QUESTION, title, text, buttons, defaultButton);

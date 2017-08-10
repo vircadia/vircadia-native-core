@@ -89,6 +89,16 @@ public:
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton) {
         return information(title, text, buttons, defaultButton);
     }
+    static void asyncCritical(void* ignored, const QString& title, const QString& text,
+        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+        QMessageBox::StandardButton defaultButton = QMessageBox::NoButton) {
+        return asyncCritical(title, text, buttons, defaultButton);
+    }
+    static void asyncInformation(void* ignored, const QString& title, const QString& text,
+        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+        QMessageBox::StandardButton defaultButton = QMessageBox::NoButton) {
+        return asyncInformation(title, text, buttons, defaultButton);
+    }
     /// Same design as QMessageBox::question(), will block, returns result
     static QMessageBox::StandardButton question(void* ignored, const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Yes | QMessageBox::No,
@@ -117,6 +127,12 @@ public:
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
     static QMessageBox::StandardButton information(const QString& title, const QString& text,
+        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+        QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
+    static void asyncCritical(const QString& title, const QString& text,
+        QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+        QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
+    static void asyncInformation(const QString& title, const QString& text,
         QMessageBox::StandardButtons buttons = QMessageBox::Ok,
         QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
     static QMessageBox::StandardButton question(const QString& title, const QString& text,
