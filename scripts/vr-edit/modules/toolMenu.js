@@ -182,7 +182,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             "imageSlider": {
                 overlay: "cube",
                 properties: {
-                    dimensions: { x: 0.02, y: 0.1, z: 0.01 },
+                    dimensions: { x: 0.01, y: 0.05, z: 0.01 },
                     localRotation: Quat.ZERO,
                     color: { red: 128, green: 128, blue: 128 },
                     alpha: 1.0,
@@ -198,7 +198,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 overlay: "shape",
                 properties: {
                     shape: "Cone",
-                    dimensions: { x: 0.01, y: 0.01, z: 0.01 },
+                    dimensions: { x: 0.005, y: 0.005, z: 0.005 },
                     localRotation: Quat.fromVec3Degrees({ x: 0, y: 0, z: -90 }),
                     color: { red: 180, green: 180, blue: 180 },
                     alpha: 1.0,
@@ -259,6 +259,20 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "panel",
                     properties: {
                         localPosition: { x: 0.055, y: 0.0, z: -0.005 }
+                    }
+                },
+                {
+                    id: "colorSlider",
+                    type: "imageSlider",
+                    properties: {
+                        localPosition: { x: 0.025, y: -0.025, z: -0.005 },
+                        color: { red: 255, green: 0, blue: 0 }
+                    },
+                    useBaseColor: true,
+                    imageURL: "../assets/slider-white.png",
+                    imageOverlayURL: "../assets/slider-white-alpha.png",
+                    callback: {
+                        method: "setSliderValue"
                     }
                 },
                 {
@@ -483,20 +497,6 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         localPosition: { x: -0.02, y: 0.0, z: -0.005 }
                     },
-                    callback: {
-                        method: "setSliderValue"
-                    }
-                },
-                {
-                    id: "colorSlider",
-                    type: "imageSlider",
-                    properties: {
-                        localPosition: { x: 0.02, y: 0.0, z: -0.005 },
-                        color: { red: 255, green: 0, blue: 0 }
-                    },
-                    useBaseColor: true,
-                    imageURL: "../assets/slider-white.png",
-                    imageOverlayURL: "../assets/slider-white-alpha.png",
                     callback: {
                         method: "setSliderValue"
                     }
@@ -732,6 +732,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     if (optionsItems[i].imageURL) {
                         childProperties = Object.clone(UI_ELEMENTS.image.properties);
                         childProperties.url = Script.resolvePath(optionsItems[i].imageURL);
+                        delete childProperties.dimensions;
                         childProperties.scale = properties.dimensions.y;
                         imageOffset += IMAGE_OFFSET;
                         childProperties.emissive = true;
@@ -748,6 +749,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         childProperties = Object.clone(UI_ELEMENTS.image.properties);
                         childProperties.url = Script.resolvePath(optionsItems[i].imageOverlayURL);
                         childProperties.drawInFront = true;  // TODO: Work-around for rendering bug; remove when bug fixed.
+                        delete childProperties.dimensions;
                         childProperties.scale = properties.dimensions.y;
                         imageOffset += IMAGE_OFFSET;
                         childProperties.localPosition = { x: 0, y: 0, z: -properties.dimensions.z / 2 - imageOffset };
