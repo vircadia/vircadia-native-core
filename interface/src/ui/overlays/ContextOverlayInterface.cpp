@@ -250,7 +250,8 @@ void ContextOverlayInterface::openMarketplace() {
         auto tablet = dynamic_cast<TabletProxy*>(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
         // construct the url to the marketplace item
         QString url = MARKETPLACE_BASE_URL + _entityMarketplaceID;
-        tablet->gotoWebScreen(url);
+        QString MARKETPLACES_INJECT_SCRIPT_PATH = "file:///" + qApp->applicationDirPath() + "/scripts/system/html/js/marketplacesInject.js";
+        tablet->gotoWebScreen(url, MARKETPLACES_INJECT_SCRIPT_PATH);
         _hmdScriptingInterface->openTablet();
         _isInMarketplaceInspectionMode = true;
     }
