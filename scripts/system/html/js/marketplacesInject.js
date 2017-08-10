@@ -59,7 +59,7 @@
         $("body").append(
             '<div id="marketplace-navigation">' +
                 (!isInitialHiFiPage ? '<input id="back-button" type="button" class="white" value="&lt; Back" />' : '') +
-                (isInitialHiFiPage ? '<span class="glyph">&#x1f6c8;</span> <span class="text">Get items from Blocks and Clara.io!</span>' : '') +
+                (isInitialHiFiPage ? '<span class="glyph">&#x1f6c8;</span> <span class="text">Get items from Clara.io!</span>' : '') +
                 (!isDirectoryPage ? '<input id="all-markets" type="button" class="white" value="See All Markets" />' : '') +
                 (isDirectoryPage ? '<span class="right"><span class="glyph">&#x1f6c8;</span> <span class="text">Select a marketplace to explore.</span><span>' : '') +
             '</div>'
@@ -82,9 +82,6 @@
 
         // Add button links.
 
-        $('#exploreBlocksMarketplace').on('click', function () {
-            window.location = "https://vr.google.com/objects";
-        });
         $('#exploreClaraMarketplace').on('click', function () {
             window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
@@ -153,18 +150,6 @@
                     href);
             });
         }
-    }
-
-    function injectBlocksCode() {
-        // Make space for marketplaces footer in Blocks pages.
-        /*$("body").append(
-            '<div id="marketplace-navigation">' +
-                '<input id="all-markets" type="button" class="white" value="See All Markets" />' +
-            '</div>'
-        );*/
-        $("body").append(
-            '<p>hello</p>'
-        );
     }
 
     function updateClaraCode() {
@@ -387,13 +372,11 @@
     function injectCode() {
         var DIRECTORY = 0;
         var HIFI = 1;
-        var BLOCKS = 2;
-        var CLARA = 3;
-        var HIFI_ITEM_PAGE = 4;
+        var CLARA = 2;
+        var HIFI_ITEM_PAGE = 3;
         var pageType = DIRECTORY;
 
         if (location.href.indexOf("highfidelity.com/") !== -1) { pageType = HIFI; }
-        if (location.href.indexOf("google.com/") !== -1) { pageType = BLOCKS; }
         if (location.href.indexOf("clara.io/") !== -1) { pageType = CLARA; }
         if (location.href.indexOf("highfidelity.com/marketplace/items/") !== -1) { pageType = HIFI_ITEM_PAGE; }
 
@@ -407,11 +390,6 @@
                 break;
             case CLARA:
                 injectClaraCode();
-                break;
-            case BLOCKS:
-                console.log("in Blocks");
-                //injectBlocksCode();
-                //console.log("blocks injection");
                 break;
             case HIFI_ITEM_PAGE:
                 injectHiFiItemPageCode();
