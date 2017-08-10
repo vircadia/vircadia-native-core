@@ -133,7 +133,7 @@ void DrawOutline::configure(const Config& config) {
     _size = config.width / 1024.f;
     _fillOpacityUnoccluded = config.fillOpacityUnoccluded;
     _fillOpacityOccluded = config.fillOpacityOccluded;
-    _threshold = config.glow ? 1.f : 0.f;
+    _threshold = config.glow ? 1.f : 1e-3f;
     _intensity = config.intensity * (config.glow ? 2.f : 1.f);
 }
 
@@ -151,12 +151,14 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
             {
                 auto& configuration = _configuration.edit();
                 configuration._color = _color;
-                configuration._size.x = _size * framebufferSize.y / framebufferSize.x;
-                configuration._size.y = _size;
                 configuration._intensity = _intensity;
                 configuration._fillOpacityUnoccluded = _fillOpacityUnoccluded;
                 configuration._fillOpacityOccluded = _fillOpacityOccluded;
                 configuration._threshold = _threshold;
+                // Size is normalized for 1 pixel at 1024 pix resolution so we multiply by the real resolution to have the final pixel size estimate
+                configuration._blurKernelSize = std::min(10, std::max(2, (int)floorf(_size*framebufferSize.y + 0.5f)));
+                configuration._size.x = _size * framebufferSize.y / framebufferSize.x;
+                configuration._size.y = _size;
             }
 
             gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {

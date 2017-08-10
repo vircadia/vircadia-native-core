@@ -23,21 +23,22 @@ uniform sampler2D outlinedDepthMap;
 in vec2 varTexCoord0;
 out vec4 outFragColor;
 
-const int BLUR_KERNEL_SIZE = 7;
 const float FAR_DISTANCE = 1.0;
+const float DEPTH_BIAS = 0.0;
+const float OPACITY_EPSILON = 5e-3;
 
 void main(void) {
 	float outlinedDepth = texture(outlinedDepthMap, varTexCoord0).x;
     float intensity = 0.0;
 
-    if (outlinedDepth < FAR_DISTANCE) {
+    if (outlinedDepth < (FAR_DISTANCE-DEPTH_BIAS)) {
         // We're not on the far plane so we are on the outlined object, thus no outline to do!
 
         // But maybe we need to fill the interior
-        if (params._fillOpacityUnoccluded>1e-3 && params._fillOpacityUnoccluded>1e-3) {
+        if (params._fillOpacityUnoccluded>OPACITY_EPSILON && params._fillOpacityUnoccluded>OPACITY_EPSILON) {
             // Are we occluded?
             float sceneDepth = texture(sceneDepthMap, varTexCoord0).x;
-            if (sceneDepth < outlinedDepth) {
+            if (sceneDepth < (outlinedDepth-DEPTH_BIAS)) {
                 intensity = params._fillOpacityOccluded;
             } else {
                 intensity = params._fillOpacityUnoccluded;
@@ -47,22 +48,22 @@ void main(void) {
         }
     } else {
         float weight = 0.0;
-        const vec2 deltaUv = params._size / BLUR_KERNEL_SIZE;
+        const vec2 deltaUv = params._size / params._blurKernelSize;
         vec2 lineStartUv = varTexCoord0 - params._size / 2.0; 
         vec2 uv;
         int x;
         int y;
 
-        for (y=0 ; y<BLUR_KERNEL_SIZE ; y++) {
+        for (y=0 ; y<params._blurKernelSize ; y++) {
             uv = lineStartUv;
             lineStartUv.y += deltaUv.y;
 
             if (uv.y>=0.0 && uv.y<=1.0) {
-                for (x=0 ; x<BLUR_KERNEL_SIZE ; x++) {
+                for (x=0 ; x<params._blurKernelSize ; x++) {
                     if (uv.x>=0.0 && uv.x<=1.0)
                     {
                         outlinedDepth = texture(outlinedDepthMap, uv).x;
-                        intensity += (outlinedDepth < FAR_DISTANCE) ? 1.0 : 0.0;
+                        intensity += (outlinedDepth < (FAR_DISTANCE-DEPTH_BIAS)) ? 1.0 : 0.0;
                         weight += 1.f;
                     }
                     uv.x += deltaUv.x;
@@ -71,7 +72,7 @@ void main(void) {
         }
 
         intensity /= weight;
-        if (intensity < 5e-3) {
+        if (intensity < OPACITY_EPSILON) {
             discard;
         }
 

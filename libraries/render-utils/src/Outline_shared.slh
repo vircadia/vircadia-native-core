@@ -17,7 +17,7 @@ struct OutlineParameters
     float _fillOpacityOccluded;
 
     float _threshold;
-    float padding1;
+    int _blurKernelSize;
     float padding2;
     float padding3;
 };
