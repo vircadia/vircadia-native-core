@@ -68,9 +68,9 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                                    getControllerWorldLocation(Controller.Standard.RightHand, true)];
 
         var nearbyEntityProperties = [[], []];
-        for (var i = LEFT_HAND; i <= RIGHT_HAND; i ++) {
-            // todo: check controllerLocations[i].valid
-            var controllerPosition = controllerLocations[i].position;
+        for (var h = LEFT_HAND; h <= RIGHT_HAND; h ++) {
+            // todo: check controllerLocations[h].valid
+            var controllerPosition = controllerLocations[h].position;
             var nearbyEntityIDs = Entities.findEntities(controllerPosition, NEAR_MIN_RADIUS);
             for (var j = 0; j < nearbyEntityIDs.length; j++) {
                 var entityID = nearbyEntityIDs[j];
@@ -78,9 +78,15 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                 props.id = entityID;
                 props.distanceFromController = Vec3.length(Vec3.subtract(controllerPosition, props.position));
                 if (props.distanceFromController < NEAR_MAX_RADIUS) {
-                    nearbyEntityProperties[i].push(props);
+                    nearbyEntityProperties[h].push(props);
                 }
             }
+            // sort by distance from each hand
+            nearbyEntityProperties[h].sort(function (a, b) {
+                var aDistance = Vec3.distance(a.position, controllerLocations[h]);
+                var bDistance = Vec3.distance(b.position, controllerLocations[h]);
+                return aDistance - bDistance;
+            });
         }
 
         var controllerData = {

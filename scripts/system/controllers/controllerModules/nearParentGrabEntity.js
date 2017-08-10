@@ -1,38 +1,24 @@
 "use strict";
 
-//  nearGrab.js
+//  nearParentGrabEntity.js
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Script, Entities, MyAvatar, Controller, controllerDispatcherPlugins,
-   RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID, getControllerJointIndex, getGrabbableData, NULL_UUID */
+/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID,
+   getControllerJointIndex, getGrabbableData, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
+   FORBIDDEN_GRAB_TYPES, propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION
+*/
 
 Script.include("/~/system/controllers/controllerDispatcherUtils.js");
 
 (function() {
 
-    var HAPTIC_PULSE_STRENGTH = 1.0;
-    var HAPTIC_PULSE_DURATION = 13.0;
+    // XXX this.ignoreIK = (grabbableData.ignoreIK !== undefined) ? grabbableData.ignoreIK : true;
+    // XXX this.kinematicGrab = (grabbableData.kinematic !== undefined) ? grabbableData.kinematic : NEAR_GRABBING_KINEMATIC;
 
-    var FORBIDDEN_GRAB_TYPES = ["Unknown", "Light", "PolyLine", "Zone"];
-    var FORBIDDEN_GRAB_NAMES = ["Grab Debug Entity", "grab pointer"];
-
-    function entityIsParentingGrabbable(props) {
-        var grabbable = getGrabbableData(props).grabbable;
-        if (!grabbable ||
-            props.locked ||
-            FORBIDDEN_GRAB_TYPES.indexOf(props.type) >= 0 ||
-            FORBIDDEN_GRAB_NAMES.indexOf(props.name) >= 0) {
-            return false;
-        }
-        return true;
-    }
-
-    function NearGrabParenting(hand) {
-        this.priority = 5;
-
+    function NearParentingGrabEntity(hand) {
         this.hand = hand;
         this.grabbedThingID = null;
         this.previousParentID = {};
@@ -40,8 +26,9 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         this.previouslyUnhooked = {};
 
 
-        // todo: does this change if the avatar changes?
+        // XXX does handJointIndex change if the avatar changes?
         this.handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
+        this.controllerJointIndex = getControllerJointIndex(this.hand);
 
         this.thisHandIsParent = function(props) {
             if (props.parentID !== MyAvatar.sessionUUID && props.parentID !== AVATAR_SELF_ID) {
@@ -68,12 +55,23 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             return false;
         };
 
-        this.startNearGrabParenting = function (controllerData, grabbedProperties) {
+        this.startNearParentingGrabEntity = function (controllerData, grabbedProperties) {
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
+
+            var handJointIndex;
+            // if (this.ignoreIK) {
+            //     handJointIndex = this.controllerJointIndex;
+            // } else {
+            //     handJointIndex = MyAvatar.getJointIndex(this.hand === RIGHT_HAND ? "RightHand" : "LeftHand");
+            // }
+            handJointIndex = this.controllerJointIndex;
+
+            var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+            Entities.callEntityMethod(this.grabbedThingID, "startNearGrab", args);
 
             var reparentProps = {
                 parentID: AVATAR_SELF_ID,
-                parentJointIndex: getControllerJointIndex(this.hand),
+                parentJointIndex: handJointIndex,
                 velocity: {x: 0, y: 0, z: 0},
                 angularVelocity: {x: 0, y: 0, z: 0}
             };
@@ -87,9 +85,15 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                 this.previousParentJointIndex[this.grabbedThingID] = grabbedProperties.parentJointIndex;
             }
             Entities.editEntity(this.grabbedThingID, reparentProps);
+
+            Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
+                action: 'grab',
+                grabbedEntity: this.grabbedThingID,
+                joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
+            }));
         };
 
-        this.endNearGrabParenting = function (controllerData) {
+        this.endNearParentingGrabEntity = function (controllerData) {
             if (this.previousParentID[this.grabbedThingID] === NULL_UUID) {
                 Entities.editEntity(this.grabbedThingID, {
                     parentID: this.previousParentID[this.grabbedThingID],
@@ -104,6 +108,10 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                     angularVelocity: {x: 0, y: 0, z: 0}
                 });
             }
+
+            var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+            Entities.callEntityMethod(this.grabbedThingID, "releaseGrab", args);
+
             this.grabbedThingID = null;
         };
 
@@ -113,22 +121,22 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             }
 
             var grabbedProperties = null;
-            var bestDistance = 1000;
+            // nearbyEntityProperties is already sorted by length from controller
             var nearbyEntityProperties = controllerData.nearbyEntityProperties[this.hand];
-
-            for (var i = 0; i < nearbyEntityProperties.length; i ++) {
+            for (var i = 0; i < nearbyEntityProperties.length; i++) {
                 var props = nearbyEntityProperties[i];
-                if (entityIsParentingGrabbable(props)) {
-                    if (props.distanceFromController < bestDistance) {
-                        bestDistance = props.distanceFromController;
-                        grabbedProperties = props;
-                    }
+                if (entityIsGrabbable(props)) {
+                    grabbedProperties = props;
+                    break;
                 }
             }
 
             if (grabbedProperties) {
+                if (propsArePhysical(grabbedProperties)) {
+                    return false; // let nearActionGrabEntity handle it
+                }
                 this.grabbedThingID = grabbedProperties.id;
-                this.startNearGrabParenting(controllerData, grabbedProperties);
+                this.startNearParentingGrabEntity(controllerData, grabbedProperties);
                 return true;
             } else {
                 return false;
@@ -137,29 +145,23 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
 
         this.run = function (controllerData) {
             if (controllerData.triggerClicks[this.hand] == 0) {
-                this.endNearGrabParenting(controllerData);
+                this.endNearParentingGrabEntity(controllerData);
                 return false;
             }
+
+            var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+            Entities.callEntityMethod(this.grabbedThingID, "continueNearGrab", args);
+
             return true;
         };
     }
 
-    var leftNearGrabParenting = new NearGrabParenting(LEFT_HAND);
-    leftNearGrabParenting.name = "leftNearGrabParenting";
-
-    var rightNearGrabParenting = new NearGrabParenting(RIGHT_HAND);
-    rightNearGrabParenting.name = "rightNearGrabParenting";
-        
-    if (!controllerDispatcherPlugins) {
-        controllerDispatcherPlugins = {};
-    }
-    controllerDispatcherPlugins.leftNearGrabParenting = leftNearGrabParenting;
-    controllerDispatcherPlugins.rightNearGrabParenting = rightNearGrabParenting;
-
+    enableDispatcherModule("LeftNearParentingGrabEntity", new NearParentingGrabEntity(LEFT_HAND), 500);
+    enableDispatcherModule("RightNearParentingGrabEntity", new NearParentingGrabEntity(RIGHT_HAND), 500);
 
     this.cleanup = function () {
-        delete controllerDispatcherPlugins.leftNearGrabParenting;
-        delete controllerDispatcherPlugins.rightNearGrabParenting;
+        disableDispatcherModule("LeftNearParentingGrabEntity");
+        disableDispatcherModule("RightNearParentingGrabEntity");
     };
     Script.scriptEnding.connect(this.cleanup);
 }());

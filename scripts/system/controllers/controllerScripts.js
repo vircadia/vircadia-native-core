@@ -19,7 +19,8 @@ var CONTOLLER_SCRIPTS = [
     "toggleAdvancedMovementForHandControllers.js",
 
     "ControllerDispatcher.js",
-    "nearGrab.js"
+    "controllerModules/nearParentGrabEntity.js",
+    "controllerModules/nearActionGrabEntity.js"
 ];
 
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";
