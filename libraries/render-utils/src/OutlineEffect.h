@@ -15,21 +15,6 @@
 #include <render/Engine.h>
 #include "DeferredFramebuffer.h"
 
-/*
-class PickItemsConfig : public render::Job::Config {
-	Q_OBJECT
-		Q_PROPERTY(bool isEnabled MEMBER isEnabled NOTIFY dirty)
-
-public:
-
-	bool isEnabled{ false };
-
-signals:
-
-	void dirty();
-};
-*/
-
 class OutlineFramebuffer {
 public:
     OutlineFramebuffer();

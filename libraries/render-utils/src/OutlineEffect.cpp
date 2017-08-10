@@ -151,7 +151,8 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
             {
                 auto& configuration = _configuration.edit();
                 configuration._color = _color;
-                configuration._size = _size;
+                configuration._size.x = _size * framebufferSize.y / framebufferSize.x;
+                configuration._size.y = _size;
                 configuration._intensity = _intensity;
                 configuration._fillOpacityUnoccluded = _fillOpacityUnoccluded;
                 configuration._fillOpacityOccluded = _fillOpacityOccluded;

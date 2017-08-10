@@ -23,7 +23,7 @@ uniform sampler2D outlinedDepthMap;
 in vec2 varTexCoord0;
 out vec4 outFragColor;
 
-const int BLUR_KERNEL_SIZE = 9;
+const int BLUR_KERNEL_SIZE = 7;
 const float FAR_DISTANCE = 1.0;
 
 void main(void) {
@@ -47,15 +47,15 @@ void main(void) {
         }
     } else {
         float weight = 0.0;
-        const float deltaUv = params._size / BLUR_KERNEL_SIZE;
+        const vec2 deltaUv = params._size / BLUR_KERNEL_SIZE;
+        vec2 lineStartUv = varTexCoord0 - params._size / 2.0; 
         vec2 uv;
-        vec2 startUv = varTexCoord0 - vec2(params._size, params._size) / 2.0; 
         int x;
         int y;
 
         for (y=0 ; y<BLUR_KERNEL_SIZE ; y++) {
-            uv = startUv;
-            startUv.y += deltaUv;
+            uv = lineStartUv;
+            lineStartUv.y += deltaUv.y;
 
             if (uv.y>=0.0 && uv.y<=1.0) {
                 for (x=0 ; x<BLUR_KERNEL_SIZE ; x++) {
@@ -65,14 +65,13 @@ void main(void) {
                         intensity += (outlinedDepth < FAR_DISTANCE) ? 1.0 : 0.0;
                         weight += 1.f;
                     }
-                    uv.x += deltaUv;
+                    uv.x += deltaUv.x;
                 }
             }
         }
 
         intensity /= weight;
-
-        if (intensity < 1e-3) {
+        if (intensity < 5e-3) {
             discard;
         }
 
