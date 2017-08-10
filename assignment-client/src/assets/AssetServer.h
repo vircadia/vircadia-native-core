@@ -19,6 +19,7 @@
 #include <ThreadedAssignment.h>
 
 #include "AssetUtils.h"
+#include "AutoBaker.h"
 #include "ReceivedMessage.h"
 
 class BakeAssetTask : public QObject, public QRunnable {
@@ -105,6 +106,8 @@ private:
 
     QHash<QString, std::shared_ptr<BakeAssetTask>> _pendingBakes;
     QThreadPool _bakingTaskPool;
+
+    AutoBaker _baker;
 };
 
 #endif

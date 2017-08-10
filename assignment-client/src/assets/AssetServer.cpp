@@ -331,6 +331,17 @@ void AssetServer::completeSetup() {
         qCCritical(asset_server) << "Asset Server assignment will not continue because mapping file could not be loaded.";
         setFinished(true);
     }
+
+    QRegExp hashFileRegex { "^[a-f0-9]{" + QString::number(SHA256_HASH_HEX_LENGTH) + "}" };
+    auto files = _filesDirectory.entryInfoList(QDir::Files);
+    auto mappedHashes = _fileMappings.values();
+    for (const auto& fileInfo : files) {
+        AssetHash hash = fileInfo.fileName();
+        bool isAsset = hashFileRegex.exactMatch(hash);
+        if (isAsset && _baker.assetNeedsBaking(hash)) {
+            _baker.addPendingBake(hash);
+        }
+    }
 }
 
 void AssetServer::cleanupUnmappedFiles() {
