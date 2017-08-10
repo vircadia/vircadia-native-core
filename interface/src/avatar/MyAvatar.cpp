@@ -1898,8 +1898,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
         totalBodyYaw += (speedFactor * deltaAngle * (180.0f / PI));
     }
 
-    // Use head/HMD roll to turn while walking or flying.
-    if (qApp->isHMDMode() && _hmdRollControlEnabled) {
+    // Use head/HMD roll to turn while walking or flying, but not when standing still
+    if (qApp->isHMDMode() && _hmdRollControlEnabled && hasDriveInput()) {
         // Turn with head roll.
         const float MIN_CONTROL_SPEED = 0.01f;
         float speed = glm::length(getVelocity());
