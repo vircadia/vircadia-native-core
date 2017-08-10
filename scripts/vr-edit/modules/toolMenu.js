@@ -210,6 +210,10 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         BUTTON_UI_ELEMENTS = ["button", "swatch"],
+        BUTTON_PRESS_DELTA = { x: 0, y: 0, z: 0.004 },
+
+        SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
+        SLIDER_RAISE_DELTA = { x: 0, y: 0, z: 0.004 },
 
         OPTONS_PANELS = {
             groupOptions: [
@@ -516,8 +520,10 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         intersectionOverlays,
         intersectionEnabled,
         highlightedItem,
+        highlightedItems,
         highlightedSource,
         isHighlightingButton,
+        isHighlightingSlider,
         pressedItem = null,
         pressedSource,
         isButtonPressed,
@@ -769,7 +775,6 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             intersectionItems,
             parentProperties,
             localPosition,
-            BUTTON_PRESS_DELTA = 0.004,
             parameter,
             parameterValue,
             enableGroupButton,
@@ -819,15 +824,41 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     color: HIGHLIGHT_PROPERTIES.properties.color,
                     visible: true
                 });
+                // Lower old slider.
+                if (isHighlightingSlider) {
+                    localPosition = highlightedItems[highlightedItem].properties.localPosition;
+                    Overlays.editOverlay(highlightedSource[highlightedItem], {
+                        localPosition: localPosition
+                    });
+                }
+                // Update status variables.
                 highlightedItem = intersectedItem;
-                isHighlightingButton = BUTTON_UI_ELEMENTS.indexOf(intersectionItems[intersectedItem].type) !== NONE;
+                highlightedItems = intersectionItems;
+                isHighlightingButton = BUTTON_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
+                isHighlightingSlider = SLIDER_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
+                // Raise new slider.
+                if (isHighlightingSlider) {
+                    localPosition = intersectionItems[highlightedItem].properties.localPosition;
+                    Overlays.editOverlay(intersectionOverlays[highlightedItem], {
+                        localPosition: Vec3.subtract(localPosition, SLIDER_RAISE_DELTA)
+                    });
+                }
             } else if (highlightedItem !== NONE) {
                 // Un-highlight previous button.
                 Overlays.editOverlay(highlightOverlay, {
                     visible: false
                 });
+                // Lower slider.
+                if (isHighlightingSlider) {
+                    localPosition = highlightedItems[highlightedItem].properties.localPosition;
+                    Overlays.editOverlay(highlightedSource[highlightedItem], {
+                        localPosition: localPosition
+                    });
+                }
+                // Update status variables.
                 highlightedItem = NONE;
                 isHighlightingButton = false;
+                isHighlightingSlider = false;
             }
             highlightedSource = intersectionOverlays;
         }
@@ -847,7 +878,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 // Press new button.
                 localPosition = intersectionItems[intersectedItem].properties.localPosition;
                 Overlays.editOverlay(intersectionOverlays[intersectedItem], {
-                    localPosition: Vec3.sum(localPosition, { x: 0, y: 0, z: BUTTON_PRESS_DELTA })
+                    localPosition: Vec3.sum(localPosition, BUTTON_PRESS_DELTA)
                 });
                 pressedSource = intersectionOverlays;
                 pressedItem = {
@@ -1017,6 +1048,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         highlightedItem = NONE;
         highlightedSource = null;
         isHighlightingButton = false;
+        isHighlightingSlider = false;
         pressedItem = null;
         pressedSource = null;
         isButtonPressed = false;
