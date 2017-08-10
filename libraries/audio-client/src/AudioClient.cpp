@@ -618,12 +618,11 @@ void AudioClient::start() {
 
 void AudioClient::stop() {
 
-    // "switch" to invalid devices in order to shut down the state
-    qCDebug(audioclient) << "AudioClient::stop(), about to call switchInputToAudioDevice(null)";
-    switchInputToAudioDevice(QAudioDeviceInfo());
+    qCDebug(audioclient) << "AudioClient::stop(), requesting switchInputToAudioDevice() to shut down";
+    switchInputToAudioDevice(QAudioDeviceInfo(), true);
 
-    qCDebug(audioclient) << "AudioClient::stop(), about to call switchOutputToAudioDevice(null)";
-    switchOutputToAudioDevice(QAudioDeviceInfo());
+    qCDebug(audioclient) << "AudioClient::stop(), requesting switchOutputToAudioDevice() to shut down";
+    switchOutputToAudioDevice(QAudioDeviceInfo(), true);
 }
 
 void AudioClient::handleAudioEnvironmentDataPacket(QSharedPointer<ReceivedMessage> message) {
@@ -1411,7 +1410,7 @@ void AudioClient::outputFormatChanged() {
     _receivedAudioStream.outputFormatChanged(_outputFormat.sampleRate(), OUTPUT_CHANNEL_COUNT);
 }
 
-bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo) {
+bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceInfo, bool isShutdownRequest) {
     qCDebug(audioclient) << __FUNCTION__ << "inputDeviceInfo: [" << inputDeviceInfo.deviceName() << "]";
     bool supportedFormat = false;
 
@@ -1449,6 +1448,11 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
     if (_audioGate) {
         delete _audioGate;
         _audioGate = nullptr;
+    }
+
+    if (isShutdownRequest) {
+        qCDebug(audioclient) << "The audio input device has shut down.";
+        return true;
     }
 
     if (!inputDeviceInfo.isNull()) {
@@ -1559,9 +1563,8 @@ void AudioClient::outputNotify() {
     }
 }
 
-bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo) {
+bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDeviceInfo, bool isShutdownRequest) {
     qCDebug(audioclient) << "AudioClient::switchOutputToAudioDevice() outputDeviceInfo: [" << outputDeviceInfo.deviceName() << "]";
-
     bool supportedFormat = false;
 
     // NOTE: device start() uses the Qt internal device list
@@ -1603,6 +1606,11 @@ bool AudioClient::switchOutputToAudioDevice(const QAudioDeviceInfo& outputDevice
 
         delete _localToOutputResampler;
         _localToOutputResampler = NULL;
+    }
+
+    if (isShutdownRequest) {
+        qCDebug(audioclient) << "The audio output device has shut down.";
+        return true;
     }
 
     if (!outputDeviceInfo.isNull()) {
