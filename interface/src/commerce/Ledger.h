@@ -23,6 +23,14 @@ class Ledger : public QObject, public Dependency {
 public:
     bool buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const QString& buyerUsername = "");
     bool receiveAt(const QString& hfc_key);
+    int balance(const QStringList& keys);
+    QStringList inventory(const QStringList& keys);
+
+private:
+    // These in-memory caches is temporary, until we start sending things to the server.
+    int _balance{ -1 };
+    QStringList _inventory{};
+    int initializedBalance() { if (_balance < 0) _balance = 100; return _balance; }
 };
 
 #endif // hifi_Ledger_h

@@ -110,7 +110,7 @@ void Overlays::cleanupOverlaysToDelete() {
             } while (!_overlaysToDelete.isEmpty());
         }
 
-        if (transaction._removedItems.size() > 0) {
+        if (transaction.hasRemovedItems()) {
             scene->enqueueTransaction(transaction);
         }
     }

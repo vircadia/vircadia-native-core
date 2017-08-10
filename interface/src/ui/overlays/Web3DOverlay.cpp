@@ -38,6 +38,7 @@
 #include "scripting/AccountScriptingInterface.h"
 #include "scripting/HMDScriptingInterface.h"
 #include "scripting/AssetMappingsScriptingInterface.h"
+#include "scripting/MenuScriptingInterface.h"
 #include <Preferences.h>
 #include <ScriptEngines.h>
 #include "FileDialogHelper.h"
@@ -191,6 +192,7 @@ void Web3DOverlay::loadSourceURL() {
             _webSurface->getSurfaceContext()->setContextProperty("DialogsManager", DialogsManagerScriptingInterface::getInstance());
             _webSurface->getSurfaceContext()->setContextProperty("InputConfiguration", DependencyManager::get<InputConfiguration>().data());
             _webSurface->getSurfaceContext()->setContextProperty("SoundCache", DependencyManager::get<SoundCache>().data());
+            _webSurface->getSurfaceContext()->setContextProperty("MenuInterface", MenuScriptingInterface::getInstance());
 
             _webSurface->getSurfaceContext()->setContextProperty("pathToFonts", "../../");
 
