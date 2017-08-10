@@ -403,8 +403,9 @@
                 break;
             case BLOCKS:
                 console.log("in Blocks");
-                injectBlocksCode();
-                console.log("blocks injection");
+                //injectBlocksCode();
+                //console.log("blocks injection");
+                break;
             case HIFI_ITEM_PAGE:
                 injectHiFiItemPageCode();
                 break;
