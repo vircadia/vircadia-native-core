@@ -1498,18 +1498,24 @@ bool AudioClient::switchInputToAudioDevice(const QAudioDeviceInfo& inputDeviceIn
                     supportedFormat = true;
                 } else {
                     qCDebug(audioclient) << "Error starting audio input -" <<  _audioInput->error();
+                    _audioInput->deleteLater();
+                    _audioInput = NULL;
                 }
             }
         }
     }
 
-    // If there is no input device, use the dummy input device.
+    // If there is no working input device, use the dummy input device.
     // It generates audio callbacks on a timer to simulate a mic stream of silent packets.
     // This enables clients without a mic to still receive an audio stream from the mixer.
     if (!_audioInput) {
-        qCDebug(audioclient) << "No audio input device is available, using dummy input.";
+        qCDebug(audioclient) << "Audio input device is not available, using dummy input.";
+        _inputDeviceInfo = QAudioDeviceInfo();;
+        emit deviceChanged(QAudio::AudioInput, _inputDeviceInfo);
 
         _inputFormat = _desiredInputFormat;
+        qCDebug(audioclient) << "The format to be used for audio input is" << _inputFormat;
+        qCDebug(audioclient) << "No resampling required for audio input to match desired network format.";
 
         _audioGate = new AudioGate(_desiredInputFormat.sampleRate(), _desiredInputFormat.channelCount());
         qCDebug(audioclient) << "Noise gate created with" << _desiredInputFormat.channelCount() << "channels.";
