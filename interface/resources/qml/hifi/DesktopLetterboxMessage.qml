@@ -2,7 +2,7 @@
 //  LetterboxMessage.qml
 //  qml/hifi
 //
-//  Created by Zach Fox and Howard Stearns on 1/5/2017
+//  Created by Dante Ruiz on 7/21/2017
 //  Copyright 2017 High Fidelity, Inc.
 //
 //  Distributed under the Apache License, Version 2.0.
@@ -23,21 +23,16 @@ Item {
     property real popupTextPixelSize: 16
     property real headerTextMargin: -5
     property real headerGlyphMargin: -15
+    property bool isDesktop: false
     FontLoader { id: ralewayRegular; source: "../../fonts/Raleway-Regular.ttf"; }
     FontLoader { id: ralewaySemiBold; source: "../../fonts/Raleway-SemiBold.ttf"; }
     visible: false
     id: letterbox
     anchors.fill: parent
     Rectangle {
-        anchors.fill: parent
-        color: "black"
-        opacity: 0.5
-        radius: popupRadius
-    }
-    Rectangle {
         id: textContainer;
-        width: Math.max(parent.width * 0.8, 400)
-        height: contentContainer.height + 50
+        width: parent.width
+        height: parent.height
         anchors.centerIn: parent
         radius: popupRadius
         color: "white"
@@ -75,6 +70,7 @@ Item {
                     id: headerText
                     visible: headerText.text !== ""
                     // Size
+
                     height: parent.height
                     // Anchors
                     anchors.left: headerGlyph.right
@@ -88,28 +84,6 @@ Item {
                     verticalAlignment: Text.AlignVCenter
                     wrapMode: Text.WordWrap
                     textFormat: Text.StyledText
-                }
-                HiFiGlyphs {
-                    id: closeGlyphButton
-                    text: hifi.glyphs.close
-                    size: headerTextPixelSize
-                    anchors.top: parent.top
-                    anchors.topMargin: -20
-                    anchors.right: parent.right
-                    anchors.rightMargin: -20
-                    MouseArea {
-                        anchors.fill: closeGlyphButton
-                        hoverEnabled: true
-                        onEntered: {
-                            parent.text = hifi.glyphs.closeInverted;
-                        }
-                        onExited: {
-                            parent.text = hifi.glyphs.close;
-                        }
-                        onClicked: {
-                            letterbox.visible = false;
-                        }
-                    }
                 }
             }
             // Popup Text
