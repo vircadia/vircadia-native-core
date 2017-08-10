@@ -16,10 +16,13 @@
 #include <QStringList>
 
 #include <ModelEntityItem.h>
-#include <AnimationCache.h>
+
+#include "RenderableEntityItem.h"
 
 class Model;
 class EntityTreeRenderer;
+
+//#define MODEL_ENTITY_USE_FADE_EFFECT
 
 class RenderableModelEntityItem : public ModelEntityItem, RenderableEntityInterface {
 public:
@@ -133,7 +136,9 @@ private:
     QVariantMap _originalTextures;
     bool _originalTexturesRead = false;
     bool _dimensionsInitialized = true;
-
+#ifdef MODEL_ENTITY_USE_FADE_EFFECT
+    bool _hasTransitioned{ false };
+#endif
     AnimationPropertyGroup _renderAnimationProperties;
 
     render::ItemID _myMetaItem{ render::Item::INVALID_ITEM_ID };

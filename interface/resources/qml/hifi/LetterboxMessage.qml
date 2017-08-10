@@ -17,9 +17,12 @@ Item {
     property alias text: popupText.text
     property alias headerGlyph: headerGlyph.text
     property alias headerText: headerText.text
+    property alias headerGlyphSize: headerGlyph.size
     property real popupRadius: hifi.dimensions.borderRadius
     property real headerTextPixelSize: 22
     property real popupTextPixelSize: 16
+    property real headerTextMargin: -5
+    property real headerGlyphMargin: -15
     FontLoader { id: ralewayRegular; source: "../../fonts/Raleway-Regular.ttf"; }
     FontLoader { id: ralewaySemiBold; source: "../../fonts/Raleway-SemiBold.ttf"; }
     visible: false
@@ -59,7 +62,7 @@ Item {
                     height: parent.height
                     // Anchors
                     anchors.left: parent.left
-                    anchors.leftMargin: -15
+                    anchors.leftMargin: headerGlyphMargin
                     // Text Size
                     size: headerTextPixelSize*2.5
                     // Style
@@ -75,7 +78,7 @@ Item {
                     height: parent.height
                     // Anchors
                     anchors.left: headerGlyph.right
-                    anchors.leftMargin: -5
+                    anchors.leftMargin: headerTextMargin
                     // Text Size
                     font.pixelSize: headerTextPixelSize
                     // Style

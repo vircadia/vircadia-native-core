@@ -16,6 +16,7 @@ import Qt.labs.settings 1.0
 import "../../styles-uit"
 import "../../controls-uit" as HifiControls
 import "../../windows"
+import "../"
 
 Rectangle {
     id: root
@@ -26,26 +27,90 @@ Rectangle {
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
     property var runningScriptsModel: ListModel { }
+    property bool developerMenuEnabled: false
     property bool isHMD: false
 
     color: hifi.colors.baseGray
 
+
+    LetterboxMessage {
+        id: letterBoxMessage
+        z: 999
+        visible: false
+    }
+
+    function letterBox(glyph, text, message) {
+        letterBoxMessage.headerGlyph = glyph;
+        letterBoxMessage.headerText = text;
+        letterBoxMessage.text = message;
+        letterBoxMessage.visible = true;
+        letterBoxMessage.popupRadius = 0;
+        letterBoxMessage.headerGlyphSize = 20
+        letterBoxMessage.headerTextMargin = 2
+        letterBoxMessage.headerGlyphMargin = -3
+    }
+
+    Timer {
+        id: refreshTimer
+        interval: 100
+        repeat: false
+        running: false
+        onTriggered: updateRunningScripts();
+    }
+
+    Timer {
+        id: checkMenu
+        interval: 1000
+        repeat: true
+        running: false
+        onTriggered: developerMenuEnabled = MenuInterface.isMenuEnabled("Developer Menus");
+    }
+
+    Component {
+        id: listModelBuilder
+        ListModel {}
+    }
+    
     Connections {
         target: ScriptDiscoveryService
-        onScriptCountChanged: updateRunningScripts();
+        onScriptCountChanged: {
+            runningScriptsModel = listModelBuilder.createObject(root);
+            refreshTimer.restart();
+        }
     }
 
     Component.onCompleted: {
         isHMD = HMD.active;
         updateRunningScripts();
+        developerMenuEnabled = MenuInterface.isMenuEnabled("Developer Menus");
+        checkMenu.restart();
     }
 
     function updateRunningScripts() {
-        var runningScripts = ScriptDiscoveryService.getRunning();
-        runningScriptsModel.clear()
-        for (var i = 0; i < runningScripts.length; ++i) {
-            runningScriptsModel.append(runningScripts[i]);
+        function simplify(path) {
+            // trim URI querystring/fragment
+            path = (path+'').replace(/[#?].*$/,'');
+            // normalize separators and grab last path segment (ie: just the filename)
+            path = path.replace(/\\/g, '/').split('/').pop();
+            // return lowercased because we want to sort mnemonically
+            return path.toLowerCase();
         }
+        var runningScripts = ScriptDiscoveryService.getRunning();
+        runningScripts.sort(function(a,b) {
+            a = simplify(a.path);
+            b = simplify(b.path);
+            return a < b ? -1 : a > b ? 1 : 0;
+        });
+        // Calling  `runningScriptsModel.clear()` here instead of creating a new object
+        // triggers some kind of weird heap corruption deep inside Qt.  So instead of
+        // modifying the model in place, possibly triggering behaviors in the table
+        // instead we create a new `ListModel`, populate it and update the 
+        // existing model atomically.
+        var newRunningScriptsModel = listModelBuilder.createObject(root);
+        for (var i = 0; i < runningScripts.length; ++i) {
+            newRunningScriptsModel.append(runningScripts[i]);
+        }
+        runningScriptsModel = newRunningScriptsModel;
     }
 
     function loadScript(script) {
@@ -65,7 +130,17 @@ Rectangle {
 
     function reloadAll() {
         console.log("Reload all scripts");
-        scripts.reloadAllScripts();
+        if (!developerMenuEnabled) {
+            for (var index = 0; index < runningScriptsModel.count; index++) {
+                var url = runningScriptsModel.get(index).url;
+                var fileName = url.substring(url.lastIndexOf('/')+1);
+                if (canEditScript(fileName)) {
+                    scripts.stopScript(url, true);
+                }
+            }
+        } else {
+            scripts.reloadAllScripts();
+        }
     }
 
     function loadDefaults() {
@@ -75,7 +150,22 @@ Rectangle {
 
     function stopAll() {
         console.log("Stop all scripts");
-        scripts.stopAllScripts();
+        for (var index = 0; index < runningScriptsModel.count; index++) {
+            var url = runningScriptsModel.get(index).url;
+            console.log(url);
+            var fileName = url.substring(url.lastIndexOf('/')+1);
+            if (canEditScript(fileName)) {
+                scripts.stopScript(url);
+            }
+        }
+    }
+
+    function canEditScript(script) {
+        if ((script === "controllerScripts.js") || (script === "defaultScripts.js")) {
+            return developerMenuEnabled;
+        }
+
+        return true;
     }
 
     Flickable {
@@ -110,6 +200,14 @@ Rectangle {
                         color: hifi.buttons.red
                         onClicked: stopAll()
                     }
+
+                    HifiControls.Button {
+                        text: "Load Defaults"
+                        color: hifi.buttons.black
+                        height: 26
+                        visible: root.developerMenuEnabled;
+                        onClicked: loadDefaults()
+                    }
                 }
 
                 HifiControls.VerticalSpacer {
@@ -125,6 +223,7 @@ Rectangle {
                     expandSelectedRow: true
 
                     itemDelegate: Item {
+                        property bool canEdit: canEditScript(styleData.value);
                         anchors {
                             left: parent ? parent.left : undefined
                             leftMargin: hifi.dimensions.tablePadding
@@ -148,8 +247,9 @@ Rectangle {
 
                             HiFiGlyphs {
                                 id: reloadButton
-                                text: hifi.glyphs.reloadSmall
+                                text: ((canEditScript(styleData.value)) ? hifi.glyphs.reload : hifi.glyphs.lock)
                                 color: reloadButtonArea.pressed ? hifi.colors.white : parent.color
+                                size: 21
                                 anchors {
                                     top: parent.top
                                     right: stopButton.left
@@ -158,7 +258,17 @@ Rectangle {
                                 MouseArea {
                                     id: reloadButtonArea
                                     anchors { fill: parent; margins: -2 }
-                                    onClicked: reloadScript(model.url)
+                                    onClicked: {
+                                        if (canEdit) {
+                                            reloadScript(model.url)
+                                        } else {
+                                            letterBox(hifi.glyphs.lock,
+                                                      "Developer Mode only",
+                                                      "In order to edit, delete or reload this script," +
+                                                      " turn on Developer Mode by going to:" +
+                                                      " Menu > Settings > Developer Menus");
+                                        }
+                                    }
                                 }
                             }
 
@@ -166,6 +276,7 @@ Rectangle {
                                 id: stopButton
                                 text: hifi.glyphs.closeSmall
                                 color: stopButtonArea.pressed ? hifi.colors.white : parent.color
+                                visible: canEditScript(styleData.value)
                                 anchors {
                                     top: parent.top
                                     right: parent.right
@@ -174,7 +285,11 @@ Rectangle {
                                 MouseArea {
                                     id: stopButtonArea
                                     anchors { fill: parent; margins: -2 }
-                                    onClicked: stopScript(model.url)
+                                    onClicked: {
+                                        if (canEdit) {
+                                            stopScript(model.url)
+                                        }
+                                    }
                                 }
                             }
 
@@ -249,13 +364,6 @@ Rectangle {
                             running: false
                             onTriggered: ApplicationInterface.loadDialog();
                         }
-                    }
-
-                    HifiControls.Button {
-                        text: "Load Defaults"
-                        color: hifi.buttons.black
-                        height: 26
-                        onClicked: loadDefaults()
                     }
                 }
 

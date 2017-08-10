@@ -36,8 +36,14 @@ const ElementArray& getDefaultElements() {
         //SKIN_CLUSTER_WEIGHT = 6,
         Element::VEC4F_XYZW,
         //TEXCOORD1 = 7,
-        Element::VEC2F_UV
-    }};
+        Element::VEC2F_UV,
+        //TEXCOORD2 = 7,
+        Element::VEC4F_XYZW,
+        //TEXCOORD3 = 7,
+        Element::VEC4F_XYZW,
+        //TEXCOORD4 = 7,
+        Element::VEC4F_XYZW
+        }};
     return defaultElements;
 }
 

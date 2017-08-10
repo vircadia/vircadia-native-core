@@ -33,6 +33,11 @@ bool Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, cons
     request["signature"] = signature;
 
     qCInfo(commerce) << "Transaction:" << QJsonDocument(request).toJson(QJsonDocument::Compact);
+    // FIXME: talk to server instead
+    QStringList keySet{ hfc_key };
+    if (initializedBalance() < cost) return false;
+    _balance -= cost;
+    _inventory.push_back(asset_id);
     return true; // FIXME send to server.
 }
 
@@ -45,4 +50,16 @@ bool Ledger::receiveAt(const QString& hfc_key) {
     auto username = accountManager->getAccountInfo().getUsername();
     qCInfo(commerce) << "Setting default receiving key for" << username;
     return true; // FIXME send to server.
+}
+
+int Ledger::balance(const QStringList& keys) {
+    // FIXME: talk to server instead
+    qCInfo(commerce) << "Balance:" << initializedBalance();
+    return _balance;
+}
+
+QStringList Ledger::inventory(const QStringList& keys) {
+    // FIXME: talk to server instead
+    qCInfo(commerce) << "Inventory:" << _inventory;
+    return _inventory;
 }

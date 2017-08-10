@@ -23,6 +23,7 @@
 #include <PerfStat.h>
 #include <render/Scene.h>
 #include <DependencyManager.h>
+#include <AnimationCache.h>
 #include <shared/QtHelpers.h>
 
 #include "EntityTreeRenderer.h"
@@ -218,8 +219,9 @@ namespace render {
     }
     template <> uint32_t metaFetchMetaSubItems(const RenderableModelEntityItemMeta::Pointer& payload, ItemIDs& subItems) {
         auto modelEntity = std::static_pointer_cast<RenderableModelEntityItem>(payload->entity);
-        if (modelEntity->hasModel()) {
-            auto metaSubItems = modelEntity->getModelNotSafe()->fetchRenderItemIDs();
+        auto model = modelEntity->getModelNotSafe();
+        if (model && modelEntity->hasModel()) {
+            auto& metaSubItems = model->fetchRenderItemIDs();
             subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
             return (uint32_t) metaSubItems.size();
         }
@@ -242,6 +244,12 @@ bool RenderableModelEntityItem::addToScene(const EntityItemPointer& self, const 
 
         // note: we don't mind if the model fails to add, we'll retry (in render()) until it succeeds
         _model->addToScene(scene, transaction, statusGetters);
+#ifdef MODEL_ENTITY_USE_FADE_EFFECT
+        if (!_hasTransitioned) {
+            transaction.addTransitionToItem(_myMetaItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+            _hasTransitioned = true;
+        }
+#endif
     }
 
     // we've successfully added _myMetaItem so we always return true
@@ -364,6 +372,7 @@ void RenderableModelEntityItem::updateModelBounds() {
 // the per frame simulation/update that might be required if the models properties changed.
 void RenderableModelEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RMEIrender");
+
     assert(getType() == EntityTypes::Model);
 
     // When the individual mesh parts of a model finish fading, they will mark their Model as needing updating
@@ -490,6 +499,12 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             makeEntityItemStatusGetters(getThisPointer(), statusGetters);
             _model->addToScene(scene, transaction, statusGetters);
 
+#ifdef MODEL_ENTITY_USE_FADE_EFFECT
+            if (!_hasTransitioned) {
+                transaction.addTransitionToItem(_myMetaItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+                _hasTransitioned = true;
+            }
+#endif
             scene->enqueueTransaction(transaction);
         }
 
