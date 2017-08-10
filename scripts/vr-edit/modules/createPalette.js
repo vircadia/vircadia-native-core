@@ -25,7 +25,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         controlJointName,
 
         CANVAS_SIZE = { x: 0.21, y: 0.13 },
-        PALETTE_ROOT_POSITION = { x: -CANVAS_SIZE.x / 2, y: 0.15, z: 0.09 },
+        PALETTE_ROOT_POSITION = { x: -CANVAS_SIZE.x / 2, y: 0.15, z: 0.11 },
         PALETTE_ROOT_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 180, z: 180 }),
         lateralOffset,
 

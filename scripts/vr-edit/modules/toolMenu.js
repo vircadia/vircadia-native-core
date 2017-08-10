@@ -33,8 +33,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         LEFT_HAND = 0,
 
         CANVAS_SIZE = { x: 0.22, y: 0.13 },
-        PANEL_ORIGIN_POSITION = { x: CANVAS_SIZE.x / 2, y: 0.15, z: -0.04 },
-        PANEL_ROOT_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 }),
+        PANEL_ORIGIN_POSITION = { x: -0.005 - CANVAS_SIZE.x / 2, y: 0.15, z: -CANVAS_SIZE.x / 2 },
+        PANEL_ROOT_ROTATION = Quat.fromVec3Degrees({ x: 0, y: -90, z: 180 }),
         panelLateralOffset,
 
         MENU_ORIGIN_PROPERTIES = {
