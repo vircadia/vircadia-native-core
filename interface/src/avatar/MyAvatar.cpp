@@ -1060,6 +1060,10 @@ void MyAvatar::setEnableDebugDrawIKConstraints(bool isEnabled) {
     _enableDebugDrawIKConstraints = isEnabled;
 }
 
+void MyAvatar::setEnableDebugDrawDetailedCollision(bool isEnabled) {
+    _enableDebugDrawDetailedCollision = isEnabled;
+}
+
 void MyAvatar::setEnableDebugDrawIKChains(bool isEnabled) {
     _enableDebugDrawIKChains = isEnabled;
 }
@@ -1806,7 +1810,6 @@ void MyAvatar::postUpdate(float deltaTime) {
 
     updateHoldActions(_prePhysicsRoomPose, postUpdateRoomPose);
 
-    bool _enableDebugDrawDetailedCollision = true;
     if (_enableDebugDrawDetailedCollision) {
         AnimPose rigToWorldPose(glm::vec3(1.0f), Quaternions::Y_180 * getRotation(), getPosition());
         const int NUM_DEBUG_COLORS = 7;
