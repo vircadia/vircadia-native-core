@@ -84,14 +84,10 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
             bool viewFrustumChanged, bool isFullScene) {
     // BEGIN EXPERIMENTAL DIFFERENTIAL TRAVERSAL
     if (nodeData->getUsesFrustum()) {
-        {
-            // DEBUG HACK: trigger traversal (Again) every so often
-            const uint64_t TRAVERSE_AGAIN_PERIOD = 4 * USECS_PER_SECOND;
-            if (!viewFrustumChanged && usecTimestampNow() > _traversal.getStartOfCompletedTraversal() + TRAVERSE_AGAIN_PERIOD) {
-                viewFrustumChanged = true;
-            }
-        }
-        if (viewFrustumChanged) {
+        // DEBUG HACK: trigger traversal (Repeat) every so often
+        const uint64_t TRAVERSE_AGAIN_PERIOD = 4 * USECS_PER_SECOND;
+        bool repeatTraversal = usecTimestampNow() > _traversal.getStartOfCompletedTraversal() + TRAVERSE_AGAIN_PERIOD;
+        if (viewFrustumChanged || repeatTraversal) {
             ViewFrustum viewFrustum;
             nodeData->copyCurrentViewFrustum(viewFrustum);
             EntityTreeElementPointer root = std::dynamic_pointer_cast<EntityTreeElement>(_myServer->getOctree()->getRoot());
