@@ -770,6 +770,11 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
     }
 
+    function adjustSliderFraction(fraction) {
+        // Makes slider values achieve and saturate at 0.0 and 1.0.
+        return Math.min(1.0, Math.max(0.0, fraction * 1.01 - 0.005));
+    }
+
     function update(intersection, groupsCount, entitiesCount) {
         var intersectedItem = -1,
             intersectionItems,
@@ -928,6 +933,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 Vec3.multiplyQbyV(sliderProperties.orientation, { x: 0, y: overlayDimensions.y / 2, z: 0 }));
             fraction = Vec3.dot(Vec3.subtract(basePoint, intersection.intersection),
                 Vec3.multiplyQbyV(sliderProperties.orientation, Vec3.UNIT_Y)) / overlayDimensions.y;
+            fraction = adjustSliderFraction(fraction);
             otherFraction = 1.0 - fraction;
 
             Overlays.editOverlay(optionsOverlaysAuxiliaries[intersectedItem].value, {
@@ -953,6 +959,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 Vec3.multiplyQbyV(sliderProperties.orientation, { x: 0, y: overlayDimensions.y / 2, z: 0 }));
             fraction = Vec3.dot(Vec3.subtract(basePoint, intersection.intersection),
                 Vec3.multiplyQbyV(sliderProperties.orientation, Vec3.UNIT_Y)) / overlayDimensions.y;
+            fraction = adjustSliderFraction(fraction);
             Overlays.editOverlay(optionsOverlaysAuxiliaries[intersectedItem].value, {
                 localPosition: Vec3.sum(optionsOverlaysAuxiliaries[intersectedItem].offset,
                     { x: 0, y: (0.5 - fraction) * overlayDimensions.y, z: 0 })
