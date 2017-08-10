@@ -48,15 +48,34 @@ if (typeof Entities.rootOf !== "function") {
 }
 
 if (typeof Entities.hasEditableRoot !== "function") {
+    Entities.hasEditableRootCache = {
+        CACHE_ENTRY_EXPIRY_TIME: 5000  // ms
+    };
+
     Entities.hasEditableRoot = function (entityID) {
+        if (Entities.hasEditableRootCache[entityID]) {
+            if (Date.now() - Entities.hasEditableRootCache[entityID].timeStamp
+                    < Entities.hasEditableRootCache.CACHE_ENTRY_EXPIRY_TIME) {
+                return Entities.hasEditableRootCache[entityID].hasEditableRoot;
+            }
+            delete Entities.hasEditableRootCache[entityID];
+        }
+
         var EDITIBLE_ENTITY_QUERY_PROPERTYES = ["parentID", "visible", "locked", "type"],
             NONEDITABLE_ENTITY_TYPES = ["Unknown", "Zone", "Light"],
-            properties;
+            properties,
+            isEditable;
+
         properties = Entities.getEntityProperties(entityID, EDITIBLE_ENTITY_QUERY_PROPERTYES);
         while (properties.parentID && properties.parentID !== Uuid.NULL) {
             properties = Entities.getEntityProperties(properties.parentID, EDITIBLE_ENTITY_QUERY_PROPERTYES);
         }
-        return properties.visible && !properties.locked && NONEDITABLE_ENTITY_TYPES.indexOf(properties.type) === -1;
+        isEditable = properties.visible && !properties.locked && NONEDITABLE_ENTITY_TYPES.indexOf(properties.type) === -1;
+        Entities.hasEditableRootCache[entityID] = {
+            hasEditableRoot: isEditable,
+            timeStamp: Date.now()
+        };
+        return isEditable;
     };
 }
 
