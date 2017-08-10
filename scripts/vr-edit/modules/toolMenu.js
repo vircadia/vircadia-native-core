@@ -266,8 +266,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.035, y: 0.02, z: -0.005 },
-                        color: { red: 255, green: 0, blue: 0 },
+                        localPosition: { x: -0.035, y: -0.03, z: -0.005 },
+                        color: { red: 0, green: 255, blue: 255 },
                         solid: true
                     },
                     setting: {
@@ -289,8 +289,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.01, y: 0.02, z: -0.005 },
-                        color: { red: 0, green: 255, blue: 0 },
+                        localPosition: { x: -0.01, y: -0.03, z: -0.005 },
+                        color: { red: 255, green: 0, blue: 255 },
                         solid: true
                     },
                     setting: {
@@ -312,8 +312,9 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.035, y: 0.045, z: -0.005 }
-                        // Default to empty swatch.
+                        localPosition: { x: -0.035, y: -0.005, z: -0.005 },
+                        color: { red: 255, green: 255, blue: 0 },
+                        solid: true
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch3Color",
@@ -334,8 +335,9 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.01, y: 0.045, z: -0.005 }
-                        // Default to empty swatch.
+                        localPosition: { x: -0.01, y: -0.005, z: -0.005 },
+                        color: { red: 255, green: 0, blue: 0 },
+                        solid: true
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch4Color",
@@ -349,6 +351,96 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     onGripClicked: {
                         method: "clearSwatch",
                         parameter: "colorSwatch4"
+                    }
+                },
+                {
+                    id: "colorSwatch5",
+                    type: "swatch",
+                    properties: {
+                        dimensions: { x: 0.02, y: 0.02, z: 0.01 },
+                        localPosition: { x: -0.035, y: 0.02, z: -0.005 },
+                        color: { red: 0, green: 255, blue: 0 },
+                        solid: true
+                    },
+                    setting: {
+                        key: "VREdit.colorTool.swatch5Color",
+                        property: "color"
+                        // Default value is set in properties, above.
+                    },
+                    command: {
+                        method: "setColorPerSwatch",
+                        parameter: "colorSwatch5.color"
+                    },
+                    onGripClicked: {
+                        method: "clearSwatch",
+                        parameter: "colorSwatch5"
+                    }
+                },
+                {
+                    id: "colorSwatch6",
+                    type: "swatch",
+                    properties: {
+                        dimensions: { x: 0.02, y: 0.02, z: 0.01 },
+                        localPosition: { x: -0.01, y: 0.02, z: -0.005 },
+                        color: { red: 0, green: 0, blue: 255 },
+                        solid: true
+                    },
+                    setting: {
+                        key: "VREdit.colorTool.swatch6Color",
+                        property: "color"
+                        // Default value is set in properties, above.
+                    },
+                    command: {
+                        method: "setColorPerSwatch",
+                        parameter: "colorSwatch6.color"
+                    },
+                    onGripClicked: {
+                        method: "clearSwatch",
+                        parameter: "colorSwatch6"
+                    }
+                },
+                {
+                    id: "colorSwatch7",
+                    type: "swatch",
+                    properties: {
+                        dimensions: { x: 0.02, y: 0.02, z: 0.01 },
+                        localPosition: { x: -0.035, y: 0.045, z: -0.005 }
+                        // Default to empty swatch.
+                    },
+                    setting: {
+                        key: "VREdit.colorTool.swatch7Color",
+                        property: "color"
+                        // Default value is set in properties, above.
+                    },
+                    command: {
+                        method: "setColorPerSwatch",
+                        parameter: "colorSwatch7.color"
+                    },
+                    onGripClicked: {
+                        method: "clearSwatch",
+                        parameter: "colorSwatch7"
+                    }
+                },
+                {
+                    id: "colorSwatch8",
+                    type: "swatch",
+                    properties: {
+                        dimensions: { x: 0.02, y: 0.02, z: 0.01 },
+                        localPosition: { x: -0.01, y: 0.045, z: -0.005 }
+                        // Default to empty swatch.
+                    },
+                    setting: {
+                        key: "VREdit.colorTool.swatch8Color",
+                        property: "color"
+                        // Default value is set in properties, above.
+                    },
+                    command: {
+                        method: "setColorPerSwatch",
+                        parameter: "colorSwatch8.color"
+                    },
+                    onGripClicked: {
+                        method: "clearSwatch",
+                        parameter: "colorSwatch8"
                     }
                 },
                 {
