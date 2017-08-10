@@ -25,6 +25,7 @@ Rectangle {
 
     id: checkoutRoot;
     property string itemId; 
+    property string itemHref;
     // Style
     color: hifi.colors.baseGray;
     Hifi.QmlCommerce {
@@ -234,6 +235,7 @@ Rectangle {
 
         // "Cancel" button
         HifiControlsUit.Button {
+            id: cancelButton;
             color: hifi.buttons.black;
             colorScheme: hifi.colorSchemes.dark;
             anchors.top: parent.top;
@@ -251,6 +253,8 @@ Rectangle {
 
         // "Buy" button
         HifiControlsUit.Button {
+            property bool buyFailed: false;
+            id: buyButton;
             color: hifi.buttons.black;
             colorScheme: hifi.colorSchemes.dark;
             anchors.top: parent.top;
@@ -262,7 +266,11 @@ Rectangle {
             width: parent.width/2 - anchors.rightMargin*2;
             text: "Buy"
             onClicked: {
-                sendToScript({method: 'checkout_buyClicked', params: {success: commerce.buy(itemId, parseInt(itemPriceText.text))}});
+                if (buyFailed) {
+                    sendToScript({method: 'checkout_cancelClicked', params: itemId});
+                } else {
+                    sendToScript({method: 'checkout_buyClicked', success: commerce.buy(itemId, parseInt(itemPriceText.text)), itemId: itemId, itemHref: itemHref});
+                }
             }
         }
     }
@@ -293,6 +301,13 @@ Rectangle {
                 itemNameText.text = message.params.itemName;
                 itemAuthorText.text = message.params.itemAuthor;
                 itemPriceText.text = message.params.itemPrice;
+                itemHref = message.params.itemHref;
+                buyButton.text = "Buy";
+                buyButton.buyFailed = false;
+            break;
+            case 'buyFailed':
+                buyButton.text = "Buy Failed";
+                buyButton.buyFailed = true;
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
