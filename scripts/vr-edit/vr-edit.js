@@ -188,7 +188,7 @@
     };
 
 
-    UI = function (App, side, leftInputs, rightInputs, uiCommandCallback) {
+    UI = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // Tool menu and Create palette.
 
         var // Primary objects.
@@ -205,9 +205,9 @@
             return new UI();
         }
 
-        toolIcon = new ToolIcon(App, otherHand(side));
-        toolMenu = new ToolMenu(App, side, leftInputs, rightInputs, uiCommandCallback);
-        createPalette = new CreatePalette(App, side, leftInputs, rightInputs, uiCommandCallback);
+        toolIcon = new ToolIcon(otherHand(side));
+        toolMenu = new ToolMenu(side, leftInputs, rightInputs, uiCommandCallback);
+        createPalette = new CreatePalette(side, leftInputs, rightInputs, uiCommandCallback);
 
         getIntersection = side === LEFT_HAND ? rightInputs.intersection : leftInputs.intersection;
 
@@ -1445,7 +1445,7 @@
         inputs[RIGHT_HAND] = new Inputs(RIGHT_HAND);
 
         // UI object.
-        ui = new UI(App, otherHand(dominantHand), inputs[LEFT_HAND], inputs[RIGHT_HAND], onUICommand);
+        ui = new UI(otherHand(dominantHand), inputs[LEFT_HAND], inputs[RIGHT_HAND], onUICommand);
 
         // Editor objects.
         editors[LEFT_HAND] = new Editor(LEFT_HAND);

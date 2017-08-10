@@ -8,9 +8,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global ToolMenu */
+/* global App, ToolMenu */
 
-ToolMenu = function (App, side, leftInputs, rightInputs, uiCommandCallback) {
+ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     // Tool menu displayed on top of forearm.
 
     "use strict";

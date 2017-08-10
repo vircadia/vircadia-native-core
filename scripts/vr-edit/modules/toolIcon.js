@@ -8,9 +8,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global ToolIcon */
+/* global App, ToolIcon */
 
-ToolIcon = function (App, side) {
+ToolIcon = function (side) {
     // Tool icon displayed on non-dominant hand.
 
     "use strict";
