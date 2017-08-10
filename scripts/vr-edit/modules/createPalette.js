@@ -247,7 +247,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         // Joint index.
         handJointIndex = MyAvatar.getJointIndex(controlJointName);
-        if (handJointIndex === -1) {
+        if (handJointIndex === NONE) {
             // Don't display if joint isn't available (yet) to attach to.
             // User can clear this condition by toggling the app off and back on once avatar finishes loading.
             // TODO: Log error.

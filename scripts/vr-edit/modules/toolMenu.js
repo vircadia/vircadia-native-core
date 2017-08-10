@@ -868,7 +868,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     }
 
     function update(intersection, groupsCount, entitiesCount) {
-        var intersectedItem = -1,
+        var intersectedItem = NONE,
             intersectionItems,
             parentProperties,
             localPosition,
@@ -885,13 +885,13 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // Intersection details.
         if (intersection.overlayID) {
             intersectedItem = menuOverlays.indexOf(intersection.overlayID);
-            if (intersectedItem !== -1) {
+            if (intersectedItem !== NONE) {
                 intersectionItems = MENU_ITEMS;
                 intersectionOverlays = menuOverlays;
                 intersectionEnabled = null;
             } else {
                 intersectedItem = optionsOverlays.indexOf(intersection.overlayID);
-                if (intersectedItem !== -1) {
+                if (intersectedItem !== NONE) {
                     intersectionItems = optionsItems;
                     intersectionOverlays = optionsOverlays;
                     intersectionEnabled = optionsEnabled;
@@ -904,7 +904,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         // Highlight clickable item.
         if (intersectedItem !== highlightedItem || intersectionOverlays !== highlightedSource) {
-            if (intersectedItem !== -1 && (intersectionItems[intersectedItem].command !== undefined
+            if (intersectedItem !== NONE && (intersectionItems[intersectedItem].command !== undefined
                     || intersectionItems[intersectedItem].callback !== undefined)) {
                 // Highlight new button. (The existence of a command or callback infers that the item is a button.)
                 parentProperties = Overlays.getProperties(intersectionOverlays[intersectedItem],
@@ -1027,7 +1027,6 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 Vec3.multiplyQbyV(sliderProperties.orientation, Vec3.UNIT_Y)) / overlayDimensions.y;
             fraction = adjustSliderFraction(fraction);
             otherFraction = 1.0 - fraction;
-
             Overlays.editOverlay(optionsOverlaysAuxiliaries[intersectedItem].value, {
                 localPosition: { x: 0, y: (0.5 - fraction / 2) * overlayDimensions.y, z: 0 },
                 dimensions: { x: overlayDimensions.x, y: fraction * overlayDimensions.y, z: overlayDimensions.z }
@@ -1101,7 +1100,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         // Joint index.
         handJointIndex = MyAvatar.getJointIndex(attachmentJointName);
-        if (handJointIndex === -1) {
+        if (handJointIndex === NONE) {
             // Don't display if joint isn't available (yet) to attach to.
             // User can clear this condition by toggling the app off and back on once avatar finishes loading.
             // TODO: Log error.
