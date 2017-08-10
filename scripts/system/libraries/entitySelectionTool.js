@@ -288,7 +288,6 @@ SelectionDisplay = (function() {
     };
     var handleHoverAlpha = 1.0;
 
-    var rotateOverlayTargetSize = 10000; // really big target
     var innerSnapAngle = 22.5; // the angle which we snap to on the inner rotation tool
     var innerRadius;
     var outerRadius;
@@ -805,24 +804,6 @@ SelectionDisplay = (function() {
     });
 
 
-    var rotateOverlayTarget = Overlays.addOverlay("circle3d", {
-        position: {
-            x: 0,
-            y: 0,
-            z: 0
-        },
-        size: rotateOverlayTargetSize,
-        color: {
-            red: 0,
-            green: 0,
-            blue: 0
-        },
-        alpha: 0.0,
-        solid: true,
-        visible: false,
-        rotation: yawOverlayRotation,
-    });
-
     var rotateOverlayInner = Overlays.addOverlay("circle3d", {
         position: {
             x: 0,
@@ -979,7 +960,6 @@ SelectionDisplay = (function() {
         yawHandle,
         pitchHandle,
         rollHandle,
-        rotateOverlayTarget,
         rotateOverlayInner,
         rotateOverlayOuter,
         rotateOverlayCurrent,
@@ -1034,7 +1014,6 @@ SelectionDisplay = (function() {
     overlayNames[pitchHandle] = "pitchHandle";
     overlayNames[rollHandle] = "rollHandle";
 
-    overlayNames[rotateOverlayTarget] = "rotateOverlayTarget";
     overlayNames[rotateOverlayInner] = "rotateOverlayInner";
     overlayNames[rotateOverlayOuter] = "rotateOverlayOuter";
     overlayNames[rotateOverlayCurrent] = "rotateOverlayCurrent";
@@ -1472,9 +1451,6 @@ SelectionDisplay = (function() {
             translateHandlesVisible = false;
         }
 
-        Overlays.editOverlay(rotateOverlayTarget, {
-            visible: rotationOverlaysVisible
-        });
         Overlays.editOverlay(rotateZeroOverlay, {
             visible: rotationOverlaysVisible
         });
@@ -3656,12 +3632,6 @@ SelectionDisplay = (function() {
             innerRadius: 0.9,
         });
 
-        Overlays.editOverlay(rotateOverlayTarget, {
-            visible: true,
-            rotation: handleRotation,
-            position: rotCenter
-        });
-
         Overlays.editOverlay(rotationDegreesDisplay, {
             visible: true,
         });
@@ -4186,9 +4156,6 @@ SelectionDisplay = (function() {
             if(wantDebug){
                 print("    Triggering hide of RotateOverlays");
             }
-            Overlays.editOverlay(rotateOverlayTarget, {
-                visible: false
-            });
             Overlays.editOverlay(rotateOverlayInner, {
                 visible: false
             });
