@@ -20,6 +20,7 @@
     var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
     var MARKETPLACE_CHECKOUT_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/Checkout.qml";
+    var MARKETPLACE_INVENTORY_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/Inventory.qml";
 
     var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
     // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
@@ -86,7 +87,7 @@
 
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url === MARKETPLACE_URL_INITIAL;
-        wireEventBridge(type === "QML" && url === MARKETPLACE_CHECKOUT_QML_PATH);
+        wireEventBridge(type === "QML" && (url === MARKETPLACE_CHECKOUT_QML_PATH || url === MARKETPLACE_INVENTORY_QML_PATH));
         // for toolbar mode: change button to active when window is first openend, false otherwise.
         marketplaceButton.editProperties({ isActive: onMarketplaceScreen });
         if (type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1) {
@@ -139,6 +140,13 @@
                     action: "inspectionModeSetting",
                     data: Settings.getValue("inspectionMode", false)
                 }));
+            } else if (parsedJsonMessage.type === "INVENTORY") {
+                tablet.pushOntoStack(MARKETPLACE_INVENTORY_QML_PATH);
+                tablet.sendToQml({
+                    method: 'updateInventory',
+                    referrerURL: parsedJsonMessage.referrerURL,
+                    hfcBalance: 10
+                });
             }
         }
     }
@@ -199,17 +207,17 @@
                 break;
             case 'checkout_buyClicked':
                 if (message.success === true) {
-                    tablet.gotoWebScreen(message.itemHref);
-                    Script.setTimeout(function () {
-                        tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
-                    }, 100);
+                    tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
                 } else {
                     tablet.sendToQml({ method: 'buyFailed' });
                 }
                 //tablet.popFromStack();
                 break;
+            case 'inventory_backClicked':
+                tablet.gotoWebScreen(message.referrerURL, MARKETPLACES_INJECT_SCRIPT_URL);
+                break;
             default:
-                print('Unrecognized message from Checkout.qml: ' + JSON.stringify(message));
+                print('Unrecognized message from Checkout.qml or Inventory.qml: ' + JSON.stringify(message));
         }
     }
 

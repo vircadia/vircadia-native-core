@@ -269,7 +269,13 @@ Rectangle {
                 if (buyFailed) {
                     sendToScript({method: 'checkout_cancelClicked', params: itemId});
                 } else {
-                    sendToScript({method: 'checkout_buyClicked', success: commerce.buy(itemId, parseInt(itemPriceText.text)), itemId: itemId, itemHref: itemHref});
+                    var success = commerce.buy(itemId, parseInt(itemPriceText.text));
+                    sendToScript({method: 'checkout_buyClicked', success: success, itemId: itemId, itemHref: itemHref});
+                    if (success) {
+                        if (urlHandler.canHandleUrl(itemHref)) {
+                            urlHandler.handleUrl(itemHref);
+                        }
+                    }
                 }
             }
         }
