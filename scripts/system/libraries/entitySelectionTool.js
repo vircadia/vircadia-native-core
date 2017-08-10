@@ -299,9 +299,6 @@ SelectionDisplay = (function() {
     var pitchCenter;
     var rollCenter;
     var rotZero;
-    var yawNormal;
-    var pitchNormal;
-    var rollNormal;
     var rotationNormal;
 
 
@@ -1093,12 +1090,8 @@ SelectionDisplay = (function() {
         return controllerComputePickRay() || Camera.computePickRay(x, y);
     }
     function addGrabberTool(overlay, tool) {
-        grabberTools[overlay] = {
-            mode: tool.mode,
-            onBegin: tool.onBegin,
-            onMove: tool.onMove,
-            onEnd: tool.onEnd,
-        };
+        grabberTools[overlay] = tool;
+        return tool;
     }
 
 
@@ -1228,22 +1221,6 @@ SelectionDisplay = (function() {
                     z: 0
                 });
 
-                yawNormal = {
-                    x: 0,
-                    y: 1,
-                    z: 0
-                };
-                pitchNormal = {
-                    x: 1,
-                    y: 0,
-                    z: 0
-                };
-                rollNormal = {
-                    x: 0,
-                    y: 0,
-                    z: 1
-                };
-
                 yawCorner = {
                     x: left + rotateHandleOffset,
                     y: bottom - rotateHandleOffset,
@@ -1304,23 +1281,6 @@ SelectionDisplay = (function() {
                     y: 0,
                     z: 90
                 });
-
-                yawNormal = {
-                    x: 0,
-                    y: 1,
-                    z: 0
-                };
-                pitchNormal = {
-                    x: 1,
-                    y: 0,
-                    z: 0
-                };
-                rollNormal = {
-                    x: 0,
-                    y: 0,
-                    z: 1
-                };
-
 
                 yawCorner = {
                     x: left + rotateHandleOffset,
@@ -1385,22 +1345,6 @@ SelectionDisplay = (function() {
                     z: 180
                 });
 
-                yawNormal = {
-                    x: 0,
-                    y: 1,
-                    z: 0
-                };
-                pitchNormal = {
-                    x: 1,
-                    y: 0,
-                    z: 0
-                };
-                rollNormal = {
-                    x: 0,
-                    y: 0,
-                    z: 1
-                };
-
                 yawCorner = {
                     x: right - rotateHandleOffset,
                     y: bottom - rotateHandleOffset,
@@ -1460,22 +1404,6 @@ SelectionDisplay = (function() {
                     z: 180
                 });
 
-                yawNormal = {
-                    x: 0,
-                    y: 1,
-                    z: 0
-                };
-                rollNormal = {
-                    x: 0,
-                    y: 0,
-                    z: 1
-                };
-                pitchNormal = {
-                    x: 1,
-                    y: 0,
-                    z: 0
-                };
-
                 yawCorner = {
                     x: right - rotateHandleOffset,
                     y: bottom - rotateHandleOffset,
@@ -1531,7 +1459,7 @@ SelectionDisplay = (function() {
             isPointLight = properties.type == "Light" && !properties.isSpotlight;
         }
 
-        if (mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL" || mode == "TRANSLATE_X in case they Z") {
+        if (mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL" || mode == "TRANSLATE_XZ") {
             rotationOverlaysVisible = true;
             rotateHandlesVisible = false;
             translateHandlesVisible = false;
@@ -2401,19 +2329,19 @@ SelectionDisplay = (function() {
     var duplicatedEntityIDs = null;
 
     // TOOL DEFINITION: TRANSLATE XZ TOOL
-    var translateXZTool = {
+    var translateXZTool = addGrabberTool(selectionBox,{
         mode: 'TRANSLATE_XZ',
         pickPlanePosition: { x: 0, y: 0, z: 0 },
         greatestDimension: 0.0,
         startingDistance: 0.0,
         startingElevation: 0.0,
-        onBegin: function(event,isAltFromGrab,intersectInfo) {
+        onBegin: function(event, pickRay, pickResult, doClone) {
             var wantDebug = false;
             if(wantDebug){
                 print("================== TRANSLATE_XZ(Beg) -> =======================");
-                Vec3.print("    intersectInfo.queryRay", intersectInfo.queryRay);
-                Vec3.print("    intersectInfo.queryRay.origin", intersectInfo.queryRay.origin);
-                Vec3.print("    intersectInfo.results.intersection", intersectInfo.results.intersection);
+                Vec3.print("    pickRay", pickRay);
+                Vec3.print("    pickRay.origin", pickRay.origin);
+                Vec3.print("    pickResult.intersection", pickResult.intersection);
             }
 
             SelectionManager.saveProperties();
@@ -2421,19 +2349,19 @@ SelectionDisplay = (function() {
             that.setGrabberMoveUpVisible( false );
 
             startPosition = SelectionManager.worldPosition;
-            mode = translateXZTool.mode;
+            mode = translateXZTool.mode; // Note this overrides mode = "CLONE"
 
-            translateXZTool.pickPlanePosition = intersectInfo.results.intersection;
+            translateXZTool.pickPlanePosition = pickResult.intersection;
             translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, SelectionManager.worldDimensions.y), SelectionManager.worldDimensions.z);
-            translateXZTool.startingDistance = Vec3.distance(intersectInfo.queryRay.origin, SelectionManager.position);
-            translateXZTool.startingElevation = translateXZTool.elevation(intersectInfo.queryRay.origin, translateXZTool.pickPlanePosition);
+            translateXZTool.startingDistance = Vec3.distance(pickRay.origin, SelectionManager.position);
+            translateXZTool.startingElevation = translateXZTool.elevation(pickRay.origin, translateXZTool.pickPlanePosition);
             if (wantDebug) {
                 print("    longest dimension: " + translateXZTool.greatestDimension);
                 print("    starting distance: " + translateXZTool.startingDistance);
                 print("    starting elevation: " + translateXZTool.startingElevation);
             }
 
-            initialXZPick = rayPlaneIntersection(intersectInfo.queryRay, translateXZTool.pickPlanePosition, {
+            initialXZPick = rayPlaneIntersection(pickRay, translateXZTool.pickPlanePosition, {
                 x: 0,
                 y: 1,
                 z: 0
@@ -2442,7 +2370,7 @@ SelectionDisplay = (function() {
             // Duplicate entities if alt is pressed.  This will make a
             // copy of the selected entities and move the _original_ entities, not
             // the new ones.
-            if (event.isAlt || isAltFromGrab) {
+            if (event.isAlt || doClone) {
                 duplicatedEntityIDs = [];
                 for (var otherEntityID in SelectionManager.savedProperties) {
                     var properties = SelectionManager.savedProperties[otherEntityID];
@@ -2614,16 +2542,14 @@ SelectionDisplay = (function() {
 
             SelectionManager._update();
         }
-    };
-
+    });
+    
     // GRABBER TOOL: GRABBER MOVE UP
     var lastXYPick = null;
     var upDownPickNormal = null;
     addGrabberTool(grabberMoveUp, {
         mode: "TRANSLATE_UP_DOWN",
-        onBegin: function(event, intersectResult) {
-            pickRay = generalComputePickRay(event.x, event.y);
-
+        onBegin: function(event, pickRay, pickResult) {
             upDownPickNormal = Quat.getForward(lastCameraOrientation);
             // Remove y component so the y-axis lies along the plane we picking on - this will
             // give movements that follow the mouse.
@@ -2696,23 +2622,9 @@ SelectionDisplay = (function() {
     // GRABBER TOOL: GRABBER CLONER
     addGrabberTool(grabberCloner, {
         mode: "CLONE",
-        onBegin: function(event, intersectResult) {
-
-            var pickRay = generalComputePickRay(event.x, event.y);
-            //TODO_Case6491:  This may be doing duplicate works that's handled
-            //                within translateXZTool.onBegin.  Verify and if so
-            //                remove...
-            var result = Overlays.findRayIntersection(pickRay);
-            translateXZTool.pickPlanePosition = result.intersection;
-            translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, SelectionManager.worldDimensions.y),
-                SelectionManager.worldDimensions.z);
-
-            var intersectInfo = {
-                queryRay: pickRay,
-                results: intersectResult
-            };
-
-            translateXZTool.onBegin(event,true,intersectInfo);
+        onBegin: function(event, pickRay, pickResult) {
+            var doClone = true;
+            translateXZTool.onBegin(event,pickRay,pickResult,doClone);
         },
         elevation: function (event) {
             translateXZTool.elevation(event);
@@ -2785,7 +2697,7 @@ SelectionDisplay = (function() {
         var pickRayPosition3D = null;
         var rotation = null;
 
-        var onBegin = function(event, intersectResult) {
+        var onBegin = function(event, pickRay, pickResult) {
             var properties = Entities.getEntityProperties(SelectionManager.selections[0]);
             initialProperties = properties;
             rotation = spaceMode == SPACE_LOCAL ? properties.rotation : Quat.fromPitchYawRollDegrees(0, 0, 0);
@@ -3167,7 +3079,7 @@ SelectionDisplay = (function() {
         }
         var tool = makeStretchTool(mode, direction, pivot, offset, handleMove);
 
-        addGrabberTool(overlay, tool);
+        return addGrabberTool(overlay, tool);
     }
 
     // FUNCTION: CUTOFF STRETCH FUNC
@@ -3690,7 +3602,7 @@ SelectionDisplay = (function() {
         }
     }
 
-    function helperRotationHandleOnBegin( event, rotNormal, rotCenter, handleRotation ) {
+    function helperRotationHandleOnBegin( event, pickRay, rotAroundAxis, rotCenter, handleRotation ) {
         var wantDebug = false;
         if (wantDebug) {
             print("================== " + mode + "(rotation helper onBegin) -> =======================");
@@ -3702,7 +3614,8 @@ SelectionDisplay = (function() {
         that.setGrabberMoveUpVisible( false );
 
         initialPosition = SelectionManager.worldPosition;
-        rotationNormal = rotNormal;
+        rotationNormal = { x: 0, y: 0, z: 0 };
+        rotationNormal[rotAroundAxis] = 1;
 
         // Size the overlays to the current selection size
         var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
@@ -3755,11 +3668,11 @@ SelectionDisplay = (function() {
 
         updateRotationDegreesOverlay(0, handleRotation, rotCenter);
         
-        // Compute zero position now that the overlay is set up.
-        // TODO editOverlays sync
-        var pickRay = generalComputePickRay(event.x, event.y);
-        
+        // editOverlays may not have committed rotation changes.
+        // Compute zero position based on where the overlay will be eventually.
         var result = rayPlaneIntersection( pickRay, rotCenter, rotationNormal );
+        // In case of a parallel ray, this will be null, which will cause early-out
+        // in the onMove helper.
         rotZero = result;
         
         if (wantDebug) {
@@ -3776,7 +3689,7 @@ SelectionDisplay = (function() {
             return;
         }
 
-        var wantDebug = true;
+        var wantDebug = false;
         if (wantDebug) {
             print("================== "+ mode + "(rotation helper onMove) -> =======================");
             Vec3.print("    rotZero: ", rotZero);
@@ -3789,15 +3702,15 @@ SelectionDisplay = (function() {
             visible: false
         });
 
-        var result = Overlays.findRayIntersection(pickRay, true, [rotateOverlayTarget]);
-        if (result.intersects) {
+        var result = rayPlaneIntersection( pickRay, rotCenter, rotationNormal );
+        if (result) {
             var centerToZero = Vec3.subtract(rotZero, rotCenter);
-            var centerToIntersect = Vec3.subtract(result.intersection, rotCenter);
+            var centerToIntersect = Vec3.subtract(result, rotCenter);
             if (wantDebug) {
                 Vec3.print("    RotationNormal:    ", rotationNormal);
                 Vec3.print("    rotZero:           ", rotZero);
                 Vec3.print("    rotCenter:         ", rotCenter);
-                Vec3.print("    intersect:         ", result.intersection);
+                Vec3.print("    intersect:         ", result);
                 Vec3.print("    centerToZero:      ", centerToZero);
                 Vec3.print("    centerToIntersect: ", centerToIntersect);
             }
@@ -3805,7 +3718,7 @@ SelectionDisplay = (function() {
             //             handles that internally, so it's to pass unnormalized vectors here.
             var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
 
-            var distanceFromCenter = Vec3.distance(rotCenter, result.intersection);
+            var distanceFromCenter = Vec3.length(centerToIntersect);
             var snapToInner = distanceFromCenter < innerRadius;
             var snapAngle = snapToInner ? innerSnapAngle : 1.0;
             angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
@@ -3902,9 +3815,8 @@ SelectionDisplay = (function() {
     var initialPosition = SelectionManager.worldPosition;
     addGrabberTool(yawHandle, {
         mode: "ROTATE_YAW",
-        onBegin: function(event, intersectResult) {
-            mode = "ROTATE_YAW";
-            helperRotationHandleOnBegin( event, yawNormal, yawCenter, yawHandleRotation );
+        onBegin: function(event, pickRay, pickResult) {
+            helperRotationHandleOnBegin( event, pickRay, "y", yawCenter, yawHandleRotation );
         },
         onEnd: function(event, reason) {
             helperRotationHandleOnEnd();
@@ -3918,9 +3830,8 @@ SelectionDisplay = (function() {
     // PITCH GRABBER TOOL DEFINITION
     addGrabberTool(pitchHandle, {
         mode: "ROTATE_PITCH",
-        onBegin: function (event, intersectResult) {
-            mode = "ROTATE_PITCH";
-            helperRotationHandleOnBegin( event, pitchNormal, pitchCenter, pitchHandleRotation );
+        onBegin: function(event, pickRay, pickResult) {
+            helperRotationHandleOnBegin( event, pickRay, "x", pitchCenter, pitchHandleRotation );
         },
         onEnd: function(event, reason) {
             helperRotationHandleOnEnd();
@@ -3934,9 +3845,8 @@ SelectionDisplay = (function() {
     // ROLL GRABBER TOOL DEFINITION
     addGrabberTool(rollHandle, {
         mode: "ROTATE_ROLL",
-        onBegin: function (event, intersectResult) {
-            mode = "ROTATE_ROLL";
-            helperRotationHandleOnBegin( event, rollNormal, rollCenter, rollHandleRotation );
+        onBegin: function(event, pickRay, pickResult) {
+            helperRotationHandleOnBegin( event, pickRay, "z", rollCenter, rollHandleRotation );
         },
         onEnd: function (event, reason) {
             helperRotationHandleOnEnd();
@@ -4027,7 +3937,9 @@ SelectionDisplay = (function() {
             }
         }
 
+        // Start with unknown mode, in case no tool can handle this.
         mode = "UNKNOWN";
+
         var results = testRayIntersect( pickRay, interactiveOverlays );
         if ( results.intersects ){
             var hitOverlayID = results.overlayID;
@@ -4038,32 +3950,19 @@ SelectionDisplay = (function() {
 
             entityIconOverlayManager.setIconsSelectable(selectionManager.selections, true);
             //TODO_Case6491:  Merge if..else( selectionBox ) when onBegin of transXZ is normalized.
-            if ( hitOverlayID == selectionBox ) {
 
-                activeTool = translateXZTool;
-                if(wantDebug){
-                    print("    Clicked selectionBox, Activating Tool: " + activeTool.mode );
-                }
-                var intersectInfo = {
-                    queryRay: pickRay,
-                    results: results
-                };
-
-                activeTool.onBegin(event, null, intersectInfo);
-            } else { //...see if a tool was hit as that's the only thing left that we care about.
-                var hitTool = grabberTools[ hitOverlayID ];
-                if ( hitTool ) {
-                    activeTool = hitTool;
-                    mode = activeTool.mode; //< TODO: Is this centrally handled in all tool begins?
-                    if (activeTool.onBegin) {
-                        activeTool.onBegin(event, results);
-                    } else {
-                        print("ERROR: entitySelectionTool.mousePressEvent - ActiveTool( " + activeTool.mode + " ) missing onBegin");
-                    }
+            var hitTool = grabberTools[ hitOverlayID ];
+            if ( hitTool ) {
+                activeTool = hitTool;
+                mode = activeTool.mode;
+                if (activeTool.onBegin) {
+                    activeTool.onBegin(event, pickRay, results);
                 } else {
-                    print("ERROR: entitySelectionTool.mousePressEvent - Hit unexpected object, check interactiveOverlays");
-                }//--End_if( hitTool )
-            }//--End_if( hitOverlayID == selectionBox )
+                    print("ERROR: entitySelectionTool.mousePressEvent - ActiveTool( " + activeTool.mode + " ) missing onBegin");
+                }
+            } else {
+                print("ERROR: entitySelectionTool.mousePressEvent - Hit unexpected object, check interactiveOverlays");
+            }//--End_if( hitTool )
         }//--End_If( results.intersects )
 
         if (wantDebug) {
