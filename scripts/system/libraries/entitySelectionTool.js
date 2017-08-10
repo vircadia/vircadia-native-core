@@ -298,9 +298,7 @@ SelectionDisplay = (function() {
     var yawCenter;
     var pitchCenter;
     var rollCenter;
-    var yawZero;
-    var pitchZero;
-    var rollZero;
+    var rotZero;
     var yawNormal;
     var pitchNormal;
     var rollNormal;
@@ -3692,10 +3690,10 @@ SelectionDisplay = (function() {
         }
     }
 
-    function helperRotationHandleOnBegin( rotMode, rotNormal, rotCenter, handleRotation ) {
+    function helperRotationHandleOnBegin( event, rotNormal, rotCenter, handleRotation ) {
         var wantDebug = false;
         if (wantDebug) {
-            print("================== " + rotMode + "(onBegin) -> =======================");
+            print("================== " + mode + "(rotation helper onBegin) -> =======================");
         }
 
         SelectionManager.saveProperties();
@@ -3704,7 +3702,6 @@ SelectionDisplay = (function() {
         that.setGrabberMoveUpVisible( false );
 
         initialPosition = SelectionManager.worldPosition;
-        mode = rotMode;
         rotationNormal = rotNormal;
 
         // Size the overlays to the current selection size
@@ -3757,28 +3754,31 @@ SelectionDisplay = (function() {
         });
 
         updateRotationDegreesOverlay(0, handleRotation, rotCenter);
+        
+        // Compute zero position now that the overlay is set up.
+        // TODO editOverlays sync
+        var pickRay = generalComputePickRay(event.x, event.y);
+        
+        var result = rayPlaneIntersection( pickRay, rotCenter, rotationNormal );
+        rotZero = result;
+        
         if (wantDebug) {
-            print("================== " + rotMode + "(onBegin) <- =======================");
+            print("================== " + mode + "(rotation helper onBegin) <- =======================");
         }
     }//--End_Function( helperRotationHandleOnBegin )
 
-    function helperRotationHandleOnMove( event, rotMode, rotZero, rotCenter, handleRotation ) {
+    function helperRotationHandleOnMove( event, rotAroundAxis, rotCenter, handleRotation ) {
 
-        if ( ! (rotMode == "ROTATE_YAW" || rotMode == "ROTATE_PITCH" || rotMode == "ROTATE_ROLL") ) {
-            print("ERROR( handleRotationHandleOnMove ) - Encountered Unknown/Invalid RotationMode: " + rotMode );
-
-            //--EARLY EXIT--
-            return;
-        } else if ( ! rotZero ) {
-            print("ERROR( handleRotationHandleOnMove ) - Invalid RotationZero Specified" );
+        if ( ! rotZero ) {
+            print("ERROR( handleRotationHandleOnMove ) - Invalid RotationZero Specified (missed rotation target plane?)" );
 
             //--EARLY EXIT--
             return;
         }
 
-        var wantDebug = false;
+        var wantDebug = true;
         if (wantDebug) {
-            print("================== "+ rotMode + "(onMove) -> =======================");
+            print("================== "+ mode + "(rotation helper onMove) -> =======================");
             Vec3.print("    rotZero: ", rotZero);
         }
         var pickRay = generalComputePickRay(event.x, event.y);
@@ -3794,7 +3794,12 @@ SelectionDisplay = (function() {
             var centerToZero = Vec3.subtract(rotZero, rotCenter);
             var centerToIntersect = Vec3.subtract(result.intersection, rotCenter);
             if (wantDebug) {
-                Vec3.print("    RotationNormal: ", rotationNormal);
+                Vec3.print("    RotationNormal:    ", rotationNormal);
+                Vec3.print("    rotZero:           ", rotZero);
+                Vec3.print("    rotCenter:         ", rotCenter);
+                Vec3.print("    intersect:         ", result.intersection);
+                Vec3.print("    centerToZero:      ", centerToZero);
+                Vec3.print("    centerToIntersect: ", centerToIntersect);
             }
             // Note: orientedAngle which wants normalized centerToZero and centerToIntersect
             //             handles that internally, so it's to pass unnormalized vectors here.
@@ -3805,18 +3810,9 @@ SelectionDisplay = (function() {
             var snapAngle = snapToInner ? innerSnapAngle : 1.0;
             angleFromZero = Math.floor(angleFromZero / snapAngle) * snapAngle;
 
-            var rotChange = null;
-            switch( rotMode ) {
-                case "ROTATE_YAW":
-                    rotChange = Quat.fromVec3Degrees( {x: 0, y: angleFromZero, z: 0} );
-                break;
-                case "ROTATE_PITCH":
-                    rotChange = Quat.fromVec3Degrees( {x: angleFromZero, y: 0, z: 0} );
-                break;
-                case "ROTATE_ROLL":
-                    rotChange = Quat.fromVec3Degrees( {x: 0, y: 0, z: angleFromZero} );
-                break;
-            }
+            var vec3Degrees = { x: 0, y: 0, z: 0 };
+            vec3Degrees[rotAroundAxis] = angleFromZero;
+            var rotChange = Quat.fromVec3Degrees( vec3Degrees );
             updateSelectionsRotation( rotChange );
 
             updateRotationDegreesOverlay(angleFromZero, handleRotation, rotCenter);
@@ -3872,7 +3868,7 @@ SelectionDisplay = (function() {
         }//--End_If( results.intersects )
 
         if (wantDebug) {
-            print("================== "+ rotMode + "(onMove) <- =======================");
+            print("================== "+ mode + "(rotation helper onMove) <- =======================");
         }
     }//--End_Function( helperRotationHandleOnMove )
 
@@ -3907,17 +3903,14 @@ SelectionDisplay = (function() {
     addGrabberTool(yawHandle, {
         mode: "ROTATE_YAW",
         onBegin: function(event, intersectResult) {
-            //note: It's expected that the intersect result is passed when this is called.
-            //      validity will be checked later as a pre-requisite for onMove handling.
-            yawZero = intersectResult.intersection;
-
-            helperRotationHandleOnBegin( "ROTATE_YAW", yawNormal, yawCenter, yawHandleRotation );
+            mode = "ROTATE_YAW";
+            helperRotationHandleOnBegin( event, yawNormal, yawCenter, yawHandleRotation );
         },
         onEnd: function(event, reason) {
             helperRotationHandleOnEnd();
         },
         onMove: function(event) {
-            helperRotationHandleOnMove( event, "ROTATE_YAW", yawZero, yawCenter, yawHandleRotation );
+            helperRotationHandleOnMove( event, "y", yawCenter, yawHandleRotation );
         }
     });
 
@@ -3926,17 +3919,14 @@ SelectionDisplay = (function() {
     addGrabberTool(pitchHandle, {
         mode: "ROTATE_PITCH",
         onBegin: function (event, intersectResult) {
-            //note: It's expected that the intersect result is passed when this is called.
-            //      validity will be checked later as a pre-requisite for onMove handling.
-            pitchZero = intersectResult.intersection;
-
-            helperRotationHandleOnBegin( "ROTATE_PITCH", pitchNormal, pitchCenter, pitchHandleRotation );
+            mode = "ROTATE_PITCH";
+            helperRotationHandleOnBegin( event, pitchNormal, pitchCenter, pitchHandleRotation );
         },
         onEnd: function(event, reason) {
             helperRotationHandleOnEnd();
         },
         onMove: function (event) {
-            helperRotationHandleOnMove( event, "ROTATE_PITCH", pitchZero, pitchCenter, pitchHandleRotation );
+            helperRotationHandleOnMove( event, "x", pitchCenter, pitchHandleRotation );
         }
     });
 
@@ -3945,17 +3935,14 @@ SelectionDisplay = (function() {
     addGrabberTool(rollHandle, {
         mode: "ROTATE_ROLL",
         onBegin: function (event, intersectResult) {
-            //note: It's expected that the intersect result is passed when this is called.
-            //      validity will be checked later as a pre-requisite for onMove handling.
-            rollZero = intersectResult.intersection;
-
-            helperRotationHandleOnBegin( "ROTATE_ROLL", rollNormal, rollCenter, rollHandleRotation );
+            mode = "ROTATE_ROLL";
+            helperRotationHandleOnBegin( event, rollNormal, rollCenter, rollHandleRotation );
         },
         onEnd: function (event, reason) {
             helperRotationHandleOnEnd();
         },
         onMove: function(event) {
-            helperRotationHandleOnMove( event, "ROTATE_ROLL", rollZero, rollCenter, rollHandleRotation );
+            helperRotationHandleOnMove( event, "z", rollCenter, rollHandleRotation );
         }
     });
 
