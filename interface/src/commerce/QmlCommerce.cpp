@@ -17,7 +17,7 @@
 
 HIFI_QML_DEF(QmlCommerce)
 
-void QmlCommerce::buy(const QString& assetId, int cost, const QString& buyerUsername) {
+bool QmlCommerce::buy(const QString& assetId, int cost, const QString& buyerUsername) {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     QStringList keys = wallet->listPublicKeys();
