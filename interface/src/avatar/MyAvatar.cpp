@@ -1382,7 +1382,6 @@ void MyAvatar::useFullAvatarURL(const QUrl& fullAvatarURL, const QString& modelN
     }
 
     if (_fullAvatarURLFromPreferences != fullAvatarURL) {
-        qApp->clearAvatarOverrideUrl();
         _fullAvatarURLFromPreferences = fullAvatarURL;
         if (modelName.isEmpty()) {
             QVariantHash fullAvatarFST = FSTReader::downloadMapping(_fullAvatarURLFromPreferences.toString());
