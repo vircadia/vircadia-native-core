@@ -428,8 +428,10 @@ private:
 
     gpu::ShaderPointer _simpleOpaqueWebBrowserShader;
     gpu::PipelinePointer _simpleOpaqueWebBrowserPipeline;
+    gpu::PipelinePointer _simpleOpaqueWebBrowserPipelineNoAA;
     gpu::ShaderPointer _simpleTransparentWebBrowserShader;
     gpu::PipelinePointer _simpleTransparentWebBrowserPipeline;
+    gpu::PipelinePointer _simpleTransparentWebBrowserPipelineNoAA;
 };
 
 #endif // hifi_GeometryCache_h

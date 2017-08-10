@@ -62,35 +62,6 @@ namespace render {
         }
     };
 
-    // Filter the items belonging to the job's keep layer
-    class FilterLayeredItems {
-    public:
-        using JobModel = Job::ModelIO<FilterLayeredItems, ItemBounds, ItemBounds>;
-
-        FilterLayeredItems() {}
-        FilterLayeredItems(int keepLayer) :
-            _keepLayer(keepLayer) {}
-
-        int _keepLayer { 0 };
-
-        void run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
-    };
-
-    // Filter the items not belonging to the job's remove layer
-    class FilterOutLayeredItems {
-    public:
-        using JobModel = Job::ModelIO<FilterOutLayeredItems, ItemBounds, ItemBounds>;
-
-        FilterOutLayeredItems() {}
-        FilterOutLayeredItems(int removeLayer) :
-            _removeLayer(removeLayer) {
-        }
-
-        int _removeLayer { 0 };
-
-        void run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems);
-    };
-
     // SliceItems job config defining the slice range
     class SliceItemsConfig : public Job::Config {
         Q_OBJECT

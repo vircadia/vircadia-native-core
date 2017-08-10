@@ -21,36 +21,6 @@
 
 using namespace render;
 
-void FilterLayeredItems::run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
-    auto& scene = renderContext->_scene;
-
-    // Clear previous values
-    outItems.clear();
-
-    // Filter matches into one bucket
-    for (auto itemBound : inItems) {
-        auto& item = scene->getItem(itemBound.id);
-        if (item.getLayer() == _keepLayer) {
-            outItems.emplace_back(itemBound);
-        }
-    }
-}
-
-void FilterOutLayeredItems::run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
-    auto& scene = renderContext->_scene;
-
-    // Clear previous values
-    outItems.clear();
-
-    // Filter non-matches into one bucket
-    for (auto itemBound : inItems) {
-        auto& item = scene->getItem(itemBound.id);
-        if (item.getLayer() != _removeLayer) {
-            outItems.emplace_back(itemBound);
-        }
-    }
-}
-
 void SliceItems::run(const RenderContextPointer& renderContext, const ItemBounds& inItems, ItemBounds& outItems) {
     outItems.clear();
     std::static_pointer_cast<Config>(renderContext->jobConfig)->setNumItems((int)inItems.size());
