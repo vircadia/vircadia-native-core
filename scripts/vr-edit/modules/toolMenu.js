@@ -209,6 +209,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
         },
 
+        BUTTON_UI_ELEMENTS = ["button", "swatch"],
+
         OPTONS_PANELS = {
             groupOptions: [
                 {
@@ -818,7 +820,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 });
                 highlightedItem = intersectedItem;
-                isHighlightingButton = true;
+                isHighlightingButton = BUTTON_UI_ELEMENTS.indexOf(intersectionItems[intersectedItem].type) !== NONE;
             } else if (highlightedItem !== NONE) {
                 // Un-highlight previous button.
                 Overlays.editOverlay(highlightOverlay, {
