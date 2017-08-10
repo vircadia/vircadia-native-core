@@ -119,7 +119,6 @@ Rectangle {
     }
 
     function reloadScript(script) {
-        console.log(script);
         console.log("Reload script " + script);
         scripts.stopScript(script, true);
     }
