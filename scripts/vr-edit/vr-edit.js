@@ -1351,8 +1351,11 @@
             colorToolColor = parameter;
             break;
         case "autoGrab":
-            editors[LEFT_HAND].enableAutoGrab();
-            editors[RIGHT_HAND].enableAutoGrab();
+            if (dominantHand === LEFT_HAND) {
+                editors[LEFT_HAND].enableAutoGrab();
+            } else {
+                editors[RIGHT_HAND].enableAutoGrab();
+            }
             break;
         case "setSliderValue":
             if (parameter !== undefined) {

@@ -228,7 +228,7 @@ CreatePalette = function (App, side, leftInputs, rightInputs, uiCommandCallback)
             properties.rotation = Quat.multiply(controlHand.orientation(), INVERSE_HAND_BASIS_ROTATION);
             Entities.addEntity(properties);
 
-            uiCommandCallback("autoGrab");  // TODO: Could pass entity ID through to autoGrab.
+            uiCommandCallback("autoGrab");
         }
 
         wasTriggerClicked = isTriggerClicked;
