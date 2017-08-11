@@ -13,17 +13,15 @@
 
 #include "RayPick.h"
 
-#include <QString>
-
 class JointRayPick : public RayPick {
 
 public:
-    JointRayPick(const QString& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const uint16_t filter, const float maxDistance = 0.0f, const bool enabled = false);
+    JointRayPick(const std::string& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const RayPickFilter& filter, const float maxDistance = 0.0f, const bool enabled = false);
 
     const PickRay getPickRay(bool& valid) const override;
 
 private:
-    QString _jointName;
+    std::string _jointName;
     glm::vec3 _posOffset;
     glm::vec3 _dirOffset;
 

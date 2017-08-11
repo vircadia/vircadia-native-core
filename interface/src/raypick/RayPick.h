@@ -17,17 +17,87 @@
 #include "EntityItemID.h"
 #include "ui/overlays/Overlay.h"
 
+class RayPickFilter {
+public:
+    enum FlagBit {
+        PICK_NOTHING = 0,
+        PICK_ENTITIES,
+        PICK_OVERLAYS,
+        PICK_AVATARS,
+        PICK_HUD,
+
+        PICK_COURSE, // if not set, does precise intersection, otherwise, doesn't
+
+        PICK_INCLUDE_INVISIBLE, // if not set, will not intersect invisible elements, otherwise, intersects both visible and invisible elements
+        PICK_INCLUDE_NONCOLLIDABLE, // if not set, will not intersect noncollidable elements, otherwise, intersects both collidable and noncollidable elements
+
+        // NOT YET IMPLEMENTED
+        PICK_ALL_INTERSECTIONS, // if not set, returns closest intersection, otherwise, returns list of all intersections
+
+        NUM_FLAGS, // Not a valid flag
+    };
+    typedef std::bitset<NUM_FLAGS> Flags;
+
+    // The key is the Flags
+    Flags _flags;
+
+    RayPickFilter() : _flags(PICK_NOTHING) {}
+    RayPickFilter(const Flags& flags) : _flags(flags) {}
+
+    bool operator== (const RayPickFilter& rhs) const { return _flags == rhs._flags; }
+    bool operator!= (const RayPickFilter& rhs) const { return _flags != rhs._flags; }
+
+    bool doesPickNothing() const { return _flags[PICK_NOTHING]; }
+    bool doesPickEntities() const { return _flags[PICK_ENTITIES]; }
+    bool doesPickOverlays() const { return _flags[PICK_OVERLAYS]; }
+    bool doesPickAvatars() const { return _flags[PICK_AVATARS]; }
+    bool doesPickHUD() const { return _flags[PICK_HUD]; }
+
+    bool doesPickCourse() const { return _flags[PICK_COURSE]; }
+    bool doesPickInvisible() const { return _flags[PICK_INCLUDE_INVISIBLE]; }
+    bool doesPickNonCollidable() const { return _flags[PICK_INCLUDE_NONCOLLIDABLE]; }
+
+    bool doesWantAllIntersections() const { return _flags[PICK_ALL_INTERSECTIONS]; }
+
+    // Helpers for RayPickManager
+    Flags getEntityFlags() const {
+        Flags toReturn(PICK_ENTITIES);
+        if (doesPickInvisible()) {
+            toReturn |= Flags(PICK_INCLUDE_INVISIBLE);
+        }
+        if (doesPickNonCollidable()) {
+            toReturn |= Flags(PICK_INCLUDE_NONCOLLIDABLE);
+        }
+        return toReturn;
+    }
+    Flags getOverlayFlags() const {
+        Flags toReturn(PICK_OVERLAYS);
+        if (doesPickInvisible()) {
+            toReturn |= Flags(PICK_INCLUDE_INVISIBLE);
+        }
+        if (doesPickNonCollidable()) {
+            toReturn |= Flags(PICK_INCLUDE_NONCOLLIDABLE);
+        }
+        return toReturn;
+    }
+    Flags getAvatarFlags() const { return Flags(PICK_AVATARS); }
+    Flags getHUDFlags() const { return Flags(PICK_HUD); }
+
+    static unsigned int getBitMask(FlagBit bit) { return 1 << bit; }
+
+};
+
 class RayPick {
 
 public:
-    RayPick(const uint16_t filter, const float maxDistance, const bool enabled);
+    RayPick(const RayPickFilter& filter, const float maxDistance, const bool enabled);
 
     virtual const PickRay getPickRay(bool& valid) const = 0;
 
     void enable() { _enabled = true; }
     void disable() { _enabled = false; }
 
-    const uint16_t& getFilter() { return _filter; }
+    const RayPickFilter& getFilter() { return _filter; }
     const float& getMaxDistance() { return _maxDistance; }
     const bool& isEnabled() { return _enabled; }
     const RayPickResult& getPrevRayPickResult() { return _prevResult; }
@@ -48,7 +118,7 @@ public:
     void setIncludeAvatars(const QScriptValue& includeAvatars) { _includeAvatars = qVectorEntityItemIDFromScriptValue(includeAvatars); }
 
 private:
-    uint16_t _filter;
+    RayPickFilter _filter;
     float _maxDistance;
     bool _enabled;
     RayPickResult _prevResult;

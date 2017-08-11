@@ -40,30 +40,30 @@ QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& propert
         enabled = propertyMap["enabled"].toBool();
     }
 
-    QHash<QString, RenderState> renderStates;
+    LaserPointer::RenderStateMap renderStates;
     if (propertyMap["renderStates"].isValid()) {
         QList<QVariant> renderStateVariants = propertyMap["renderStates"].toList();
         for (QVariant& renderStateVariant : renderStateVariants) {
             if (renderStateVariant.isValid()) {
                 QVariantMap renderStateMap = renderStateVariant.toMap();
                 if (renderStateMap["name"].isValid()) {
-                    QString name = renderStateMap["name"].toString();
+                    std::string name = renderStateMap["name"].toString().toStdString();
                     renderStates[name] = buildRenderState(renderStateMap);
                 }
             }
         }
     }
 
-    QHash<QString, QPair<float, RenderState>> defaultRenderStates;
+    LaserPointer::DefaultRenderStateMap defaultRenderStates;
     if (propertyMap["defaultRenderStates"].isValid()) {
         QList<QVariant> renderStateVariants = propertyMap["defaultRenderStates"].toList();
         for (QVariant& renderStateVariant : renderStateVariants) {
             if (renderStateVariant.isValid()) {
                 QVariantMap renderStateMap = renderStateVariant.toMap();
                 if (renderStateMap["name"].isValid() && renderStateMap["distance"].isValid()) {
-                    QString name = renderStateMap["name"].toString();
+                    std::string name = renderStateMap["name"].toString().toStdString();
                     float distance = renderStateMap["distance"].toFloat();
-                    defaultRenderStates[name] = QPair<float, RenderState>(distance, buildRenderState(renderStateMap));
+                    defaultRenderStates[name] = std::pair<float, RenderState>(distance, buildRenderState(renderStateMap));
                 }
             }
         }
@@ -90,7 +90,7 @@ void LaserPointerScriptingInterface::editRenderState(QUuid uid, const QString& r
         endProps = propMap["end"];
     }
 
-    qApp->getLaserPointerManager().editRenderState(uid, renderState, startProps, pathProps, endProps);
+    qApp->getLaserPointerManager().editRenderState(uid, renderState.toStdString(), startProps, pathProps, endProps);
 }
 
 const RenderState LaserPointerScriptingInterface::buildRenderState(const QVariantMap& propMap) {

@@ -14,7 +14,7 @@
 #include "Application.h"
 #include "display-plugins/CompositorHelper.h"
 
-MouseRayPick::MouseRayPick(const uint16_t filter, const float maxDistance, const bool enabled) :
+MouseRayPick::MouseRayPick(const RayPickFilter& filter, const float maxDistance, const bool enabled) :
     RayPick(filter, maxDistance, enabled)
 {
 }

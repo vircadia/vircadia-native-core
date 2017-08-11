@@ -20,6 +20,10 @@
 #include <model-networking/SimpleMeshProxy.h>
 #include "ModelScriptingInterface.h"
 
+#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
+#   include <FadeEffect.h>
+#endif
+
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdouble-promotion"
@@ -56,6 +60,10 @@
 #include "EntityTreeRenderer.h"
 #include "polyvox_vert.h"
 #include "polyvox_frag.h"
+#include "polyvox_fade_vert.h"
+#include "polyvox_fade_frag.h"
+
+#include "RenderablePolyVoxEntityItem.h"
 #include "EntityEditPacketSender.h"
 #include "PhysicalEntitySimulation.h"
 
@@ -803,6 +811,12 @@ bool RenderablePolyVoxEntityItem::addToScene(const EntityItemPointer& self,
     renderPayload->addStatusGetters(statusGetters);
 
     transaction.resetItem(_myItem, renderPayload);
+#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
+    if (_mesh && _mesh->getIndexBuffer()._buffer) {
+        transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+        _hasTransitioned = true;
+    }
+#endif
 
     return true;
 }
@@ -816,29 +830,27 @@ void RenderablePolyVoxEntityItem::removeFromScene(const EntityItemPointer& self,
 
 uint8_t PolyVoxPayload::CUSTOM_PIPELINE_NUMBER = 0;
 
-std::shared_ptr<gpu::Pipeline> PolyVoxPayload::_pipeline;
-std::shared_ptr<gpu::Pipeline> PolyVoxPayload::_wireframePipeline;
+gpu::PipelinePointer PolyVoxPayload::_pipelines[2] = { nullptr, nullptr };
+gpu::PipelinePointer PolyVoxPayload::_wireframePipelines[2] = { nullptr, nullptr };
 
 render::ShapePipelinePointer PolyVoxPayload::shapePipelineFactory(const render::ShapePlumber& plumber, const render::ShapeKey& key) {
-   if (!_pipeline) {
-        gpu::ShaderPointer vertexShader = gpu::Shader::createVertex(std::string(polyvox_vert));
-        gpu::ShaderPointer pixelShader = gpu::Shader::createPixel(std::string(polyvox_frag));
+    if (!_pipelines[0]) {
+        gpu::ShaderPointer vertexShaders[2] = { gpu::Shader::createVertex(std::string(polyvox_vert)), gpu::Shader::createVertex(std::string(polyvox_fade_vert)) };
+        gpu::ShaderPointer pixelShaders[2] = { gpu::Shader::createPixel(std::string(polyvox_frag)), gpu::Shader::createPixel(std::string(polyvox_fade_frag)) };
 
         gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), PolyVoxPayload::MATERIAL_GPU_SLOT));
+        slotBindings.insert(gpu::Shader::Binding(std::string("materialBuffer"), MATERIAL_GPU_SLOT));
         slotBindings.insert(gpu::Shader::Binding(std::string("xMap"), 0));
         slotBindings.insert(gpu::Shader::Binding(std::string("yMap"), 1));
         slotBindings.insert(gpu::Shader::Binding(std::string("zMap"), 2));
-
-        gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShader, pixelShader);
-        gpu::Shader::makeProgram(*program, slotBindings);
+#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
+        slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), 3));
+#endif
 
         auto state = std::make_shared<gpu::State>();
         state->setCullMode(gpu::State::CULL_BACK);
         state->setDepthTest(true, true, gpu::LESS_EQUAL);
         PrepareStencil::testMaskDrawShape(*state);
-
-        _pipeline = gpu::Pipeline::create(program, state);
 
         auto wireframeState = std::make_shared<gpu::State>();
         wireframeState->setCullMode(gpu::State::CULL_BACK);
@@ -846,14 +858,36 @@ render::ShapePipelinePointer PolyVoxPayload::shapePipelineFactory(const render::
         wireframeState->setFillMode(gpu::State::FILL_LINE);
         PrepareStencil::testMaskDrawShape(*wireframeState);
 
-        _wireframePipeline = gpu::Pipeline::create(program, wireframeState);
+        // Two sets of pipelines: normal and fading
+        for (auto i = 0; i < 2; i++) {
+            gpu::ShaderPointer program = gpu::Shader::createProgram(vertexShaders[i], pixelShaders[i]);
+            gpu::Shader::makeProgram(*program, slotBindings);
+
+            _pipelines[i] = gpu::Pipeline::create(program, state);
+            _wireframePipelines[i] = gpu::Pipeline::create(program, wireframeState);
+        }
     }
 
-    if (key.isWireframe()) {    
-        return std::make_shared<render::ShapePipeline>(_wireframePipeline, nullptr, nullptr, nullptr);
+#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
+    if (key.isFaded()) {
+        const auto& fadeEffect = DependencyManager::get<FadeEffect>();
+        if (key.isWireframe()) {
+            return std::make_shared<render::ShapePipeline>(_wireframePipelines[1], nullptr, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
+        }
+        else {
+            return std::make_shared<render::ShapePipeline>(_pipelines[1], nullptr, fadeEffect->getBatchSetter(), fadeEffect->getItemUniformSetter());
+        }
     } else {
-        return std::make_shared<render::ShapePipeline>(_pipeline, nullptr, nullptr, nullptr);
+#endif
+        if (key.isWireframe()) {
+            return std::make_shared<render::ShapePipeline>(_wireframePipelines[0], nullptr, nullptr, nullptr);
+        }
+        else {
+            return std::make_shared<render::ShapePipeline>(_pipelines[0], nullptr, nullptr, nullptr);
+        }
+#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
     }
+#endif
 }
 
 namespace render {
@@ -1368,6 +1402,16 @@ void RenderablePolyVoxEntityItem::setMesh(model::MeshPointer mesh) {
     if (neighborsNeedUpdate) {
         bonkNeighbors();
     }
+
+#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
+    if (!_hasTransitioned) {
+        render::Transaction transaction;
+        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+        transaction.addTransitionToItem(_myItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+        scene->enqueueTransaction(transaction);
+        _hasTransitioned = true;
+    }
+#endif
 }
 
 void RenderablePolyVoxEntityItem::computeShapeInfoWorker() {
@@ -1631,6 +1675,7 @@ void RenderablePolyVoxEntityItem::bonkNeighbors() {
 
 void RenderablePolyVoxEntityItem::locationChanged(bool tellPhysics) {
     EntityItem::locationChanged(tellPhysics);
+
     if (!render::Item::isValidID(_myItem)) {
         return;
     }

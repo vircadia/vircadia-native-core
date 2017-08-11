@@ -101,31 +101,14 @@
     Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);
 
     function onMessage(message) {
-        var parsedJsonMessage = JSON.parse(message);
-        if (parsedJsonMessage.type === "CHECKOUT") {
-            tablet.sendToQml({ method: 'updateCheckoutQML', params: parsedJsonMessage });
-            tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
-        } else if (parsedJsonMessage.type === "REQUEST_SETTING") {
-            tablet.emitScriptEvent(JSON.stringify({
-                type: "marketplaces",
-                action: "inspectionModeSetting",
-                data: Settings.getValue("inspectionMode", false)
-            }));
-        }
 
         if (message === GOTO_DIRECTORY) {
             tablet.gotoWebScreen(MARKETPLACES_URL, MARKETPLACES_INJECT_SCRIPT_URL);
-        }
-
-        if (message === QUERY_CAN_WRITE_ASSETS) {
+        } else if (message === QUERY_CAN_WRITE_ASSETS) {
             tablet.emitScriptEvent(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
-        }
-
-        if (message === WARN_USER_NO_PERMISSIONS) {
+        } else if (message === WARN_USER_NO_PERMISSIONS) {
             Window.alert(NO_PERMISSIONS_ERROR_MESSAGE);
-        }
-
-        if (message.slice(0, CLARA_IO_STATUS.length) === CLARA_IO_STATUS) {
+        } else if (message.slice(0, CLARA_IO_STATUS.length) === CLARA_IO_STATUS) {
             if (isDownloadBeingCancelled) {
                 return;
             }
@@ -137,18 +120,26 @@
                 Window.updateMessageBox(messageBox, CLARA_DOWNLOAD_TITLE, text, CANCEL_BUTTON, NO_BUTTON);
             }
             return;
-        }
-
-        if (message.slice(0, CLARA_IO_DOWNLOAD.length) === CLARA_IO_DOWNLOAD) {
+        } else if (message.slice(0, CLARA_IO_DOWNLOAD.length) === CLARA_IO_DOWNLOAD) {
             if (messageBox !== null) {
                 Window.closeMessageBox(messageBox);
                 messageBox = null;
             }
             return;
-        }
-
-        if (message === CLARA_IO_CANCELLED_DOWNLOAD) {
+        } else if (message === CLARA_IO_CANCELLED_DOWNLOAD) {
             isDownloadBeingCancelled = false;
+        } else {
+            var parsedJsonMessage = JSON.parse(message);
+            if (parsedJsonMessage.type === "CHECKOUT") {
+                tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
+                tablet.sendToQml({ method: 'updateCheckoutQML', params: parsedJsonMessage });
+            } else if (parsedJsonMessage.type === "REQUEST_SETTING") {
+                tablet.emitScriptEvent(JSON.stringify({
+                    type: "marketplaces",
+                    action: "inspectionModeSetting",
+                    data: Settings.getValue("inspectionMode", false)
+                }));
+            }
         }
     }
 
@@ -207,7 +198,14 @@
                 //tablet.popFromStack();
                 break;
             case 'checkout_buyClicked':
-                print("fromQml: " + JSON.stringify(message));
+                if (message.success === true) {
+                    tablet.gotoWebScreen(message.itemHref);
+                    Script.setTimeout(function () {
+                        tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
+                    }, 100);
+                } else {
+                    tablet.sendToQml({ method: 'buyFailed' });
+                }
                 //tablet.popFromStack();
                 break;
             default:

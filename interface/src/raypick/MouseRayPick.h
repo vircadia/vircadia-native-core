@@ -16,7 +16,7 @@
 class MouseRayPick : public RayPick {
 
 public:
-    MouseRayPick(const uint16_t filter, const float maxDistance = 0.0f, const bool enabled = false);
+    MouseRayPick(const RayPickFilter& filter, const float maxDistance = 0.0f, const bool enabled = false);
 
     const PickRay getPickRay(bool& valid) const override;
 };

@@ -1,0 +1,57 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  model_lightmap_normal_specular_map_fade.frag
+//  fragment shader
+//
+//  Created by Olivier Prat on 06/05/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredBufferWrite.slh@>
+
+<@include model/Material.slh@>
+
+<@include MaterialTextures.slh@>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, NORMAL, METALLIC)$>
+<$declareMaterialLightmap()$>
+
+<@include Fade.slh@>
+<$declareFadeFragment()$>
+
+in vec4 _position;
+in vec2 _texCoord0;
+in vec2 _texCoord1;
+in vec3 _normal;
+in vec3 _tangent;
+in vec3 _color;
+in vec4 _worldPosition;
+
+void main(void) {
+    vec3 fadeEmissive;
+    FadeObjectParams fadeParams;
+
+    <$fetchFadeObjectParams(fadeParams)$>
+    applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
+
+    Material mat = getMaterial();
+    int matKey = getMaterialKey(mat);
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedo, roughness, normalTexel, metallicTex)$>
+    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, _SCRIBE_NULL, lightmapVal)$>
+    
+    vec3 viewNormal;
+    <$tangentToViewSpaceLOD(_position, normalTexel, _normal, _tangent, viewNormal)$>
+
+    packDeferredFragmentLightmap(
+        normalize(viewNormal.xyz), 
+        evalOpaqueFinalAlpha(getMaterialOpacity(mat), albedo.a),
+        getMaterialAlbedo(mat) * albedo.rgb * _color,
+        getMaterialRoughness(mat) * roughness,
+        getMaterialMetallic(mat) * metallicTex,
+        /*specular, // no use of */ getMaterialFresnel(mat),
+        lightmapVal+fadeEmissive);
+}
