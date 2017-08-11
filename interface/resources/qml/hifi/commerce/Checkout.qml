@@ -32,6 +32,32 @@ Rectangle {
     color: hifi.colors.baseGray;
     Hifi.QmlCommerce {
         id: commerce;
+        onBuyResult: {
+        /*
+                if (buyFailed) {
+                    sendToScript({method: 'checkout_cancelClicked', params: itemId});
+                } else {
+                    var success = commerce.buy(itemId, parseInt(itemPriceText.text));
+                    sendToScript({method: 'checkout_buyClicked', success: success, itemId: itemId, itemHref: itemHref});
+                    if (success) {
+                        if (urlHandler.canHandleUrl(itemHref)) {
+                            urlHandler.handleUrl(itemHref);
+                        }
+                    }
+                }
+    */
+
+                if (failureMessage.length) {
+                    console.log('buy failed', failureMessage);
+                    //fixme sendToScript({method: 'checkout_cancelClicked', params: itemId});
+                } else {
+                    console.log('buy ok');
+                    //fixme sendToScript({method: 'checkout_buyClicked', success: , itemId: itemId, itemHref: itemHref});
+                }
+        }
+        // FIXME: remove these two after testing
+        onBalanceResult: console.log('balance', balance, failureMessage);
+        onInventoryResult: console.log('inventory', inventory, failureMessage);
     }
 
     //
@@ -340,13 +366,13 @@ Rectangle {
             width: parent.width/2 - anchors.leftMargin*2;
             text: "Cancel"
             onClicked: {
-                sendToScript({method: 'checkout_cancelClicked', params: itemId});
+                sendToScript({method: 'checkout_cancelClicked', params: itemId}); //fixme
             }
         }
 
         // "Buy" button
         HifiControlsUit.Button {
-            property bool buyFailed: false;
+            property bool buyFailed: false; // fixme
             id: buyButton;
             enabled: balanceAfterPurchase >= 0 && !alreadyOwned;
             color: hifi.buttons.black;
@@ -360,17 +386,7 @@ Rectangle {
             width: parent.width/2 - anchors.rightMargin*2;
             text: alreadyOwned ? "Already Owned" : "Buy";
             onClicked: {
-                if (buyFailed) {
-                    sendToScript({method: 'checkout_cancelClicked', params: itemId});
-                } else {
-                    var success = commerce.buy(itemId, parseInt(itemPriceText.text));
-                    sendToScript({method: 'checkout_buyClicked', success: success, itemId: itemId, itemHref: itemHref});
-                    if (success) {
-                        if (urlHandler.canHandleUrl(itemHref)) {
-                            urlHandler.handleUrl(itemHref);
-                        }
-                    }
-                }
+                commerce.buy(itemId, parseInt(itemPriceText.text));
             }
         }
     }
