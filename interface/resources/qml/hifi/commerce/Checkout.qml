@@ -24,40 +24,43 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     id: checkoutRoot;
-    property string itemId; 
-    property string itemHref;
-    property int balanceAfterPurchase: commerce.balance() - parseInt(itemPriceText.text, 10);
-    property bool alreadyOwned: checkAlreadyOwned(itemId);
+    property string itemId: ""; 
+    property string itemHref: "";
+    property int hfcBalance: 0;
+    property int balanceAfterPurchase: 0;
+    property bool alreadyOwned: false;
     // Style
     color: hifi.colors.baseGray;
     Hifi.QmlCommerce {
         id: commerce;
         onBuyResult: {
-        /*
-                if (buyFailed) {
+                if (failureMessage.length) {
                     sendToScript({method: 'checkout_cancelClicked', params: itemId});
                 } else {
-                    var success = commerce.buy(itemId, parseInt(itemPriceText.text));
-                    sendToScript({method: 'checkout_buyClicked', success: success, itemId: itemId, itemHref: itemHref});
-                    if (success) {
-                        if (urlHandler.canHandleUrl(itemHref)) {
-                            urlHandler.handleUrl(itemHref);
-                        }
+                    if (urlHandler.canHandleUrl(itemHref)) {
+                        urlHandler.handleUrl(itemHref);
                     }
                 }
-    */
-
-                if (failureMessage.length) {
-                    console.log('buy failed', failureMessage);
-                    //fixme sendToScript({method: 'checkout_cancelClicked', params: itemId});
-                } else {
-                    console.log('buy ok');
-                    //fixme sendToScript({method: 'checkout_buyClicked', success: , itemId: itemId, itemHref: itemHref});
-                }
         }
-        // FIXME: remove these two after testing
-        onBalanceResult: console.log('balance', balance, failureMessage);
-        onInventoryResult: console.log('inventory', inventory, failureMessage);
+        onBalanceResult: {
+            if (failureMessage.length) {
+                console.log("Failed to get balance", failureMessage);
+            } else {
+                hfcBalance = balance;
+                balanceAfterPurchase = hfcBalance - parseInt(itemPriceText.text, 10);
+            }
+        }
+        onInventoryResult: {
+            if (failureMessage.length) {
+                console.log("Failed to get inventory", failureMessage);
+            } else {
+                if (inventory.indexOf(itemId) !== -1) {
+                    alreadyOwned = true;
+                } else {
+                    alreadyOwned = false;
+                }
+            }
+        }
     }
 
     //
@@ -229,7 +232,7 @@ Rectangle {
             }
             RalewayRegular {
                 id: hfcBalanceText;
-                text: commerce.balance();
+                text: hfcBalance;
                 // Text size
                 size: hfcBalanceTextLabel.size;
                 // Anchors
@@ -397,16 +400,6 @@ Rectangle {
     //
     // FUNCTION DEFINITIONS START
     //
-
-    function checkAlreadyOwned(idToCheck) {
-        var inventory = commerce.inventory();
-        if (inventory.indexOf(idToCheck) !== -1) {
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     //
     // Function Name: fromScript()
     //
@@ -429,6 +422,8 @@ Rectangle {
                 itemPriceText.text = message.params.itemPrice;
                 itemHref = message.params.itemHref;
                 buyButton.buyFailed = false;
+                commerce.balance();
+                commerce.inventory();
             break;
             case 'buyFailed':
                 buyButton.text = "Buy Failed";
