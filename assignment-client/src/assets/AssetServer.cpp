@@ -18,6 +18,7 @@
 #include <QtCore/QCryptographicHash>
 #include <QtCore/QDateTime>
 #include <QtCore/QDir>
+#include <QtCore/QDirIterator>
 #include <QtCore/QFile>
 #include <QtCore/QFileInfo>
 #include <QtCore/QJsonDocument>
@@ -198,7 +199,6 @@ void AssetServer::completeSetup() {
         qCritical() << "Asset Server assignment will not continue because mapping file could not be loaded.";
         setFinished(true);
     }
-
 }
 
 void AssetServer::cleanupUnmappedFiles() {
@@ -783,5 +783,112 @@ bool AssetServer::renameMapping(AssetPath oldPath, AssetPath newPath) {
             // failed to find a mapping that was to be renamed, return failure
             return false;
         }
+    }
+}
+
+static const QString HIDDEN_BAKED_CONTENT_FOLDER = "/.baked/";
+
+void AssetServer::handleCompletedBake(AssetHash originalAssetHash, QDir temporaryOutputDir) {
+    // enumerate the baking result files in the temporary directory
+    QDirIterator dirIterator(temporaryOutputDir.absolutePath(), QDir::Files, QDirIterator::Subdirectories);
+
+    bool errorCompletingBake { false };
+
+    while (dirIterator.hasNext()) {
+        QString filePath = dirIterator.next();
+
+        // figure out the hash for the contents of this file
+        QFile file(filePath);
+
+        AssetHash bakedFileHash;
+
+        if (file.open(QIODevice::ReadOnly)) {
+            QCryptographicHash hasher(QCryptographicHash::Sha256);
+
+            if (hasher.addData(&file)) {
+                bakedFileHash = hasher.result().toHex();
+            } else {
+                // stop handling this bake, couldn't hash the contents of the file
+                errorCompletingBake = true;
+                break;
+            }
+
+            // first check that we don't already have this bake file in our list
+            auto bakeFileDestination = _filesDirectory.absoluteFilePath(bakedFileHash);
+            if (!QFile::exists(bakeFileDestination)) {
+                // copy each to our files folder (with the hash as their filename)
+                if (!file.copy(_filesDirectory.absoluteFilePath(bakedFileHash))) {
+                    // stop handling this bake, couldn't copy the bake file into our files directory
+                    errorCompletingBake = true;
+                    break;
+                }
+            }
+
+            // setup the mapping for this bake file
+            auto relativeFilePath = temporaryOutputDir.relativeFilePath(filePath);
+
+            static const QString BAKED_ASSET_SIMPLE_NAME = "asset.fbx";
+
+            if (relativeFilePath.endsWith(".fbx", Qt::CaseInsensitive)) {
+                // for an FBX file, we replace the filename with the simple name
+                // (to handle the case where two mapped assets have the same hash but different names)
+                relativeFilePath = BAKED_ASSET_SIMPLE_NAME;
+            }
+
+            QString bakeMapping = HIDDEN_BAKED_CONTENT_FOLDER + originalAssetHash + "/" + relativeFilePath;
+
+            // add a mapping (under the hidden baked folder) for this file resulting from the bake
+            if (setMapping(bakeMapping , bakedFileHash)) {
+                qDebug() << "Added" << bakeMapping << "for bake file" << bakedFileHash << "from bake of" << originalAssetHash;
+            } else {
+                // stop handling this bake, couldn't add a mapping for this bake file
+                errorCompletingBake = true;
+                break;
+            }
+        } else {
+            // stop handling this bake, we couldn't open one of the files for reading
+            errorCompletingBake = true;
+            break;
+        }
+    }
+
+    if (!errorCompletingBake) {
+        // create the meta file to store which version of the baking process we just completed
+        createMetaFile(originalAssetHash);
+    } else {
+        qWarning() << "Could not complete bake for" << originalAssetHash;
+    }
+}
+
+bool AssetServer::createMetaFile(AssetHash originalAssetHash) {
+    // construct the JSON that will be in the meta file
+    QJsonObject metaFileObject;
+
+    static const int BAKE_VERSION = 1;
+    static const QString VERSION_KEY = "version";
+
+    metaFileObject[VERSION_KEY] = BAKE_VERSION;
+
+    QJsonDocument metaFileDoc;
+    metaFileDoc.setObject(metaFileObject);
+
+    auto metaFileJSON = metaFileDoc.toJson();
+
+    // get a hash for the contents of the meta-file
+    AssetHash metaFileHash = QCryptographicHash::hash(metaFileJSON, QCryptographicHash::Sha256).toHex();
+
+    // create the meta file in our files folder, named by the hash of its contents
+    QFile metaFile(_filesDirectory.absoluteFilePath(metaFileHash));
+
+    if (metaFile.open(QIODevice::WriteOnly)) {
+        metaFile.write(metaFileJSON);
+        metaFile.close();
+
+        // add a mapping to the meta file so it doesn't get deleted because it is unmapped
+        auto metaFileMapping = HIDDEN_BAKED_CONTENT_FOLDER + originalAssetHash + "/" + "meta.json";
+
+        return setMapping(metaFileMapping, metaFileHash);
+    } else {
+        return false;
     }
 }

@@ -60,8 +60,14 @@ private:
     /// Rename mapping from `oldPath` to `newPath`. Returns true if successful
     bool renameMapping(AssetPath oldPath, AssetPath newPath);
 
-    // deletes any unmapped files from the local asset directory
+    /// Delete any unmapped files from the local asset directory
     void cleanupUnmappedFiles();
+
+    /// Move baked content for asset to baked directory and update baked status
+    void handleCompletedBake(AssetHash originalAssetHash, QDir temporaryOutputDir);
+
+    /// Create meta file to describe baked content for original asset
+    bool createMetaFile(AssetHash originalAssetHash);
 
     Mappings _fileMappings;
 
