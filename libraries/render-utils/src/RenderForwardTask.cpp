@@ -36,14 +36,14 @@ void RenderForwardTask::build(JobModel& task, const render::Varying& input, rend
     initForwardPipelines(*shapePlumber);
 
     // Extract opaques / transparents / lights / metas / overlays / background
-    const auto opaques = items[RenderFetchCullSortTask::OPAQUE_SHAPE];
-    const auto transparents = items[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
-    const auto lights = items[RenderFetchCullSortTask::LIGHT];
-    const auto metas = items[RenderFetchCullSortTask::META];
-    const auto overlayOpaques = items[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
-    const auto overlayTransparents = items[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
-    const auto background = items[RenderFetchCullSortTask::BACKGROUND];
-    const auto spatialSelection = items[RenderFetchCullSortTask::SPATIAL_SELECTION];
+    const auto& opaques = items.get0()[RenderFetchCullSortTask::OPAQUE_SHAPE];
+//    const auto& transparents = items.get0()[RenderFetchCullSortTask::TRANSPARENT_SHAPE];
+//    const auto& lights = items.get0()[RenderFetchCullSortTask::LIGHT];
+//    const auto& metas = items.get0()[RenderFetchCullSortTask::META];
+//    const auto& overlayOpaques = items.get0()[RenderFetchCullSortTask::OVERLAY_OPAQUE_SHAPE];
+//    const auto& overlayTransparents = items.get0()[RenderFetchCullSortTask::OVERLAY_TRANSPARENT_SHAPE];
+    const auto& background = items.get0()[RenderFetchCullSortTask::BACKGROUND];
+//    const auto& spatialSelection = items[1];
 
     const auto framebuffer = task.addJob<PrepareFramebuffer>("PrepareFramebuffer");
 

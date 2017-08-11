@@ -26,6 +26,8 @@
 
 #include "RenderableEntityItem.h"
 
+//#define POLYVOX_ENTITY_USE_FADE_EFFECT
+
 class PolyVoxPayload {
 public:
 
@@ -38,8 +40,8 @@ public:
     }
     
     static const int MATERIAL_GPU_SLOT = 3;
-    static std::shared_ptr<gpu::Pipeline> _pipeline;
-    static std::shared_ptr<gpu::Pipeline> _wireframePipeline;
+    static gpu::PipelinePointer _pipelines[2];
+    static gpu::PipelinePointer _wireframePipelines[2];
 
     PolyVoxPayload(EntityItemPointer owner) : _owner(owner), _bounds(AABox()) { }
     typedef render::Payload<PolyVoxPayload> Payload;
@@ -161,7 +163,7 @@ public:
 
     void setVolDataDirty() { withWriteLock([&] { _volDataDirty = true; _meshReady = false; }); }
 
-    // Transparent polyvox didn't seem to be working so disable for now
+    // Transparent polyvox didn't seem to be working so disable for now.
     bool isTransparent() override { return false; }
 
     bool getMeshes(MeshProxyList& result) override;
@@ -177,7 +179,9 @@ private:
     gpu::Stream::FormatPointer _vertexFormat;
     bool _meshDirty { true }; // does collision-shape need to be recomputed?
     bool _meshReady { false };
-
+#ifdef POLYVOX_ENTITY_USE_FADE_EFFECT
+    bool _hasTransitioned{ false };
+#endif
     NetworkTexturePointer _xTexture;
     NetworkTexturePointer _yTexture;
     NetworkTexturePointer _zTexture;
@@ -216,5 +220,6 @@ private:
 
 bool inUserBounds(const PolyVox::SimpleVolume<uint8_t>* vol, PolyVoxEntityItem::PolyVoxSurfaceStyle surfaceStyle,
                   int x, int y, int z);
+
 
 #endif // hifi_RenderablePolyVoxEntityItem_h
