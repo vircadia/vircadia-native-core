@@ -212,6 +212,12 @@
                 }
                 //tablet.popFromStack();
                 break;
+            case 'inventory_itemClicked':
+                var itemId = message.itemId;
+                if (itemId && itemId !== "") {
+                    tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + itemId, MARKETPLACES_INJECT_SCRIPT_URL);
+                }
+                break;
             case 'inventory_backClicked':
                 tablet.gotoWebScreen(message.referrerURL, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;

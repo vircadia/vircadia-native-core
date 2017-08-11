@@ -114,7 +114,7 @@
             itemId: id,
             itemName: name,
             itemAuthor: author,
-            itemPrice: price,
+            itemPrice: Math.round(Math.random() * 50),
             itemHref: href
         }));
     }

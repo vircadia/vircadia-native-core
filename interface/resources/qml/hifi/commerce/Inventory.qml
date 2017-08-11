@@ -120,6 +120,77 @@ Rectangle {
     // HFC BALANCE END
     //
     
+    //
+    // INVENTORY CONTENTS START
+    //
+    Item {
+        id: inventoryContentsContainer;
+        // Anchors
+        anchors.left: parent.left;
+        anchors.leftMargin: 16;
+        anchors.right: parent.right;
+        anchors.rightMargin: 16;
+        anchors.top: hfcBalanceContainer.bottom;
+        anchors.topMargin: 8;
+        anchors.bottom: actionButtonsContainer.top;
+        anchors.bottomMargin: 8;
+        
+        RalewaySemiBold {
+            id: inventoryContentsLabel;
+            text: "Inventory:";
+            // Anchors
+            anchors.top: parent.top;
+            anchors.left: parent.left;
+            width: paintedWidth;
+            // Text size
+            size: 24;
+            // Style
+            color: hifi.colors.lightGrayText;
+            // Alignment
+            horizontalAlignment: Text.AlignHLeft;
+            verticalAlignment: Text.AlignVCenter;
+        }
+        ListView {
+            id: inventoryContentsList;
+            // Anchors
+            anchors.top: inventoryContentsLabel.bottom;
+            anchors.topMargin: 8;
+            anchors.left: parent.left;
+            anchors.bottom: parent.bottom;
+            width: parent.width;
+            model: commerce.inventory();
+            delegate: Item {
+                width: parent.width;
+                height: 30;
+                RalewayRegular {
+                    id: thisItemId;
+                    // Text size
+                    size: 20;
+                    // Style
+                    color: hifi.colors.blueAccent;
+                    text: modelData;
+                    // Alignment
+                    horizontalAlignment: Text.AlignHLeft;
+                }
+                MouseArea {
+                    anchors.fill: parent;
+                    hoverEnabled: enabled;
+                    onClicked: {
+                        sendToScript({method: 'inventory_itemClicked', itemId: thisItemId.text});
+                    }
+                    onEntered: {
+                        thisItemId.color = hifi.colors.blueHighlight;
+                    }
+                    onExited: {
+                        thisItemId.color = hifi.colors.blueAccent;
+                    }
+                }
+            }
+        }
+    }
+    //
+    // INVENTORY CONTENTS END
+    //
     
     //
     // ACTION BUTTONS START
@@ -131,7 +202,8 @@ Rectangle {
         height: 40;
         // Anchors
         anchors.left: parent.left;
-        anchors.top: hfcBalanceContainer.bottom;
+        anchors.bottom: parent.bottom;
+        anchors.bottomMargin: 8;
 
         // "Back" button
         HifiControlsUit.Button {
