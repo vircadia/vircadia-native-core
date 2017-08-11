@@ -1099,23 +1099,130 @@ void Rig::updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headPos
     }
 }
 
-void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool leftArmEnabled, bool rightArmEnabled, float dt,
-                      const AnimPose& leftHandPose, const AnimPose& rightHandPose,
-                      float bodyCapsuleRadius, float bodyCapsuleHalfHeight, const glm::vec3& bodyCapsuleLocalOffset) {
+const float INV_SQRT_3 = 1.0f / sqrtf(3.0f);
+const int DOP14_COUNT = 14;
+const glm::vec3 DOP14_NORMALS[DOP14_COUNT] = {
+    Vectors::UNIT_X,
+    -Vectors::UNIT_X,
+    Vectors::UNIT_Y,
+    -Vectors::UNIT_Y,
+    Vectors::UNIT_Z,
+    -Vectors::UNIT_Z,
+    glm::vec3(INV_SQRT_3, INV_SQRT_3, INV_SQRT_3),
+    -glm::vec3(INV_SQRT_3, INV_SQRT_3, INV_SQRT_3),
+    glm::vec3(INV_SQRT_3, -INV_SQRT_3, INV_SQRT_3),
+    -glm::vec3(INV_SQRT_3, -INV_SQRT_3, INV_SQRT_3),
+    glm::vec3(INV_SQRT_3, INV_SQRT_3, -INV_SQRT_3),
+    -glm::vec3(INV_SQRT_3, INV_SQRT_3, -INV_SQRT_3),
+    glm::vec3(INV_SQRT_3, -INV_SQRT_3, -INV_SQRT_3),
+    -glm::vec3(INV_SQRT_3, -INV_SQRT_3, -INV_SQRT_3)
+};
 
-    // Use this capsule to represent the avatar body.
-    int hipsIndex = indexOfJoint("Hips");
-    glm::vec3 hipsTrans;
-    if (hipsIndex >= 0) {
-        hipsTrans = _internalPoseSet._absolutePoses[hipsIndex].trans();
+// returns true if the given point lies in side of the k-dop, specified by shapeInfo & shapePose.
+// if the given point does lie within the k-dop, it also returns the amount of displacement necessary to push that point outward
+// such that it lies on the surface of the kdop.
+static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& shapePose, const FBXJointShapeInfo& shapeInfo, glm::vec3& displacementOut) {
+
+    // transform point into local space of jointShape.
+    glm::vec3 localPoint = shapePose.inverse().xformPoint(point);
+
+    // Only works for 14-dop shape infos.
+    assert(shapeInfo.dots.size() == DOP14_COUNT);
+    if (shapeInfo.dots.size() != DOP14_COUNT) {
+        return false;
     }
 
-    const glm::vec3 bodyCapsuleCenter = hipsTrans - bodyCapsuleLocalOffset;
-    const glm::vec3 bodyCapsuleStart = bodyCapsuleCenter - glm::vec3(0, bodyCapsuleHalfHeight, 0);
-    const glm::vec3 bodyCapsuleEnd = bodyCapsuleCenter + glm::vec3(0, bodyCapsuleHalfHeight, 0);
+    glm::vec3 minDisplacement(FLT_MAX);
+    float minDisplacementLen = FLT_MAX;
+    glm::vec3 p = localPoint - shapeInfo.avgPoint;
+    float pLen = glm::length(p);
+    if (pLen > 0.0f) {
+        int slabCount = 0;
+        for (int i = 0; i < DOP14_COUNT; i++) {
+            float dot = glm::dot(p, DOP14_NORMALS[i]);
+            if (dot > 0.0f && dot < shapeInfo.dots[i]) {
+                slabCount++;
+                float distToPlane = pLen * (shapeInfo.dots[i] / dot);
+                float displacementLen = distToPlane - pLen;
 
-    const float HAND_RADIUS = 0.05f;
+                // keep track of the smallest displacement
+                if (displacementLen < minDisplacementLen) {
+                    minDisplacementLen = displacementLen;
+                    minDisplacement = (p / pLen) * displacementLen;
+                }
+            }
+        }
+        if (slabCount == (DOP14_COUNT / 2) && minDisplacementLen != FLT_MAX) {
+            // we are within the k-dop so push the point along the minimum displacement found
+            displacementOut = shapePose.xformVectorFast(minDisplacement);
+            return true;
+        } else {
+            // point is outside of kdop
+            return false;
+        }
+    } else {
+        // point is directly on top of shapeInfo.avgPoint.
+        // push the point out along the x axis.
+        displacementOut = shapePose.xformVectorFast(shapeInfo.points[0]);
+        return true;
+    }
+}
+
+glm::vec3 Rig::deflectHandFromTorso(const glm::vec3& handPosition, const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
+                                    const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo) const {
+    glm::vec3 position = handPosition;
+    glm::vec3 displacement;
+    int hipsJoint = indexOfJoint("Hips");
+    if (hipsJoint >= 0) {
+        AnimPose hipsPose;
+        if (getAbsoluteJointPoseInRigFrame(hipsJoint, hipsPose)) {
+            if (findPointKDopDisplacement(position, hipsPose, hipsShapeInfo, displacement)) {
+                position += displacement;
+            }
+        }
+    }
+
+    int spineJoint = indexOfJoint("Spine");
+    if (spineJoint >= 0) {
+        AnimPose spinePose;
+        if (getAbsoluteJointPoseInRigFrame(spineJoint, spinePose)) {
+            if (findPointKDopDisplacement(position, spinePose, spineShapeInfo, displacement)) {
+                position += displacement;
+            }
+        }
+    }
+
+    int spine1Joint = indexOfJoint("Spine1");
+    if (spine1Joint >= 0) {
+        AnimPose spine1Pose;
+        if (getAbsoluteJointPoseInRigFrame(spine1Joint, spine1Pose)) {
+            if (findPointKDopDisplacement(position, spine1Pose, spine1ShapeInfo, displacement)) {
+                position += displacement;
+            }
+        }
+    }
+
+    int spine2Joint = indexOfJoint("Spine2");
+    if (spine2Joint >= 0) {
+        AnimPose spine2Pose;
+        if (getAbsoluteJointPoseInRigFrame(spine2Joint, spine2Pose)) {
+            if (findPointKDopDisplacement(position, spine2Pose, spine2ShapeInfo, displacement)) {
+                position += displacement;
+            }
+        }
+    }
+
+    return position;
+}
+
+void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool leftArmEnabled, bool rightArmEnabled, float dt,
+                      const AnimPose& leftHandPose, const AnimPose& rightHandPose,
+                      const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
+                      const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo) {
+
     const float ELBOW_POLE_VECTOR_BLEND_FACTOR = 0.95f;
+
+    int hipsIndex = indexOfJoint("Hips");
 
     if (leftHandEnabled) {
 
@@ -1123,11 +1230,8 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         glm::quat handRotation = leftHandPose.rot();
 
         if (!hipsEnabled) {
-            // prevent the hand IK targets from intersecting the body capsule
-            glm::vec3 displacement;
-            if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
-                handPosition -= displacement;
-            }
+            // prevent the hand IK targets from intersecting the torso
+            handPosition = deflectHandFromTorso(handPosition, hipsShapeInfo, spineShapeInfo, spine1ShapeInfo, spine2ShapeInfo);
         }
 
         _animVars.set("leftHandPosition", handPosition);
@@ -1173,11 +1277,8 @@ void Rig::updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnab
         glm::quat handRotation = rightHandPose.rot();
 
         if (!hipsEnabled) {
-            // prevent the hand IK targets from intersecting the body capsule
-            glm::vec3 displacement;
-            if (findSphereCapsulePenetration(handPosition, HAND_RADIUS, bodyCapsuleStart, bodyCapsuleEnd, bodyCapsuleRadius, displacement)) {
-                handPosition -= displacement;
-            }
+            // prevent the hand IK targets from intersecting the torso
+            handPosition = deflectHandFromTorso(handPosition, hipsShapeInfo, spineShapeInfo, spine1ShapeInfo, spine2ShapeInfo);
         }
 
         _animVars.set("rightHandPosition", handPosition);
@@ -1414,7 +1515,7 @@ void Rig::updateFromControllerParameters(const ControllerParameters& params, flo
 
     updateHands(leftHandEnabled, rightHandEnabled, hipsEnabled, leftArmEnabled, rightArmEnabled, dt,
                 params.primaryControllerPoses[PrimaryControllerType_LeftHand], params.primaryControllerPoses[PrimaryControllerType_RightHand],
-                params.bodyCapsuleRadius, params.bodyCapsuleHalfHeight, params.bodyCapsuleLocalOffset);
+                params.hipsShapeInfo, params.spineShapeInfo, params.spine1ShapeInfo, params.spine2ShapeInfo);
 
     updateFeet(leftFootEnabled, rightFootEnabled,
                params.primaryControllerPoses[PrimaryControllerType_LeftFoot], params.primaryControllerPoses[PrimaryControllerType_RightFoot]);
