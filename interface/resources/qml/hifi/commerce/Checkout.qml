@@ -35,11 +35,13 @@ Rectangle {
         id: commerce;
         onBuyResult: {
                 if (failureMessage.length) {
-                    sendToScript({method: 'checkout_cancelClicked', params: itemId});
+                    buyButton.text = "Buy Failed";
+                    buyButton.enabled = false;
                 } else {
                     if (urlHandler.canHandleUrl(itemHref)) {
                         urlHandler.handleUrl(itemHref);
                     }
+                    sendToScript({method: 'checkout_buySuccess', params: itemId});
                 }
         }
         onBalanceResult: {
@@ -369,13 +371,12 @@ Rectangle {
             width: parent.width/2 - anchors.leftMargin*2;
             text: "Cancel"
             onClicked: {
-                sendToScript({method: 'checkout_cancelClicked', params: itemId}); //fixme
+                sendToScript({method: 'checkout_cancelClicked', params: itemId});
             }
         }
 
         // "Buy" button
         HifiControlsUit.Button {
-            property bool buyFailed: false; // fixme
             id: buyButton;
             enabled: balanceAfterPurchase >= 0 && !alreadyOwned;
             color: hifi.buttons.black;
@@ -421,13 +422,8 @@ Rectangle {
                 itemAuthorText.text = message.params.itemAuthor;
                 itemPriceText.text = message.params.itemPrice;
                 itemHref = message.params.itemHref;
-                buyButton.buyFailed = false;
                 commerce.balance();
                 commerce.inventory();
-            break;
-            case 'buyFailed':
-                buyButton.text = "Buy Failed";
-                buyButton.buyFailed = true;
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
