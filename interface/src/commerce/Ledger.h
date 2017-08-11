@@ -21,10 +21,16 @@ class Ledger : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    bool buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const QString& buyerUsername = "");
+    void buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const QString& buyerUsername = "");
     bool receiveAt(const QString& hfc_key);
-    int balance(const QStringList& keys);
-    QStringList inventory(const QStringList& keys);
+    void balance(const QStringList& keys);
+    void inventory(const QStringList& keys);
+
+signals:
+    void buyResult(const QString& failureReason);
+    void receiveAtResult(const QString& failureReason);
+    void balanceResult(int balance, const QString& failureReason);
+    void inventoryResult(QStringList inventory, const QString& failureReason);
 
 private:
     // These in-memory caches is temporary, until we start sending things to the server.

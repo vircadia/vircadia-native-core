@@ -30,6 +30,18 @@ Rectangle {
     color: hifi.colors.baseGray;
     Hifi.QmlCommerce {
         id: commerce;
+        onBuyResult: {
+                if (failureMessage.length) {
+                    console.log('buy failed', failureMessage);
+                    //fixme sendToScript({method: 'checkout_cancelClicked', params: itemId});
+                } else {
+                    console.log('buy ok');
+                    //fixme sendToScript({method: 'checkout_buyClicked', success: , itemId: itemId, itemHref: itemHref});
+                }
+        }
+        // FIXME: remove these two after testing
+        onBalanceResult: console.log('balance', balance, failureMessage);
+        onInventoryResult: console.log('inventory', inventory, failureMessage);
     }
 
     //
@@ -247,13 +259,13 @@ Rectangle {
             width: parent.width/2 - anchors.leftMargin*2;
             text: "Cancel"
             onClicked: {
-                sendToScript({method: 'checkout_cancelClicked', params: itemId});
+                sendToScript({method: 'checkout_cancelClicked', params: itemId}); //fixme
             }
         }
 
         // "Buy" button
         HifiControlsUit.Button {
-            property bool buyFailed: false;
+            property bool buyFailed: false; // fixme
             id: buyButton;
             color: hifi.buttons.black;
             colorScheme: hifi.colorSchemes.dark;
@@ -266,11 +278,8 @@ Rectangle {
             width: parent.width/2 - anchors.rightMargin*2;
             text: "Buy"
             onClicked: {
-                if (buyFailed) {
-                    sendToScript({method: 'checkout_cancelClicked', params: itemId});
-                } else {
-                    sendToScript({method: 'checkout_buyClicked', success: commerce.buy(itemId, parseInt(itemPriceText.text)), itemId: itemId, itemHref: itemHref});
-                }
+                // fixme do spinner thing
+                commerce.buy(itemId, parseInt(itemPriceText.text));
             }
         }
     }
