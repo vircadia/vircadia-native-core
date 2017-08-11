@@ -155,6 +155,12 @@ public:
         return concept->_data;
     }
 
+    template <class T> const T& get() const {
+        auto concept = std::static_pointer_cast<typename T::JobModel>(_concept);
+        assert(concept);
+        return concept->_data;
+    }
+
     virtual void run(const ContextPointer& renderContext) {
         PerformanceTimer perfTimer(_name.c_str());
         PROFILE_RANGE(render, _name.c_str());

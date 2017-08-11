@@ -21,8 +21,13 @@ class QmlCommerce : public OffscreenQmlDialog {
     Q_OBJECT
     HIFI_QML_DECL
 
+signals:
+    void buyResult(const QString& failureMessage);
+
 protected:
     Q_INVOKABLE bool buy(const QString& assetId, int cost, const QString& buyerUsername = "");
+    Q_INVOKABLE int balance();
+    Q_INVOKABLE QStringList inventory();
 };
 
 #endif // hifi_QmlCommerce_h
