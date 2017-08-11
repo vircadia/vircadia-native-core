@@ -144,8 +144,7 @@
                 tablet.pushOntoStack(MARKETPLACE_INVENTORY_QML_PATH);
                 tablet.sendToQml({
                     method: 'updateInventory',
-                    referrerURL: parsedJsonMessage.referrerURL,
-                    hfcBalance: 10
+                    referrerURL: parsedJsonMessage.referrerURL
                 });
             }
         }

@@ -101,6 +101,7 @@ Rectangle {
         }
         RalewayRegular {
             id: hfcBalanceText;
+            text: commerce.balance();
             // Text size
             size: hfcBalanceTextLabel.size;
             // Anchors
@@ -174,7 +175,6 @@ Rectangle {
         switch (message.method) {
             case 'updateInventory':
                 referrerURL = message.referrerURL;
-                hfcBalanceText.text = message.hfcBalance;
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
