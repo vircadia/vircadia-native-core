@@ -16,6 +16,7 @@ import Qt.labs.settings 1.0
 import "../../styles-uit"
 import "../../controls-uit" as HifiControls
 import "../../windows"
+import "../"
 
 ScrollingWindow {
     id: root
@@ -28,10 +29,11 @@ ScrollingWindow {
     minSize: Qt.vector2d(424, 300)
 
     HifiConstants { id: hifi }
-
+    
     property var scripts: ScriptDiscoveryService;
     property var scriptsModel: scripts.scriptsModelFilter
     property var runningScriptsModel: ListModel { }
+    property bool developerMenuEnabled: false
     property bool isHMD: false
 
     Settings {
@@ -39,6 +41,28 @@ ScrollingWindow {
         property alias x: root.x
         property alias y: root.y
     }
+
+    Component {
+        id: letterBoxMessage
+        Window {
+            implicitWidth: 400
+            implicitHeight: 300
+            minSize: Qt.vector2d(424, 300)
+            DesktopLetterboxMessage {
+                visible: true
+                headerGlyph: hifi.glyphs.lock
+                headerText: "Developer Mode only"
+                text: ( "In order to edit, delete or reload this script," +
+                        " turn on Developer Mode by going to:" +
+                        " Menu > Settings > Developer Menus")
+                popupRadius: 0
+                headerGlyphSize: 20
+                headerTextMargin: 2
+                headerGlyphMargin: -3
+            }
+        }
+    }
+    
     
     Timer {
         id: refreshTimer
@@ -46,6 +70,15 @@ ScrollingWindow {
         repeat: false
         running: false
         onTriggered: updateRunningScripts();
+    }
+
+
+    Timer {
+        id: checkMenu
+        interval: 1000
+        repeat: true
+        running: false
+        onTriggered: developerMenuEnabled = MenuInterface.isMenuEnabled("Developer Menus");
     }
     
     Component {
@@ -64,6 +97,8 @@ ScrollingWindow {
     Component.onCompleted: {
         isHMD = HMD.active;
         updateRunningScripts();
+        developerMenuEnabled = MenuInterface.isMenuEnabled("Developer Menus");
+        checkMenu.restart();
     }
 
     function updateRunningScripts() {
@@ -110,7 +145,17 @@ ScrollingWindow {
 
     function reloadAll() {
         console.log("Reload all scripts");
-        scripts.reloadAllScripts();
+        if (!developerMenuEnabled) {
+            for (var index = 0; index < runningScriptsModel.count; index++) {
+                var url = runningScriptsModel.get(index).url;
+                var fileName = url.substring(url.lastIndexOf('/')+1);
+                if (canEditScript(fileName)) {
+                    scripts.stopScript(url, true);
+                }
+            }
+        } else {
+            scripts.reloadAllScripts();
+        }
     }
 
     function loadDefaults() {
@@ -120,7 +165,22 @@ ScrollingWindow {
 
     function stopAll() {
         console.log("Stop all scripts");
-        scripts.stopAllScripts();
+        for (var index = 0; index < runningScriptsModel.count; index++) {
+            var url = runningScriptsModel.get(index).url;
+            var fileName = url.substring(url.lastIndexOf('/')+1);
+            if (canEditScript(fileName)) {
+                scripts.stopScript(url);
+            }
+        }
+    }
+
+
+    function canEditScript(script) {
+        if ((script === "controllerScripts.js") || (script === "defaultScripts.js")) {
+            return developerMenuEnabled;
+        }
+        
+        return true;
     }
 
     Column {
@@ -146,6 +206,14 @@ ScrollingWindow {
                     color: hifi.buttons.red
                     onClicked: stopAll()
                 }
+
+                HifiControls.Button {
+                    text: "Load Defaults"
+                    color: hifi.buttons.black
+                    height: 26
+                    visible: root.developerMenuEnabled;
+                    onClicked: loadDefaults()
+                }
             }
 
             HifiControls.VerticalSpacer {
@@ -162,6 +230,7 @@ ScrollingWindow {
                 expandSelectedRow: true
 
                 itemDelegate: Item {
+                    property bool canEdit: canEditScript(styleData.value);
                     anchors {
                         left: parent ? parent.left : undefined
                         leftMargin: hifi.dimensions.tablePadding
@@ -185,8 +254,9 @@ ScrollingWindow {
 
                         HiFiGlyphs {
                             id: reloadButton
-                            text: hifi.glyphs.reloadSmall
+                            text: ((canEditScript(styleData.value)) ? hifi.glyphs.reload : hifi.glyphs.lock)
                             color: reloadButtonArea.pressed ? hifi.colors.white : parent.color
+                            size: 21
                             anchors {
                                 top: parent.top
                                 right: stopButton.left
@@ -195,7 +265,13 @@ ScrollingWindow {
                             MouseArea {
                                 id: reloadButtonArea
                                 anchors { fill: parent; margins: -2 }
-                                onClicked: reloadScript(model.url)
+                                onClicked: {
+                                    if (canEdit) {
+                                        reloadScript(model.url)
+                                    } else {
+                                        letterBoxMessage.createObject(desktop)
+                                    }
+                                }
                             }
                         }
 
@@ -203,6 +279,7 @@ ScrollingWindow {
                             id: stopButton
                             text: hifi.glyphs.closeSmall
                             color: stopButtonArea.pressed ? hifi.colors.white : parent.color
+                            visible: canEditScript(styleData.value)
                             anchors {
                                 top: parent.top
                                 right: parent.right
@@ -211,7 +288,11 @@ ScrollingWindow {
                             MouseArea {
                                 id: stopButtonArea
                                 anchors { fill: parent; margins: -2 }
-                                onClicked: stopScript(model.url)
+                                onClicked: {
+                                    if (canEdit) {
+                                        stopScript(model.url);
+                                    }
+                                }
                             }
                         }
 
@@ -263,13 +344,6 @@ ScrollingWindow {
                     color: hifi.buttons.black
                     height: 26
                     onClickedQueued: ApplicationInterface.loadDialog()
-                }
-
-                HifiControls.Button {
-                    text: "Load Defaults"
-                    color: hifi.buttons.black
-                    height: 26
-                    onClicked: loadDefaults()
                 }
             }
 

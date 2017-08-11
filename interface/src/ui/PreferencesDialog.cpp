@@ -52,7 +52,7 @@ void setupPreferences() {
 
     {
         auto getter = [=]()->QString { return myAvatar->getFullAvatarURLFromPreferences().toString(); };
-        auto setter = [=](const QString& value) { myAvatar->useFullAvatarURL(value, ""); };
+        auto setter = [=](const QString& value) { myAvatar->useFullAvatarURL(value, ""); qApp->clearAvatarOverrideUrl(); };
         auto preference = new AvatarPreference(AVATAR_BASICS, "Appearance", getter, setter);
         preferences->addPreference(preference);
     }

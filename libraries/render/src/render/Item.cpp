@@ -13,7 +13,12 @@
 #include <numeric>
 #include "gpu/Batch.h"
 
+#include "TransitionStage.h"
+
 using namespace render;
+
+const Item::ID Item::INVALID_ITEM_ID = 0;
+const ItemCell Item::INVALID_CELL = -1;
 
 const Item::Status::Value Item::Status::Value::INVALID = Item::Status::Value();
 
@@ -77,4 +82,13 @@ void Item::resetPayload(const PayloadPointer& payload) {
         _payload = payload;
         _key = _payload->getKey();
     }
+}
+
+const ShapeKey Item::getShapeKey() const {
+    auto shapeKey = _payload->getShapeKey();
+    if (!TransitionStage::isIndexInvalid(_transitionId)) {
+        // Objects that are fading are rendered double-sided to give a sense of volume
+        return ShapeKey::Builder(shapeKey).withFade().withoutCullFace();
+    }
+    return shapeKey;
 }

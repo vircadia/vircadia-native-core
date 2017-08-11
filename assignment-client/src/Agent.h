@@ -77,6 +77,7 @@ private slots:
     void handleSelectedAudioFormat(QSharedPointer<ReceivedMessage> message);
 
     void nodeActivated(SharedNodePointer activatedNode);
+    void nodeKilled(SharedNodePointer killedNode);
 
     void processAgentAvatar();
     void processAgentAvatarAudio();
