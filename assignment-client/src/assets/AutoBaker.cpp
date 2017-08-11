@@ -10,23 +10,26 @@
 //
 
 #include "AutoBaker.h"
+#include <shared/Algorithms.h>
+
+using namespace alg;
 
 void AutoBaker::addPendingBake(AssetHash hash) {
     _pendingBakes.push_back(hash);
+
+    // Maybe start baking it right away
 }
 
 bool AutoBaker::assetNeedsBaking(AssetHash hash) {
     return true;
 }
 
-AutoBaker::Status AutoBaker::getAssetStatus(AssetHash hash) {
-    auto pendingIt = std::find(_pendingBakes.cbegin(), _pendingBakes.cend(), hash);
-    if (pendingIt != _pendingBakes.cend()) {
+BakingStatus AutoBaker::getAssetStatus(AssetHash hash) {
+    if (find(_pendingBakes, hash) != std::end(_pendingBakes)) {
         return Pending;
     }
 
-    auto bakingIt = std::find(_currentlyBaking.cbegin(), _currentlyBaking.cend(), hash);
-    if (bakingIt != _currentlyBaking.cend()) {
+    if (find(_currentlyBaking, hash) != std::end(_currentlyBaking)) {
         return Baking;
     }
 
