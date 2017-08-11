@@ -14,8 +14,8 @@
 #include "RayPick.h"
 
 #include <memory>
-#include <shared_mutex>
 #include <QtCore/QObject>
+#include <QReadWriteLock>
 
 #include "RegisteredMetaTypes.h"
 #include "DependencyManager.h"
@@ -63,12 +63,12 @@ public slots:
 
 private:
     QHash<QUuid, std::shared_ptr<RayPick>> _rayPicks;
-    QHash<QUuid, std::shared_ptr<std::shared_mutex>> _rayPickLocks;
-    std::shared_mutex _addLock;
+    QHash<QUuid, std::shared_ptr<QReadWriteLock>> _rayPickLocks;
+    QReadWriteLock _addLock;
     std::queue<std::pair<QUuid, std::shared_ptr<RayPick>>> _rayPicksToAdd;
-    std::shared_mutex _removeLock;
+    QReadWriteLock _removeLock;
     std::queue<QUuid> _rayPicksToRemove;
-    std::shared_mutex _containsLock;
+    QReadWriteLock _containsLock;
 
     typedef QHash<QPair<glm::vec3, glm::vec3>, std::unordered_map<RayPickFilter::Flags, RayPickResult>> RayPickCache;
 
@@ -90,9 +90,6 @@ private:
     unsigned int INTERSECTED_OVERLAY() { return IntersectionType::OVERLAY; }
     unsigned int INTERSECTED_AVATAR() { return IntersectionType::AVATAR; }
     unsigned int INTERSECTED_HUD() { return IntersectionType::HUD; }
-
-    typedef std::lock_guard<std::shared_mutex> WriteLock;
-    typedef std::shared_lock<std::shared_mutex> ReadLock;
 
 };
 
