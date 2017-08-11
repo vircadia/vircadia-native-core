@@ -18,18 +18,11 @@
 
 class AutoBaker {
 public:
-    enum Status {
-        NotBaked,
-        Pending,
-        Baking,
-        Baked
-    };
-
     void addPendingBake(AssetHash hash);
 
     bool assetNeedsBaking(AssetHash hash);
 
-    Status getAssetStatus(AssetHash hash);
+    BakingStatus getAssetStatus(AssetHash hash);
 
 private:
     std::vector<AssetHash> _pendingBakes;

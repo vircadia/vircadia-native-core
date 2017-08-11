@@ -52,6 +52,13 @@ enum AssetMappingOperationType : uint8_t {
     Rename
 };
 
+enum BakingStatus {
+    NotBaked,
+    Pending,
+    Baking,
+    Baked
+};
+
 QUrl getATPUrl(const QString& hash);
 
 QByteArray hashData(const QByteArray& data);
@@ -62,5 +69,7 @@ bool saveToCache(const QUrl& url, const QByteArray& file);
 bool isValidFilePath(const AssetPath& path);
 bool isValidPath(const AssetPath& path);
 bool isValidHash(const QString& hashString);
+
+QString bakingStatusToString(BakingStatus status);
 
 #endif // hifi_AssetUtils_h

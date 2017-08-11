@@ -136,6 +136,8 @@ void GetAllMappingsRequest::doStart() {
             for (auto i = 0; i < numberOfMappings; ++i) {
                 auto path = message->readString();
                 auto hash = message->read(SHA256_HASH_LENGTH).toHex();
+                BakingStatus status;
+                message->readPrimitive(&status);
                 _mappings[path] = hash;
             }
         }

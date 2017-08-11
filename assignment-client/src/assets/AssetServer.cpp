@@ -489,6 +489,7 @@ void AssetServer::handleGetAllMappingOperation(ReceivedMessage& message, SharedN
     for (auto it = _fileMappings.cbegin(); it != _fileMappings.cend(); ++ it) {
         replyPacket.writeString(it.key());
         replyPacket.write(QByteArray::fromHex(it.value().toString().toUtf8()));
+        replyPacket.writePrimitive(_baker.getAssetStatus(it.value().toString()));
     }
 }
 
