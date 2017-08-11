@@ -37,7 +37,7 @@ render::ItemBound PickItemsJob::findNearestItem(const render::RenderContextPoint
 	glm::vec3 normal;
 	float isectDistance;
 	render::ItemBound nearestItem( render::Item::INVALID_ITEM_ID );
-	const float minDistance = 1.f;
+	const float minDistance = 0.2f;
 	const float maxDistance = 50.f;
     render::ItemKey itemKey;
 
