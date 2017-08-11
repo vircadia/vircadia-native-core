@@ -24,10 +24,11 @@ public:
     bool createIfNeeded();
     bool generateKeyPair();
     QStringList listPublicKeys();
-    QString signWithKey(const QString& text, const QString& key);
+    QString signWithKey(const QByteArray& text, const QString& key);
 
 private:
     QStringList _publicKeys{};
+
 };
 
 #endif // hifi_Wallet_h
