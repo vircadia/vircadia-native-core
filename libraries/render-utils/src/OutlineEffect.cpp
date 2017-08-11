@@ -70,12 +70,12 @@ gpu::TexturePointer OutlineFramebuffer::getDepthTexture() {
     return _depthTexture;
 }
 
-void PrepareOutline::run(const render::RenderContextPointer& renderContext, const PrepareOutline::Inputs& input, PrepareOutline::Output& output) {
-    auto outlinedItems = input.get1();
+void PrepareOutline::run(const render::RenderContextPointer& renderContext, const PrepareOutline::Inputs& inputs, PrepareOutline::Output& output) {
+    auto outlinedItems = inputs.get0();
 
     if (!outlinedItems.empty()) {
         auto args = renderContext->args;
-        auto deferredFrameBuffer = input.get0();
+        auto deferredFrameBuffer = inputs.get1();
         auto frameSize = deferredFrameBuffer->getFrameSize();
 
         if (!_outlineFramebuffer) {
@@ -138,12 +138,19 @@ void DrawOutline::configure(const Config& config) {
 }
 
 void DrawOutline::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
-    auto mainFrameBuffer = inputs.get0();
+    auto mainFrameBuffer = inputs.get1();
 
     if (mainFrameBuffer) {
         auto sceneDepthBuffer = mainFrameBuffer->getPrimaryDepthTexture();
-        auto outlinedDepthBuffer = inputs.get1();
+        const auto frameTransform = inputs.get0();
+        auto outlinedDepthBuffer = inputs.get2();
+        auto destinationFrameBuffer = inputs.get3();
         auto pipeline = getPipeline();
+
+        if (!_primaryWithoutDepthBuffer) {
+            _primaryWithoutDepthBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("primaryWithoutDepth"));
+            _primaryWithoutDepthBuffer->setRenderBuffer(0, destinationFrameBuffer->getRenderBuffer(0));
+        }
 
         if (outlinedDepthBuffer) {
             auto framebufferSize = glm::ivec2(sceneDepthBuffer->getDimensions());
@@ -163,6 +170,7 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
 
             gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
                 batch.enableStereo(false);
+                batch.setFramebuffer(_primaryWithoutDepthBuffer);
 
                 batch.setViewportTransform(args->_viewport);
                 batch.setProjectionTransform(glm::mat4());
@@ -170,10 +178,14 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
                 batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport));
                 batch.setPipeline(pipeline);
 
-                batch.setUniformBuffer(0, _configuration);
+                batch.setUniformBuffer(OUTLINE_PARAMS_SLOT, _configuration);
+                batch.setUniformBuffer(FRAME_TRANSFORM_SLOT, frameTransform->getFrameTransformBuffer());
                 batch.setResourceTexture(SCENE_DEPTH_SLOT, sceneDepthBuffer);
                 batch.setResourceTexture(OUTLINED_DEPTH_SLOT, outlinedDepthBuffer->getDepthTexture());
                 batch.draw(gpu::TRIANGLE_STRIP, 4);
+
+                // Restore previous frame buffer
+                batch.setFramebuffer(destinationFrameBuffer);
             });
         }
     }
@@ -186,13 +198,14 @@ const gpu::PipelinePointer& DrawOutline::getPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
 
         gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding("outlineParamsBuffer", 0));
+        slotBindings.insert(gpu::Shader::Binding("outlineParamsBuffer", OUTLINE_PARAMS_SLOT));
+        slotBindings.insert(gpu::Shader::Binding("deferredFrameTransformBuffer", FRAME_TRANSFORM_SLOT));
         slotBindings.insert(gpu::Shader::Binding("sceneDepthMap", SCENE_DEPTH_SLOT));
         slotBindings.insert(gpu::Shader::Binding("outlinedDepthMap", OUTLINED_DEPTH_SLOT));
         gpu::Shader::makeProgram(*program, slotBindings);
 
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        state->setDepthTest(false);
+        state->setDepthTest(gpu::State::DepthTest(false, false));
         state->setBlendFunction(true, gpu::State::SRC_ALPHA, gpu::State::BLEND_OP_ADD, gpu::State::INV_SRC_ALPHA);
         _pipeline = gpu::Pipeline::create(program, state);
     }

@@ -14,6 +14,7 @@
 
 #include <render/Engine.h>
 #include "DeferredFramebuffer.h"
+#include "DeferredFrameTransform.h"
 
 class OutlineFramebuffer {
 public:
@@ -43,9 +44,9 @@ class PrepareOutline {
 
 public:
 
-    using Inputs = render::VaryingSet2<DeferredFramebufferPointer, render::ItemBounds>;
-	// Output will contain outlined objects only z-depth texture
-	using Output = OutlineFramebufferPointer;
+    using Inputs = render::VaryingSet2<render::ItemBounds, DeferredFramebufferPointer>;
+	// Output will contain outlined objects only z-depth texture and the input primary buffer but without the primary depth buffer
+    using Output = OutlineFramebufferPointer;
 	using JobModel = render::Job::ModelIO<PrepareOutline, Inputs, Output>;
 
 	PrepareOutline() {}
@@ -93,7 +94,7 @@ signals:
 
 class DrawOutline {
 public:
-    using Inputs = render::VaryingSet2<DeferredFramebufferPointer, OutlineFramebufferPointer>;
+    using Inputs = render::VaryingSet4<DeferredFrameTransformPointer, DeferredFramebufferPointer, OutlineFramebufferPointer, gpu::FramebufferPointer>;
     using Config = DrawOutlineConfig;
     using JobModel = render::Job::ModelI<DrawOutline, Inputs, Config>;
 
@@ -106,7 +107,10 @@ private:
 
     enum {
         SCENE_DEPTH_SLOT = 0,
-        OUTLINED_DEPTH_SLOT
+        OUTLINED_DEPTH_SLOT,
+
+        OUTLINE_PARAMS_SLOT = 0,
+        FRAME_TRANSFORM_SLOT
     };
 
 #include "Outline_shared.slh"
@@ -115,6 +119,7 @@ private:
 
     const gpu::PipelinePointer& getPipeline();
 
+    gpu::FramebufferPointer _primaryWithoutDepthBuffer;
     gpu::PipelinePointer _pipeline;
     OutlineConfigurationBuffer _configuration;
     glm::vec3 _color;

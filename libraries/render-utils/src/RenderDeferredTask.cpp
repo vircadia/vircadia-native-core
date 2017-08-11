@@ -109,7 +109,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<DrawStateSortDeferred>("DrawOpaqueOutlined", opaqueOutlineInputs, shapePlumber);
 
     // Retrieve z value of the outlined objects
-    const auto outlinePrepareInputs = PrepareOutline::Inputs(deferredFramebuffer, outlinedOpaques).asVarying();
+    const auto outlinePrepareInputs = PrepareOutline::Inputs(outlinedOpaques, deferredFramebuffer).asVarying();
     const auto outlinedFrameBuffer = task.addJob<PrepareOutline>("PrepareOutline", outlinePrepareInputs);
 
     // Render opaque objects in DeferredBuffer
@@ -182,7 +182,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
     // Draw outline
-    const auto outlineInputs = DrawOutline::Inputs(deferredFramebuffer, outlinedFrameBuffer).asVarying();
+    const auto outlineInputs = DrawOutline::Inputs(deferredFrameTransform, deferredFramebuffer, outlinedFrameBuffer, primaryFramebuffer).asVarying();
     task.addJob<DrawOutline>("DrawOutline", outlineInputs);
 
     { // DEbug the bounds of the rendered items, still look at the zbuffer
