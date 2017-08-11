@@ -24,6 +24,7 @@ Item {
     property alias webView: webview
     property alias profile: webview.profile
     property bool remove: false
+    property bool closeButtonVisible: true
 
     // Manage own browse history because WebEngineView history is wiped when a new URL is loaded via
     // onNewViewRequested, e.g., as happens when a social media share button is clicked.
@@ -64,6 +65,7 @@ Item {
                 disabledColor: hifi.colors.lightGrayText
                 enabled: true
                 text: "CLOSE"
+                visible: closeButtonVisible
 
                 MouseArea {
                     anchors.fill: parent
