@@ -42,7 +42,7 @@ Rectangle {
                     if (urlHandler.canHandleUrl(itemHref)) {
                         urlHandler.handleUrl(itemHref);
                     }
-                    sendToScript({method: 'checkout_buySuccess', params: itemId});
+                    sendToScript({method: 'checkout_buySuccess', itemId: itemId});
                 }
         }
         onBalanceResult: {
