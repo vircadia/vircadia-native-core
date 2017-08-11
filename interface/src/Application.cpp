@@ -193,6 +193,9 @@
 #include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
+#include "commerce/Ledger.h"
+#include "commerce/Wallet.h"
+#include "commerce/QmlCommerce.h"
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -598,6 +601,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<CloseEventSender>();
     DependencyManager::set<ResourceManager>();
     DependencyManager::set<ContextOverlayInterface>();
+    DependencyManager::set<Ledger>();
+    DependencyManager::set<Wallet>();
 
     return previousSessionCrashed;
 }
@@ -707,7 +712,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     qInstallMessageHandler(messageHandler);
 
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
-    _window->setWindowTitle("Interface");
+    _window->setWindowTitle("High Fidelity Interface");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
 
@@ -955,6 +960,53 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
+    // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
+    DependencyManager::get<GeometryCache>()->initializeShapePipelines();
+
+    // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
+    // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
+    static const QString TESTER = "HIFI_TESTER";
+    auto gpuIdent = GPUIdent::getInstance();
+    auto glContextData = getGLContextData();
+    QJsonObject properties = {
+        { "version", applicationVersion() },
+        { "tester", QProcessEnvironment::systemEnvironment().contains(TESTER) },
+        { "previousSessionCrashed", _previousSessionCrashed },
+        { "previousSessionRuntime", sessionRunTime.get() },
+        { "cpu_architecture", QSysInfo::currentCpuArchitecture() },
+        { "kernel_type", QSysInfo::kernelType() },
+        { "kernel_version", QSysInfo::kernelVersion() },
+        { "os_type", QSysInfo::productType() },
+        { "os_version", QSysInfo::productVersion() },
+        { "gpu_name", gpuIdent->getName() },
+        { "gpu_driver", gpuIdent->getDriver() },
+        { "gpu_memory", static_cast<qint64>(gpuIdent->getMemory()) },
+        { "gl_version_int", glVersionToInteger(glContextData.value("version").toString()) },
+        { "gl_version", glContextData["version"] },
+        { "gl_vender", glContextData["vendor"] },
+        { "gl_sl_version", glContextData["sl_version"] },
+        { "gl_renderer", glContextData["renderer"] },
+        { "ideal_thread_count", QThread::idealThreadCount() }
+    };
+    auto macVersion = QSysInfo::macVersion();
+    if (macVersion != QSysInfo::MV_None) {
+        properties["os_osx_version"] = QSysInfo::macVersion();
+    }
+    auto windowsVersion = QSysInfo::windowsVersion();
+    if (windowsVersion != QSysInfo::WV_None) {
+        properties["os_win_version"] = QSysInfo::windowsVersion();
+    }
+
+    ProcessorInfo procInfo;
+    if (getProcessorInfo(procInfo)) {
+        properties["processor_core_count"] = procInfo.numProcessorCores;
+        properties["logical_processor_count"] = procInfo.numLogicalProcessors;
+        properties["processor_l1_cache_count"] = procInfo.numProcessorCachesL1;
+        properties["processor_l2_cache_count"] = procInfo.numProcessorCachesL2;
+        properties["processor_l3_cache_count"] = procInfo.numProcessorCachesL3;
+    }
+
+    // add firstRun flag from settings to launch event
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
 
     // once the settings have been loaded, check if we need to flip the default for UserActivityLogger
@@ -2057,6 +2109,7 @@ void Application::initializeUi() {
     LoginDialog::registerType();
     Tooltip::registerType();
     UpdateDialog::registerType();
+    QmlCommerce::registerType();
     qmlRegisterType<ResourceImageItem>("Hifi", 1, 0, "ResourceImageItem");
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 

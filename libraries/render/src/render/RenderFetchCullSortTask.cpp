@@ -65,6 +65,5 @@ void RenderFetchCullSortTask::build(JobModel& task, const Varying& input, Varyin
     const auto overlayTransparents = task.addJob<DepthSortItems>("DepthSortOverlayTransparent", filteredNonspatialBuckets[TRANSPARENT_SHAPE_BUCKET], DepthSortItems(false));
     const auto background = filteredNonspatialBuckets[BACKGROUND_BUCKET];
 
-    output = Varying(Output{{
-            opaques, transparents, lights, metas, overlayOpaques, overlayTransparents, background, spatialSelection }});
+    output = Output(BucketList{ opaques, transparents, lights, metas, overlayOpaques, overlayTransparents, background }, spatialSelection);
 }
