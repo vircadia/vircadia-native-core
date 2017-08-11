@@ -42,6 +42,8 @@ PacketVersion versionForPacketType(PacketType packetType) {
             return static_cast<PacketVersion>(MessageDataVersion::TextOrBinaryData);
         case PacketType::ICEServerHeartbeat:
             return 18; // ICE Server Heartbeat signing
+        case PacketType::AssetMappingOperationReply:
+            return static_cast<PacketVersion>(AssetServerPacketVersion::RedirectedMappings);
         case PacketType::AssetGetInfo:
         case PacketType::AssetGet:
         case PacketType::AssetUpload:

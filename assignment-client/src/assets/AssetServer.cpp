@@ -23,6 +23,7 @@
 #include <QtCore/QFileInfo>
 #include <QtCore/QJsonDocument>
 #include <QtCore/QString>
+#include <QtGui/QImageReader>
 
 #include <SharedUtil.h>
 #include <PathUtils.h>
@@ -264,14 +265,61 @@ void AssetServer::handleAssetMappingOperation(QSharedPointer<ReceivedMessage> me
     nodeList->sendPacketList(std::move(replyPacket), *senderNode);
 }
 
+static const QStringList BAKEABLE_MODEL_EXTENSIONS = { ".fbx" };
+static const QString BAKED_MODEL_SIMPLE_NAME = "asset.fbx";
+static const QString BAKED_TEXTURE_SIMPLE_NAME = "texture.ktx";
+
 void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNodePointer senderNode, NLPacketList& replyPacket) {
     QString assetPath = message.readString();
 
     auto it = _fileMappings.find(assetPath);
     if (it != _fileMappings.end()) {
-        auto assetHash = it->toString();
+
+        // check if we should re-direct to a baked asset
+
+        // first, figure out from the mapping extension what type of file this is
+        auto assetPathExtension = assetPath.right(assetPath.lastIndexOf('.')).toLower();
+        QString bakedRootFile;
+
+        if (BAKEABLE_MODEL_EXTENSIONS.contains(assetPathExtension)) {
+            bakedRootFile = BAKED_MODEL_SIMPLE_NAME;
+        } else if (QImageReader::supportedImageFormats().contains(assetPathExtension.toLocal8Bit())) {
+            bakedRootFile = BAKED_TEXTURE_SIMPLE_NAME;
+        }
+
+        auto originalAssetHash = it->toString();
+        QString redirectedAssetHash;
+        QString bakedAssetPath;
+        quint8 wasRedirected = false;
+
+        if (!bakedRootFile.isEmpty()) {
+            // we ran into an asset for which we could have a baked version, let's check if it's ready
+            bakedAssetPath = "/.baked/" + originalAssetHash + "/" + bakedRootFile;
+            auto bakedIt = _fileMappings.find(bakedAssetPath);
+
+            if (bakedIt != _fileMappings.end()) {
+                // we found a baked version of the requested asset to serve, redirect to that
+                redirectedAssetHash = bakedIt->toString();
+                wasRedirected = true;
+            }
+        }
+
         replyPacket.writePrimitive(AssetServerError::NoError);
-        replyPacket.write(QByteArray::fromHex(assetHash.toUtf8()));
+
+        if (wasRedirected) {
+            qDebug() << "Writing re-directed hash for" << originalAssetHash << "to" << redirectedAssetHash;
+            replyPacket.write(QByteArray::fromHex(redirectedAssetHash.toUtf8()));
+
+            // add a flag saying that this mapping request was redirect
+            replyPacket.writePrimitive(wasRedirected);
+
+            // include the re-directed path in case the caller needs to make relative path requests for the baked asset
+            replyPacket.write(bakedAssetPath.toUtf8());
+
+        } else {
+            replyPacket.write(QByteArray::fromHex(originalAssetHash.toUtf8()));
+            replyPacket.writePrimitive(wasRedirected);
+        }
     } else {
         replyPacket.writePrimitive(AssetServerError::AssetNotFound);
     }
@@ -826,7 +874,6 @@ void AssetServer::handleCompletedBake(AssetHash originalAssetHash, QDir temporar
 
             // setup the mapping for this bake file
             auto relativeFilePath = temporaryOutputDir.relativeFilePath(filePath);
-
             static const QString BAKED_ASSET_SIMPLE_NAME = "asset.fbx";
 
             if (relativeFilePath.endsWith(".fbx", Qt::CaseInsensitive)) {
