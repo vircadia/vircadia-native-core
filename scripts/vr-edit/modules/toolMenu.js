@@ -491,14 +491,73 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         localPosition: { x: 0.055, y: 0.0, z: -0.005 }
                     }
                 },
+
                 {
-                    id: "physicsSlider",
+                    id: "gravityToggle",
+                    type: "panel",
+                    properties: {
+                        localPosition: { x: -0.0325, y: -0.03, z: -0.005 },
+                        dimensions: { x: 0.03, y: 0.02, z: 0.01 }
+                    }
+                },
+                {
+                    id: "grabToggle",
+                    type: "panel",
+                    properties: {
+                        localPosition: { x: -0.0325, y: -0.005, z: -0.005 },
+                        dimensions: { x: 0.03, y: 0.02, z: 0.01 }
+                    }
+                },
+                {
+                    id: "collideToggle",
+                    type: "panel",
+                    properties: {
+                        localPosition: { x: -0.0325, y: 0.02, z: -0.005 },
+                        dimensions: { x: 0.03, y: 0.02, z: 0.01 }
+                    }
+                },
+
+                {
+                    id: "presets",
+                    type: "panel",
+                    properties: {
+                        localPosition: { x: 0.016, y: -0.03, z: -0.005 },
+                        dimensions: { x: 0.06, y: 0.02, z: 0.01 }
+                    }
+                },
+                {
+                    id: "gravitySlider",
                     type: "barSlider",
                     properties: {
-                        localPosition: { x: -0.02, y: 0.0, z: -0.005 }
+                        localPosition: { x: -0.007, y: 0.016, z: -0.005 },
+                        dimensions: { x: 0.014, y: 0.06, z: 0.01 }
                     },
                     callback: {
                         method: "setSliderValue"
+                    }
+                },
+                {
+                    id: "bounceSlider",
+                    type: "panel",
+                    properties: {
+                        localPosition: { x: 0.009, y: 0.016, z: -0.005 },
+                        dimensions: { x: 0.014, y: 0.06, z: 0.01 }
+                    }
+                },
+                {
+                    id: "dampingSlider",
+                    type: "panel",
+                    properties: {
+                        localPosition: { x: 0.024, y: 0.016, z: -0.005 },
+                        dimensions: { x: 0.014, y: 0.06, z: 0.01 }
+                    }
+                },
+                {
+                    id: "densitySlider",
+                    type: "panel",
+                    properties: {
+                        localPosition: { x: 0.039, y: 0.016, z: -0.005 },
+                        dimensions: { x: 0.014, y: 0.06, z: 0.01 }
                     }
                 }
             ]
@@ -715,12 +774,17 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
 
                 if (optionsItems[i].type === "barSlider") {
+                    // Initial value = 0.
                     optionsOverlaysAuxiliaries[i] = {};
                     auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderValue.properties);
+                    auxiliaryProperties.dimensions = Vec3.multiplyVbyV({ x: 1, y: 0, z: 0 }, properties.dimensions);
+                    auxiliaryProperties.localPosition = Vec3.ZERO;
                     auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                     optionsOverlaysAuxiliaries[i].value = Overlays.addOverlay(UI_ELEMENTS.barSliderValue.overlay,
                         auxiliaryProperties);
                     auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderRemainder.properties);
+                    auxiliaryProperties.dimensions = properties.dimensions;
+                    auxiliaryProperties.localPosition = Vec3.ZERO;
                     auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                     optionsOverlaysAuxiliaries[i].remainder = Overlays.addOverlay(UI_ELEMENTS.barSliderRemainder.overlay,
                         auxiliaryProperties);
