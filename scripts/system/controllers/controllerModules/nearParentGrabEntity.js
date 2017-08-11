@@ -7,8 +7,9 @@
 
 
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID,
-   getControllerJointIndex, getGrabbableData, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
-   FORBIDDEN_GRAB_TYPES, propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION
+   getControllerJointIndex, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
+   propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
+   makeDispatcherModuleParameters, entityIsGrabbable
 */
 
 Script.include("/~/system/controllers/controllerDispatcherUtils.js");
@@ -24,6 +25,12 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         this.previousParentID = {};
         this.previousParentJointIndex = {};
         this.previouslyUnhooked = {};
+
+        this.parameters = makeDispatcherModuleParameters(
+            500,
+            this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
+            [],
+            100);
 
 
         // XXX does handJointIndex change if the avatar changes?
@@ -156,8 +163,8 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         };
     }
 
-    enableDispatcherModule("LeftNearParentingGrabEntity", new NearParentingGrabEntity(LEFT_HAND), 500);
-    enableDispatcherModule("RightNearParentingGrabEntity", new NearParentingGrabEntity(RIGHT_HAND), 500);
+    enableDispatcherModule("LeftNearParentingGrabEntity", new NearParentingGrabEntity(LEFT_HAND));
+    enableDispatcherModule("RightNearParentingGrabEntity", new NearParentingGrabEntity(RIGHT_HAND));
 
     this.cleanup = function () {
         disableDispatcherModule("LeftNearParentingGrabEntity");

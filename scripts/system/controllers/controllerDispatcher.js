@@ -20,7 +20,6 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
     var NEAR_MIN_RADIUS = 0.1;
     var NEAR_MAX_RADIUS = 1.0;
 
-
     var DISPATCHER_PROPERTIES = [
         "position",
         "registrationPoint",
@@ -39,7 +38,39 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         "userData"
     ];
 
-    this.runningPluginName = null;
+    // a module can occupy one or more slots while it's running.  If all the required slots for a module are
+    // not set to false (not in use), a module cannot start.  When a module is using a slot, that module's name
+    // is stored as the value, rather than false.
+    this.activitySlots = {
+        leftHand: false,
+        rightHand: false
+    };
+
+    this.slotsAreAvailable = function (plugin) {
+        for (var i = 0; i < plugin.parameters.activitySlots.length; i++) {
+            if (_this.activitySlots[plugin.parameters.activitySlots[i]]) {
+                return false; // something is already using a slot which _this plugin requires
+            }
+        }
+        return true;
+    };
+
+    this.markSlots = function (plugin, used) {
+        for (var i = 0; i < plugin.parameters.activitySlots.length; i++) {
+            _this.activitySlots[plugin.parameters.activitySlots[i]] = used;
+        }
+    };
+
+    this.unmarkSlotsForPluginName = function (runningPluginName) {
+        // this is used to free activity-slots when a plugin is deactivated while it's running.
+        for (var activitySlot in _this.activitySlots) {
+            if (activitySlot.hasOwnProperty(activitySlot) && _this.activitySlots[activitySlot] == runningPluginName) {
+                _this.activitySlots[activitySlot] = false;
+            }
+        }
+    };
+
+    this.runningPluginNames = {};
     this.leftTriggerValue = 0;
     this.leftTriggerClicked = 0;
     this.rightTriggerValue = 0;
@@ -68,7 +99,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                                    getControllerWorldLocation(Controller.Standard.RightHand, true)];
 
         var nearbyEntityProperties = [[], []];
-        for (var h = LEFT_HAND; h <= RIGHT_HAND; h ++) {
+        for (var h = LEFT_HAND; h <= RIGHT_HAND; h++) {
             // todo: check controllerLocations[h].valid
             var controllerPosition = controllerLocations[h].position;
             var nearbyEntityIDs = Entities.findEntities(controllerPosition, NEAR_MIN_RADIUS);
@@ -82,11 +113,12 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                 }
             }
             // sort by distance from each hand
-            nearbyEntityProperties[h].sort(function (a, b) {
+            var sorter = function (a, b) {
                 var aDistance = Vec3.distance(a.position, controllerLocations[h]);
                 var bDistance = Vec3.distance(b.position, controllerLocations[h]);
                 return aDistance - bDistance;
-            });
+            };
+            nearbyEntityProperties[h].sort(sorter);
         }
 
         var controllerData = {
@@ -96,20 +128,35 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             nearbyEntityProperties: nearbyEntityProperties,
         };
 
-        if (_this.runningPluginName) {
-            var plugin = controllerDispatcherPlugins[_this.runningPluginName];
-            if (!plugin || !plugin.run(controllerData)) {
-                _this.runningPluginName = null;
+
+        // check for plugins that would like to start
+        for (var pluginName in controllerDispatcherPlugins) {
+            // TODO sort names by plugin.priority
+            if (controllerDispatcherPlugins.hasOwnProperty(pluginName)) {
+                var candidatePlugin = controllerDispatcherPlugins[pluginName];
+                if (_this.slotsAreAvailable(candidatePlugin) && candidatePlugin.isReady(controllerData)) {
+                    // this plugin will start.  add it to the list of running plugins and mark the
+                    // activity-slots which this plugin consumes as "in use"
+                    _this.runningPluginNames[pluginName] = true;
+                    _this.markSlots(candidatePlugin, pluginName);
+                }
             }
-        } else if (controllerDispatcherPlugins) {
-            for (var pluginName in controllerDispatcherPlugins) {
-                // TODO sort names by plugin.priority
-                if (controllerDispatcherPlugins.hasOwnProperty(pluginName)) {
-                    var candidatePlugin = controllerDispatcherPlugins[pluginName];
-                    if (candidatePlugin.isReady(controllerData)) {
-                        _this.runningPluginName = pluginName;
-                        break;
-                    }
+        }
+
+        // give time to running plugins
+        for (var runningPluginName in _this.runningPluginNames) {
+            if (_this.runningPluginNames.hasOwnProperty(runningPluginName)) {
+                var plugin = controllerDispatcherPlugins[runningPluginName];
+                if (!plugin) {
+                    // plugin was deactivated while running.  find the activity-slots it was using and make
+                    // them available.
+                    delete _this.runningPluginNames[runningPluginName];
+                    _this.unmarkSlotsForPluginName(runningPluginName);
+                } else if (!plugin.run(controllerData)) {
+                    // plugin is finished running, for now.  remove it from the list
+                    // of running plugins and mark its activity-slots as "not in use"
+                    delete _this.runningPluginNames[runningPluginName];
+                    _this.markSlots(plugin, false);
                 }
             }
         }
@@ -117,14 +164,14 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
 
     var MAPPING_NAME = "com.highfidelity.controllerDispatcher";
     var mapping = Controller.newMapping(MAPPING_NAME);
-    mapping.from([Controller.Standard.RT]).peek().to(this.rightTriggerPress);
-    mapping.from([Controller.Standard.RTClick]).peek().to(this.rightTriggerClick);
-    mapping.from([Controller.Standard.LT]).peek().to(this.leftTriggerPress);
-    mapping.from([Controller.Standard.LTClick]).peek().to(this.leftTriggerClick);
+    mapping.from([Controller.Standard.RT]).peek().to(_this.rightTriggerPress);
+    mapping.from([Controller.Standard.RTClick]).peek().to(_this.rightTriggerClick);
+    mapping.from([Controller.Standard.LT]).peek().to(_this.leftTriggerPress);
+    mapping.from([Controller.Standard.LTClick]).peek().to(_this.leftTriggerClick);
     Controller.enableMapping(MAPPING_NAME);
 
     this.cleanup = function () {
-        Script.update.disconnect(this.update);
+        Script.update.disconnect(_this.update);
         Controller.disableMapping(MAPPING_NAME);
     };
 

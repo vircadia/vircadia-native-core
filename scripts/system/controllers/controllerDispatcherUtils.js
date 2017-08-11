@@ -9,6 +9,7 @@
 /* global Camera, HMD, MyAvatar, controllerDispatcherPlugins,
    MSECS_PER_SEC, LEFT_HAND, RIGHT_HAND, NULL_UUID, AVATAR_SELF_ID, FORBIDDEN_GRAB_TYPES,
    HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
+   makeDispatcherModuleParameters,
    enableDispatcherModule,
    disableDispatcherModule,
    getGrabbableData,
@@ -29,6 +30,20 @@ FORBIDDEN_GRAB_TYPES = ["Unknown", "Light", "PolyLine", "Zone"];
 
 HAPTIC_PULSE_STRENGTH = 1.0;
 HAPTIC_PULSE_DURATION = 13.0;
+
+
+// priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
+// activitySlots -- indicates which "slots" must not yet be in use for this module to start
+// requiredDataForStart -- which "situation" parts this module looks at to decide if it will start
+// sleepMSBetweenRuns -- how long to wait between calls to this module's "run" method
+makeDispatcherModuleParameters = function (priority, activitySlots, requiredDataForStart, sleepMSBetweenRuns) {
+    return {
+        priority: priority,
+        activitySlots: activitySlots,
+        requiredDataForStart: requiredDataForStart,
+        sleepMSBetweenRuns: sleepMSBetweenRuns
+    };
+};
 
 
 enableDispatcherModule = function (moduleName, module, priority) {

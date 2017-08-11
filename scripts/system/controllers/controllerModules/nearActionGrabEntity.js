@@ -8,7 +8,7 @@
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
    getControllerJointIndex, getGrabbableData, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
    propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, entityIsGrabbable,
-   Quat, Vec3, MSECS_PER_SEC, getControllerWorldLocation
+   Quat, Vec3, MSECS_PER_SEC, getControllerWorldLocation, makeDispatcherModuleParameters
 */
 
 Script.include("/~/system/controllers/controllerDispatcherUtils.js");
@@ -20,6 +20,12 @@ Script.include("/~/system/libraries/controllers.js");
         this.hand = hand;
         this.grabbedThingID = null;
         this.actionID = null; // action this script created...
+
+        this.parameters = makeDispatcherModuleParameters(
+            500,
+            this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
+            [],
+            100);
 
         var NEAR_GRABBING_ACTION_TIMEFRAME = 0.05; // how quickly objects move to their new position
         var ACTION_TTL = 15; // seconds
@@ -192,8 +198,8 @@ Script.include("/~/system/libraries/controllers.js");
         };
     }
 
-    enableDispatcherModule("LeftNearActionGrabEntity", new NearActionGrabEntity(LEFT_HAND), 500);
-    enableDispatcherModule("RightNearActionGrabEntity", new NearActionGrabEntity(RIGHT_HAND), 500);
+    enableDispatcherModule("LeftNearActionGrabEntity", new NearActionGrabEntity(LEFT_HAND));
+    enableDispatcherModule("RightNearActionGrabEntity", new NearActionGrabEntity(RIGHT_HAND));
 
     this.cleanup = function () {
         disableDispatcherModule("LeftNearActionGrabEntity");
