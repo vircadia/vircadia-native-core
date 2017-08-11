@@ -227,6 +227,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
         SLIDER_RAISE_DELTA = { x: 0, y: 0, z: 0.004 },
+        MIN_BAR_SLIDER_DIMENSION = 0.0001,
+
 
         OPTONS_PANELS = {
             groupOptions: [
@@ -839,8 +841,16 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     // Initial value = 0.
                     optionsOverlaysAuxiliaries[i] = {};
                     auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderValue.properties);
-                    auxiliaryProperties.dimensions = Vec3.multiplyVbyV({ x: 1, y: 0, z: 0 }, properties.dimensions);
-                    auxiliaryProperties.localPosition = Vec3.ZERO;
+                    auxiliaryProperties.dimensions = {
+                        x: properties.dimensions.x,
+                        y: MIN_BAR_SLIDER_DIMENSION,  // Avoid visual artifact if 0.
+                        z: properties.dimensions.z
+                    };
+                    auxiliaryProperties.localPosition = {
+                        x: 0,
+                        y: properties.dimensions.y / 2,
+                        z: 0
+                    };
                     auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                     optionsOverlaysAuxiliaries[i].value = Overlays.addOverlay(UI_ELEMENTS.barSliderValue.overlay,
                         auxiliaryProperties);
@@ -1173,11 +1183,19 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             otherFraction = 1.0 - fraction;
             Overlays.editOverlay(optionsOverlaysAuxiliaries[intersectedItem].value, {
                 localPosition: { x: 0, y: (0.5 - fraction / 2) * overlayDimensions.y, z: 0 },
-                dimensions: { x: overlayDimensions.x, y: fraction * overlayDimensions.y, z: overlayDimensions.z }
+                dimensions: {
+                    x: overlayDimensions.x,
+                    y: Math.max(fraction * overlayDimensions.y, MIN_BAR_SLIDER_DIMENSION),  // Avoid visual artifact if 0.
+                    z: overlayDimensions.z
+                }
             });
             Overlays.editOverlay(optionsOverlaysAuxiliaries[intersectedItem].remainder, {
                 localPosition: { x: 0, y: (-0.5 + otherFraction / 2) * overlayDimensions.y, z: 0 },
-                dimensions: { x: overlayDimensions.x, y: otherFraction * overlayDimensions.y, z: overlayDimensions.z }
+                dimensions: {
+                    x: overlayDimensions.x,
+                    y: Math.max(otherFraction * overlayDimensions.y, MIN_BAR_SLIDER_DIMENSION),  // Avoid visual artifact if 0.
+                    z: overlayDimensions.z
+                }
             });
 
             uiCommandCallback(intersectionItems[intersectedItem].callback.method, fraction);
