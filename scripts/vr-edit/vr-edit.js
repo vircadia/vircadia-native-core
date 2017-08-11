@@ -32,6 +32,7 @@
         TOOL_DELETE = 7,
         toolSelected = TOOL_NONE,
         colorToolColor = { red: 128, green: 128, blue: 128 },
+        physicsToolPhysics = { userData: { grabbableKey: {} } },
 
         // Primary objects
         App,
@@ -886,6 +887,7 @@
                     } else if (toolSelected === TOOL_GROUP) {
                         setState(EDITOR_GROUPING);
                     } else if (toolSelected === TOOL_COLOR) {
+                        setState(EDITOR_HIGHLIGHTING);
                         selection.applyColor(colorToolColor);
                     } else if (toolSelected === TOOL_PICK_COLOR) {
                         color = selection.getColor(intersection.entityID);
@@ -898,7 +900,8 @@
                         ui.setToolIcon(ui.COLOR_TOOL);
                         ui.setToolColor(colorToolColor);
                     } else if (toolSelected === TOOL_PHYSICS) {
-                        selection.applyPhysics();
+                        setState(EDITOR_HIGHLIGHTING);
+                        selection.applyPhysics(physicsToolPhysics);
                     } else if (toolSelected === TOOL_DELETE) {
                         setState(EDITOR_HIGHLIGHTING);
                         selection.deleteEntities();
@@ -967,7 +970,7 @@
                         ui.setToolIcon(ui.COLOR_TOOL);
                         ui.setToolColor(colorToolColor);
                     } else if (toolSelected === TOOL_PHYSICS) {
-                        selection.applyPhysics();
+                        selection.applyPhysics(physicsToolPhysics);
                     } else if (toolSelected === TOOL_DELETE) {
                         selection.deleteEntities();
                         setState(EDITOR_SEARCHING);
@@ -1338,12 +1341,14 @@
             ui.setToolIcon(ui.DELETE_TOOL);
             ui.updateUIEntities();
             break;
+
         case "groupButton":
             grouping.group();
             break;
         case "ungroupButton":
             grouping.ungroup();
             break;
+
         case "setColor":
             if (toolSelected === TOOL_PICK_COLOR) {
                 toolSelected = TOOL_COLOR;
@@ -1352,6 +1357,29 @@
             ui.setToolColor(parameter);
             colorToolColor = parameter;
             break;
+
+        case "setGravity":
+            if (parameter) {
+                physicsToolPhysics.gravity = { x: 0, y: -9.8, z: 0 };  // Earth gravity.
+                physicsToolPhysics.dynamic = true;
+            } else {
+                physicsToolPhysics.gravity = Vec3.ZERO;
+                physicsToolPhysics.dynamic = false;
+            }
+            break;
+        case "setGrab":
+            physicsToolPhysics.userData.grabbableKey.grabbable = parameter;
+            break;
+        case "setCollide":
+            if (parameter) {
+                physicsToolPhysics.collisionless = false;
+                physicsToolPhysics.collidesWith = "static,dynamic,kinematic,myAvatar,otherAvatar";
+            } else {
+                physicsToolPhysics.collisionless = true;
+                physicsToolPhysics.collidesWith = "";
+            }
+            break;
+
         case "autoGrab":
             if (dominantHand === LEFT_HAND) {
                 editors[LEFT_HAND].enableAutoGrab();
@@ -1359,6 +1387,7 @@
                 editors[RIGHT_HAND].enableAutoGrab();
             }
             break;
+
         case "setSliderValue":
             if (parameter !== undefined) {
                 // TODO

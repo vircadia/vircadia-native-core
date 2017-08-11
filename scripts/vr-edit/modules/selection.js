@@ -24,7 +24,10 @@ Selection = function (side) {
         scaleRootOffset,
         scaleRootOrientation,
         ENTITY_TYPE = "entity",
-        ENTITY_TYPES_WITH_COLOR = ["Box", "Sphere", "Shape", "ParticleEffect"];
+        ENTITY_TYPES_WITH_COLOR = ["Box", "Sphere", "Shape", "ParticleEffect"],
+        DYNAMIC_VELOCITY_THRESHOLD = 0.05,  // See EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
+        DYNAMIC_VELOCITY_KICK = { x: 0, y: 0.02, z: 0 };
+
 
     if (!this instanceof Selection) {
         return new Selection(side);
@@ -36,7 +39,7 @@ Selection = function (side) {
         var children,
             properties,
             SELECTION_PROPERTIES = ["position", "registrationPoint", "rotation", "dimensions", "parentID", "localPosition",
-                "dynamic", "collisionless"],
+                "dynamic", "collisionless", "userData"],
             i,
             length;
 
@@ -50,7 +53,8 @@ Selection = function (side) {
             rotation: properties.rotation,
             dimensions: properties.dimensions,
             dynamic: properties.dynamic,
-            collisionless: properties.collisionless
+            collisionless: properties.collisionless,
+            userData: properties.userData
         });
 
         children = Entities.getChildrenIDs(id);
@@ -187,8 +191,6 @@ Selection = function (side) {
     function finishEditing() {
         var firstDynamicEntityID = null,
             properties,
-            VELOCITY_THRESHOLD = 0.05,  // See EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
-            VELOCITY_KICK = { x: 0, y: 0.02, z: 0 },
             count,
             i;
 
@@ -206,8 +208,8 @@ Selection = function (side) {
         // If dynamic with gravity, and velocity is zero, give the entity set a little kick to set off physics.
         if (firstDynamicEntityID) {
             properties = Entities.getEntityProperties(firstDynamicEntityID, ["velocity", "gravity"]);
-            if (Vec3.length(properties.gravity) > 0 && Vec3.length(properties.velocity) < VELOCITY_THRESHOLD) {
-                Entities.editEntity(firstDynamicEntityID, { velocity: VELOCITY_KICK });
+            if (Vec3.length(properties.gravity) > 0 && Vec3.length(properties.velocity) < DYNAMIC_VELOCITY_THRESHOLD) {
+                Entities.editEntity(firstDynamicEntityID, { velocity: DYNAMIC_VELOCITY_KICK });
             }
         }
     }
@@ -365,8 +367,45 @@ Selection = function (side) {
         return properties.color;
     }
 
-    function applyPhysics() {
-        // TODO
+    function updatePhysicsUserData(userDataString, physicsUserData) {
+        var userData = {};
+
+        if (userDataString !== "") {
+            try {
+                userData = JSON.parse(userDataString);
+            } catch (e) {
+                App.log(side, "ERROR: Invalid userData in entity being updated! " + userDataString);
+            }
+        }
+
+        if (!userData.hasOwnProperty("grabbableKey")) {
+            userData.grabbableKey = {};
+        }
+        userData.grabbableKey.grabbable = physicsUserData.grabbableKey.grabbable;
+
+        return JSON.stringify(userData);
+    }
+
+    function applyPhysics(physicsProperties) {
+        // Applies physics to the current selection (i.e., the selection made when entity was trigger-clicked to apply physics).
+        var properties,
+            i,
+            length;
+
+        properties = Object.clone(physicsProperties);
+
+        for (i = 0, length = selection.length; i < length; i += 1) {
+            properties.userData = updatePhysicsUserData(selection[i].userData, physicsProperties.userData);
+            Entities.editEntity(selection[i].id, properties);
+        }
+
+        if (physicsProperties.dynamic) {
+            // Give dynamic entities with zero a little kick to set off physics.
+            properties = Entities.getEntityProperties(selection[0].id, ["velocity"]);
+            if (Vec3.length(properties.velocity) < DYNAMIC_VELOCITY_THRESHOLD) {
+                Entities.editEntity(selection[0].id, { velocity: DYNAMIC_VELOCITY_KICK });
+            }
+        }
     }
 
     function clear() {
