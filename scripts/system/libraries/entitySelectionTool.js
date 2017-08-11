@@ -275,7 +275,6 @@ SelectionDisplay = (function() {
     var showExtendedStretchHandles = false;
 
     var spaceMode = SPACE_LOCAL;
-    var mode = "UNKNOWN";
     var overlayNames = [];
     var lastCameraPosition = Camera.getPosition();
     var lastCameraOrientation = Camera.getOrientation();
@@ -1088,6 +1087,35 @@ SelectionDisplay = (function() {
         return tool;
     }
 
+    // toolHandle:  The overlayID associated with the tool
+    // that correlates to the tool you wish to query.
+    // @return: bool - Indicates if the activeTool is that queried.
+    function isActiveTool(toolHandle) {
+        var wantDebug = true;
+        if ( ! activeTool || ! toolHandle ){
+            if(wantDebug){
+                if ( activeTool ){
+                    print("WARNING: entitySelectionTool.isActiveTool - Encountered invalid toolHandle: " + toolHandle );
+                }
+            }
+            return false;
+        }
+        if ( ! grabberTools.hasOwnProperty( toolHandle ) ) {
+            if(wantDebug){
+                print("WARNING: entitySelectionTool.isActiveTool - Encountered unknown grabberToolHandle: " + toolHandle );
+            }
+            return false;
+        }
+
+        return (activeTool === grabberTools[ toolHandle ]);
+    }
+
+    // @return string - The mode of the currently active tool;
+    //                  otherwise, "UNKNOWN" if there's no active tool.
+    function getMode() {
+        return (activeTool ? activeTool.mode : "UNKNOWN");
+    }
+
 
     that.cleanup = function() {
         for (var i = 0; i < allOverlays.length; i++) {
@@ -1455,14 +1483,15 @@ SelectionDisplay = (function() {
             isPointLight = properties.type == "Light" && !properties.isSpotlight;
         }
 
-        if (mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL" || mode == "TRANSLATE_XZ") {
+        if ( isActiveTool(yawHandle) || isActiveTool(pitchHandle) || 
+                isActiveTool(rollHandle) || isActiveTool(selectionBox) || isActiveTool(grabberCloner)) {
             rotationOverlaysVisible = true;
             rotateHandlesVisible = false;
             //translateHandlesVisible = false;
             //selectionBoxVisible = false;
-        } else if (mode == "TRANSLATE_UP_DOWN" || isPointLight) {
+        } else if ( isActiveTool(grabberMoveUp) || isPointLight) {
             rotateHandlesVisible = false;
-        } else if (mode != "UNKNOWN") {
+        } else if ( activeTool ) {
             // every other mode is a stretch mode...
             rotateHandlesVisible = false;
             //translateHandlesVisible = false;
@@ -1581,12 +1610,12 @@ SelectionDisplay = (function() {
 
     // FUNCTION: UPDATE HANDLES
     that.updateHandles = function() {
-        var wantDebug = false;
+        var wantDebug = true;
         if(wantDebug){
             print( "======> Update Handles =======" );
             print( "    Selections Count: " + SelectionManager.selections.length );
             print( "    SpaceMode: " + spaceMode );
-            print( "    DisplayMode: " + mode );
+            print( "    DisplayMode: " + getMode() );
         }
         if (SelectionManager.selections.length === 0) {
             that.setOverlaysVisible(false);
@@ -1821,8 +1850,8 @@ SelectionDisplay = (function() {
         EdgeFR = Vec3.sum(position, EdgeFR);
         EdgeFL = Vec3.sum(position, EdgeFL);
 
-        var inModeRotate = (mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL");
-        var inModeTranslate = (mode == "TRANSLATE_XZ" || mode == "CLONE" || mode == "TRANSLATE_UP_DOWN");
+        var inModeRotate = (isActiveTool(yawHandle) || isActiveTool(pitchHandle) || isActiveTool(rollHandle));
+        var inModeTranslate = (isActiveTool(selectionBox) || isActiveTool(grabberCloner) || isActiveTool(grabberMoveUp));
         var stretchHandlesVisible = !(inModeRotate || inModeTranslate) && (spaceMode == SPACE_LOCAL);
         var extendedStretchHandlesVisible = (stretchHandlesVisible && showExtendedStretchHandles);
         var cloneHandleVisible = !(inModeRotate || inModeTranslate);
@@ -2198,7 +2227,7 @@ SelectionDisplay = (function() {
             z: position.z
         };
         Overlays.editOverlay(grabberMoveUp, {
-            visible: (activeTool === null) || (mode == "TRANSLATE_UP_DOWN")
+            visible: ( ! activeTool ) || isActiveTool(grabberMoveUp)
         });
 
         Overlays.editOverlay(baseOfEntityProjectionOverlay, {
@@ -2309,7 +2338,6 @@ SelectionDisplay = (function() {
             that.setGrabberMoveUpVisible( false );
 
             startPosition = SelectionManager.worldPosition;
-            mode = translateXZTool.mode; // Note this overrides mode = "CLONE"
 
             translateXZTool.pickPlanePosition = pickResult.intersection;
             translateXZTool.greatestDimension = Math.max(Math.max(SelectionManager.worldDimensions.x, SelectionManager.worldDimensions.y), SelectionManager.worldDimensions.z);
@@ -2843,7 +2871,7 @@ SelectionDisplay = (function() {
         };
 
         var onMove = function(event) {
-            var proportional = spaceMode == SPACE_WORLD || event.isShifted || activeTool.mode == "STRETCH_RADIUS";
+            var proportional = spaceMode == SPACE_WORLD || event.isShifted || isActiveTool(grabberSpotLightRadius);
 
             var position, dimensions, rotation;
             if (spaceMode == SPACE_LOCAL) {
@@ -3580,7 +3608,7 @@ SelectionDisplay = (function() {
     function helperRotationHandleOnBegin( event, pickRay, rotAroundAxis, rotCenter, handleRotation ) {
         var wantDebug = false;
         if (wantDebug) {
-            print("================== " + mode + "(rotation helper onBegin) -> =======================");
+            print("================== " + getMode() + "(rotation helper onBegin) -> =======================");
         }
 
         SelectionManager.saveProperties();
@@ -3645,7 +3673,7 @@ SelectionDisplay = (function() {
         rotZero = result;
         
         if (wantDebug) {
-            print("================== " + mode + "(rotation helper onBegin) <- =======================");
+            print("================== " + getMode() + "(rotation helper onBegin) <- =======================");
         }
     }//--End_Function( helperRotationHandleOnBegin )
 
@@ -3660,7 +3688,7 @@ SelectionDisplay = (function() {
 
         var wantDebug = false;
         if (wantDebug) {
-            print("================== "+ mode + "(rotation helper onMove) -> =======================");
+            print("================== "+ getMode() + "(rotation helper onMove) -> =======================");
             Vec3.print("    rotZero: ", rotZero);
         }
         var pickRay = generalComputePickRay(event.x, event.y);
@@ -3750,14 +3778,14 @@ SelectionDisplay = (function() {
         }//--End_If( results.intersects )
 
         if (wantDebug) {
-            print("================== "+ mode + "(rotation helper onMove) <- =======================");
+            print("================== "+ getMode() + "(rotation helper onMove) <- =======================");
         }
     }//--End_Function( helperRotationHandleOnMove )
 
     function helperRotationHandleOnEnd() {
         var wantDebug = false;
         if (wantDebug) {
-            print("================== " + mode + "(onEnd) -> =======================");            
+            print("================== " + getMode() + "(onEnd) -> =======================");
         }
         Overlays.editOverlay(rotateOverlayInner, {
             visible: false
@@ -3775,7 +3803,7 @@ SelectionDisplay = (function() {
         pushCommandForSelections();
 
         if (wantDebug) {
-            print("================== " + mode + "(onEnd) <- =======================");            
+            print("================== " + getMode() + "(onEnd) <- =======================");
         }
     }//--End_Function( helperRotationHandleOnEnd )
 
@@ -3907,7 +3935,7 @@ SelectionDisplay = (function() {
         }
 
         // Start with unknown mode, in case no tool can handle this.
-        mode = "UNKNOWN";
+        activeTool = null;
 
         var results = testRayIntersect( pickRay, interactiveOverlays );
         if ( results.intersects ){
@@ -3922,7 +3950,6 @@ SelectionDisplay = (function() {
             var hitTool = grabberTools[ hitOverlayID ];
             if ( hitTool ) {
                 activeTool = hitTool;
-                mode = activeTool.mode;
                 if (activeTool.onBegin) {
                     activeTool.onBegin(event, pickRay, results);
                 } else {
@@ -3934,13 +3961,13 @@ SelectionDisplay = (function() {
         }//--End_If( results.intersects )
 
         if (wantDebug) {
-            print("    SelectionDisplay.mode: " + mode );
+            print("    DisplayMode: " + getMode());
             print("=============== eST::MousePressEvent END =======================");
         }
 
         // If mode is known then we successfully handled this;
         // otherwise, we're missing a tool.
-        return (mode != "UNKNOWN");
+        return activeTool;
     };
 
     // FUNCTION: MOUSE MOVE EVENT
@@ -4111,7 +4138,7 @@ SelectionDisplay = (function() {
         }
         
         // hide our rotation overlays..., and show our handles
-        if (mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL") {
+        if ( isActiveTool(yawHandle) || isActiveTool(pitchHandle) || isActiveTool(rollHandle)) {
             if(wantDebug){
                 print("    Triggering hide of RotateOverlays");
             }
@@ -4127,8 +4154,7 @@ SelectionDisplay = (function() {
             
         }
 
-        showHandles = (mode != "UNKNOWN");//<base on prior mode
-        mode = "UNKNOWN";
+        showHandles = activeTool;//<base on prior tool value
         activeTool = null;
 
         // if something is selected, then reset the "original" properties for any potential next click+move operation
