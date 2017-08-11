@@ -24,9 +24,10 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     id: checkoutRoot;
+    property bool inventoryReceived: false;
+    property bool balanceReceived: false;
     property string itemId: ""; 
     property string itemHref: "";
-    property int hfcBalance: 0;
     property int balanceAfterPurchase: 0;
     property bool alreadyOwned: false;
     // Style
@@ -48,14 +49,16 @@ Rectangle {
             if (failureMessage.length) {
                 console.log("Failed to get balance", failureMessage);
             } else {
-                hfcBalance = balance;
-                balanceAfterPurchase = hfcBalance - parseInt(itemPriceText.text, 10);
+                balanceReceived = true;
+                hfcBalanceText.text = balance;
+                balanceAfterPurchase = balance - parseInt(itemPriceText.text, 10);
             }
         }
         onInventoryResult: {
             if (failureMessage.length) {
                 console.log("Failed to get inventory", failureMessage);
             } else {
+                inventoryReceived = true;
                 if (inventory.indexOf(itemId) !== -1) {
                     alreadyOwned = true;
                 } else {
@@ -234,7 +237,7 @@ Rectangle {
             }
             RalewayRegular {
                 id: hfcBalanceText;
-                text: hfcBalance;
+                text: "--";
                 // Text size
                 size: hfcBalanceTextLabel.size;
                 // Anchors
@@ -378,7 +381,7 @@ Rectangle {
         // "Buy" button
         HifiControlsUit.Button {
             id: buyButton;
-            enabled: balanceAfterPurchase >= 0 && !alreadyOwned;
+            enabled: balanceAfterPurchase >= 0 && !alreadyOwned && inventoryReceived && balanceReceived;
             color: hifi.buttons.black;
             colorScheme: hifi.colorSchemes.dark;
             anchors.top: parent.top;
@@ -388,7 +391,7 @@ Rectangle {
             anchors.right: parent.right;
             anchors.rightMargin: 20;
             width: parent.width/2 - anchors.rightMargin*2;
-            text: alreadyOwned ? "Already Owned" : "Buy";
+            text: (inventoryReceived && balanceReceived) ? (alreadyOwned ? "Already Owned" : "Buy") : "--";
             onClicked: {
                 commerce.buy(itemId, parseInt(itemPriceText.text));
             }

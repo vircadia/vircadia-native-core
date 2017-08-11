@@ -115,6 +115,7 @@ Rectangle {
         }
         RalewayRegular {
             id: hfcBalanceText;
+            text: "--";
             // Text size
             size: hfcBalanceTextLabel.size;
             // Anchors
