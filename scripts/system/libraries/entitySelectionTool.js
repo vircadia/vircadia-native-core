@@ -580,6 +580,12 @@ SelectionDisplay = (function() {
     var grabberSpotLightT = Overlays.addOverlay("cube", grabberPropertiesEdge);
     var grabberSpotLightB = Overlays.addOverlay("cube", grabberPropertiesEdge);
 
+    var spotLightGrabberHandles = [
+        grabberSpotLightCircle, grabberSpotLightCenter, grabberSpotLightRadius,
+        grabberSpotLightLineT, grabberSpotLightLineB, grabberSpotLightLineL, grabberSpotLightLineR,
+        grabberSpotLightT, grabberSpotLightB, grabberSpotLightL, grabberSpotLightR
+    ];
+
     var grabberPointLightCircleX = Overlays.addOverlay("circle3d", {
         rotation: Quat.fromPitchYawRollDegrees(0, 90, 0),
         color: lightOverlayColor,
@@ -604,6 +610,12 @@ SelectionDisplay = (function() {
     var grabberPointLightR = Overlays.addOverlay("cube", grabberPropertiesEdge);
     var grabberPointLightF = Overlays.addOverlay("cube", grabberPropertiesEdge);
     var grabberPointLightN = Overlays.addOverlay("cube", grabberPropertiesEdge);
+
+    var pointLightGrabberHandles = [
+        grabberPointLightCircleX, grabberPointLightCircleY, grabberPointLightCircleZ,
+        grabberPointLightT, grabberPointLightB, grabberPointLightL,
+        grabberPointLightR, grabberPointLightF, grabberPointLightN,
+    ];
 
     var grabberCloner = Overlays.addOverlay("cube", grabberPropertiesCloner);
 
@@ -1432,10 +1444,12 @@ SelectionDisplay = (function() {
 
         var rotateHandlesVisible = true;
         var rotationOverlaysVisible = false;
-        var translateHandlesVisible = true;
-        var selectionBoxVisible = true;
+        //note:  Commented out as these are currently unused here; however,
+        //       leaving them around as they document intent of state as it
+        //       relates to modes that may be useful later.
+        //var translateHandlesVisible = true;
+        //var selectionBoxVisible = true;
         var isPointLight = false;
-
         if (selectionManager.selections.length == 1) {
             var properties = Entities.getEntityProperties(selectionManager.selections[0]);
             isPointLight = properties.type == "Light" && !properties.isSpotlight;
@@ -1444,14 +1458,14 @@ SelectionDisplay = (function() {
         if (mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL" || mode == "TRANSLATE_XZ") {
             rotationOverlaysVisible = true;
             rotateHandlesVisible = false;
-            translateHandlesVisible = false;
-            selectionBoxVisible = false;
+            //translateHandlesVisible = false;
+            //selectionBoxVisible = false;
         } else if (mode == "TRANSLATE_UP_DOWN" || isPointLight) {
             rotateHandlesVisible = false;
         } else if (mode != "UNKNOWN") {
             // every other mode is a stretch mode...
             rotateHandlesVisible = false;
-            translateHandlesVisible = false;
+            //translateHandlesVisible = false;
         }
 
         Overlays.editOverlay(rotateZeroOverlay, {
@@ -1533,6 +1547,7 @@ SelectionDisplay = (function() {
             print( "======> Update Handles =======" );
             print( "    Selections Count: " + SelectionManager.selections.length );
             print( "    SpaceMode: " + spaceMode );
+            print( "    DisplayMode: " + mode );
         }
         if (SelectionManager.selections.length === 0) {
             that.setOverlaysVisible(false);
@@ -1768,22 +1783,28 @@ SelectionDisplay = (function() {
         EdgeFL = Vec3.sum(position, EdgeFL);
 
         var inModeRotate = (mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL");
-        var stretchHandlesVisible = !inModeRotate && (spaceMode == SPACE_LOCAL);
+        var inModeTranslate = (mode == "TRANSLATE_XZ" || mode == "CLONE" || mode == "TRANSLATE_UP_DOWN");
+        var stretchHandlesVisible = !(inModeRotate || inModeTranslate) && (spaceMode == SPACE_LOCAL);
         var extendedStretchHandlesVisible = (stretchHandlesVisible && showExtendedStretchHandles);
-        var cloneHandleVisible = !inModeRotate;
-        //print("    Set Non-Light Grabbers Visible - Norm: " + stretchHandlesVisible + " Ext: " + extendedStretchHandlesVisible);
+        var cloneHandleVisible = !(inModeRotate || inModeTranslate);
+        if(wantDebug){
+            print("    Set Non-Light Grabbers Visible - Norm: " + stretchHandlesVisible + " Ext: " + extendedStretchHandlesVisible);
+        }
         var isSingleSelection = (selectionManager.selections.length == 1);
 
         if (isSingleSelection) {
             var properties = Entities.getEntityProperties(selectionManager.selections[0]);
             var isLightSelection = (properties.type == "Light");
             if ( isLightSelection ) {
-                //print("    Light Selection revoking Non-Light Grabbers Visibility!");
+                if(wantDebug){
+                    print("    Light Selection revoking Non-Light Grabbers Visibility!");
+                }
                 stretchHandlesVisible = false;
                 extendedStretchHandlesVisible = false;
                 cloneHandleVisible = false;
                 if(properties.isSpotlight) {
-                    //print("    Trying to show all SpotLight related grabbers");
+                    that.setPointLightHandlesVisible( false );
+
                     Overlays.editOverlay(grabberSpotLightCenter, {
                         position: position,
                         visible: false,
@@ -1848,36 +1869,9 @@ SelectionDisplay = (function() {
                         visible: true,
                     });
 
-                    //print("    Trying to hide all PointLight related grabbers");
-                    Overlays.editOverlay(grabberPointLightCircleX, {
-                        visible: false
-                    });
-                    Overlays.editOverlay(grabberPointLightCircleY, {
-                        visible: false
-                    });
-                    Overlays.editOverlay(grabberPointLightCircleZ, {
-                        visible: false
-                    });
-                    Overlays.editOverlay(grabberPointLightT, {
-                        visible: false
-                    });
-                    Overlays.editOverlay(grabberPointLightB, {
-                        visible: false
-                    });
-                    Overlays.editOverlay(grabberPointLightL, {
-                        visible: false
-                    });
-                    Overlays.editOverlay(grabberPointLightR, {
-                        visible: false
-                    });
-                    Overlays.editOverlay(grabberPointLightF, {
-                        visible: false
-                    });
-                    Overlays.editOverlay(grabberPointLightN, {
-                        visible: false
-                    });
                 } else { //..it's a PointLight
-                    //print("    Trying to show all PointLight related grabbers");
+                    that.setSpotLightHandlesVisible( false );
+                    
                     Overlays.editOverlay(grabberPointLightT, {
                         position: TOP,
                         rotation: rotation,
@@ -1938,102 +1932,10 @@ SelectionDisplay = (function() {
                         },
                         visible: true,
                     });
-
-                    //print("    Trying to hide all SpotLight related grabbers");
-                    Overlays.editOverlay(grabberSpotLightRadius, {
-                        visible: false
-                    });
-                    Overlays.editOverlay(grabberSpotLightL, {
-                        visible: false
-                    });
-                    Overlays.editOverlay(grabberSpotLightR, {
-                        visible: false
-                    });
-                    Overlays.editOverlay(grabberSpotLightT, {
-                        visible: false
-                    });
-                    Overlays.editOverlay(grabberSpotLightB, {
-                        visible: false
-                    });
-                    Overlays.editOverlay(grabberSpotLightCircle, {
-                        visible: false
-                    });
-                    Overlays.editOverlay(grabberSpotLightLineL, {
-                        visible: false
-                    });
-                    Overlays.editOverlay(grabberSpotLightLineR, {
-                        visible: false
-                    });
-                    Overlays.editOverlay(grabberSpotLightLineT, {
-                        visible: false
-                    });
-                    Overlays.editOverlay(grabberSpotLightLineB, {
-                        visible: false
-                    });
                 }
             } else { //..it's not a light at all
-                //print("    Trying to hide all Light related grabbers");
-                Overlays.editOverlay(grabberSpotLightCenter, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightRadius, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightL, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightR, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightT, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightB, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightCircle, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightLineL, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightLineR, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightLineT, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberSpotLightLineB, {
-                    visible: false
-                });
-
-                Overlays.editOverlay(grabberPointLightCircleX, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberPointLightCircleY, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberPointLightCircleZ, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberPointLightT, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberPointLightB, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberPointLightL, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberPointLightR, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberPointLightF, {
-                    visible: false
-                });
-                Overlays.editOverlay(grabberPointLightN, {
-                    visible: false
-                });
+                that.setSpotLightHandlesVisible( false );
+                that.setPointLightHandlesVisible( false );
             }
         }//--end of isSingleSelection
 
@@ -2281,20 +2183,18 @@ SelectionDisplay = (function() {
 
     };
 
+    function helperSetOverlaysVisibility( handleArray, isVisible ){
+        var numHandles = handleArray.length;
+        var visibilityUpdate = { visible: isVisible };
+        for (var handleIndex = 0; handleIndex < numHandles; ++handleIndex) {
+            Overlays.editOverlay(handleArray[ handleIndex ], visibilityUpdate);
+        }
+    }
+
     // FUNCTION: SET OVERLAYS VISIBLE
     that.setOverlaysVisible = function(isVisible) {
-        var length = allOverlays.length;
-        for (var overlayIndex = 0; overlayIndex < length; overlayIndex++) {
-            Overlays.editOverlay(allOverlays[overlayIndex], {
-                visible: isVisible
-            });
-        }
-        length = selectionBoxes.length;
-        for (var boxIndex = 0; boxIndex < length; boxIndex++) {
-            Overlays.editOverlay(selectionBoxes[boxIndex], {
-                visible: isVisible
-            });
-        }
+        helperSetOverlaysVisibility( allOverlays, isVisible );
+        helperSetOverlaysVisibility( selectionBoxes, isVisible );
     };
 
     // FUNCTION: SET ROTATION HANDLES VISIBLE
@@ -2307,16 +2207,35 @@ SelectionDisplay = (function() {
 
     // FUNCTION: SET STRETCH HANDLES VISIBLE
     that.setStretchHandlesVisible = function(isVisible) {
-        var numHandles = stretchHandles.length;
-        var visibilityUpdate = { visible: isVisible };
-        for (var handleIndex = 0; handleIndex < numHandles; ++handleIndex) {
-            Overlays.editOverlay(stretchHandles[ handleIndex ], visibilityUpdate);
-        }
+        helperSetOverlaysVisibility( stretchHandles, isVisible );
     };
 
     // FUNCTION: SET GRABBER MOVE UP VISIBLE
     that.setGrabberMoveUpVisible = function(isVisible) {
         Overlays.editOverlay(grabberMoveUp, { visible: isVisible });
+    };
+
+    // FUNCTION: SET GRABBER TOOLS UP VISIBLE
+    that.setGrabberToolsVisible = function(isVisible) {
+        var visibilityUpdate = { visible: isVisible };
+        for ( var toolKey in grabberTools ) {
+            if ( ! grabberTools.hasOwnProperty( toolKey ) ){
+                //--EARLY ITERATION EXIT--( On to the next one )
+                continue;
+            }
+
+            Overlays.editOverlay( toolKey, visibilityUpdate );
+        }
+    };
+
+    // FUNCTION: SET POINT LIGHT HANDLES VISIBLE
+    that.setPointLightHandlesVisible = function(isVisible) {
+        helperSetOverlaysVisibility( pointLightGrabberHandles, isVisible );
+    };
+
+    // FUNCTION: SET SPOT LIGHT HANDLES VISIBLE
+    that.setSpotLightHandlesVisible = function(isVisible) {
+        helperSetOverlaysVisibility( spotLightGrabberHandles, isVisible );
     };
 
     // FUNCTION: UNSELECT
@@ -2347,6 +2266,7 @@ SelectionDisplay = (function() {
 
             SelectionManager.saveProperties();
             that.setRotationHandlesVisible( false );
+            that.setStretchHandlesVisible( false );
             that.setGrabberMoveUpVisible( false );
 
             startPosition = SelectionManager.worldPosition;
@@ -2559,6 +2479,7 @@ SelectionDisplay = (function() {
 
             SelectionManager.saveProperties();
             that.setGrabberMoveUpVisible( true );
+            that.setStretchHandlesVisible( false );
             that.setRotationHandlesVisible( false );
 
             // Duplicate entities if alt is pressed.  This will make a
@@ -3980,7 +3901,7 @@ SelectionDisplay = (function() {
         }
 
         // If mode is known then we successfully handled this;
-        // otherwise, we're missing a tool or a tool.onBegin.
+        // otherwise, we're missing a tool.
         return (mode != "UNKNOWN");
     };
 
