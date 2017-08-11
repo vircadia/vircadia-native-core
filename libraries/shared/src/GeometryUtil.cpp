@@ -17,7 +17,7 @@
 #include <glm/gtx/quaternion.hpp>
 
 #include "NumericalConstants.h"
-#include "glmHelpers.h"
+#include "GLMHelpers.h"
 
 glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec3& start, const glm::vec3& end) {
     // compute the projection of the point vector onto the segment vector
