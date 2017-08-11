@@ -85,6 +85,19 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
+            "toggleButton": {
+                overlay: "cube",
+                properties: {
+                    dimensions: { x: 0.03, y: 0.03, z: 0.01 },
+                    localRotation: Quat.ZERO,
+                    alpha: 1.0,
+                    solid: true,
+                    ignoreRayIntersection: false,
+                    visible: true
+                },
+                onColor: { red: 100, green: 240, blue: 100 },
+                offColor: { red: 64, green: 64, blue: 64 }
+            },
             "swatch": {
                 overlay: "cube",
                 properties: {
@@ -209,7 +222,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
         },
 
-        BUTTON_UI_ELEMENTS = ["button", "swatch"],
+        BUTTON_UI_ELEMENTS = ["button", "toggleButton", "swatch"],
         BUTTON_PRESS_DELTA = { x: 0, y: 0, z: 0.004 },
 
         SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
@@ -493,27 +506,69 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
 
                 {
+                    id: "propertiesLabel",
+                    type: "label",
+                    properties: {
+                        text: "PROPERTIES",
+                        lineHeight: 0.005,
+                        localPosition: { x: -0.0325, y: -0.0475, z: -0.0075}
+                    }
+                },
+                {
                     id: "gravityToggle",
-                    type: "panel",
+                    type: "toggleButton",
                     properties: {
                         localPosition: { x: -0.0325, y: -0.03, z: -0.005 },
                         dimensions: { x: 0.03, y: 0.02, z: 0.01 }
+                    },
+                    label: "GRAVITY",
+                    setting: {
+                        key: "VREdit.physicsTool.gravityOn",
+                        // No property
+                        defaultValue: false,
+                        command: "setGravity"
+                    },
+                    command: {
+                        method: "setGravity",
+                        parameter: "gravityToggle"
                     }
                 },
                 {
                     id: "grabToggle",
-                    type: "panel",
+                    type: "toggleButton",
                     properties: {
                         localPosition: { x: -0.0325, y: -0.005, z: -0.005 },
                         dimensions: { x: 0.03, y: 0.02, z: 0.01 }
+                    },
+                    label: "  GRAB",
+                    setting: {
+                        key: "VREdit.physicsTool.grabOn",
+                        // No property
+                        defaultValue: false,
+                        command: "setGrab"
+                    },
+                    command: {
+                        method: "setGrab",
+                        parameter: "grabToggle"
                     }
                 },
                 {
                     id: "collideToggle",
-                    type: "panel",
+                    type: "toggleButton",
                     properties: {
                         localPosition: { x: -0.0325, y: 0.02, z: -0.005 },
                         dimensions: { x: 0.03, y: 0.02, z: 0.01 }
+                    },
+                    label: "COLLIDE",
+                    setting: {
+                        key: "VREdit.physicsTool.collideOn",
+                        // No property
+                        defaultValue: false,
+                        command: "setCollide"
+                    },
+                    command: {
+                        method: "setCollide",
+                        parameter: "collideToggle"
                     }
                 },
 
@@ -753,14 +808,21 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     if (value === "") {
                         value = optionsItems[i].setting.defaultValue;
                     }
-                    if (value) {
+                    if (value !== "") {
                         properties[optionsItems[i].setting.property] = value;
                         if (optionsItems[i].type === "swatch") {
                             // Special case for when swatch color is defined.
                             properties.solid = true;
                         }
-                        if (optionsItems[i].setting.callback) {
-                            uiCommandCallback(optionsItems[i].setting.callback.method, value);
+                        if (optionsItems[i].type === "toggleButton") {
+                            // Store value in optionsSettings rather than using overlay property.
+                            optionsSettings[optionsItems[i].id].value = value;
+                            properties.color = value
+                                ? UI_ELEMENTS[optionsItems[i].type].onColor
+                                : UI_ELEMENTS[optionsItems[i].type].offColor;
+                        }
+                        if (optionsItems[i].setting.command) {
+                            uiCommandCallback(optionsItems[i].setting.command, value);
                         }
                     }
                 }
@@ -866,15 +928,16 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     function doCommand(command, parameter) {
         var parameters,
-            overlayID,
+            index,
             hasColor,
             value;
 
         switch (command) {
+
         case "setColorPerSwatch":
             parameters = parameter.split(".");
-            overlayID = optionsOverlaysIDs.indexOf(parameters[0]);
-            hasColor = Overlays.getProperty(optionsOverlays[overlayID], "solid");
+            index = optionsOverlaysIDs.indexOf(parameters[0]);
+            hasColor = Overlays.getProperty(optionsOverlays[index], "solid");
             if (hasColor) {
                 // Swatch has a color; set current fill color to swatch color.
                 value = evaluateParameter(parameter);
@@ -888,7 +951,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             } else {
                 // Swatch has no color; set swatch color to current fill color.
                 value = Overlays.getProperty(optionsOverlays[optionsOverlaysIDs.indexOf("currentColor")], "color");
-                Overlays.editOverlay(optionsOverlays[overlayID], {
+                Overlays.editOverlay(optionsOverlays[index], {
                     color: value,
                     solid: true
                 });
@@ -897,6 +960,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
             }
             break;
+
         case "setColorFromPick":
             Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf("currentColor")], {
                 color: parameter
@@ -905,6 +969,20 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 Settings.setValue(optionsSettings.currentColor.key, parameter);
             }
             break;
+
+        case "setGravity":
+        case "setGrab":
+        case "setCollide":
+            value = !optionsSettings[parameter].value;
+            optionsSettings[parameter].value = value;
+            Settings.setValue(optionsSettings[parameter].key, value);
+            index = optionsOverlaysIDs.indexOf(parameter);
+            Overlays.editOverlay(optionsOverlays[index], {
+                color: value ? UI_ELEMENTS[optionsItems[index].type].onColor : UI_ELEMENTS[optionsItems[index].type].offColor
+            });
+            uiCommandCallback(command, value);
+            break;
+
         default:
             App.log(side, "ERROR: ToolMenu: Unexpected command! " + command);
         }

@@ -1366,7 +1366,7 @@
             }
             break;
         default:
-            log("ERROR: Unexpected command in onUICommand(): " + command);
+            log("ERROR: Unexpected command in onUICommand(): " + command + ", " + parameter);
         }
     }
 
