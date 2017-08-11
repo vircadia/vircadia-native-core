@@ -1492,6 +1492,45 @@ SelectionDisplay = (function() {
         });
     };
 
+    // FUNCTION: UPDATE HANDLE SIZES
+    that.updateHandleSizes = function() {
+        if (selectionManager.hasSelection()) {
+            var diff = Vec3.subtract(selectionManager.worldPosition, Camera.getPosition());
+            var grabberSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 5;
+            var dimensions = SelectionManager.worldDimensions;
+            var avgDimension = (dimensions.x + dimensions.y + dimensions.z) / 3;
+            grabberSize = Math.min(grabberSize, avgDimension / 10);
+
+            for (var i = 0; i < stretchHandles.length; i++) {
+                Overlays.editOverlay(stretchHandles[i], {
+                    size: grabberSize,
+                });
+            }
+            var handleSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 7;
+            handleSize = Math.min(handleSize, avgDimension / 3);
+
+            Overlays.editOverlay(yawHandle, {
+                scale: handleSize,
+            });
+            Overlays.editOverlay(pitchHandle, {
+                scale: handleSize,
+            });
+            Overlays.editOverlay(rollHandle, {
+                scale: handleSize,
+            });
+            var pos = Vec3.sum(grabberMoveUpPosition, {
+                x: 0,
+                y: Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 3,
+                z: 0
+            });
+            Overlays.editOverlay(grabberMoveUp, {
+                position: pos,
+                scale: handleSize / 1.25,
+            });
+        }
+    };
+    Script.update.connect(that.updateHandleSizes);
+
     // FUNCTION: SET SPACE MODE
     that.setSpaceMode = function(newSpaceMode) {
         var wantDebug = false;
@@ -4052,45 +4091,6 @@ SelectionDisplay = (function() {
         }
         return false;
     };
-
-    // FUNCTION: UPDATE HANDLE SIZES
-    that.updateHandleSizes = function() {
-        if (selectionManager.hasSelection()) {
-            var diff = Vec3.subtract(selectionManager.worldPosition, Camera.getPosition());
-            var grabberSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 5;
-            var dimensions = SelectionManager.worldDimensions;
-            var avgDimension = (dimensions.x + dimensions.y + dimensions.z) / 3;
-            grabberSize = Math.min(grabberSize, avgDimension / 10);
-
-            for (var i = 0; i < stretchHandles.length; i++) {
-                Overlays.editOverlay(stretchHandles[i], {
-                    size: grabberSize,
-                });
-            }
-            var handleSize = Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 7;
-            handleSize = Math.min(handleSize, avgDimension / 3);
-
-            Overlays.editOverlay(yawHandle, {
-                scale: handleSize,
-            });
-            Overlays.editOverlay(pitchHandle, {
-                scale: handleSize,
-            });
-            Overlays.editOverlay(rollHandle, {
-                scale: handleSize,
-            });
-            var pos = Vec3.sum(grabberMoveUpPosition, {
-                x: 0,
-                y: Vec3.length(diff) * GRABBER_DISTANCE_TO_SIZE_RATIO * 3,
-                z: 0
-            });
-            Overlays.editOverlay(grabberMoveUp, {
-                position: pos,
-                scale: handleSize / 1.25,
-            });
-        }
-    };
-    Script.update.connect(that.updateHandleSizes);
 
     // FUNCTION: MOUSE RELEASE EVENT
     that.mouseReleaseEvent = function(event) {
