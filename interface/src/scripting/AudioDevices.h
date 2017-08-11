@@ -22,14 +22,22 @@ class AudioDevice {
 public:
     QAudioDeviceInfo info;
     QString display;
-    bool selected { false };
+    bool selectedDesktop { false };
+    bool selectedHMD { false };
 };
 
 class AudioDeviceList : public QAbstractListModel {
     Q_OBJECT
 
+    enum AudioDeviceRoles {
+        DeviceNameRole =  Qt::UserRole + 1,
+        SelectedDesktopRole,
+        SelectedHMDRole,
+        DeviceInfoRole
+    };
+
 public:
-    AudioDeviceList(QAudio::Mode mode) : _mode(mode) {}
+    AudioDeviceList(QAudio::Mode mode);
 
     int rowCount(const QModelIndex& parent = QModelIndex()) const override { Q_UNUSED(parent); return _devices.size(); }
     QHash<int, QByteArray> roleNames() const override { return _roles; }
@@ -45,8 +53,8 @@ signals:
     void deviceChanged(const QAudioDeviceInfo& device);
 
 private slots:
-    void onDeviceChanged(const QAudioDeviceInfo& device);
-    void onDevicesChanged(const QList<QAudioDeviceInfo>& devices);
+    void onDeviceChanged(const QAudioDeviceInfo& device, bool isHMD);
+    void onDevicesChanged(const QList<QAudioDeviceInfo>& devices, bool isHMD);
 
 private:
     friend class AudioDevices;
@@ -54,8 +62,11 @@ private:
     static QHash<int, QByteArray> _roles;
     static Qt::ItemFlags _flags;
     const QAudio::Mode _mode;
-    QAudioDeviceInfo _selectedDevice;
+    QAudioDeviceInfo _selectedDesktopDevice;
+    QAudioDeviceInfo _selectedHMDDevice;
     QList<AudioDevice> _devices;
+    QString _hmdSavedDeviceName;
+    QString _desktopSavedDeviceName;
 };
 
 class Audio;
@@ -67,15 +78,16 @@ class AudioDevices : public QObject {
 
 public:
     AudioDevices(bool& contextIsHMD);
-    void chooseInputDevice(const QAudioDeviceInfo& device);
-    void chooseOutputDevice(const QAudioDeviceInfo& device);
+    void chooseInputDevice(const QAudioDeviceInfo& device, bool isHMD);
+    void chooseOutputDevice(const QAudioDeviceInfo& device, bool isHMD);
 
 signals:
     void nop();
 
 private slots:
     void onContextChanged(const QString& context);
-    void onDeviceSelected(QAudio::Mode mode, const QAudioDeviceInfo& device, const QAudioDeviceInfo& previousDevice);
+    void onDeviceSelected(QAudio::Mode mode, const QAudioDeviceInfo& device,
+                          const QAudioDeviceInfo& previousDevice, bool isHMD);
     void onDeviceChanged(QAudio::Mode mode, const QAudioDeviceInfo& device);
     void onDevicesChanged(QAudio::Mode mode, const QList<QAudioDeviceInfo>& devices);
 
