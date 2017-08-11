@@ -45,11 +45,12 @@ SelectionManager = (function() {
             return;
         }
 
+        var wantDebug = false;
         var messageParsed;
         try {
             messageParsed = JSON.parse(message);
         } catch (err) {
-            print("error -- entitySelectionTool got malformed message: " + message);
+            print("ERROR: entitySelectionTool.handleEntitySelectionToolUpdates - got malformed message: " + message);
         }
 
         // if (message === 'callUpdate') {
@@ -57,7 +58,9 @@ SelectionManager = (function() {
         // }
 
         if (messageParsed.method === "selectEntity") {
-            print("setting selection to " + messageParsed.entityID);
+            if (wantDebug) {
+                print("setting selection to " + messageParsed.entityID);
+            }
             that.setSelections([messageParsed.entityID]);
         }
     }
@@ -225,7 +228,7 @@ SelectionManager = (function() {
             try {
                 listeners[j](selectionUpdated === true);
             } catch (e) {
-                print("EntitySelectionTool got exception: " + JSON.stringify(e));
+                print("ERROR: entitySelectionTool.update got exception: " + JSON.stringify(e));
             }
         }
     };
@@ -1477,29 +1480,46 @@ SelectionDisplay = (function() {
 
     // FUNCTION: SET SPACE MODE
     that.setSpaceMode = function(newSpaceMode) {
-        print("======> SetSpaceMode called. ========");
+        var wantDebug = false;
+        if (wantDebug) {
+            print("======> SetSpaceMode called. ========");
+        }
+
         if (spaceMode != newSpaceMode) {
-            print("    Updating SpaceMode From: " + spaceMode + " To: " + newSpaceMode);
+            if (wantDebug){
+                print("    Updating SpaceMode From: " + spaceMode + " To: " + newSpaceMode);
+            }
             spaceMode = newSpaceMode;
             that.updateHandles();
-        } else {
-            print("    Can't update SpaceMode. CurrentMode: " + spaceMode + " DesiredMode: " + newSpaceMode);
+        } else if(wantDebug){
+            print("WARNING: entitySelectionTool.setSpaceMode - Can't update SpaceMode. CurrentMode: " + spaceMode + " DesiredMode: " + newSpaceMode);
         }
-        print("====== SetSpaceMode called. <========");
+        if(wantDebug) {
+            print("====== SetSpaceMode called. <========");
+        }
     };
 
     // FUNCTION: TOGGLE SPACE MODE
     that.toggleSpaceMode = function() {
-        print("========> ToggleSpaceMode called. =========");
+        var wantDebug = false;
+        if (wantDebug){
+            print("========> ToggleSpaceMode called. =========");
+        }
         if (spaceMode == SPACE_WORLD && SelectionManager.selections.length > 1) {
-            print("Local space editing is not available with multiple selections");
+            if (wantDebug){
+                print("Local space editing is not available with multiple selections");
+            }
             return;
         }
-        print( "PreToggle: " + spaceMode);
+        if(wantDebug) {
+            print( "PreToggle: " + spaceMode);
+        }
         spaceMode = spaceMode == SPACE_LOCAL ? SPACE_WORLD : SPACE_LOCAL;
-        print( "PostToggle: " + spaceMode);
         that.updateHandles();
-        print("======== ToggleSpaceMode called. <=========");
+        if (wantDebug){
+            print( "PostToggle: " + spaceMode);        
+            print("======== ToggleSpaceMode called. <=========");
+        }
     };
 
     // FUNCTION: UNSELECT ALL
@@ -1508,9 +1528,12 @@ SelectionDisplay = (function() {
 
     // FUNCTION: UPDATE HANDLES
     that.updateHandles = function() {
-        print( "======> Update Handles =======" );
-        print( "    Selections Count: " + SelectionManager.selections.length );
-        print( "    SpaceMode: " + spaceMode );
+        var wantDebug = false;
+        if(wantDebug){
+            print( "======> Update Handles =======" );
+            print( "    Selections Count: " + SelectionManager.selections.length );
+            print( "    SpaceMode: " + spaceMode );
+        }
         if (SelectionManager.selections.length === 0) {
             that.setOverlaysVisible(false);
             return;
@@ -2252,7 +2275,9 @@ SelectionDisplay = (function() {
             rotation: Quat.fromPitchYawRollDegrees(90, 0, 0),
         });
 
-        print( "====== Update Handles <=======" );
+        if(wantDebug){
+            print( "====== Update Handles <=======" );
+        }
 
     };
 
@@ -2527,7 +2552,7 @@ SelectionDisplay = (function() {
         mode: "TRANSLATE_UP_DOWN",
         onBegin: function(event, pickRay, pickResult) {
             upDownPickNormal = Quat.getForward(lastCameraOrientation);
-            // Remove y component so the y-axis lies along the plane we picking on - this will
+            // Remove y component so the y-axis lies along the plane we're picking on - this will
             // give movements that follow the mouse.
             upDownPickNormal.y = 0;
             lastXYPick = rayPlaneIntersection(pickRay, SelectionManager.worldPosition, upDownPickNormal);
@@ -3061,7 +3086,10 @@ SelectionDisplay = (function() {
     // FUNCTION: CUTOFF STRETCH FUNC
     function cutoffStretchFunc(vector, change) {
         vector = change;
-        Vec3.print("Radius stretch: ", vector);
+        var wantDebug = false;
+        if (wantDebug){
+            Vec3.print("Radius stretch: ", vector);
+        }
         var length = vector.x + vector.y + vector.z;
         var props = selectionManager.savedProperties[selectionManager.selections[0]];
 
@@ -3515,21 +3543,27 @@ SelectionDisplay = (function() {
 
     // FUNCTION: UPDATE ROTATION DEGREES OVERLAY
     function updateRotationDegreesOverlay(angleFromZero, handleRotation, centerPosition) {
-        print( "---> updateRotationDegreesOverlay ---" );
-        print("    AngleFromZero: " + angleFromZero );
-        print("    HandleRotation - X: " + handleRotation.x + " Y: " + handleRotation.y + " Z: " + handleRotation.z );
-        print("    CenterPos - " + centerPosition.x + " Y: " + centerPosition.y + " Z: " + centerPosition.z );
+        var wantDebug = false;
+        if(wantDebug){
+            print( "---> updateRotationDegreesOverlay ---" );
+            print("    AngleFromZero: " + angleFromZero );
+            print("    HandleRotation - X: " + handleRotation.x + " Y: " + handleRotation.y + " Z: " + handleRotation.z );
+            print("    CenterPos - " + centerPosition.x + " Y: " + centerPosition.y + " Z: " + centerPosition.z );
+        }
+
         var angle = angleFromZero * (Math.PI / 180);
         var position = {
             x: Math.cos(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
             y: Math.sin(angle) * outerRadius * ROTATION_DISPLAY_DISTANCE_MULTIPLIER,
             z: 0,
         };
-        print("    Angle: " + angle );
-        print("    InitialPos: " + position.x + ", " + position.y + ", " + position.z);
+        if(wantDebug){
+            print("    Angle: " + angle );
+            print("    InitialPos: " + position.x + ", " + position.y + ", " + position.z);
+        }
+        
         position = Vec3.multiplyQbyV(handleRotation, position);
         position = Vec3.sum(centerPosition, position);
-        print("    TranslatedPos: " + position.x + ", " + position.y + ", " + position.z);
         var overlayProps = {
             position: position,
             dimensions: {
@@ -3539,18 +3573,24 @@ SelectionDisplay = (function() {
             lineHeight: innerRadius * ROTATION_DISPLAY_LINE_HEIGHT_MULTIPLIER,
             text: normalizeDegrees(angleFromZero) + "°",
         };
-        print("    OverlayDim - X: " + overlayProps.dimensions.x + " Y: " + overlayProps.dimensions.y + " Z: " + overlayProps.dimensions.z );
-        print("    OverlayLineHeight: " + overlayProps.lineHeight );
-        print("    OverlayText: " + overlayProps.text );
+        if(wantDebug){
+            print("    TranslatedPos: " + position.x + ", " + position.y + ", " + position.z);
+            print("    OverlayDim - X: " + overlayProps.dimensions.x + " Y: " + overlayProps.dimensions.y + " Z: " + overlayProps.dimensions.z );
+            print("    OverlayLineHeight: " + overlayProps.lineHeight );
+            print("    OverlayText: " + overlayProps.text );
+        }
+
         Overlays.editOverlay(rotationDegreesDisplay, overlayProps);
-        print( "<--- updateRotationDegreesOverlay ---" );
+        if (wantDebug){
+            print( "<--- updateRotationDegreesOverlay ---" );
+        }
     }
 
     // FUNCTION DEF: updateSelectionsRotation
     //    Helper func used by rotation grabber tools 
     function updateSelectionsRotation( rotationChange ) {
         if ( ! rotationChange ) {
-            print("ERROR( updateSelectionsRotation ) - Invalid arg specified!!");
+            print("ERROR: entitySelectionTool.updateSelectionsRotation - Invalid arg specified!!");
 
             //--EARLY EXIT--
             return;
@@ -3653,7 +3693,7 @@ SelectionDisplay = (function() {
     function helperRotationHandleOnMove( event, rotAroundAxis, rotCenter, handleRotation ) {
 
         if ( ! rotZero ) {
-            print("ERROR( handleRotationHandleOnMove ) - Invalid RotationZero Specified (missed rotation target plane?)" );
+            print("ERROR: entitySelectionTool.handleRotationHandleOnMove - Invalid RotationZero Specified (missed rotation target plane?)" );
 
             //--EARLY EXIT--
             return;
@@ -3919,7 +3959,6 @@ SelectionDisplay = (function() {
             }
 
             entityIconOverlayManager.setIconsSelectable(selectionManager.selections, true);
-            //TODO_Case6491:  Merge if..else( selectionBox ) when onBegin of transXZ is normalized.
 
             var hitTool = grabberTools[ hitOverlayID ];
             if ( hitTool ) {
