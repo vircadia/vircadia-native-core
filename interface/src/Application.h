@@ -297,6 +297,7 @@ public:
     QUuid getTabletFrameID() const; // may be an entity or an overlay
 
     void setAvatarOverrideUrl(const QUrl& url, bool save);
+    void clearAvatarOverrideUrl() { _avatarOverrideUrl = QUrl(); _saveAvatarOverrideUrl = false; }
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
 

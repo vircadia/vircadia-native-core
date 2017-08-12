@@ -21,8 +21,22 @@ class Ledger : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
-    bool buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const QString& buyerUsername = "");
+    void buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const QString& buyerUsername = "");
     bool receiveAt(const QString& hfc_key);
+    void balance(const QStringList& keys);
+    void inventory(const QStringList& keys);
+
+signals:
+    void buyResult(const QString& failureReason);
+    void receiveAtResult(const QString& failureReason);
+    void balanceResult(int balance, const QString& failureReason);
+    void inventoryResult(QStringList inventory, const QString& failureReason);
+
+private:
+    // These in-memory caches is temporary, until we start sending things to the server.
+    int _balance{ -1 };
+    QStringList _inventory{};
+    int initializedBalance() { if (_balance < 0) _balance = 100; return _balance; }
 };
 
 #endif // hifi_Ledger_h

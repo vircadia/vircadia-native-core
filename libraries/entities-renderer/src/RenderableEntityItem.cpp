@@ -130,3 +130,42 @@ void makeEntityItemStatusGetters(EntityItemPointer entity, render::Item::Status:
                                            (unsigned char)RenderItemStatusIcon::CLIENT_ONLY);
     });
 }
+
+bool SimplerRenderableEntitySupport::addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) {
+    _myItem = scene->allocateID();
+
+    auto renderData = std::make_shared<RenderableEntityItemProxy>(self, _myItem);
+    auto renderPayload = std::make_shared<RenderableEntityItemProxy::Payload>(renderData);
+
+    render::Item::Status::Getters statusGetters;
+    makeEntityItemStatusGetters(self, statusGetters);
+    renderPayload->addStatusGetters(statusGetters);
+
+    transaction.resetItem(_myItem, renderPayload);
+
+    return true;
+}
+
+void SimplerRenderableEntitySupport::removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) {
+    transaction.removeItem(_myItem);
+    render::Item::clearID(_myItem);
+}
+
+void SimplerRenderableEntitySupport::notifyChanged() {
+    if (!render::Item::isValidID(_myItem)) {
+        return;
+    }
+
+    render::Transaction transaction;
+    render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
+
+    if (scene) {
+        transaction.updateItem<RenderableEntityItemProxy>(_myItem, [](RenderableEntityItemProxy& data) {
+        });
+
+        scene->enqueueTransaction(transaction);
+    }
+    else {
+        qCWarning(entitiesrenderer) << "SimpleRenderableEntityItem::notifyChanged(), Unexpected null scene, possibly during application shutdown";
+    }
+}

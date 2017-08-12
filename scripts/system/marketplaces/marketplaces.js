@@ -20,6 +20,7 @@
     var MARKETPLACES_URL = Script.resolvePath("../html/marketplaces.html");
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
     var MARKETPLACE_CHECKOUT_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/Checkout.qml";
+    var MARKETPLACE_INVENTORY_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/Inventory.qml";
 
     var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
     // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
@@ -86,7 +87,7 @@
 
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url === MARKETPLACE_URL_INITIAL;
-        wireEventBridge(type === "QML" && url === MARKETPLACE_CHECKOUT_QML_PATH);
+        wireEventBridge(type === "QML" && (url === MARKETPLACE_CHECKOUT_QML_PATH || url === MARKETPLACE_INVENTORY_QML_PATH));
         // for toolbar mode: change button to active when window is first openend, false otherwise.
         marketplaceButton.editProperties({ isActive: onMarketplaceScreen });
         if (type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1) {
@@ -101,31 +102,14 @@
     Entities.canWriteAssetsChanged.connect(onCanWriteAssetsChanged);
 
     function onMessage(message) {
-        var parsedJsonMessage = JSON.parse(message);
-        if (parsedJsonMessage.type === "CHECKOUT") {
-            tablet.sendToQml({ method: 'updateCheckoutQML', params: parsedJsonMessage });
-            tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
-        } else if (parsedJsonMessage.type === "REQUEST_SETTING") {
-            tablet.emitScriptEvent(JSON.stringify({
-                type: "marketplaces",
-                action: "inspectionModeSetting",
-                data: Settings.getValue("inspectionMode", false)
-            }));
-        }
 
         if (message === GOTO_DIRECTORY) {
             tablet.gotoWebScreen(MARKETPLACES_URL, MARKETPLACES_INJECT_SCRIPT_URL);
-        }
-
-        if (message === QUERY_CAN_WRITE_ASSETS) {
+        } else if (message === QUERY_CAN_WRITE_ASSETS) {
             tablet.emitScriptEvent(CAN_WRITE_ASSETS + " " + Entities.canWriteAssets());
-        }
-
-        if (message === WARN_USER_NO_PERMISSIONS) {
+        } else if (message === WARN_USER_NO_PERMISSIONS) {
             Window.alert(NO_PERMISSIONS_ERROR_MESSAGE);
-        }
-
-        if (message.slice(0, CLARA_IO_STATUS.length) === CLARA_IO_STATUS) {
+        } else if (message.slice(0, CLARA_IO_STATUS.length) === CLARA_IO_STATUS) {
             if (isDownloadBeingCancelled) {
                 return;
             }
@@ -137,18 +121,32 @@
                 Window.updateMessageBox(messageBox, CLARA_DOWNLOAD_TITLE, text, CANCEL_BUTTON, NO_BUTTON);
             }
             return;
-        }
-
-        if (message.slice(0, CLARA_IO_DOWNLOAD.length) === CLARA_IO_DOWNLOAD) {
+        } else if (message.slice(0, CLARA_IO_DOWNLOAD.length) === CLARA_IO_DOWNLOAD) {
             if (messageBox !== null) {
                 Window.closeMessageBox(messageBox);
                 messageBox = null;
             }
             return;
-        }
-
-        if (message === CLARA_IO_CANCELLED_DOWNLOAD) {
+        } else if (message === CLARA_IO_CANCELLED_DOWNLOAD) {
             isDownloadBeingCancelled = false;
+        } else {
+            var parsedJsonMessage = JSON.parse(message);
+            if (parsedJsonMessage.type === "CHECKOUT") {
+                tablet.pushOntoStack(MARKETPLACE_CHECKOUT_QML_PATH);
+                tablet.sendToQml({ method: 'updateCheckoutQML', params: parsedJsonMessage });
+            } else if (parsedJsonMessage.type === "REQUEST_SETTING") {
+                tablet.emitScriptEvent(JSON.stringify({
+                    type: "marketplaces",
+                    action: "inspectionModeSetting",
+                    data: Settings.getValue("inspectionMode", false)
+                }));
+            } else if (parsedJsonMessage.type === "INVENTORY") {
+                tablet.pushOntoStack(MARKETPLACE_INVENTORY_QML_PATH);
+                tablet.sendToQml({
+                    method: 'updateInventory',
+                    referrerURL: parsedJsonMessage.referrerURL
+                });
+            }
         }
     }
 
@@ -208,17 +206,23 @@
                 break;
             case 'checkout_buyClicked':
                 if (message.success === true) {
-                    tablet.gotoWebScreen(message.itemHref);
-                    Script.setTimeout(function () {
-                        tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
-                    }, 100);
+                    tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
                 } else {
                     tablet.sendToQml({ method: 'buyFailed' });
                 }
                 //tablet.popFromStack();
                 break;
+            case 'inventory_itemClicked':
+                var itemId = message.itemId;
+                if (itemId && itemId !== "") {
+                    tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + itemId, MARKETPLACES_INJECT_SCRIPT_URL);
+                }
+                break;
+            case 'inventory_backClicked':
+                tablet.gotoWebScreen(message.referrerURL, MARKETPLACES_INJECT_SCRIPT_URL);
+                break;
             default:
-                print('Unrecognized message from Checkout.qml: ' + JSON.stringify(message));
+                print('Unrecognized message from Checkout.qml or Inventory.qml: ' + JSON.stringify(message));
         }
     }
 
