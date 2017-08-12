@@ -415,6 +415,15 @@ Selection = function (side) {
     }
 
     function applyPhysics(physicsProperties) {
+        // TODO: For development testing, apply physics to the currently intersected entity.
+        var properties;
+
+        properties = Object.clone(physicsProperties);
+        properties.userData = updatePhysicsUserData(selection[intersectedEntityIndex].userData, physicsProperties.userData);
+        Entities.editEntity(selection[intersectedEntityIndex].id, properties);
+
+        // TODO: Original functionality applied physics to all entities in the selection.
+        /*
         // Applies physics to the current selection (i.e., the selection made when entity was trigger-clicked to apply physics).
         var properties,
             i,
@@ -434,6 +443,7 @@ Selection = function (side) {
                 Entities.editEntity(selection[0].id, { velocity: DYNAMIC_VELOCITY_KICK });
             }
         }
+        */
     }
 
     function clear() {

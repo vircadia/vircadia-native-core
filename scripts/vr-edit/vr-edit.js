@@ -851,7 +851,6 @@
         function update() {
             var previousState = editorState,
                 doUpdateState,
-                doRefreshSelection,
                 color;
 
             intersection = getIntersection();
@@ -950,6 +949,12 @@
                         doUpdateState = true;
                     }
                     if (toolSelected === TOOL_COLOR && intersection.entityID !== intersectedEntityID) {
+                        intersectedEntityID = intersection.entityID;
+                        doUpdateState = true;
+                    }
+                    // TODO: For development testing, update intersectedEntityID so that physics can be applied to it.
+                    if ((toolSelected === TOOL_COLOR || toolSelected === TOOL_PHYSICS)
+                            && intersection.entityID !== intersectedEntityID) {
                         intersectedEntityID = intersection.entityID;
                         doUpdateState = true;
                     }
