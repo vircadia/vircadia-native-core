@@ -20,6 +20,7 @@ var CONTOLLER_SCRIPTS = [
 
     "ControllerDispatcher.js",
     "controllerModules/nearParentGrabEntity.js",
+    "controllerModules/nearParentGrabOverlay.js",
     "controllerModules/nearActionGrabEntity.js",
     "controllerModules/tabletStylusInput.js"
 ];

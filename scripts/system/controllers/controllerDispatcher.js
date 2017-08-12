@@ -5,7 +5,7 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global Script, Entities, controllerDispatcherPlugins, Controller, Vec3, getControllerWorldLocation,
+/* global Script, Entities, Overlays, controllerDispatcherPlugins, Controller, Vec3, getControllerWorldLocation,
    LEFT_HAND, RIGHT_HAND */
 
 controllerDispatcherPlugins = {};
@@ -48,7 +48,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
     var highVarianceCount = 0;
     var veryhighVarianceCount = 0;
 
-    // a module can occupy one or more slots while it's running.  If all the required slots for a module are
+    // a module can occupy one or more "activity" slots while it's running.  If all the required slots for a module are
     // not set to false (not in use), a module cannot start.  When a module is using a slot, that module's name
     // is stored as the value, rather than false.
     this.activitySlots = {
@@ -56,7 +56,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         rightHand: false
     };
 
-    this.slotsAreAvailable = function (plugin) {
+    this.slotsAreAvailableForPlugin = function (plugin) {
         for (var i = 0; i < plugin.parameters.activitySlots.length; i++) {
             if (_this.activitySlots[plugin.parameters.activitySlots[i]]) {
                 return false; // something is already using a slot which _this plugin requires
@@ -140,8 +140,28 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         var controllerLocations = [_this.dataGatherers.leftControllerLocation(),
                                    _this.dataGatherers.rightControllerLocation()];
 
+        // find 3d overlays near each hand
+        var nearbyOverlayIDs = [];
+        var h;
+        for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
+            // todo: check controllerLocations[h].valid
+            var nearbyOverlays = Overlays.findOverlays(controllerLocations[h].position, NEAR_MIN_RADIUS);
+            var makeOverlaySorter = function (handIndex) {
+                return function (a, b) {
+                    var aPosition = Overlays.getProperty(a, "position");
+                    var aDistance = Vec3.distance(aPosition, controllerLocations[handIndex]);
+                    var bPosition = Overlays.getProperty(b, "position");
+                    var bDistance = Vec3.distance(bPosition, controllerLocations[handIndex]);
+                    return aDistance - bDistance;
+                };
+            };
+            nearbyOverlays.sort(makeOverlaySorter(h));
+            nearbyOverlayIDs.push(nearbyOverlays);
+        }
+
+        // find entities near each hand
         var nearbyEntityProperties = [[], []];
-        for (var h = LEFT_HAND; h <= RIGHT_HAND; h++) {
+        for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
             // todo: check controllerLocations[h].valid
             var controllerPosition = controllerLocations[h].position;
             var nearbyEntityIDs = Entities.findEntities(controllerPosition, NEAR_MIN_RADIUS);
@@ -165,11 +185,13 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             nearbyEntityProperties[h].sort(makeSorter(h));
         }
 
+        // bundle up all the data about the current situation
         var controllerData = {
             triggerValues: [_this.leftTriggerValue, _this.rightTriggerValue],
             triggerClicks: [_this.leftTriggerClicked, _this.rightTriggerClicked],
             controllerLocations: controllerLocations,
             nearbyEntityProperties: nearbyEntityProperties,
+            nearbyOverlayIDs: nearbyOverlayIDs
         };
 
         // print("QQQ dispatcher " + JSON.stringify(_this.runningPluginNames) + " : " + JSON.stringify(_this.activitySlots));
@@ -179,7 +201,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             // TODO sort names by plugin.priority
             if (controllerDispatcherPlugins.hasOwnProperty(pluginName)) {
                 var candidatePlugin = controllerDispatcherPlugins[pluginName];
-                if (_this.slotsAreAvailable(candidatePlugin) && candidatePlugin.isReady(controllerData, deltaTime)) {
+                if (_this.slotsAreAvailableForPlugin(candidatePlugin) && candidatePlugin.isReady(controllerData, deltaTime)) {
                     // this plugin will start.  add it to the list of running plugins and mark the
                     // activity-slots which this plugin consumes as "in use"
                     _this.runningPluginNames[pluginName] = true;
