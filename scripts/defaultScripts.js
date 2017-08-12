@@ -28,7 +28,7 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/notifications.js",
     "system/dialTone.js",
     "system/firstPersonHMD.js",
-    // "system/tablet-ui/tabletUI.js"
+    "system/tablet-ui/tabletUI.js"
 ];
 var DEFAULT_SCRIPTS_SEPARATE = [
     "system/controllers/controllerScripts.js",

@@ -8,7 +8,7 @@
 
 /* global Camera, HMD, MyAvatar, controllerDispatcherPlugins,
    MSECS_PER_SEC, LEFT_HAND, RIGHT_HAND, NULL_UUID, AVATAR_SELF_ID, FORBIDDEN_GRAB_TYPES,
-   HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
+   HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, ZERO_VEC, ONE_VEC, DEFAULT_REGISTRATION_POINT, INCHES_TO_METERS,
    makeDispatcherModuleParameters,
    enableDispatcherModule,
    disableDispatcherModule,
@@ -19,6 +19,10 @@
 */
 
 MSECS_PER_SEC = 1000.0;
+INCHES_TO_METERS = 1.0 / 39.3701;
+
+ZERO_VEC = { x: 0, y: 0, z: 0 };
+ONE_VEC = { x: 1, y: 1, z: 1 };
 
 LEFT_HAND = 0;
 RIGHT_HAND = 1;
@@ -30,6 +34,8 @@ FORBIDDEN_GRAB_TYPES = ["Unknown", "Light", "PolyLine", "Zone"];
 
 HAPTIC_PULSE_STRENGTH = 1.0;
 HAPTIC_PULSE_DURATION = 13.0;
+
+DEFAULT_REGISTRATION_POINT = { x: 0.5, y: 0.5, z: 0.5 };
 
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step

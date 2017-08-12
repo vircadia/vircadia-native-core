@@ -38,6 +38,16 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         "userData"
     ];
 
+
+    var TARGET_UPDATE_HZ = 60; // 50hz good enough, but we're using update
+    var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;
+    var lastInterval = Date.now();
+    var intervalCount = 0;
+    var totalDelta = 0;
+    var totalVariance = 0;
+    var highVarianceCount = 0;
+    var veryhighVarianceCount = 0;
+
     // a module can occupy one or more slots while it's running.  If all the required slots for a module are
     // not set to false (not in use), a module cannot start.  When a module is using a slot, that module's name
     // is stored as the value, rather than false.
@@ -77,26 +87,58 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
     this.rightTriggerClicked = 0;
 
 
-    this.leftTriggerPress = function(value) {
+    this.leftTriggerPress = function (value) {
         _this.leftTriggerValue = value;
     };
 
-    this.leftTriggerClick = function(value) {
+    this.leftTriggerClick = function (value) {
         _this.leftTriggerClicked = value;
     };
 
-    this.rightTriggerPress = function(value) {
+    this.rightTriggerPress = function (value) {
         _this.rightTriggerValue = value;
     };
 
-    this.rightTriggerClick = function(value) {
+    this.rightTriggerClick = function (value) {
         _this.rightTriggerClicked = value;
     };
 
-    this.update = function () {
+    this.dataGatherers = {};
+    this.dataGatherers.leftControllerLocation = function () {
+        return getControllerWorldLocation(Controller.Standard.LeftHand, true);
+    };
+    this.dataGatherers.rightControllerLocation = function () {
+        return getControllerWorldLocation(Controller.Standard.RightHand, true);
+    };
 
-        var controllerLocations = [getControllerWorldLocation(Controller.Standard.LeftHand, true),
-                                   getControllerWorldLocation(Controller.Standard.RightHand, true)];
+    this.updateTimings = function () {
+        intervalCount++;
+        var thisInterval = Date.now();
+        var deltaTimeMsec = thisInterval - lastInterval;
+        var deltaTime = deltaTimeMsec / 1000;
+        lastInterval = thisInterval;
+
+        totalDelta += deltaTimeMsec;
+
+        var variance = Math.abs(deltaTimeMsec - BASIC_TIMER_INTERVAL_MS);
+        totalVariance += variance;
+
+        if (variance > 1) {
+            highVarianceCount++;
+        }
+
+        if (variance > 5) {
+            veryhighVarianceCount++;
+        }
+
+        return deltaTime;
+    };
+
+    this.update = function () {
+        var deltaTime =  this.updateTimings();
+
+        var controllerLocations = [_this.dataGatherers.leftControllerLocation(),
+                                   _this.dataGatherers.rightControllerLocation()];
 
         var nearbyEntityProperties = [[], []];
         for (var h = LEFT_HAND; h <= RIGHT_HAND; h++) {
@@ -113,12 +155,14 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                 }
             }
             // sort by distance from each hand
-            var sorter = function (a, b) {
-                var aDistance = Vec3.distance(a.position, controllerLocations[h]);
-                var bDistance = Vec3.distance(b.position, controllerLocations[h]);
-                return aDistance - bDistance;
+            var makeSorter = function (handIndex) {
+                return function (a, b) {
+                    var aDistance = Vec3.distance(a.position, controllerLocations[handIndex]);
+                    var bDistance = Vec3.distance(b.position, controllerLocations[handIndex]);
+                    return aDistance - bDistance;
+                };
             };
-            nearbyEntityProperties[h].sort(sorter);
+            nearbyEntityProperties[h].sort(makeSorter(h));
         }
 
         var controllerData = {
@@ -128,13 +172,14 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             nearbyEntityProperties: nearbyEntityProperties,
         };
 
+        // print("QQQ dispatcher " + JSON.stringify(_this.runningPluginNames) + " : " + JSON.stringify(_this.activitySlots));
 
         // check for plugins that would like to start
         for (var pluginName in controllerDispatcherPlugins) {
             // TODO sort names by plugin.priority
             if (controllerDispatcherPlugins.hasOwnProperty(pluginName)) {
                 var candidatePlugin = controllerDispatcherPlugins[pluginName];
-                if (_this.slotsAreAvailable(candidatePlugin) && candidatePlugin.isReady(controllerData)) {
+                if (_this.slotsAreAvailable(candidatePlugin) && candidatePlugin.isReady(controllerData, deltaTime)) {
                     // this plugin will start.  add it to the list of running plugins and mark the
                     // activity-slots which this plugin consumes as "in use"
                     _this.runningPluginNames[pluginName] = true;
@@ -152,7 +197,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                     // them available.
                     delete _this.runningPluginNames[runningPluginName];
                     _this.unmarkSlotsForPluginName(runningPluginName);
-                } else if (!plugin.run(controllerData)) {
+                } else if (!plugin.run(controllerData, deltaTime)) {
                     // plugin is finished running, for now.  remove it from the list
                     // of running plugins and mark its activity-slots as "not in use"
                     delete _this.runningPluginNames[runningPluginName];

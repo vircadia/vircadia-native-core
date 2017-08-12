@@ -13,14 +13,15 @@ var CONTOLLER_SCRIPTS = [
     "squeezeHands.js",
     "controllerDisplayManager.js",
     // "handControllerGrab.js",
-    // "handControllerPointer.js",
+    "handControllerPointer.js",
     // "grab.js",
     // "teleport.js",
     "toggleAdvancedMovementForHandControllers.js",
 
     "ControllerDispatcher.js",
     "controllerModules/nearParentGrabEntity.js",
-    "controllerModules/nearActionGrabEntity.js"
+    "controllerModules/nearActionGrabEntity.js",
+    "controllerModules/tabletStylusInput.js"
 ];
 
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";
