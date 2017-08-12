@@ -1831,7 +1831,7 @@ void Rig::computeAvatarBoundingCapsule(
         const FBXJointShapeInfo& shapeInfo = geometry.joints.at(index).shapeInfo;
         AnimPose pose = finalPoses[index];
         if (shapeInfo.points.size() > 0) {
-            for (int j = 0; j < shapeInfo.points.size(); ++j) {
+            for (size_t j = 0; j < shapeInfo.points.size(); ++j) {
                 totalExtents.addPoint((pose * shapeInfo.points[j]));
             }
         }

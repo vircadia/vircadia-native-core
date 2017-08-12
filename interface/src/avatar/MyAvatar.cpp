@@ -1831,7 +1831,7 @@ void MyAvatar::postUpdate(float deltaTime) {
                 rig.getAbsoluteJointPoseInRigFrame(i, jointPose);
                 const FBXJointShapeInfo& shapeInfo = geometry.joints[i].shapeInfo;
                 const AnimPose pose = rigToWorldPose * jointPose;
-                for (int j = 0; j < shapeInfo.debugLines.size() / 2; j++) {
+                for (size_t j = 0; j < shapeInfo.debugLines.size() / 2; j++) {
                     glm::vec3 pointA = pose.xformPoint(shapeInfo.debugLines[2 * j]);
                     glm::vec3 pointB = pose.xformPoint(shapeInfo.debugLines[2 * j + 1]);
                     DebugDraw::getInstance().drawRay(pointA, pointB, DEBUG_COLORS[i % NUM_DEBUG_COLORS]);
