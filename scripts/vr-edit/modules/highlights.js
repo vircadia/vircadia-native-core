@@ -75,7 +75,8 @@ Highlights = function (side) {
         });
     }
 
-    function display(handIntersected, selection, overlayColor) {
+    function display(handIntersected, selection, entityIndex, overlayColor) {
+        // Displays highlight for just entityIndex if non-null, otherwise highlights whole selection.
         var i,
             length;
 
@@ -85,10 +86,16 @@ Highlights = function (side) {
             visible: handIntersected
         });
 
-        // Add/edit entity overlay.
-        for (i = 0, length = selection.length; i < length; i += 1) {
-            maybeAddEntityOverlay(i);
-            editEntityOverlay(i, selection[i], overlayColor);
+        if (entityIndex  !== null) {
+            // Add/edit entity overlay for just entityIndex.
+            maybeAddEntityOverlay(0);
+            editEntityOverlay(0, selection[entityIndex], overlayColor);
+        } else {
+            // Add/edit entity overlays for all entities in selection.
+            for (i = 0, length = selection.length; i < length; i += 1) {
+                maybeAddEntityOverlay(i);
+                editEntityOverlay(i, selection[i], overlayColor);
+            }
         }
 
         // Delete extra entity overlays.

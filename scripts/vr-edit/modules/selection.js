@@ -17,6 +17,7 @@ Selection = function (side) {
 
     var selection = [],
         intersectedEntityID = null,
+        intersectedEntityIndex,
         rootEntityID = null,
         rootPosition,
         rootOrientation,
@@ -57,6 +58,10 @@ Selection = function (side) {
             userData: properties.userData
         });
 
+        if (id === intersectedEntityID) {
+            intersectedEntityIndex = result.length - 1;
+        }
+
         children = Entities.getChildrenIDs(id);
         for (i = 0, length = children.length; i < length; i += 1) {
             if (Entities.getNestableType(children[i]) === ENTITY_TYPE) {
@@ -86,6 +91,10 @@ Selection = function (side) {
 
     function getIntersectedEntityID() {
         return intersectedEntityID;
+    }
+
+    function getIntersectedEntityIndex() {
+        return intersectedEntityIndex;
     }
 
     function getRootEntityID() {
@@ -339,17 +348,27 @@ Selection = function (side) {
         rootEntityID = selection[0].id;
     }
 
-    function applyColor(color) {
+    function applyColor(color, isApplyToAll) {
         // Entities without a color property simply ignore the edit.
         var properties,
             isError = true,
             i,
             length;
 
-        for (i = 0, length = selection.length; i < length; i += 1) {
-            properties = Entities.getEntityProperties(selection[i].id, "color");
+        if (isApplyToAll) {
+            for (i = 0, length = selection.length; i < length; i += 1) {
+                properties = Entities.getEntityProperties(selection[i].id, "color");
+                if (ENTITY_TYPES_WITH_COLOR.indexOf(properties.type) !== -1) {
+                    Entities.editEntity(selection[i].id, {
+                        color: color
+                    });
+                    isError = false;
+                }
+            }
+        } else {
+            properties = Entities.getEntityProperties(intersectedEntityID, "type");
             if (ENTITY_TYPES_WITH_COLOR.indexOf(properties.type) !== -1) {
-                Entities.editEntity(selection[i].id, {
+                Entities.editEntity(intersectedEntityID, {
                     color: color
                 });
                 isError = false;
@@ -439,6 +458,7 @@ Selection = function (side) {
         selection: getSelection,
         count: count,
         intersectedEntityID: getIntersectedEntityID,
+        intersectedEntityIndex: getIntersectedEntityIndex,
         rootEntityID: getRootEntityID,
         boundingBox: getBoundingBox,
         getPositionAndOrientation: getPositionAndOrientation,

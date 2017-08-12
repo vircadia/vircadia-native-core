@@ -660,6 +660,7 @@
             selection.select(intersectedEntityID);
             if (toolSelected !== TOOL_SCALE || !otherEditor.isEditing(rootEntityID)) {
                 highlights.display(intersection.handIntersected, selection.selection(),
+                    toolSelected === TOOL_COLOR ? selection.intersectedEntityIndex() : null,
                     toolSelected === TOOL_SCALE || otherEditor.isEditing(rootEntityID)
                         ? highlights.SCALE_COLOR : highlights.HIGHLIGHT_COLOR);
             }
@@ -671,6 +672,7 @@
             selection.select(intersectedEntityID);
             if (toolSelected !== TOOL_SCALE || !otherEditor.isEditing(rootEntityID)) {
                 highlights.display(intersection.handIntersected, selection.selection(),
+                    toolSelected === TOOL_COLOR ? selection.intersectedEntityIndex() : null,
                     toolSelected === TOOL_SCALE || otherEditor.isEditing(rootEntityID)
                         ? highlights.SCALE_COLOR : highlights.HIGHLIGHT_COLOR);
             } else {
@@ -770,7 +772,7 @@
 
         function enterEditorGrouping() {
             if (!grouping.includes(rootEntityID)) {
-                highlights.display(false, selection.selection(), highlights.GROUP_COLOR);
+                highlights.display(false, selection.selection(), null, highlights.GROUP_COLOR);
             }
             grouping.toggle(selection.selection());
         }
@@ -849,6 +851,7 @@
         function update() {
             var previousState = editorState,
                 doUpdateState,
+                doRefreshSelection,
                 color;
 
             intersection = getIntersection();
@@ -900,7 +903,7 @@
                         setState(EDITOR_GROUPING);
                     } else if (toolSelected === TOOL_COLOR) {
                         setState(EDITOR_HIGHLIGHTING);
-                        selection.applyColor(colorToolColor);
+                        selection.applyColor(colorToolColor, false);
                     } else if (toolSelected === TOOL_PICK_COLOR) {
                         color = selection.getColor(intersection.entityID);
                         if (color) {
@@ -946,6 +949,10 @@
                         wasScaleTool = toolSelected === TOOL_SCALE;
                         doUpdateState = true;
                     }
+                    if (toolSelected === TOOL_COLOR && intersection.entityID !== intersectedEntityID) {
+                        intersectedEntityID = intersection.entityID;
+                        doUpdateState = true;
+                    }
                     if (doUpdateState) {
                         updateState();
                     }
@@ -973,7 +980,7 @@
                     } else if (toolSelected === TOOL_GROUP) {
                         setState(EDITOR_GROUPING);
                     } else if (toolSelected === TOOL_COLOR) {
-                        selection.applyColor(colorToolColor);
+                        selection.applyColor(colorToolColor, false);
                     } else if (toolSelected === TOOL_PICK_COLOR) {
                         color = selection.getColor(intersection.entityID);
                         if (color) {
@@ -1256,7 +1263,7 @@
                 exludedrightRootEntityID = rightRootEntityID;
             }
 
-            highlights.display(false, groups.selection(excludedRootEntityIDs), highlights.GROUP_COLOR);
+            highlights.display(false, groups.selection(excludedRootEntityIDs), null, highlights.GROUP_COLOR);
 
             hasSelectionChanged = false;
         }
