@@ -25,7 +25,12 @@ bool Wallet::generateKeyPair() {
     // FIXME: need private key, too, and persist in file.
     qCInfo(commerce) << "Generating keypair.";
     QString key = QUuid::createUuid().toString();
-    _publicKeys.push_back(key);
+
+    _publicKeys.push_back(key); // Keep in memory for synchronous speed.
+    // It's arguable whether we want to change the receiveAt every time, but:
+    // 1. It's certainly needed the first time, when createIfNeeded answers true.
+    // 2. It is maximally private, and we can step back from that later if desired.
+    // 3. It maximally exercises all the machinery, so we are most likely to surface issues now.
     auto ledger = DependencyManager::get<Ledger>();
     return ledger->receiveAt(key);
 }
