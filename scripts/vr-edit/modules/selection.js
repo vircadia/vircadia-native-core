@@ -16,7 +16,7 @@ Selection = function (side) {
     "use strict";
 
     var selection = [],
-        selectedEntityID = null,
+        intersectedEntityID = null,
         rootEntityID = null,
         rootPosition,
         rootOrientation,
@@ -65,12 +65,14 @@ Selection = function (side) {
         }
     }
 
-    function select(entityID) {
+    function select(intersectionEntityID) {
         var entityProperties,
             PARENT_PROPERTIES = ["parentID", "position", "rotation", "dymamic", "collisionless"];
 
+        intersectedEntityID = intersectionEntityID;
+
         // Find root parent.
-        rootEntityID = Entities.rootOf(entityID);
+        rootEntityID = Entities.rootOf(intersectedEntityID);
 
         // Selection position and orientation is that of the root entity.
         entityProperties = Entities.getEntityProperties(rootEntityID, PARENT_PROPERTIES);
@@ -80,8 +82,10 @@ Selection = function (side) {
         // Find all children.
         selection = [];
         traverseEntityTree(rootEntityID, selection);
+    }
 
-        selectedEntityID = entityID;
+    function getIntersectedEntityID() {
+        return intersectedEntityID;
     }
 
     function getRootEntityID() {
@@ -263,7 +267,7 @@ Selection = function (side) {
     }
 
     function finishDirectScaling() {
-        select(selectedEntityID);  // Refresh.
+        select(intersectedEntityID);  // Refresh.
     }
 
     function startHandleScaling() {
@@ -296,19 +300,23 @@ Selection = function (side) {
     }
 
     function finishHandleScaling() {
-        select(selectedEntityID);  // Refresh.
+        select(intersectedEntityID);  // Refresh.
     }
 
     function cloneEntities() {
         var parentIDIndexes = [],
+            intersectedEntityIndex = 0,
             parentID,
             properties,
             i,
             j,
             length;
 
-        // Map parent IDs.
+        // Map parent IDs; find intersectedEntityID's index.
         for (i = 1, length = selection.length; i < length; i += 1) {
+            if (selection[i].id === intersectedEntityID) {
+                intersectedEntityIndex = i;
+            }
             parentID = selection[i].parentID;
             for (j = 0; j < i; j += 1) {
                 if (parentID === selection[j].id) {
@@ -327,6 +335,7 @@ Selection = function (side) {
             selection[i].id = Entities.addEntity(properties);
         }
 
+        intersectedEntityID = selection[intersectedEntityIndex].id;
         rootEntityID = selection[0].id;
     }
 
@@ -410,7 +419,7 @@ Selection = function (side) {
 
     function clear() {
         selection = [];
-        selectedEntityID = null;
+        intersectedEntityID = null;
         rootEntityID = null;
     }
 
@@ -429,6 +438,7 @@ Selection = function (side) {
         select: select,
         selection: getSelection,
         count: count,
+        intersectedEntityID: getIntersectedEntityID,
         rootEntityID: getRootEntityID,
         boundingBox: getBoundingBox,
         getPositionAndOrientation: getPositionAndOrientation,
