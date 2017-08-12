@@ -111,7 +111,7 @@ void RayPickManager::update() {
             }
         }
 
-        WriteLock lock(*_rayPickLocks[uid]);
+        QWriteLocker lock(_rayPickLocks[uid].get());
         if (rayPick->getMaxDistance() == 0.0f || (rayPick->getMaxDistance() > 0.0f && res.distance < rayPick->getMaxDistance())) {
             rayPick->setRayPickResult(res);
         } else {
@@ -119,19 +119,19 @@ void RayPickManager::update() {
         }
     }
 
-    WriteLock containsLock(_containsLock);
+    QWriteLocker containsLock(&_containsLock);
     {
-        WriteLock lock(_addLock);
+        QWriteLocker lock(&_addLock);
         while (!_rayPicksToAdd.empty()) {
             std::pair<QUuid, std::shared_ptr<RayPick>> rayPickToAdd = _rayPicksToAdd.front();
             _rayPicksToAdd.pop();
             _rayPicks[rayPickToAdd.first] = rayPickToAdd.second;
-            _rayPickLocks[rayPickToAdd.first] = std::make_shared<std::shared_mutex>();
+            _rayPickLocks[rayPickToAdd.first] = std::make_shared<QReadWriteLock>();
         }
     }
 
     {
-        WriteLock lock(_removeLock);
+        QWriteLocker lock(&_removeLock);
         while (!_rayPicksToRemove.empty()) {
             QUuid uid = _rayPicksToRemove.front();
             _rayPicksToRemove.pop();
@@ -172,12 +172,12 @@ QUuid RayPickManager::createRayPick(const QVariantMap& rayProps) {
                 dirOffset = vec3FromVariant(rayProps["dirOffset"]);
             }
 
-            WriteLock lock(_addLock);
+            QWriteLocker lock(&_addLock);
             QUuid id = QUuid::createUuid();
             _rayPicksToAdd.push(std::pair<QUuid, std::shared_ptr<RayPick>>(id, std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled)));
             return id;
         } else {
-            WriteLock lock(_addLock);
+            QWriteLocker lock(&_addLock);
             QUuid id = QUuid::createUuid();
             _rayPicksToAdd.push(std::pair<QUuid, std::shared_ptr<RayPick>>(id, std::make_shared<MouseRayPick>(filter, maxDistance, enabled)));
             return id;
@@ -190,7 +190,7 @@ QUuid RayPickManager::createRayPick(const QVariantMap& rayProps) {
             direction = vec3FromVariant(rayProps["direction"]);
         }
 
-        WriteLock lock(_addLock);
+        QWriteLocker lock(&_addLock);
         QUuid id = QUuid::createUuid();
         _rayPicksToAdd.push(std::pair<QUuid, std::shared_ptr<RayPick>>(id, std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled)));
         return id;
@@ -200,28 +200,28 @@ QUuid RayPickManager::createRayPick(const QVariantMap& rayProps) {
 }
 
 void RayPickManager::removeRayPick(const QUuid uid) {
-    WriteLock lock(_removeLock);
+    QWriteLocker lock(&_removeLock);
     _rayPicksToRemove.push(uid);
 }
 
 void RayPickManager::enableRayPick(const QUuid uid) {
-    ReadLock containsLock(_containsLock);
+    QReadLocker containsLock(&_containsLock);
     if (_rayPicks.contains(uid)) {
-        WriteLock rayPickLock(*_rayPickLocks[uid]);
+        QWriteLocker rayPickLock(_rayPickLocks[uid].get());
         _rayPicks[uid]->enable();
     }
 }
 
 void RayPickManager::disableRayPick(const QUuid uid) {
-    ReadLock containsLock(_containsLock);
+    QReadLocker containsLock(&_containsLock);
     if (_rayPicks.contains(uid)) {
-        WriteLock rayPickLock(*_rayPickLocks[uid]);
+        QWriteLocker rayPickLock(_rayPickLocks[uid].get());
         _rayPicks[uid]->disable();
     }
 }
 
 const PickRay RayPickManager::getPickRay(const QUuid uid) {
-    ReadLock containsLock(_containsLock);
+    QReadLocker containsLock(&_containsLock);
     if (_rayPicks.contains(uid)) {
         bool valid;
         PickRay pickRay = _rayPicks[uid]->getPickRay(valid);
@@ -233,58 +233,58 @@ const PickRay RayPickManager::getPickRay(const QUuid uid) {
 }
 
 const RayPickResult RayPickManager::getPrevRayPickResult(const QUuid uid) {
-    ReadLock containsLock(_containsLock);
+    QReadLocker containsLock(&_containsLock);
     if (_rayPicks.contains(uid)) {
-        ReadLock lock(*_rayPickLocks[uid]);
+        QReadLocker lock(_rayPickLocks[uid].get());
         return _rayPicks[uid]->getPrevRayPickResult();
     }
     return RayPickResult();
 }
 
 void RayPickManager::setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities) {
-    ReadLock containsLock(_containsLock);
+    QReadLocker containsLock(&_containsLock);
     if (_rayPicks.contains(uid)) {
-        WriteLock lock(*_rayPickLocks[uid]);
+        QWriteLocker lock(_rayPickLocks[uid].get());
         _rayPicks[uid]->setIgnoreEntities(ignoreEntities);
     }
 }
 
 void RayPickManager::setIncludeEntities(QUuid uid, const QScriptValue& includeEntities) {
-    ReadLock containsLock(_containsLock);
+    QReadLocker containsLock(&_containsLock);
     if (_rayPicks.contains(uid)) {
-        WriteLock lock(*_rayPickLocks[uid]);
+        QWriteLocker lock(_rayPickLocks[uid].get());
         _rayPicks[uid]->setIncludeEntities(includeEntities);
     }
 }
 
 void RayPickManager::setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays) {
-    ReadLock containsLock(_containsLock);
+    QReadLocker containsLock(&_containsLock);
     if (_rayPicks.contains(uid)) {
-        WriteLock lock(*_rayPickLocks[uid]);
+        QWriteLocker lock(_rayPickLocks[uid].get());
         _rayPicks[uid]->setIgnoreOverlays(ignoreOverlays);
     }
 }
 
 void RayPickManager::setIncludeOverlays(QUuid uid, const QScriptValue& includeOverlays) {
-    ReadLock containsLock(_containsLock);
+    QReadLocker containsLock(&_containsLock);
     if (_rayPicks.contains(uid)) {
-        WriteLock lock(*_rayPickLocks[uid]);
+        QWriteLocker lock(_rayPickLocks[uid].get());
         _rayPicks[uid]->setIncludeOverlays(includeOverlays);
     }
 }
 
 void RayPickManager::setIgnoreAvatars(QUuid uid, const QScriptValue& ignoreAvatars) {
-    ReadLock containsLock(_containsLock);
+    QReadLocker containsLock(&_containsLock);
     if (_rayPicks.contains(uid)) {
-        WriteLock lock(*_rayPickLocks[uid]);
+        QWriteLocker lock(_rayPickLocks[uid].get());
         _rayPicks[uid]->setIgnoreAvatars(ignoreAvatars);
     }
 }
 
 void RayPickManager::setIncludeAvatars(QUuid uid, const QScriptValue& includeAvatars) {
-    ReadLock containsLock(_containsLock);
+    QReadLocker containsLock(&_containsLock);
     if (_rayPicks.contains(uid)) {
-        WriteLock lock(*_rayPickLocks[uid]);
+        QWriteLocker lock(_rayPickLocks[uid].get());
         _rayPicks[uid]->setIncludeAvatars(includeAvatars);
     }
 }

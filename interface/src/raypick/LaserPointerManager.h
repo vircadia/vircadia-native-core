@@ -12,8 +12,8 @@
 #define hifi_LaserPointerManager_h
 
 #include <memory>
-#include <shared_mutex>
 #include <glm/glm.hpp>
+#include <QReadWriteLock>
 
 #include "LaserPointer.h"
 
@@ -44,15 +44,12 @@ public:
 
 private:
     QHash<QUuid, std::shared_ptr<LaserPointer>> _laserPointers;
-    QHash<QUuid, std::shared_ptr<std::shared_mutex>> _laserPointerLocks;
-    std::shared_mutex _addLock;
+    QHash<QUuid, std::shared_ptr<QReadWriteLock>> _laserPointerLocks;
+    QReadWriteLock _addLock;
     std::queue<std::pair<QUuid, std::shared_ptr<LaserPointer>>> _laserPointersToAdd;
-    std::shared_mutex _removeLock;
+    QReadWriteLock _removeLock;
     std::queue<QUuid> _laserPointersToRemove;
-    std::shared_mutex _containsLock;
-
-    typedef std::lock_guard<std::shared_mutex> WriteLock;
-    typedef std::shared_lock<std::shared_mutex> ReadLock;
+    QReadWriteLock _containsLock;
 
 };
 
