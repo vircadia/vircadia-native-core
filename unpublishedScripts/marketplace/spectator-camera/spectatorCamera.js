@@ -153,7 +153,7 @@
     //   -showSpectatorInDesktop: Set to "true" to show the "SPECTATOR" app in desktop mode.
     var button = false;
     var buttonName = "SPECTATOR";
-    var showSpectatorInDesktop = false;
+    var showSpectatorInDesktop = true;
     function addOrRemoveButton(isShuttingDown, isHMDMode) {
         if (!tablet) {
             print("Warning in addOrRemoveButton(): 'tablet' undefined!");

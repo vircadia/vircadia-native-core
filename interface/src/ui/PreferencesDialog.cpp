@@ -315,21 +315,23 @@ void setupPreferences() {
         static const QString RENDER("Graphics");
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
         if (renderConfig) {
-            auto ambientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>();
-            if (ambientOcclusionConfig) {
-                auto getter = [ambientOcclusionConfig]()->QString { return ambientOcclusionConfig->getPreset(); };
-                auto setter = [ambientOcclusionConfig](QString preset) { ambientOcclusionConfig->setPreset(preset); };
+            auto mainViewAmbientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>("RenderMainView.AmbientOcclusion");
+            auto camViewAmbientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>("SecondaryCameraJob.AmbientOcclusion");
+            if (mainViewAmbientOcclusionConfig && camViewAmbientOcclusionConfig) {
+                auto getter = [mainViewAmbientOcclusionConfig]()->QString { return mainViewAmbientOcclusionConfig->getPreset(); };
+                auto setter = [mainViewAmbientOcclusionConfig, camViewAmbientOcclusionConfig](QString preset) { mainViewAmbientOcclusionConfig->setPreset(preset); camViewAmbientOcclusionConfig->setPreset(preset); };
                 auto preference = new ComboBoxPreference(RENDER, "Ambient occlusion", getter, setter);
-                preference->setItems(ambientOcclusionConfig->getPresetList());
+                preference->setItems(mainViewAmbientOcclusionConfig->getPresetList());
                 preferences->addPreference(preference);
             }
 
-            auto shadowConfig = renderConfig->getConfig<RenderShadowTask>();
-            if (shadowConfig) {
-                auto getter = [shadowConfig]()->QString { return shadowConfig->getPreset(); };
-                auto setter = [shadowConfig](QString preset) { shadowConfig->setPreset(preset); };
+            auto mainViewShadowConfig = renderConfig->getConfig<RenderShadowTask>("RenderMainView.RenderShadowTask");
+            auto camViewShadowConfig = renderConfig->getConfig<RenderShadowTask>("SecondaryCameraJob.RenderShadowTask");
+            if (mainViewShadowConfig && camViewShadowConfig) {
+                auto getter = [mainViewShadowConfig]()->QString { return mainViewShadowConfig->getPreset(); };
+                auto setter = [mainViewShadowConfig, camViewShadowConfig](QString preset) { mainViewShadowConfig->setPreset(preset); camViewShadowConfig->setPreset(preset); };
                 auto preference = new ComboBoxPreference(RENDER, "Shadows", getter, setter);
-                preference->setItems(shadowConfig->getPresetList());
+                preference->setItems(mainViewShadowConfig->getPresetList());
                 preferences->addPreference(preference);
             }
         }
