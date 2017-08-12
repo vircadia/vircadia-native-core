@@ -32,8 +32,8 @@ CheckBox {
 
     indicator: Rectangle {
         id: box
-        width: boxSize
-        height: boxSize
+        implicitWidth: boxSize
+        implicitHeight: boxSize
         radius: boxRadius
         x: checkBox.leftPadding
         y: parent.height / 2 - height / 2

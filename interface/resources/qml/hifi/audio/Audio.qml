@@ -41,13 +41,13 @@ Rectangle {
     //recalculates dynamically in case of UI size is changed
     QtObject {
         id: margins
-        property real paddings: parent.width / 20.25
+        property real paddings: root.width / 20.25
 
-        property real sizeCheckBox: parent.width / 13.5
-        property real sizeText: parent.width / 2.5
-        property real sizeLevel: parent.width / 5.8
-        property real sizeDesktop: parent.width / 5.8
-        property real sizeVR: parent.width / 13.5
+        property real sizeCheckBox: root.width / 13.5
+        property real sizeText: root.width / 2.5
+        property real sizeLevel: root.width / 5.8
+        property real sizeDesktop: root.width / 5.8
+        property real sizeVR: root.width / 13.5
     }
 
     Column {
@@ -166,7 +166,6 @@ Rectangle {
                 RalewaySemiBold {
                     Layout.minimumWidth: margins.sizeCheckBox + margins.sizeText
                     Layout.maximumWidth: margins.sizeCheckBox + margins.sizeText
-                    Layout.alignment: Qt.AlignVCenter
                     clip: true
                     size: 16;
                     color: "white";
@@ -177,7 +176,6 @@ Rectangle {
                 Item {
                     Layout.minimumWidth: margins.sizeLevel
                     Layout.maximumWidth: margins.sizeLevel
-                    Layout.alignment: Qt.AlignVCenter
                     height: 8;
                     InputLevel {
                         visible: (isVR && selectedHMD) || (!isVR && selectedDesktop);
@@ -187,8 +185,7 @@ Rectangle {
                 AudioControls.CheckBox {
                     Layout.minimumWidth: margins.sizeDesktop
                     Layout.maximumWidth: margins.sizeDesktop
-                    leftPadding: margins.sizeDesktop - implicitWidth/2
-                    Layout.alignment: Qt.AlignCenter
+                    leftPadding: margins.sizeDesktop/2 - boxSize/2
                     checked: selectedDesktop;
                     onClicked: {
                         if (checked) {
@@ -200,8 +197,7 @@ Rectangle {
                 AudioControls.CheckBox {
                     Layout.minimumWidth: margins.sizeVR
                     Layout.maximumWidth: margins.sizeVR
-                    Layout.alignment: Qt.AlignCenter
-                    leftPadding: margins.sizeVR - implicitWidth/2
+                    leftPadding: margins.sizeVR/2 - boxSize/2
                     checked: selectedHMD;
                     onClicked: {
                         if (checked) {
@@ -266,14 +262,13 @@ Rectangle {
             clip: true;
             model: Audio.devices.output;
             delegate: RowLayout {
-                width: inputView.width;
+                width: outputView.width;
                 height: 36;
                 spacing: 0
 
                 RalewaySemiBold {
                     Layout.minimumWidth: margins.sizeCheckBox + margins.sizeText
                     Layout.maximumWidth: margins.sizeCheckBox + margins.sizeText
-                    Layout.alignment: Qt.AlignVCenter
                     clip: true
                     size: 16;
                     color: "white";
@@ -284,14 +279,12 @@ Rectangle {
                 Item {
                     Layout.minimumWidth: margins.sizeLevel
                     Layout.maximumWidth: margins.sizeLevel
-                    Layout.alignment: Qt.AlignVCenter
                     height: 8;
                 }
                 AudioControls.CheckBox {
                     Layout.minimumWidth: margins.sizeDesktop
                     Layout.maximumWidth: margins.sizeDesktop
-                    leftPadding: margins.sizeDesktop - implicitWidth/2
-                    Layout.alignment: Qt.AlignCenter
+                    leftPadding: margins.sizeDesktop/2 - boxSize/2
                     checked: selectedDesktop;
                     onClicked: {
                         if (checked) {
@@ -302,8 +295,7 @@ Rectangle {
                 AudioControls.CheckBox {
                     Layout.minimumWidth: margins.sizeVR
                     Layout.maximumWidth: margins.sizeVR
-                    Layout.alignment: Qt.AlignCenter
-                    leftPadding: margins.sizeVR - implicitWidth/2
+                    leftPadding: margins.sizeVR/2 - boxSize/2
                     checked: selectedHMD;
                     onClicked: {
                         if (checked) {
