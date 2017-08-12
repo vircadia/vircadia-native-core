@@ -5,10 +5,14 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
-/* global Script, Entities, Overlays, controllerDispatcherPlugins, Controller, Vec3, getControllerWorldLocation,
+/*jslint bitwise: true */
+
+/* global Script, Entities, Overlays, Controller, Vec3, getControllerWorldLocation, RayPick,
+   controllerDispatcherPlugins, controllerDispatcherPluginsNeedSort,
    LEFT_HAND, RIGHT_HAND */
 
 controllerDispatcherPlugins = {};
+controllerDispatcherPluginsNeedSort = false;
 
 Script.include("/~/system/libraries/utils.js");
 Script.include("/~/system/libraries/controllers.js");
@@ -137,8 +141,37 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
     this.update = function () {
         var deltaTime =  this.updateTimings();
 
+        if (controllerDispatcherPluginsNeedSort) {
+            this.orderedPluginNames = [];
+            for (var pluginName in controllerDispatcherPlugins) {
+                if (controllerDispatcherPlugins.hasOwnProperty(pluginName)) {
+                    this.orderedPluginNames.push(pluginName);
+                }
+            }
+            this.orderedPluginNames.sort(function (a, b) {
+                return controllerDispatcherPlugins[a].priority < controllerDispatcherPlugins[b].priority;
+            });
+            controllerDispatcherPluginsNeedSort = false;
+        }
+
         var controllerLocations = [_this.dataGatherers.leftControllerLocation(),
                                    _this.dataGatherers.rightControllerLocation()];
+
+
+        // interface/src/raypick/LaserPointerManager.cpp | 62 +++++++++++++--------------
+        // interface/src/raypick/LaserPointerManager.h   | 13 +++---
+        // interface/src/raypick/RayPickManager.cpp      | 56 ++++++++++++------------
+        // interface/src/raypick/RayPickManager.h        | 13 +++---
+
+
+        // raypick for each controller
+        var rayPicks = [
+            RayPick.getPrevRayPickResult(_this.leftControllerRayPick),
+            RayPick.getPrevRayPickResult(_this.rightControllerRayPick)
+        ];
+        // result.intersects
+        // result.distance
+
 
         // find 3d overlays near each hand
         var nearbyOverlayIDs = [];
@@ -191,22 +224,19 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             triggerClicks: [_this.leftTriggerClicked, _this.rightTriggerClicked],
             controllerLocations: controllerLocations,
             nearbyEntityProperties: nearbyEntityProperties,
-            nearbyOverlayIDs: nearbyOverlayIDs
+            nearbyOverlayIDs: nearbyOverlayIDs,
+            rayPicks: rayPicks
         };
 
-        // print("QQQ dispatcher " + JSON.stringify(_this.runningPluginNames) + " : " + JSON.stringify(_this.activitySlots));
-
-        // check for plugins that would like to start
-        for (var pluginName in controllerDispatcherPlugins) {
-            // TODO sort names by plugin.priority
-            if (controllerDispatcherPlugins.hasOwnProperty(pluginName)) {
-                var candidatePlugin = controllerDispatcherPlugins[pluginName];
-                if (_this.slotsAreAvailableForPlugin(candidatePlugin) && candidatePlugin.isReady(controllerData, deltaTime)) {
-                    // this plugin will start.  add it to the list of running plugins and mark the
-                    // activity-slots which this plugin consumes as "in use"
-                    _this.runningPluginNames[pluginName] = true;
-                    _this.markSlots(candidatePlugin, pluginName);
-                }
+        // check for plugins that would like to start.  ask in order of increasing priority value
+        for (var pluginIndex = 0; pluginIndex < this.orderedPluginNames.length; pluginIndex++) {
+            var orderedPluginName = this.orderedPluginNames[pluginIndex];
+            var candidatePlugin = controllerDispatcherPlugins[orderedPluginName];
+            if (_this.slotsAreAvailableForPlugin(candidatePlugin) && candidatePlugin.isReady(controllerData, deltaTime)) {
+                // this plugin will start.  add it to the list of running plugins and mark the
+                // activity-slots which this plugin consumes as "in use"
+                _this.runningPluginNames[orderedPluginName] = true;
+                _this.markSlots(candidatePlugin, orderedPluginName);
             }
         }
 
@@ -237,9 +267,31 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
     mapping.from([Controller.Standard.LTClick]).peek().to(_this.leftTriggerClick);
     Controller.enableMapping(MAPPING_NAME);
 
+
+    this.mouseRayPick = RayPick.createRayPick({
+        joint: "Mouse",
+        filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
+        enabled: true
+    });
+
+    this.leftControllerRayPick = RayPick.createRayPick({
+        joint: "Mouse",
+        filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
+        enabled: true
+    });
+    this.rightControllerRayPick = RayPick.createRayPick({
+        joint: "Mouse",
+        filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
+        enabled: true
+    });
+
+
     this.cleanup = function () {
         Script.update.disconnect(_this.update);
         Controller.disableMapping(MAPPING_NAME);
+        // RayPick.removeRayPick(_this.mouseRayPick);
+        RayPick.removeRayPick(_this.leftControllerRayPick);
+        RayPick.removeRayPick(_this.rightControllerRayPick);
     };
 
     Script.scriptEnding.connect(this.cleanup);

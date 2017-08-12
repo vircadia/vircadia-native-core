@@ -57,10 +57,12 @@ enableDispatcherModule = function (moduleName, module, priority) {
         controllerDispatcherPlugins = {};
     }
     controllerDispatcherPlugins[moduleName] = module;
+    controllerDispatcherPluginsNeedSort = true;
 };
 
 disableDispatcherModule = function (moduleName) {
     delete controllerDispatcherPlugins[moduleName];
+    controllerDispatcherPluginsNeedSort = true;
 };
 
 getGrabbableData = function (props) {
