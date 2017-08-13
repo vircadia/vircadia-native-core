@@ -9,7 +9,8 @@
 
 /* global Script, Entities, Overlays, Controller, Vec3, Quat, getControllerWorldLocation, RayPick,
    controllerDispatcherPlugins, controllerDispatcherPluginsNeedSort, entityIsGrabbable,
-   LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS */
+   LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS, DEFAULT_SEARCH_SPHERE_DISTANCE
+*/
 
 controllerDispatcherPlugins = {};
 controllerDispatcherPluginsNeedSort = false;
@@ -297,14 +298,16 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
     });
 
     this.leftControllerRayPick = RayPick.createRayPick({
-        joint: "Mouse",
+        joint: "_CONTROLLER_LEFTHAND",
         filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
-        enabled: true
+        enabled: true,
+        maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE
     });
     this.rightControllerRayPick = RayPick.createRayPick({
-        joint: "Mouse",
+        joint: "_CONTROLLER_RIGHTHAND",
         filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
-        enabled: true
+        enabled: true,
+        maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE
     });
 
 

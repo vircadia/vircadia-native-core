@@ -7,10 +7,10 @@
 
 /*jslint bitwise: true */
 
-/* global Script, Controller, LaserPointers, RayPick, RIGHT_HAND, LEFT_HAND,
-   getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues,
-   enableDispatcherModule, disableDispatcherModule,
-   makeDispatcherModuleParameters,
+/* global Script, Controller, LaserPointers, RayPick, RIGHT_HAND, LEFT_HAND, Mat4, MyAvatar, Vec3, Camera, Quat,
+   getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues, Entities, NULL_UUID,
+   enableDispatcherModule, disableDispatcherModule, entityIsDistanceGrabbable,
+   makeDispatcherModuleParameters, MSECS_PER_SEC, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
    AVATAR_SELF_ID, DEFAULT_SEARCH_SPHERE_DISTANCE, TRIGGER_OFF_VALUE, TRIGGER_ON_VALUE,
 
@@ -92,19 +92,26 @@ Script.include("/~/system/libraries/controllers.js");
         this.grabbedThingID = null;
         this.actionID = null; // action this script created...
 
+        var ACTION_TTL = 15; // seconds
+
+        var DISTANCE_HOLDING_RADIUS_FACTOR = 3.5; // multiplied by distance between hand and object
+        var DISTANCE_HOLDING_ACTION_TIMEFRAME = 0.1; // how quickly objects move to their new position
+        var DISTANCE_HOLDING_UNITY_MASS = 1200; //  The mass at which the distance holding action timeframe is unmodified
+        var DISTANCE_HOLDING_UNITY_DISTANCE = 6; //  The distance at which the distance holding action timeframe is unmodified
+
         this.parameters = makeDispatcherModuleParameters(
             550,
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100);
 
-        this.updateLaserPointer = function(controllerData, distanceHolding, distanceRotating) {
+        this.updateLaserPointer = function(controllerData) {
             var SEARCH_SPHERE_SIZE = 0.011;
             var MIN_SPHERE_SIZE = 0.0005;
             var radius = Math.max(1.2 * SEARCH_SPHERE_SIZE * this.intersectionDistance, MIN_SPHERE_SIZE);
             var dim = {x: radius, y: radius, z: radius};
             var mode = "hold";
-            if (!distanceHolding && !distanceRotating) {
+            if (!this.distanceHolding && !this.distanceRotating) {
                 // mode = (this.triggerSmoothedGrab() || this.secondarySqueezed()) ? "full" : "half";
                 if (controllerData.triggerClicks[this.hand]
                     // || this.secondarySqueezed() // XXX
@@ -127,7 +134,7 @@ Script.include("/~/system/libraries/controllers.js");
             }
             LaserPointers.enableLaserPointer(laserPointerID);
             LaserPointers.setRenderState(laserPointerID, mode);
-            if (distanceHolding || distanceRotating) {
+            if (this.distanceHolding || this.distanceRotating) {
                 LaserPointers.setLockEndUUID(laserPointerID, this.grabbedThingID, this.grabbedIsOverlay);
             } else {
                 LaserPointers.setLockEndUUID(laserPointerID, null, false);
@@ -144,10 +151,194 @@ Script.include("/~/system/libraries/controllers.js");
             return (this.hand === RIGHT_HAND) ? Controller.Standard.RightHand : Controller.Standard.LeftHand;
         };
 
+        this.distanceGrabTimescale = function(mass, distance) {
+            var timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME * mass /
+                DISTANCE_HOLDING_UNITY_MASS * distance /
+                DISTANCE_HOLDING_UNITY_DISTANCE;
+            if (timeScale < DISTANCE_HOLDING_ACTION_TIMEFRAME) {
+                timeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME;
+            }
+            return timeScale;
+        };
+
+        this.getMass = function(dimensions, density) {
+            return (dimensions.x * dimensions.y * dimensions.z) * density;
+        };
+
+        this.startFarGrabAction = function (controllerData, grabbedProperties) {
+            var controllerLocation = controllerData.controllerLocations[this.hand];
+            var worldControllerPosition = controllerLocation.position;
+            var worldControllerRotation = controllerLocation.orientation;
+
+            // transform the position into room space
+            var worldToSensorMat = Mat4.inverse(MyAvatar.getSensorToWorldMatrix());
+            var roomControllerPosition = Mat4.transformPoint(worldToSensorMat, worldControllerPosition);
+
+            var now = Date.now();
+
+            // add the action and initialize some variables
+            this.currentObjectPosition = grabbedProperties.position;
+            this.currentObjectRotation = grabbedProperties.rotation;
+            this.currentObjectTime = now;
+            this.currentCameraOrientation = Camera.orientation;
+
+            this.grabRadius = this.grabbedDistance;
+            this.grabRadialVelocity = 0.0;
+
+            // offset between controller vector at the grab radius and the entity position
+            var targetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(worldControllerRotation));
+            targetPosition = Vec3.sum(targetPosition, worldControllerPosition);
+            this.offsetPosition = Vec3.subtract(this.currentObjectPosition, targetPosition);
+
+            // compute a constant based on the initial conditions which we use below to exaggerate hand motion
+            // onto the held object
+            this.radiusScalar = Math.log(this.grabRadius + 1.0);
+            if (this.radiusScalar < 1.0) {
+                this.radiusScalar = 1.0;
+            }
+
+            // compute the mass for the purpose of energy and how quickly to move object
+            this.mass = this.getMass(grabbedProperties.dimensions, grabbedProperties.density);
+            var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, grabbedProperties.position));
+            var timeScale = this.distanceGrabTimescale(this.mass, distanceToObject);
+            this.linearTimeScale = timeScale;
+            this.actionID = NULL_UUID;
+            this.actionID = Entities.addAction("far-grab", this.grabbedThingID, {
+                targetPosition: this.currentObjectPosition,
+                linearTimeScale: timeScale,
+                targetRotation: this.currentObjectRotation,
+                angularTimeScale: timeScale,
+                tag: "far-grab-" + MyAvatar.sessionUUID,
+                ttl: ACTION_TTL
+            });
+            if (this.actionID === NULL_UUID) {
+                this.actionID = null;
+            }
+
+            // XXX
+            // if (this.actionID !== null) {
+            //     this.callEntityMethodOnGrabbed("startDistanceGrab");
+            // }
+
+            Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
+            this.turnOffVisualizations();
+            this.previousRoomControllerPosition = roomControllerPosition;
+        };
+
+        this.continueDistanceHolding = function(controllerData) {
+
+            var controllerLocation = controllerData.controllerLocations[this.hand];
+            var worldControllerPosition = controllerLocation.position;
+            var worldControllerRotation = controllerLocation.orientation;
+
+            // also transform the position into room space
+            var worldToSensorMat = Mat4.inverse(MyAvatar.getSensorToWorldMatrix());
+            var roomControllerPosition = Mat4.transformPoint(worldToSensorMat, worldControllerPosition);
+
+            var grabbedProperties = Entities.getEntityProperties(this.grabbedThingID, ["position"]);
+            var now = Date.now();
+            var deltaObjectTime = (now - this.currentObjectTime) / MSECS_PER_SEC; // convert to seconds
+            this.currentObjectTime = now;
+
+            // the action was set up when this.distanceHolding was called.  update the targets.
+            var radius = Vec3.distance(this.currentObjectPosition, worldControllerPosition) *
+                this.radiusScalar * DISTANCE_HOLDING_RADIUS_FACTOR;
+            if (radius < 1.0) {
+                radius = 1.0;
+            }
+
+            var roomHandDelta = Vec3.subtract(roomControllerPosition, this.previousRoomControllerPosition);
+            var worldHandDelta = Mat4.transformVector(MyAvatar.getSensorToWorldMatrix(), roomHandDelta);
+            var handMoved = Vec3.multiply(worldHandDelta, radius);
+            this.currentObjectPosition = Vec3.sum(this.currentObjectPosition, handMoved);
+
+            // XXX
+            // this.callEntityMethodOnGrabbed("continueDistantGrab");
+
+            //  Update radialVelocity
+            var lastVelocity = Vec3.multiply(worldHandDelta, 1.0 / deltaObjectTime);
+            var delta = Vec3.normalize(Vec3.subtract(grabbedProperties.position, worldControllerPosition));
+            var newRadialVelocity = Vec3.dot(lastVelocity, delta);
+
+            var VELOCITY_AVERAGING_TIME = 0.016;
+            var blendFactor = deltaObjectTime / VELOCITY_AVERAGING_TIME;
+            if (blendFactor < 0.0) {
+                blendFactor = 0.0;
+            } else if (blendFactor > 1.0) {
+                blendFactor = 1.0;
+            }
+            this.grabRadialVelocity = blendFactor * newRadialVelocity + (1.0 - blendFactor) * this.grabRadialVelocity;
+
+            var RADIAL_GRAB_AMPLIFIER = 10.0;
+            if (Math.abs(this.grabRadialVelocity) > 0.0) {
+                this.grabRadius = this.grabRadius + (this.grabRadialVelocity * deltaObjectTime *
+                                                     this.grabRadius * RADIAL_GRAB_AMPLIFIER);
+            }
+
+            // don't let grabRadius go all the way to zero, because it can't come back from that
+            var MINIMUM_GRAB_RADIUS = 0.1;
+            if (this.grabRadius < MINIMUM_GRAB_RADIUS) {
+                this.grabRadius = MINIMUM_GRAB_RADIUS;
+            }
+            var newTargetPosition = Vec3.multiply(this.grabRadius, Quat.getUp(worldControllerRotation));
+            newTargetPosition = Vec3.sum(newTargetPosition, worldControllerPosition);
+            newTargetPosition = Vec3.sum(newTargetPosition, this.offsetPosition);
+
+            // XXX
+            // this.maybeScale(grabbedProperties);
+
+            // visualizations
+            this.updateLaserPointer(controllerData);
+
+            var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, this.currentObjectPosition));
+
+            this.linearTimeScale = (this.linearTimeScale / 2);
+            if (this.linearTimeScale <= DISTANCE_HOLDING_ACTION_TIMEFRAME) {
+                this.linearTimeScale = DISTANCE_HOLDING_ACTION_TIMEFRAME;
+            }
+            var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
+                targetPosition: newTargetPosition,
+                linearTimeScale: this.linearTimeScale,
+                targetRotation: this.currentObjectRotation,
+                angularTimeScale: this.distanceGrabTimescale(this.mass, distanceToObject),
+                ttl: ACTION_TTL
+            });
+            if (!success) {
+                print("continueDistanceHolding -- updateAction failed: " + this.actionID);
+                this.actionID = null;
+            }
+
+            this.previousRoomControllerPosition = roomControllerPosition;
+        };
+
+        this.ensureDynamic = function () {
+            // if we distance hold something and keep it very still before releasing it, it ends up
+            // non-dynamic in bullet.  If it's too still, give it a little bounce so it will fall.
+            var props = Entities.getEntityProperties(this.grabbedThingID, ["velocity", "dynamic", "parentID"]);
+            if (props.dynamic && props.parentID == NULL_UUID) {
+                var velocity = props.velocity;
+                if (Vec3.length(velocity) < 0.05) { // see EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
+                    velocity = { x: 0.0, y: 0.2, z: 0.0 };
+                    Entities.editEntity(this.grabbedThingID, { velocity: velocity });
+                }
+            }
+        };
+
+        this.endNearGrabAction = function () {
+            this.ensureDynamic();
+            this.distanceHolding = false;
+            this.distanceRotating = false;
+            Entities.deleteAction(this.grabbedThingID, this.actionID);
+            this.actionID = null;
+            this.grabbedThingID = null;
+        };
+
         this.isReady = function (controllerData) {
+            this.distanceHolding = false;
+            this.distanceRotating = false;
 
             if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
-                this.updateLaserPointer(controllerData, false, false);
+                this.updateLaserPointer(controllerData);
                 return makeRunningValues(true, [], []);
             } else {
                 return makeRunningValues(false, [], []);
@@ -156,6 +347,7 @@ Script.include("/~/system/libraries/controllers.js");
 
         this.run = function (controllerData) {
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE) {
+                this.endNearGrabAction();
                 this.laserPointerOff();
                 return makeRunningValues(false, [], []);
             }
@@ -173,20 +365,49 @@ Script.include("/~/system/libraries/controllers.js");
                 nearGrabReadiness.push(ready);
             }
 
-            // if we are doing a distance search and this controller moves into a position
-            // where it could near-grab something, stop searching.
-            for (var j = 0; j < nearGrabReadiness.length; j++) {
-                if (nearGrabReadiness[j].active) {
-                    this.laserPointerOff();
-                    return makeRunningValues(false, [], []);
+            if (this.actionID) {
+                this.continueDistanceHolding(controllerData);
+                // this.updateLaserPointer(controllerData, false, false);
+
+                // var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+                // Entities.callEntityMethod(this.grabbedThingID, "continueFarGrab", args);
+            } else {
+                var rayPickInfo = controllerData.rayPicks[this.hand];
+                if (rayPickInfo.type == RayPick.INTERSECTED_ENTITY) {
+                    var entityID = rayPickInfo.objectID;
+                    print("QQQ rayPickInfo.entityID = " + entityID);
+                    var targetProps = Entities.getEntityProperties(entityID, ["dynamic", "shapeType", "position",
+                                                                              "rotation", "dimensions", "density",
+                                                                              "userData", "locked", "type"]);
+                    if (entityIsDistanceGrabbable(targetProps)) {
+                        print("QQQ is distance grabbable");
+                        this.grabbedThingID = entityID;
+                        this.grabbedDistance = rayPickInfo.distance;
+                        var otherModuleName = this.hand == RIGHT_HAND ? "LeftFarActionGrabEntity" : "RightFarActionGrabEntity";
+                        var otherFarGrabModule = getEnabledModuleByName(otherModuleName);
+                        if (otherFarGrabModule.grabbedThingID == this.grabbedThingID) {
+                            this.distanceRotating = true;
+                            this.distanceHolding = false;
+                            // XXX rotate
+                        } else {
+                            this.distanceHolding = true;
+                            this.distanceRotating = false;
+                            this.startFarGrabAction(controllerData, targetProps);
+                        }
+                    } else {
+                        print("QQQ is NOT distance grabbable");
+                    }
+                }
+
+                // if we are doing a distance search and this controller moves into a position
+                // where it could near-grab something, stop searching.
+                for (var j = 0; j < nearGrabReadiness.length; j++) {
+                    if (nearGrabReadiness[j].active) {
+                        this.laserPointerOff();
+                        return makeRunningValues(false, [], []);
+                    }
                 }
             }
-            
-            // this.updateLaserPointer(controllerData, false, false);
-
-            // var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-            // Entities.callEntityMethod(this.grabbedThingID, "continueFarGrab", args);
-
             return makeRunningValues(true, [], []);
         };
 

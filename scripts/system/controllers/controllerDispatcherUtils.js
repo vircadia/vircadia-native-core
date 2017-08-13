@@ -6,7 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 
-/* global Camera, HMD, MyAvatar, controllerDispatcherPlugins,
+/* global Camera, HMD, MyAvatar, controllerDispatcherPlugins, Quat, Vec3, Overlays,
    MSECS_PER_SEC, LEFT_HAND, RIGHT_HAND, NULL_UUID, AVATAR_SELF_ID, FORBIDDEN_GRAB_TYPES,
    HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, ZERO_VEC, ONE_VEC, DEFAULT_REGISTRATION_POINT, INCHES_TO_METERS,
    TRIGGER_OFF_VALUE,
@@ -24,6 +24,7 @@
    getEnabledModuleByName,
    getGrabbableData,
    entityIsGrabbable,
+   entityIsDistanceGrabbable,
    getControllerJointIndex,
    propsArePhysical,
    controllerDispatcherPluginsNeedSort,
@@ -139,6 +140,32 @@ entityIsGrabbable = function (props) {
     return true;
 };
 
+entityIsDistanceGrabbable = function(props) {
+    if (!entityIsGrabbable(props)) {
+        return false;
+    }
+
+    // we can't distance-grab non-physical
+    var isPhysical = propsArePhysical(props);
+    if (!isPhysical) {
+        return false;
+    }
+
+    // XXX
+    // var distance = Vec3.distance(props.position, handPosition);
+    // this.otherGrabbingUUID = entityIsGrabbedByOther(entityID);
+    // if (this.otherGrabbingUUID !== null) {
+    //     // don't distance grab something that is already grabbed.
+    //     if (debug) {
+    //         print("distance grab is skipping '" + props.name + "': already grabbed by another.");
+    //     }
+    //     return false;
+    // }
+
+    return true;
+};
+
+
 getControllerJointIndex = function (hand) {
     if (HMD.isHandControllerAvailable()) {
         var controllerJointIndex = -1;
@@ -175,11 +202,11 @@ projectOntoXYPlane = function (worldPos, position, rotation, dimensions, registr
     var normalizedPos = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), registrationPoint);
     return { x: normalizedPos.x * dimensions.x,
              y: (1 - normalizedPos.y) * dimensions.y }; // flip y-axis
-}
+};
 
 projectOntoEntityXYPlane = function (entityID, worldPos, props) {
     return projectOntoXYPlane(worldPos, props.position, props.rotation, props.dimensions, props.registrationPoint);
-}
+};
 
 projectOntoOverlayXYPlane = function projectOntoOverlayXYPlane(overlayID, worldPos) {
     var position = Overlays.getProperty(overlayID, "position");
@@ -202,4 +229,4 @@ projectOntoOverlayXYPlane = function projectOntoOverlayXYPlane(overlayID, worldP
     }
 
     return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
-}
+};
