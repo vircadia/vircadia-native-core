@@ -366,21 +366,38 @@ Script.include("/~/system/libraries/controllers.js");
             }
 
             if (this.actionID) {
+                // if we are doing a distance grab and the object gets close enough to the controller,
+                // stop the far-grab so the near-grab or equip can take over.
+                for (var k = 0; k < nearGrabReadiness.length; k++) {
+                    if (nearGrabReadiness[k].active && nearGrabReadiness[k].targets[0] == this.grabbedThingID) {
+                        this.laserPointerOff();
+                        this.endNearGrabAction();
+                        return makeRunningValues(false, [], []);
+                    }
+                }
+
                 this.continueDistanceHolding(controllerData);
                 // this.updateLaserPointer(controllerData, false, false);
 
                 // var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
                 // Entities.callEntityMethod(this.grabbedThingID, "continueFarGrab", args);
             } else {
+                // if we are doing a distance search and this controller moves into a position
+                // where it could near-grab something, stop searching.
+                for (var j = 0; j < nearGrabReadiness.length; j++) {
+                    if (nearGrabReadiness[j].active) {
+                        this.laserPointerOff();
+                        return makeRunningValues(false, [], []);
+                    }
+                }
+
                 var rayPickInfo = controllerData.rayPicks[this.hand];
                 if (rayPickInfo.type == RayPick.INTERSECTED_ENTITY) {
                     var entityID = rayPickInfo.objectID;
-                    print("QQQ rayPickInfo.entityID = " + entityID);
                     var targetProps = Entities.getEntityProperties(entityID, ["dynamic", "shapeType", "position",
                                                                               "rotation", "dimensions", "density",
                                                                               "userData", "locked", "type"]);
                     if (entityIsDistanceGrabbable(targetProps)) {
-                        print("QQQ is distance grabbable");
                         this.grabbedThingID = entityID;
                         this.grabbedDistance = rayPickInfo.distance;
                         var otherModuleName = this.hand == RIGHT_HAND ? "LeftFarActionGrabEntity" : "RightFarActionGrabEntity";
@@ -394,17 +411,6 @@ Script.include("/~/system/libraries/controllers.js");
                             this.distanceRotating = false;
                             this.startFarGrabAction(controllerData, targetProps);
                         }
-                    } else {
-                        print("QQQ is NOT distance grabbable");
-                    }
-                }
-
-                // if we are doing a distance search and this controller moves into a position
-                // where it could near-grab something, stop searching.
-                for (var j = 0; j < nearGrabReadiness.length; j++) {
-                    if (nearGrabReadiness[j].active) {
-                        this.laserPointerOff();
-                        return makeRunningValues(false, [], []);
                     }
                 }
             }
