@@ -8,7 +8,7 @@
 /*jslint bitwise: true */
 
 /* global Script, Controller, LaserPointers, RayPick, RIGHT_HAND, LEFT_HAND,
-   getGrabPointSphereOffset, entityIsGrabbable,
+   getGrabPointSphereOffset, getEnabledModuleByName, makeRunningValues,
    enableDispatcherModule, disableDispatcherModule,
    makeDispatcherModuleParameters,
    PICK_MAX_DISTANCE, COLORS_GRAB_SEARCHING_HALF_SQUEEZE, COLORS_GRAB_SEARCHING_FULL_SQUEEZE, COLORS_GRAB_DISTANCE_HOLD,
@@ -135,8 +135,8 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.laserPointerOff = function() {
-            var laserPointerID = PICK_WITH_HAND_RAY ? this.laserPointer : this.headLaserPointer;
-            LaserPointers.disableLaserPointer(laserPointerID);
+            LaserPointers.disableLaserPointer(this.laserPointer);
+            LaserPointers.disableLaserPointer(this.headLaserPointer);
         };
 
 
@@ -145,38 +145,49 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.isReady = function (controllerData) {
+
             if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
                 this.updateLaserPointer(controllerData, false, false);
-                return true;
+                return makeRunningValues(true, [], []);
             } else {
-                return false;
+                return makeRunningValues(false, [], []);
             }
         };
 
         this.run = function (controllerData) {
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE) {
                 this.laserPointerOff();
-                return false;
+                return makeRunningValues(false, [], []);
             }
 
+            // gather up the readiness of the near-grab modules
+            var nearGrabNames = [
+                this.hand === RIGHT_HAND ? "RightNearActionGrabEntity" : "LeftNearActionGrabEntity",
+                this.hand === RIGHT_HAND ? "RightNearParentingGrabEntity" : "LeftNearParentingGrabEntity",
+                this.hand === RIGHT_HAND ? "RightNearParentingGrabOverlay" : "LeftNearParentingGrabOverlay"
+            ];
+            var nearGrabReadiness = [];
+            for (var i = 0; i < nearGrabNames.length; i++) {
+                var nearGrabModule = getEnabledModuleByName(nearGrabNames[i]);
+                var ready = nearGrabModule ? nearGrabModule.isReady(controllerData) : makeRunningValues(false, [], []);
+                nearGrabReadiness.push(ready);
+            }
 
             // if we are doing a distance search and this controller moves into a position
             // where it could near-grab something, stop searching.
-            var nearbyEntityProperties = controllerData.nearbyEntityProperties[this.hand];
-            for (var i = 0; i < nearbyEntityProperties.length; i++) {
-                var props = nearbyEntityProperties[i];
-                if (entityIsGrabbable(props)) {
+            for (var j = 0; j < nearGrabReadiness.length; j++) {
+                if (nearGrabReadiness[j].active) {
                     this.laserPointerOff();
-                    return false;
+                    return makeRunningValues(false, [], []);
                 }
             }
-
+            
             // this.updateLaserPointer(controllerData, false, false);
 
             // var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             // Entities.callEntityMethod(this.grabbedThingID, "continueFarGrab", args);
 
-            return true;
+            return makeRunningValues(true, [], []);
         };
 
         this.cleanup = function () {

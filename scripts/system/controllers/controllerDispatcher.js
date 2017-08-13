@@ -240,11 +240,14 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             var orderedPluginName = this.orderedPluginNames[pluginIndex];
             var candidatePlugin = controllerDispatcherPlugins[orderedPluginName];
 
-            if (_this.slotsAreAvailableForPlugin(candidatePlugin) && candidatePlugin.isReady(controllerData, deltaTime)) {
-                // this plugin will start.  add it to the list of running plugins and mark the
-                // activity-slots which this plugin consumes as "in use"
-                _this.runningPluginNames[orderedPluginName] = true;
-                _this.markSlots(candidatePlugin, orderedPluginName);
+            if (_this.slotsAreAvailableForPlugin(candidatePlugin)) {
+                var readiness = candidatePlugin.isReady(controllerData, deltaTime);
+                if (readiness.active) {
+                    // this plugin will start.  add it to the list of running plugins and mark the
+                    // activity-slots which this plugin consumes as "in use"
+                    _this.runningPluginNames[orderedPluginName] = true;
+                    _this.markSlots(candidatePlugin, orderedPluginName);
+                }
             }
         }
 
@@ -257,11 +260,14 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                     // them available.
                     delete _this.runningPluginNames[runningPluginName];
                     _this.unmarkSlotsForPluginName(runningPluginName);
-                } else if (!plugin.run(controllerData, deltaTime)) {
-                    // plugin is finished running, for now.  remove it from the list
-                    // of running plugins and mark its activity-slots as "not in use"
-                    delete _this.runningPluginNames[runningPluginName];
-                    _this.markSlots(plugin, false);
+                } else {
+                    var runningness = plugin.run(controllerData, deltaTime);
+                    if (!runningness.active) {
+                        // plugin is finished running, for now.  remove it from the list
+                        // of running plugins and mark its activity-slots as "not in use"
+                        delete _this.runningPluginNames[runningPluginName];
+                        _this.markSlots(plugin, false);
+                    }
                 }
             }
         }

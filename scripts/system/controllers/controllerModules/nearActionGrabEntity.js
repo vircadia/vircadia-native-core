@@ -8,7 +8,8 @@
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
    getControllerJointIndex, getGrabbableData, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
    propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, entityIsGrabbable,
-   Quat, Vec3, MSECS_PER_SEC, getControllerWorldLocation, makeDispatcherModuleParameters
+   Quat, Vec3, MSECS_PER_SEC, getControllerWorldLocation, makeDispatcherModuleParameters, makeRunningValues,
+   TRIGGER_OFF_VALUE
 */
 
 Script.include("/~/system/controllers/controllerDispatcherUtils.js");
@@ -18,7 +19,7 @@ Script.include("/~/system/libraries/controllers.js");
 
     function NearActionGrabEntity(hand) {
         this.hand = hand;
-        this.grabbedThingID = null;
+        this.targetEntityID = null;
         this.actionID = null; // action this script created...
 
         this.parameters = makeDispatcherModuleParameters(
@@ -54,10 +55,10 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
 
-        this.startNearGrabAction = function (controllerData, grabbedProperties) {
+        this.startNearGrabAction = function (controllerData, targetProps) {
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
-            var grabbableData = getGrabbableData(grabbedProperties);
+            var grabbableData = getGrabbableData(targetProps);
             this.ignoreIK = grabbableData.ignoreIK;
             this.kinematicGrab = grabbableData.kinematicGrab;
 
@@ -74,10 +75,10 @@ Script.include("/~/system/libraries/controllers.js");
                 handPosition = this.getHandPosition();
             }
 
-            var objectRotation = grabbedProperties.rotation;
+            var objectRotation = targetProps.rotation;
             this.offsetRotation = Quat.multiply(Quat.inverse(handRotation), objectRotation);
 
-            var currentObjectPosition = grabbedProperties.position;
+            var currentObjectPosition = targetProps.position;
             var offset = Vec3.subtract(currentObjectPosition, handPosition);
             this.offsetPosition = Vec3.multiplyQbyV(Quat.inverse(Quat.multiply(handRotation, this.offsetRotation)), offset);
 
@@ -85,9 +86,9 @@ Script.include("/~/system/libraries/controllers.js");
             this.actionTimeout = now + (ACTION_TTL * MSECS_PER_SEC);
 
             if (this.actionID) {
-                Entities.deleteAction(this.grabbedThingID, this.actionID);
+                Entities.deleteAction(this.targetEntityID, this.actionID);
             }
-            this.actionID = Entities.addAction("hold", this.grabbedThingID, {
+            this.actionID = Entities.addAction("hold", this.targetEntityID, {
                 hand: this.hand === RIGHT_HAND ? "right" : "left",
                 timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
                 relativePosition: this.offsetPosition,
@@ -104,17 +105,9 @@ Script.include("/~/system/libraries/controllers.js");
 
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'grab',
-                grabbedEntity: this.grabbedThingID,
+                grabbedEntity: this.targetEntityID,
                 joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
             }));
-        };
-
-        // this is for when the action creation failed, before
-        this.restartNearGrabAction = function (controllerData) {
-            var props = Entities.getEntityProperties(this.grabbedThingID, ["position", "rotation", "userData"]);
-            if (props && entityIsGrabbable(props)) {
-                this.startNearGrabAction(controllerData, props);
-            }
         };
 
         // this is for when the action is going to time-out
@@ -122,7 +115,7 @@ Script.include("/~/system/libraries/controllers.js");
             var now = Date.now();
             if (this.actionID && this.actionTimeout - now < ACTION_TTL_REFRESH * MSECS_PER_SEC) {
                 // if less than a 5 seconds left, refresh the actions ttl
-                var success = Entities.updateAction(this.grabbedThingID, this.actionID, {
+                var success = Entities.updateAction(this.targetEntityID, this.actionID, {
                     hand: this.hand === RIGHT_HAND ? "right" : "left",
                     timeScale: NEAR_GRABBING_ACTION_TIMEFRAME,
                     relativePosition: this.offsetPosition,
@@ -134,74 +127,101 @@ Script.include("/~/system/libraries/controllers.js");
                 });
                 if (success) {
                     this.actionTimeout = now + (ACTION_TTL * MSECS_PER_SEC);
-                } else {
-                    print("continueNearGrabbing -- updateAction failed");
-                    this.restartNearGrabAction(controllerData);
                 }
             }
         };
 
-        this.endNearGrabAction = function (controllerData) {
+        this.endNearGrabAction = function () {
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-            Entities.callEntityMethod(this.grabbedThingID, "releaseGrab", args);
+            Entities.callEntityMethod(this.targetEntityID, "releaseGrab", args);
 
-            Entities.deleteAction(this.grabbedThingID, this.actionID);
+            Entities.deleteAction(this.targetEntityID, this.actionID);
             this.actionID = null;
 
-            this.grabbedThingID = null;
+            this.targetEntityID = null;
         };
 
-        this.isReady = function (controllerData) {
-            if (controllerData.triggerClicks[this.hand] == 0) {
-                return false;
-            }
-
-            var grabbedProperties = null;
-            // nearbyEntityProperties is already sorted by length from controller
+        this.getTargetProps = function (controllerData) {
+            // nearbyEntityProperties is already sorted by distance from controller
             var nearbyEntityProperties = controllerData.nearbyEntityProperties[this.hand];
             for (var i = 0; i < nearbyEntityProperties.length; i++) {
                 var props = nearbyEntityProperties[i];
                 if (entityIsGrabbable(props)) {
-                    grabbedProperties = props;
-                    break;
+                    return props;
                 }
             }
+            return null;
+        };
 
-            if (grabbedProperties) {
-                if (!propsArePhysical(grabbedProperties)) {
-                    return false; // let nearParentGrabEntity handle it
+        this.isReady = function (controllerData) {
+            this.targetEntityID = null;
+
+            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE) {
+                makeRunningValues(false, [], []);
+            }
+
+            var targetProps = this.getTargetProps(controllerData);
+            if (targetProps) {
+                if (!propsArePhysical(targetProps)) {
+                    // XXX make sure no highlights are enabled from this module
+                    return makeRunningValues(false, [], []); // let nearParentGrabEntity handle it
+                } else {
+                    this.targetEntityID = targetProps.id;
+                    // XXX highlight this.targetEntityID here
+                    return makeRunningValues(true, [this.targetEntityID], []);
                 }
-                this.grabbedThingID = grabbedProperties.id;
-                this.startNearGrabAction(controllerData, grabbedProperties);
-                return true;
             } else {
-                return false;
+                // XXX make sure no highlights are enabled from this module
+                return makeRunningValues(false, [], []);
             }
         };
 
         this.run = function (controllerData) {
-            if (controllerData.triggerClicks[this.hand] == 0) {
-                this.endNearGrabAction(controllerData);
-                return false;
+            if (this.actionID) {
+                if (controllerData.triggerClicks[this.hand] == 0) {
+                    this.endNearGrabAction();
+                    return makeRunningValues(false, [], []);
+                }
+
+                this.refreshNearGrabAction(controllerData);
+
+                var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+                Entities.callEntityMethod(this.targetEntityID, "continueNearGrab", args);
+            } else {
+                                // still searching / highlighting
+                var readiness = this.isReady (controllerData);
+                if (!readiness.active) {
+                    return readiness;
+                }
+                if (controllerData.triggerClicks[this.hand] == 1) {
+                    // stop highlighting, switch to grabbing
+                    // XXX stop highlight here
+                    var targetProps = this.getTargetProps(controllerData);
+                    if (targetProps) {
+                        this.startNearGrabAction(controllerData, targetProps);
+                    }
+                }
             }
 
-            if (!this.actionID) {
-                this.restartNearGrabAction(controllerData);
+            return makeRunningValues(true, [this.targetEntityID], []);
+        };
+
+        this.cleanup = function () {
+            if (this.targetEntityID) {
+                this.endNearGrabAction();
             }
-
-            this.refreshNearGrabAction(controllerData);
-
-            var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-            Entities.callEntityMethod(this.grabbedThingID, "continueNearGrab", args);
-
-            return true;
         };
     }
 
-    enableDispatcherModule("LeftNearActionGrabEntity", new NearActionGrabEntity(LEFT_HAND));
-    enableDispatcherModule("RightNearActionGrabEntity", new NearActionGrabEntity(RIGHT_HAND));
+    var leftNearActionGrabEntity = new NearActionGrabEntity(LEFT_HAND);
+    var rightNearActionGrabEntity = new NearActionGrabEntity(RIGHT_HAND);
+
+    enableDispatcherModule("LeftNearActionGrabEntity", leftNearActionGrabEntity);
+    enableDispatcherModule("RightNearActionGrabEntity", rightNearActionGrabEntity);
 
     this.cleanup = function () {
+        leftNearActionGrabEntity.cleanup();
+        rightNearActionGrabEntity.cleanup();
         disableDispatcherModule("LeftNearActionGrabEntity");
         disableDispatcherModule("RightNearActionGrabEntity");
     };

@@ -8,8 +8,8 @@
 
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID,
    getControllerJointIndex, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
-   propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
-   makeDispatcherModuleParameters, entityIsGrabbable
+   propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, TRIGGER_OFF_VALUE,
+   makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues
 */
 
 Script.include("/~/system/controllers/controllerDispatcherUtils.js");
@@ -21,7 +21,8 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
 
     function NearParentingGrabEntity(hand) {
         this.hand = hand;
-        this.grabbedThingID = null;
+        this.targetEntityID = null;
+        this.grabbing = false;
         this.previousParentID = {};
         this.previousParentJointIndex = {};
         this.previouslyUnhooked = {};
@@ -62,7 +63,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             return false;
         };
 
-        this.startNearParentingGrabEntity = function (controllerData, grabbedProperties) {
+        this.startNearParentingGrabEntity = function (controllerData, targetProps) {
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
             var handJointIndex;
@@ -74,7 +75,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             handJointIndex = this.controllerJointIndex;
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-            Entities.callEntityMethod(this.grabbedThingID, "startNearGrab", args);
+            Entities.callEntityMethod(targetProps.id, "startNearGrab", args);
 
             var reparentProps = {
                 parentID: AVATAR_SELF_ID,
@@ -83,90 +84,127 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                 angularVelocity: {x: 0, y: 0, z: 0}
             };
 
-            if (this.thisHandIsParent(grabbedProperties)) {
+            if (this.thisHandIsParent(targetProps)) {
                 // this should never happen, but if it does, don't set previous parent to be this hand.
-                // this.previousParentID[this.grabbedThingID] = NULL;
-                // this.previousParentJointIndex[this.grabbedThingID] = -1;
+                // this.previousParentID[targetProps.id] = NULL;
+                // this.previousParentJointIndex[targetProps.id] = -1;
             } else {
-                this.previousParentID[this.grabbedThingID] = grabbedProperties.parentID;
-                this.previousParentJointIndex[this.grabbedThingID] = grabbedProperties.parentJointIndex;
+                this.previousParentID[targetProps.id] = targetProps.parentID;
+                this.previousParentJointIndex[targetProps.id] = targetProps.parentJointIndex;
             }
-            Entities.editEntity(this.grabbedThingID, reparentProps);
+            Entities.editEntity(targetProps.id, reparentProps);
 
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'grab',
-                grabbedEntity: this.grabbedThingID,
+                grabbedEntity: targetProps.id,
                 joint: this.hand === RIGHT_HAND ? "RightHand" : "LeftHand"
             }));
         };
 
-        this.endNearParentingGrabEntity = function (controllerData) {
-            if (this.previousParentID[this.grabbedThingID] === NULL_UUID) {
-                Entities.editEntity(this.grabbedThingID, {
-                    parentID: this.previousParentID[this.grabbedThingID],
-                    parentJointIndex: this.previousParentJointIndex[this.grabbedThingID]
+        this.endNearParentingGrabEntity = function () {
+            if (this.previousParentID[this.targetEntityID] === NULL_UUID) {
+                Entities.editEntity(this.targetEntityID, {
+                    parentID: this.previousParentID[this.targetEntityID],
+                    parentJointIndex: this.previousParentJointIndex[this.targetEntityID]
                 });
             } else {
                 // we're putting this back as a child of some other parent, so zero its velocity
-                Entities.editEntity(this.grabbedThingID, {
-                    parentID: this.previousParentID[this.grabbedThingID],
-                    parentJointIndex: this.previousParentJointIndex[this.grabbedThingID],
+                Entities.editEntity(this.targetEntityID, {
+                    parentID: this.previousParentID[this.targetEntityID],
+                    parentJointIndex: this.previousParentJointIndex[this.targetEntityID],
                     velocity: {x: 0, y: 0, z: 0},
                     angularVelocity: {x: 0, y: 0, z: 0}
                 });
             }
 
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-            Entities.callEntityMethod(this.grabbedThingID, "releaseGrab", args);
+            Entities.callEntityMethod(this.targetEntityID, "releaseGrab", args);
 
-            this.grabbedThingID = null;
+            this.grabbing = false;
+            this.targetEntityID = null;
         };
 
-        this.isReady = function (controllerData) {
-            if (controllerData.triggerClicks[this.hand] == 0) {
-                return false;
-            }
-
-            var grabbedProperties = null;
+        this.getTargetProps = function (controllerData) {
             // nearbyEntityProperties is already sorted by length from controller
             var nearbyEntityProperties = controllerData.nearbyEntityProperties[this.hand];
             for (var i = 0; i < nearbyEntityProperties.length; i++) {
                 var props = nearbyEntityProperties[i];
                 if (entityIsGrabbable(props)) {
-                    grabbedProperties = props;
-                    break;
+                    return props;
                 }
             }
+            return null;
+        };
 
-            if (grabbedProperties) {
-                if (propsArePhysical(grabbedProperties)) {
-                    return false; // let nearActionGrabEntity handle it
+        this.isReady = function (controllerData) {
+            this.targetEntityID = null;
+            this.grabbing = false;
+
+            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE) {
+                makeRunningValues(false, [], []);
+            }
+
+            var targetProps = this.getTargetProps(controllerData);
+            if (targetProps) {
+                if (propsArePhysical(targetProps)) {
+                    // XXX make sure no highlights are enabled from this module
+                    return makeRunningValues(false, [], []); // let nearActionGrabEntity handle it
+                } else {
+                    this.targetEntityID = targetProps.id;
+                    // XXX highlight this.targetEntityID here
+                    return makeRunningValues(true, [this.targetEntityID], []);
                 }
-                this.grabbedThingID = grabbedProperties.id;
-                this.startNearParentingGrabEntity(controllerData, grabbedProperties);
-                return true;
             } else {
-                return false;
+                // XXX make sure no highlights are enabled from this module
+                return makeRunningValues(false, [], []);
             }
         };
 
         this.run = function (controllerData) {
-            if (controllerData.triggerClicks[this.hand] == 0) {
-                this.endNearParentingGrabEntity(controllerData);
-                return false;
+            if (this.grabbing) {
+                if (controllerData.triggerClicks[this.hand] == 0) {
+                    this.endNearParentingGrabEntity();
+                    return makeRunningValues(false, [], []);
+                }
+
+                var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+                Entities.callEntityMethod(this.targetEntityID, "continueNearGrab", args);
+            } else {
+                // still searching / highlighting
+                var readiness = this.isReady (controllerData);
+                if (!readiness.active) {
+                    return readiness;
+                }
+                if (controllerData.triggerClicks[this.hand] == 1) {
+                    // stop highlighting, switch to grabbing
+                    // XXX stop highlight here
+                    var targetProps = this.getTargetProps(controllerData);
+                    if (targetProps) {
+                        this.grabbing = true;
+                        this.startNearParentingGrabEntity(controllerData, targetProps);
+                    }
+                }
             }
 
-            var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
-            Entities.callEntityMethod(this.grabbedThingID, "continueNearGrab", args);
+            return makeRunningValues(true, [this.targetEntityID], []);
+        };
 
-            return true;
+        this.cleanup = function () {
+            if (this.targetEntityID) {
+                this.endNearParentingGrabEntity();
+            }
         };
     }
 
-    enableDispatcherModule("LeftNearParentingGrabEntity", new NearParentingGrabEntity(LEFT_HAND));
-    enableDispatcherModule("RightNearParentingGrabEntity", new NearParentingGrabEntity(RIGHT_HAND));
+    var leftNearParentingGrabEntity = new NearParentingGrabEntity(LEFT_HAND);
+    var rightNearParentingGrabEntity = new NearParentingGrabEntity(RIGHT_HAND);
+
+    enableDispatcherModule("LeftNearParentingGrabEntity", leftNearParentingGrabEntity);
+    enableDispatcherModule("RightNearParentingGrabEntity", rightNearParentingGrabEntity);
 
     this.cleanup = function () {
+        leftNearParentingGrabEntity.cleanup();
+        rightNearParentingGrabEntity.cleanup();
         disableDispatcherModule("LeftNearParentingGrabEntity");
         disableDispatcherModule("RightNearParentingGrabEntity");
     };

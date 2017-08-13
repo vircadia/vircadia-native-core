@@ -18,8 +18,10 @@
    COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
    COLORS_GRAB_DISTANCE_HOLD,
    makeDispatcherModuleParameters,
+   makeRunningValues,
    enableDispatcherModule,
    disableDispatcherModule,
+   getEnabledModuleByName,
    getGrabbableData,
    entityIsGrabbable,
    getControllerJointIndex,
@@ -61,17 +63,24 @@ COLORS_GRAB_DISTANCE_HOLD = { red: 238, green: 75, blue: 214 };
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
 // activitySlots -- indicates which "slots" must not yet be in use for this module to start
-// requiredDataForStart -- which "situation" parts this module looks at to decide if it will start
+// requiredDataForReady -- which "situation" parts this module looks at to decide if it will start
 // sleepMSBetweenRuns -- how long to wait between calls to this module's "run" method
-makeDispatcherModuleParameters = function (priority, activitySlots, requiredDataForStart, sleepMSBetweenRuns) {
+makeDispatcherModuleParameters = function (priority, activitySlots, requiredDataForReady, sleepMSBetweenRuns) {
     return {
         priority: priority,
         activitySlots: activitySlots,
-        requiredDataForStart: requiredDataForStart,
+        requiredDataForReady: requiredDataForReady,
         sleepMSBetweenRuns: sleepMSBetweenRuns
     };
 };
 
+makeRunningValues = function (active, targets, requiredDataForRun) {
+    return {
+        active: active,
+        targets: targets,
+        requiredDataForRun: requiredDataForRun
+    };
+};
 
 enableDispatcherModule = function (moduleName, module, priority) {
     if (!controllerDispatcherPlugins) {
@@ -84,6 +93,13 @@ enableDispatcherModule = function (moduleName, module, priority) {
 disableDispatcherModule = function (moduleName) {
     delete controllerDispatcherPlugins[moduleName];
     controllerDispatcherPluginsNeedSort = true;
+};
+
+getEnabledModuleByName = function (moduleName) {
+    if (controllerDispatcherPlugins.hasOwnProperty(moduleName)) {
+        return controllerDispatcherPlugins[moduleName];
+    }
+    return null;
 };
 
 getGrabbableData = function (props) {

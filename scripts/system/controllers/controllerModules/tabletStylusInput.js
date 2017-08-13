@@ -6,7 +6,7 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND,
-   NULL_UUID, enableDispatcherModule, disableDispatcherModule,
+   NULL_UUID, enableDispatcherModule, disableDispatcherModule, makeRunningValues,
    Messages, Quat, Vec3, getControllerWorldLocation, makeDispatcherModuleParameters, Overlays, ZERO_VEC,
    AVATAR_SELF_ID, HMD, INCHES_TO_METERS, DEFAULT_REGISTRATION_POINT, Settings, getGrabPointSphereOffset
 */
@@ -643,7 +643,11 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.isReady = function (controllerData) {
-            return this.processStylus(controllerData);
+            if (this.processStylus(controllerData)) {
+                return makeRunningValues(true, [], []);
+            } else {
+                return makeRunningValues(false, [], []);
+            }
         };
 
         this.run = function (controllerData, deltaTime) {
@@ -660,7 +664,11 @@ Script.include("/~/system/libraries/controllers.js");
             if (this.stylusTouchingTarget) {
                 this.stylusTouching(controllerData, deltaTime);
             }
-            return this.processStylus(controllerData);
+            if (this.processStylus(controllerData)) {
+                return makeRunningValues(true, [], []);
+            } else {
+                return makeRunningValues(false, [], []);
+            }
         };
 
         this.cleanup = function () {
@@ -674,12 +682,11 @@ Script.include("/~/system/libraries/controllers.js");
     enableDispatcherModule("LeftTabletStylusInput", leftTabletStylusInput);
     enableDispatcherModule("RightTabletStylusInput", rightTabletStylusInput);
 
-
     this.cleanup = function () {
-        disableDispatcherModule("LeftTabletStylusInput");
-        disableDispatcherModule("RightTabletStylusInput");
         leftTabletStylusInput.cleanup();
         rightTabletStylusInput.cleanup();
+        disableDispatcherModule("LeftTabletStylusInput");
+        disableDispatcherModule("RightTabletStylusInput");
     };
     Script.scriptEnding.connect(this.cleanup);
 }());

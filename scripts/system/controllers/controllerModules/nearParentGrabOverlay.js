@@ -9,7 +9,7 @@
 /* global Script, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID,
    getControllerJointIndex, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
    Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION,
-   makeDispatcherModuleParameters, Overlays
+   makeDispatcherModuleParameters, Overlays, makeRunningValues
 */
 
 Script.include("/~/system/controllers/controllerDispatcherUtils.js");
@@ -106,7 +106,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             }));
         };
 
-        this.endNearParentingGrabOverlay = function (controllerData) {
+        this.endNearParentingGrabOverlay = function () {
             if (this.previousParentID[this.grabbedThingID] === NULL_UUID) {
                 Overlays.editOverlay(this.grabbedThingID, {
                     parentID: NULL_UUID,
@@ -125,7 +125,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
 
         this.isReady = function (controllerData) {
             if (controllerData.triggerClicks[this.hand] == 0) {
-                return false;
+                return makeRunningValues(false, [], []);
             }
 
             this.grabbedThingID = null;
@@ -138,26 +138,37 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             if (grabbableOverlays.length > 0) {
                 this.grabbedThingID = grabbableOverlays[0];
                 this.startNearParentingGrabOverlay(controllerData);
-                return true;
+                return makeRunningValues(true, [this.grabbedThingID], []);
             } else {
-                return false;
+                return makeRunningValues(false, [], []);
             }
         };
 
         this.run = function (controllerData) {
             if (controllerData.triggerClicks[this.hand] == 0) {
-                this.endNearParentingGrabOverlay(controllerData);
-                return false;
+                this.endNearParentingGrabOverlay();
+                return makeRunningValues(false, [], []);
             } else {
-                return true;
+                return makeRunningValues(true, [this.grabbedThingID], []);
+            }
+        };
+
+        this.cleanup = function () {
+            if (this.grabbedThingID) {
+                this.endNearParentingGrabOverlay();
             }
         };
     }
 
-    enableDispatcherModule("LeftNearParentingGrabOverlay", new NearParentingGrabOverlay(LEFT_HAND));
-    enableDispatcherModule("RightNearParentingGrabOverlay", new NearParentingGrabOverlay(RIGHT_HAND));
+    var leftNearParentingGrabOverlay = new NearParentingGrabOverlay(LEFT_HAND);
+    var rightNearParentingGrabOverlay = new NearParentingGrabOverlay(RIGHT_HAND);
+
+    enableDispatcherModule("LeftNearParentingGrabOverlay", leftNearParentingGrabOverlay);
+    enableDispatcherModule("RightNearParentingGrabOverlay", rightNearParentingGrabOverlay);
 
     this.cleanup = function () {
+        leftNearParentingGrabOverlay.cleanup();
+        rightNearParentingGrabOverlay.cleanup();
         disableDispatcherModule("LeftNearParentingGrabOverlay");
         disableDispatcherModule("RightNearParentingGrabOverlay");
     };
