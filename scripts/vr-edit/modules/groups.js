@@ -15,26 +15,26 @@ Groups = function () {
 
     "use strict";
 
-    var groupRootEntityIDs = [],
-        groupSelectionDetails = [],
-        numberOfEntitiesSelected = 0;
+    var rootEntityIDs = [],
+        selections = [],
+        entitiesSelectedCount = 0;
 
     if (!this instanceof Groups) {
         return new Groups();
     }
 
     function add(selection) {
-        groupRootEntityIDs.push(selection[0].id);
-        groupSelectionDetails.push(Object.clone(selection));
-        numberOfEntitiesSelected += selection.length;
+        rootEntityIDs.push(selection[0].id);
+        selections.push(Object.clone(selection));
+        entitiesSelectedCount += selection.length;
     }
 
     function remove(selection) {
-        var index = groupRootEntityIDs.indexOf(selection[0].id);
+        var index = rootEntityIDs.indexOf(selection[0].id);
 
-        numberOfEntitiesSelected -= groupSelectionDetails[index].length;
-        groupRootEntityIDs.splice(index, 1);
-        groupSelectionDetails.splice(index, 1);
+        entitiesSelectedCount -= selections[index].length;
+        rootEntityIDs.splice(index, 1);
+        selections.splice(index, 1);
     }
 
     function toggle(selection) {
@@ -42,7 +42,7 @@ Groups = function () {
             return;
         }
 
-        if (groupRootEntityIDs.indexOf(selection[0].id) === -1) {
+        if (rootEntityIDs.indexOf(selection[0].id) === -1) {
             add(selection);
         } else {
             remove(selection);
@@ -56,10 +56,10 @@ Groups = function () {
             j,
             lengthJ;
 
-        for (i = 0, lengthI = groupRootEntityIDs.length; i < lengthI; i += 1) {
-            if (excludes.indexOf(groupRootEntityIDs[i]) === -1) {
-                for (j = 0, lengthJ = groupSelectionDetails[i].length; j < lengthJ; j += 1) {
-                    result.push(groupSelectionDetails[i][j]);
+        for (i = 0, lengthI = rootEntityIDs.length; i < lengthI; i += 1) {
+            if (excludes.indexOf(rootEntityIDs[i]) === -1) {
+                for (j = 0, lengthJ = selections[i].length; j < lengthJ; j += 1) {
+                    result.push(selections[i][j]);
                 }
             }
         }
@@ -68,78 +68,107 @@ Groups = function () {
     }
 
     function includes(rootEntityID) {
-        return groupRootEntityIDs.indexOf(rootEntityID) !== -1;
+        return rootEntityIDs.indexOf(rootEntityID) !== -1;
     }
 
     function groupsCount() {
-        return groupSelectionDetails.length;
+        return selections.length;
     }
 
     function entitiesCount() {
-        return numberOfEntitiesSelected;
+        return entitiesSelectedCount;
     }
 
     function group() {
+        // Groups all selections into one.
         var rootID,
             i,
             count;
 
         // Make the first entity in the first group the root and link the first entities of all other groups to it.
-        rootID = groupRootEntityIDs[0];
-        for (i = 1, count = groupRootEntityIDs.length; i < count; i += 1) {
-            Entities.editEntity(groupRootEntityIDs[i], {
+        rootID = rootEntityIDs[0];
+        for (i = 1, count = rootEntityIDs.length; i < count; i += 1) {
+            Entities.editEntity(rootEntityIDs[i], {
                 parentID: rootID
             });
         }
 
         // Update selection.
-        groupRootEntityIDs.splice(1, groupRootEntityIDs.length - 1);
-        for (i = 1, count = groupSelectionDetails.length; i < count; i += 1) {
-            groupSelectionDetails[i][0].parentID = rootID;
-            groupSelectionDetails[0] = groupSelectionDetails[0].concat(groupSelectionDetails[i]);
+        rootEntityIDs.splice(1, rootEntityIDs.length - 1);
+        for (i = 1, count = selections.length; i < count; i += 1) {
+            selections[i][0].parentID = rootID;
+            selections[0] = selections[0].concat(selections[i]);
         }
-        groupSelectionDetails.splice(1, groupSelectionDetails.length - 1);
+        selections.splice(1, selections.length - 1);
     }
 
     function ungroup() {
+        // Ungroups the first and assumed to be only selection.
+        // If the first entity in the selection has a mix of solo and group children then just the group children are unlinked,
+        // otherwise all are unlinked.
         var rootID,
-            childrenIDs,
-            childrenIDIndexes,
+            childrenIDs = [],
+            childrenIndexes = [],
+            childrenIndexIsGroup = [],
+            previousWasGroup,
+            hasSoloChildren = false,
+            hasGroupChildren = false,
+            isUngroupAll,
             i,
             count;
 
-        // Compile information on children.
-        rootID = groupRootEntityIDs[0];
-        childrenIDs = [];
-        childrenIDIndexes = [];
-        for (i = 1, count = groupSelectionDetails[0].length; i < count; i += 1) {
-            if (groupSelectionDetails[0][i].parentID === rootID) {
-                childrenIDs.push(groupSelectionDetails[0][i].id);
-                childrenIDIndexes.push(i);
+        function updateGroupInformation() {
+            var childrenIndexesLength = childrenIndexes.length;
+            if (childrenIndexesLength > 1) {
+                previousWasGroup = childrenIndexes[childrenIndexesLength - 2] < i - 1;
+                childrenIndexIsGroup.push(previousWasGroup);
+                if (previousWasGroup) {
+                    hasGroupChildren = true;
+                } else {
+                    hasSoloChildren = true;
+                }
             }
         }
-        childrenIDIndexes.push(groupSelectionDetails[0].length);  // Extra item at end to aid updating selection.
 
-        // Unlink direct children from root entity.
-        for (i = 0, count = childrenIDs.length; i < count; i += 1) {
-            Entities.editEntity(childrenIDs[i], {
-                parentID: Uuid.NULL
-            });
+        if (entitiesSelectedCount === 0) {
+            App.log("ERROR: Groups: Nothing to ungroup!");
+            return;
+        }
+        if (entitiesSelectedCount === 1) {
+            App.log("ERROR: Groups: Cannot ungroup sole entity!");
+            return;
         }
 
-        // Update selection.
-        groupRootEntityIDs = groupRootEntityIDs.concat(childrenIDs);
-        for (i = 0, count = childrenIDs.length; i < count; i += 1) {
-            groupSelectionDetails.push(groupSelectionDetails[0].slice(childrenIDIndexes[i], childrenIDIndexes[i + 1]));
-            groupSelectionDetails[i + 1][0].parentID = Uuid.NULL;
+        // Compile information on immediate children.
+        rootID = rootEntityIDs[0];
+        for (i = 1, count = selections[0].length; i < count; i += 1) {
+            if (selections[0][i].parentID === rootID) {
+                childrenIDs.push(selections[0][i].id);
+                childrenIndexes.push(i);
+                updateGroupInformation();
+            }
         }
-        groupSelectionDetails[0].splice(1, groupSelectionDetails[0].length - childrenIDIndexes[0]);
+        childrenIndexes.push(selections[0].length);  // Special extra item at end to aid updating selection.
+        updateGroupInformation();
+
+        // Unlink children.
+        isUngroupAll = hasSoloChildren !== hasGroupChildren;
+        for (i = childrenIDs.length - 1; i >= 0; i -= 1) {
+            if (isUngroupAll || childrenIndexIsGroup[i]) {
+                Entities.editEntity(childrenIDs[i], {
+                    parentID: Uuid.NULL
+                });
+                rootEntityIDs.push(childrenIDs[i]);
+                selections[0][childrenIndexes[i]].parentID = Uuid.NULL;
+                selections.push(selections[0].splice(childrenIndexes[i], childrenIndexes[i + 1] - childrenIndexes[i]));
+            }
+        }
     }
 
     function clear() {
-        groupRootEntityIDs = [];
-        groupSelectionDetails = [];
-        numberOfEntitiesSelected = 0;
+        rootEntityIDs = [];
+        selections = [];
+        entitiesSelectedCount = 0;
     }
 
     function destroy() {
