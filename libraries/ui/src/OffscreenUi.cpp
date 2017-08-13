@@ -680,10 +680,57 @@ QString OffscreenUi::fileDialog(const QVariantMap& properties) {
     return result.toUrl().toLocalFile();
 }
 
+QQuickItem *OffscreenUi::fileDialogAsync(const QVariantMap& properties) {
+    QVariant buildDialogResult;
+    bool invokeResult;
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    if (tablet->getToolbarMode()) {
+       invokeResult =  QMetaObject::invokeMethod(_desktop, "fileDialog",
+                                  Q_RETURN_ARG(QVariant, buildDialogResult),
+                                  Q_ARG(QVariant, QVariant::fromValue(properties)));
+    } else {
+        QQuickItem* tabletRoot = tablet->getTabletRoot();
+        invokeResult =  QMetaObject::invokeMethod(tabletRoot, "fileDialog",
+                                  Q_RETURN_ARG(QVariant, buildDialogResult),
+                                  Q_ARG(QVariant, QVariant::fromValue(properties)));
+        emit tabletScriptingInterface->tabletNotification();
+    }
+
+    if (!invokeResult) {
+        qWarning() << "Failed to create file open dialog";
+        return nullptr;
+    }
+
+    return qvariant_cast<QQuickItem*>(buildDialogResult);
+}
+
 QString OffscreenUi::fileOpenDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
     if (QThread::currentThread() != thread()) {
         QString result;
         BLOCKING_INVOKE_METHOD(this, "fileOpenDialog",
+            Q_RETURN_ARG(QString, result),
+            Q_ARG(QString, caption),
+            Q_ARG(QString, dir),
+            Q_ARG(QString, filter),
+            Q_ARG(QString*, selectedFilter),
+            Q_ARG(QFileDialog::Options, options));
+        return result;
+    }
+
+    // FIXME support returning the selected filter... somehow?
+    QVariantMap map;
+    map.insert("caption", caption);
+    map.insert("dir", QUrl::fromLocalFile(dir));
+    map.insert("filter", filter);
+    map.insert("options", static_cast<int>(options));
+    return fileDialog(map);
+}
+
+QString OffscreenUi::fileOpenDialogAsync(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
+    if (QThread::currentThread() != thread()) {
+        QString result;
+        BLOCKING_INVOKE_METHOD(this, "fileOpenDialogAsync",
             Q_RETURN_ARG(QString, result),
             Q_ARG(QString, caption),
             Q_ARG(QString, dir),
