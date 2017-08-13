@@ -13,6 +13,7 @@
    TRIGGER_ON_VALUE,
    PICK_MAX_DISTANCE,
    DEFAULT_SEARCH_SPHERE_DISTANCE,
+   NEAR_GRAB_PICK_RADIUS,
    COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
    COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
    COLORS_GRAB_DISTANCE_HOLD,
@@ -22,7 +23,8 @@
    getGrabbableData,
    entityIsGrabbable,
    getControllerJointIndex,
-   propsArePhysical
+   propsArePhysical,
+   controllerDispatcherPluginsNeedSort
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -49,6 +51,7 @@ TRIGGER_ON_VALUE = TRIGGER_OFF_VALUE + 0.05; // Squeezed just enough to activate
 
 PICK_MAX_DISTANCE = 500; // max length of pick-ray
 DEFAULT_SEARCH_SPHERE_DISTANCE = 1000; // how far from camera to search intersection?
+NEAR_GRAB_PICK_RADIUS = 0.25; // radius used for search ray vs object for near grabbing.
 
 COLORS_GRAB_SEARCHING_HALF_SQUEEZE = { red: 10, green: 10, blue: 255 };
 COLORS_GRAB_SEARCHING_FULL_SQUEEZE = { red: 250, green: 10, blue: 10 };

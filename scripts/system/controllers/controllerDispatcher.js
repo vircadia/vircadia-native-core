@@ -8,8 +8,8 @@
 /*jslint bitwise: true */
 
 /* global Script, Entities, Overlays, Controller, Vec3, getControllerWorldLocation, RayPick,
-   controllerDispatcherPlugins, controllerDispatcherPluginsNeedSort,
-   LEFT_HAND, RIGHT_HAND */
+   controllerDispatcherPlugins, controllerDispatcherPluginsNeedSort, entityIsGrabbable,
+   LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS */
 
 controllerDispatcherPlugins = {};
 controllerDispatcherPluginsNeedSort = false;
@@ -160,22 +160,6 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         var controllerLocations = [_this.dataGatherers.leftControllerLocation(),
                                    _this.dataGatherers.rightControllerLocation()];
 
-
-        // interface/src/raypick/LaserPointerManager.cpp | 62 +++++++++++++--------------
-        // interface/src/raypick/LaserPointerManager.h   | 13 +++---
-        // interface/src/raypick/RayPickManager.cpp      | 56 ++++++++++++------------
-        // interface/src/raypick/RayPickManager.h        | 13 +++---
-
-
-        // raypick for each controller
-        var rayPicks = [
-            RayPick.getPrevRayPickResult(_this.leftControllerRayPick),
-            RayPick.getPrevRayPickResult(_this.rightControllerRayPick)
-        ];
-        // result.intersects
-        // result.distance
-
-
         // find 3d overlays near each hand
         var nearbyOverlayIDs = [];
         var h;
@@ -219,6 +203,26 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                 };
             };
             nearbyEntityProperties[h].sort(makeSorter(h));
+        }
+
+        // raypick for each controller
+        var rayPicks = [
+            RayPick.getPrevRayPickResult(_this.leftControllerRayPick),
+            RayPick.getPrevRayPickResult(_this.rightControllerRayPick)
+        ];
+        // if the pickray hit something very nearby, put it into the nearby entities list
+        for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
+            var nearEntityID = rayPicks[h].entityID;
+            if (nearEntityID) {
+                // XXX check to make sure this one isn't already in nearbyEntityProperties?
+                if (rayPicks[h].distance < NEAR_GRAB_PICK_RADIUS) {
+                    var nearbyProps = Entities.getEntityProperties(nearEntityID, DISPATCHER_PROPERTIES);
+                    nearbyProps.id = nearEntityID;
+                    if (entityIsGrabbable(nearbyProps)) {
+                        nearbyEntityProperties[h].push(nearbyProps);
+                    }
+                }
+            }
         }
 
         // bundle up all the data about the current situation
