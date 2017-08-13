@@ -167,6 +167,8 @@ Script.include("/~/system/libraries/controllers.js");
                     return makeRunningValues(false, [], []); // let nearParentGrabEntity handle it
                 } else {
                     this.targetEntityID = targetProps.id;
+                    ContextOverlay.entityWithContextOverlay = this.targetEntityID;
+                    ContextOverlay.enabled = true;
                     // XXX highlight this.targetEntityID here
                     return makeRunningValues(true, [this.targetEntityID], []);
                 }
@@ -188,16 +190,35 @@ Script.include("/~/system/libraries/controllers.js");
                 var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
                 Entities.callEntityMethod(this.targetEntityID, "continueNearGrab", args);
             } else {
-                                // still searching / highlighting
+
+                // still searching / highlighting
                 var readiness = this.isReady (controllerData);
                 if (!readiness.active) {
                     return readiness;
                 }
-                if (controllerData.triggerClicks[this.hand] == 1) {
-                    // stop highlighting, switch to grabbing
-                    // XXX stop highlight here
-                    var targetProps = this.getTargetProps(controllerData);
-                    if (targetProps) {
+
+                var targetProps = this.getTargetProps(controllerData);
+                if (targetProps) {
+
+                    // XXX
+                    var rayPickInfo = controllerData.rayPicks[this.hand];
+                    var pointerEvent = {
+                        type: "Move",
+                        id: this.hand + 1, // 0 is reserved for hardware mouse
+                        pos2D: projectOntoEntityXYPlane(rayPickInfo.entityID, rayPickInfo.intersection, targetProps),
+                        pos3D: rayPickInfo.intersection,
+                        normal: rayPickInfo.normal,
+                        direction: rayPickInfo.searchRay.direction,
+                        button: "Secondary"
+                    };
+                    if (ContextOverlay.createOrDestroyContextOverlay(rayPickInfo.entityID, pointerEvent)) {
+                    }
+                    // XXX
+
+
+                    if (controllerData.triggerClicks[this.hand] == 1) {
+                        // stop highlighting, switch to grabbing
+                        // XXX stop highlight here
                         this.startNearGrabAction(controllerData, targetProps);
                     }
                 }

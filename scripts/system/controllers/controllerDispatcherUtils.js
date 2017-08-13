@@ -26,7 +26,10 @@
    entityIsGrabbable,
    getControllerJointIndex,
    propsArePhysical,
-   controllerDispatcherPluginsNeedSort
+   controllerDispatcherPluginsNeedSort,
+   projectOntoXYPlane,
+   projectOntoEntityXYPlane,
+   projectOntoOverlayXYPlane
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -162,3 +165,41 @@ propsArePhysical = function (props) {
     var isPhysical = (props.shapeType && props.shapeType != 'none');
     return isPhysical;
 };
+
+projectOntoXYPlane = function (worldPos, position, rotation, dimensions, registrationPoint) {
+    var invRot = Quat.inverse(rotation);
+    var localPos = Vec3.multiplyQbyV(invRot, Vec3.subtract(worldPos, position));
+    var invDimensions = { x: 1 / dimensions.x,
+                          y: 1 / dimensions.y,
+                          z: 1 / dimensions.z };
+    var normalizedPos = Vec3.sum(Vec3.multiplyVbyV(localPos, invDimensions), registrationPoint);
+    return { x: normalizedPos.x * dimensions.x,
+             y: (1 - normalizedPos.y) * dimensions.y }; // flip y-axis
+}
+
+projectOntoEntityXYPlane = function (entityID, worldPos, props) {
+    return projectOntoXYPlane(worldPos, props.position, props.rotation, props.dimensions, props.registrationPoint);
+}
+
+projectOntoOverlayXYPlane = function projectOntoOverlayXYPlane(overlayID, worldPos) {
+    var position = Overlays.getProperty(overlayID, "position");
+    var rotation = Overlays.getProperty(overlayID, "rotation");
+    var dimensions;
+
+    var dpi = Overlays.getProperty(overlayID, "dpi");
+    if (dpi) {
+        // Calculate physical dimensions for web3d overlay from resolution and dpi; "dimensions" property is used as a scale.
+        var resolution = Overlays.getProperty(overlayID, "resolution");
+        resolution.z = 1;  // Circumvent divide-by-zero.
+        var scale = Overlays.getProperty(overlayID, "dimensions");
+        scale.z = 0.01;    // overlay dimensions are 2D, not 3D.
+        dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
+    } else {
+        dimensions = Overlays.getProperty(overlayID, "dimensions");
+        if (dimensions.z) {
+            dimensions.z = 0.01;    // overlay dimensions are 2D, not 3D.
+        }
+    }
+
+    return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
+}

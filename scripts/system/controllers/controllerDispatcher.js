@@ -7,7 +7,7 @@
 
 /*jslint bitwise: true */
 
-/* global Script, Entities, Overlays, Controller, Vec3, getControllerWorldLocation, RayPick,
+/* global Script, Entities, Overlays, Controller, Vec3, Quat, getControllerWorldLocation, RayPick,
    controllerDispatcherPlugins, controllerDispatcherPluginsNeedSort, entityIsGrabbable,
    LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS */
 
@@ -212,6 +212,14 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         ];
         // if the pickray hit something very nearby, put it into the nearby entities list
         for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
+
+            // XXX find a way to extract searchRay from samuel's stuff
+            rayPicks[h].searchRay = {
+                origin: controllerLocations[h].position,
+                direction: Quat.getUp(controllerLocations[h].orientation),
+                length: 1000
+            };
+
             var nearEntityID = rayPicks[h].entityID;
             if (nearEntityID) {
                 // XXX check to make sure this one isn't already in nearbyEntityProperties?
