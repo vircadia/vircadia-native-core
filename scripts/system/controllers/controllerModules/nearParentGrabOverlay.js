@@ -131,11 +131,9 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             this.grabbedThingID = null;
 
             var candidateOverlays = controllerData.nearbyOverlayIDs[this.hand];
-            print("candidateOverlays.length = " + candidateOverlays.length);
             var grabbableOverlays = candidateOverlays.filter(function(overlayID) {
                 return Overlays.getProperty(overlayID, "grabbable");
             });
-            print("grabbableOverlays.length = " + grabbableOverlays.length);
 
             if (grabbableOverlays.length > 0) {
                 this.grabbedThingID = grabbableOverlays[0];

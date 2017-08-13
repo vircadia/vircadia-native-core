@@ -151,6 +151,9 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             this.orderedPluginNames.sort(function (a, b) {
                 return controllerDispatcherPlugins[a].priority < controllerDispatcherPlugins[b].priority;
             });
+
+            print("controllerDispatcher: new plugin order: " + JSON.stringify(this.orderedPluginNames));
+
             controllerDispatcherPluginsNeedSort = false;
         }
 
@@ -232,6 +235,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         for (var pluginIndex = 0; pluginIndex < this.orderedPluginNames.length; pluginIndex++) {
             var orderedPluginName = this.orderedPluginNames[pluginIndex];
             var candidatePlugin = controllerDispatcherPlugins[orderedPluginName];
+
             if (_this.slotsAreAvailableForPlugin(candidatePlugin) && candidatePlugin.isReady(controllerData, deltaTime)) {
                 // this plugin will start.  add it to the list of running plugins and mark the
                 // activity-slots which this plugin consumes as "in use"

@@ -9,6 +9,13 @@
 /* global Camera, HMD, MyAvatar, controllerDispatcherPlugins,
    MSECS_PER_SEC, LEFT_HAND, RIGHT_HAND, NULL_UUID, AVATAR_SELF_ID, FORBIDDEN_GRAB_TYPES,
    HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, ZERO_VEC, ONE_VEC, DEFAULT_REGISTRATION_POINT, INCHES_TO_METERS,
+   TRIGGER_OFF_VALUE,
+   TRIGGER_ON_VALUE,
+   PICK_MAX_DISTANCE,
+   DEFAULT_SEARCH_SPHERE_DISTANCE,
+   COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
+   COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
+   COLORS_GRAB_DISTANCE_HOLD,
    makeDispatcherModuleParameters,
    enableDispatcherModule,
    disableDispatcherModule,
@@ -36,6 +43,17 @@ HAPTIC_PULSE_STRENGTH = 1.0;
 HAPTIC_PULSE_DURATION = 13.0;
 
 DEFAULT_REGISTRATION_POINT = { x: 0.5, y: 0.5, z: 0.5 };
+
+TRIGGER_OFF_VALUE = 0.1;
+TRIGGER_ON_VALUE = TRIGGER_OFF_VALUE + 0.05; // Squeezed just enough to activate search or near grab
+
+PICK_MAX_DISTANCE = 500; // max length of pick-ray
+DEFAULT_SEARCH_SPHERE_DISTANCE = 1000; // how far from camera to search intersection?
+
+COLORS_GRAB_SEARCHING_HALF_SQUEEZE = { red: 10, green: 10, blue: 255 };
+COLORS_GRAB_SEARCHING_FULL_SQUEEZE = { red: 250, green: 10, blue: 10 };
+COLORS_GRAB_DISTANCE_HOLD = { red: 238, green: 75, blue: 214 };
+
 
 
 // priority -- a lower priority means the module will be asked sooner than one with a higher priority in a given update step
