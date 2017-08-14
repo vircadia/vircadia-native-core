@@ -447,7 +447,18 @@ void generateMips(gpu::Texture* texture, QImage& image, int face = -1) {
     MyErrorHandler errorHandler;
     outputOptions.setErrorHandler(&errorHandler);
 
+    class SequentialTaskDispatcher : public nvtt::TaskDispatcher {
+    public:
+        virtual void dispatch(nvtt::Task* task, void* context, int count) {
+            for (int i = 0; i < count; i++) {
+                task(context, i);
+            }
+        }
+    };
+
+    SequentialTaskDispatcher dispatcher;
     nvtt::Compressor compressor;
+    compressor.setTaskDispatcher(&dispatcher);
     compressor.process(inputOptions, compressionOptions, outputOptions);
 #else
     texture->autoGenerateMips(-1);
