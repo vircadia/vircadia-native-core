@@ -108,7 +108,7 @@ QPair<QByteArray*, QByteArray*> generateRSAKeypair() {
     // now lets persist them to files
     // TODO: figure out a scheme for multiple keys, etc...
     FILE* fp;
-    if (fp = fopen(keyFilePath().toStdString().c_str(), "wt")) {
+    if ((fp = fopen(keyFilePath().toStdString().c_str(), "wt"))) {
         if (!PEM_write_RSAPublicKey(fp, keyPair)) {
             fclose(fp);
             qCDebug(commerce) << "failed to write public key";
@@ -141,7 +141,7 @@ QPair<QByteArray*, QByteArray*> generateRSAKeypair() {
 QByteArray readPublicKey(const char* filename) {
     FILE* fp;
     RSA* key = NULL;
-    if ( fp = fopen(filename, "r")) {
+    if ((fp = fopen(filename, "r"))) {
         // file opened successfully
         qCDebug(commerce) << "opened key file" << filename;
         if (key = PEM_read_RSAPublicKey(fp, NULL, NULL, NULL)) {
@@ -174,7 +174,7 @@ QByteArray readPublicKey(const char* filename) {
 RSA* readPrivateKey(const char* filename) {
     FILE* fp;
     RSA* key = NULL;
-    if ( fp = fopen(filename, "r")) {
+    if ((fp = fopen(filename, "r"))) {
         // file opened successfully
         qCDebug(commerce) << "opened key file" << filename;
         if (key = PEM_read_RSAPrivateKey(fp, &key, passwordCallback, NULL)) {
@@ -220,7 +220,7 @@ bool Wallet::generateKeyPair() {
     auto keyPair = generateRSAKeypair();
 
     _publicKeys.push_back(QUrl::toPercentEncoding(keyPair.first->toBase64()));
-    qCDebug(commerce) << "public key:" << _publicKeys.last;
+    qCDebug(commerce) << "public key:" << _publicKeys.last();
 
     // It's arguable whether we want to change the receiveAt every time, but:
     // 1. It's certainly needed the first time, when createIfNeeded answers true.
@@ -245,7 +245,7 @@ QStringList Wallet::listPublicKeys() {
 QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
     qCInfo(commerce) << "Signing text.";
     RSA* rsaPrivateKey = NULL;
-    if (rsaPrivateKey = readPrivateKey(keyFilePath().toStdString().c_str())) {
+    if ((rsaPrivateKey = readPrivateKey(keyFilePath().toStdString().c_str()))) {
         QByteArray signature(RSA_size(rsaPrivateKey), 0);
         unsigned int signatureBytes = 0;
 
@@ -262,7 +262,6 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
         RSA_free(rsaPrivateKey);
 
         if (encryptReturn != -1) {
-            // TODO: do we need to pass options in here to make sure it is url-safe?
             return QUrl::toPercentEncoding(signature.toBase64());
         }
     }
