@@ -40,7 +40,7 @@ Rectangle {
             if (failureMessage.length) {
                 console.log("Failed to get inventory", failureMessage);
             } else {
-                inventoryContentsList.model = inventory;
+                inventoryContentsList.model = inventory.assets;
             }
         }
     }
@@ -181,7 +181,7 @@ Rectangle {
                     size: 20;
                     // Style
                     color: hifi.colors.blueAccent;
-                    text: modelData;
+                    text: modelData.title;
                     // Alignment
                     horizontalAlignment: Text.AlignHLeft;
                 }
@@ -189,7 +189,7 @@ Rectangle {
                     anchors.fill: parent;
                     hoverEnabled: enabled;
                     onClicked: {
-                        sendToScript({method: 'inventory_itemClicked', itemId: thisItemId.text});
+                        sendToScript({method: 'inventory_itemClicked', itemId: modelData.id});
                     }
                     onEntered: {
                         thisItemId.color = hifi.colors.blueHighlight;

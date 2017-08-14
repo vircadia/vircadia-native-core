@@ -59,7 +59,7 @@ Rectangle {
                 console.log("Failed to get inventory", failureMessage);
             } else {
                 inventoryReceived = true;
-                if (inventory.indexOf(itemId) !== -1) {
+                if (inventoryContains(inventory.assets, itemId)) {
                     alreadyOwned = true;
                 } else {
                     alreadyOwned = false;
@@ -433,6 +433,15 @@ Rectangle {
         }
     }
     signal sendToScript(var message);
+
+    function inventoryContains(inventoryJson, id) {
+        for (var idx = 0; idx < inventoryJson.length; idx++) {
+            if(inventoryJson[idx].id === id) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     //
     // FUNCTION DEFINITIONS END
