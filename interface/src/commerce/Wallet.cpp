@@ -24,8 +24,7 @@
 #include <openssl/pem.h>
 #include <openssl/evp.h>
 
-static const char* PUBLIC_KEY_FILE = "hifikey.pub";
-static const char* PRIVATE_KEY_FILE = "hifikey";
+static const char* KEY_FILE = "hifikey";
 
 void initialize() {
     static bool initialized = false;
@@ -37,16 +36,12 @@ void initialize() {
     }
 }
 
-QString publicKeyFilePath() {
-    return PathUtils::getAppDataFilePath(PUBLIC_KEY_FILE);
+QString keyFilePath() {
+    return PathUtils::getAppDataFilePath(KEY_FILE);
 }
 
-QString privateKeyFilePath() {
-    return PathUtils::getAppDataFilePath(PRIVATE_KEY_FILE);
-}
 // for now the callback function just returns the same string.  Later we can hook
 // this to the gui (some thought required)
-
 int passwordCallback(char* password, int maxPasswordSize, int rwFlag, void* u) {
     // just return a hardcoded pwd for now
     static const char* pwd = "pwd";
@@ -113,16 +108,13 @@ QPair<QByteArray*, QByteArray*> generateRSAKeypair() {
     // now lets persist them to files
     // TODO: figure out a scheme for multiple keys, etc...
     FILE* fp;
-    if (fp = fopen(publicKeyFilePath().toStdString().c_str(), "wt")) {
+    if (fp = fopen(keyFilePath().toStdString().c_str(), "wt")) {
         if (!PEM_write_RSAPublicKey(fp, keyPair)) {
             fclose(fp);
             qCDebug(commerce) << "failed to write public key";
             return retval;
         }
-        fclose(fp);
-    }
 
-    if (fp = fopen(privateKeyFilePath().toStdString().c_str(), "wt")) {
         char pwd[] = "pwd";
         if (!PEM_write_RSAPrivateKey(fp, keyPair, EVP_des_ede3_cbc(), NULL, 0, passwordCallback, NULL)) {
             fclose(fp);
@@ -209,9 +201,9 @@ bool Wallet::createIfNeeded() {
     initialize();
 
     // try to read existing keys if they exist...
-    auto publicKey = readPublicKey(publicKeyFilePath().toStdString().c_str());
+    auto publicKey = readPublicKey(keyFilePath().toStdString().c_str());
     if (publicKey.size() > 0) {
-        if (auto key = readPrivateKey(privateKeyFilePath().toStdString().c_str()) ) {
+        if (auto key = readPrivateKey(keyFilePath().toStdString().c_str()) ) {
             qCDebug(commerce) << "read private key";
             RSA_free(key);
             // K -- add the public key since we have a legit private key associated with it
@@ -250,7 +242,7 @@ QStringList Wallet::listPublicKeys() {
 QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
     qCInfo(commerce) << "Signing text.";
     RSA* rsaPrivateKey = NULL;
-    if (rsaPrivateKey = readPrivateKey(privateKeyFilePath().toStdString().c_str())) {
+    if (rsaPrivateKey = readPrivateKey(keyFilePath().toStdString().c_str())) {
         QByteArray signature(RSA_size(rsaPrivateKey), 0);
         unsigned int signatureBytes = 0;
 
