@@ -9,25 +9,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-import QtQuick 2.5
-import QtQuick.Controls 1.5 as QQControls
 import QtQuick.Layouts 1.3
-import QtQuick.Controls.Styles 1.4
-
-import QtWebEngine 1.2
-import QtWebChannel 1.0
-
-import "../styles-uit"
-import "../controls-uit" as HifiControls
-import "../windows"
-import "../controls"
 
 Rectangle {
     id: root;
-
-    HifiConstants { id: hifi; }
-
-    property string title: "";
 
     color: hifi.colors.baseGray;
 
@@ -62,7 +47,7 @@ Rectangle {
             size: 14;
             // Anchors
             anchors.fill: parent;
-            anchors.topMargin: 56;
+            anchors.top: titleBarText.bottom
             anchors.leftMargin: 16;
             anchors.rightMargin: 16;
             // Style
@@ -72,6 +57,10 @@ Rectangle {
             verticalAlignment: Text.AlignVCenter;
         }        
     }
+    
+    // This RowLayout could be a GridLayout instead for further expandability.
+    // As this SkyboxChanger task only required 6 images, implementing GridLayout wasn't necessary.
+    // In the future if this is to be expanded to add more Skyboxes, it might be worth changing this.
     RowLayout {
         id: row1
         anchors.top: titleBarContainer.bottom
