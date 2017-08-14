@@ -498,8 +498,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "label",
                     properties: {
                         text: "PROPERTIES",
-                        lineHeight: 0.005,
-                        localPosition: { x: -0.0325, y: -0.0475, z: -0.0075}
+                        lineHeight: 0.0045,
+                        localPosition: { x: -0.031, y: -0.0475, z: -0.0075}
                     }
                 },
                 {
@@ -561,6 +561,15 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
 
                 {
+                    id: "propertiesLabel",
+                    type: "label",
+                    properties: {
+                        text: "PRESETS",
+                        lineHeight: 0.0045,
+                        localPosition: { x: 0.002, y: -0.0475, z: -0.0075 }
+                    }
+                },
+                {
                     id: "presets",
                     type: "panel",
                     properties: {
@@ -576,31 +585,76 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.014, y: 0.06, z: 0.01 }
                     },
                     callback: {
-                        method: "setSliderValue"
+                        method: "setGravityValue"
+                    }
+                },
+                {
+                    id: "gravityLabel",
+                    type: "label",
+                    properties: {
+                        text: "GRAVITY",
+                        lineHeight: 0.0045,
+                        localPosition: { x: -0.003, y: 0.052, z: -0.0075 }
                     }
                 },
                 {
                     id: "bounceSlider",
-                    type: "panel",
+                    type: "barSlider",
                     properties: {
                         localPosition: { x: 0.009, y: 0.016, z: -0.005 },
                         dimensions: { x: 0.014, y: 0.06, z: 0.01 }
+                    },
+                    callback: {
+                        method: "setBounceValue"
+                    }
+                },
+                {
+                    id: "bounceLabel",
+                    type: "label",
+                    properties: {
+                        text: "BOUNCE",
+                        lineHeight: 0.0045,
+                        localPosition: { x: 0.015, y: 0.057, z: -0.0075 }
                     }
                 },
                 {
                     id: "dampingSlider",
-                    type: "panel",
+                    type: "barSlider",
                     properties: {
                         localPosition: { x: 0.024, y: 0.016, z: -0.005 },
                         dimensions: { x: 0.014, y: 0.06, z: 0.01 }
+                    },
+                    callback: {
+                        method: "setDampingValue"
+                    }
+                },
+                {
+                    id: "dampingLabel",
+                    type: "label",
+                    properties: {
+                        text: "DAMPING",
+                        lineHeight: 0.0045,
+                        localPosition: { x: 0.030, y: 0.052, z: -0.0075 }
                     }
                 },
                 {
                     id: "densitySlider",
-                    type: "panel",
+                    type: "barSlider",
                     properties: {
                         localPosition: { x: 0.039, y: 0.016, z: -0.005 },
                         dimensions: { x: 0.014, y: 0.06, z: 0.01 }
+                    },
+                    callback: {
+                        method: "setDensityValue"
+                    }
+                },
+                {
+                    id: "densityLabel",
+                    type: "label",
+                    properties: {
+                        text: "DENSITY",
+                        lineHeight: 0.0045,
+                        localPosition: { x: 0.045, y: 0.057, z: -0.0075 }
                     }
                 }
             ]

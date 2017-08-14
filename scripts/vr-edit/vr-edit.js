@@ -1415,6 +1415,31 @@
             }
             break;
 
+        case "setGravityValue":
+            if (parameter !== undefined) {
+                // TODO
+                print("setGravityValue = " + parameter);
+            }
+            break;
+        case "setBounceValue":
+            if (parameter !== undefined) {
+                // TODO
+                print("setBounceValue = " + parameter);
+            }
+            break;
+        case "setDampingValue":
+            if (parameter !== undefined) {
+                // TODO
+                print("setDampingValue = " + parameter);
+            }
+            break;
+        case "setDensityValue":
+            if (parameter !== undefined) {
+                // TODO
+                print("setDensityValue = " + parameter);
+            }
+            break;
+
         case "autoGrab":
             if (dominantHand === LEFT_HAND) {
                 editors[LEFT_HAND].enableAutoGrab();
@@ -1429,6 +1454,7 @@
                 print("setSliderValue = " + parameter);
             }
             break;
+
         default:
             log("ERROR: Unexpected command in onUICommand(): " + command + ", " + parameter);
         }
