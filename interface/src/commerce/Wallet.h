@@ -21,6 +21,7 @@ class Wallet : public QObject, public Dependency {
     SINGLETON_DEPENDENCY
 
 public:
+    // These are currently blocking calls, although they might take a moment.
     bool createIfNeeded();
     bool generateKeyPair();
     QStringList listPublicKeys();
