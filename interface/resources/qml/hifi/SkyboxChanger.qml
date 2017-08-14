@@ -56,7 +56,7 @@ Rectangle {
         }
         RalewaySemiBold {
             id: titleBarDesc;
-            text: "You can set the current Skybox of the Zone you're standing in by clicking on any of the 6 pre-determined skyboxes below.";
+            text: "Click an image to choose a new Skybox.";
             wrapMode: Text.Wrap
             // Text size
             size: 14;
