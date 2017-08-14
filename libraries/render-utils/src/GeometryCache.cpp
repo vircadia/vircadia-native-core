@@ -1640,7 +1640,11 @@ void GeometryCache::renderGlowLine(gpu::Batch& batch, const glm::vec3& p1, const
 #endif
 
     if (glowIntensity <= 0) {
-        bindSimpleProgram(batch, false, false, false, true, false);
+        if (color.a >= 1.0) {
+            bindSimpleProgram(batch, false, false, false, true, true);
+        } else {
+            bindSimpleProgram(batch, false, true, false, true, true);
+        }
         renderLine(batch, p1, p2, color, id);
         return;
     }
