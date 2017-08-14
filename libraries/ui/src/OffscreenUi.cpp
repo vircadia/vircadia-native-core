@@ -645,6 +645,9 @@ private slots:
     void onSelectedFile(QVariant file) {
         _result = file;
         _finished = true;
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        emit offscreenUi->fileDialogResponse(_result.toUrl().toLocalFile());
+        offscreenUi->removeModalDialog(qobject_cast<QObject*>(this));
         disconnect(_dialog);
     }
 };
@@ -680,7 +683,7 @@ QString OffscreenUi::fileDialog(const QVariantMap& properties) {
     return result.toUrl().toLocalFile();
 }
 
-QQuickItem *OffscreenUi::fileDialogAsync(const QVariantMap& properties) {
+void OffscreenUi::fileDialogAsync(const QVariantMap& properties) {
     QVariant buildDialogResult;
     bool invokeResult;
     auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
@@ -699,10 +702,14 @@ QQuickItem *OffscreenUi::fileDialogAsync(const QVariantMap& properties) {
 
     if (!invokeResult) {
         qWarning() << "Failed to create file open dialog";
-        return nullptr;
+        return;
     }
 
-    return qvariant_cast<QQuickItem*>(buildDialogResult);
+    FileDialogListener* fileDialogListener = new FileDialogListener(qvariant_cast<QQuickItem*>(buildDialogResult));
+    QObject* fileModalDialog = qobject_cast<QObject*>(fileDialogListener);
+    _modalDialogListeners.push_back(fileModalDialog);
+
+    return;
 }
 
 QString OffscreenUi::fileOpenDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
@@ -727,7 +734,7 @@ QString OffscreenUi::fileOpenDialog(const QString& caption, const QString& dir, 
     return fileDialog(map);
 }
 
-QString OffscreenUi::fileOpenDialogAsync(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
+void OffscreenUi::fileOpenDialogAsync(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
     if (QThread::currentThread() != thread()) {
         QString result;
         BLOCKING_INVOKE_METHOD(this, "fileOpenDialogAsync",
@@ -737,7 +744,7 @@ QString OffscreenUi::fileOpenDialogAsync(const QString& caption, const QString& 
             Q_ARG(QString, filter),
             Q_ARG(QString*, selectedFilter),
             Q_ARG(QFileDialog::Options, options));
-        return result;
+        return;
     }
 
     // FIXME support returning the selected filter... somehow?
@@ -746,7 +753,7 @@ QString OffscreenUi::fileOpenDialogAsync(const QString& caption, const QString& 
     map.insert("dir", QUrl::fromLocalFile(dir));
     map.insert("filter", filter);
     map.insert("options", static_cast<int>(options));
-    return fileDialog(map);
+    fileDialogAsync(map);
 }
 
 QString OffscreenUi::fileSaveDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
@@ -797,6 +804,10 @@ QString OffscreenUi::existingDirectoryDialog(const QString& caption, const QStri
 
 QString OffscreenUi::getOpenFileName(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
     return DependencyManager::get<OffscreenUi>()->fileOpenDialog(caption, dir, filter, selectedFilter, options);
+}
+
+void OffscreenUi::getOpenFileNameAsync(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
+    return DependencyManager::get<OffscreenUi>()->fileOpenDialogAsync(caption, dir, filter, selectedFilter, options);
 }
 
 QString OffscreenUi::getSaveFileName(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
