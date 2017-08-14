@@ -37,11 +37,12 @@ using TextureBakerThreadGetter = std::function<QThread*()>;
 class FBXBaker : public Baker {
     Q_OBJECT
 public:
-    FBXBaker(const QUrl& fbxURL, const QString& baseOutputPath,
-             TextureBakerThreadGetter textureThreadGetter, bool copyOriginals = true);
+    FBXBaker(const QUrl& fbxURL, TextureBakerThreadGetter textureThreadGetter,
+             const QString& bakedOutputDir, const QString& originalOutputDir = "");
 
     QUrl getFBXUrl() const { return _fbxURL; }
-    QString getBakedFBXRelativePath() const { return _bakedFBXRelativePath; }
+    QString getBakedFBXFilePath() const { return _bakedFBXFilePath; }
+    std::vector<QString> getOutputFiles() const { return _outputFiles; }
 
 public slots:
     // all calls to FBXBaker::bake for FBXBaker instances must be from the same thread
@@ -61,13 +62,10 @@ private:
 
     void loadSourceFBX();
 
-    void bakeCopiedFBX();
-
     void importScene();
     void rewriteAndBakeSceneTextures();
     void exportScene();
     void removeEmbeddedMediaFolder();
-    void possiblyCleanupOriginals();
 
     void checkIfTexturesFinished();
 
@@ -76,14 +74,20 @@ private:
 
     void bakeTexture(const QUrl& textureURL, image::TextureUsage::Type textureType, const QDir& outputDir);
 
-    QString pathToCopyOfOriginal() const;
-
     QUrl _fbxURL;
-    QString _fbxName;
     
-    QString _baseOutputPath;
-    QString _uniqueOutputPath;
-    QString _bakedFBXRelativePath;
+    QString _bakedFBXFilePath;
+
+    QString _bakedOutputDir;
+
+    // If set, the original FBX and textures will also be copied here
+    QString _originalOutputDir;
+
+    QDir _tempDir;
+    QString _originalFBXFilePath;
+
+    // List of baked output files, includes the FBX and textures
+    std::vector<QString> _outputFiles;
 
     static FBXSDKManagerUniquePointer _sdkManager;
     fbxsdk::FbxScene* _scene { nullptr };
@@ -92,8 +96,6 @@ private:
     QHash<QString, int> _textureNameMatchCount;
 
     TextureBakerThreadGetter _textureThreadGetter;
-
-    bool _copyOriginals { true };
 
     bool _pendingErrorEmission { false };
 };

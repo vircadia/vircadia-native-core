@@ -15,6 +15,7 @@
 #include <QtWidgets/QLineEdit>
 #include <QtWidgets/QPushButton>
 #include <QtWidgets/QStackedWidget>
+#include <QtWidgets/QMessageBox>
 
 #include <QtCore/QDir>
 #include <QtCore/QDebug>
@@ -158,12 +159,23 @@ void ModelBakeWidget::bakeButtonClicked() {
     // make sure we have a valid output directory
     QDir outputDirectory(_outputDirLineEdit->text());
 
+    outputDirectory.mkdir(".");
     if (!outputDirectory.exists()) {
+        QMessageBox::warning(this, "Unable to create directory", "Unable to create output directory. Please create it manually or choose a different directory.");
         return;
     }
 
+    QDir bakedOutputDirectory = outputDirectory.absoluteFilePath("baked");
+    QDir originalOutputDirectory = outputDirectory.absoluteFilePath("original");
+
+    bakedOutputDirectory.mkdir(".");
+    originalOutputDirectory.mkdir(".");
+
+
+
     // make sure we have a non empty URL to a model to bake
     if (_modelLineEdit->text().isEmpty()) {
+        QMessageBox::warning(this, "Model URL unspecified", "A model file is required.");
         return;
     }
 
@@ -175,14 +187,17 @@ void ModelBakeWidget::bakeButtonClicked() {
 
         // if the URL doesn't have a scheme, assume it is a local file
         if (modelToBakeURL.scheme() != "http" && modelToBakeURL.scheme() != "https" && modelToBakeURL.scheme() != "ftp") {
-            modelToBakeURL.setScheme("file");
+            qDebug() << modelToBakeURL.toString();
+            qDebug() << modelToBakeURL.scheme();
+            modelToBakeURL = QUrl::fromLocalFile(fileURLString);
+            qDebug() << "New url: " << modelToBakeURL;
         }
 
         // everything seems to be in place, kick off a bake for this model now
         auto baker = std::unique_ptr<FBXBaker> {
-            new FBXBaker(modelToBakeURL, outputDirectory.absolutePath(), []() -> QThread* {
+            new FBXBaker(modelToBakeURL, []() -> QThread* {
                 return qApp->getNextWorkerThread();
-            }, false)
+            }, bakedOutputDirectory.absolutePath(), originalOutputDirectory.absolutePath())
         };
 
         // move the baker to the FBX baker thread
@@ -210,6 +225,10 @@ void ModelBakeWidget::handleFinishedBaker() {
         auto it = std::find_if(_bakers.begin(), _bakers.end(), [baker](const BakerRowPair& value) {
             return value.first.get() == baker;
         });
+
+        for (auto& file : baker->getOutputFiles()) {
+            qDebug() << "Baked file: " << file;
+        }
 
         if (it != _bakers.end()) {
             auto resultRow = it->second;
