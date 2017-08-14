@@ -124,7 +124,7 @@ getGrabbableData = function (props) {
         grabbableData.ignoreIK = true;
     }
     if (!grabbableData.hasOwnProperty("kinematicGrab")) {
-        grabbableData.kinematicGrab = false;
+        grabbableData.kinematicGrab = true;
     }
 
     return grabbableData;
