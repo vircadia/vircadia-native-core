@@ -316,20 +316,18 @@ void setupPreferences() {
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
         if (renderConfig) {
             auto mainViewAmbientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>("RenderMainView.AmbientOcclusion");
-            auto camViewAmbientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>("SecondaryCameraJob.AmbientOcclusion");
-            if (mainViewAmbientOcclusionConfig && camViewAmbientOcclusionConfig) {
+            if (mainViewAmbientOcclusionConfig) {
                 auto getter = [mainViewAmbientOcclusionConfig]()->QString { return mainViewAmbientOcclusionConfig->getPreset(); };
-                auto setter = [mainViewAmbientOcclusionConfig, camViewAmbientOcclusionConfig](QString preset) { mainViewAmbientOcclusionConfig->setPreset(preset); camViewAmbientOcclusionConfig->setPreset(preset); };
+                auto setter = [mainViewAmbientOcclusionConfig](QString preset) { mainViewAmbientOcclusionConfig->setPreset(preset); };
                 auto preference = new ComboBoxPreference(RENDER, "Ambient occlusion", getter, setter);
                 preference->setItems(mainViewAmbientOcclusionConfig->getPresetList());
                 preferences->addPreference(preference);
             }
 
             auto mainViewShadowConfig = renderConfig->getConfig<RenderShadowTask>("RenderMainView.RenderShadowTask");
-            auto camViewShadowConfig = renderConfig->getConfig<RenderShadowTask>("SecondaryCameraJob.RenderShadowTask");
-            if (mainViewShadowConfig && camViewShadowConfig) {
+            if (mainViewShadowConfig) {
                 auto getter = [mainViewShadowConfig]()->QString { return mainViewShadowConfig->getPreset(); };
-                auto setter = [mainViewShadowConfig, camViewShadowConfig](QString preset) { mainViewShadowConfig->setPreset(preset); camViewShadowConfig->setPreset(preset); };
+                auto setter = [mainViewShadowConfig](QString preset) { mainViewShadowConfig->setPreset(preset); };
                 auto preference = new ComboBoxPreference(RENDER, "Shadows", getter, setter);
                 preference->setItems(mainViewShadowConfig->getPresetList());
                 preferences->addPreference(preference);

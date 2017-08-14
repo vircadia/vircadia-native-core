@@ -1,18 +1,4 @@
 {
-    "SecondaryCameraJob": {
-        "RenderShadowTask": {
-            "Enabled": {
-                "enabled": true
-            }
-        },
-        "RenderDeferredTask": {
-            "AmbientOcclusion": {
-                "Enabled": {
-                    "enabled": true
-                }
-            }
-        }
-    },
     "RenderMainView": {
         "RenderShadowTask": {
             "Enabled": {
