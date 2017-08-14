@@ -27,7 +27,7 @@ TreeView {
 
     model: treeModel
     selection: ItemSelectionModel {
-	id: selectionModel
+        id: selectionModel
         model: treeModel
     }
 
@@ -217,7 +217,7 @@ TreeView {
     onDoubleClicked: isExpanded(index) ? collapse(index) : expand(index)
 
     onClicked: {
-	selectionModel.setCurrentIndex(index, ItemSelectionModel.ClearAndSelect);
+        selectionModel.setCurrentIndex(index, ItemSelectionModel.ClearAndSelect);
     }
 
     onActivated: {
