@@ -182,17 +182,9 @@ void PolyLineEntityItem::calculateScaleAndRegistrationPoint() {
             EntityItem::setRegistrationPoint(glm::vec3(0.5f));
             return;
         }
-        
-        // Find the max width of the strokes so we can account for that in the size of the bounding box
-        float maxWidth = 0.0f;
-        for (int i = 0; i < _strokeWidths.size(); ++i) {
-            if (_strokeWidths.at(i) > maxWidth) {
-                maxWidth = _strokeWidths.at(i);
-            }
-        }
 
         glm::vec3 result;
-        float halfLineWidth = (maxWidth > 0.0f) ? maxWidth * 0.5f : 0.0f;
+        const float halfLineWidth = 0.075f; // sadly _strokeWidths() don't seem to correspond to reality, so just use a flat assumption of the stroke width
         result.x = fabsf(high.x) + fabsf(low.x) + halfLineWidth;
         result.y = fabsf(high.y) + fabsf(low.y) + halfLineWidth;
         result.z = fabsf(high.z) + fabsf(low.z) + halfLineWidth;
