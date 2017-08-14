@@ -278,7 +278,7 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
         // check if we should re-direct to a baked asset
 
         // first, figure out from the mapping extension what type of file this is
-        auto assetPathExtension = assetPath.right(assetPath.lastIndexOf('.')).toLower();
+        auto assetPathExtension = assetPath.mid(assetPath.lastIndexOf('.')).toLower();
         QString bakedRootFile;
 
         if (BAKEABLE_MODEL_EXTENSIONS.contains(assetPathExtension)) {
@@ -286,7 +286,7 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
         } else if (QImageReader::supportedImageFormats().contains(assetPathExtension.toLocal8Bit())) {
             bakedRootFile = BAKED_TEXTURE_SIMPLE_NAME;
         }
-
+        
         auto originalAssetHash = it->toString();
         QString redirectedAssetHash;
         QString bakedAssetPath;
