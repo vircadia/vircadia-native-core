@@ -202,7 +202,6 @@ Script.include("/~/system/libraries/controllers.js");
             var distanceToObject = Vec3.length(Vec3.subtract(MyAvatar.position, grabbedProperties.position));
             var timeScale = this.distanceGrabTimescale(this.mass, distanceToObject);
             this.linearTimeScale = timeScale;
-            this.actionID = NULL_UUID;
             this.actionID = Entities.addAction("far-grab", this.grabbedThingID, {
                 targetPosition: this.currentObjectPosition,
                 linearTimeScale: timeScale,
@@ -221,12 +220,10 @@ Script.include("/~/system/libraries/controllers.js");
             // }
 
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
-            this.turnOffVisualizations();
             this.previousRoomControllerPosition = roomControllerPosition;
         };
 
         this.continueDistanceHolding = function(controllerData) {
-
             var controllerLocation = controllerData.controllerLocations[this.hand];
             var worldControllerPosition = controllerLocation.position;
             var worldControllerRotation = controllerLocation.orientation;
