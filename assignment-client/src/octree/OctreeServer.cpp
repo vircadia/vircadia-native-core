@@ -935,7 +935,7 @@ void OctreeServer::handleOctreeFileReplacement(QSharedPointer<ReceivedMessage> m
             // so here we just store a special file at our persist path
             // and then force a stop of the server so that it can pick it up when it relaunches
             if (!_persistAbsoluteFilePath.isEmpty()) {
-                OctreeServer::replaceContentFromMessageData(message->getMessage());
+                replaceContentFromMessageData(message->getMessage());
             } else {
                 qDebug() << "Cannot perform octree file replacement since current persist file path is not yet known";
             }
@@ -963,7 +963,7 @@ void OctreeServer::handleOctreeFileReplacementFromURL(QSharedPointer<ReceivedMes
                     QNetworkReply::NetworkError networkError = reply->error();
                     if (networkError == QNetworkReply::NoError) {
                         QByteArray contents = reply->readAll();
-                        OctreeServer::replaceContentFromMessageData(contents);
+                        replaceContentFromMessageData(contents);
                     } else {
                         qDebug() << "Error downloading JSON from specified file";
                     }
