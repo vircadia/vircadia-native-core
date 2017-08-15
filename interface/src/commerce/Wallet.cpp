@@ -115,7 +115,6 @@ QPair<QByteArray*, QByteArray*> generateRSAKeypair() {
             return retval;
         }
 
-        char pwd[] = "pwd";
         if (!PEM_write_RSAPrivateKey(fp, keyPair, EVP_des_ede3_cbc(), NULL, 0, passwordCallback, NULL)) {
             fclose(fp);
             qCDebug(commerce) << "failed to write private key";
@@ -144,7 +143,7 @@ QByteArray readPublicKey(const char* filename) {
     if ((fp = fopen(filename, "r"))) {
         // file opened successfully
         qCDebug(commerce) << "opened key file" << filename;
-        if (key = PEM_read_RSAPublicKey(fp, NULL, NULL, NULL)) {
+        if ((key = PEM_read_RSAPublicKey(fp, NULL, NULL, NULL))) {
             // file read successfully
             unsigned char* publicKeyDER = NULL;
             int publicKeyLength = i2d_RSAPublicKey(key, &publicKeyDER);
@@ -177,12 +176,11 @@ RSA* readPrivateKey(const char* filename) {
     if ((fp = fopen(filename, "r"))) {
         // file opened successfully
         qCDebug(commerce) << "opened key file" << filename;
-        if (key = PEM_read_RSAPrivateKey(fp, &key, passwordCallback, NULL)) {
+        if ((key = PEM_read_RSAPrivateKey(fp, &key, passwordCallback, NULL))) {
             // cleanup
             fclose(fp);
 
             qCDebug(commerce) << "parsed private key file successfully";
-            return key;
 
         } else {
             qCDebug(commerce) << "couldn't parse" << filename;
@@ -191,7 +189,7 @@ RSA* readPrivateKey(const char* filename) {
     } else {
         qCDebug(commerce) << "couldn't open" << filename;
     }
-    return false;
+    return key;
 }
 
 bool Wallet::createIfNeeded() {
