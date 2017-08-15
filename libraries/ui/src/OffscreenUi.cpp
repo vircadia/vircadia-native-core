@@ -736,9 +736,7 @@ QString OffscreenUi::fileOpenDialog(const QString& caption, const QString& dir, 
 
 void OffscreenUi::fileOpenDialogAsync(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
     if (QThread::currentThread() != thread()) {
-        QString result;
         BLOCKING_INVOKE_METHOD(this, "fileOpenDialogAsync",
-            Q_RETURN_ARG(QString, result),
             Q_ARG(QString, caption),
             Q_ARG(QString, dir),
             Q_ARG(QString, filter),
@@ -780,6 +778,28 @@ QString OffscreenUi::fileSaveDialog(const QString& caption, const QString& dir, 
     return fileDialog(map);
 }
 
+void OffscreenUi::fileSaveDialogAsync(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "fileSaveDialogAsync",
+            Q_ARG(QString, caption),
+            Q_ARG(QString, dir),
+            Q_ARG(QString, filter),
+            Q_ARG(QString*, selectedFilter),
+            Q_ARG(QFileDialog::Options, options));
+        return;
+    }
+
+    // FIXME support returning the selected filter... somehow?
+    QVariantMap map;
+    map.insert("caption", caption);
+    map.insert("dir", QUrl::fromLocalFile(dir));
+    map.insert("filter", filter);
+    map.insert("options", static_cast<int>(options));
+    map.insert("saveDialog", true);
+
+    return fileDialogAsync(map);
+}
+
 QString OffscreenUi::existingDirectoryDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
     if (QThread::currentThread() != thread()) {
         QString result;
@@ -802,6 +822,26 @@ QString OffscreenUi::existingDirectoryDialog(const QString& caption, const QStri
     return fileDialog(map);
 }
 
+void OffscreenUi::existingDirectoryDialogAsync(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "existingDirectoryDialogAsync",
+                                  Q_ARG(QString, caption),
+                                  Q_ARG(QString, dir),
+                                  Q_ARG(QString, filter),
+                                  Q_ARG(QString*, selectedFilter),
+                                  Q_ARG(QFileDialog::Options, options));
+        return;
+    }
+
+    QVariantMap map;
+    map.insert("caption", caption);
+    map.insert("dir", QUrl::fromLocalFile(dir));
+    map.insert("filter", filter);
+    map.insert("options", static_cast<int>(options));
+    map.insert("selectDirectory", true);
+    return fileDialogAsync(map);
+}
+
 QString OffscreenUi::getOpenFileName(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
     return DependencyManager::get<OffscreenUi>()->fileOpenDialog(caption, dir, filter, selectedFilter, options);
 }
@@ -814,8 +854,16 @@ QString OffscreenUi::getSaveFileName(void* ignored, const QString &caption, cons
     return DependencyManager::get<OffscreenUi>()->fileSaveDialog(caption, dir, filter, selectedFilter, options);
 }
 
+void OffscreenUi::getSaveFileNameAsync(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
+    return DependencyManager::get<OffscreenUi>()->fileSaveDialogAsync(caption, dir, filter, selectedFilter, options);
+}
+
 QString OffscreenUi::getExistingDirectory(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
     return DependencyManager::get<OffscreenUi>()->existingDirectoryDialog(caption, dir, filter, selectedFilter, options);
+}
+
+void OffscreenUi::getExistingDirectoryAsync(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
+    return DependencyManager::get<OffscreenUi>()->existingDirectoryDialogAsync(caption, dir, filter, selectedFilter, options);
 }
 
 class AssetDialogListener : public ModalDialogListener {
@@ -833,6 +881,9 @@ class AssetDialogListener : public ModalDialogListener {
     private slots:
     void onSelectedAsset(QVariant asset) {
         _result = asset;
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        emit offscreenUi->assetDialogResponse(_result.toUrl().toLocalFile());
+        offscreenUi->removeModalDialog(qobject_cast<QObject*>(this));
         _finished = true;
         disconnect(_dialog);
     }
@@ -870,6 +921,35 @@ QString OffscreenUi::assetDialog(const QVariantMap& properties) {
     return result.toUrl().toString();
 }
 
+void OffscreenUi::assetDialogAsync(const QVariantMap& properties) {
+    // ATP equivalent of fileDialog().
+    QVariant buildDialogResult;
+    bool invokeResult;
+    auto tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
+    TabletProxy* tablet = dynamic_cast<TabletProxy*>(tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
+    if (tablet->getToolbarMode()) {
+        invokeResult = QMetaObject::invokeMethod(_desktop, "assetDialog",
+            Q_RETURN_ARG(QVariant, buildDialogResult),
+            Q_ARG(QVariant, QVariant::fromValue(properties)));
+    } else {
+        QQuickItem* tabletRoot = tablet->getTabletRoot();
+        invokeResult = QMetaObject::invokeMethod(tabletRoot, "assetDialog",
+            Q_RETURN_ARG(QVariant, buildDialogResult),
+            Q_ARG(QVariant, QVariant::fromValue(properties)));
+        emit tabletScriptingInterface->tabletNotification();
+    }
+
+    if (!invokeResult) {
+        qWarning() << "Failed to create asset open dialog";
+        return;
+    }
+
+    AssetDialogListener* assetDialogListener = new AssetDialogListener(qvariant_cast<QQuickItem*>(buildDialogResult));
+    QObject* assetModalDialog = qobject_cast<QObject*>(assetDialogListener);
+    _modalDialogListeners.push_back(assetModalDialog);
+    return;
+}
+
 QString OffscreenUi::assetOpenDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
     // ATP equivalent of fileOpenDialog().
     if (QThread::currentThread() != thread()) {
@@ -893,9 +973,35 @@ QString OffscreenUi::assetOpenDialog(const QString& caption, const QString& dir,
     return assetDialog(map);
 }
 
+void OffscreenUi::assetOpenDialogAsync(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {
+    // ATP equivalent of fileOpenDialog().
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "assetOpenDialogAsync",
+            Q_ARG(QString, caption),
+            Q_ARG(QString, dir),
+            Q_ARG(QString, filter),
+            Q_ARG(QString*, selectedFilter),
+            Q_ARG(QFileDialog::Options, options));
+        return;
+    }
+
+    // FIXME support returning the selected filter... somehow?
+    QVariantMap map;
+    map.insert("caption", caption);
+    map.insert("dir", dir);
+    map.insert("filter", filter);
+    map.insert("options", static_cast<int>(options));
+    return assetDialogAsync(map);
+}
+
 QString OffscreenUi::getOpenAssetName(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
     // ATP equivalent of getOpenFileName().
     return DependencyManager::get<OffscreenUi>()->assetOpenDialog(caption, dir, filter, selectedFilter, options);
+}
+
+void OffscreenUi::getOpenAssetNameAsync(void* ignored, const QString &caption, const QString &dir, const QString &filter, QString *selectedFilter, QFileDialog::Options options) {
+    // ATP equivalent of getOpenFileName().
+    return DependencyManager::get<OffscreenUi>()->assetOpenDialogAsync(caption, dir, filter, selectedFilter, options);
 }
 
 bool OffscreenUi::eventFilter(QObject* originalDestination, QEvent* event) {

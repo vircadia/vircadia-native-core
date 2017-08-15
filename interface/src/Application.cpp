@@ -6776,6 +6776,8 @@ void Application::loadDialog() {
     auto scriptEngines = DependencyManager::get<ScriptEngines>();
     auto offscreenUi = DependencyManager::get<OffscreenUi>();
     connect(offscreenUi.data(), &OffscreenUi::fileDialogResponse, this, [=] (QString response) {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        disconnect(offscreenUi.data(), &OffscreenUi::fileDialogResponse, this, nullptr);
         if (!response.isEmpty() && QFile(response).exists()) {
             setPreviousScriptLocation(QFileInfo(response).absolutePath());
             DependencyManager::get<ScriptEngines>()->loadScript(response, true, false, false, true);  // Don't load from cache
