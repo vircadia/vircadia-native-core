@@ -1,6 +1,6 @@
 "use strict";
 
-//  nearParentGrabEntity.js
+//  nearTrigger.js
 //
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
@@ -100,17 +100,17 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         };
     }
 
-    var leftNearParentingGrabEntity = new NearTriggerEntity(LEFT_HAND);
-    var rightNearParentingGrabEntity = new NearTriggerEntity(RIGHT_HAND);
+    var leftNearTriggerEntity = new NearTriggerEntity(LEFT_HAND);
+    var rightNearTriggerEntity = new NearTriggerEntity(RIGHT_HAND);
 
-    enableDispatcherModule("LeftNearParentingGrabEntity", leftNearParentingGrabEntity);
-    enableDispatcherModule("RightNearParentingGrabEntity", rightNearParentingGrabEntity);
+    enableDispatcherModule("LeftNearTriggerEntity", leftNearTriggerEntity);
+    enableDispatcherModule("RightNearTriggerEntity", rightNearTriggerEntity);
 
     this.cleanup = function () {
-        leftNearParentingGrabEntity.cleanup();
-        rightNearParentingGrabEntity.cleanup();
-        disableDispatcherModule("LeftNearParentingGrabEntity");
-        disableDispatcherModule("RightNearParentingGrabEntity");
+        leftNearTriggerEntity.cleanup();
+        rightNearTriggerEntity.cleanup();
+        disableDispatcherModule("LeftNearTriggerEntity");
+        disableDispatcherModule("RightNearTriggerEntity");
     };
     Script.scriptEnding.connect(this.cleanup);
 }());
