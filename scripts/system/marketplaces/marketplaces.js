@@ -21,6 +21,7 @@
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
     var MARKETPLACE_CHECKOUT_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/Checkout.qml";
     var MARKETPLACE_INVENTORY_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/Inventory.qml";
+    var MARKETPLACE_SECURITY_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/SecurityImageSelection.qml";
 
     var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
     // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
@@ -217,8 +218,12 @@
             case 'inventory_backClicked':
                 tablet.gotoWebScreen(message.referrerURL, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
+            case 'securityImageSelection_cancelClicked':
+                console.log("ZRF HERE " + message.referrerURL);
+                tablet.gotoWebScreen(message.referrerURL, MARKETPLACES_INJECT_SCRIPT_URL);
+                break;
             default:
-                print('Unrecognized message from Checkout.qml or Inventory.qml: ' + JSON.stringify(message));
+                print('Unrecognized message from Checkout.qml, Inventory.qml, or SecurityImageSelection.qml: ' + JSON.stringify(message));
         }
     }
 

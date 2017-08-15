@@ -35,6 +35,16 @@ protected:
     Q_INVOKABLE void buy(const QString& assetId, int cost, const QString& buyerUsername = "");
     Q_INVOKABLE void balance();
     Q_INVOKABLE void inventory();
+
+    enum SecurityImage {
+        NONE = 0,
+        Cat
+    };
+    Q_INVOKABLE void chooseSecurityImage(SecurityImage imageID);
+    Q_INVOKABLE bool hasChosenSecurityImage() { return (QmlCommerce::_chosenSecurityImage != SecurityImage::NONE); }
+
+private:
+    SecurityImage _chosenSecurityImage = SecurityImage::NONE;
 };
 
 #endif // hifi_QmlCommerce_h

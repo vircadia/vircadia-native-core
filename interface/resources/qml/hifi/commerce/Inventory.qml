@@ -45,6 +45,12 @@ Rectangle {
         }
     }
 
+    SecurityImageSelection {
+        id: securityImageSelection;
+        visible: true;
+        referrerURL: inventoryRoot.referrerURL;
+    }
+
     //
     // TITLE BAR START
     //
