@@ -461,12 +461,15 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             var reparentProps = {
                 parentID: AVATAR_SELF_ID,
                 parentJointIndex: handJointIndex,
-                velocity: {x: 0, y: 0, z: 0},
-                angularVelocity: {x: 0, y: 0, z: 0},
+                localVelocity: {x: 0, y: 0, z: 0},
+                localAngularVelocity: {x: 0, y: 0, z: 0},
                 localPosition: this.offsetPosition,
                 localRotation: this.offsetRotation
             };
             Entities.editEntity(this.targetEntityID, reparentProps);
+
+            var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+            Entities.callEntityMethod(this.targetEntityID, "startEquip", args);
 
             Messages.sendMessage('Hifi-Object-Manipulation', JSON.stringify({
                 action: 'equip',
@@ -593,6 +596,9 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             this.prevDropDetected = dropDetected;
 
             equipHotspotBuddy.update(deltaTime, timestamp, controllerData);
+
+            var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
+            Entities.callEntityMethod(this.targetEntityID, "continueEquip", args);
 
             return makeRunningValues(true, [this.targetEntityID], []);
         };

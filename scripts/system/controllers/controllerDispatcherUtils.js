@@ -148,8 +148,8 @@ getGrabbableData = function (props) {
     } catch (err) {
         userDataParsed = {};
     }
-    if (userDataParsed.grabbable) {
-        grabbableData = userDataParsed.grabbable;
+    if (userDataParsed.grabbableKey) {
+        grabbableData = userDataParsed.grabbableKey;
     }
     if (!grabbableData.hasOwnProperty("grabbable")) {
         grabbableData.grabbable = true;
@@ -162,6 +162,9 @@ getGrabbableData = function (props) {
     }
     if (!grabbableData.hasOwnProperty("wantsTrigger")) {
         grabbableData.wantsTrigger = false;
+    }
+    if (!grabbableData.hasOwnProperty("triggerable")) {
+        grabbableData.triggerable = false;
     }
 
     return grabbableData;

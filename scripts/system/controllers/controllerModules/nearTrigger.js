@@ -16,7 +16,8 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
 (function() {
 
     function entityWantsNearTrigger(props) {
-        return getGrabbableData(props).triggerable;
+        var grabbableData = getGrabbableData(props);
+        return grabbableData.triggerable || grabbableData.wantsTrigger;
     }
 
     function NearTriggerEntity(hand) {
@@ -40,21 +41,17 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                 var props = nearbyEntityProperties[i];
                 var handPosition = controllerData.controllerLocations[this.hand].position;
                 var distance = Vec3.distance(props.position, handPosition);
-                // if (distance > NEAR_GRAB_RADIUS) {
-                //     print("QQQ nop 0");
-                //     break;
-                // }
+                if (distance > NEAR_GRAB_RADIUS) {
+                    break;
+                }
                 if (entityWantsNearTrigger(props)) {
                     return props;
-                } else {
-                    print("QQQ nop 1");
                 }
             }
             return null;
         };
 
         this.startNearTrigger = function (controllerData) {
-            Controller.triggerShortHapticPulse(1.0, this.hand);
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "startNearTrigger", args);
         };
