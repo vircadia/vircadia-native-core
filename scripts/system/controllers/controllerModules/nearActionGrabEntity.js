@@ -9,7 +9,7 @@
    getControllerJointIndex, getGrabbableData, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
    propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, entityIsGrabbable,
    Quat, Vec3, MSECS_PER_SEC, getControllerWorldLocation, makeDispatcherModuleParameters, makeRunningValues,
-   TRIGGER_OFF_VALUE, NEAR_GRAB_RADIUS
+   TRIGGER_OFF_VALUE, NEAR_GRAB_RADIUS, findGroupParent
 */
 
 Script.include("/~/system/controllers/controllerDispatcherUtils.js");
@@ -152,6 +152,11 @@ Script.include("/~/system/libraries/controllers.js");
                     break;
                 }
                 if (entityIsGrabbable(props)) {
+                    // if we've attempted to grab a child, roll up to the root of the tree
+                    var groupRootProps = findGroupParent(controllerData, props);
+                    if (entityIsGrabbable(groupRootProps)) {
+                        return groupRootProps;
+                    }
                     return props;
                 }
             }
@@ -162,23 +167,18 @@ Script.include("/~/system/libraries/controllers.js");
             this.targetEntityID = null;
 
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE) {
-                makeRunningValues(false, [], []);
+                return makeRunningValues(false, [], []);
             }
 
             var targetProps = this.getTargetProps(controllerData);
             if (targetProps) {
                 if (!propsArePhysical(targetProps)) {
-                    // XXX make sure no highlights are enabled from this module
                     return makeRunningValues(false, [], []); // let nearParentGrabEntity handle it
                 } else {
                     this.targetEntityID = targetProps.id;
-                    ContextOverlay.entityWithContextOverlay = this.targetEntityID;
-                    ContextOverlay.enabled = true;
-                    // XXX highlight this.targetEntityID here
                     return makeRunningValues(true, [this.targetEntityID], []);
                 }
             } else {
-                // XXX make sure no highlights are enabled from this module
                 return makeRunningValues(false, [], []);
             }
         };
@@ -204,26 +204,8 @@ Script.include("/~/system/libraries/controllers.js");
 
                 var targetProps = this.getTargetProps(controllerData);
                 if (targetProps) {
-
-                    // XXX
-                    var rayPickInfo = controllerData.rayPicks[this.hand];
-                    var pointerEvent = {
-                        type: "Move",
-                        id: this.hand + 1, // 0 is reserved for hardware mouse
-                        pos2D: projectOntoEntityXYPlane(rayPickInfo.entityID, rayPickInfo.intersection, targetProps),
-                        pos3D: rayPickInfo.intersection,
-                        normal: rayPickInfo.normal,
-                        direction: rayPickInfo.searchRay.direction,
-                        button: "Secondary"
-                    };
-                    if (ContextOverlay.createOrDestroyContextOverlay(rayPickInfo.entityID, pointerEvent)) {
-                    }
-                    // XXX
-
-
                     if (controllerData.triggerClicks[this.hand] == 1) {
-                        // stop highlighting, switch to grabbing
-                        // XXX stop highlight here
+                        // switch to grabbing
                         this.startNearGrabAction(controllerData, targetProps);
                     }
                 }

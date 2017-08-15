@@ -24,7 +24,8 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/nearActionGrabEntity.js",
     "controllerModules/farActionGrabEntity.js",
     "controllerModules/tabletStylusInput.js",
-    "controllerModules/equipEntity.js"
+    "controllerModules/equipEntity.js",
+    "controllerModules/nearTrigger.js"
 ];
 
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";

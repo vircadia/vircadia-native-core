@@ -9,7 +9,8 @@
 /* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID,
    getControllerJointIndex, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
    propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, TRIGGER_OFF_VALUE,
-   makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS
+   makeDispatcherModuleParameters, entityIsGrabbable, makeRunningValues, NEAR_GRAB_RADIUS,
+   findGroupParent, Vec3
 */
 
 Script.include("/~/system/controllers/controllerDispatcherUtils.js");
@@ -29,7 +30,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
 
         this.parameters = makeDispatcherModuleParameters(
             500,
-            this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
+            this.hand === RIGHT_HAND ? ["rightHand", "rightHandTrigger"] : ["leftHand", "leftHandTrigger"],
             [],
             100);
 
@@ -64,6 +65,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         };
 
         this.startNearParentingGrabEntity = function (controllerData, targetProps) {
+
             Controller.triggerHapticPulse(HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, this.hand);
 
             var handJointIndex;
@@ -135,6 +137,11 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                     break;
                 }
                 if (entityIsGrabbable(props)) {
+                    // if we've attempted to grab a child, roll up to the root of the tree
+                    var groupRootProps = findGroupParent(controllerData, props);
+                    if (entityIsGrabbable(groupRootProps)) {
+                        return groupRootProps;
+                    }
                     return props;
                 }
             }
@@ -146,21 +153,18 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             this.grabbing = false;
 
             if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE) {
-                makeRunningValues(false, [], []);
+                return makeRunningValues(false, [], []);
             }
 
             var targetProps = this.getTargetProps(controllerData);
             if (targetProps) {
                 if (propsArePhysical(targetProps)) {
-                    // XXX make sure no highlights are enabled from this module
                     return makeRunningValues(false, [], []); // let nearActionGrabEntity handle it
                 } else {
                     this.targetEntityID = targetProps.id;
-                    // XXX highlight this.targetEntityID here
                     return makeRunningValues(true, [this.targetEntityID], []);
                 }
             } else {
-                // XXX make sure no highlights are enabled from this module
                 return makeRunningValues(false, [], []);
             }
         };
@@ -181,8 +185,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                     return readiness;
                 }
                 if (controllerData.triggerClicks[this.hand] == 1) {
-                    // stop highlighting, switch to grabbing
-                    // XXX stop highlight here
+                    // switch to grab
                     var targetProps = this.getTargetProps(controllerData);
                     if (targetProps) {
                         this.grabbing = true;

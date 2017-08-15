@@ -9,7 +9,7 @@
 
 /* global Script, Entities, Overlays, Controller, Vec3, Quat, getControllerWorldLocation, RayPick,
    controllerDispatcherPlugins, controllerDispatcherPluginsNeedSort, entityIsGrabbable,
-   LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS, DEFAULT_SEARCH_SPHERE_DISTANCE
+   LEFT_HAND, RIGHT_HAND, NEAR_GRAB_PICK_RADIUS, DEFAULT_SEARCH_SPHERE_DISTANCE, DISPATCHER_PROPERTIES
 */
 
 controllerDispatcherPlugins = {};
@@ -24,25 +24,6 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
 
     var NEAR_MIN_RADIUS = 0.1;
     var NEAR_MAX_RADIUS = 1.0;
-
-    var DISPATCHER_PROPERTIES = [
-        "position",
-        "registrationPoint",
-        "rotation",
-        "gravity",
-        "collidesWith",
-        "dynamic",
-        "collisionless",
-        "locked",
-        "name",
-        "shapeType",
-        "parentID",
-        "parentJointIndex",
-        "density",
-        "dimensions",
-        "userData"
-    ];
-
 
     var TARGET_UPDATE_HZ = 60; // 50hz good enough, but we're using update
     var BASIC_TIMER_INTERVAL_MS = 1000 / TARGET_UPDATE_HZ;

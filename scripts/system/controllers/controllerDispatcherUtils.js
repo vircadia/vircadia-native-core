@@ -18,6 +18,7 @@
    COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
    COLORS_GRAB_DISTANCE_HOLD,
    NEAR_GRAB_RADIUS,
+   DISPATCHER_PROPERTIES,
    Entities,
    makeDispatcherModuleParameters,
    makeRunningValues,
@@ -34,7 +35,8 @@
    projectOntoEntityXYPlane,
    projectOntoOverlayXYPlane,
    entityHasActions,
-   ensureDynamic
+   ensureDynamic,
+   findGroupParent
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -69,6 +71,27 @@ COLORS_GRAB_DISTANCE_HOLD = { red: 238, green: 75, blue: 214 };
 
 
 NEAR_GRAB_RADIUS = 0.1;
+
+
+
+DISPATCHER_PROPERTIES = [
+    "position",
+    "registrationPoint",
+    "rotation",
+    "gravity",
+    "collidesWith",
+    "dynamic",
+    "collisionless",
+    "locked",
+    "name",
+    "shapeType",
+    "parentID",
+    "parentJointIndex",
+    "density",
+    "dimensions",
+    "userData"
+];
+
 
 
 
@@ -136,6 +159,9 @@ getGrabbableData = function (props) {
     }
     if (!grabbableData.hasOwnProperty("kinematicGrab")) {
         grabbableData.kinematicGrab = true;
+    }
+    if (!grabbableData.hasOwnProperty("wantsTrigger")) {
+        grabbableData.wantsTrigger = false;
     }
 
     return grabbableData;
@@ -257,4 +283,18 @@ ensureDynamic = function (entityID) {
             Entities.editEntity(entityID, { velocity: velocity });
         }
     }
+};
+
+findGroupParent = function (controllerData, targetProps) {
+    while (targetProps.parentID && targetProps.parentID != NULL_UUID) {
+        var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);
+        if (!parentProps) {
+            break;
+        }
+        parentProps.id = targetProps.parentID;
+        targetProps = parentProps;
+        controllerData.nearbyEntityPropertiesByID[targetProps.id] = targetProps;
+    }
+
+    return targetProps;
 };
