@@ -553,6 +553,7 @@ public slots:
     void setEnableDebugDrawIKTargets(bool isEnabled);
     void setEnableDebugDrawIKConstraints(bool isEnabled);
     void setEnableDebugDrawIKChains(bool isEnabled);
+    void setEnableDebugDrawDetailedCollision(bool isEnabled);
 
     bool getEnableMeshVisible() const { return _skeletonModel->isVisible(); }
     void setEnableMeshVisible(bool isEnabled);
@@ -757,6 +758,7 @@ private:
     bool _enableDebugDrawIKTargets { false };
     bool _enableDebugDrawIKConstraints { false };
     bool _enableDebugDrawIKChains { false };
+    bool _enableDebugDrawDetailedCollision { false };
 
     AudioListenerMode _audioListenerMode;
     glm::vec3 _customListenPosition;
