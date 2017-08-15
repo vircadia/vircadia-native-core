@@ -1761,59 +1761,11 @@ void Rig::computeAvatarBoundingCapsule(
         return;
     }
 
-    AnimInverseKinematics ikNode("boundingShape");
-    ikNode.setSkeleton(_animSkeleton);
-
-    ikNode.setTargetVars("LeftHand", "leftHandPosition", "leftHandRotation",
-                         "leftHandType", "leftHandWeight", 1.0f, {},
-                         QString(), QString(), QString());
-    ikNode.setTargetVars("RightHand", "rightHandPosition", "rightHandRotation",
-                         "rightHandType", "rightHandWeight", 1.0f, {},
-                         QString(), QString(), QString());
-    ikNode.setTargetVars("LeftFoot", "leftFootPosition", "leftFootRotation",
-                         "leftFootType", "leftFootWeight", 1.0f, {},
-                         QString(), QString(), QString());
-    ikNode.setTargetVars("RightFoot", "rightFootPosition", "rightFootRotation",
-                         "rightFootType", "rightFootWeight", 1.0f, {},
-                         QString(), QString(), QString());
     glm::vec3 hipsPosition(0.0f);
     int hipsIndex = indexOfJoint("Hips");
     if (hipsIndex >= 0) {
         hipsPosition = transformPoint(_geometryToRigTransform, _animSkeleton->getAbsoluteDefaultPose(hipsIndex).trans());
     }
-    AnimVariantMap animVars;
-    animVars.setRigToGeometryTransform(_rigToGeometryTransform);
-    glm::quat handRotation = glm::angleAxis(PI, Vectors::UNIT_X);
-    animVars.set("leftHandPosition", hipsPosition);
-    animVars.set("leftHandRotation", handRotation);
-    animVars.set("leftHandType", (int)IKTarget::Type::RotationAndPosition);
-    animVars.set("rightHandPosition", hipsPosition);
-    animVars.set("rightHandRotation", handRotation);
-    animVars.set("rightHandType", (int)IKTarget::Type::RotationAndPosition);
-
-    int rightFootIndex = indexOfJoint("RightFoot");
-    int leftFootIndex = indexOfJoint("LeftFoot");
-    if (rightFootIndex != -1 && leftFootIndex != -1) {
-        glm::vec3 geomFootPosition = glm::vec3(0.0f, _animSkeleton->getAbsoluteDefaultPose(rightFootIndex).trans().y, 0.0f);
-        glm::vec3 footPosition = transformPoint(_geometryToRigTransform, geomFootPosition);
-        glm::quat footRotation = glm::angleAxis(0.5f * PI, Vectors::UNIT_X);
-        animVars.set("leftFootPosition", footPosition);
-        animVars.set("leftFootRotation", footRotation);
-        animVars.set("leftFootType", (int)IKTarget::Type::RotationAndPosition);
-        animVars.set("rightFootPosition", footPosition);
-        animVars.set("rightFootRotation", footRotation);
-        animVars.set("rightFootType", (int)IKTarget::Type::RotationAndPosition);
-    }
-
-    // call overlay twice: once to verify AnimPoseVec joints and again to do the IK
-    AnimNode::Triggers triggersOut;
-    AnimContext context(false, false, false, _geometryToRigTransform, _rigToGeometryTransform);
-    float dt = 1.0f; // the value of this does not matter
-    ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
-    AnimPoseVec finalPoses =  ikNode.overlay(animVars, context, dt, triggersOut, _animSkeleton->getRelativeBindPoses());
-
-    // convert relative poses to absolute
-    _animSkeleton->convertRelativePosesToAbsolute(finalPoses);
 
     // compute bounding box that encloses all points
     Extents totalExtents;
@@ -1824,15 +1776,15 @@ void Rig::computeAvatarBoundingCapsule(
     // even if they do not have legs (default robot)
     totalExtents.addPoint(glm::vec3(0.0f));
 
-    // HACK to reduce the radius of the bounding capsule to be tight with the torso, we only consider joints
+    // To reduce the radius of the bounding capsule to be tight with the torso, we only consider joints
     // from the head to the hips when computing the rest of the bounding capsule.
     int index = indexOfJoint("Head");
     while (index != -1) {
         const FBXJointShapeInfo& shapeInfo = geometry.joints.at(index).shapeInfo;
-        AnimPose pose = finalPoses[index];
+        AnimPose pose = _animSkeleton->getAbsoluteDefaultPose(index);
         if (shapeInfo.points.size() > 0) {
-            for (size_t j = 0; j < shapeInfo.points.size(); ++j) {
-                totalExtents.addPoint((pose * shapeInfo.points[j]));
+            for (auto& point : shapeInfo.points) {
+                totalExtents.addPoint((pose * point));
             }
         }
         index = _animSkeleton->getParentIndex(index);
@@ -1846,7 +1798,6 @@ void Rig::computeAvatarBoundingCapsule(
     radiusOut = 0.5f * sqrtf(0.5f * (diagonal.x * diagonal.x + diagonal.z * diagonal.z));
     heightOut = diagonal.y - 2.0f * radiusOut;
 
-    glm::vec3 rootPosition = finalPoses[geometry.rootJointIndex].trans();
-    glm::vec3 rigCenter = transformPoint(_geometryToRigTransform, (0.5f * (totalExtents.maximum + totalExtents.minimum)));
-    localOffsetOut = rigCenter - transformPoint(_geometryToRigTransform, rootPosition);
+    glm::vec3 capsuleCenter = transformPoint(_geometryToRigTransform, (0.5f * (totalExtents.maximum + totalExtents.minimum)));
+    localOffsetOut = capsuleCenter - hipsPosition;
 }
