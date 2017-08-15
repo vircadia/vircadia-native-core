@@ -500,8 +500,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         callback: "setGravityOn"
                     },
                     command: {
-                        method: "setGravityOn",
-                        parameter: "gravityToggle"
+                        method: "setGravityOn"
                     }
                 },
                 {
@@ -518,8 +517,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         callback: "setGrabOn"
                     },
                     command: {
-                        method: "setGrabOn",
-                        parameter: "grabToggle"
+                        method: "setGrabOn"
                     }
                 },
                 {
@@ -536,8 +534,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         callback: "setCollideOn"
                     },
                     command: {
-                        method: "setCollideOn",
-                        parameter: "collideToggle"
+                        method: "setCollideOn"
                     }
                 },
 
@@ -809,18 +806,10 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         return [menuPanelOverlay].concat(menuOverlays).concat(optionsOverlays);
     }
 
-    function openOptions(toolOptions) {
-        var properties,
-            childProperties,
-            auxiliaryProperties,
-            parentID,
-            value,
-            imageOffset,
-            IMAGE_OFFSET = 0.0005,
-            i,
+    function closeOptions() {
+        var i,
             length;
 
-        // Close current panel, if any.
         Overlays.editOverlay(highlightOverlay, {
             parentID: menuOriginOverlay
         });
@@ -833,129 +822,147 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         optionsOverlaysAuxiliaries = [];
         optionsEnabled = [];
         optionsItems = null;
+    }
 
-        // Open specified panel, if any.
-        if (toolOptions) {
-            optionsItems = OPTONS_PANELS[toolOptions];
-            parentID = menuPanelOverlay;  // Menu panel parents to background panel.
-            for (i = 0, length = optionsItems.length; i < length; i += 1) {
-                properties = Object.clone(UI_ELEMENTS[optionsItems[i].type].properties);
-                properties = Object.merge(properties, optionsItems[i].properties);
-                properties.parentID = parentID;
-                if (properties.url) {
-                    properties.url = Script.resolvePath(properties.url);
-                }
-                if (optionsItems[i].setting) {
-                    optionsSettings[optionsItems[i].id] = { key: optionsItems[i].setting.key };
-                    value = Settings.getValue(optionsItems[i].setting.key);
-                    if (value === "" && optionsItems[i].setting.defaultValue !== undefined) {
-                        value = optionsItems[i].setting.defaultValue;
-                    }
-                    if (value !== "") {
-                        properties[optionsItems[i].setting.property] = value;
-                        if (optionsItems[i].type === "swatch") {
-                            // Special case for when swatch color is defined.
-                            properties.solid = true;
-                        }
-                        if (optionsItems[i].type === "toggleButton") {
-                            // Store value in optionsSettings rather than using overlay property.
-                            optionsSettings[optionsItems[i].id].value = value;
-                            properties.color = value
-                                ? UI_ELEMENTS[optionsItems[i].type].onColor
-                                : UI_ELEMENTS[optionsItems[i].type].offColor;
-                        }
-                        if (optionsItems[i].type === "barSlider") {
-                            // Store value in optionsSettings rather than using overlay property.
-                            optionsSettings[optionsItems[i].id].value = value;
-                        }
-                        if (optionsItems[i].setting.callback) {
-                            uiCommandCallback(optionsItems[i].setting.callback, value);
-                        }
-                    }
-                }
-                optionsOverlays.push(Overlays.addOverlay(UI_ELEMENTS[optionsItems[i].type].overlay, properties));
-                optionsOverlaysIDs.push(optionsItems[i].id);
-                if (optionsItems[i].label) {
-                    properties = Object.clone(UI_ELEMENTS.label.properties);
-                    properties.text = optionsItems[i].label;
-                    properties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                    Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
-                }
+    function openOptions(toolOptions) {
+        var properties,
+            childProperties,
+            auxiliaryProperties,
+            parentID,
+            value,
+            imageOffset,
+            IMAGE_OFFSET = 0.0005,
+            i,
+            length;
 
-                if (optionsItems[i].type === "barSlider") {
-                    optionsOverlaysAuxiliaries[i] = {};
-                    auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderValue.properties);
-                    auxiliaryProperties.localPosition = { x: 0, y: (0.5 - value / 2) * properties.dimensions.y, z: 0 };
-                    auxiliaryProperties.dimensions = {
-                        x: properties.dimensions.x,
-                        y: Math.max(value * properties.dimensions.y, MIN_BAR_SLIDER_DIMENSION),
-                        z: properties.dimensions.z
-                    };
-                    auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                    optionsOverlaysAuxiliaries[i].value = Overlays.addOverlay(UI_ELEMENTS.barSliderValue.overlay,
-                        auxiliaryProperties);
-                    auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderRemainder.properties);
-                    auxiliaryProperties.localPosition = { x: 0, y: (-0.5 + (1.0 - value) / 2) * properties.dimensions.y, z: 0 };
-                    auxiliaryProperties.dimensions = {
-                        x: properties.dimensions.x,
-                        y: Math.max((1.0 - value) * properties.dimensions.y, MIN_BAR_SLIDER_DIMENSION),
-                        z: properties.dimensions.z
-                    };
-                    auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                    optionsOverlaysAuxiliaries[i].remainder = Overlays.addOverlay(UI_ELEMENTS.barSliderRemainder.overlay,
-                        auxiliaryProperties);
-                }
+        // Close current panel, if any.
+        closeOptions();
 
-                if (optionsItems[i].type === "imageSlider") {
-                    imageOffset = 0.0;
+        // TODO: Remove once all tools have an options panel.
+        if (OPTONS_PANELS[toolOptions] === undefined) {
+            return;
+        }
 
-                    // Primary image.
-                    if (optionsItems[i].imageURL) {
-                        childProperties = Object.clone(UI_ELEMENTS.image.properties);
-                        childProperties.url = Script.resolvePath(optionsItems[i].imageURL);
-                        delete childProperties.dimensions;
-                        childProperties.scale = properties.dimensions.y;
-                        imageOffset += IMAGE_OFFSET;
-                        childProperties.emissive = true;
-                        if (optionsItems[i].useBaseColor) {
-                            childProperties.color = properties.color;
-                        }
-                        childProperties.localPosition = { x: 0, y: 0, z: -properties.dimensions.z / 2 - imageOffset };
-                        childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                        Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
-                    }
-
-                    // Overlay image.
-                    if (optionsItems[i].imageOverlayURL) {
-                        childProperties = Object.clone(UI_ELEMENTS.image.properties);
-                        childProperties.url = Script.resolvePath(optionsItems[i].imageOverlayURL);
-                        childProperties.drawInFront = true;  // TODO: Work-around for rendering bug; remove when bug fixed.
-                        delete childProperties.dimensions;
-                        childProperties.scale = properties.dimensions.y;
-                        imageOffset += IMAGE_OFFSET;
-                        childProperties.localPosition = { x: 0, y: 0, z: -properties.dimensions.z / 2 - imageOffset };
-                        childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                        Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
-                    }
-
-                    // Value pointers.
-                    optionsOverlaysAuxiliaries[i] = {};
-                    optionsOverlaysAuxiliaries[i].offset =
-                        { x: -properties.dimensions.x / 2, y: 0, z: -properties.dimensions.z / 2 - imageOffset };
-                    auxiliaryProperties = Object.clone(UI_ELEMENTS.sliderPointer.properties);
-                    auxiliaryProperties.localPosition = optionsOverlaysAuxiliaries[i].offset;
-                    auxiliaryProperties.drawInFront = true;  // TODO: Accommodate work-around above; remove when bug fixed.
-                    auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                    optionsOverlaysAuxiliaries[i].value = Overlays.addOverlay(UI_ELEMENTS.sliderPointer.overlay,
-                        auxiliaryProperties);
-                    auxiliaryProperties.localPosition = { x: 0, y: properties.dimensions.x, z: 0 };
-                    auxiliaryProperties.localRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
-                    auxiliaryProperties.parentID = optionsOverlaysAuxiliaries[i].value;
-                    Overlays.addOverlay(UI_ELEMENTS.sliderPointer.overlay, auxiliaryProperties);
-                }
-                parentID = optionsOverlays[0];  // Menu buttons parent to menu panel.
-                optionsEnabled.push(true);
+        // Open specified panel.
+        optionsItems = OPTONS_PANELS[toolOptions];
+        parentID = menuPanelOverlay;  // Menu panel parents to background panel.
+        for (i = 0, length = optionsItems.length; i < length; i += 1) {
+            properties = Object.clone(UI_ELEMENTS[optionsItems[i].type].properties);
+            properties = Object.merge(properties, optionsItems[i].properties);
+            properties.parentID = parentID;
+            if (properties.url) {
+                properties.url = Script.resolvePath(properties.url);
             }
+            if (optionsItems[i].setting) {
+                optionsSettings[optionsItems[i].id] = { key: optionsItems[i].setting.key };
+                value = Settings.getValue(optionsItems[i].setting.key);
+                if (value === "" && optionsItems[i].setting.defaultValue !== undefined) {
+                    value = optionsItems[i].setting.defaultValue;
+                }
+                if (value !== "") {
+                    properties[optionsItems[i].setting.property] = value;
+                    if (optionsItems[i].type === "swatch") {
+                        // Special case for when swatch color is defined.
+                        properties.solid = true;
+                    }
+                    if (optionsItems[i].type === "toggleButton") {
+                        // Store value in optionsSettings rather than using overlay property.
+                        optionsSettings[optionsItems[i].id].value = value;
+                        properties.color = value
+                            ? UI_ELEMENTS[optionsItems[i].type].onColor
+                            : UI_ELEMENTS[optionsItems[i].type].offColor;
+                    }
+                    if (optionsItems[i].type === "barSlider") {
+                        // Store value in optionsSettings rather than using overlay property.
+                        optionsSettings[optionsItems[i].id].value = value;
+                    }
+                    if (optionsItems[i].setting.callback) {
+                        uiCommandCallback(optionsItems[i].setting.callback, value);
+                    }
+                }
+            }
+            optionsOverlays.push(Overlays.addOverlay(UI_ELEMENTS[optionsItems[i].type].overlay, properties));
+            optionsOverlaysIDs.push(optionsItems[i].id);
+            if (optionsItems[i].label) {
+                properties = Object.clone(UI_ELEMENTS.label.properties);
+                properties.text = optionsItems[i].label;
+                properties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
+            }
+
+            if (optionsItems[i].type === "barSlider") {
+                optionsOverlaysAuxiliaries[i] = {};
+                auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderValue.properties);
+                auxiliaryProperties.localPosition = { x: 0, y: (0.5 - value / 2) * properties.dimensions.y, z: 0 };
+                auxiliaryProperties.dimensions = {
+                    x: properties.dimensions.x,
+                    y: Math.max(value * properties.dimensions.y, MIN_BAR_SLIDER_DIMENSION),
+                    z: properties.dimensions.z
+                };
+                auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                optionsOverlaysAuxiliaries[i].value = Overlays.addOverlay(UI_ELEMENTS.barSliderValue.overlay,
+                    auxiliaryProperties);
+                auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderRemainder.properties);
+                auxiliaryProperties.localPosition = { x: 0, y: (-0.5 + (1.0 - value) / 2) * properties.dimensions.y, z: 0 };
+                auxiliaryProperties.dimensions = {
+                    x: properties.dimensions.x,
+                    y: Math.max((1.0 - value) * properties.dimensions.y, MIN_BAR_SLIDER_DIMENSION),
+                    z: properties.dimensions.z
+                };
+                auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                optionsOverlaysAuxiliaries[i].remainder = Overlays.addOverlay(UI_ELEMENTS.barSliderRemainder.overlay,
+                    auxiliaryProperties);
+            }
+
+            if (optionsItems[i].type === "imageSlider") {
+                imageOffset = 0.0;
+
+                // Primary image.
+                if (optionsItems[i].imageURL) {
+                    childProperties = Object.clone(UI_ELEMENTS.image.properties);
+                    childProperties.url = Script.resolvePath(optionsItems[i].imageURL);
+                    delete childProperties.dimensions;
+                    childProperties.scale = properties.dimensions.y;
+                    imageOffset += IMAGE_OFFSET;
+                    childProperties.emissive = true;
+                    if (optionsItems[i].useBaseColor) {
+                        childProperties.color = properties.color;
+                    }
+                    childProperties.localPosition = { x: 0, y: 0, z: -properties.dimensions.z / 2 - imageOffset };
+                    childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                    Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
+                }
+
+                // Overlay image.
+                if (optionsItems[i].imageOverlayURL) {
+                    childProperties = Object.clone(UI_ELEMENTS.image.properties);
+                    childProperties.url = Script.resolvePath(optionsItems[i].imageOverlayURL);
+                    childProperties.drawInFront = true;  // TODO: Work-around for rendering bug; remove when bug fixed.
+                    delete childProperties.dimensions;
+                    childProperties.scale = properties.dimensions.y;
+                    imageOffset += IMAGE_OFFSET;
+                    childProperties.localPosition = { x: 0, y: 0, z: -properties.dimensions.z / 2 - imageOffset };
+                    childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                    Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
+                }
+
+                // Value pointers.
+                optionsOverlaysAuxiliaries[i] = {};
+                optionsOverlaysAuxiliaries[i].offset =
+                    { x: -properties.dimensions.x / 2, y: 0, z: -properties.dimensions.z / 2 - imageOffset };
+                auxiliaryProperties = Object.clone(UI_ELEMENTS.sliderPointer.properties);
+                auxiliaryProperties.localPosition = optionsOverlaysAuxiliaries[i].offset;
+                auxiliaryProperties.drawInFront = true;  // TODO: Accommodate work-around above; remove when bug fixed.
+                auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                optionsOverlaysAuxiliaries[i].value = Overlays.addOverlay(UI_ELEMENTS.sliderPointer.overlay,
+                    auxiliaryProperties);
+                auxiliaryProperties.localPosition = { x: 0, y: properties.dimensions.x, z: 0 };
+                auxiliaryProperties.localRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
+                auxiliaryProperties.parentID = optionsOverlaysAuxiliaries[i].value;
+                Overlays.addOverlay(UI_ELEMENTS.sliderPointer.overlay, auxiliaryProperties);
+            }
+            parentID = optionsOverlays[0];  // Menu buttons parent to menu panel.
+            optionsEnabled.push(true);
         }
 
         // Special handling for Group options.
@@ -966,7 +973,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     }
 
     function clearTool() {
-        openOptions();
+        closeOptions();
     }
 
     function evaluateParameter(parameter) {
