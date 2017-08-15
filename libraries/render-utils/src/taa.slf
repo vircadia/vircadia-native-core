@@ -32,13 +32,16 @@ struct TAAParams
 	float spareB;
 };
 
-layout(std140, location=0) uniform taaParamsBuffer {
+layout(std140) uniform taaParamsBuffer {
     TAAParams params;
 };
 
 void main() {
     outFragColor = vec4(texture(colorTexture, varTexCoord0).xyz, params.blend);
 
+    if (abs(varTexCoord0.x - params.debugX) < (1.0 / 2048.0)) {
+        outFragColor.rgb = vec3(1.0, 1.0, 0.0);
+    }
     if (varTexCoord0.x < params.debugX) {
         outFragColor.a = 1.0;
     }

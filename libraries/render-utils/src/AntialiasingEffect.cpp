@@ -171,7 +171,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 }
 */
 
-#include "fxaa_frag.h"
+#include "taa_frag.h"
 #include "fxaa_blend_frag.h"
 
 
@@ -186,7 +186,7 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
     if (!_antialiasingPipeline) {
         
         auto vs = gpu::StandardShaderLib::getDrawUnitQuadTexcoordVS();
-        auto ps = gpu::Shader::createPixel(std::string(fxaa_frag));
+        auto ps = gpu::Shader::createPixel(std::string(taa_frag));
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
         
         gpu::Shader::BindingSet slotBindings;
