@@ -87,6 +87,17 @@ void GetMappingRequest::doStart() {
 
         if (!_error) {
             _hash = message->read(SHA256_HASH_LENGTH).toHex();
+
+            // check the boolean to see if this request got re-directed
+            quint8 wasRedirected;
+            message->readPrimitive(&wasRedirected);
+            _wasRedirected = wasRedirected;
+
+            // if it did grab that re-directed path
+            if (_wasRedirected) {
+                _redirectedPath = message->readString();
+            }
+
         }
         emit finished(this);
     });

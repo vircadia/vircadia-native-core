@@ -314,7 +314,7 @@ void AssetServer::handleGetMappingOperation(ReceivedMessage& message, SharedNode
             replyPacket.writePrimitive(wasRedirected);
 
             // include the re-directed path in case the caller needs to make relative path requests for the baked asset
-            replyPacket.write(bakedAssetPath.toUtf8());
+            replyPacket.writeString(bakedAssetPath);
 
         } else {
             replyPacket.write(QByteArray::fromHex(originalAssetHash.toUtf8()));

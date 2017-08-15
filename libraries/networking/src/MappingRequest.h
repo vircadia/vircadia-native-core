@@ -53,6 +53,8 @@ public:
     GetMappingRequest(const AssetPath& path);
 
     AssetHash getHash() const { return _hash;  }
+    AssetPath getRedirectedPath() const { return _redirectedPath; }
+    bool wasRedirected() const { return _wasRedirected; }
 
 signals:
     void finished(GetMappingRequest* thisRequest);
@@ -62,6 +64,10 @@ private:
 
     AssetPath _path;
     AssetHash _hash;
+
+
+    AssetPath _redirectedPath;
+    bool _wasRedirected { false };
 };
 
 class SetMappingRequest : public MappingRequest {
