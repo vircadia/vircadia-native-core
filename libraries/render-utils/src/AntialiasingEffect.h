@@ -18,9 +18,28 @@
 
 class AntialiasingConfig : public render::Job::Config {
     Q_OBJECT
+    Q_PROPERTY(float debugX MEMBER debugX NOTIFY dirty)
+    Q_PROPERTY(float blend MEMBER blend NOTIFY dirty)
+
 public:
     AntialiasingConfig() : render::Job::Config(true) {}
+
+    float debugX{ 1.0f };
+    float blend { 0.1f };
+
+signals:
+    void dirty();
 };
+
+
+struct TAAParams {
+    float debugX{ 1.0f };
+    float blend{ 0.1f };
+    float spareA;
+    float spareB;
+
+};
+using TAAParamsBuffer = gpu::StructBuffer<TAAParams>;
 
 class Antialiasing {
 public:
@@ -29,11 +48,14 @@ public:
 
     Antialiasing();
     ~Antialiasing();
-    void configure(const Config& config) {}
+    void configure(const Config& config);
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceBuffer);
 
     const gpu::PipelinePointer& getAntialiasingPipeline();
     const gpu::PipelinePointer& getBlendPipeline();
+
+
+
 
 private:
 
@@ -46,7 +68,8 @@ private:
 
     gpu::PipelinePointer _antialiasingPipeline;
     gpu::PipelinePointer _blendPipeline;
-    int _geometryId { 0 };
+
+    TAAParamsBuffer _params;
 };
 
 /*

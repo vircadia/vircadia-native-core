@@ -1,0 +1,45 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  taa.frag
+//  fragment shader
+//
+//  Created by Sam Gateau on 8/14/2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+
+#ifdef GL_ES
+precision mediump float;
+precision mediump int;
+#endif
+
+uniform sampler2D colorTexture;
+//uniform sampler2D historyTexture;
+
+in vec2 varTexCoord0;
+layout(location = 0) out vec4 outFragColor;
+
+struct TAAParams
+{
+	float debugX;
+	float blend;
+	float spareA;
+	float spareB;
+};
+
+layout(std140, location=0) uniform taaParamsBuffer {
+    TAAParams params;
+};
+
+void main() {
+    outFragColor = vec4(texture(colorTexture, varTexCoord0).xyz, params.blend);
+
+    if (varTexCoord0.x < params.debugX) {
+        outFragColor.a = 1.0;
+    }
+}

@@ -171,20 +171,14 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 }
 */
 
-#include "fxaa_vert.h"
 #include "fxaa_frag.h"
 #include "fxaa_blend_frag.h"
 
 
 Antialiasing::Antialiasing() {
-    _geometryId = DependencyManager::get<GeometryCache>()->allocateID();
 }
 
 Antialiasing::~Antialiasing() {
-    auto geometryCache = DependencyManager::get<GeometryCache>();
-    if (geometryCache) {
-        geometryCache->releaseID(_geometryId);
-    }
 }
 
 const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
@@ -200,8 +194,6 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         slotBindings.insert(gpu::Shader::Binding(std::string("colorTexture"), 0));
         
         gpu::Shader::makeProgram(*program, slotBindings);
-        
-        _texcoordOffsetLoc = program->getUniforms().findLocation("texcoordOffset");
         
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         
@@ -236,6 +228,12 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
     return _blendPipeline;
 }
 
+void Antialiasing::configure(const Config& config) {
+    _params.edit().debugX = config.debugX;
+    _params.edit().blend = config.blend;
+}
+
+
 void Antialiasing::run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceBuffer) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
@@ -269,6 +267,9 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setResourceTexture(0, sourceBuffer->getRenderBuffer(0));
         batch.setFramebuffer(_antialiasingBuffer);
         batch.setPipeline(getAntialiasingPipeline());
+        
+        batch.setUniformBuffer(0, _params._buffer);
+
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         // Blend step
