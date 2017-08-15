@@ -1393,7 +1393,7 @@
             colorToolColor = parameter;
             break;
 
-        case "setGravity":
+        case "setGravityOn":
             if (parameter) {
                 physicsToolPhysics.gravity = { x: 0, y: -9.8, z: 0 };  // Earth gravity.
                 physicsToolPhysics.dynamic = true;
@@ -1402,10 +1402,10 @@
                 physicsToolPhysics.dynamic = false;
             }
             break;
-        case "setGrab":
+        case "setGrabOn":
             physicsToolPhysics.userData.grabbableKey.grabbable = parameter;
             break;
-        case "setCollide":
+        case "setCollideOn":
             if (parameter) {
                 physicsToolPhysics.collisionless = false;
                 physicsToolPhysics.collidesWith = "static,dynamic,kinematic,myAvatar,otherAvatar";

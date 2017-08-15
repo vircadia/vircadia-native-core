@@ -227,7 +227,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
         SLIDER_RAISE_DELTA = { x: 0, y: 0, z: 0.004 },
-        MIN_BAR_SLIDER_DIMENSION = 0.0001,
+        MIN_BAR_SLIDER_DIMENSION = 0.0001,  // Avoid visual artifact for 0 slider values.
 
 
         OPTONS_PANELS = {
@@ -512,12 +512,11 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     label: "GRAVITY",
                     setting: {
                         key: "VREdit.physicsTool.gravityOn",
-                        // No property
                         defaultValue: false,
-                        command: "setGravity"
+                        callback: "setGravityOn"
                     },
                     command: {
-                        method: "setGravity",
+                        method: "setGravityOn",
                         parameter: "gravityToggle"
                     }
                 },
@@ -531,12 +530,11 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     label: "  GRAB",
                     setting: {
                         key: "VREdit.physicsTool.grabOn",
-                        // No property
                         defaultValue: false,
-                        command: "setGrab"
+                        callback: "setGrabOn"
                     },
                     command: {
-                        method: "setGrab",
+                        method: "setGrabOn",
                         parameter: "grabToggle"
                     }
                 },
@@ -550,12 +548,11 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     label: "COLLIDE",
                     setting: {
                         key: "VREdit.physicsTool.collideOn",
-                        // No property
                         defaultValue: false,
-                        command: "setCollide"
+                        callback: "setCollideOn"
                     },
                     command: {
-                        method: "setCollide",
+                        method: "setCollideOn",
                         parameter: "collideToggle"
                     }
                 },
@@ -584,8 +581,13 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         localPosition: { x: -0.007, y: 0.016, z: -0.005 },
                         dimensions: { x: 0.014, y: 0.06, z: 0.01 }
                     },
-                    callback: {
-                        method: "setGravityValue"
+                    setting: {
+                        key: "VREdit.physicsTool.gravity",
+                        defaultValue: 0,  // Slider value in range 0.0 .. 1.0. TODO: Default value.
+                        callback: "setGravity"
+                    },
+                    command: {
+                        method: "setGravity"
                     }
                 },
                 {
@@ -604,8 +606,13 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         localPosition: { x: 0.009, y: 0.016, z: -0.005 },
                         dimensions: { x: 0.014, y: 0.06, z: 0.01 }
                     },
-                    callback: {
-                        method: "setBounceValue"
+                    setting: {
+                        key: "VREdit.physicsTool.bounce",
+                        defaultValue: 0,  // Slider value in range 0.0 .. 1.0. TODO: Default value.
+                        callback: "setBounce"
+                    },
+                    command: {
+                        method: "setBounce"
                     }
                 },
                 {
@@ -624,8 +631,13 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         localPosition: { x: 0.024, y: 0.016, z: -0.005 },
                         dimensions: { x: 0.014, y: 0.06, z: 0.01 }
                     },
-                    callback: {
-                        method: "setDampingValue"
+                    setting: {
+                        key: "VREdit.physicsTool.damping",
+                        defaultValue: 0,  // Slider value in range 0.0 .. 1.0. TODO: Default value.
+                        callback: "setDamping"
+                    },
+                    command: {
+                        method: "setDamping"
                     }
                 },
                 {
@@ -644,8 +656,13 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         localPosition: { x: 0.039, y: 0.016, z: -0.005 },
                         dimensions: { x: 0.014, y: 0.06, z: 0.01 }
                     },
-                    callback: {
-                        method: "setDensityValue"
+                    setting: {
+                        key: "VREdit.physicsTool.density",
+                        defaultValue: 0,  // Slider value in range 0.0 .. 1.0. TODO: Default value.
+                        callback: "setDensity"
+                    },
+                    command: {
+                        method: "setDensity"
                     }
                 },
                 {
@@ -847,7 +864,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 if (optionsItems[i].setting) {
                     optionsSettings[optionsItems[i].id] = { key: optionsItems[i].setting.key };
                     value = Settings.getValue(optionsItems[i].setting.key);
-                    if (value === "" && optionsItems[i].setting.defaultValue) {
+                    if (value === "" && optionsItems[i].setting.defaultValue !== undefined) {
                         value = optionsItems[i].setting.defaultValue;
                     }
                     if (value !== "") {
@@ -863,8 +880,12 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                                 ? UI_ELEMENTS[optionsItems[i].type].onColor
                                 : UI_ELEMENTS[optionsItems[i].type].offColor;
                         }
-                        if (optionsItems[i].setting.command) {
-                            uiCommandCallback(optionsItems[i].setting.command, value);
+                        if (optionsItems[i].type === "barSlider") {
+                            // Store value in optionsSettings rather than using overlay property.
+                            optionsSettings[optionsItems[i].id].value = value;
+                        }
+                        if (optionsItems[i].setting.callback) {
+                            uiCommandCallback(optionsItems[i].setting.callback, value);
                         }
                     }
                 }
@@ -878,29 +899,29 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
 
                 if (optionsItems[i].type === "barSlider") {
-                    // Initial value = 0.
                     optionsOverlaysAuxiliaries[i] = {};
                     auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderValue.properties);
+                    auxiliaryProperties.localPosition = { x: 0, y: (0.5 - value / 2) * properties.dimensions.y, z: 0 };
                     auxiliaryProperties.dimensions = {
                         x: properties.dimensions.x,
-                        y: MIN_BAR_SLIDER_DIMENSION,  // Avoid visual artifact if 0.
+                        y: Math.max(value * properties.dimensions.y, MIN_BAR_SLIDER_DIMENSION),
                         z: properties.dimensions.z
-                    };
-                    auxiliaryProperties.localPosition = {
-                        x: 0,
-                        y: properties.dimensions.y / 2,
-                        z: 0
                     };
                     auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                     optionsOverlaysAuxiliaries[i].value = Overlays.addOverlay(UI_ELEMENTS.barSliderValue.overlay,
                         auxiliaryProperties);
                     auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderRemainder.properties);
-                    auxiliaryProperties.dimensions = properties.dimensions;
-                    auxiliaryProperties.localPosition = Vec3.ZERO;
+                    auxiliaryProperties.localPosition = { x: 0, y: (-0.5 + (1.0 - value) / 2) * properties.dimensions.y, z: 0 };
+                    auxiliaryProperties.dimensions = {
+                        x: properties.dimensions.x,
+                        y: Math.max((1.0 - value) * properties.dimensions.y, MIN_BAR_SLIDER_DIMENSION),
+                        z: properties.dimensions.z
+                    };
                     auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                     optionsOverlaysAuxiliaries[i].remainder = Overlays.addOverlay(UI_ELEMENTS.barSliderRemainder.overlay,
                         auxiliaryProperties);
                 }
+
                 if (optionsItems[i].type === "imageSlider") {
                     imageOffset = 0.0;
 
@@ -1020,9 +1041,9 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
             break;
 
-        case "setGravity":
-        case "setGrab":
-        case "setCollide":
+        case "setGravityOn":
+        case "setGrabOn":
+        case "setCollideOn":
             value = !optionsSettings[parameter].value;
             optionsSettings[parameter].value = value;
             Settings.setValue(optionsSettings[parameter].key, value);
@@ -1031,6 +1052,23 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 color: value ? UI_ELEMENTS[optionsItems[index].type].onColor : UI_ELEMENTS[optionsItems[index].type].offColor
             });
             uiCommandCallback(command, value);
+            break;
+
+        case "setGravity":
+            Settings.setValue(optionsSettings.gravitySlider.key, parameter);
+            uiCommandCallback("setGravity", parameter);
+            break;
+        case "setBounce":
+            Settings.setValue(optionsSettings.bounceSlider.key, parameter);
+            uiCommandCallback("setBounce", parameter);
+            break;
+        case "setDamping":
+            Settings.setValue(optionsSettings.dampingSlider.key, parameter);
+            uiCommandCallback("setDamping", parameter);
+            break;
+        case "setDensity":
+            Settings.setValue(optionsSettings.densitySlider.key, parameter);
+            uiCommandCallback("setDensity", parameter);
             break;
 
         default:
@@ -1182,9 +1220,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     openOptions(intersectionItems[intersectedItem].toolOptions);
                 }
                 if (intersectionItems[intersectedItem].command) {
-                    if (intersectionItems[intersectedItem].command.parameter) {
-                        parameter = intersectionItems[intersectedItem].command.parameter;
-                    }
+                    parameter = intersectionItems[intersectedItem].id;
                     doCommand(intersectionItems[intersectedItem].command.method, parameter);
                 }
                 if (intersectionItems[intersectedItem].callback) {
@@ -1225,7 +1261,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 localPosition: { x: 0, y: (0.5 - fraction / 2) * overlayDimensions.y, z: 0 },
                 dimensions: {
                     x: overlayDimensions.x,
-                    y: Math.max(fraction * overlayDimensions.y, MIN_BAR_SLIDER_DIMENSION),  // Avoid visual artifact if 0.
+                    y: Math.max(fraction * overlayDimensions.y, MIN_BAR_SLIDER_DIMENSION),
                     z: overlayDimensions.z
                 }
             });
@@ -1233,12 +1269,13 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 localPosition: { x: 0, y: (-0.5 + otherFraction / 2) * overlayDimensions.y, z: 0 },
                 dimensions: {
                     x: overlayDimensions.x,
-                    y: Math.max(otherFraction * overlayDimensions.y, MIN_BAR_SLIDER_DIMENSION),  // Avoid visual artifact if 0.
+                    y: Math.max(otherFraction * overlayDimensions.y, MIN_BAR_SLIDER_DIMENSION),
                     z: overlayDimensions.z
                 }
             });
-
-            uiCommandCallback(intersectionItems[intersectedItem].callback.method, fraction);
+            if (intersectionItems[intersectedItem].command) {
+                doCommand(intersectionItems[intersectedItem].command.method, fraction);
+            }
         }
 
         // Image slider update.
@@ -1257,8 +1294,9 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 localPosition: Vec3.sum(optionsOverlaysAuxiliaries[intersectedItem].offset,
                     { x: 0, y: (0.5 - fraction) * overlayDimensions.y, z: 0 })
             });
-
-            uiCommandCallback(intersectionItems[intersectedItem].callback.method, fraction);
+            if (intersectionItems[intersectedItem].callback) {
+                uiCommandCallback(intersectionItems[intersectedItem].callback.method, fraction);
+            }
         }
 
         // Special handling for Group options.
