@@ -55,6 +55,8 @@ ContextOverlayInterface::ContextOverlayInterface() {
             _contextOverlayJustClicked = false;
         }
     });
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
+    connect(entityScriptingInterface, &EntityScriptingInterface::deletingEntity, this, &ContextOverlayInterface::deletingEntity);
 }
 
 static const uint32_t LEFT_HAND_HW_ID = 1;
@@ -250,22 +252,37 @@ void ContextOverlayInterface::openMarketplace() {
         auto tablet = dynamic_cast<TabletProxy*>(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
         // construct the url to the marketplace item
         QString url = MARKETPLACE_BASE_URL + _entityMarketplaceID;
-        tablet->gotoWebScreen(url);
+        QString MARKETPLACES_INJECT_SCRIPT_PATH = "file:///" + qApp->applicationDirPath() + "/scripts/system/html/js/marketplacesInject.js";
+        tablet->gotoWebScreen(url, MARKETPLACES_INJECT_SCRIPT_PATH);
         _hmdScriptingInterface->openTablet();
         _isInMarketplaceInspectionMode = true;
     }
 }
 
 void ContextOverlayInterface::enableEntityHighlight(const EntityItemID& entityItemID) {
-    if (!qApp->getEntities()->getTree()->findEntityByEntityItemID(entityItemID)->getShouldHighlight()) {
-        qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'true' for Entity ID:" << entityItemID;
-        qApp->getEntities()->getTree()->findEntityByEntityItemID(entityItemID)->setShouldHighlight(true);
-    }
+    auto entityTree = qApp->getEntities()->getTree();
+    entityTree->withReadLock([&] {
+        auto entityItem = entityTree->findEntityByEntityItemID(entityItemID);
+        if ((entityItem != NULL) && !entityItem->getShouldHighlight()) {
+            qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'true' for Entity ID:" << entityItemID;
+            entityItem->setShouldHighlight(true);
+        }
+    });
 }
 
 void ContextOverlayInterface::disableEntityHighlight(const EntityItemID& entityItemID) {
-    if (qApp->getEntities()->getTree()->findEntityByEntityItemID(entityItemID)->getShouldHighlight()) {
-        qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'false' for Entity ID:" << entityItemID;
-        qApp->getEntities()->getTree()->findEntityByEntityItemID(entityItemID)->setShouldHighlight(false);
+    auto entityTree = qApp->getEntities()->getTree();
+    entityTree->withReadLock([&] {
+        auto entityItem = entityTree->findEntityByEntityItemID(entityItemID);
+        if ((entityItem != NULL) && entityItem->getShouldHighlight()) {
+            qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'false' for Entity ID:" << entityItemID;
+            entityItem->setShouldHighlight(false);
+        }
+    });
+}
+
+void ContextOverlayInterface::deletingEntity(const EntityItemID& entityID) {
+    if (_currentEntityWithContextOverlay == entityID) {
+        destroyContextOverlay(_currentEntityWithContextOverlay, PointerEvent());
     }
 }

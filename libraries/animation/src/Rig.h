@@ -41,26 +41,44 @@ public:
         bool useNames;
     };
 
-    enum ControllerType {
-        ControllerType_Head = 0,
-        ControllerType_LeftHand,
-        ControllerType_RightHand,
-        ControllerType_Hips,
-        ControllerType_LeftFoot,
-        ControllerType_RightFoot,
-        ControllerType_LeftArm,
-        ControllerType_RightArm,
-        ControllerType_Spine2,
-        NumControllerTypes
+    enum PrimaryControllerType {
+        PrimaryControllerType_Head = 0,
+        PrimaryControllerType_LeftHand,
+        PrimaryControllerType_RightHand,
+        PrimaryControllerType_Hips,
+        PrimaryControllerType_LeftFoot,
+        PrimaryControllerType_RightFoot,
+        PrimaryControllerType_Spine2,
+        NumPrimaryControllerTypes
+    };
+
+    // NOTE: These should ordered such that joint parents appear before their children.
+    enum SecondaryControllerType {
+        SecondaryControllerType_LeftShoulder = 0,
+        SecondaryControllerType_RightShoulder,
+        SecondaryControllerType_LeftArm,
+        SecondaryControllerType_RightArm,
+        SecondaryControllerType_LeftForeArm,
+        SecondaryControllerType_RightForeArm,
+        SecondaryControllerType_LeftUpLeg,
+        SecondaryControllerType_RightUpLeg,
+        SecondaryControllerType_LeftLeg,
+        SecondaryControllerType_RightLeg,
+        SecondaryControllerType_LeftToeBase,
+        SecondaryControllerType_RightToeBase,
+        NumSecondaryControllerTypes
     };
 
     struct ControllerParameters {
-        AnimPose controllerPoses[NumControllerTypes];  // rig space
-        bool controllerActiveFlags[NumControllerTypes];
+        AnimPose primaryControllerPoses[NumPrimaryControllerTypes];  // rig space
+        bool primaryControllerActiveFlags[NumPrimaryControllerTypes];
+        AnimPose secondaryControllerPoses[NumSecondaryControllerTypes];  // rig space
+        bool secondaryControllerActiveFlags[NumSecondaryControllerTypes];
         bool isTalking;
-        float bodyCapsuleRadius;
-        float bodyCapsuleHalfHeight;
-        glm::vec3 bodyCapsuleLocalOffset;
+        FBXJointShapeInfo hipsShapeInfo;
+        FBXJointShapeInfo spineShapeInfo;
+        FBXJointShapeInfo spine1ShapeInfo;
+        FBXJointShapeInfo spine2ShapeInfo;
     };
 
     struct EyeParameters {
@@ -232,7 +250,8 @@ protected:
     void updateHead(bool headEnabled, bool hipsEnabled, const AnimPose& headMatrix);
     void updateHands(bool leftHandEnabled, bool rightHandEnabled, bool hipsEnabled, bool leftArmEnabled, bool rightArmEnabled, float dt,
                      const AnimPose& leftHandPose, const AnimPose& rightHandPose,
-                     float bodyCapsuleRadius, float bodyCapsuleHalfHeight, const glm::vec3& bodyCapsuleLocalOffset);
+                     const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
+                     const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo);
     void updateFeet(bool leftFootEnabled, bool rightFootEnabled, const AnimPose& leftFootPose, const AnimPose& rightFootPose);
 
     void updateEyeJoint(int index, const glm::vec3& modelTranslation, const glm::quat& modelRotation, const glm::vec3& lookAt, const glm::vec3& saccade);
@@ -240,6 +259,8 @@ protected:
 
     glm::vec3 calculateElbowPoleVector(int handIndex, int elbowIndex, int armIndex, int hipsIndex, bool isLeft) const;
     glm::vec3 calculateKneePoleVector(int footJointIndex, int kneeJoint, int upLegIndex, int hipsIndex, const AnimPose& targetFootPose) const;
+    glm::vec3 deflectHandFromTorso(const glm::vec3& handPosition, const FBXJointShapeInfo& hipsShapeInfo, const FBXJointShapeInfo& spineShapeInfo,
+                                   const FBXJointShapeInfo& spine1ShapeInfo, const FBXJointShapeInfo& spine2ShapeInfo) const;
 
     AnimPose _modelOffset;  // model to rig space
     AnimPose _geometryOffset; // geometry to model space (includes unit offset & fst offsets)

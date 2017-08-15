@@ -35,7 +35,6 @@
 #include <Plugins/InputConfiguration.h>
 #include <controllers/StandardControls.h>
 
-
 extern PoseData _nextSimPoseData;
 
 vr::IVRSystem* acquireOpenVrSystem();
@@ -168,6 +167,7 @@ void ViveControllerManager::setConfigurationSettings(const QJsonObject configura
             }
         }
         _inputDevice->configureCalibrationSettings(configurationSettings);
+        saveSettings();
     }
 }
 
@@ -187,6 +187,8 @@ QString ViveControllerManager::configurationLayout() {
 
 bool ViveControllerManager::activate() {
     InputPlugin::activate();
+
+    loadSettings();
 
     if (!_system) {
         _system = acquireOpenVrSystem();
@@ -230,6 +232,8 @@ void ViveControllerManager::deactivate() {
     auto userInputMapper = DependencyManager::get<controller::UserInputMapper>();
     userInputMapper->removeDevice(_inputDevice->_deviceID);
     _registeredWithInputMapper = false;
+
+    saveSettings();
 }
 
 bool ViveControllerManager::isHeadControllerMounted() const {
@@ -282,7 +286,38 @@ void ViveControllerManager::pluginUpdate(float deltaTime, const controller::Inpu
     }
 }
 
-ViveControllerManager::InputDevice::InputDevice(vr::IVRSystem*& system) : controller::InputDevice("Vive"), _system(system) {
+void ViveControllerManager::loadSettings() {
+    Settings settings;
+    QString nameString = getName();
+    settings.beginGroup(nameString);
+    {
+        if (_inputDevice) {
+            const double DEFAULT_ARM_CIRCUMFERENCE = 0.33;
+            const double DEFAULT_SHOULDER_WIDTH = 0.48;
+            _inputDevice->_armCircumference = settings.value("armCircumference", QVariant(DEFAULT_ARM_CIRCUMFERENCE)).toDouble();
+            _inputDevice->_shoulderWidth = settings.value("shoulderWidth", QVariant(DEFAULT_SHOULDER_WIDTH)).toDouble();
+        }
+    }
+    settings.endGroup();
+}
+
+void ViveControllerManager::saveSettings() const {
+    Settings settings;
+    QString nameString = getName();
+    settings.beginGroup(nameString);
+    {
+        if (_inputDevice) {
+            settings.setValue(QString("armCircumference"), _inputDevice->_armCircumference);
+            settings.setValue(QString("shoulderWidth"), _inputDevice->_shoulderWidth);
+        }
+    }
+    settings.endGroup();
+}
+
+
+ViveControllerManager::InputDevice::InputDevice(vr::IVRSystem*& system) :
+    controller::InputDevice("Vive"),
+    _system(system) {
 
     _configStringMap[Config::None] = QString("None");
     _configStringMap[Config::Feet] = QString("Feet");
@@ -371,6 +406,9 @@ void ViveControllerManager::InputDevice::calibrateFromUI(const controller::Input
     }
 }
 
+static const float CM_TO_M = 0.01f;
+static const float M_TO_CM = 100.0f;
+
 void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJsonObject configurationSettings) {
     Locker locker(_lock);
     if (!configurationSettings.empty()) {
@@ -384,8 +422,8 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 bool overrideHead = headObject["override"].toBool();
                 if (overrideHead) {
                     _headConfig = HeadConfig::Puck;
-                    _headPuckYOffset = headObject["Y"].toDouble();
-                    _headPuckZOffset = headObject["Z"].toDouble();
+                    _headPuckYOffset = headObject["Y"].toDouble() * CM_TO_M;
+                    _headPuckZOffset = headObject["Z"].toDouble() * CM_TO_M;
                 } else {
                     _headConfig = HeadConfig::HMD;
                 }
@@ -394,11 +432,15 @@ void ViveControllerManager::InputDevice::configureCalibrationSettings(const QJso
                 bool overrideHands = handsObject["override"].toBool();
                 if (overrideHands) {
                     _handConfig = HandConfig::Pucks;
-                    _handPuckYOffset = handsObject["Y"].toDouble();
-                    _handPuckZOffset = handsObject["Z"].toDouble();
+                    _handPuckYOffset = handsObject["Y"].toDouble() * CM_TO_M;
+                    _handPuckZOffset = handsObject["Z"].toDouble() * CM_TO_M;
                 } else {
                     _handConfig = HandConfig::HandController;
                 }
+            } else if (iter.key() == "armCircumference") {
+                _armCircumference = (float)iter.value().toDouble() * CM_TO_M;
+            } else if (iter.key() == "shoulderWidth") {
+                _shoulderWidth = (float)iter.value().toDouble() * CM_TO_M;
             }
             iter++;
         }
@@ -417,6 +459,8 @@ QJsonObject ViveControllerManager::InputDevice::configurationSettings() {
     configurationSettings["HMDHead"] = (_headConfig == HeadConfig::HMD);
     configurationSettings["handController"] = (_handConfig == HandConfig::HandController);
     configurationSettings["puckCount"] = (int)_validTrackedObjects.size();
+    configurationSettings["armCircumference"] = (double)_armCircumference * M_TO_CM;
+    configurationSettings["shoulderWidth"] = (double)_shoulderWidth * M_TO_CM;
     return configurationSettings;
 }
 
@@ -534,7 +578,7 @@ void ViveControllerManager::InputDevice::calibrate(const controller::InputCalibr
     }
 }
 
-bool ViveControllerManager::InputDevice::configureHands(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
+bool ViveControllerManager::InputDevice::configureHands(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
     std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), sortPucksXPosition);
     int puckCount = (int)_validTrackedObjects.size();
     if (_handConfig == HandConfig::Pucks && puckCount >= MIN_PUCK_COUNT) {
@@ -569,7 +613,7 @@ bool ViveControllerManager::InputDevice::configureHands(glm::mat4& defaultToRefe
     return false;
 }
 
-bool ViveControllerManager::InputDevice::configureHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
+bool ViveControllerManager::InputDevice::configureHead(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
     std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), sortPucksYPosition);
     int puckCount = (int)_validTrackedObjects.size();
     if (_headConfig == HeadConfig::Puck && puckCount >= MIN_HEAD) {
@@ -583,7 +627,7 @@ bool ViveControllerManager::InputDevice::configureHead(glm::mat4& defaultToRefer
     return false;
 }
 
-bool ViveControllerManager::InputDevice::configureBody(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
+bool ViveControllerManager::InputDevice::configureBody(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
     std::sort(_validTrackedObjects.begin(), _validTrackedObjects.end(), sortPucksYPosition);
     int puckCount = (int)_validTrackedObjects.size();
     glm::vec3 headXAxis = getReferenceHeadXAxis(defaultToReferenceMat, inputCalibration.defaultHeadMat);
@@ -624,7 +668,8 @@ bool ViveControllerManager::InputDevice::configureBody(glm::mat4& defaultToRefer
 
 void ViveControllerManager::InputDevice::uncalibrate() {
     _config = Config::None;
-    _pucksOffset.clear();
+    _pucksPostOffset.clear();
+    _pucksPreOffset.clear();
     _jointToPuckMap.clear();
     _calibrated = false;
     _overrideHead = false;
@@ -654,10 +699,17 @@ controller::Pose ViveControllerManager::InputDevice::addOffsetToPuckPose(int joi
     if (puck != _jointToPuckMap.end()) {
         uint32_t puckIndex = puck->second;
         auto puckPose = _poseStateMap.find(puckIndex);
-        auto puckOffset = _pucksOffset.find(puckIndex);
+        auto puckPostOffset = _pucksPostOffset.find(puckIndex);
+        auto puckPreOffset = _pucksPreOffset.find(puckIndex);
 
-        if ((puckPose != _poseStateMap.end()) && (puckOffset != _pucksOffset.end())) {
-            return puckPose->second.postTransform(puckOffset->second);
+        if (puckPose != _poseStateMap.end()) {
+            if (puckPreOffset != _pucksPreOffset.end() && puckPostOffset != _pucksPostOffset.end()) {
+                return puckPose->second.postTransform(puckPostOffset->second).transform(puckPreOffset->second);
+            } else if (puckPostOffset != _pucksPostOffset.end()) {
+                return puckPose->second.postTransform(puckPostOffset->second);
+            } else if (puckPreOffset != _pucksPreOffset.end()) {
+                return puckPose->second.transform(puckPreOffset->second);
+            }
         }
     }
     return controller::Pose();
@@ -708,7 +760,7 @@ void ViveControllerManager::InputDevice::handleHandController(float deltaTime, u
             // pseudo buttons the depend on both of the above for-loops
             partitionTouchpad(controller::LS, controller::LX, controller::LY, controller::LS_CENTER, controller::LS_X, controller::LS_Y);
             partitionTouchpad(controller::RS, controller::RX, controller::RY, controller::RS_CENTER, controller::RS_X, controller::RS_Y);
-         }
+        }
     }
 }
 
@@ -942,7 +994,7 @@ void ViveControllerManager::InputDevice::hapticsHelper(float deltaTime, bool lef
     }
 }
 
-void ViveControllerManager::InputDevice::calibrateLeftHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair) {
+void ViveControllerManager::InputDevice::calibrateLeftHand(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair) {
     controller::Pose& handPose = handPair.second;
     glm::mat4 handPoseAvatarMat = createMatFromQuatAndPos(handPose.getRotation(), handPose.getTranslation());
     glm::vec3 handPoseTranslation = extractTranslation(handPoseAvatarMat);
@@ -970,10 +1022,10 @@ void ViveControllerManager::InputDevice::calibrateLeftHand(glm::mat4& defaultToR
     glm::mat4 offsetMat = createMatFromQuatAndPos(rotationOffset, translationOffset);
 
     _jointToPuckMap[controller::LEFT_HAND] = handPair.first;
-    _pucksOffset[handPair.first] = offsetMat;
+    _pucksPostOffset[handPair.first] = offsetMat;
 }
 
-void ViveControllerManager::InputDevice::calibrateRightHand(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair) {
+void ViveControllerManager::InputDevice::calibrateRightHand(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& handPair) {
     controller::Pose& handPose = handPair.second;
     glm::mat4 handPoseAvatarMat = createMatFromQuatAndPos(handPose.getRotation(), handPose.getTranslation());
     glm::vec3 handPoseTranslation = extractTranslation(handPoseAvatarMat);
@@ -1001,11 +1053,11 @@ void ViveControllerManager::InputDevice::calibrateRightHand(glm::mat4& defaultTo
     glm::mat4 offsetMat = createMatFromQuatAndPos(rotationOffset, translationOffset);
 
     _jointToPuckMap[controller::RIGHT_HAND] = handPair.first;
-    _pucksOffset[handPair.first] = offsetMat;
+    _pucksPostOffset[handPair.first] = offsetMat;
 }
 
 
-void ViveControllerManager::InputDevice::calibrateFeet(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
+void ViveControllerManager::InputDevice::calibrateFeet(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
     glm::vec3 headXAxis = getReferenceHeadXAxis(defaultToReferenceMat, inputCalibration.defaultHeadMat);
     glm::vec3 headPosition = getReferenceHeadPosition(defaultToReferenceMat, inputCalibration.defaultHeadMat);
     auto& firstFoot = _validTrackedObjects[FIRST_FOOT];
@@ -1022,7 +1074,7 @@ void ViveControllerManager::InputDevice::calibrateFeet(glm::mat4& defaultToRefer
     }
 }
 
-void ViveControllerManager::InputDevice::calibrateFoot(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& footPair, bool isLeftFoot){
+void ViveControllerManager::InputDevice::calibrateFoot(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration, PuckPosePair& footPair, bool isLeftFoot){
     controller::Pose footPose = footPair.second;
     glm::mat4 puckPoseAvatarMat = createMatFromQuatAndPos(footPose.getRotation(), footPose.getTranslation());
     glm::mat4 defaultFoot = isLeftFoot ? inputCalibration.defaultLeftFoot : inputCalibration.defaultRightFoot;
@@ -1037,48 +1089,96 @@ void ViveControllerManager::InputDevice::calibrateFoot(glm::mat4& defaultToRefer
 
     if (isLeftFoot) {
         _jointToPuckMap[controller::LEFT_FOOT] = footPair.first;
-        _pucksOffset[footPair.first] = finalOffset;
+        _pucksPostOffset[footPair.first] = finalOffset;
     } else {
         _jointToPuckMap[controller::RIGHT_FOOT] = footPair.first;
-        _pucksOffset[footPair.first] = finalOffset;
+        _pucksPostOffset[footPair.first] = finalOffset;
     }
 }
 
-void ViveControllerManager::InputDevice::calibrateHips(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
+void ViveControllerManager::InputDevice::calibrateHips(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
     _jointToPuckMap[controller::HIPS] = _validTrackedObjects[HIP].first;
-    _pucksOffset[_validTrackedObjects[HIP].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHips, _validTrackedObjects[HIP].second);
+    _pucksPostOffset[_validTrackedObjects[HIP].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHips, _validTrackedObjects[HIP].second);
 }
 
-void ViveControllerManager::InputDevice::calibrateChest(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
+void ViveControllerManager::InputDevice::calibrateChest(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
     _jointToPuckMap[controller::SPINE2] = _validTrackedObjects[CHEST].first;
-    _pucksOffset[_validTrackedObjects[CHEST].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultSpine2, _validTrackedObjects[CHEST].second);
+    _pucksPostOffset[_validTrackedObjects[CHEST].first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultSpine2, _validTrackedObjects[CHEST].second);
 }
 
-void ViveControllerManager::InputDevice::calibrateShoulders(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
+// y axis comes out of puck usb port/green light
+// -z axis comes out of puck center/vive logo
+static glm::vec3 computeUserShoulderPositionFromMeasurements(float armCirc, float shoulderSpan, const glm::mat4& headMat, const controller::Pose& armPuck, bool isLeftHand) {
+
+    float armRadius = armCirc / TWO_PI;
+
+    float sign = isLeftHand ? 1.0f : -1.0f;
+    float localArmX = sign * shoulderSpan / 2.0f;
+
+    controller::Pose localPuck = armPuck.transform(glm::inverse(headMat));
+    glm::mat4 localPuckMat = localPuck.getMatrix();
+    glm::vec3 localArmCenter = extractTranslation(localPuckMat) + armRadius * transformVectorFast(localPuckMat, Vectors::UNIT_Z);
+
+    return transformPoint(headMat, glm::vec3(localArmX, localArmCenter.y, localArmCenter.z));
+}
+
+void ViveControllerManager::InputDevice::calibrateShoulders(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration,
                                                             int firstShoulderIndex, int secondShoulderIndex) {
     const PuckPosePair& firstShoulder = _validTrackedObjects[firstShoulderIndex];
     const PuckPosePair& secondShoulder = _validTrackedObjects[secondShoulderIndex];
     const controller::Pose& firstShoulderPose = firstShoulder.second;
     const controller::Pose& secondShoulderPose = secondShoulder.second;
 
+    glm::mat4 refLeftArm = defaultToReferenceMat * inputCalibration.defaultLeftArm;
+    glm::mat4 refRightArm = defaultToReferenceMat * inputCalibration.defaultRightArm;
+
+    glm::mat4 userRefLeftArm = refLeftArm;
+    glm::mat4 userRefRightArm = refRightArm;
+
+    glm::mat4 headMat = defaultToReferenceMat * inputCalibration.defaultHeadMat;
+
     if (firstShoulderPose.translation.x < secondShoulderPose.translation.x) {
         _jointToPuckMap[controller::LEFT_ARM] = firstShoulder.first;
-        _pucksOffset[firstShoulder.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultLeftArm, firstShoulder.second);
         _jointToPuckMap[controller::RIGHT_ARM] = secondShoulder.first;
-        _pucksOffset[secondShoulder.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultRightArm, secondShoulder.second);
+
+        glm::vec3 leftPos = computeUserShoulderPositionFromMeasurements(_armCircumference, _shoulderWidth, headMat, firstShoulderPose, true);
+        userRefLeftArm[3] = glm::vec4(leftPos, 1.0f);
+        glm::vec3 rightPos = computeUserShoulderPositionFromMeasurements(_armCircumference, _shoulderWidth, headMat, secondShoulderPose, false);
+        userRefRightArm[3] = glm::vec4(rightPos, 1.0f);
+
+        // compute the post offset from the userRefArm
+        _pucksPostOffset[firstShoulder.first] = computeOffset(Matrices::IDENTITY, userRefLeftArm, firstShoulderPose);
+        _pucksPostOffset[secondShoulder.first] = computeOffset(Matrices::IDENTITY, userRefRightArm, secondShoulderPose);
+
+        // compute the pre offset from the diff between userRefArm and refArm transforms.
+        // as an optimization we don't do a full inverse, but subtract the translations.
+        _pucksPreOffset[firstShoulder.first] = createMatFromQuatAndPos(glm::quat(), extractTranslation(userRefLeftArm) - extractTranslation(refLeftArm));
+        _pucksPreOffset[secondShoulder.first] = createMatFromQuatAndPos(glm::quat(), extractTranslation(userRefRightArm) - extractTranslation(refRightArm));
     } else {
         _jointToPuckMap[controller::LEFT_ARM] = secondShoulder.first;
-        _pucksOffset[secondShoulder.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultLeftArm, secondShoulder.second);
         _jointToPuckMap[controller::RIGHT_ARM] = firstShoulder.first;
-        _pucksOffset[firstShoulder.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultRightArm, firstShoulder.second);
+
+        glm::vec3 leftPos = computeUserShoulderPositionFromMeasurements(_armCircumference, _shoulderWidth, headMat, secondShoulderPose, true);
+        userRefLeftArm[3] = glm::vec4(leftPos, 1.0f);
+        glm::vec3 rightPos = computeUserShoulderPositionFromMeasurements(_armCircumference, _shoulderWidth, headMat, firstShoulderPose, false);
+        userRefRightArm[3] = glm::vec4(rightPos, 1.0f);
+
+        // compute the post offset from the userRefArm
+        _pucksPostOffset[secondShoulder.first] = computeOffset(Matrices::IDENTITY, userRefLeftArm, secondShoulderPose);
+        _pucksPostOffset[firstShoulder.first] = computeOffset(Matrices::IDENTITY, userRefRightArm, firstShoulderPose);
+
+        // compute the pre offset from the diff between userRefArm and refArm transforms.
+        // as an optimization we don't do a full inverse, but subtract the translations.
+        _pucksPreOffset[secondShoulder.first] = createMatFromQuatAndPos(glm::quat(), extractTranslation(userRefLeftArm) - extractTranslation(refLeftArm));
+        _pucksPreOffset[firstShoulder.first] = createMatFromQuatAndPos(glm::quat(), extractTranslation(userRefRightArm) - extractTranslation(refRightArm));
     }
 }
 
-void ViveControllerManager::InputDevice::calibrateHead(glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
+void ViveControllerManager::InputDevice::calibrateHead(const glm::mat4& defaultToReferenceMat, const controller::InputCalibrationData& inputCalibration) {
     size_t headIndex = _validTrackedObjects.size() - 1;
     const PuckPosePair& head = _validTrackedObjects[headIndex];
     _jointToPuckMap[controller::HEAD] = head.first;
-    _pucksOffset[head.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHeadMat, head.second);
+    _pucksPostOffset[head.first] = computeOffset(defaultToReferenceMat, inputCalibration.defaultHeadMat, head.second);
 }
 
 QString ViveControllerManager::InputDevice::configToString(Config config) {

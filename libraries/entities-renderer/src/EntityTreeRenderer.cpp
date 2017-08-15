@@ -675,7 +675,7 @@ void EntityTreeRenderer::mouseMoveEvent(QMouseEvent* event) {
 
     PickRay ray = _viewState->computePickRay(event->x(), event->y());
 
-    bool precisionPicking = true; // for mouse moves we do precision picking
+    bool precisionPicking = false; // for mouse moves we do not do precision picking
     RayToEntityIntersectionResult rayPickResult = findRayIntersectionWorker(ray, Octree::TryLock, precisionPicking);
     if (rayPickResult.intersects) {
 

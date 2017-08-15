@@ -1,6 +1,6 @@
-# 
+#
 #  FindTBB.cmake
-# 
+#
 #  Try to find the Intel Threading Building Blocks library
 #
 #  You can provide a TBB_ROOT_DIR which contains lib and include directories
@@ -16,7 +16,7 @@
 #
 #  Distributed under the Apache License, Version 2.0.
 #  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
-# 
+#
 
 include("${MACRO_DIR}/HifiLibrarySearchHints.cmake")
 hifi_library_search_hints("tbb")
@@ -34,31 +34,43 @@ elseif (UNIX AND NOT ANDROID)
   else()
     set(_TBB_ARCH_DIR "ia32")
   endif()
-  
+
   execute_process(
     COMMAND ${CMAKE_C_COMPILER} -dumpversion
     OUTPUT_VARIABLE GCC_VERSION
   )
-  
-  if (GCC_VERSION VERSION_GREATER 4.4 OR GCC_VERSION VERSION_EQUAL 4.4)
+
+  if (GCC_VERSION VERSION_GREATER 4.7 OR GCC_VERSION VERSION_EQUAL 4.7)
+    set(_TBB_LIB_DIR "lib/${_TBB_ARCH_DIR}/gcc4.7")
+  elseif (GCC_VERSION VERSION_GREATER 4.4 OR GCC_VERSION VERSION_EQUAL 4.4)
     set(_TBB_LIB_DIR "lib/${_TBB_ARCH_DIR}/gcc4.4")
   elseif (GCC_VERSION VERSION_GREATER 4.1 OR GCC_VERSION VERSION_EQUAL 4.1)
     set(_TBB_LIB_DIR "lib/${_TBB_ARCH_DIR}/gcc4.1")
   else ()
     message(FATAL_ERROR "Could not find a compatible version of Threading Building Blocks library for your compiler.")
   endif ()
-  
+
 elseif (WIN32)
   if(CMAKE_SIZEOF_VOID_P EQUAL 8)
     set(_TBB_ARCH_DIR "intel64")
   else()
     set(_TBB_ARCH_DIR "ia32")
   endif()
-  
-  set(_TBB_LIB_DIR "lib/${_TBB_ARCH_DIR}/vc12")
-  
-  find_path(TBB_DLL_PATH tbb_debug.dll PATH_SUFFIXES "bin/${_TBB_ARCH_DIR}/vc12" HINTS ${TBB_SEARCH_DIRS})
-  
+
+  if (MSVC_VERSION GREATER_EQUAL 1900)
+    set(_TBB_MSVC_DIR "vc14")
+  elseif (MSVC_VERSION GREATER_EQUAL 1800)
+    set(_TBB_MSVC_DIR "vc12")
+  elseif (MSVC_VERSION GREATER_EQUAL 1700)
+    set(_TBB_MSVC_DIR "vc11")
+  else()
+    message(FATAL_ERROR "MSVC ${MSVC_VERSION} not supported by Intel TBB")
+  endif()
+
+  set(_TBB_LIB_DIR "lib/${_TBB_ARCH_DIR}/${_TBB_MSVC_DIR}")
+
+  find_path(TBB_DLL_PATH tbb_debug.dll PATH_SUFFIXES "bin/${_TBB_ARCH_DIR}/${_TBB_MSVC_DIR}" HINTS ${TBB_SEARCH_DIRS})
+
 elseif (ANDROID)
   set(_TBB_DEFAULT_INSTALL_DIR "/tbb")
   set(_TBB_LIB_NAME "tbb")

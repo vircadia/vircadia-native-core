@@ -145,12 +145,13 @@ Rectangle {
         visible: headPuckBox.checked
         HifiControls.SpinBox {
             id: headYOffset
-            decimals: 4
+            decimals: 1
             width: 112
-            label: "Y: offset"
+            label: "Y Offset"
+            suffix: " cm"
             minimumValue: -10
-            stepSize: 0.0254
-            value: -0.05
+            stepSize: 1
+            value: -5
             colorScheme: hifi.colorSchemes.dark
 
             onEditingFinished: {
@@ -162,11 +163,12 @@ Rectangle {
         HifiControls.SpinBox {
             id: headZOffset
             width: 112
-            label: "Z: offset"
+            label: "Z Offset"
             minimumValue: -10
-            stepSize: 0.0254
-            decimals: 4
-            value: -0.05
+            stepSize: 1
+            decimals: 1
+            suffix: " cm"
+            value: -5
             colorScheme: hifi.colorSchemes.dark
 
             onEditingFinished: {
@@ -174,7 +176,6 @@ Rectangle {
             }
         }
     }
-
 
     RalewayBold {
         id: hands
@@ -254,11 +255,12 @@ Rectangle {
 
         HifiControls.SpinBox {
             id: handYOffset
-            decimals: 4
+            decimals: 1
             width: 112
-            label: "Y: offset"
+            suffix: " cm"
+            label: "Y Offset"
             minimumValue: -10
-            stepSize: 0.0254
+            stepSize: 1
             colorScheme: hifi.colorSchemes.dark
 
             onEditingFinished: {
@@ -270,10 +272,11 @@ Rectangle {
         HifiControls.SpinBox {
             id: handZOffset
             width: 112
-            label: "Z: offset"
+            label: "Z Offset"
+            suffix: " cm"
             minimumValue: -10
-            stepSize: 0.0254
-            decimals: 4
+            stepSize: 1
+            decimals: 1
             colorScheme: hifi.colorSchemes.dark
 
             onEditingFinished: {
@@ -488,14 +491,54 @@ Rectangle {
         }
     }
 
+    Row {
+        id: shoulderAdditionalConfig
+        visible: shoulderBox.checked
+        anchors.top: shoulderConfig.bottom
+        anchors.topMargin: 5
+        anchors.left: openVrConfiguration.left
+        anchors.leftMargin: leftMargin + 20
+        spacing: 10
+
+        HifiControls.SpinBox {
+            id: armCircumference
+            decimals: 1
+            width: 160
+            suffix: " cm"
+            label: "Arm Circumference"
+            minimumValue: 0
+            stepSize: 1.0
+            colorScheme: hifi.colorSchemes.dark
+            value: 33.0
+
+            onEditingFinished: {
+                sendConfigurationSettings();
+            }
+        }
+
+        HifiControls.SpinBox {
+            id: shoulderWidth
+            width: 160
+            label: "Shoulder Width"
+            suffix: " cm"
+            minimumValue: 0
+            stepSize: 1.0
+            decimals: 1
+            colorScheme: hifi.colorSchemes.dark
+            value: 48
+
+            onEditingFinished: {
+                sendConfigurationSettings();
+            }
+        }
+    }
+
     Separator {
         id: bottomSeperator
         width: parent.width
-        anchors.top: shoulderConfig.bottom
-        anchors.topMargin: 10
+        anchors.top: shoulderAdditionalConfig.visible ? shoulderAdditionalConfig.bottom : shoulderConfig.bottom
+        anchors.topMargin: (shoulderAdditionalConfig.visible ? 25 : 10)
     }
-
-
 
     Rectangle {
         id: calibrationButton
@@ -835,6 +878,9 @@ Rectangle {
         var viveController = settings["handController"];
         var desktopMode = settings["desktopMode"];
 
+        armCircumference.value = settings.armCircumference;
+        shoulderWidth.value = settings.shoulderWidth;
+
         if (HmdHead) {
             headBox.checked = true;
             headPuckBox.checked = false;
@@ -1010,6 +1056,8 @@ Rectangle {
             "bodyConfiguration": trackerConfiguration,
             "headConfiguration": headObject,
             "handConfiguration": handObject,
+            "armCircumference": armCircumference.value,
+            "shoulderWidth": shoulderWidth.value,
             "desktopMode": viveInDesktop.checked
         }
 

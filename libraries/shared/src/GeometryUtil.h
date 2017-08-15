@@ -13,6 +13,7 @@
 #define hifi_GeometryUtil_h
 
 #include <glm/glm.hpp>
+#include <vector>
 
 glm::vec3 computeVectorFromPointToSegment(const glm::vec3& point, const glm::vec3& start, const glm::vec3& end);
 
@@ -163,5 +164,13 @@ private:
     static void copyCleanArray(int& lengthA, glm::vec2* vertexArrayA, int& lengthB, glm::vec2* vertexArrayB);
 };
 
+// given a set of points, compute a best fit plane that passes as close as possible through all the points.
+bool findPlaneFromPoints(const glm::vec3* points, size_t numPoints, glm::vec3& planeNormalOut, glm::vec3& pointOnPlaneOut);
+
+// plane equation is specified by ax + by + cz + d = 0.
+// the coefficents are passed in as a vec4. (a, b, c, d)
+bool findIntersectionOfThreePlanes(const glm::vec4& planeA, const glm::vec4& planeB, const glm::vec4& planeC, glm::vec3& intersectionPointOut);
+
+void generateBoundryLinesForDop14(const std::vector<float>& dots, const glm::vec3& center, std::vector<glm::vec3>& linesOut);
 
 #endif // hifi_GeometryUtil_h

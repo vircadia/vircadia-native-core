@@ -1,0 +1,70 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//  model_fade.frag
+//  fragment shader
+//
+//  Created by Olivier Prat on 04/19/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredBufferWrite.slh@>
+
+<@include model/Material.slh@>
+
+<@include MaterialTextures.slh@>
+<$declareMaterialTextures(ALBEDO, ROUGHNESS, _SCRIBE_NULL, _SCRIBE_NULL, EMISSIVE, OCCLUSION)$>
+
+<@include Fade.slh@>
+<$declareFadeFragment()$>
+
+in vec4 _position;
+in vec4 _worldPosition;
+in vec3 _normal;
+in vec3 _color;
+in vec2 _texCoord0;
+in vec2 _texCoord1;
+
+
+void main(void) {
+    vec3 fadeEmissive;
+    FadeObjectParams fadeParams;
+
+    <$fetchFadeObjectParams(fadeParams)$>
+    applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
+
+    Material mat = getMaterial();
+    int matKey = getMaterialKey(mat);
+    <$fetchMaterialTexturesCoord0(matKey, _texCoord0, albedoTex, roughnessTex, _SCRIBE_NULL, _SCRIBE_NULL, emissiveTex)$>
+    <$fetchMaterialTexturesCoord1(matKey, _texCoord1, occlusionTex)$>
+
+    float opacity = 1.0;
+    <$evalMaterialOpacity(albedoTex.a, opacity, matKey, opacity)$>;
+    <$discardTransparent(opacity)$>;
+
+    vec3 albedo = getMaterialAlbedo(mat);
+    <$evalMaterialAlbedo(albedoTex, albedo, matKey, albedo)$>;
+    albedo *= _color;
+
+    float roughness = getMaterialRoughness(mat);
+    <$evalMaterialRoughness(roughnessTex, roughness, matKey, roughness)$>;
+
+    vec3 emissive = getMaterialEmissive(mat);
+    <$evalMaterialEmissive(emissiveTex, emissive, matKey, emissive)$>;
+    emissive += fadeEmissive;
+
+    float scattering = getMaterialScattering(mat);
+
+    packDeferredFragment(
+        normalize(_normal.xyz), 
+        opacity,
+        albedo,
+        roughness,
+        getMaterialMetallic(mat),
+        emissive,
+        occlusionTex,
+        scattering);
+}
