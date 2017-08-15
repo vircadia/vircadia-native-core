@@ -80,6 +80,7 @@ private:
     void enableEntityHighlight(const EntityItemID& entityItemID);
     void disableEntityHighlight(const EntityItemID& entityItemID);
 
+    void deletingEntity(const EntityItemID& entityItemID);
 };
 
 #endif // hifi_ContextOverlayInterface_h

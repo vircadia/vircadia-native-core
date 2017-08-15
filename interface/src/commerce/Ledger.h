@@ -15,6 +15,8 @@
 #define hifi_Ledger_h
 
 #include <DependencyManager.h>
+#include <qjsonobject.h>
+#include <qjsonarray.h>
 
 class Ledger : public QObject, public Dependency {
     Q_OBJECT
@@ -30,12 +32,12 @@ signals:
     void buyResult(const QString& failureReason);
     void receiveAtResult(const QString& failureReason);
     void balanceResult(int balance, const QString& failureReason);
-    void inventoryResult(QStringList inventory, const QString& failureReason);
+    void inventoryResult(QJsonObject inventory, const QString& failureReason);
 
 private:
     // These in-memory caches is temporary, until we start sending things to the server.
     int _balance{ -1 };
-    QStringList _inventory{};
+    QJsonArray _inventory{};
     int initializedBalance() { if (_balance < 0) _balance = 100; return _balance; }
 };
 
