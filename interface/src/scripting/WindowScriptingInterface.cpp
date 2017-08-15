@@ -247,8 +247,7 @@ QScriptValue WindowScriptingInterface::save(const QString& title, const QString&
 /// \param const QString& title title of the window
 /// \param const QString& directory directory to start the asset browser at
 /// \param const QString& nameFilter filter to filter asset names by - see `QFileDialog`
-/// \return QScriptValue asset path as a string if one was selected, otherwise `QScriptValue::NullValue`
-QScriptValue WindowScriptingInterface::browseAssets(const QString& title, const QString& directory, const QString& nameFilter) {
+void WindowScriptingInterface::browseAssets(const QString& title, const QString& directory, const QString& nameFilter) {
     ensureReticleVisible();
     QString path = directory;
     if (path.isEmpty()) {
@@ -260,11 +259,20 @@ QScriptValue WindowScriptingInterface::browseAssets(const QString& title, const 
     if (path.right(1) != "/") {
         path = path + "/";
     }
-    QString result = OffscreenUi::getOpenAssetName(nullptr, title, path, nameFilter);
-    if (!result.isEmpty()) {
-        setPreviousBrowseAssetLocation(QFileInfo(result).absolutePath());
-    }
-    return result.isEmpty() ? QScriptValue::NullValue : QScriptValue(result);
+
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    connect(offscreenUi.data(), &OffscreenUi::assetDialogResponse,
+            this, [=] (QString result) {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        disconnect(offscreenUi.data(), &OffscreenUi::assetDialogResponse,
+                this, nullptr);
+        if (!result.isEmpty()) {
+            setPreviousBrowseAssetLocation(QFileInfo(result).absolutePath());
+        }
+        emit assetsDirChanged(result);
+    });
+
+    OffscreenUi::getOpenAssetNameAsync(nullptr, title, path, nameFilter);
 }
 
 void WindowScriptingInterface::showAssetServer(const QString& upload) {

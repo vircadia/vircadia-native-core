@@ -56,7 +56,7 @@ public slots:
     void browseDir(const QString& title = "", const QString& directory = "");
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
-    QScriptValue browseAssets(const QString& title = "", const QString& directory = "", const QString& nameFilter = "");
+    void browseAssets(const QString& title = "", const QString& directory = "", const QString& nameFilter = "");
     void showAssetServer(const QString& upload = "");
     void copyToClipboard(const QString& text);
     void takeSnapshot(bool notify = true, bool includeAnimated = false, float aspectRatio = 0.0f);
@@ -88,6 +88,7 @@ signals:
 
     void messageBoxClosed(int id, int button);
     void browseDirChanged(QString browseDir);
+    void assetsDirChanged(QString assetsDir);
     // triggered when window size or position changes
     void geometryChanged(QRect geometry);
 
