@@ -95,7 +95,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
 
         this.cleanup = function () {
             if (this.targetEntityID) {
-                this.endNearParentingGrabEntity();
+                this.endNearTrigger();
             }
         };
     }
