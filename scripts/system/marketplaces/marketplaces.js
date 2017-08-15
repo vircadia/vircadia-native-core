@@ -204,12 +204,8 @@
                 // I don't think this is trivial to do since we also want to inject some JS into the DOM.
                 //tablet.popFromStack();
                 break;
-            case 'checkout_buyClicked':
-                if (message.success === true) {
-                    tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
-                } else {
-                    tablet.sendToQml({ method: 'buyFailed' });
-                }
+            case 'checkout_buySuccess':
+                tablet.gotoWebScreen(MARKETPLACE_URL + '/items/' + message.itemId, MARKETPLACES_INJECT_SCRIPT_URL);
                 //tablet.popFromStack();
                 break;
             case 'inventory_itemClicked':

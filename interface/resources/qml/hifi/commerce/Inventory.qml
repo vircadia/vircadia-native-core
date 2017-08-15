@@ -29,6 +29,20 @@ Rectangle {
     color: hifi.colors.baseGray;
     Hifi.QmlCommerce {
         id: commerce;
+        onBalanceResult: {
+            if (failureMessage.length) {
+                console.log("Failed to get balance", failureMessage);
+            } else {
+                hfcBalanceText.text = balance;
+            }
+        }
+        onInventoryResult: {
+            if (failureMessage.length) {
+                console.log("Failed to get inventory", failureMessage);
+            } else {
+                inventoryContentsList.model = inventory.assets;
+            }
+        }
     }
 
     //
@@ -101,7 +115,7 @@ Rectangle {
         }
         RalewayRegular {
             id: hfcBalanceText;
-            text: commerce.balance();
+            text: "--";
             // Text size
             size: hfcBalanceTextLabel.size;
             // Anchors
@@ -158,7 +172,6 @@ Rectangle {
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
             width: parent.width;
-            model: commerce.inventory();
             delegate: Item {
                 width: parent.width;
                 height: 30;
@@ -168,7 +181,7 @@ Rectangle {
                     size: 20;
                     // Style
                     color: hifi.colors.blueAccent;
-                    text: modelData;
+                    text: modelData.title;
                     // Alignment
                     horizontalAlignment: Text.AlignHLeft;
                 }
@@ -176,7 +189,7 @@ Rectangle {
                     anchors.fill: parent;
                     hoverEnabled: enabled;
                     onClicked: {
-                        sendToScript({method: 'inventory_itemClicked', itemId: thisItemId.text});
+                        sendToScript({method: 'inventory_itemClicked', itemId: modelData.id});
                     }
                     onEntered: {
                         thisItemId.color = hifi.colors.blueHighlight;
@@ -247,6 +260,8 @@ Rectangle {
         switch (message.method) {
             case 'updateInventory':
                 referrerURL = message.referrerURL;
+                commerce.balance();
+                commerce.inventory();
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
