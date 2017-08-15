@@ -225,8 +225,7 @@ QScriptValue WindowScriptingInterface::browse(const QString& title, const QStrin
 /// \param const QString& title title of the window
 /// \param const QString& directory directory to start the file browser at
 /// \param const QString& nameFilter filter to filter filenames by - see `QFileDialog`
-/// \return QScriptValue file path as a string if one was selected, otherwise `QScriptValue::NullValue`
-QScriptValue WindowScriptingInterface::save(const QString& title, const QString& directory, const QString& nameFilter) {
+void WindowScriptingInterface::save(const QString& title, const QString& directory, const QString& nameFilter) {
     ensureReticleVisible();
     QString path = directory;
     if (path.isEmpty()) {
@@ -235,11 +234,19 @@ QScriptValue WindowScriptingInterface::save(const QString& title, const QString&
 #ifndef Q_OS_WIN
     path = fixupPathForMac(directory);
 #endif
-    QString result = OffscreenUi::getSaveFileName(nullptr, title, path, nameFilter);
-    if (!result.isEmpty()) {
-        setPreviousBrowseLocation(QFileInfo(result).absolutePath());
-    }
-    return result.isEmpty() ? QScriptValue::NullValue : QScriptValue(result);
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    connect(offscreenUi.data(), &OffscreenUi::fileDialogResponse,
+            this, [=] (QString result) {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        disconnect(offscreenUi.data(), &OffscreenUi::fileDialogResponse,
+                this, nullptr);
+        if (!result.isEmpty()) {
+            setPreviousBrowseLocation(QFileInfo(result).absolutePath());
+        }
+        emit saveFileChanged(result);
+    });
+
+    OffscreenUi::getSaveFileNameAsync(nullptr, title, path, nameFilter);
 }
 
 /// Display a select asset dialog that lets the user select an asset from the Asset Server.  If `directory` is an invalid 

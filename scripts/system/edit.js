@@ -1458,6 +1458,16 @@ function toggleSelectedEntitiesVisible() {
     }
 }
 
+function onFileSaveChanged(filename) {
+    Window.saveFileChanged.disconnect(onFileSaveChanged);
+    if (filename !== "") {
+        var success = Clipboard.exportEntities(filename, selectionManager.selections);
+        if (!success) {
+            Window.notifyEditError("Export failed.");
+        }
+    }
+}
+
 function handeMenuEvent(menuItem) {
     if (menuItem === "Allow Selecting of Small Models") {
         allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
@@ -1475,13 +1485,8 @@ function handeMenuEvent(menuItem) {
         if (!selectionManager.hasSelection()) {
             Window.notifyEditError("No entities have been selected.");
         } else {
-            var filename = Window.save("Select Where to Save", "", "*.json");
-            if (filename) {
-                var success = Clipboard.exportEntities(filename, selectionManager.selections);
-                if (!success) {
-                    Window.notifyEditError("Export failed.");
-                }
-            }
+            Window.saveFileChanged.connect(onFileSaveChanged);
+            Window.save("Select Where to Save", "", "*.json");
         }
     } else if (menuItem === "Import Entities" || menuItem === "Import Entities from URL") {
         var importURL = null;

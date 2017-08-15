@@ -296,9 +296,6 @@ void ATPAssetMigrator::checkIfFinished() {
     // are we out of pending replacements? if so it is time to save the entity-server file
     if (_doneReading && _pendingReplacements.empty()) {
         saveEntityServerFile();
-
-        // reset after the attempted save, success or fail
-        reset();
     }
 }
 
@@ -336,39 +333,45 @@ bool ATPAssetMigrator::wantsToMigrateResource(const QUrl& url) {
 
 void ATPAssetMigrator::saveEntityServerFile() {
     // show a dialog to ask the user where they want to save the file
-    QString saveName = OffscreenUi::getSaveFileName(_dialogParent, "Save Migrated Entities File");
-    
-    QFile saveFile { saveName };
-    
-    if (saveFile.open(QIODevice::WriteOnly)) {
-        QJsonObject rootObject;
-        rootObject[ENTITIES_OBJECT_KEY] = _entitiesArray;
-        
-        QJsonDocument newDocument { rootObject };
-        QByteArray jsonDataForFile;
-        
-        if (gzip(newDocument.toJson(), jsonDataForFile, -1)) {
-            
-            saveFile.write(jsonDataForFile);
-            saveFile.close();
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    connect(offscreenUi.data(), &OffscreenUi::fileDialogResponse, this, [=] (QString saveName) {
+        QFile saveFile { saveName };
 
-            QString infoMessage = QString("Your new entities file has been saved at\n%1.").arg(saveName);
+        if (saveFile.open(QIODevice::WriteOnly)) {
+            QJsonObject rootObject;
+            rootObject[ENTITIES_OBJECT_KEY] = _entitiesArray;
 
-            if (_errorCount > 0) {
-                infoMessage += QString("\nThere were %1 models that could not be migrated.\n").arg(_errorCount);
-                infoMessage += "Check the warnings in your log for details.\n";
-                infoMessage += "You can re-attempt migration on those models\nby restarting this process with the newly saved file.";
+            QJsonDocument newDocument { rootObject };
+            QByteArray jsonDataForFile;
+
+            if (gzip(newDocument.toJson(), jsonDataForFile, -1)) {
+
+                saveFile.write(jsonDataForFile);
+                saveFile.close();
+
+                QString infoMessage = QString("Your new entities file has been saved at\n%1.").arg(saveName);
+
+                if (_errorCount > 0) {
+                    infoMessage += QString("\nThere were %1 models that could not be migrated.\n").arg(_errorCount);
+                    infoMessage += "Check the warnings in your log for details.\n";
+                    infoMessage += "You can re-attempt migration on those models\nby restarting this process with the newly saved file.";
+                }
+
+                OffscreenUi::asyncInformation(_dialogParent, "Success", infoMessage);
+            } else {
+                OffscreenUi::asyncWarning(_dialogParent, "Error", "Could not gzip JSON data for new entities file.");
             }
 
-            OffscreenUi::asyncInformation(_dialogParent, "Success", infoMessage);
         } else {
-            OffscreenUi::asyncWarning(_dialogParent, "Error", "Could not gzip JSON data for new entities file.");
+            OffscreenUi::asyncWarning(_dialogParent, "Error",
+                                 QString("Could not open file at %1 to write new entities file to.").arg(saveName));
         }
+        // reset after the attempted save, success or fail
+        reset();
+    });
+
+    OffscreenUi::getSaveFileNameAsync(_dialogParent, "Save Migrated Entities File");
     
-    } else {
-        OffscreenUi::asyncWarning(_dialogParent, "Error",
-                             QString("Could not open file at %1 to write new entities file to.").arg(saveName));
-    }
 }
 
 void ATPAssetMigrator::reset() {

@@ -55,7 +55,7 @@ public slots:
     CustomPromptResult customPrompt(const QVariant& config);
     void browseDir(const QString& title = "", const QString& directory = "");
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
-    QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
+    void save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     void browseAssets(const QString& title = "", const QString& directory = "", const QString& nameFilter = "");
     void showAssetServer(const QString& upload = "");
     void copyToClipboard(const QString& text);
@@ -89,6 +89,8 @@ signals:
     void messageBoxClosed(int id, int button);
     void browseDirChanged(QString browseDir);
     void assetsDirChanged(QString assetsDir);
+    void saveFileChanged(QString saveFile);
+
     // triggered when window size or position changes
     void geometryChanged(QRect geometry);
 
