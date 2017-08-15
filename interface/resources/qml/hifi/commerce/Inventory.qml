@@ -44,16 +44,13 @@ Rectangle {
             }
         }
         onSecurityImageResult: {
-            securityImage.source = imageID ? gridModel.get(imageID - 1).sourcePath : "";
+            securityImage.source = securityImageSelection.getImagePathFromImageID(imageID);
         }
     }
 
     SecurityImageSelection {
         id: securityImageSelection;
         referrerURL: inventoryRoot.referrerURL;
-    }
-    SecurityImageModel {
-        id: gridModel;
     }
 
     //

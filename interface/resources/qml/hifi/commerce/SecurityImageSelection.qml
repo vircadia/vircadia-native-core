@@ -26,7 +26,6 @@ Rectangle {
     id: securityImageSelectionRoot;
     property string referrerURL: "";
     property bool isManuallyChangingSecurityImage: false;
-    property int imageEnumValue: 0;
     anchors.fill: parent;
     // Style
     color: hifi.colors.baseGray;
@@ -39,13 +38,12 @@ Rectangle {
             if (!isManuallyChangingSecurityImage) {
                 securityImageSelectionRoot.visible = (imageID == 0);
             }
-            if (imageID !== 0) {
+            if (imageID > 0) {
                 for (var itr = 0; itr < gridModel.count; itr++) {
                     var thisValue = gridModel.get(itr).securityImageEnumValue;
                     if (thisValue === imageID) {
-                        securityImageSelectionRoot.imageEnumValue = thisValue;
                         securityImageGrid.currentIndex = itr;
-                        return;
+                        break;
                     }
                 }
             }
@@ -182,15 +180,8 @@ Rectangle {
                 }
                 MouseArea {
                     anchors.fill: parent;
-                    hoverEnabled: enabled;
                     onClicked: {
                         securityImageGrid.currentIndex = index;
-                    }
-                    onEntered: {
-                        //thisItemId.color = hifi.colors.blueHighlight;
-                    }
-                    onExited: {
-                        //thisItemId.color = hifi.colors.blueAccent;
                     }
                 }
             }
@@ -268,6 +259,10 @@ Rectangle {
     // FUNCTION DEFINITIONS START
     //
     signal sendToScript(var message);
+
+    function getImagePathFromImageID(imageID) {
+        return (imageID ? gridModel.get(imageID - 1).sourcePath : "");
+    }
     //
     // FUNCTION DEFINITIONS END
     //
