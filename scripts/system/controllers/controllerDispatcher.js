@@ -271,6 +271,8 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             }
         }
 
+        // print("QQQ running plugins: " + JSON.stringify(_this.runningPluginNames));
+
         // give time to running plugins
         for (var runningPluginName in _this.runningPluginNames) {
             if (_this.runningPluginNames.hasOwnProperty(runningPluginName)) {

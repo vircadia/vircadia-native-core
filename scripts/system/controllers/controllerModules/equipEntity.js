@@ -82,7 +82,7 @@ EquipHotspotBuddy.prototype.updateHotspot = function(hotspot, timestamp) {
             ignoreRayIntersection: true
         }));
         overlayInfoSet.type = "model";
-        print("QQQ adding hopspot: " + hotspot.key);
+        print("QQQ adding hotspot: " + hotspot.key);
         this.map[hotspot.key] = overlayInfoSet;
     } else {
         print("QQQ updating hopspot: " + hotspot.key);
@@ -520,7 +520,9 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             this.targetEntityID = null;
         };
 
-        this.isReady = function (controllerData, deltaTime) {
+        this.checkNearbyHotspots = function (controllerData, deltaTime) {
+
+            var timestamp = Date.now();
 
             this.rawTriggerValue = controllerData.triggerValues[this.hand];
             this.triggerClicked = controllerData.triggerClicks[this.hand];
@@ -548,7 +550,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             }
 
             var nearEquipHotspots = this.chooseNearEquipHotspots(candidateEntityProps, controllerData);
-            var timestamp = Date.now();
             equipHotspotBuddy.updateHotspots(nearEquipHotspots, timestamp);
             if (potentialEquipHotspot) {
                 equipHotspotBuddy.highlightHotspot(potentialEquipHotspot);
@@ -556,10 +557,21 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
             equipHotspotBuddy.update(deltaTime, timestamp, controllerData);
 
-            return makeRunningValues(false, [], []);
+            if (potentialEquipHotspot) {
+                return makeRunningValues(true, [potentialEquipHotspot.entityID], []);
+            } else {
+                return makeRunningValues(false, [], []);
+            }
+
+        };
+
+        this.isReady = function (controllerData, deltaTime) {
+            return this.checkNearbyHotspots(controllerData, deltaTime);
         };
 
         this.run = function (controllerData, deltaTime) {
+
+            return this.checkNearbyHotspots(controllerData, deltaTime);
 
             if (controllerData.secondaryValues[this.hand]) {
                 // this.secondaryReleased() will always be true when not depressed

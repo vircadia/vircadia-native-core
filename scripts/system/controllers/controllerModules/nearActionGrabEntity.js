@@ -9,7 +9,7 @@
    getControllerJointIndex, getGrabbableData, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
    propsArePhysical, Messages, HAPTIC_PULSE_STRENGTH, HAPTIC_PULSE_DURATION, entityIsGrabbable,
    Quat, Vec3, MSECS_PER_SEC, getControllerWorldLocation, makeDispatcherModuleParameters, makeRunningValues,
-   TRIGGER_OFF_VALUE
+   TRIGGER_OFF_VALUE, NEAR_GRAB_RADIUS
 */
 
 Script.include("/~/system/controllers/controllerDispatcherUtils.js");
@@ -146,6 +146,11 @@ Script.include("/~/system/libraries/controllers.js");
             var nearbyEntityProperties = controllerData.nearbyEntityProperties[this.hand];
             for (var i = 0; i < nearbyEntityProperties.length; i++) {
                 var props = nearbyEntityProperties[i];
+                var handPosition = controllerData.controllerLocations[this.hand].position;
+                var distance = Vec3.distance(props.position, handPosition);
+                if (distance > NEAR_GRAB_RADIUS) {
+                    break;
+                }
                 if (entityIsGrabbable(props)) {
                     return props;
                 }

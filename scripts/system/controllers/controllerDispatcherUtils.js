@@ -17,6 +17,7 @@
    COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
    COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
    COLORS_GRAB_DISTANCE_HOLD,
+   NEAR_GRAB_RADIUS,
    Entities,
    makeDispatcherModuleParameters,
    makeRunningValues,
@@ -64,6 +65,9 @@ NEAR_GRAB_PICK_RADIUS = 0.25; // radius used for search ray vs object for near g
 COLORS_GRAB_SEARCHING_HALF_SQUEEZE = { red: 10, green: 10, blue: 255 };
 COLORS_GRAB_SEARCHING_FULL_SQUEEZE = { red: 250, green: 10, blue: 10 };
 COLORS_GRAB_DISTANCE_HOLD = { red: 238, green: 75, blue: 214 };
+
+
+NEAR_GRAB_RADIUS = 0.1;
 
 
 
