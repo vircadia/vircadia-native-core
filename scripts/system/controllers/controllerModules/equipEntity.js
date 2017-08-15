@@ -160,7 +160,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
 
 (function() {
 
-    var debug = true;
     var ATTACH_POINT_SETTINGS = "io.highfidelity.attachPoints";
 
     var EQUIP_RADIUS = 0.2; // radius used for palm vs equip-hotspot for equipping.
@@ -323,10 +322,6 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 hasParent = false;
             }
             if (hasParent || entityHasActions(hotspot.entityID)) {
-                if (debug) {
-                    print("equip is skipping '" + props.name + "': grabbed by someone else: " +
-                          hasParent + " : " + entityHasActions(hotspot.entityID) + " : " + this.hand);
-                }
                 return false;
             }
 
@@ -342,6 +337,10 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             // smooth out trigger value
             this.triggerValue = (this.triggerValue * TRIGGER_SMOOTH_RATIO) +
                 (triggerValue * (1.0 - TRIGGER_SMOOTH_RATIO));
+        };
+
+        this.triggerSmoothedGrab = function() {
+            return this.triggerClicked;
         };
 
         this.triggerSmoothedSqueezed = function() {
@@ -489,15 +488,14 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             this.targetEntityID = null;
         };
 
-        this.checkNearbyHotspots = function (controllerData, deltaTime) {
-
-            var timestamp = Date.now();
-
+        this.updateInputs = function (controllerData) {
             this.rawTriggerValue = controllerData.triggerValues[this.hand];
             this.triggerClicked = controllerData.triggerClicks[this.hand];
             this.rawSecondaryValue = controllerData.secondaryValues[this.hand];
             this.updateSmoothedTrigger(controllerData);
+        };
 
+        this.checkNearbyHotspots = function (controllerData, deltaTime, timestamp) {
             this.controllerJointIndex = getControllerJointIndex(this.hand);
 
             if (this.triggerSmoothedReleased() && this.secondaryReleased()) {
@@ -522,7 +520,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             equipHotspotBuddy.update(deltaTime, timestamp, controllerData);
 
             if (potentialEquipHotspot) {
-                if (this.triggerSmoothedSqueezed()) {
+                if (this.triggerSmoothedSqueezed() && !this.waitForTriggerRelease) {
                     this.grabbedHotspot = potentialEquipHotspot;
                     this.targetEntityID = this.grabbedHotspot.entityID;
                     this.startEquipEntity(controllerData);
@@ -534,16 +532,18 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
         };
 
         this.isReady = function (controllerData, deltaTime) {
-            return this.checkNearbyHotspots(controllerData, deltaTime);
+            var timestamp = Date.now();
+            this.updateInputs(controllerData);
+            return this.checkNearbyHotspots(controllerData, deltaTime, timestamp);
         };
 
         this.run = function (controllerData, deltaTime) {
+            var timestamp = Date.now();
+            this.updateInputs(controllerData);
 
             if (!this.targetEntityID) {
-                return this.checkNearbyHotspots(controllerData, deltaTime);
+                return this.checkNearbyHotspots(controllerData, deltaTime, timestamp);
             }
-
-            equipHotspotBuddy.update(deltaTime, timestamp, controllerData);
 
             if (controllerData.secondaryValues[this.hand]) {
                 // this.secondaryReleased() will always be true when not depressed
@@ -571,13 +571,13 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             }
 
             // highlight the grabbed hotspot when the dropGesture is detected.
-            var timestamp = Date.now();
             if (dropDetected) {
                 equipHotspotBuddy.updateHotspot(this.grabbedHotspot, timestamp);
                 equipHotspotBuddy.highlightHotspot(this.grabbedHotspot);
             }
 
-            if (dropDetected && !this.waitForTriggerRelease && controllerData.triggerClicks[this.hand]) {
+            if (dropDetected && !this.waitForTriggerRelease && this.triggerSmoothedGrab()) {
+                this.waitForTriggerRelease = true;
                 // store the offset attach points into preferences.
                 if (this.grabbedHotspot && this.targetEntityID) {
                     var prefprops = Entities.getEntityProperties(this.targetEntityID, ["localPosition", "localRotation"]);
@@ -591,6 +591,8 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
                 return makeRunningValues(false, [], []);
             }
             this.prevDropDetected = dropDetected;
+
+            equipHotspotBuddy.update(deltaTime, timestamp, controllerData);
 
             return makeRunningValues(true, [this.targetEntityID], []);
         };
