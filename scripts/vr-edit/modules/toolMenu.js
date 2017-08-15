@@ -303,8 +303,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         defaultValue: { red: 0, green: 255, blue: 255 }
                     },
                     command: {
-                        method: "setColorPerSwatch",
-                        parameter: "colorSwatch1.color"
+                        method: "setColorPerSwatch"
                     },
                     onGripClicked: {
                         method: "clearSwatch",
@@ -324,8 +323,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         defaultValue: { red: 255, green: 0, blue: 255 }
                     },
                     command: {
-                        method: "setColorPerSwatch",
-                        parameter: "colorSwatch2.color"
+                        method: "setColorPerSwatch"
                     },
                     onGripClicked: {
                         method: "clearSwatch",
@@ -345,8 +343,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         defaultValue: { red: 255, green: 255, blue: 0 }
                     },
                     command: {
-                        method: "setColorPerSwatch",
-                        parameter: "colorSwatch3.color"
+                        method: "setColorPerSwatch"
                     },
                     onGripClicked: {
                         method: "clearSwatch",
@@ -366,8 +363,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         defaultValue: { red: 255, green: 0, blue: 0 }
                     },
                     command: {
-                        method: "setColorPerSwatch",
-                        parameter: "colorSwatch4.color"
+                        method: "setColorPerSwatch"
                     },
                     onGripClicked: {
                         method: "clearSwatch",
@@ -387,8 +383,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         defaultValue: { red: 0, green: 255, blue: 0 }
                     },
                     command: {
-                        method: "setColorPerSwatch",
-                        parameter: "colorSwatch5.color"
+                        method: "setColorPerSwatch"
                     },
                     onGripClicked: {
                         method: "clearSwatch",
@@ -408,8 +403,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         defaultValue: { red: 0, green: 0, blue: 255 }
                     },
                     command: {
-                        method: "setColorPerSwatch",
-                        parameter: "colorSwatch6.color"
+                        method: "setColorPerSwatch"
                     },
                     onGripClicked: {
                         method: "clearSwatch",
@@ -429,8 +423,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         // Default to empty swatch.
                     },
                     command: {
-                        method: "setColorPerSwatch",
-                        parameter: "colorSwatch7.color"
+                        method: "setColorPerSwatch"
                     },
                     onGripClicked: {
                         method: "clearSwatch",
@@ -450,8 +443,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         // Default to empty swatch.
                     },
                     command: {
-                        method: "setColorPerSwatch",
-                        parameter: "colorSwatch8.color"
+                        method: "setColorPerSwatch"
                     },
                     onGripClicked: {
                         method: "clearSwatch",
@@ -998,20 +990,17 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     }
 
     function doCommand(command, parameter) {
-        var parameters,
-            index,
+        var index,
             hasColor,
             value;
 
         switch (command) {
 
         case "setColorPerSwatch":
-            parameters = parameter.split(".");
-            index = optionsOverlaysIDs.indexOf(parameters[0]);
+            index = optionsOverlaysIDs.indexOf(parameter);
             hasColor = Overlays.getProperty(optionsOverlays[index], "solid");
             if (hasColor) {
-                // Swatch has a color; set current fill color to swatch color.
-                value = evaluateParameter(parameter);
+                value = Overlays.getProperty(optionsOverlays[index], "color");
                 Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf("currentColor")], {
                     color: value
                 });
@@ -1026,8 +1015,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     color: value,
                     solid: true
                 });
-                if (optionsSettings[parameters[0]]) {
-                    Settings.setValue(optionsSettings[parameters[0]].key, value);
+                if (optionsSettings[parameter]) {
+                    Settings.setValue(optionsSettings[parameter].key, value);
                 }
             }
             break;
