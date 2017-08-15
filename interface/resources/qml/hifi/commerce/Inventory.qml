@@ -76,6 +76,7 @@ Rectangle {
             width: height;
             anchors.verticalCenter: parent.verticalCenter;
             fillMode: Image.PreserveAspectFit;
+            mipmap: true;
         }
 
         // Title Bar text
@@ -209,6 +210,7 @@ Rectangle {
         }
         ListView {
             id: inventoryContentsList;
+            clip: true;
             // Anchors
             anchors.top: inventoryContentsLabel.bottom;
             anchors.topMargin: 8;

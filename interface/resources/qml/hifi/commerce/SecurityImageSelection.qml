@@ -158,6 +158,7 @@ Rectangle {
 
         GridView {
             id: securityImageGrid;
+            clip: true;
             // Anchors
             anchors.fill: parent;
             currentIndex: -1;
@@ -170,12 +171,13 @@ Rectangle {
                 Item {
                     anchors.fill: parent;
                     Image {
-                        width: parent.width - 20;
-                        height: parent.height - 20;
+                        width: parent.width - 8;
+                        height: parent.height - 8;
                         source: sourcePath;
                         anchors.horizontalCenter: parent.horizontalCenter;
                         anchors.verticalCenter: parent.verticalCenter;
                         fillMode: Image.PreserveAspectFit;
+                        mipmap: true;
                     }
                 }
                 MouseArea {

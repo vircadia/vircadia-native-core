@@ -99,6 +99,7 @@ Rectangle {
             width: height;
             anchors.verticalCenter: parent.verticalCenter;
             fillMode: Image.PreserveAspectFit;
+            mipmap: true;
         }
 
         // Title Bar text
