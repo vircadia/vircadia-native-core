@@ -33,7 +33,8 @@
    projectOntoXYPlane,
    projectOntoEntityXYPlane,
    projectOntoOverlayXYPlane,
-   entityHasActions
+   entityHasActions,
+   ensureDynamic
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -243,4 +244,17 @@ projectOntoOverlayXYPlane = function projectOntoOverlayXYPlane(overlayID, worldP
 
 entityHasActions = function (entityID) {
     return Entities.getActionIDs(entityID).length > 0;
+};
+
+ensureDynamic = function (entityID) {
+    // if we distance hold something and keep it very still before releasing it, it ends up
+    // non-dynamic in bullet.  If it's too still, give it a little bounce so it will fall.
+    var props = Entities.getEntityProperties(entityID, ["velocity", "dynamic", "parentID"]);
+    if (props.dynamic && props.parentID == NULL_UUID) {
+        var velocity = props.velocity;
+        if (Vec3.length(velocity) < 0.05) { // see EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
+            velocity = { x: 0.0, y: 0.2, z: 0.0 };
+            Entities.editEntity(entityID, { velocity: velocity });
+        }
+    }
 };
