@@ -70,6 +70,8 @@
 #include "ui/OverlayConductor.h"
 #include "ui/overlays/Overlays.h"
 #include "UndoStackScriptingInterface.h"
+
+#include "raypick/RayPickManager.h"
 #include "raypick/LaserPointerManager.h"
 
 #include <procedural/ProceduralSkybox.h>
@@ -303,6 +305,7 @@ public:
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
 
     LaserPointerManager& getLaserPointerManager() { return _laserPointerManager; }
+    RayPickManager& getRayPickManager() { return _rayPickManager; }
 
 signals:
     void svoImportRequested(const QString& url);
@@ -702,6 +705,7 @@ private:
     bool _saveAvatarOverrideUrl { false };
 
     LaserPointerManager _laserPointerManager;
+    RayPickManager _rayPickManager;
 
 };
 #endif // hifi_Application_h

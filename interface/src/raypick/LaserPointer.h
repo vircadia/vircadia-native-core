@@ -13,10 +13,9 @@
 
 #include <QString>
 #include "glm/glm.hpp"
-#include "ui/overlays/Overlay.h"
 
 #include <DependencyManager.h>
-#include "RayPickManager.h"
+#include "raypick/RayPickScriptingInterface.h"
 
 class RayPickResult;
 
@@ -52,25 +51,25 @@ public:
     typedef std::unordered_map<std::string, RenderState> RenderStateMap;
     typedef std::unordered_map<std::string, std::pair<float, RenderState>> DefaultRenderStateMap;
 
-    LaserPointer(const QVariantMap& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
+    LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
         const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled);
     ~LaserPointer();
 
     QUuid getRayUID() { return _rayPickUID; }
     void enable();
     void disable();
-    const RayPickResult getPrevRayPickResult() { return DependencyManager::get<RayPickManager>()->getPrevRayPickResult(_rayPickUID); }
+    const RayPickResult getPrevRayPickResult() { return DependencyManager::get<RayPickScriptingInterface>()->getPrevRayPickResult(_rayPickUID); }
 
     void setRenderState(const std::string& state);
     // You cannot use editRenderState to change the overlay type of any part of the laser pointer.  You can only edit the properties of the existing overlays.
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps);
 
-    void setIgnoreEntities(const QScriptValue& ignoreEntities) { DependencyManager::get<RayPickManager>()->setIgnoreEntities(_rayPickUID, ignoreEntities); }
-    void setIncludeEntities(const QScriptValue& includeEntities) { DependencyManager::get<RayPickManager>()->setIncludeEntities(_rayPickUID, includeEntities); }
-    void setIgnoreOverlays(const QScriptValue& ignoreOverlays) { DependencyManager::get<RayPickManager>()->setIgnoreOverlays(_rayPickUID, ignoreOverlays); }
-    void setIncludeOverlays(const QScriptValue& includeOverlays) { DependencyManager::get<RayPickManager>()->setIncludeOverlays(_rayPickUID, includeOverlays); }
-    void setIgnoreAvatars(const QScriptValue& ignoreAvatars) { DependencyManager::get<RayPickManager>()->setIgnoreAvatars(_rayPickUID, ignoreAvatars); }
-    void setIncludeAvatars(const QScriptValue& includeAvatars) { DependencyManager::get<RayPickManager>()->setIncludeAvatars(_rayPickUID, includeAvatars); }
+    void setIgnoreEntities(const QScriptValue& ignoreEntities) { DependencyManager::get<RayPickScriptingInterface>()->setIgnoreEntities(_rayPickUID, ignoreEntities); }
+    void setIncludeEntities(const QScriptValue& includeEntities) { DependencyManager::get<RayPickScriptingInterface>()->setIncludeEntities(_rayPickUID, includeEntities); }
+    void setIgnoreOverlays(const QScriptValue& ignoreOverlays) { DependencyManager::get<RayPickScriptingInterface>()->setIgnoreOverlays(_rayPickUID, ignoreOverlays); }
+    void setIncludeOverlays(const QScriptValue& includeOverlays) { DependencyManager::get<RayPickScriptingInterface>()->setIncludeOverlays(_rayPickUID, includeOverlays); }
+    void setIgnoreAvatars(const QScriptValue& ignoreAvatars) { DependencyManager::get<RayPickScriptingInterface>()->setIgnoreAvatars(_rayPickUID, ignoreAvatars); }
+    void setIncludeAvatars(const QScriptValue& includeAvatars) { DependencyManager::get<RayPickScriptingInterface>()->setIncludeAvatars(_rayPickUID, includeAvatars); }
 
     void setLockEndUUID(QUuid objectID, const bool isOverlay) { _objectLockEnd = std::pair<QUuid, bool>(objectID, isOverlay); }
 
