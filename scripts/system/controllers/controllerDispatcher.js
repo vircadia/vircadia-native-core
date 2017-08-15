@@ -90,23 +90,28 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
     this.leftTriggerClicked = 0;
     this.rightTriggerValue = 0;
     this.rightTriggerClicked = 0;
-
+    this.leftSecondaryValue = 0;
+    this.rightSecondaryValue = 0;
 
     this.leftTriggerPress = function (value) {
         _this.leftTriggerValue = value;
     };
-
     this.leftTriggerClick = function (value) {
         _this.leftTriggerClicked = value;
     };
-
     this.rightTriggerPress = function (value) {
         _this.rightTriggerValue = value;
     };
-
     this.rightTriggerClick = function (value) {
         _this.rightTriggerClicked = value;
     };
+    this.leftSecondaryPress = function (value) {
+        _this.leftSecondaryValue = value;
+    };
+    this.rightSecondaryPress = function (value) {
+        _this.rightSecondaryValue = value;
+    };
+
 
     this.dataGatherers = {};
     this.dataGatherers.leftControllerLocation = function () {
@@ -150,10 +155,21 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                 }
             }
             this.orderedPluginNames.sort(function (a, b) {
-                return controllerDispatcherPlugins[a].priority < controllerDispatcherPlugins[b].priority;
+                return controllerDispatcherPlugins[a].parameters.priority -
+                    controllerDispatcherPlugins[b].parameters.priority;
             });
 
-            print("controllerDispatcher: new plugin order: " + JSON.stringify(this.orderedPluginNames));
+            // print("controllerDispatcher -- new plugin order: " + JSON.stringify(this.orderedPluginNames));
+            var output = "controllerDispatcher -- new plugin order: ";
+            for (var k = 0; k < this.orderedPluginNames.length; k++) {
+                var dbgPluginName = this.orderedPluginNames[k];
+                var priority = controllerDispatcherPlugins[dbgPluginName].parameters.priority;
+                output += dbgPluginName + ":" + priority;
+                if (k + 1 < this.orderedPluginNames.length) {
+                    output += ", ";
+                }
+            }
+            print(output);
 
             controllerDispatcherPluginsNeedSort = false;
         }
@@ -166,44 +182,31 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         var h;
         for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
             // todo: check controllerLocations[h].valid
-            var nearbyOverlays = Overlays.findOverlays(controllerLocations[h].position, NEAR_MIN_RADIUS);
-            var makeOverlaySorter = function (handIndex) {
-                return function (a, b) {
-                    var aPosition = Overlays.getProperty(a, "position");
-                    var aDistance = Vec3.distance(aPosition, controllerLocations[handIndex]);
-                    var bPosition = Overlays.getProperty(b, "position");
-                    var bDistance = Vec3.distance(bPosition, controllerLocations[handIndex]);
-                    return aDistance - bDistance;
-                };
-            };
-            nearbyOverlays.sort(makeOverlaySorter(h));
+            var nearbyOverlays = Overlays.findOverlays(controllerLocations[h].position, NEAR_MAX_RADIUS);
+            nearbyOverlays.sort(function (a, b) {
+                var aPosition = Overlays.getProperty(a, "position");
+                var aDistance = Vec3.distance(aPosition, controllerLocations[h].position);
+                var bPosition = Overlays.getProperty(b, "position");
+                var bDistance = Vec3.distance(bPosition, controllerLocations[h].position);
+                return aDistance - bDistance;
+            });
             nearbyOverlayIDs.push(nearbyOverlays);
         }
 
         // find entities near each hand
         var nearbyEntityProperties = [[], []];
+        var nearbyEntityPropertiesByID = {};
         for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
             // todo: check controllerLocations[h].valid
             var controllerPosition = controllerLocations[h].position;
-            var nearbyEntityIDs = Entities.findEntities(controllerPosition, NEAR_MIN_RADIUS);
+            var nearbyEntityIDs = Entities.findEntities(controllerPosition, NEAR_MAX_RADIUS);
             for (var j = 0; j < nearbyEntityIDs.length; j++) {
                 var entityID = nearbyEntityIDs[j];
                 var props = Entities.getEntityProperties(entityID, DISPATCHER_PROPERTIES);
                 props.id = entityID;
-                props.distanceFromController = Vec3.length(Vec3.subtract(controllerPosition, props.position));
-                if (props.distanceFromController < NEAR_MAX_RADIUS) {
-                    nearbyEntityProperties[h].push(props);
-                }
+                nearbyEntityPropertiesByID[entityID] = props;
+                nearbyEntityProperties[h].push(props);
             }
-            // sort by distance from each hand
-            var makeSorter = function (handIndex) {
-                return function (a, b) {
-                    var aDistance = Vec3.distance(a.position, controllerLocations[handIndex]);
-                    var bDistance = Vec3.distance(b.position, controllerLocations[handIndex]);
-                    return aDistance - bDistance;
-                };
-            };
-            nearbyEntityProperties[h].sort(makeSorter(h));
         }
 
         // raypick for each controller
@@ -221,25 +224,33 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                 length: 1000
             };
 
-            var nearEntityID = rayPicks[h].entityID;
-            if (nearEntityID) {
+            if (rayPicks[h].type == RayPick.INTERSECTED_ENTITY) {
                 // XXX check to make sure this one isn't already in nearbyEntityProperties?
                 if (rayPicks[h].distance < NEAR_GRAB_PICK_RADIUS) {
+                    var nearEntityID = rayPicks[h].objectID;
                     var nearbyProps = Entities.getEntityProperties(nearEntityID, DISPATCHER_PROPERTIES);
                     nearbyProps.id = nearEntityID;
-                    if (entityIsGrabbable(nearbyProps)) {
-                        nearbyEntityProperties[h].push(nearbyProps);
-                    }
+                    nearbyEntityPropertiesByID[nearEntityID] = nearbyProps;
+                    nearbyEntityProperties[h].push(nearbyProps);
                 }
             }
+
+            // sort by distance from each hand
+            nearbyEntityProperties[h].sort(function (a, b) {
+                var aDistance = Vec3.distance(a.position, controllerLocations[h].position);
+                var bDistance = Vec3.distance(b.position, controllerLocations[h].position);
+                return aDistance - bDistance;
+            });
         }
 
         // bundle up all the data about the current situation
         var controllerData = {
             triggerValues: [_this.leftTriggerValue, _this.rightTriggerValue],
             triggerClicks: [_this.leftTriggerClicked, _this.rightTriggerClicked],
+            secondaryValues: [_this.leftSecondaryValue, _this.rightSecondaryValue],
             controllerLocations: controllerLocations,
             nearbyEntityProperties: nearbyEntityProperties,
+            nearbyEntityPropertiesByID: nearbyEntityPropertiesByID,
             nearbyOverlayIDs: nearbyOverlayIDs,
             rayPicks: rayPicks
         };
@@ -288,6 +299,12 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
     mapping.from([Controller.Standard.RTClick]).peek().to(_this.rightTriggerClick);
     mapping.from([Controller.Standard.LT]).peek().to(_this.leftTriggerPress);
     mapping.from([Controller.Standard.LTClick]).peek().to(_this.leftTriggerClick);
+
+    mapping.from([Controller.Standard.RB]).peek().to(_this.rightSecondaryPress);
+    mapping.from([Controller.Standard.LB]).peek().to(_this.leftSecondaryPress);
+    mapping.from([Controller.Standard.LeftGrip]).peek().to(_this.leftSecondaryPress);
+    mapping.from([Controller.Standard.RightGrip]).peek().to(_this.rightSecondaryPress);
+
     Controller.enableMapping(MAPPING_NAME);
 
 

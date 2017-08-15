@@ -397,7 +397,8 @@ Script.include("/~/system/libraries/controllers.js");
                     if (entityIsDistanceGrabbable(targetProps)) {
                         this.grabbedThingID = entityID;
                         this.grabbedDistance = rayPickInfo.distance;
-                        var otherModuleName = this.hand == RIGHT_HAND ? "LeftFarActionGrabEntity" : "RightFarActionGrabEntity";
+                        var otherModuleName =
+                            this.hand == RIGHT_HAND ? "LeftFarActionGrabEntity" : "RightFarActionGrabEntity";
                         var otherFarGrabModule = getEnabledModuleByName(otherModuleName);
                         if (otherFarGrabModule.grabbedThingID == this.grabbedThingID) {
                             this.distanceRotating = true;

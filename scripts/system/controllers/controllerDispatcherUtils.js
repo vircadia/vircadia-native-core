@@ -17,6 +17,7 @@
    COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
    COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
    COLORS_GRAB_DISTANCE_HOLD,
+   Entities,
    makeDispatcherModuleParameters,
    makeRunningValues,
    enableDispatcherModule,
@@ -30,7 +31,8 @@
    controllerDispatcherPluginsNeedSort,
    projectOntoXYPlane,
    projectOntoEntityXYPlane,
-   projectOntoOverlayXYPlane
+   projectOntoOverlayXYPlane,
+   entityHasActions
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -111,10 +113,14 @@ getGrabbableData = function (props) {
     var grabbableData = {};
     var userDataParsed = null;
     try {
-        userDataParsed = JSON.parse(props.userData);
+        if (!props.userDataParsed) {
+            props.userDataParsed = JSON.parse(props.userData);
+        }
+        userDataParsed = props.userDataParsed;
     } catch (err) {
+        userDataParsed = {};
     }
-    if (userDataParsed && userDataParsed.grabbable) {
+    if (userDataParsed.grabbable) {
         grabbableData = userDataParsed.grabbable;
     }
     if (!grabbableData.hasOwnProperty("grabbable")) {
@@ -229,4 +235,8 @@ projectOntoOverlayXYPlane = function projectOntoOverlayXYPlane(overlayID, worldP
     }
 
     return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
+};
+
+entityHasActions = function (entityID) {
+    return Entities.getActionIDs(entityID).length > 0;
 };
