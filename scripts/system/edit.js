@@ -431,17 +431,8 @@ var toolBar = (function () {
         });
 
         addButton("importEntitiesButton", "assets-01.svg", function() {
-            var importURL = null;
-            var fullPath = Window.browse("Select Model to Import", "", "*.json");
-            if (fullPath) {
-                importURL = "file:///" + fullPath;
-            }
-            if (importURL) {
-                if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
-                    toolBar.toggle();
-                }
-                importSVO(importURL);
-            }
+            Window.openFileChanged.connect(onFileOpenChanged);
+            Window.browse("Select Model to Import", "", "*.json");
         });
 
         addButton("openAssetBrowserButton", "assets-01.svg", function() {
@@ -1468,6 +1459,20 @@ function onFileSaveChanged(filename) {
     }
 }
 
+function onFileOpenChanged(filename) {
+    Window.openFileChanged.disconnect(onFileOpenChanged);
+    var importURL = null;
+    if (filename !== "") {
+        importURL = "file:///" + filename;
+    }
+    if (importURL) {
+        if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
+            toolBar.toggle();
+        }
+        importSVO(importURL);
+    }
+}
+
 function handeMenuEvent(menuItem) {
     if (menuItem === "Allow Selecting of Small Models") {
         allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
@@ -1489,21 +1494,18 @@ function handeMenuEvent(menuItem) {
             Window.save("Select Where to Save", "", "*.json");
         }
     } else if (menuItem === "Import Entities" || menuItem === "Import Entities from URL") {
-        var importURL = null;
         if (menuItem === "Import Entities") {
-            var fullPath = Window.browse("Select Model to Import", "", "*.json");
-            if (fullPath) {
-                importURL = "file:///" + fullPath;
-            }
+            Window.openFileChanged.connect(onFileOpenChanged);
+            Window.browse("Select Model to Import", "", "*.json");
         } else {
-            importURL = Window.prompt("URL of SVO to import", "");
-        }
-
-        if (importURL) {
-            if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
-                toolBar.toggle();
+            var importURL = Window.prompt("URL of SVO to import", "");
+            if (importURL) {
+                if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
+                    toolBar.toggle();
+                }
+                importSVO(importURL);
             }
-            importSVO(importURL);
+
         }
     } else if (menuItem === "Entity List...") {
         entityListTool.toggleVisible();
