@@ -166,7 +166,6 @@
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/RatesScriptingInterface.h"
-#include "scripting/DomainManagementScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
@@ -560,7 +559,6 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<BandwidthRecorder>();
     DependencyManager::set<ResourceCacheSharedItems>();
     DependencyManager::set<DesktopScriptingInterface>();
-    DependencyManager::set<DomainManagementScriptingInterface>();
     DependencyManager::set<EntityScriptingInterface>(true);
     DependencyManager::set<RecordingScriptingInterface>();
     DependencyManager::set<WindowScriptingInterface>();
@@ -2154,7 +2152,6 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("Render", _renderEngine->getConfiguration().get());
     surfaceContext->setContextProperty("Reticle", getApplicationCompositor().getReticleInterface());
     surfaceContext->setContextProperty("Snapshot", DependencyManager::get<Snapshot>().data());
-    surfaceContext->setContextProperty("DomainManagement", DependencyManager::get<DomainManagementScriptingInterface>().data());
 
     surfaceContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
@@ -5834,7 +5831,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
 
     scriptEngine->registerGlobalObject("OffscreenFlags", DependencyManager::get<OffscreenUi>()->getFlags());
     scriptEngine->registerGlobalObject("Desktop", DependencyManager::get<DesktopScriptingInterface>().data());
-    scriptEngine->registerGlobalObject("DomainManagement", DependencyManager::get<DomainManagementScriptingInterface>().data());
 
     qScriptRegisterMetaType(scriptEngine, wrapperToScriptValue<ToolbarProxy>, wrapperFromScriptValue<ToolbarProxy>);
     qScriptRegisterMetaType(scriptEngine, wrapperToScriptValue<ToolbarButtonProxy>, wrapperFromScriptValue<ToolbarButtonProxy>);
@@ -6127,7 +6123,7 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
 bool Application::askToReplaceDomainContent(const QString& url) {
     QString methodDetails;
     if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
-        QUrl originURL{ url };
+        QUrl originURL { url };
         if (originURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
             // Create a confirmation dialog when this call is made
             const int MAX_CHARACTERS_PER_LINE = 90;
@@ -6143,15 +6139,14 @@ bool Application::askToReplaceDomainContent(const QString& url) {
             if (agreeToReplaceContent) {
                 // Given confirmation, send request to domain server to replace content
                 qCDebug(interfaceapp) << "Attempting to replace domain content: " << url;
-                QByteArray _url(url.toUtf8());
+                QByteArray urlData(url.toUtf8());
                 auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
                 limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
                     return node->getType() == NodeType::EntityServer && node->getActiveSocket();
-                }, [&_url, limitedNodeList](const SharedNodePointer& octreeNode) {
-                    auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, _url.size(), true);
-                    octreeFilePacket->write(_url);
+                }, [&urlData, limitedNodeList](const SharedNodePointer& octreeNode) {
+                    auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, urlData.size(), true);
+                    octreeFilePacket->write(urlData);
                     limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
-                    return true;
                 });
                 DependencyManager::get<AddressManager>()->handleLookupString(DOMAIN_SPAWNING_POINT);
                 methodDetails = "SuccessfulRequestToReplaceContent";
@@ -6171,7 +6166,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
         { "content_set_url", url }
     };
     UserActivityLogger::getInstance().logAction("replace_domain_content", messageProperties);
-    return false;
+    return true;
 }
 
 void Application::displayAvatarAttachmentWarning(const QString& message) const {

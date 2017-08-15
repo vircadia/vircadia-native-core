@@ -935,39 +935,7 @@ void OctreeServer::handleOctreeFileReplacement(QSharedPointer<ReceivedMessage> m
             // so here we just store a special file at our persist path
             // and then force a stop of the server so that it can pick it up when it relaunches
             if (!_persistAbsoluteFilePath.isEmpty()) {
-
-                // before we restart the server and make it try and load this data, let's make sure it is valid
-                auto compressedOctree = message->getMessage();
-                QByteArray jsonOctree;
-
-                // assume we have GZipped content
-                bool wasCompressed = gunzip(compressedOctree, jsonOctree);
-                if (!wasCompressed) {
-                    // the source was not compressed, assume we were sent regular JSON data
-                    jsonOctree = compressedOctree;
-                }
-
-                // check the JSON data to verify it is an object
-                if (QJsonDocument::fromJson(jsonOctree).isObject()) {
-                    if (!wasCompressed) {
-                        // source was not compressed, we compress it before we write it locally
-                        gzip(jsonOctree, compressedOctree);
-                    }
-
-                    // write the compressed octree data to a special file
-                    auto replacementFilePath = _persistAbsoluteFilePath.append(OctreePersistThread::REPLACEMENT_FILE_EXTENSION);
-                    QFile replacementFile(replacementFilePath);
-                    if (replacementFile.open(QIODevice::WriteOnly) && replacementFile.write(compressedOctree) != -1) {
-                        // we've now written our replacement file, time to take the server down so it can
-                        // process it when it comes back up
-                        qInfo() << "Wrote octree replacement file to" << replacementFilePath << "- stopping server";
-                        setFinished(true);
-                    } else {
-                        qWarning() << "Could not write replacement octree data to file - refusing to process";
-                    }
-                } else {
-                    qDebug() << "Received replacement octree file that is invalid - refusing to process";
-                }
+                OctreeServer::replaceContentFromMessageData(message->getMessage());
             } else {
                 qDebug() << "Cannot perform octree file replacement since current persist file path is not yet known";
             }
@@ -995,37 +963,7 @@ void OctreeServer::handleOctreeFileReplacementFromURL(QSharedPointer<ReceivedMes
                     QNetworkReply::NetworkError networkError = reply->error();
                     if (networkError == QNetworkReply::NoError) {
                         QByteArray contents = reply->readAll();
-
-                        // Like above, assume we have compressed data
-                        auto compressedOctree = contents;
-                        QByteArray jsonOctree;
-
-                        bool wasCompressed = gunzip(compressedOctree, jsonOctree);
-                        if (!wasCompressed) {
-                            // the source was not compressed, assume we were sent regular JSON data
-                            jsonOctree = compressedOctree;
-                        }
-                        // check the JSON data to verify it is an object
-                        if (QJsonDocument::fromJson(jsonOctree).isObject()) {
-                            if (!wasCompressed) {
-                                // source was not compressed, we compress it before we write it locally
-                                gzip(jsonOctree, compressedOctree);
-                            }
-
-                            // write the compressed octree data to a special file
-                            auto replacementFilePath = _persistAbsoluteFilePath.append(OctreePersistThread::REPLACEMENT_FILE_EXTENSION);
-                            QFile replacementFile(replacementFilePath);
-                            if (replacementFile.open(QIODevice::WriteOnly) && replacementFile.write(compressedOctree) != -1) {
-                                // we've now written our replacement file, time to take the server down so it can
-                                // process it when it comes back up
-                                qInfo() << "Wrote octree replacement file to" << replacementFilePath << "- stopping server";
-                                setFinished(true);
-                            } else {
-                                qWarning() << "Could not write replacement octree data to file - refusing to process";
-                            }
-                        } else {
-                            qDebug() << "Received replacement octree file that is invalid - refusing to process";
-                        }
+                        OctreeServer::replaceContentFromMessageData(contents);
                     } else {
                         qDebug() << "Error downloading JSON from specified file";
                     }
@@ -1034,6 +972,38 @@ void OctreeServer::handleOctreeFileReplacementFromURL(QSharedPointer<ReceivedMes
                 qDebug() << "Cannot perform octree file replacement since current persist file path is not yet known";
             }
         }
+    }
+}
+
+void OctreeServer::replaceContentFromMessageData(QByteArray content) {
+    //Assume we have compressed data
+    auto compressedOctree = content;
+    QByteArray jsonOctree;
+
+    bool wasCompressed = gunzip(compressedOctree, jsonOctree);
+    if (!wasCompressed) {
+        // the source was not compressed, assume we were sent regular JSON data
+        jsonOctree = compressedOctree;
+    }
+    // check the JSON data to verify it is an object
+    if (QJsonDocument::fromJson(jsonOctree).isObject()) {
+        if (!wasCompressed) {
+            // source was not compressed, we compress it before we write it locally
+            gzip(jsonOctree, compressedOctree);
+        }
+        // write the compressed octree data to a special file
+        auto replacementFilePath = _persistAbsoluteFilePath.append(OctreePersistThread::REPLACEMENT_FILE_EXTENSION);
+        QFile replacementFile(replacementFilePath);
+        if (replacementFile.open(QIODevice::WriteOnly) && replacementFile.write(compressedOctree) != -1) {
+            // we've now written our replacement file, time to take the server down so it can
+            // process it when it comes back up
+            qInfo() << "Wrote octree replacement file to" << replacementFilePath << "- stopping server";
+            setFinished(true);
+        } else {
+            qWarning() << "Could not write replacement octree data to file - refusing to process";
+        }
+    } else {
+        qDebug() << "Received replacement octree file that is invalid - refusing to process";
     }
 }
 

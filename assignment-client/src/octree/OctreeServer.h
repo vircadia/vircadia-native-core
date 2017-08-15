@@ -162,6 +162,8 @@ protected:
     UniqueSendThread createSendThread(const SharedNodePointer& node);
     virtual UniqueSendThread newSendThread(const SharedNodePointer& node);
 
+    void replaceContentFromMessageData(QByteArray content);
+
     int _argc;
     const char** _argv;
     char** _parsedArgV;
