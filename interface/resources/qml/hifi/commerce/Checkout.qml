@@ -88,6 +88,19 @@ Rectangle {
         anchors.left: parent.left;
         anchors.top: parent.top;
 
+        // Security Image
+        Image {
+            id: securityImage;
+            // Anchors
+            anchors.top: parent.top;
+            anchors.left: parent.left;
+            anchors.leftMargin: 16;
+            height: parent.height - 5;
+            width: height;
+            anchors.verticalCenter: parent.verticalCenter;
+            fillMode: Image.PreserveAspectFit;
+        }
+
         // Title Bar text
         RalewaySemiBold {
             id: titleBarText;
@@ -96,7 +109,7 @@ Rectangle {
             size: hifi.fontSizes.overlayTitle;
             // Anchors
             anchors.top: parent.top;
-            anchors.left: parent.left;
+            anchors.left: securityImage.right;
             anchors.leftMargin: 16;
             anchors.bottom: parent.bottom;
             width: paintedWidth;
@@ -105,19 +118,6 @@ Rectangle {
             // Alignment
             horizontalAlignment: Text.AlignHLeft;
             verticalAlignment: Text.AlignVCenter;
-        }
-
-        // Security Image
-        Image {
-            id: securityImage;
-            // Anchors
-            anchors.top: parent.top;
-            anchors.left: titleBarText.right;
-            anchors.leftMargin: 16;
-            height: parent.height - 5;
-            width: height;
-            anchors.verticalCenter: parent.verticalCenter;
-            fillMode: Image.PreserveAspectFit;
         }
 
         // Separator
