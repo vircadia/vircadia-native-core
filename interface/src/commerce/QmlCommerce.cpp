@@ -49,9 +49,3 @@ void QmlCommerce::inventory() {
     auto wallet = DependencyManager::get<Wallet>();
     ledger->inventory(wallet->listPublicKeys());
 }
-
-void QmlCommerce::chooseSecurityImage(QmlCommerce::SecurityImage imageID) {
-    auto ledger = DependencyManager::get<Ledger>();
-    auto wallet = DependencyManager::get<Wallet>();
-    ledger->inventory(wallet->listPublicKeys());
-}

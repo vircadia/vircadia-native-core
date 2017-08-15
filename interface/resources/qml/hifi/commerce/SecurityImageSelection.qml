@@ -32,7 +32,12 @@ Rectangle {
 
     Hifi.QmlCommerce {
         id: commerce;
+        onSecurityImageChosen: {
+            securityImageSelectionRoot.visible = (imageID == 0);
+        }
     }
+
+    visible: commerce.getSecurityImage() == 0;
 
     //
     // TITLE BAR START
@@ -248,7 +253,7 @@ Rectangle {
             width: parent.width/2 - anchors.rightMargin*2;
             text: "Confirm";
             onClicked: {
-                commerce.chooseSecurityImage(securityImageGrid.currentIndex);
+                commerce.chooseSecurityImage(securityImageGrid.currentIndex + 1);
             }
         }
     }

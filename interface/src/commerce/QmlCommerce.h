@@ -30,6 +30,7 @@ signals:
     // because we can't scalably know of out-of-band changes (e.g., another machine interacting with the block chain).
     void balanceResult(int balance, const QString& failureMessage);
     void inventoryResult(QJsonObject inventory, const QString& failureMessage);
+    void securityImageChosen(uint imageID);
 
 protected:
     Q_INVOKABLE void buy(const QString& assetId, int cost, const QString& buyerUsername = "");
@@ -38,10 +39,15 @@ protected:
 
     enum SecurityImage {
         NONE = 0,
-        Cat
+        Cat,
+        Car,
+        Dog,
+        Stars,
+        Plane,
+        Gingerbread
     };
-    Q_INVOKABLE void chooseSecurityImage(SecurityImage imageID);
-    Q_INVOKABLE bool hasChosenSecurityImage() { return (QmlCommerce::_chosenSecurityImage != SecurityImage::NONE); }
+    Q_INVOKABLE void chooseSecurityImage(uint imageID) { QmlCommerce::_chosenSecurityImage = (SecurityImage)imageID; emit securityImageChosen(imageID); }
+    Q_INVOKABLE uint getSecurityImage() { return (uint)QmlCommerce::_chosenSecurityImage; }
 
 private:
     SecurityImage _chosenSecurityImage = SecurityImage::NONE;

@@ -68,6 +68,11 @@ Rectangle {
         }
     }
 
+    SecurityImageSelection {
+        id: securityImageSelection;
+        referrerURL: checkoutRoot.itemHref;
+    }
+
     //
     // TITLE BAR START
     //
