@@ -1812,7 +1812,7 @@ void MyAvatar::postUpdate(float deltaTime) {
 
     if (_enableDebugDrawDetailedCollision) {
         AnimPose rigToWorldPose(glm::vec3(1.0f), getRotation() * Quaternions::Y_180, getPosition());
-        const int NUM_DEBUG_COLORS = 7;
+        const int NUM_DEBUG_COLORS = 8;
         const glm::vec4 DEBUG_COLORS[NUM_DEBUG_COLORS] = {
             glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
             glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
