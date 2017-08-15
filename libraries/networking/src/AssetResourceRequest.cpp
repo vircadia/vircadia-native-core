@@ -91,6 +91,11 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
 
                 statTracker->incrementStat(STAT_ATP_MAPPING_REQUEST_SUCCESS);
 
+                // if we got a redirected path we need to store that with the resource request as relative path URL
+                if (request->wasRedirected()) {
+                    _relativePathURL = ATP_SCHEME + request->getRedirectedPath();
+                }
+
                 break;
             default: {
                 switch (request->getError()) {

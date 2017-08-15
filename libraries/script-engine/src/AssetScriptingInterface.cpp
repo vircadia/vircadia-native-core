@@ -55,7 +55,6 @@ void AssetScriptingInterface::setMapping(QString path, QString hash, QScriptValu
 
 
 void AssetScriptingInterface::downloadData(QString urlString, QScriptValue callback) {
-    const QString ATP_SCHEME { "atp:" };
 
     if (!urlString.startsWith(ATP_SCHEME)) {
         return;

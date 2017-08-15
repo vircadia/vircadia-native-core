@@ -84,6 +84,7 @@ protected:
     virtual void doSend() = 0;
 
     QUrl _url;
+    QUrl _relativePathURL;
     State _state { NotStarted };
     Result _result;
     QByteArray _data;
