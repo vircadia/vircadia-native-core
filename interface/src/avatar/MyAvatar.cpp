@@ -1811,7 +1811,7 @@ void MyAvatar::postUpdate(float deltaTime) {
     updateHoldActions(_prePhysicsRoomPose, postUpdateRoomPose);
 
     if (_enableDebugDrawDetailedCollision) {
-        AnimPose rigToWorldPose(glm::vec3(1.0f), Quaternions::Y_180 * getRotation(), getPosition());
+        AnimPose rigToWorldPose(glm::vec3(1.0f), getRotation() * Quaternions::Y_180, getPosition());
         const int NUM_DEBUG_COLORS = 7;
         const glm::vec4 DEBUG_COLORS[NUM_DEBUG_COLORS] = {
             glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
@@ -1821,6 +1821,7 @@ void MyAvatar::postUpdate(float deltaTime) {
             glm::vec4(1.0f, 1.0f, 0.0f, 1.0f),
             glm::vec4(0.25f, 1.0f, 1.0f, 1.0f),
             glm::vec4(1.0f, 0.25f, 1.0f, 1.0f),
+            glm::vec4(1.0f, 0.65f, 0.0f, 1.0f)  // Orange you glad I added this color?
         };
 
         if (_skeletonModel && _skeletonModel->isLoaded()) {

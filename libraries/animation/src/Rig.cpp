@@ -1118,7 +1118,7 @@ const glm::vec3 DOP14_NORMALS[DOP14_COUNT] = {
     -glm::vec3(INV_SQRT_3, -INV_SQRT_3, -INV_SQRT_3)
 };
 
-// returns true if the given point lies in side of the k-dop, specified by shapeInfo & shapePose.
+// returns true if the given point lies inside of the k-dop, specified by shapeInfo & shapePose.
 // if the given point does lie within the k-dop, it also returns the amount of displacement necessary to push that point outward
 // such that it lies on the surface of the kdop.
 static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& shapePose, const FBXJointShapeInfo& shapeInfo, glm::vec3& displacementOut) {
