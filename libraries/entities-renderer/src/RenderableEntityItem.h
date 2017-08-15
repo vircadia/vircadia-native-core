@@ -70,44 +70,13 @@ namespace render {
 // Mixin class for implementing basic single item rendering
 class SimplerRenderableEntitySupport : public RenderableEntityInterface {
 public:
-    bool addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override {
-        _myItem = scene->allocateID();
 
-        auto renderData = std::make_shared<RenderableEntityItemProxy>(self, _myItem);
-        auto renderPayload = std::make_shared<RenderableEntityItemProxy::Payload>(renderData);
+    bool addToScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    void removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override;
+    void notifyChanged();
 
-        render::Item::Status::Getters statusGetters;
-        makeEntityItemStatusGetters(self, statusGetters);
-        renderPayload->addStatusGetters(statusGetters);
+protected:
 
-        transaction.resetItem(_myItem, renderPayload);
-
-        return true;
-    }
-
-    void removeFromScene(const EntityItemPointer& self, const render::ScenePointer& scene, render::Transaction& transaction) override {
-        transaction.removeItem(_myItem);
-        render::Item::clearID(_myItem);
-    }
-
-    void notifyChanged() {
-        if (!render::Item::isValidID(_myItem)) {
-            return;
-        }
-
-        render::Transaction transaction;
-        render::ScenePointer scene = AbstractViewStateInterface::instance()->getMain3DScene();
-
-        if (scene) {
-            transaction.updateItem<RenderableEntityItemProxy>(_myItem, [](RenderableEntityItemProxy& data) {
-            });
-
-            scene->enqueueTransaction(transaction);
-        } else {
-            qCWarning(entitiesrenderer) << "SimpleRenderableEntityItem::notifyChanged(), Unexpected null scene, possibly during application shutdown";
-        }
-    }
-private:
     render::ItemID _myItem { render::Item::INVALID_ITEM_ID };
 };
 

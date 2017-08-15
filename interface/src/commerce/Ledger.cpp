@@ -16,7 +16,7 @@
 #include "Ledger.h"
 #include "CommerceLogging.h"
 
-bool Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const QString& buyerUsername) {
+void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const QString& buyerUsername) {
     QJsonObject transaction;
     transaction["hfc_key"] = hfc_key;
     transaction["hfc"] = cost;
@@ -33,16 +33,49 @@ bool Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, cons
     request["signature"] = signature;
 
     qCInfo(commerce) << "Transaction:" << QJsonDocument(request).toJson(QJsonDocument::Compact);
-    return true; // FIXME send to server.
+    // FIXME: talk to server instead
+    if (_inventory.contains(asset_id)) {
+        // This is here more for testing than as a definition of semantics.
+        // When we have popcerts, you will certainly be able to buy a new instance of an item that you already own a different instance of.
+        // I'm not sure what the server should do for now in this project's MVP.
+        return emit buyResult("Already owned.");
+    }
+    if (initializedBalance() < cost) {
+        return emit buyResult("Insufficient funds.");
+    }
+    _balance -= cost;
+    QJsonObject inventoryAdditionObject;
+    inventoryAdditionObject["id"] = asset_id;
+    inventoryAdditionObject["title"] = "Test Title";
+    inventoryAdditionObject["preview"] = "https://www.aspca.org/sites/default/files/cat-care_cat-nutrition-tips_overweight_body4_left.jpg";
+    _inventory.push_back(inventoryAdditionObject);
+    emit buyResult("");
 }
 
 bool Ledger::receiveAt(const QString& hfc_key) {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (!accountManager->isLoggedIn()) {
         qCWarning(commerce) << "Cannot set receiveAt when not logged in.";
-        return false;
+        emit receiveAtResult("Not logged in");
+        return false; // We know right away that we will fail, so tell the caller.
     }
     auto username = accountManager->getAccountInfo().getUsername();
     qCInfo(commerce) << "Setting default receiving key for" << username;
-    return true; // FIXME send to server.
+    emit receiveAtResult(""); // FIXME: talk to server instead.
+    return true; // Note that there may still be an asynchronous signal of failure that callers might be interested in.
+}
+
+void Ledger::balance(const QStringList& keys) {
+    // FIXME: talk to server instead
+    qCInfo(commerce) << "Balance:" << initializedBalance();
+    emit balanceResult(_balance, "");
+}
+
+void Ledger::inventory(const QStringList& keys) {
+    // FIXME: talk to server instead
+    QJsonObject inventoryObject;
+    inventoryObject.insert("success", true);
+    inventoryObject.insert("assets", _inventory);
+    qCInfo(commerce) << "Inventory:" << inventoryObject;
+    emit inventoryResult(inventoryObject, "");
 }

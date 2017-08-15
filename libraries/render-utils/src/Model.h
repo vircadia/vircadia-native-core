@@ -116,6 +116,7 @@ public:
         const QVector<glm::vec3>& vertices, const QVector<glm::vec3>& normals);
 
     bool isLoaded() const { return (bool)_renderGeometry && _renderGeometry->isGeometryLoaded(); }
+    bool isAddedToScene() const { return _addedToScene; }
 
     void setIsWireframe(bool isWireframe) { _isWireframe = isWireframe; }
     bool isWireframe() const { return _isWireframe; }
@@ -267,7 +268,6 @@ signals:
     void setCollisionModelURLFinished(bool success);
 
 protected:
-    bool addedToScene() const { return _addedToScene; }
 
     void setBlendshapeCoefficients(const QVector<float>& coefficients) { _blendshapeCoefficients = coefficients; }
     const QVector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }

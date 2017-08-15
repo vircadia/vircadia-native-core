@@ -90,13 +90,32 @@
         });
     }
 
+    function addInventoryButton() {
+        // Why isn't this an id?! This really shouldn't be a class on the website, but it is.
+        var navbarBrandElement = document.getElementsByClassName('navbar-brand')[0];
+        var inventoryElement = document.createElement('a');
+        inventoryElement.classList.add("btn");
+        inventoryElement.classList.add("btn-default");
+        inventoryElement.id = "inventoryButton";
+        inventoryElement.setAttribute('href', "#");
+        inventoryElement.innerHTML = "INVENTORY";
+        inventoryElement.style = "height:100%;margin-top:0;padding:15px 15px;";
+        navbarBrandElement.parentNode.insertAdjacentElement('beforeend', inventoryElement);
+        $('#inventoryButton').on('click', function () {
+            EventBridge.emitWebEvent(JSON.stringify({
+                type: "INVENTORY",
+                referrerURL: window.location.href
+            }));
+        });
+    }
+
     function buyButtonClicked(id, name, author, price, href) {
         EventBridge.emitWebEvent(JSON.stringify({
             type: "CHECKOUT",
             itemId: id,
             itemName: name,
             itemAuthor: author,
-            itemPrice: price,
+            itemPrice: Math.round(Math.random() * 50),
             itemHref: href
         }));
     }
@@ -133,7 +152,8 @@
 
             // Try this here in case it works (it will if the user just pressed the "back" button,
             //     since that doesn't trigger another AJAX request.
-            injectBuyButtonOnMainPage();
+            injectBuyButtonOnMainPage;
+            addInventoryButton();
         }
     }
 
@@ -149,6 +169,7 @@
                     10,
                     href);
             });
+            addInventoryButton();
         }
     }
 

@@ -337,5 +337,6 @@ Item {
         readonly property string playback_play: "\ue01d"
         readonly property string stop_square: "\ue01e"
         readonly property string avatarTPose: "\ue01f"
+        readonly property string lock: "\ue006"
     }
 }

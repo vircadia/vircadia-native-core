@@ -42,6 +42,7 @@ void render::renderItems(const RenderContextPointer& renderContext, const ItemBo
 void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, const Item& item, const ShapeKey& globalKey) {
     assert(item.getKey().isShape());
     auto key = item.getShapeKey() | globalKey;
+    args->_itemShapeKey = key._flags.to_ulong();
     if (key.isValid() && !key.hasOwnPipeline()) {
         args->_shapePipeline = shapeContext->pickPipeline(args, key);
         if (args->_shapePipeline) {
@@ -54,6 +55,7 @@ void renderShape(RenderArgs* args, const ShapePlumberPointer& shapeContext, cons
     } else {
         qCDebug(renderlogging) << "Item could not be rendered with invalid key" << key;
     }
+    args->_itemShapeKey = 0;
 }
 
 void render::renderShapes(const RenderContextPointer& renderContext,
@@ -85,10 +87,10 @@ void render::renderStateSortShapes(const RenderContextPointer& renderContext,
     using SortedShapes = std::unordered_map<render::ShapeKey, std::vector<Item>, render::ShapeKey::Hash, render::ShapeKey::KeyEqual>;
     SortedPipelines sortedPipelines;
     SortedShapes sortedShapes;
-    std::vector<Item> ownPipelineBucket;
+    std::vector< std::tuple<Item,ShapeKey> > ownPipelineBucket;
 
     for (auto i = 0; i < numItemsToDraw; ++i) {
-        auto item = scene->getItem(inItems[i].id);
+        auto& item = scene->getItem(inItems[i].id);
 
         {
             assert(item.getKey().isShape());
@@ -100,7 +102,7 @@ void render::renderStateSortShapes(const RenderContextPointer& renderContext,
                 }
                 bucket.push_back(item);
             } else if (key.hasOwnPipeline()) {
-                ownPipelineBucket.push_back(item);
+                ownPipelineBucket.push_back( std::make_tuple(item, key) );
             } else {
                 qCDebug(renderlogging) << "Item could not be rendered with invalid key" << key;
             }
@@ -114,15 +116,19 @@ void render::renderStateSortShapes(const RenderContextPointer& renderContext,
         if (!args->_shapePipeline) {            
             continue;
         }
+        args->_itemShapeKey = pipelineKey._flags.to_ulong();
         for (auto& item : bucket) {
             args->_shapePipeline->prepareShapeItem(args, pipelineKey, item);
             item.render(args);
         }
     }
     args->_shapePipeline = nullptr;
-    for (auto& item : ownPipelineBucket) {
+    for (auto& itemAndKey : ownPipelineBucket) {
+        auto& item = std::get<0>(itemAndKey);
+        args->_itemShapeKey = std::get<1>(itemAndKey)._flags.to_ulong();
         item.render(args);
     }
+    args->_itemShapeKey = 0;
 }
 
 void DrawLight::run(const RenderContextPointer& renderContext, const ItemBounds& inLights) {
