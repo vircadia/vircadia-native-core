@@ -405,7 +405,7 @@ Rectangle {
         // "Buy" button
         HifiControlsUit.Button {
             id: buyButton;
-            enabled: balanceAfterPurchase >= 0 && !alreadyOwned && inventoryReceived && balanceReceived;
+            enabled: balanceAfterPurchase >= 0 && inventoryReceived && balanceReceived;
             color: hifi.buttons.black;
             colorScheme: hifi.colorSchemes.dark;
             anchors.top: parent.top;
@@ -415,9 +415,16 @@ Rectangle {
             anchors.right: parent.right;
             anchors.rightMargin: 20;
             width: parent.width/2 - anchors.rightMargin*2;
-            text: (inventoryReceived && balanceReceived) ? (alreadyOwned ? "Already Owned" : "Buy") : "--";
+            text: (inventoryReceived && balanceReceived) ? (alreadyOwned ? "Already Owned: Get Item" : "Buy") : "--";
             onClicked: {
-                commerce.buy(itemId, parseInt(itemPriceText.text));
+                if (!alreadyOwned) {
+                    commerce.buy(itemId, parseInt(itemPriceText.text));
+                } else {
+                    if (urlHandler.canHandleUrl(itemHref)) {
+                        urlHandler.handleUrl(itemHref);
+                    }
+                    sendToScript({method: 'checkout_buySuccess', itemId: itemId});
+                }
             }
         }
     }
