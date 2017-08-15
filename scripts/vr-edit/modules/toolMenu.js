@@ -305,9 +305,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     command: {
                         method: "setColorPerSwatch"
                     },
-                    onGripClicked: {
-                        method: "clearSwatch",
-                        parameter: "colorSwatch1"
+                    clear: {
+                        method: "clearSwatch"
                     }
                 },
                 {
@@ -325,9 +324,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     command: {
                         method: "setColorPerSwatch"
                     },
-                    onGripClicked: {
-                        method: "clearSwatch",
-                        parameter: "colorSwatch2"
+                    clear: {
+                        method: "clearSwatch"
                     }
                 },
                 {
@@ -345,9 +343,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     command: {
                         method: "setColorPerSwatch"
                     },
-                    onGripClicked: {
-                        method: "clearSwatch",
-                        parameter: "colorSwatch3"
+                    clear: {
+                        method: "clearSwatch"
                     }
                 },
                 {
@@ -365,9 +362,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     command: {
                         method: "setColorPerSwatch"
                     },
-                    onGripClicked: {
-                        method: "clearSwatch",
-                        parameter: "colorSwatch4"
+                    clear: {
+                        method: "clearSwatch"
                     }
                 },
                 {
@@ -385,9 +381,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     command: {
                         method: "setColorPerSwatch"
                     },
-                    onGripClicked: {
-                        method: "clearSwatch",
-                        parameter: "colorSwatch5"
+                    clear: {
+                        method: "clearSwatch"
                     }
                 },
                 {
@@ -405,9 +400,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     command: {
                         method: "setColorPerSwatch"
                     },
-                    onGripClicked: {
-                        method: "clearSwatch",
-                        parameter: "colorSwatch6"
+                    clear: {
+                        method: "clearSwatch"
                     }
                 },
                 {
@@ -425,9 +419,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     command: {
                         method: "setColorPerSwatch"
                     },
-                    onGripClicked: {
-                        method: "clearSwatch",
-                        parameter: "colorSwatch7"
+                    clear: {
+                        method: "clearSwatch"
                     }
                 },
                 {
@@ -445,9 +438,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     command: {
                         method: "setColorPerSwatch"
                     },
-                    onGripClicked: {
-                        method: "clearSwatch",
-                        parameter: "colorSwatch8"
+                    clear: {
+                        method: "clearSwatch"
                     }
                 },
                 {
@@ -1224,12 +1216,10 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // Grip click.
         if (controlHand.gripClicked() !== isGripClicked) {
             isGripClicked = !isGripClicked;
-            if (isGripClicked && intersectionItems && intersectedItem && intersectionItems[intersectedItem].onGripClicked) {
+            if (isGripClicked && intersectionItems && intersectedItem && intersectionItems[intersectedItem].clear) {
                 controlHand.setGripClickedHandled();
-                if (intersectionItems[intersectedItem].onGripClicked.parameter) {
-                    parameter = intersectionItems[intersectedItem].onGripClicked.parameter;
-                }
-                doGripClicked(intersectionItems[intersectedItem].onGripClicked.method, parameter);
+                parameter = intersectionItems[intersectedItem].id;
+                doGripClicked(intersectionItems[intersectedItem].clear.method, parameter);
             }
         }
 
