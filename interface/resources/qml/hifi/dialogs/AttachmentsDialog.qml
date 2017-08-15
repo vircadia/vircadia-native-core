@@ -28,6 +28,11 @@ ScrollingWindow {
 
     HifiConstants { id: hifi }
 
+    // This is for JS/QML communication, which is unused in the AttachmentsDialog,
+    // but not having this here results in spurious warnings about a
+    // missing signal
+    signal sendToScript(var message);
+
     property var settings: Settings {
         category: "AttachmentsDialog"
         property alias x: root.x
