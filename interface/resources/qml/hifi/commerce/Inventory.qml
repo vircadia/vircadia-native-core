@@ -93,7 +93,6 @@ Rectangle {
             anchors.leftMargin: 16;
             height: parent.height - 5;
             width: height;
-            anchors.horizontalCenter: parent.horizontalCenter;
             anchors.verticalCenter: parent.verticalCenter;
             fillMode: Image.PreserveAspectFit;
         }

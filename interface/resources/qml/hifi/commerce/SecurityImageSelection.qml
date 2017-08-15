@@ -161,8 +161,8 @@ Rectangle {
             // Anchors
             anchors.fill: parent;
             currentIndex: -1;
-            cellWidth: width/2;
-            cellHeight: height/3;
+            cellWidth: width / 2;
+            cellHeight: height / 3;
             model: gridModel;
             delegate: Item {
                 width: securityImageGrid.cellWidth;
