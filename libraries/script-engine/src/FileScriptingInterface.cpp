@@ -53,7 +53,6 @@ void FileScriptingInterface::runUnzip(QString path, QUrl url, bool autoAdd, bool
     }
 
     QStringList fileList = unzipFile(path, tempDir);
-    //QString filename = QUrl::fromLocalFile(fileList.first()).toString();
     
     if (!fileList.isEmpty()) {
         qCDebug(scriptengine) << "File to upload: " + fileList.first();

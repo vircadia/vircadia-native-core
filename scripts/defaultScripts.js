@@ -24,7 +24,6 @@ var DEFAULT_SCRIPTS_COMBINED = [
     "system/makeUserConnection.js",
     "system/tablet-goto.js",
     "system/marketplaces/marketplaces.js",
-    "system/marketplaces/blocksApp.js", // temporarily in default scripts for testing purposes
     "system/edit.js",
     "system/notifications.js",
     "system/dialTone.js",
