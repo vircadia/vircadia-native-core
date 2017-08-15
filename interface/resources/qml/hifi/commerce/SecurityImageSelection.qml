@@ -25,19 +25,32 @@ Rectangle {
 
     id: securityImageSelectionRoot;
     property string referrerURL: "";
+    property bool isManuallyChangingSecurityImage: false;
     anchors.fill: parent;
     // Style
     color: hifi.colors.baseGray;
     z:999; // On top of everything else
+    visible: false;
 
     Hifi.QmlCommerce {
         id: commerce;
-        onSecurityImageChosen: {
-            securityImageSelectionRoot.visible = (imageID == 0);
+        onSecurityImageResult: {
+            if (!isManuallyChangingSecurityImage) {
+                securityImageSelectionRoot.visible = (imageID == 0);
+            }
+            if (imageID !== 0) {
+                for (var itr = 0; itr < gridModel.count; itr++) {
+                    if (gridModel.get(itr).securityImageEnumIndex === imageID) {
+                        securityImageGrid.currentIndex = itr;
+                    }
+                }
+            }
         }
     }
 
-    visible: commerce.getSecurityImage() == 0;
+    Component.onCompleted: {
+        commerce.getSecurityImage();
+    }
 
     //
     // TITLE BAR START
@@ -137,26 +150,8 @@ Rectangle {
         anchors.bottom: actionButtonsContainer.top;
         anchors.bottomMargin: 8;
 
-        ListModel {
+        SecurityImageModel {
             id: gridModel;
-            ListElement{
-                sourcePath: "images/01cat.jpg"
-            }
-            ListElement{
-                sourcePath: "images/02car.jpg"
-            }
-            ListElement{
-                sourcePath: "images/03dog.jpg"
-            }
-            ListElement{
-                sourcePath: "images/04stars.jpg"
-            }
-            ListElement{
-                sourcePath: "images/05plane.jpg"
-            }
-            ListElement{
-                sourcePath: "images/06gingerbread.jpg"
-            }
         }
 
         GridView {
@@ -199,7 +194,6 @@ Rectangle {
                     width: securityImageGrid.cellWidth;
                     height: securityImageGrid.cellHeight;
                     color: hifi.colors.blueHighlight;
-                    y: securityImageGrid.currentItem.y;
                 }
         }
     }
@@ -235,7 +229,11 @@ Rectangle {
             width: parent.width/2 - anchors.leftMargin*2;
             text: "Cancel"
             onClicked: {
-                sendToScript({method: 'securityImageSelection_cancelClicked', referrerURL: referrerURL});
+                if (!securityImageSelectionRoot.isManuallyChangingSecurityImage) {
+                    sendToScript({method: 'securityImageSelection_cancelClicked', referrerURL: securityImageSelectionRoot.referrerURL});
+                } else {
+                    securityImageSelectionRoot.visible = false;
+                }
             }
         }
 
@@ -253,7 +251,8 @@ Rectangle {
             width: parent.width/2 - anchors.rightMargin*2;
             text: "Confirm";
             onClicked: {
-                commerce.chooseSecurityImage(securityImageGrid.currentIndex + 1);
+                securityImageSelectionRoot.isManuallyChangingSecurityImage = false;
+                commerce.chooseSecurityImage(gridModel.get(securityImageGrid.currentIndex).securityImageEnumIndex);
             }
         }
     }

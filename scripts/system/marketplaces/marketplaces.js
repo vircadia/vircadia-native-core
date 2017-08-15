@@ -88,7 +88,7 @@
 
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url === MARKETPLACE_URL_INITIAL;
-        wireEventBridge(type === "QML" && (url === MARKETPLACE_CHECKOUT_QML_PATH || url === MARKETPLACE_INVENTORY_QML_PATH));
+        wireEventBridge(type === "QML" && (url === MARKETPLACE_CHECKOUT_QML_PATH || url === MARKETPLACE_INVENTORY_QML_PATH || url === MARKETPLACE_SECURITY_QML_PATH));
         // for toolbar mode: change button to active when window is first openend, false otherwise.
         marketplaceButton.editProperties({ isActive: onMarketplaceScreen });
         if (type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1) {
@@ -219,7 +219,6 @@
                 tablet.gotoWebScreen(message.referrerURL, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             case 'securityImageSelection_cancelClicked':
-                console.log("ZRF HERE " + message.referrerURL);
                 tablet.gotoWebScreen(message.referrerURL, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
             default:

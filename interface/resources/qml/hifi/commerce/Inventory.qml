@@ -78,6 +78,25 @@ Rectangle {
             verticalAlignment: Text.AlignVCenter;
         }
 
+        // "Change Security Image" button
+        HifiControlsUit.Button {
+            id: changeSecurityImageButton;
+            color: hifi.buttons.black;
+            colorScheme: hifi.colorSchemes.dark;
+            anchors.top: parent.top;
+            anchors.topMargin: 3;
+            anchors.bottom: parent.bottom;
+            anchors.bottomMargin: 3;
+            anchors.right: parent.right;
+            anchors.rightMargin: 20;
+            width: 200;
+            text: "Change Security Image"
+            onClicked: {
+                securityImageSelection.isManuallyChangingSecurityImage = true;
+                securityImageSelection.visible = true;
+            }
+        }
+
         // Separator
         HifiControlsUit.Separator {
             anchors.left: parent.left;
