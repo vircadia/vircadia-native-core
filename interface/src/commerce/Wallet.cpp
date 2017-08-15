@@ -15,7 +15,7 @@
 
 #include <PathUtils.h>
 
-#include <QCryptographicHash.h>
+#include <QCryptographicHash>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
