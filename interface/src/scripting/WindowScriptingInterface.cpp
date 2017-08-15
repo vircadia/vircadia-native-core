@@ -174,8 +174,7 @@ void WindowScriptingInterface::ensureReticleVisible() const {
 /// \param const QString& title title of the window
 /// \param const QString& directory directory to start the file browser at
 /// \param const QString& nameFilter filter to filter filenames by - see `QFileDialog`
-/// \return QScriptValue file path as a string if one was selected, otherwise `QScriptValue::NullValue`
-QScriptValue WindowScriptingInterface::browseDir(const QString& title, const QString& directory) {
+void WindowScriptingInterface::browseDir(const QString& title, const QString& directory) {
     ensureReticleVisible();
     QString path = directory;
     if (path.isEmpty()) {
@@ -184,11 +183,19 @@ QScriptValue WindowScriptingInterface::browseDir(const QString& title, const QSt
 #ifndef Q_OS_WIN
     path = fixupPathForMac(directory);
 #endif
-    QString result = OffscreenUi::getExistingDirectory(nullptr, title, path);
-    if (!result.isEmpty()) {
-        setPreviousBrowseLocation(QFileInfo(result).absolutePath());
-    }
-    return result.isEmpty() ? QScriptValue::NullValue : QScriptValue(result);
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    connect(offscreenUi.data(), &OffscreenUi::fileDialogResponse,
+            this, [=] (QString result) {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        disconnect(offscreenUi.data(), &OffscreenUi::fileDialogResponse,
+                this, nullptr);
+        if (!result.isEmpty()) {
+            setPreviousBrowseLocation(QFileInfo(result).absolutePath());
+        }
+        emit browseDirChanged(result);
+    });
+
+    OffscreenUi::getExistingDirectoryAsync(nullptr, title, path);
 }
 
 /// Display an open file dialog.  If `directory` is an invalid file or directory the browser will start at the current

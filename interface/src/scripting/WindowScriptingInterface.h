@@ -53,7 +53,7 @@ public slots:
     QScriptValue confirm(const QString& message = "");
     QScriptValue prompt(const QString& message = "", const QString& defaultText = "");
     CustomPromptResult customPrompt(const QVariant& config);
-    QScriptValue browseDir(const QString& title = "", const QString& directory = "");
+    void browseDir(const QString& title = "", const QString& directory = "");
     QScriptValue browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     QScriptValue save(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
     QScriptValue browseAssets(const QString& title = "", const QString& directory = "", const QString& nameFilter = "");
@@ -87,7 +87,7 @@ signals:
     void announcement(const QString& message);
 
     void messageBoxClosed(int id, int button);
-
+    void browseDirChanged(QString browseDir);
     // triggered when window size or position changes
     void geometryChanged(QRect geometry);
 
