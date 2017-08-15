@@ -26,6 +26,7 @@ Rectangle {
     id: securityImageSelectionRoot;
     property string referrerURL: "";
     property bool isManuallyChangingSecurityImage: false;
+    property int imageEnumValue: 0;
     anchors.fill: parent;
     // Style
     color: hifi.colors.baseGray;
@@ -40,8 +41,11 @@ Rectangle {
             }
             if (imageID !== 0) {
                 for (var itr = 0; itr < gridModel.count; itr++) {
-                    if (gridModel.get(itr).securityImageEnumIndex === imageID) {
+                    var thisValue = gridModel.get(itr).securityImageEnumValue;
+                    if (thisValue === imageID) {
+                        securityImageSelectionRoot.imageEnumValue = thisValue;
                         securityImageGrid.currentIndex = itr;
+                        return;
                     }
                 }
             }
@@ -252,7 +256,7 @@ Rectangle {
             text: "Confirm";
             onClicked: {
                 securityImageSelectionRoot.isManuallyChangingSecurityImage = false;
-                commerce.chooseSecurityImage(gridModel.get(securityImageGrid.currentIndex).securityImageEnumIndex);
+                commerce.chooseSecurityImage(gridModel.get(securityImageGrid.currentIndex).securityImageEnumValue);
             }
         }
     }

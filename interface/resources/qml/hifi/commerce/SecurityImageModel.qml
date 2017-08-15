@@ -17,26 +17,26 @@ ListModel {
     id: root;
     ListElement{
         sourcePath: "images/01cat.jpg"
-        securityImageEnumIndex: 1;
+        securityImageEnumValue: 1;
     }
     ListElement{
         sourcePath: "images/02car.jpg"
-        securityImageEnumIndex: 2;
+        securityImageEnumValue: 2;
     }
     ListElement{
         sourcePath: "images/03dog.jpg"
-        securityImageEnumIndex: 3;
+        securityImageEnumValue: 3;
     }
     ListElement{
         sourcePath: "images/04stars.jpg"
-        securityImageEnumIndex: 4;
+        securityImageEnumValue: 4;
     }
     ListElement{
         sourcePath: "images/05plane.jpg"
-        securityImageEnumIndex: 5;
+        securityImageEnumValue: 5;
     }
     ListElement{
         sourcePath: "images/06gingerbread.jpg"
-        securityImageEnumIndex: 6;
+        securityImageEnumValue: 6;
     }
 }

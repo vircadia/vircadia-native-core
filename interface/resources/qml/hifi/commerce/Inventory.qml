@@ -43,11 +43,17 @@ Rectangle {
                 inventoryContentsList.model = inventory.assets;
             }
         }
+        onSecurityImageResult: {
+            securityImage.source = imageID ? gridModel.get(imageID - 1).sourcePath : "";
+        }
     }
 
     SecurityImageSelection {
         id: securityImageSelection;
         referrerURL: inventoryRoot.referrerURL;
+    }
+    SecurityImageModel {
+        id: gridModel;
     }
 
     //
@@ -56,7 +62,7 @@ Rectangle {
     Item {
         id: titleBarContainer;
         // Size
-        width: inventoryRoot.width;
+        width: parent.width;
         height: 50;
         // Anchors
         anchors.left: parent.left;
@@ -69,13 +75,30 @@ Rectangle {
             // Text size
             size: hifi.fontSizes.overlayTitle;
             // Anchors
-            anchors.fill: parent;
+            anchors.top: parent.top;
+            anchors.left: parent.left;
             anchors.leftMargin: 16;
+            anchors.bottom: parent.bottom;
+            width: paintedWidth;
             // Style
             color: hifi.colors.lightGrayText;
             // Alignment
             horizontalAlignment: Text.AlignHLeft;
             verticalAlignment: Text.AlignVCenter;
+        }
+
+        // Security Image
+        Image {
+            id: securityImage;
+            // Anchors
+            anchors.top: parent.top;
+            anchors.left: titleBarText.right;
+            anchors.leftMargin: 16;
+            height: parent.height - 5;
+            width: height;
+            anchors.horizontalCenter: parent.horizontalCenter;
+            anchors.verticalCenter: parent.verticalCenter;
+            fillMode: Image.PreserveAspectFit;
         }
 
         // "Change Security Image" button
@@ -286,6 +309,7 @@ Rectangle {
                 referrerURL = message.referrerURL;
                 commerce.balance();
                 commerce.inventory();
+                commerce.getSecurityImage();
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
