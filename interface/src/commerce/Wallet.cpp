@@ -46,7 +46,7 @@ int passwordCallback(char* password, int maxPasswordSize, int rwFlag, void* u) {
     // just return a hardcoded pwd for now
     static const char* pwd = "pwd";
     strcpy(password, pwd);
-    return strlen(pwd);
+    return static_cast<int>(strlen(pwd));
 }
 
 // BEGIN copied code - this will be removed/changed at some point soon
