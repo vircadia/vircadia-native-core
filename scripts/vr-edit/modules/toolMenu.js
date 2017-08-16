@@ -24,8 +24,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         optionsOverlays = [],
         optionsOverlaysIDs = [],  // Text ids (names) of options overlays.
+        optionsOverlaysLabels = [],  // Overlay IDs of labels for optionsOverlays.
         optionsSliderData = [],  // Uses same index values as optionsOverlays.
-        optionsPicklistItemLabelOverlays = [],
         optionsEnabled = [],
         optionsSettings = {},
 
@@ -587,6 +587,10 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         dimensions: { x: 0.06, y: 0.02, z: 0.01 }
                     },
                     label: "DEFAULT",
+                    setting: {
+                        key: "VREdit.physicsTool.presetLabel",
+                        command: "XXX"
+                    },
                     command: {
                         method: "togglePhysicsPresets"
                     },
@@ -924,11 +928,10 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         optionsOverlays = [];
 
         optionsOverlaysIDs = [];
+        optionsOverlaysLabels = [];
         optionsSliderData = [];
         optionsEnabled = [];
         optionsItems = null;
-
-        optionsPicklistItemLabelOverlays = [];
     }
 
     function openOptions(toolOptions) {
@@ -986,6 +989,10 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         // Store value in optionsSettings rather than using overlay property.
                         optionsSettings[optionsItems[i].id].value = value;
                     }
+                    if (optionsItems[i].type === "picklist") {
+                        // Value is picklist label.
+                        optionsItems[i].label = value;
+                    }
                     if (optionsItems[i].setting.callback) {
                         uiCommandCallback(optionsItems[i].setting.callback, value);
                     }
@@ -998,9 +1005,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 properties.text = optionsItems[i].label;
                 properties.parentID = optionsOverlays[optionsOverlays.length - 1];
                 id = Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
-                if (optionsItems[i].type === "picklistItem") {
-                    optionsPicklistItemLabelOverlays.push(id);
-                }
+                optionsOverlaysLabels[i] = id;
             }
 
             if (optionsItems[i].type === "barSlider") {
@@ -1107,6 +1112,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             value,
             items,
             parentID,
+            label,
             i,
             length;
 
@@ -1172,15 +1178,12 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 // Hide options.
                 items = optionsItems[index].items;
                 for (i = 0, length = items.length; i < length; i += 1) {
-                    Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf(items[i])], {
+                    index = optionsOverlaysIDs.indexOf(items[i]);
+                    Overlays.editOverlay(optionsOverlays[index], {
                         localPosition: Vec3.ZERO,
                         visible: false
                     });
-                }
-
-                // Hide labels.
-                for (i = 0, length = optionsPicklistItemLabelOverlays.length; i < length; i += 1) {
-                    Overlays.editOverlay(optionsPicklistItemLabelOverlays[i], {
+                    Overlays.editOverlay(optionsOverlaysLabels[index], {
                         visible: false
                     });
                 }
@@ -1201,27 +1204,32 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 // Show options.
                 items = optionsItems[index].items;
                 for (i = 0, length = items.length; i < length; i += 1) {
-                    Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf(items[i])], {
+                    index = optionsOverlaysIDs.indexOf(items[i]);
+                    Overlays.editOverlay(optionsOverlays[index], {
                         parentID: parentID,
                         localPosition: { x: 0, y: (i + 1) * -UI_ELEMENTS.picklistItem.properties.dimensions.y, z: 0 },
                         visible: true
                     });
-                }
-
-                // Show labels.
-                for (i = 0, length = optionsPicklistItemLabelOverlays.length; i < length; i += 1) {
-                    Overlays.editOverlay(optionsPicklistItemLabelOverlays[i], {
+                    Overlays.editOverlay(optionsOverlaysLabels[index], {
                         visible: true
                     });
                 }
+
             }
             break;
 
         case "pickPhysicsPreset":
-            doCommand("togglePhysicsPresets", "presets");  // Close picklist.
+            // Close picklist.
+            doCommand("togglePhysicsPresets", "presets");
 
-            // TODO: Update picklist label.
-            // TODO: Set picklist setting to record picklist label.
+            // Update picklist label.
+            index = optionsOverlaysIDs.indexOf(parameter);
+            label = optionsItems[index].label;
+            Overlays.editOverlay(optionsOverlaysLabels[optionsOverlaysIDs.indexOf("presets")], {
+                text: label
+            });
+            Settings.setValue(optionsSettings.presets.key, label);
+
             // TODO: Set physics parameters - update sliders, settings, and to-apply-values.
 
             break;
