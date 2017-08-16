@@ -1019,6 +1019,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 properties = Object.clone(UI_ELEMENTS.label.properties);
                 properties.text = optionsItems[i].label;
                 properties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                properties.visible = optionsItems[i].type !== "picklistItem";
                 id = Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
                 optionsOverlaysLabels[i] = id;
             }
