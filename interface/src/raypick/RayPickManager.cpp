@@ -67,7 +67,7 @@ void RayPickManager::update() {
             bool noncollidable = rayPick->getFilter().doesPickNonCollidable();
             RayPickFilter::Flags entityMask = rayPick->getFilter().getEntityFlags();
             if (!checkAndCompareCachedResults(rayKey, results, res, entityMask)) {
-                entityRes = DependencyManager::get<EntityScriptingInterface>()->findRayIntersection(ray, true, rayPick->getIncludeEntites(), rayPick->getIgnoreEntites(), !invisible, !noncollidable);
+                entityRes = DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(ray, true, rayPick->getIncludeEntites(), rayPick->getIgnoreEntites(), !invisible, !noncollidable);
                 fromCache = false;
             }
 
@@ -84,7 +84,7 @@ void RayPickManager::update() {
             bool noncollidable = rayPick->getFilter().doesPickNonCollidable();
             RayPickFilter::Flags overlayMask = rayPick->getFilter().getOverlayFlags();
             if (!checkAndCompareCachedResults(rayKey, results, res, overlayMask)) {
-                overlayRes = qApp->getOverlays().findRayIntersection(ray, true, rayPick->getIncludeOverlays(), rayPick->getIgnoreOverlays(), !invisible, !noncollidable);
+                overlayRes = qApp->getOverlays().findRayIntersectionVector(ray, true, rayPick->getIncludeOverlays(), rayPick->getIgnoreOverlays(), !invisible, !noncollidable);
                 fromCache = false;
             }
 
@@ -97,7 +97,7 @@ void RayPickManager::update() {
         if (rayPick->getFilter().doesPickAvatars()) {
             RayPickFilter::Flags avatarMask = rayPick->getFilter().getAvatarFlags();
             if (!checkAndCompareCachedResults(rayKey, results, res, avatarMask)) {
-                RayToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findRayIntersection(ray, rayPick->getIncludeAvatars(), rayPick->getIgnoreAvatars());
+                RayToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findRayIntersectionVector(ray, rayPick->getIncludeAvatars(), rayPick->getIgnoreAvatars());
                 cacheResult(avatarRes.intersects, RayPickResult(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.intersection), avatarMask, res, rayKey, results);
             }
         }

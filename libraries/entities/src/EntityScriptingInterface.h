@@ -230,7 +230,7 @@ public slots:
         bool visibleOnly = false, bool collidableOnly = false);
 
     /// Same as above but with QVectors
-    Q_INVOKABLE RayToEntityIntersectionResult findRayIntersection(const PickRay& ray, bool precisionPicking,
+    RayToEntityIntersectionResult findRayIntersectionVector(const PickRay& ray, bool precisionPicking,
         const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
         bool visibleOnly, bool collidableOnly);
 
