@@ -415,35 +415,20 @@ Selection = function (side) {
     }
 
     function applyPhysics(physicsProperties) {
-        // TODO: For development testing, apply physics to the currently intersected entity.
+        // Apply physics to just the root entity.
         var properties;
 
         properties = Object.clone(physicsProperties);
         properties.userData = updatePhysicsUserData(selection[intersectedEntityIndex].userData, physicsProperties.userData);
-        Entities.editEntity(selection[intersectedEntityIndex].id, properties);
-
-        // TODO: Original functionality applied physics to all entities in the selection.
-        /*
-        // Applies physics to the current selection (i.e., the selection made when entity was trigger-clicked to apply physics).
-        var properties,
-            i,
-            length;
-
-        properties = Object.clone(physicsProperties);
-
-        for (i = 0, length = selection.length; i < length; i += 1) {
-            properties.userData = updatePhysicsUserData(selection[i].userData, physicsProperties.userData);
-            Entities.editEntity(selection[i].id, properties);
-        }
+        Entities.editEntity(rootEntityID, properties);
 
         if (physicsProperties.dynamic) {
-            // Give dynamic entities with zero a little kick to set off physics.
-            properties = Entities.getEntityProperties(selection[0].id, ["velocity"]);
+            // Give dynamic entities with zero velocity a little kick to set off physics.
+            properties = Entities.getEntityProperties(rootEntityID, ["velocity"]);
             if (Vec3.length(properties.velocity) < DYNAMIC_VELOCITY_THRESHOLD) {
-                Entities.editEntity(selection[0].id, { velocity: DYNAMIC_VELOCITY_KICK });
+                Entities.editEntity(rootEntityID, { velocity: DYNAMIC_VELOCITY_KICK });
             }
         }
-        */
     }
 
     function clear() {
