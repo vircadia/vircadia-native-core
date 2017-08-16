@@ -24,7 +24,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         optionsOverlays = [],
         optionsOverlaysIDs = [],  // Text ids (names) of options overlays.
-        optionsOverlaysAuxiliaries = [],
+        optionsSliderData = [],  // Uses same index values as optionsOverlays.
+        optionsPicklistItemLabelOverlays = [],
         optionsEnabled = [],
         optionsSettings = {},
 
@@ -226,7 +227,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             "picklist": {
                 overlay: "cube",
                 properties: {
-                    dimensions: { x: 0.10, y: 0.12, z: 0.01 },
+                    dimensions: { x: 0.06, y: 0.02, z: 0.01 },
                     localRotation: Quat.ZERO,
                     color: UI_BASE_COLOR,
                     alpha: 1.0,
@@ -235,11 +236,18 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
-            "picklistBackground": {
-
-            },
-            "picklistOption": {
-
+            "picklistItem": {
+                overlay: "cube",
+                properties: {
+                    dimensions: { x: 0.06, y: 0.02, z: 0.01 },
+                    localPosition: Vec3.ZERO,
+                    localRotation: Quat.ZERO,
+                    color: { red: 100, green: 100, blue: 100 },
+                    alpha: 1.0,
+                    solid: true,
+                    ignoreRayIntersection: false,
+                    visible: false
+                }
             }
         },
 
@@ -250,7 +258,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         SLIDER_RAISE_DELTA = { x: 0, y: 0, z: 0.004 },
         MIN_BAR_SLIDER_DIMENSION = 0.0001,  // Avoid visual artifact for 0 slider values.
 
-        PICKLIST_UI_ELEMENTS = ["picklist"],
+        PICKLIST_UI_ELEMENTS = ["picklist", "picklistItem"],
         PICKLIST_RAISE_DELTA = { x: 0, y: 0, z: 0.004 },
 
 
@@ -580,8 +588,73 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     label: "DEFAULT",
                     command: {
-                        method: "togglePresets"
-                    }
+                        method: "togglePhysicsPresets"
+                    },
+                    items: [
+                        "presetDefault",
+                        "presetLead",
+                        "presetWood",
+                        "presetIce",
+                        "presetRubber",
+                        "presetCotton",
+                        "presetTumbleWeed",
+                        "presetZeroG",
+                        "presetBallon"
+                    ]
+                },
+                {
+                    id: "presetDefault",
+                    type: "picklistItem",
+                    label: "DEFAULT",
+                    command: { method: "pickPhysicsPreset" }
+                },
+                {
+                    id: "presetLead",
+                    type: "picklistItem",
+                    label: "LEAD",
+                    command: { method: "pickPhysicsPreset" }
+                },
+                {
+                    id: "presetWood",
+                    type: "picklistItem",
+                    label: "WOOD",
+                    command: { method: "pickPhysicsPreset" }
+                },
+                {
+                    id: "presetIce",
+                    type: "picklistItem",
+                    label: "ICE",
+                    command: { method: "pickPhysicsPreset" }
+                },
+                {
+                    id: "presetRubber",
+                    type: "picklistItem",
+                    label: "RUBBER",
+                    command: { method: "pickPhysicsPreset" }
+                },
+                {
+                    id: "presetCotton",
+                    type: "picklistItem",
+                    label: "COTTON",
+                    command: { method: "pickPhysicsPreset" }
+                },
+                {
+                    id: "presetTumbleWeed",
+                    type: "picklistItem",
+                    label: "TUMBLEWEED",
+                    command: { method: "pickPhysicsPreset" }
+                },
+                {
+                    id: "presetZeroG",
+                    type: "picklistItem",
+                    label: "ZERO-G",
+                    command: { method: "pickPhysicsPreset" }
+                },
+                {
+                    id: "presetBallon",
+                    type: "picklistItem",
+                    label: "BALLOON",
+                    command: { method: "pickPhysicsPreset" }
                 },
                 {
                     id: "gravitySlider",
@@ -799,10 +872,12 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         isHighlightingButton,
         isHighlightingSlider,
         isHighlightingPicklist,
+        isPicklistOpen,
         pressedItem = null,
         pressedSource,
         isButtonPressed,
         isPicklistPressed,
+        isPicklistItemPressed,
         isGripClicked,
 
         isGroupButtonEnabled,
@@ -849,9 +924,11 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         optionsOverlays = [];
 
         optionsOverlaysIDs = [];
-        optionsOverlaysAuxiliaries = [];
+        optionsSliderData = [];
         optionsEnabled = [];
         optionsItems = null;
+
+        optionsPicklistItemLabelOverlays = [];
     }
 
     function openOptions(toolOptions) {
@@ -862,6 +939,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             value,
             imageOffset,
             IMAGE_OFFSET = 0.0005,
+            id,
             i,
             length;
 
@@ -878,7 +956,9 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         parentID = menuPanelOverlay;  // Menu panel parents to background panel.
         for (i = 0, length = optionsItems.length; i < length; i += 1) {
             properties = Object.clone(UI_ELEMENTS[optionsItems[i].type].properties);
-            properties = Object.merge(properties, optionsItems[i].properties);
+            if (optionsItems[i].properties) {
+                properties = Object.merge(properties, optionsItems[i].properties);
+            }
             properties.parentID = parentID;
             if (properties.url) {
                 properties.url = Script.resolvePath(properties.url);
@@ -917,11 +997,14 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 properties = Object.clone(UI_ELEMENTS.label.properties);
                 properties.text = optionsItems[i].label;
                 properties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
+                id = Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
+                if (optionsItems[i].type === "picklistItem") {
+                    optionsPicklistItemLabelOverlays.push(id);
+                }
             }
 
             if (optionsItems[i].type === "barSlider") {
-                optionsOverlaysAuxiliaries[i] = {};
+                optionsSliderData[i] = {};
                 auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderValue.properties);
                 auxiliaryProperties.localPosition = { x: 0, y: (0.5 - value / 2) * properties.dimensions.y, z: 0 };
                 auxiliaryProperties.dimensions = {
@@ -930,7 +1013,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     z: properties.dimensions.z
                 };
                 auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                optionsOverlaysAuxiliaries[i].value = Overlays.addOverlay(UI_ELEMENTS.barSliderValue.overlay,
+                optionsSliderData[i].value = Overlays.addOverlay(UI_ELEMENTS.barSliderValue.overlay,
                     auxiliaryProperties);
                 auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderRemainder.properties);
                 auxiliaryProperties.localPosition = { x: 0, y: (-0.5 + (1.0 - value) / 2) * properties.dimensions.y, z: 0 };
@@ -940,7 +1023,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     z: properties.dimensions.z
                 };
                 auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                optionsOverlaysAuxiliaries[i].remainder = Overlays.addOverlay(UI_ELEMENTS.barSliderRemainder.overlay,
+                optionsSliderData[i].remainder = Overlays.addOverlay(UI_ELEMENTS.barSliderRemainder.overlay,
                     auxiliaryProperties);
             }
 
@@ -977,18 +1060,18 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
 
                 // Value pointers.
-                optionsOverlaysAuxiliaries[i] = {};
-                optionsOverlaysAuxiliaries[i].offset =
+                optionsSliderData[i] = {};
+                optionsSliderData[i].offset =
                     { x: -properties.dimensions.x / 2, y: 0, z: -properties.dimensions.z / 2 - imageOffset };
                 auxiliaryProperties = Object.clone(UI_ELEMENTS.sliderPointer.properties);
-                auxiliaryProperties.localPosition = optionsOverlaysAuxiliaries[i].offset;
+                auxiliaryProperties.localPosition = optionsSliderData[i].offset;
                 auxiliaryProperties.drawInFront = true;  // TODO: Accommodate work-around above; remove when bug fixed.
                 auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                optionsOverlaysAuxiliaries[i].value = Overlays.addOverlay(UI_ELEMENTS.sliderPointer.overlay,
+                optionsSliderData[i].value = Overlays.addOverlay(UI_ELEMENTS.sliderPointer.overlay,
                     auxiliaryProperties);
                 auxiliaryProperties.localPosition = { x: 0, y: properties.dimensions.x, z: 0 };
                 auxiliaryProperties.localRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
-                auxiliaryProperties.parentID = optionsOverlaysAuxiliaries[i].value;
+                auxiliaryProperties.parentID = optionsSliderData[i].value;
                 Overlays.addOverlay(UI_ELEMENTS.sliderPointer.overlay, auxiliaryProperties);
             }
             parentID = optionsOverlays[0];  // Menu buttons parent to menu panel.
@@ -1021,7 +1104,11 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     function doCommand(command, parameter) {
         var index,
             hasColor,
-            value;
+            value,
+            items,
+            parentID,
+            i,
+            length;
 
         switch (command) {
 
@@ -1070,6 +1157,73 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 color: value ? UI_ELEMENTS[optionsItems[index].type].onColor : UI_ELEMENTS[optionsItems[index].type].offColor
             });
             uiCommandCallback(command, value);
+            break;
+
+        case "togglePhysicsPresets":
+            if (isPicklistOpen) {
+                // Close picklist.
+                index = optionsOverlaysIDs.indexOf(parameter);
+
+                // Lower picklist.
+                Overlays.editOverlay(optionsOverlays[index], {
+                    localPosition: optionsItems[index].properties.localPosition
+                });
+
+                // Hide options.
+                items = optionsItems[index].items;
+                for (i = 0, length = items.length; i < length; i += 1) {
+                    Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf(items[i])], {
+                        localPosition: Vec3.ZERO,
+                        visible: false
+                    });
+                }
+
+                // Hide labels.
+                for (i = 0, length = optionsPicklistItemLabelOverlays.length; i < length; i += 1) {
+                    Overlays.editOverlay(optionsPicklistItemLabelOverlays[i], {
+                        visible: false
+                    });
+                }
+            }
+
+            isPicklistOpen = !isPicklistOpen;
+
+            if (isPicklistOpen) {
+                // Open picklist.
+                index = optionsOverlaysIDs.indexOf(parameter);
+                parentID = optionsOverlays[index];
+
+                // Raise picklist.
+                Overlays.editOverlay(parentID, {
+                    localPosition: Vec3.subtract(optionsItems[index].properties.localPosition, PICKLIST_RAISE_DELTA)
+                });
+
+                // Show options.
+                items = optionsItems[index].items;
+                for (i = 0, length = items.length; i < length; i += 1) {
+                    Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf(items[i])], {
+                        parentID: parentID,
+                        localPosition: { x: 0, y: (i + 1) * -UI_ELEMENTS.picklistItem.properties.dimensions.y, z: 0 },
+                        visible: true
+                    });
+                }
+
+                // Show labels.
+                for (i = 0, length = optionsPicklistItemLabelOverlays.length; i < length; i += 1) {
+                    Overlays.editOverlay(optionsPicklistItemLabelOverlays[i], {
+                        visible: true
+                    });
+                }
+            }
+            break;
+
+        case "pickPhysicsPreset":
+            doCommand("togglePhysicsPresets", "presets");  // Close picklist.
+
+            // TODO: Update picklist label.
+            // TODO: Set picklist setting to record picklist label.
+            // TODO: Set physics parameters - update sliders, settings, and to-apply-values.
+
             break;
 
         case "setGravity":
@@ -1178,13 +1332,6 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         localPosition: localPosition
                     });
                 }
-                //Lower old picklist.
-                if (isHighlightingPicklist) {
-                    localPosition = highlightedItems[highlightedItem].properties.localPosition;
-                    Overlays.editOverlay(highlightedSource[highlightedItem], {
-                        localPosition: localPosition
-                    });
-                }
                 // Update status variables.
                 highlightedItem = intersectedItem;
                 highlightedItems = intersectionItems;
@@ -1198,14 +1345,6 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         localPosition: Vec3.subtract(localPosition, SLIDER_RAISE_DELTA)
                     });
                 }
-                // Raise new picklist.
-                if (isHighlightingPicklist) {
-                    localPosition = intersectionItems[highlightedItem].properties.localPosition;
-                    Overlays.editOverlay(intersectionOverlays[highlightedItem], {
-                        localPosition: Vec3.subtract(localPosition, PICKLIST_RAISE_DELTA),
-                        color: UI_HIGHLIGHT_COLOR
-                    });
-                }
             } else if (highlightedItem !== NONE) {
                 // Un-highlight previous button.
                 Overlays.editOverlay(highlightOverlay, {
@@ -1216,14 +1355,6 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     localPosition = highlightedItems[highlightedItem].properties.localPosition;
                     Overlays.editOverlay(highlightedSource[highlightedItem], {
                         localPosition: localPosition
-                    });
-                }
-                // Lower picklist.
-                if (isHighlightingPicklist) {
-                    localPosition = highlightedItems[highlightedItem].properties.localPosition;
-                    Overlays.editOverlay(highlightedSource[highlightedItem], {
-                        localPosition: localPosition,
-                        color: UI_BASE_COLOR
                     });
                 }
                 // Update status variables.
@@ -1275,6 +1406,24 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
         }
 
+        // Picklist update.
+        if (intersectionItems && ((intersectionItems[intersectedItem].type === "picklist"
+                && controlHand.triggerClicked() !== isPicklistPressed)
+                    || (intersectionItems[intersectedItem].type !== "picklist" && isPicklistPressed))) {
+            isPicklistPressed = isHighlightingPicklist && controlHand.triggerClicked();
+            if (isPicklistPressed) {
+                doCommand(intersectionItems[intersectedItem].command.method, intersectionItems[intersectedItem].id);
+            }
+        }
+        if (intersectionItems && ((intersectionItems[intersectedItem].type === "picklistItem"
+                && controlHand.triggerClicked() !== isPicklistItemPressed)
+                    || (intersectionItems[intersectedItem].type !== "picklistItem" && isPicklistItemPressed))) {
+            isPicklistItemPressed = isHighlightingPicklist && controlHand.triggerClicked();
+            if (isPicklistItemPressed) {
+                doCommand(intersectionItems[intersectedItem].command.method, intersectionItems[intersectedItem].id);
+            }
+        }
+
         // Grip click.
         if (controlHand.gripClicked() !== isGripClicked) {
             isGripClicked = !isGripClicked;
@@ -1298,7 +1447,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 Vec3.multiplyQbyV(sliderProperties.orientation, Vec3.UNIT_Y)) / overlayDimensions.y;
             fraction = adjustSliderFraction(fraction);
             otherFraction = 1.0 - fraction;
-            Overlays.editOverlay(optionsOverlaysAuxiliaries[intersectedItem].value, {
+            Overlays.editOverlay(optionsSliderData[intersectedItem].value, {
                 localPosition: { x: 0, y: (0.5 - fraction / 2) * overlayDimensions.y, z: 0 },
                 dimensions: {
                     x: overlayDimensions.x,
@@ -1306,7 +1455,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     z: overlayDimensions.z
                 }
             });
-            Overlays.editOverlay(optionsOverlaysAuxiliaries[intersectedItem].remainder, {
+            Overlays.editOverlay(optionsSliderData[intersectedItem].remainder, {
                 localPosition: { x: 0, y: (-0.5 + otherFraction / 2) * overlayDimensions.y, z: 0 },
                 dimensions: {
                     x: overlayDimensions.x,
@@ -1331,21 +1480,12 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             fraction = Vec3.dot(Vec3.subtract(basePoint, intersection.intersection),
                 Vec3.multiplyQbyV(sliderProperties.orientation, Vec3.UNIT_Y)) / overlayDimensions.y;
             fraction = adjustSliderFraction(fraction);
-            Overlays.editOverlay(optionsOverlaysAuxiliaries[intersectedItem].value, {
-                localPosition: Vec3.sum(optionsOverlaysAuxiliaries[intersectedItem].offset,
+            Overlays.editOverlay(optionsSliderData[intersectedItem].value, {
+                localPosition: Vec3.sum(optionsSliderData[intersectedItem].offset,
                     { x: 0, y: (0.5 - fraction) * overlayDimensions.y, z: 0 })
             });
             if (intersectionItems[intersectedItem].callback) {
                 uiCommandCallback(intersectionItems[intersectedItem].callback.method, fraction);
-            }
-        }
-
-        // Picklist update.
-        if (intersectionItems && intersectionItems[intersectedItem].type === "picklist" && controlHand.triggerClicked()
-                && !isPicklistPressed) {
-            isPicklistPressed = true;
-            if (intersectionItems[intersectedItem].command) {
-                doCommand(intersectionItems[intersectedItem].command.method);
             }
         }
 
@@ -1438,10 +1578,12 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         isHighlightingButton = false;
         isHighlightingSlider = false;
         isHighlightingPicklist = false;
+        isPicklistOpen = false;
         pressedItem = null;
         pressedSource = null;
         isButtonPressed = false;
         isPicklistPressed = false;
+        isPicklistItemPressed = false;
         isGripClicked = false;
         isGroupButtonEnabled = false;
         isUngroupButtonEnabled = false;
