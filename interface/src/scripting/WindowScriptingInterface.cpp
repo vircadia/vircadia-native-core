@@ -116,11 +116,17 @@ QScriptValue WindowScriptingInterface::confirm(const QString& message) {
 /// Display a prompt with a text box
 /// \param const QString& message message to display
 /// \param const QString& defaultText default text in the text box
-/// \return QScriptValue string text value in text box if the dialog was accepted, `null` otherwise.
-QScriptValue WindowScriptingInterface::prompt(const QString& message, const QString& defaultText) {
-    bool ok = false;
-    QString result = OffscreenUi::getText(nullptr, "", message, QLineEdit::Normal, defaultText, &ok);
-    return ok ? QScriptValue(result) : QScriptValue::NullValue;
+void WindowScriptingInterface::prompt(const QString& message, const QString& defaultText) {
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    connect(offscreenUi.data(), &OffscreenUi::inputDialogResponse,
+            this, [=] (QVariant result) {
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        disconnect(offscreenUi.data(), &OffscreenUi::inputDialogResponse,
+                this, nullptr);
+        emit promptTextChanged(result.toString());
+    });
+
+    OffscreenUi::getTextAsync(nullptr, "", message, QLineEdit::Normal, defaultText);
 }
 
 CustomPromptResult WindowScriptingInterface::customPrompt(const QVariant& config) {

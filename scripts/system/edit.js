@@ -1473,6 +1473,16 @@ function onFileOpenChanged(filename) {
     }
 }
 
+function onPromptTextChanged(prompt) {
+    Window.promptTextChanged.disconnect(onPromptTextChanged);
+    if (prompt !== "") {
+        if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
+            toolBar.toggle();
+        }
+        importSVO(prompt);
+    }
+}
+
 function handeMenuEvent(menuItem) {
     if (menuItem === "Allow Selecting of Small Models") {
         allowSmallModels = Menu.isOptionChecked("Allow Selecting of Small Models");
@@ -1498,14 +1508,8 @@ function handeMenuEvent(menuItem) {
             Window.openFileChanged.connect(onFileOpenChanged);
             Window.browse("Select Model to Import", "", "*.json");
         } else {
-            var importURL = Window.prompt("URL of SVO to import", "");
-            if (importURL) {
-                if (!isActive && (Entities.canRez() && Entities.canRezTmp())) {
-                    toolBar.toggle();
-                }
-                importSVO(importURL);
-            }
-
+            Window.promptTextChanged.connect(onFileOpenChanged);
+            Window.prompt("URL of SVO to import", "");
         }
     } else if (menuItem === "Entity List...") {
         entityListTool.toggleVisible();

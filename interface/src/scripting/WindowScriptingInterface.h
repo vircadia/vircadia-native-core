@@ -51,7 +51,7 @@ public slots:
     void raiseMainWindow();
     void alert(const QString& message = "");
     QScriptValue confirm(const QString& message = "");
-    QScriptValue prompt(const QString& message = "", const QString& defaultText = "");
+    void prompt(const QString& message = "", const QString& defaultText = "");
     CustomPromptResult customPrompt(const QVariant& config);
     void browseDir(const QString& title = "", const QString& directory = "");
     void browse(const QString& title = "", const QString& directory = "",  const QString& nameFilter = "");
@@ -91,6 +91,7 @@ signals:
     void assetsDirChanged(QString assetsDir);
     void saveFileChanged(QString filename);
     void openFileChanged(QString filename);
+    void promptTextChanged(QString text);
 
     // triggered when window size or position changes
     void geometryChanged(QRect geometry);

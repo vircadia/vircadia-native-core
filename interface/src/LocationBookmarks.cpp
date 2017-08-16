@@ -70,20 +70,23 @@ void LocationBookmarks::teleportToBookmark() {
 }
 
 void LocationBookmarks::addBookmark() {
-    bool ok = false;
-    auto bookmarkName = OffscreenUi::getText(OffscreenUi::ICON_PLACEMARK, "Bookmark Location", "Name", QString(), &ok);
-    if (!ok) {
-        return;
-    }
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    connect(offscreenUi.data(), &OffscreenUi::inputDialogResponse, this, [=] (QVariant response) {
+        disconnect(offscreenUi.data(), &OffscreenUi::inputDialogResponse, this, nullptr);
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        auto bookmarkName = response.toString();
 
-    bookmarkName = bookmarkName.trimmed().replace(QRegExp("(\r\n|[\r\n\t\v ])+"), " ");
-    if (bookmarkName.length() == 0) {
-        return;
-    }
+        bookmarkName = bookmarkName.trimmed().replace(QRegExp("(\r\n|[\r\n\t\v ])+"), " ");
+        if (bookmarkName.length() == 0) {
+            return;
+        }
 
-    auto addressManager = DependencyManager::get<AddressManager>();
-    QString bookmarkAddress = addressManager->currentAddress().toString();
-    Bookmarks::addBookmarkToFile(bookmarkName, bookmarkAddress);
+        auto addressManager = DependencyManager::get<AddressManager>();
+        QString bookmarkAddress = addressManager->currentAddress().toString();
+        Bookmarks::addBookmarkToFile(bookmarkName, bookmarkAddress);
+    });
+
+    OffscreenUi::getTextAsync(OffscreenUi::ICON_PLACEMARK, "Bookmark Location", "Name", QString());
 }
 
 void LocationBookmarks::addBookmarkToMenu(Menu* menubar, const QString& name, const QVariant& address) {

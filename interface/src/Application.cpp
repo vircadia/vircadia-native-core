@@ -6849,12 +6849,18 @@ void Application::setPreviousScriptLocation(const QString& location) {
 }
 
 void Application::loadScriptURLDialog() const {
-    QString newScript = OffscreenUi::getText(OffscreenUi::ICON_NONE, "Open and Run Script", "Script URL");
-    if (QUrl(newScript).scheme() == "atp") {
-        OffscreenUi::asyncWarning("Error Loading Script", "Cannot load client script over ATP");
-    } else if (!newScript.isEmpty()) {
-        DependencyManager::get<ScriptEngines>()->loadScript(newScript.trimmed());
-    }
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    connect(offscreenUi.data(), &OffscreenUi::inputDialogResponse, this, [=] (QVariant response) {
+        disconnect(offscreenUi.data(), &OffscreenUi::inputDialogResponse, this, nullptr);
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        const QString& newScript = response.toString();
+        if (QUrl(newScript).scheme() == "atp") {
+            OffscreenUi::asyncWarning("Error Loading Script", "Cannot load client script over ATP");
+        } else if (!newScript.isEmpty()) {
+            DependencyManager::get<ScriptEngines>()->loadScript(newScript.trimmed());
+        }
+    });
+    OffscreenUi::getTextAsync(OffscreenUi::ICON_NONE, "Open and Run Script", "Script URL");
 }
 
 void Application::loadLODToolsDialog() {
