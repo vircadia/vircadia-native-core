@@ -27,6 +27,7 @@ TreeView {
 
     model: treeModel
     selection: ItemSelectionModel {
+        id: selectionModel
         model: treeModel
     }
 
@@ -214,6 +215,10 @@ TreeView {
     }
 
     onDoubleClicked: isExpanded(index) ? collapse(index) : expand(index)
+
+    onClicked: {
+        selectionModel.setCurrentIndex(index, ItemSelectionModel.ClearAndSelect);
+    }
 
     onActivated: {
         var path = scriptsModel.data(index, 0x100)

@@ -55,6 +55,8 @@ ContextOverlayInterface::ContextOverlayInterface() {
             _contextOverlayJustClicked = false;
         }
     });
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
+    connect(entityScriptingInterface, &EntityScriptingInterface::deletingEntity, this, &ContextOverlayInterface::deletingEntity);
 }
 
 static const uint32_t LEFT_HAND_HW_ID = 1;
@@ -277,4 +279,10 @@ void ContextOverlayInterface::disableEntityHighlight(const EntityItemID& entityI
             entityItem->setShouldHighlight(false);
         }
     });
+}
+
+void ContextOverlayInterface::deletingEntity(const EntityItemID& entityID) {
+    if (_currentEntityWithContextOverlay == entityID) {
+        destroyContextOverlay(_currentEntityWithContextOverlay, PointerEvent());
+    }
 }
