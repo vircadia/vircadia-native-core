@@ -1,7 +1,8 @@
-<link rel="stylesheet" type="text/css" href="../../html/css/edit-style.css">
 <script type="text/javascript" src="../../html/js/keyboardControl.js"></script>
 <script src="../../html/js/jquery-2.1.4.min.js"></script>
-
+<script src="../content/js/ColorUtils.js"></script>
+<script src="../content/js/ColorUtils.js"></script>
+<script src="../../html/js/colpick.js"></script>
 <style>
    input[type=range] {
         -webkit-appearance: none;
@@ -50,7 +51,6 @@
         background-position: center;
         background-repeat: no-repeat;
         background-blend-mode: multiply;
-        /*Just in case the user need to wait for the loading*/
         background-image: url("../../../../resources/icons/loadingDark.gif");
         -webkit-mask-repeat: no-repeat;
     }
@@ -93,17 +93,19 @@
         z-index: 2;
         word-wrap: break-word;
         text-overflow: ellipsis;
-
     }
     #strokeWidthWidget {
         position: fixed;
         background-color: #404040;
         display: flex;
         z-index: 3;
+        width: 100%;
         top: -1px;
         margin: 0px;
         padding: 15px 0px;
         border: none;
+        padding-left: 21px;
+        left: 0px;
     }
 
     #pressureSensitiveCheckbox {
@@ -116,8 +118,33 @@
         color: #202020;
     }
 
+    .brushes-group[collapsed="true"] ~ .brushes-group,
+    .special-group[collapsed="true"] ~ .special-group {
+        display: none !important;
+    }
 
+    #brushesContent {
+        margin-top: 48px
+    }
+
+    .effectPreview {
+        width: 40px;
+        height: 18px;
+        background-color: red;
+        display: inline-block;
+        margin-right: 10px;
+        margin-top: 4px;
+    }
+
+    #continuousLine {
+        text-align: center;
+        background-color: transparent;
+        color: white;
+        font-size: 32px;
+        margin-top: -6px;
+    }
 </style>
+<link rel="stylesheet" type="text/css" href="../../html/css/edit-style.css">
 
 <div id="strokeWidthWidget" class="property range">
     <div>
@@ -132,34 +159,50 @@
         <label for="triggerSensitiveWidth">Trigger Sensitive Width</label>
     </div>
 </div>
-<div style="margin-top: 75px">
+<div id="brushesContent">
+    <div class="section-header"></div>
 
-    <div class="behavior-group property checkbox">
-        <input onchange="setContinuosLineMode(this)" type="checkbox" id="continuousLine"></input>
-        <label for="continuousLine">Use Continuous Line</label>
-    </div>
-    
-    <div class="behavior-group property checkbox animationBrush">
-        <input onchange="setAnimatedBrush(this)" type="checkbox" id="animatedBrush"></input>
-        <label for="animatedBrush">Use Hue Animation</label>
+    <div id="special-section" class="section-header special-group special-section">
+        <label>Special Effects</label><span>M</span>
     </div>
 
-    <div class="behavior-group property checkbox dynamicBrush">
-        <input onchange="setDynamicBrush(this)" type="checkbox" id="dynamicHue"></input>
-        <label for="dynamicHue">Use Dynamic Hue</label>
+    <div class="special-group special-brushes-section special-section">
+
+        <div class="special-group special-brushes property checkbox">
+            <span class="glyph effectPreview" id="continuousLine">&#8734;</span>
+            <input onchange="setContinuosLineMode(this)" type="checkbox" id="continuousLine"></input>
+            <label for="continuousLine">Use Continuous Line</label>
+        </div>
+        
+        <div class="special-group behavior-group property checkbox animationBrush">
+            <span id="animatedHue" class="effectPreview"></span>
+            <input onchange="setAnimatedBrush(this)" type="checkbox" id="animatedBrush"></input>
+            <label for="animatedBrush">Use Hue Animation</label>
+        </div>
+
+        <div class="special-group behavior-group property checkbox dynamicBrush">
+            <span id="hue" class="effectPreview"></span>
+            <input onchange="setDynamicBrush(this)" type="checkbox" id="dynamicHue"></input>
+            <label for="dynamicHue">Use Dynamic Hue</label>
+        </div>
+
+        <div class="special-group behavior-group property checkbox dynamicBrush">
+            <span id="saturation" class="effectPreview"></span>
+            <input onchange="setDynamicBrush(this)" type="checkbox" id="dynamicSaturation"></input>
+            <label for="dynamicSaturation">Use Dynamic Saturation</label>
+        </div>
+
+        <div class="special-group behavior-group property checkbox dynamicBrush">
+            <span id="value" class="effectPreview"></span>
+            <input onchange="setDynamicBrush(this)" type="checkbox" id="dynamicValue"></input>
+            <label for="dynamicValue">Use Dynamic Brightness</label>
+        </div>
     </div>
 
-    <div class="behavior-group property checkbox dynamicBrush">
-        <input onchange="setDynamicBrush(this)" type="checkbox" id="dynamicSaturation"></input>
-        <label for="dynamicSaturation">Use Dynamic Saturation</label>
+    <div id="brushes-section" style="margin-bottom: 24px" class="section-header brushes-group">
+        <label>Brushes</label><span>M</span>
     </div>
-
-    <div class="behavior-group property checkbox dynamicBrush">
-        <input onchange="setDynamicBrush(this)" type="checkbox" id="dynamicValue"></input>
-        <label for="dynamicValue">Use Dynamic Brightness</label>
-    </div>
-
-    <div id="brushesCointainer">
+    <div id="brushesCointainer" class="brushes-group">
         <button class="brushButton"  brushType="stretch"  id="content/brushes/square.png" onclick="changePaintBrush(0)">
             <div class="imageContainer">
                 <div imageSrc="../content/brushes/square.png" class="BrushIcon"></div>
@@ -352,7 +395,12 @@
 </div>
 
 <script type="text/javascript">
+    var ANIMATED_HUE_STEP = 1;
     var currentBrush = 0;
+    var colorAnimPreviewInterval = null;
+    var currentAnimationColor = {h: 0, s: 100, b: 100};
+    colorAnimPreviewInterval = setInterval(setHueAnimationColorPreview, 30);
+
     var EventBridge = parent.EventBridge;
 
     function changeLineWidthRange(e) {
@@ -472,6 +520,33 @@
         }
     }
 
+    function setPreviewColors(id, hsvColor, num_steps, hsvComponent, min, max, start, step_size) {
+        var gradient_step = 100.0 / (num_steps - 1);
+        var previewColor = {h: hsvColor.h, s: hsvColor.s, b: hsvColor.b};
+        var gradientStr = "";
+        //generate the gradient string
+        previewColor[hsvComponent] = start;
+        for (var i = 0; i < num_steps; i++) {
+            gradientStr += "#" + $.colpick.hsbToHex({h: previewColor.h, s: previewColor.s, b: previewColor.b})
+                              + " " + (gradient_step * i).toFixed(1) + "%";
+            gradientStr += i < (num_steps - 1) ? ", " : "";
+            previewColor[hsvComponent] = start + (i + 1) * step_size;
+            previewColor[hsvComponent] = previewColor[hsvComponent] > max 
+                                          ? min + (previewColor[hsvComponent] % (max - min))
+                                          : previewColor[hsvComponent];
+        }
+        $(id).css("background", "-webkit-linear-gradient(left, " + gradientStr + ")");
+    }
+
+    function setHueAnimationColorPreview() {
+        currentAnimationColor.h += ANIMATED_HUE_STEP;
+        currentAnimationColor.h = currentAnimationColor.h > 360 
+                                    ? 360 - currentAnimationColor.h 
+                                    : currentAnimationColor.h;
+        $("#animatedHue").css("background-color", 
+            "#" + $.colpick.hsbToHex({h: currentAnimationColor.h, s: currentAnimationColor.s, b: currentAnimationColor.b}));
+    }
+
     function setStrokeColor(strokeColor) {
         $(".imageContainer").each(function( index ) {
             //recalculate the image height so it keeps the aspect ratio
@@ -492,6 +567,11 @@
 
             }
         });        
+        var hsvColor = $.colpick.rgbToHsb({r: strokeColor.red, g: strokeColor.green, b: strokeColor.blue});
+        setPreviewColors("#hue", hsvColor, 7, "h", 0, 360, hsvColor.h, 60);
+        setPreviewColors("#saturation", hsvColor, 2, "s", 50, 100, 100, 50);
+        setPreviewColors("#value", hsvColor, 2, "b", 60, 100, 100, 60);
+        currentAnimationColor = {h: hsvColor.h, s: hsvColor.s, b: hsvColor.b};
     }
     
     restoreSavedBrushes(JSON.parse(decodeURIComponent(window.parent.location.search).substring(1)));
@@ -534,8 +614,18 @@
         if ("currentIsContinuous" in brushData) {
             document.getElementById("continuousLine").checked = brushData.currentIsContinuous;
         }
-    }
 
+        if ("currentHeadersCollapsedStatus" in brushData) {
+            for (var key in brushData.currentHeadersCollapsedStatus) {
+
+                var element = document.getElementById(key);
+                if (brushData.currentHeadersCollapsedStatus[key]) {
+                    element.setAttribute("collapsed", "true");
+                    element.getElementsByTagName("span")[0].textContent ="L";
+                }
+            }
+        }
+    }
 
     window.addEventListener("message", receiveStrokeColor, false);
     function receiveStrokeColor(message) {
@@ -545,7 +635,36 @@
 
     $(window).load(function(){ 
         setUpKeyboardControl();
+        // Collapsible sections
+        var elCollapsible = document.getElementsByClassName("section-header");
+
+        var toggleCollapsedEvent = function(event) {
+            var element = event.target;
+            if (element.nodeName !== "DIV") {
+                element = element.parentNode;
+            }
+            var isCollapsed = element.getAttribute("collapsed") !== "true";
+            element.setAttribute("collapsed", isCollapsed ? "true" : "false");
+            element.getElementsByTagName("span")[0].textContent = isCollapsed ? "L" : "M";
+            var switchCollapsedState = {
+                "type"       : "switchCollapsed",
+                "isCollapsed"  : isCollapsed,
+                "sectionId"  : element.getAttribute("id")
+            };
+            EventBridge.emitWebEvent(JSON.stringify(switchCollapsedState));
+        };
+
+        for (var i = 0, length = elCollapsible.length; i < length; i++) {
+            var element = elCollapsible[i];
+            element.addEventListener("click", toggleCollapsedEvent, true);
+        };
     });
+
+    window.onbeforeunload = function(){
+       clearInterval(colorAnimPreviewInterval);
+    }
+
+
 
 
 </script>

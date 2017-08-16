@@ -77,7 +77,7 @@
             _isUvModeStretch = _savedSettings.currentTexture.brushType == "stretch",
             MIN_STROKE_LENGTH = 0.005,  // m
             MIN_STROKE_INTERVAL = 66,  // ms
-            MAX_POINTS_PER_LINE = 70;  // Hard-coded limit in PolyLineEntityItem.h.
+            MAX_POINTS_PER_LINE = 48;  // Quick fix for polyline points disappearing issue.
                 
         function calculateStrokeNormal() {
             if (!_isMouseDrawing) {
@@ -129,7 +129,7 @@
 
             if ("dynamicSaturation" in _dynamicEffects && _dynamicEffects.dynamicSaturation) {
                 isAnyDynamicEffectEnabled = true;
-                _dynamicColor.saturation = _dynamicColor.saturation == 0.2 ? 0.8 : 0.2;
+                _dynamicColor.saturation = _dynamicColor.saturation == 0.5 ? 1.0 : 0.5;
                 //saturation along the full line
                 //var saturationIncrement = 1.0 / 70.0;
                 //_dynamicColor.saturation = calculateValueInRange(_dynamicColor.saturation, 0, 1, saturationIncrement);
@@ -137,7 +137,7 @@
 
             if ("dynamicValue" in _dynamicEffects && _dynamicEffects.dynamicValue) {
                 isAnyDynamicEffectEnabled = true;
-                _dynamicColor.value = _dynamicColor.value == 0.2 ? 0.8 : 0.2;
+                _dynamicColor.value = _dynamicColor.value == 0.6 ? 1.0 : 0.6;
                 //value along the full line
                 //var saturationIncrement = 1.0 / 70.0;
                 //_dynamicColor.saturation = calculateValueInRange(_dynamicColor.saturation, 0, 1, saturationIncrement);
@@ -791,6 +791,7 @@
         _savedSettings.currentDynamicBrushes = Settings.getValue("currentDynamicBrushes", new Object());
         _savedSettings.currentIsContinuous = Settings.getValue("currentIsContinuous", false);
         _savedSettings.currentIsBrushColored = Settings.getValue("currentIsBrushColored", false);
+        _savedSettings.currentHeadersCollapsedStatus = Settings.getValue("currentHeadersCollapsedStatus", new Object());
         _savedSettings.undoDisable = _undoStack.length == 0;
         //set some global variables
         _isLeftHandDominant = _savedSettings.currentDrawingHand;
@@ -899,6 +900,11 @@
                 Settings.setValue("customColors", customColors);
                 break;
 
+            case "switchCollapsed":
+                var collapsedStatus = Settings.getValue("currentHeadersCollapsedStatus", new Object());
+                collapsedStatus[event.sectionId] = event.isCollapsed;
+                Settings.setValue("currentHeadersCollapsedStatus", collapsedStatus);
+                break;
 
             case "changeBrush":
                 Settings.setValue("currentTexture", event);
