@@ -588,8 +588,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     label: "DEFAULT",
                     setting: {
-                        key: "VREdit.physicsTool.presetLabel",
-                        command: "XXX"
+                        key: "VREdit.physicsTool.presetLabel"
                     },
                     command: {
                         method: "togglePhysicsPresets"
@@ -932,6 +931,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         optionsSliderData = [];
         optionsEnabled = [];
         optionsItems = null;
+
+        isPicklistOpen = false;
     }
 
     function openOptions(toolOptions) {
@@ -1225,7 +1226,6 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         visible: true
                     });
                 }
-
             }
             break;
 
@@ -1445,6 +1445,11 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             if (isPicklistItemPressed) {
                 doCommand(intersectionItems[intersectedItem].command.method, intersectionItems[intersectedItem].id);
             }
+        }
+        if (intersectionItems && isPicklistOpen && controlHand.triggerClicked()
+                && intersectionItems[intersectedItem].type !== "picklist"
+                && intersectionItems[intersectedItem].type !== "picklistItem") {
+            doCommand("togglePhysicsPresets", "presets");  //  TODO: This is a bit hacky.
         }
 
         // Grip click.
