@@ -16,15 +16,7 @@
 
 #include "MovingEntitiesOperator.h"
 
-MovingEntitiesOperator::MovingEntitiesOperator(EntityTreePointer tree) :
-    _tree(tree),
-    _changeTime(usecTimestampNow()),
-    _foundOldCount(0),
-    _foundNewCount(0),
-    _lookingCount(0),
-    _wantDebug(false)
-{
-}
+MovingEntitiesOperator::MovingEntitiesOperator() { }
 
 MovingEntitiesOperator::~MovingEntitiesOperator() {
     if (_wantDebug) {
@@ -146,7 +138,7 @@ bool MovingEntitiesOperator::preRecursion(const OctreeElementPointer& element) {
     
     // In Pre-recursion, we're generally deciding whether or not we want to recurse this
     // path of the tree. For this operation, we want to recurse the branch of the tree if
-    // and of the following are true:
+    // any of the following are true:
     //   * We have not yet found the old entity, and this branch contains our old entity
     //   * We have not yet found the new entity, and this branch contains our new entity
     //
@@ -230,8 +222,6 @@ bool MovingEntitiesOperator::postRecursion(const OctreeElementPointer& element) 
     if ((shouldRecurseSubTree(element))) {
         element->markWithChangedTime();
     }
-    
-
 
     // It's not OK to prune if we have the potential of deleting the original containing element
     // because if we prune the containing element then new might end up reallocating the same memory later 
@@ -285,4 +275,11 @@ OctreeElementPointer MovingEntitiesOperator::possiblyCreateChildAt(const OctreeE
         }
     }
     return NULL; 
+}
+
+void MovingEntitiesOperator::reset() {
+    _entitiesToMove.clear();
+    _foundOldCount = 0;
+    _foundNewCount = 0;
+    _lookingCount = 0;
 }
