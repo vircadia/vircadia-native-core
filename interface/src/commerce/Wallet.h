@@ -25,7 +25,7 @@ public:
     bool createIfNeeded();
     bool generateKeyPair();
     QStringList listPublicKeys();
-    QString signWithKey(const QString& text, const QString& key);
+    QString signWithKey(const QByteArray& text, const QString& key);
     void chooseSecurityImage(uint imageID);
     void getSecurityImage();
 
