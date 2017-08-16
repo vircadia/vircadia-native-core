@@ -121,6 +121,7 @@ public:
         ReplicatedAvatarIdentity,
         ReplicatedKillAvatar,
         ReplicatedBulkAvatarData,
+        OctreeFileReplacementFromUrl,
         NUM_PACKET_TYPE
     };
 
