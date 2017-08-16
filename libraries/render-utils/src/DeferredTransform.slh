@@ -31,6 +31,8 @@ struct DeferredFrameTransform {
     mat4 _projectionMono;
     mat4 _viewInverse;
     mat4 _view;
+    mat4 _prevViewInverse;
+    mat4 _prevView;
 };
 
 uniform deferredFrameTransformBuffer {

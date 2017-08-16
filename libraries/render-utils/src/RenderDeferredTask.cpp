@@ -31,6 +31,7 @@
 #include "DeferredFramebuffer.h"
 #include "DeferredLightingEffect.h"
 #include "SurfaceGeometryPass.h"
+#include "VelocityBufferPass.h"
 #include "FramebufferCache.h"
 #include "TextureCache.h"
 #include "ZoneRenderer.h"
@@ -130,7 +131,11 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto ambientOcclusionFramebuffer = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(0);
     const auto ambientOcclusionUniforms = ambientOcclusionOutputs.getN<AmbientOcclusionEffect::Outputs>(1);
 
-    
+    // Velocity
+    const auto velocityBufferInputs = VelocityBufferPass::Inputs(deferredFrameTransform, deferredFramebuffer).asVarying();
+    const auto velocityBufferOutputs = task.addJob<VelocityBufferPass>("VelocityBuffer", velocityBufferInputs);
+    const auto velocityBuffer = velocityBufferOutputs.getN<VelocityBufferPass::Outputs>(0);
+
     // Draw Lights just add the lights to the current list of lights to deal with. NOt really gpu job for now.
     task.addJob<DrawLight>("DrawLight", lights);
 
@@ -148,6 +153,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, scatteringResource, lightClusters).asVarying();
     
     task.addJob<RenderDeferred>("RenderDeferred", deferredLightingInputs);
+
 
     // Similar to light stage, background stage has been filled by several potential render items and resolved for the frame in this job
     task.addJob<DrawBackgroundStage>("DrawBackgroundDeferred", lightingModel);
@@ -191,7 +197,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
      // Debugging stages
     {
         // Debugging Deferred buffer job
-        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer));
+        const auto debugFramebuffers = render::Varying(DebugDeferredBuffer::Inputs(deferredFramebuffer, linearDepthTarget, surfaceGeometryFramebuffer, ambientOcclusionFramebuffer, velocityBuffer));
         task.addJob<DebugDeferredBuffer>("DebugDeferredBuffer", debugFramebuffers);
 
         const auto debugSubsurfaceScatteringInputs = DebugSubsurfaceScattering::Inputs(deferredFrameTransform, deferredFramebuffer, lightingModel,
@@ -217,7 +223,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
         task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
     }
-
+    
 
     // AA job to be revisited
     task.addJob<Antialiasing>("Antialiasing", primaryFramebuffer);
