@@ -44,3 +44,11 @@ QString Wallet::signWithKey(const QString& text, const QString& key) {
     qCInfo(commerce) << "Signing text.";
     return "fixme signed";
 }
+
+void Wallet::chooseSecurityImage(uint imageID) {
+    _chosenSecurityImage = (SecurityImage)imageID;
+    emit securityImageResult(imageID);
+}
+void Wallet::getSecurityImage() {
+    emit securityImageResult(_chosenSecurityImage);
+}
