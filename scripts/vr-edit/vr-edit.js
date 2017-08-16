@@ -33,6 +33,8 @@
         toolSelected = TOOL_NONE,
         colorToolColor = { red: 128, green: 128, blue: 128 },
         physicsToolPhysics = { userData: { grabbableKey: {} } },
+        EARTH_GRAVITY = -9.80665,
+        physicsToolGravity = EARTH_GRAVITY,
 
         // Primary objects
         App,
@@ -1395,7 +1397,7 @@
 
         case "setGravityOn":
             if (parameter) {
-                physicsToolPhysics.gravity = { x: 0, y: -9.8, z: 0 };  // Earth gravity.
+                physicsToolPhysics.gravity = { x: 0, y: physicsToolGravity, z: 0 };
                 physicsToolPhysics.dynamic = true;
             } else {
                 physicsToolPhysics.gravity = Vec3.ZERO;
@@ -1415,28 +1417,35 @@
             }
             break;
 
-        case "setGravityValue":
+        case "setGravity":
             if (parameter !== undefined) {
-                // TODO
-                print("setGravityValue = " + parameter);
+                // Power range 0.0, 0.5, 1.0 maps to -50.0, -9.80665, 50.0.
+                physicsToolGravity = 82.36785162 * Math.pow(2.214065901, parameter) - 132.36785;
+                if (physicsToolPhysics.dynamic === true) {  // Only apply if gravity is turned on.
+                    physicsToolPhysics.gravity = { x: 0, y: physicsToolGravity, z: 0 };
+                }
             }
             break;
-        case "setBounceValue":
+        case "setBounce":
             if (parameter !== undefined) {
-                // TODO
-                print("setBounceValue = " + parameter);
+                // Linear range from 0.0, 0.5, 1.0 maps to 0.0, 0.5, 1.0;
+                physicsToolPhysics.restitution = parameter;
             }
             break;
-        case "setDampingValue":
+        case "setDamping":
             if (parameter !== undefined) {
-                // TODO
-                print("setDampingValue = " + parameter);
+                // Power range 0.0, 0.5, 1.0 maps to 0, 0.39, 1.0.
+                physicsToolPhysics.linearDamping = 0.69136364 * Math.pow(2.446416831, parameter) - 0.691364;
+                // Power range 0.0, 0.5, 1.0 maps to 0, 0.3935, 1.0.
+                physicsToolPhysics.angularDamping = 0.72695892 * Math.pow(2.375594, parameter) - 0.726959;
+                // Linear range from 0.0, 0.5, 1.0 maps to 0.0, 0.5, 1.0;
+                physicsToolPhysics.friction = parameter;
             }
             break;
-        case "setDensityValue":
+        case "setDensity":
             if (parameter !== undefined) {
-                // TODO
-                print("setDensityValue = " + parameter);
+                // Power range 0.0, 0.5, 1.0 maps to 100, 1000, 10000.
+                physicsToolPhysics.density = Math.pow(10, 2 + 2 * parameter);
             }
             break;
 

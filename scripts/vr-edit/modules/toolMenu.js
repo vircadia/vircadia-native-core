@@ -154,7 +154,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
-            "barSlider": {
+            "barSlider": {  // Values range between 0.0 and 1.0.
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.02, y: 0.1, z: 0.01 },
@@ -192,7 +192,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
-            "imageSlider": {
+            "imageSlider": {  // Values range between 0.0 and 1.0.
                 overlay: "cube",
                 properties: {
                     dimensions: { x: 0.01, y: 0.05, z: 0.01 },
@@ -564,7 +564,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     setting: {
                         key: "VREdit.physicsTool.gravity",
-                        defaultValue: 0,  // Slider value in range 0.0 .. 1.0. TODO: Default value.
+                        defaultValue: 0.5,
                         callback: "setGravity"
                     },
                     command: {
@@ -589,7 +589,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     setting: {
                         key: "VREdit.physicsTool.bounce",
-                        defaultValue: 0,  // Slider value in range 0.0 .. 1.0. TODO: Default value.
+                        defaultValue: 0.5,
                         callback: "setBounce"
                     },
                     command: {
@@ -614,7 +614,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     setting: {
                         key: "VREdit.physicsTool.damping",
-                        defaultValue: 0,  // Slider value in range 0.0 .. 1.0. TODO: Default value.
+                        defaultValue: 0.5,
                         callback: "setDamping"
                     },
                     command: {
@@ -639,7 +639,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     setting: {
                         key: "VREdit.physicsTool.density",
-                        defaultValue: 0,  // Slider value in range 0.0 .. 1.0. TODO: Default value.
+                        defaultValue: 0.5,
                         callback: "setDensity"
                     },
                     command: {
