@@ -1,0 +1,47 @@
+<@include gpu/Config.slh@>
+<$VERSION_HEADER$>
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  simple_transparent_textured_unlit_fade.slf
+//  fragment shader
+//
+//  Created by Olivier Prat on 06/05/17.
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include gpu/Color.slh@>
+
+<@include Fade.slh@>
+
+// the albedo texture
+uniform sampler2D originalTexture;
+
+// the interpolated normal
+in vec3 _normal;
+in vec4 _color;
+in vec2 _texCoord0;
+in vec4 _worldPosition;
+
+layout(location = 0) out vec4 _fragColor0;
+
+// Declare after all samplers to prevent sampler location mix up with originalTexture
+<$declareFadeFragmentInstanced()$>
+
+void main(void) {
+    vec3 fadeEmissive;
+    FadeObjectParams fadeParams;
+
+    <$fetchFadeObjectParamsInstanced(fadeParams)$>
+    applyFade(fadeParams, _worldPosition.xyz, fadeEmissive);
+
+    vec4 texel = texture(originalTexture, _texCoord0.st);
+    float colorAlpha = _color.a;
+    if (_color.a <= 0.0) {
+        texel = colorToLinearRGBA(texel);
+        colorAlpha = -_color.a;
+    }
+    _fragColor0 = vec4(_color.rgb * texel.rgb+fadeEmissive, colorAlpha * texel.a);
+}

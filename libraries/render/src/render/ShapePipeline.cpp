@@ -85,6 +85,8 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     slotBindings.insert(gpu::Shader::Binding(std::string("lightBuffer"), Slot::BUFFER::LIGHT));
     slotBindings.insert(gpu::Shader::Binding(std::string("lightAmbientBuffer"), Slot::BUFFER::LIGHT_AMBIENT_BUFFER));
     slotBindings.insert(gpu::Shader::Binding(std::string("skyboxMap"), Slot::MAP::LIGHT_AMBIENT));
+    slotBindings.insert(gpu::Shader::Binding(std::string("fadeMaskMap"), Slot::MAP::FADE_MASK));
+    slotBindings.insert(gpu::Shader::Binding(std::string("fadeParametersBuffer"), Slot::BUFFER::FADE_PARAMETERS));
 
     gpu::Shader::makeProgram(*program, slotBindings);
 
@@ -103,7 +105,9 @@ void ShapePlumber::addPipeline(const Filter& filter, const gpu::ShaderPointer& p
     locations->lightBufferUnit = program->getUniformBuffers().findLocation("lightBuffer");
     locations->lightAmbientBufferUnit = program->getUniformBuffers().findLocation("lightAmbientBuffer");
     locations->lightAmbientMapUnit = program->getTextures().findLocation("skyboxMap");
-    
+    locations->fadeMaskTextureUnit = program->getTextures().findLocation("fadeMaskMap");
+    locations->fadeParameterBufferUnit = program->getUniformBuffers().findLocation("fadeParametersBuffer");
+
     ShapeKey key{filter._flags};
     auto gpuPipeline = gpu::Pipeline::create(program, state);
     auto shapePipeline = std::make_shared<Pipeline>(gpuPipeline, locations, batchSetter, itemSetter);
@@ -117,7 +121,7 @@ const ShapePipelinePointer ShapePlumber::pickPipeline(RenderArgs* args, const Ke
 
     PerformanceTimer perfTimer("ShapePlumber::pickPipeline");
 
-    const auto& pipelineIterator = _pipelineMap.find(key);
+    auto pipelineIterator = _pipelineMap.find(key);
     if (pipelineIterator == _pipelineMap.end()) {
         // The first time we can't find a pipeline, we should try things to solve that
         if (_missingKeys.find(key) == _missingKeys.end()) {

@@ -40,6 +40,8 @@ public:
     template <class T> Varying getN (uint8_t index) const { return get<T>()[index]; }
     template <class T> Varying editN (uint8_t index) { return edit<T>()[index]; }
 
+    bool isNull() const { return _concept == nullptr; }
+
 protected:
     class Concept {
     public:
@@ -93,7 +95,7 @@ public:
     }
     virtual uint8_t length() const { return 2; }
 
-    Varying hasVarying() const { return Varying((*this)); }
+    Varying asVarying() const { return Varying((*this)); }
 };
 
 
@@ -126,7 +128,7 @@ public:
     }
     virtual uint8_t length() const { return 3; }
 
-    Varying hasVarying() const { return Varying((*this)); }
+    Varying asVarying() const { return Varying((*this)); }
 };
 
 template <class T0, class T1, class T2, class T3>
@@ -163,7 +165,7 @@ public:
     }
     virtual uint8_t length() const { return 4; }
 
-    Varying hasVarying() const { return Varying((*this)); }
+    Varying asVarying() const { return Varying((*this)); }
 };
 
 
@@ -206,7 +208,7 @@ public:
     }
     virtual uint8_t length() const { return 5; }
 
-    Varying hasVarying() const { return Varying((*this)); }
+    Varying asVarying() const { return Varying((*this)); }
 };
 
 template <class T0, class T1, class T2, class T3, class T4, class T5>
@@ -236,7 +238,7 @@ public:
     const T5& get5() const { return std::get<5>((*this)).template get<T5>(); }
     T5& edit5() { return std::get<5>((*this)).template edit<T5>(); }
 
-    Varying hasVarying() const { return Varying((*this)); }
+    Varying asVarying() const { return Varying((*this)); }
 };
 
 template <class T0, class T1, class T2, class T3, class T4, class T5, class T6>
@@ -269,7 +271,7 @@ public:
     const T6& get6() const { return std::get<6>((*this)).template get<T6>(); }
     T6& edit6() { return std::get<6>((*this)).template edit<T6>(); }
     
-    Varying hasVarying() const { return Varying((*this)); }
+    Varying asVarying() const { return Varying((*this)); }
 };
 
     
@@ -280,6 +282,11 @@ public:
         for (size_t i = 0; i < NUM; i++) {
             (*this)[i] = Varying(T());
         }
+    }
+
+    VaryingArray(std::initializer_list<Varying> list) {
+        assert(list.size() == NUM);
+        std::copy(list.begin(), list.end(), std::array<Varying, NUM>::begin());
     }
 };
 }

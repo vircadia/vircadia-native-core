@@ -193,6 +193,9 @@
 #include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
+#include "commerce/Ledger.h"
+#include "commerce/Wallet.h"
+#include "commerce/QmlCommerce.h"
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -222,6 +225,7 @@ static const int MIN_PROCESSING_THREAD_POOL_SIZE = 1;
 static const QString SNAPSHOT_EXTENSION  = ".jpg";
 static const QString SVO_EXTENSION  = ".svo";
 static const QString SVO_JSON_EXTENSION = ".svo.json";
+static const QString JSON_GZ_EXTENSION = ".json.gz";
 static const QString JSON_EXTENSION = ".json";
 static const QString JS_EXTENSION  = ".js";
 static const QString FST_EXTENSION  = ".fst";
@@ -255,6 +259,8 @@ static const QString DESKTOP_DISPLAY_PLUGIN_NAME = "Desktop";
 
 static const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 
+static const QString DOMAIN_SPAWNING_POINT = "/0, -10, 0";
+
 const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensions {
     { SVO_EXTENSION, &Application::importSVOFromURL },
     { SVO_JSON_EXTENSION, &Application::importSVOFromURL },
@@ -262,6 +268,7 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { JSON_EXTENSION, &Application::importJSONFromURL },
     { JS_EXTENSION, &Application::askToLoadScript },
     { FST_EXTENSION, &Application::askToSetAvatarUrl },
+    { JSON_GZ_EXTENSION, &Application::askToReplaceDomainContent },
     { ZIP_EXTENSION, &Application::importFromZIP }
 };
 
@@ -598,6 +605,8 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<CloseEventSender>();
     DependencyManager::set<ResourceManager>();
     DependencyManager::set<ContextOverlayInterface>();
+    DependencyManager::set<Ledger>();
+    DependencyManager::set<Wallet>();
 
     return previousSessionCrashed;
 }
@@ -707,7 +716,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     qInstallMessageHandler(messageHandler);
 
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
-    _window->setWindowTitle("Interface");
+    _window->setWindowTitle("High Fidelity Interface");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
 
@@ -955,6 +964,53 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
+    // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
+    DependencyManager::get<GeometryCache>()->initializeShapePipelines();
+
+    // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
+    // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
+    static const QString TESTER = "HIFI_TESTER";
+    auto gpuIdent = GPUIdent::getInstance();
+    auto glContextData = getGLContextData();
+    QJsonObject properties = {
+        { "version", applicationVersion() },
+        { "tester", QProcessEnvironment::systemEnvironment().contains(TESTER) },
+        { "previousSessionCrashed", _previousSessionCrashed },
+        { "previousSessionRuntime", sessionRunTime.get() },
+        { "cpu_architecture", QSysInfo::currentCpuArchitecture() },
+        { "kernel_type", QSysInfo::kernelType() },
+        { "kernel_version", QSysInfo::kernelVersion() },
+        { "os_type", QSysInfo::productType() },
+        { "os_version", QSysInfo::productVersion() },
+        { "gpu_name", gpuIdent->getName() },
+        { "gpu_driver", gpuIdent->getDriver() },
+        { "gpu_memory", static_cast<qint64>(gpuIdent->getMemory()) },
+        { "gl_version_int", glVersionToInteger(glContextData.value("version").toString()) },
+        { "gl_version", glContextData["version"] },
+        { "gl_vender", glContextData["vendor"] },
+        { "gl_sl_version", glContextData["sl_version"] },
+        { "gl_renderer", glContextData["renderer"] },
+        { "ideal_thread_count", QThread::idealThreadCount() }
+    };
+    auto macVersion = QSysInfo::macVersion();
+    if (macVersion != QSysInfo::MV_None) {
+        properties["os_osx_version"] = QSysInfo::macVersion();
+    }
+    auto windowsVersion = QSysInfo::windowsVersion();
+    if (windowsVersion != QSysInfo::WV_None) {
+        properties["os_win_version"] = QSysInfo::windowsVersion();
+    }
+
+    ProcessorInfo procInfo;
+    if (getProcessorInfo(procInfo)) {
+        properties["processor_core_count"] = procInfo.numProcessorCores;
+        properties["logical_processor_count"] = procInfo.numLogicalProcessors;
+        properties["processor_l1_cache_count"] = procInfo.numProcessorCachesL1;
+        properties["processor_l2_cache_count"] = procInfo.numProcessorCachesL2;
+        properties["processor_l3_cache_count"] = procInfo.numProcessorCachesL3;
+    }
+
+    // add firstRun flag from settings to launch event
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
 
     // once the settings have been loaded, check if we need to flip the default for UserActivityLogger
@@ -2057,6 +2113,7 @@ void Application::initializeUi() {
     LoginDialog::registerType();
     Tooltip::registerType();
     UpdateDialog::registerType();
+    QmlCommerce::registerType();
     qmlRegisterType<ResourceImageItem>("Hifi", 1, 0, "ResourceImageItem");
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
@@ -2758,7 +2815,6 @@ void Application::handleSandboxStatus(QNetworkReply* reply) {
 bool Application::importJSONFromURL(const QString& urlString) {
     // we only load files that terminate in just .json (not .svo.json and not .ava.json)
     // if they come from the High Fidelity Marketplace Assets CDN
-
     QUrl jsonURL { urlString };
 
     if (jsonURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
@@ -6137,6 +6193,55 @@ bool Application::askToWearAvatarAttachmentUrl(const QString& url) {
         }
         reply->deleteLater();
     });
+    return true;
+}
+
+bool Application::askToReplaceDomainContent(const QString& url) {
+    QString methodDetails;
+    if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
+        QUrl originURL { url };
+        if (originURL.host().endsWith(MARKETPLACE_CDN_HOSTNAME)) {
+            // Create a confirmation dialog when this call is made
+            const int MAX_CHARACTERS_PER_LINE = 90;
+            static const QString infoText = simpleWordWrap("Your domain's content will be replaced with a new content set. "
+                "If you want to save what you have now, create a backup before proceeding. For more information about backing up "
+                "and restoring content, visit the documentation page at: ", MAX_CHARACTERS_PER_LINE) +
+                "\nhttps://docs.highfidelity.com/create-and-explore/start-working-in-your-sandbox/restoring-sandbox-content";
+
+            bool agreeToReplaceContent = false; // assume false
+            agreeToReplaceContent = QMessageBox::Yes == OffscreenUi::question("Are you sure you want to replace this domain's content set?",
+                infoText, QMessageBox::Yes | QMessageBox::No, QMessageBox::No);
+
+            if (agreeToReplaceContent) {
+                // Given confirmation, send request to domain server to replace content
+                qCDebug(interfaceapp) << "Attempting to replace domain content: " << url;
+                QByteArray urlData(url.toUtf8());
+                auto limitedNodeList = DependencyManager::get<LimitedNodeList>();
+                limitedNodeList->eachMatchingNode([](const SharedNodePointer& node) {
+                    return node->getType() == NodeType::EntityServer && node->getActiveSocket();
+                }, [&urlData, limitedNodeList](const SharedNodePointer& octreeNode) {
+                    auto octreeFilePacket = NLPacket::create(PacketType::OctreeFileReplacementFromUrl, urlData.size(), true);
+                    octreeFilePacket->write(urlData);
+                    limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
+                });
+                DependencyManager::get<AddressManager>()->handleLookupString(DOMAIN_SPAWNING_POINT);
+                methodDetails = "SuccessfulRequestToReplaceContent";
+            } else {
+                methodDetails = "UserDeclinedToReplaceContent";
+            }
+        } else {
+            methodDetails = "ContentSetDidNotOriginateFromMarketplace";
+        }
+    } else {
+            methodDetails = "UserDoesNotHavePermissionToReplaceContent";
+            OffscreenUi::warning("Unable to replace content", "You do not have permissions to replace domain content",
+                                 QMessageBox::Ok, QMessageBox::Ok);
+    }
+    QJsonObject messageProperties = { 
+        { "status", methodDetails },
+        { "content_set_url", url }
+    };
+    UserActivityLogger::getInstance().logAction("replace_domain_content", messageProperties);
     return true;
 }
 

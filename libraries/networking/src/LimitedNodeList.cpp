@@ -167,6 +167,10 @@ void LimitedNodeList::setPermissions(const NodePermissions& newPermissions) {
         newPermissions.can(NodePermissions::Permission::canKick)) {
         emit canKickChanged(_permissions.can(NodePermissions::Permission::canKick));
     }
+    if (originalPermissions.can(NodePermissions::Permission::canReplaceDomainContent) !=
+        newPermissions.can(NodePermissions::Permission::canReplaceDomainContent)) {
+        emit canReplaceContentChanged(_permissions.can(NodePermissions::Permission::canReplaceDomainContent));
+    }
 }
 
 void LimitedNodeList::setSocketLocalPort(quint16 socketLocalPort) {

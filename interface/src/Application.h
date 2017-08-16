@@ -297,6 +297,7 @@ public:
     QUuid getTabletFrameID() const; // may be an entity or an overlay
 
     void setAvatarOverrideUrl(const QUrl& url, bool save);
+    void clearAvatarOverrideUrl() { _avatarOverrideUrl = QUrl(); _saveAvatarOverrideUrl = false; }
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
 
@@ -429,6 +430,8 @@ private slots:
     bool askToWearAvatarAttachmentUrl(const QString& url);
     void displayAvatarAttachmentWarning(const QString& message) const;
     bool displayAvatarAttachmentConfirmationDialog(const QString& name) const;
+
+    bool askToReplaceDomainContent(const QString& url);
 
     void setSessionUUID(const QUuid& sessionUUID) const;
 
