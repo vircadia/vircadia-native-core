@@ -432,11 +432,11 @@ OctreeElement::AppendState EntityTreeElement::appendElementData(OctreePacketData
                     // and include the entity in our final count of entities
                     packetData->endLevel(entityLevel);
                     actualNumberOfEntities++;
-                }
 
-                // If the entity item got completely appended, then we can remove it from the extra encode data
-                if (appendEntityState == OctreeElement::COMPLETED) {
-                    entityTreeElementExtraEncodeData->entities.remove(entity->getEntityItemID());
+                    // If the entity item got completely appended, then we can remove it from the extra encode data
+                    if (appendEntityState == OctreeElement::COMPLETED) {
+                        entityTreeElementExtraEncodeData->entities.remove(entity->getEntityItemID());
+                    }
                 }
 
                 // If any part of the entity items didn't fit, then the element is considered partial
