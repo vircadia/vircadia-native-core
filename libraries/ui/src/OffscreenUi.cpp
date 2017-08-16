@@ -328,16 +328,29 @@ class InputDialogListener : public ModalDialogListener {
     Q_OBJECT
 
     friend class OffscreenUi;
-    InputDialogListener(QQuickItem* queryBox) : ModalDialogListener(queryBox) {
+    InputDialogListener(QQuickItem* queryBox, bool custom = false) : ModalDialogListener(queryBox), _custom(custom) {
         if (_finished) {
             return;
         }
         connect(_dialog, SIGNAL(selected(QVariant)), this, SLOT(onSelected(const QVariant&)));
     }
 
+private:
+    bool _custom { false };
 private slots:
     void onSelected(const QVariant& result) {
-        _result = result;
+        if (_custom) {
+            if (result.isValid()) {
+                // We get a JSON encoded result, so we unpack it into a QVariant wrapping a QVariantMap
+                _result = QVariant(QJsonDocument::fromJson(result.toString().toUtf8()).object().toVariantMap());
+            }
+        } else {
+            _result = result;
+        }
+
+        auto offscreenUi = DependencyManager::get<OffscreenUi>();
+        emit offscreenUi->inputDialogResponse(_result);
+        offscreenUi->removeModalDialog(qobject_cast<QObject*>(this));
         _finished = true;
         disconnect(_dialog);
     }
@@ -391,6 +404,31 @@ QVariant OffscreenUi::getCustomInfo(const Icon icon, const QString& title, const
     return result;
 }
 
+void OffscreenUi::getTextAsync(const Icon icon, const QString& title, const QString& label, const QString& text) {
+    DependencyManager::get<OffscreenUi>()->inputDialogAsync(icon, title, label, text);
+}
+
+void OffscreenUi::getItemAsync(const Icon icon, const QString& title, const QString& label, const QStringList& items,
+    int current, bool editable) {
+
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+    auto inputDialog = offscreenUi->createInputDialog(icon, title, label, current);
+    if (!inputDialog) {
+        return;
+    }
+    inputDialog->setProperty("items", items);
+    inputDialog->setProperty("editable", editable);
+
+    InputDialogListener* inputDialogListener = new InputDialogListener(inputDialog);
+    offscreenUi->getModalDialogListeners().push_back(qobject_cast<QObject*>(inputDialogListener));
+
+    return;
+}
+
+void OffscreenUi::getCustomInfoAsync(const Icon icon, const QString& title, const QVariantMap& config) {
+    DependencyManager::get<OffscreenUi>()->customInputDialog(icon, title, config);
+}
+
 QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const QString& label, const QVariant& current) {
     if (QThread::currentThread() != thread()) {
         QVariant result;
@@ -404,6 +442,21 @@ QVariant OffscreenUi::inputDialog(const Icon icon, const QString& title, const Q
     }
 
     return waitForInputDialogResult(createInputDialog(icon, title, label, current));
+}
+
+void OffscreenUi::inputDialogAsync(const Icon icon, const QString& title, const QString& label, const QVariant& current) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "inputDialogAsync",
+            Q_ARG(Icon, icon),
+            Q_ARG(QString, title),
+            Q_ARG(QString, label),
+            Q_ARG(QVariant, current));
+        return;
+    }
+
+    InputDialogListener* inputDialogListener = new InputDialogListener(createInputDialog(icon, title, label, current));
+    QObject* inputDialog = qobject_cast<QObject*>(inputDialogListener);
+    _modalDialogListeners.push_back(inputDialog);
 }
 
 QVariant OffscreenUi::customInputDialog(const Icon icon, const QString& title, const QVariantMap& config) {
@@ -424,6 +477,21 @@ QVariant OffscreenUi::customInputDialog(const Icon icon, const QString& title, c
     }
 
     return result;
+}
+
+void OffscreenUi::customInputDialogAsync(const Icon icon, const QString& title, const QVariantMap& config) {
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(this, "customInputDialogAsync",
+                                  Q_ARG(Icon, icon),
+                                  Q_ARG(QString, title),
+                                  Q_ARG(QVariantMap, config));
+        return;
+    }
+
+    InputDialogListener* inputDialogListener = new InputDialogListener(createCustomInputDialog(icon, title, config), true);
+    QObject* inputDialog = qobject_cast<QObject*>(inputDialogListener);
+    _modalDialogListeners.push_back(inputDialog);
+    return;
 }
 
 void OffscreenUi::togglePinned() {
@@ -948,6 +1016,10 @@ void OffscreenUi::assetDialogAsync(const QVariantMap& properties) {
     QObject* assetModalDialog = qobject_cast<QObject*>(assetDialogListener);
     _modalDialogListeners.push_back(assetModalDialog);
     return;
+}
+
+QList<QObject *> &OffscreenUi::getModalDialogListeners() {
+    return _modalDialogListeners;
 }
 
 QString OffscreenUi::assetOpenDialog(const QString& caption, const QString& dir, const QString& filter, QString* selectedFilter, QFileDialog::Options options) {

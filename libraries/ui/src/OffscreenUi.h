@@ -173,7 +173,9 @@ public:
     static void getOpenAssetNameAsync(void* ignored, const QString &caption = QString(), const QString &dir = QString(), const QString &filter = QString(), QString *selectedFilter = 0, QFileDialog::Options options = 0);
 
     Q_INVOKABLE QVariant inputDialog(const Icon icon, const QString& title, const QString& label = QString(), const QVariant& current = QVariant());
+    Q_INVOKABLE void inputDialogAsync(const Icon icon, const QString& title, const QString& label = QString(), const QVariant& current = QVariant());
     Q_INVOKABLE QVariant customInputDialog(const Icon icon, const QString& title, const QVariantMap& config);
+    Q_INVOKABLE void customInputDialogAsync(const Icon icon, const QString& title, const QVariantMap& config);
     QQuickItem* createInputDialog(const Icon icon, const QString& title, const QString& label, const QVariant& current);
     QQuickItem* createCustomInputDialog(const Icon icon, const QString& title, const QVariantMap& config);
     QVariant waitForInputDialogResult(QQuickItem* inputDialog);
@@ -191,16 +193,35 @@ public:
         return getItem(OffscreenUi::ICON_NONE, title, label, items, current, editable, ok);
     }
 
+    // Compatibility with QInputDialog::getText
+    static void getTextAsync(void* ignored, const QString & title, const QString & label,
+        QLineEdit::EchoMode mode = QLineEdit::Normal, const QString & text = QString(), bool * ok = 0,
+        Qt::WindowFlags flags = 0, Qt::InputMethodHints inputMethodHints = Qt::ImhNone) {
+        return getTextAsync(OffscreenUi::ICON_NONE, title, label, text);
+    }
+    // Compatibility with QInputDialog::getItem
+    static void getItemAsync(void *ignored, const QString & title, const QString & label, const QStringList & items,
+        int current = 0, bool editable = true, bool * ok = 0, Qt::WindowFlags flags = 0,
+        Qt::InputMethodHints inputMethodHints = Qt::ImhNone) {
+        return getItemAsync(OffscreenUi::ICON_NONE, title, label, items, current, editable);
+    }
+
     static QString getText(const Icon icon, const QString & title, const QString & label, const QString & text = QString(), bool * ok = 0);
     static QString getItem(const Icon icon, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true, bool * ok = 0);
     static QVariant getCustomInfo(const Icon icon, const QString& title, const QVariantMap& config, bool* ok = 0);
+    static void getTextAsync(const Icon icon, const QString & title, const QString & label, const QString & text = QString());
+    static void getItemAsync(const Icon icon, const QString & title, const QString & label, const QStringList & items, int current = 0, bool editable = true);
+    static void getCustomInfoAsync(const Icon icon, const QString& title, const QVariantMap& config);
 
     unsigned int getMenuUserDataId() const;
+    QList<QObject *> &getModalDialogListeners();
+
 signals:
     void showDesktop();
     void response(QMessageBox::StandardButton response);
     void fileDialogResponse(QString response);
     void assetDialogResponse(QString response);
+    void inputDialogResponse(QVariant response);
 public slots:
     void removeModalDialog(QObject* modal);
 
