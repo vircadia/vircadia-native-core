@@ -266,3 +266,11 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
     return QString();
 }
 
+
+void Wallet::chooseSecurityImage(uint imageID) {
+    _chosenSecurityImage = (SecurityImage)imageID;
+    emit securityImageResult(imageID);
+}
+void Wallet::getSecurityImage() {
+    emit securityImageResult(_chosenSecurityImage);
+}

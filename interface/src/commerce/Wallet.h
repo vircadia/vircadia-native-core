@@ -26,10 +26,29 @@ public:
     bool generateKeyPair();
     QStringList listPublicKeys();
     QString signWithKey(const QByteArray& text, const QString& key);
+    void chooseSecurityImage(uint imageID);
+    void getSecurityImage();
+
+signals:
+    void securityImageResult(uint imageID);
+
+protected:
+    // ALWAYS add SecurityImage enum values to the END of the enum.
+    // They must be in the same order as the images are listed in
+    //     SecurityImageSelection.qml
+    enum SecurityImage {
+        NONE = 0,
+        Cat,
+        Car,
+        Dog,
+        Stars,
+        Plane,
+        Gingerbread
+    };
 
 private:
     QStringList _publicKeys{};
-
+    SecurityImage _chosenSecurityImage = SecurityImage::NONE;
 };
 
 #endif // hifi_Wallet_h
