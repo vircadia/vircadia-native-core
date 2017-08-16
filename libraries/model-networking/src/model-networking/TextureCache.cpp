@@ -21,6 +21,7 @@
 #include <QThreadPool>
 #include <QNetworkReply>
 #include <QPainter>
+#include <QUrlQuery>
 
 #if DEBUG_DUMP_TEXTURE_LOADS
 #include <QtCore/QFile>
@@ -189,8 +190,15 @@ NetworkTexturePointer TextureCache::getTexture(const QUrl& url, image::TextureUs
     if (url.scheme() == RESOURCE_SCHEME) {
         return getResourceTexture(url);
     }
+    auto modifiedUrl = url;
+    if (type == image::TextureUsage::CUBE_TEXTURE) {
+        QUrlQuery query { url.query() };
+        query.addQueryItem("skybox", "");
+        qDebug() << "Updating cubemap texture query from" << url.query() << "to" << query.toString();
+        modifiedUrl.setQuery(query.toString());
+    }
     TextureExtra extra = { type, content, maxNumPixels };
-    return ResourceCache::getResource(url, QUrl(), &extra).staticCast<NetworkTexture>();
+    return ResourceCache::getResource(modifiedUrl, QUrl(), &extra).staticCast<NetworkTexture>();
 }
 
 gpu::TexturePointer TextureCache::getTextureByHash(const std::string& hash) {

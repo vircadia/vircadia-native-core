@@ -452,6 +452,7 @@ protected:
     bool handleFailedRequest(ResourceRequest::Result result);
 
     QUrl _url;
+    QUrl _effectiveBaseURL{ _url };
     QUrl _activeUrl;
     ByteRange _requestByteRange;
 

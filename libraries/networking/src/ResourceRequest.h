@@ -66,6 +66,7 @@ public:
     Result getResult() const { return _result; }
     QString getResultString() const;
     QUrl getUrl() const { return _url; }
+    QUrl getRelativePathUrl() const { return _relativePathURL; }
     bool loadedFromCache() const { return _loadedFromCache; }
     bool getRangeRequestSuccessful() const { return _rangeRequestSuccessful; }
     bool getTotalSizeOfResource() const { return _totalSizeOfResource; }

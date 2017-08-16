@@ -63,7 +63,7 @@ void AssetResourceRequest::doSend() {
         // This is an ATP path, we'll need to figure out what the mapping is.
         // This may incur a roundtrip to the asset-server, or it may return immediately from the cache in AssetClient.
 
-        auto path = _url.path();
+        auto path = _url.path() + (_url.hasQuery() ? "?" + _url.query() : "");
         requestMappingForPath(path);
     }
 }
@@ -93,10 +93,8 @@ void AssetResourceRequest::requestMappingForPath(const AssetPath& path) {
 
                 // if we got a redirected path we need to store that with the resource request as relative path URL
                 if (request->wasRedirected()) {
+                    qDebug() << "Request was redirected";
                     _relativePathURL = ATP_SCHEME + request->getRedirectedPath();
-
-                    // truncate the filename for the re-directed asset so we actually have a path
-                    _relativePathURL = _relativePathURL.adjusted(QUrl::RemoveFilename);
                 }
 
                 break;

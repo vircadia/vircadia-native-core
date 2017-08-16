@@ -731,6 +731,13 @@ void Resource::handleReplyFinished() {
     if (result == ResourceRequest::Success) {
         auto extraInfo = _url == _activeUrl ? "" : QString(", %1").arg(_activeUrl.toDisplayString());
         qCDebug(networking).noquote() << QString("Request finished for %1%2").arg(_url.toDisplayString(), extraInfo);
+
+        auto relativePathURL = _request->getRelativePathUrl();
+        qDebug() << "Relative path is: " << relativePathURL;
+        if (!relativePathURL.isEmpty()) {
+            qDebug() << "setting effective path";
+            _effectiveBaseURL = relativePathURL;
+        }
         
         auto data = _request->getData();
         emit loaded(data);

@@ -57,7 +57,7 @@ endif()
 
 function(_fbx_find_library _name _lib _suffix)
   if (MSVC_VERSION EQUAL 1910)
-    set(VS_PREFIX vs2017)
+    set(VS_PREFIX vs2015)
   elseif (MSVC_VERSION EQUAL 1900)
     set(VS_PREFIX vs2015)
   elseif (MSVC_VERSION EQUAL 1800)
