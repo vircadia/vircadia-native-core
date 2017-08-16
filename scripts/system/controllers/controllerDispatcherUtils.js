@@ -17,6 +17,9 @@
    COLORS_GRAB_SEARCHING_HALF_SQUEEZE,
    COLORS_GRAB_SEARCHING_FULL_SQUEEZE,
    COLORS_GRAB_DISTANCE_HOLD,
+   NEAR_GRAB_RADIUS,
+   DISPATCHER_PROPERTIES,
+   Entities,
    makeDispatcherModuleParameters,
    makeRunningValues,
    enableDispatcherModule,
@@ -30,7 +33,10 @@
    controllerDispatcherPluginsNeedSort,
    projectOntoXYPlane,
    projectOntoEntityXYPlane,
-   projectOntoOverlayXYPlane
+   projectOntoOverlayXYPlane,
+   entityHasActions,
+   ensureDynamic,
+   findGroupParent
 */
 
 MSECS_PER_SEC = 1000.0;
@@ -62,6 +68,30 @@ NEAR_GRAB_PICK_RADIUS = 0.25; // radius used for search ray vs object for near g
 COLORS_GRAB_SEARCHING_HALF_SQUEEZE = { red: 10, green: 10, blue: 255 };
 COLORS_GRAB_SEARCHING_FULL_SQUEEZE = { red: 250, green: 10, blue: 10 };
 COLORS_GRAB_DISTANCE_HOLD = { red: 238, green: 75, blue: 214 };
+
+
+NEAR_GRAB_RADIUS = 0.1;
+
+
+
+DISPATCHER_PROPERTIES = [
+    "position",
+    "registrationPoint",
+    "rotation",
+    "gravity",
+    "collidesWith",
+    "dynamic",
+    "collisionless",
+    "locked",
+    "name",
+    "shapeType",
+    "parentID",
+    "parentJointIndex",
+    "density",
+    "dimensions",
+    "userData"
+];
+
 
 
 
@@ -111,11 +141,15 @@ getGrabbableData = function (props) {
     var grabbableData = {};
     var userDataParsed = null;
     try {
-        userDataParsed = JSON.parse(props.userData);
+        if (!props.userDataParsed) {
+            props.userDataParsed = JSON.parse(props.userData);
+        }
+        userDataParsed = props.userDataParsed;
     } catch (err) {
+        userDataParsed = {};
     }
-    if (userDataParsed && userDataParsed.grabbable) {
-        grabbableData = userDataParsed.grabbable;
+    if (userDataParsed.grabbableKey) {
+        grabbableData = userDataParsed.grabbableKey;
     }
     if (!grabbableData.hasOwnProperty("grabbable")) {
         grabbableData.grabbable = true;
@@ -125,6 +159,12 @@ getGrabbableData = function (props) {
     }
     if (!grabbableData.hasOwnProperty("kinematicGrab")) {
         grabbableData.kinematicGrab = true;
+    }
+    if (!grabbableData.hasOwnProperty("wantsTrigger")) {
+        grabbableData.wantsTrigger = false;
+    }
+    if (!grabbableData.hasOwnProperty("triggerable")) {
+        grabbableData.triggerable = false;
     }
 
     return grabbableData;
@@ -229,4 +269,36 @@ projectOntoOverlayXYPlane = function projectOntoOverlayXYPlane(overlayID, worldP
     }
 
     return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
+};
+
+entityHasActions = function (entityID) {
+    return Entities.getActionIDs(entityID).length > 0;
+};
+
+ensureDynamic = function (entityID) {
+    // if we distance hold something and keep it very still before releasing it, it ends up
+    // non-dynamic in bullet.  If it's too still, give it a little bounce so it will fall.
+    var props = Entities.getEntityProperties(entityID, ["velocity", "dynamic", "parentID"]);
+    if (props.dynamic && props.parentID == NULL_UUID) {
+        var velocity = props.velocity;
+        if (Vec3.length(velocity) < 0.05) { // see EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
+            velocity = { x: 0.0, y: 0.2, z: 0.0 };
+            Entities.editEntity(entityID, { velocity: velocity });
+        }
+    }
+};
+
+findGroupParent = function (controllerData, targetProps) {
+    while (targetProps.parentID && targetProps.parentID != NULL_UUID) {
+        // XXX use controllerData.nearbyEntityPropertiesByID ?
+        var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);
+        if (!parentProps) {
+            break;
+        }
+        parentProps.id = targetProps.parentID;
+        targetProps = parentProps;
+        controllerData.nearbyEntityPropertiesByID[targetProps.id] = targetProps;
+    }
+
+    return targetProps;
 };

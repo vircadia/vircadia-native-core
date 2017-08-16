@@ -308,21 +308,8 @@ Script.include("/~/system/libraries/controllers.js");
             this.previousRoomControllerPosition = roomControllerPosition;
         };
 
-        this.ensureDynamic = function () {
-            // if we distance hold something and keep it very still before releasing it, it ends up
-            // non-dynamic in bullet.  If it's too still, give it a little bounce so it will fall.
-            var props = Entities.getEntityProperties(this.grabbedThingID, ["velocity", "dynamic", "parentID"]);
-            if (props.dynamic && props.parentID == NULL_UUID) {
-                var velocity = props.velocity;
-                if (Vec3.length(velocity) < 0.05) { // see EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
-                    velocity = { x: 0.0, y: 0.2, z: 0.0 };
-                    Entities.editEntity(this.grabbedThingID, { velocity: velocity });
-                }
-            }
-        };
-
         this.endNearGrabAction = function () {
-            this.ensureDynamic();
+            ensureDynamic(this.grabbedThingID);
             this.distanceHolding = false;
             this.distanceRotating = false;
             Entities.deleteAction(this.grabbedThingID, this.actionID);
@@ -397,7 +384,8 @@ Script.include("/~/system/libraries/controllers.js");
                     if (entityIsDistanceGrabbable(targetProps)) {
                         this.grabbedThingID = entityID;
                         this.grabbedDistance = rayPickInfo.distance;
-                        var otherModuleName = this.hand == RIGHT_HAND ? "LeftFarActionGrabEntity" : "RightFarActionGrabEntity";
+                        var otherModuleName =
+                            this.hand == RIGHT_HAND ? "LeftFarActionGrabEntity" : "RightFarActionGrabEntity";
                         var otherFarGrabModule = getEnabledModuleByName(otherModuleName);
                         if (otherFarGrabModule.grabbedThingID == this.grabbedThingID) {
                             this.distanceRotating = true;
