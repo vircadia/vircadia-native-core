@@ -24,12 +24,12 @@ void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, cons
     transaction["inventory_key"] = inventory_key;
     transaction["inventory_buyer_username"] = buyerUsername;
     QJsonDocument transactionDoc{ transaction };
-    QString transactionString = transactionDoc.toJson(QJsonDocument::Compact);
-    
+    auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
+
     auto wallet = DependencyManager::get<Wallet>();
     QString signature = wallet->signWithKey(transactionString, hfc_key);
     QJsonObject request;
-    request["transaction"] = transactionString;
+    request["transaction"] = QString(transactionString);
     request["signature"] = signature;
 
     qCInfo(commerce) << "Transaction:" << QJsonDocument(request).toJson(QJsonDocument::Compact);

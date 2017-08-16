@@ -183,6 +183,12 @@ if (WIN32)
   add_dependency_external_projects(steamworks)
 endif()
 
+# include OPENSSL
+include_directories(SYSTEM "${OPENSSL_INCLUDE_DIR}")
+
+# append OpenSSL to our list of libraries to link
+target_link_libraries(${TARGET_NAME} ${OPENSSL_LIBRARIES})
+
 # disable /OPT:REF and /OPT:ICF for the Debug builds
 # This will prevent the following linker warnings
 # LINK : warning LNK4075: ignoring '/INCREMENTAL' due to '/OPT:ICF' specification
