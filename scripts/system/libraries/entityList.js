@@ -150,7 +150,7 @@ EntityListTool = function(opts) {
                 Window.notifyEditError("No entities have been selected.");
             } else {
                 Window.saveFileChanged.connect(onFileSaveChanged);
-                Window.save("Select Where to Save", "", "*.json");
+                Window.saveAsync("Select Where to Save", "", "*.json");
             }
         } else if (data.type == "pal") {
             var sessionIds = {}; // Collect the sessionsIds of all selected entitities, w/o duplicates.

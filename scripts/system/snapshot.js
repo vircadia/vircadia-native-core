@@ -121,7 +121,7 @@ function onMessage(message) {
             break;
         case 'chooseSnapshotLocation':
             Window.browseDirChanged.connect(snapshotDirChanged);
-            Window.browseDir("Choose Snapshots Directory", "", "");
+            Window.browseDirAsync("Choose Snapshots Directory", "", "");
             break;
         case 'openSettings':
             if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar", false))

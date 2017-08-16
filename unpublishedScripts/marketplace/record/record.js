@@ -530,7 +530,7 @@
                 case LOAD_RECORDING_ACTION:
                     // User wants to select an ATP recording to play.
                     Window.assetsDirChanged.connect(onAssetsDirChanged);
-                    Window.browseAssets("Select Recording to Play", "recordings", "*.hfr");
+                    Window.browseAssetsAsync("Select Recording to Play", "recordings", "*.hfr");
                     break;
                 case START_RECORDING_ACTION:
                     // Start making a recording.

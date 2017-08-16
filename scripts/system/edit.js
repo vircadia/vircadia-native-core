@@ -432,7 +432,7 @@ var toolBar = (function () {
 
         addButton("importEntitiesButton", "assets-01.svg", function() {
             Window.openFileChanged.connect(onFileOpenChanged);
-            Window.browse("Select Model to Import", "", "*.json");
+            Window.browseAsync("Select Model to Import", "", "*.json");
         });
 
         addButton("openAssetBrowserButton", "assets-01.svg", function() {
@@ -1501,15 +1501,15 @@ function handeMenuEvent(menuItem) {
             Window.notifyEditError("No entities have been selected.");
         } else {
             Window.saveFileChanged.connect(onFileSaveChanged);
-            Window.save("Select Where to Save", "", "*.json");
+            Window.saveAsync("Select Where to Save", "", "*.json");
         }
     } else if (menuItem === "Import Entities" || menuItem === "Import Entities from URL") {
         if (menuItem === "Import Entities") {
             Window.openFileChanged.connect(onFileOpenChanged);
-            Window.browse("Select Model to Import", "", "*.json");
+            Window.browseAsync("Select Model to Import", "", "*.json");
         } else {
             Window.promptTextChanged.connect(onFileOpenChanged);
-            Window.prompt("URL of SVO to import", "");
+            Window.promptAsync("URL of SVO to import", "");
         }
     } else if (menuItem === "Entity List...") {
         entityListTool.toggleVisible();
