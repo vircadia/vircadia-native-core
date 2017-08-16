@@ -19,11 +19,12 @@
 #include <SpatialParentFinder.h>
 
 class EntityTree;
-typedef std::shared_ptr<EntityTree> EntityTreePointer;
+using EntityTreePointer = std::shared_ptr<EntityTree>;
 
-
+#include "AddEntityOperator.h"
 #include "EntityTreeElement.h"
 #include "DeleteEntityOperator.h"
+#include "MovingEntitiesOperator.h"
 
 class EntityEditFilters;
 class Model;
@@ -79,6 +80,10 @@ public:
     }
 
     virtual void eraseAllOctreeElements(bool createNewRoot = true) override;
+
+    virtual void readBitstreamToTree(const unsigned char* bitstream,
+            unsigned long int bufferSizeBytes, ReadBitstreamToTreeParams& args) override;
+    int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
 
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your
     // own definition. Implement these to allow your octree based server to support editing
@@ -347,6 +352,9 @@ protected:
     bool filterProperties(EntityItemPointer& existingEntity, EntityItemProperties& propertiesIn, EntityItemProperties& propertiesOut, bool& wasChanged, FilterType filterType);
     bool _hasEntityEditFilter{ false };
     QStringList _entityScriptSourceWhitelist;
+
+    MovingEntitiesOperator _entityMover;
+    QHash<EntityItemID, EntityItemPointer> _entitiesToAdd;
 };
 
 #endif // hifi_EntityTree_h
