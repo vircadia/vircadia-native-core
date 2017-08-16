@@ -168,6 +168,8 @@ void Rig::destroyAnimGraph() {
 void Rig::initJointStates(const FBXGeometry& geometry, const glm::mat4& modelOffset) {
     _geometryOffset = AnimPose(geometry.offset);
     _invGeometryOffset = _geometryOffset.inverse();
+    _geometryToRigTransform = modelOffset * geometry.offset;
+    _rigToGeometryTransform = glm::inverse(_geometryToRigTransform);
     setModelOffset(modelOffset);
 
     _animSkeleton = std::make_shared<AnimSkeleton>(geometry);
