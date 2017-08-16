@@ -290,6 +290,7 @@ ensureDynamic = function (entityID) {
 
 findGroupParent = function (controllerData, targetProps) {
     while (targetProps.parentID && targetProps.parentID != NULL_UUID) {
+        // XXX use controllerData.nearbyEntityPropertiesByID ?
         var parentProps = Entities.getEntityProperties(targetProps.parentID, DISPATCHER_PROPERTIES);
         if (!parentProps) {
             break;

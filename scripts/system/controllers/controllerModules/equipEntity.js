@@ -321,7 +321,7 @@ EquipHotspotBuddy.prototype.update = function(deltaTime, timestamp, controllerDa
             if (props.parentID === NULL_UUID) {
                 hasParent = false;
             }
-            if (hasParent || entityHasActions(hotspot.entityID)) {
+            if (hasParent || props.locked || entityHasActions(hotspot.entityID)) {
                 return false;
             }
 

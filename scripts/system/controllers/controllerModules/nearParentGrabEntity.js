@@ -82,8 +82,8 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             var reparentProps = {
                 parentID: AVATAR_SELF_ID,
                 parentJointIndex: handJointIndex,
-                velocity: {x: 0, y: 0, z: 0},
-                angularVelocity: {x: 0, y: 0, z: 0}
+                localVelocity: {x: 0, y: 0, z: 0},
+                localAngularVelocity: {x: 0, y: 0, z: 0}
             };
 
             if (this.thisHandIsParent(targetProps)) {
@@ -114,8 +114,8 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                 Entities.editEntity(this.targetEntityID, {
                     parentID: this.previousParentID[this.targetEntityID],
                     parentJointIndex: this.previousParentJointIndex[this.targetEntityID],
-                    velocity: {x: 0, y: 0, z: 0},
-                    angularVelocity: {x: 0, y: 0, z: 0}
+                    localVelocity: {x: 0, y: 0, z: 0},
+                    localAngularVelocity: {x: 0, y: 0, z: 0}
                 });
             }
 
