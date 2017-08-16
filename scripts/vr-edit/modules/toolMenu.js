@@ -990,7 +990,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         optionsSettings[optionsItems[i].id].value = value;
                     }
                     if (optionsItems[i].type === "picklist") {
-                        // Value is picklist label.
+                        optionsSettings[optionsItems[i].id].value = value;
                         optionsItems[i].label = value;
                     }
                     if (optionsItems[i].setting.callback) {
@@ -1092,6 +1092,17 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     function clearTool() {
         closeOptions();
+    }
+
+    function setPresetsLabelToCustom() {
+        var CUSTOM = "CUSTOM";
+        if (optionsSettings.presets.value !== CUSTOM) {
+            optionsSettings.presets.value = CUSTOM;
+            Overlays.editOverlay(optionsOverlaysLabels[optionsOverlaysIDs.indexOf("presets")], {
+                text: CUSTOM
+            });
+            Settings.setValue(optionsSettings.presets.key, CUSTOM);
+        }
     }
 
     function evaluateParameter(parameter) {
@@ -1223,8 +1234,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             doCommand("togglePhysicsPresets", "presets");
 
             // Update picklist label.
-            index = optionsOverlaysIDs.indexOf(parameter);
-            label = optionsItems[index].label;
+            label = optionsItems[optionsOverlaysIDs.indexOf(parameter)].label;
+            optionsSettings.presets.value = label;
             Overlays.editOverlay(optionsOverlaysLabels[optionsOverlaysIDs.indexOf("presets")], {
                 text: label
             });
@@ -1235,18 +1246,22 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             break;
 
         case "setGravity":
+            setPresetsLabelToCustom();
             Settings.setValue(optionsSettings.gravitySlider.key, parameter);
             uiCommandCallback("setGravity", parameter);
             break;
         case "setBounce":
+            setPresetsLabelToCustom();
             Settings.setValue(optionsSettings.bounceSlider.key, parameter);
             uiCommandCallback("setBounce", parameter);
             break;
         case "setDamping":
+            setPresetsLabelToCustom();
             Settings.setValue(optionsSettings.dampingSlider.key, parameter);
             uiCommandCallback("setDamping", parameter);
             break;
         case "setDensity":
+            setPresetsLabelToCustom();
             Settings.setValue(optionsSettings.densitySlider.key, parameter);
             uiCommandCallback("setDensity", parameter);
             break;
