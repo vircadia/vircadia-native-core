@@ -476,15 +476,15 @@ RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& 
     QVector<EntityItemID> avatarsToInclude = qVectorEntityItemIDFromScriptValue(avatarIdsToInclude);
     QVector<EntityItemID> avatarsToDiscard = qVectorEntityItemIDFromScriptValue(avatarIdsToDiscard);
 
-    return findRayIntersection(ray, avatarsToInclude, avatarsToDiscard);
+    return findRayIntersectionVector(ray, avatarsToInclude, avatarsToDiscard);
 }
 
-RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& ray,
-                                                                 const QVector<EntityItemID>& avatarsToInclude,
-                                                                 const QVector<EntityItemID>& avatarsToDiscard) {
+RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const PickRay& ray,
+                                                                       const QVector<EntityItemID>& avatarsToInclude,
+                                                                       const QVector<EntityItemID>& avatarsToDiscard) {
     RayToAvatarIntersectionResult result;
     if (QThread::currentThread() != thread()) {
-        BLOCKING_INVOKE_METHOD(const_cast<AvatarManager*>(this), "findRayIntersection",
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarManager*>(this), "findRayIntersectionVector",
                                   Q_RETURN_ARG(RayToAvatarIntersectionResult, result),
                                   Q_ARG(const PickRay&, ray),
                                   Q_ARG(const QVector<EntityItemID>&, avatarsToInclude),

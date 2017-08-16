@@ -193,8 +193,9 @@
 #include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
+
+#include <raypick/RayPickScriptingInterface.h>
 #include <raypick/LaserPointerScriptingInterface.h>
-#include <raypick/RayPickManager.h>
 
 #include "commerce/Ledger.h"
 #include "commerce/Wallet.h"
@@ -608,7 +609,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<Wallet>();
 
     DependencyManager::set<LaserPointerScriptingInterface>();
-    DependencyManager::set<RayPickManager>();
+    DependencyManager::set<RayPickScriptingInterface>();
 
     return previousSessionCrashed;
 }
@@ -5097,8 +5098,8 @@ void Application::update(float deltaTime) {
     }
 
     {
-        PROFILE_RANGE(app, "RayPick");
-        DependencyManager::get<RayPickManager>()->update();
+        PROFILE_RANGE(app, "RayPickManager");
+        _rayPickManager.update();
     }
 
     {
@@ -5966,6 +5967,8 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
     scriptEngine->registerGlobalObject("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
     scriptEngine->registerGlobalObject("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
+
+    scriptEngine->registerGlobalObject("RayPick", DependencyManager::get<RayPickScriptingInterface>().data());
     scriptEngine->registerGlobalObject("LaserPointers", DependencyManager::get<LaserPointerScriptingInterface>().data());
 
     // Caches
@@ -6019,8 +6022,6 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("EntityScriptServerLog", entityScriptServerLog.data());
     scriptEngine->registerGlobalObject("AvatarInputs", AvatarInputs::getInstance());
     scriptEngine->registerGlobalObject("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
-
-    scriptEngine->registerGlobalObject("RayPick", DependencyManager::get<RayPickManager>().data());
 
     qScriptRegisterMetaType(scriptEngine, OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 

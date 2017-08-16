@@ -22,7 +22,7 @@ class RayPickResult;
 class LaserPointerManager {
 
 public:
-    QUuid createLaserPointer(const QVariantMap& rayProps, const LaserPointer::RenderStateMap& renderStates, const LaserPointer::DefaultRenderStateMap& defaultRenderStates,
+    QUuid createLaserPointer(const QVariant& rayProps, const LaserPointer::RenderStateMap& renderStates, const LaserPointer::DefaultRenderStateMap& defaultRenderStates,
         const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled);
     void removeLaserPointer(const QUuid uid);
     void enableLaserPointer(const QUuid uid);

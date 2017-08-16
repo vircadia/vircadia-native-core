@@ -9,9 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 #include "LaserPointerManager.h"
-#include "RayPick.h"
 
-QUuid LaserPointerManager::createLaserPointer(const QVariantMap& rayProps, const LaserPointer::RenderStateMap& renderStates, const LaserPointer::DefaultRenderStateMap& defaultRenderStates,
+QUuid LaserPointerManager::createLaserPointer(const QVariant& rayProps, const LaserPointer::RenderStateMap& renderStates, const LaserPointer::DefaultRenderStateMap& defaultRenderStates,
     const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) {
     std::shared_ptr<LaserPointer> laserPointer = std::make_shared<LaserPointer>(rayProps, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, enabled);
     if (!laserPointer->getRayUID().isNull()) {
