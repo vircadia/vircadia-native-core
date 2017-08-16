@@ -261,6 +261,20 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         PICKLIST_UI_ELEMENTS = ["picklist", "picklistItem"],
         PICKLIST_RAISE_DELTA = { x: 0, y: 0, z: 0.004 },
 
+        PHYSICS_SLIDER_PRESETS = {
+            // Slider values in the range 0.0 to 1.0.
+            // Note: Damping values give the desired linear and angular damping values but friction values are a somewhat out,
+            // especially for the balloon.
+            presetDefault:    { gravity: 0.5,      bounce: 0.5,  damping: 0.5,      density: 0.5      },
+            presetLead:       { gravity: 0.5,      bounce: 0.0,  damping: 0.5,      density: 1.0      },
+            presetWood:       { gravity: 0.5,      bounce: 0.4,  damping: 0.5,      density: 0.5      },
+            presetIce:        { gravity: 0.5,      bounce: 0.99, damping: 0.151004, density: 0.349485 },
+            presetRubber:     { gravity: 0.5,      bounce: 0.99, damping: 0.5,      density: 0.5      },
+            presetCotton:     { gravity: 0.587303, bounce: 0.0,  damping: 0.931878, density: 0.0      },
+            presetTumbleweed: { gravity: 0.595893, bounce: 0.7,  damping: 0.5,      density: 0.0      },
+            presetZeroG:      { gravity: 0.596844, bounce: 0.5,  damping: 0.5,      density: 0.5      },
+            presetBalloon:    { gravity: 0.606313, bounce: 0.99, damping: 0.151004, density: 0.0      }
+        },
 
         OPTONS_PANELS = {
             groupOptions: [
@@ -600,9 +614,9 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         "presetIce",
                         "presetRubber",
                         "presetCotton",
-                        "presetTumbleWeed",
+                        "presetTumbleweed",
                         "presetZeroG",
-                        "presetBallon"
+                        "presetBalloon"
                     ]
                 },
                 {
@@ -642,7 +656,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     command: { method: "pickPhysicsPreset" }
                 },
                 {
-                    id: "presetTumbleWeed",
+                    id: "presetTumbleweed",
                     type: "picklistItem",
                     label: "TUMBLEWEED",
                     command: { method: "pickPhysicsPreset" }
@@ -654,7 +668,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     command: { method: "pickPhysicsPreset" }
                 },
                 {
-                    id: "presetBallon",
+                    id: "presetBalloon",
                     type: "picklistItem",
                     label: "BALLOON",
                     command: { method: "pickPhysicsPreset" }
@@ -1106,6 +1120,35 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
     }
 
+    function setBarSliderValue(item, fraction) {
+        var overlayDimensions,
+            otherFraction;
+
+        overlayDimensions = optionsItems[item].properties.dimensions;
+        if (overlayDimensions === undefined) {
+            overlayDimensions = UI_ELEMENTS.barSlider.properties.dimensions;
+        }
+
+        otherFraction = 1.0 - fraction;
+
+        Overlays.editOverlay(optionsSliderData[item].value, {
+            localPosition: { x: 0, y: (0.5 - fraction / 2) * overlayDimensions.y, z: 0 },
+            dimensions: {
+                x: overlayDimensions.x,
+                y: Math.max(fraction * overlayDimensions.y, MIN_BAR_SLIDER_DIMENSION),
+                z: overlayDimensions.z
+            }
+        });
+        Overlays.editOverlay(optionsSliderData[item].remainder, {
+            localPosition: { x: 0, y: (-0.5 + otherFraction / 2) * overlayDimensions.y, z: 0 },
+            dimensions: {
+                x: overlayDimensions.x,
+                y: Math.max(otherFraction * overlayDimensions.y, MIN_BAR_SLIDER_DIMENSION),
+                z: overlayDimensions.z
+            }
+        });
+    }
+
     function evaluateParameter(parameter) {
         var parameters,
             overlayID,
@@ -1125,6 +1168,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             items,
             parentID,
             label,
+            values,
             i,
             length;
 
@@ -1241,7 +1285,20 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             });
             Settings.setValue(optionsSettings.presets.key, label);
 
-            // TODO: Set physics parameters - update sliders, settings, and to-apply-values.
+            // Update sliders.
+            values = PHYSICS_SLIDER_PRESETS[parameter];
+            setBarSliderValue(optionsOverlaysIDs.indexOf("gravitySlider"), values.gravity);
+            Settings.setValue(optionsSettings.gravitySlider.key, values.gravity);
+            uiCommandCallback("setGravity", values.gravity);
+            setBarSliderValue(optionsOverlaysIDs.indexOf("bounceSlider"), values.bounce);
+            Settings.setValue(optionsSettings.bounceSlider.key, values.bounce);
+            uiCommandCallback("setBounce", values.bounce);
+            setBarSliderValue(optionsOverlaysIDs.indexOf("dampingSlider"), values.damping);
+            Settings.setValue(optionsSettings.dampingSlider.key, values.damping);
+            uiCommandCallback("setDamping", values.damping);
+            setBarSliderValue(optionsOverlaysIDs.indexOf("densitySlider"), values.density);
+            Settings.setValue(optionsSettings.densitySlider.key, values.density);
+            uiCommandCallback("setDensity", values.density);
 
             break;
 
@@ -1306,8 +1363,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             sliderProperties,
             overlayDimensions,
             basePoint,
-            fraction,
-            otherFraction;
+            fraction;
 
         // Intersection details.
         if (intersection.overlayID) {
@@ -1474,23 +1530,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             fraction = Vec3.dot(Vec3.subtract(basePoint, intersection.intersection),
                 Vec3.multiplyQbyV(sliderProperties.orientation, Vec3.UNIT_Y)) / overlayDimensions.y;
             fraction = adjustSliderFraction(fraction);
-            otherFraction = 1.0 - fraction;
-            Overlays.editOverlay(optionsSliderData[intersectedItem].value, {
-                localPosition: { x: 0, y: (0.5 - fraction / 2) * overlayDimensions.y, z: 0 },
-                dimensions: {
-                    x: overlayDimensions.x,
-                    y: Math.max(fraction * overlayDimensions.y, MIN_BAR_SLIDER_DIMENSION),
-                    z: overlayDimensions.z
-                }
-            });
-            Overlays.editOverlay(optionsSliderData[intersectedItem].remainder, {
-                localPosition: { x: 0, y: (-0.5 + otherFraction / 2) * overlayDimensions.y, z: 0 },
-                dimensions: {
-                    x: overlayDimensions.x,
-                    y: Math.max(otherFraction * overlayDimensions.y, MIN_BAR_SLIDER_DIMENSION),
-                    z: overlayDimensions.z
-                }
-            });
+            setBarSliderValue(intersectedItem, fraction);
             if (intersectionItems[intersectedItem].command) {
                 doCommand(intersectionItems[intersectedItem].command.method, fraction);
             }
