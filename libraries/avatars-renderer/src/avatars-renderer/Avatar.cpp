@@ -15,6 +15,7 @@
 #include <glm/gtx/transform.hpp>
 #include <glm/gtx/vector_query.hpp>
 
+#include <AvatarConstants.h>
 #include <shared/QtHelpers.h>
 #include <DeferredLightingEffect.h>
 #include <EntityTreeRenderer.h>
@@ -1546,5 +1547,42 @@ void Avatar::addToScene(AvatarSharedPointer myHandle, const render::ScenePointer
 void Avatar::ensureInScene(AvatarSharedPointer self, const render::ScenePointer& scene) {
     if (!render::Item::isValidID(_renderItemID)) {
         addToScene(self, scene);
+    }
+}
+
+// returns the avatar height, in meters, includes avatar scale factor.
+float Avatar::getHeight() const {
+    // AJT: TODO: I don't know what scale is to use here... getDomainLimitedScale?
+    float avatarScale = getTargetScale();
+    if (_skeletonModel) {
+        auto& rig = _skeletonModel->getRig();
+        int headTopJoint = rig.indexOfJoint("HeadTop_End");
+        int headJoint = rig.indexOfJoint("Head");
+        int eyeJoint = rig.indexOfJoint("LeftEye") != -1 ? rig.indexOfJoint("LeftEye") : rig.indexOfJoint("RightEye");
+        int toeJoint = rig.indexOfJoint("LeftToeBase") != -1 ? rig.indexOfJoint("LeftToeBase") : rig.indexOfJoint("RightToeBase");
+        if (headTopJoint >= 0 && toeJoint >= 0) {
+            // measure toe to top of head.  Note: default poses already include avatar scale factor
+            float height = rig.getAbsoluteDefaultPose(headTopJoint).trans().y - rig.getAbsoluteDefaultPose(toeJoint).trans().y;
+            return height;
+        } else if (eyeJoint >= 0 && toeJoint >= 0) {
+            // measure from eyes to toes + the average eye to top of head distance.
+            const float ratio = DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
+            float eyeHeight = rig.getAbsoluteDefaultPose(eyeJoint).trans().y - rig.getAbsoluteDefaultPose(toeJoint).trans().y;
+            return eyeHeight + eyeHeight * ratio;
+        } else if (headTopJoint >= 0) {
+            return rig.getAbsoluteDefaultPose(headTopJoint).trans().y;
+        } else if (eyeJoint >= 0) {
+            const float ratio = DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
+            float eyeHeight = rig.getAbsoluteDefaultPose(eyeJoint).trans().y;
+            return eyeHeight + eyeHeight * ratio;
+        } else if (headJoint >= 0) {
+            const float ratio = DEFAULT_AVATAR_NECK_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
+            float neckHeight = rig.getAbsoluteDefaultPose(headJoint).trans().y;
+            return neckHeight + neckHeight * ratio;
+        } else {
+            return avatarScale * DEFAULT_AVATAR_HEIGHT;
+        }
+    } else {
+        return avatarScale * DEFAULT_AVATAR_HEIGHT;
     }
 }

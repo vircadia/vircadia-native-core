@@ -251,6 +251,9 @@ public:
     bool isFading() const { return _isFading; }
     void updateFadingStatus(render::ScenePointer scene);
 
+    // returns the avatar height, in meters, includes avatar scale factor.
+    Q_INVOKABLE float getHeight() const;
+
 public slots:
 
     // FIXME - these should be migrated to use Pose data instead
@@ -362,7 +365,6 @@ private:
 
     float _displayNameTargetAlpha { 1.0f };
     float _displayNameAlpha { 1.0f };
-
 };
 
 #endif // hifi_Avatar_h
