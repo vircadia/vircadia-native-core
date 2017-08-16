@@ -29,7 +29,7 @@ signals:
     // Balance and Inventory are NOT properties, because QML can't change them (without risk of failure), and 
     // because we can't scalably know of out-of-band changes (e.g., another machine interacting with the block chain).
     void balanceResult(int balance, const QString& failureMessage);
-    void inventoryResult(QStringList inventory, const QString& failureMessage);
+    void inventoryResult(QJsonObject inventory, const QString& failureMessage);
 
 protected:
     Q_INVOKABLE void buy(const QString& assetId, int cost, const QString& buyerUsername = "");

@@ -137,6 +137,7 @@ private slots:
     void handleOctreeDataNackPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleJurisdictionRequestPacket(QSharedPointer<ReceivedMessage> message, SharedNodePointer senderNode);
     void handleOctreeFileReplacement(QSharedPointer<ReceivedMessage> message);
+    void handleOctreeFileReplacementFromURL(QSharedPointer<ReceivedMessage> message);
     void removeSendThread();
 
 protected:
@@ -160,6 +161,8 @@ protected:
     
     UniqueSendThread createSendThread(const SharedNodePointer& node);
     virtual UniqueSendThread newSendThread(const SharedNodePointer& node);
+
+    void replaceContentFromMessageData(QByteArray content);
 
     int _argc;
     const char** _argv;
