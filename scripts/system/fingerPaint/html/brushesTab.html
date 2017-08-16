@@ -1,8 +1,8 @@
 <script type="text/javascript" src="../../html/js/keyboardControl.js"></script>
 <script src="../../html/js/jquery-2.1.4.min.js"></script>
 <script src="../content/js/ColorUtils.js"></script>
-<script src="../content/js/ColorUtils.js"></script>
 <script src="../../html/js/colpick.js"></script>
+
 <style>
    input[type=range] {
         -webkit-appearance: none;
@@ -76,6 +76,7 @@
     }
     #brushesCointainer {
         margin-bottom: 50px;
+        margin-top: 24px;
     }
     .imageContainer {
         display: block;
@@ -136,7 +137,7 @@
         margin-top: 4px;
     }
 
-    #continuousLine {
+    #continuousLineIcon {
         text-align: center;
         background-color: transparent;
         color: white;
@@ -160,237 +161,241 @@
     </div>
 </div>
 <div id="brushesContent">
-    <div class="section-header"></div>
+    <div id="properties-list">
+        <fieldset class="major">
+                <legend id="special-section" class="section-header special-group special-section">
+                    Special Effects<span>M</span>
+                </legend>
+                <div class="special-group special-brushes-section special-section">
 
-    <div id="special-section" class="section-header special-group special-section">
-        <label>Special Effects</label><span>M</span>
-    </div>
+                    <div class="special-group special-brushes property checkbox">
+                        <span id="continuousLineIcon" class="glyph effectPreview">&#8734;</span>
+                        <input onchange="setContinuosLineMode(this)" type="checkbox" id="continuousLine"></input>
+                        <label for="continuousLine">Use Continuous Line</label>
+                    </div>
+                    
+                    <div class="special-group behavior-group property checkbox animationBrush">
+                        <span id="animatedHue" class="effectPreview"></span>
+                        <input onchange="setAnimatedBrush(this)" type="checkbox" id="animatedBrush"></input>
+                        <label for="animatedBrush">Use Hue Animation</label>
+                    </div>
 
-    <div class="special-group special-brushes-section special-section">
+                    <div class="special-group behavior-group property checkbox dynamicBrush">
+                        <span id="hue" class="effectPreview"></span>
+                        <input onchange="setDynamicBrush(this)" type="checkbox" id="dynamicHue"></input>
+                        <label for="dynamicHue">Use Dynamic Hue</label>
+                    </div>
 
-        <div class="special-group special-brushes property checkbox">
-            <span class="glyph effectPreview" id="continuousLine">&#8734;</span>
-            <input onchange="setContinuosLineMode(this)" type="checkbox" id="continuousLine"></input>
-            <label for="continuousLine">Use Continuous Line</label>
+                    <div class="special-group behavior-group property checkbox dynamicBrush">
+                        <span id="saturation" class="effectPreview"></span>
+                        <input onchange="setDynamicBrush(this)" type="checkbox" id="dynamicSaturation"></input>
+                        <label for="dynamicSaturation">Use Dynamic Saturation</label>
+                    </div>
+
+                    <div class="special-group behavior-group property checkbox dynamicBrush">
+                        <span id="value" class="effectPreview"></span>
+                        <input onchange="setDynamicBrush(this)" type="checkbox" id="dynamicValue"></input>
+                        <label for="dynamicValue">Use Dynamic Brightness</label>
+                    </div>
+                </div>
+        </fieldset>
+
+
+        <fieldset class="major">
+            <legend id="brush-section" class="section-header brushes-group brushes-section">
+                Brushes<span>M</span>
+            </legend>
+            <div id="brushesCointainer" class="brushes-group">
+                <button class="brushButton"  brushType="stretch"  id="content/brushes/square.png" onclick="changePaintBrush(0)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/square.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Square</div>
+                </button>
+
+                <button class="brushButton"  brushType="stretch"  id="content/brushes/paintbrush6.png" onclick="changePaintBrush(1)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/paintbrush6.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Rounded</div>
+                </button>
+
+                <button class="brushButton"  brushType="stretch"  id="content/brushes/soft.png" onclick="changePaintBrush(2)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/soft.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Soft</div>
+                </button>
+
+                <button class="brushButton"  brushType="stretch"  id="content/brushes/dupuiz.png" onclick="changePaintBrush(3)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/dupuiz.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Tri</div>
+                </button>
+
+                <button class="brushButton"  brushType="stretch"  id="content/brushes/basic.png" onclick="changePaintBrush(4)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/basic.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Basic</div>
+                </button>
+
+                <button class="brushButton"  brushType="stretch"  id="content/brushes/oil.png" onclick="changePaintBrush(5)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/oil.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Oil</div>
+                </button>
+
+                <button class="brushButton"  brushType="stretch"  id="content/brushes/gouache.png" onclick="changePaintBrush(6)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/gouache.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Gouache A</div>
+                </button>
+
+                <button class="brushButton"  brushType="stretch"  id="content/brushes/gouache.png" onclick="changePaintBrush(7)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/gouacheB.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Gouache B</div>
+                </button>
+
+                <button class="brushButton"  brushType="stretch"  id="content/brushes/koons.png" onclick="changePaintBrush(8)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/koons.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Koons</div>
+                </button>
+
+                 <button class="brushButton"  brushType="stretch"  id="content/brushes/sponge.png" onclick="changePaintBrush(9)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/sponge.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Sponge A</div>
+                </button>
+
+                <button class="brushButton"  brushType="repeat"  id="content/brushes/sponge.png" onclick="changePaintBrush(10)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/spongeB.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Sponge B</div>
+                </button>
+
+                <button class="brushButton"  brushType="stretch"  id="content/brushes/graphite.png" onclick="changePaintBrush(11)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/graphite.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Graphite</div>
+                </button>
+
+                <button class="brushButton"  brushType="stretch"  id="content/brushes/bristle.png" onclick="changePaintBrush(12)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/bristle.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Bristle</div>
+                </button>
+
+                <button class="brushButton"  brushType="stretch"  id="content/brushes/spat-fine.png" onclick="changePaintBrush(13)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/spat-fine.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Spat</div>
+                </button>
+
+                <button class="brushButton"  brushType="stretch"  id="content/brushes/gradient2.png" onclick="changePaintBrush(14)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/gradient2.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Gradient A</div>
+                </button>
+
+                <button class="brushButton"  brushType="repeat"  id="content/brushes/gradient2.png" onclick="changePaintBrush(15)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/gradient2.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Gradient B</div>
+                </button>
+
+                <button class="brushButton"  brushType="repeat"  id="content/brushes/dot.png" onclick="changePaintBrush(16)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/dot.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Dot</div>
+                </button>
+
+                <button class="brushButton"  brushType="repeat"  id="content/brushes/polka.png" onclick="changePaintBrush(17)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/polka.png" class="BrushIcon"/></div>
+                    </div>
+                    <div class="brushLabel">Polka</div>
+                </button>
+
+                <button class="brushButton"  brushType="repeat"  id="content/brushes/heart.png" onclick="changePaintBrush(18)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/heart.png" class="BrushIcon"/></div>
+                    </div>
+                    <div class="brushLabel">Heart</div>
+                </button>
+
+                <button class="brushButton"  brushType="repeat"  id="content/brushes/hearts.png" onclick="changePaintBrush(19)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/hearts.png" class="BrushIcon"/></div>
+                    </div>
+                    <div class="brushLabel">Hearts</div>
+                </button>
+
+                <button class="brushButton"  brushType="repeat"  id="content/brushes/flowers2.png" onclick="changePaintBrush(20)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/flowers2.png" class="BrushIcon"/></div>
+                    </div>
+                    <div class="brushLabel">Flowers</div>
+                </button>
+
+                <button class="brushButton"  brushType="repeat"  id="content/brushes/leaves.png" onclick="changePaintBrush(21)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/leaves.png" class="BrushIcon"/></div>
+                    </div>
+                    <div class="brushLabel">Leaves</div>
+                </button>
+
+                <button class="brushButton"  brushType="repeat"  id="content/brushes/snowflakes2.png" onclick="changePaintBrush(22)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/snowflakes2.png" class="BrushIcon"/></div>
+                    </div>
+                    <div class="brushLabel">Snowflakes</div>
+                </button>
+
+                <button class="brushButton"  brushType="repeat"  id="content/brushes/paintbrush1.png" onclick="changePaintBrush(23)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/paintbrush1.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Stars</div>
+                </button>
+
+                <button class="brushButton" colored="true" brushType="stretch"  id="content/brushes/breakfast.png" onclick="changePaintBrush(24)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/breakfast.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Breakfast</div>
+                </button>
+
+                <button class="brushButton" colored="true" brushType="stretch"  id="content/brushes/newton.png" onclick="changePaintBrush(25)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/newton.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Newton</div>
+                </button>
+
+                <button class="brushButton" colored="true" brushType="stretch"  id="content/brushes/softy.png" onclick="changePaintBrush(26)">
+                    <div class="imageContainer">
+                        <div imageSrc="../content/brushes/softy.png" class="BrushIcon"></div>
+                    </div>
+                    <div class="brushLabel">Softbow</div>
+                </button>
+            </fieldset>
         </div>
-        
-        <div class="special-group behavior-group property checkbox animationBrush">
-            <span id="animatedHue" class="effectPreview"></span>
-            <input onchange="setAnimatedBrush(this)" type="checkbox" id="animatedBrush"></input>
-            <label for="animatedBrush">Use Hue Animation</label>
-        </div>
-
-        <div class="special-group behavior-group property checkbox dynamicBrush">
-            <span id="hue" class="effectPreview"></span>
-            <input onchange="setDynamicBrush(this)" type="checkbox" id="dynamicHue"></input>
-            <label for="dynamicHue">Use Dynamic Hue</label>
-        </div>
-
-        <div class="special-group behavior-group property checkbox dynamicBrush">
-            <span id="saturation" class="effectPreview"></span>
-            <input onchange="setDynamicBrush(this)" type="checkbox" id="dynamicSaturation"></input>
-            <label for="dynamicSaturation">Use Dynamic Saturation</label>
-        </div>
-
-        <div class="special-group behavior-group property checkbox dynamicBrush">
-            <span id="value" class="effectPreview"></span>
-            <input onchange="setDynamicBrush(this)" type="checkbox" id="dynamicValue"></input>
-            <label for="dynamicValue">Use Dynamic Brightness</label>
-        </div>
-    </div>
-
-    <div id="brushes-section" style="margin-bottom: 24px" class="section-header brushes-group">
-        <label>Brushes</label><span>M</span>
-    </div>
-    <div id="brushesCointainer" class="brushes-group">
-        <button class="brushButton"  brushType="stretch"  id="content/brushes/square.png" onclick="changePaintBrush(0)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/square.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Square</div>
-        </button>
-
-        <button class="brushButton"  brushType="stretch"  id="content/brushes/paintbrush6.png" onclick="changePaintBrush(1)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/paintbrush6.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Rounded</div>
-        </button>
-
-        <button class="brushButton"  brushType="stretch"  id="content/brushes/soft.png" onclick="changePaintBrush(2)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/soft.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Soft</div>
-        </button>
-
-        <button class="brushButton"  brushType="stretch"  id="content/brushes/dupuiz.png" onclick="changePaintBrush(3)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/dupuiz.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Tri</div>
-        </button>
-
-        <button class="brushButton"  brushType="stretch"  id="content/brushes/basic.png" onclick="changePaintBrush(4)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/basic.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Basic</div>
-        </button>
-
-        <button class="brushButton"  brushType="stretch"  id="content/brushes/oil.png" onclick="changePaintBrush(5)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/oil.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Oil</div>
-        </button>
-
-        <button class="brushButton"  brushType="stretch"  id="content/brushes/gouache.png" onclick="changePaintBrush(6)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/gouache.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Gouache A</div>
-        </button>
-
-        <button class="brushButton"  brushType="stretch"  id="content/brushes/gouache.png" onclick="changePaintBrush(7)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/gouacheB.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Gouache B</div>
-        </button>
-
-        <button class="brushButton"  brushType="stretch"  id="content/brushes/koons.png" onclick="changePaintBrush(8)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/koons.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Koons</div>
-        </button>
-
-         <button class="brushButton"  brushType="stretch"  id="content/brushes/sponge.png" onclick="changePaintBrush(9)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/sponge.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Sponge A</div>
-        </button>
-
-        <button class="brushButton"  brushType="repeat"  id="content/brushes/sponge.png" onclick="changePaintBrush(10)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/spongeB.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Sponge B</div>
-        </button>
-
-        <button class="brushButton"  brushType="stretch"  id="content/brushes/graphite.png" onclick="changePaintBrush(11)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/graphite.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Graphite</div>
-        </button>
-
-        <button class="brushButton"  brushType="stretch"  id="content/brushes/bristle.png" onclick="changePaintBrush(12)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/bristle.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Bristle</div>
-        </button>
-
-        <button class="brushButton"  brushType="stretch"  id="content/brushes/spat-fine.png" onclick="changePaintBrush(13)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/spat-fine.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Spat</div>
-        </button>
-
-        <button class="brushButton"  brushType="stretch"  id="content/brushes/gradient2.png" onclick="changePaintBrush(14)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/gradient2.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Gradient A</div>
-        </button>
-
-        <button class="brushButton"  brushType="repeat"  id="content/brushes/gradient2.png" onclick="changePaintBrush(15)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/gradient2.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Gradient B</div>
-        </button>
-
-        <button class="brushButton"  brushType="repeat"  id="content/brushes/dot.png" onclick="changePaintBrush(16)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/dot.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Dot</div>
-        </button>
-
-        <button class="brushButton"  brushType="repeat"  id="content/brushes/polka.png" onclick="changePaintBrush(17)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/polka.png" class="BrushIcon"/></div>
-            </div>
-            <div class="brushLabel">Polka</div>
-        </button>
-
-        <button class="brushButton"  brushType="repeat"  id="content/brushes/heart.png" onclick="changePaintBrush(18)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/heart.png" class="BrushIcon"/></div>
-            </div>
-            <div class="brushLabel">Heart</div>
-        </button>
-
-        <button class="brushButton"  brushType="repeat"  id="content/brushes/hearts.png" onclick="changePaintBrush(19)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/hearts.png" class="BrushIcon"/></div>
-            </div>
-            <div class="brushLabel">Hearts</div>
-        </button>
-
-        <button class="brushButton"  brushType="repeat"  id="content/brushes/flowers2.png" onclick="changePaintBrush(20)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/flowers2.png" class="BrushIcon"/></div>
-            </div>
-            <div class="brushLabel">Flowers</div>
-        </button>
-
-        <button class="brushButton"  brushType="repeat"  id="content/brushes/leaves.png" onclick="changePaintBrush(21)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/leaves.png" class="BrushIcon"/></div>
-            </div>
-            <div class="brushLabel">Leaves</div>
-        </button>
-
-        <button class="brushButton"  brushType="repeat"  id="content/brushes/snowflakes2.png" onclick="changePaintBrush(22)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/snowflakes2.png" class="BrushIcon"/></div>
-            </div>
-            <div class="brushLabel">Snowflakes</div>
-        </button>
-
-        <button class="brushButton"  brushType="repeat"  id="content/brushes/paintbrush1.png" onclick="changePaintBrush(23)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/paintbrush1.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Stars</div>
-        </button>
-
-        <button class="brushButton" colored="true" brushType="stretch"  id="content/brushes/breakfast.png" onclick="changePaintBrush(24)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/breakfast.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Breakfast</div>
-        </button>
-
-        <button class="brushButton" colored="true" brushType="stretch"  id="content/brushes/newton.png" onclick="changePaintBrush(25)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/newton.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Newton</div>
-        </button>
-
-        <button class="brushButton" colored="true" brushType="stretch"  id="content/brushes/softy.png" onclick="changePaintBrush(26)">
-            <div class="imageContainer">
-                <div imageSrc="../content/brushes/softy.png" class="BrushIcon"></div>
-            </div>
-            <div class="brushLabel">Softbow</div>
-        </button>
     </div>
 </div>
 
@@ -635,20 +640,18 @@
 
     $(window).load(function(){ 
         setUpKeyboardControl();
+
         // Collapsible sections
         var elCollapsible = document.getElementsByClassName("section-header");
 
         var toggleCollapsedEvent = function(event) {
             var element = event.target;
-            if (element.nodeName !== "DIV") {
-                element = element.parentNode;
-            }
             var isCollapsed = element.getAttribute("collapsed") !== "true";
             element.setAttribute("collapsed", isCollapsed ? "true" : "false");
             element.getElementsByTagName("span")[0].textContent = isCollapsed ? "L" : "M";
             var switchCollapsedState = {
                 "type"       : "switchCollapsed",
-                "isCollapsed"  : isCollapsed,
+                "isCollapsed": isCollapsed,
                 "sectionId"  : element.getAttribute("id")
             };
             EventBridge.emitWebEvent(JSON.stringify(switchCollapsedState));
