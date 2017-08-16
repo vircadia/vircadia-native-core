@@ -11,9 +11,10 @@
 #include "LaserPointer.h"
 
 #include "Application.h"
+#include "ui/overlays/Overlay.h"
 #include "avatar/AvatarManager.h"
 
-LaserPointer::LaserPointer(const QVariantMap& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
+LaserPointer::LaserPointer(const QVariant& rayProps, const RenderStateMap& renderStates, const DefaultRenderStateMap& defaultRenderStates,
         const bool faceAvatar, const bool centerEndY, const bool lockEnd, const bool enabled) :
     _renderingEnabled(enabled),
     _renderStates(renderStates),
@@ -22,7 +23,7 @@ LaserPointer::LaserPointer(const QVariantMap& rayProps, const RenderStateMap& re
     _centerEndY(centerEndY),
     _lockEnd(lockEnd)
 {
-    _rayPickUID = DependencyManager::get<RayPickManager>()->createRayPick(rayProps);
+    _rayPickUID = DependencyManager::get<RayPickScriptingInterface>()->createRayPick(rayProps);
 
     for (auto& state : _renderStates) {
         if (!enabled || state.first != _currentRenderState) {
@@ -37,7 +38,7 @@ LaserPointer::LaserPointer(const QVariantMap& rayProps, const RenderStateMap& re
 }
 
 LaserPointer::~LaserPointer() {
-    DependencyManager::get<RayPickManager>()->removeRayPick(_rayPickUID);
+    DependencyManager::get<RayPickScriptingInterface>()->removeRayPick(_rayPickUID);
 
     for (auto& renderState : _renderStates) {
         renderState.second.deleteOverlays();
@@ -48,12 +49,12 @@ LaserPointer::~LaserPointer() {
 }
 
 void LaserPointer::enable() {
-    DependencyManager::get<RayPickManager>()->enableRayPick(_rayPickUID);
+    DependencyManager::get<RayPickScriptingInterface>()->enableRayPick(_rayPickUID);
     _renderingEnabled = true;
 }
 
 void LaserPointer::disable() {
-    DependencyManager::get<RayPickManager>()->disableRayPick(_rayPickUID);
+    DependencyManager::get<RayPickScriptingInterface>()->disableRayPick(_rayPickUID);
     _renderingEnabled = false;
     if (!_currentRenderState.empty()) {
         if (_renderStates.find(_currentRenderState) != _renderStates.end()) {
@@ -90,7 +91,7 @@ void LaserPointer::updateRenderStateOverlay(const OverlayID& id, const QVariant&
 }
 
 void LaserPointer::updateRenderState(const RenderState& renderState, const IntersectionType type, const float distance, const QUuid& objectID, const bool defaultState) {
-    PickRay pickRay = DependencyManager::get<RayPickManager>()->getPickRay(_rayPickUID);
+    PickRay pickRay = qApp->getRayPickManager().getPickRay(_rayPickUID);
     if (!renderState.getStartID().isNull()) {
         QVariantMap startProps;
         startProps.insert("position", vec3toVariant(pickRay.origin));
@@ -180,7 +181,7 @@ void LaserPointer::disableRenderState(const RenderState& renderState) {
 }
 
 void LaserPointer::update() {
-    RayPickResult prevRayPickResult = DependencyManager::get<RayPickManager>()->getPrevRayPickResult(_rayPickUID);
+    RayPickResult prevRayPickResult = DependencyManager::get<RayPickScriptingInterface>()->getPrevRayPickResult(_rayPickUID);
     if (_renderingEnabled && !_currentRenderState.empty() && _renderStates.find(_currentRenderState) != _renderStates.end() && prevRayPickResult.type != IntersectionType::NONE) {
         updateRenderState(_renderStates[_currentRenderState], prevRayPickResult.type, prevRayPickResult.distance, prevRayPickResult.objectID, false);
         disableRenderState(_defaultRenderStates[_currentRenderState].second);

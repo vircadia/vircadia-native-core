@@ -67,7 +67,7 @@ void RayPickManager::update() {
             bool noncollidable = rayPick->getFilter().doesPickNonCollidable();
             RayPickFilter::Flags entityMask = rayPick->getFilter().getEntityFlags();
             if (!checkAndCompareCachedResults(rayKey, results, res, entityMask)) {
-                entityRes = DependencyManager::get<EntityScriptingInterface>()->findRayIntersection(ray, true, rayPick->getIncludeEntites(), rayPick->getIgnoreEntites(), !invisible, !noncollidable);
+                entityRes = DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(ray, true, rayPick->getIncludeEntites(), rayPick->getIgnoreEntites(), !invisible, !noncollidable);
                 fromCache = false;
             }
 
@@ -84,7 +84,7 @@ void RayPickManager::update() {
             bool noncollidable = rayPick->getFilter().doesPickNonCollidable();
             RayPickFilter::Flags overlayMask = rayPick->getFilter().getOverlayFlags();
             if (!checkAndCompareCachedResults(rayKey, results, res, overlayMask)) {
-                overlayRes = qApp->getOverlays().findRayIntersection(ray, true, rayPick->getIncludeOverlays(), rayPick->getIgnoreOverlays(), !invisible, !noncollidable);
+                overlayRes = qApp->getOverlays().findRayIntersectionVector(ray, true, rayPick->getIncludeOverlays(), rayPick->getIgnoreOverlays(), !invisible, !noncollidable);
                 fromCache = false;
             }
 
@@ -97,7 +97,7 @@ void RayPickManager::update() {
         if (rayPick->getFilter().doesPickAvatars()) {
             RayPickFilter::Flags avatarMask = rayPick->getFilter().getAvatarFlags();
             if (!checkAndCompareCachedResults(rayKey, results, res, avatarMask)) {
-                RayToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findRayIntersection(ray, rayPick->getIncludeAvatars(), rayPick->getIgnoreAvatars());
+                RayToAvatarIntersectionResult avatarRes = DependencyManager::get<AvatarManager>()->findRayIntersectionVector(ray, rayPick->getIncludeAvatars(), rayPick->getIgnoreAvatars());
                 cacheResult(avatarRes.intersects, RayPickResult(IntersectionType::AVATAR, avatarRes.avatarID, avatarRes.distance, avatarRes.intersection), avatarMask, res, rayKey, results);
             }
         }
@@ -141,62 +141,25 @@ void RayPickManager::update() {
     }
 }
 
-QUuid RayPickManager::createRayPick(const QVariantMap& rayProps) {
-    bool enabled = false;
-    if (rayProps["enabled"].isValid()) {
-        enabled = rayProps["enabled"].toBool();
-    }
+QUuid RayPickManager::createRayPick(const std::string& jointName, const glm::vec3& posOffset, const glm::vec3& dirOffset, const RayPickFilter& filter, const float maxDistance, const bool enabled) {
+    QWriteLocker lock(&_addLock);
+    QUuid id = QUuid::createUuid();
+    _rayPicksToAdd.push(std::pair<QUuid, std::shared_ptr<RayPick>>(id, std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled)));
+    return id;
+}
 
-    RayPickFilter filter = RayPickFilter();
-    if (rayProps["filter"].isValid()) {
-        filter = RayPickFilter(rayProps["filter"].toUInt());
-    }
+QUuid RayPickManager::createRayPick(const RayPickFilter& filter, const float maxDistance, const bool enabled) {
+    QWriteLocker lock(&_addLock);
+    QUuid id = QUuid::createUuid();
+    _rayPicksToAdd.push(std::pair<QUuid, std::shared_ptr<RayPick>>(id, std::make_shared<MouseRayPick>(filter, maxDistance, enabled)));
+    return id;
+}
 
-    float maxDistance = 0.0f;
-    if (rayProps["maxDistance"].isValid()) {
-        maxDistance = rayProps["maxDistance"].toFloat();
-    }
-
-    if (rayProps["joint"].isValid()) {
-        std::string jointName = rayProps["joint"].toString().toStdString();
-
-        if (jointName != "Mouse") {
-            // x = upward, y = forward, z = lateral
-            glm::vec3 posOffset = Vectors::ZERO;
-            if (rayProps["posOffset"].isValid()) {
-                posOffset = vec3FromVariant(rayProps["posOffset"]);
-            }
-
-            glm::vec3 dirOffset = Vectors::UP;
-            if (rayProps["dirOffset"].isValid()) {
-                dirOffset = vec3FromVariant(rayProps["dirOffset"]);
-            }
-
-            QWriteLocker lock(&_addLock);
-            QUuid id = QUuid::createUuid();
-            _rayPicksToAdd.push(std::pair<QUuid, std::shared_ptr<RayPick>>(id, std::make_shared<JointRayPick>(jointName, posOffset, dirOffset, filter, maxDistance, enabled)));
-            return id;
-        } else {
-            QWriteLocker lock(&_addLock);
-            QUuid id = QUuid::createUuid();
-            _rayPicksToAdd.push(std::pair<QUuid, std::shared_ptr<RayPick>>(id, std::make_shared<MouseRayPick>(filter, maxDistance, enabled)));
-            return id;
-        }
-    } else if (rayProps["position"].isValid()) {
-        glm::vec3 position = vec3FromVariant(rayProps["position"]);
-
-        glm::vec3 direction = -Vectors::UP;
-        if (rayProps["direction"].isValid()) {
-            direction = vec3FromVariant(rayProps["direction"]);
-        }
-
-        QWriteLocker lock(&_addLock);
-        QUuid id = QUuid::createUuid();
-        _rayPicksToAdd.push(std::pair<QUuid, std::shared_ptr<RayPick>>(id, std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled)));
-        return id;
-    }
-
-    return QUuid();
+QUuid RayPickManager::createRayPick(const glm::vec3& position, const glm::vec3& direction, const RayPickFilter& filter, const float maxDistance, const bool enabled) {
+    QWriteLocker lock(&_addLock);
+    QUuid id = QUuid::createUuid();
+    _rayPicksToAdd.push(std::pair<QUuid, std::shared_ptr<RayPick>>(id, std::make_shared<StaticRayPick>(position, direction, filter, maxDistance, enabled)));
+    return id;
 }
 
 void RayPickManager::removeRayPick(const QUuid uid) {

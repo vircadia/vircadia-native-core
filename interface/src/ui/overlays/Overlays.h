@@ -217,10 +217,10 @@ public slots:
                                                        bool collidableOnly = false);
 
     // Same as above but with QVectors
-    RayToOverlayIntersectionResult findRayIntersection(const PickRay& ray, bool precisionPicking,
-                                                       const QVector<OverlayID>& overlaysToInclude,
-                                                       const QVector<OverlayID>& overlaysToDiscard,
-                                                       bool visibleOnly = false, bool collidableOnly = false);
+    RayToOverlayIntersectionResult findRayIntersectionVector(const PickRay& ray, bool precisionPicking,
+                                                             const QVector<OverlayID>& overlaysToInclude,
+                                                             const QVector<OverlayID>& overlaysToDiscard,
+                                                             bool visibleOnly = false, bool collidableOnly = false);
 
     /**jsdoc
      * Return a list of 3d overlays with bounding boxes that touch the given sphere

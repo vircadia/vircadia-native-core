@@ -13,7 +13,6 @@
 
 #include <QtCore/QObject>
 
-#include "LaserPointerManager.h"
 #include "RegisteredMetaTypes.h"
 #include "DependencyManager.h"
 #include "Application.h"
@@ -41,7 +40,7 @@ public slots:
     Q_INVOKABLE void setLockEndUUID(QUuid uid, QUuid objectID, const bool isOverlay) { qApp->getLaserPointerManager().setLockEndUUID(uid, objectID, isOverlay); }
 
 private:
-    const RenderState buildRenderState(const QVariantMap & propMap);
+    const RenderState buildRenderState(const QVariantMap& propMap);
 
 };
 

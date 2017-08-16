@@ -12,10 +12,7 @@
 #include "LaserPointerScriptingInterface.h"
 
 #include <QVariant>
-#include "RegisteredMetaTypes.h"
 #include "GLMHelpers.h"
-
-#include "Application.h"
 
 QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& properties) {
     QVariantMap propertyMap = properties.toMap();
@@ -69,7 +66,7 @@ QUuid LaserPointerScriptingInterface::createLaserPointer(const QVariant& propert
         }
     }
 
-    return qApp->getLaserPointerManager().createLaserPointer(propertyMap, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, enabled);
+    return qApp->getLaserPointerManager().createLaserPointer(properties, renderStates, defaultRenderStates, faceAvatar, centerEndY, lockEnd, enabled);
 }
 
 void LaserPointerScriptingInterface::editRenderState(QUuid uid, const QString& renderState, const QVariant& properties) {
