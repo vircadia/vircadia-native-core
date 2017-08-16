@@ -61,6 +61,9 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         NO_SWATCH_COLOR = { red: 128, green: 128, blue: 128 },
 
+        UI_BASE_COLOR = { red: 64, green: 64, blue: 64 },
+        UI_HIGHLIGHT_COLOR = { red: 100, green: 240, blue: 100 },
+
         UI_ELEMENTS = {
             "panel": {
                 overlay: "cube",
@@ -95,8 +98,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     ignoreRayIntersection: false,
                     visible: true
                 },
-                onColor: { red: 100, green: 240, blue: 100 },
-                offColor: { red: 64, green: 64, blue: 64 }
+                onColor: UI_HIGHLIGHT_COLOR,
+                offColor: UI_BASE_COLOR
             },
             "swatch": {
                 overlay: "cube",
@@ -118,7 +121,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     localRotation: Quat.fromVec3Degrees({ x: 0, y: 180, z: 180 }),
                     topMargin: 0,
                     leftMargin: 0,
-                    color: { red: 128, green: 128, blue: 128 },
+                    color: { red: 240, green: 240, blue: 240 },
                     alpha: 1.0,
                     lineHeight: 0.007,
                     backgroundAlpha: 0,
@@ -172,7 +175,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     dimensions: { x: 0.02, y: 0.03, z: 0.01 },
                     localPosition: { x: 0, y: 0.035, z: 0 },
                     localRotation: Quat.ZERO,
-                    color: { red: 100, green: 240, blue: 100 },
+                    color: UI_HIGHLIGHT_COLOR,
                     alpha: 1.0,
                     solid: true,
                     ignoreRayIntersection: true,
@@ -185,7 +188,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     dimensions: { x: 0.02, y: 0.07, z: 0.01 },
                     localPosition: { x: 0, y: -0.015, z: 0 },
                     localRotation: Quat.ZERO,
-                    color: { red: 64, green: 64, blue: 64 },
+                    color: UI_BASE_COLOR,
                     alpha: 1.0,
                     solid: true,
                     ignoreRayIntersection: true,
@@ -219,6 +222,24 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     ignoreRayIntersection: true,
                     visible: true
                 }
+            },
+            "picklist": {
+                overlay: "cube",
+                properties: {
+                    dimensions: { x: 0.10, y: 0.12, z: 0.01 },
+                    localRotation: Quat.ZERO,
+                    color: UI_BASE_COLOR,
+                    alpha: 1.0,
+                    solid: true,
+                    ignoreRayIntersection: false,
+                    visible: true
+                }
+            },
+            "picklistBackground": {
+
+            },
+            "picklistOption": {
+
             }
         },
 
@@ -228,6 +249,9 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
         SLIDER_RAISE_DELTA = { x: 0, y: 0, z: 0.004 },
         MIN_BAR_SLIDER_DIMENSION = 0.0001,  // Avoid visual artifact for 0 slider values.
+
+        PICKLIST_UI_ELEMENTS = ["picklist"],
+        PICKLIST_RAISE_DELTA = { x: 0, y: 0, z: 0.004 },
 
 
         OPTONS_PANELS = {
@@ -549,10 +573,14 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 {
                     id: "presets",
-                    type: "panel",
+                    type: "picklist",
                     properties: {
                         localPosition: { x: 0.016, y: -0.03, z: -0.005 },
                         dimensions: { x: 0.06, y: 0.02, z: 0.01 }
+                    },
+                    label: "DEFAULT",
+                    command: {
+                        method: "togglePresets"
                     }
                 },
                 {
@@ -770,9 +798,11 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         highlightedSource,
         isHighlightingButton,
         isHighlightingSlider,
+        isHighlightingPicklist,
         pressedItem = null,
         pressedSource,
         isButtonPressed,
+        isPicklistPressed,
         isGripClicked,
 
         isGroupButtonEnabled,
@@ -1148,16 +1178,32 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         localPosition: localPosition
                     });
                 }
+                //Lower old picklist.
+                if (isHighlightingPicklist) {
+                    localPosition = highlightedItems[highlightedItem].properties.localPosition;
+                    Overlays.editOverlay(highlightedSource[highlightedItem], {
+                        localPosition: localPosition
+                    });
+                }
                 // Update status variables.
                 highlightedItem = intersectedItem;
                 highlightedItems = intersectionItems;
                 isHighlightingButton = BUTTON_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
                 isHighlightingSlider = SLIDER_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
+                isHighlightingPicklist = PICKLIST_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
                 // Raise new slider.
                 if (isHighlightingSlider) {
                     localPosition = intersectionItems[highlightedItem].properties.localPosition;
                     Overlays.editOverlay(intersectionOverlays[highlightedItem], {
                         localPosition: Vec3.subtract(localPosition, SLIDER_RAISE_DELTA)
+                    });
+                }
+                // Raise new picklist.
+                if (isHighlightingPicklist) {
+                    localPosition = intersectionItems[highlightedItem].properties.localPosition;
+                    Overlays.editOverlay(intersectionOverlays[highlightedItem], {
+                        localPosition: Vec3.subtract(localPosition, PICKLIST_RAISE_DELTA),
+                        color: UI_HIGHLIGHT_COLOR
                     });
                 }
             } else if (highlightedItem !== NONE) {
@@ -1172,10 +1218,19 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         localPosition: localPosition
                     });
                 }
+                // Lower picklist.
+                if (isHighlightingPicklist) {
+                    localPosition = highlightedItems[highlightedItem].properties.localPosition;
+                    Overlays.editOverlay(highlightedSource[highlightedItem], {
+                        localPosition: localPosition,
+                        color: UI_BASE_COLOR
+                    });
+                }
                 // Update status variables.
                 highlightedItem = NONE;
                 isHighlightingButton = false;
                 isHighlightingSlider = false;
+                isHighlightingPicklist = false;
             }
             highlightedSource = intersectionOverlays;
         }
@@ -1285,6 +1340,15 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
         }
 
+        // Picklist update.
+        if (intersectionItems && intersectionItems[intersectedItem].type === "picklist" && controlHand.triggerClicked()
+                && !isPicklistPressed) {
+            isPicklistPressed = true;
+            if (intersectionItems[intersectedItem].command) {
+                doCommand(intersectionItems[intersectedItem].command.method);
+            }
+        }
+
         // Special handling for Group options.
         if (optionsItems && optionsItems === OPTONS_PANELS.groupOptions) {
             enableGroupButton = groupsCount > 1;
@@ -1373,9 +1437,11 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         highlightedSource = null;
         isHighlightingButton = false;
         isHighlightingSlider = false;
+        isHighlightingPicklist = false;
         pressedItem = null;
         pressedSource = null;
         isButtonPressed = false;
+        isPicklistPressed = false;
         isGripClicked = false;
         isGroupButtonEnabled = false;
         isUngroupButtonEnabled = false;
