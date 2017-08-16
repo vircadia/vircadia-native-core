@@ -341,12 +341,12 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.035, y: -0.03, z: -0.005 }
+                        localPosition: { x: -0.035, y: 0.02, z: -0.005 }
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch1Color",
                         property: "color",
-                        defaultValue: { red: 0, green: 255, blue: 255 }
+                        defaultValue: { red: 0, green: 255, blue: 0 }
                     },
                     command: {
                         method: "setColorPerSwatch"
@@ -360,12 +360,12 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.01, y: -0.03, z: -0.005 }
+                        localPosition: { x: -0.01, y: 0.02, z: -0.005 }
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch2Color",
                         property: "color",
-                        defaultValue: { red: 255, green: 0, blue: 255 }
+                        defaultValue: { red: 0, green: 0, blue: 255 }
                     },
                     command: {
                         method: "setColorPerSwatch"
@@ -379,12 +379,12 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.035, y: -0.005, z: -0.005 }
+                        localPosition: { x: -0.035, y: 0.045, z: -0.005 }
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch3Color",
-                        property: "color",
-                        defaultValue: { red: 255, green: 255, blue: 0 }
+                        property: "color"
+                        // Default to empty swatch.
                     },
                     command: {
                         method: "setColorPerSwatch"
@@ -398,86 +398,10 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.01, y: -0.005, z: -0.005 }
-                    },
-                    setting: {
-                        key: "VREdit.colorTool.swatch4Color",
-                        property: "color",
-                        defaultValue: { red: 255, green: 0, blue: 0 }
-                    },
-                    command: {
-                        method: "setColorPerSwatch"
-                    },
-                    clear: {
-                        method: "clearSwatch"
-                    }
-                },
-                {
-                    id: "colorSwatch5",
-                    type: "swatch",
-                    properties: {
-                        dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.035, y: 0.02, z: -0.005 }
-                    },
-                    setting: {
-                        key: "VREdit.colorTool.swatch5Color",
-                        property: "color",
-                        defaultValue: { red: 0, green: 255, blue: 0 }
-                    },
-                    command: {
-                        method: "setColorPerSwatch"
-                    },
-                    clear: {
-                        method: "clearSwatch"
-                    }
-                },
-                {
-                    id: "colorSwatch6",
-                    type: "swatch",
-                    properties: {
-                        dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.01, y: 0.02, z: -0.005 }
-                    },
-                    setting: {
-                        key: "VREdit.colorTool.swatch6Color",
-                        property: "color",
-                        defaultValue: { red: 0, green: 0, blue: 255 }
-                    },
-                    command: {
-                        method: "setColorPerSwatch"
-                    },
-                    clear: {
-                        method: "clearSwatch"
-                    }
-                },
-                {
-                    id: "colorSwatch7",
-                    type: "swatch",
-                    properties: {
-                        dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.035, y: 0.045, z: -0.005 }
-                    },
-                    setting: {
-                        key: "VREdit.colorTool.swatch7Color",
-                        property: "color"
-                        // Default to empty swatch.
-                    },
-                    command: {
-                        method: "setColorPerSwatch"
-                    },
-                    clear: {
-                        method: "clearSwatch"
-                    }
-                },
-                {
-                    id: "colorSwatch8",
-                    type: "swatch",
-                    properties: {
-                        dimensions: { x: 0.02, y: 0.02, z: 0.01 },
                         localPosition: { x: -0.01, y: 0.045, z: -0.005 }
                     },
                     setting: {
-                        key: "VREdit.colorTool.swatch8Color",
+                        key: "VREdit.colorTool.swatch4Color",
                         property: "color"
                         // Default to empty swatch.
                     },
