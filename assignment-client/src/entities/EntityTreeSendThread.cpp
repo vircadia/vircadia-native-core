@@ -197,24 +197,14 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                         // larger octree cell because of its position (for example if it crosses the boundary of a cell it
                         // pops to the next higher cell. So we want to check to see that the entity is large enough to be seen
                         // before we consider including it.
-                        // We can't cull a parent-entity by its dimensions because the child may be larger.  We need to
-                        // avoid sending details about a child but not the parent.  The parent's queryAACube should have
-                        // been adjusted to encompass the queryAACube of the child.
-                        AABox entityBounds = entity->hasChildren() ? AABox(cube) : entity->getAABox(success);
-                        if (!success) {
-                            // if this entity is a child of an avatar, the entity-server wont be able to determine its
-                            // AABox.  If this happens, fall back to the queryAACube.
-                            entityBounds = AABox(cube);
-                        }
-
                         float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
-                                                                       entityBounds,
+                                                                       cube,
                                                                        octreeSizeScale,
                                                                        lodLevelOffset);
 
                         // Only send entities if they are large enough to see
                         if (renderAccuracy > 0.0f) {
-                            float priority = _conicalView.computePriority(entityBounds);
+                            float priority = _conicalView.computePriority(cube);
                             _sendQueue.push(PrioritizedEntity(entity, priority));
                         }
                     }
@@ -236,19 +226,14 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                         if (success) {
                             if (next.intersection == ViewFrustum::INSIDE || _traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
                                 // See the DiffTraversal::First case for an explanation of the "entity is too small" check
-                                AABox entityBounds = entity->hasChildren() ? AABox(cube) : entity->getAABox(success);
-                                if (!success) {
-                                    entityBounds = AABox(cube);
-                                }
-
                                 float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
-                                                                               entityBounds,
+                                                                               cube,
                                                                                octreeSizeScale,
                                                                                lodLevelOffset);
 
                                 // Only send entities if they are large enough to see
                                 if (renderAccuracy > 0.0f) {
-                                    float priority = _conicalView.computePriority(entityBounds);
+                                    float priority = _conicalView.computePriority(cube);
                                     _sendQueue.push(PrioritizedEntity(entity, priority));
                                 }
                             }
@@ -272,30 +257,25 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                     if (success) {
                         if (_traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
                             // See the DiffTraversal::First case for an explanation of the "entity is too small" check
-                            AABox entityBounds = entity->hasChildren() ? AABox(cube) : entity->getAABox(success);
-                            if (!success) {
-                                entityBounds = AABox(cube);
-                            }
-
                             float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
-                                                                           entityBounds,
+                                                                           cube,
                                                                            octreeSizeScale,
                                                                            lodLevelOffset);
 
                             // Only send entities if they are large enough to see
                             if (renderAccuracy > 0.0f) {
                                 if (entity->getLastEdited() > timestamp || !_traversal.getCompletedView().cubeIntersectsKeyhole(cube)) {
-                                    float priority = _conicalView.computePriority(entityBounds);
+                                    float priority = _conicalView.computePriority(cube);
                                     _sendQueue.push(PrioritizedEntity(entity, priority));
                                 } else {
                                     // If this entity was skipped last time because it was too small, we still need to send it
                                     float lastRenderAccuracy = calculateRenderAccuracy(_traversal.getCompletedView().getPosition(),
-                                                                                       entityBounds,
+                                                                                       cube,
                                                                                        octreeSizeScale,
                                                                                        lodLevelOffset);
 
                                     if (lastRenderAccuracy <= 0.0f) {
-                                        float priority = _conicalView.computePriority(entityBounds);
+                                        float priority = _conicalView.computePriority(cube);
                                         _sendQueue.push(PrioritizedEntity(entity, priority));
                                     }
                                 }
