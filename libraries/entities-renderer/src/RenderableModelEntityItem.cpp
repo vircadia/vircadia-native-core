@@ -23,6 +23,7 @@
 #include <PerfStat.h>
 #include <render/Scene.h>
 #include <DependencyManager.h>
+#include <AnimationCache.h>
 #include <shared/QtHelpers.h>
 
 #include "EntityTreeRenderer.h"
@@ -218,8 +219,9 @@ namespace render {
     }
     template <> uint32_t metaFetchMetaSubItems(const RenderableModelEntityItemMeta::Pointer& payload, ItemIDs& subItems) {
         auto modelEntity = std::static_pointer_cast<RenderableModelEntityItem>(payload->entity);
-        if (modelEntity->hasModel()) {
-            auto metaSubItems = modelEntity->getModelNotSafe()->fetchRenderItemIDs();
+        auto model = modelEntity->getModelNotSafe();
+        if (model && modelEntity->hasModel()) {
+            auto& metaSubItems = model->fetchRenderItemIDs();
             subItems.insert(subItems.end(), metaSubItems.begin(), metaSubItems.end());
             return (uint32_t) metaSubItems.size();
         }
@@ -242,6 +244,12 @@ bool RenderableModelEntityItem::addToScene(const EntityItemPointer& self, const 
 
         // note: we don't mind if the model fails to add, we'll retry (in render()) until it succeeds
         _model->addToScene(scene, transaction, statusGetters);
+#ifdef MODEL_ENTITY_USE_FADE_EFFECT
+        if (!_hasTransitioned) {
+            transaction.addTransitionToItem(_myMetaItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+            _hasTransitioned = true;
+        }
+#endif
     }
 
     // we've successfully added _myMetaItem so we always return true
@@ -364,12 +372,28 @@ void RenderableModelEntityItem::updateModelBounds() {
 // the per frame simulation/update that might be required if the models properties changed.
 void RenderableModelEntityItem::render(RenderArgs* args) {
     PerformanceTimer perfTimer("RMEIrender");
+
     assert(getType() == EntityTypes::Model);
 
     // When the individual mesh parts of a model finish fading, they will mark their Model as needing updating
     // we will watch for that and ask the model to update it's render items
     if (_model && _model->getRenderItemsNeedUpdate()) {
         _model->updateRenderItems();
+    }
+
+    // this simple logic should say we set showingEntityHighlight to true whenever we are in marketplace mode and we have a marketplace id, or
+    // whenever we are not set to none and shouldHighlight is true.
+    bool showingEntityHighlight = ((bool)(args->_outlineFlags & (int)RenderArgs::RENDER_OUTLINE_MARKETPLACE_MODE) && getMarketplaceID().length() != 0) ||
+                                  (args->_outlineFlags != RenderArgs::RENDER_OUTLINE_NONE && getShouldHighlight());
+    if (showingEntityHighlight) {
+        static glm::vec4 yellowColor(1.0f, 1.0f, 0.0f, 1.0f);
+        gpu::Batch& batch = *args->_batch;
+        bool success;
+        auto shapeTransform = getTransformToCenter(success);
+        if (success) {
+            batch.setModelTransform(shapeTransform); // we want to include the scale as well
+            DependencyManager::get<GeometryCache>()->renderWireCubeInstance(args, batch, yellowColor);
+        }
     }
 
     if (!hasModel() || (_model && _model->didVisualGeometryRequestFail())) {
@@ -475,6 +499,12 @@ void RenderableModelEntityItem::render(RenderArgs* args) {
             makeEntityItemStatusGetters(getThisPointer(), statusGetters);
             _model->addToScene(scene, transaction, statusGetters);
 
+#ifdef MODEL_ENTITY_USE_FADE_EFFECT
+            if (!_hasTransitioned) {
+                transaction.addTransitionToItem(_myMetaItem, render::Transition::ELEMENT_ENTER_DOMAIN);
+                _hasTransitioned = true;
+            }
+#endif
             scene->enqueueTransaction(transaction);
         }
 

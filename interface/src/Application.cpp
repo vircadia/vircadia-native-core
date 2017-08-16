@@ -70,7 +70,7 @@
 #include <EntityScriptClient.h>
 #include <EntityScriptServerLogClient.h>
 #include <EntityScriptingInterface.h>
-#include <HoverOverlayInterface.h>
+#include "ui/overlays/ContextOverlayInterface.h"
 #include <ErrorDialog.h>
 #include <FileScriptingInterface.h>
 #include <Finally.h>
@@ -193,6 +193,9 @@
 #include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
+#include "commerce/Ledger.h"
+#include "commerce/Wallet.h"
+#include "commerce/QmlCommerce.h"
 
 // On Windows PC, NVidia Optimus laptop, we want to enable NVIDIA GPU
 // FIXME seems to be broken.
@@ -229,6 +232,7 @@ static const QString FBX_EXTENSION  = ".fbx";
 static const QString OBJ_EXTENSION  = ".obj";
 static const QString AVA_JSON_EXTENSION = ".ava.json";
 static const QString WEB_VIEW_TAG = "noDownload=true";
+static const QString ZIP_EXTENSION = ".zip";
 
 static const float MIRROR_FULLSCREEN_DISTANCE = 0.389f;
 
@@ -260,7 +264,8 @@ const QHash<QString, Application::AcceptURLMethod> Application::_acceptedExtensi
     { AVA_JSON_EXTENSION, &Application::askToWearAvatarAttachmentUrl },
     { JSON_EXTENSION, &Application::importJSONFromURL },
     { JS_EXTENSION, &Application::askToLoadScript },
-    { FST_EXTENSION, &Application::askToSetAvatarUrl }
+    { FST_EXTENSION, &Application::askToSetAvatarUrl },
+    { ZIP_EXTENSION, &Application::importFromZIP }
 };
 
 class DeadlockWatchdogThread : public QThread {
@@ -595,7 +600,9 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<Snapshot>();
     DependencyManager::set<CloseEventSender>();
     DependencyManager::set<ResourceManager>();
-    DependencyManager::set<HoverOverlayInterface>();
+    DependencyManager::set<ContextOverlayInterface>();
+    DependencyManager::set<Ledger>();
+    DependencyManager::set<Wallet>();
 
     return previousSessionCrashed;
 }
@@ -705,7 +712,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     qInstallMessageHandler(messageHandler);
 
     QFontDatabase::addApplicationFont(PathUtils::resourcesPath() + "styles/Inconsolata.otf");
-    _window->setWindowTitle("Interface");
+    _window->setWindowTitle("High Fidelity Interface");
 
     Model::setAbstractViewStateInterface(this); // The model class will sometimes need to know view state details from us
 
@@ -953,6 +960,53 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Make sure we don't time out during slow operations at startup
     updateHeartbeat();
 
+    // Now that OpenGL is initialized, we are sure we have a valid context and can create the various pipeline shaders with success.
+    DependencyManager::get<GeometryCache>()->initializeShapePipelines();
+
+    // sessionRunTime will be reset soon by loadSettings. Grab it now to get previous session value.
+    // The value will be 0 if the user blew away settings this session, which is both a feature and a bug.
+    static const QString TESTER = "HIFI_TESTER";
+    auto gpuIdent = GPUIdent::getInstance();
+    auto glContextData = getGLContextData();
+    QJsonObject properties = {
+        { "version", applicationVersion() },
+        { "tester", QProcessEnvironment::systemEnvironment().contains(TESTER) },
+        { "previousSessionCrashed", _previousSessionCrashed },
+        { "previousSessionRuntime", sessionRunTime.get() },
+        { "cpu_architecture", QSysInfo::currentCpuArchitecture() },
+        { "kernel_type", QSysInfo::kernelType() },
+        { "kernel_version", QSysInfo::kernelVersion() },
+        { "os_type", QSysInfo::productType() },
+        { "os_version", QSysInfo::productVersion() },
+        { "gpu_name", gpuIdent->getName() },
+        { "gpu_driver", gpuIdent->getDriver() },
+        { "gpu_memory", static_cast<qint64>(gpuIdent->getMemory()) },
+        { "gl_version_int", glVersionToInteger(glContextData.value("version").toString()) },
+        { "gl_version", glContextData["version"] },
+        { "gl_vender", glContextData["vendor"] },
+        { "gl_sl_version", glContextData["sl_version"] },
+        { "gl_renderer", glContextData["renderer"] },
+        { "ideal_thread_count", QThread::idealThreadCount() }
+    };
+    auto macVersion = QSysInfo::macVersion();
+    if (macVersion != QSysInfo::MV_None) {
+        properties["os_osx_version"] = QSysInfo::macVersion();
+    }
+    auto windowsVersion = QSysInfo::windowsVersion();
+    if (windowsVersion != QSysInfo::WV_None) {
+        properties["os_win_version"] = QSysInfo::windowsVersion();
+    }
+
+    ProcessorInfo procInfo;
+    if (getProcessorInfo(procInfo)) {
+        properties["processor_core_count"] = procInfo.numProcessorCores;
+        properties["logical_processor_count"] = procInfo.numLogicalProcessors;
+        properties["processor_l1_cache_count"] = procInfo.numProcessorCachesL1;
+        properties["processor_l2_cache_count"] = procInfo.numProcessorCachesL2;
+        properties["processor_l3_cache_count"] = procInfo.numProcessorCachesL3;
+    }
+
+    // add firstRun flag from settings to launch event
     Setting::Handle<bool> firstRun { Settings::firstRun, true };
 
     // once the settings have been loaded, check if we need to flip the default for UserActivityLogger
@@ -1324,12 +1378,16 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
     // Keyboard focus handling for Web overlays.
     auto overlays = &(qApp->getOverlays());
 
-    connect(overlays, &Overlays::mousePressOnOverlay, [=](OverlayID overlayID, const PointerEvent& event) {
-        setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
-        setKeyboardFocusOverlay(overlayID);
+    connect(overlays, &Overlays::mousePressOnOverlay, [=](const OverlayID& overlayID, const PointerEvent& event) {
+        auto thisOverlay = std::dynamic_pointer_cast<Web3DOverlay>(overlays->getOverlay(overlayID));
+        // Only Web overlays can have keyboard focus.
+        if (thisOverlay) {
+            setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
+            setKeyboardFocusOverlay(overlayID);
+        }
     });
 
-    connect(overlays, &Overlays::overlayDeleted, [=](OverlayID overlayID) {
+    connect(overlays, &Overlays::overlayDeleted, [=](const OverlayID& overlayID) {
         if (overlayID == _keyboardFocusedOverlay.get()) {
             setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         }
@@ -1343,6 +1401,21 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         setKeyboardFocusOverlay(UNKNOWN_OVERLAY_ID);
         setKeyboardFocusEntity(UNKNOWN_ENTITY_ID);
     });
+
+    connect(overlays,
+        SIGNAL(mousePressOnOverlay(const OverlayID&, const PointerEvent&)),
+        DependencyManager::get<ContextOverlayInterface>().data(),
+        SLOT(contextOverlays_mousePressOnOverlay(const OverlayID&, const PointerEvent&)));
+
+    connect(overlays,
+        SIGNAL(hoverEnterOverlay(const OverlayID&, const PointerEvent&)),
+        DependencyManager::get<ContextOverlayInterface>().data(),
+        SLOT(contextOverlays_hoverEnterOverlay(const OverlayID&, const PointerEvent&)));
+
+    connect(overlays,
+        SIGNAL(hoverLeaveOverlay(const OverlayID&, const PointerEvent&)),
+        DependencyManager::get<ContextOverlayInterface>().data(),
+        SLOT(contextOverlays_hoverLeaveOverlay(const OverlayID&, const PointerEvent&)));
 
     // Add periodic checks to send user activity data
     static int CHECK_NEARBY_AVATARS_INTERVAL_MS = 10000;
@@ -1470,7 +1543,7 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
         properties["atp_mapping_requests"] = atpMappingRequests;
 
         properties["throttled"] = _displayPlugin ? _displayPlugin->isThrottled() : false;
-        
+
         QJsonObject bytesDownloaded;
         bytesDownloaded["atp"] = statTracker->getStat(STAT_ATP_RESOURCE_TOTAL_BYTES).toInt();
         bytesDownloaded["http"] = statTracker->getStat(STAT_HTTP_RESOURCE_TOTAL_BYTES).toInt();
@@ -2036,6 +2109,7 @@ void Application::initializeUi() {
     LoginDialog::registerType();
     Tooltip::registerType();
     UpdateDialog::registerType();
+    QmlCommerce::registerType();
     qmlRegisterType<ResourceImageItem>("Hifi", 1, 0, "ResourceImageItem");
     qmlRegisterType<Preference>("Hifi", 1, 0, "Preference");
 
@@ -2131,7 +2205,7 @@ void Application::initializeUi() {
     surfaceContext->setContextProperty("ApplicationCompositor", &getApplicationCompositor());
 
     surfaceContext->setContextProperty("AvatarInputs", AvatarInputs::getInstance());
-    surfaceContext->setContextProperty("HoverOverlay", DependencyManager::get<HoverOverlayInterface>().data());
+    surfaceContext->setContextProperty("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
 
     if (auto steamClient = PluginManager::getInstance()->getSteamClientPlugin()) {
         surfaceContext->setContextProperty("Steam", new SteamScriptingInterface(engine, steamClient.get()));
@@ -2237,7 +2311,7 @@ void Application::paintGL() {
             QMutexLocker viewLocker(&_viewMutex);
             _viewFrustum.calculate();
         }
-        renderArgs = RenderArgs(_gpuContext, getEntities(), lodManager->getOctreeSizeScale(),
+        renderArgs = RenderArgs(_gpuContext, lodManager->getOctreeSizeScale(),
             lodManager->getBoundaryLevelAdjust(), RenderArgs::DEFAULT_RENDER_MODE,
             RenderArgs::MONO, RenderArgs::RENDER_DEBUG_NONE);
         {
@@ -2753,6 +2827,20 @@ bool Application::importSVOFromURL(const QString& urlString) {
     return true;
 }
 
+void Application::onPresent(quint32 frameCount) {
+    if (shouldPaint()) {
+        postEvent(this, new QEvent(static_cast<QEvent::Type>(Idle)), Qt::HighEventPriority);
+        postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
+    }
+}
+
+bool Application::importFromZIP(const QString& filePath) {
+    qDebug() << "A zip file has been dropped in: " << filePath;
+    QUrl empty;
+    qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true);
+    return true;
+}
+
 bool _renderRequested { false };
 
 bool Application::event(QEvent* event) {
@@ -2769,23 +2857,9 @@ bool Application::event(QEvent* event) {
         // Explicit idle keeps the idle running at a lower interval, but without any rendering
         // see (windowMinimizedChanged)
         case Event::Idle:
-            {
-                float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
-                _lastTimeUpdated.start();
-                idle(nsecsElapsed);
-            }
-            return true;
-
-        case Event::Present:
-            if (!_renderRequested) {
-                float nsecsElapsed = (float)_lastTimeUpdated.nsecsElapsed();
-                if (shouldPaint(nsecsElapsed)) {
-                    _renderRequested = true;
-                    _lastTimeUpdated.start();
-                    idle(nsecsElapsed);
-                    postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
-                }
-            }
+            idle();
+            // Clear the event queue of pending idle calls
+            removePostedEvents(this, Idle);
             return true;
 
         case Event::Paint:
@@ -2793,9 +2867,8 @@ bool Application::event(QEvent* event) {
             //       or AvatarInputs will mysteriously move to the bottom-right
             AvatarInputs::getInstance()->update();
             paintGL();
-            // wait for the next present event before starting idle / paint again
-            removePostedEvents(this, Present);
-            _renderRequested = false;
+            // Clear the event queue of pending paint calls
+            removePostedEvents(this, Paint);
             return true;
 
         default:
@@ -3614,7 +3687,7 @@ bool Application::acceptSnapshot(const QString& urlString) {
 
 static uint32_t _renderedFrameIndex { INVALID_FRAME };
 
-bool Application::shouldPaint(float nsecsElapsed) {
+bool Application::shouldPaint() {
     if (_aboutToQuit) {
         return false;
     }
@@ -3634,11 +3707,9 @@ bool Application::shouldPaint(float nsecsElapsed) {
             (float)paintDelaySamples / paintDelayUsecs << "us";
     }
 #endif
-
-    float msecondsSinceLastUpdate = nsecsElapsed / NSECS_PER_USEC / USECS_PER_MSEC;
-
+    
     // Throttle if requested
-    if (displayPlugin->isThrottled() && (msecondsSinceLastUpdate < THROTTLED_SIM_FRAME_PERIOD_MS)) {
+    if (displayPlugin->isThrottled() && (_lastTimeUpdated.elapsed() < THROTTLED_SIM_FRAME_PERIOD_MS)) {
         return false;
     }
 
@@ -3855,7 +3926,7 @@ void setupCpuMonitorThread() {
 #endif
 
 
-void Application::idle(float nsecsElapsed) {
+void Application::idle() {
     PerformanceTimer perfTimer("idle");
 
     // Update the deadlock watchdog
@@ -3912,7 +3983,8 @@ void Application::idle(float nsecsElapsed) {
         steamClient->runCallbacks();
     }
 
-    float secondsSinceLastUpdate = nsecsElapsed / NSECS_PER_MSEC / MSECS_PER_SECOND;
+    float secondsSinceLastUpdate = (float)_lastTimeUpdated.nsecsElapsed() / NSECS_PER_MSEC / MSECS_PER_SECOND;
+    _lastTimeUpdated.start();
 
     // If the offscreen Ui has something active that is NOT the root, then assume it has keyboard focus.
     if (_keyboardDeviceHasFocus && offscreenUi && offscreenUi->getWindow()->activeFocusItem() != offscreenUi->getRootItem()) {
@@ -4146,6 +4218,7 @@ void Application::loadSettings() {
     //DependencyManager::get<LODManager>()->setAutomaticLODAdjust(false);
 
     Menu::getInstance()->loadSettings();
+
     // If there is a preferred plugin, we probably messed it up with the menu settings, so fix it.
     auto pluginManager = PluginManager::getInstance();
     auto plugins = pluginManager->getPreferredDisplayPlugins();
@@ -4159,23 +4232,43 @@ void Application::loadSettings() {
                 break;
             }
         }
-    } else {
+    }
+
+    Setting::Handle<bool> firstRun { Settings::firstRun, true };
+    bool isFirstPerson = false;
+    if (firstRun.get()) {
         // If this is our first run, and no preferred devices were set, default to
         // an HMD device if available.
-        Setting::Handle<bool> firstRun { Settings::firstRun, true };
-        if (firstRun.get()) {
-            auto displayPlugins = pluginManager->getDisplayPlugins();
-            for (auto& plugin : displayPlugins) {
-                if (plugin->isHmd()) {
-                    if (auto action = menu->getActionForOption(plugin->getName())) {
-                        action->setChecked(true);
-                        action->trigger();
-                        break;
-                    }
+        auto displayPlugins = pluginManager->getDisplayPlugins();
+        for (auto& plugin : displayPlugins) {
+            if (plugin->isHmd()) {
+                if (auto action = menu->getActionForOption(plugin->getName())) {
+                    action->setChecked(true);
+                    action->trigger();
+                    break;
                 }
             }
         }
+
+        isFirstPerson = (qApp->isHMDMode());
+    } else {
+        // if this is not the first run, the camera will be initialized differently depending on user settings
+
+        if (qApp->isHMDMode()) {
+            // if the HMD is active, use first-person camera, unless the appropriate setting is checked
+            isFirstPerson = menu->isOptionChecked(MenuOption::FirstPersonHMD);
+        } else {
+            // if HMD is not active, only use first person if the menu option is checked
+            isFirstPerson = menu->isOptionChecked(MenuOption::FirstPerson);
+        }
     }
+
+    // finish initializing the camera, based on everything we checked above. Third person camera will be used if no settings
+    // dictated that we should be in first person
+    Menu::getInstance()->setIsOptionChecked(MenuOption::FirstPerson, isFirstPerson);
+    Menu::getInstance()->setIsOptionChecked(MenuOption::ThirdPerson, !isFirstPerson);
+    _myCamera.setMode((isFirstPerson) ? CAMERA_MODE_FIRST_PERSON : CAMERA_MODE_THIRD_PERSON);
+    cameraMenuChanged();
 
     auto inputs = pluginManager->getInputPlugins();
     for (auto plugin : inputs) {
@@ -4225,7 +4318,6 @@ void Application::init() {
     DependencyManager::get<DeferredLightingEffect>()->init();
 
     DependencyManager::get<AvatarManager>()->init();
-    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
 
     _timerStart.start();
     _lastTimeUpdated.start();
@@ -4377,10 +4469,9 @@ void Application::updateMyAvatarLookAtPosition() {
             }
         } else {
             //  I am not looking at anyone else, so just look forward
-            auto headPose = myAvatar->getHeadControllerPoseInSensorFrame();
+            auto headPose = myAvatar->getControllerPoseInWorldFrame(controller::Action::HEAD);
             if (headPose.isValid()) {
-                glm::mat4 worldHeadMat = myAvatar->getSensorToWorldMatrix() * headPose.getMatrix();
-                lookAtSpot = transformPoint(worldHeadMat, glm::vec3(0.0f, 0.0f, TREE_SCALE));
+                lookAtSpot = transformPoint(headPose.getMatrix(), glm::vec3(0.0f, 0.0f, TREE_SCALE));
             } else {
                 lookAtSpot = myAvatar->getHead()->getEyePosition() +
                     (myAvatar->getHead()->getFinalOrientationInWorldFrame() * glm::vec3(0.0f, 0.0f, -TREE_SCALE));
@@ -4794,52 +4885,76 @@ void Application::update(float deltaTime) {
         myAvatar->setDriveKey(MyAvatar::ZOOM, userInputMapper->getActionState(controller::Action::TRANSLATE_CAMERA_Z));
     }
 
-    controller::Pose leftHandPose = userInputMapper->getPoseState(controller::Action::LEFT_HAND);
-    controller::Pose rightHandPose = userInputMapper->getPoseState(controller::Action::RIGHT_HAND);
-    auto myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
-    auto worldToSensorMatrix = glm::inverse(myAvatar->getSensorToWorldMatrix());
-    auto avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
-    myAvatar->setHandControllerPosesInSensorFrame(leftHandPose.transform(avatarToSensorMatrix), rightHandPose.transform(avatarToSensorMatrix));
+    static const std::vector<controller::Action> avatarControllerActions = {
+        controller::Action::LEFT_HAND,
+        controller::Action::RIGHT_HAND,
+        controller::Action::LEFT_FOOT,
+        controller::Action::RIGHT_FOOT,
+        controller::Action::HIPS,
+        controller::Action::SPINE2,
+        controller::Action::HEAD,
+        controller::Action::LEFT_HAND_THUMB1,
+        controller::Action::LEFT_HAND_THUMB2,
+        controller::Action::LEFT_HAND_THUMB3,
+        controller::Action::LEFT_HAND_THUMB4,
+        controller::Action::LEFT_HAND_INDEX1,
+        controller::Action::LEFT_HAND_INDEX2,
+        controller::Action::LEFT_HAND_INDEX3,
+        controller::Action::LEFT_HAND_INDEX4,
+        controller::Action::LEFT_HAND_MIDDLE1,
+        controller::Action::LEFT_HAND_MIDDLE2,
+        controller::Action::LEFT_HAND_MIDDLE3,
+        controller::Action::LEFT_HAND_MIDDLE4,
+        controller::Action::LEFT_HAND_RING1,
+        controller::Action::LEFT_HAND_RING2,
+        controller::Action::LEFT_HAND_RING3,
+        controller::Action::LEFT_HAND_RING4,
+        controller::Action::LEFT_HAND_PINKY1,
+        controller::Action::LEFT_HAND_PINKY2,
+        controller::Action::LEFT_HAND_PINKY3,
+        controller::Action::LEFT_HAND_PINKY4,
+        controller::Action::RIGHT_HAND_THUMB1,
+        controller::Action::RIGHT_HAND_THUMB2,
+        controller::Action::RIGHT_HAND_THUMB3,
+        controller::Action::RIGHT_HAND_THUMB4,
+        controller::Action::RIGHT_HAND_INDEX1,
+        controller::Action::RIGHT_HAND_INDEX2,
+        controller::Action::RIGHT_HAND_INDEX3,
+        controller::Action::RIGHT_HAND_INDEX4,
+        controller::Action::RIGHT_HAND_MIDDLE1,
+        controller::Action::RIGHT_HAND_MIDDLE2,
+        controller::Action::RIGHT_HAND_MIDDLE3,
+        controller::Action::RIGHT_HAND_MIDDLE4,
+        controller::Action::RIGHT_HAND_RING1,
+        controller::Action::RIGHT_HAND_RING2,
+        controller::Action::RIGHT_HAND_RING3,
+        controller::Action::RIGHT_HAND_RING4,
+        controller::Action::RIGHT_HAND_PINKY1,
+        controller::Action::RIGHT_HAND_PINKY2,
+        controller::Action::RIGHT_HAND_PINKY3,
+        controller::Action::RIGHT_HAND_PINKY4,
+        controller::Action::LEFT_ARM,
+        controller::Action::RIGHT_ARM,
+        controller::Action::LEFT_SHOULDER,
+        controller::Action::RIGHT_SHOULDER,
+        controller::Action::LEFT_FORE_ARM,
+        controller::Action::RIGHT_FORE_ARM,
+        controller::Action::LEFT_LEG,
+        controller::Action::RIGHT_LEG,
+        controller::Action::LEFT_UP_LEG,
+        controller::Action::RIGHT_UP_LEG,
+        controller::Action::LEFT_TOE_BASE,
+        controller::Action::RIGHT_TOE_BASE
+    };
 
-    // If have previously done finger poses or there are new valid finger poses, update finger pose values. This so that if
-    // fingers are not being controlled, finger joints are not updated in MySkeletonModel.
-    // Assumption: Finger poses are either all present and valid or not present at all; thus can test just one joint.
-    MyAvatar::FingerPosesMap leftHandFingerPoses;
-    if (myAvatar->getLeftHandFingerControllerPosesInSensorFrame().size() > 0
-            || userInputMapper->getPoseState(controller::Action::LEFT_HAND_THUMB1).isValid()) {
-        for (int i = (int)controller::Action::LEFT_HAND_THUMB1; i <= (int)controller::Action::LEFT_HAND_PINKY4; i++) {
-            leftHandFingerPoses[i] = {
-                userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix),
-                userInputMapper->getActionName((controller::Action)i)
-            };
-        }
+    // copy controller poses from userInputMapper to myAvatar.
+    glm::mat4 myAvatarMatrix = createMatFromQuatAndPos(myAvatar->getOrientation(), myAvatar->getPosition());
+    glm::mat4 worldToSensorMatrix = glm::inverse(myAvatar->getSensorToWorldMatrix());
+    glm::mat4 avatarToSensorMatrix = worldToSensorMatrix * myAvatarMatrix;
+    for (auto& action : avatarControllerActions) {
+        controller::Pose pose = userInputMapper->getPoseState(action);
+        myAvatar->setControllerPoseInSensorFrame(action, pose.transform(avatarToSensorMatrix));
     }
-    MyAvatar::FingerPosesMap rightHandFingerPoses;
-    if (myAvatar->getRightHandFingerControllerPosesInSensorFrame().size() > 0
-        || userInputMapper->getPoseState(controller::Action::RIGHT_HAND_THUMB1).isValid()) {
-        for (int i = (int)controller::Action::RIGHT_HAND_THUMB1; i <= (int)controller::Action::RIGHT_HAND_PINKY4; i++) {
-            rightHandFingerPoses[i] = {
-                userInputMapper->getPoseState((controller::Action)i).transform(avatarToSensorMatrix),
-                userInputMapper->getActionName((controller::Action)i)
-            };
-        }
-    }
-    myAvatar->setFingerControllerPosesInSensorFrame(leftHandFingerPoses, rightHandFingerPoses);
-
-    controller::Pose leftFootPose = userInputMapper->getPoseState(controller::Action::LEFT_FOOT);
-    controller::Pose rightFootPose = userInputMapper->getPoseState(controller::Action::RIGHT_FOOT);
-    myAvatar->setFootControllerPosesInSensorFrame(leftFootPose.transform(avatarToSensorMatrix), rightFootPose.transform(avatarToSensorMatrix));
-
-    controller::Pose hipsPose = userInputMapper->getPoseState(controller::Action::HIPS);
-    controller::Pose spine2Pose = userInputMapper->getPoseState(controller::Action::SPINE2);
-    myAvatar->setSpineControllerPosesInSensorFrame(hipsPose.transform(avatarToSensorMatrix), spine2Pose.transform(avatarToSensorMatrix));
-
-    controller::Pose headPose = userInputMapper->getPoseState(controller::Action::HEAD);
-    myAvatar->setHeadControllerPoseInSensorFrame(headPose.transform(avatarToSensorMatrix));
-
-    controller::Pose leftArmPose = userInputMapper->getPoseState(controller::Action::LEFT_ARM);
-    controller::Pose rightArmPose = userInputMapper->getPoseState(controller::Action::RIGHT_ARM);
-    myAvatar->setArmControllerPosesInSensorFrame(leftArmPose.transform(avatarToSensorMatrix), rightArmPose.transform(avatarToSensorMatrix));
 
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
     updateDialogs(deltaTime); // update various stats dialogs if present
@@ -5397,6 +5512,17 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             }
             renderArgs->_debugFlags = renderDebugFlags;
             //ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, transaction);
+
+            RenderArgs::OutlineFlags renderOutlineFlags = RenderArgs::RENDER_OUTLINE_NONE;
+            auto contextOverlayInterface = DependencyManager::get<ContextOverlayInterface>();
+            if (contextOverlayInterface->getEnabled()) {
+                if (DependencyManager::get<ContextOverlayInterface>()->getIsInMarketplaceInspectionMode()) {
+                    renderOutlineFlags = RenderArgs::RENDER_OUTLINE_MARKETPLACE_MODE;
+                } else {
+                    renderOutlineFlags = RenderArgs::RENDER_OUTLINE_WIREFRAMES;
+                }
+            }
+            renderArgs->_outlineFlags = renderOutlineFlags;
         }
     }
 
@@ -5860,7 +5986,7 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     auto entityScriptServerLog = DependencyManager::get<EntityScriptServerLogClient>();
     scriptEngine->registerGlobalObject("EntityScriptServerLog", entityScriptServerLog.data());
     scriptEngine->registerGlobalObject("AvatarInputs", AvatarInputs::getInstance());
-    scriptEngine->registerGlobalObject("HoverOverlay", DependencyManager::get<HoverOverlayInterface>().data());
+    scriptEngine->registerGlobalObject("ContextOverlay", DependencyManager::get<ContextOverlayInterface>().data());
 
     qScriptRegisterMetaType(scriptEngine, OverlayIDtoScriptValue, OverlayIDfromScriptValue);
 
@@ -6179,7 +6305,7 @@ void Application::addAssetToWorldFromURLRequestFinished() {
             if (tempFile.open(QIODevice::WriteOnly)) {
                 tempFile.write(request->getData());
                 addAssetToWorldInfoClear(filename);  // Remove message from list; next one added will have a different key.
-                qApp->getFileDownloadInterface()->runUnzip(downloadPath, url, true);
+                qApp->getFileDownloadInterface()->runUnzip(downloadPath, url, true, false);
             } else {
                 QString errorInfo = "Couldn't open temporary file for download";
                 qWarning(interfaceapp) << errorInfo;
@@ -6209,12 +6335,18 @@ void Application::addAssetToWorldUnzipFailure(QString filePath) {
     addAssetToWorldError(filename, "Couldn't unzip file " + filename + ".");
 }
 
-void Application::addAssetToWorld(QString filePath) {
+void Application::addAssetToWorld(QString filePath, QString zipFile, bool isZip) {
     // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
-
-    QString path = QUrl(filePath).toLocalFile();
+    QString mapping;
+    QString path = filePath;
     QString filename = filenameFromPath(path);
-    QString mapping = "/" + filename;
+    if (isZip) {
+        QString assetFolder = zipFile.section("/", -1);
+        assetFolder.remove(".zip");
+        mapping = "/" + assetFolder + "/" + filename;
+    } else {
+        mapping = "/" + filename;
+    }
 
     // Test repeated because possibly different code paths.
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
@@ -6295,7 +6427,13 @@ void Application::addAssetToWorldSetMapping(QString filePath, QString mapping, Q
             qWarning(interfaceapp) << "Error downloading model: " + errorInfo;
             addAssetToWorldError(filenameFromPath(filePath), errorInfo);
         } else {
-            addAssetToWorldAddEntity(filePath, mapping);
+            // to prevent files that aren't models from being loaded into world automatically
+            if (filePath.endsWith(".obj") || filePath.endsWith(".fbx")) {
+                addAssetToWorldAddEntity(filePath, mapping);
+            } else {
+                qCDebug(interfaceapp) << "Zipped contents are not supported entity files";
+                addAssetToWorldInfoDone(filenameFromPath(filePath));
+            }
         }
         request->deleteLater();
     });
@@ -6585,15 +6723,18 @@ void Application::onAssetToWorldMessageBoxClosed() {
 }
 
 
-void Application::handleUnzip(QString zipFile, QString unzipFile, bool autoAdd) {
+void Application::handleUnzip(QString zipFile, QStringList unzipFile, bool autoAdd, bool isZip) {
     if (autoAdd) {
         if (!unzipFile.isEmpty()) {
-            addAssetToWorld(unzipFile);
+            for (int i = 0; i < unzipFile.length(); i++) {
+                qCDebug(interfaceapp) << "Preparing file for asset server: " << unzipFile.at(i);
+                addAssetToWorld(unzipFile.at(i), zipFile, isZip);
+            }
         } else {
             addAssetToWorldUnzipFailure(zipFile);
         }
     } else {
-        showAssetServerWidget(unzipFile);
+        showAssetServerWidget(unzipFile.first());
     }
 }
 
@@ -7056,6 +7197,7 @@ void Application::updateDisplayMode() {
 
         auto oldDisplayPlugin = _displayPlugin;
         if (_displayPlugin) {
+            disconnect(_displayPluginPresentConnection);
             _displayPlugin->deactivate();
         }
 
@@ -7096,6 +7238,7 @@ void Application::updateDisplayMode() {
         _offscreenContext->makeCurrent();
         getApplicationCompositor().setDisplayPlugin(newDisplayPlugin);
         _displayPlugin = newDisplayPlugin;
+        _displayPluginPresentConnection = connect(_displayPlugin.get(), &DisplayPlugin::presented, this, &Application::onPresent);
         offscreenUi->getDesktop()->setProperty("repositionLocked", wasRepositionLocked);
     }
 

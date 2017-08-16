@@ -66,7 +66,7 @@ protected:
 public:
     static bool makeProgram(Shader& shader, const Shader::BindingSet& slotBindings = Shader::BindingSet());
 
-    ~GLBackend();
+    virtual ~GLBackend();
 
     void setCameraCorrection(const Mat4& correction);
     void render(const Batch& batch) final override;

@@ -196,8 +196,6 @@ GLBackend::GLBackend() {
 
 
 GLBackend::~GLBackend() {
-    resetStages();
-
     killInput();
     killTransform();
 }
@@ -457,7 +455,7 @@ void GLBackend::do_glUniform1i(const Batch& batch, size_t paramOffset) {
     }
     updatePipeline();
 
-    glUniform1f(
+    glUniform1i(
         GET_UNIFORM_LOCATION(batch._params[paramOffset + 1]._int),
         batch._params[paramOffset + 0]._int);
     (void)CHECK_GL_ERROR();

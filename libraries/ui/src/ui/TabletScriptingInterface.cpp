@@ -28,11 +28,9 @@ const QString SYSTEM_TOOLBAR = "com.highfidelity.interface.toolbar.system";
 const QString SYSTEM_TABLET = "com.highfidelity.interface.tablet.system";
 
 TabletScriptingInterface::TabletScriptingInterface() {
-    qCDebug(uiLogging) << "Building tablet scripting interface";
 }
 
 TabletScriptingInterface::~TabletScriptingInterface() {
-    qCDebug(uiLogging) << "Destroying tablet scripting interface";
 }
 
 ToolbarProxy* TabletScriptingInterface::getSystemToolbarProxy() {
@@ -187,13 +185,14 @@ TabletProxy::TabletProxy(QObject* parent, const QString& name) : QObject(parent)
     if (QThread::currentThread() != qApp->thread()) {
         qCWarning(uiLogging) << "Creating tablet proxy on wrong thread " << _name;
     }
+    connect(this, &TabletProxy::tabletShownChanged, this, &TabletProxy::onTabletShown);
 }
 
 TabletProxy::~TabletProxy() {
-    qCDebug(uiLogging) << "Destroying tablet proxy " << _name;
     if (QThread::currentThread() != thread()) {
         qCWarning(uiLogging) << "Destroying tablet proxy on wrong thread" << _name;
     }
+    disconnect(this, &TabletProxy::tabletShownChanged, this, &TabletProxy::onTabletShown);
 }
 
 void TabletProxy::setToolbarMode(bool toolbarMode) {
@@ -208,12 +207,13 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
 
     _toolbarMode = toolbarMode;
 
+    auto offscreenUi = DependencyManager::get<OffscreenUi>();
+
     if (toolbarMode) {
         removeButtonsFromHomeScreen();
         addButtonsToToolbar();
 
         // create new desktop window
-        auto offscreenUi = DependencyManager::get<OffscreenUi>();
         auto tabletRootWindow = new TabletRootWindow();
         tabletRootWindow->initQml(QVariantMap());
         auto quickItem = tabletRootWindow->asQuickItem();
@@ -234,7 +234,11 @@ void TabletProxy::setToolbarMode(bool toolbarMode) {
         } else {
             loadHomeScreen(true);
         }
-
+        //check if running scripts window opened and save it for reopen in Tablet
+        if (offscreenUi->isVisible("RunningScripts")) {
+            offscreenUi->hide("RunningScripts");
+            _showRunningScripts = true;
+        }
         // destroy desktop window
         if (_desktopWindow) {
             _desktopWindow->deleteLater();
@@ -316,6 +320,13 @@ void TabletProxy::emitWebEvent(const QVariant& msg) {
     emit webEventReceived(msg);
 }
 
+void TabletProxy::onTabletShown() {
+    if (_tabletShown && _showRunningScripts) {
+        _showRunningScripts = false;
+        pushOntoStack("../../hifi/dialogs/TabletRunningScripts.qml");
+    }
+}
+
 bool TabletProxy::isPathLoaded(const QVariant& path) {
     if (QThread::currentThread() != thread()) {
         bool result = false;
@@ -365,8 +376,15 @@ void TabletProxy::setQmlTabletRoot(OffscreenQmlSurface* qmlOffscreenSurface) {
         });
 
         if (_initialScreen) {
-            pushOntoStack(_initialPath);
+            if (!_showRunningScripts) {
+                pushOntoStack(_initialPath);
+            }
             _initialScreen = false;
+        }
+
+        if (_showRunningScripts) {
+            //show Tablet. Make sure, setShown implemented in TabletRoot.qml
+            QMetaObject::invokeMethod(_qmlTabletRoot, "setShown", Q_ARG(const QVariant&, QVariant(true)));
         }
     } else {
         removeButtonsFromHomeScreen();
@@ -509,7 +527,7 @@ bool TabletProxy::pushOntoStack(const QVariant& path) {
         qCDebug(uiLogging) << "tablet cannot push QML because _qmlTabletRoot or _desktopWindow is null";
     }
 
-    return root;
+    return (root != nullptr);
 }
 
 void TabletProxy::popFromStack() {
@@ -825,7 +843,6 @@ TabletButtonProxy::TabletButtonProxy(const QVariantMap& properties) :
 }
 
 TabletButtonProxy::~TabletButtonProxy() {
-    qCDebug(uiLogging) << "Destroying tablet button proxy " ;
     if (QThread::currentThread() != thread()) {
         qCWarning(uiLogging) << "Destroying tablet button proxy on wrong thread";
     }

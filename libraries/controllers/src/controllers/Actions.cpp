@@ -101,6 +101,23 @@ namespace controller {
             makePosePair(Action::RIGHT_HAND_PINKY3, "RightHandPinky3"),
             makePosePair(Action::RIGHT_HAND_PINKY4, "RightHandPinky4"),
 
+            makePosePair(Action::TRACKED_OBJECT_00, "TrackedObject00"),
+            makePosePair(Action::TRACKED_OBJECT_01, "TrackedObject01"),
+            makePosePair(Action::TRACKED_OBJECT_02, "TrackedObject02"),
+            makePosePair(Action::TRACKED_OBJECT_03, "TrackedObject03"),
+            makePosePair(Action::TRACKED_OBJECT_04, "TrackedObject04"),
+            makePosePair(Action::TRACKED_OBJECT_05, "TrackedObject05"),
+            makePosePair(Action::TRACKED_OBJECT_06, "TrackedObject06"),
+            makePosePair(Action::TRACKED_OBJECT_07, "TrackedObject07"),
+            makePosePair(Action::TRACKED_OBJECT_08, "TrackedObject08"),
+            makePosePair(Action::TRACKED_OBJECT_09, "TrackedObject09"),
+            makePosePair(Action::TRACKED_OBJECT_10, "TrackedObject10"),
+            makePosePair(Action::TRACKED_OBJECT_11, "TrackedObject11"),
+            makePosePair(Action::TRACKED_OBJECT_12, "TrackedObject12"),
+            makePosePair(Action::TRACKED_OBJECT_13, "TrackedObject13"),
+            makePosePair(Action::TRACKED_OBJECT_14, "TrackedObject14"),
+            makePosePair(Action::TRACKED_OBJECT_15, "TrackedObject15"),
+
             makeButtonPair(Action::LEFT_HAND_CLICK, "LeftHandClick"),
             makeButtonPair(Action::RIGHT_HAND_CLICK, "RightHandClick"),
 

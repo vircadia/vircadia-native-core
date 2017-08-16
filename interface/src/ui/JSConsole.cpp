@@ -9,6 +9,8 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
+#include "JSConsole.h"
+
 #include <QFuture>
 #include <QKeyEvent>
 #include <QLabel>
@@ -20,7 +22,6 @@
 #include <PathUtils.h>
 
 #include "Application.h"
-#include "JSConsole.h"
 #include "ScriptHighlighting.h"
 
 const int NO_CURRENT_HISTORY_COMMAND = -1;
@@ -60,14 +61,12 @@ void _writeLines(const QString& filename, const QList<QString>& lines) {
     QTextStream(&file) << json;
 }
 
-JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
+JSConsole::JSConsole(QWidget* parent, const QSharedPointer<ScriptEngine>& scriptEngine) :
     QWidget(parent),
     _ui(new Ui::Console),
     _currentCommandInHistory(NO_CURRENT_HISTORY_COMMAND),
     _savedHistoryFilename(QStandardPaths::writableLocation(QStandardPaths::DataLocation) + "/" + HISTORY_FILENAME),
-    _commandHistory(_readLines(_savedHistoryFilename)),
-    _ownScriptEngine(scriptEngine == NULL),
-    _scriptEngine(NULL) {
+    _commandHistory(_readLines(_savedHistoryFilename)) {
     _ui->setupUi(this);
     _ui->promptTextEdit->setLineWrapMode(QTextEdit::NoWrap);
     _ui->promptTextEdit->setWordWrapMode(QTextOption::NoWrap);
@@ -90,36 +89,37 @@ JSConsole::JSConsole(QWidget* parent, ScriptEngine* scriptEngine) :
 }
 
 JSConsole::~JSConsole() {
-    disconnect(_scriptEngine, SIGNAL(printedMessage(const QString&)), this, SLOT(handlePrint(const QString&)));
-    disconnect(_scriptEngine, SIGNAL(errorMessage(const QString&)), this, SLOT(handleError(const QString&)));
-    if (_ownScriptEngine) {
-        _scriptEngine->deleteLater();
+    if (_scriptEngine) {
+        disconnect(_scriptEngine.data(), SIGNAL(printedMessage(const QString&)), this, SLOT(handlePrint(const QString&)));
+        disconnect(_scriptEngine.data(), SIGNAL(errorMessage(const QString&)), this, SLOT(handleError(const QString&)));
+        _scriptEngine.reset();
     }
     delete _ui;
 }
 
-void JSConsole::setScriptEngine(ScriptEngine* scriptEngine) {
+void JSConsole::setScriptEngine(const QSharedPointer<ScriptEngine>&  scriptEngine) {
     if (_scriptEngine == scriptEngine && scriptEngine != NULL) {
         return;
     }
     if (_scriptEngine != NULL) {
-        disconnect(_scriptEngine, &ScriptEngine::printedMessage, this, &JSConsole::handlePrint);
-        disconnect(_scriptEngine, &ScriptEngine::infoMessage, this, &JSConsole::handleInfo);
-        disconnect(_scriptEngine, &ScriptEngine::warningMessage, this, &JSConsole::handleWarning);
-        disconnect(_scriptEngine, &ScriptEngine::errorMessage, this, &JSConsole::handleError);
-        if (_ownScriptEngine) {
-            _scriptEngine->deleteLater();
-        }
+        disconnect(_scriptEngine.data(), &ScriptEngine::printedMessage, this, &JSConsole::handlePrint);
+        disconnect(_scriptEngine.data(), &ScriptEngine::infoMessage, this, &JSConsole::handleInfo);
+        disconnect(_scriptEngine.data(), &ScriptEngine::warningMessage, this, &JSConsole::handleWarning);
+        disconnect(_scriptEngine.data(), &ScriptEngine::errorMessage, this, &JSConsole::handleError);
+        _scriptEngine.reset();
     }
 
     // if scriptEngine is NULL then create one and keep track of it using _ownScriptEngine
-    _ownScriptEngine = (scriptEngine == NULL);
-    _scriptEngine = _ownScriptEngine ? DependencyManager::get<ScriptEngines>()->loadScript(_consoleFileName, false) : scriptEngine;
+    if (scriptEngine.isNull()) {
+        _scriptEngine = QSharedPointer<ScriptEngine>(DependencyManager::get<ScriptEngines>()->loadScript(_consoleFileName, false), &QObject::deleteLater);
+    } else {
+        _scriptEngine = scriptEngine;
+    }
 
-    connect(_scriptEngine, &ScriptEngine::printedMessage, this, &JSConsole::handlePrint);
-    connect(_scriptEngine, &ScriptEngine::infoMessage, this, &JSConsole::handleInfo);
-    connect(_scriptEngine, &ScriptEngine::warningMessage, this, &JSConsole::handleWarning);
-    connect(_scriptEngine, &ScriptEngine::errorMessage, this, &JSConsole::handleError);
+    connect(_scriptEngine.data(), &ScriptEngine::printedMessage, this, &JSConsole::handlePrint);
+    connect(_scriptEngine.data(), &ScriptEngine::infoMessage, this, &JSConsole::handleInfo);
+    connect(_scriptEngine.data(), &ScriptEngine::warningMessage, this, &JSConsole::handleWarning);
+    connect(_scriptEngine.data(), &ScriptEngine::errorMessage, this, &JSConsole::handleError);
 }
 
 void JSConsole::executeCommand(const QString& command) {
@@ -135,17 +135,20 @@ void JSConsole::executeCommand(const QString& command) {
 
     appendMessage(">", "<span style='" + COMMAND_STYLE + "'>" + command.toHtmlEscaped() + "</span>");
 
-    QFuture<QScriptValue> future = QtConcurrent::run(this, &JSConsole::executeCommandInWatcher, command);
+    QWeakPointer<ScriptEngine> weakScriptEngine = _scriptEngine;
+    auto consoleFileName = _consoleFileName;
+    QFuture<QScriptValue> future = QtConcurrent::run([weakScriptEngine, consoleFileName, command]()->QScriptValue{
+        QScriptValue result;
+        auto scriptEngine = weakScriptEngine.lock();
+        if (scriptEngine) {
+            BLOCKING_INVOKE_METHOD(scriptEngine.data(), "evaluate",
+                Q_RETURN_ARG(QScriptValue, result),
+                Q_ARG(const QString&, command),
+                Q_ARG(const QString&, consoleFileName));
+        }
+        return result;
+    });
     _executeWatcher.setFuture(future);
-}
-
-QScriptValue JSConsole::executeCommandInWatcher(const QString& command) {
-    QScriptValue result;
-    BLOCKING_INVOKE_METHOD(_scriptEngine, "evaluate",
-                              Q_RETURN_ARG(QScriptValue, result),
-                              Q_ARG(const QString&, command),
-                              Q_ARG(const QString&, _consoleFileName));
-    return result;
 }
 
 void JSConsole::commandFinished() {

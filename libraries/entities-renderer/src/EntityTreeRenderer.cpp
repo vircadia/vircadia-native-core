@@ -26,7 +26,6 @@
 #include <PerfStat.h>
 #include <SceneScriptingInterface.h>
 #include <ScriptEngine.h>
-#include <HoverOverlayInterface.h>
 
 
 #include "RenderableEntityItem.h"
@@ -453,8 +452,6 @@ RayToEntityIntersectionResult EntityTreeRenderer::findRayIntersectionWorker(cons
 
 void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityScriptingInterface) {
 
-    auto hoverOverlayInterface = DependencyManager::get<HoverOverlayInterface>().data();
-
     connect(this, &EntityTreeRenderer::mousePressOnEntity, entityScriptingInterface, &EntityScriptingInterface::mousePressOnEntity);
     connect(this, &EntityTreeRenderer::mouseMoveOnEntity, entityScriptingInterface, &EntityScriptingInterface::mouseMoveOnEntity);
     connect(this, &EntityTreeRenderer::mouseReleaseOnEntity, entityScriptingInterface, &EntityScriptingInterface::mouseReleaseOnEntity);
@@ -464,12 +461,8 @@ void EntityTreeRenderer::connectSignalsToSlots(EntityScriptingInterface* entityS
     connect(this, &EntityTreeRenderer::clickReleaseOnEntity, entityScriptingInterface, &EntityScriptingInterface::clickReleaseOnEntity);
 
     connect(this, &EntityTreeRenderer::hoverEnterEntity, entityScriptingInterface, &EntityScriptingInterface::hoverEnterEntity);
-    connect(this, SIGNAL(hoverEnterEntity(const EntityItemID&, const PointerEvent&)), hoverOverlayInterface, SLOT(createHoverOverlay(const EntityItemID&, const PointerEvent&)));
-
     connect(this, &EntityTreeRenderer::hoverOverEntity, entityScriptingInterface, &EntityScriptingInterface::hoverOverEntity);
-
     connect(this, &EntityTreeRenderer::hoverLeaveEntity, entityScriptingInterface, &EntityScriptingInterface::hoverLeaveEntity);
-    connect(this, SIGNAL(hoverLeaveEntity(const EntityItemID&, const PointerEvent&)), hoverOverlayInterface, SLOT(destroyHoverOverlay(const EntityItemID&, const PointerEvent&)));
 
     connect(this, &EntityTreeRenderer::enterEntity, entityScriptingInterface, &EntityScriptingInterface::enterEntity);
     connect(this, &EntityTreeRenderer::leaveEntity, entityScriptingInterface, &EntityScriptingInterface::leaveEntity);

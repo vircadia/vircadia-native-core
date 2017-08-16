@@ -21,6 +21,7 @@ public:
     Planar3DOverlay(const Planar3DOverlay* planar3DOverlay);
     
     virtual AABox getBounds() const override;
+    virtual glm::vec2 getSize() const { return _dimensions; };
     
     glm::vec2 getDimensions() const { return _dimensions; }
     void setDimensions(float value) { _dimensions = glm::vec2(value); }

@@ -32,8 +32,17 @@ void withLock(QMutex& lock, F function) {
     function();
 }
 
-void moveToNewNamedThread(QObject* object, const QString& name, std::function<void()> startCallback, QThread::Priority priority = QThread::InheritPriority);
-void moveToNewNamedThread(QObject* object, const QString& name, QThread::Priority priority = QThread::InheritPriority);
+void moveToNewNamedThread(QObject* object, const QString& name, 
+    std::function<void(QThread*)> preStartCallback, 
+    std::function<void()> startCallback, 
+    QThread::Priority priority = QThread::InheritPriority);
+
+void moveToNewNamedThread(QObject* object, const QString& name, 
+    std::function<void()> startCallback, 
+    QThread::Priority priority = QThread::InheritPriority);
+
+void moveToNewNamedThread(QObject* object, const QString& name, 
+    QThread::Priority priority = QThread::InheritPriority);
 
 class ConditionalGuard {
 public:
