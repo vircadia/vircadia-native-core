@@ -82,7 +82,7 @@ public:
     virtual void eraseAllOctreeElements(bool createNewRoot = true) override;
 
     virtual void readBitstreamToTree(const unsigned char* bitstream,
-            unsigned long int bufferSizeBytes, ReadBitstreamToTreeParams& args) override;
+            uint64_t bufferSizeBytes, ReadBitstreamToTreeParams& args) override;
     int readEntityDataFromBuffer(const unsigned char* data, int bytesLeftToRead, ReadBitstreamToTreeParams& args);
 
     // These methods will allow the OctreeServer to send your tree inbound edit packets of your

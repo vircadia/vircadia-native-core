@@ -107,7 +107,7 @@ void EntityTree::eraseAllOctreeElements(bool createNewRoot) {
 }
 
 void EntityTree::readBitstreamToTree(const unsigned char* bitstream,
-            unsigned long int bufferSizeBytes, ReadBitstreamToTreeParams& args) {
+            uint64_t bufferSizeBytes, ReadBitstreamToTreeParams& args) {
     Octree::readBitstreamToTree(bitstream, bufferSizeBytes, args);
 
     // add entities
