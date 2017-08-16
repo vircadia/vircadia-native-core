@@ -430,6 +430,8 @@ private slots:
     bool askToWearAvatarAttachmentUrl(const QString& url);
     void displayAvatarAttachmentWarning(const QString& message) const;
 
+    bool askToReplaceDomainContent(const QString& url);
+
     void setSessionUUID(const QUuid& sessionUUID) const;
 
     void domainChanged(const QString& domainHostname);

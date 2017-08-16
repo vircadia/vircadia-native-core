@@ -555,6 +555,8 @@ Menu::Menu() {
         avatar.get(), SLOT(setEnableDebugDrawIKConstraints(bool)));
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderIKChains, 0, false,
         avatar.get(), SLOT(setEnableDebugDrawIKChains(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::RenderDetailedCollision, 0, false,
+        avatar.get(), SLOT(setEnableDebugDrawDetailedCollision(bool)));
 
     addCheckableActionToQMenuAndActionHash(avatarDebugMenu, MenuOption::ActionMotorControl,
         Qt::CTRL | Qt::SHIFT | Qt::Key_K, true, avatar.get(), SLOT(updateMotionBehaviorFromMenu()),
