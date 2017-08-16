@@ -21,13 +21,23 @@ class QmlCommerce : public OffscreenQmlDialog {
     Q_OBJECT
     HIFI_QML_DECL
 
+public:
+    QmlCommerce(QQuickItem* parent = nullptr);
+
 signals:
     void buyResult(const QString& failureMessage);
+    // Balance and Inventory are NOT properties, because QML can't change them (without risk of failure), and 
+    // because we can't scalably know of out-of-band changes (e.g., another machine interacting with the block chain).
+    void balanceResult(int balance, const QString& failureMessage);
+    void inventoryResult(QJsonObject inventory, const QString& failureMessage);
+    void securityImageResult(uint imageID);
 
 protected:
-    Q_INVOKABLE bool buy(const QString& assetId, int cost, const QString& buyerUsername = "");
-    Q_INVOKABLE int balance();
-    Q_INVOKABLE QStringList inventory();
+    Q_INVOKABLE void buy(const QString& assetId, int cost, const QString& buyerUsername = "");
+    Q_INVOKABLE void balance();
+    Q_INVOKABLE void inventory();
+    Q_INVOKABLE void chooseSecurityImage(uint imageID);
+    Q_INVOKABLE void getSecurityImage();
 };
 
 #endif // hifi_QmlCommerce_h

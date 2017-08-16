@@ -32,6 +32,8 @@ Line3DOverlay::Line3DOverlay(const Line3DOverlay* line3DOverlay) :
     _length = line3DOverlay->getLength();
     _endParentID = line3DOverlay->getEndParentID();
     _endParentJointIndex = line3DOverlay->getEndJointIndex();
+    _glow = line3DOverlay->getGlow();
+    _glowWidth = line3DOverlay->getGlowWidth();
 }
 
 Line3DOverlay::~Line3DOverlay() {
@@ -138,11 +140,9 @@ void Line3DOverlay::render(RenderArgs* args) {
             // TODO: add support for color to renderDashedLine()
             geometryCache->bindSimpleProgram(*batch, false, false, false, true, true);
             geometryCache->renderDashedLine(*batch, start, end, colorv4, _geometryCacheID);
-        } else if (_glow > 0.0f) {
-            geometryCache->renderGlowLine(*batch, start, end, colorv4, _glow, _glowWidth, _geometryCacheID);
         } else {
-            geometryCache->bindSimpleProgram(*batch, false, false, false, true, true);
-            geometryCache->renderLine(*batch, start, end, colorv4, _geometryCacheID);
+            // renderGlowLine handles both glow = 0 and glow > 0 cases
+            geometryCache->renderGlowLine(*batch, start, end, colorv4, _glow, _glowWidth, _geometryCacheID);
         }
     }
 }
@@ -228,9 +228,9 @@ void Line3DOverlay::setProperties(const QVariantMap& originalProperties) {
         }
     }
 
-    auto glowWidth = properties["glow"];
+    auto glowWidth = properties["glowWidth"];
     if (glowWidth.isValid()) {
-        setGlow(glowWidth.toFloat());
+        setGlowWidth(glowWidth.toFloat());
     }
 
 }
