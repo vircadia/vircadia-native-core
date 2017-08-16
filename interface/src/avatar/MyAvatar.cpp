@@ -2251,6 +2251,7 @@ void MyAvatar::restrictScaleFromDomainSettings(const QJsonObject& domainSettings
     }
 
     setScale(glm::vec3(_targetScale));
+    rebuildCollisionShape();
     settings.endGroup();
 }
 
