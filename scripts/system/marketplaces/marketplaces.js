@@ -21,6 +21,7 @@
     var MARKETPLACES_INJECT_SCRIPT_URL = Script.resolvePath("../html/js/marketplacesInject.js");
     var MARKETPLACE_CHECKOUT_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/Checkout.qml";
     var MARKETPLACE_INVENTORY_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/Inventory.qml";
+    var MARKETPLACE_SECURITY_QML_PATH = Script.resourcesPath() + "qml/hifi/commerce/SecurityImageSelection.qml";
 
     var HOME_BUTTON_TEXTURE = "http://hifi-content.s3.amazonaws.com/alan/dev/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
     // var HOME_BUTTON_TEXTURE = Script.resourcesPath() + "meshes/tablet-with-home-button.fbx/tablet-with-home-button.fbm/button-root.png";
@@ -87,7 +88,7 @@
 
     function onScreenChanged(type, url) {
         onMarketplaceScreen = type === "Web" && url === MARKETPLACE_URL_INITIAL;
-        wireEventBridge(type === "QML" && (url === MARKETPLACE_CHECKOUT_QML_PATH || url === MARKETPLACE_INVENTORY_QML_PATH));
+        wireEventBridge(type === "QML" && (url === MARKETPLACE_CHECKOUT_QML_PATH || url === MARKETPLACE_INVENTORY_QML_PATH || url === MARKETPLACE_SECURITY_QML_PATH));
         // for toolbar mode: change button to active when window is first openend, false otherwise.
         marketplaceButton.editProperties({ isActive: onMarketplaceScreen });
         if (type === "Web" && url.indexOf(MARKETPLACE_URL) !== -1) {
@@ -217,8 +218,11 @@
             case 'inventory_backClicked':
                 tablet.gotoWebScreen(message.referrerURL, MARKETPLACES_INJECT_SCRIPT_URL);
                 break;
+            case 'securityImageSelection_cancelClicked':
+                tablet.gotoWebScreen(message.referrerURL, MARKETPLACES_INJECT_SCRIPT_URL);
+                break;
             default:
-                print('Unrecognized message from Checkout.qml or Inventory.qml: ' + JSON.stringify(message));
+                print('Unrecognized message from Checkout.qml, Inventory.qml, or SecurityImageSelection.qml: ' + JSON.stringify(message));
         }
     }
 

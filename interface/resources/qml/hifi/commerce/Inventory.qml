@@ -43,6 +43,14 @@ Rectangle {
                 inventoryContentsList.model = inventory.assets;
             }
         }
+        onSecurityImageResult: {
+            securityImage.source = securityImageSelection.getImagePathFromImageID(imageID);
+        }
+    }
+
+    SecurityImageSelection {
+        id: securityImageSelection;
+        referrerURL: inventoryRoot.referrerURL;
     }
 
     //
@@ -51,11 +59,25 @@ Rectangle {
     Item {
         id: titleBarContainer;
         // Size
-        width: inventoryRoot.width;
+        width: parent.width;
         height: 50;
         // Anchors
         anchors.left: parent.left;
         anchors.top: parent.top;
+
+        // Security Image
+        Image {
+            id: securityImage;
+            // Anchors
+            anchors.top: parent.top;
+            anchors.left: parent.left;
+            anchors.leftMargin: 16;
+            height: parent.height - 5;
+            width: height;
+            anchors.verticalCenter: parent.verticalCenter;
+            fillMode: Image.PreserveAspectFit;
+            mipmap: true;
+        }
 
         // Title Bar text
         RalewaySemiBold {
@@ -64,13 +86,35 @@ Rectangle {
             // Text size
             size: hifi.fontSizes.overlayTitle;
             // Anchors
-            anchors.fill: parent;
+            anchors.top: parent.top;
+            anchors.left: securityImage.right;
             anchors.leftMargin: 16;
+            anchors.bottom: parent.bottom;
+            width: paintedWidth;
             // Style
             color: hifi.colors.lightGrayText;
             // Alignment
             horizontalAlignment: Text.AlignHLeft;
             verticalAlignment: Text.AlignVCenter;
+        }
+
+        // "Change Security Image" button
+        HifiControlsUit.Button {
+            id: changeSecurityImageButton;
+            color: hifi.buttons.black;
+            colorScheme: hifi.colorSchemes.dark;
+            anchors.top: parent.top;
+            anchors.topMargin: 3;
+            anchors.bottom: parent.bottom;
+            anchors.bottomMargin: 3;
+            anchors.right: parent.right;
+            anchors.rightMargin: 20;
+            width: 200;
+            text: "Change Security Image"
+            onClicked: {
+                securityImageSelection.isManuallyChangingSecurityImage = true;
+                securityImageSelection.visible = true;
+            }
         }
 
         // Separator
@@ -166,6 +210,7 @@ Rectangle {
         }
         ListView {
             id: inventoryContentsList;
+            clip: true;
             // Anchors
             anchors.top: inventoryContentsLabel.bottom;
             anchors.topMargin: 8;
@@ -262,6 +307,7 @@ Rectangle {
                 referrerURL = message.referrerURL;
                 commerce.balance();
                 commerce.inventory();
+                commerce.getSecurityImage();
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));
