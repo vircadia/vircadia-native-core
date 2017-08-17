@@ -55,6 +55,8 @@ ContextOverlayInterface::ContextOverlayInterface() {
             _contextOverlayJustClicked = false;
         }
     });
+    auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
+    connect(entityScriptingInterface, &EntityScriptingInterface::deletingEntity, this, &ContextOverlayInterface::deletingEntity);
 }
 
 static const uint32_t LEFT_HAND_HW_ID = 1;
@@ -250,7 +252,8 @@ void ContextOverlayInterface::openMarketplace() {
         auto tablet = dynamic_cast<TabletProxy*>(_tabletScriptingInterface->getTablet("com.highfidelity.interface.tablet.system"));
         // construct the url to the marketplace item
         QString url = MARKETPLACE_BASE_URL + _entityMarketplaceID;
-        tablet->gotoWebScreen(url);
+        QString MARKETPLACES_INJECT_SCRIPT_PATH = "file:///" + qApp->applicationDirPath() + "/scripts/system/html/js/marketplacesInject.js";
+        tablet->gotoWebScreen(url, MARKETPLACES_INJECT_SCRIPT_PATH);
         _hmdScriptingInterface->openTablet();
         _isInMarketplaceInspectionMode = true;
     }
@@ -276,4 +279,10 @@ void ContextOverlayInterface::disableEntityHighlight(const EntityItemID& entityI
             entityItem->setShouldHighlight(false);
         }
     });
+}
+
+void ContextOverlayInterface::deletingEntity(const EntityItemID& entityID) {
+    if (_currentEntityWithContextOverlay == entityID) {
+        destroyContextOverlay(_currentEntityWithContextOverlay, PointerEvent());
+    }
 }

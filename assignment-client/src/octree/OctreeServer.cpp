@@ -935,45 +935,75 @@ void OctreeServer::handleOctreeFileReplacement(QSharedPointer<ReceivedMessage> m
             // so here we just store a special file at our persist path
             // and then force a stop of the server so that it can pick it up when it relaunches
             if (!_persistAbsoluteFilePath.isEmpty()) {
-
-                // before we restart the server and make it try and load this data, let's make sure it is valid
-                auto compressedOctree = message->getMessage();
-                QByteArray jsonOctree;
-
-                // assume we have GZipped content
-                bool wasCompressed = gunzip(compressedOctree, jsonOctree);
-                if (!wasCompressed) {
-                    // the source was not compressed, assume we were sent regular JSON data
-                    jsonOctree = compressedOctree;
-                }
-
-                // check the JSON data to verify it is an object
-                if (QJsonDocument::fromJson(jsonOctree).isObject()) {
-                    if (!wasCompressed) {
-                        // source was not compressed, we compress it before we write it locally
-                        gzip(jsonOctree, compressedOctree);
-                    }
-
-                    // write the compressed octree data to a special file
-                    auto replacementFilePath = _persistAbsoluteFilePath.append(OctreePersistThread::REPLACEMENT_FILE_EXTENSION);
-                    QFile replacementFile(replacementFilePath);
-                    if (replacementFile.open(QIODevice::WriteOnly) && replacementFile.write(compressedOctree) != -1) {
-                        // we've now written our replacement file, time to take the server down so it can
-                        // process it when it comes back up
-                        qInfo() << "Wrote octree replacement file to" << replacementFilePath << "- stopping server";
-                        setFinished(true);
-                    } else {
-                        qWarning() << "Could not write replacement octree data to file - refusing to process";
-                    }
-                } else {
-                    qDebug() << "Received replacement octree file that is invalid - refusing to process";
-                }
+                replaceContentFromMessageData(message->getMessage());
             } else {
                 qDebug() << "Cannot perform octree file replacement since current persist file path is not yet known";
             }
         } else {
             qDebug() << "Received an octree file replacement that was not from our domain server - refusing to process";
         }
+    }
+}
+
+// Message->getMessage() contains a QByteArray representation of the URL to download from
+void OctreeServer::handleOctreeFileReplacementFromURL(QSharedPointer<ReceivedMessage> message) {
+    qInfo() << "Received request to replace content from a url";
+    if (!_isFinished && !_isShuttingDown) {
+        // This call comes from Interface, so we skip our domain server check
+        // but confirm that we have permissions to replace content sets
+        if (DependencyManager::get<NodeList>()->getThisNodeCanReplaceContent()) {
+            if (!_persistAbsoluteFilePath.isEmpty()) {
+                // Convert message data into our URL
+                QString url(message->getMessage());
+                QUrl modelsURL = QUrl(url, QUrl::StrictMode);
+                QNetworkAccessManager& networkAccessManager = NetworkAccessManager::getInstance();
+                QNetworkRequest request(modelsURL);
+                QNetworkReply* reply = networkAccessManager.get(request);
+                connect(reply, &QNetworkReply::finished, [this, reply, modelsURL]() {
+                    QNetworkReply::NetworkError networkError = reply->error();
+                    if (networkError == QNetworkReply::NoError) {
+                        QByteArray contents = reply->readAll();
+                        replaceContentFromMessageData(contents);
+                    } else {
+                        qDebug() << "Error downloading JSON from specified file";
+                    }
+                });
+            } else {
+                qDebug() << "Cannot perform octree file replacement since current persist file path is not yet known";
+            }
+        }
+    }
+}
+
+void OctreeServer::replaceContentFromMessageData(QByteArray content) {
+    //Assume we have compressed data
+    auto compressedOctree = content;
+    QByteArray jsonOctree;
+
+    bool wasCompressed = gunzip(compressedOctree, jsonOctree);
+    if (!wasCompressed) {
+        // the source was not compressed, assume we were sent regular JSON data
+        jsonOctree = compressedOctree;
+    }
+    // check the JSON data to verify it is an object
+    if (QJsonDocument::fromJson(jsonOctree).isObject()) {
+        if (!wasCompressed) {
+            // source was not compressed, we compress it before we write it locally
+            gzip(jsonOctree, compressedOctree);
+        }
+        // write the compressed octree data to a special file
+        auto replacementFilePath = _persistAbsoluteFilePath.append(OctreePersistThread::REPLACEMENT_FILE_EXTENSION);
+        QFile replacementFile(replacementFilePath);
+        if (replacementFile.open(QIODevice::WriteOnly) && replacementFile.write(compressedOctree) != -1) {
+            // we've now written our replacement file, time to take the server down so it can
+            // process it when it comes back up
+            qInfo() << "Wrote octree replacement file to" << replacementFilePath << "- stopping server";
+            setFinished(true);
+        } else {
+            qWarning() << "Could not write replacement octree data to file - refusing to process";
+        }
+    } else {
+        qDebug() << "Received replacement octree file that is invalid - refusing to process";
     }
 }
 
@@ -1202,6 +1232,7 @@ void OctreeServer::domainSettingsRequestComplete() {
     packetReceiver.registerListener(PacketType::OctreeDataNack, this, "handleOctreeDataNackPacket");
     packetReceiver.registerListener(PacketType::JurisdictionRequest, this, "handleJurisdictionRequestPacket");
     packetReceiver.registerListener(PacketType::OctreeFileReplacement, this, "handleOctreeFileReplacement");
+    packetReceiver.registerListener(PacketType::OctreeFileReplacementFromUrl, this, "handleOctreeFileReplacementFromURL");
     
     readConfiguration();
     

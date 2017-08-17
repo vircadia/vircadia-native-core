@@ -152,7 +152,7 @@ protected:
     bool isAnimatingSomething() const;
 
     rgbColor _color;
-    QString _modelURL;
+    QString _modelURL; 
     QUrl _parsedModelURL;
     QString _compoundShapeURL;
 

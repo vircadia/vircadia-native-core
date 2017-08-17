@@ -111,14 +111,14 @@ macro(SET_PACKAGING_PARAMETERS)
 
     # shortcut names
     if (PRODUCTION_BUILD)
-      set(INTERFACE_SHORTCUT_NAME "Interface")
+      set(INTERFACE_SHORTCUT_NAME "High Fidelity Interface")
       set(CONSOLE_SHORTCUT_NAME "Sandbox")
     else ()
-      set(INTERFACE_SHORTCUT_NAME "Interface - ${BUILD_VERSION}")
+      set(INTERFACE_SHORTCUT_NAME "High Fidelity Interface - ${BUILD_VERSION}")
       set(CONSOLE_SHORTCUT_NAME "Sandbox - ${BUILD_VERSION}")
     endif ()
 
-    set(INTERFACE_HF_SHORTCUT_NAME "High Fidelity ${INTERFACE_SHORTCUT_NAME}")
+    set(INTERFACE_HF_SHORTCUT_NAME "${INTERFACE_SHORTCUT_NAME}")
     set(CONSOLE_HF_SHORTCUT_NAME "High Fidelity ${CONSOLE_SHORTCUT_NAME}")
 
     set(PRE_SANDBOX_INTERFACE_SHORTCUT_NAME "High Fidelity")

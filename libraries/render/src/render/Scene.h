@@ -16,10 +16,12 @@
 #include "SpatialTree.h"
 #include "Stage.h"
 #include "Selection.h"
+#include "Transition.h"
 
 namespace render {
 
 class Engine;
+class Scene;
 
 // Transaction is the mechanism to make any change to the scene.
 // Whenever a new item need to be reset,
@@ -31,13 +33,23 @@ class Engine;
 // of updating the scene before it s rendered.
 // 
 class Transaction {
+    friend class Scene;
 public:
+
+    typedef std::function<void(ItemID, const Transition*)> TransitionQueryFunc;
+
     Transaction() {}
     ~Transaction() {}
 
     // Item transactions
     void resetItem(ItemID id, const PayloadPointer& payload);
     void removeItem(ItemID id);
+    bool hasRemovedItems() const { return !_removedItems.empty(); }
+
+    void addTransitionToItem(ItemID id, Transition::Type transition, ItemID boundId = render::Item::INVALID_ITEM_ID);
+    void removeTransitionFromItem(ItemID id);
+    void reApplyTransitionToItem(ItemID id);
+    void queryTransitionOnItem(ItemID id, TransitionQueryFunc func);
 
     template <class T> void updateItem(ItemID id, std::function<void(T&)> func) {
         updateItem(id, std::make_shared<UpdateFunctor<T>>(func));
@@ -54,15 +66,31 @@ public:
     // Checkers if there is work to do when processing the transaction
     bool touchTransactions() const { return !_resetSelections.empty(); }
 
-    ItemIDs _resetItems; 
-    Payloads _resetPayloads;
-    ItemIDs _removedItems;
-    ItemIDs _updatedItems;
-    UpdateFunctors _updateFunctors;
-
-    Selections _resetSelections;
-
 protected:
+
+    using Reset = std::tuple<ItemID, PayloadPointer>;
+    using Remove = ItemID;
+    using Update = std::tuple<ItemID, UpdateFunctorPointer>;
+    using TransitionAdd = std::tuple<ItemID, Transition::Type, ItemID>;
+    using TransitionQuery = std::tuple<ItemID, TransitionQueryFunc>;
+    using TransitionReApply = ItemID;
+    using SelectionReset = Selection;
+
+    using Resets = std::vector<Reset>;
+    using Removes = std::vector<Remove>;
+    using Updates = std::vector<Update>;
+    using TransitionAdds = std::vector<TransitionAdd>;
+    using TransitionQueries = std::vector<TransitionQuery>;
+    using TransitionReApplies = std::vector<TransitionReApply>;
+    using SelectionResets = std::vector<SelectionReset>;
+
+    Resets _resetItems;
+    Removes _removedItems;
+    Updates _updatedItems;
+    TransitionAdds _addedTransitions;
+    TransitionQueries _queriedTransitions;
+    TransitionReApplies _reAppliedTransitions;
+    SelectionResets _resetSelections;
 };
 typedef std::queue<Transaction> TransactionQueue;
 
@@ -123,8 +151,11 @@ public:
     }
     void resetStage(const Stage::Name& name, const StagePointer& stage);
 
+    void setItemTransition(ItemID id, Index transitionId);
+    void resetItemTransition(ItemID id);
 
 protected:
+
     // Thread safe elements that can be accessed from anywhere
     std::atomic<unsigned int> _IDAllocator{ 1 }; // first valid itemID will be One
     std::atomic<unsigned int> _numAllocatedItems{ 1 }; // num of allocated items, matching the _items.size()
@@ -138,15 +169,20 @@ protected:
     ItemSpatialTree _masterSpatialTree;
     ItemIDSet _masterNonspatialSet;
 
-    void resetItems(const ItemIDs& ids, Payloads& payloads);
-    void removeItems(const ItemIDs& ids);
-    void updateItems(const ItemIDs& ids, UpdateFunctors& functors);
+    void resetItems(const Transaction::Resets& transactions);
+    void removeItems(const Transaction::Removes& transactions);
+    void updateItems(const Transaction::Updates& transactions);
+    void transitionItems(const Transaction::TransitionAdds& transactions);
+    void reApplyTransitions(const Transaction::TransitionReApplies& transactions);
+    void queryTransitionItems(const Transaction::TransitionQueries& transactions);
+
+    void collectSubItems(ItemID parentId, ItemIDs& subItems) const;
 
     // The Selection map
     mutable std::mutex _selectionsMutex; // mutable so it can be used in the thread safe getSelection const method
     SelectionMap _selections;
 
-    void resetSelections(const Selections& selections);
+    void resetSelections(const Transaction::SelectionResets& transactions);
   // More actions coming to selections soon:
   //  void removeFromSelection(const Selection& selection);
   //  void appendToSelection(const Selection& selection);

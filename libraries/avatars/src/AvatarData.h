@@ -544,7 +544,7 @@ public:
     Q_INVOKABLE void updateAvatarEntity(const QUuid& entityID, const QByteArray& entityData);
     Q_INVOKABLE void clearAvatarEntity(const QUuid& entityID);
 
-    void setForceFaceTrackerConnected(bool connected) { _forceFaceTrackerConnected = connected; }
+    Q_INVOKABLE void setForceFaceTrackerConnected(bool connected) { _forceFaceTrackerConnected = connected; }
 
     // key state
     void setKeyState(KeyState s) { _keyState = s; }

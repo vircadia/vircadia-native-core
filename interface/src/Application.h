@@ -274,6 +274,7 @@ public:
     float getAverageSimsPerSecond() const { return _simCounter.rate(); }
 
     void takeSnapshot(bool notify, bool includeAnimated = false, float aspectRatio = 0.0f);
+    void takeSecondaryCameraSnapshot();
     void shareSnapshot(const QString& filename, const QUrl& href = QUrl(""));
 
     model::SkyboxPointer getDefaultSkybox() const { return _defaultSkybox; }
@@ -297,6 +298,7 @@ public:
     QUuid getTabletFrameID() const; // may be an entity or an overlay
 
     void setAvatarOverrideUrl(const QUrl& url, bool save);
+    void clearAvatarOverrideUrl() { _avatarOverrideUrl = QUrl(); _saveAvatarOverrideUrl = false; }
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
 
@@ -429,6 +431,8 @@ private slots:
     bool askToWearAvatarAttachmentUrl(const QString& url);
     void displayAvatarAttachmentWarning(const QString& message) const;
     bool displayAvatarAttachmentConfirmationDialog(const QString& name) const;
+
+    bool askToReplaceDomainContent(const QString& url);
 
     void setSessionUUID(const QUuid& sessionUUID) const;
 

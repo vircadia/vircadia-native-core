@@ -56,7 +56,10 @@ public:
 
 struct FBXJointShapeInfo {
     // same units and frame as FBXJoint.translation
-    QVector<glm::vec3> points;
+    glm::vec3 avgPoint;
+    std::vector<float> dots;
+    std::vector<glm::vec3> points;
+    std::vector<glm::vec3> debugLines;
 };
 
 /// A single joint (transformation node) extracted from an FBX document.

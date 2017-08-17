@@ -52,7 +52,7 @@ void setupPreferences() {
 
     {
         auto getter = [=]()->QString { return myAvatar->getFullAvatarURLFromPreferences().toString(); };
-        auto setter = [=](const QString& value) { myAvatar->useFullAvatarURL(value, ""); };
+        auto setter = [=](const QString& value) { myAvatar->useFullAvatarURL(value, ""); qApp->clearAvatarOverrideUrl(); };
         auto preference = new AvatarPreference(AVATAR_BASICS, "Appearance", getter, setter);
         preferences->addPreference(preference);
     }
@@ -315,21 +315,21 @@ void setupPreferences() {
         static const QString RENDER("Graphics");
         auto renderConfig = qApp->getRenderEngine()->getConfiguration();
         if (renderConfig) {
-            auto ambientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>();
-            if (ambientOcclusionConfig) {
-                auto getter = [ambientOcclusionConfig]()->QString { return ambientOcclusionConfig->getPreset(); };
-                auto setter = [ambientOcclusionConfig](QString preset) { ambientOcclusionConfig->setPreset(preset); };
+            auto mainViewAmbientOcclusionConfig = renderConfig->getConfig<AmbientOcclusionEffect>("RenderMainView.AmbientOcclusion");
+            if (mainViewAmbientOcclusionConfig) {
+                auto getter = [mainViewAmbientOcclusionConfig]()->QString { return mainViewAmbientOcclusionConfig->getPreset(); };
+                auto setter = [mainViewAmbientOcclusionConfig](QString preset) { mainViewAmbientOcclusionConfig->setPreset(preset); };
                 auto preference = new ComboBoxPreference(RENDER, "Ambient occlusion", getter, setter);
-                preference->setItems(ambientOcclusionConfig->getPresetList());
+                preference->setItems(mainViewAmbientOcclusionConfig->getPresetList());
                 preferences->addPreference(preference);
             }
 
-            auto shadowConfig = renderConfig->getConfig<RenderShadowTask>();
-            if (shadowConfig) {
-                auto getter = [shadowConfig]()->QString { return shadowConfig->getPreset(); };
-                auto setter = [shadowConfig](QString preset) { shadowConfig->setPreset(preset); };
+            auto mainViewShadowConfig = renderConfig->getConfig<RenderShadowTask>("RenderMainView.RenderShadowTask");
+            if (mainViewShadowConfig) {
+                auto getter = [mainViewShadowConfig]()->QString { return mainViewShadowConfig->getPreset(); };
+                auto setter = [mainViewShadowConfig](QString preset) { mainViewShadowConfig->setPreset(preset); };
                 auto preference = new ComboBoxPreference(RENDER, "Shadows", getter, setter);
-                preference->setItems(shadowConfig->getPresetList());
+                preference->setItems(mainViewShadowConfig->getPresetList());
                 preferences->addPreference(preference);
             }
         }
