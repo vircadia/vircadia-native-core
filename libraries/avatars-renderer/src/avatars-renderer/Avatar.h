@@ -251,7 +251,11 @@ public:
     bool isFading() const { return _isFading; }
     void updateFadingStatus(render::ScenePointer scene);
 
-    // returns the avatar height, in meters, includes avatar scale factor.
+    /**jsdoc
+     * Provides read only access to the current height of the avatar in world space.
+     * @function Avatar.getHeight
+     * @returns {number} height of avatar in meters
+     */
     Q_INVOKABLE float getHeight() const;
 
 public slots:

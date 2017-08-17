@@ -1552,6 +1552,14 @@ void Avatar::ensureInScene(AvatarSharedPointer self, const render::ScenePointer&
 
 // returns the avatar height, in meters, includes avatar scale factor.
 float Avatar::getHeight() const {
+
+    if (QThread::currentThread() != thread()) {
+        float result = DEFAULT_AVATAR_HEIGHT;
+        BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getHeight", Q_RETURN_ARG(float, result));
+        return result;
+    }
+
+    // TODO: if performance becomes a concern we can cache this value rather then computing it everytime.
     // AJT: TODO: I don't know what scale is to use here... getDomainLimitedScale?
     float avatarScale = getTargetScale();
     if (_skeletonModel) {

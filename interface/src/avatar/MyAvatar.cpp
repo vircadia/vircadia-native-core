@@ -26,7 +26,6 @@
 #include <AccountManager.h>
 #include <AddressManager.h>
 #include <AudioClient.h>
-#include <AvatarConstants.h>
 #include <display-plugins/DisplayPlugin.h>
 #include <FSTReader.h>
 #include <GeometryUtil.h>
@@ -976,6 +975,7 @@ void MyAvatar::saveData() {
     settings.setValue("collisionSoundURL", _collisionSoundURL);
     settings.setValue("useSnapTurn", _useSnapTurn);
     settings.setValue("clearOverlayWhenMoving", _clearOverlayWhenMoving);
+    settings.setValue("userHeight", getUserHeight());
 
     settings.endGroup();
 }
@@ -1113,6 +1113,7 @@ void MyAvatar::loadData() {
     setSnapTurn(settings.value("useSnapTurn", _useSnapTurn).toBool());
     setClearOverlayWhenMoving(settings.value("clearOverlayWhenMoving", _clearOverlayWhenMoving).toBool());
     setDominantHand(settings.value("dominantHand", _dominantHand).toString().toLower());
+    setUserHeight(settings.value("userHeight", DEFAULT_AVATAR_HEIGHT).toDouble());
     settings.endGroup();
 
     setEnableMeshVisible(Menu::getInstance()->isOptionChecked(MenuOption::MeshVisible));
@@ -2617,6 +2618,14 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     glm::vec3 bodyPos = headPosition + headToNeck + neckToRoot;
 
     return createMatFromQuatAndPos(headOrientationYawOnly, bodyPos);
+}
+
+float MyAvatar::getUserHeight() const {
+    return _userHeight.get();
+}
+
+void MyAvatar::setUserHeight(float value) {
+    _userHeight.set(value);
 }
 
 glm::vec3 MyAvatar::getPositionForAudio() {

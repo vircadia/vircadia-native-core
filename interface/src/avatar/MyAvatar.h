@@ -23,6 +23,7 @@
 #include <controllers/Pose.h>
 #include <controllers/Actions.h>
 #include <avatars-renderer/Avatar.h>
+#include <AvatarConstants.h>
 
 #include "AtRestDetector.h"
 #include "MyCharacterController.h"
@@ -101,6 +102,7 @@ class MyAvatar : public Avatar {
      * @property collisionsEnabled {bool} This can be used to disable collisions between the avatar and the world.
      * @property useAdvancedMovementControls {bool} Stores the user preference only, does not change user mappings, this is done in the defaultScript
      *   "scripts/system/controllers/toggleAdvancedMovementForHandControllers.js".
+     * @property userHeight {number} The height of the user in sensor space. (meters).
      */
 
     // FIXME: `glm::vec3 position` is not accessible from QML, so this exposes position in a QML-native type
@@ -141,6 +143,8 @@ class MyAvatar : public Avatar {
     Q_PROPERTY(bool hmdRollControlEnabled READ getHMDRollControlEnabled WRITE setHMDRollControlEnabled)
     Q_PROPERTY(float hmdRollControlDeadZone READ getHMDRollControlDeadZone WRITE setHMDRollControlDeadZone)
     Q_PROPERTY(float hmdRollControlRate READ getHMDRollControlRate WRITE setHMDRollControlRate)
+
+    Q_PROPERTY(float userHeight READ getUserHeight WRITE setUserHeight)
 
     const QString DOMINANT_LEFT_HAND = "left";
     const QString DOMINANT_RIGHT_HAND = "right";
@@ -521,6 +525,9 @@ public:
     Q_INVOKABLE bool isUp(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) > 0.0f; }; // true iff direction points up wrt avatar's definition of up.
     Q_INVOKABLE bool isDown(const glm::vec3& direction) { return glm::dot(direction, _worldUpDirection) < 0.0f; };
 
+    float getUserHeight() const;
+    void setUserHeight(float value);
+
 public slots:
     void increaseSize();
     void decreaseSize();
@@ -794,6 +801,9 @@ private:
     void setAway(bool value);
 
     std::vector<int> _pinnedJoints;
+
+    // height of user in sensor space, when standing erect.
+    ThreadSafeValueCache<float> _userHeight { DEFAULT_AVATAR_HEIGHT };
 };
 
 QScriptValue audioListenModeToScriptValue(QScriptEngine* engine, const AudioListenerMode& audioListenerMode);
