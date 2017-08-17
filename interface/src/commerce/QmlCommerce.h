@@ -31,6 +31,8 @@ signals:
     void balanceResult(int balance, const QString& failureMessage);
     void inventoryResult(QJsonObject inventory, const QString& failureMessage);
     void securityImageResult(uint imageID);
+    void loginStatusResult(bool isSetup);
+    void passphraseSetupStatusResult(bool passphraseIsSetup);
 
 protected:
     Q_INVOKABLE void buy(const QString& assetId, int cost, const QString& buyerUsername = "");
@@ -38,6 +40,8 @@ protected:
     Q_INVOKABLE void inventory();
     Q_INVOKABLE void chooseSecurityImage(uint imageID);
     Q_INVOKABLE void getSecurityImage();
+    Q_INVOKABLE void getLoginStatus();
+    Q_INVOKABLE void getPassphraseSetupStatus();
 };
 
 #endif // hifi_QmlCommerce_h

@@ -14,6 +14,7 @@
 #include "DependencyManager.h"
 #include "Ledger.h"
 #include "Wallet.h"
+#include <AccountManager.h>
 
 HIFI_QML_DEF(QmlCommerce)
 
@@ -59,4 +60,10 @@ void QmlCommerce::chooseSecurityImage(uint imageID) {
 void QmlCommerce::getSecurityImage() {
     auto wallet = DependencyManager::get<Wallet>();
     wallet->getSecurityImage();
+}
+void QmlCommerce::getLoginStatus() {
+    emit loginStatusResult(DependencyManager::get<AccountManager>()->isLoggedIn());
+}
+void QmlCommerce::getPassphraseSetupStatus() {
+    emit passphraseSetupStatusResult(false);
 }
