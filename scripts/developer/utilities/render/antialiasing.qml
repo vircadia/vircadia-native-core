@@ -28,12 +28,20 @@ Column {
                 min: 0.0
             }
             ConfigSlider {
-                label: qsTr("History blend")
+                label: qsTr("Source blend")
                 integral: false
                 config: Render.getConfig("RenderMainView.Antialiasing")
                 property: "blend"
                 max: 1.0
                 min: 0.0
+            }
+            ConfigSlider {
+                label: qsTr("Velocity scale")
+                integral: false
+                config: Render.getConfig("RenderMainView.Antialiasing")
+                property: "velocityScale"
+                max: 1.0
+                min: -1.0
             }
             CheckBox {
                     text: "Freeze "

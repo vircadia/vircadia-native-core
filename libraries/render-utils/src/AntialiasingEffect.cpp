@@ -241,6 +241,7 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
 void Antialiasing::configure(const Config& config) {
     _params.edit().debugX = config.debugX;
     _params.edit().blend = config.blend;
+    _params.edit().velocityScale = config.velocityScale;
 }
 
 

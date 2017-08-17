@@ -22,12 +22,14 @@ class AntialiasingConfig : public render::Job::Config {
     Q_OBJECT
     Q_PROPERTY(float debugX MEMBER debugX NOTIFY dirty)
     Q_PROPERTY(float blend MEMBER blend NOTIFY dirty)
+    Q_PROPERTY(float velocityScale MEMBER velocityScale NOTIFY dirty)
 
 public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
-    float debugX{ 1.0f };
-    float blend { 0.1f };
+    float debugX{ 0.0f };
+    float blend{ 0.1f };
+    float velocityScale{ 1.0f };
 
 signals:
     void dirty();
@@ -35,9 +37,9 @@ signals:
 
 
 struct TAAParams {
-    float debugX{ 1.0f };
+    float debugX{ 0.0f };
     float blend{ 0.1f };
-    float spareA;
+    float velocityScale{ 1.0f };
     float spareB;
 
 };
