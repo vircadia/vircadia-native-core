@@ -1550,47 +1550,48 @@ void Avatar::ensureInScene(AvatarSharedPointer self, const render::ScenePointer&
     }
 }
 
-// returns the avatar height, in meters, includes avatar scale factor.
-float Avatar::getHeight() const {
+float Avatar::getEyeHeight() const {
 
     if (QThread::currentThread() != thread()) {
-        float result = DEFAULT_AVATAR_HEIGHT;
+        float result = DEFAULT_AVATAR_EYE_HEIGHT;
         BLOCKING_INVOKE_METHOD(const_cast<Avatar*>(this), "getHeight", Q_RETURN_ARG(float, result));
         return result;
     }
 
     // TODO: if performance becomes a concern we can cache this value rather then computing it everytime.
-    // AJT: TODO: I don't know what scale is to use here... getDomainLimitedScale?
-    float avatarScale = getTargetScale();
+    float avatarScale = getUniformScale();
     if (_skeletonModel) {
         auto& rig = _skeletonModel->getRig();
         int headTopJoint = rig.indexOfJoint("HeadTop_End");
         int headJoint = rig.indexOfJoint("Head");
         int eyeJoint = rig.indexOfJoint("LeftEye") != -1 ? rig.indexOfJoint("LeftEye") : rig.indexOfJoint("RightEye");
         int toeJoint = rig.indexOfJoint("LeftToeBase") != -1 ? rig.indexOfJoint("LeftToeBase") : rig.indexOfJoint("RightToeBase");
-        if (headTopJoint >= 0 && toeJoint >= 0) {
-            // measure toe to top of head.  Note: default poses already include avatar scale factor
-            float height = rig.getAbsoluteDefaultPose(headTopJoint).trans().y - rig.getAbsoluteDefaultPose(toeJoint).trans().y;
-            return height;
-        } else if (eyeJoint >= 0 && toeJoint >= 0) {
-            // measure from eyes to toes + the average eye to top of head distance.
-            const float ratio = DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
+        if (eyeJoint >= 0 && toeJoint >= 0) {
+            // measure from eyes to toes.
             float eyeHeight = rig.getAbsoluteDefaultPose(eyeJoint).trans().y - rig.getAbsoluteDefaultPose(toeJoint).trans().y;
-            return eyeHeight + eyeHeight * ratio;
-        } else if (headTopJoint >= 0) {
-            return rig.getAbsoluteDefaultPose(headTopJoint).trans().y;
+            return eyeHeight;
         } else if (eyeJoint >= 0) {
-            const float ratio = DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
+            // measure eyes to y = 0 plane.
             float eyeHeight = rig.getAbsoluteDefaultPose(eyeJoint).trans().y;
-            return eyeHeight + eyeHeight * ratio;
+            return eyeHeight;
+        } else if (headTopJoint >= 0 && toeJoint >= 0) {
+            // measure toe to top of head.  Note: default poses already include avatar scale factor
+            const float ratio = DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
+            float height = rig.getAbsoluteDefaultPose(headTopJoint).trans().y - rig.getAbsoluteDefaultPose(toeJoint).trans().y;
+            return height - height * ratio;
+        } else if (headTopJoint >= 0) {
+            const float ratio = DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
+            float height = rig.getAbsoluteDefaultPose(headTopJoint).trans().y;
+            return height - height * ratio;
         } else if (headJoint >= 0) {
-            const float ratio = DEFAULT_AVATAR_NECK_TO_TOP_OF_HEAD / DEFAULT_AVATAR_HEIGHT;
+            const float DEFAULT_AVATAR_NECK_TO_EYE = DEFAULT_AVATAR_NECK_TO_TOP_OF_HEAD - DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD;
+            const float ratio = DEFAULT_AVATAR_NECK_TO_EYE / DEFAULT_AVATAR_NECK_HEIGHT;
             float neckHeight = rig.getAbsoluteDefaultPose(headJoint).trans().y;
             return neckHeight + neckHeight * ratio;
         } else {
-            return avatarScale * DEFAULT_AVATAR_HEIGHT;
+            return avatarScale * DEFAULT_AVATAR_EYE_HEIGHT;
         }
     } else {
-        return avatarScale * DEFAULT_AVATAR_HEIGHT;
+        return avatarScale * DEFAULT_AVATAR_EYE_HEIGHT;
     }
 }

@@ -527,6 +527,7 @@ public:
 
     float getUserHeight() const;
     void setUserHeight(float value);
+    float getUserEyeHeight() const;
 
 public slots:
     void increaseSize();

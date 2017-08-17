@@ -16,6 +16,8 @@
 const float DEFAULT_AVATAR_HEIGHT = 1.755f; // meters
 const float DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD = 0.11f; // meters
 const float DEFAULT_AVATAR_NECK_TO_TOP_OF_HEAD = 0.185f; // meters
+const float DEFAULT_AVATAR_NECK_HEIGHT = DEFAULT_AVATAR_HEIGHT - DEFAULT_AVATAR_NECK_TO_TOP_OF_HEAD;
+const float DEFAULT_AVATAR_EYE_HEIGHT = DEFAULT_AVATAR_HEIGHT - DEFAULT_AVATAR_EYE_TO_TOP_OF_HEAD;
 
 // Used when avatar is missing joints... (avatar space)
 static const glm::quat DEFAULT_AVATAR_MIDDLE_EYE_ROT { Quaternions::Y_180 };

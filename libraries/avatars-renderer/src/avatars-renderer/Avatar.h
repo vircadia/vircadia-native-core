@@ -252,11 +252,11 @@ public:
     void updateFadingStatus(render::ScenePointer scene);
 
     /**jsdoc
-     * Provides read only access to the current height of the avatar in world space.
-     * @function Avatar.getHeight
-     * @returns {number} height of avatar in meters
+     * Provides read only access to the current eye height of the avatar.
+     * @function Avatar.getEyeHeight
+     * @returns {number} eye height of avatar in meters
      */
-    Q_INVOKABLE float getHeight() const;
+    Q_INVOKABLE float getEyeHeight() const;
 
 public slots:
 

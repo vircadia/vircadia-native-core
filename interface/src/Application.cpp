@@ -2385,7 +2385,7 @@ void Application::paintGL() {
                 if (isHMDMode()) {
                     mat4 camMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
                     _myCamera.setPosition(extractTranslation(camMat));
-                    _myCamera.setOrientation(glm::quat_cast(camMat));
+                    _myCamera.setOrientation(glmExtractRotation(camMat));
                 } else {
                     _myCamera.setPosition(myAvatar->getDefaultEyePosition());
                     _myCamera.setOrientation(myAvatar->getMyHead()->getHeadOrientation());
@@ -2393,7 +2393,7 @@ void Application::paintGL() {
             } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
                 if (isHMDMode()) {
                     auto hmdWorldMat = myAvatar->getSensorToWorldMatrix() * myAvatar->getHMDSensorMatrix();
-                    _myCamera.setOrientation(glm::normalize(glm::quat_cast(hmdWorldMat)));
+                    _myCamera.setOrientation(glm::normalize(glmExtractRotation(hmdWorldMat)));
                     _myCamera.setPosition(extractTranslation(hmdWorldMat) +
                         myAvatar->getOrientation() * boomOffset);
                 } else {
@@ -2500,6 +2500,10 @@ void Application::paintGL() {
             auto baseProjection = renderArgs.getViewFrustum().getProjection();
             auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
             float IPDScale = hmdInterface->getIPDScale();
+
+            // scale IPD by height ratio, to make the world seem larger or smaller accordingly.
+            float heightRatio = getMyAvatar()->getEyeHeight() / getMyAvatar()->getUserEyeHeight();
+            IPDScale *= heightRatio;
 
             // FIXME we probably don't need to set the projection matrix every frame,
             // only when the display plugin changes (or in non-HMD modes when the user
