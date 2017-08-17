@@ -18,11 +18,11 @@ var lib = Script.require("https://hifi-content.s3.amazonaws.com/elisalj/emoji_sc
 
     var APP_NAME = "EMOJIS";
     var APP_URL = "https://hifi-content.s3.amazonaws.com/elisalj/emoji_scripts/emojiTabletUI.html?" + Date.now();
-    var APP_ICON = null;
+    var APP_ICON = "https://hifi-content.s3.amazonaws.com/elisalj/emoji_scripts/icons/emoji-a.svg";
     var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 
     var button = tablet.addButton({
-        //icon: APP_ICON,
+        icon: APP_ICON,
         text: APP_NAME
     });
 
