@@ -151,7 +151,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 properties: {
                     dimensions: { x: 0.1, y: 0.1 },
                     localPosition: { x: 0, y: 0, z: 0 },
-                    localRotation: Quat.ZERO,
+                    localRotation: Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 }),
                     color: { red: 255, green: 255, blue: 255 },
                     alpha: 1.0,
                     ignoreRayIntersection: true,
@@ -379,12 +379,11 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "colorSlider",
                     type: "imageSlider",
                     properties: {
-                        localPosition: { x: 0.035, y: -0.025, z: -0.005 },
-                        color: { red: 255, green: 0, blue: 0 }
+                        localPosition: { x: 0.035, y: -0.025, z: -0.005 }
                     },
                     useBaseColor: true,
                     imageURL: "../assets/slider-white.png",
-                    imageOverlayURL: "../assets/slider-white-alpha.png",
+                    imageOverlayURL: "../assets/slider-v-alpha.png",
                     command: {
                         method: "setColorPerSlider"
                     }
@@ -474,7 +473,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     setting: {
                         key: "VREdit.colorTool.currentColor",
                         property: "color",
-                        defaultValue: { red: 128, green: 128, blue: 128 }
+                        defaultValue: { red: 128, green: 128, blue: 128 },
+                        command: "setPickColor"
                     }
                 },
                 {
@@ -880,6 +880,12 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         groupButtonIndex,
         ungroupButtonIndex,
 
+        hsvControl = {
+            hsv: { h: 0, s: 0, v: 0 },
+            circle: {},
+            slider: {}
+        },
+
         isDisplaying = false,
 
         // References.
@@ -988,6 +994,9 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         optionsSettings[optionsItems[i].id].value = value;
                         optionsItems[i].label = value;
                     }
+                    if (optionsItems[i].setting.command) {
+                        doCommand(optionsItems[i].setting.command, value);
+                    }
                     if (optionsItems[i].setting.callback) {
                         uiCommandCallback(optionsItems[i].setting.callback, value);
                     }
@@ -1043,8 +1052,10 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         childProperties.color = properties.color;
                     }
                     childProperties.localPosition = { x: 0, y: 0, z: -properties.dimensions.z / 2 - imageOffset };
+                    hsvControl.slider.localPosition = childProperties.localPosition;
                     childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                    Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
+                    hsvControl.slider.colorOverlay = Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
+                    hsvControl.slider.length = properties.dimensions.y;
                 }
 
                 // Overlay image.
@@ -1066,10 +1077,11 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     { x: -properties.dimensions.x / 2, y: 0, z: -properties.dimensions.z / 2 - imageOffset };
                 auxiliaryProperties = Object.clone(UI_ELEMENTS.sliderPointer.properties);
                 auxiliaryProperties.localPosition = optionsSliderData[i].offset;
+                hsvControl.slider.localPosition = auxiliaryProperties.localPosition;
                 auxiliaryProperties.drawInFront = true;  // TODO: Accommodate work-around above; remove when bug fixed.
                 auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
-                optionsSliderData[i].value = Overlays.addOverlay(UI_ELEMENTS.sliderPointer.overlay,
-                    auxiliaryProperties);
+                optionsSliderData[i].value = Overlays.addOverlay(UI_ELEMENTS.sliderPointer.overlay, auxiliaryProperties);
+                hsvControl.slider.pointerOverlay = optionsSliderData[i].value;
                 auxiliaryProperties.localPosition = { x: 0, y: properties.dimensions.x, z: 0 };
                 auxiliaryProperties.localRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 });
                 auxiliaryProperties.parentID = optionsSliderData[i].value;
@@ -1102,10 +1114,10 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     childProperties.scale = 0.95 * properties.dimensions.x;  // TODO: Magic number.
                     imageOffset += IMAGE_OFFSET;
                     childProperties.localPosition = { x: 0, y: -properties.dimensions.y / 2 - imageOffset, z: 0 };
-                    childProperties.localRotation = Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 });
+                    childProperties.localRotation = Quat.fromVec3Degrees({ x: 90, y: 90, z: 0 });
                     childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                     childProperties.alpha = 0.0;
-                    Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
+                    hsvControl.circle.overlay = Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
                 }
 
                 // Value pointers.
@@ -1118,7 +1130,9 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                 auxiliaryProperties.visible = false;
                 optionsColorData[i].value = Overlays.addOverlay(UI_ELEMENTS.sphere.overlay, auxiliaryProperties);
-                optionsColorData[i].maxRadius = childProperties.scale / 2;
+                hsvControl.circle.radius = childProperties.scale / 2;
+                hsvControl.circle.localPosition = auxiliaryProperties.localPosition;
+                hsvControl.circle.cursorOverlay = optionsColorData[i].value;
 
                 auxiliaryProperties = Object.clone(UI_ELEMENTS.circlePointer.properties);
                 auxiliaryProperties.parentID = optionsColorData[i].value;
@@ -1196,8 +1210,103 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         });
     }
 
-    function setColorCircleValue() {
-        // TODO
+    function hsvToRGB(hsv) {
+        // https://en.wikipedia.org/wiki/HSL_and_HSV
+        var c, h, x, rgb, m;
+
+        c = hsv.v * hsv.s;
+        h = hsv.h * 6.0;
+        x = c * (1 - Math.abs(h % 2 - 1));
+        if (0 <= h && h <= 1) {
+            rgb = { red: c, green: x, blue: 0 };
+        } else if (1 < h && h <= 2) {
+            rgb = { red: x, green: c, blue: 0 };
+        } else if (2 < h && h <= 3) {
+            rgb = { red: 0, green: c, blue: x };
+        } else if (3 < h && h <= 4) {
+            rgb = { red: 0, green: x, blue: c };
+        } else if (4 < h && h <= 5) {
+            rgb = { red: x, green: 0, blue: c };
+        } else {
+            rgb = { red: c, green: 0, blue: x };
+        }
+        m = hsv.v - c;
+        rgb = {
+            red: Math.round((rgb.red + m) * 255),
+            green: Math.round((rgb.green + m) * 255),
+            blue: Math.round((rgb.blue + m) * 255)
+        };
+        return rgb;
+    }
+
+    function rgbToHSV(rgb) {
+        // https://en.wikipedia.org/wiki/HSL_and_HSV
+        var mMax, mMin, c, h, v, s;
+
+        mMax = Math.max(rgb.red, rgb.green, rgb.blue);
+        mMin = Math.min(rgb.red, rgb.green, rgb.blue);
+        c = mMax - mMin;
+
+        if (c === 0) {
+            h = 0;
+        } else if (mMax === rgb.red) {
+            h = ((rgb.green - rgb.blue) / c) % 6;
+        } else if (mMax === rgb.green) {
+            h = (rgb.blue - rgb.red) / c + 2;
+        } else {
+            h = (rgb.red - rgb.green) / c + 4;
+        }
+        h = h / 6;
+        v = mMax / 255;
+        s = v === 0 ? 0 : c / mMax;
+        return { h: h, s: s, v: v };
+    }
+
+    function updateColorCircle() {
+        var theta, r, x, y;
+
+        // V overlay alpha per v.
+        Overlays.editOverlay(hsvControl.circle.overlay, { alpha: 1.0 - hsvControl.hsv.v });
+
+        // Cursor position per h & s.
+        theta = 2 * Math.PI * hsvControl.hsv.h;
+        r = hsvControl.hsv.s * hsvControl.circle.radius;
+        x = r * Math.cos(theta);
+        y = r * Math.sin(theta);
+        Overlays.editOverlay(hsvControl.circle.cursorOverlay, {
+            localPosition: { x: y, y: hsvControl.circle.localPosition.y, z: -x }
+        });
+    }
+
+    function updateColorSlider() {
+        // Base color per h & s.
+        Overlays.editOverlay(hsvControl.slider.colorOverlay, {
+            color: hsvToRGB({ h: hsvControl.hsv.h, s: hsvControl.hsv.s, v: 1.0 })
+        });
+
+        // Slider position per v.
+        Overlays.editOverlay(hsvControl.slider.pointerOverlay, {
+            localPosition: {
+                x: hsvControl.slider.localPosition.x,
+                y: (0.5 - hsvControl.hsv.v) * hsvControl.slider.length,
+                z: hsvControl.slider.localPosition.z
+            }
+        });
+    }
+
+    function setColorPicker(rgb) {
+        hsvControl.hsv = rgbToHSV(rgb);
+        updateColorCircle();
+        updateColorSlider();
+    }
+
+    function setCurrentColor(rgb) {
+        Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf("currentColor")], {
+            color: rgb
+        });
+        if (optionsSettings.currentColor) {
+            Settings.setValue(optionsSettings.currentColor.key, rgb);
+        }
     }
 
     function evaluateParameter(parameter) {
@@ -1225,17 +1334,32 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         switch (command) {
 
+        case "setPickColor":
+            setColorPicker(parameter);
+            break;
+
+        case "setColorPerCircle":
+            hsvControl.hsv.h = parameter.h;
+            hsvControl.hsv.s = parameter.s;
+            updateColorSlider();
+            setCurrentColor(hsvToRGB(hsvControl.hsv));
+            uiCommandCallback("setColor", value);
+            break;
+
+        case "setColorPerSlider":
+            hsvControl.hsv.v = parameter;
+            updateColorCircle();
+            setCurrentColor(hsvToRGB(hsvControl.hsv));
+            uiCommandCallback("setColor", value);
+            break;
+
         case "setColorPerSwatch":
             index = optionsOverlaysIDs.indexOf(parameter);
             hasColor = Overlays.getProperty(optionsOverlays[index], "solid");
             if (hasColor) {
                 value = Overlays.getProperty(optionsOverlays[index], "color");
-                Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf("currentColor")], {
-                    color: value
-                });
-                if (optionsSettings.currentColor) {
-                    Settings.setValue(optionsSettings.currentColor.key, value);
-                }
+                setCurrentColor(value);
+                setColorPicker(value);
                 uiCommandCallback("setColor", value);
             } else {
                 // Swatch has no color; set swatch color to current fill color.
@@ -1251,12 +1375,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             break;
 
         case "setColorFromPick":
-            Overlays.editOverlay(optionsOverlays[optionsOverlaysIDs.indexOf("currentColor")], {
-                color: parameter
-            });
-            if (optionsSettings.currentColor) {
-                Settings.setValue(optionsSettings.currentColor.key, parameter);
-            }
+            setCurrentColor(parameter);
+            setColorPicker(parameter);
             break;
 
         case "setGravityOn":
@@ -1416,7 +1536,11 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             basePoint,
             fraction,
             delta,
-            radius;
+            radius,
+            x,
+            y,
+            s,
+            h;
 
         // Intersection details.
         if (intersection.overlayID) {
@@ -1468,7 +1592,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     ["dimensions", "localPosition"]);
                 if (isHighlightingColorCircle) {
                     // Cylinder used has different coordinate system to other elements.
-                    // TODO: Should be able to remove this special case when UI look is reword.
+                    // TODO: Should be able to remove this special case when UI look is reworked.
                     Overlays.editOverlay(highlightOverlay, {
                         parentID: intersectionOverlays[intersectedItem],
                         dimensions: {
@@ -1628,8 +1752,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 localPosition: Vec3.sum(optionsSliderData[intersectedItem].offset,
                     { x: 0, y: (0.5 - fraction) * overlayDimensions.y, z: 0 })
             });
-            if (intersectionItems[intersectedItem].callback) {
-                uiCommandCallback(intersectionItems[intersectedItem].callback.method, fraction);
+            if (intersectionItems[intersectedItem].command) {
+                doCommand(intersectionItems[intersectedItem].command.method, fraction);
             }
         }
 
@@ -1639,15 +1763,23 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             delta = Vec3.multiplyQbyV(Quat.inverse(sliderProperties.orientation),
                 Vec3.subtract(intersection.intersection, sliderProperties.position));
             radius = Vec3.length(delta);
-            if (radius > optionsColorData[intersectedItem].maxRadius) {
-                delta = Vec3.multiply(optionsColorData[intersectedItem].maxRadius / radius, delta);
+            if (radius > hsvControl.circle.radius) {
+                delta = Vec3.multiply(hsvControl.circle.radius / radius, delta);
             }
             Overlays.editOverlay(optionsColorData[intersectedItem].value, {
                 localPosition: Vec3.sum(optionsColorData[intersectedItem].offset,
                     { x: delta.x, y: 0, z: delta.z })
             });
-            if (intersectionItems[intersectedItem].callback) {
-                uiCommandCallback(intersectionItems[intersectedItem].callback.method, fraction);
+            if (intersectionItems[intersectedItem].command) {
+                // Cartesian planar coordinates.
+                x = -delta.z;
+                y = delta.x;
+                s = Math.sqrt(x * x + y * y) / hsvControl.circle.radius;
+                h = Math.atan2(y, x) / (2 * Math.PI);
+                if (h < 0) {
+                    h = h + 1;
+                }
+                doCommand(intersectionItems[intersectedItem].command.method, { h: h, s: s });
             }
         }
 
