@@ -44,7 +44,7 @@ void OutlineFramebuffer::allocate() {
     
     auto width = _frameSize.x;
     auto height = _frameSize.y;
-    auto format = gpu::Element(gpu::SCALAR, gpu::HALF, gpu::RED);
+    auto format = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RED);
     
     _depthTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(format, width, height));
     _depthFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("outlineDepth"));
