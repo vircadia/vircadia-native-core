@@ -26,6 +26,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         optionsOverlaysIDs = [],  // Text ids (names) of options overlays.
         optionsOverlaysLabels = [],  // Overlay IDs of labels for optionsOverlays.
         optionsSliderData = [],  // Uses same index values as optionsOverlays.
+        optionsColorData = [],  // Uses same index values as optionsOverlays.
         optionsEnabled = [],
         optionsSettings = {},
 
@@ -158,6 +159,18 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     visible: true
                 }
             },
+            "sphere": {
+                overlay: "sphere",
+                properties: {
+                    dimensions: { x: 0.01, y: 0.01, z: 0.01 },
+                    localRotation: Quat.ZERO,
+                    color: { red: 192, green: 192, blue: 192 },
+                    alpha: 1.0,
+                    solid: true,
+                    ignoreRayIntersection: true,
+                    visible: true
+                }
+            },
             "barSlider": {  // Values range between 0.0 and 1.0.
                 overlay: "cube",
                 properties: {
@@ -199,7 +212,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             "imageSlider": {  // Values range between 0.0 and 1.0.
                 overlay: "cube",
                 properties: {
-                    dimensions: { x: 0.01, y: 0.05, z: 0.01 },
+                    dimensions: { x: 0.01, y: 0.06, z: 0.01 },
                     localRotation: Quat.ZERO,
                     color: { red: 128, green: 128, blue: 128 },
                     alpha: 1.0,
@@ -212,6 +225,34 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 imageOverlayURL: null
             },
             "sliderPointer": {
+                overlay: "shape",
+                properties: {
+                    shape: "Cone",
+                    dimensions: { x: 0.005, y: 0.005, z: 0.005 },
+                    localRotation: Quat.fromVec3Degrees({ x: 0, y: 0, z: -90 }),
+                    color: { red: 180, green: 180, blue: 180 },
+                    alpha: 1.0,
+                    solid: true,
+                    ignoreRayIntersection: true,
+                    visible: true
+                }
+            },
+            "colorCircle": {
+                overlay: "shape",
+                properties: {
+                    shape: "Cylinder",
+                    dimensions: { x: 0.06, y: 0.01, z: 0.06 },
+                    localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: -90 }),
+                    color: { red: 128, green: 128, blue: 128 },
+                    alpha: 1.0,
+                    solid: true,
+                    ignoreRayIntersection: false,
+                    visible: true
+                },
+                imageURL: null,
+                imageOverlayURL: null
+            },
+            "circlePointer": {
                 overlay: "shape",
                 properties: {
                     shape: "Cone",
@@ -255,11 +296,11 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         BUTTON_PRESS_DELTA = { x: 0, y: 0, z: 0.004 },
 
         SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
-        SLIDER_RAISE_DELTA = { x: 0, y: 0, z: 0.004 },
-        MIN_BAR_SLIDER_DIMENSION = 0.0001,  // Avoid visual artifact for 0 slider values.
-
+        COLOR_CIRCLE_UI_ELEMENTS = ["colorCircle"],
         PICKLIST_UI_ELEMENTS = ["picklist", "picklistItem"],
-        PICKLIST_RAISE_DELTA = { x: 0, y: 0, z: 0.004 },
+        ITEM_RAISE_DELTA = { x: 0, y: 0, z: 0.004 },
+
+        MIN_BAR_SLIDER_DIMENSION = 0.0001,  // Avoid visual artifact for 0 slider values.
 
         PHYSICS_SLIDER_PRESETS = {
             // Slider values in the range 0.0 to 1.0.
@@ -323,17 +364,29 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     }
                 },
                 {
+                    id: "colorCircle",
+                    type: "colorCircle",
+                    properties: {
+                        localPosition: { x: -0.0125, y: -0.025, z: -0.005 }
+                    },
+                    imageURL: "../assets/color-circle.png",
+                    imageOverlayURL: "../assets/color-circle-black.png",
+                    command: {
+                        method: "setColorPerCircle"
+                    }
+                },
+                {
                     id: "colorSlider",
                     type: "imageSlider",
                     properties: {
-                        localPosition: { x: 0.025, y: -0.025, z: -0.005 },
+                        localPosition: { x: 0.035, y: -0.025, z: -0.005 },
                         color: { red: 255, green: 0, blue: 0 }
                     },
                     useBaseColor: true,
                     imageURL: "../assets/slider-white.png",
                     imageOverlayURL: "../assets/slider-white-alpha.png",
-                    callback: {
-                        method: "setSliderValue"
+                    command: {
+                        method: "setColorPerSlider"
                     }
                 },
                 {
@@ -812,6 +865,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         highlightedSource,
         isHighlightingButton,
         isHighlightingSlider,
+        isHighlightingColorCircle,
         isHighlightingPicklist,
         isPicklistOpen,
         pressedItem = null,
@@ -867,6 +921,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         optionsOverlaysIDs = [];
         optionsOverlaysLabels = [];
         optionsSliderData = [];
+        optionsColorData = [];
         optionsEnabled = [];
         optionsItems = null;
 
@@ -881,6 +936,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             value,
             imageOffset,
             IMAGE_OFFSET = 0.0005,
+            CIRCLE_CURSOR_GAP = 0.002,
             id,
             i,
             length;
@@ -1019,6 +1075,71 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 auxiliaryProperties.parentID = optionsSliderData[i].value;
                 Overlays.addOverlay(UI_ELEMENTS.sliderPointer.overlay, auxiliaryProperties);
             }
+
+            if (optionsItems[i].type === "colorCircle") {
+                imageOffset = 0.0;
+
+                // Primary image.
+                if (optionsItems[i].imageURL) {
+                    childProperties = Object.clone(UI_ELEMENTS.image.properties);
+                    childProperties.url = Script.resolvePath(optionsItems[i].imageURL);
+                    delete childProperties.dimensions;
+                    childProperties.scale = 0.95 * properties.dimensions.x;  // TODO: Magic number.
+                    imageOffset += IMAGE_OFFSET;
+                    childProperties.emissive = true;
+                    childProperties.localPosition = { x: 0, y: -properties.dimensions.y / 2 - imageOffset, z: 0 };
+                    childProperties.localRotation = Quat.fromVec3Degrees({ x: 90, y: 90, z: 0 });
+                    childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                    Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
+                }
+
+                // Overlay image.
+                if (optionsItems[i].imageOverlayURL) {
+                    childProperties = Object.clone(UI_ELEMENTS.image.properties);
+                    childProperties.url = Script.resolvePath(optionsItems[i].imageOverlayURL);
+                    childProperties.drawInFront = true;  // TODO: Work-around for rendering bug; remove when bug fixed.
+                    delete childProperties.dimensions;
+                    childProperties.scale = 0.95 * properties.dimensions.x;  // TODO: Magic number.
+                    imageOffset += IMAGE_OFFSET;
+                    childProperties.localPosition = { x: 0, y: -properties.dimensions.y / 2 - imageOffset, z: 0 };
+                    childProperties.localRotation = Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 });
+                    childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                    childProperties.alpha = 0.0;
+                    Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
+                }
+
+                // Value pointers.
+                // Invisible sphere at target point with cones as decoration.
+                optionsColorData[i] = {};
+                optionsColorData[i].offset =
+                    { x: 0, y: -properties.dimensions.y / 2 - imageOffset, z: 0 };
+                auxiliaryProperties = Object.clone(UI_ELEMENTS.sphere.properties);
+                auxiliaryProperties.localPosition = optionsColorData[i].offset;
+                auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
+                auxiliaryProperties.visible = false;
+                optionsColorData[i].value = Overlays.addOverlay(UI_ELEMENTS.sphere.overlay, auxiliaryProperties);
+
+                auxiliaryProperties = Object.clone(UI_ELEMENTS.circlePointer.properties);
+                auxiliaryProperties.parentID = optionsColorData[i].value;
+                auxiliaryProperties.drawInFront = true;  // TODO: Accommodate work-around above; remove when bug fixed.
+                auxiliaryProperties.localPosition =
+                    { x: -(auxiliaryProperties.dimensions.x + CIRCLE_CURSOR_GAP) / 2, y: 0, z: 0 };
+                auxiliaryProperties.localRotation = Quat.fromVec3Degrees({ x: 0, y: 90, z: -90 });
+                Overlays.addOverlay(UI_ELEMENTS.circlePointer.overlay, auxiliaryProperties);
+                auxiliaryProperties.localPosition =
+                    { x: (auxiliaryProperties.dimensions.x + CIRCLE_CURSOR_GAP) / 2, y: 0, z: 0 };
+                auxiliaryProperties.localRotation = Quat.fromVec3Degrees({ x: 0, y: 0, z: 90 });
+                Overlays.addOverlay(UI_ELEMENTS.circlePointer.overlay, auxiliaryProperties);
+                auxiliaryProperties.localPosition =
+                    { x: 0, y: 0, z: -(auxiliaryProperties.dimensions.x + CIRCLE_CURSOR_GAP) / 2 };
+                auxiliaryProperties.localRotation = Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 });
+                Overlays.addOverlay(UI_ELEMENTS.circlePointer.overlay, auxiliaryProperties);
+                auxiliaryProperties.localPosition =
+                    { x: 0, y: 0, z: (auxiliaryProperties.dimensions.x + CIRCLE_CURSOR_GAP) / 2 };
+                auxiliaryProperties.localRotation = Quat.fromVec3Degrees({ x: -90, y: 0, z: 0 });
+                Overlays.addOverlay(UI_ELEMENTS.circlePointer.overlay, auxiliaryProperties);
+            }
+
             parentID = optionsOverlays[0];  // Menu buttons parent to menu panel.
             optionsEnabled.push(true);
         }
@@ -1072,6 +1193,10 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 z: overlayDimensions.z
             }
         });
+    }
+
+    function setColorCircleValue() {
+        // TODO
     }
 
     function evaluateParameter(parameter) {
@@ -1179,7 +1304,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
                 // Raise picklist.
                 Overlays.editOverlay(parentID, {
-                    localPosition: Vec3.subtract(optionsItems[index].properties.localPosition, PICKLIST_RAISE_DELTA)
+                    localPosition: Vec3.subtract(optionsItems[index].properties.localPosition, ITEM_RAISE_DELTA)
                 });
 
                 // Show options.
@@ -1314,23 +1439,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         if (intersectedItem !== highlightedItem || intersectionOverlays !== highlightedSource) {
             if (intersectedItem !== NONE && (intersectionItems[intersectedItem].command !== undefined
                     || intersectionItems[intersectedItem].callback !== undefined)) {
-                // Highlight new button. (The existence of a command or callback infers that the item is a button.)
-                parentProperties = Overlays.getProperties(intersectionOverlays[intersectedItem],
-                    ["dimensions", "localPosition"]);
-                Overlays.editOverlay(highlightOverlay, {
-                    parentID: intersectionOverlays[intersectedItem],
-                    dimensions: {
-                        x: parentProperties.dimensions.x + HIGHLIGHT_PROPERTIES.xDelta,
-                        y: parentProperties.dimensions.y + HIGHLIGHT_PROPERTIES.yDelta,
-                        z: HIGHLIGHT_PROPERTIES.zDimension
-                    },
-                    localPosition: HIGHLIGHT_PROPERTIES.properties.localPosition,
-                    localRotation: HIGHLIGHT_PROPERTIES.properties.localRotation,
-                    color: HIGHLIGHT_PROPERTIES.properties.color,
-                    visible: true
-                });
-                // Lower old slider.
-                if (isHighlightingSlider) {
+                // Lower old slider or color circle.
+                if (isHighlightingSlider || isHighlightingColorCircle) {
                     localPosition = highlightedItems[highlightedItem].properties.localPosition;
                     Overlays.editOverlay(highlightedSource[highlightedItem], {
                         localPosition: localPosition
@@ -1341,12 +1451,49 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 highlightedItems = intersectionItems;
                 isHighlightingButton = BUTTON_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
                 isHighlightingSlider = SLIDER_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
+                isHighlightingColorCircle = COLOR_CIRCLE_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
                 isHighlightingPicklist = PICKLIST_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
-                // Raise new slider.
-                if (isHighlightingSlider) {
+                // Raise new slider or color circle.
+                if (isHighlightingSlider || isHighlightingColorCircle) {
                     localPosition = intersectionItems[highlightedItem].properties.localPosition;
                     Overlays.editOverlay(intersectionOverlays[highlightedItem], {
-                        localPosition: Vec3.subtract(localPosition, SLIDER_RAISE_DELTA)
+                        localPosition: Vec3.subtract(localPosition, ITEM_RAISE_DELTA)
+                    });
+                }
+                // Highlight new item. (The existence of a command or callback infers that the item should be highlighted.)
+                parentProperties = Overlays.getProperties(intersectionOverlays[intersectedItem],
+                    ["dimensions", "localPosition"]);
+                if (isHighlightingColorCircle) {
+                    // Cylinder used has different coordinate system to other elements.
+                    // TODO: Should be able to remove this special case when UI look is reword.
+                    Overlays.editOverlay(highlightOverlay, {
+                        parentID: intersectionOverlays[intersectedItem],
+                        dimensions: {
+                            x: parentProperties.dimensions.x + HIGHLIGHT_PROPERTIES.xDelta,
+                            y: parentProperties.dimensions.z + HIGHLIGHT_PROPERTIES.yDelta,
+                            z: HIGHLIGHT_PROPERTIES.zDimension
+                        },
+                        localPosition: {
+                            x: HIGHLIGHT_PROPERTIES.properties.localPosition.x,
+                            y: HIGHLIGHT_PROPERTIES.properties.localPosition.z,
+                            z: HIGHLIGHT_PROPERTIES.properties.localPosition.y 
+                        },
+                        localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 }),
+                        color: HIGHLIGHT_PROPERTIES.properties.color,
+                        visible: true
+                    });
+                } else {
+                    Overlays.editOverlay(highlightOverlay, {
+                        parentID: intersectionOverlays[intersectedItem],
+                        dimensions: {
+                            x: parentProperties.dimensions.x + HIGHLIGHT_PROPERTIES.xDelta,
+                            y: parentProperties.dimensions.y + HIGHLIGHT_PROPERTIES.yDelta,
+                            z: HIGHLIGHT_PROPERTIES.zDimension
+                        },
+                        localPosition: HIGHLIGHT_PROPERTIES.properties.localPosition,
+                        localRotation: HIGHLIGHT_PROPERTIES.properties.localRotation,
+                        color: HIGHLIGHT_PROPERTIES.properties.color,
+                        visible: true
                     });
                 }
             } else if (highlightedItem !== NONE) {
@@ -1354,8 +1501,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 Overlays.editOverlay(highlightOverlay, {
                     visible: false
                 });
-                // Lower slider.
-                if (isHighlightingSlider) {
+                // Lower slider or color circle.
+                if (isHighlightingSlider || isHighlightingColorCircle) {
                     localPosition = highlightedItems[highlightedItem].properties.localPosition;
                     Overlays.editOverlay(highlightedSource[highlightedItem], {
                         localPosition: localPosition
@@ -1365,6 +1512,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 highlightedItem = NONE;
                 isHighlightingButton = false;
                 isHighlightingSlider = false;
+                isHighlightingColorCircle = false;
                 isHighlightingPicklist = false;
             }
             highlightedSource = intersectionOverlays;
@@ -1482,6 +1630,11 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
         }
 
+        // Color circle update.
+        if (intersectionItems && intersectionItems[intersectedItem].type === "colorCircle" && controlHand.triggerClicked()) {
+            // TODO
+        }
+
         // Special handling for Group options.
         if (optionsItems && optionsItems === OPTONS_PANELS.groupOptions) {
             enableGroupButton = groupsCount > 1;
@@ -1570,6 +1723,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         highlightedSource = null;
         isHighlightingButton = false;
         isHighlightingSlider = false;
+        isHighlightingColorCircle = false;
         isHighlightingPicklist = false;
         isPicklistOpen = false;
         pressedItem = null;

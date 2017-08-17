@@ -1457,13 +1457,6 @@
             }
             break;
 
-        case "setSliderValue":
-            if (parameter !== undefined) {
-                // TODO
-                print("setSliderValue = " + parameter);
-            }
-            break;
-
         default:
             log("ERROR: Unexpected command in onUICommand(): " + command + ", " + parameter);
         }
