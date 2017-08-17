@@ -1118,6 +1118,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                 auxiliaryProperties.visible = false;
                 optionsColorData[i].value = Overlays.addOverlay(UI_ELEMENTS.sphere.overlay, auxiliaryProperties);
+                optionsColorData[i].maxRadius = childProperties.scale / 2;
 
                 auxiliaryProperties = Object.clone(UI_ELEMENTS.circlePointer.properties);
                 auxiliaryProperties.parentID = optionsColorData[i].value;
@@ -1413,7 +1414,9 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             sliderProperties,
             overlayDimensions,
             basePoint,
-            fraction;
+            fraction,
+            delta,
+            radius;
 
         // Intersection details.
         if (intersection.overlayID) {
@@ -1476,7 +1479,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         localPosition: {
                             x: HIGHLIGHT_PROPERTIES.properties.localPosition.x,
                             y: HIGHLIGHT_PROPERTIES.properties.localPosition.z,
-                            z: HIGHLIGHT_PROPERTIES.properties.localPosition.y 
+                            z: HIGHLIGHT_PROPERTIES.properties.localPosition.y
                         },
                         localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 }),
                         color: HIGHLIGHT_PROPERTIES.properties.color,
@@ -1632,7 +1635,20 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         // Color circle update.
         if (intersectionItems && intersectionItems[intersectedItem].type === "colorCircle" && controlHand.triggerClicked()) {
-            // TODO
+            sliderProperties = Overlays.getProperties(intersection.overlayID, ["position", "orientation"]);
+            delta = Vec3.multiplyQbyV(Quat.inverse(sliderProperties.orientation),
+                Vec3.subtract(intersection.intersection, sliderProperties.position));
+            radius = Vec3.length(delta);
+            if (radius > optionsColorData[intersectedItem].maxRadius) {
+                delta = Vec3.multiply(optionsColorData[intersectedItem].maxRadius / radius, delta);
+            }
+            Overlays.editOverlay(optionsColorData[intersectedItem].value, {
+                localPosition: Vec3.sum(optionsColorData[intersectedItem].offset,
+                    { x: delta.x, y: 0, z: delta.z })
+            });
+            if (intersectionItems[intersectedItem].callback) {
+                uiCommandCallback(intersectionItems[intersectedItem].callback.method, fraction);
+            }
         }
 
         // Special handling for Group options.
