@@ -123,7 +123,7 @@
             var isAnyDynamicEffectEnabled = false;
             if ("dynamicHue" in _dynamicEffects && _dynamicEffects.dynamicHue) {
                 isAnyDynamicEffectEnabled = true;
-                var hueIncrement = 359.0 / 70.0;
+                var hueIncrement = 359.0 / MAX_POINTS_PER_LINE;
                 _dynamicColor.hue = calculateValueInRange(_dynamicColor.hue, 0, 359, hueIncrement);
             } 
 
