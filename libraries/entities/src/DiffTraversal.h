@@ -64,6 +64,9 @@ public:
     const ViewFrustum& getCurrentView() const { return _currentView.viewFrustum; }
     const ViewFrustum& getCompletedView() const { return _completedView.viewFrustum; }
 
+    const float getCurrentRootSizeScale() const { return _currentView.rootSizeScale; }
+    const float getCompletedRootSizeScale() const { return _completedView.rootSizeScale; }
+
     uint64_t getStartOfCompletedTraversal() const { return _completedView.startTime; }
     bool finished() const { return _path.empty(); }
 

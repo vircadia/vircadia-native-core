@@ -170,7 +170,7 @@ bool EntityTreeSendThread::addDescendantsToExtraFlaggedEntities(const QUuid& fil
     return hasNewChild || hasNewDescendants;
 }
 
-void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTreeElementPointer root, float octreeSizeScale, int32_t lodLevelOffset) {
+void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTreeElementPointer root, int32_t lodLevelOffset) {
     DiffTraversal::Type type = _traversal.prepareNewTraversal(view, root, lodLevelOffset);
     // there are three types of traversal:
     //
@@ -199,7 +199,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                         // before we consider including it.
                         float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
                                                                        cube,
-                                                                       octreeSizeScale,
+                                                                       _traversal.getCurrentRootSizeScale(),
                                                                        lodLevelOffset);
 
                         // Only send entities if they are large enough to see
@@ -228,7 +228,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                                 // See the DiffTraversal::First case for an explanation of the "entity is too small" check
                                 float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
                                                                                cube,
-                                                                               octreeSizeScale,
+                                                                               _traversal.getCurrentRootSizeScale(),
                                                                                lodLevelOffset);
 
                                 // Only send entities if they are large enough to see
@@ -259,7 +259,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                             // See the DiffTraversal::First case for an explanation of the "entity is too small" check
                             float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
                                                                            cube,
-                                                                           octreeSizeScale,
+                                                                           _traversal.getCurrentRootSizeScale(),
                                                                            lodLevelOffset);
 
                             // Only send entities if they are large enough to see
@@ -271,7 +271,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                                     // If this entity was skipped last time because it was too small, we still need to send it
                                     float lastRenderAccuracy = calculateRenderAccuracy(_traversal.getCompletedView().getPosition(),
                                                                                        cube,
-                                                                                       octreeSizeScale,
+                                                                                        _traversal.getCompletedRootSizeScale(),
                                                                                        lodLevelOffset);
 
                                     if (lastRenderAccuracy <= 0.0f) {
