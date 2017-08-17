@@ -775,6 +775,19 @@ QImage OpenGLDisplayPlugin::getScreenshot(float aspectRatio) const {
     return screenshot.mirrored(false, true);
 }
 
+QImage OpenGLDisplayPlugin::getSecondaryCameraScreenshot() const {
+    auto textureCache = DependencyManager::get<TextureCache>();
+    auto secondaryCameraFramebuffer = textureCache->getSpectatorCameraFramebuffer();
+    gpu::Vec4i region(0, 0, secondaryCameraFramebuffer->getWidth(), secondaryCameraFramebuffer->getHeight());
+
+    auto glBackend = const_cast<OpenGLDisplayPlugin&>(*this).getGLBackend();
+    QImage screenshot(region.z, region.w, QImage::Format_ARGB32);
+    withMainThreadContext([&] {
+        glBackend->downloadFramebuffer(secondaryCameraFramebuffer, region, screenshot);
+    });
+    return screenshot.mirrored(false, true);
+}
+
 glm::uvec2 OpenGLDisplayPlugin::getSurfacePixels() const {
     uvec2 result;
     auto window = _container->getPrimaryWidget();

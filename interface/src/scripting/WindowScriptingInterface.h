@@ -60,6 +60,7 @@ public slots:
     void showAssetServer(const QString& upload = "");
     void copyToClipboard(const QString& text);
     void takeSnapshot(bool notify = true, bool includeAnimated = false, float aspectRatio = 0.0f);
+    void takeSecondaryCameraSnapshot();
     void makeConnection(bool success, const QString& userNameOrError);
     void displayAnnouncement(const QString& message);
     void shareSnapshot(const QString& path, const QUrl& href = QUrl(""));

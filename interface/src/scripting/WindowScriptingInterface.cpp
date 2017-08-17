@@ -294,6 +294,10 @@ void WindowScriptingInterface::takeSnapshot(bool notify, bool includeAnimated, f
     qApp->takeSnapshot(notify, includeAnimated, aspectRatio);
 }
 
+void WindowScriptingInterface::takeSecondaryCameraSnapshot() {
+    qApp->takeSecondaryCameraSnapshot();
+}
+
 void WindowScriptingInterface::shareSnapshot(const QString& path, const QUrl& href) {
     qApp->shareSnapshot(path, href);
 }
