@@ -125,7 +125,9 @@ DrawOutline::DrawOutline() {
 
 void DrawOutline::configure(const Config& config) {
     _color = config.color;
-    _size = config.width / 1024.f;
+    _blurKernelSize = std::min(10, std::max(2, (int)floorf(config.width*2 + 0.5f)));
+    // Size is in normalized screen height. We decide that for outline width = 1, this is equal to 1/400.
+    _size = config.width / 400.f;
     _fillOpacityUnoccluded = config.fillOpacityUnoccluded;
     _fillOpacityOccluded = config.fillOpacityOccluded;
     _threshold = config.glow ? 1.f : 1e-3f;
@@ -159,8 +161,7 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
                 configuration._fillOpacityUnoccluded = _fillOpacityUnoccluded;
                 configuration._fillOpacityOccluded = _fillOpacityOccluded;
                 configuration._threshold = _threshold;
-                // Size is normalized for 1 pixel at 1024 pix resolution so we multiply by the real resolution to have the final pixel size estimate
-                configuration._blurKernelSize = std::min(10, std::max(2, (int)floorf(_size*_frameBufferSize.y + 0.5f)));
+                configuration._blurKernelSize = _blurKernelSize;
                 configuration._size.x = _size * _frameBufferSize.y / _frameBufferSize.x;
                 configuration._size.y = _size;
             }
