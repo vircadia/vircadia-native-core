@@ -1,7 +1,7 @@
 (function() {
 	var APP_NAME = "BLOCKS";
 	var APP_URL = "https://vr.google.com/objects/";
-	var APP_ICON = "https://hifi-content.s3.amazonaws.com/faye/gemstoneMagicMaker/gemstoneAppIcon.svg";
+	var APP_ICON = "https://hifi-content.s3.amazonaws.com/elisalj/blocks/blocks-i.svg";
 
 	var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 	var button = tablet.addButton({
