@@ -24,8 +24,6 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
-    anchors.fill: parent;
-    visible: false;
 
     Hifi.QmlCommerce {
         id: commerce;
@@ -95,6 +93,10 @@ Item {
 
     function getImagePathFromImageID(imageID) {
         return (imageID ? gridModel.get(imageID - 1).sourcePath : "");
+    }
+
+    function getSelectedImageIndex() {
+        return gridModel.get(securityImageGrid.currentIndex).securityImageEnumValue;
     }
     //
     // FUNCTION DEFINITIONS END

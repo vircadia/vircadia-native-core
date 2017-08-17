@@ -36,17 +36,27 @@ Rectangle {
             }
         }
     }
+    Connections {
+        target: walletSetupLightbox;
+        onSignalSent: {
+            sendToScript(msg);
+        }
+    }
 
     Rectangle {
+        id: walletSetupLightboxContainer;
+        visible: walletSetupLightbox.visible;
+        z: 998;
         anchors.fill: parent;
         color: "black";
         opacity: 0.5;
-        WalletSetupLightbox {
-            id: walletSetupLightbox;
-            anchors.centerIn: parent;
-            width: parent.width - 50;
-            height: parent.height - 50;
-        }
+    }
+    WalletSetupLightbox {
+        id: walletSetupLightbox;
+        z: 999;
+        anchors.centerIn: walletSetupLightboxContainer;
+        width: walletSetupLightboxContainer.width - 50;
+        height: walletSetupLightboxContainer.height - 50;
     }
 
     //
@@ -146,6 +156,7 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter;
             }
             MouseArea {
+                enabled: !walletSetupLightboxContainer.visible;
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
@@ -180,6 +191,7 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter;
             }
             MouseArea {
+                enabled: !walletSetupLightboxContainer.visible;
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
@@ -214,6 +226,7 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter;
             }
             MouseArea {
+                enabled: !walletSetupLightboxContainer.visible;
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
@@ -248,6 +261,7 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter;
             }
             MouseArea {
+                enabled: !walletSetupLightboxContainer.visible;
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {

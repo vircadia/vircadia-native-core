@@ -24,30 +24,32 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     id: root;
-    property int stepNumber: 0;
+    property string lastPage: "";
     // Style
-    color: hifi.colors.white;
-    anchors.fill: parent;
+    color: "white";
 
     Hifi.QmlCommerce {
         id: commerce;
 
         onLoginStatusResult: {
             if (isLoggedIn) {
-                loginPageContainer.visible = false;
-                commerce.getSecurityImage();
+                securityImageContainer.visible = true;
             } else {
                 loginPageContainer.visible = true;
             }
         }
         
         onSecurityImageResult: {
-            loginPageContainer.visible = false;
             if (imageID !== 0) { // "If security image is set up"
-                commerce.getPassphraseSetupStatus();
                 passphrasePageSecurityImage.source = securityImageSelection.getImagePathFromImageID(imageID);
-            } else {
+                if (root.lastPage === "") {
+                    securityImageContainer.visible = false;
+                    choosePassphraseContainer.visible = true;
+                }
+            } else if (root.lastPage === "securityImage") {
+                // ERROR! Invalid security image.
                 securityImageContainer.visible = true;
+                choosePassphraseContainer.visible = false;
             }
         }
 
@@ -94,7 +96,7 @@ Rectangle {
                 anchors.bottom: parent.bottom;
                 width: paintedWidth;
                 // Style
-                color: hifi.colors.lightGrayText;
+                color: hifi.colors.darkGray;
                 // Alignment
                 horizontalAlignment: Text.AlignHLeft;
                 verticalAlignment: Text.AlignVCenter;
@@ -141,6 +143,12 @@ Rectangle {
         // Anchors
         anchors.fill: parent;
 
+        onVisibleChanged: {
+            if (visible) {
+                commerce.getSecurityImage();
+            }
+        }
+
         Item {
             id: securityImageTitle;
             // Size
@@ -162,7 +170,7 @@ Rectangle {
                 anchors.bottom: parent.bottom;
                 width: paintedWidth;
                 // Style
-                color: hifi.colors.lightGrayText;
+                color: hifi.colors.darkGray;
                 // Alignment
                 horizontalAlignment: Text.AlignHLeft;
                 verticalAlignment: Text.AlignVCenter;
@@ -172,9 +180,9 @@ Rectangle {
         // Text below title bar
         RalewaySemiBold {
             id: securityImageTitleHelper;
-            text: "Choose a Security Picture";
+            text: "Choose a Security Picture:";
             // Text size
-            size: hifi.fontSizes.overlayTitle;
+            size: 24;
             // Anchors
             anchors.top: securityImageTitle.bottom;
             anchors.left: parent.left;
@@ -182,7 +190,7 @@ Rectangle {
             height: 50;
             width: paintedWidth;
             // Style
-            color: hifi.colors.lightGrayText;
+            color: hifi.colors.darkGray;
             // Alignment
             horizontalAlignment: Text.AlignHLeft;
             verticalAlignment: Text.AlignVCenter;
@@ -193,8 +201,31 @@ Rectangle {
             // Anchors
             anchors.top: securityImageTitleHelper.bottom;
             anchors.left: parent.left;
+            anchors.leftMargin: 16;
             anchors.right: parent.right;
-            height: 350;
+            anchors.rightMargin: 16;
+            height: 280;
+        }
+
+        // Text below security images
+        RalewaySemiBold {
+            text: "<b>Your security picture shows you that the service asking for your passphrase is authorized. You can change your secure picture at any time.</b>";
+            // Text size
+            size: 18;
+            // Anchors
+            anchors.top: securityImageSelection.bottom;
+            anchors.topMargin: 40;
+            anchors.left: parent.left;
+            anchors.leftMargin: 16;
+            anchors.right: parent.right;
+            anchors.rightMargin: 16;
+            height: paintedHeight;
+            // Style
+            color: hifi.colors.darkGray;
+            wrapMode: Text.WordWrap;
+            // Alignment
+            horizontalAlignment: Text.AlignHLeft;
+            verticalAlignment: Text.AlignVCenter;
         }
 
         // Navigation Bar
@@ -219,7 +250,7 @@ Rectangle {
                 width: 100;
                 text: "Cancel"
                 onClicked: {
-                    
+                    signalSent({method: 'securityImageSelection_cancelClicked'});
                 }
             }
 
@@ -236,7 +267,10 @@ Rectangle {
                 width: 100;
                 text: "Next";
                 onClicked: {
-
+                    root.lastPage = "securityImage";
+                    commerce.chooseSecurityImage(securityImageSelection.getSelectedImageIndex());
+                    securityImageContainer.visible = false;
+                    choosePassphraseContainer.visible = true;
                 }
             }
         }
@@ -253,6 +287,12 @@ Rectangle {
         visible: false;
         // Anchors
         anchors.fill: parent;
+
+        onVisibleChanged: {
+            if (visible) {
+                commerce.getPassphraseSetupStatus();
+            }
+        }
 
         Item {
             // Size
@@ -274,7 +314,7 @@ Rectangle {
                 anchors.bottom: parent.bottom;
                 width: paintedWidth;
                 // Style
-                color: hifi.colors.lightGrayText;
+                color: hifi.colors.darkGray;
                 // Alignment
                 horizontalAlignment: Text.AlignHLeft;
                 verticalAlignment: Text.AlignVCenter;
@@ -303,7 +343,9 @@ Rectangle {
                 width: 100;
                 text: "Back"
                 onClicked: {
-                    
+                    root.lastPage = "choosePassphrase";
+                    choosePassphraseContainer.visible = false;
+                    securityImageContainer.visible = true;
                 }
             }
             
@@ -374,7 +416,7 @@ Rectangle {
                 anchors.bottom: parent.bottom;
                 width: paintedWidth;
                 // Style
-                color: hifi.colors.lightGrayText;
+                color: hifi.colors.darkGray;
                 // Alignment
                 horizontalAlignment: Text.AlignHLeft;
                 verticalAlignment: Text.AlignVCenter;
@@ -388,27 +430,7 @@ Rectangle {
     //
     // FUNCTION DEFINITIONS START
     //
-    //
-    // Function Name: fromScript()
-    //
-    // Relevant Variables:
-    // None
-    //
-    // Arguments:
-    // message: The message sent from the JavaScript.
-    //     Messages are in format "{method, params}", like json-rpc.
-    //
-    // Description:
-    // Called when a message is received from a script.
-    //
-    function fromScript(message) {
-        switch (message.method) {
-            default:
-                console.log('Unrecognized message from wallet.js:', JSON.stringify(message));
-        }
-    }
-    signal sendToScript(var message);
-
+    signal signalSent(var msg);
     //
     // FUNCTION DEFINITIONS END
     //

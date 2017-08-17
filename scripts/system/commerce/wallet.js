@@ -55,6 +55,9 @@
     //    in the format "{method, params}", like json-rpc. See also sendToQml().
     function fromQml(message) {
         switch (message.method) {
+            case 'securityImageSelection_cancelClicked':
+                tablet.gotoHomeScreen();
+                break;
             default:
                 print('Unrecognized message from QML:', JSON.stringify(message));
         }
