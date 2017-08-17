@@ -1087,23 +1087,23 @@ SelectionDisplay = (function() {
         return tool;
     }
 
-    // toolHandle:  The overlayID associated with the tool
-    // that correlates to the tool you wish to query.
+    // @param: toolHandle:  The overlayID associated with the tool
+    //         that correlates to the tool you wish to query.
+    // @note: If toolHandle is null or undefined then activeTool
+    //        will be checked against those values as opposed to
+    //        the tool registered under toolHandle.  Null & Undefined 
+    //        are treated as separate values.
     // @return: bool - Indicates if the activeTool is that queried.
     function isActiveTool(toolHandle) {
-        var wantDebug = false;
-        if ( ! activeTool || ! toolHandle ){
-            if(wantDebug){
-                if ( activeTool ){
-                    print("WARNING: entitySelectionTool.isActiveTool - Encountered invalid toolHandle: " + toolHandle );
-                }
-            }
-            return false;
+        if ( ! toolHandle ) {
+            // Allow isActiveTool( null ) and similar to return true if there's
+            // no active tool
+            return ( activeTool === toolHandle );
         }
+
         if ( ! grabberTools.hasOwnProperty( toolHandle ) ) {
-            if(wantDebug){
-                print("WARNING: entitySelectionTool.isActiveTool - Encountered unknown grabberToolHandle: " + toolHandle );
-            }
+            print("WARNING: entitySelectionTool.isActiveTool - Encountered unknown grabberToolHandle: " + toolHandle + ". Tools should be egistered via addGrabberTool." );
+            //--EARLY EXIT--
             return false;
         }
 
