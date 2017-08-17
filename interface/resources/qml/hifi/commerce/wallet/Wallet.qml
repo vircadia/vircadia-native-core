@@ -38,7 +38,7 @@ Rectangle {
     }
     Connections {
         target: walletSetupLightbox;
-        onSignalSent: {
+        onSendSignalToWallet: {
             sendToScript(msg);
         }
     }

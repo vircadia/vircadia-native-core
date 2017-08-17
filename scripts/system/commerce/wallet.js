@@ -55,8 +55,17 @@
     //    in the format "{method, params}", like json-rpc. See also sendToQml().
     function fromQml(message) {
         switch (message.method) {
-            case 'securityImageSelection_cancelClicked':
+            case 'walletSetup_cancelClicked':
                 tablet.gotoHomeScreen();
+                break;
+            case 'walletSetup_loginClicked':
+                if ((HMD.active && Settings.getValue("hmdTabletBecomesToolbar", false))
+                    || (!HMD.active && Settings.getValue("desktopTabletBecomesToolbar", true))) {
+                    Menu.triggerOption("Login / Sign Up");
+                    tablet.gotoHomeScreen();
+                } else {
+                    tablet.loadQMLOnTop("../../../dialogs/TabletLoginDialog.qml");
+                }
                 break;
             default:
                 print('Unrecognized message from QML:', JSON.stringify(message));

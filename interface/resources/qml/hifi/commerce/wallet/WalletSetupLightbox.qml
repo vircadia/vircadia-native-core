@@ -24,7 +24,7 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     id: root;
-    property string lastPage: "";
+    property string lastPage: "login";
     // Style
     color: "white";
 
@@ -42,7 +42,7 @@ Rectangle {
         onSecurityImageResult: {
             if (imageID !== 0) { // "If security image is set up"
                 passphrasePageSecurityImage.source = securityImageSelection.getImagePathFromImageID(imageID);
-                if (root.lastPage === "") {
+                if (root.lastPage === "login") {
                     securityImageContainer.visible = false;
                     choosePassphraseContainer.visible = true;
                 }
@@ -77,6 +77,7 @@ Rectangle {
         }
 
         Item {
+            id: loginTitle;
             // Size
             width: parent.width;
             height: 50;
@@ -103,6 +104,64 @@ Rectangle {
             }
         }
 
+        // Text below title bar
+        RalewaySemiBold {
+            id: loginTitleHelper;
+            text: "Please Log In to High Fidelity";
+            // Text size
+            size: 24;
+            // Anchors
+            anchors.top: loginTitle.bottom;
+            anchors.left: parent.left;
+            anchors.leftMargin: 16;
+            anchors.right: parent.right;
+            anchors.rightMargin: 16;
+            height: 50;
+            // Style
+            color: hifi.colors.darkGray;
+            // Alignment
+            horizontalAlignment: Text.AlignHLeft;
+            verticalAlignment: Text.AlignVCenter;
+        }
+
+        // Text below helper text
+        RalewaySemiBold {
+            id: loginDetailText;
+            text: "To set up your wallet, you must first log in to High Fidelity.";
+            // Text size
+            size: 18;
+            // Anchors
+            anchors.top: loginTitleHelper.bottom;
+            anchors.topMargin: 25;
+            anchors.left: parent.left;
+            anchors.leftMargin: 16;
+            anchors.right: parent.right;
+            anchors.rightMargin: 16;
+            height: 50;
+            // Style
+            color: hifi.colors.darkGray;
+            wrapMode: Text.WordWrap;
+            // Alignment
+            horizontalAlignment: Text.AlignHLeft;
+            verticalAlignment: Text.AlignVCenter;
+        }
+
+        // "Cancel" button
+        HifiControlsUit.Button {
+            color: hifi.buttons.black;
+            colorScheme: hifi.colorSchemes.dark;
+            anchors.top: loginDetailText.bottom;
+            anchors.topMargin: 25;
+            anchors.left: parent.left;
+            anchors.leftMargin: 16;
+            width: 150;
+            height: 50;
+            text: "Log In"
+            onClicked: {
+                sendSignalToWallet({method: 'walletSetup_loginClicked'});
+            }
+        }
+
         // Navigation Bar
         Item {
             // Size
@@ -125,7 +184,7 @@ Rectangle {
                 width: 100;
                 text: "Cancel"
                 onClicked: {
-                    
+                    sendSignalToWallet({method: 'walletSetup_cancelClicked'});
                 }
             }
         }
@@ -250,7 +309,7 @@ Rectangle {
                 width: 100;
                 text: "Cancel"
                 onClicked: {
-                    signalSent({method: 'securityImageSelection_cancelClicked'});
+                    sendSignalToWallet({method: 'walletSetup_cancelClicked'});
                 }
             }
 
@@ -430,7 +489,7 @@ Rectangle {
     //
     // FUNCTION DEFINITIONS START
     //
-    signal signalSent(var msg);
+    signal sendSignalToWallet(var msg);
     //
     // FUNCTION DEFINITIONS END
     //
