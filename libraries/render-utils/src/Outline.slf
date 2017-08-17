@@ -55,7 +55,7 @@ void main(void) {
         }
     } else {
         float weight = 0.0;
-        const vec2 deltaUv = params._size / params._blurKernelSize;
+        vec2 deltaUv = params._size / params._blurKernelSize;
         vec2 lineStartUv = varTexCoord0 - params._size / 2.0; 
         vec2 uv;
         int x;

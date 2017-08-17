@@ -120,6 +120,7 @@ private:
     const gpu::PipelinePointer& getPipeline();
 
     gpu::FramebufferPointer _primaryWithoutDepthBuffer;
+    glm::ivec2 _frameBufferSize {0, 0};
     gpu::PipelinePointer _pipeline;
     OutlineConfigurationBuffer _configuration;
     glm::vec3 _color;

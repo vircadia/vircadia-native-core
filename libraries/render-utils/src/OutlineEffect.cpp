@@ -24,19 +24,14 @@ OutlineFramebuffer::OutlineFramebuffer() {
 }
 
 void OutlineFramebuffer::update(const gpu::TexturePointer& linearDepthBuffer) {
-    //If the depth buffer or size changed, we need to delete our FBOs
-    bool reset = false;
-
+    // If the depth buffer or size changed, we need to delete our FBOs and recreate them at the
+    // new correct dimensions.
     if (_depthTexture) {
         auto newFrameSize = glm::ivec2(linearDepthBuffer->getDimensions());
         if (_frameSize != newFrameSize) {
             _frameSize = newFrameSize;
-            reset = true;
+            clear();
         }
-    }
-
-    if (reset) {
-        clear();
     }
 }
 
@@ -46,11 +41,11 @@ void OutlineFramebuffer::clear() {
 }
 
 void OutlineFramebuffer::allocate() {
-
+    
     auto width = _frameSize.x;
     auto height = _frameSize.y;
-    auto format = gpu::Element(gpu::SCALAR, gpu::FLOAT, gpu::RED);
-
+    auto format = gpu::Element(gpu::SCALAR, gpu::HALF, gpu::RED);
+    
     _depthTexture = gpu::TexturePointer(gpu::Texture::createRenderBuffer(format, width, height));
     _depthFramebuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("outlineDepth"));
     _depthFramebuffer->setRenderBuffer(0, _depthTexture);
@@ -146,14 +141,16 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
         auto outlinedDepthBuffer = inputs.get2();
         auto destinationFrameBuffer = inputs.get3();
         auto pipeline = getPipeline();
+        auto framebufferSize = glm::ivec2(sceneDepthBuffer->getDimensions());
 
-        if (!_primaryWithoutDepthBuffer) {
+        if (!_primaryWithoutDepthBuffer || framebufferSize!=_frameBufferSize) {
+            // Failing to recreate this frame buffer when the screen has been resized creates a bug on Mac
             _primaryWithoutDepthBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("primaryWithoutDepth"));
             _primaryWithoutDepthBuffer->setRenderBuffer(0, destinationFrameBuffer->getRenderBuffer(0));
+            _frameBufferSize = framebufferSize;
         }
 
         if (outlinedDepthBuffer) {
-            auto framebufferSize = glm::ivec2(sceneDepthBuffer->getDimensions());
             auto args = renderContext->args;
             {
                 auto& configuration = _configuration.edit();
@@ -163,8 +160,8 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
                 configuration._fillOpacityOccluded = _fillOpacityOccluded;
                 configuration._threshold = _threshold;
                 // Size is normalized for 1 pixel at 1024 pix resolution so we multiply by the real resolution to have the final pixel size estimate
-                configuration._blurKernelSize = std::min(10, std::max(2, (int)floorf(_size*framebufferSize.y + 0.5f)));
-                configuration._size.x = _size * framebufferSize.y / framebufferSize.x;
+                configuration._blurKernelSize = std::min(10, std::max(2, (int)floorf(_size*_frameBufferSize.y + 0.5f)));
+                configuration._size.x = _size * _frameBufferSize.y / _frameBufferSize.x;
                 configuration._size.y = _size;
             }
 
@@ -175,7 +172,7 @@ void DrawOutline::run(const render::RenderContextPointer& renderContext, const I
                 batch.setViewportTransform(args->_viewport);
                 batch.setProjectionTransform(glm::mat4());
                 batch.resetViewTransform();
-                batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(framebufferSize, args->_viewport));
+                batch.setModelTransform(gpu::Framebuffer::evalSubregionTexcoordTransform(_frameBufferSize, args->_viewport));
                 batch.setPipeline(pipeline);
 
                 batch.setUniformBuffer(OUTLINE_PARAMS_SLOT, _configuration);
