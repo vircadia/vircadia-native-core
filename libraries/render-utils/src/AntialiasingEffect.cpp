@@ -175,10 +175,20 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
 #include "fxaa_blend_frag.h"
 
 
+
+const int AntialiasingPass_FrameTransformSlot = 0;
+const int AntialiasingPass_HistoryMapSlot = 0;
+const int AntialiasingPass_SourceMapSlot = 1;
+const int AntialiasingPass_VelocityMapSlot = 2;
+
 Antialiasing::Antialiasing() {
 }
 
 Antialiasing::~Antialiasing() {
+    _antialiasingBuffer[0].reset();
+    _antialiasingBuffer[1].reset();
+    _antialiasingTexture[0].reset();
+    _antialiasingTexture[1].reset();
 }
 
 const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
@@ -190,15 +200,15 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
         
         gpu::Shader::BindingSet slotBindings;
-       // slotBindings.insert(gpu::Shader::Binding(std::string("historyTexture"), 0));
-        slotBindings.insert(gpu::Shader::Binding(std::string("colorTexture"), 0));
+        slotBindings.insert(gpu::Shader::Binding(std::string("historyMap"), AntialiasingPass_HistoryMapSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), AntialiasingPass_SourceMapSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("velocityMap"), AntialiasingPass_VelocityMapSlot));
         
         gpu::Shader::makeProgram(*program, slotBindings);
         
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
         
         PrepareStencil::testMask(*state);
-        state->setBlendFunction(true, gpu::State::BlendArg::SRC_ALPHA, gpu::State::BlendOp::BLEND_OP_ADD, gpu::State::BlendArg::INV_SRC_ALPHA);
 
         // Good to go add the brand new pipeline
         _antialiasingPipeline = gpu::Pipeline::create(program, state);
@@ -219,7 +229,7 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
         gpu::Shader::makeProgram(*program, slotBindings);
         
         gpu::StatePointer state = gpu::StatePointer(new gpu::State());
-        PrepareStencil::testMask(*state);
+    //    PrepareStencil::testMask(*state);
 
     
         // Good to go add the brand new pipeline
@@ -234,38 +244,51 @@ void Antialiasing::configure(const Config& config) {
 }
 
 
-void Antialiasing::run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceBuffer) {
+void Antialiasing::run(const render::RenderContextPointer& renderContext, const Inputs& inputs) {
     assert(renderContext->args);
     assert(renderContext->args->hasViewFrustum());
     
     RenderArgs* args = renderContext->args;
+
+    auto& deferredFrameTransform = inputs.get0();
+    auto& sourceBuffer = inputs.get1();
+    auto& velocityBuffer = inputs.get2();
     
     int width = sourceBuffer->getWidth();
     int height = sourceBuffer->getHeight();
 
-    if (_antialiasingBuffer) {
-        if (_antialiasingBuffer->getSize() != uvec2(width, height)) {// || (sourceBuffer && (_antialiasingBuffer->getRenderBuffer(1) != sourceBuffer->getRenderBuffer(0)))) {
-            _antialiasingBuffer.reset();
+    if (_antialiasingBuffer[0]) {
+        if (_antialiasingBuffer[0]->getSize() != uvec2(width, height)) {// || (sourceBuffer && (_antialiasingBuffer->getRenderBuffer(1) != sourceBuffer->getRenderBuffer(0)))) {
+            _antialiasingBuffer[0].reset();
+            _antialiasingBuffer[1].reset();
+            _antialiasingTexture[0].reset();
+            _antialiasingTexture[1].reset();
         }
     }
 
-    if (!_antialiasingBuffer) {
+    if (!_antialiasingBuffer[0]) {
         // Link the antialiasing FBO to texture
-        _antialiasingBuffer = gpu::FramebufferPointer(gpu::Framebuffer::create("antialiasing"));
-        auto format = gpu::Element::COLOR_SRGBA_32; // DependencyManager::get<FramebufferCache>()->getLightingTexture()->getTexelFormat();
-        auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
-        _antialiasingTexture = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, defaultSampler);
-        _antialiasingBuffer->setRenderBuffer(0, _antialiasingTexture);
+        for (int i = 0; i < 2; i++) {
+            _antialiasingBuffer[i] = gpu::FramebufferPointer(gpu::Framebuffer::create("antialiasing"));
+            auto format = gpu::Element::COLOR_SRGBA_32; // DependencyManager::get<FramebufferCache>()->getLightingTexture()->getTexelFormat();
+            auto defaultSampler = gpu::Sampler(gpu::Sampler::FILTER_MIN_MAG_POINT);
+            _antialiasingTexture[i] = gpu::Texture::createRenderBuffer(format, width, height, gpu::Texture::SINGLE_MIP, defaultSampler);
+            _antialiasingBuffer[i]->setRenderBuffer(0, _antialiasingTexture[i]);
+        }
     }
-
+    int currentFrame = (_currentFrame++) % 2;
+    int prevFrame = (currentFrame + 1) % 2;
+    
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
         batch.setViewportTransform(args->_viewport);
 
         // TAA step
         getAntialiasingPipeline();
-        batch.setResourceTexture(0, sourceBuffer->getRenderBuffer(0));
-        batch.setFramebuffer(_antialiasingBuffer);
+        batch.setResourceTexture(AntialiasingPass_HistoryMapSlot, _antialiasingTexture[prevFrame]);
+        batch.setResourceTexture(AntialiasingPass_SourceMapSlot, sourceBuffer->getRenderBuffer(0));
+        batch.setResourceTexture(AntialiasingPass_VelocityMapSlot, velocityBuffer->getVelocityTexture());
+        batch.setFramebuffer(_antialiasingBuffer[currentFrame]);
         batch.setPipeline(getAntialiasingPipeline());
         
         batch.setUniformBuffer(0, _params._buffer);
@@ -273,7 +296,7 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         // Blend step
-        batch.setResourceTexture(0, _antialiasingTexture);
+        batch.setResourceTexture(0, _antialiasingTexture[currentFrame]);
         batch.setFramebuffer(sourceBuffer);
         batch.setPipeline(getBlendPipeline());
         batch.draw(gpu::TRIANGLE_STRIP, 4);

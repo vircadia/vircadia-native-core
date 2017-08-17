@@ -226,7 +226,9 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     
 
     // AA job to be revisited
-    task.addJob<Antialiasing>("Antialiasing", primaryFramebuffer);
+    const auto antialiasingInputs = Antialiasing::Inputs(deferredFrameTransform, primaryFramebuffer, velocityBuffer).asVarying();
+
+    task.addJob<Antialiasing>("Antialiasing", antialiasingInputs);
 
     // Draw 2DWeb non AA
     const auto nonAAOverlaysInputs = DrawOverlay3D::Inputs(nonAAOverlays, lightingModel).asVarying();

@@ -18,8 +18,9 @@ precision mediump float;
 precision mediump int;
 #endif
 
-uniform sampler2D colorTexture;
-//uniform sampler2D historyTexture;
+uniform sampler2D colorMap;
+uniform sampler2D historyMap;
+uniform sampler2D velocityMap;
 
 in vec2 varTexCoord0;
 layout(location = 0) out vec4 outFragColor;
@@ -37,12 +38,26 @@ layout(std140) uniform taaParamsBuffer {
 };
 
 void main() {
-    outFragColor = vec4(texture(colorTexture, varTexCoord0).xyz, params.blend);
+    vec3 currentColor = texture(colorMap, varTexCoord0).xyz;
+
+    vec2 rawVelocity = texture(velocityMap, varTexCoord0).xy;
+
+    vec2 velocity = rawVelocity;
+    vec2 prevTexCoord = varTexCoord0 - velocity;
+    vec3 prevColor = texture(historyMap, prevTexCoord).xyz;
+
+    vec3 newColor = mix(currentColor, prevColor, params.blend);
+
+    outFragColor = vec4(newColor, 1.0);
+  //  outFragColor = vec4(varTexCoord0, 0.0, 1.0);
 
     if (abs(varTexCoord0.x - params.debugX) < (1.0 / 2048.0)) {
-        outFragColor.rgb = vec3(1.0, 1.0, 0.0);
+        outFragColor.rgb = vec3(1.0, 1.0, 1.0);
     }
     if (varTexCoord0.x < params.debugX) {
-        outFragColor.a = 1.0;
+        outFragColor = vec4(prevColor, 1.0);
+        /*if (dot(velocity, velocity) > 0.0001) {
+          outFragColor = vec4(rawVelocity, 0.0, 1.0);
+        }*/
     }
 }

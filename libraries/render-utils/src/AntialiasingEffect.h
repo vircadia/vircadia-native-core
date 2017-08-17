@@ -15,6 +15,8 @@
 #include <DependencyManager.h>
 
 #include "render/DrawTask.h"
+#include "DeferredFrameTransform.h"
+#include "VelocityBufferPass.h"
 
 class AntialiasingConfig : public render::Job::Config {
     Q_OBJECT
@@ -43,13 +45,14 @@ using TAAParamsBuffer = gpu::StructBuffer<TAAParams>;
 
 class Antialiasing {
 public:
+    using Inputs = render::VaryingSet3<DeferredFrameTransformPointer, gpu::FramebufferPointer, VelocityFramebufferPointer>;
     using Config = AntialiasingConfig;
-    using JobModel = render::Job::ModelI<Antialiasing, gpu::FramebufferPointer, Config>;
+    using JobModel = render::Job::ModelI<Antialiasing, Inputs, Config>;
 
     Antialiasing();
     ~Antialiasing();
     void configure(const Config& config);
-    void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& sourceBuffer);
+    void run(const render::RenderContextPointer& renderContext, const Inputs& inputs);
 
     const gpu::PipelinePointer& getAntialiasingPipeline();
     const gpu::PipelinePointer& getBlendPipeline();
@@ -62,14 +65,14 @@ private:
     // Uniforms for AA
     gpu::int32 _texcoordOffsetLoc;
 
-    gpu::FramebufferPointer _antialiasingBuffer;
-
-    gpu::TexturePointer _antialiasingTexture;
+    gpu::FramebufferPointer _antialiasingBuffer[2];
+    gpu::TexturePointer _antialiasingTexture[2];
 
     gpu::PipelinePointer _antialiasingPipeline;
     gpu::PipelinePointer _blendPipeline;
 
     TAAParamsBuffer _params;
+    int _currentFrame{ 0 };
 };
 
 /*
