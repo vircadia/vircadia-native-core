@@ -158,7 +158,7 @@ Rectangle {
             model: Audio.devices.input;
             delegate: RowLayout {
                 width: inputView.width;
-                spacing: 0
+                spacing: 5
 
                 AudioControls.CheckBox {
                     Layout.fillWidth: true
@@ -170,6 +170,10 @@ Rectangle {
                             Audio.setInputDevice(info, bar.currentIndex === 1);
                         }
                     }
+                }
+                InputLevel {
+                    visible: (bar.currentIndex === 1 && selectedHMD && isVR) ||
+                             (bar.currentIndex === 0 && selectedDesktop && !isVR);
                 }
             }
         }
