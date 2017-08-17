@@ -237,9 +237,6 @@ Column {
             textSizeSmall: root.textSizeSmall;
             stackShadowNarrowing: root.stackShadowNarrowing;
             shadowHeight: root.stackedCardShadowHeight;
-
-            hoverThunk: function () { scrollToIndex(index); }
-            unhoverThunk: function () { scrollToIndex(-1); }
         }
     }
     NumberAnimation {
