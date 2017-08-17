@@ -19,9 +19,11 @@ HIFI_QML_DEF(QmlCommerce)
 
 QmlCommerce::QmlCommerce(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     auto ledger = DependencyManager::get<Ledger>();
+    auto wallet = DependencyManager::get<Wallet>();
     connect(ledger.data(), &Ledger::buyResult, this, &QmlCommerce::buyResult);
     connect(ledger.data(), &Ledger::balanceResult, this, &QmlCommerce::balanceResult);
     connect(ledger.data(), &Ledger::inventoryResult, this, &QmlCommerce::inventoryResult);
+    connect(wallet.data(), &Wallet::securityImageResult, this, &QmlCommerce::securityImageResult);
 }
 
 void QmlCommerce::buy(const QString& assetId, int cost, const QString& buyerUsername) {
@@ -48,4 +50,13 @@ void QmlCommerce::inventory() {
     auto ledger = DependencyManager::get<Ledger>();
     auto wallet = DependencyManager::get<Wallet>();
     ledger->inventory(wallet->listPublicKeys());
- }
+}
+
+void QmlCommerce::chooseSecurityImage(uint imageID) {
+    auto wallet = DependencyManager::get<Wallet>();
+    wallet->chooseSecurityImage(imageID);
+}
+void QmlCommerce::getSecurityImage() {
+    auto wallet = DependencyManager::get<Wallet>();
+    wallet->getSecurityImage();
+}
