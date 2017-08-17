@@ -103,7 +103,6 @@ CheckBox {
         wrapMode: checkBox.wrap ? Text.Wrap : Text.NoWrap
         elide: checkBox.wrap ? Text.ElideNone : Text.ElideRight
         enabled: checkBox.enabled
-        horizontalAlignment: Text.AlignHCenter
         verticalAlignment: Text.AlignVCenter
         leftPadding: checkBox.indicator.width + checkBox.spacing
     }

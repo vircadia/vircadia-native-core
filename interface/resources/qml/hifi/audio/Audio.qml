@@ -50,21 +50,38 @@ Rectangle {
         property real sizeVR: root.width / 13.5
     }
 
+    TabBar {
+        id: bar
+        spacing: 0
+        width: parent.width
+        height: 36
+
+        AudioControls.AudioTabButton {
+            height: parent.height
+            text: qsTr("Desktop")
+        }
+        AudioControls.AudioTabButton {
+            height: parent.height
+            text: qsTr("VR")
+        }
+    }
+
     Column {
-        y: 16; // padding does not work
-        spacing: 16;
+        spacing: 12;
+        anchors.topMargin: 8
+        anchors.top: bar.bottom
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: 5
         width: parent.width;
 
         RalewayRegular {
-            x: margins.paddings; // padding does not work
+            x: margins.paddings;
             size: 16;
             color: "white";
-            text: root.title;
-
-            visible: root.showTitle();
+            text: qsTr("Mic Settings")
         }
 
-        Separator { visible: root.showTitle() }
+        Separator { }
 
         ColumnLayout {
             x: margins.paddings; // padding does not work
@@ -128,80 +145,29 @@ Rectangle {
                 color: hifi.colors.lightGrayText;
                 text: qsTr("CHOOSE INPUT DEVICE");
             }
-
-            RalewayRegular {
-                Layout.minimumWidth: margins.sizeDesktop
-                Layout.maximumWidth: margins.sizeDesktop
-                anchors.verticalCenter: parent.verticalCenter;
-                size: 16;
-                color: hifi.colors.lightGrayText;
-                text: qsTr("DESKTOP");
-            }
-
-            RalewayRegular {
-                Layout.minimumWidth: margins.sizeVR
-                Layout.maximumWidth: margins.sizeVR
-                Layout.alignment: Qt.AlignRight
-                anchors.verticalCenter: parent.verticalCenter;
-                size: 16;
-                color: hifi.colors.lightGrayText;
-                text: qsTr("VR");
-            }
         }
 
         ListView {
             id: inputView
             width: parent.width - margins.paddings*2
             x: margins.paddings
-            height: 125;
-            spacing: 0;
+            height: 145;
+            spacing: 4;
             snapMode: ListView.SnapToItem;
             clip: true;
             model: Audio.devices.input;
             delegate: RowLayout {
                 width: inputView.width;
-                height: 36;
                 spacing: 0
 
-                RalewaySemiBold {
-                    Layout.minimumWidth: margins.sizeCheckBox + margins.sizeText
-                    Layout.maximumWidth: margins.sizeCheckBox + margins.sizeText
-                    clip: true
-                    size: 16;
-                    color: "white";
-                    text: devicename;
-                }
-
-                //placeholder for invisible level
-                Item {
-                    Layout.minimumWidth: margins.sizeLevel
-                    Layout.maximumWidth: margins.sizeLevel
-                    height: 8;
-                    InputLevel {
-                        visible: (isVR && selectedHMD) || (!isVR && selectedDesktop);
-                        anchors.fill: parent
-                    }
-                }
                 AudioControls.CheckBox {
-                    Layout.minimumWidth: margins.sizeDesktop
-                    Layout.maximumWidth: margins.sizeDesktop
-                    leftPadding: margins.sizeDesktop/2 - boxSize/2
-                    checked: selectedDesktop;
+                    Layout.fillWidth: true
+                    checked: bar.currentIndex === 0 ? selectedDesktop :  selectedHMD;
+                    boxRadius: boxSize/2
+                    text: devicename
                     onClicked: {
                         if (checked) {
-                            Audio.setInputDevice(info, false);
-                        }
-                    }
-                }
-
-                AudioControls.CheckBox {
-                    Layout.minimumWidth: margins.sizeVR
-                    Layout.maximumWidth: margins.sizeVR
-                    leftPadding: margins.sizeVR/2 - boxSize/2
-                    checked: selectedHMD;
-                    onClicked: {
-                        if (checked) {
-                            Audio.setInputDevice(info, true);
+                            Audio.setInputDevice(info, bar.currentIndex === 1);
                         }
                     }
                 }
@@ -231,25 +197,6 @@ Rectangle {
                 color: hifi.colors.lightGrayText;
                 text: qsTr("CHOOSE OUTPUT DEVICE");
             }
-
-            RalewayRegular {
-                Layout.minimumWidth: margins.sizeDesktop
-                Layout.maximumWidth: margins.sizeDesktop
-                anchors.verticalCenter: parent.verticalCenter;
-                size: 16;
-                color: hifi.colors.lightGrayText;
-                text: qsTr("DESKTOP");
-            }
-
-            RalewayRegular {
-                Layout.minimumWidth: margins.sizeVR
-                Layout.maximumWidth: margins.sizeVR
-                Layout.alignment: Qt.AlignRight
-                anchors.verticalCenter: parent.verticalCenter;
-                size: 16;
-                color: hifi.colors.lightGrayText;
-                text: qsTr("VR");
-            }
         }
 
         ListView {
@@ -257,49 +204,22 @@ Rectangle {
             width: parent.width - margins.paddings*2
             x: margins.paddings
             height: Math.min(220, contentHeight);
-            spacing: 0;
+            spacing: 4;
             snapMode: ListView.SnapToItem;
             clip: true;
             model: Audio.devices.output;
             delegate: RowLayout {
                 width: outputView.width;
-                height: 36;
                 spacing: 0
 
-                RalewaySemiBold {
-                    Layout.minimumWidth: margins.sizeCheckBox + margins.sizeText
-                    Layout.maximumWidth: margins.sizeCheckBox + margins.sizeText
-                    clip: true
-                    size: 16;
-                    color: "white";
-                    text: devicename;
-                }
-
-                //placeholder for invisible level
-                Item {
-                    Layout.minimumWidth: margins.sizeLevel
-                    Layout.maximumWidth: margins.sizeLevel
-                    height: 8;
-                }
                 AudioControls.CheckBox {
-                    Layout.minimumWidth: margins.sizeDesktop
-                    Layout.maximumWidth: margins.sizeDesktop
-                    leftPadding: margins.sizeDesktop/2 - boxSize/2
-                    checked: selectedDesktop;
+                    Layout.fillWidth: true
+                    boxRadius: boxSize/2
+                    checked: bar.currentIndex === 0 ? selectedDesktop :  selectedHMD;
+                    text: devicename
                     onClicked: {
                         if (checked) {
-                            Audio.setOutputDevice(info, false);
-                        }
-                    }
-                }
-                AudioControls.CheckBox {
-                    Layout.minimumWidth: margins.sizeVR
-                    Layout.maximumWidth: margins.sizeVR
-                    leftPadding: margins.sizeVR/2 - boxSize/2
-                    checked: selectedHMD;
-                    onClicked: {
-                        if (checked) {
-                            Audio.setOutputDevice(info, true);
+                            Audio.setOutputDevice(info, bar.currentIndex === 1);
                         }
                     }
                 }
