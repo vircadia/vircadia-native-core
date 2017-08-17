@@ -31,7 +31,7 @@ signals:
     void balanceResult(int balance, const QString& failureMessage);
     void inventoryResult(QJsonObject inventory, const QString& failureMessage);
     void securityImageResult(uint imageID);
-    void loginStatusResult(bool isSetup);
+    void loginStatusResult(bool isLoggedIn);
     void passphraseSetupStatusResult(bool passphraseIsSetup);
 
 protected:

@@ -35,8 +35,17 @@ Rectangle {
                 hfcBalanceText.text = balance;
             }
         }
-        onSecurityImageResult: {
-            securityImage.source = securityImageSelection.getImagePathFromImageID(imageID);
+    }
+
+    Rectangle {
+        anchors.fill: parent;
+        color: "black";
+        opacity: 0.5;
+        WalletSetupLightbox {
+            id: walletSetupLightbox;
+            anchors.centerIn: parent;
+            width: parent.width - 50;
+            height: parent.height - 50;
         }
     }
 
@@ -104,7 +113,6 @@ Rectangle {
         // Anchors
         anchors.left: parent.left;
         anchors.bottom: parent.bottom;
-        anchors.bottomMargin: 8;
 
         // Separator
         HifiControlsUit.Separator {
@@ -116,52 +124,136 @@ Rectangle {
         // "ACCOUNT HOME" tab button
         Rectangle {
             id: accountHomeButtonContainer;
-            color: hifi.buttons.black;
+            color: hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
             width: parent.width / tabButtonsContainer.numTabs;
-            onClicked: {
-                // Show this tab
+
+            RalewaySemiBold {
+                text: "ACCOUNT HOME";
+                // Text size
+                size: hifi.fontSizes.overlayTitle;
+                // Anchors
+                anchors.fill: parent;
+                anchors.leftMargin: 4;
+                anchors.rightMargin: 4;
+                // Style
+                color: hifi.colors.lightGrayText;
+                wrapMode: Text.WordWrap;
+                // Alignment
+                horizontalAlignment: Text.AlignHCenter;
+                verticalAlignment: Text.AlignVCenter;
+            }
+            MouseArea {
+                anchors.fill: parent;
+                hoverEnabled: enabled;
+                onClicked: {
+                }
+                onEntered: parent.color = hifi.colors.blueHighlight;
+                onExited: parent.color = hifi.colors.black;
             }
         }
 
         // "SEND MONEY" tab button
         Rectangle {
             id: sendMoneyButtonContainer;
-            color: hifi.buttons.black;
+            color: hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: accountHomeButtonContainer.right;
             anchors.bottom: parent.bottom;
             width: parent.width / tabButtonsContainer.numTabs;
-            onClicked: {
-                // Show this tab
+
+            RalewaySemiBold {
+                text: "SEND MONEY";
+                // Text size
+                size: hifi.fontSizes.overlayTitle;
+                // Anchors
+                anchors.fill: parent;
+                anchors.leftMargin: 4;
+                anchors.rightMargin: 4;
+                // Style
+                color: hifi.colors.lightGrayText;
+                wrapMode: Text.WordWrap;
+                // Alignment
+                horizontalAlignment: Text.AlignHCenter;
+                verticalAlignment: Text.AlignVCenter;
+            }
+            MouseArea {
+                anchors.fill: parent;
+                hoverEnabled: enabled;
+                onClicked: {
+                }
+                onEntered: parent.color = hifi.colors.blueHighlight;
+                onExited: parent.color = hifi.colors.black;
             }
         }
 
         // "SECURITY" tab button
         Rectangle {
             id: securityButtonContainer;
-            color: hifi.buttons.black;
+            color: hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: sendMoneyButtonContainer.right;
             anchors.bottom: parent.bottom;
             width: parent.width / tabButtonsContainer.numTabs;
-            onClicked: {
-                // Show this tab
+
+            RalewaySemiBold {
+                text: "SECURITY";
+                // Text size
+                size: hifi.fontSizes.overlayTitle;
+                // Anchors
+                anchors.fill: parent;
+                anchors.leftMargin: 4;
+                anchors.rightMargin: 4;
+                // Style
+                color: hifi.colors.lightGrayText;
+                wrapMode: Text.WordWrap;
+                // Alignment
+                horizontalAlignment: Text.AlignHCenter;
+                verticalAlignment: Text.AlignVCenter;
+            }
+            MouseArea {
+                anchors.fill: parent;
+                hoverEnabled: enabled;
+                onClicked: {
+                }
+                onEntered: parent.color = hifi.colors.blueHighlight;
+                onExited: parent.color = hifi.colors.black;
             }
         }
 
         // "HELP" tab button
         Rectangle {
             id: helpButtonContainer;
-            color: hifi.buttons.black;
+            color: hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: securityButtonContainer.right;
             anchors.bottom: parent.bottom;
             width: parent.width / tabButtonsContainer.numTabs;
-            onClicked: {
-                // Show this tab
+
+            RalewaySemiBold {
+                text: "HELP";
+                // Text size
+                size: hifi.fontSizes.overlayTitle;
+                // Anchors
+                anchors.fill: parent;
+                anchors.leftMargin: 4;
+                anchors.rightMargin: 4;
+                // Style
+                color: hifi.colors.lightGrayText;
+                wrapMode: Text.WordWrap;
+                // Alignment
+                horizontalAlignment: Text.AlignHCenter;
+                verticalAlignment: Text.AlignVCenter;
+            }
+            MouseArea {
+                anchors.fill: parent;
+                hoverEnabled: enabled;
+                onClicked: {
+                }
+                onEntered: parent.color = hifi.colors.blueHighlight;
+                onExited: parent.color = hifi.colors.black;
             }
         }
     }

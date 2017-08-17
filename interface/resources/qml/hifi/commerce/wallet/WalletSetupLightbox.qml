@@ -27,6 +27,8 @@ Rectangle {
     property int stepNumber: 0;
     // Style
     color: hifi.colors.white;
+    anchors.fill: parent;
+
     Hifi.QmlCommerce {
         id: commerce;
 

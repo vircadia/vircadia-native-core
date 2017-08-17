@@ -16,7 +16,7 @@
 (function () { // BEGIN LOCAL_SCOPE
 
 
-    // Function Name: buttonClicked()
+    // Function Name: onButtonClicked()
     //
     // Description:
     //   -Fired when the app button is pressed.
@@ -26,7 +26,7 @@
     //   -onWalletScreen: true/false depending on whether we're looking at the app.
     var WALLET_QML_SOURCE = Script.resourcesPath() + "qml/hifi/commerce/wallet/Wallet.qml";
     var onWalletScreen = false;
-    function buttonClicked() {
+    function onButtonClicked() {
         if (!tablet) {
             print("Warning in buttonClicked(): 'tablet' undefined!");
             return;
@@ -93,7 +93,7 @@
     //   -Called when the TabletScriptingInterface::screenChanged() signal is emitted. The "type" argument can be either the string
     //    value of "Home", "Web", "Menu", "QML", or "Closed". The "url" argument is only valid for Web and QML.
     function onTabletScreenChanged(type, url) {
-        onWalletScreen = (type === "QML" && url === SPECTATOR_CAMERA_QML_SOURCE);
+        onWalletScreen = (type === "QML" && url === WALLET_QML_SOURCE);
         wireEventBridge(onWalletScreen);
         // Change button to active when window is first openend, false otherwise.
         if (button) {
