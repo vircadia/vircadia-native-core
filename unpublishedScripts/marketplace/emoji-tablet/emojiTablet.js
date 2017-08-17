@@ -12,15 +12,7 @@
 /// http://creativecommons.org/licenses/
 ///
 
-// to avoid the caching block on updating JSONs
-var DEBUG = true;
-
-if (DEBUG) {
-    var lib = Script.require("https://hifi-content.s3.amazonaws.com/elisalj/emoji_scripts/emojiLib.js?" + Date.now());
-} else {
-    var lib = Script.require("./emojiLib.js");
-}
-
+var lib = Script.require("https://hifi-content.s3.amazonaws.com/elisalj/emoji_scripts/emojiLib.js?" + Date.now());
 
 (function() {
 
