@@ -41,6 +41,11 @@ FocusScope {
     // when they're opened.
     signal showDesktop();
 
+    // This is for JS/QML communication, which is unused in the Desktop,
+    // but not having this here results in spurious warnings about a
+    // missing signal
+    signal sendToScript(var message);
+
     // Allows QML/JS to find the desktop through the parent chain
     property bool desktopRoot: true
 
