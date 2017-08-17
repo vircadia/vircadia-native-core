@@ -536,22 +536,24 @@
                 origin: fingerTipPosition,
                 direction: Quat.getUp(fingerTipRotation)
             }
-            var overlays = Overlays.findRayIntersection(pickRay, false, [HMD.tabletID], [_inkSourceOverlay.overlayID]);
-            if (overlays.intersects && HMD.tabletID == overlays.overlayID) {
-                if (!_isTabletFocused) {
-                    _isTabletFocused = true;
-                    Overlays.editOverlay(_inkSourceOverlay, {visible: false});
-                    updateHandAnimations();
-                    pauseProcessing();
-                } 
-            } else {
-                if (_isTabletFocused) {
-                    _isTabletFocused = false;
-                    Overlays.editOverlay(_inkSourceOverlay, {visible: true});
-                    resumeProcessing();
-                    updateHandFunctions();
-                }            
-            };
+            if (_inkSourceOverlay) {
+                var overlays = Overlays.findRayIntersection(pickRay, false, [HMD.tabletID], [_inkSourceOverlay.overlayID]);
+                if (overlays.intersects && HMD.tabletID == overlays.overlayID) {
+                    if (!_isTabletFocused) {
+                        _isTabletFocused = true;
+                        Overlays.editOverlay(_inkSourceOverlay, {visible: false});
+                        updateHandAnimations();
+                        pauseProcessing();
+                    } 
+                } else {
+                    if (_isTabletFocused) {
+                        _isTabletFocused = false;
+                        Overlays.editOverlay(_inkSourceOverlay, {visible: true});
+                        resumeProcessing();
+                        updateHandFunctions();
+                    }            
+                };
+            }
         }
 
         function onUpdate() {
@@ -815,6 +817,7 @@
 
         if (_isFingerPainting) {
             tablet.gotoWebScreen(APP_URL + "?" + encodeURIComponent(JSON.stringify(_savedSettings)));
+            HMD.openTablet();
             enableProcessing();
             _savedSettings = null;
         }
@@ -832,22 +835,31 @@
             Controller.mouseReleaseEvent.connect(mouseFinishLine);
         }
     }
-
-    function onTabletScreenChanged(type, url) {
-        var TABLET_SCREEN_CLOSED = "Closed";
-        _isTabletDisplayed = type !== TABLET_SCREEN_CLOSED;
-        _isFingerPainting = type === "Web" && url.indexOf("fingerPaint/html/main.html") > -1;
-        if (!_isFingerPainting) {
-            disableProcessing();
-        }
-        if (_shouldRestoreTablet) {
+    
+    function onTabletShownChanged() {
+        if (_shouldRestoreTablet && tablet.tabletShown) {
             _shouldRestoreTablet = false;
-            _isFingerPainting = false; //in order for it to be re enabled
+            _isTabletFocused = false; 
+            _isFingerPainting = false;
+            HMD.openTablet();
             onButtonClicked();
             HMD.openTablet();
         }
+    }
+
+    function onTabletScreenChanged(type, url) {
+        var TABLET_SCREEN_CLOSED = "Closed";
+        var TABLET_SCREEN_HOME = "Home";
+        var TABLET_SCREEN_WEB = "Web";
+            
+        _isTabletDisplayed = type !== TABLET_SCREEN_CLOSED;
+        _isFingerPainting = type === TABLET_SCREEN_WEB && url.indexOf("fingerPaint/html/main.html") > -1;
+        
+        if (!_isFingerPainting) {
+            disableProcessing();
+            updateHandFunctions();
+        }
         button.editProperties({ isActive: _isFingerPainting });
-        updateHandFunctions();
     }
 
 
@@ -1012,23 +1024,21 @@
     }
 
     function onHmdChanged(isHMDActive) { 
-        var HMDInfo = Settings.getValue("wasFingerPaintingWhenHMDClosed", 
-            {
-                isHMDActive: true, 
-                wasFingerPainting: false
-            });
+        var wasHMDActive = Settings.getValue("wasHMDActive", null);        
+        if (isHMDActive != wasHMDActive) {
+            Settings.setValue("wasHMDActive", isHMDActive);            
+            if (wasHMDActive == null) {
+                return;
+            } else {
+                if (_isFingerPainting) {
+                    _shouldRestoreTablet = true;
 
-        if (!_isFingerPainting && HMDInfo.wasFingerPainting) {
-            _shouldRestoreTablet = true;
-            HMD.openTablet();
-        }
-        if (isHMDActive != HMDInfo.isHMDActive) { //check if state is different as some times it will be the same
-            //onHmdChanged seems to be called twice (once before and once after fingerpaint is over)
-            Settings.setValue("wasFingerPaintingWhenHMDClosed", 
-                {
-                    isHMDActive: isHMDActive, 
-                    wasFingerPainting: _isFingerPainting
-                });
+                    //Make sure the tablet is being shown when we try to change the window
+                    while (!tablet.tabletShown) {
+                        HMD.openTablet();
+                    }
+                } 
+            }
         }
     }
 
@@ -1049,6 +1059,7 @@
         button.clicked.connect(onButtonClicked);
         // Track whether tablet is displayed or not.
         tablet.screenChanged.connect(onTabletScreenChanged);
+        tablet.tabletShownChanged.connect(onTabletShownChanged);
         HMD.displayModeChanged.connect(onHmdChanged);
     }
 
@@ -1064,7 +1075,7 @@
         }
 
         tablet.screenChanged.disconnect(onTabletScreenChanged);
-
+        tablet.tabletShownChanged.disconnect(onTabletShownChanged);
         button.clicked.disconnect(onButtonClicked);
         tablet.removeButton(button);
     }
