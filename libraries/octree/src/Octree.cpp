@@ -1636,7 +1636,7 @@ bool Octree::readFromFile(const char* fileName) {
 
     QDataStream fileInputStream(&file);
     QFileInfo fileInfo(qFileName);
-    unsigned long fileLength = fileInfo.size();
+    uint64_t fileLength = fileInfo.size();
 
     emit importSize(1.0f, 1.0f, 1.0f);
     emit importProgress(0);
@@ -1713,7 +1713,7 @@ bool Octree::readFromURL(const QString& urlString) {
 }
 
 
-bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream, const QString& marketplaceID) {
+bool Octree::readFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID) {
     // decide if this is binary SVO or JSON-formatted SVO
     QIODevice *device = inputStream.device();
     char firstChar;
@@ -1730,14 +1730,14 @@ bool Octree::readFromStream(unsigned long streamLength, QDataStream& inputStream
 }
 
 
-bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStream) {
+bool Octree::readSVOFromStream(uint64_t streamLength, QDataStream& inputStream) {
     qWarning() << "SVO file format depricated. Support for reading SVO files is no longer support and will be removed soon.";
 
     bool fileOk = false;
 
     PacketVersion gotVersion = 0;
 
-    unsigned long headerLength = 0; // bytes in the header
+    uint64_t headerLength = 0; // bytes in the header
 
     bool wantImportProgress = true;
 
@@ -1749,14 +1749,14 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
     if (getWantSVOfileVersions()) {
 
         // read just enough of the file to parse the header...
-        const unsigned long HEADER_LENGTH = sizeof(int) + sizeof(PacketVersion);
+        const uint64_t HEADER_LENGTH = sizeof(int) + sizeof(PacketVersion);
         unsigned char fileHeader[HEADER_LENGTH];
         inputStream.readRawData((char*)&fileHeader, HEADER_LENGTH);
 
         headerLength = HEADER_LENGTH; // we need this later to skip to the data
 
         unsigned char* dataAt = (unsigned char*)&fileHeader;
-        unsigned long  dataLength = HEADER_LENGTH;
+        uint64_t  dataLength = HEADER_LENGTH;
 
         // if so, read the first byte of the file and see if it matches the expected version code
         int intPacketType;
@@ -1802,7 +1802,7 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
         if (!hasBufferBreaks) {
 
             // read the entire file into a buffer, WHAT!? Why not.
-            unsigned long dataLength = streamLength - headerLength;
+            uint64_t dataLength = streamLength - headerLength;
             unsigned char* entireFileDataSection = new unsigned char[dataLength];
             inputStream.readRawData((char*)entireFileDataSection, dataLength);
 
@@ -1817,9 +1817,9 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
         } else {
 
 
-            unsigned long dataLength = streamLength - headerLength;
-            unsigned long remainingLength = dataLength;
-            const unsigned long MAX_CHUNK_LENGTH = MAX_OCTREE_PACKET_SIZE * 2;
+            uint64_t dataLength = streamLength - headerLength;
+            uint64_t remainingLength = dataLength;
+            const uint64_t MAX_CHUNK_LENGTH = MAX_OCTREE_PACKET_SIZE * 2;
             unsigned char* fileChunk = new unsigned char[MAX_CHUNK_LENGTH];
 
             while (remainingLength > 0) {
@@ -1845,7 +1845,7 @@ bool Octree::readSVOFromStream(unsigned long streamLength, QDataStream& inputStr
                 remainingLength -= chunkLength;
 
                 unsigned char* dataAt = fileChunk;
-                unsigned long  dataLength = chunkLength;
+                uint64_t  dataLength = chunkLength;
 
                 ReadBitstreamToTreeParams args(NO_EXISTS_BITS, NULL, 0,
                                                     SharedNodePointer(), wantImportProgress, gotVersion);
@@ -1885,7 +1885,7 @@ QJsonDocument addMarketplaceIDToDocumentEntities(QJsonDocument& doc, const QStri
 
 const int READ_JSON_BUFFER_SIZE = 2048;
 
-bool Octree::readJSONFromStream(unsigned long streamLength, QDataStream& inputStream, const QString& marketplaceID /*=""*/) {
+bool Octree::readJSONFromStream(uint64_t streamLength, QDataStream& inputStream, const QString& marketplaceID /*=""*/) {
     // if the data is gzipped we may not have a useful bytesAvailable() result, so just keep reading until
     // we get an eof.  Leave streamLength parameter for consistency.
 
@@ -1980,14 +1980,14 @@ bool Octree::writeToJSONFile(const char* fileName, const OctreeElementPointer& e
     return success;
 }
 
-unsigned long Octree::getOctreeElementsCount() {
-    unsigned long nodeCount = 0;
+uint64_t Octree::getOctreeElementsCount() {
+    uint64_t nodeCount = 0;
     recurseTreeWithOperation(countOctreeElementsOperation, &nodeCount);
     return nodeCount;
 }
 
 bool Octree::countOctreeElementsOperation(const OctreeElementPointer& element, void* extraData) {
-    (*(unsigned long*)extraData)++;
+    (*(uint64_t*)extraData)++;
     return true; // keep going
 }
 
