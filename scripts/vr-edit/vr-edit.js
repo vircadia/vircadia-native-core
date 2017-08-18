@@ -1435,7 +1435,7 @@
         case "setDamping":
             if (parameter !== undefined) {
                 // Power range 0.0, 0.5, 1.0 maps to 0, 0.39, 1.0.
-                physicsToolPhysics.linearDamping = 0.69136364 * Math.pow(2.446416831, parameter) - 0.691364;
+                physicsToolPhysics.damping = 0.69136364 * Math.pow(2.446416831, parameter) - 0.691364;
                 // Power range 0.0, 0.5, 1.0 maps to 0, 0.3935, 1.0.
                 physicsToolPhysics.angularDamping = 0.72695892 * Math.pow(2.375594, parameter) - 0.726959;
                 // Linear range from 0.0, 0.5, 1.0 maps to 0.0, 0.5, 1.0;
