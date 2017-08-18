@@ -37,8 +37,6 @@
 int OctreeServer::_clientCount = 0;
 const int MOVING_AVERAGE_SAMPLE_COUNTS = 1000000;
 
-float OctreeServer::SKIP_TIME = -1.0f; // use this for trackXXXTime() calls for non-times
-
 SimpleMovingAverage OctreeServer::_averageLoopTime(MOVING_AVERAGE_SAMPLE_COUNTS);
 SimpleMovingAverage OctreeServer::_averageInsideTime(MOVING_AVERAGE_SAMPLE_COUNTS);
 
@@ -134,9 +132,8 @@ void OctreeServer::trackEncodeTime(float time) {
     const float MAX_SHORT_TIME = 10.0f;
     const float MAX_LONG_TIME = 100.0f;
 
-    if (time == SKIP_TIME) {
+    if (time == 0.0f) {
         _noEncode++;
-        time = 0.0f;
     } else if (time <= MAX_SHORT_TIME) {
         _shortEncode++;
         _averageShortEncodeTime.updateAverage(time);
@@ -153,9 +150,8 @@ void OctreeServer::trackEncodeTime(float time) {
 void OctreeServer::trackTreeWaitTime(float time) {
     const float MAX_SHORT_TIME = 10.0f;
     const float MAX_LONG_TIME = 100.0f;
-    if (time == SKIP_TIME) {
+    if (time == 0.0f) {
         _noTreeWait++;
-        time = 0.0f;
     } else if (time <= MAX_SHORT_TIME) {
         _shortTreeWait++;
         _averageTreeShortWaitTime.updateAverage(time);
@@ -172,9 +168,8 @@ void OctreeServer::trackTreeWaitTime(float time) {
 void OctreeServer::trackCompressAndWriteTime(float time) {
     const float MAX_SHORT_TIME = 10.0f;
     const float MAX_LONG_TIME = 100.0f;
-    if (time == SKIP_TIME) {
+    if (time == 0.0f) {
         _noCompress++;
-        time = 0.0f;
     } else if (time <= MAX_SHORT_TIME) {
         _shortCompress++;
         _averageShortCompressTime.updateAverage(time);
@@ -189,9 +184,8 @@ void OctreeServer::trackCompressAndWriteTime(float time) {
 }
 
 void OctreeServer::trackPacketSendingTime(float time) {
-    if (time == SKIP_TIME) {
+    if (time == 0.0f) {
         _noSend++;
-        time = 0.0f;
     }
     _averagePacketSendingTime.updateAverage(time);
 }
@@ -200,9 +194,8 @@ void OctreeServer::trackPacketSendingTime(float time) {
 void OctreeServer::trackProcessWaitTime(float time) {
     const float MAX_SHORT_TIME = 10.0f;
     const float MAX_LONG_TIME = 100.0f;
-    if (time == SKIP_TIME) {
+    if (time == 0.0f) {
         _noProcessWait++;
-        time = 0.0f;
     } else if (time <= MAX_SHORT_TIME) {
         _shortProcessWait++;
         _averageProcessShortWaitTime.updateAverage(time);

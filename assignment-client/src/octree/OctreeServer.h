@@ -82,8 +82,6 @@ public:
     virtual void trackSend(const QUuid& dataID, quint64 dataLastEdited, const QUuid& viewerNode) { }
     virtual void trackViewerGone(const QUuid& viewerNode) { }
 
-    static float SKIP_TIME; // use this for trackXXXTime() calls for non-times
-
     static void trackLoopTime(float time) { _averageLoopTime.updateAverage(time); }
     static float getAverageLoopTime() { return _averageLoopTime.getAverage(); }
 
