@@ -19,6 +19,7 @@
 
 #include "GeometryUtil.h"
 
+#include "Application.h"
 
 QString const Image3DOverlay::TYPE = "image3d";
 
@@ -58,10 +59,26 @@ void Image3DOverlay::render(RenderArgs* args) {
     if (!_isLoaded) {
         _isLoaded = true;
         _texture = DependencyManager::get<TextureCache>()->getTexture(_url);
+        _textureIsLoaded = false;
     }
 
     if (!_visible || !getParentVisible() || !_texture || !_texture->isLoaded()) {
         return;
+    }
+
+    // Once the texture has loaded, check if we need to update the render item because of transparency
+    if (!_textureIsLoaded && _texture && _texture->getGPUTexture()) {
+        _textureIsLoaded = true;
+        if (_texture->getGPUTexture()->getUsage().isAlpha()) {
+            auto itemID = getRenderItemID();
+            setAlpha(0.5f);
+            if (render::Item::isValidID(itemID)) {
+                render::ScenePointer scene = qApp->getMain3DScene();
+                render::Transaction transaction;
+                transaction.updateItem(itemID);
+                scene->enqueueTransaction(transaction);
+            }
+        }
     }
 
     Q_ASSERT(args->_batch);

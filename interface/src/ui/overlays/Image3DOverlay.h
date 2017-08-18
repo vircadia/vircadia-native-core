@@ -47,6 +47,7 @@ public:
 
 private:
     QString _url;
+    bool _textureIsLoaded;
     NetworkTexturePointer _texture;
     bool _emissive { false };
 
