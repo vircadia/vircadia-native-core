@@ -44,7 +44,7 @@ Rectangle {
             }
         }
         onSecurityImageResult: {
-            securityImage.source = securityImageSelection.getImagePathFromImageID(imageID);
+            securityImage.source = securityImageSelection.getImagePathFromImageID(1);
         }
     }
 
@@ -132,7 +132,7 @@ Rectangle {
     // HFC BALANCE START
     //
     Item {
-        id: hfcBalanceContainer; 
+        id: hfcBalanceContainer;
         // Size
         width: inventoryRoot.width;
         height: childrenRect.height + 20;
@@ -177,7 +177,7 @@ Rectangle {
     //
     // HFC BALANCE END
     //
-    
+
     //
     // INVENTORY CONTENTS START
     //
@@ -192,7 +192,7 @@ Rectangle {
         anchors.topMargin: 8;
         anchors.bottom: actionButtonsContainer.top;
         anchors.bottomMargin: 8;
-        
+
         RalewaySemiBold {
             id: inventoryContentsLabel;
             text: "Inventory:";
@@ -249,7 +249,7 @@ Rectangle {
     //
     // INVENTORY CONTENTS END
     //
-    
+
     //
     // ACTION BUTTONS START
     //

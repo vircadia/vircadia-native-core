@@ -36,17 +36,17 @@ Rectangle {
         id: commerce;
         onSecurityImageResult: {
             if (!isManuallyChangingSecurityImage) {
-                securityImageSelectionRoot.visible = (imageID == 0);
+                securityImageSelectionRoot.visible = true;
             }
-            if (imageID > 0) {
-                for (var itr = 0; itr < gridModel.count; itr++) {
-                    var thisValue = gridModel.get(itr).securityImageEnumValue;
-                    if (thisValue === imageID) {
-                        securityImageGrid.currentIndex = itr;
-                        break;
-                    }
-                }
-            }
+            //if (imageID > 0) {
+            //    for (var itr = 0; itr < gridModel.count; itr++) {
+            //        var thisValue = gridModel.get(itr).securityImageEnumValue;
+            //        if (thisValue === imageID) {
+            //            securityImageGrid.currentIndex = itr;
+            //            break;
+            //        }
+            //    }
+            //}
         }
     }
 
@@ -97,7 +97,7 @@ Rectangle {
     // EXPLANATION START
     //
     Item {
-        id: explanationContainer; 
+        id: explanationContainer;
         // Size
         width: securityImageSelectionRoot.width;
         height: 85;
@@ -136,7 +136,7 @@ Rectangle {
     //
     // EXPLANATION END
     //
-    
+
     //
     // SECURITY IMAGE GRID START
     //
@@ -197,8 +197,8 @@ Rectangle {
     //
     // SECURITY IMAGE GRID END
     //
-    
-    
+
+
     //
     // ACTION BUTTONS START
     //
@@ -249,14 +249,14 @@ Rectangle {
             text: "Confirm";
             onClicked: {
                 securityImageSelectionRoot.isManuallyChangingSecurityImage = false;
-                commerce.chooseSecurityImage(gridModel.get(securityImageGrid.currentIndex).securityImageEnumValue);
+                commerce.chooseSecurityImage(gridModel.get(securityImageGrid.currentIndex).sourcePath);
             }
         }
     }
     //
     // ACTION BUTTONS END
     //
-    
+
     //
     // FUNCTION DEFINITIONS START
     //

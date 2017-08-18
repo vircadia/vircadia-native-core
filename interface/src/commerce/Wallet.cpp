@@ -12,9 +12,11 @@
 #include "CommerceLogging.h"
 #include "Ledger.h"
 #include "Wallet.h"
+#include "Application.h"
 
 #include <PathUtils.h>
 
+#include <QFile>
 #include <QCryptographicHash>
 
 #include <openssl/ssl.h>
@@ -23,8 +25,10 @@
 #include <openssl/x509.h>
 #include <openssl/pem.h>
 #include <openssl/evp.h>
+#include <openssl/aes.h>
 
 static const char* KEY_FILE = "hifikey";
+static const char* IMAGE_FILE = "hifi_image"; // eventually this will live in keyfile
 
 void initialize() {
     static bool initialized = false;
@@ -38,6 +42,10 @@ void initialize() {
 
 QString keyFilePath() {
     return PathUtils::getAppDataFilePath(KEY_FILE);
+}
+
+QString imageFilePath() {
+    return PathUtils::getAppDataFilePath(IMAGE_FILE);
 }
 
 // for now the callback function just returns the same string.  Later we can hook
@@ -106,9 +114,11 @@ QPair<QByteArray*, QByteArray*> generateRSAKeypair() {
 
 
     // now lets persist them to files
-    // TODO: figure out a scheme for multiple keys, etc...
+    // FIXME: for now I'm appending to the file if it exists.  As long as we always put
+    // the keys in the same order, this works fine.  TODO: verify this will skip over
+    // anything else (like an embedded image)
     FILE* fp;
-    if ((fp = fopen(keyFilePath().toStdString().c_str(), "wt"))) {
+    if ((fp = fopen(keyFilePath().toStdString().c_str(), "at"))) {
         if (!PEM_write_RSAPublicKey(fp, keyPair)) {
             fclose(fp);
             qCDebug(commerce) << "failed to write public key";
@@ -192,6 +202,113 @@ RSA* readPrivateKey(const char* filename) {
     return key;
 }
 
+static const unsigned char IVEC[16] = "IAmAnIVecYay123";
+
+void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArray& salt) {
+    // first ivec
+    memcpy(ivec, IVEC, 16);
+    auto hash = QCryptographicHash::hash(salt, QCryptographicHash::Md5);
+    memcpy(ckey, hash.data(), 16);
+}
+
+// encrypt some stuff
+bool Wallet::encryptFile(const QString& inputFilePath, const QString& outputFilePath) {
+    // aes requires a couple 128-bit keys (ckey and ivec).  For now, I'll just
+    // use the md5 of the salt as the ckey (md5 is 128-bit), and ivec will be
+    // a constant.  We can review this later - there are ways to generate keys
+    // from a password that may be better.
+    unsigned char ivec[16];
+    unsigned char ckey[16];
+
+    initializeAESKeys(ivec, ckey, _salt);
+
+    int tempSize, outSize;
+
+    // read entire unencrypted file into memory
+    QFile inputFile(inputFilePath);
+    if (!inputFile.exists()) {
+        qCDebug(commerce) << "cannot encrypt" << inputFilePath << "file doesn't exist";
+        return false;
+    }
+    inputFile.open(QIODevice::ReadOnly);
+    QByteArray inputFileBuffer = inputFile.readAll();
+    inputFile.close();
+
+    // reserve enough capacity for encrypted bytes
+    unsigned char* outputFileBuffer = new unsigned char[inputFileBuffer.size() + AES_BLOCK_SIZE];
+
+    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+
+    // TODO: add error handling!!!
+    if (!EVP_EncryptInit_ex(ctx, EVP_idea_cbc(), NULL, ckey, ivec)) {
+        qCDebug(commerce) << "encrypt init failure";
+        return false;
+    }
+    if (!EVP_EncryptUpdate(ctx, outputFileBuffer, &tempSize, (unsigned char*)inputFileBuffer.data(), inputFileBuffer.size())) {
+        qCDebug(commerce) << "encrypt update failure";
+        return false;
+    }
+    outSize = tempSize;
+    if (!EVP_EncryptFinal_ex(ctx, outputFileBuffer + outSize, &tempSize)) {
+        qCDebug(commerce) << "encrypt final failure";
+        return false;
+    }
+
+    outSize += tempSize;
+    EVP_CIPHER_CTX_free(ctx);
+    qCDebug(commerce) << "encrypted buffer size" << outSize;
+    QByteArray output((const char*)outputFileBuffer, outSize);
+    QFile outputFile(outputFilePath);
+    outputFile.open(QIODevice::WriteOnly);
+    outputFile.write(output);
+    outputFile.close();
+
+    return true;
+}
+
+bool Wallet::decryptFile(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferSize) {
+    unsigned char ivec[16];
+    unsigned char ckey[16];
+    initializeAESKeys(ivec, ckey, _salt);
+
+    // read encrypted file
+    QFile inputFile(inputFilePath);
+    if (!inputFile.exists()) {
+        qCDebug(commerce) << "cannot decrypt file" << inputFilePath << "it doesn't exist";
+        return false;
+    }
+    inputFile.open(QIODevice::ReadOnly);
+    QByteArray encryptedBuffer = inputFile.readAll();
+    inputFile.close();
+
+    // setup decrypted buffer
+    unsigned char* outputBuffer = new unsigned char[encryptedBuffer.size()];
+    int tempSize;
+
+    // TODO: add error handling
+    EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
+    if (!EVP_DecryptInit_ex(ctx, EVP_idea_cbc(), NULL, ckey, ivec)) {
+        qCDebug(commerce) << "decrypt init failure";
+        return false;
+    }
+    if (!EVP_DecryptUpdate(ctx, outputBuffer, &tempSize, (unsigned char*)encryptedBuffer.data(), encryptedBuffer.size())) {
+        qCDebug(commerce) << "decrypt update failure";
+        return false;
+    }
+    *outputBufferSize = tempSize;
+    if (!EVP_DecryptFinal_ex(ctx, outputBuffer + tempSize, &tempSize)) {
+        qCDebug(commerce) << "decrypt final failure";
+        return false;
+    }
+    EVP_CIPHER_CTX_free(ctx);
+    *outputBufferSize += tempSize;
+    *outputBufferPtr = outputBuffer;
+    qCDebug(commerce) << "decrypted buffer size" << *outputBufferSize;
+    return true;
+}
+
+
+
 bool Wallet::createIfNeeded() {
     if (_publicKeys.count() > 0) return false;
 
@@ -206,6 +323,7 @@ bool Wallet::createIfNeeded() {
             RSA_free(key);
             // K -- add the public key since we have a legit private key associated with it
             _publicKeys.push_back(QUrl::toPercentEncoding(publicKey.toBase64()));
+
             return false;
         }
     }
@@ -267,10 +385,48 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
 }
 
 
-void Wallet::chooseSecurityImage(uint imageID) {
-    _chosenSecurityImage = (SecurityImage)imageID;
-    emit securityImageResult(imageID);
+void Wallet::chooseSecurityImage(const QString& filename) {
+
+    if (_securityImage) {
+        delete _securityImage;
+    }
+    // temporary...
+    QString path = qApp->applicationDirPath();
+    path.append("/resources/qml/hifi/commerce/");
+    path.append(filename);
+    // now create a new security image pixmap
+    _securityImage = new QPixmap();
+
+    qCDebug(commerce) << "loading data for pixmap from" << path;
+    _securityImage->load(path);
+
+    // encrypt it and save.
+    if (encryptFile(path, imageFilePath())) {
+        emit securityImageResult(_securityImage);
+    } else {
+        qCDebug(commerce) << "failed to encrypt security image";
+        emit securityImageResult(nullptr);
+    }
 }
 void Wallet::getSecurityImage() {
-    emit securityImageResult(_chosenSecurityImage);
+    unsigned char* data;
+    int dataLen;
+
+    // if already decrypted, don't do it again
+    if (_securityImage) {
+        emit securityImageResult(_securityImage);
+        return;
+    }
+
+    // decrypt and return
+    if (decryptFile(imageFilePath(), &data, &dataLen)) {
+        // create the pixmap
+        _securityImage = new QPixmap();
+        _securityImage->loadFromData(data, dataLen, "jpg");
+        qCDebug(commerce) << "created pixmap from encrypted file";
+        emit securityImageResult(_securityImage);
+    } else {
+        qCDebug(commerce) << "failed to decrypt security image (maybe none saved yet?)";
+        emit securityImageResult(nullptr);
+    }
 }

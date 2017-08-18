@@ -26,7 +26,7 @@ Rectangle {
     id: checkoutRoot;
     property bool inventoryReceived: false;
     property bool balanceReceived: false;
-    property string itemId: ""; 
+    property string itemId: "";
     property string itemHref: "";
     property int balanceAfterPurchase: 0;
     property bool alreadyOwned: false;
@@ -67,7 +67,7 @@ Rectangle {
             }
         }
         onSecurityImageResult: {
-            securityImage.source = securityImageSelection.getImagePathFromImageID(imageID);
+            securityImage.source = securityImageSelection.getImagePathFromImageID(0);
         }
     }
 
@@ -131,7 +131,7 @@ Rectangle {
     //
     // TITLE BAR END
     //
-    
+
     //
     // ITEM DESCRIPTION START
     //
@@ -146,7 +146,7 @@ Rectangle {
 
         // Item Name text
         Item {
-            id: itemNameContainer; 
+            id: itemNameContainer;
             // Anchors
             anchors.top: parent.top;
             anchors.topMargin: 4;
@@ -187,11 +187,11 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter;
             }
         }
-    
-        
+
+
         // Item Author text
         Item {
-            id: itemAuthorContainer; 
+            id: itemAuthorContainer;
             // Anchors
             anchors.top: itemNameContainer.bottom;
             anchors.topMargin: 4;
@@ -232,10 +232,10 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter;
             }
         }
-        
+
         // HFC Balance text
         Item {
-            id: hfcBalanceContainer; 
+            id: hfcBalanceContainer;
             // Anchors
             anchors.top: itemAuthorContainer.bottom;
             anchors.topMargin: 16;
@@ -277,10 +277,10 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter;
             }
         }
-        
+
         // Item Price text
         Item {
-            id: itemPriceContainer; 
+            id: itemPriceContainer;
             // Anchors
             anchors.top: hfcBalanceContainer.bottom;
             anchors.topMargin: 4;
@@ -321,10 +321,10 @@ Rectangle {
                 verticalAlignment: Text.AlignVCenter;
             }
         }
-        
+
         // HFC "Balance After Purchase" text
         Item {
-            id: hfcBalanceAfterPurchaseContainer; 
+            id: hfcBalanceAfterPurchaseContainer;
             // Anchors
             anchors.top: itemPriceContainer.bottom;
             anchors.topMargin: 4;
@@ -371,7 +371,7 @@ Rectangle {
     // ITEM DESCRIPTION END
     //
 
-    
+
     //
     // ACTION BUTTONS START
     //
