@@ -41,8 +41,7 @@ Rectangle {
         
         onSecurityImageResult: {
             if (imageID !== 0) { // "If security image is set up"
-                passphrasePageSecurityImage.source = securityImageSelection.getImagePathFromImageID(imageID);
-                keysReadyPageSecurityImage.source = securityImageSelection.getImagePathFromImageID(imageID);
+                passphraseSelection.setSecurityImage(securityImageSelection.getImagePathFromImageID(imageID));
             } else if (root.lastPage === "securityImage") {
                 // ERROR! Invalid security image.
                 securityImageContainer.visible = true;
@@ -435,21 +434,6 @@ Rectangle {
                     securityImageContainer.visible = true;
                 }
             }
-            
-
-            // Security Image
-            Image {
-                id: passphrasePageSecurityImage;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.topMargin: 3;
-                anchors.right: passphrasePageNextButton.left;
-                height: passphrasePageNextButton.height;
-                width: height;
-                anchors.verticalCenter: parent.verticalCenter;
-                fillMode: Image.PreserveAspectFit;
-                mipmap: true;
-            }
 
             // "Next" button
             HifiControlsUit.Button {
@@ -567,19 +551,6 @@ Rectangle {
             // Anchors:
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
-            // Security Image
-            Image {
-                id: keysReadyPageSecurityImage;
-                // Anchors
-                anchors.top: parent.top;
-                anchors.topMargin: 3;
-                anchors.right: keysReadyPageNextButton.left;
-                height: keysReadyPageNextButton.height;
-                width: height;
-                anchors.verticalCenter: parent.verticalCenter;
-                fillMode: Image.PreserveAspectFit;
-                mipmap: true;
-            }
             // "Next" button
             HifiControlsUit.Button {
                 id: keysReadyPageNextButton;

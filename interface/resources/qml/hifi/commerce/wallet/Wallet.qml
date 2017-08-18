@@ -266,7 +266,7 @@ Rectangle {
         Rectangle {
             id: sendMoneyButtonContainer;
             visible: !notSetUp.visible;
-            color: root.activeView === "sendMoney" ? hifi.colors.blueAccent : hifi.colors.black;
+            color: hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: accountHomeButtonContainer.right;
             anchors.bottom: parent.bottom;
@@ -281,22 +281,11 @@ Rectangle {
                 anchors.leftMargin: 4;
                 anchors.rightMargin: 4;
                 // Style
-                color: hifi.colors.faintGray;
+                color: hifi.colors.lightGray50;
                 wrapMode: Text.WordWrap;
                 // Alignment
                 horizontalAlignment: Text.AlignHCenter;
                 verticalAlignment: Text.AlignVCenter;
-            }
-            MouseArea {
-                enabled: !walletSetupLightboxContainer.visible;
-                anchors.fill: parent;
-                hoverEnabled: enabled;
-                onClicked: {
-                    root.activeView = "sendMoney";
-                    tabButtonsContainer.resetTabButtonColors();
-                }
-                onEntered: parent.color = hifi.colors.blueHighlight;
-                onExited: parent.color = root.activeView === "sendMoney" ? hifi.colors.blueAccent : hifi.colors.black;
             }
         }
 

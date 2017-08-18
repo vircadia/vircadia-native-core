@@ -35,18 +35,6 @@ Item {
             usernameText.text = Account.username;
         }
     }
-    
-    // Security Image
-    Image {
-        id: passphrasePageSecurityImage;
-        // Anchors
-        anchors.top: parent.top;
-        anchors.left: parent.left;
-        height: 65;
-        width: height;
-        fillMode: Image.PreserveAspectFit;
-        mipmap: true;
-    }
 
     // Username Text
     RalewayRegular {
@@ -58,19 +46,119 @@ Item {
         color: hifi.colors.faintGray;
         elide: Text.ElideRight;
         // Anchors
-        anchors.top: passphrasePageSecurityImage.top;
-        anchors.bottom: passphrasePageSecurityImage.bottom;
-        anchors.left: passphrasePageSecurityImage.right;
-        anchors.leftMargin: 16;
+        anchors.top: securityImageContainer.top;
+        anchors.bottom: securityImageContainer.bottom;
+        anchors.left: parent.left;
         anchors.right: hfcBalanceContainer.left;
     }
-
-    Rectangle {
+    
+    // HFC Balance Container
+    Item {
         id: hfcBalanceContainer;
-        anchors.right: parent.right;
-        anchors.verticalCenter: passphrasePageSecurityImage.verticalCenter;
+        // Anchors
+        anchors.top: securityImageContainer.top;
+        anchors.right: securityImageContainer.left;
+        anchors.rightMargin: 16;
         width: 175;
-        height: 45;
+        height: 60;
+        Rectangle {
+            id: hfcBalanceField;
+            anchors.right: parent.right;
+            anchors.left: parent.left;
+            anchors.bottom: parent.bottom;
+            height: parent.height - 15;
+
+            // "HFC" balance label
+            RalewayRegular {
+                id: balanceLabel;
+                text: "HFC";
+                // Text size
+                size: 20;
+                // Anchors
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                anchors.right: hfcBalanceField.right;
+                anchors.rightMargin: 4;
+                width: paintedWidth;
+                // Style
+                color: hifi.colors.darkGray;
+                // Alignment
+                horizontalAlignment: Text.AlignRight;
+                verticalAlignment: Text.AlignVCenter;        
+            }
+
+            // Balance Text
+            FiraSansRegular {
+                text: "0.00";
+                // Text size
+                size: 28;
+                // Anchors
+                anchors.top: parent.top;
+                anchors.bottom: parent.bottom;
+                anchors.left: parent.left;
+                anchors.right: balanceLabel.left;
+                anchors.rightMargin: 4;
+                // Style
+                color: hifi.colors.darkGray;
+                // Alignment
+                horizontalAlignment: Text.AlignRight;
+                verticalAlignment: Text.AlignVCenter;        
+            }
+        }
+        // "balance" text above field
+        RalewayRegular {
+            text: "balance";
+            // Text size
+            size: 12;
+            // Anchors
+            anchors.top: parent.top;
+            anchors.bottom: hfcBalanceField.top;
+            anchors.bottomMargin: 4;
+            anchors.left: hfcBalanceField.left;
+            anchors.right: hfcBalanceField.right;
+            // Style
+            color: hifi.colors.faintGray;
+            // Alignment
+            horizontalAlignment: Text.AlignLeft;
+            verticalAlignment: Text.AlignVCenter;        
+        }
+    }
+
+    // Security Image
+    Item {
+        id: securityImageContainer;
+        // Anchors
+        anchors.top: parent.top;
+        anchors.right: parent.right;
+        width: 75;
+        height: childrenRect.height;
+        Image {
+            id: passphrasePageSecurityImage;
+            // Anchors
+            anchors.top: parent.top;
+            anchors.horizontalCenter: parent.horizontalCenter;
+            height: parent.width - 10;
+            width: height;
+            fillMode: Image.PreserveAspectFit;
+            mipmap: true;
+        }
+        // "Security picture" text below pic
+        RalewayRegular {
+            text: "security picture";
+            // Text size
+            size: 12;
+            // Anchors
+            anchors.top: passphrasePageSecurityImage.bottom;
+            anchors.topMargin: 4;
+            anchors.left: securityImageContainer.left;
+            anchors.right: securityImageContainer.right;
+            height: paintedHeight;
+            // Style
+            color: hifi.colors.faintGray;
+            // Alignment
+            horizontalAlignment: Text.AlignHCenter;
+            verticalAlignment: Text.AlignVCenter;        
+        }
     }
 
     //

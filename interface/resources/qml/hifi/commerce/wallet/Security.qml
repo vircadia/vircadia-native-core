@@ -28,18 +28,6 @@ Item {
     Hifi.QmlCommerce {
         id: commerce;
     }
-    
-    // Security Image
-    Image {
-        id: topSecurityImage;
-        // Anchors
-        anchors.top: parent.top;
-        anchors.left: parent.left;
-        height: 65;
-        width: height;
-        fillMode: Image.PreserveAspectFit;
-        mipmap: true;
-    }
 
     // Username Text
     RalewayRegular {
@@ -51,16 +39,52 @@ Item {
         color: hifi.colors.faintGray;
         elide: Text.ElideRight;
         // Anchors
-        anchors.top: topSecurityImage.top;
-        anchors.bottom: topSecurityImage.bottom;
-        anchors.left: topSecurityImage.right;
-        anchors.leftMargin: 16;
+        anchors.top: securityImageContainer.top;
+        anchors.bottom: securityImageContainer.bottom;
+        anchors.left: parent.left;
+        anchors.right: securityImageContainer.left;
+    }
+
+    // Security Image
+    Item {
+        id: securityImageContainer;
+        // Anchors
+        anchors.top: parent.top;
         anchors.right: parent.right;
+        width: 75;
+        height: childrenRect.height;
+        Image {
+            id: topSecurityImage;
+            // Anchors
+            anchors.top: parent.top;
+            anchors.horizontalCenter: parent.horizontalCenter;
+            height: parent.width - 10;
+            width: height;
+            fillMode: Image.PreserveAspectFit;
+            mipmap: true;
+        }
+        // "Security picture" text below pic
+        RalewayRegular {
+            text: "security picture";
+            // Text size
+            size: 12;
+            // Anchors
+            anchors.top: topSecurityImage.bottom;
+            anchors.topMargin: 4;
+            anchors.left: securityImageContainer.left;
+            anchors.right: securityImageContainer.right;
+            height: paintedHeight;
+            // Style
+            color: hifi.colors.faintGray;
+            // Alignment
+            horizontalAlignment: Text.AlignHCenter;
+            verticalAlignment: Text.AlignVCenter;        
+        }
     }
 
     Item {
         id: securityContainer;
-        anchors.top: topSecurityImage.bottom;
+        anchors.top: securityImageContainer.bottom;
         anchors.topMargin: 20;
         anchors.left: parent.left;
         anchors.right: parent.right;

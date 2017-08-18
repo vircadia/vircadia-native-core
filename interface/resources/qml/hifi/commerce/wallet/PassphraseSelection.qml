@@ -41,8 +41,7 @@ Item {
         anchors.topMargin: 30;
         anchors.left: parent.left;
         anchors.leftMargin: 16;
-        anchors.right: parent.right;
-        anchors.rightMargin: 16;
+        width: 280;
         height: 50;
         echoMode: TextInput.Password;
         placeholderText: "passphrase";
@@ -51,14 +50,49 @@ Item {
         id: passphraseFieldAgain;
         anchors.top: passphraseField.bottom;
         anchors.topMargin: 10;
-        anchors.left: parent.left;
-        anchors.leftMargin: 16;
-        anchors.right: parent.right;
-        anchors.rightMargin: 16;
+        anchors.left: passphraseField.left;
+        anchors.right: passphraseField.right;
         height: 50;
         echoMode: TextInput.Password;
         placeholderText: "re-enter passphrase";
     }
+
+    // Security Image
+    Item {
+        id: securityImageContainer;
+        // Anchors
+        anchors.top: passphraseField.top;
+        anchors.left: passphraseField.right;
+        anchors.leftMargin: 12;
+        anchors.right: parent.right;
+        Image {
+            id: passphrasePageSecurityImage;
+            anchors.top: parent.top;
+            anchors.horizontalCenter: parent.horizontalCenter;
+            height: 75;
+            width: height;
+            fillMode: Image.PreserveAspectFit;
+            mipmap: true;
+        }
+        // "Security picture" text below pic
+        RalewayRegular {
+            text: "security picture";
+            // Text size
+            size: 12;
+            // Anchors
+            anchors.top: passphrasePageSecurityImage.bottom;
+            anchors.topMargin: 4;
+            anchors.left: securityImageContainer.left;
+            anchors.right: securityImageContainer.right;
+            height: paintedHeight;
+            // Style
+            color: hifi.colors.faintGray;
+            // Alignment
+            horizontalAlignment: Text.AlignHCenter;
+            verticalAlignment: Text.AlignVCenter;        
+        }
+    }
+
     // Error text below TextFields
     RalewaySemiBold {
         id: errorText;
@@ -151,5 +185,9 @@ Item {
             commerce.setPassphrase(passphraseField.text);
             return true;
         }
+    }
+
+    function setSecurityImage(imageSource) {
+        passphrasePageSecurityImage.source = imageSource;
     }
 }

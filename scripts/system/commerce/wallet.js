@@ -122,7 +122,9 @@
     function startup() {
         tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
         button = tablet.addButton({
-            text: buttonName
+            text: buttonName,
+            icon: "icons/tablet-icons/wallet-i.svg",
+            activeIcon: "icons/tablet-icons/wallet-a.svg"
         });
         button.clicked.connect(onButtonClicked);
         tablet.screenChanged.connect(onTabletScreenChanged);
