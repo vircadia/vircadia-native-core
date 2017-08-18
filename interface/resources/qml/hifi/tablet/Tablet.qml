@@ -109,15 +109,29 @@ Item {
             }
         }
 
-        RalewaySemiBold {
-            id: usernameText
-            text: tabletRoot.username
-            anchors.verticalCenter: parent.verticalCenter
+        Item {
+            width: 150
+            height: 50
             anchors.right: parent.right
             anchors.rightMargin: 20
-            horizontalAlignment: Text.AlignRight
-            font.pixelSize: 20
-            color: "#afafaf"
+            anchors.verticalCenter: parent.verticalCenter
+
+            RalewaySemiBold {
+                id: usernameText
+                text: Account.isLoggedIn() ? tabletRoot.username : qsTr("Log in")
+                anchors.verticalCenter: parent.verticalCenter
+                horizontalAlignment: Text.AlignRight
+                anchors.right: parent.right
+                font.pixelSize: 20
+                color: "#afafaf"
+            }
+            MouseArea {
+                anchors.fill: parent
+                enabled: !Account.isLoggedIn()
+                onClicked: {
+                    DialogsManager.showLoginDialog()
+                }
+            }
         }
     }
 
