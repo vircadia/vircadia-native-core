@@ -209,7 +209,7 @@ Rectangle {
     //
     Item {
         id: tabButtonsContainer;
-        property int numTabs: 4;
+        property int numTabs: 5;
         // Size
         width: root.width;
         height: 80;
@@ -275,7 +275,34 @@ Rectangle {
             RalewaySemiBold {
                 text: "SEND MONEY";
                 // Text size
-                size: hifi.fontSizes.overlayTitle;
+                size: 14;
+                // Anchors
+                anchors.fill: parent;
+                anchors.leftMargin: 4;
+                anchors.rightMargin: 4;
+                // Style
+                color: hifi.colors.lightGray50;
+                wrapMode: Text.WordWrap;
+                // Alignment
+                horizontalAlignment: Text.AlignHCenter;
+                verticalAlignment: Text.AlignVCenter;
+            }
+        }
+
+        // "EXCHANGE MONEY" tab button
+        Rectangle {
+            id: exchangeMoneyButtonContainer;
+            visible: !notSetUp.visible;
+            color: hifi.colors.black;
+            anchors.top: parent.top;
+            anchors.left: sendMoneyButtonContainer.right;
+            anchors.bottom: parent.bottom;
+            width: parent.width / tabButtonsContainer.numTabs;
+
+            RalewaySemiBold {
+                text: "EXCHANGE MONEY";
+                // Text size
+                size: 14;
                 // Anchors
                 anchors.fill: parent;
                 anchors.leftMargin: 4;
@@ -295,7 +322,7 @@ Rectangle {
             visible: !notSetUp.visible;
             color: root.activeView === "security" ? hifi.colors.blueAccent : hifi.colors.black;
             anchors.top: parent.top;
-            anchors.left: sendMoneyButtonContainer.right;
+            anchors.left: exchangeMoneyButtonContainer.right;
             anchors.bottom: parent.bottom;
             width: parent.width / tabButtonsContainer.numTabs;
 
