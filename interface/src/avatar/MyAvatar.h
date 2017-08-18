@@ -774,8 +774,6 @@ private:
 
     AtRestDetector _hmdAtRestDetector;
     bool _lastIsMoving { false };
-    bool _hoverReferenceCameraFacingIsCaptured { false };
-    glm::vec3 _hoverReferenceCameraFacing { 0.0f, 0.0f, -1.0f }; // hmd sensor space
 
     // all poses are in sensor-frame
     std::map<controller::Action, controller::Pose> _controllerPoseMap;

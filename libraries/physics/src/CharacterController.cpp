@@ -265,13 +265,9 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
         btVector3 endPos = startPos + linearDisplacement;
 
         btQuaternion startRot = bodyTransform.getRotation();
-        glm::vec2 currentFacing = getFacingDir2D(bulletToGLM(startRot));
-        glm::vec2 currentRight(currentFacing.y, -currentFacing.x);
-        glm::vec2 desiredFacing = getFacingDir2D(bulletToGLM(_followDesiredBodyTransform.getRotation()));
-        float deltaAngle = acosf(glm::clamp(glm::dot(currentFacing, desiredFacing), -1.0f, 1.0f));
-        float angularSpeed = deltaAngle / _followTimeRemaining;
-        float sign = copysignf(1.0f, glm::dot(desiredFacing, currentRight));
-        btQuaternion angularDisplacement = btQuaternion(btVector3(0.0f, 1.0f, 0.0f), sign * angularSpeed * dt);
+        btQuaternion deltaRot = _followDesiredBodyTransform.getRotation() * startRot.inverse();
+        float angularSpeed = deltaRot.getAngle() / _followTimeRemaining;
+        btQuaternion angularDisplacement = btQuaternion(deltaRot.getAxis(), angularSpeed * dt);
         btQuaternion endRot = angularDisplacement * startRot;
 
         // in order to accumulate displacement of avatar position, we need to take _shapeLocalOffset into account.

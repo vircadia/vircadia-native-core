@@ -1884,38 +1884,8 @@ void MyAvatar::updateOrientation(float deltaTime) {
         snapTurn = true;
     }
 
-    // use head/HMD orientation to turn while flying
-    if (getCharacterController()->getState() == CharacterController::State::Hover) {
-
-        // This is the direction the user desires to fly in.
-        glm::vec3 desiredFacing = getMyHead()->getHeadOrientation() * Vectors::UNIT_Z;
-        desiredFacing.y = 0.0f;
-
-        // This is our reference frame, it is captured when the user begins to move.
-        glm::vec3 referenceFacing = transformVectorFast(_sensorToWorldMatrix, _hoverReferenceCameraFacing);
-        referenceFacing.y = 0.0f;
-        referenceFacing = glm::normalize(referenceFacing);
-        glm::vec3 referenceRight(referenceFacing.z, 0.0f, -referenceFacing.x);
-        const float HOVER_FLY_ROTATION_PERIOD = 0.5f;
-        float tau = glm::clamp(deltaTime / HOVER_FLY_ROTATION_PERIOD, 0.0f, 1.0f);
-
-        // new facing is a linear interpolation between the desired and reference vectors.
-        glm::vec3 newFacing = glm::normalize((1.0f - tau) * referenceFacing + tau * desiredFacing);
-
-        // calcualte the signed delta yaw angle to apply so that we match our newFacing.
-        float sign = copysignf(1.0f, glm::dot(desiredFacing, referenceRight));
-        float deltaAngle = sign * acosf(glm::clamp(glm::dot(referenceFacing, newFacing), -1.0f, 1.0f));
-
-        // speedFactor is 0 when we are at rest adn 1.0 when we are at max flying speed.
-        const float MAX_FLYING_SPEED = 30.0f;
-        float speedFactor = glm::min(glm::length(getVelocity()) / MAX_FLYING_SPEED, 1.0f);
-
-        // apply our delta, but scale it by the speed factor, so we turn faster when we are flying faster.
-        totalBodyYaw += (speedFactor * deltaAngle * (180.0f / PI));
-    }
-
-    // Use head/HMD roll to turn while walking or flying, but not when standing still
-    if (qApp->isHMDMode() && _hmdRollControlEnabled && hasDriveInput()) {
+    // Use head/HMD roll to turn while flying, but not when standing still.
+    if (qApp->isHMDMode() && getCharacterController()->getState() == CharacterController::State::Hover && _hmdRollControlEnabled && hasDriveInput()) {
         // Turn with head roll.
         const float MIN_CONTROL_SPEED = 0.01f;
         float speed = glm::length(getVelocity());
@@ -2066,18 +2036,6 @@ void MyAvatar::updatePosition(float deltaTime) {
             _characterController.testRayShotgun(position, step, result);
             _characterController.setStepUpEnabled(result.walkable);
         }
-    }
-
-    // capture the head rotation, in sensor space, when the user first indicates they would like to move/fly.
-    if (!_hoverReferenceCameraFacingIsCaptured &&
-        (fabs(getDriveKey(TRANSLATE_Z)) > 0.1f || fabs(getDriveKey(TRANSLATE_X)) > 0.1f)) {
-        _hoverReferenceCameraFacingIsCaptured = true;
-        // transform the camera facing vector into sensor space.
-        _hoverReferenceCameraFacing = transformVectorFast(glm::inverse(_sensorToWorldMatrix),
-                                                          getMyHead()->getHeadOrientation() * Vectors::UNIT_Z);
-    } else if (_hoverReferenceCameraFacingIsCaptured &&
-               (fabs(getDriveKey(TRANSLATE_Z)) <= 0.1f && fabs(getDriveKey(TRANSLATE_X)) <= 0.1f)) {
-        _hoverReferenceCameraFacingIsCaptured = false;
     }
 }
 
@@ -2756,7 +2714,6 @@ bool MyAvatar::FollowHelper::shouldActivateRotation(const MyAvatar& myAvatar, co
 }
 
 bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
-
     // -z axis of currentBodyMatrix in world space.
     glm::vec3 forward = glm::normalize(glm::vec3(-currentBodyMatrix[0][2], -currentBodyMatrix[1][2], -currentBodyMatrix[2][2]));
     // x axis of currentBodyMatrix in world space.
@@ -2780,7 +2737,6 @@ bool MyAvatar::FollowHelper::shouldActivateHorizontal(const MyAvatar& myAvatar, 
 }
 
 bool MyAvatar::FollowHelper::shouldActivateVertical(const MyAvatar& myAvatar, const glm::mat4& desiredBodyMatrix, const glm::mat4& currentBodyMatrix) const {
-
     const float CYLINDER_TOP = 0.1f;
     const float CYLINDER_BOTTOM = -1.5f;
 
@@ -2806,6 +2762,16 @@ void MyAvatar::FollowHelper::prePhysicsUpdate(MyAvatar& myAvatar, const glm::mat
 
     glm::mat4 desiredWorldMatrix = myAvatar.getSensorToWorldMatrix() * desiredBodyMatrix;
     glm::mat4 currentWorldMatrix = myAvatar.getSensorToWorldMatrix() * currentBodyMatrix;
+
+    glm::vec4 RED(1.0f, 0.0f, 0.0f, 1.0f);
+    glm::vec4 GREEN(0.0f, 1.0f, 0.0f, 1.0f);
+    glm::vec4 BLUE(0.0f, 0.0f, 1.0f, 1.0f);
+    glm::vec4 WHITE(1.0f, 1.0f, 1.0f, 1.0f);
+    glm::vec4 desiredColor = glm::dot(Vectors::UNIT_Y, transformVectorFast(desiredBodyMatrix, Vectors::UNIT_Y)) < 0.9912f ? RED : GREEN;
+    glm::vec4 currentColor = glm::dot(Vectors::UNIT_Y, transformVectorFast(currentBodyMatrix, Vectors::UNIT_Y)) < 0.9912f ? BLUE : WHITE;
+
+    DebugDraw::getInstance().addMarker("desiredBody", glmExtractRotation(desiredWorldMatrix), extractTranslation(desiredWorldMatrix), desiredColor);
+    DebugDraw::getInstance().addMarker("currentBody", glmExtractRotation(currentWorldMatrix), extractTranslation(currentWorldMatrix), currentColor);
 
     AnimPose followWorldPose(currentWorldMatrix);
 
@@ -2846,7 +2812,6 @@ glm::mat4 MyAvatar::FollowHelper::postPhysicsUpdate(const MyAvatar& myAvatar, co
         glm::mat4 newBodyMat = createMatFromQuatAndPos(sensorAngularDisplacement * glmExtractRotation(currentBodyMatrix),
                                                        sensorLinearDisplacement + extractTranslation(currentBodyMatrix));
         return newBodyMat;
-
     } else {
         return currentBodyMatrix;
     }

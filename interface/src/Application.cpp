@@ -2497,13 +2497,20 @@ void Application::paintGL() {
             _myCamera.setProjection(displayPlugin->getCullingProjection(_myCamera.getProjection()));
             renderArgs._context->enableStereo(true);
             mat4 eyeOffsets[2];
-            auto baseProjection = renderArgs.getViewFrustum().getProjection();
+            mat4 eyeProjections[2];
+
             auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
             float IPDScale = hmdInterface->getIPDScale();
 
             // scale IPD by height ratio, to make the world seem larger or smaller accordingly.
             float heightRatio = getMyAvatar()->getEyeHeight() / getMyAvatar()->getUserEyeHeight();
             IPDScale *= heightRatio;
+
+            // adjust near clip plane by heightRatio
+            auto baseProjection = glm::perspective(renderArgs.getViewFrustum().getFieldOfView(),
+                                                   renderArgs.getViewFrustum().getAspectRatio(),
+                                                   renderArgs.getViewFrustum().getNearClip() * heightRatio,
+                                                   renderArgs.getViewFrustum().getFarClip());
 
             // FIXME we probably don't need to set the projection matrix every frame,
             // only when the display plugin changes (or in non-HMD modes when the user
