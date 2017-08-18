@@ -115,7 +115,7 @@
             itemId: id,
             itemName: name,
             itemAuthor: author,
-            itemPrice: Math.round(Math.random() * 50),
+            itemPrice: price ? parseInt(price, 10) : Math.round(Math.random() * 50),
             itemHref: href
         }));
     }
@@ -130,7 +130,7 @@
             buyButtonClicked($(this).closest('.grid-item').attr('data-item-id'),
                 $(this).closest('.grid-item').find('.item-title').text(),
                 $(this).closest('.grid-item').find('.creator').find('.value').text(),
-                10,
+                $(this).closest('.grid-item').find('.item-cost').text(),
                 $(this).attr('data-href'));
         });
     }
@@ -166,7 +166,7 @@
                 buyButtonClicked(window.location.pathname.split("/")[3],
                     $('#top-center').find('h1').text(),
                     $('#creator').find('.value').text(),
-                    10,
+                    $('.item-cost').text(),
                     href);
             });
             addInventoryButton();
