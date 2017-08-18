@@ -105,7 +105,7 @@ Item {
         }
 
         Item {
-            id: resetPassphraseContainer;
+            id: changePassphraseContainer;
             anchors.top: securityText.bottom;
             anchors.topMargin: 16;
             anchors.left: parent.left;
@@ -113,7 +113,7 @@ Item {
             height: 75;
 
             Image {
-                id: resetPassphraseImage;
+                id: changePassphraseImage;
                 // Anchors
                 anchors.top: parent.top;
                 anchors.left: parent.left;
@@ -122,33 +122,33 @@ Item {
                 fillMode: Image.PreserveAspectFit;
                 mipmap: true;
             }
-            // "Reset Passphrase" button
+            // "Change Passphrase" button
             HifiControlsUit.Button {
-                id: resetPassphraseButton;
+                id: changePassphraseButton;
                 color: hifi.buttons.black;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.verticalCenter: parent.verticalCenter;
-                anchors.left: resetPassphraseImage.right;
+                anchors.left: changePassphraseImage.right;
                 anchors.leftMargin: 16;
                 width: 250;
                 height: 50;
-                text: "Reset My Passphrase";
+                text: "Change My Passphrase";
                 onClicked: {
-                    
+                    sendSignalToWallet({method: 'walletSecurity_changePassphrase'});
                 }
             }
         }
 
         Item {
-            id: resetSecurityImageContainer;
-            anchors.top: resetPassphraseContainer.bottom;
+            id: changeSecurityImageContainer;
+            anchors.top: changePassphraseContainer.bottom;
             anchors.topMargin: 8;
             anchors.left: parent.left;
             anchors.right: parent.right;
             height: 75;
 
             Image {
-                id: resetSecurityImageImage;
+                id: changeSecurityImageImage;
                 // Anchors
                 anchors.top: parent.top;
                 anchors.left: parent.left;
@@ -157,19 +157,19 @@ Item {
                 fillMode: Image.PreserveAspectFit;
                 mipmap: true;
             }
-            // "Reset Security Image" button
+            // "Change Security Image" button
             HifiControlsUit.Button {
-                id: resetSecurityImageButton;
+                id: changeSecurityImageButton;
                 color: hifi.buttons.black;
                 colorScheme: hifi.colorSchemes.dark;
                 anchors.verticalCenter: parent.verticalCenter;
-                anchors.left: resetSecurityImageImage.right;
+                anchors.left: changeSecurityImageImage.right;
                 anchors.leftMargin: 16;
                 width: 250;
                 height: 50;
-                text: "Reset My Security Image";
+                text: "Change My Security Image";
                 onClicked: {
-                    
+                    sendSignalToWallet({method: 'walletSecurity_changeSecurityImage'});
                 }
             }
         }
@@ -225,7 +225,7 @@ Item {
     //
     function setSecurityImages(imagePath) {
         topSecurityImage.source = imagePath;
-        resetSecurityImageImage.source = imagePath;
+        changeSecurityImageImage.source = imagePath;
     }
     //
     // Function Name: fromScript()

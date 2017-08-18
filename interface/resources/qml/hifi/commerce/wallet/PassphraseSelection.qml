@@ -27,12 +27,19 @@ Item {
 
     Hifi.QmlCommerce {
         id: commerce;
+        onSecurityImageResult: {
+            passphrasePageSecurityImage.source = gridModel.getImagePathFromImageID(imageID);
+        }
     }
 
     onVisibleChanged: {
         if (visible) {
             passphraseField.focus = true;
         }
+    }
+
+    SecurityImageModel {
+        id: gridModel;
     }
 
     HifiControlsUit.TextField {
@@ -73,6 +80,10 @@ Item {
             width: height;
             fillMode: Image.PreserveAspectFit;
             mipmap: true;
+
+            onVisibleChanged: {
+                commerce.getSecurityImage();
+            }
         }
         // "Security picture" text below pic
         RalewayRegular {
@@ -175,19 +186,24 @@ Item {
 
     function validateAndSubmitPassphrase() {
         if (passphraseField.text.length < 4) {
-            errorText.text = "Passphrase too short."
+            setErrorText("Passphrase too short.");
             return false;
         } else if (passphraseField.text !== passphraseFieldAgain.text) {
-            errorText.text = "Passphrases don't match."
+            setErrorText("Passphrases don't match.");
             return false;
         } else {
-            errorText.text = "";
+            setErrorText("");
             commerce.setPassphrase(passphraseField.text);
             return true;
         }
     }
 
-    function setSecurityImage(imageSource) {
-        passphrasePageSecurityImage.source = imageSource;
+    function setErrorText(text) {
+        errorText.text = text;
+    }
+
+    function clearText() {
+        passphraseField.text = "";
+        passphraseFieldAgain.text = "";
     }
 }

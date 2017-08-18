@@ -142,7 +142,7 @@ Item {
         width: 75;
         height: childrenRect.height;
         Image {
-            id: passphrasePageSecurityImage;
+            id: securityImage;
             // Anchors
             anchors.top: parent.top;
             anchors.horizontalCenter: parent.horizontalCenter;
@@ -157,7 +157,7 @@ Item {
             // Text size
             size: 12;
             // Anchors
-            anchors.top: passphrasePageSecurityImage.bottom;
+            anchors.top: securityImage.bottom;
             anchors.topMargin: 4;
             anchors.left: securityImageContainer.left;
             anchors.right: securityImageContainer.right;
@@ -309,7 +309,7 @@ Item {
     // FUNCTION DEFINITIONS START
     //
     function setSecurityImage(imagePath) {
-        passphrasePageSecurityImage.source = imagePath;
+        securityImage.source = imagePath;
     }
     //
     // Function Name: fromScript()

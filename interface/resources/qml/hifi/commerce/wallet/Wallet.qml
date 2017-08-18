@@ -31,18 +31,15 @@ Rectangle {
     color: hifi.colors.baseGray;
     Hifi.QmlCommerce {
         id: commerce;
-        onBalanceResult: {
-            if (failureMessage.length) {
-                console.log("Failed to get balance", failureMessage);
-            } else {
-                hfcBalanceText.text = balance;
-            }
-        }
 
         onSecurityImageResult: {
             if (imageID !== 0) { // "If security image is set up"
-                accountHome.setSecurityImage(securityImageModel.getImagePathFromImageID(imageID));
-                security.setSecurityImages(securityImageModel.getImagePathFromImageID(imageID));
+                if (walletHome) {
+                    walletHome.setSecurityImage(securityImageModel.getImagePathFromImageID(imageID));
+                }
+                if (security) {
+                    security.setSecurityImages(securityImageModel.getImagePathFromImageID(imageID));
+                }
             } else if (root.lastPage === "securityImage") {
                 // ERROR! Invalid security image.
                 securityImageContainer.visible = true;
@@ -61,7 +58,7 @@ Rectangle {
             if (msg.method === 'walletSetup_cancelClicked') {
                 walletSetupLightbox.visible = false;
             } else if (msg.method === 'walletSetup_finished') {
-                root.activeView = "accountHome";
+                root.activeView = "walletHome";
             } else {
                 sendToScript(msg);
             }
@@ -78,7 +75,7 @@ Rectangle {
 
     Rectangle {
         id: walletSetupLightboxContainer;
-        visible: walletSetupLightbox.visible;
+        visible: walletSetupLightbox.visible || passphraseSelectionLightbox.visible || securityImageSelectionLightbox.visible;
         z: 998;
         anchors.fill: parent;
         color: "black";
@@ -92,6 +89,23 @@ Rectangle {
         width: walletSetupLightboxContainer.width - 50;
         height: walletSetupLightboxContainer.height - 50;
     }
+    PassphraseSelectionLightbox {
+        id: passphraseSelectionLightbox;
+        visible: false;
+        z: 999;
+        anchors.centerIn: walletSetupLightboxContainer;
+        width: walletSetupLightboxContainer.width - 50;
+        height: walletSetupLightboxContainer.height - 50;
+    }
+    SecurityImageSelectionLightbox {
+        id: securityImageSelectionLightbox;
+        visible: false;
+        z: 999;
+        anchors.centerIn: walletSetupLightboxContainer;
+        width: walletSetupLightboxContainer.width - 50;
+        height: walletSetupLightboxContainer.height - 50;
+    }
+    
 
     //
     // TITLE BAR START
@@ -147,9 +161,9 @@ Rectangle {
         anchors.right: parent.right;
     }
 
-    AccountHome {
-        id: accountHome;
-        visible: root.activeView === "accountHome";
+    WalletHome {
+        id: walletHome;
+        visible: root.activeView === "walletHome";
         anchors.top: titleBarContainer.bottom;
         anchors.topMargin: 16;
         anchors.bottom: tabButtonsContainer.top;
@@ -184,6 +198,16 @@ Rectangle {
         anchors.leftMargin: 16;
         anchors.right: parent.right;
         anchors.rightMargin: 16;
+    }
+    Connections {
+        target: security;
+        onSendSignalToWallet: {
+            if (msg.method === 'walletSecurity_changePassphrase') {
+                passphraseSelectionLightbox.visible = true;
+            } else if (msg.method === 'walletSecurity_changeSecurityImage') {
+                securityImageSelectionLightbox.visible = true;
+            }
+        }
     }
 
     Help {
@@ -224,18 +248,18 @@ Rectangle {
             anchors.top: parent.top;
         }
 
-        // "ACCOUNT HOME" tab button
+        // "WALLET HOME" tab button
         Rectangle {
-            id: accountHomeButtonContainer;
+            id: walletHomeButtonContainer;
             visible: !notSetUp.visible;
-            color: root.activeView === "accountHome" ? hifi.colors.blueAccent : hifi.colors.black;
+            color: root.activeView === "walletHome" ? hifi.colors.blueAccent : hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
             width: parent.width / tabButtonsContainer.numTabs;
 
             RalewaySemiBold {
-                text: "ACCOUNT HOME";
+                text: "WALLET HOME";
                 // Text size
                 size: hifi.fontSizes.overlayTitle;
                 // Anchors
@@ -254,11 +278,11 @@ Rectangle {
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
-                    root.activeView = "accountHome";
+                    root.activeView = "walletHome";
                     tabButtonsContainer.resetTabButtonColors();
                 }
                 onEntered: parent.color = hifi.colors.blueHighlight;
-                onExited: parent.color = root.activeView === "accountHome" ? hifi.colors.blueAccent : hifi.colors.black;
+                onExited: parent.color = root.activeView === "walletHome" ? hifi.colors.blueAccent : hifi.colors.black;
             }
         }
 
@@ -268,7 +292,7 @@ Rectangle {
             visible: !notSetUp.visible;
             color: hifi.colors.black;
             anchors.top: parent.top;
-            anchors.left: accountHomeButtonContainer.right;
+            anchors.left: walletHomeButtonContainer.right;
             anchors.bottom: parent.bottom;
             width: parent.width / tabButtonsContainer.numTabs;
 
@@ -393,12 +417,12 @@ Rectangle {
         }
 
         function resetTabButtonColors() {
-            accountHomeButtonContainer.color = hifi.colors.black;
+            walletHomeButtonContainer.color = hifi.colors.black;
             sendMoneyButtonContainer.color = hifi.colors.black;
             securityButtonContainer.color = hifi.colors.black;
             helpButtonContainer.color = hifi.colors.black;
-            if (root.activeView === "accountHome") {
-                accountHomeButtonContainer.color = hifi.colors.blueAccent;
+            if (root.activeView === "walletHome") {
+                walletHomeButtonContainer.color = hifi.colors.blueAccent;
             } else if (root.activeView === "sendMoney") {
                 sendMoneyButtonContainer.color = hifi.colors.blueAccent;
             } else if (root.activeView === "security") {

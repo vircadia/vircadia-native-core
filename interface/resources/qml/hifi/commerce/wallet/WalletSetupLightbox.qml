@@ -40,9 +40,7 @@ Rectangle {
         }
         
         onSecurityImageResult: {
-            if (imageID !== 0) { // "If security image is set up"
-                passphraseSelection.setSecurityImage(securityImageSelection.getImagePathFromImageID(imageID));
-            } else if (root.lastPage === "securityImage") {
+            if (imageID === 0 && root.lastPage === "securityImage") {
                 // ERROR! Invalid security image.
                 securityImageContainer.visible = true;
                 choosePassphraseContainer.visible = false;
