@@ -594,7 +594,7 @@ void FadeJob::run(const render::RenderContextPointer& renderContext, FadeJob::Ou
         if (update(*jobConfig, scene, transaction, state, deltaTime)) {
             hasTransaction = true;
         }
-        if (isFirstItem) {
+        if (isFirstItem && jobConfig->manualFade && (state.threshold != jobConfig->threshold)) {
             jobConfig->setProperty("threshold", state.threshold);
             isFirstItem = false;
         }
@@ -645,9 +645,6 @@ bool FadeJob::update(const Config& config, const render::ScenePointer& scene, re
         {
             transition.threshold = computeElementEnterRatio(transition.time, eventDuration, timing);
             transition.baseOffset = transition.noiseOffset;
-            transition.baseInvSize.x = 1.f / dimensions.x;
-            transition.baseInvSize.y = 1.f / dimensions.y;
-            transition.baseInvSize.z = 1.f / dimensions.z;
             transition.isFinished += (transition.threshold >= 1.f) & 1;
             if (transition.eventType == render::Transition::ELEMENT_ENTER_DOMAIN) {
                 transition.threshold = 1.f - transition.threshold;
