@@ -27,6 +27,9 @@ Item {
 
     Hifi.QmlCommerce {
         id: commerce;
+        onBalanceResult : {
+            balanceText.text = parseFloat(balance/100).toFixed(2);
+        }
     }
     
     Connections {
@@ -84,12 +87,18 @@ Item {
                 color: hifi.colors.darkGray;
                 // Alignment
                 horizontalAlignment: Text.AlignRight;
-                verticalAlignment: Text.AlignVCenter;        
+                verticalAlignment: Text.AlignVCenter;    
+                
+                onVisibleChanged: {
+                    if (visible) {
+                        commerce.balance();
+                    }
+                }
             }
 
             // Balance Text
             FiraSansRegular {
-                text: "0.00";
+                id: balanceText;
                 // Text size
                 size: 28;
                 // Anchors
