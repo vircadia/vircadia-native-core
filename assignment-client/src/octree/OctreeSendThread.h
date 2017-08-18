@@ -55,7 +55,7 @@ protected:
     virtual void preDistributionProcessing() {};
     virtual void traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
             bool viewFrustumChanged, bool isFullScene);
-    virtual bool traverseAndBuildPacket(EncodeBitstreamParams& params);
+    virtual bool traverseTreeAndBuildNextPacketPayload(EncodeBitstreamParams& params);
 
     OctreeServer* _myServer { nullptr };
     QWeakPointer<Node> _node;

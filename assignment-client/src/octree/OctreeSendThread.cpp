@@ -458,7 +458,7 @@ int OctreeSendThread::packetDistributor(SharedNodePointer node, OctreeQueryNode*
     return _truePacketsSent;
 }
 
-bool OctreeSendThread::traverseAndBuildPacket(EncodeBitstreamParams& params) {
+bool OctreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstreamParams& params) {
     bool somethingToSend = false;
     OctreeQueryNode* nodeData = static_cast<OctreeQueryNode*>(params.nodeData);
     if (!nodeData->elementBag.isEmpty()) {
@@ -520,7 +520,7 @@ void OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, Octre
         bool lastNodeDidntFit = false; // assume each node fits
         params.stopReason = EncodeBitstreamParams::UNKNOWN; // reset params.stopReason before traversal
 
-        somethingToSend = traverseAndBuildPacket(params);
+        somethingToSend = traverseTreeAndBuildNextPacketPayload(params);
 
         if (params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
             lastNodeDidntFit = true;
