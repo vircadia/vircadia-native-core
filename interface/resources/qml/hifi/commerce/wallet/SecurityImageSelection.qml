@@ -74,6 +74,7 @@ Item {
             }
             MouseArea {
                 anchors.fill: parent;
+                propagateComposedEvents: false;
                 onClicked: {
                     securityImageGrid.currentIndex = index;
                 }

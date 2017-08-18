@@ -27,6 +27,12 @@ Rectangle {
     // Style
     color: hifi.colors.baseGray;
 
+    onVisibleChanged: {
+        if (visible) {
+            root.resetSubmitButton();
+        }
+    }
+
     Connections {
         target: passphraseSelection;
         onSendMessageToLightbox: {
@@ -150,7 +156,10 @@ Rectangle {
                 width: 100;
                 text: "Submit";
                 onClicked: {
-                    passphraseSelection.validateAndSubmitPassphrase()
+                    if (passphraseSelection.validateAndSubmitPassphrase()) {
+                        passphraseSubmitButton.text = "Submitting...";
+                        passphraseSubmitButton.enabled = false;
+                    }
                 }
             }
         }

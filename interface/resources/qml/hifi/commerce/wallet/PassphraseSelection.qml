@@ -24,6 +24,14 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
+    
+    // This object is always used in a popup.
+    // This MouseArea is used to prevent a user from being
+    //     able to click on a button/mouseArea underneath the popup.
+    MouseArea {
+        anchors.fill: parent;
+        propagateComposedEvents: false;
+    }
 
     Hifi.QmlCommerce {
         id: commerce;

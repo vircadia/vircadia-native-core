@@ -28,20 +28,24 @@ Rectangle {
     // Style
     color: hifi.colors.baseGray;
 
+    onVisibleChanged: {
+        if (visible) {
+            root.resetSubmitButton();
+        }
+    }
+
     Hifi.QmlCommerce {
         id: commerce;
 
         onSecurityImageResult: {
             if (imageID !== 0) { // Success submitting new security image
                 if (root.justSubmitted) {
-                    securityImageSubmitButton.enabled = true;
-                    securityImageSubmitButton.text = "Submit";
+                    root.resetSubmitButton();
                     root.visible = false;
                 }
             } else if (root.justSubmitted) {
                 // Error submitting new security image.
-                securityImageSubmitButton.enabled = true
-                securityImageSubmitButton.text = "Submit";
+                root.resetSubmitButton();
                 root.justSubmitted = false;
             }
         }
@@ -186,4 +190,9 @@ Rectangle {
     //
     // SECURITY IMAGE SELECTION END
     //
+
+    function resetSubmitButton() {
+        securityImageSubmitButton.enabled = true;
+        securityImageSubmitButton.text = "Submit";
+    }
 }
