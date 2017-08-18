@@ -38,7 +38,6 @@
                 blue: 201,
                 green: 34
             },
-
             accelerationSpread: {
                 x: 0,
                 y: 0,
@@ -76,7 +75,6 @@
             textures: 'https://content.highfidelity.com/DomainContent/production/Particles/wispy-smoke.png',
             emitRate: 1,
             emitSpeed: 0,
-
             emitterShouldTrail: false,
             particleRadius: 1,
             radiusSpread: 0,
@@ -87,13 +85,11 @@
                 blue: 232,
                 green: 26
             },
-
             emitAcceleration: {
                 x: 0,
                 y: 0,
                 z: 0
             },
-
             alpha: 0,
             alphaSpread: 0,
             alphaStart: 1,
@@ -123,7 +119,6 @@
     }
 
     function proxCheck() {
-        var avList = AvatarList.getAvatarIdentifiers();
         var ballPos = Entities.getEntityProperties(_entityID, ['position']).position;
         var isAnyAvatarInRange = AvatarList.isAvatarInRange(ballPos, 1);
 
