@@ -431,7 +431,7 @@ int Octree::readElementData(const OctreeElementPointer& destinationElement, cons
     return bytesRead;
 }
 
-void Octree::readBitstreamToTree(const unsigned char * bitstream, unsigned long int bufferSizeBytes,
+void Octree::readBitstreamToTree(const unsigned char * bitstream, uint64_t bufferSizeBytes,
                                  ReadBitstreamToTreeParams& args) {
     int bytesRead = 0;
     const unsigned char* bitstreamAt = bitstream;
@@ -925,8 +925,8 @@ int Octree::encodeTreeBitstream(const OctreeElementPointer& element,
         roomForOctalCode = packetData->startSubTree(newCode);
 
         if (newCode) {
-            delete[] newCode;
             codeLength = numberOfThreeBitSectionsInCode(newCode);
+            delete[] newCode;
         } else {
             codeLength = 1;
         }
@@ -1152,7 +1152,6 @@ int Octree::encodeTreeBitstreamRecursion(const OctreeElementPointer& element,
     OctreeElementPointer sortedChildren[NUMBER_OF_CHILDREN] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
     float distancesToChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
     int indexOfChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
-    int currentCount = 0;
 
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         OctreeElementPointer childElement = element->getChildAtIndex(i);
@@ -1174,7 +1173,6 @@ int Octree::encodeTreeBitstreamRecursion(const OctreeElementPointer& element,
         sortedChildren[i] = childElement;
         indexOfChildren[i] = i;
         distancesToChildren[i] = 0.0f;
-        currentCount++;
 
         // track stats
         // must check childElement here, because it could be we got here with no childElement
@@ -1185,7 +1183,7 @@ int Octree::encodeTreeBitstreamRecursion(const OctreeElementPointer& element,
 
     // for each child element in Distance sorted order..., check to see if they exist, are colored, and in view, and if so
     // add them to our distance ordered array of children
-    for (int i = 0; i < currentCount; i++) {
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         OctreeElementPointer childElement = sortedChildren[i];
         int originalIndex = indexOfChildren[i];
 
@@ -1276,7 +1274,7 @@ int Octree::encodeTreeBitstreamRecursion(const OctreeElementPointer& element,
     }
 
     // NOTE: the childrenDataBits indicates that there is an array of child element data included in this packet.
-    // We wil write this bit mask but we may come back later and update the bits that are actually included
+    // We will write this bit mask but we may come back later and update the bits that are actually included
     packetData->releaseReservedBytes(sizeof(childrenDataBits));
     continueThisLevel = packetData->appendBitMask(childrenDataBits);
 
@@ -1441,7 +1439,7 @@ int Octree::encodeTreeBitstreamRecursion(const OctreeElementPointer& element,
 
         // for each child element in Distance sorted order..., check to see if they exist, are colored, and in view, and if so
         // add them to our distance ordered array of children
-        for (int indexByDistance = 0; indexByDistance < currentCount; indexByDistance++) {
+        for (int indexByDistance = 0; indexByDistance < NUMBER_OF_CHILDREN; indexByDistance++) {
             OctreeElementPointer childElement = sortedChildren[indexByDistance];
             int originalIndex = indexOfChildren[indexByDistance];
 
