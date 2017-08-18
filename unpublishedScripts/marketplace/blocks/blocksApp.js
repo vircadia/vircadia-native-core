@@ -18,10 +18,10 @@
 	var APP_ICON = "https://hifi-content.s3.amazonaws.com/elisalj/blocks/blocks-i.svg";
 
     try {
-        print("Current Interface version: " + Script.checkVersion());
+        print("Current Interface version: " + Window.checkVersion());
     } catch(err) {
         print("Outdated Interface version does not support Blocks");
-        APP_URL = null;
+        APP_URL = "https://hifi-content.s3.amazonaws.com/elisalj/blocks/updateToBlocks.html";
     }
 
 	var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
