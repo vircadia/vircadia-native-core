@@ -76,10 +76,6 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
 
     fadeEffect->build(task, opaques);
 
-    // Filter the non antialiaased overlays
-    const int LAYER_NO_AA = 3;
-    const auto nonAAOverlays = task.addJob<FilterLayeredItems>("Filter2DWebOverlays", overlayOpaques, LAYER_NO_AA);
-
     // Prepare deferred, generate the shared Deferred Frame Transform
     const auto deferredFrameTransform = task.addJob<GenerateDeferredFrameTransform>("DeferredFrameTransform");
     const auto lightingModel = task.addJob<MakeLightingModel>("LightingModel");
@@ -166,7 +162,7 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     const auto toneMappingInputs = render::Varying(ToneMappingDeferred::Inputs(lightingFramebuffer, primaryFramebuffer));
     task.addJob<ToneMappingDeferred>("ToneMapping", toneMappingInputs);
 
-    { // DEbug the bounds of the rendered items, still look at the zbuffer
+    { // Debug the bounds of the rendered items, still look at the zbuffer
         task.addJob<DrawBounds>("DrawMetaBounds", metas);
         task.addJob<DrawBounds>("DrawOpaqueBounds", opaques);
         task.addJob<DrawBounds>("DrawTransparentBounds", transparents);
@@ -181,11 +177,11 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
     task.addJob<DrawOverlay3D>("DrawOverlay3DOpaque", overlayOpaquesInputs, true);
     task.addJob<DrawOverlay3D>("DrawOverlay3DTransparent", overlayTransparentsInputs, false);
 
-    { // DEbug the bounds of the rendered OVERLAY items, still look at the zbuffer
+    { // Debug the bounds of the rendered Overlay items, still look at the zbuffer
         task.addJob<DrawBounds>("DrawOverlayOpaqueBounds", overlayOpaques);
         task.addJob<DrawBounds>("DrawOverlayTransparentBounds", overlayTransparents);
     }
-    
+
      // Debugging stages
     {
         // Debugging Deferred buffer job
@@ -216,13 +212,8 @@ void RenderDeferredTask::build(JobModel& task, const render::Varying& input, ren
         task.addJob<DebugZoneLighting>("DrawZoneStack", deferredFrameTransform);
     }
 
-
     // AA job to be revisited
     task.addJob<Antialiasing>("Antialiasing", primaryFramebuffer);
-
-    // Draw 2DWeb non AA
-    const auto nonAAOverlaysInputs = DrawOverlay3D::Inputs(nonAAOverlays, lightingModel).asVarying();
-    task.addJob<DrawOverlay3D>("Draw2DWebSurfaces", nonAAOverlaysInputs, false);
 
     task.addJob<EndGPURangeTimer>("ToneAndPostRangeTimer", toneAndPostRangeTimer);
 
