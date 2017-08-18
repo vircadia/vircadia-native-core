@@ -47,7 +47,7 @@ void main() {
     
     vec3 prevColor = currentColor;
 
-    if (any(lessThan(prevTexCoord, vec2(0.0)) || any(greaterThan(prevTexCoord, vec2(1.0))) {
+    if (any(lessThan(prevTexCoord, vec2(0.0))) || any(greaterThan(prevTexCoord, vec2(1.0)))) {
         prevColor = texture(historyMap, prevTexCoord).xyz;
     }
 
