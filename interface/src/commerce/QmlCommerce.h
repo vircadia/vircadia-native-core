@@ -1,5 +1,5 @@
 //
-//  Commerce.h
+//  QmlCommerce.h
 //  interface/src/commerce
 //
 //  Guard for safe use of Commerce (Wallet, Ledger) by authorized QML.
