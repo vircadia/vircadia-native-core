@@ -92,7 +92,7 @@ Item {
     signal sendToScript(var message);
 
     function getImagePathFromImageID(imageID) {
-        return (imageID ? gridModel.get(imageID - 1).sourcePath : "");
+        return (imageID ? gridModel.getImagePathFromImageID(imageID) : "");
     }
 
     function getSelectedImageIndex() {

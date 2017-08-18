@@ -24,6 +24,7 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     id: root;
+    property string activeView: "notSetUp";
     // Style
     color: hifi.colors.baseGray;
     Hifi.QmlCommerce {
@@ -35,11 +36,40 @@ Rectangle {
                 hfcBalanceText.text = balance;
             }
         }
+
+        onSecurityImageResult: {
+            if (imageID !== 0) { // "If security image is set up"
+                accountHome.setSecurityImage(securityImageModel.getImagePathFromImageID(imageID));
+            } else if (root.lastPage === "securityImage") {
+                // ERROR! Invalid security image.
+                securityImageContainer.visible = true;
+                choosePassphraseContainer.visible = false;
+            }
+        }
     }
+
+    SecurityImageModel {
+        id: securityImageModel;
+    }
+
     Connections {
         target: walletSetupLightbox;
         onSendSignalToWallet: {
-            sendToScript(msg);
+            if (msg.method === 'walletSetup_cancelClicked') {
+                walletSetupLightbox.visible = false;
+            } else if (msg.method === 'walletSetup_finished') {
+                root.activeView = "accountHome";
+            } else {
+                sendToScript(msg);
+            }
+        }
+    }
+    Connections {
+        target: notSetUp;
+        onSendSignalToWallet: {
+            if (msg.method === 'setUpClicked') {
+                walletSetupLightbox.visible = true;
+            }
         }
     }
 
@@ -53,6 +83,7 @@ Rectangle {
     }
     WalletSetupLightbox {
         id: walletSetupLightbox;
+        visible: false;
         z: 999;
         anchors.centerIn: walletSetupLightboxContainer;
         width: walletSetupLightboxContainer.width - 50;
@@ -84,7 +115,7 @@ Rectangle {
             anchors.bottom: parent.bottom;
             width: paintedWidth;
             // Style
-            color: hifi.colors.lightGrayText;
+            color: hifi.colors.faintGray;
             // Alignment
             horizontalAlignment: Text.AlignHLeft;
             verticalAlignment: Text.AlignVCenter;
@@ -104,7 +135,27 @@ Rectangle {
     //
     // TAB CONTENTS START
     //
+    NotSetUp {
+        id: notSetUp;
+        visible: root.activeView === "notSetUp";
+        anchors.top: titleBarContainer.bottom;
+        anchors.bottom: tabButtonsContainer.top;
+        anchors.left: parent.left;
+        anchors.right: parent.right;
+    }
 
+    AccountHome {
+        id: accountHome;
+        visible: root.activeView === "accountHome";
+        anchors.top: titleBarContainer.bottom;
+        anchors.topMargin: 16;
+        anchors.bottom: tabButtonsContainer.top;
+        anchors.bottomMargin: 16;
+        anchors.left: parent.left;
+        anchors.leftMargin: 16;
+        anchors.right: parent.right;
+        anchors.rightMargin: 16;
+    }
 
 
     //
@@ -134,6 +185,7 @@ Rectangle {
         // "ACCOUNT HOME" tab button
         Rectangle {
             id: accountHomeButtonContainer;
+            visible: !notSetUp.visible;
             color: hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: parent.left;
@@ -149,7 +201,7 @@ Rectangle {
                 anchors.leftMargin: 4;
                 anchors.rightMargin: 4;
                 // Style
-                color: hifi.colors.lightGrayText;
+                color: hifi.colors.faintGray;
                 wrapMode: Text.WordWrap;
                 // Alignment
                 horizontalAlignment: Text.AlignHCenter;
@@ -160,6 +212,7 @@ Rectangle {
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
+                    root.activeView = "accountHome";
                 }
                 onEntered: parent.color = hifi.colors.blueHighlight;
                 onExited: parent.color = hifi.colors.black;
@@ -169,6 +222,7 @@ Rectangle {
         // "SEND MONEY" tab button
         Rectangle {
             id: sendMoneyButtonContainer;
+            visible: !notSetUp.visible;
             color: hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: accountHomeButtonContainer.right;
@@ -184,7 +238,7 @@ Rectangle {
                 anchors.leftMargin: 4;
                 anchors.rightMargin: 4;
                 // Style
-                color: hifi.colors.lightGrayText;
+                color: hifi.colors.faintGray;
                 wrapMode: Text.WordWrap;
                 // Alignment
                 horizontalAlignment: Text.AlignHCenter;
@@ -195,6 +249,7 @@ Rectangle {
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
+                    root.activeView = "sendMoney";
                 }
                 onEntered: parent.color = hifi.colors.blueHighlight;
                 onExited: parent.color = hifi.colors.black;
@@ -204,6 +259,7 @@ Rectangle {
         // "SECURITY" tab button
         Rectangle {
             id: securityButtonContainer;
+            visible: !notSetUp.visible;
             color: hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: sendMoneyButtonContainer.right;
@@ -219,7 +275,7 @@ Rectangle {
                 anchors.leftMargin: 4;
                 anchors.rightMargin: 4;
                 // Style
-                color: hifi.colors.lightGrayText;
+                color: hifi.colors.faintGray;
                 wrapMode: Text.WordWrap;
                 // Alignment
                 horizontalAlignment: Text.AlignHCenter;
@@ -230,6 +286,7 @@ Rectangle {
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
+                    root.activeView = "security";
                 }
                 onEntered: parent.color = hifi.colors.blueHighlight;
                 onExited: parent.color = hifi.colors.black;
@@ -239,6 +296,7 @@ Rectangle {
         // "HELP" tab button
         Rectangle {
             id: helpButtonContainer;
+            visible: !notSetUp.visible;
             color: hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: securityButtonContainer.right;
@@ -254,7 +312,7 @@ Rectangle {
                 anchors.leftMargin: 4;
                 anchors.rightMargin: 4;
                 // Style
-                color: hifi.colors.lightGrayText;
+                color: hifi.colors.faintGray;
                 wrapMode: Text.WordWrap;
                 // Alignment
                 horizontalAlignment: Text.AlignHCenter;
@@ -265,6 +323,7 @@ Rectangle {
                 anchors.fill: parent;
                 hoverEnabled: enabled;
                 onClicked: {
+                    root.activeView = "help";
                 }
                 onEntered: parent.color = hifi.colors.blueHighlight;
                 onExited: parent.color = hifi.colors.black;

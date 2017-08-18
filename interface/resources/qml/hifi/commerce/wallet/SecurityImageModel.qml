@@ -39,4 +39,8 @@ ListModel {
         sourcePath: "images/06gingerbread.jpg"
         securityImageEnumValue: 6;
     }
+
+    function getImagePathFromImageID(imageID) {
+        return (imageID ? root.get(imageID - 1).sourcePath : "");
+    }
 }
