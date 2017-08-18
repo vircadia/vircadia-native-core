@@ -35,11 +35,13 @@ Rectangle {
             if (imageID !== 0) { // Success submitting new security image
                 if (root.justSubmitted) {
                     securityImageSubmitButton.enabled = true;
+                    securityImageSubmitButton.text = "Submit";
                     root.visible = false;
                 }
-            } else if (root.lastPage === "securityImage") {
+            } else if (root.justSubmitted) {
                 // Error submitting new security image.
-                securityImageSubmitButton.enabled = true;
+                securityImageSubmitButton.enabled = true
+                securityImageSubmitButton.text = "Submit";
                 root.justSubmitted = false;
             }
         }
@@ -176,6 +178,7 @@ Rectangle {
                     root.justSubmitted = true;
                     securityImageSubmitButton.text = "Submitting...";
                     securityImageSubmitButton.enabled = false;
+                    commerce.chooseSecurityImage(securityImageSelection.getSelectedImageIndex());
                 }
             }
         }

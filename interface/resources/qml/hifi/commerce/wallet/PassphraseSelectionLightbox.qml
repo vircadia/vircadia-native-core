@@ -27,19 +27,19 @@ Rectangle {
     // Style
     color: hifi.colors.baseGray;
 
-    Hifi.QmlCommerce {
-        id: commerce;
-
-        onPassphraseSetupStatusResult: {
-            console.log("ZRF HERE " + passphraseIsSetup);
-            if (passphraseIsSetup) {
-                // Success submitting new passphrase
-                passphraseSubmitButton.enabled = true;
-                root.visible = false;
-            } else {
-                // Error submitting new passphrase
-                passphraseSubmitButton.enabled = true;
-                passphraseSelection.setErrorText("Backend error");
+    Connections {
+        target: passphraseSelection;
+        onSendMessageToLightbox: {
+            if (msg.method === 'statusResult') {
+                if (msg.status) {
+                    // Success submitting new passphrase
+                    root.resetSubmitButton();
+                    root.visible = false;
+                } else {
+                    // Error submitting new passphrase
+                    root.resetSubmitButton();
+                    passphraseSelection.setErrorText("Backend error");
+                }
             }
         }
     }
@@ -132,7 +132,6 @@ Rectangle {
                 width: 100;
                 text: "Cancel"
                 onClicked: {
-                    passphraseSelection.clearText();
                     root.visible = false;
                 }
             }
@@ -151,10 +150,7 @@ Rectangle {
                 width: 100;
                 text: "Submit";
                 onClicked: {
-                    if (passphraseSelection.validateAndSubmitPassphrase()) {
-                        passphraseSubmitButton.text = "Submitting...";
-                        passphraseSubmitButton.enabled = false;
-                    }
+                    passphraseSelection.validateAndSubmitPassphrase()
                 }
             }
         }
@@ -162,4 +158,9 @@ Rectangle {
     //
     // SECURE PASSPHRASE SELECTION END
     //
+
+    function resetSubmitButton() {
+        passphraseSubmitButton.enabled = true;
+        passphraseSubmitButton.text = "Submit";
+    }
 }

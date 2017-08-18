@@ -30,6 +30,10 @@ Item {
         onSecurityImageResult: {
             passphrasePageSecurityImage.source = gridModel.getImagePathFromImageID(imageID);
         }
+
+        onPassphraseSetupStatusResult: {
+            sendMessageToLightbox({method: 'statusResult', status: passphraseIsSetup});
+        }
     }
 
     onVisibleChanged: {
@@ -52,6 +56,12 @@ Item {
         height: 50;
         echoMode: TextInput.Password;
         placeholderText: "passphrase";
+
+        onVisibleChanged: {
+            if (visible) {
+                text = "";
+            }
+        }
     }
     HifiControlsUit.TextField {
         id: passphraseFieldAgain;
@@ -62,6 +72,12 @@ Item {
         height: 50;
         echoMode: TextInput.Password;
         placeholderText: "re-enter passphrase";
+
+        onVisibleChanged: {
+            if (visible) {
+                text = "";
+            }
+        }
     }
 
     // Security Image
@@ -202,8 +218,5 @@ Item {
         errorText.text = text;
     }
 
-    function clearText() {
-        passphraseField.text = "";
-        passphraseFieldAgain.text = "";
-    }
+    signal sendMessageToLightbox(var msg);
 }
