@@ -193,6 +193,10 @@
 #include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
+
+#include <raypick/RayPickScriptingInterface.h>
+#include <raypick/LaserPointerScriptingInterface.h>
+
 #include "commerce/Ledger.h"
 #include "commerce/Wallet.h"
 #include "commerce/QmlCommerce.h"
@@ -607,6 +611,9 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<ContextOverlayInterface>();
     DependencyManager::set<Ledger>();
     DependencyManager::set<Wallet>();
+
+    DependencyManager::set<LaserPointerScriptingInterface>();
+    DependencyManager::set<RayPickScriptingInterface>();
 
     return previousSessionCrashed;
 }
@@ -2468,6 +2475,7 @@ void Application::paintGL() {
         finalFramebuffer = framebufferCache->getFramebuffer();
     }
 
+    mat4 eyeProjections[2];
     {
         PROFILE_RANGE(render, "/mainRender");
         PerformanceTimer perfTimer("mainRender");
@@ -2489,7 +2497,6 @@ void Application::paintGL() {
             _myCamera.setProjection(displayPlugin->getCullingProjection(_myCamera.getProjection()));
             renderArgs._context->enableStereo(true);
             mat4 eyeOffsets[2];
-            mat4 eyeProjections[2];
             auto baseProjection = renderArgs.getViewFrustum().getProjection();
             auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
             float IPDScale = hmdInterface->getIPDScale();
@@ -2520,6 +2527,19 @@ void Application::paintGL() {
         displaySide(&renderArgs, _myCamera);
     }
 
+    gpu::Batch postCompositeBatch;
+    {
+        PROFILE_RANGE(render, "/postComposite");
+        PerformanceTimer perfTimer("postComposite");
+        renderArgs._batch = &postCompositeBatch;
+        renderArgs._batch->setViewportTransform(ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height()));
+        renderArgs._batch->setViewTransform(renderArgs.getViewFrustum().getView());
+        for_each_eye([&](Eye eye) {
+            renderArgs._batch->setProjectionTransform(eyeProjections[eye]);
+            _overlays.render3DHUDOverlays(&renderArgs);
+        });
+    }
+
     auto frame = _gpuContext->endFrame();
     frame->frameIndex = _frameCount;
     frame->framebuffer = finalFramebuffer;
@@ -2527,6 +2547,7 @@ void Application::paintGL() {
         DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
     };
     frame->overlay = _applicationOverlay.getOverlayTexture();
+    frame->postCompositeBatch = postCompositeBatch;
     // deliver final scene rendering commands to the display plugin
     {
         PROFILE_RANGE(render, "/pluginOutput");
@@ -5078,6 +5099,16 @@ void Application::update(float deltaTime) {
         _overlays.update(deltaTime);
     }
 
+    {
+        PROFILE_RANGE(app, "RayPickManager");
+        _rayPickManager.update();
+    }
+
+    {
+        PROFILE_RANGE(app, "LaserPointerManager");
+        _laserPointerManager.update();
+    }
+
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
     // loadViewFrumstum() method will get the correct details from the camera
@@ -5938,6 +5969,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("AudioScope", DependencyManager::get<AudioScope>().data());
     scriptEngine->registerGlobalObject("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
     scriptEngine->registerGlobalObject("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
+
+    scriptEngine->registerGlobalObject("RayPick", DependencyManager::get<RayPickScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("LaserPointers", DependencyManager::get<LaserPointerScriptingInterface>().data());
 
     // Caches
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());

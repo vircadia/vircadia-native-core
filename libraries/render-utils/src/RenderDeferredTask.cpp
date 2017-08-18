@@ -45,7 +45,7 @@
 
 
 using namespace render;
-extern void initOverlay3DPipelines(render::ShapePlumber& plumber);
+extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
 extern void initDeferredPipelines(render::ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 
 RenderDeferredTask::RenderDeferredTask() {
