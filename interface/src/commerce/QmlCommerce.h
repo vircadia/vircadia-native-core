@@ -41,6 +41,7 @@ protected:
     Q_INVOKABLE void chooseSecurityImage(uint imageID);
     Q_INVOKABLE void getSecurityImage();
     Q_INVOKABLE void getLoginStatus();
+    Q_INVOKABLE void setPassphrase(const QString& passphrase);
     Q_INVOKABLE void getPassphraseSetupStatus();
 };
 

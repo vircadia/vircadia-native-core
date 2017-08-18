@@ -42,6 +42,7 @@ Rectangle {
         onSecurityImageResult: {
             if (imageID !== 0) { // "If security image is set up"
                 passphrasePageSecurityImage.source = securityImageSelection.getImagePathFromImageID(imageID);
+                keysReadyPageSecurityImage.source = securityImageSelection.getImagePathFromImageID(imageID);
                 if (root.lastPage === "login") {
                     securityImageContainer.visible = false;
                     choosePassphraseContainer.visible = true;
@@ -267,7 +268,7 @@ Rectangle {
         }
 
         // Text below security images
-        RalewaySemiBold {
+        RalewayRegular {
             text: "<b>Your security picture shows you that the service asking for your passphrase is authorized. You can change your secure picture at any time.</b>";
             // Text size
             size: 18;
@@ -485,7 +486,7 @@ Rectangle {
         }
 
         // Text below checkbox
-        RalewaySemiBold {
+        RalewayRegular {
             text: "Your passphrase is used to encrypt your private keys. <b>Please write it down.</b> If it is lost, you will not be able to recover it.";
             // Text size
             size: 16;
@@ -591,6 +592,7 @@ Rectangle {
         anchors.fill: parent;
 
         Item {
+            id: keysReadyTitle;
             // Size
             width: parent.width;
             height: 50;
@@ -600,7 +602,7 @@ Rectangle {
 
             // Title Bar text
             RalewaySemiBold {
-                text: "WALLET SETUP - STEP 2 OF 3";
+                text: "WALLET SETUP - STEP 3 OF 3";
                 // Text size
                 size: hifi.fontSizes.overlayTitle;
                 // Anchors
@@ -614,6 +616,90 @@ Rectangle {
                 // Alignment
                 horizontalAlignment: Text.AlignHLeft;
                 verticalAlignment: Text.AlignVCenter;
+            }
+        }
+
+        // Text below title bar
+        RalewaySemiBold {
+            id: keysReadyTitleHelper;
+            text: "Your Private Keys are Ready";
+            // Text size
+            size: 24;
+            // Anchors
+            anchors.top: keysReadyTitle.bottom;
+            anchors.left: parent.left;
+            anchors.leftMargin: 16;
+            anchors.right: parent.right;
+            anchors.rightMargin: 16;
+            height: 50;
+            // Style
+            color: hifi.colors.darkGray;
+            // Alignment
+            horizontalAlignment: Text.AlignHLeft;
+            verticalAlignment: Text.AlignVCenter;
+        }
+
+        // Text below checkbox
+        RalewayRegular {
+            text: "Your money and purchases are secured with private keys that only you have access to. " +
+            "<b>If they are lost, you will not be able to access your money or purchases.</b><br><br>" +
+            "<b>To protect your privacy, High Fidelity has no access to your private keys and cannot " +
+            "recover them for any reason.<br><br>To safeguard your private keys, backup this file on a regular basis:</b>";
+            // Text size
+            size: 16;
+            // Anchors
+            anchors.top: keysReadyTitleHelper.bottom;
+            anchors.topMargin: 16;
+            anchors.left: parent.left;
+            anchors.leftMargin: 16;
+            anchors.right: parent.right;
+            anchors.rightMargin: 16;
+            height: paintedHeight;
+            // Style
+            color: hifi.colors.darkGray;
+            wrapMode: Text.WordWrap;
+            // Alignment
+            horizontalAlignment: Text.AlignHLeft;
+            verticalAlignment: Text.AlignVCenter;
+        }
+        
+        // Navigation Bar
+        Item {
+            // Size
+            width: parent.width;
+            height: 100;
+            // Anchors:
+            anchors.left: parent.left;
+            anchors.bottom: parent.bottom;
+            // Security Image
+            Image {
+                id: keysReadyPageSecurityImage;
+                // Anchors
+                anchors.top: parent.top;
+                anchors.topMargin: 3;
+                anchors.right: keysReadyPageNextButton.left;
+                height: keysReadyPageNextButton.height;
+                width: height;
+                anchors.verticalCenter: parent.verticalCenter;
+                fillMode: Image.PreserveAspectFit;
+                mipmap: true;
+            }
+            // "Next" button
+            HifiControlsUit.Button {
+                id: keysReadyPageNextButton;
+                color: hifi.buttons.black;
+                colorScheme: hifi.colorSchemes.dark;
+                anchors.top: parent.top;
+                anchors.topMargin: 3;
+                anchors.bottom: parent.bottom;
+                anchors.bottomMargin: 3;
+                anchors.right: parent.right;
+                anchors.rightMargin: 20;
+                width: 100;
+                text: "Finish";
+                onClicked: {
+                    root.visible = false;
+                }
             }
         }
     }

@@ -64,6 +64,9 @@ void QmlCommerce::getSecurityImage() {
 void QmlCommerce::getLoginStatus() {
     emit loginStatusResult(DependencyManager::get<AccountManager>()->isLoggedIn());
 }
+void QmlCommerce::setPassphrase(const QString& passphrase) {
+    emit passphraseSetupStatusResult(true);
+}
 void QmlCommerce::getPassphraseSetupStatus() {
     emit passphraseSetupStatusResult(false);
 }
