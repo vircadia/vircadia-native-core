@@ -8,6 +8,17 @@
 //  Distributed under the Apache License, Version 2.0.
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 
+
+/* global Script, Entities, MyAvatar, Controller, RIGHT_HAND, LEFT_HAND, AVATAR_SELF_ID,
+   getControllerJointIndex, NULL_UUID, enableDispatcherModule, disableDispatcherModule,
+   Messages, makeDispatcherModuleParameters, makeRunningValues, Settings, entityHasActions,
+   Vec3, Overlays, flatten, Xform, getControllerWorldLocation, ensureDynamic
+*/
+
+Script.include("/~/system/libraries/Xform.js");
+Script.include("/~/system/controllers/controllerDispatcherUtils.js");
+Script.include("/~/system/libraries/controllers.js");
+
 (function() { // BEGIN LOCAL_SCOPE
 
 var inTeleportMode = false;
@@ -149,8 +160,9 @@ var TARGET = {
     SEAT: 'seat',            // The current target is a seat
 };
 
-function Teleporter() {
+function Teleporter(hand) {
     var _this = this;
+    this.hand = hand;
     this.active = false;
     this.state = TELEPORTER_STATES.IDLE;
     this.currentTarget = TARGET.INVALID;
@@ -276,6 +288,21 @@ function Teleporter() {
         inTeleportMode = false;
     };
 
+    this.parameters = makeDispatcherModuleParameters(
+        300,
+        //this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
+        [],
+        100);
+
+    this.isReady = function(controllerData, deltaTime) {
+        print("--------> is teleport plugin ready <--------");
+        return false;
+    };
+
+    this.run = function(controllerData, deltaTime) {
+        print("---------> running teleport plugin <--------");
+    };
+
     this.update = function() {
         if (_this.state === TELEPORTER_STATES.IDLE) {
             return;
@@ -385,191 +412,196 @@ function Teleporter() {
     };
 }
 
-// related to repositioning the avatar after you teleport
-var FOOT_JOINT_NAMES = ["RightToe_End", "RightToeBase", "RightFoot"];
-var DEFAULT_ROOT_TO_FOOT_OFFSET = 0.5;
-function getAvatarFootOffset() {
+    // related to repositioning the avatar after you teleport
+    var FOOT_JOINT_NAMES = ["RightToe_End", "RightToeBase", "RightFoot"];
+    var DEFAULT_ROOT_TO_FOOT_OFFSET = 0.5;
+    function getAvatarFootOffset() {
 
-    // find a valid foot jointIndex
-    var footJointIndex = -1;
-    var i, l = FOOT_JOINT_NAMES.length;
-    for (i = 0; i < l; i++) {
-        footJointIndex = MyAvatar.getJointIndex(FOOT_JOINT_NAMES[i]);
+        // find a valid foot jointIndex
+        var footJointIndex = -1;
+        var i, l = FOOT_JOINT_NAMES.length;
+        for (i = 0; i < l; i++) {
+            footJointIndex = MyAvatar.getJointIndex(FOOT_JOINT_NAMES[i]);
+            if (footJointIndex != -1) {
+                break;
+            }
+        }
         if (footJointIndex != -1) {
-            break;
-        }
-    }
-    if (footJointIndex != -1) {
-        // default vertical offset from foot to avatar root.
-        var footPos = MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(footJointIndex);
-        if (footPos.x === 0 && footPos.y === 0 && footPos.z === 0.0) {
-            // if footPos is exactly zero, it's probably wrong because avatar is currently loading, fall back to default.
+            // default vertical offset from foot to avatar root.
+            var footPos = MyAvatar.getAbsoluteDefaultJointTranslationInObjectFrame(footJointIndex);
+            if (footPos.x === 0 && footPos.y === 0 && footPos.z === 0.0) {
+                // if footPos is exactly zero, it's probably wrong because avatar is currently loading, fall back to default.
+                return DEFAULT_ROOT_TO_FOOT_OFFSET * MyAvatar.scale;
+            } else {
+                return -footPos.y;
+            }
+        } else {
             return DEFAULT_ROOT_TO_FOOT_OFFSET * MyAvatar.scale;
-        } else {
-            return -footPos.y;
-        }
-    } else {
-        return DEFAULT_ROOT_TO_FOOT_OFFSET * MyAvatar.scale;
-    }
-}
-
-var leftPad = new ThumbPad('left');
-var rightPad = new ThumbPad('right');
-var leftTrigger = new Trigger('left');
-var rightTrigger = new Trigger('right');
-
-var mappingName, teleportMapping;
-
-var TELEPORT_DELAY = 0;
-
-function isMoving() {
-    var LY = Controller.getValue(Controller.Standard.LY);
-    var LX = Controller.getValue(Controller.Standard.LX);
-    if (LY !== 0 || LX !== 0) {
-        return true;
-    } else {
-        return false;
-    }
-}
-
-function parseJSON(json) {
-    try {
-        return JSON.parse(json);
-    } catch (e) {
-        return undefined;
-    }
-}
-// When determininig whether you can teleport to a location, the normal of the
-// point that is being intersected with is looked at. If this normal is more
-// than MAX_ANGLE_FROM_UP_TO_TELEPORT degrees from <0, 1, 0> (straight up), then
-// you can't teleport there.
-var MAX_ANGLE_FROM_UP_TO_TELEPORT = 70;
-function getTeleportTargetType(result) {
-    if (result.type == RayPick.INTERSECTED_NONE) {
-        return TARGET.NONE;
-    }
-
-    var props = Entities.getEntityProperties(result.objectID, ['userData', 'visible']);
-    var data = parseJSON(props.userData);
-    if (data !== undefined && data.seat !== undefined) {
-        var avatarUuid = Uuid.fromString(data.seat.user);
-        if (Uuid.isNull(avatarUuid) || !AvatarList.getAvatar(avatarUuid)) {
-            return TARGET.SEAT;
-        } else {
-            return TARGET.INVALID;
         }
     }
 
-    if (!props.visible) {
-        return TARGET.INVISIBLE;
+    var leftPad = new ThumbPad('left');
+    var rightPad = new ThumbPad('right');
+    
+    var mappingName, teleportMapping;
+
+    var TELEPORT_DELAY = 0;
+
+    function isMoving() {
+        var LY = Controller.getValue(Controller.Standard.LY);
+        var LX = Controller.getValue(Controller.Standard.LX);
+        if (LY !== 0 || LX !== 0) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
-    var surfaceNormal = result.surfaceNormal;
-    var adj = Math.sqrt(surfaceNormal.x * surfaceNormal.x + surfaceNormal.z * surfaceNormal.z);
-    var angleUp = Math.atan2(surfaceNormal.y, adj) * (180 / Math.PI);
+    function parseJSON(json) {
+        try {
+            return JSON.parse(json);
+        } catch (e) {
+            return undefined;
+        }
+    }
+    // When determininig whether you can teleport to a location, the normal of the
+    // point that is being intersected with is looked at. If this normal is more
+    // than MAX_ANGLE_FROM_UP_TO_TELEPORT degrees from <0, 1, 0> (straight up), then
+    // you can't teleport there.
+    var MAX_ANGLE_FROM_UP_TO_TELEPORT = 70;
+    function getTeleportTargetType(result) {
+        if (result.type == RayPick.INTERSECTED_NONE) {
+            return TARGET.NONE;
+        }
+        
+        var props = Entities.getEntityProperties(result.objectID, ['userData', 'visible']);
+        var data = parseJSON(props.userData);
+        if (data !== undefined && data.seat !== undefined) {
+            var avatarUuid = Uuid.fromString(data.seat.user);
+            if (Uuid.isNull(avatarUuid) || !AvatarList.getAvatar(avatarUuid)) {
+                return TARGET.SEAT;
+            } else {
+                return TARGET.INVALID;
+            }
+        }
 
-    if (angleUp < (90 - MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
+        if (!props.visible) {
+            return TARGET.INVISIBLE;
+        }
+
+        var surfaceNormal = result.surfaceNormal;
+        var adj = Math.sqrt(surfaceNormal.x * surfaceNormal.x + surfaceNormal.z * surfaceNormal.z);
+        var angleUp = Math.atan2(surfaceNormal.y, adj) * (180 / Math.PI);
+
+        if (angleUp < (90 - MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
             angleUp > (90 + MAX_ANGLE_FROM_UP_TO_TELEPORT) ||
             Vec3.distance(MyAvatar.position, result.intersection) <= TELEPORT_CANCEL_RANGE) {
-        return TARGET.INVALID;
-    } else {
-        return TARGET.SURFACE;
-    }
-}
-
-function registerMappings() {
-    mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
-    teleportMapping = Controller.newMapping(mappingName);
-    teleportMapping.from(Controller.Standard.RT).peek().to(rightTrigger.buttonPress);
-    teleportMapping.from(Controller.Standard.LT).peek().to(leftTrigger.buttonPress);
-
-    teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightPad.buttonPress);
-    teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
-
-    teleportMapping.from(Controller.Standard.LeftPrimaryThumb)
-        .to(function(value) {
-            if (isDisabled === 'left' || isDisabled === 'both') {
-                return;
-            }
-            if (leftTrigger.down()) {
-                return;
-            }
-            if (isMoving() === true) {
-                return;
-            }
-            teleporter.enterTeleportMode('left');
-            return;
-        });
-    teleportMapping.from(Controller.Standard.RightPrimaryThumb)
-        .to(function(value) {
-            if (isDisabled === 'right' || isDisabled === 'both') {
-                return;
-            }
-            if (rightTrigger.down()) {
-                return;
-            }
-            if (isMoving() === true) {
-                return;
-            }
-
-            teleporter.enterTeleportMode('right');
-            return;
-        });
-}
-
-registerMappings();
-
-var teleporter = new Teleporter();
-
-Controller.enableMapping(mappingName);
-
-function cleanup() {
-    teleportMapping.disable();
-    teleporter.cleanup();
-}
-Script.scriptEnding.connect(cleanup);
-
-var setIgnoreEntities = function() {
-    LaserPointers.setIgnoreEntities(teleporter.teleportRayRightVisible, ignoredEntities);
-    LaserPointers.setIgnoreEntities(teleporter.teleportRayRightInvisible, ignoredEntities);
-    LaserPointers.setIgnoreEntities(teleporter.teleportRayLeftVisible, ignoredEntities);
-    LaserPointers.setIgnoreEntities(teleporter.teleportRayLeftInvisible, ignoredEntities);
-    LaserPointers.setIgnoreEntities(teleporter.teleportRayHeadVisible, ignoredEntities);
-    LaserPointers.setIgnoreEntities(teleporter.teleportRayHeadInvisible, ignoredEntities);
-}
-
-var isDisabled = false;
-var handleTeleportMessages = function(channel, message, sender) {
-    if (sender === MyAvatar.sessionUUID) {
-        if (channel === 'Hifi-Teleport-Disabler') {
-            if (message === 'both') {
-                isDisabled = 'both';
-            }
-            if (message === 'left') {
-                isDisabled = 'left';
-            }
-            if (message === 'right') {
-                isDisabled = 'right';
-            }
-            if (message === 'none') {
-                isDisabled = false;
-            }
-        } else if (channel === 'Hifi-Teleport-Ignore-Add' && !Uuid.isNull(message) && ignoredEntities.indexOf(message) === -1) {
-            ignoredEntities.push(message);
-            setIgnoreEntities();
-        } else if (channel === 'Hifi-Teleport-Ignore-Remove' && !Uuid.isNull(message)) {
-            var removeIndex = ignoredEntities.indexOf(message);
-            if (removeIndex > -1) {
-                ignoredEntities.splice(removeIndex, 1);
-                setIgnoreEntities();
-            }
+            return TARGET.INVALID;
+        } else {
+            return TARGET.SURFACE;
         }
     }
-};
 
-Messages.subscribe('Hifi-Teleport-Disabler');
-Messages.subscribe('Hifi-Teleport-Ignore-Add');
-Messages.subscribe('Hifi-Teleport-Ignore-Remove');
-Messages.messageReceived.connect(handleTeleportMessages);
+    function registerMappings() {
+        mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
+        teleportMapping = Controller.newMapping(mappingName);
+        //teleportMapping.from(Controller.Standard.RT).peek().to(rightTrigger.buttonPress);
+        //teleportMapping.from(Controller.Standard.LT).peek().to(leftTrigger.buttonPress);
+        
+        teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightPad.buttonPress);
+        teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
+        
+        /*teleportMapping.from(Controller.Standard.LeftPrimaryThumb)
+            .to(function(value) {
+                if (isDisabled === 'left' || isDisabled === 'both') {
+                    return;
+                }
+                if (leftTrigger.down()) {
+                    return;
+                }
+                if (isMoving() === true) {
+                    return;
+                }
+                //teleporter.enterTeleportMode('left');
+                return;
+            });
+        teleportMapping.from(Controller.Standard.RightPrimaryThumb)
+            .to(function(value) {
+                if (isDisabled === 'right' || isDisabled === 'both') {
+                    return;
+                }
+                if (rightTrigger.down()) {
+                    return;
+                }
+                if (isMoving() === true) {
+                    return;
+                }
+                
+                //teleporter.enterTeleportMode('right');
+                return;
+            });*/
+    }
+    
+    registerMappings();
+
+    var teleporter = new Teleporter(LEFT_HAND);
+    var leftTeleporter = new Teleporter(LEFT_HAND);
+    var rightTeleporter = new Teleporter(RIGHT_HAND);
+
+    enableDispatcherModule("LeftTeleporter", leftTeleporter);
+    enableDispatcherModule("RightTeleporter", rightTeleporter);
+
+    Controller.enableMapping(mappingName);
+
+    function cleanup() {
+        teleportMapping.disable();
+        //teleporter.cleanup();
+        disableDispatcherModule("LeftTeleporter");
+        disableDispatcherModule("RightTeleporter");
+    }
+    Script.scriptEnding.connect(cleanup);
+    
+    var setIgnoreEntities = function() {
+        LaserPointers.setIgnoreEntities(teleporter.teleportRayRightVisible, ignoredEntities);
+        LaserPointers.setIgnoreEntities(teleporter.teleportRayRightInvisible, ignoredEntities);
+        LaserPointers.setIgnoreEntities(teleporter.teleportRayLeftVisible, ignoredEntities);
+        LaserPointers.setIgnoreEntities(teleporter.teleportRayLeftInvisible, ignoredEntities);
+        LaserPointers.setIgnoreEntities(teleporter.teleportRayHeadVisible, ignoredEntities);
+        LaserPointers.setIgnoreEntities(teleporter.teleportRayHeadInvisible, ignoredEntities);
+    }
+    
+    var isDisabled = false;
+    var handleTeleportMessages = function(channel, message, sender) {
+        if (sender === MyAvatar.sessionUUID) {
+            if (channel === 'Hifi-Teleport-Disabler') {
+                if (message === 'both') {
+                    isDisabled = 'both';
+                }
+                if (message === 'left') {
+                    isDisabled = 'left';
+                }
+                if (message === 'right') {
+                    isDisabled = 'right';
+                }
+                if (message === 'none') {
+                    isDisabled = false;
+                }
+            } else if (channel === 'Hifi-Teleport-Ignore-Add' && !Uuid.isNull(message) && ignoredEntities.indexOf(message) === -1) {
+                ignoredEntities.push(message);
+                setIgnoreEntities();
+            } else if (channel === 'Hifi-Teleport-Ignore-Remove' && !Uuid.isNull(message)) {
+                var removeIndex = ignoredEntities.indexOf(message);
+                if (removeIndex > -1) {
+                    ignoredEntities.splice(removeIndex, 1);
+                    setIgnoreEntities();
+                }
+            }
+        }
+    };
+    
+    Messages.subscribe('Hifi-Teleport-Disabler');
+    Messages.subscribe('Hifi-Teleport-Ignore-Add');
+    Messages.subscribe('Hifi-Teleport-Ignore-Remove');
+    Messages.messageReceived.connect(handleTeleportMessages);
 
 }()); // END LOCAL_SCOPE

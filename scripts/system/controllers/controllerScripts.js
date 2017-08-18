@@ -15,7 +15,6 @@ var CONTOLLER_SCRIPTS = [
     // "handControllerGrab.js",
     "handControllerPointer.js",
     // "grab.js",
-    // "teleport.js",
     "toggleAdvancedMovementForHandControllers.js",
 
     "ControllerDispatcher.js",
@@ -26,7 +25,8 @@ var CONTOLLER_SCRIPTS = [
     "controllerModules/tabletStylusInput.js",
     "controllerModules/equipEntity.js",
     "controllerModules/nearTrigger.js",
-    "controllerModules/cloneEntity.js"
+    "controllerModules/cloneEntity.js",
+    "teleport.js"
 ];
 
 var DEBUG_MENU_ITEM = "Debug defaultScripts.js";
