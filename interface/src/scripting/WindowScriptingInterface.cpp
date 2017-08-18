@@ -264,6 +264,10 @@ void WindowScriptingInterface::showAssetServer(const QString& upload) {
     QMetaObject::invokeMethod(qApp, "showAssetServerWidget", Qt::QueuedConnection, Q_ARG(QString, upload));
 }
 
+int WindowScriptingInterface::checkVersion() {
+    return QCoreApplication::applicationVersion().toInt();
+}
+
 int WindowScriptingInterface::getInnerWidth() {
     return qApp->getWindow()->geometry().width();
 }
