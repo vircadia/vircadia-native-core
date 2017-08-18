@@ -36,7 +36,7 @@ void HFTabletWebEngineRequestInterceptor::interceptRequest(QWebEngineUrlRequestI
         }
 
         static const QString USER_AGENT = "User-Agent";
-        QString tokenString = "Chrome/48.0 (HighFidelityInterface)";
+        QString tokenString = "Chrome/48.0 (HighFidelityInterface WithHFC)";
         info.setHttpHeader(USER_AGENT.toLocal8Bit(), tokenString.toLocal8Bit());
     } else {
         static const QString USER_AGENT = "User-Agent";
