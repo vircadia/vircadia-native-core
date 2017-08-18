@@ -24,7 +24,9 @@ Rectangle {
     HifiConstants { id: hifi; }
 
     id: root;
+
     property string activeView: "notSetUp";
+
     // Style
     color: hifi.colors.baseGray;
     Hifi.QmlCommerce {
@@ -40,6 +42,7 @@ Rectangle {
         onSecurityImageResult: {
             if (imageID !== 0) { // "If security image is set up"
                 accountHome.setSecurityImage(securityImageModel.getImagePathFromImageID(imageID));
+                security.setSecurityImages(securityImageModel.getImagePathFromImageID(imageID));
             } else if (root.lastPage === "securityImage") {
                 // ERROR! Invalid security image.
                 securityImageContainer.visible = true;
@@ -157,6 +160,45 @@ Rectangle {
         anchors.rightMargin: 16;
     }
 
+    SendMoney {
+        id: sendMoney;
+        visible: root.activeView === "sendMoney";
+        anchors.top: titleBarContainer.bottom;
+        anchors.topMargin: 16;
+        anchors.bottom: tabButtonsContainer.top;
+        anchors.bottomMargin: 16;
+        anchors.left: parent.left;
+        anchors.leftMargin: 16;
+        anchors.right: parent.right;
+        anchors.rightMargin: 16;
+    }
+
+    Security {
+        id: security;
+        visible: root.activeView === "security";
+        anchors.top: titleBarContainer.bottom;
+        anchors.topMargin: 16;
+        anchors.bottom: tabButtonsContainer.top;
+        anchors.bottomMargin: 16;
+        anchors.left: parent.left;
+        anchors.leftMargin: 16;
+        anchors.right: parent.right;
+        anchors.rightMargin: 16;
+    }
+
+    Help {
+        id: help;
+        visible: root.activeView === "help";
+        anchors.top: titleBarContainer.bottom;
+        anchors.topMargin: 16;
+        anchors.bottom: tabButtonsContainer.top;
+        anchors.bottomMargin: 16;
+        anchors.left: parent.left;
+        anchors.leftMargin: 16;
+        anchors.right: parent.right;
+        anchors.rightMargin: 16;
+    }
+
 
     //
     // TAB CONTENTS END
@@ -186,7 +228,7 @@ Rectangle {
         Rectangle {
             id: accountHomeButtonContainer;
             visible: !notSetUp.visible;
-            color: hifi.colors.black;
+            color: root.activeView === "accountHome" ? hifi.colors.blueAccent : hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
@@ -213,9 +255,10 @@ Rectangle {
                 hoverEnabled: enabled;
                 onClicked: {
                     root.activeView = "accountHome";
+                    tabButtonsContainer.resetTabButtonColors();
                 }
                 onEntered: parent.color = hifi.colors.blueHighlight;
-                onExited: parent.color = hifi.colors.black;
+                onExited: parent.color = root.activeView === "accountHome" ? hifi.colors.blueAccent : hifi.colors.black;
             }
         }
 
@@ -223,7 +266,7 @@ Rectangle {
         Rectangle {
             id: sendMoneyButtonContainer;
             visible: !notSetUp.visible;
-            color: hifi.colors.black;
+            color: root.activeView === "sendMoney" ? hifi.colors.blueAccent : hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: accountHomeButtonContainer.right;
             anchors.bottom: parent.bottom;
@@ -250,9 +293,10 @@ Rectangle {
                 hoverEnabled: enabled;
                 onClicked: {
                     root.activeView = "sendMoney";
+                    tabButtonsContainer.resetTabButtonColors();
                 }
                 onEntered: parent.color = hifi.colors.blueHighlight;
-                onExited: parent.color = hifi.colors.black;
+                onExited: parent.color = root.activeView === "sendMoney" ? hifi.colors.blueAccent : hifi.colors.black;
             }
         }
 
@@ -260,7 +304,7 @@ Rectangle {
         Rectangle {
             id: securityButtonContainer;
             visible: !notSetUp.visible;
-            color: hifi.colors.black;
+            color: root.activeView === "security" ? hifi.colors.blueAccent : hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: sendMoneyButtonContainer.right;
             anchors.bottom: parent.bottom;
@@ -287,9 +331,10 @@ Rectangle {
                 hoverEnabled: enabled;
                 onClicked: {
                     root.activeView = "security";
+                    tabButtonsContainer.resetTabButtonColors();
                 }
                 onEntered: parent.color = hifi.colors.blueHighlight;
-                onExited: parent.color = hifi.colors.black;
+                onExited: parent.color = root.activeView === "security" ? hifi.colors.blueAccent : hifi.colors.black;
             }
         }
 
@@ -297,7 +342,7 @@ Rectangle {
         Rectangle {
             id: helpButtonContainer;
             visible: !notSetUp.visible;
-            color: hifi.colors.black;
+            color: root.activeView === "help" ? hifi.colors.blueAccent : hifi.colors.black;
             anchors.top: parent.top;
             anchors.left: securityButtonContainer.right;
             anchors.bottom: parent.bottom;
@@ -324,9 +369,26 @@ Rectangle {
                 hoverEnabled: enabled;
                 onClicked: {
                     root.activeView = "help";
+                    tabButtonsContainer.resetTabButtonColors();
                 }
                 onEntered: parent.color = hifi.colors.blueHighlight;
-                onExited: parent.color = hifi.colors.black;
+                onExited: parent.color = root.activeView === "help" ? hifi.colors.blueAccent : hifi.colors.black;
+            }
+        }
+
+        function resetTabButtonColors() {
+            accountHomeButtonContainer.color = hifi.colors.black;
+            sendMoneyButtonContainer.color = hifi.colors.black;
+            securityButtonContainer.color = hifi.colors.black;
+            helpButtonContainer.color = hifi.colors.black;
+            if (root.activeView === "accountHome") {
+                accountHomeButtonContainer.color = hifi.colors.blueAccent;
+            } else if (root.activeView === "sendMoney") {
+                sendMoneyButtonContainer.color = hifi.colors.blueAccent;
+            } else if (root.activeView === "security") {
+                securityButtonContainer.color = hifi.colors.blueAccent;
+            } else if (root.activeView === "help") {
+                helpButtonContainer.color = hifi.colors.blueAccent;
             }
         }
     }

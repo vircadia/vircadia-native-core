@@ -29,6 +29,12 @@ Item {
         id: commerce;
     }
 
+    onVisibleChanged: {
+        if (visible) {
+            passphraseField.focus = true;
+        }
+    }
+
     HifiControlsUit.TextField {
         id: passphraseField;
         anchors.top: parent.top;
@@ -129,7 +135,7 @@ Item {
         color: hifi.colors.faintGray;
         wrapMode: Text.WordWrap;
         // Alignment
-        horizontalAlignment: Text.AlignHLeft;
+        horizontalAlignment: Text.AlignLeft;
         verticalAlignment: Text.AlignVCenter;
     }
 
