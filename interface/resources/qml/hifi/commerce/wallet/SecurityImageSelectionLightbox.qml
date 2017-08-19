@@ -42,6 +42,7 @@ Rectangle {
                 if (root.justSubmitted) {
                     root.resetSubmitButton();
                     root.visible = false;
+                    root.justSubmitted = false;
                 }
             } else if (root.justSubmitted) {
                 // Error submitting new security image.

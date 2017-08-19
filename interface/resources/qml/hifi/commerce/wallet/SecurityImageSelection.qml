@@ -40,8 +40,10 @@ Item {
         }
     }
 
-    Component.onCompleted: {
-        commerce.getSecurityImage();
+    onVisibleChanged: {
+        if (visible) {
+            commerce.getSecurityImage();
+        }
     }
 
     SecurityImageModel {
