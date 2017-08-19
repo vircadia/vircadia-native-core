@@ -43,7 +43,6 @@
 
 #include "types/FileTypeProfile.h"
 #include "types/HFWebEngineProfile.h"
-#include "types/HFTabletWebEngineProfile.h"
 #include "types/SoundEffect.h"
 
 #include "Logging.h"
@@ -328,7 +327,6 @@ void initializeQmlEngine(QQmlEngine* engine, QQuickWindow* window) {
     }
     rootContext->setContextProperty("FileTypeProfile", new FileTypeProfile(rootContext));
     rootContext->setContextProperty("HFWebEngineProfile", new HFWebEngineProfile(rootContext));
-    rootContext->setContextProperty("HFTabletWebEngineProfile", new HFTabletWebEngineProfile(rootContext));
     rootContext->setContextProperty("Paths", DependencyManager::get<PathUtils>().data());
 }
 

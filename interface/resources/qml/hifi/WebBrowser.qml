@@ -147,7 +147,7 @@ Rectangle {
             width: parent.width;
             height: keyboardEnabled && keyboardRaised ? webViewHeight - keyboard.height : webViewHeight
 
-            profile: HFTabletWebEngineProfile;
+            profile: HFWebEngineProfile;
 
             property string userScriptUrl: ""
 

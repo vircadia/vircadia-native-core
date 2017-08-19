@@ -460,13 +460,10 @@ private:
 
     gpu::ShaderPointer _simpleOpaqueWebBrowserShader;
     gpu::PipelinePointer _simpleOpaqueWebBrowserPipeline;
+    gpu::PipelinePointer _simpleOpaqueWebBrowserPipelineNoAA;
     gpu::ShaderPointer _simpleTransparentWebBrowserShader;
     gpu::PipelinePointer _simpleTransparentWebBrowserPipeline;
-
-    gpu::ShaderPointer _simpleOpaqueWebBrowserOverlayShader;
-    gpu::PipelinePointer _simpleOpaqueWebBrowserOverlayPipeline;
-    gpu::ShaderPointer _simpleTransparentWebBrowserOverlayShader;
-    gpu::PipelinePointer _simpleTransparentWebBrowserOverlayPipeline;
+    gpu::PipelinePointer _simpleTransparentWebBrowserPipelineNoAA;
 
     static render::ShapePipelinePointer getShapePipeline(bool textured = false, bool transparent = false, bool culled = true,
         bool unlit = false, bool depthBias = false);

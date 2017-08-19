@@ -206,9 +206,9 @@ Column {
         id: scroll;
         model: suggestions;
         orientation: ListView.Horizontal;
+        highlightFollowsCurrentItem: false
         highlightMoveDuration: -1;
         highlightMoveVelocity: -1;
-        highlight: Rectangle { color: "transparent"; border.width: 4; border.color: hifiStyleConstants.colors.primaryHighlight; z: 1; }
         currentIndex: -1;
 
         spacing: 12;
@@ -237,9 +237,8 @@ Column {
             textSizeSmall: root.textSizeSmall;
             stackShadowNarrowing: root.stackShadowNarrowing;
             shadowHeight: root.stackedCardShadowHeight;
-
-            hoverThunk: function () { scrollToIndex(index); }
-            unhoverThunk: function () { scrollToIndex(-1); }
+            hoverThunk: function () { hovered = true }
+            unhoverThunk: function () { hovered = false }
         }
     }
     NumberAnimation {
