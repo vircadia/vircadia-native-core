@@ -118,7 +118,7 @@
         var ballPos = Entities.getEntityProperties(_entityID, ['position']).position;
         var isAnyAvatarInRange = AvatarList.isAvatarInRange(ballPos, 1);
 
-        if (particleTrailEntity) particleTrail();
+        if (particleTrailEntity === null) particleTrail();
 
         if (isAnyAvatarInRange) {
             clearProxCheck();
