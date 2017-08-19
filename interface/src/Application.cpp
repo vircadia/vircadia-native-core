@@ -193,6 +193,10 @@
 #include <src/scripting/LimitlessVoiceRecognitionScriptingInterface.h>
 #include <EntityScriptClient.h>
 #include <ModelScriptingInterface.h>
+
+#include <raypick/RayPickScriptingInterface.h>
+#include <raypick/LaserPointerScriptingInterface.h>
+
 #include "commerce/Ledger.h"
 #include "commerce/Wallet.h"
 #include "commerce/QmlCommerce.h"
@@ -607,6 +611,9 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<ContextOverlayInterface>();
     DependencyManager::set<Ledger>();
     DependencyManager::set<Wallet>();
+
+    DependencyManager::set<LaserPointerScriptingInterface>();
+    DependencyManager::set<RayPickScriptingInterface>();
 
     return previousSessionCrashed;
 }
@@ -2468,6 +2475,7 @@ void Application::paintGL() {
         finalFramebuffer = framebufferCache->getFramebuffer();
     }
 
+    mat4 eyeProjections[2];
     {
         PROFILE_RANGE(render, "/mainRender");
         PerformanceTimer perfTimer("mainRender");
@@ -2489,7 +2497,6 @@ void Application::paintGL() {
             _myCamera.setProjection(displayPlugin->getCullingProjection(_myCamera.getProjection()));
             renderArgs._context->enableStereo(true);
             mat4 eyeOffsets[2];
-            mat4 eyeProjections[2];
             auto baseProjection = renderArgs.getViewFrustum().getProjection();
             auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
             float IPDScale = hmdInterface->getIPDScale();
@@ -2520,6 +2527,19 @@ void Application::paintGL() {
         displaySide(&renderArgs, _myCamera);
     }
 
+    gpu::Batch postCompositeBatch;
+    {
+        PROFILE_RANGE(render, "/postComposite");
+        PerformanceTimer perfTimer("postComposite");
+        renderArgs._batch = &postCompositeBatch;
+        renderArgs._batch->setViewportTransform(ivec4(0, 0, finalFramebufferSize.width(), finalFramebufferSize.height()));
+        renderArgs._batch->setViewTransform(renderArgs.getViewFrustum().getView());
+        for_each_eye([&](Eye eye) {
+            renderArgs._batch->setProjectionTransform(eyeProjections[eye]);
+            _overlays.render3DHUDOverlays(&renderArgs);
+        });
+    }
+
     auto frame = _gpuContext->endFrame();
     frame->frameIndex = _frameCount;
     frame->framebuffer = finalFramebuffer;
@@ -2527,6 +2547,7 @@ void Application::paintGL() {
         DependencyManager::get<FramebufferCache>()->releaseFramebuffer(framebuffer);
     };
     frame->overlay = _applicationOverlay.getOverlayTexture();
+    frame->postCompositeBatch = postCompositeBatch;
     // deliver final scene rendering commands to the display plugin
     {
         PROFILE_RANGE(render, "/pluginOutput");
@@ -2830,18 +2851,23 @@ bool Application::importSVOFromURL(const QString& urlString) {
     return true;
 }
 
+bool Application::importFromZIP(const QString& filePath) {
+    qDebug() << "A zip file has been dropped in: " << filePath;
+    QUrl empty;
+    // handle Blocks download from Marketplace
+    if (filePath.contains("vr.google.com/downloads")) {
+        addAssetToWorldFromURL(filePath);
+    } else {
+        qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true, false);
+    }
+    return true;
+}
+
 void Application::onPresent(quint32 frameCount) {
     if (shouldPaint()) {
         postEvent(this, new QEvent(static_cast<QEvent::Type>(Idle)), Qt::HighEventPriority);
         postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
     }
-}
-
-bool Application::importFromZIP(const QString& filePath) {
-    qDebug() << "A zip file has been dropped in: " << filePath;
-    QUrl empty;
-    qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true);
-    return true;
 }
 
 bool _renderRequested { false };
@@ -5078,6 +5104,16 @@ void Application::update(float deltaTime) {
         _overlays.update(deltaTime);
     }
 
+    {
+        PROFILE_RANGE(app, "RayPickManager");
+        _rayPickManager.update();
+    }
+
+    {
+        PROFILE_RANGE(app, "LaserPointerManager");
+        _laserPointerManager.update();
+    }
+
     // Update _viewFrustum with latest camera and view frustum data...
     // NOTE: we get this from the view frustum, to make it simpler, since the
     // loadViewFrumstum() method will get the correct details from the camera
@@ -5939,6 +5975,9 @@ void Application::registerScriptEngineWithApplicationServices(ScriptEngine* scri
     scriptEngine->registerGlobalObject("AvatarBookmarks", DependencyManager::get<AvatarBookmarks>().data());
     scriptEngine->registerGlobalObject("LocationBookmarks", DependencyManager::get<LocationBookmarks>().data());
 
+    scriptEngine->registerGlobalObject("RayPick", DependencyManager::get<RayPickScriptingInterface>().data());
+    scriptEngine->registerGlobalObject("LaserPointers", DependencyManager::get<LaserPointerScriptingInterface>().data());
+
     // Caches
     scriptEngine->registerGlobalObject("AnimationCache", DependencyManager::get<AnimationCache>().data());
     scriptEngine->registerGlobalObject("TextureCache", DependencyManager::get<TextureCache>().data());
@@ -6320,8 +6359,15 @@ void Application::showAssetServerWidget(QString filePath) {
 
 void Application::addAssetToWorldFromURL(QString url) {
     qInfo(interfaceapp) << "Download model and add to world from" << url;
-
-    QString filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
+    
+    QString filename;
+    if (url.contains("filename")) {
+        filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
+    }
+    if (url.contains("vr.google.com/downloads")) {
+        filename = url.section('/', -1);
+        filename.remove(".zip?noDownload=false");
+    }
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         QString errorInfo = "You do not have permissions to write to the Asset Server.";
@@ -6342,7 +6388,17 @@ void Application::addAssetToWorldFromURLRequestFinished() {
     auto url = request->getUrl().toString();
     auto result = request->getResult();
 
-    QString filename = url.section("filename=", 1, 1);  // Filename from trailing "?filename=" URL parameter.
+    QString filename;
+    bool isBlocks = false;
+
+    if (url.contains("filename")) {
+        filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
+    }
+    if (url.contains("vr.google.com/downloads")) {
+        filename = url.section('/', -1);
+        filename.remove(".zip?noDownload=false");
+        isBlocks = true;
+    }
 
     if (result == ResourceRequest::Success) {
         qInfo(interfaceapp) << "Downloaded model from" << url;
@@ -6357,7 +6413,7 @@ void Application::addAssetToWorldFromURLRequestFinished() {
             if (tempFile.open(QIODevice::WriteOnly)) {
                 tempFile.write(request->getData());
                 addAssetToWorldInfoClear(filename);  // Remove message from list; next one added will have a different key.
-                qApp->getFileDownloadInterface()->runUnzip(downloadPath, url, true, false);
+                qApp->getFileDownloadInterface()->runUnzip(downloadPath, url, true, false, isBlocks);
             } else {
                 QString errorInfo = "Couldn't open temporary file for download";
                 qWarning(interfaceapp) << errorInfo;
@@ -6387,7 +6443,7 @@ void Application::addAssetToWorldUnzipFailure(QString filePath) {
     addAssetToWorldError(filename, "Couldn't unzip file " + filename + ".");
 }
 
-void Application::addAssetToWorld(QString filePath, QString zipFile, bool isZip) {
+void Application::addAssetToWorld(QString filePath, QString zipFile, bool isZip, bool isBlocks) {
     // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
     QString mapping;
     QString path = filePath;
@@ -6395,6 +6451,11 @@ void Application::addAssetToWorld(QString filePath, QString zipFile, bool isZip)
     if (isZip) {
         QString assetFolder = zipFile.section("/", -1);
         assetFolder.remove(".zip");
+        mapping = "/" + assetFolder + "/" + filename;
+    } else if (isBlocks) {
+        qCDebug(interfaceapp) << "Path to asset folder: " << zipFile;
+        QString assetFolder = zipFile.section('/', -1);
+        assetFolder.remove(".zip?noDownload=false");
         mapping = "/" + assetFolder + "/" + filename;
     } else {
         mapping = "/" + filename;
@@ -6775,12 +6836,12 @@ void Application::onAssetToWorldMessageBoxClosed() {
 }
 
 
-void Application::handleUnzip(QString zipFile, QStringList unzipFile, bool autoAdd, bool isZip) {
+void Application::handleUnzip(QString zipFile, QStringList unzipFile, bool autoAdd, bool isZip, bool isBlocks) {
     if (autoAdd) {
         if (!unzipFile.isEmpty()) {
             for (int i = 0; i < unzipFile.length(); i++) {
                 qCDebug(interfaceapp) << "Preparing file for asset server: " << unzipFile.at(i);
-                addAssetToWorld(unzipFile.at(i), zipFile, isZip);
+                addAssetToWorld(unzipFile.at(i), zipFile, isZip, isBlocks);
             }
         } else {
             addAssetToWorldUnzipFailure(zipFile);

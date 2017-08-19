@@ -24,6 +24,7 @@ Item {
     property alias webView: webview
     property alias profile: webview.profile
     property bool remove: false
+    property bool closeButtonVisible: true
 
     // Manage own browse history because WebEngineView history is wiped when a new URL is loaded via
     // onNewViewRequested, e.g., as happens when a social media share button is clicked.
@@ -64,6 +65,7 @@ Item {
                 disabledColor: hifi.colors.lightGrayText
                 enabled: true
                 text: "CLOSE"
+                visible: closeButtonVisible
 
                 MouseArea {
                     anchors.fill: parent
@@ -142,7 +144,7 @@ Item {
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height - web.headerHeight : parent.height - web.headerHeight
         anchors.top: buttons.bottom
-        profile: HFTabletWebEngineProfile;
+        profile: HFWebEngineProfile;
 
         property string userScriptUrl: ""
 
@@ -182,8 +184,6 @@ Item {
             webview.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
                 console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
             });
-
-            webview.profile.httpUserAgent = "Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/56.0.2924.87 Mobile Safari/537.36";
         }
 
         onFeaturePermissionRequested: {
