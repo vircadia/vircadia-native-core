@@ -12,7 +12,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include DeferredBufferWrite.slh@>
+<@include DeferredTransform.slh@>
+<$declareDeferredFrameTransform()$>
+
 
 uniform sampler2D currentMap;
 uniform sampler2D colorMap;
@@ -27,7 +29,7 @@ struct TAAParams
 	float debugX;
 	float blend;
 	float motionScale;
-	float spareB;
+	float debugShowVelocityThreshold;
 };
 
 layout(std140) uniform taaParamsBuffer {
@@ -35,25 +37,35 @@ layout(std140) uniform taaParamsBuffer {
 };
 
 void main(void) {
-    outFragColor = texture(currentMap, varTexCoord0);
+    vec3 newColor = texture(currentMap, varTexCoord0).xyz;
+    outFragColor = vec4(newColor, 1.0);
 
     if (varTexCoord0.x > params.debugX) {
 		return;
 	}
 
+    // Pixel being shaded
 	vec3 sourceColor = texture(colorMap, varTexCoord0).xyz;
 
 	vec2 velocity = texture(velocityMap, varTexCoord0).xy;
+    vec2 pixelVelocity = velocity * getWidthHeight(0);
     vec2 prevTexCoord = varTexCoord0 - params.motionScale * velocity;
 
     outFragColor = vec4(sourceColor, 1.0);
 
-	if (abs(varTexCoord0.x - params.debugX) < (1.0 / 2048.0)) {
+	if (abs(varTexCoord0.x - params.debugX) < getInvWidthHeight().x) {
 		outFragColor.rgb = vec3(1.0, 1.0, 0.0);
 		return;
 	}
 
-    if (dot(velocity, velocity) > 0.0001) {
+    vec3 prevColor = sourceColor;
+
+    if (!(any(lessThan(prevTexCoord, vec2(0.0))) || any(greaterThan(prevTexCoord, vec2(1.0))))) {
+        prevColor = texture(historyMap, prevTexCoord).xyz;
+    }
+    outFragColor.xyz =  prevColor;
+
+    if (dot(pixelVelocity, pixelVelocity) > (params.debugShowVelocityThreshold * params.debugShowVelocityThreshold)) {
         outFragColor = vec4(0.0, 1.0, 1.0, 1.0);
     }
 

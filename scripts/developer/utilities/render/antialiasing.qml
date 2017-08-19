@@ -41,7 +41,15 @@ Column {
                 config: Render.getConfig("RenderMainView.Antialiasing")
                 property: "velocityScale"
                 max: 1.0
-                min: -1.0
+                min: 0.0
+            }
+            ConfigSlider {
+                label: qsTr("Debug Velocity Threshold [pix]")
+                integral: false
+                config: Render.getConfig("RenderMainView.Antialiasing")
+                property: "debugShowVelocityThreshold"
+                max: 20
+                min: 0.0
             }
             CheckBox {
                     text: "Freeze "

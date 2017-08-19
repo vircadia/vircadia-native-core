@@ -23,6 +23,7 @@ class AntialiasingConfig : public render::Job::Config {
     Q_PROPERTY(float debugX MEMBER debugX NOTIFY dirty)
     Q_PROPERTY(float blend MEMBER blend NOTIFY dirty)
     Q_PROPERTY(float velocityScale MEMBER velocityScale NOTIFY dirty)
+    Q_PROPERTY(float debugShowVelocityThreshold MEMBER debugShowVelocityThreshold NOTIFY dirty)
 
 public:
     AntialiasingConfig() : render::Job::Config(true) {}
@@ -30,6 +31,7 @@ public:
     float debugX{ 0.0f };
     float blend{ 0.1f };
     float velocityScale{ 1.0f };
+    float debugShowVelocityThreshold{ 1.0f };
 
 signals:
     void dirty();
@@ -40,7 +42,7 @@ struct TAAParams {
     float debugX{ 0.0f };
     float blend{ 0.1f };
     float velocityScale{ 1.0f };
-    float spareB;
+    float debugShowVelocityThreshold{ 1.0f };
 
 };
 using TAAParamsBuffer = gpu::StructBuffer<TAAParams>;
@@ -58,6 +60,7 @@ public:
 
     const gpu::PipelinePointer& getAntialiasingPipeline();
     const gpu::PipelinePointer& getBlendPipeline();
+    const gpu::PipelinePointer& getDebugBlendPipeline();
 
 
 
@@ -72,6 +75,7 @@ private:
 
     gpu::PipelinePointer _antialiasingPipeline;
     gpu::PipelinePointer _blendPipeline;
+    gpu::PipelinePointer _debugBlendPipeline;
 
     TAAParamsBuffer _params;
     int _currentFrame{ 0 };
