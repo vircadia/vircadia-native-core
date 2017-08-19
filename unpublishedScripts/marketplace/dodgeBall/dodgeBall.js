@@ -53,11 +53,7 @@
             azimuthFinish: 180
         };
 
-        if (particleTrailEntity === null) {
             particleTrailEntity = Entities.addEntity(props);
-        } else {
-            Entities.editEntity(particleTrailEntity, {})
-        }
     }
 
     function particleExplode() {
@@ -122,7 +118,8 @@
         var ballPos = Entities.getEntityProperties(_entityID, ['position']).position;
         var isAnyAvatarInRange = AvatarList.isAvatarInRange(ballPos, 1);
 
-        particleTrail();
+        if (particleTrailEntity) particleTrail();
+
         if (isAnyAvatarInRange) {
             clearProxCheck();
             particleExplode();
