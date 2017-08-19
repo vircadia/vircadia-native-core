@@ -30,17 +30,17 @@ Rectangle {
     Hifi.QmlCommerce {
         id: commerce;
         onBalanceResult: {
-            if (failureMessage.length) {
-                console.log("Failed to get balance", failureMessage);
+            if (result.status !== 'success') {
+                console.log("Failed to get balance", result.message);
             } else {
-                hfcBalanceText.text = balance;
+                hfcBalanceText.text = result.data.balance;
             }
         }
         onInventoryResult: {
-            if (failureMessage.length) {
-                console.log("Failed to get inventory", failureMessage);
+            if (result.status !== 'success') {
+                console.log("Failed to get inventory", result.message);
             } else {
-                inventoryContentsList.model = inventory.assets;
+                inventoryContentsList.model = result.data.assets;
             }
         }
         onSecurityImageResult: {
