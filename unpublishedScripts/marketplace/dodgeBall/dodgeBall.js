@@ -57,8 +57,6 @@
     }
 
     function particleExplode() {
-        Entities.deleteEntity(particleTrailEntity);
-        particleTrailEntity = null;
         var entPos = Entities.getEntityProperties(_entityID, 'position').position;
         var props = {
             type: 'ParticleEffect',
@@ -110,15 +108,18 @@
 
 
     function clearProxCheck() {
-        if (proxInterval) Script.clearInterval(proxInterval);
+        if (proxInterval) {
+            Script.clearInterval(proxInterval);
+            Entities.deleteEntity(particleTrailEntity);
+            particleTrailEntity = null;
+        }
+
         if (proxTimeout) Script.clearTimeout(proxTimeout);
     }
 
     function proxCheck() {
         var ballPos = Entities.getEntityProperties(_entityID, ['position']).position;
         var isAnyAvatarInRange = AvatarList.isAvatarInRange(ballPos, 1);
-
-        if (particleTrailEntity === null) particleTrail();
 
         if (isAnyAvatarInRange) {
             clearProxCheck();
@@ -143,14 +144,19 @@
 
     this.releaseGrab = function (thisEntityID) {
 
+        if (particleTrailEntity === null) particleTrail();
+
         Script.setTimeout(function () {
             proxInterval = Script.setInterval(proxCheck, 50);
-        }, 150); // Setting a delay to give it time to leave initial avatar without proc.
+        }, 200); // Setting a delay to give it time to leave initial avatar without proc.
 
         proxTimeout = Script.setTimeout(function () {
-            Script.clearInterval(proxInterval);
-            Entities.deleteEntity(particleTrailEntity);
+            clearProxCheck();
         }, 10000)
-    }
+    };
+
+    this.collisionWithEntity = function(thisEntityID,  collisionEntityID, collisionInfo) {
+        clearProxCheck();
+    };
 
 });
