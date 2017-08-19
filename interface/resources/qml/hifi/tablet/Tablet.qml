@@ -113,7 +113,7 @@ Item {
             width: 150
             height: 50
             anchors.right: parent.right
-            anchors.rightMargin: 20
+            anchors.rightMargin: 30
             anchors.verticalCenter: parent.verticalCenter
 
             RalewaySemiBold {
