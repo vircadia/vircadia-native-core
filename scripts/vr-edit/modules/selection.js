@@ -25,9 +25,7 @@ Selection = function (side) {
         scaleRootOffset,
         scaleRootOrientation,
         ENTITY_TYPE = "entity",
-        ENTITY_TYPES_WITH_COLOR = ["Box", "Sphere", "Shape", "ParticleEffect"],
-        DYNAMIC_VELOCITY_THRESHOLD = 0.05,  // See EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
-        DYNAMIC_VELOCITY_KICK = { x: 0, y: 0.02, z: 0 };
+        ENTITY_TYPES_WITH_COLOR = ["Box", "Sphere", "Shape", "ParticleEffect"];
 
 
     if (!this instanceof Selection) {
@@ -188,6 +186,30 @@ Selection = function (side) {
         };
     }
 
+    function doKick(entityID) {
+        var properties,
+            DYNAMIC_VELOCITY_THRESHOLD = 0.05,  // See EntityMotionState.cpp DYNAMIC_LINEAR_VELOCITY_THRESHOLD
+            DYNAMIC_VELOCITY_KICK = { x: 0, y: 0.1, z: 0 };
+
+        if (entityID === rootEntityID) {
+            // Don't kick if have started editing entity again.
+            return;
+        }
+
+        properties = Entities.getEntityProperties(entityID, ["velocity", "gravity", "parentID"]);
+        if (Vec3.length(properties.gravity) > 0 && Vec3.length(properties.velocity) < DYNAMIC_VELOCITY_THRESHOLD) {
+            Entities.editEntity(entityID, { velocity: DYNAMIC_VELOCITY_KICK });
+        }
+    }
+
+    function kickPhysics(entityID) {
+        // Gives entities a small kick to start off physics, if necessary.
+        var KICK_DELAY = 500;  // ms
+
+        // Give physics a chance to catch up. Avoids some erratic behavior.
+        Script.setTimeout(function () { doKick(entityID); }, KICK_DELAY);
+    }
+
     function startEditing() {
         var count,
             i;
@@ -202,28 +224,20 @@ Selection = function (side) {
     }
 
     function finishEditing() {
-        var firstDynamicEntityID = null,
-            properties,
-            count,
+        var count,
             i;
 
         // Restore entity set's physics.
         for (i = 0, count = selection.length; i < count; i += 1) {
-            if (firstDynamicEntityID === null && selection[i].dynamic) {
-                firstDynamicEntityID = selection[i].id;
-            }
             Entities.editEntity(selection[i].id, {
                 dynamic: selection[i].dynamic,
                 collisionless: selection[i].collisionless
             });
         }
 
-        // If dynamic with gravity, and velocity is zero, give the entity set a little kick to set off physics.
-        if (firstDynamicEntityID) {
-            properties = Entities.getEntityProperties(firstDynamicEntityID, ["velocity", "gravity"]);
-            if (Vec3.length(properties.gravity) > 0 && Vec3.length(properties.velocity) < DYNAMIC_VELOCITY_THRESHOLD) {
-                Entities.editEntity(firstDynamicEntityID, { velocity: DYNAMIC_VELOCITY_KICK });
-            }
+        // Kick off physics if necessary.
+        if (selection.length > 0 && selection[0].dynamic) {
+            kickPhysics(selection[0].id);
         }
     }
 
@@ -422,12 +436,9 @@ Selection = function (side) {
         properties.userData = updatePhysicsUserData(selection[intersectedEntityIndex].userData, physicsProperties.userData);
         Entities.editEntity(rootEntityID, properties);
 
+        // Kick off physics if necessary.
         if (physicsProperties.dynamic) {
-            // Give dynamic entities with zero velocity a little kick to set off physics.
-            properties = Entities.getEntityProperties(rootEntityID, ["velocity"]);
-            if (Vec3.length(properties.velocity) < DYNAMIC_VELOCITY_THRESHOLD) {
-                Entities.editEntity(rootEntityID, { velocity: DYNAMIC_VELOCITY_KICK });
-            }
+            kickPhysics(rootEntityID);
         }
     }
 
