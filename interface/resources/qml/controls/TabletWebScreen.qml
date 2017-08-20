@@ -1,5 +1,5 @@
-import QtQuick 2.5
-import QtWebEngine 1.1
+import QtQuick 2.7
+import QtWebEngine 1.5
 import QtWebChannel 1.0
 import "../controls-uit" as HiFiControls
 
@@ -23,91 +23,124 @@ Item {
 
     property alias viewProfile: root.profile
 
-    WebEngineView {
-        id: root
-        objectName: "webEngineView"
+    Flickable {
+        id: flick
         x: 0
         y: 0
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height : parent.height
 
-        profile: HFWebEngineProfile;
+        WebEngineView {
+            id: root
+            objectName: "webEngineView"
+            anchors.fill: parent
 
-        property string userScriptUrl: ""
+            profile: HFWebEngineProfile;
 
-        // creates a global EventBridge object.
-        WebEngineScript {
-            id: createGlobalEventBridge
-            sourceCode: eventBridgeJavaScriptToInject
-            injectionPoint: WebEngineScript.DocumentCreation
-            worldId: WebEngineScript.MainWorld
-        }
+            property string userScriptUrl: ""
 
-        // detects when to raise and lower virtual keyboard
-        WebEngineScript {
-            id: raiseAndLowerKeyboard
-            injectionPoint: WebEngineScript.Deferred
-            sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
-            worldId: WebEngineScript.MainWorld
-        }
+            // creates a global EventBridge object.
+            WebEngineScript {
+                id: createGlobalEventBridge
+                sourceCode: eventBridgeJavaScriptToInject
+                injectionPoint: WebEngineScript.DocumentCreation
+                worldId: WebEngineScript.MainWorld
+            }
 
-        // User script.
-        WebEngineScript {
-            id: userScript
-            sourceUrl: root.userScriptUrl
-            injectionPoint: WebEngineScript.DocumentReady  // DOM ready but page load may not be finished.
-            worldId: WebEngineScript.MainWorld
-        }
-        
-        property string urlTag: "noDownload=false";
+            // detects when to raise and lower virtual keyboard
+            WebEngineScript {
+                id: raiseAndLowerKeyboard
+                injectionPoint: WebEngineScript.Deferred
+                sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
+                worldId: WebEngineScript.MainWorld
+            }
 
-        userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
+            // User script.
+            WebEngineScript {
+                id: userScript
+                sourceUrl: root.userScriptUrl
+                injectionPoint: WebEngineScript.DocumentReady  // DOM ready but page load may not be finished.
+                worldId: WebEngineScript.MainWorld
+            }
 
-        property string newUrl: ""
-        
+            property string urlTag: "noDownload=false";
 
-        Component.onCompleted: {
-            webChannel.registerObject("eventBridge", eventBridge);
-            webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
-            // Ensure the JS from the web-engine makes it to our logging
-            root.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
-                console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
-            });
+            userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
 
-            root.profile.httpUserAgent = "Mozilla/5.0 Chrome (HighFidelityInterface)";
-        }
+            property string newUrl: ""
 
-        onFeaturePermissionRequested: {
-            grantFeaturePermission(securityOrigin, feature, true);
-        }
+            onContentsSizeChanged: {
+                console.log("WebView contentsSize", contentsSize)
+                flick.contentWidth = Math.max(contentsSize.width, flick.width)
+                flick.contentHeight = Math.max(contentsSize.height, flick.height)
+            }
 
-        onLoadingChanged: {
-            keyboardRaised = false;
-            punctuationMode = false;
-            keyboard.resetShiftMode(false);
+            Component.onCompleted: {
+                webChannel.registerObject("eventBridge", eventBridge);
+                webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
+                // Ensure the JS from the web-engine makes it to our logging
+                root.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
+                    console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
+                });
 
-            // Required to support clicking on "hifi://" links
-            if (WebEngineView.LoadStartedStatus == loadRequest.status) {
-                var url = loadRequest.url.toString();
-                url = (url.indexOf("?") >= 0) ? url + urlTag : url + "?" + urlTag;
-                if (urlHandler.canHandleUrl(url)) {
-                    if (urlHandler.handleUrl(url)) {
-                        root.stop();
+                root.profile.httpUserAgent = "Mozilla/5.0 Chrome (HighFidelityInterface)";
+            }
+
+            onFeaturePermissionRequested: {
+                grantFeaturePermission(securityOrigin, feature, true);
+            }
+
+            onLoadingChanged: {
+                console.log("loading changed", loadRequest.status)
+                keyboardRaised = false;
+                punctuationMode = false;
+                keyboard.resetShiftMode(false);
+
+                // Required to support clicking on "hifi://" links
+                if (WebEngineView.LoadStartedStatus == loadRequest.status) {
+                    flick.contentWidth = -1
+                    flick.contentHeight = -1
+                    var url = loadRequest.url.toString();
+                    url = (url.indexOf("?") >= 0) ? url + urlTag : url + "?" + urlTag;
+                    if (urlHandler.canHandleUrl(url)) {
+                        if (urlHandler.handleUrl(url)) {
+                            root.stop();
+                        }
                     }
                 }
-            }
-        }
+                if (WebEngineView.LoadSucceededStatus == loadRequest.status) {
+//                    flick.contentWidth = Math.max(contentsSize.width, flick.width)
+//                    flick.contentHeight = Math.max(contentsSize.height, flick.height)
+                    root.runJavaScript(
+                                "document.body.scrollHeight;",
+                                function (i_actualPageHeight) {
+                                    console.log("on reloaded documentElement.scrollHeigh:", i_actualPageHeight)
+//                                    flick.contentHeight = Math.max (
+//                                                i_actualPageHeight, flick.height);
+                                })
+                    root.runJavaScript(
+                                "document.body.scrollWidth;",
+                                function (i_actualPageWidth) {
+                                    console.log("on reloaded documentElement.scrollWidth:", i_actualPageWidth)
 
-        onNewViewRequested:{
-            // desktop is not defined for web-entities or tablet
-            if (typeof desktop !== "undefined") {
-                desktop.openBrowserWindow(request, profile);
-            } else {
-                tabletRoot.openBrowserWindow(request, profile);
+//                                    flick.contentWidth = Math.max (
+//                                                i_actualPageWidth, flick.width);
+                                })
+                    console.log("on reloaded content size:", contentsSize)
+                }
             }
-        }
 
-        HiFiControls.WebSpinner { }
+            onNewViewRequested:{
+                // desktop is not defined for web-entities or tablet
+                if (typeof desktop !== "undefined") {
+                    desktop.openBrowserWindow(request, profile);
+                } else {
+                    tabletRoot.openBrowserWindow(request, profile);
+                }
+            }
+
+            HiFiControls.WebSpinner { }
+        }
     }
 
     HiFiControls.Keyboard {

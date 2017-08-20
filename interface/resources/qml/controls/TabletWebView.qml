@@ -1,6 +1,6 @@
-import QtQuick 2.5
+import QtQuick 2.7
 import QtQuick.Controls 1.4
-import QtWebEngine 1.2
+import QtWebEngine 1.5
 import QtWebChannel 1.0
 import "../controls-uit" as HiFiControls
 import "../styles" as HifiStyles
@@ -136,99 +136,107 @@ Item {
         loadUrl(url);
     }
 
-    WebEngineView {
-        id: webview
-        objectName: "webEngineView"
+    Flickable {
+        id: flick
         x: 0
         y: 0
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height - web.headerHeight : parent.height - web.headerHeight
         anchors.top: buttons.bottom
-        profile: HFWebEngineProfile;
 
-        property string userScriptUrl: ""
+        WebEngineView {
+            id: webview
+            objectName: "webEngineView"
+            anchors.fill: parent
 
-        // creates a global EventBridge object.
-        WebEngineScript {
-            id: createGlobalEventBridge
-            sourceCode: eventBridgeJavaScriptToInject
-            injectionPoint: WebEngineScript.DocumentCreation
-            worldId: WebEngineScript.MainWorld
-        }
+            profile: HFWebEngineProfile;
 
-        // detects when to raise and lower virtual keyboard
-        WebEngineScript {
-            id: raiseAndLowerKeyboard
-            injectionPoint: WebEngineScript.Deferred
-            sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
-            worldId: WebEngineScript.MainWorld
-        }
+            property string userScriptUrl: ""
 
-        // User script.
-        WebEngineScript {
-            id: userScript
-            sourceUrl: webview.userScriptUrl
-            injectionPoint: WebEngineScript.DocumentReady  // DOM ready but page load may not be finished.
-            worldId: WebEngineScript.MainWorld
-        }
-
-        property string urlTag: "noDownload=false";
-        userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
-
-        property string newUrl: ""
-
-        Component.onCompleted: {
-            webChannel.registerObject("eventBridge", eventBridge);
-            webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
-            // Ensure the JS from the web-engine makes it to our logging
-            webview.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
-                console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
-            });
-        }
-
-        onFeaturePermissionRequested: {
-            grantFeaturePermission(securityOrigin, feature, true);
-        }
-
-        onUrlChanged: {
-            // Record history, skipping null and duplicate items.
-            var urlString = url + "";
-            urlString = urlString.replace(/\//g, "%2F");  // Consistent representation of "/"s to avoid false differences.
-            if (urlString.length > 0 && (historyIndex === -1 || urlString !== history[historyIndex])) {
-                historyIndex++;
-                history = history.slice(0, historyIndex);
-                history.push(urlString);
+            // creates a global EventBridge object.
+            WebEngineScript {
+                id: createGlobalEventBridge
+                sourceCode: eventBridgeJavaScriptToInject
+                injectionPoint: WebEngineScript.DocumentCreation
+                worldId: WebEngineScript.MainWorld
             }
-        }
 
-        onLoadingChanged: {
-            keyboardRaised = false;
-            punctuationMode = false;
-            keyboard.resetShiftMode(false);
-            // Required to support clicking on "hifi://" links
-            if (WebEngineView.LoadStartedStatus == loadRequest.status) {
-                var url = loadRequest.url.toString();
-                if (urlHandler.canHandleUrl(url)) {
-                    if (urlHandler.handleUrl(url)) {
-                        root.stop();
-                    }
+            // detects when to raise and lower virtual keyboard
+            WebEngineScript {
+                id: raiseAndLowerKeyboard
+                injectionPoint: WebEngineScript.Deferred
+                sourceUrl: resourceDirectoryUrl + "/html/raiseAndLowerKeyboard.js"
+                worldId: WebEngineScript.MainWorld
+            }
+
+            // User script.
+            WebEngineScript {
+                id: userScript
+                sourceUrl: webview.userScriptUrl
+                injectionPoint: WebEngineScript.DocumentReady  // DOM ready but page load may not be finished.
+                worldId: WebEngineScript.MainWorld
+            }
+
+            property string urlTag: "noDownload=false";
+            userScripts: [ createGlobalEventBridge, raiseAndLowerKeyboard, userScript ]
+
+            property string newUrl: ""
+
+            Component.onCompleted: {
+                webChannel.registerObject("eventBridge", eventBridge);
+                webChannel.registerObject("eventBridgeWrapper", eventBridgeWrapper);
+                // Ensure the JS from the web-engine makes it to our logging
+                webview.javaScriptConsoleMessage.connect(function(level, message, lineNumber, sourceID) {
+                    console.log("Web Entity JS message: " + sourceID + " " + lineNumber + " " +  message);
+                });
+            }
+
+            onFeaturePermissionRequested: {
+                grantFeaturePermission(securityOrigin, feature, true);
+            }
+
+            onUrlChanged: {
+                // Record history, skipping null and duplicate items.
+                var urlString = url + "";
+                urlString = urlString.replace(/\//g, "%2F");  // Consistent representation of "/"s to avoid false differences.
+                if (urlString.length > 0 && (historyIndex === -1 || urlString !== history[historyIndex])) {
+                    historyIndex++;
+                    history = history.slice(0, historyIndex);
+                    history.push(urlString);
                 }
             }
 
-            if (WebEngineView.LoadFailedStatus == loadRequest.status) {
-                console.log(" Tablet WebEngineView failed to load url: " + loadRequest.url.toString());
+            onLoadingChanged: {
+                keyboardRaised = false;
+                punctuationMode = false;
+                keyboard.resetShiftMode(false);
+                // Required to support clicking on "hifi://" links
+                if (WebEngineView.LoadStartedStatus == loadRequest.status) {
+                    var url = loadRequest.url.toString();
+                    if (urlHandler.canHandleUrl(url)) {
+                        if (urlHandler.handleUrl(url)) {
+                            root.stop();
+                        }
+                    }
+                }
+
+                if (WebEngineView.LoadFailedStatus == loadRequest.status) {
+                    console.log(" Tablet WebEngineView failed to load url: " + loadRequest.url.toString());
+                }
+
+                if (WebEngineView.LoadSucceededStatus == loadRequest.status) {
+                    flick.contentWidth = Math.max(contentsSize.width, flick.width)
+                    flick.contentHeight = Math.max(contentsSize.height, flick.height)
+                    webview.forceActiveFocus();
+                }
             }
 
-            if (WebEngineView.LoadSucceededStatus == loadRequest.status) {
-                webview.forceActiveFocus();
+            onNewViewRequested: {
+                request.openIn(webview);
             }
-        }
-        
-        onNewViewRequested: {
-            request.openIn(webview);
-        }
 
-        HiFiControls.WebSpinner { }
+            HiFiControls.WebSpinner { }
+        }
     }
 
     HiFiControls.Keyboard {
