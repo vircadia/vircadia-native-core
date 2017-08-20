@@ -354,7 +354,7 @@ void HmdDisplayPlugin::updateFrameData() {
         auto modelView = glm::inverse(_currentPresentFrameInfo.presentPose * getEyeToHeadTransform(eye)) * modelMat;
         _overlayRenderer.mvps[eye] = _eyeProjections[eye] * modelView;
     });
-    }
+}
 
 void HmdDisplayPlugin::OverlayRenderer::build() {
     vertices = std::make_shared<gpu::Buffer>();
