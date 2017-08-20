@@ -35,8 +35,8 @@ Rectangle {
     Hifi.QmlCommerce {
         id: commerce;
         onBuyResult: {
-                if (failureMessage.length) {
-                    buyButton.text = "Buy Failed";
+                if (result.status !== 'success') {
+                    buyButton.text = result.message;
                     buyButton.enabled = false;
                 } else {
                     if (urlHandler.canHandleUrl(itemHref)) {
@@ -46,26 +46,35 @@ Rectangle {
                 }
         }
         onBalanceResult: {
-            if (failureMessage.length) {
-                console.log("Failed to get balance", failureMessage);
+            if (result.status !== 'success') {
+                console.log("Failed to get balance", result.message);
             } else {
                 balanceReceived = true;
-                hfcBalanceText.text = balance;
-                balanceAfterPurchase = balance - parseInt(itemPriceText.text, 10);
+                hfcBalanceText.text = result.data.balance;
+                balanceAfterPurchase = result.data.balance - parseInt(itemPriceText.text, 10);
             }
         }
         onInventoryResult: {
-            if (failureMessage.length) {
-                console.log("Failed to get inventory", failureMessage);
+            if (result.status !== 'success') {
+                console.log("Failed to get inventory", result.message);
             } else {
                 inventoryReceived = true;
-                if (inventoryContains(inventory.assets, itemId)) {
+                console.log('inventory fixme', JSON.stringify(result));
+                if (inventoryContains(result.data.assets, itemId)) {
                     alreadyOwned = true;
                 } else {
                     alreadyOwned = false;
                 }
             }
         }
+        onSecurityImageResult: {
+            securityImage.source = securityImageSelection.getImagePathFromImageID(imageID);
+        }
+    }
+
+    SecurityImageSelection {
+        id: securityImageSelection;
+        referrerURL: checkoutRoot.itemHref;
     }
 
     //
@@ -80,6 +89,20 @@ Rectangle {
         anchors.left: parent.left;
         anchors.top: parent.top;
 
+        // Security Image
+        Image {
+            id: securityImage;
+            // Anchors
+            anchors.top: parent.top;
+            anchors.left: parent.left;
+            anchors.leftMargin: 16;
+            height: parent.height - 5;
+            width: height;
+            anchors.verticalCenter: parent.verticalCenter;
+            fillMode: Image.PreserveAspectFit;
+            mipmap: true;
+        }
+
         // Title Bar text
         RalewaySemiBold {
             id: titleBarText;
@@ -87,8 +110,11 @@ Rectangle {
             // Text size
             size: hifi.fontSizes.overlayTitle;
             // Anchors
-            anchors.fill: parent;
+            anchors.top: parent.top;
+            anchors.left: securityImage.right;
             anchors.leftMargin: 16;
+            anchors.bottom: parent.bottom;
+            width: paintedWidth;
             // Style
             color: hifi.colors.lightGrayText;
             // Alignment
@@ -381,7 +407,7 @@ Rectangle {
         // "Buy" button
         HifiControlsUit.Button {
             id: buyButton;
-            enabled: balanceAfterPurchase >= 0 && !alreadyOwned && inventoryReceived && balanceReceived;
+            enabled: balanceAfterPurchase >= 0 && inventoryReceived && balanceReceived;
             color: hifi.buttons.black;
             colorScheme: hifi.colorSchemes.dark;
             anchors.top: parent.top;
@@ -391,9 +417,16 @@ Rectangle {
             anchors.right: parent.right;
             anchors.rightMargin: 20;
             width: parent.width/2 - anchors.rightMargin*2;
-            text: (inventoryReceived && balanceReceived) ? (alreadyOwned ? "Already Owned" : "Buy") : "--";
+            text: (inventoryReceived && balanceReceived) ? (alreadyOwned ? "Already Owned: Get Item" : "Buy") : "--";
             onClicked: {
-                commerce.buy(itemId, parseInt(itemPriceText.text));
+                if (!alreadyOwned) {
+                    commerce.buy(itemId, parseInt(itemPriceText.text));
+                } else {
+                    if (urlHandler.canHandleUrl(itemHref)) {
+                        urlHandler.handleUrl(itemHref);
+                    }
+                    sendToScript({method: 'checkout_buySuccess', itemId: itemId});
+                }
             }
         }
     }
@@ -427,6 +460,7 @@ Rectangle {
                 itemHref = message.params.itemHref;
                 commerce.balance();
                 commerce.inventory();
+                commerce.getSecurityImage();
             break;
             default:
                 console.log('Unrecognized message from marketplaces.js:', JSON.stringify(message));

@@ -120,7 +120,7 @@ const render::ShapeKey Cube3DOverlay::getShapeKey() {
     if (getAlpha() != 1.0f) {
         builder.withTranslucent();
     }
-    if (!getIsSolid()) {
+    if (!getIsSolid() || shouldDrawHUDLayer()) {
         builder.withUnlit().withDepthBias();
     }
     return builder.build();

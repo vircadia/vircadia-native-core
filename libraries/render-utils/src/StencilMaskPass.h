@@ -41,15 +41,18 @@ public:
 
     void run(const render::RenderContextPointer& renderContext, const gpu::FramebufferPointer& dstFramebuffer);
 
-    static const gpu::int8 STENCIL_MASK = 2;
-    static const gpu::int8 STENCIL_BACKGROUND = 1;
     static const gpu::int8 STENCIL_SHAPE = 0;
+    static const gpu::int8 STENCIL_BACKGROUND = 1 << 0;
+    static const gpu::int8 STENCIL_MASK = 1 << 1;
+    static const gpu::int8 STENCIL_NO_AA = 1 << 2;
 
 
     static void drawMask(gpu::State& state);
     static void testMask(gpu::State& state);
+    static void testMaskNoAA(gpu::State& state);
     static void testBackground(gpu::State& state);
     static void testMaskDrawShape(gpu::State& state);
+    static void testMaskDrawShapeNoAA(gpu::State& state);
     static void testShape(gpu::State& state);
 
 
