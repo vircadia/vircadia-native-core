@@ -91,15 +91,16 @@ Item {
             }
 
             onLoadingChanged: {
-                console.log("loading changed", loadRequest.status)
                 keyboardRaised = false;
                 punctuationMode = false;
                 keyboard.resetShiftMode(false);
 
                 // Required to support clicking on "hifi://" links
                 if (WebEngineView.LoadStartedStatus == loadRequest.status) {
-                    flick.contentWidth = -1
-                    flick.contentHeight = -1
+                    flick.contentWidth = 0
+                    flick.contentHeight = 0
+                    flick.contentX = 0
+                    flick.contentY = 0
                     var url = loadRequest.url.toString();
                     url = (url.indexOf("?") >= 0) ? url + urlTag : url + "?" + urlTag;
                     if (urlHandler.canHandleUrl(url)) {
@@ -109,24 +110,17 @@ Item {
                     }
                 }
                 if (WebEngineView.LoadSucceededStatus == loadRequest.status) {
-//                    flick.contentWidth = Math.max(contentsSize.width, flick.width)
-//                    flick.contentHeight = Math.max(contentsSize.height, flick.height)
-                    root.runJavaScript(
-                                "document.body.scrollHeight;",
+                    root.runJavaScript("document.body.scrollHeight;",
                                 function (i_actualPageHeight) {
                                     console.log("on reloaded documentElement.scrollHeigh:", i_actualPageHeight)
-//                                    flick.contentHeight = Math.max (
-//                                                i_actualPageHeight, flick.height);
+                                    flick.contentHeight = Math.max(i_actualPageHeight, flick.height);
                                 })
-                    root.runJavaScript(
-                                "document.body.scrollWidth;",
+                    root.runJavaScript("document.body.scrollWidth;",
                                 function (i_actualPageWidth) {
                                     console.log("on reloaded documentElement.scrollWidth:", i_actualPageWidth)
 
-//                                    flick.contentWidth = Math.max (
-//                                                i_actualPageWidth, flick.width);
+                                    flick.contentWidth = Math.max(i_actualPageWidth, flick.width);
                                 })
-                    console.log("on reloaded content size:", contentsSize)
                 }
             }
 
