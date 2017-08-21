@@ -352,7 +352,7 @@ function projectOntoXYPlane(worldPos, position, rotation, dimensions, registrati
 
 function projectOntoEntityXYPlane(entityID, worldPos) {
     var props = entityPropertiesCache.getProps(entityID);
-    if (props) {
+    if (props && props.position && props.rotation && props.dimensions && props.registrationPoint) {
         return projectOntoXYPlane(worldPos, props.position, props.rotation, props.dimensions, props.registrationPoint);
     }
 }
@@ -368,16 +368,20 @@ function projectOntoOverlayXYPlane(overlayID, worldPos) {
         var resolution = Overlays.getProperty(overlayID, "resolution");
         resolution.z = 1;  // Circumvent divide-by-zero.
         var scale = Overlays.getProperty(overlayID, "dimensions");
-        scale.z = 0.01;    // overlay dimensions are 2D, not 3D.
-        dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
+        if (scale) {
+            scale.z = 0.01;    // overlay dimensions are 2D, not 3D.
+            dimensions = Vec3.multiplyVbyV(Vec3.multiply(resolution, INCHES_TO_METERS / dpi), scale);
+        }
     } else {
         dimensions = Overlays.getProperty(overlayID, "dimensions");
-        if (dimensions.z) {
+        if (dimensions && dimensions.z) {
             dimensions.z = 0.01;    // overlay dimensions are 2D, not 3D.
         }
     }
 
-    return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
+    if (position && rotation && dimensions) {
+        return projectOntoXYPlane(worldPos, position, rotation, dimensions, DEFAULT_REGISTRATION_POINT);
+    }
 }
 
 function handLaserIntersectItem(position, rotation, start) {

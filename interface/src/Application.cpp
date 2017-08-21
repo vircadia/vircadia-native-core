@@ -2852,18 +2852,23 @@ bool Application::importSVOFromURL(const QString& urlString) {
     return true;
 }
 
+bool Application::importFromZIP(const QString& filePath) {
+    qDebug() << "A zip file has been dropped in: " << filePath;
+    QUrl empty;
+    // handle Blocks download from Marketplace
+    if (filePath.contains("vr.google.com/downloads")) {
+        addAssetToWorldFromURL(filePath);
+    } else {
+        qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true, false);
+    }
+    return true;
+}
+
 void Application::onPresent(quint32 frameCount) {
     if (shouldPaint()) {
         postEvent(this, new QEvent(static_cast<QEvent::Type>(Idle)), Qt::HighEventPriority);
         postEvent(this, new QEvent(static_cast<QEvent::Type>(Paint)), Qt::HighEventPriority);
     }
-}
-
-bool Application::importFromZIP(const QString& filePath) {
-    qDebug() << "A zip file has been dropped in: " << filePath;
-    QUrl empty;
-    qApp->getFileDownloadInterface()->runUnzip(filePath, empty, true, true);
-    return true;
 }
 
 bool _renderRequested { false };
@@ -6355,8 +6360,15 @@ void Application::showAssetServerWidget(QString filePath) {
 
 void Application::addAssetToWorldFromURL(QString url) {
     qInfo(interfaceapp) << "Download model and add to world from" << url;
-
-    QString filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
+    
+    QString filename;
+    if (url.contains("filename")) {
+        filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
+    }
+    if (url.contains("vr.google.com/downloads")) {
+        filename = url.section('/', -1);
+        filename.remove(".zip?noDownload=false");
+    }
 
     if (!DependencyManager::get<NodeList>()->getThisNodeCanWriteAssets()) {
         QString errorInfo = "You do not have permissions to write to the Asset Server.";
@@ -6377,7 +6389,17 @@ void Application::addAssetToWorldFromURLRequestFinished() {
     auto url = request->getUrl().toString();
     auto result = request->getResult();
 
-    QString filename = url.section("filename=", 1, 1);  // Filename from trailing "?filename=" URL parameter.
+    QString filename;
+    bool isBlocks = false;
+
+    if (url.contains("filename")) {
+        filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.
+    }
+    if (url.contains("vr.google.com/downloads")) {
+        filename = url.section('/', -1);
+        filename.remove(".zip?noDownload=false");
+        isBlocks = true;
+    }
 
     if (result == ResourceRequest::Success) {
         qInfo(interfaceapp) << "Downloaded model from" << url;
@@ -6392,7 +6414,7 @@ void Application::addAssetToWorldFromURLRequestFinished() {
             if (tempFile.open(QIODevice::WriteOnly)) {
                 tempFile.write(request->getData());
                 addAssetToWorldInfoClear(filename);  // Remove message from list; next one added will have a different key.
-                qApp->getFileDownloadInterface()->runUnzip(downloadPath, url, true, false);
+                qApp->getFileDownloadInterface()->runUnzip(downloadPath, url, true, false, isBlocks);
             } else {
                 QString errorInfo = "Couldn't open temporary file for download";
                 qWarning(interfaceapp) << errorInfo;
@@ -6422,7 +6444,7 @@ void Application::addAssetToWorldUnzipFailure(QString filePath) {
     addAssetToWorldError(filename, "Couldn't unzip file " + filename + ".");
 }
 
-void Application::addAssetToWorld(QString filePath, QString zipFile, bool isZip) {
+void Application::addAssetToWorld(QString filePath, QString zipFile, bool isZip, bool isBlocks) {
     // Automatically upload and add asset to world as an alternative manual process initiated by showAssetServerWidget().
     QString mapping;
     QString path = filePath;
@@ -6430,6 +6452,11 @@ void Application::addAssetToWorld(QString filePath, QString zipFile, bool isZip)
     if (isZip) {
         QString assetFolder = zipFile.section("/", -1);
         assetFolder.remove(".zip");
+        mapping = "/" + assetFolder + "/" + filename;
+    } else if (isBlocks) {
+        qCDebug(interfaceapp) << "Path to asset folder: " << zipFile;
+        QString assetFolder = zipFile.section('/', -1);
+        assetFolder.remove(".zip?noDownload=false");
         mapping = "/" + assetFolder + "/" + filename;
     } else {
         mapping = "/" + filename;
@@ -6810,12 +6837,12 @@ void Application::onAssetToWorldMessageBoxClosed() {
 }
 
 
-void Application::handleUnzip(QString zipFile, QStringList unzipFile, bool autoAdd, bool isZip) {
+void Application::handleUnzip(QString zipFile, QStringList unzipFile, bool autoAdd, bool isZip, bool isBlocks) {
     if (autoAdd) {
         if (!unzipFile.isEmpty()) {
             for (int i = 0; i < unzipFile.length(); i++) {
                 qCDebug(interfaceapp) << "Preparing file for asset server: " << unzipFile.at(i);
-                addAssetToWorld(unzipFile.at(i), zipFile, isZip);
+                addAssetToWorld(unzipFile.at(i), zipFile, isZip, isBlocks);
             }
         } else {
             addAssetToWorldUnzipFailure(zipFile);
@@ -6943,6 +6970,12 @@ void Application::takeSnapshot(bool notify, bool includeAnimated, float aspectRa
             // Get an animated GIF snapshot and save it
             SnapshotAnimated::saveSnapshotAnimated(path, aspectRatio, qApp, DependencyManager::get<WindowScriptingInterface>());
         }
+    });
+}
+
+void Application::takeSecondaryCameraSnapshot() {
+    postLambdaEvent([this] {
+        Snapshot::saveSnapshot(getActiveDisplayPlugin()->getSecondaryCameraScreenshot());
     });
 }
 

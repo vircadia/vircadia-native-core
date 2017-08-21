@@ -30,11 +30,13 @@ function objectTranslationPlanePoint(position, dimensions) {
 SelectionManager = (function() {
     var that = {};
 
+    // FUNCTION: SUBSCRIBE TO UPDATE MESSAGES
     function subscribeToUpdateMessages() {
         Messages.subscribe("entityToolUpdates");
         Messages.messageReceived.connect(handleEntitySelectionToolUpdates);
     }
 
+    // FUNCTION: HANDLE ENTITY SELECTION TOOL UDPATES
     function handleEntitySelectionToolUpdates(channel, message, sender) {
         if (channel !== 'entityToolUpdates') {
             return;
@@ -238,6 +240,7 @@ function normalizeDegrees(degrees) {
     return degrees;
 }
 
+// FUNCTION: getRelativeCenterPosition
 // Return the enter position of an entity relative to it's registrationPoint
 // A registration point of (0.5, 0.5, 0.5) will have an offset of (0, 0, 0)
 // A registration point of (1.0, 1.0, 1.0) will have an offset of (-dimensions.x / 2, -dimensions.y / 2, -dimensions.z / 2)
@@ -249,6 +252,7 @@ function getRelativeCenterPosition(dimensions, registrationPoint) {
     };
 }
 
+// SELECTION DISPLAY DEFINITION
 SelectionDisplay = (function() {
     var that = {};
 
@@ -1152,6 +1156,7 @@ SelectionDisplay = (function() {
         that.updateHandles();
     };
 
+    // FUNCTION: UPDATE ROTATION HANDLES
     that.updateRotationHandles = function() {
         var diagonal = (Vec3.length(selectionManager.worldDimensions) / 2) * 1.1;
         var halfDimensions = Vec3.multiply(selectionManager.worldDimensions, 0.5);
@@ -1545,11 +1550,6 @@ SelectionDisplay = (function() {
             translateHandlesVisible = false;
         }
 
-        var rotation = selectionManager.worldRotation;
-        var dimensions = selectionManager.worldDimensions;
-        var position = selectionManager.worldPosition;
-
-
         Overlays.editOverlay(rotateOverlayTarget, {
             visible: rotationOverlaysVisible
         });
@@ -1577,6 +1577,7 @@ SelectionDisplay = (function() {
         });
     };
 
+    // FUNCTION: SET SPACE MODE
     that.setSpaceMode = function(newSpaceMode) {
         if (spaceMode != newSpaceMode) {
             spaceMode = newSpaceMode;
@@ -1584,6 +1585,7 @@ SelectionDisplay = (function() {
         }
     };
 
+    // FUNCTION: TOGGLE SPACE MODE
     that.toggleSpaceMode = function() {
         if (spaceMode == SPACE_WORLD && SelectionManager.selections.length > 1) {
             print("Local space editing is not available with multiple selections");
@@ -1593,8 +1595,11 @@ SelectionDisplay = (function() {
         that.updateHandles();
     };
 
+    // FUNCTION: UNSELECT ALL
+    // TODO?: Needs implementation
     that.unselectAll = function() {};
 
+    // FUNCTION: UPDATE HANDLES
     that.updateHandles = function() {
         if (SelectionManager.selections.length === 0) {
             that.setOverlaysVisible(false);
@@ -2168,10 +2173,10 @@ SelectionDisplay = (function() {
             position: EdgeTR
         });
 
-        var boxPosition = Vec3.multiplyQbyV(rotation, center);
-        boxPosition = Vec3.sum(position, boxPosition);
+        var selectionBoxPosition = Vec3.multiplyQbyV(rotation, center);
+        selectionBoxPosition = Vec3.sum(position, selectionBoxPosition);
         Overlays.editOverlay(selectionBox, {
-            position: boxPosition,
+            position: selectionBoxPosition,
             dimensions: dimensions,
             rotation: rotation,
             visible: !(mode == "ROTATE_YAW" || mode == "ROTATE_PITCH" || mode == "ROTATE_ROLL"),
@@ -2218,13 +2223,13 @@ SelectionDisplay = (function() {
                 var offset = vec3Mult(props.dimensions, centeredRP);
                 offset = Vec3.multiply(-1, offset);
                 offset = Vec3.multiplyQbyV(props.rotation, offset);
-                var boxPosition = Vec3.sum(props.position, offset);
+                var curBoxPosition = Vec3.sum(props.position, offset);
 
                 var color = {red: 255, green: 128, blue: 0};
                 if (i >= selectionManager.selections.length - 1) color = {red: 255, green: 255, blue: 64};
 
                 Overlays.editOverlay(selectionBoxes[i], {
-                    position: boxPosition,
+                    position: curBoxPosition,
                     color: color,
                     rotation: props.rotation,
                     dimensions: props.dimensions,
@@ -2305,9 +2310,9 @@ SelectionDisplay = (function() {
             x: position.x,
             y: position.y + worldTop + grabberMoveUpOffset,
             z: position.z
-        }
+        };
         Overlays.editOverlay(grabberMoveUp, {
-            visible: activeTool == null || mode == "TRANSLATE_UP_DOWN"
+            visible: (activeTool === null) || (mode == "TRANSLATE_UP_DOWN")
         });
 
         Overlays.editOverlay(baseOfEntityProjectionOverlay, {
@@ -2327,21 +2332,24 @@ SelectionDisplay = (function() {
 
     };
 
+    // FUNCTION: SET OVERLAYS VISIBLE
     that.setOverlaysVisible = function(isVisible) {
         var length = allOverlays.length;
-        for (var i = 0; i < length; i++) {
-            Overlays.editOverlay(allOverlays[i], {
+        for (var overlayIndex = 0; overlayIndex < length; overlayIndex++) {
+            Overlays.editOverlay(allOverlays[overlayIndex], {
                 visible: isVisible
             });
         }
         length = selectionBoxes.length;
-        for (var i = 0; i < length; i++) {
-            Overlays.editOverlay(selectionBoxes[i], {
+        for (var boxIndex = 0; boxIndex < length; boxIndex++) {
+            Overlays.editOverlay(selectionBoxes[boxIndex], {
                 visible: isVisible
             });
         }
     };
 
+    // FUNCTION: UNSELECT
+    // TODO?: Needs implementation
     that.unselect = function(entityID) {};
 
     var initialXZPick = null;
@@ -2350,6 +2358,7 @@ SelectionDisplay = (function() {
     var startPosition = null;
     var duplicatedEntityIDs = null;
 
+    // TOOL DEFINITION: TRANSLATE XZ TOOL
     var translateXZTool = {
         mode: 'TRANSLATE_XZ',
         pickPlanePosition: { x: 0, y: 0, z: 0 },
@@ -2538,7 +2547,8 @@ SelectionDisplay = (function() {
         }
     };
 
-    var lastXYPick = null
+    // GRABBER TOOL: GRABBER MOVE UP
+    var lastXYPick = null;
     var upDownPickNormal = null;
     addGrabberTool(grabberMoveUp, {
         mode: "TRANSLATE_UP_DOWN",
@@ -2594,7 +2604,7 @@ SelectionDisplay = (function() {
                 print("                event.y:" + event.y);
                 Vec3.print("        newIntersection:", newIntersection);
                 Vec3.print("                 vector:", vector);
-                Vec3.print("            newPosition:", newPosition);
+                //Vec3.print("            newPosition:", newPosition);
             }
             for (var i = 0; i < SelectionManager.selections.length; i++) {
                 var id = SelectionManager.selections[i];
@@ -2612,6 +2622,7 @@ SelectionDisplay = (function() {
         },
     });
 
+    // GRABBER TOOL: GRABBER CLONER
     addGrabberTool(grabberCloner, {
         mode: "CLONE",
         onBegin: function(event) {
@@ -2639,7 +2650,7 @@ SelectionDisplay = (function() {
 
 
 
-
+    // FUNCTION: VEC 3 MULT
     var vec3Mult = function(v1, v2) {
             return {
                 x: v1.x * v2.x,
@@ -2647,6 +2658,8 @@ SelectionDisplay = (function() {
                 z: v1.z * v2.z
             };
     };
+
+    // FUNCTION: MAKE STRETCH TOOL
     // stretchMode - name of mode
     // direction - direction to stretch in
     // pivot - point to use as a pivot
@@ -2898,13 +2911,14 @@ SelectionDisplay = (function() {
             
             // Are we using handControllers or Mouse - only relevant for 3D tools
             var controllerPose = getControllerWorldLocation(activeHand, true);
-            if (HMD.isHMDAvailable() 
-                && HMD.isHandControllerAvailable() && controllerPose.valid && that.triggered && directionFor3DStretch) {
+            var vector = null;
+            if (HMD.isHMDAvailable() && HMD.isHandControllerAvailable() && 
+                    controllerPose.valid && that.triggered && directionFor3DStretch) {
                 localDeltaPivot = deltaPivot3D;
 
                 newPick = pickRay.origin;
             
-                var vector = Vec3.subtract(newPick, lastPick3D);
+                vector = Vec3.subtract(newPick, lastPick3D);
                 
                 vector = Vec3.multiplyQbyV(Quat.inverse(rotation), vector);
             
@@ -2919,7 +2933,7 @@ SelectionDisplay = (function() {
                 newPick = rayPlaneIntersection(pickRay,
                 pickRayPosition,
                 planeNormal);
-                var vector = Vec3.subtract(newPick, lastPick);
+                vector = Vec3.subtract(newPick, lastPick);
 
                 vector = Vec3.multiplyQbyV(Quat.inverse(rotation), vector);
 
@@ -2955,41 +2969,39 @@ SelectionDisplay = (function() {
                 } else {
                     newDimensions = Vec3.sum(initialDimensions, changeInDimensions);
                 }
-            }
-        
-        
-            newDimensions.x = Math.max(newDimensions.x, MINIMUM_DIMENSION);
-            newDimensions.y = Math.max(newDimensions.y, MINIMUM_DIMENSION);
-            newDimensions.z = Math.max(newDimensions.z, MINIMUM_DIMENSION);
 
-            var changeInPosition = Vec3.multiplyQbyV(rotation, vec3Mult(localDeltaPivot, changeInDimensions));
-            var newPosition = Vec3.sum(initialPosition, changeInPosition);
+                newDimensions.x = Math.max(newDimensions.x, MINIMUM_DIMENSION);
+                newDimensions.y = Math.max(newDimensions.y, MINIMUM_DIMENSION);
+                newDimensions.z = Math.max(newDimensions.z, MINIMUM_DIMENSION);
 
-            for (var i = 0; i < SelectionManager.selections.length; i++) {
-                Entities.editEntity(SelectionManager.selections[i], {
-                    position: newPosition,
-                    dimensions: newDimensions,
-                });
-            }
-            
+                var changeInPosition = Vec3.multiplyQbyV(rotation, vec3Mult(localDeltaPivot, changeInDimensions));
+                var newPosition = Vec3.sum(initialPosition, changeInPosition);
 
-            var wantDebug = false;
-            if (wantDebug) {
-                print(stretchMode);
-                //Vec3.print("        newIntersection:", newIntersection);
-                Vec3.print("                 vector:", vector);
-                //Vec3.print("           oldPOS:", oldPOS);
-                //Vec3.print("                newPOS:", newPOS);
-                Vec3.print("            changeInDimensions:", changeInDimensions);
-                Vec3.print("                 newDimensions:", newDimensions);
+                for (var i = 0; i < SelectionManager.selections.length; i++) {
+                    Entities.editEntity(SelectionManager.selections[i], {
+                        position: newPosition,
+                        dimensions: newDimensions,
+                    });
+                }
+                
 
-                Vec3.print("              changeInPosition:", changeInPosition);
-                Vec3.print("                   newPosition:", newPosition);
+                var wantDebug = false;
+                if (wantDebug) {
+                    print(stretchMode);
+                    //Vec3.print("        newIntersection:", newIntersection);
+                    Vec3.print("                 vector:", vector);
+                    //Vec3.print("           oldPOS:", oldPOS);
+                    //Vec3.print("                newPOS:", newPOS);
+                    Vec3.print("            changeInDimensions:", changeInDimensions);
+                    Vec3.print("                 newDimensions:", newDimensions);
+
+                    Vec3.print("              changeInPosition:", changeInPosition);
+                    Vec3.print("                   newPosition:", newPosition);
+                }
             }
 
             SelectionManager._update();
-
-        };
+        };//--End of onMove def
 
         return {
             mode: stretchMode,
@@ -3042,7 +3054,8 @@ SelectionDisplay = (function() {
             z: -1
         }
     };
-    
+
+    // FUNCTION: GET DIRECTION FOR 3D STRETCH    
     // Returns a vector with directions for the stretch tool in 3D using hand controllers
     function getDirectionsFor3DStretch(mode) {
         if (mode === "STRETCH_LBN") {
@@ -3067,7 +3080,7 @@ SelectionDisplay = (function() {
     }
     
     
-
+    // FUNCTION: ADD STRETCH TOOL
     function addStretchTool(overlay, mode, pivot, direction, offset, handleMove) {
         if (!pivot) {
             pivot = direction;
@@ -3077,6 +3090,7 @@ SelectionDisplay = (function() {
         addGrabberTool(overlay, tool);
     }
 
+    // FUNCTION: CUTOFF STRETCH FUNC
     function cutoffStretchFunc(vector, change) {
         vector = change;
         Vec3.print("Radius stretch: ", vector);
@@ -3097,6 +3111,7 @@ SelectionDisplay = (function() {
         SelectionManager._update();
     }
 
+    // FUNCTION: RADIUS STRETCH FUNC
     function radiusStretchFunc(vector, change) {
         var props = selectionManager.savedProperties[selectionManager.selections[0]];
 
@@ -3123,6 +3138,7 @@ SelectionDisplay = (function() {
         SelectionManager._update();
     }
 
+    // STRETCH TOOL DEF SECTION
     addStretchTool(grabberNEAR, "STRETCH_NEAR", {
         x: 0,
         y: 0,
@@ -3529,6 +3545,7 @@ SelectionDisplay = (function() {
         z: 1
     });
 
+    // FUNCTION: UPDATE ROTATION DEGREES OVERLAY
     function updateRotationDegreesOverlay(angleFromZero, handleRotation, centerPosition) {
         var angle = angleFromZero * (Math.PI / 180);
         var position = {
@@ -3549,6 +3566,7 @@ SelectionDisplay = (function() {
         });
     }
 
+    // YAW GRABBER TOOL DEFINITION
     var initialPosition = SelectionManager.worldPosition;
     addGrabberTool(yawHandle, {
         mode: "ROTATE_YAW",
@@ -3625,10 +3643,10 @@ SelectionDisplay = (function() {
             if (result.intersects) {
                 var center = yawCenter;
                 var zero = yawZero;
-                // TODO: these vectors are backwards to their names, doesn't matter for this use case (inverted vectors still give same angle)
-                var centerToZero = Vec3.subtract(center, zero);
-                var centerToIntersect = Vec3.subtract(center, result.intersection);
-                // TODO: orientedAngle wants normalized centerToZero and centerToIntersect
+                var centerToZero = Vec3.subtract(zero, center);
+                var centerToIntersect = Vec3.subtract(result.intersection, center);
+                // Note: orientedAngle which wants normalized centerToZero and centerToIntersect
+                //             handles that internally, so it's to pass unnormalized vectors here.
                 var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
                 var distanceFromCenter = Vec3.distance(center, result.intersection);
                 var snapToInner = distanceFromCenter < innerRadius;
@@ -3717,6 +3735,7 @@ SelectionDisplay = (function() {
         }
     });
 
+    // PITCH GRABBER TOOL DEFINITION
     addGrabberTool(pitchHandle, {
         mode: "ROTATE_PITCH",
         onBegin: function(event) {
@@ -3789,11 +3808,12 @@ SelectionDisplay = (function() {
             var result = Overlays.findRayIntersection(pickRay, true, [rotateOverlayTarget]);
 
             if (result.intersects) {
-                var properties = Entities.getEntityProperties(selectionManager.selections[0]);
                 var center = pitchCenter;
                 var zero = pitchZero;
-                var centerToZero = Vec3.subtract(center, zero);
-                var centerToIntersect = Vec3.subtract(center, result.intersection);
+                var centerToZero = Vec3.subtract(zero, center);
+                var centerToIntersect = Vec3.subtract(result.intersection, center);
+                // Note: orientedAngle which wants normalized centerToZero & centerToIntersect, handles
+                //       this internally, so it's fine to pass non-normalized versions here.
                 var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
 
                 var distanceFromCenter = Vec3.distance(center, result.intersection);
@@ -3809,7 +3829,6 @@ SelectionDisplay = (function() {
 
                 for (var i = 0; i < SelectionManager.selections.length; i++) {
                     var entityID = SelectionManager.selections[i];
-                    var properties = Entities.getEntityProperties(entityID);
                     var initialProperties = SelectionManager.savedProperties[entityID];
                     var dPos = Vec3.subtract(initialProperties.position, initialPosition);
                     dPos = Vec3.multiplyQbyV(pitchChange, dPos);
@@ -3874,6 +3893,7 @@ SelectionDisplay = (function() {
         }
     });
 
+    // ROLL GRABBER TOOL DEFINITION
     addGrabberTool(rollHandle, {
         mode: "ROTATE_ROLL",
         onBegin: function(event) {
@@ -3946,11 +3966,12 @@ SelectionDisplay = (function() {
             var result = Overlays.findRayIntersection(pickRay, true, [rotateOverlayTarget]);
 
             if (result.intersects) {
-                var properties = Entities.getEntityProperties(selectionManager.selections[0]);
                 var center = rollCenter;
                 var zero = rollZero;
-                var centerToZero = Vec3.subtract(center, zero);
-                var centerToIntersect = Vec3.subtract(center, result.intersection);
+                var centerToZero = Vec3.subtract(zero, center);
+                var centerToIntersect = Vec3.subtract(result.intersection, center);
+                // Note: orientedAngle which wants normalized centerToZero & centerToIntersect, handles
+                //       this internally, so it's fine to pass non-normalized versions here.
                 var angleFromZero = Vec3.orientedAngle(centerToZero, centerToIntersect, rotationNormal);
 
                 var distanceFromCenter = Vec3.distance(center, result.intersection);
@@ -3965,7 +3986,6 @@ SelectionDisplay = (function() {
                 });
                 for (var i = 0; i < SelectionManager.selections.length; i++) {
                     var entityID = SelectionManager.selections[i];
-                    var properties = Entities.getEntityProperties(entityID);
                     var initialProperties = SelectionManager.savedProperties[entityID];
                     var dPos = Vec3.subtract(initialProperties.position, initialPosition);
                     dPos = Vec3.multiplyQbyV(rollChange, dPos);
@@ -4030,6 +4050,7 @@ SelectionDisplay = (function() {
         }
     });
 
+    // FUNCTION: CHECK MOVE
     that.checkMove = function() {
         if (SelectionManager.hasSelection()) {
 
@@ -4044,6 +4065,7 @@ SelectionDisplay = (function() {
         }
     };
 
+    // FUNCTION: MOUSE PRESS EVENT
     that.mousePressEvent = function(event) {
         var wantDebug = false;
         if (!event.isLeftButton && !that.triggered) {
@@ -4167,7 +4189,7 @@ SelectionDisplay = (function() {
 
 
             // Only intersect versus yaw/pitch/roll.
-            var result = Overlays.findRayIntersection(pickRay, true, [ yawHandle, pitchHandle, rollHandle ] );
+            result = Overlays.findRayIntersection(pickRay, true, [ yawHandle, pitchHandle, rollHandle ] );
 
             var overlayOrientation;
             var overlayCenter;
@@ -4184,10 +4206,10 @@ SelectionDisplay = (function() {
             originalRoll = roll;
 
             if (result.intersects) {
-                var tool = grabberTools[result.overlayID];
-                if (tool) {
-                    activeTool = tool;
-                    mode = tool.mode;
+                var resultTool = grabberTools[result.overlayID];
+                if (resultTool) {
+                    activeTool = resultTool;
+                    mode = resultTool.mode;
                     somethingClicked = 'tool';
                     if (activeTool && activeTool.onBegin) {
                         activeTool.onBegin(event);
@@ -4370,7 +4392,7 @@ SelectionDisplay = (function() {
 
         if (!somethingClicked) {
             // Only intersect versus selectionBox.
-            var result = Overlays.findRayIntersection(pickRay, true, [selectionBox]);
+            result = Overlays.findRayIntersection(pickRay, true, [selectionBox]);
             if (result.intersects) {
                 switch (result.overlayID) {
                     case selectionBox:
@@ -4425,6 +4447,7 @@ SelectionDisplay = (function() {
         return somethingClicked;
     };
 
+    // FUNCTION: MOUSE MOVE EVENT
     that.mouseMoveEvent = function(event) {
         if (activeTool) {
             activeTool.onMove(event);
@@ -4554,7 +4577,7 @@ SelectionDisplay = (function() {
         return false;
     };
 
-
+    // FUNCTION: UPDATE HANDLE SIZES
     that.updateHandleSizes = function() {
         if (selectionManager.hasSelection()) {
             var diff = Vec3.subtract(selectionManager.worldPosition, Camera.getPosition());
@@ -4593,6 +4616,7 @@ SelectionDisplay = (function() {
     };
     Script.update.connect(that.updateHandleSizes);
 
+    // FUNCTION: MOUSE RELEASE EVENT
     that.mouseReleaseEvent = function(event) {
         var showHandles = false;
         if (activeTool && activeTool.onEnd) {
