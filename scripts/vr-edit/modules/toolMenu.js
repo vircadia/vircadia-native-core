@@ -912,13 +912,52 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         return [menuPanelOverlay].concat(menuOverlays).concat(optionsOverlays);
     }
 
-    function closeOptions() {
+    function openMenu() {
+        var parentID,
+            properties,
+            i,
+            length;
+
+        parentID = menuPanelOverlay;  // Menu panel parents to background panel.
+        for (i = 0, length = MENU_ITEMS.length; i < length; i += 1) {
+            properties = Object.clone(UI_ELEMENTS[MENU_ITEMS[i].type].properties);
+            properties = Object.merge(properties, MENU_ITEMS[i].properties);
+            properties.parentID = parentID;
+            menuOverlays.push(Overlays.addOverlay(UI_ELEMENTS[MENU_ITEMS[i].type].overlay, properties));
+            if (MENU_ITEMS[i].label) {
+                properties = Object.clone(UI_ELEMENTS.label.properties);
+                properties.text = MENU_ITEMS[i].label;
+                properties.parentID = menuOverlays[menuOverlays.length - 1];
+                Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
+            }
+            parentID = menuOverlays[0];  // Menu buttons parent to menu panel.
+        }
+    }
+
+    function closeMenu() {
         var i,
             length;
 
         Overlays.editOverlay(highlightOverlay, {
             parentID: menuOriginOverlay
         });
+
+        for (i = 0, length = menuOverlays.length; i < length; i += 1) {
+            Overlays.deleteOverlay(menuOverlays[i]);
+        }
+
+        menuOverlays = [];
+    }
+
+    function closeOptions() {
+        var i,
+            length;
+
+        // Remove options items.
+        Overlays.editOverlay(highlightOverlay, {
+            parentID: menuOriginOverlay
+        });
+
         for (i = 0, length = optionsOverlays.length; i < length; i += 1) {
             Overlays.deleteOverlay(optionsOverlays[i]);
         }
@@ -932,6 +971,9 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         optionsItems = null;
 
         isPicklistOpen = false;
+
+        // Display menu items.
+        openMenu(true);
     }
 
     function openOptions(toolOptions) {
@@ -947,15 +989,15 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             i,
             length;
 
-        // Close current panel, if any.
-        closeOptions();
+        // Remove menu items.
+        closeMenu();
 
         // TODO: Remove once all tools have an options panel.
         if (OPTONS_PANELS[toolOptions] === undefined) {
             return;
         }
 
-        // Open specified panel.
+        // Open specified options panel.
         optionsItems = OPTONS_PANELS[toolOptions];
         parentID = menuPanelOverlay;  // Menu panel parents to background panel.
         for (i = 0, length = optionsItems.length; i < length; i += 1) {
@@ -1815,7 +1857,6 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // Creates and shows menu entities.
         var handJointIndex,
             properties,
-            parentID,
             id,
             i,
             length;
@@ -1845,20 +1886,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         menuPanelOverlay = Overlays.addOverlay("cube", properties);
 
         // Menu items.
-        parentID = menuPanelOverlay;  // Menu panel parents to background panel.
-        for (i = 0, length = MENU_ITEMS.length; i < length; i += 1) {
-            properties = Object.clone(UI_ELEMENTS[MENU_ITEMS[i].type].properties);
-            properties = Object.merge(properties, MENU_ITEMS[i].properties);
-            properties.parentID = parentID;
-            menuOverlays.push(Overlays.addOverlay(UI_ELEMENTS[MENU_ITEMS[i].type].overlay, properties));
-            if (MENU_ITEMS[i].label) {
-                properties = Object.clone(UI_ELEMENTS.label.properties);
-                properties.text = MENU_ITEMS[i].label;
-                properties.parentID = menuOverlays[menuOverlays.length - 1];
-                Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
-            }
-            parentID = menuOverlays[0];  // Menu buttons parent to menu panel.
-        }
+        openMenu();
 
         // Prepare highlight overlay.
         properties = Object.clone(HIGHLIGHT_PROPERTIES);
