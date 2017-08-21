@@ -1342,14 +1342,16 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             hsvControl.hsv.h = parameter.h;
             hsvControl.hsv.s = parameter.s;
             updateColorSlider();
-            setCurrentColor(hsvToRGB(hsvControl.hsv));
+            value = hsvToRGB(hsvControl.hsv);
+            setCurrentColor(value);
             uiCommandCallback("setColor", value);
             break;
 
         case "setColorPerSlider":
             hsvControl.hsv.v = parameter;
             updateColorCircle();
-            setCurrentColor(hsvToRGB(hsvControl.hsv));
+            value = hsvToRGB(hsvControl.hsv);
+            setCurrentColor(value);
             uiCommandCallback("setColor", value);
             break;
 
