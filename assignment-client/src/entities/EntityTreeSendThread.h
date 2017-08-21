@@ -12,6 +12,8 @@
 #ifndef hifi_EntityTreeSendThread_h
 #define hifi_EntityTreeSendThread_h
 
+#include <unordered_set>
+
 #include "../octree/OctreeSendThread.h"
 
 #include <DiffTraversal.h>
@@ -40,6 +42,7 @@ private:
 
     DiffTraversal _traversal;
     EntityPriorityQueue _sendQueue;
+    std::unordered_set<EntityItemPointer> _prevEntitySet;
     ConicalView _conicalView; // cached optimized view for fast priority calculations
 };
 

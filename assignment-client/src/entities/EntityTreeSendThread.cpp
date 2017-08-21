@@ -100,6 +100,39 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
     // If the previous traversal didn't finish, we'll need to resort the entities still in _sendQueue after calling traverse
     EntityPriorityQueue prevSendQueue;
     _sendQueue.swap(prevSendQueue);
+    _prevEntitySet.clear();
+    // Re-add elements from previous traveral if they still need to be sent
+    while (!prevSendQueue.empty()) {
+        EntityItemPointer entity = prevSendQueue.top().getEntity();
+        prevSendQueue.pop();
+        if (entity) {
+            // We can keep track of the entity regardless of if we decide to send it so that we don't have to check it again
+            // during the traversal
+            _prevEntitySet.insert(entity);
+            bool success = false;
+            AACube cube = entity->getQueryAACube(success);
+            if (success) {
+                if (_traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
+                    const float DO_NOT_SEND = -1.0e-6f;
+                    float priority = _conicalView.computePriority(cube);
+                    if (priority != DO_NOT_SEND) {
+                        float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
+                                                                       cube,
+                                                                       _traversal.getCurrentRootSizeScale(),
+                                                                       lodLevelOffset);
+
+                        // Only send entities if they are large enough to see
+                        if (renderAccuracy > 0.0f) {
+                            _sendQueue.push(PrioritizedEntity(entity, priority));
+                        }
+                    }
+                }
+            } else {
+                const float WHEN_IN_DOUBT_PRIORITY = 1.0f;
+                _sendQueue.push(PrioritizedEntity(entity, WHEN_IN_DOUBT_PRIORITY));
+            }
+        }
+    }
 
     if (!_traversal.finished()) {
         uint64_t startTime = usecTimestampNow();
@@ -109,33 +142,6 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
 
         uint64_t dt = usecTimestampNow() - startTime;
         std::cout << "adebug  traversal complete " << "  Q.size = " << _sendQueue.size() << "  dt = " << dt << std::endl;  // adebug
-    }
-
-    // Re-add elements from previous traveral if they still need to be sent
-    while (!prevSendQueue.empty()) {
-        EntityItemPointer entity = prevSendQueue.top().getEntity();
-        prevSendQueue.pop();
-        if (entity) {
-            bool success = false;
-            AACube cube = entity->getQueryAACube(success);
-            if (success) {
-                if (_traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
-                    float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
-                                                                   cube,
-                                                                   _traversal.getCurrentRootSizeScale(),
-                                                                   lodLevelOffset);
-
-                    // Only send entities if they are large enough to see
-                    if (renderAccuracy > 0.0f) {
-                        float priority = _conicalView.computePriority(cube);
-                        _sendQueue.push(PrioritizedEntity(entity, priority));
-                    }
-                }
-            } else {
-                const float WHEN_IN_DOUBT_PRIORITY = 1.0f;
-                _sendQueue.push(PrioritizedEntity(entity, WHEN_IN_DOUBT_PRIORITY));
-            }
-        }
     }
 
     if (!_sendQueue.empty()) {
@@ -222,6 +228,10 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
     case DiffTraversal::First:
         _traversal.setScanCallback([&] (DiffTraversal::VisibleElement& next) {
             next.element->forEachEntity([&](EntityItemPointer entity) {
+                // Bail early if we've already checked this entity this frame
+                if (_prevEntitySet.find(entity) != _prevEntitySet.end()) {
+                    return;
+                }
                 bool success = false;
                 AACube cube = entity->getQueryAACube(success);
                 if (success) {
@@ -253,6 +263,10 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
             if (next.element->getLastChangedContent() > _traversal.getStartOfCompletedTraversal()) {
                 uint64_t timestamp = _traversal.getStartOfCompletedTraversal();
                 next.element->forEachEntity([&](EntityItemPointer entity) {
+                    // Bail early if we've already checked this entity this frame
+                    if (_prevEntitySet.find(entity) != _prevEntitySet.end()) {
+                        return;
+                    }
                     if (entity->getLastEdited() > timestamp) {
                         bool success = false;
                         AACube cube = entity->getQueryAACube(success);
@@ -285,6 +299,10 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
             uint64_t timestamp = _traversal.getStartOfCompletedTraversal();
             if (next.element->getLastChangedContent() > timestamp || next.intersection != ViewFrustum::INSIDE) {
                 next.element->forEachEntity([&](EntityItemPointer entity) {
+                    // Bail early if we've already checked this entity this frame
+                    if (_prevEntitySet.find(entity) != _prevEntitySet.end()) {
+                        return;
+                    }
                     bool success = false;
                     AACube cube = entity->getQueryAACube(success);
                     if (success) {
