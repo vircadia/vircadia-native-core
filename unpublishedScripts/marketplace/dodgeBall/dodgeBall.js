@@ -53,7 +53,7 @@
             azimuthFinish: 180
         };
 
-            particleTrailEntity = Entities.addEntity(props);
+        particleTrailEntity = Entities.addEntity(props);
     }
 
     function particleExplode() {
@@ -93,13 +93,13 @@
             azimuthStart: -180,
             azimuthFinish: 180
         };
-        var exposionParticles = Entities.addEntity(props);
+        var explosionParticles = Entities.addEntity(props);
         Entities.editEntity(_entityID, {
             velocity: Vec3.ZERO,
             dynamic: false
         });
         Script.setTimeout(function () {
-            Entities.deleteEntity(exposionParticles);
+            Entities.deleteEntity(explosionParticles);
             Entities.editEntity(_entityID, {
                 dynamic: true
             })
@@ -114,7 +114,9 @@
             particleTrailEntity = null;
         }
 
-        if (proxTimeout) Script.clearTimeout(proxTimeout);
+        if (proxTimeout) {
+            Script.clearTimeout(proxTimeout);
+        }
     }
 
     function proxCheck() {
@@ -133,7 +135,9 @@
         var avatarUUID = triggerHandAndAvatarUUIDArray[1];
 
         var ballPos = Entities.getEntityProperties(_entityID, ['position']).position;
-        if (Vec3.distance(ballPos, AvatarList.getAvatar(avatarUUID).position) > 2) {
+        var MAX_DISTANCE_GRAB = 2; //meter
+
+        if (Vec3.distance(ballPos, AvatarList.getAvatar(avatarUUID).position) > MAX_DISTANCE_GRAB) {
             Messages.sendMessage(FORCE_DROP_CHANNEL, triggerHand, true);
         }
 
@@ -144,7 +148,9 @@
 
     this.releaseGrab = function (thisEntityID) {
 
-        if (particleTrailEntity === null) particleTrail();
+        if (particleTrailEntity === null) {
+            particleTrail();
+        }
 
         Script.setTimeout(function () {
             proxInterval = Script.setInterval(proxCheck, 50);
@@ -155,7 +161,7 @@
         }, 10000)
     };
 
-    this.collisionWithEntity = function(thisEntityID,  collisionEntityID, collisionInfo) {
+    this.collisionWithEntity = function (thisEntityID, collisionEntityID, collisionInfo) {
         clearProxCheck();
     };
 
