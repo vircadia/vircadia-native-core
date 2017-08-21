@@ -323,7 +323,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "scaleOptionsPanel",
                     type: "panel",
                     properties: {
-                        localPosition: { x: 0.055, y: 0.0, z: -0.005 }
+                        localPosition: { x: 0.0, y: 0.0, z: -0.005 }
                     }
                 },
                 {
@@ -345,7 +345,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "cloneOptionsPanel",
                     type: "panel",
                     properties: {
-                        localPosition: { x: 0.055, y: 0.0, z: -0.005 }
+                        localPosition: { x: 0.0, y: 0.0, z: -0.005 }
                     }
                 },
                 {
@@ -367,7 +367,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "groupOptionsPanel",
                     type: "panel",
                     properties: {
-                        localPosition: { x: 0.055, y: 0.0, z: -0.005 }
+                        localPosition: { x: 0.0, y: 0.0, z: -0.005 }
                     }
                 },
                 {
@@ -404,7 +404,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "colorOptionsPanel",
                     type: "panel",
                     properties: {
-                        localPosition: { x: 0.055, y: 0.0, z: -0.005 }
+                        localPosition: { x: 0.0, y: 0.0, z: -0.005 }
                     }
                 },
                 {
@@ -540,7 +540,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "physicsOptionsPanel",
                     type: "panel",
                     properties: {
-                        localPosition: { x: 0.055, y: 0.0, z: -0.005 }
+                        localPosition: { x: 0.0, y: 0.0, z: -0.005 }
                     }
                 },
 
@@ -800,7 +800,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "deleteOptionsPanel",
                     type: "panel",
                     properties: {
-                        localPosition: { x: 0.055, y: 0.0, z: -0.005 }
+                        localPosition: { x: 0.0, y: 0.0, z: -0.005 }
                     }
                 },
                 {
@@ -824,7 +824,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 id: "toolsMenuPanel",
                 type: "panel",
                 properties: {
-                    localPosition: { x: -0.055, y: 0.0, z: -0.005 }
+                    localPosition: { x: -0.0, y: 0.0, z: -0.005 }
                 }
             },
             {
@@ -942,6 +942,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         isButtonPressed,
         isPicklistPressed,
         isPicklistItemPressed,
+        isTriggerClicked,
+        wasTriggerClicked,
         isGripClicked,
 
         isGroupButtonEnabled,
@@ -1016,6 +1018,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
 
         menuOverlays = [];
+        pressedItem = null;
     }
 
     function closeOptions() {
@@ -1040,6 +1043,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         optionsItems = null;
 
         isPicklistOpen = false;
+
+        pressedItem = null;
 
         // Display menu items.
         openMenu(true);
@@ -1681,7 +1686,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         // Highlight clickable item.
         if (intersectedItem !== highlightedItem || intersectionOverlays !== highlightedSource) {
-            if (intersectedItem !== NONE && (intersectionItems[intersectedItem].command !== undefined
+            if (intersectedItem !== NONE && intersectionItems[intersectedItem] &&
+                    (intersectionItems[intersectedItem].command !== undefined
                     || intersectionItems[intersectedItem].callback !== undefined)) {
                 // Lower old slider or color circle.
                 if (isHighlightingSlider || isHighlightingColorCircle) {
@@ -1763,8 +1769,11 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
 
         // Press/unpress button.
+        if (controlHand.triggerClicked() !== isTriggerClicked) {
+            isTriggerClicked = !isTriggerClicked;
+        }
         if ((pressedItem && intersectedItem !== pressedItem.index) || intersectionOverlays !== pressedSource
-                || controlHand.triggerClicked() !== isButtonPressed) {
+                || isTriggerClicked !== isButtonPressed) {
             if (pressedItem) {
                 // Unpress previous button.
                 Overlays.editOverlay(intersectionOverlays[pressedItem.index], {
@@ -1772,9 +1781,10 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 });
                 pressedItem = null;
             }
-            isButtonPressed = isHighlightingButton && controlHand.triggerClicked();
-            if (isButtonPressed && (intersectionEnabled === null || intersectionEnabled[intersectedItem])) {
+            if (isHighlightingButton && (intersectionEnabled === null || intersectionEnabled[intersectedItem])
+                    && isTriggerClicked && !wasTriggerClicked) {
                 // Press new button.
+                isButtonPressed = true;
                 localPosition = intersectionItems[intersectedItem].properties.localPosition;
                 Overlays.editOverlay(intersectionOverlays[intersectedItem], {
                     localPosition: Vec3.sum(localPosition, BUTTON_PRESS_DELTA)
@@ -1924,6 +1934,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 optionsEnabled[ungroupButtonIndex] = enableUngroupButton;
             }
         }
+
+        wasTriggerClicked = isTriggerClicked;
     }
 
     function display() {
@@ -1982,6 +1994,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         isButtonPressed = false;
         isPicklistPressed = false;
         isPicklistItemPressed = false;
+        isTriggerClicked = false;
+        wasTriggerClicked = false;
         isGripClicked = false;
         isGroupButtonEnabled = false;
         isUngroupButtonEnabled = false;
