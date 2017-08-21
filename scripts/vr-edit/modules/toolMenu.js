@@ -960,7 +960,10 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         isDisplaying = false,
 
         // References.
-        controlHand;
+        controlHand,
+
+        // Forward declarations.
+        doCommand;
 
 
     if (!this instanceof ToolMenu) {
@@ -1437,7 +1440,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         return Overlays.getProperty(optionsOverlays[optionsOverlaysIDs.indexOf(overlayID)], overlayProperty);
     }
 
-    function doCommand(command, parameter) {
+    doCommand = function (command, parameter) {
         var index,
             hasColor,
             value,
@@ -1619,7 +1622,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         default:
             App.log(side, "ERROR: ToolMenu: Unexpected command! " + command);
         }
-    }
+    };
 
     function doGripClicked(command, parameter) {
         var overlayID;
