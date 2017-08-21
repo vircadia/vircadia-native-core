@@ -28,7 +28,7 @@ Item {
     Hifi.QmlCommerce {
         id: commerce;
         onBalanceResult : {
-            balanceText.text = parseFloat(balance/100).toFixed(2);
+            balanceText.text = parseFloat(result.data.balance/100).toFixed(2);
         }
     }
     

@@ -451,6 +451,7 @@ Rectangle {
                         root.lastPage = "passphrase";
                         choosePassphraseContainer.visible = false;
                         privateKeysReadyContainer.visible = true;
+                        commerce.balance(); // Do this here so that keys are generated. Order might change as backend changes?
                     }
                 }
             }
