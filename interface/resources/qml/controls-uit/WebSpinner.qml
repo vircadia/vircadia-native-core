@@ -11,8 +11,9 @@
 import QtQuick 2.5
 
 AnimatedImage {
+    property Item webroot: parent
     source: "../../icons/loader-snake-64-w.gif"
-    visible: parent.loading && /^(http.*|)$/i.test(parent.url.toString())
+    visible: webroot.loading && /^(http.*|)$/i.test(webroot.url.toString())
     z: 10000
     anchors {
         horizontalCenter: parent.horizontalCenter

@@ -138,8 +138,6 @@ Item {
 
     Flickable {
         id: flick
-        x: 0
-        y: 0
         width: parent.width
         height: keyboardEnabled && keyboardRaised ? parent.height - keyboard.height - web.headerHeight : parent.height - web.headerHeight
         anchors.top: buttons.bottom
@@ -206,12 +204,23 @@ Item {
                 }
             }
 
+            onContentsSizeChanged: {
+                flick.contentHeight = Math.max(contentsSize.height, flick.height);
+                flick.contentWidth = flick.width//Math.max(contentsSize.width, flick.width);
+            }
+            //disable popup
+            onContextMenuRequested: {
+                request.accepted = true;
+            }
+
             onLoadingChanged: {
                 keyboardRaised = false;
                 punctuationMode = false;
                 keyboard.resetShiftMode(false);
                 // Required to support clicking on "hifi://" links
                 if (WebEngineView.LoadStartedStatus == loadRequest.status) {
+                    flick.contentWidth = 0
+                    flick.contentHeight = 0
                     var url = loadRequest.url.toString();
                     if (urlHandler.canHandleUrl(url)) {
                         if (urlHandler.handleUrl(url)) {
@@ -225,8 +234,13 @@ Item {
                 }
 
                 if (WebEngineView.LoadSucceededStatus == loadRequest.status) {
-                    flick.contentWidth = Math.max(contentsSize.width, flick.width)
-                    flick.contentHeight = Math.max(contentsSize.height, flick.height)
+                    webroot.runJavaScript("document.body.scrollHeight;", function (i_actualPageHeight) {
+                        flick.contentHeight = Math.max(i_actualPageHeight, flick.height);
+                    })
+//                    webroot.runJavaScript("document.body.scrollWidth;", function (i_actualPageWidth) {
+                        flick.contentWidth = flick.width//Math.max(i_actualPageWidth, flick.width);
+//                    })
+
                     webview.forceActiveFocus();
                 }
             }
@@ -234,9 +248,12 @@ Item {
             onNewViewRequested: {
                 request.openIn(webview);
             }
-
-            HiFiControls.WebSpinner { }
         }
+    }
+
+    HiFiControls.WebSpinner {
+        webroot: webview
+        anchors.centerIn: parent
     }
 
     HiFiControls.Keyboard {
