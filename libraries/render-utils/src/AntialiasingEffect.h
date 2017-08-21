@@ -24,7 +24,8 @@ class AntialiasingConfig : public render::Job::Config {
     Q_PROPERTY(float blend MEMBER blend NOTIFY dirty)
     Q_PROPERTY(float velocityScale MEMBER velocityScale NOTIFY dirty)
     Q_PROPERTY(float debugShowVelocityThreshold MEMBER debugShowVelocityThreshold NOTIFY dirty)
-
+    Q_PROPERTY(bool showCursorPixel MEMBER showCursorPixel NOTIFY dirty)
+    Q_PROPERTY(glm::vec2 debugCursorTexcoord MEMBER debugCursorTexcoord NOTIFY dirty)
 public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
@@ -32,6 +33,9 @@ public:
     float blend{ 0.1f };
     float velocityScale{ 1.0f };
     float debugShowVelocityThreshold{ 1.0f };
+
+    bool showCursorPixel{ false };
+    glm::vec2 debugCursorTexcoord{ 0.5f, 0.5f };
 
 signals:
     void dirty();
@@ -43,6 +47,9 @@ struct TAAParams {
     float blend{ 0.1f };
     float velocityScale{ 1.0f };
     float debugShowVelocityThreshold{ 1.0f };
+
+    glm::vec4 debugCursor{ 0.0f };
+    glm::vec4 pixelInfo{ 0.5f, 0.5f, 0.0f, 0.0f };
 
 };
 using TAAParamsBuffer = gpu::StructBuffer<TAAParams>;
@@ -62,9 +69,6 @@ public:
     const gpu::PipelinePointer& getBlendPipeline();
     const gpu::PipelinePointer& getDebugBlendPipeline();
 
-
-
-
 private:
 
     // Uniforms for AA
@@ -80,6 +84,7 @@ private:
     TAAParamsBuffer _params;
     int _currentFrame{ 0 };
 };
+
 
 /*
 class AntiAliasingConfig : public render::Job::Config {

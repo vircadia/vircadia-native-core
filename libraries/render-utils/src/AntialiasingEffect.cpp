@@ -207,6 +207,8 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         gpu::Shader::BindingSet slotBindings;
         slotBindings.insert(gpu::Shader::Binding(std::string("taaParamsBuffer"), AntialiasingPass_ParamsSlot));
 
+        slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), AntialiasingPass_FrameTransformSlot));
+   
         slotBindings.insert(gpu::Shader::Binding(std::string("historyMap"), AntialiasingPass_HistoryMapSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), AntialiasingPass_SourceMapSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("velocityMap"), AntialiasingPass_VelocityMapSlot));
@@ -278,6 +280,14 @@ void Antialiasing::configure(const Config& config) {
     _params.edit().blend = config.blend;
     _params.edit().velocityScale = config.velocityScale;
     _params.edit().debugShowVelocityThreshold = config.debugShowVelocityThreshold;
+
+    _params.edit().debugCursor.x = config.showCursorPixel;
+
+    auto cursorPos = glm::vec2(_params->pixelInfo);
+    if (cursorPos != config.debugCursorTexcoord) {
+        _params.edit().pixelInfo = glm::vec4(config.debugCursorTexcoord, 0.0f, 0.0f);
+    }
+
 }
 
 
@@ -350,7 +360,6 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setResourceTexture(AntialiasingPass_SourceMapSlot, nullptr);
         batch.setResourceTexture(AntialiasingPass_VelocityMapSlot, nullptr);
         batch.setResourceTexture(AntialiasingPass_CurrentMapSlot, nullptr);
-
     });
 }
 

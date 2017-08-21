@@ -13,6 +13,9 @@
 //
 
 
+<@include DeferredTransform.slh@>
+<$declareDeferredFrameTransform()$>
+
 #ifdef GL_ES
 precision mediump float;
 precision mediump int;
@@ -40,10 +43,9 @@ layout(std140) uniform taaParamsBuffer {
 void main() {
     vec3 currentColor = texture(colorMap, varTexCoord0).xyz;
 
-    vec2 rawVelocity = texture(velocityMap, varTexCoord0).xy;
-
-    vec2 velocity = rawVelocity;
-    vec2 prevTexCoord = varTexCoord0 - params.motionScale * velocity;
+    vec2 pixVelocity = texture(velocityMap, varTexCoord0).xy;
+    vec2 velocity = params.motionScale * pixVelocity * getInvWidthHeight();
+    vec2 prevTexCoord = varTexCoord0 - velocity;
     
     vec3 prevColor = currentColor;
 

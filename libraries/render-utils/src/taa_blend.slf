@@ -30,28 +30,56 @@ struct TAAParams
 	float blend;
 	float motionScale;
 	float debugShowVelocityThreshold;
+    vec4 debugCursor;
+    vec4 pixelInfo;
 };
 
 layout(std140) uniform taaParamsBuffer {
     TAAParams params;
 };
 
+vec2 getDebugCursorTexcoord() {
+    return params.pixelInfo.xy;
+}
+
 void main(void) {
     vec3 newColor = texture(currentMap, varTexCoord0).xyz;
     outFragColor = vec4(newColor, 1.0);
 
-    if (varTexCoord0.x > params.debugX) {
-		return;
-	}
-
     // Pixel being shaded
 	vec3 sourceColor = texture(colorMap, varTexCoord0).xyz;
 
-	vec2 velocity = texture(velocityMap, varTexCoord0).xy;
-    vec2 pixelVelocity = velocity * getWidthHeight(0);
-    vec2 prevTexCoord = varTexCoord0 - params.motionScale * velocity;
+    vec2 imageSize = getWidthHeight(0);
+
+    vec2 pixPos = varTexCoord0 * imageSize;
+    vec2 pixVelocity = texture(velocityMap, varTexCoord0).xy;
+    vec2 velocity = params.motionScale * pixVelocity * getInvWidthHeight();
+    vec2 prevTexCoord = varTexCoord0 - velocity;
+    vec2 prevPix = prevTexCoord * imageSize;
 
     outFragColor = vec4(sourceColor, 1.0);
+
+    // Pixel Debugged
+    vec2 cursorUV = getDebugCursorTexcoord();
+    vec2 cursorPixelPos = cursorUV * imageSize;
+    vec2 cursorVelocity = texture(velocityMap, cursorUV).xy;
+    float cursorVelocityLength = length(cursorVelocity);
+
+    vec2 cursorToFragVec = pixPos - cursorPixelPos;
+    float cursorToFragLength = length(cursorToFragVec);
+
+    if (cursorToFragLength <= cursorVelocityLength) {
+        vec2 cursorVelocityDir = cursorVelocity / cursorVelocityLength;
+
+       if (abs(dot(cursorVelocityDir, cursorToFragVec)) < 3.0) {
+           outFragColor = vec4(0.5, 1.0, 1.0, 1.0);
+           return;
+       }
+    }
+
+    if (varTexCoord0.x > params.debugX) {
+        return;
+    }
 
 	if (abs(varTexCoord0.x - params.debugX) < getInvWidthHeight().x) {
 		outFragColor.rgb = vec3(1.0, 1.0, 0.0);
@@ -65,7 +93,7 @@ void main(void) {
     }
     outFragColor.xyz =  prevColor;
 
-    if (dot(pixelVelocity, pixelVelocity) > (params.debugShowVelocityThreshold * params.debugShowVelocityThreshold)) {
+    if (dot(pixVelocity, pixVelocity) > (params.debugShowVelocityThreshold * params.debugShowVelocityThreshold)) {
         outFragColor = vec4(0.0, 1.0, 1.0, 1.0);
     }
 
