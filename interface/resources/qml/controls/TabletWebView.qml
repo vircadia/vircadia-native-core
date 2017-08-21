@@ -11,8 +11,8 @@ import "."
 Item {
     id: web
     HifiConstants { id: hifi }
-    width: parent.width
-    height: parent.height
+    width: parent !== null ? parent.width : undefined
+    height: parent !== null ? parent.height : undefined
     property var parentStackItem: null
     property int headerHeight: 70
     property string url
@@ -206,7 +206,7 @@ Item {
 
             onContentsSizeChanged: {
                 flick.contentHeight = Math.max(contentsSize.height, flick.height);
-                flick.contentWidth = flick.width//Math.max(contentsSize.width, flick.width);
+                flick.contentWidth = flick.width
             }
             //disable popup
             onContextMenuRequested: {
@@ -234,12 +234,10 @@ Item {
                 }
 
                 if (WebEngineView.LoadSucceededStatus == loadRequest.status) {
-                    webroot.runJavaScript("document.body.scrollHeight;", function (i_actualPageHeight) {
+                    webview.runJavaScript("document.body.scrollHeight;", function (i_actualPageHeight) {
                         flick.contentHeight = Math.max(i_actualPageHeight, flick.height);
                     })
-//                    webroot.runJavaScript("document.body.scrollWidth;", function (i_actualPageWidth) {
-                        flick.contentWidth = flick.width//Math.max(i_actualPageWidth, flick.width);
-//                    })
+                    flick.contentWidth = flick.width
 
                     webview.forceActiveFocus();
                 }
