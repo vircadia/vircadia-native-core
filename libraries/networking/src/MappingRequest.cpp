@@ -138,7 +138,7 @@ void GetAllMappingsRequest::doStart() {
                 auto hash = message->read(SHA256_HASH_LENGTH).toHex();
                 BakingStatus status;
                 message->readPrimitive(&status);
-                _mappings[path] = hash;
+                _mappings[path] = { hash, status };
             }
         }
         emit finished(this);

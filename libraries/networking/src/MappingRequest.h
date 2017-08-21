@@ -130,7 +130,7 @@ signals:
 private:
     virtual void doStart() override;
     
-    std::map<AssetPath, AssetHash> _mappings;
+    AssetMapping _mappings;
 };
 
 

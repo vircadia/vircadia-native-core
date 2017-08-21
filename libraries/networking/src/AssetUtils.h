@@ -23,7 +23,6 @@ using DataOffset = int64_t;
 
 using AssetPath = QString;
 using AssetHash = QString;
-using AssetMapping = std::map<AssetPath, AssetHash>;
 using AssetPathList = QStringList;
 
 const size_t SHA256_HASH_LENGTH = 32;
@@ -58,6 +57,13 @@ enum BakingStatus {
     Baking,
     Baked
 };
+
+struct MappingInfo {
+    AssetHash hash;
+    BakingStatus status;
+};
+
+using AssetMapping = std::map<AssetPath, MappingInfo>;
 
 QUrl getATPUrl(const QString& hash);
 

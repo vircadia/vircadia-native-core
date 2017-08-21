@@ -26,6 +26,8 @@
 class AssetMappingModel : public QStandardItemModel {
     Q_OBJECT
 public:
+    AssetMappingModel();
+
     Q_INVOKABLE void refresh();
 
     bool isKnownMapping(QString path) const { return _pathToItemMap.contains(path); }
@@ -38,6 +40,8 @@ signals:
     void errorGettingMappings(QString errorString);
 
 private:
+    void setupHeaders();
+
     QHash<QString, QStandardItem*> _pathToItemMap;
 };
 

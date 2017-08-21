@@ -21,19 +21,6 @@
 #include <NetworkLogging.h>
 #include <OffscreenUi.h>
 
-void AssetMappingModel::clear() {
-    // make sure we are on the same thread before we touch the hash
-    if (thread() != QThread::currentThread()) {
-        QMetaObject::invokeMethod(this, "clear");
-        return;
-    }
-
-    qDebug() << "Clearing loaded asset mappings for Asset Browser";
-
-    _pathToItemMap.clear();
-    QStandardItemModel::clear();
-}
-
 AssetMappingsScriptingInterface::AssetMappingsScriptingInterface() {
     _proxyModel.setSourceModel(&_assetMappingModel);
     _proxyModel.setSortRole(Qt::DisplayRole);
@@ -154,7 +141,7 @@ void AssetMappingsScriptingInterface::getAllMappings(QJSValue callback) {
         auto map = callback.engine()->newObject();
 
         for (auto& kv : mappings ) {
-            map.setProperty(kv.first, kv.second);
+            map.setProperty(kv.first, kv.second.hash);
         }
 
         if (callback.isCallable()) {
@@ -182,6 +169,10 @@ void AssetMappingsScriptingInterface::renameMapping(QString oldPath, QString new
     });
 
     request->start();
+}
+
+AssetMappingModel::AssetMappingModel() {
+    setupHeaders();
 }
 
 bool AssetMappingModel::isKnownFolder(QString path) const {
@@ -228,17 +219,19 @@ void AssetMappingModel::refresh() {
                     if (it == _pathToItemMap.end()) {
                         auto item = new QStandardItem(parts[i]);
                         bool isFolder = i < length - 1;
+                        auto statusString = isFolder ? "--" : bakingStatusToString(mapping.second.status);
                         item->setData(isFolder ? fullPath + "/" : fullPath, Qt::UserRole);
                         item->setData(isFolder, Qt::UserRole + 1);
                         item->setData(parts[i], Qt::UserRole + 2);
                         item->setData("atp:" + fullPath, Qt::UserRole + 3);
                         item->setData(fullPath, Qt::UserRole + 4);
+                        item->setData(statusString, Qt::UserRole + 5);
+                        
                         if (lastItem) {
-                            lastItem->setChild(lastItem->rowCount(), 0, item);
+                            lastItem->appendRow(item);
                         } else {
                             appendRow(item);
                         }
-
                         lastItem = item;
                         _pathToItemMap[fullPath] = lastItem;
                     } else {
@@ -299,4 +292,26 @@ void AssetMappingModel::refresh() {
     });
 
     request->start();
+}
+
+void AssetMappingModel::clear() {
+    // make sure we are on the same thread before we touch the hash
+    if (thread() != QThread::currentThread()) {
+        QMetaObject::invokeMethod(this, "clear");
+        return;
+    }
+
+    qDebug() << "Clearing loaded asset mappings for Asset Browser";
+
+    _pathToItemMap.clear();
+    QStandardItemModel::clear();
+    setupHeaders(); // restore headers
+}
+
+void AssetMappingModel::setupHeaders() {
+    setHorizontalHeaderLabels(QStringList() << "Name" << "Use Baked?");
+    QHash<int, QByteArray> roleNames;
+    roleNames[Qt::DisplayRole] = "name";
+    roleNames[Qt::UserRole + 5] = "baked";
+    setItemRoleNames(roleNames);
 }
