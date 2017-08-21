@@ -205,7 +205,7 @@ bool Wallet::createIfNeeded() {
             qCDebug(commerce) << "read private key";
             RSA_free(key);
             // K -- add the public key since we have a legit private key associated with it
-            _publicKeys.push_back(QUrl::toPercentEncoding(publicKey.toBase64()));
+            _publicKeys.push_back(publicKey.toBase64());
             return false;
         }
     }
@@ -216,16 +216,17 @@ bool Wallet::createIfNeeded() {
 bool Wallet::generateKeyPair() {
     qCInfo(commerce) << "Generating keypair.";
     auto keyPair = generateRSAKeypair();
-
-    _publicKeys.push_back(QUrl::toPercentEncoding(keyPair.first->toBase64()));
-    qCDebug(commerce) << "public key:" << _publicKeys.last();
+    QString oldKey = _publicKeys.count() == 0 ? "" : _publicKeys.last();
+    QString key = keyPair.first->toBase64();
+    _publicKeys.push_back(key);
+    qCDebug(commerce) << "public key:" << key;
 
     // It's arguable whether we want to change the receiveAt every time, but:
     // 1. It's certainly needed the first time, when createIfNeeded answers true.
     // 2. It is maximally private, and we can step back from that later if desired.
     // 3. It maximally exercises all the machinery, so we are most likely to surface issues now.
     auto ledger = DependencyManager::get<Ledger>();
-    return ledger->receiveAt(_publicKeys.last());
+    return ledger->receiveAt(key, oldKey);
 }
 QStringList Wallet::listPublicKeys() {
     qCInfo(commerce) << "Enumerating public keys.";
@@ -260,7 +261,7 @@ QString Wallet::signWithKey(const QByteArray& text, const QString& key) {
         RSA_free(rsaPrivateKey);
 
         if (encryptReturn != -1) {
-            return QUrl::toPercentEncoding(signature.toBase64());
+            return signature.toBase64();
         }
     }
     return QString();

@@ -764,8 +764,8 @@ Script.scriptEnding.connect(function () {
     }
     Window.snapshotShared.disconnect(snapshotUploaded);
     Snapshot.snapshotLocationSet.disconnect(snapshotLocationSet);
-    Entities.canRezChanged.disconnect(processRezPermissionChange);
-    Entities.canRezTmpChanged.disconnect(processRezPermissionChange);
+    Entities.canRezChanged.disconnect(updatePrintPermissions);
+    Entities.canRezTmpChanged.disconnect(updatePrintPermissions);
 });
 
 }()); // END LOCAL_SCOPE

@@ -37,18 +37,27 @@
 #include "Web3DOverlay.h"
 #include <QtQuick/QQuickWindow>
 
+#include "render/ShapePipeline.h"
+
 Q_LOGGING_CATEGORY(trace_render_overlays, "trace.render.overlays")
+
+extern void initOverlay3DPipelines(render::ShapePlumber& plumber, bool depthTest = false);
 
 void Overlays::cleanupAllOverlays() {
     QMap<OverlayID, Overlay::Pointer> overlaysHUD;
+    QMap<OverlayID, Overlay::Pointer> overlays3DHUD;
     QMap<OverlayID, Overlay::Pointer> overlaysWorld;
     {
         QMutexLocker locker(&_mutex);
         overlaysHUD.swap(_overlaysHUD);
+        overlays3DHUD.swap(_overlays3DHUD);
         overlaysWorld.swap(_overlaysWorld);
     }
 
     foreach(Overlay::Pointer overlay, overlaysHUD) {
+        _overlaysToDelete.push_back(overlay);
+    }
+    foreach(Overlay::Pointer overlay, overlays3DHUD) {
         _overlaysToDelete.push_back(overlay);
     }
     foreach(Overlay::Pointer overlay, overlaysWorld) {
@@ -64,12 +73,17 @@ void Overlays::init() {
 #if OVERLAY_PANELS
     _scriptEngine = new QScriptEngine();
 #endif
+    _shapePlumber = std::make_shared<render::ShapePlumber>();
+    initOverlay3DPipelines(*_shapePlumber, true);
 }
 
 void Overlays::update(float deltatime) {
     {
         QMutexLocker locker(&_mutex);
         foreach(const auto& thisOverlay, _overlaysHUD) {
+            thisOverlay->update(deltatime);
+        }
+        foreach(const auto& thisOverlay, _overlays3DHUD) {
             thisOverlay->update(deltatime);
         }
         foreach(const auto& thisOverlay, _overlaysWorld) {
@@ -128,6 +142,23 @@ void Overlays::renderHUD(RenderArgs* renderArgs) {
     }
 }
 
+void Overlays::render3DHUDOverlays(RenderArgs* renderArgs) {
+    PROFILE_RANGE(render_overlays, __FUNCTION__);
+    gpu::Batch& batch = *renderArgs->_batch;
+
+    auto textureCache = DependencyManager::get<TextureCache>();
+
+    QMutexLocker lock(&_mutex);
+    foreach(Overlay::Pointer thisOverlay, _overlays3DHUD) {
+        // Reset necessary batch pipeline settings between overlays
+        batch.setResourceTexture(0, textureCache->getWhiteTexture()); // FIXME - do we really need to do this??
+        batch.setModelTransform(Transform());
+
+        renderArgs->_shapePipeline = _shapePlumber->pickPipeline(renderArgs, thisOverlay->getShapeKey());
+        thisOverlay->render(renderArgs);
+    }
+}
+
 void Overlays::disable() {
     _enabled = false;
 }
@@ -142,8 +173,9 @@ Overlay::Pointer Overlays::getOverlay(OverlayID id) const {
     QMutexLocker locker(&_mutex);
     if (_overlaysHUD.contains(id)) {
         return _overlaysHUD[id];
-    }
-    if (_overlaysWorld.contains(id)) {
+    } else if (_overlays3DHUD.contains(id)) {
+        return _overlays3DHUD[id];
+    } else if (_overlaysWorld.contains(id)) {
         return _overlaysWorld[id];
     }
     return nullptr;
@@ -200,7 +232,7 @@ OverlayID Overlays::addOverlay(const Overlay::Pointer& overlay) {
     OverlayID thisID = OverlayID(QUuid::createUuid());
     overlay->setOverlayID(thisID);
     overlay->setStackOrder(_stackOrder++);
-    if (overlay->is3D()) {
+    if (overlay->is3D() && !overlay->shouldDrawHUDLayer()) {
         {
             QMutexLocker locker(&_mutex);
             _overlaysWorld[thisID] = overlay;
@@ -210,12 +242,37 @@ OverlayID Overlays::addOverlay(const Overlay::Pointer& overlay) {
         render::Transaction transaction;
         overlay->addToScene(overlay, scene, transaction);
         scene->enqueueTransaction(transaction);
+    } else if (overlay->is3D() && overlay->shouldDrawHUDLayer()) {
+        QMutexLocker locker(&_mutex);
+        _overlays3DHUD[thisID] = overlay;
     } else {
         QMutexLocker locker(&_mutex);
         _overlaysHUD[thisID] = overlay;
     }
 
     return thisID;
+}
+
+void Overlays::setOverlayDrawHUDLayer(const OverlayID& id, const bool drawHUDLayer) {
+    QMutexLocker locker(&_mutex);
+    if (drawHUDLayer && _overlaysWorld.contains(id)) {
+        std::shared_ptr<Overlay> overlay = _overlaysWorld.take(id);
+        render::ScenePointer scene = qApp->getMain3DScene();
+        render::Transaction transaction;
+        auto itemID = overlay->getRenderItemID();
+        if (render::Item::isValidID(itemID)) {
+            overlay->removeFromScene(overlay, scene, transaction);
+            scene->enqueueTransaction(transaction);
+        }
+        _overlays3DHUD[id] = overlay;
+    } else if (!drawHUDLayer && _overlays3DHUD.contains(id)) {
+        std::shared_ptr<Overlay> overlay = _overlays3DHUD.take(id);
+        render::ScenePointer scene = qApp->getMain3DScene();
+        render::Transaction transaction;
+        overlay->addToScene(overlay, scene, transaction);
+        scene->enqueueTransaction(transaction);
+        _overlaysWorld[id] = overlay;
+    }
 }
 
 OverlayID Overlays::cloneOverlay(OverlayID id) {
@@ -294,6 +351,8 @@ void Overlays::deleteOverlay(OverlayID id) {
         QMutexLocker locker(&_mutex);
         if (_overlaysHUD.contains(id)) {
             overlayToDelete = _overlaysHUD.take(id);
+        } else if (_overlays3DHUD.contains(id)) {
+            overlayToDelete = _overlays3DHUD.take(id);
         } else if (_overlaysWorld.contains(id)) {
             overlayToDelete = _overlaysWorld.take(id);
         } else {
@@ -475,15 +534,15 @@ RayToOverlayIntersectionResult Overlays::findRayIntersection(const PickRay& ray,
     const QVector<OverlayID> overlaysToInclude = qVectorOverlayIDFromScriptValue(overlayIDsToInclude);
     const QVector<OverlayID> overlaysToDiscard = qVectorOverlayIDFromScriptValue(overlayIDsToDiscard);
 
-    return findRayIntersectionInternal(ray, precisionPicking,
-                                       overlaysToInclude, overlaysToDiscard, visibleOnly, collidableOnly);
+    return findRayIntersectionVector(ray, precisionPicking,
+                                     overlaysToInclude, overlaysToDiscard, visibleOnly, collidableOnly);
 }
 
 
-RayToOverlayIntersectionResult Overlays::findRayIntersectionInternal(const PickRay& ray, bool precisionPicking,
-                                                                     const QVector<OverlayID>& overlaysToInclude,
-                                                                     const QVector<OverlayID>& overlaysToDiscard,
-                                                                     bool visibleOnly, bool collidableOnly) {
+RayToOverlayIntersectionResult Overlays::findRayIntersectionVector(const PickRay& ray, bool precisionPicking,
+                                                                   const QVector<OverlayID>& overlaysToInclude,
+                                                                   const QVector<OverlayID>& overlaysToDiscard,
+                                                                   bool visibleOnly, bool collidableOnly) {
     float bestDistance = std::numeric_limits<float>::max();
     bool bestIsFront = false;
 
@@ -702,7 +761,7 @@ bool Overlays::isAddedOverlay(OverlayID id) {
     }
 
     QMutexLocker locker(&_mutex);
-    return _overlaysHUD.contains(id) || _overlaysWorld.contains(id);
+    return _overlaysHUD.contains(id) || _overlays3DHUD.contains(id) || _overlaysWorld.contains(id);
 }
 
 void Overlays::sendMousePressOnOverlay(const OverlayID& overlayID, const PointerEvent& event) {
@@ -849,21 +908,21 @@ RayToOverlayIntersectionResult Overlays::findRayIntersectionForMouseEvent(PickRa
 
     // first priority is tablet screen
     overlaysToInclude << qApp->getTabletScreenID();
-    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDiscard);
+    rayPickResult = findRayIntersectionVector(ray, true, overlaysToInclude, overlaysToDiscard);
     if (rayPickResult.intersects) {
         return rayPickResult;
     }
     // then tablet home button
     overlaysToInclude.clear();
     overlaysToInclude << qApp->getTabletHomeButtonID();
-    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDiscard);
+    rayPickResult = findRayIntersectionVector(ray, true, overlaysToInclude, overlaysToDiscard);
     if (rayPickResult.intersects) {
         return rayPickResult;
     }
     // then tablet frame
     overlaysToInclude.clear();
     overlaysToInclude << OverlayID(qApp->getTabletFrameID());
-    rayPickResult = findRayIntersectionInternal(ray, true, overlaysToInclude, overlaysToDiscard);
+    rayPickResult = findRayIntersectionVector(ray, true, overlaysToInclude, overlaysToDiscard);
     if (rayPickResult.intersects) {
         return rayPickResult;
     }

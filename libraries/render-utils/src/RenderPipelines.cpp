@@ -99,7 +99,7 @@
 using namespace render;
 using namespace std::placeholders;
 
-void initOverlay3DPipelines(ShapePlumber& plumber);
+void initOverlay3DPipelines(ShapePlumber& plumber, bool depthTest = false);
 void initDeferredPipelines(ShapePlumber& plumber, const render::ShapePipeline::BatchSetter& batchSetter, const render::ShapePipeline::ItemSetter& itemSetter);
 void initForwardPipelines(ShapePlumber& plumber);
 
@@ -110,7 +110,7 @@ void addPlumberPipeline(ShapePlumber& plumber,
 void batchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* args);
 void lightBatchSetter(const ShapePipeline& pipeline, gpu::Batch& batch, RenderArgs* args);
 
-void initOverlay3DPipelines(ShapePlumber& plumber) {
+void initOverlay3DPipelines(ShapePlumber& plumber, bool depthTest) {
     auto vertex = gpu::Shader::createVertex(std::string(overlay3D_vert));
     auto vertexModel = gpu::Shader::createVertex(std::string(model_vert));
     auto pixel = gpu::Shader::createPixel(std::string(overlay3D_frag));
@@ -137,7 +137,11 @@ void initOverlay3DPipelines(ShapePlumber& plumber) {
         bool isOpaque = (i & 4);
 
         auto state = std::make_shared<gpu::State>();
-        state->setDepthTest(false);
+        if (depthTest) {
+            state->setDepthTest(true, true, gpu::LESS_EQUAL);
+        } else {
+            state->setDepthTest(false);
+        }
         state->setCullMode(isCulled ? gpu::State::CULL_BACK : gpu::State::CULL_NONE);
         if (isBiased) {
             state->setDepthBias(1.0f);

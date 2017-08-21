@@ -1228,7 +1228,7 @@ Script.scriptEnding.connect(function () {
     Controller.mouseMoveEvent.disconnect(mouseMoveEventBuffered);
     Controller.mouseReleaseEvent.disconnect(mouseReleaseEvent);
 
-    Messages.messageReceived.disconnect(handleOverlaySelectionToolUpdates);
+    Messages.messageReceived.disconnect(handleMessagesReceived);
     Messages.unsubscribe("entityToolUpdates");
     Messages.unsubscribe("Toolbar-DomainChanged");
     createButton = null;
