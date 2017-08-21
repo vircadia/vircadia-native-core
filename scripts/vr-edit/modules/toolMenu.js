@@ -318,6 +318,50 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         OPTONS_PANELS = {
+            scaleOptions: [
+                {
+                    id: "scaleOptionsPanel",
+                    type: "panel",
+                    properties: {
+                        localPosition: { x: 0.055, y: 0.0, z: -0.005 }
+                    }
+                },
+                {
+                    id: "scaleFinishButton",
+                    type: "button",
+                    properties: {
+                        dimensions: { x: 0.07, y: 0.03, z: 0.01 },
+                        localPosition: { x: 0, y: 0, z: -0.005 },
+                        color: { red: 200, green: 200, blue: 200 }
+                    },
+                    label: "FINISH",
+                    command: {
+                        method: "closeOptions"
+                    }
+                }
+            ],
+            cloneOptions: [
+                {
+                    id: "cloneOptionsPanel",
+                    type: "panel",
+                    properties: {
+                        localPosition: { x: 0.055, y: 0.0, z: -0.005 }
+                    }
+                },
+                {
+                    id: "cloneFinishButton",
+                    type: "button",
+                    properties: {
+                        dimensions: { x: 0.07, y: 0.03, z: 0.01 },
+                        localPosition: { x: 0, y: 0, z: -0.005 },
+                        color: { red: 200, green: 200, blue: 200 }
+                    },
+                    label: "FINISH",
+                    command: {
+                        method: "closeOptions"
+                    }
+                }
+            ],
             groupOptions: [
                 {
                     id: "groupOptionsPanel",
@@ -750,6 +794,28 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         localPosition: { x: 0.045, y: 0.057, z: -0.0075 }
                     }
                 }
+            ],
+            deleteOptions: [
+                {
+                    id: "deleteOptionsPanel",
+                    type: "panel",
+                    properties: {
+                        localPosition: { x: 0.055, y: 0.0, z: -0.005 }
+                    }
+                },
+                {
+                    id: "deleteFinishButton",
+                    type: "button",
+                    properties: {
+                        dimensions: { x: 0.07, y: 0.03, z: 0.01 },
+                        localPosition: { x: 0, y: 0, z: -0.005 },
+                        color: { red: 200, green: 200, blue: 200 }
+                    },
+                    label: "FINISH",
+                    command: {
+                        method: "closeOptions"
+                    }
+                }
             ]
         },
 
@@ -769,6 +835,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     color: { red: 0, green: 240, blue: 240 }
                 },
                 label: "  SCALE",
+                toolOptions: "scaleOptions",
                 callback: {
                     method: "scaleTool"
                 }
@@ -781,6 +848,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     color: { red: 240, green: 240, blue: 0 }
                 },
                 label: "  CLONE",
+                toolOptions: "cloneOptions",
                 callback: {
                     method: "cloneTool"
                 }
@@ -833,6 +901,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     color: { red: 240, green: 60, blue: 60 }
                 },
                 label: " DELETE",
+                toolOptions: "deleteOptions",
                 callback: {
                     method: "deleteTool"
                 }
@@ -1536,6 +1605,10 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             setPresetsLabelToCustom();
             Settings.setValue(optionsSettings.densitySlider.key, parameter);
             uiCommandCallback("setDensity", parameter);
+            break;
+
+        case "closeOptions":
+            closeOptions();
             break;
 
         default:
