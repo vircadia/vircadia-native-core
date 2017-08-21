@@ -84,6 +84,7 @@ void EntityTreeSendThread::preDistributionProcessing() {
 void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
             bool viewFrustumChanged, bool isFullScene) {
     // BEGIN EXPERIMENTAL DIFFERENTIAL TRAVERSAL
+    int32_t lodLevelOffset = nodeData->getBoundaryLevelAdjust() + (viewFrustumChanged ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
     if (nodeData->getUsesFrustum()) {
         // DEBUG HACK: trigger traversal (Repeat) every so often
         const uint64_t TRAVERSE_AGAIN_PERIOD = 4 * USECS_PER_SECOND;
@@ -92,10 +93,14 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
             ViewFrustum viewFrustum;
             nodeData->copyCurrentViewFrustum(viewFrustum);
             EntityTreeElementPointer root = std::dynamic_pointer_cast<EntityTreeElement>(_myServer->getOctree()->getRoot());
-            int32_t lodLevelOffset = nodeData->getBoundaryLevelAdjust() + (viewFrustumChanged ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
             startNewTraversal(viewFrustum, root, lodLevelOffset);
         }
     }
+
+    // If the previous traversal didn't finish, we'll need to resort the entities still in _sendQueue after calling traverse
+    EntityPriorityQueue prevSendQueue;
+    _sendQueue.swap(prevSendQueue);
+
     if (!_traversal.finished()) {
         uint64_t startTime = usecTimestampNow();
 
@@ -105,6 +110,34 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
         uint64_t dt = usecTimestampNow() - startTime;
         std::cout << "adebug  traversal complete " << "  Q.size = " << _sendQueue.size() << "  dt = " << dt << std::endl;  // adebug
     }
+
+    // Re-add elements from previous traveral if they still need to be sent
+    while (!prevSendQueue.empty()) {
+        EntityItemPointer entity = prevSendQueue.top().getEntity();
+        prevSendQueue.pop();
+        if (entity) {
+            bool success = false;
+            AACube cube = entity->getQueryAACube(success);
+            if (success) {
+                if (_traversal.getCurrentView().cubeIntersectsKeyhole(cube)) {
+                    float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
+                                                                   cube,
+                                                                   _traversal.getCurrentRootSizeScale(),
+                                                                   lodLevelOffset);
+
+                    // Only send entities if they are large enough to see
+                    if (renderAccuracy > 0.0f) {
+                        float priority = _conicalView.computePriority(cube);
+                        _sendQueue.push(PrioritizedEntity(entity, priority));
+                    }
+                }
+            } else {
+                const float WHEN_IN_DOUBT_PRIORITY = 1.0f;
+                _sendQueue.push(PrioritizedEntity(entity, WHEN_IN_DOUBT_PRIORITY));
+            }
+        }
+    }
+
     if (!_sendQueue.empty()) {
         // print what needs to be sent
         while (!_sendQueue.empty()) {
