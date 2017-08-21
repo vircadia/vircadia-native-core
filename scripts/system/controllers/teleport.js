@@ -237,10 +237,6 @@ function Teleporter(hand) {
         LaserPointers.removeLaserPointer(this.teleportRayRightInvisible);
         LaserPointers.removeLaserPointer(this.teleportRayHeadVisible);
         LaserPointers.removeLaserPointer(this.teleportRayHeadInvisible);
-
-        if (this.updateConnected === true) {
-            Script.update.disconnect(this, this.update);
-        }
     };
 
     this.enterTeleportMode = function(hand) {
@@ -266,15 +262,9 @@ function Teleporter(hand) {
 
         this.activeHand = hand;
         this.enableMappings();
-        Script.update.connect(this, this.update);
-        this.updateConnected = true;
     };
 
     this.exitTeleportMode = function(value) {
-        if (this.updateConnected === true) {
-            Script.update.disconnect(this, this.update);
-        }
-
         this.disableMappings();
         LaserPointers.disableLaserPointer(this.teleportRayLeftVisible);
         LaserPointers.disableLaserPointer(this.teleportRayLeftInvisible);
@@ -298,12 +288,8 @@ function Teleporter(hand) {
         print("--------> is teleport plugin ready <--------");
         return false;
     };
-
+    
     this.run = function(controllerData, deltaTime) {
-        print("---------> running teleport plugin <--------");
-    };
-
-    this.update = function() {
         if (_this.state === TELEPORTER_STATES.IDLE) {
             return;
         }
