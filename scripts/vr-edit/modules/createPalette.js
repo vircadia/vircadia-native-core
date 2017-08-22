@@ -267,15 +267,17 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // Press item and create new entity.
         isTriggerClicked = controlHand.triggerClicked();
         if (highlightedItem !== NONE && pressedItem === NONE && isTriggerClicked && !wasTriggerClicked) {
+            // Press item.
             Overlays.editOverlay(paletteItemOverlays[itemIndex], {
                 localPosition: Vec3.sum(paletteItemPositions[itemIndex], PRESS_DELTA)
             });
             pressedItem = itemIndex;
 
+            // Create entity.
             properties = Object.clone(PALETTE_ITEMS[itemIndex].entity);
             properties.position = Vec3.sum(controlHand.palmPosition(),
                 Vec3.multiplyQbyV(controlHand.orientation(),
-                    Vec3.sum({ x: 0, y: properties.dimensions.z + 0.01, z: 0 }, CREATE_OFFSET)));
+                    Vec3.sum({ x: 0, y: properties.dimensions.z / 2, z: 0 }, CREATE_OFFSET)));
             properties.rotation = Quat.multiply(controlHand.orientation(), INVERSE_HAND_BASIS_ROTATION);
             Entities.addEntity(properties);
 
