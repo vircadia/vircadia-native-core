@@ -679,7 +679,6 @@ void MyAvatar::updateSensorToWorldMatrix() {
     }
 
     _sensorToWorldMatrixCache.set(_sensorToWorldMatrix);
-    _sensorToWorldScaleCache.set(sensorToWorldScale);
 
     updateJointFromController(controller::Action::LEFT_HAND, _controllerLeftHandMatrixCache);
     updateJointFromController(controller::Action::RIGHT_HAND, _controllerRightHandMatrixCache);
@@ -2577,8 +2576,8 @@ glm::mat4 MyAvatar::deriveBodyFromHMDSensor() const {
     glm::vec3 headToNeck = headOrientation * Quaternions::Y_180 * (localNeck - localHead);
     glm::vec3 neckToRoot = headOrientationYawOnly  * Quaternions::Y_180 * -localNeck;
 
-    float invHeightRatio = getUserEyeHeight() / getEyeHeight();
-    glm::vec3 bodyPos = headPosition + invHeightRatio * (headToNeck + neckToRoot);
+    float invSensorToWorldScale = getUserEyeHeight() / getEyeHeight();
+    glm::vec3 bodyPos = headPosition + invSensorToWorldScale * (headToNeck + neckToRoot);
 
     return createMatFromQuatAndPos(headOrientationYawOnly, bodyPos);
 }

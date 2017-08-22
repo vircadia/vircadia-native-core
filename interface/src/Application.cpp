@@ -2478,9 +2478,9 @@ void Application::paintGL() {
     auto hmdInterface = DependencyManager::get<HMDScriptingInterface>();
     float ipdScale = hmdInterface->getIPDScale();
 
-    // scale IPD by height ratio, to make the world seem larger or smaller accordingly.
-    float heightRatio = getMyAvatar()->getEyeHeight() / getMyAvatar()->getUserEyeHeight();
-    ipdScale *= heightRatio;
+    // scale IPD by sensorToWorldScale, to make the world seem larger or smaller accordingly.
+    float sensorToWorldScale = getMyAvatar()->getSensorToWorldScale();
+    ipdScale *= sensorToWorldScale;
 
     mat4 eyeProjections[2];
     {
@@ -2509,7 +2509,7 @@ void Application::paintGL() {
             // adjust near clip plane by heightRatio
             auto baseProjection = glm::perspective(renderArgs.getViewFrustum().getFieldOfView(),
                                                    renderArgs.getViewFrustum().getAspectRatio(),
-                                                   renderArgs.getViewFrustum().getNearClip() * heightRatio,
+                                                   renderArgs.getViewFrustum().getNearClip() * sensorToWorldScale,
                                                    renderArgs.getViewFrustum().getFarClip());
 
             // FIXME we probably don't need to set the projection matrix every frame,
