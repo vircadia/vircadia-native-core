@@ -458,7 +458,6 @@ Rectangle {
                         choosePassphraseContainer.visible = false;
                         privateKeysReadyContainer.visible = true;
                         commerce.balance(); // Do this here so that keys are generated. Order might change as backend changes?
-                        commerce.getKeyFilePath();
                     }
                 }
             }
@@ -549,15 +548,44 @@ Rectangle {
             horizontalAlignment: Text.AlignHLeft;
             verticalAlignment: Text.AlignVCenter;
         }
-        
+
         HifiControlsUit.TextField {
             id: keyFilePath;
             anchors.top: explanationText.bottom;
             anchors.topMargin: 10;
             anchors.left: parent.left;
-            anchors.right: parent.right;
+            anchors.right: clipboardButton.left;
             height: 40;
             readOnly: true;
+
+            onVisibleChanged: {
+                if (visible) {
+                    commerce.getKeyFilePath();
+                }
+            }
+        }
+        HifiControlsUit.Button {
+            id: clipboardButton;
+            color: hifi.buttons.black;
+            colorScheme: hifi.colorSchemes.dark;
+            anchors.right: parent.right;
+            anchors.top: keyFilePath.top;
+            anchors.bottom: keyFilePath.bottom;
+            width: height;
+            HiFiGlyphs {
+                text: hifi.glyphs.question;
+                // Size
+                size: parent.height*1.3;
+                // Anchors
+                anchors.fill: parent;
+                // Style
+                horizontalAlignment: Text.AlignHCenter;
+                color: enabled ? hifi.colors.white : hifi.colors.faintGray;
+            }
+
+            onClicked: {
+                Window.copyToClipboard(keyFilePath.text);
+            }
         }
         
         // Navigation Bar

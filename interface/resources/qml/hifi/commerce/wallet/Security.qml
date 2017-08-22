@@ -43,6 +43,10 @@ Item {
         }
     }
 
+    SecurityImageModel {
+        id: securityImageModel;
+    }
+
     // Username Text
     RalewayRegular {
         id: usernameText;
@@ -67,6 +71,13 @@ Item {
         anchors.right: parent.right;
         width: 75;
         height: childrenRect.height;
+
+        onVisibleChanged: {
+            if (visible) {
+                commerce.getSecurityImage();
+            }
+        }
+
         Image {
             id: topSecurityImage;
             // Anchors
@@ -76,12 +87,6 @@ Item {
             width: height;
             fillMode: Image.PreserveAspectFit;
             mipmap: true;
-
-            onVisibleChanged: {
-                if (visible) {
-                    commerce.getSecurityImage();
-                }
-            }
         }
         // "Security picture" text below pic
         RalewayRegular {
@@ -221,7 +226,7 @@ Item {
         RalewayRegular {
             id: explanitoryText;
             text: "Your money and purchases are secured with private keys that only you " +
-            "have access to. <b>If they are lost, you will not be able to access your money or purchases." +
+            "have access to. <b>If they are lost, you will not be able to access your money or purchases. " +
             "To safeguard your private keys, back up this file regularly:</b>";
             // Text size
             size: 18;
@@ -243,7 +248,7 @@ Item {
             anchors.top: explanitoryText.bottom;
             anchors.topMargin: 10;
             anchors.left: parent.left;
-            anchors.right: parent.right;
+            anchors.right: clipboardButton.left;
             height: 40;
             readOnly: true;
 
@@ -251,6 +256,29 @@ Item {
                 if (visible) {
                     commerce.getKeyFilePath();
                 }
+            }
+        }
+        HifiControlsUit.Button {
+            id: clipboardButton;
+            color: hifi.buttons.black;
+            colorScheme: hifi.colorSchemes.dark;
+            anchors.right: parent.right;
+            anchors.top: keyFilePath.top;
+            anchors.bottom: keyFilePath.bottom;
+            width: height;
+            HiFiGlyphs {
+                text: hifi.glyphs.question;
+                // Size
+                size: parent.height*1.3;
+                // Anchors
+                anchors.fill: parent;
+                // Style
+                horizontalAlignment: Text.AlignHCenter;
+                color: enabled ? hifi.colors.white : hifi.colors.faintGray;
+            }
+
+            onClicked: {
+                Window.copyToClipboard(keyFilePath.text);
             }
         }
     }

@@ -38,6 +38,10 @@ Item {
             balanceText.text = parseFloat(result.data.balance/100).toFixed(2);
         }
     }
+
+    SecurityImageModel {
+        id: securityImageModel;
+    }
     
     Connections {
         target: GlobalServices
@@ -106,7 +110,7 @@ Item {
             // Balance Text
             FiraSansRegular {
                 id: balanceText;
-                text: --;
+                text: "--";
                 // Text size
                 size: 28;
                 // Anchors
@@ -149,6 +153,13 @@ Item {
         anchors.right: parent.right;
         width: 75;
         height: childrenRect.height;
+
+        onVisibleChanged: {
+            if (visible) {
+                commerce.getSecurityImage();
+            }
+        }
+
         Image {
             id: securityImage;
             // Anchors

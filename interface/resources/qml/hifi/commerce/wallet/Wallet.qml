@@ -25,7 +25,7 @@ Rectangle {
 
     id: root;
 
-    property string activeView: "";
+    property string activeView: "walletHome";
 
     // Style
     color: hifi.colors.baseGray;
@@ -43,8 +43,6 @@ Rectangle {
         onKeyFilePathResult: {
             if (path === "") {
                 root.activeView = "notSetUp";
-            } else {
-                root.activeView = "walletHome";
             }
         }
     }
