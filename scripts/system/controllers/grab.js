@@ -21,6 +21,8 @@
 (function() { // BEGIN LOCAL_SCOPE
 
 Script.include("/~/system/libraries/utils.js");
+Script.include("/~/system/controllers/controllerDispatcherUtils.js");
+Script.include("/~/system/libraries/controllers.js"); 
 var MAX_SOLID_ANGLE = 0.01; // objects that appear smaller than this can't be grabbed
 
 var DELAY_FOR_30HZ = 33; // milliseconds
@@ -250,6 +252,12 @@ function Grabber() {
         y: 0,
         z: 0
     };
+
+    this.paramters = makeDispatcherModuleParameters(
+        300,
+        "mouse",
+        [],
+        100);
 
     this.targetPosition = null;
     this.targetRotation = null;

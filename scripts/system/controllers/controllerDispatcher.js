@@ -39,7 +39,8 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
     // is stored as the value, rather than false.
     this.activitySlots = {
         leftHand: false,
-        rightHand: false
+        rightHand: false,
+        mouse: false
     };
 
     this.slotsAreAvailableForPlugin = function (plugin) {

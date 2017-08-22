@@ -163,41 +163,27 @@ var TARGET = {
 function Teleporter(hand) {
     var _this = this;
     this.hand = hand;
+    this.buttonValue = 0;
     this.active = false;
     this.state = TELEPORTER_STATES.IDLE;
     this.currentTarget = TARGET.INVALID;
+    this.currentResult = null;
 
-    this.teleportRayLeftVisible = LaserPointers.createLaserPointer({
-        joint: "LeftHand",
+    this.teleportRayHandVisible = LaserPointers.createLaserPointer({
+        joint: (_this.hand === RIGHT_HAND) ? "RightHand" : "LeftHand",
         filter: RayPick.PICK_ENTITIES,
         faceAvatar: true,
         centerEndY: false,
         renderStates: teleportRenderStates,
         defaultRenderStates: teleportDefaultRenderStates
     });
-    this.teleportRayLeftInvisible = LaserPointers.createLaserPointer({
-        joint: "LeftHand",
+    this.teleportRayHandInvisible = LaserPointers.createLaserPointer({
+        joint: (_this.hand === RIGHT_HAND) ? "RightHand" : "LeftHand",
         filter: RayPick.PICK_ENTITIES | RayPick.PICK_INCLUDE_INVISIBLE,
         faceAvatar: true,
         centerEndY: false,
         renderStates: teleportRenderStates
     });
-    this.teleportRayRightVisible = LaserPointers.createLaserPointer({
-        joint: "RightHand",
-        filter: RayPick.PICK_ENTITIES,
-        faceAvatar: true,
-        centerEndY: false,
-        renderStates: teleportRenderStates,
-        defaultRenderStates: teleportDefaultRenderStates
-    });
-    this.teleportRayRightInvisible = LaserPointers.createLaserPointer({
-        joint: "RightHand",
-        filter: RayPick.PICK_ENTITIES | RayPick.PICK_INCLUDE_INVISIBLE,
-        faceAvatar: true,
-        centerEndY: false,
-        renderStates: teleportRenderStates
-    });
-
     this.teleportRayHeadVisible = LaserPointers.createLaserPointer({
         joint: "Avatar",
         filter: RayPick.PICK_ENTITIES,
@@ -214,9 +200,6 @@ function Teleporter(hand) {
         renderStates: teleportRenderStates
     });
 
-    this.updateConnected = null;
-    this.activeHand = null;
-
     this.teleporterMappingInternalName = 'Hifi-Teleporter-Internal-Dev-' + Math.random();
     this.teleportMappingInternal = Controller.newMapping(this.teleporterMappingInternalName);
 
@@ -231,90 +214,43 @@ function Teleporter(hand) {
     this.cleanup = function() {
         this.disableMappings();
 
-        LaserPointers.removeLaserPointer(this.teleportRayLeftVisible);
-        LaserPointers.removeLaserPointer(this.teleportRayLeftInvisible);
-        LaserPointers.removeLaserPointer(this.teleportRayRightVisible);
-        LaserPointers.removeLaserPointer(this.teleportRayRightInvisible);
+        LaserPointers.removeLaserPointer(this.teleportRayHandVisible);
+        LaserPointers.removeLaserPointer(this.teleportRayHandInvisible);
         LaserPointers.removeLaserPointer(this.teleportRayHeadVisible);
         LaserPointers.removeLaserPointer(this.teleportRayHeadInvisible);
     };
 
-    this.enterTeleportMode = function(hand) {
-        if (inTeleportMode === true) {
-            return;
-        }
-        if (isDisabled === 'both' || isDisabled === hand) {
-            return;
-        }
-
-        inTeleportMode = true;
-
-        if (coolInTimeout !== null) {
-            Script.clearTimeout(coolInTimeout);
-        }
-
-        this.state = TELEPORTER_STATES.COOL_IN;
-        coolInTimeout = Script.setTimeout(function() {
-            if (_this.state === TELEPORTER_STATES.COOL_IN) {
-                _this.state = TELEPORTER_STATES.TARGETTING;
-            }
-        }, COOL_IN_DURATION);
-
-        this.activeHand = hand;
-        this.enableMappings();
-    };
-
-    this.exitTeleportMode = function(value) {
-        this.disableMappings();
-        LaserPointers.disableLaserPointer(this.teleportRayLeftVisible);
-        LaserPointers.disableLaserPointer(this.teleportRayLeftInvisible);
-        LaserPointers.disableLaserPointer(this.teleportRayRightVisible);
-        LaserPointers.disableLaserPointer(this.teleportRayRightInvisible);
-        LaserPointers.disableLaserPointer(this.teleportRayHeadVisible);
-        LaserPointers.disableLaserPointer(this.teleportRayHeadInvisible);
-
-        this.updateConnected = null;
-        this.state = TELEPORTER_STATES.IDLE;
-        inTeleportMode = false;
-    };
-
+    this.buttonPress = function(value) {
+        _this.buttonValue = value;
+    }
+    
     this.parameters = makeDispatcherModuleParameters(
         300,
-        //this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
+        this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
         [],
         100);
 
     this.isReady = function(controllerData, deltaTime) {
-        print("--------> is teleport plugin ready <--------");
-        return false;
+        if (_this.buttonValue !== 0) {            
+            return makeRunningValues(true, [], []);
+        }
+        return makeRunningValues(false, [], []);
     };
     
     this.run = function(controllerData, deltaTime) {
-        if (_this.state === TELEPORTER_STATES.IDLE) {
-            return;
-        }
+        _this.state = TELEPORTER_STATES.TARGETTING;
 
         // Get current hand pose information to see if the pose is valid
-        var pose = Controller.getPoseValue(handInfo[_this.activeHand].controllerInput);
-        var mode = pose.valid ? _this.activeHand : 'head';
+        var pose = Controller.getPoseValue(handInfo[(_this.hand === RIGHT_HAND) ? 'right' : 'left'].controllerInput);
+        var mode = pose.valid ? _this.hand : 'head';
         if (!pose.valid) {
-            if (mode === 'right') {
-                LaserPointers.disableLaserPointer(_this.teleportRayRightVisible);
-                LaserPointers.disableLaserPointer(_this.teleportRayRightInvisible);
-            } else {
-                LaserPointers.disableLaserPointer(_this.teleportRayLeftVisible);
-                LaserPointers.disableLaserPointer(_this.teleportRayLeftInvisible);
-            }
+            LaserPointers.disableLaserPointer(_this.teleportRayHandVisible);
+            LaserPointers.disableLaserPointer(_this.teleportRayHandInvisible);
             LaserPointers.enableLaserPointer(_this.teleportRayHeadVisible);
             LaserPointers.enableLaserPointer(_this.teleportRayHeadInvisible);
         } else {
-            if (mode === 'right') {
-                LaserPointers.enableLaserPointer(_this.teleportRayRightVisible);
-                LaserPointers.enableLaserPointer(_this.teleportRayRightInvisible);
-            } else {
-                LaserPointers.enableLaserPointer(_this.teleportRayLeftVisible);
-                LaserPointers.enableLaserPointer(_this.teleportRayLeftInvisible);
-            }
+            LaserPointers.enableLaserPointer(_this.teleportRayHandVisible);
+            LaserPointers.enableLaserPointer(_this.teleportRayHandInvisible);
             LaserPointers.disableLaserPointer(_this.teleportRayHeadVisible);
             LaserPointers.disableLaserPointer(_this.teleportRayHeadInvisible);
         }
@@ -329,23 +265,20 @@ function Teleporter(hand) {
         //  * In the second pass we pick against visible entities only.
         //
         var result;
-        if (mode === 'right') {
-            result = LaserPointers.getPrevRayPickResult(_this.teleportRayRightInvisible);
-        } else if (mode === 'left') {
-            result = LaserPointers.getPrevRayPickResult(_this.teleportRayLeftInvisible);
-        } else {
+        if (mode === 'head') {
             result = LaserPointers.getPrevRayPickResult(_this.teleportRayHeadInvisible);
+        } else {
+            result = LaserPointers.getPrevRayPickResult(_this.teleportRayHandInvisible);
         }
 
         var teleportLocationType = getTeleportTargetType(result);
         if (teleportLocationType === TARGET.INVISIBLE) {
-            if (mode === 'right') {
-                result = LaserPointers.getPrevRayPickResult(_this.teleportRayRightVisible);
-            } else if (mode === 'left') {
-                result = LaserPointers.getPrevRayPickResult(_this.teleportRayLeftVisible);
-            } else {
+            if (mode === 'head') {
                 result = LaserPointers.getPrevRayPickResult(_this.teleportRayHeadVisible);
+            } else {
+                result = LaserPointers.getPrevRayPickResult(_this.teleportRayHandVisible);
             }
+            
             teleportLocationType = getTeleportTargetType(result);
         }
 
@@ -363,37 +296,45 @@ function Teleporter(hand) {
         } else if (teleportLocationType === TARGET.SEAT) {
             this.setTeleportState(mode, "", "seat");
         }
+        return this.teleport(result, teleportLocationType);
+    };
 
-
-        if (((_this.activeHand === 'left' ? leftPad : rightPad).buttonValue === 0) && inTeleportMode === true) {
-            // remember the state before we exit teleport mode and set it back to IDLE
-            var previousState = this.state;
-            this.exitTeleportMode();
-
-            if (teleportLocationType === TARGET.NONE || teleportLocationType === TARGET.INVALID || previousState === TELEPORTER_STATES.COOL_IN) {
-                // Do nothing
-            } else if (teleportLocationType === TARGET.SEAT) {
-                Entities.callEntityMethod(result.objectID, 'sit');
-            } else if (teleportLocationType === TARGET.SURFACE) {
-                var offset = getAvatarFootOffset();
-                result.intersection.y += offset;
-                MyAvatar.goToLocation(result.intersection, false, {x: 0, y: 0, z: 0, w: 1}, false);
-                HMD.centerUI();
-                MyAvatar.centerBody();
-            }
+    this.teleport = function(newResult, target) {
+        var result = newResult;
+        if (_this.buttonValue !== 0) {
+            return makeRunningValues(true, [], []);
         }
+        
+        if (target === TARGET.NONE || target === TARGET.INVALID) {
+            // Do nothing
+        } else if (target === TARGET.SEAT) {
+            Entities.callEntityMethod(result.objectID, 'sit');
+        } else if (target === TARGET.SURFACE) {
+            var offset = getAvatarFootOffset();
+            result.intersection.y += offset;
+            MyAvatar.goToLocation(result.intersection, false, {x: 0, y: 0, z: 0, w: 1}, false);
+            HMD.centerUI();
+            MyAvatar.centerBody();
+        }
+
+        this.disableLasers();
+        return makeRunningValues(false, [], []);
+    };
+
+    this.disableLasers = function() {
+        LaserPointers.disableLaserPointer(_this.teleportRayHandVisible);
+        LaserPointers.disableLaserPointer(_this.teleportRayHandInvisible);
+        LaserPointers.disableLaserPointer(_this.teleportRayHeadVisible);
+        LaserPointers.disableLaserPointer(_this.teleportRayHeadInvisible);
     };
 
     this.setTeleportState = function(mode, visibleState, invisibleState) {
-        if (mode === 'right') {
-            LaserPointers.setRenderState(_this.teleportRayRightVisible, visibleState);
-            LaserPointers.setRenderState(_this.teleportRayRightInvisible, invisibleState);
-        } else if (mode === 'left') {
-            LaserPointers.setRenderState(_this.teleportRayLeftVisible, visibleState);
-            LaserPointers.setRenderState(_this.teleportRayLeftInvisible, invisibleState);
-        } else {
+        if (mode === 'head') {
             LaserPointers.setRenderState(_this.teleportRayHeadVisible, visibleState);
             LaserPointers.setRenderState(_this.teleportRayHeadInvisible, invisibleState);
+        } else {
+            LaserPointers.setRenderState(_this.teleportRayHandVisible, visibleState);
+            LaserPointers.setRenderState(_this.teleportRayHandInvisible, invisibleState);
         }
     };
 }
@@ -491,57 +432,21 @@ function Teleporter(hand) {
     function registerMappings() {
         mappingName = 'Hifi-Teleporter-Dev-' + Math.random();
         teleportMapping = Controller.newMapping(mappingName);
-        //teleportMapping.from(Controller.Standard.RT).peek().to(rightTrigger.buttonPress);
-        //teleportMapping.from(Controller.Standard.LT).peek().to(leftTrigger.buttonPress);
         
-        teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightPad.buttonPress);
-        teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftPad.buttonPress);
-        
-        /*teleportMapping.from(Controller.Standard.LeftPrimaryThumb)
-            .to(function(value) {
-                if (isDisabled === 'left' || isDisabled === 'both') {
-                    return;
-                }
-                if (leftTrigger.down()) {
-                    return;
-                }
-                if (isMoving() === true) {
-                    return;
-                }
-                //teleporter.enterTeleportMode('left');
-                return;
-            });
-        teleportMapping.from(Controller.Standard.RightPrimaryThumb)
-            .to(function(value) {
-                if (isDisabled === 'right' || isDisabled === 'both') {
-                    return;
-                }
-                if (rightTrigger.down()) {
-                    return;
-                }
-                if (isMoving() === true) {
-                    return;
-                }
-                
-                //teleporter.enterTeleportMode('right');
-                return;
-            });*/
+        teleportMapping.from(Controller.Standard.RightPrimaryThumb).peek().to(rightTeleporter.buttonPress);
+        teleportMapping.from(Controller.Standard.LeftPrimaryThumb).peek().to(leftTeleporter.buttonPress);
     }
-    
-    registerMappings();
 
-    var teleporter = new Teleporter(LEFT_HAND);
     var leftTeleporter = new Teleporter(LEFT_HAND);
     var rightTeleporter = new Teleporter(RIGHT_HAND);
 
     enableDispatcherModule("LeftTeleporter", leftTeleporter);
     enableDispatcherModule("RightTeleporter", rightTeleporter);
-
+    registerMappings();
     Controller.enableMapping(mappingName);
 
     function cleanup() {
         teleportMapping.disable();
-        //teleporter.cleanup();
         disableDispatcherModule("LeftTeleporter");
         disableDispatcherModule("RightTeleporter");
     }
