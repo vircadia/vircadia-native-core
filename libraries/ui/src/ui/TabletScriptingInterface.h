@@ -122,7 +122,7 @@ public:
      * @param [injectedJavaScriptUrl] {string} optional url to an additional JS script to inject into the web page.
      */
     Q_INVOKABLE void gotoWebScreen(const QString& url);
-    Q_INVOKABLE void gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl);
+    Q_INVOKABLE void gotoWebScreen(const QString& url, const QString& injectedJavaScriptUrl, bool loadOtherBase = false);
 
     Q_INVOKABLE void loadQMLSource(const QVariant& path);
     // FIXME: This currently relies on a script initializing the tablet (hence the bool denoting success);

@@ -42,9 +42,17 @@ Windows.ScrollingWindow {
         loader.source = "WindowWebView.qml";
     }
 
+    function loadTabletWebBase() {
+        loader.source = "";
+        loader.source = "../../controls/TabletWebView.qml";
+    }
+
     function loadWebUrl(url, injectedJavaScriptUrl) {
         loader.item.url = url;
         loader.item.scriptURL = injectedJavaScriptUrl;
+        if (loader.item.hasOwnProperty("closeButtonVisible")) {
+            loader.item.closeButtonVisible = false;
+        }
     }
 
     // used to send a message from qml to interface script.

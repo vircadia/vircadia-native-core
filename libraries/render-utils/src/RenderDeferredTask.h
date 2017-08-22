@@ -152,7 +152,7 @@ public:
 protected:
     render::ShapePlumberPointer _shapePlumber;
     int _maxDrawn; // initialized by Config
-    bool _opaquePass{ true };
+    bool _opaquePass { true };
 };
 
 class Blit {

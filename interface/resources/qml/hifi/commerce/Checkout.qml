@@ -35,8 +35,8 @@ Rectangle {
     Hifi.QmlCommerce {
         id: commerce;
         onBuyResult: {
-                if (failureMessage.length) {
-                    buyButton.text = "Buy Failed";
+                if (result.status !== 'success') {
+                    buyButton.text = result.message;
                     buyButton.enabled = false;
                 } else {
                     if (urlHandler.canHandleUrl(itemHref)) {
@@ -46,20 +46,21 @@ Rectangle {
                 }
         }
         onBalanceResult: {
-            if (failureMessage.length) {
-                console.log("Failed to get balance", failureMessage);
+            if (result.status !== 'success') {
+                console.log("Failed to get balance", result.message);
             } else {
                 balanceReceived = true;
-                hfcBalanceText.text = balance;
-                balanceAfterPurchase = balance - parseInt(itemPriceText.text, 10);
+                hfcBalanceText.text = result.data.balance;
+                balanceAfterPurchase = result.data.balance - parseInt(itemPriceText.text, 10);
             }
         }
         onInventoryResult: {
-            if (failureMessage.length) {
-                console.log("Failed to get inventory", failureMessage);
+            if (result.status !== 'success') {
+                console.log("Failed to get inventory", result.message);
             } else {
                 inventoryReceived = true;
-                if (inventoryContains(inventory.assets, itemId)) {
+                console.log('inventory fixme', JSON.stringify(result));
+                if (inventoryContains(result.data.assets, itemId)) {
                     alreadyOwned = true;
                 } else {
                     alreadyOwned = false;
