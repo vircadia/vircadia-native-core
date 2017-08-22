@@ -67,7 +67,8 @@ void RayPickManager::update() {
             bool noncollidable = rayPick->getFilter().doesPickNonCollidable();
             RayPickFilter::Flags entityMask = rayPick->getFilter().getEntityFlags();
             if (!checkAndCompareCachedResults(rayKey, results, res, entityMask)) {
-                entityRes = DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(ray, true, rayPick->getIncludeEntites(), rayPick->getIgnoreEntites(), !invisible, !noncollidable);
+                entityRes = DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(ray, rayPick->doesPrecisionPicking(),
+                    rayPick->getIncludeEntites(), rayPick->getIgnoreEntites(), !invisible, !noncollidable);
                 fromCache = false;
             }
 
@@ -84,7 +85,8 @@ void RayPickManager::update() {
             bool noncollidable = rayPick->getFilter().doesPickNonCollidable();
             RayPickFilter::Flags overlayMask = rayPick->getFilter().getOverlayFlags();
             if (!checkAndCompareCachedResults(rayKey, results, res, overlayMask)) {
-                overlayRes = qApp->getOverlays().findRayIntersectionVector(ray, true, rayPick->getIncludeOverlays(), rayPick->getIgnoreOverlays(), !invisible, !noncollidable);
+                overlayRes = qApp->getOverlays().findRayIntersectionVector(ray, rayPick->doesPrecisionPicking(),
+                    rayPick->getIncludeOverlays(), rayPick->getIgnoreOverlays(), !invisible, !noncollidable);
                 fromCache = false;
             }
 
@@ -202,6 +204,14 @@ const RayPickResult RayPickManager::getPrevRayPickResult(const QUuid uid) {
         return _rayPicks[uid]->getPrevRayPickResult();
     }
     return RayPickResult();
+}
+
+void RayPickManager::setPrecisionPicking(QUuid uid, const bool precisionPicking) {
+    QReadLocker containsLock(&_containsLock);
+    if (_rayPicks.contains(uid)) {
+        QWriteLocker lock(_rayPickLocks[uid].get());
+        _rayPicks[uid]->setPrecisionPicking(precisionPicking);
+    }
 }
 
 void RayPickManager::setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities) {

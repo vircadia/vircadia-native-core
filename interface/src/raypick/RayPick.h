@@ -102,6 +102,9 @@ public:
     const bool& isEnabled() { return _enabled; }
     const RayPickResult& getPrevRayPickResult() { return _prevResult; }
 
+    void setPrecisionPicking(bool precisionPicking) { _precisionPicking = precisionPicking; }
+    const bool& doesPrecisionPicking() { return _precisionPicking; }
+
     void setRayPickResult(const RayPickResult& rayPickResult) { _prevResult = rayPickResult; }
 
     const QVector<EntityItemID>& getIgnoreEntites() { return _ignoreEntities; }
@@ -123,6 +126,7 @@ private:
     bool _enabled;
     RayPickResult _prevResult;
 
+    bool _precisionPicking { true };
     QVector<EntityItemID> _ignoreEntities;
     QVector<EntityItemID> _includeEntities;
     QVector<OverlayID> _ignoreOverlays;
