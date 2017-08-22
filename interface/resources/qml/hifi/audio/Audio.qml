@@ -37,6 +37,7 @@ Rectangle {
     }
 
     property bool isVR: Audio.context === "VR"
+    property real rightMostInputLevelPos: 0
     //placeholder for control sizes and paddings
     //recalculates dynamically in case of UI size is changed
     QtObject {
@@ -54,7 +55,7 @@ Rectangle {
         id: bar
         spacing: 0
         width: parent.width
-        height: 36
+        height: 42
 
         AudioControls.AudioTabButton {
             height: parent.height
@@ -68,20 +69,19 @@ Rectangle {
 
     Column {
         spacing: 12;
-        anchors.topMargin: 8
         anchors.top: bar.bottom
         anchors.bottom: parent.bottom
         anchors.bottomMargin: 5
         width: parent.width;
 
+        Separator { }
+
         RalewayRegular {
-            x: margins.paddings;
+            x: margins.paddings + margins.sizeCheckBox;
             size: 16;
             color: "white";
-            text: qsTr("Mic Settings")
+            text: qsTr("Input Device Settings")
         }
-
-        Separator { }
 
         ColumnLayout {
             x: margins.paddings; // padding does not work
@@ -118,28 +118,27 @@ Rectangle {
                         AvatarInputs.showAudioTools = checked;
                         checked = Qt.binding(function() { return AvatarInputs.showAudioTools; }); // restore binding
                     }
+                    onXChanged: rightMostInputLevelPos = x + width
                 }
             }
         }
 
         Separator {}
 
-        RowLayout {
+        Row {
             x: margins.paddings;
             width: parent.width - margins.paddings*2
             height: 28
             spacing: 0
             HiFiGlyphs {
-                Layout.minimumWidth: margins.sizeCheckBox
-                Layout.maximumWidth: margins.sizeCheckBox
+                width: margins.sizeCheckBox
                 text: hifi.glyphs.mic;
                 color: hifi.colors.primaryHighlight;
                 anchors.verticalCenter: parent.verticalCenter;
-                size: 36;
+                size: 30;
             }
             RalewayRegular {
-                Layout.minimumWidth: margins.sizeText + margins.sizeLevel
-                Layout.maximumWidth: margins.sizeText + margins.sizeLevel
+                width: margins.sizeText + margins.sizeLevel
                 anchors.verticalCenter: parent.verticalCenter;
                 size: 16;
                 color: hifi.colors.lightGrayText;
@@ -151,19 +150,22 @@ Rectangle {
             id: inputView
             width: parent.width - margins.paddings*2
             x: margins.paddings
-            height: 145;
+            height: 150
             spacing: 4;
             snapMode: ListView.SnapToItem;
             clip: true;
             model: Audio.devices.input;
-            delegate: RowLayout {
-                width: inputView.width;
-                spacing: 5
+            delegate: Item {
+                width: rightMostInputLevelPos
+                height: margins.sizeCheckBox
 
                 AudioControls.CheckBox {
-                    Layout.fillWidth: true
+                    anchors.left: parent.left
+                    width: parent.width - inputLevel.width
+                    clip: true
                     checked: bar.currentIndex === 0 ? selectedDesktop :  selectedHMD;
-                    boxRadius: boxSize/2
+                    boxSize: margins.sizeCheckBox / 2
+                    isRound: true
                     text: devicename
                     onClicked: {
                         if (checked) {
@@ -172,6 +174,9 @@ Rectangle {
                     }
                 }
                 InputLevel {
+                    id: inputLevel
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
                     visible: (bar.currentIndex === 1 && selectedHMD && isVR) ||
                              (bar.currentIndex === 0 && selectedDesktop && !isVR);
                 }
@@ -180,22 +185,20 @@ Rectangle {
 
         Separator {}
 
-        RowLayout {
+        Row {
             x: margins.paddings;
             width: parent.width - margins.paddings*2
-            height: 28
+            height: 36
             spacing: 0
             HiFiGlyphs {
-                Layout.minimumWidth: margins.sizeCheckBox
-                Layout.maximumWidth: margins.sizeCheckBox
+                width: margins.sizeCheckBox
                 text: hifi.glyphs.unmuted;
                 color: hifi.colors.primaryHighlight;
                 anchors.verticalCenter: parent.verticalCenter;
-                size: 28;
+                size: 36;
             }
             RalewayRegular {
-                Layout.minimumWidth: margins.sizeText + margins.sizeLevel
-                Layout.maximumWidth: margins.sizeText + margins.sizeLevel
+                width: margins.sizeText + margins.sizeLevel
                 anchors.verticalCenter: parent.verticalCenter;
                 size: 16;
                 color: hifi.colors.lightGrayText;
@@ -207,18 +210,19 @@ Rectangle {
             id: outputView
             width: parent.width - margins.paddings*2
             x: margins.paddings
-            height: Math.min(220, contentHeight);
+            height: Math.min(210, contentHeight);
             spacing: 4;
             snapMode: ListView.SnapToItem;
             clip: true;
             model: Audio.devices.output;
-            delegate: RowLayout {
-                width: outputView.width;
-                spacing: 0
+            delegate: Item {
+                width: rightMostInputLevelPos
+                height: margins.sizeCheckBox
 
                 AudioControls.CheckBox {
-                    Layout.fillWidth: true
-                    boxRadius: boxSize/2
+                    width: parent.width
+                    boxSize: margins.sizeCheckBox / 2
+                    isRound: true
                     checked: bar.currentIndex === 0 ? selectedDesktop :  selectedHMD;
                     text: devicename
                     onClicked: {
@@ -229,6 +233,12 @@ Rectangle {
                 }
             }
         }
-        PlaySampleSound { anchors { left: parent.left; leftMargin: margins.paddings }}
+        PlaySampleSound {
+            x: margins.paddings
+
+            visible: (bar.currentIndex === 1 && isVR) ||
+                     (bar.currentIndex === 0 && !isVR);
+            anchors { left: parent.left; leftMargin: margins.paddings }
+        }
     }
 }

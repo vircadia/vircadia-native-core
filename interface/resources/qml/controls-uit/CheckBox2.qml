@@ -23,11 +23,12 @@ CheckBox {
     property string color: hifi.colors.lightGrayText
     readonly property bool isLightColorScheme: colorScheme === hifi.colorSchemes.light
     property bool isRedCheck: false
+    property bool isRound: false
     property int boxSize: 14
-    property int boxRadius: 3
+    property int boxRadius: isRound ? boxSize : 3
     property bool wrap: true;
     readonly property int checkSize: Math.max(boxSize - 8, 10)
-    readonly property int checkRadius: 2
+    readonly property int checkRadius: isRound ? checkSize / 2 : 2
     focusPolicy: Qt.ClickFocus
 
     indicator: Rectangle {

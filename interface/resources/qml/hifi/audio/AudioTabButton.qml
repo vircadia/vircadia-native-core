@@ -16,6 +16,7 @@ import "../../styles-uit"
 
 TabButton {
     id: control
+    font.pixelSize: height / 2
 
     HifiConstants { id: hifi; }
 

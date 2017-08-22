@@ -14,5 +14,6 @@ import QtQuick 2.7
 import "../../controls-uit" as HifiControls
 
 HifiControls.CheckBox2 {
+    spacing: 8
     color: "white"
 }
