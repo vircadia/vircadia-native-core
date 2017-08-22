@@ -25,6 +25,7 @@
 #include "ui/overlays/Image3DOverlay.h"
 #include "ui/overlays/Overlays.h"
 #include "scripting/HMDScriptingInterface.h"
+#include "scripting/ItemHighlightScriptingInterface.h"
 
 #include "EntityTree.h"
 #include "ContextOverlayLogging.h"
@@ -42,6 +43,7 @@ class ContextOverlayInterface : public QObject, public Dependency  {
     EntityPropertyFlags _entityPropertyFlags;
     QSharedPointer<HMDScriptingInterface> _hmdScriptingInterface;
     QSharedPointer<TabletScriptingInterface> _tabletScriptingInterface;
+    QSharedPointer<ItemHighlightScriptingInterface> _itemHighlightScriptingInterface;
     OverlayID _contextOverlayID { UNKNOWN_OVERLAY_ID };
     std::shared_ptr<Image3DOverlay> _contextOverlay { nullptr };
 public:

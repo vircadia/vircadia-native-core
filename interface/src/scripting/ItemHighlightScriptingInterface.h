@@ -12,17 +12,36 @@
 #ifndef hifi_ItemHighlightScriptingInterface_h
 #define hifi_ItemHighlightScriptingInterface_h
 
-class ItemHighlightScriptingInterface : public Dependency {
+#include <QtCore/QObject>
+#include <DependencyManager.h>
+
+#include <AbstractViewStateInterface.h>
+
+#include "EntityItemID.h"
+#include "ui/overlays/Overlay.h"
+
+class ItemHighlightScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 
 public:
+    ItemHighlightScriptingInterface(AbstractViewStateInterface* viewState);
 
-signals:
+    Q_INVOKABLE bool addToHighlightedItemsList(const EntityItemID& entityID);
+    Q_INVOKABLE bool removeFromHighlightedItemsList(const EntityItemID& entityID);
+    
+    Q_INVOKABLE bool addToHighlightedItemsList(const OverlayID& overlayID);
+    Q_INVOKABLE bool removeFromHighlightedItemsList(const OverlayID& overlayID);
 
-public:
-    ItemHighlightScriptingInterface();
+//signals:
 
 private:
+    AbstractViewStateInterface* _viewState;
+    render::ItemIDs _highlightedItemsList;
+
+    bool addToHighlightedItemsList(render::ItemID idToAdd);
+    bool removeFromHighlightedItemsList(render::ItemID idToRemove);
+
+    void updateRendererHighlightList();
 };
 
 #endif // hifi_ItemHighlightScriptingInterface_h
