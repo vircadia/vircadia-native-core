@@ -14,9 +14,10 @@
 #ifndef hifi_Ledger_h
 #define hifi_Ledger_h
 
+#include <QJsonObject>
 #include <DependencyManager.h>
-#include <qjsonobject.h>
-#include <qjsonarray.h>
+#include <QtNetwork/QNetworkReply>
+
 
 class Ledger : public QObject, public Dependency {
     Q_OBJECT
@@ -24,21 +25,32 @@ class Ledger : public QObject, public Dependency {
 
 public:
     void buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const QString& buyerUsername = "");
-    bool receiveAt(const QString& hfc_key);
+    bool receiveAt(const QString& hfc_key, const QString& old_key);
     void balance(const QStringList& keys);
     void inventory(const QStringList& keys);
 
 signals:
-    void buyResult(const QString& failureReason);
-    void receiveAtResult(const QString& failureReason);
-    void balanceResult(int balance, const QString& failureReason);
-    void inventoryResult(QJsonObject inventory, const QString& failureReason);
+    void buyResult(QJsonObject result);
+    void receiveAtResult(QJsonObject result);
+    void balanceResult(QJsonObject result);
+    void inventoryResult(QJsonObject result);
+
+public slots:
+    void buySuccess(QNetworkReply& reply);
+    void buyFailure(QNetworkReply& reply);
+    void receiveAtSuccess(QNetworkReply& reply);
+    void receiveAtFailure(QNetworkReply& reply);
+    void balanceSuccess(QNetworkReply& reply);
+    void balanceFailure(QNetworkReply& reply);
+    void inventorySuccess(QNetworkReply& reply);
+    void inventoryFailure(QNetworkReply& reply);
 
 private:
-    // These in-memory caches is temporary, until we start sending things to the server.
-    int _balance{ -1 };
-    QJsonArray _inventory{};
-    int initializedBalance() { if (_balance < 0) _balance = 100; return _balance; }
+    QJsonObject apiResponse(const QString& label, QNetworkReply& reply);
+    QJsonObject failResponse(const QString& label, QNetworkReply& reply);
+    void send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, QJsonObject request);
+    void keysQuery(const QString& endpoint, const QString& success, const QString& fail);
+    void signedSend(const QString& propertyName, const QByteArray& text, const QString& key, const QString& endpoint, const QString& success, const QString& fail);
 };
 
 #endif // hifi_Ledger_h

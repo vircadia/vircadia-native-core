@@ -473,18 +473,24 @@ AvatarSharedPointer AvatarManager::getAvatarBySessionID(const QUuid& sessionID) 
 RayToAvatarIntersectionResult AvatarManager::findRayIntersection(const PickRay& ray,
                                                                  const QScriptValue& avatarIdsToInclude,
                                                                  const QScriptValue& avatarIdsToDiscard) {
-    RayToAvatarIntersectionResult result;
-    if (QThread::currentThread() != thread()) {
-        BLOCKING_INVOKE_METHOD(const_cast<AvatarManager*>(this), "findRayIntersection",
-                                  Q_RETURN_ARG(RayToAvatarIntersectionResult, result),
-                                  Q_ARG(const PickRay&, ray),
-                                  Q_ARG(const QScriptValue&, avatarIdsToInclude),
-                                  Q_ARG(const QScriptValue&, avatarIdsToDiscard));
-        return result;
-    }
-
     QVector<EntityItemID> avatarsToInclude = qVectorEntityItemIDFromScriptValue(avatarIdsToInclude);
     QVector<EntityItemID> avatarsToDiscard = qVectorEntityItemIDFromScriptValue(avatarIdsToDiscard);
+
+    return findRayIntersectionVector(ray, avatarsToInclude, avatarsToDiscard);
+}
+
+RayToAvatarIntersectionResult AvatarManager::findRayIntersectionVector(const PickRay& ray,
+                                                                       const QVector<EntityItemID>& avatarsToInclude,
+                                                                       const QVector<EntityItemID>& avatarsToDiscard) {
+    RayToAvatarIntersectionResult result;
+    if (QThread::currentThread() != thread()) {
+        BLOCKING_INVOKE_METHOD(const_cast<AvatarManager*>(this), "findRayIntersectionVector",
+                                  Q_RETURN_ARG(RayToAvatarIntersectionResult, result),
+                                  Q_ARG(const PickRay&, ray),
+                                  Q_ARG(const QVector<EntityItemID>&, avatarsToInclude),
+                                  Q_ARG(const QVector<EntityItemID>&, avatarsToDiscard));
+        return result;
+    }
 
     glm::vec3 normDirection = glm::normalize(ray.direction);
 

@@ -73,6 +73,9 @@ public:
     Q_INVOKABLE RayToAvatarIntersectionResult findRayIntersection(const PickRay& ray,
                                                                   const QScriptValue& avatarIdsToInclude = QScriptValue(),
                                                                   const QScriptValue& avatarIdsToDiscard = QScriptValue());
+    RayToAvatarIntersectionResult findRayIntersectionVector(const PickRay& ray,
+                                                            const QVector<EntityItemID>& avatarsToInclude,
+                                                            const QVector<EntityItemID>& avatarsToDiscard);
 
     // TODO: remove this HACK once we settle on optimal default sort coefficients
     Q_INVOKABLE float getAvatarSortCoefficient(const QString& name);

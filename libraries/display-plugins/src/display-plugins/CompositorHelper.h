@@ -111,8 +111,6 @@ public:
     void setDisplayPlugin(const DisplayPluginPointer& displayPlugin) { _currentDisplayPlugin = displayPlugin; }
     void setFrameInfo(uint32_t frame, const glm::mat4& camera) { _currentCamera = camera; }
 
-    float getHmdUiRadius() const { return _hmdUIRadius; }
-
 signals:
     void allowMouseCaptureChanged();
     void alphaChanged();
@@ -142,7 +140,6 @@ private:
     float _textureAspectRatio { VIRTUAL_UI_ASPECT_RATIO };
 
     float _alpha { 1.0f };
-    float _hmdUIRadius { 1.0f };
 
     int _previousBorderWidth { -1 };
     int _previousBorderHeight { -1 };

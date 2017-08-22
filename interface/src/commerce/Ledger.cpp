@@ -10,72 +10,100 @@
 //
 
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include "AccountManager.h"
 #include "Wallet.h"
 #include "Ledger.h"
 #include "CommerceLogging.h"
 
+// inventory answers {status: 'success', data: {assets: [{id: "guid", title: "name", preview: "url"}....]}}
+// balance answers {status: 'success', data: {balance: integer}}
+// buy and receive_at answer {status: 'success'}
+
+QJsonObject Ledger::apiResponse(const QString& label, QNetworkReply& reply) {
+    QByteArray response = reply.readAll();
+    QJsonObject data = QJsonDocument::fromJson(response).object();
+    qInfo(commerce) << label << "response" << QJsonDocument(data).toJson(QJsonDocument::Compact);
+    return data;
+}
+// Non-200 responses are not json:
+QJsonObject Ledger::failResponse(const QString& label, QNetworkReply& reply) {
+    QString response = reply.readAll();
+    qWarning(commerce) << "FAILED" << label << response;
+    QJsonObject result
+    {
+        { "status", "fail" },
+        { "message", response }
+    };
+    return result;
+}
+#define ApiHandler(NAME) void Ledger::NAME##Success(QNetworkReply& reply) { emit NAME##Result(apiResponse(#NAME, reply)); }
+#define FailHandler(NAME) void Ledger::NAME##Failure(QNetworkReply& reply) { emit NAME##Result(failResponse(#NAME, reply)); }
+#define Handler(NAME) ApiHandler(NAME) FailHandler(NAME)
+Handler(buy)
+Handler(receiveAt)
+Handler(balance)
+Handler(inventory)
+
+void Ledger::send(const QString& endpoint, const QString& success, const QString& fail, QNetworkAccessManager::Operation method, QJsonObject request) {
+    auto accountManager = DependencyManager::get<AccountManager>();
+    const QString URL = "/api/v1/commerce/";
+    JSONCallbackParameters callbackParams(this, success, this, fail);
+    qCInfo(commerce) << "Sending" << endpoint << QJsonDocument(request).toJson(QJsonDocument::Compact);
+    accountManager->sendRequest(URL + endpoint,
+        AccountManagerAuth::Required,
+        method,
+        callbackParams,
+        QJsonDocument(request).toJson());
+}
+
+void Ledger::signedSend(const QString& propertyName, const QByteArray& text, const QString& key, const QString& endpoint, const QString& success, const QString& fail) {
+    auto wallet = DependencyManager::get<Wallet>();
+    QString signature = key.isEmpty() ? "" : wallet->signWithKey(text, key);
+    QJsonObject request;
+    request[propertyName] = QString(text);
+    request["signature"] = signature;
+    send(endpoint, success, fail, QNetworkAccessManager::PutOperation, request);
+}
+
+void Ledger::keysQuery(const QString& endpoint, const QString& success, const QString& fail) {
+    auto wallet = DependencyManager::get<Wallet>();
+    QJsonObject request;
+    request["public_keys"] = QJsonArray::fromStringList(wallet->listPublicKeys());
+    send(endpoint, success, fail, QNetworkAccessManager::PostOperation, request);
+}
+
 void Ledger::buy(const QString& hfc_key, int cost, const QString& asset_id, const QString& inventory_key, const QString& buyerUsername) {
     QJsonObject transaction;
     transaction["hfc_key"] = hfc_key;
-    transaction["hfc"] = cost;
+    transaction["cost"] = cost;
     transaction["asset_id"] = asset_id;
     transaction["inventory_key"] = inventory_key;
     transaction["inventory_buyer_username"] = buyerUsername;
     QJsonDocument transactionDoc{ transaction };
     auto transactionString = transactionDoc.toJson(QJsonDocument::Compact);
-
-    auto wallet = DependencyManager::get<Wallet>();
-    QString signature = wallet->signWithKey(transactionString, hfc_key);
-    QJsonObject request;
-    request["transaction"] = QString(transactionString);
-    request["signature"] = signature;
-
-    qCInfo(commerce) << "Transaction:" << QJsonDocument(request).toJson(QJsonDocument::Compact);
-    // FIXME: talk to server instead
-    if (_inventory.contains(asset_id)) {
-        // This is here more for testing than as a definition of semantics.
-        // When we have popcerts, you will certainly be able to buy a new instance of an item that you already own a different instance of.
-        // I'm not sure what the server should do for now in this project's MVP.
-        return emit buyResult("Already owned.");
-    }
-    if (initializedBalance() < cost) {
-        return emit buyResult("Insufficient funds.");
-    }
-    _balance -= cost;
-    QJsonObject inventoryAdditionObject;
-    inventoryAdditionObject["id"] = asset_id;
-    inventoryAdditionObject["title"] = "Test Title";
-    inventoryAdditionObject["preview"] = "https://www.aspca.org/sites/default/files/cat-care_cat-nutrition-tips_overweight_body4_left.jpg";
-    _inventory.push_back(inventoryAdditionObject);
-    emit buyResult("");
+    signedSend("transaction", transactionString, hfc_key, "buy", "buySuccess", "buyFailure");
 }
 
-bool Ledger::receiveAt(const QString& hfc_key) {
+bool Ledger::receiveAt(const QString& hfc_key, const QString& old_key) {
     auto accountManager = DependencyManager::get<AccountManager>();
     if (!accountManager->isLoggedIn()) {
         qCWarning(commerce) << "Cannot set receiveAt when not logged in.";
-        emit receiveAtResult("Not logged in");
+        QJsonObject result{ { "status", "fail" }, { "message", "Not logged in" } };
+        emit receiveAtResult(result);
         return false; // We know right away that we will fail, so tell the caller.
     }
-    auto username = accountManager->getAccountInfo().getUsername();
-    qCInfo(commerce) << "Setting default receiving key for" << username;
-    emit receiveAtResult(""); // FIXME: talk to server instead.
+
+    signedSend("public_key", hfc_key.toUtf8(), old_key, "receive_at", "receiveAtSuccess", "receiveAtFailure");
     return true; // Note that there may still be an asynchronous signal of failure that callers might be interested in.
 }
 
 void Ledger::balance(const QStringList& keys) {
-    // FIXME: talk to server instead
-    qCInfo(commerce) << "Balance:" << initializedBalance();
-    emit balanceResult(_balance, "");
+    keysQuery("balance", "balanceSuccess", "balanceFailure");
 }
 
 void Ledger::inventory(const QStringList& keys) {
-    // FIXME: talk to server instead
-    QJsonObject inventoryObject;
-    inventoryObject.insert("success", true);
-    inventoryObject.insert("assets", _inventory);
-    qCInfo(commerce) << "Inventory:" << inventoryObject;
-    emit inventoryResult(inventoryObject, "");
+    keysQuery("inventory", "inventorySuccess", "inventoryFailure");
 }
+

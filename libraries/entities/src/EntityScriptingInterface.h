@@ -229,6 +229,11 @@ public slots:
         const QScriptValue& entityIdsToInclude = QScriptValue(), const QScriptValue& entityIdsToDiscard = QScriptValue(),
         bool visibleOnly = false, bool collidableOnly = false);
 
+    /// Same as above but with QVectors
+    RayToEntityIntersectionResult findRayIntersectionVector(const PickRay& ray, bool precisionPicking,
+        const QVector<EntityItemID>& entityIdsToInclude, const QVector<EntityItemID>& entityIdsToDiscard,
+        bool visibleOnly, bool collidableOnly);
+
     /// If the scripting context has visible entities, this will determine a ray intersection, and will block in
     /// order to return an accurate result
     Q_INVOKABLE RayToEntityIntersectionResult findRayIntersectionBlocking(const PickRay& ray, bool precisionPicking = false, const QScriptValue& entityIdsToInclude = QScriptValue(), const QScriptValue& entityIdsToDiscard = QScriptValue());

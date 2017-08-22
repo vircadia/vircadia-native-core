@@ -81,6 +81,7 @@
         letUsKnow.replaceWith(letUsKnow.html());
 
         // Add button links.
+
         $('#exploreClaraMarketplace').on('click', function () {
             window.location = "https://clara.io/library?gameCheck=true&public=true";
         });
@@ -114,7 +115,7 @@
             itemId: id,
             itemName: name,
             itemAuthor: author,
-            itemPrice: Math.round(Math.random() * 50),
+            itemPrice: price ? parseInt(price, 10) : Math.round(Math.random() * 50),
             itemHref: href
         }));
     }
@@ -129,7 +130,7 @@
             buyButtonClicked($(this).closest('.grid-item').attr('data-item-id'),
                 $(this).closest('.grid-item').find('.item-title').text(),
                 $(this).closest('.grid-item').find('.creator').find('.value').text(),
-                10,
+                $(this).closest('.grid-item').find('.item-cost').text(),
                 $(this).attr('data-href'));
         });
     }
@@ -165,7 +166,7 @@
                 buyButtonClicked(window.location.pathname.split("/")[3],
                     $('#top-center').find('h1').text(),
                     $('#creator').find('.value').text(),
-                    10,
+                    $('.item-cost').text(),
                     href);
             });
             addInventoryButton();
@@ -221,7 +222,7 @@
 
                 // One file request at a time.
                 if (isPreparing) {
-                    console.log("WARNIKNG: Clara.io FBX: Prepare only one download at a time");
+                    console.log("WARNING: Clara.io FBX: Prepare only one download at a time");
                     return;
                 }
 
@@ -397,8 +398,8 @@
         var pageType = DIRECTORY;
 
         if (location.href.indexOf("highfidelity.com/") !== -1) { pageType = HIFI; }
-        if (location.href.indexOf("highfidelity.com/marketplace/items/") !== -1) { pageType = HIFI_ITEM_PAGE; }
         if (location.href.indexOf("clara.io/") !== -1) { pageType = CLARA; }
+        if (location.href.indexOf("highfidelity.com/marketplace/items/") !== -1) { pageType = HIFI_ITEM_PAGE; }
 
         injectCommonCode(pageType === DIRECTORY);
         switch (pageType) {
@@ -408,12 +409,13 @@
             case HIFI:
                 injectHiFiCode();
                 break;
-            case HIFI_ITEM_PAGE:
-                injectHiFiItemPageCode();
-                break;
             case CLARA:
                 injectClaraCode();
                 break;
+            case HIFI_ITEM_PAGE:
+                injectHiFiItemPageCode();
+                break;
+
         }
     }
 
