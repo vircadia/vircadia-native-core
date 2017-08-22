@@ -115,7 +115,7 @@
             itemId: id,
             itemName: name,
             itemAuthor: author,
-            itemPrice: price ? parseInt(price, 10) : Math.round(Math.random() * 50),
+            itemPrice: price ? parseInt(price, 10) : 0,
             itemHref: href
         }));
     }

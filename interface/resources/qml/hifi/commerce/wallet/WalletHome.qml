@@ -1,8 +1,8 @@
 //
-//  AccountHome.qml
+//  WalletHome.qml
 //  qml/hifi/commerce/wallet
 //
-//  AccountHome
+//  WalletHome
 //
 //  Created by Zach Fox on 2017-08-18
 //  Copyright 2017 High Fidelity, Inc.
@@ -22,11 +22,18 @@ import "../../../controls" as HifiControls
 
 Item {
     HifiConstants { id: hifi; }
-
+    
     id: root;
 
     Hifi.QmlCommerce {
         id: commerce;
+
+        onSecurityImageResult: {
+            if (imageID !== 0) { // "If security image is set up"
+                securityImage.source = securityImageModel.getImagePathFromImageID(imageID);
+            }
+        }
+
         onBalanceResult : {
             balanceText.text = parseFloat(result.data.balance/100).toFixed(2);
         }
@@ -99,6 +106,7 @@ Item {
             // Balance Text
             FiraSansRegular {
                 id: balanceText;
+                text: --;
                 // Text size
                 size: 28;
                 // Anchors
@@ -308,9 +316,6 @@ Item {
     //
     // FUNCTION DEFINITIONS START
     //
-    function setSecurityImage(imagePath) {
-        securityImage.source = imagePath;
-    }
     //
     // Function Name: fromScript()
     //

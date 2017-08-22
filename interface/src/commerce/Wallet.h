@@ -28,9 +28,11 @@ public:
     QString signWithKey(const QByteArray& text, const QString& key);
     void chooseSecurityImage(uint imageID);
     void getSecurityImage();
+    void getKeyFilePath();
 
 signals:
     void securityImageResult(uint imageID);
+    void keyFilePathResult(const QString& path);
 
 protected:
     // ALWAYS add SecurityImage enum values to the END of the enum.

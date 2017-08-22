@@ -55,6 +55,12 @@ Rectangle {
                 choosePassphraseContainer.visible = true;
             }
         }
+
+        onKeyFilePathResult: {
+            if (path !== "") {
+                keyFilePath.text = path;
+            }
+        }
     }
 
     //
@@ -452,6 +458,7 @@ Rectangle {
                         choosePassphraseContainer.visible = false;
                         privateKeysReadyContainer.visible = true;
                         commerce.balance(); // Do this here so that keys are generated. Order might change as backend changes?
+                        commerce.getKeyFilePath();
                     }
                 }
             }
@@ -520,6 +527,7 @@ Rectangle {
 
         // Text below checkbox
         RalewayRegular {
+            id: explanationText;
             text: "Your money and purchases are secured with private keys that only you have access to. " +
             "<b>If they are lost, you will not be able to access your money or purchases.</b><br><br>" +
             "<b>To protect your privacy, High Fidelity has no access to your private keys and cannot " +
@@ -540,6 +548,16 @@ Rectangle {
             // Alignment
             horizontalAlignment: Text.AlignHLeft;
             verticalAlignment: Text.AlignVCenter;
+        }
+        
+        HifiControlsUit.TextField {
+            id: keyFilePath;
+            anchors.top: explanationText.bottom;
+            anchors.topMargin: 10;
+            anchors.left: parent.left;
+            anchors.right: parent.right;
+            height: 40;
+            readOnly: true;
         }
         
         // Navigation Bar

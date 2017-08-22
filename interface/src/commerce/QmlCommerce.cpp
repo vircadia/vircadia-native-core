@@ -25,6 +25,7 @@ QmlCommerce::QmlCommerce(QQuickItem* parent) : OffscreenQmlDialog(parent) {
     connect(ledger.data(), &Ledger::balanceResult, this, &QmlCommerce::balanceResult);
     connect(ledger.data(), &Ledger::inventoryResult, this, &QmlCommerce::inventoryResult);
     connect(wallet.data(), &Wallet::securityImageResult, this, &QmlCommerce::securityImageResult);
+    connect(wallet.data(), &Wallet::keyFilePathResult, this, &QmlCommerce::keyFilePathResult);
 }
 
 void QmlCommerce::buy(const QString& assetId, int cost, const QString& buyerUsername) {
@@ -67,4 +68,8 @@ void QmlCommerce::setPassphrase(const QString& passphrase) {
 }
 void QmlCommerce::getPassphraseSetupStatus() {
     emit passphraseSetupStatusResult(false);
+}
+void QmlCommerce::getKeyFilePath() {
+    auto wallet = DependencyManager::get<Wallet>();
+    wallet->getKeyFilePath();
 }

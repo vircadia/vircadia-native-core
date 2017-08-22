@@ -25,7 +25,7 @@ Rectangle {
 
     id: root;
 
-    property string activeView: "notSetUp";
+    property string activeView: "";
 
     // Style
     color: hifi.colors.baseGray;
@@ -33,17 +33,18 @@ Rectangle {
         id: commerce;
 
         onSecurityImageResult: {
-            if (imageID !== 0) { // "If security image is set up"
-                if (walletHome) {
-                    walletHome.setSecurityImage(securityImageModel.getImagePathFromImageID(imageID));
-                }
-                if (security) {
-                    security.setSecurityImages(securityImageModel.getImagePathFromImageID(imageID));
-                }
-            } else if (root.lastPage === "securityImage") {
+            if (imageID === 0 && root.lastPage === "securityImage") { // "If security image is set up"
                 // ERROR! Invalid security image.
                 securityImageContainer.visible = true;
                 choosePassphraseContainer.visible = false;
+            }
+        }
+
+        onKeyFilePathResult: {
+            if (path === "") {
+                root.activeView = "notSetUp";
+            } else {
+                root.activeView = "walletHome";
             }
         }
     }
@@ -284,6 +285,13 @@ Rectangle {
                 onEntered: parent.color = hifi.colors.blueHighlight;
                 onExited: parent.color = root.activeView === "walletHome" ? hifi.colors.blueAccent : hifi.colors.black;
             }
+            
+            onVisibleChanged: {
+                if (visible) {
+                    commerce.getSecurityImage();
+                    commerce.balance();
+                }
+            }
         }
 
         // "SEND MONEY" tab button
@@ -375,6 +383,13 @@ Rectangle {
                 }
                 onEntered: parent.color = hifi.colors.blueHighlight;
                 onExited: parent.color = root.activeView === "security" ? hifi.colors.blueAccent : hifi.colors.black;
+            }
+            
+            onVisibleChanged: {
+                if (visible) {
+                    commerce.getSecurityImage();
+                    commerce.getKeyFilePath();
+                }
             }
         }
 

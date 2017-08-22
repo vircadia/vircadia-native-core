@@ -275,3 +275,6 @@ void Wallet::chooseSecurityImage(uint imageID) {
 void Wallet::getSecurityImage() {
     emit securityImageResult(_chosenSecurityImage);
 }
+void Wallet::getKeyFilePath() {
+    emit keyFilePathResult(keyFilePath());
+}

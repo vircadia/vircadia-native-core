@@ -27,6 +27,20 @@ Item {
 
     Hifi.QmlCommerce {
         id: commerce;
+
+        onSecurityImageResult: {
+            if (imageID !== 0) { // "If security image is set up"
+                var path = securityImageModel.getImagePathFromImageID(imageID);
+                topSecurityImage.source = path;
+                changeSecurityImageImage.source = path;
+            }
+        }
+
+        onKeyFilePathResult: {
+            if (path !== "") {
+                keyFilePath.text = path;
+            }
+        }
     }
 
     // Username Text
@@ -62,6 +76,12 @@ Item {
             width: height;
             fillMode: Image.PreserveAspectFit;
             mipmap: true;
+
+            onVisibleChanged: {
+                if (visible) {
+                    commerce.getSecurityImage();
+                }
+            }
         }
         // "Security picture" text below pic
         RalewayRegular {
@@ -199,15 +219,15 @@ Item {
 
         // Text below "your private keys"
         RalewayRegular {
+            id: explanitoryText;
             text: "Your money and purchases are secured with private keys that only you " +
-            "have access to. <b>If they are lost, you will not be able to access your money or purchases.</b> " +
-            "To ensure they are not lost, it is imperative that you back up your private keys.<br><br>" +
-            "<b>To safeguard your private keys, back up this file regularly:</b>";
+            "have access to. <b>If they are lost, you will not be able to access your money or purchases." +
+            "To safeguard your private keys, back up this file regularly:</b>";
             // Text size
             size: 18;
             // Anchors
             anchors.top: yourPrivateKeysText.bottom;
-            anchors.topMargin: 20;
+            anchors.topMargin: 10;
             anchors.left: parent.left;
             anchors.right: parent.right;
             height: paintedHeight;
@@ -218,15 +238,26 @@ Item {
             horizontalAlignment: Text.AlignLeft;
             verticalAlignment: Text.AlignVCenter;
         }
+        HifiControlsUit.TextField {
+            id: keyFilePath;
+            anchors.top: explanitoryText.bottom;
+            anchors.topMargin: 10;
+            anchors.left: parent.left;
+            anchors.right: parent.right;
+            height: 40;
+            readOnly: true;
+
+            onVisibleChanged: {
+                if (visible) {
+                    commerce.getKeyFilePath();
+                }
+            }
+        }
     }
 
     //
     // FUNCTION DEFINITIONS START
     //
-    function setSecurityImages(imagePath) {
-        topSecurityImage.source = imagePath;
-        changeSecurityImageImage.source = imagePath;
-    }
     //
     // Function Name: fromScript()
     //
