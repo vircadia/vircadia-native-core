@@ -1,5 +1,5 @@
 //
-//  toolMenu.js
+//  toolsMenu.js
 //
 //  Created by David Rowe on 22 Jul 2017.
 //  Copyright 2017 High Fidelity, Inc.
@@ -8,9 +8,9 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-/* global App, ToolMenu */
+/* global App, ToolsMenu */
 
-ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
+ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     // Tool menu displayed on top of forearm.
 
     "use strict";
@@ -1015,8 +1015,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         doCommand;
 
 
-    if (!this instanceof ToolMenu) {
-        return new ToolMenu();
+    if (!this instanceof ToolsMenu) {
+        return new ToolsMenu();
     }
 
     controlHand = side === LEFT_HAND ? rightInputs.hand() : leftInputs.hand();
@@ -1674,7 +1674,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             break;
 
         default:
-            App.log(side, "ERROR: ToolMenu: Unexpected command! " + command);
+            App.log(side, "ERROR: ToolsMenu: Unexpected command! " + command);
         }
     };
 
@@ -1692,7 +1692,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
             break;
         default:
-            App.log(side, "ERROR: ToolMenu: Unexpected command! " + command);
+            App.log(side, "ERROR: ToolsMenu: Unexpected command! " + command);
         }
     }
 
@@ -2009,7 +2009,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         if (handJointIndex === NONE) {
             // Don't display if joint isn't available (yet) to attach to.
             // User can clear this condition by toggling the app off and back on once avatar finishes loading.
-            App.log(side, "ERROR: ToolMenu: Hand joint index isn't available!");
+            App.log(side, "ERROR: ToolsMenu: Hand joint index isn't available!");
             return;
         }
 
@@ -2125,4 +2125,4 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     };
 };
 
-ToolMenu.prototype = {};
+ToolsMenu.prototype = {};

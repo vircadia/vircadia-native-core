@@ -58,7 +58,7 @@
         Laser,
         Selection,
         ToolIcon,
-        ToolMenu,
+        ToolsMenu,
 
         // Miscellaneous
         UPDATE_LOOP_TIMEOUT = 16,
@@ -80,7 +80,7 @@
     Script.include("./modules/laser.js");
     Script.include("./modules/selection.js");
     Script.include("./modules/toolIcon.js");
-    Script.include("./modules/toolMenu.js");
+    Script.include("./modules/toolsMenu.js");
     Script.include("./modules/uit.js");
 
 
@@ -196,7 +196,7 @@
         // Tool menu and Create palette.
 
         var // Primary objects.
-            toolMenu,
+            toolsMenu,
             toolIcon,
             createPalette,
 
@@ -210,7 +210,7 @@
         }
 
         toolIcon = new ToolIcon(otherHand(side));
-        toolMenu = new ToolMenu(side, leftInputs, rightInputs, uiCommandCallback);
+        toolsMenu = new ToolsMenu(side, leftInputs, rightInputs, uiCommandCallback);
         createPalette = new CreatePalette(side, leftInputs, rightInputs, uiCommandCallback);
 
         getIntersection = side === LEFT_HAND ? rightInputs.intersection : leftInputs.intersection;
@@ -218,7 +218,7 @@
 
         function setHand(side) {
             toolIcon.setHand(otherHand(side));
-            toolMenu.setHand(side);
+            toolsMenu.setHand(side);
             createPalette.setHand(side);
             getIntersection = side === LEFT_HAND ? rightInputs.intersection : leftInputs.intersection;
         }
@@ -233,17 +233,17 @@
 
         function clearTool() {
             toolIcon.clear();
-            toolMenu.clearTool();
+            toolsMenu.clearTool();
         }
 
         function setUIEntities() {
-            var uiEntityIDs = [].concat(toolMenu.entityIDs(), createPalette.entityIDs());
+            var uiEntityIDs = [].concat(toolsMenu.entityIDs(), createPalette.entityIDs());
             leftInputs.setUIEntities(side === RIGHT_HAND ? uiEntityIDs : []);
             rightInputs.setUIEntities(side === LEFT_HAND ? uiEntityIDs : []);
         }
 
         function display() {
-            toolMenu.display();
+            toolsMenu.display();
             createPalette.display();
             setUIEntities();
             isDisplaying = true;
@@ -254,21 +254,21 @@
 
             if (isDisplaying) {
                 intersection = getIntersection();
-                toolMenu.update(intersection, grouping.groupsCount(), grouping.entitiesCount());
+                toolsMenu.update(intersection, grouping.groupsCount(), grouping.entitiesCount());
                 createPalette.update(intersection.overlayID);
                 toolIcon.update();
             }
         }
 
         function doPickColor(color) {
-            toolMenu.doCommand("setColorFromPick", color);
+            toolsMenu.doCommand("setColorFromPick", color);
         }
 
         function clear() {
             leftInputs.setUIEntities([]);
             rightInputs.setUIEntities([]);
             toolIcon.clear();
-            toolMenu.clear();
+            toolsMenu.clear();
             createPalette.clear();
 
             isDisplaying = false;
@@ -279,9 +279,9 @@
                 createPalette.destroy();
                 createPalette = null;
             }
-            if (toolMenu) {
-                toolMenu.destroy();
-                toolMenu = null;
+            if (toolsMenu) {
+                toolsMenu.destroy();
+                toolsMenu = null;
             }
             if (toolIcon) {
                 toolIcon.destroy();
