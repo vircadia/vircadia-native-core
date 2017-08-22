@@ -336,7 +336,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     label: "FINISH",
                     command: {
-                        method: "closeOptions"
+                        method: "clearTool"
                     }
                 }
             ],
@@ -358,7 +358,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     label: "FINISH",
                     command: {
-                        method: "closeOptions"
+                        method: "clearTool"
                     }
                 }
             ],
@@ -813,7 +813,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     },
                     label: "FINISH",
                     command: {
-                        method: "closeOptions"
+                        method: "clearTool"
                     }
                 }
             ]
@@ -1617,6 +1617,10 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         case "closeOptions":
             closeOptions();
+            break;
+
+        case "clearTool":
+            uiCommandCallback("clearTool");
             break;
 
         default:

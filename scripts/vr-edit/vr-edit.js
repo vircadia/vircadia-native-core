@@ -846,6 +846,7 @@
                 toolSelected = TOOL_NONE;
                 grouping.clear();
                 ui.clearTool();
+                ui.updateUIEntities();
             }
         }
 
@@ -1376,6 +1377,10 @@
             grouping.clear();
             toolSelected = TOOL_DELETE;
             ui.setToolIcon(ui.DELETE_TOOL);
+            ui.updateUIEntities();
+            break;
+        case "clearTool":
+            ui.clearTool();
             ui.updateUIEntities();
             break;
 
