@@ -24,15 +24,18 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         controlJointName,
 
+        /* Coordinate system: UI lies in x-y plane with the front surface being in the +ve z direction. */
         CANVAS_SIZE = { x: 0.21, y: 0.13 },
-        PALETTE_ROOT_POSITION = { x: -CANVAS_SIZE.x / 2, y: 0.15, z: 0.11 },
-        PALETTE_ROOT_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 180, z: 180 }),
+        HAND_JOINT_OFFSET = 0.15,  // Distance from hand (wrist) joint to center of panel.
+        PANELS_SEPARATION = 0.01,  // Gap between Tools menu and Create panel.
+        PALETTE_ORIGIN_POSITION = { x: 0, y: HAND_JOINT_OFFSET - CANVAS_SIZE.y / 2, z: PANELS_SEPARATION + CANVAS_SIZE.x / 2 },
+        PALETTE_ORIGIN_ROTATION = Quat.ZERO,
         lateralOffset,
 
         PALETTE_ORIGIN_PROPERTIES = {
             dimensions: { x: 0.005, y: 0.005, z: 0.005 },
-            localPosition: PALETTE_ROOT_POSITION,
-            localRotation: PALETTE_ROOT_ROTATION,
+            localPosition: PALETTE_ORIGIN_POSITION,
+            localRotation: PALETTE_ORIGIN_ROTATION,
             color: { red: 255, blue: 0, green: 0 },
             alpha: 1.0,
             parentID: Uuid.SELF,
@@ -42,7 +45,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         PALETTE_PANEL_PROPERTIES = {
             dimensions: { x: CANVAS_SIZE.x, y: CANVAS_SIZE.y, z: 0.001 },
-            localPosition: { x: CANVAS_SIZE.x / 2, y: CANVAS_SIZE.y / 2, z: 0 },
+            localPosition: { x: 0, y: 0, z: 0 },
             localRotation: Quat.ZERO,
             color: { red: 192, green: 192, blue: 192 },
             alpha: 0.3,
@@ -69,7 +72,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "cube",
                     properties: {
                         dimensions: { x: 0.03, y: 0.03, z: 0.03 },
-                        localPosition: { x: 0.02, y: 0.02, z: 0.0 },
+                        localPosition: { x: -0.04, y: 0.04, z: 0.0 },
                         localRotation: Quat.ZERO,
                         color: { red: 240, green: 0, blue: 0 },
                         alpha: 1.0,
@@ -90,7 +93,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         shape: "Cylinder",
                         dimensions: { x: 0.03, y: 0.03, z: 0.03 },
-                        localPosition: { x: 0.06, y: 0.02, z: 0.0 },
+                        localPosition: { x: 0.0, y: 0.04, z: 0.0 },
                         localRotation: Quat.fromVec3Degrees({ x: -90, y: 0, z: 0 }),
                         color: { red: 240, green: 0, blue: 0 },
                         alpha: 1.0,
@@ -112,8 +115,8 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         shape: "Cone",
                         dimensions: { x: 0.03, y: 0.03, z: 0.03 },
-                        localPosition: { x: 0.10, y: 0.02, z: 0.0 },
-                        localRotation: Quat.fromVec3Degrees({ x: -90, y: 0, z: 0 }),
+                        localPosition: { x: 0.04, y: 0.04, z: 0.0 },
+                        localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 }),
                         color: { red: 240, green: 0, blue: 0 },
                         alpha: 1.0,
                         solid: true,
@@ -133,7 +136,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "sphere",
                     properties: {
                         dimensions: { x: 0.03, y: 0.03, z: 0.03 },
-                        localPosition: { x: 0.14, y: 0.02, z: 0.0 },
+                        localPosition: { x: -0.04, y: 0.0, z: 0.0 },
                         localRotation: Quat.ZERO,
                         color: { red: 240, green: 0, blue: 0 },
                         alpha: 1.0,
@@ -183,7 +186,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         var itemIndex,
             isTriggerClicked,
             properties,
-            PRESS_DELTA = { x: 0, y: 0, z: 0.01 },
+            PRESS_DELTA = { x: 0, y: 0, z: -0.01 },
             CREATE_OFFSET = { x: 0, y: 0.05, z: -0.02 },
             INVERSE_HAND_BASIS_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 0, z: -90 });
 
@@ -257,7 +260,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // Calculate position to put palette.
         properties = Object.clone(PALETTE_ORIGIN_PROPERTIES);
         properties.parentJointIndex = handJointIndex;
-        properties.localPosition = Vec3.sum(PALETTE_ROOT_POSITION, { x: lateralOffset, y: 0, z: 0 });
+        properties.localPosition = Vec3.sum(PALETTE_ORIGIN_POSITION, { x: lateralOffset, y: 0, z: 0 });
         paletteOriginOverlay = Overlays.addOverlay("sphere", properties);
 
         // Create palette.

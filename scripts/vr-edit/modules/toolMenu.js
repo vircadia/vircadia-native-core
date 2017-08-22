@@ -34,28 +34,34 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         LEFT_HAND = 0,
 
-        CANVAS_SIZE = { x: 0.22, y: 0.13 },
-        PANEL_ORIGIN_POSITION = { x: -0.005 - CANVAS_SIZE.x / 2, y: 0.15, z: -CANVAS_SIZE.x / 2 },
-        PANEL_ROOT_ROTATION = Quat.fromVec3Degrees({ x: 0, y: -90, z: 180 }),
+        /* Coordinate system: UI lies in x-y plane with the front surface being in the +ve z direction. */
+        CANVAS_SIZE = { x: 0.21, y: 0.13 },
+        HAND_JOINT_OFFSET = 0.15,  // Distance from hand (wrist) joint to center of panel.
+        PANELS_SEPARATION = 0.01,  // Gap between Tools menu and Create panel.
+        PANEL_ORIGIN_POSITION = { x: -PANELS_SEPARATION - CANVAS_SIZE.x / 2, y: HAND_JOINT_OFFSET - CANVAS_SIZE.y / 2, z: 0 },
+        PANEL_ORIGIN_ROTATION = Quat.fromVec3Degrees({ x: 0, y: -90, z: 0 }),
         panelLateralOffset,
 
         MENU_ORIGIN_PROPERTIES = {
             dimensions: { x: 0.005, y: 0.005, z: 0.005 },
             localPosition: PANEL_ORIGIN_POSITION,
-            localRotation: PANEL_ROOT_ROTATION,
+            localRotation: PANEL_ORIGIN_ROTATION,
             color: { red: 255, blue: 0, green: 0 },
             alpha: 1.0,
             parentID: Uuid.SELF,
             ignoreRayIntersection: true,
-            visible: false
+            //visible: false
+            visible: true,
+            displayInFront: true
         },
 
         MENU_PANEL_PROPERTIES = {
             dimensions: { x: CANVAS_SIZE.x, y: CANVAS_SIZE.y, z: 0.01 },
-            localPosition: { x: CANVAS_SIZE.x / 2, y: CANVAS_SIZE.y / 2, z: 0.005 },
+            localPosition: { x: 0, y: 0, z: 0.0 },
             localRotation: Quat.ZERO,
             color: { red: 164, green: 164, blue: 164 },
-            alpha: 1.0,
+            //alpha: 1.0,
+            alpha: 0.5,
             solid: true,
             ignoreRayIntersection: false,
             visible: true
@@ -73,7 +79,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     dimensions: { x: 0.10, y: 0.12, z: 0.01 },
                     localRotation: Quat.ZERO,
                     color: { red: 192, green: 192, blue: 192 },
-                    alpha: 1.0,
+                    //alpha: 1.0,
+                    alpha: 0.5,
                     solid: true,
                     ignoreRayIntersection: false,
                     visible: true
@@ -119,8 +126,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 overlay: "text3d",
                 properties: {
                     dimensions: { x: 0.03, y: 0.0075 },
-                    localPosition: { x: 0.0, y: 0.0, z: -0.005 },
-                    localRotation: Quat.fromVec3Degrees({ x: 0, y: 180, z: 180 }),
+                    localPosition: { x: 0, y: 0, z: 0.005 },
+                    localRotation: Quat.ZERO,
                     topMargin: 0,
                     leftMargin: 0,
                     color: { red: 240, green: 240, blue: 240 },
@@ -137,8 +144,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 overlay: "circle3d",
                 properties: {
                     size: 0.01,
-                    localPosition: { x: 0.0, y: 0.0, z: -0.01 },
-                    localRotation: Quat.fromVec3Degrees({ x: 0, y: 180, z: 180 }),
+                    localPosition: { x: 0.0, y: 0.0, z: 0.01 },
+                    localRotation: Quat.ZERO,
                     color: { red: 128, green: 128, blue: 128 },
                     alpha: 1.0,
                     solid: true,
@@ -151,7 +158,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 properties: {
                     dimensions: { x: 0.1, y: 0.1 },
                     localPosition: { x: 0, y: 0, z: 0 },
-                    localRotation: Quat.fromVec3Degrees({ x: 0, y: 0, z: 180 }),
+                    localRotation: Quat.ZERO,
                     color: { red: 255, green: 255, blue: 255 },
                     alpha: 1.0,
                     ignoreRayIntersection: true,
@@ -293,7 +300,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         BUTTON_UI_ELEMENTS = ["button", "toggleButton", "swatch"],
-        BUTTON_PRESS_DELTA = { x: 0, y: 0, z: 0.004 },
+        BUTTON_PRESS_DELTA = { x: 0, y: 0, z: -0.004 },
 
         SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
         COLOR_CIRCLE_UI_ELEMENTS = ["colorCircle"],
@@ -323,7 +330,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "scaleOptionsPanel",
                     type: "panel",
                     properties: {
-                        localPosition: { x: 0.0, y: 0.0, z: -0.005 }
+                        localPosition: { x: 0.0, y: 0.0, z: 0.005 }
                     }
                 },
                 {
@@ -331,7 +338,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "button",
                     properties: {
                         dimensions: { x: 0.07, y: 0.03, z: 0.01 },
-                        localPosition: { x: 0, y: 0, z: -0.005 },
+                        localPosition: { x: 0, y: 0, z: 0.005 },
                         color: { red: 200, green: 200, blue: 200 }
                     },
                     label: "FINISH",
@@ -345,7 +352,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "cloneOptionsPanel",
                     type: "panel",
                     properties: {
-                        localPosition: { x: 0.0, y: 0.0, z: -0.005 }
+                        localPosition: { x: 0.0, y: 0.0, z: 0.005 }
                     }
                 },
                 {
@@ -353,7 +360,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "button",
                     properties: {
                         dimensions: { x: 0.07, y: 0.03, z: 0.01 },
-                        localPosition: { x: 0, y: 0, z: -0.005 },
+                        localPosition: { x: 0, y: 0, z: 0.005 },
                         color: { red: 200, green: 200, blue: 200 }
                     },
                     label: "FINISH",
@@ -367,7 +374,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "groupOptionsPanel",
                     type: "panel",
                     properties: {
-                        localPosition: { x: 0.0, y: 0.0, z: -0.005 }
+                        localPosition: { x: 0.0, y: 0.0, z: 0.005 }
                     }
                 },
                 {
@@ -375,7 +382,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "button",
                     properties: {
                         dimensions: { x: 0.07, y: 0.03, z: 0.01 },
-                        localPosition: { x: 0, y: -0.025, z: -0.005 },
+                        localPosition: { x: 0, y: 0.025, z: 0.005 },
                         color: { red: 200, green: 200, blue: 200 }
                     },
                     label: " GROUP",
@@ -389,7 +396,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "button",
                     properties: {
                         dimensions: { x: 0.07, y: 0.03, z: 0.01 },
-                        localPosition: { x: 0, y: 0.025, z: -0.005 },
+                        localPosition: { x: 0, y: -0.025, z: 0.005 },
                         color: { red: 200, green: 200, blue: 200 }
                     },
                     label: "UNGROUP",
@@ -404,14 +411,14 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "colorOptionsPanel",
                     type: "panel",
                     properties: {
-                        localPosition: { x: 0.0, y: 0.0, z: -0.005 }
+                        localPosition: { x: 0.0, y: 0.0, z: 0.005 }
                     }
                 },
                 {
                     id: "colorCircle",
                     type: "colorCircle",
                     properties: {
-                        localPosition: { x: -0.0125, y: -0.025, z: -0.005 }
+                        localPosition: { x: -0.0125, y: 0.025, z: 0.005 }
                     },
                     imageURL: "../assets/color-circle.png",
                     imageOverlayURL: "../assets/color-circle-black.png",
@@ -423,7 +430,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "colorSlider",
                     type: "imageSlider",
                     properties: {
-                        localPosition: { x: 0.035, y: -0.025, z: -0.005 }
+                        localPosition: { x: 0.035, y: 0.025, z: 0.005 }
                     },
                     useBaseColor: true,
                     imageURL: "../assets/slider-white.png",
@@ -437,7 +444,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.035, y: 0.02, z: -0.005 }
+                        localPosition: { x: -0.035, y: -0.02, z: 0.005 }
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch1Color",
@@ -456,7 +463,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.01, y: 0.02, z: -0.005 }
+                        localPosition: { x: -0.01, y: -0.02, z: 0.005 }
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch2Color",
@@ -475,7 +482,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.035, y: 0.045, z: -0.005 }
+                        localPosition: { x: -0.035, y: -0.045, z: 0.005 }
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch3Color",
@@ -494,7 +501,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "swatch",
                     properties: {
                         dimensions: { x: 0.02, y: 0.02, z: 0.01 },
-                        localPosition: { x: -0.01, y: 0.045, z: -0.005 }
+                        localPosition: { x: -0.01, y: -0.045, z: 0.005 }
                     },
                     setting: {
                         key: "VREdit.colorTool.swatch4Color",
@@ -512,7 +519,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "currentColor",
                     type: "circle",
                     properties: {
-                        localPosition: { x: 0.025, y: 0.02, z: -0.007 }
+                        localPosition: { x: 0.025, y: -0.02, z: 0.007 }
                     },
                     setting: {
                         key: "VREdit.colorTool.currentColor",
@@ -526,7 +533,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "button",
                     properties: {
                         dimensions: { x: 0.04, y: 0.02, z: 0.01 },
-                        localPosition: { x: 0.025, y: 0.045, z: -0.005 },
+                        localPosition: { x: 0.025, y: -0.045, z: 0.005 },
                         color: { red: 255, green: 255, blue: 255 }
                     },
                     label: "    PICK",
@@ -540,7 +547,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "physicsOptionsPanel",
                     type: "panel",
                     properties: {
-                        localPosition: { x: 0.0, y: 0.0, z: -0.005 }
+                        localPosition: { x: 0.0, y: 0.0, z: 0.005 }
                     }
                 },
 
@@ -550,14 +557,14 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         text: "PROPERTIES",
                         lineHeight: 0.0045,
-                        localPosition: { x: -0.031, y: -0.0475, z: -0.0075}
+                        localPosition: { x: -0.031, y: 0.0475, z: 0.0075}
                     }
                 },
                 {
                     id: "gravityToggle",
                     type: "toggleButton",
                     properties: {
-                        localPosition: { x: -0.0325, y: -0.03, z: -0.005 },
+                        localPosition: { x: -0.0325, y: 0.03, z: 0.005 },
                         dimensions: { x: 0.03, y: 0.02, z: 0.01 }
                     },
                     label: "GRAVITY",
@@ -574,7 +581,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "grabToggle",
                     type: "toggleButton",
                     properties: {
-                        localPosition: { x: -0.0325, y: -0.005, z: -0.005 },
+                        localPosition: { x: -0.0325, y: 0.005, z: 0.005 },
                         dimensions: { x: 0.03, y: 0.02, z: 0.01 }
                     },
                     label: "  GRAB",
@@ -591,7 +598,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "collideToggle",
                     type: "toggleButton",
                     properties: {
-                        localPosition: { x: -0.0325, y: 0.02, z: -0.005 },
+                        localPosition: { x: -0.0325, y: -0.02, z: 0.005 },
                         dimensions: { x: 0.03, y: 0.02, z: 0.01 }
                     },
                     label: "COLLIDE",
@@ -611,14 +618,14 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         text: "PRESETS",
                         lineHeight: 0.0045,
-                        localPosition: { x: 0.002, y: -0.0475, z: -0.0075 }
+                        localPosition: { x: 0.002, y: 0.0475, z: 0.0075 }
                     }
                 },
                 {
                     id: "presets",
                     type: "picklist",
                     properties: {
-                        localPosition: { x: 0.016, y: -0.03, z: -0.005 },
+                        localPosition: { x: 0.016, y: 0.03, z: 0.005 },
                         dimensions: { x: 0.06, y: 0.02, z: 0.01 }
                     },
                     label: "DEFAULT",
@@ -698,7 +705,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "gravitySlider",
                     type: "barSlider",
                     properties: {
-                        localPosition: { x: -0.007, y: 0.016, z: -0.005 },
+                        localPosition: { x: -0.007, y: -0.016, z: 0.005 },
                         dimensions: { x: 0.014, y: 0.06, z: 0.01 }
                     },
                     setting: {
@@ -716,14 +723,14 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         text: "GRAVITY",
                         lineHeight: 0.0045,
-                        localPosition: { x: -0.003, y: 0.052, z: -0.0075 }
+                        localPosition: { x: -0.003, y: -0.052, z: 0.0075 }
                     }
                 },
                 {
                     id: "bounceSlider",
                     type: "barSlider",
                     properties: {
-                        localPosition: { x: 0.009, y: 0.016, z: -0.005 },
+                        localPosition: { x: 0.009, y: -0.016, z: 0.005 },
                         dimensions: { x: 0.014, y: 0.06, z: 0.01 }
                     },
                     setting: {
@@ -741,14 +748,14 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         text: "BOUNCE",
                         lineHeight: 0.0045,
-                        localPosition: { x: 0.015, y: 0.057, z: -0.0075 }
+                        localPosition: { x: 0.015, y: -0.057, z: 0.0075 }
                     }
                 },
                 {
                     id: "dampingSlider",
                     type: "barSlider",
                     properties: {
-                        localPosition: { x: 0.024, y: 0.016, z: -0.005 },
+                        localPosition: { x: 0.024, y: -0.016, z: 0.005 },
                         dimensions: { x: 0.014, y: 0.06, z: 0.01 }
                     },
                     setting: {
@@ -766,14 +773,14 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         text: "DAMPING",
                         lineHeight: 0.0045,
-                        localPosition: { x: 0.030, y: 0.052, z: -0.0075 }
+                        localPosition: { x: 0.030, y: -0.052, z: 0.0075 }
                     }
                 },
                 {
                     id: "densitySlider",
                     type: "barSlider",
                     properties: {
-                        localPosition: { x: 0.039, y: 0.016, z: -0.005 },
+                        localPosition: { x: 0.039, y: -0.016, z: 0.005 },
                         dimensions: { x: 0.014, y: 0.06, z: 0.01 }
                     },
                     setting: {
@@ -791,7 +798,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         text: "DENSITY",
                         lineHeight: 0.0045,
-                        localPosition: { x: 0.045, y: 0.057, z: -0.0075 }
+                        localPosition: { x: 0.045, y: -0.057, z: 0.0075 }
                     }
                 }
             ],
@@ -800,7 +807,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     id: "deleteOptionsPanel",
                     type: "panel",
                     properties: {
-                        localPosition: { x: 0.0, y: 0.0, z: -0.005 }
+                        localPosition: { x: 0.0, y: 0.0, z: 0.005 }
                     }
                 },
                 {
@@ -808,7 +815,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "button",
                     properties: {
                         dimensions: { x: 0.07, y: 0.03, z: 0.01 },
-                        localPosition: { x: 0, y: 0, z: -0.005 },
+                        localPosition: { x: 0, y: 0, z: 0.005 },
                         color: { red: 200, green: 200, blue: 200 }
                     },
                     label: "FINISH",
@@ -824,14 +831,14 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 id: "toolsMenuPanel",
                 type: "panel",
                 properties: {
-                    localPosition: { x: -0.0, y: 0.0, z: -0.005 }
+                    localPosition: { x: 0, y: 0, z: 0.005 }
                 }
             },
             {
                 id: "scaleButton",
                 type: "button",
                 properties: {
-                    localPosition: { x: -0.022, y: -0.04, z: -0.005 },
+                    localPosition: { x: -0.022, y: 0.04, z: 0.005 },
                     color: { red: 0, green: 240, blue: 240 }
                 },
                 label: "  SCALE",
@@ -844,7 +851,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 id: "cloneButton",
                 type: "button",
                 properties: {
-                    localPosition: { x: 0.022, y: -0.04, z: -0.005 },
+                    localPosition: { x: 0.022, y: 0.04, z: 0.005 },
                     color: { red: 240, green: 240, blue: 0 }
                 },
                 label: "  CLONE",
@@ -857,7 +864,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 id: "groupButton",
                 type: "button",
                 properties: {
-                    localPosition: { x: -0.022, y: 0.0, z: -0.005 },
+                    localPosition: { x: -0.022, y: 0.0, z: 0.005 },
                     color: { red: 220, green: 60, blue: 220 }
                 },
                 label: " GROUP",
@@ -870,7 +877,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 id: "colorButton",
                 type: "button",
                 properties: {
-                    localPosition: { x: 0.022, y: 0.0, z: -0.005 },
+                    localPosition: { x: 0.022, y: 0.0, z: 0.005 },
                     color: { red: 220, green: 220, blue: 220 }
                 },
                 label: "  COLOR",
@@ -884,7 +891,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 id: "physicsButton",
                 type: "button",
                 properties: {
-                    localPosition: { x: -0.022, y: 0.04, z: -0.005 },
+                    localPosition: { x: -0.022, y: -0.04, z: 0.005 },
                     color: { red: 60, green: 60, blue: 240 }
                 },
                 label: "PHYSICS",
@@ -897,7 +904,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 id: "deleteButton",
                 type: "button",
                 properties: {
-                    localPosition: { x: 0.022, y: 0.04, z: -0.005 },
+                    localPosition: { x: 0.022, y: -0.04, z: 0.005 },
                     color: { red: 240, green: 60, blue: 60 }
                 },
                 label: " DELETE",
@@ -913,7 +920,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             yDelta: 0.004,
             zDimension: 0.001,
             properties: {
-                localPosition: { x: 0, y: 0, z: -0.003 },
+                localPosition: { x: 0, y: 0, z: 0.003 },
                 localRotation: Quat.ZERO,
                 color: { red: 255, green: 255, blue: 0 },
                 alpha: 0.8,
@@ -1134,7 +1141,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             if (optionsItems[i].type === "barSlider") {
                 optionsSliderData[i] = {};
                 auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderValue.properties);
-                auxiliaryProperties.localPosition = { x: 0, y: (0.5 - value / 2) * properties.dimensions.y, z: 0 };
+                auxiliaryProperties.localPosition = { x: 0, y: (-0.5 + value / 2) * properties.dimensions.y, z: 0 };
                 auxiliaryProperties.dimensions = {
                     x: properties.dimensions.x,
                     y: Math.max(value * properties.dimensions.y, MIN_BAR_SLIDER_DIMENSION),
@@ -1144,7 +1151,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 optionsSliderData[i].value = Overlays.addOverlay(UI_ELEMENTS.barSliderValue.overlay,
                     auxiliaryProperties);
                 auxiliaryProperties = Object.clone(UI_ELEMENTS.barSliderRemainder.properties);
-                auxiliaryProperties.localPosition = { x: 0, y: (-0.5 + (1.0 - value) / 2) * properties.dimensions.y, z: 0 };
+                auxiliaryProperties.localPosition = { x: 0, y: (0.5 - (1.0 - value) / 2) * properties.dimensions.y, z: 0 };
                 auxiliaryProperties.dimensions = {
                     x: properties.dimensions.x,
                     y: Math.max((1.0 - value) * properties.dimensions.y, MIN_BAR_SLIDER_DIMENSION),
@@ -1169,7 +1176,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     if (optionsItems[i].useBaseColor) {
                         childProperties.color = properties.color;
                     }
-                    childProperties.localPosition = { x: 0, y: 0, z: -properties.dimensions.z / 2 - imageOffset };
+                    childProperties.localPosition = { x: 0, y: 0, z: properties.dimensions.z / 2 + imageOffset };
                     hsvControl.slider.localPosition = childProperties.localPosition;
                     childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                     hsvControl.slider.colorOverlay = Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
@@ -1184,7 +1191,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     delete childProperties.dimensions;
                     childProperties.scale = properties.dimensions.y;
                     imageOffset += IMAGE_OFFSET;
-                    childProperties.localPosition = { x: 0, y: 0, z: -properties.dimensions.z / 2 - imageOffset };
+                    childProperties.localPosition = { x: 0, y: 0, z: properties.dimensions.z / 2 + imageOffset };
                     childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                     Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
                 }
@@ -1192,7 +1199,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 // Value pointers.
                 optionsSliderData[i] = {};
                 optionsSliderData[i].offset =
-                    { x: -properties.dimensions.x / 2, y: 0, z: -properties.dimensions.z / 2 - imageOffset };
+                    { x: -properties.dimensions.x / 2, y: 0, z: properties.dimensions.z / 2 + imageOffset };
                 auxiliaryProperties = Object.clone(UI_ELEMENTS.sliderPointer.properties);
                 auxiliaryProperties.localPosition = optionsSliderData[i].offset;
                 hsvControl.slider.localPosition = auxiliaryProperties.localPosition;
@@ -1217,8 +1224,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     childProperties.scale = 0.95 * properties.dimensions.x;  // TODO: Magic number.
                     imageOffset += IMAGE_OFFSET;
                     childProperties.emissive = true;
-                    childProperties.localPosition = { x: 0, y: -properties.dimensions.y / 2 - imageOffset, z: 0 };
-                    childProperties.localRotation = Quat.fromVec3Degrees({ x: 90, y: 90, z: 0 });
+                    childProperties.localPosition = { x: 0, y: properties.dimensions.y / 2 + imageOffset, z: 0 };
+                    childProperties.localRotation = Quat.fromVec3Degrees({ x: -90, y: 90, z: 0 });
                     childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                     Overlays.addOverlay(UI_ELEMENTS.image.overlay, childProperties);
                 }
@@ -1231,7 +1238,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     delete childProperties.dimensions;
                     childProperties.scale = 0.95 * properties.dimensions.x;  // TODO: Magic number.
                     imageOffset += IMAGE_OFFSET;
-                    childProperties.localPosition = { x: 0, y: -properties.dimensions.y / 2 - imageOffset, z: 0 };
+                    childProperties.localPosition = { x: 0, y: properties.dimensions.y / 2 + imageOffset, z: 0 };
                     childProperties.localRotation = Quat.fromVec3Degrees({ x: 90, y: 90, z: 0 });
                     childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
                     childProperties.alpha = 0.0;
@@ -1242,7 +1249,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 // Invisible sphere at target point with cones as decoration.
                 optionsColorData[i] = {};
                 optionsColorData[i].offset =
-                    { x: 0, y: -properties.dimensions.y / 2 - imageOffset, z: 0 };
+                    { x: 0, y: properties.dimensions.y / 2 + imageOffset, z: 0 };
                 auxiliaryProperties = Object.clone(UI_ELEMENTS.sphere.properties);
                 auxiliaryProperties.localPosition = optionsColorData[i].offset;
                 auxiliaryProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
@@ -1311,7 +1318,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         otherFraction = 1.0 - fraction;
 
         Overlays.editOverlay(optionsSliderData[item].value, {
-            localPosition: { x: 0, y: (0.5 - fraction / 2) * overlayDimensions.y, z: 0 },
+            localPosition: { x: 0, y: (-0.5 + fraction / 2) * overlayDimensions.y, z: 0 },
             dimensions: {
                 x: overlayDimensions.x,
                 y: Math.max(fraction * overlayDimensions.y, MIN_BAR_SLIDER_DIMENSION),
@@ -1319,7 +1326,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
         });
         Overlays.editOverlay(optionsSliderData[item].remainder, {
-            localPosition: { x: 0, y: (-0.5 + otherFraction / 2) * overlayDimensions.y, z: 0 },
+            localPosition: { x: 0, y: (0.5 - otherFraction / 2) * overlayDimensions.y, z: 0 },
             dimensions: {
                 x: overlayDimensions.x,
                 y: Math.max(otherFraction * overlayDimensions.y, MIN_BAR_SLIDER_DIMENSION),
@@ -1392,7 +1399,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         x = r * Math.cos(theta);
         y = r * Math.sin(theta);
         Overlays.editOverlay(hsvControl.circle.cursorOverlay, {
-            localPosition: { x: y, y: hsvControl.circle.localPosition.y, z: -x }
+            // Coordinates based on rotate cylinder entity. TODO: Use FBX model instead of cylinder entity.
+            localPosition: { x: -y, y: hsvControl.circle.localPosition.y, z: -x }
         });
     }
 
@@ -1406,7 +1414,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         Overlays.editOverlay(hsvControl.slider.pointerOverlay, {
             localPosition: {
                 x: hsvControl.slider.localPosition.x,
-                y: (0.5 - hsvControl.hsv.v) * hsvControl.slider.length,
+                y: (hsvControl.hsv.v - 0.5) * hsvControl.slider.length,
                 z: hsvControl.slider.localPosition.z
             }
         });
@@ -1545,7 +1553,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
                 // Raise picklist.
                 Overlays.editOverlay(parentID, {
-                    localPosition: Vec3.subtract(optionsItems[index].properties.localPosition, ITEM_RAISE_DELTA)
+                    localPosition: Vec3.sum(optionsItems[index].properties.localPosition, ITEM_RAISE_DELTA)
                 });
 
                 // Show options.
@@ -1554,7 +1562,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     index = optionsOverlaysIDs.indexOf(items[i]);
                     Overlays.editOverlay(optionsOverlays[index], {
                         parentID: parentID,
-                        localPosition: { x: 0, y: (i + 1) * -UI_ELEMENTS.picklistItem.properties.dimensions.y, z: 0 },
+                        localPosition: { x: 0, y: (i + 1) * UI_ELEMENTS.picklistItem.properties.dimensions.y, z: 0 },
                         visible: true
                     });
                     Overlays.editOverlay(optionsOverlaysLabels[index], {
@@ -1713,7 +1721,7 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 if (isHighlightingSlider || isHighlightingColorCircle) {
                     localPosition = intersectionItems[highlightedItem].properties.localPosition;
                     Overlays.editOverlay(intersectionOverlays[highlightedItem], {
-                        localPosition: Vec3.subtract(localPosition, ITEM_RAISE_DELTA)
+                        localPosition: Vec3.sum(localPosition, ITEM_RAISE_DELTA)
                     });
                 }
                 // Highlight new item. (The existence of a command or callback infers that the item should be highlighted.)
@@ -1856,8 +1864,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 overlayDimensions = UI_ELEMENTS.barSlider.properties.dimensions;
             }
             basePoint = Vec3.sum(sliderProperties.position,
-                Vec3.multiplyQbyV(sliderProperties.orientation, { x: 0, y: overlayDimensions.y / 2, z: 0 }));
-            fraction = Vec3.dot(Vec3.subtract(basePoint, intersection.intersection),
+                Vec3.multiplyQbyV(sliderProperties.orientation, { x: 0, y: -overlayDimensions.y / 2, z: 0 }));
+            fraction = Vec3.dot(Vec3.subtract(intersection.intersection, basePoint),
                 Vec3.multiplyQbyV(sliderProperties.orientation, Vec3.UNIT_Y)) / overlayDimensions.y;
             fraction = adjustSliderFraction(fraction);
             setBarSliderValue(intersectedItem, fraction);
@@ -1874,13 +1882,13 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 overlayDimensions = UI_ELEMENTS.imageSlider.properties.dimensions;
             }
             basePoint = Vec3.sum(sliderProperties.position,
-                Vec3.multiplyQbyV(sliderProperties.orientation, { x: 0, y: overlayDimensions.y / 2, z: 0 }));
-            fraction = Vec3.dot(Vec3.subtract(basePoint, intersection.intersection),
+                Vec3.multiplyQbyV(sliderProperties.orientation, { x: 0, y: -overlayDimensions.y / 2, z: 0 }));
+            fraction = Vec3.dot(Vec3.subtract(intersection.intersection, basePoint),
                 Vec3.multiplyQbyV(sliderProperties.orientation, Vec3.UNIT_Y)) / overlayDimensions.y;
             fraction = adjustSliderFraction(fraction);
             Overlays.editOverlay(optionsSliderData[intersectedItem].value, {
                 localPosition: Vec3.sum(optionsSliderData[intersectedItem].offset,
-                    { x: 0, y: (0.5 - fraction) * overlayDimensions.y, z: 0 })
+                    { x: 0, y: (fraction - 0.5) * overlayDimensions.y, z: 0 })
             });
             if (intersectionItems[intersectedItem].command) {
                 doCommand(intersectionItems[intersectedItem].command.method, fraction);
@@ -1902,8 +1910,8 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             });
             if (intersectionItems[intersectedItem].command) {
                 // Cartesian planar coordinates.
-                x = -delta.z;
-                y = delta.x;
+                x = -delta.z;  // Coordinates based on rotate cylinder entity. TODO: Use FBX model instead of cylinder entity.
+                y = -delta.x;  // ""
                 s = Math.sqrt(x * x + y * y) / hsvControl.circle.radius;
                 h = Math.atan2(y, x) / (2 * Math.PI);
                 if (h < 0) {
