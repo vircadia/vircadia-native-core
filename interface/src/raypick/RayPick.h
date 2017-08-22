@@ -98,12 +98,12 @@ public:
     void disable() { _enabled = false; }
 
     const RayPickFilter& getFilter() { return _filter; }
-    const float& getMaxDistance() { return _maxDistance; }
-    const bool& isEnabled() { return _enabled; }
+    float getMaxDistance() { return _maxDistance; }
+    bool isEnabled() { return _enabled; }
     const RayPickResult& getPrevRayPickResult() { return _prevResult; }
 
     void setPrecisionPicking(bool precisionPicking) { _precisionPicking = precisionPicking; }
-    const bool& doesPrecisionPicking() { return _precisionPicking; }
+    bool doesPrecisionPicking() { return _precisionPicking; }
 
     void setRayPickResult(const RayPickResult& rayPickResult) { _prevResult = rayPickResult; }
 
