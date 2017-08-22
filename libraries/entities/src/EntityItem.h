@@ -316,9 +316,6 @@ public:
     QString getMarketplaceID() const;
     void setMarketplaceID(const QString& value);
 
-    bool getShouldHighlight() const;
-    void setShouldHighlight(const bool value);
-
     // TODO: get rid of users of getRadius()...
     float getRadius() const;
 
@@ -535,7 +532,6 @@ protected:
     QString _userData;
     SimulationOwner _simulationOwner;
     QString _marketplaceID;
-    bool _shouldHighlight { false };
     QString _name;
     QString _href; //Hyperlink href
     QString _description; //Hyperlink description

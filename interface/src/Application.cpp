@@ -5551,17 +5551,6 @@ void Application::displaySide(RenderArgs* renderArgs, Camera& theCamera, bool se
             }
             renderArgs->_debugFlags = renderDebugFlags;
             //ViveControllerManager::getInstance().updateRendering(renderArgs, _main3DScene, transaction);
-
-            RenderArgs::OutlineFlags renderOutlineFlags = RenderArgs::RENDER_OUTLINE_NONE;
-            auto contextOverlayInterface = DependencyManager::get<ContextOverlayInterface>();
-            if (contextOverlayInterface->getEnabled()) {
-                if (DependencyManager::get<ContextOverlayInterface>()->getIsInMarketplaceInspectionMode()) {
-                    renderOutlineFlags = RenderArgs::RENDER_OUTLINE_MARKETPLACE_MODE;
-                } else {
-                    renderOutlineFlags = RenderArgs::RENDER_OUTLINE_WIREFRAMES;
-                }
-            }
-            renderArgs->_outlineFlags = renderOutlineFlags;
         }
     }
 

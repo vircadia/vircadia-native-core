@@ -260,25 +260,11 @@ void ContextOverlayInterface::openMarketplace() {
 }
 
 void ContextOverlayInterface::enableEntityHighlight(const EntityItemID& entityItemID) {
-    auto entityTree = qApp->getEntities()->getTree();
-    entityTree->withReadLock([&] {
-        auto entityItem = entityTree->findEntityByEntityItemID(entityItemID);
-        if ((entityItem != NULL) && !entityItem->getShouldHighlight()) {
-            qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'true' for Entity ID:" << entityItemID;
-            entityItem->setShouldHighlight(true);
-        }
-    });
+
 }
 
 void ContextOverlayInterface::disableEntityHighlight(const EntityItemID& entityItemID) {
-    auto entityTree = qApp->getEntities()->getTree();
-    entityTree->withReadLock([&] {
-        auto entityItem = entityTree->findEntityByEntityItemID(entityItemID);
-        if ((entityItem != NULL) && entityItem->getShouldHighlight()) {
-            qCDebug(context_overlay) << "Setting 'shouldHighlight' to 'false' for Entity ID:" << entityItemID;
-            entityItem->setShouldHighlight(false);
-        }
-    });
+
 }
 
 void ContextOverlayInterface::deletingEntity(const EntityItemID& entityID) {
