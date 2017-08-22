@@ -30,7 +30,8 @@ Item {
 
         onSecurityImageResult: {
             if (imageID !== 0) { // "If security image is set up"
-                securityImage.source = securityImageModel.getImagePathFromImageID(imageID);
+                var path = securityImageModel.getImagePathFromImageID(imageID);
+                securityImage.source = path;
             }
         }
 

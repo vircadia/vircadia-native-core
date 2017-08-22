@@ -554,6 +554,7 @@ Rectangle {
             anchors.top: explanationText.bottom;
             anchors.topMargin: 10;
             anchors.left: parent.left;
+            anchors.leftMargin: 16;
             anchors.right: clipboardButton.left;
             height: 40;
             readOnly: true;
@@ -569,6 +570,7 @@ Rectangle {
             color: hifi.buttons.black;
             colorScheme: hifi.colorSchemes.dark;
             anchors.right: parent.right;
+            anchors.rightMargin: 16;
             anchors.top: keyFilePath.top;
             anchors.bottom: keyFilePath.bottom;
             width: height;

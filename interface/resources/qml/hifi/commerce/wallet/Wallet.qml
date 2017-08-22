@@ -33,15 +33,15 @@ Rectangle {
         id: commerce;
 
         onSecurityImageResult: {
-            if (imageID === 0 && root.lastPage === "securityImage") { // "If security image is set up"
-                // ERROR! Invalid security image.
-                securityImageContainer.visible = true;
-                choosePassphraseContainer.visible = false;
+            if (imageID === 0) { // "If security image is not set up"
+                if (root.activeView !== "notSetUp") {
+                    root.activeView = "notSetUp";
+                }
             }
         }
 
         onKeyFilePathResult: {
-            if (path === "") {
+            if (path === "" && root.activeView !== "notSetUp") {
                 root.activeView = "notSetUp";
             }
         }
