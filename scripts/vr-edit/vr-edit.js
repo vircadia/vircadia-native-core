@@ -81,6 +81,7 @@
     Script.include("./modules/selection.js");
     Script.include("./modules/toolIcon.js");
     Script.include("./modules/toolMenu.js");
+    Script.include("./modules/uit.js");
 
 
     function log(side, message) {

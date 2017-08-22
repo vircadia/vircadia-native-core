@@ -16,6 +16,9 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
     "use strict";
 
     var paletteOriginOverlay,
+        paletteHeaderOverlay,
+        paletteHeaderBarOverlay,
+        paletteTitleOverlay,
         palettePanelOverlay,
         highlightOverlay,
         paletteItemOverlays = [],
@@ -24,11 +27,11 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         controlJointName,
 
-        /* Coordinate system: UI lies in x-y plane with the front surface being in the +ve z direction. */
-        CANVAS_SIZE = { x: 0.21, y: 0.13 },
-        HAND_JOINT_OFFSET = 0.15,  // Distance from hand (wrist) joint to center of panel.
-        PANELS_SEPARATION = 0.01,  // Gap between Tools menu and Create panel.
-        PALETTE_ORIGIN_POSITION = { x: 0, y: HAND_JOINT_OFFSET - CANVAS_SIZE.y / 2, z: PANELS_SEPARATION + CANVAS_SIZE.x / 2 },
+        PALETTE_ORIGIN_POSITION = {
+            x: 0,
+            y: UIT.dimensions.handOffset,
+            z: UIT.dimensions.canvasSeparation + UIT.dimensions.canvas.x / 2
+        },
         PALETTE_ORIGIN_ROTATION = Quat.ZERO,
         lateralOffset,
 
@@ -43,12 +46,55 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             visible: false
         },
 
-        PALETTE_PANEL_PROPERTIES = {
-            dimensions: { x: CANVAS_SIZE.x, y: CANVAS_SIZE.y, z: 0.001 },
-            localPosition: { x: 0, y: 0, z: 0 },
+        PALETTE_HEADER_PROPERTIES = {
+            dimensions: UIT.dimensions.header,
+            localPosition: {
+                x: 0,
+                y: UIT.dimensions.canvas.y / 2 - UIT.dimensions.header.y / 2,
+                z: UIT.dimensions.header.z / 2
+            },
             localRotation: Quat.ZERO,
-            color: { red: 192, green: 192, blue: 192 },
-            alpha: 0.3,
+            color: UIT.colors.baseGray,
+            alpha: 1.0,
+            solid: true,
+            ignoreRayIntersection: false,
+            visible: true
+        },
+
+        PALETTE_HEADER_BAR_PROPERTIES = {
+            dimensions: UIT.dimensions.headerBar,
+            localPosition: {
+                x: 0,
+                y: UIT.dimensions.canvas.y / 2 - UIT.dimensions.header.y - UIT.dimensions.headerBar.y / 2,
+                z: UIT.dimensions.headerBar.z / 2
+            },
+            localRotation: Quat.ZERO,
+            color: UIT.colors.blueHighlight,
+            alpha: 1.0,
+            solid: true,
+            ignoreRayIntersection: false,
+            visible: true
+        },
+
+        PALETTE_TITLE_PROPERTIES = {
+            url: "../assets/create/create.svg",
+            scale: 0.0363,
+            localPosition: { x: 0, y: 0, z: PALETTE_HEADER_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOffset },
+            localRotation: Quat.ZERO,
+            color: UIT.colors.white,
+            alpha: 1.0,
+            emissive: true,
+            ignoreRayIntersection: true,
+            isFacingAvatar: false,
+            visible: true
+        },
+
+        PALETTE_PANEL_PROPERTIES = {
+            dimensions: UIT.dimensions.panel,
+            localPosition: { x: 0, y: UIT.dimensions.panel.y / 2 - UIT.dimensions.canvas.y / 2, z: UIT.dimensions.panel.z / 2 },
+            localRotation: Quat.ZERO,
+            color: UIT.colors.baseGray,
+            alpha: 1.0,
             solid: true,
             ignoreRayIntersection: false,
             visible: true
@@ -72,7 +118,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "cube",
                     properties: {
                         dimensions: { x: 0.03, y: 0.03, z: 0.03 },
-                        localPosition: { x: -0.04, y: 0.04, z: 0.0 },
+                        localPosition: { x: -0.04, y: 0.04, z: 0.03 },
                         localRotation: Quat.ZERO,
                         color: { red: 240, green: 0, blue: 0 },
                         alpha: 1.0,
@@ -93,7 +139,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         shape: "Cylinder",
                         dimensions: { x: 0.03, y: 0.03, z: 0.03 },
-                        localPosition: { x: 0.0, y: 0.04, z: 0.0 },
+                        localPosition: { x: 0.0, y: 0.04, z: 0.03 },
                         localRotation: Quat.fromVec3Degrees({ x: -90, y: 0, z: 0 }),
                         color: { red: 240, green: 0, blue: 0 },
                         alpha: 1.0,
@@ -115,7 +161,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         shape: "Cone",
                         dimensions: { x: 0.03, y: 0.03, z: 0.03 },
-                        localPosition: { x: 0.04, y: 0.04, z: 0.0 },
+                        localPosition: { x: 0.04, y: 0.04, z: 0.03 },
                         localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 }),
                         color: { red: 240, green: 0, blue: 0 },
                         alpha: 1.0,
@@ -136,7 +182,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "sphere",
                     properties: {
                         dimensions: { x: 0.03, y: 0.03, z: 0.03 },
-                        localPosition: { x: -0.04, y: 0.0, z: 0.0 },
+                        localPosition: { x: -0.04, y: 0.0, z: 0.03 },
                         localRotation: Quat.ZERO,
                         color: { red: 240, green: 0, blue: 0 },
                         alpha: 1.0,
@@ -173,13 +219,13 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         side = hand;
         controlHand = side === LEFT_HAND ? rightInputs.hand() : leftInputs.hand();
         controlJointName = side === LEFT_HAND ? "LeftHand" : "RightHand";
-        lateralOffset = side === LEFT_HAND ? -0.01 : 0.01;
+        lateralOffset = side === LEFT_HAND ? -UIT.dimensions.handLateralOffset : UIT.dimensions.handLateralOffset;
     }
 
     setHand(side);
 
     function getEntityIDs() {
-        return [palettePanelOverlay].concat(paletteItemOverlays);
+        return [palettePanelOverlay, paletteHeaderOverlay, paletteHeaderBarOverlay].concat(paletteItemOverlays);
     }
 
     function update(intersectionOverlayID) {
@@ -227,7 +273,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             properties = Object.clone(PALETTE_ITEMS[itemIndex].entity);
             properties.position = Vec3.sum(controlHand.palmPosition(),
                 Vec3.multiplyQbyV(controlHand.orientation(),
-                    Vec3.sum({ x: 0, y: properties.dimensions.z / 2, z: 0 }, CREATE_OFFSET)));
+                    Vec3.sum({ x: 0, y: properties.dimensions.z + 0.01, z: 0 }, CREATE_OFFSET)));
             properties.rotation = Quat.multiply(controlHand.orientation(), INVERSE_HAND_BASIS_ROTATION);
             Entities.addEntity(properties);
 
@@ -264,9 +310,23 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         paletteOriginOverlay = Overlays.addOverlay("sphere", properties);
 
         // Create palette.
+        properties = Object.clone(PALETTE_HEADER_PROPERTIES);
+        properties.parentID = paletteOriginOverlay;
+        paletteHeaderOverlay = Overlays.addOverlay("cube", properties);
+
+        properties = Object.clone(PALETTE_HEADER_BAR_PROPERTIES);
+        properties.parentID = paletteOriginOverlay;
+        paletteHeaderBarOverlay = Overlays.addOverlay("cube", properties);
+
+        properties = Object.clone(PALETTE_TITLE_PROPERTIES);
+        properties.parentID = paletteHeaderOverlay;
+        properties.url = Script.resolvePath(properties.url);
+        paletteTitleOverlay = Overlays.addOverlay("image3d", properties);
+
         properties = Object.clone(PALETTE_PANEL_PROPERTIES);
         properties.parentID = paletteOriginOverlay;
         palettePanelOverlay = Overlays.addOverlay("cube", properties);
+
         for (i = 0, length = PALETTE_ITEMS.length; i < length; i += 1) {
             properties = Object.clone(PALETTE_ITEMS[i].overlay.properties);
             properties.parentID = paletteOriginOverlay;
@@ -295,6 +355,9 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             Overlays.deleteOverlay(paletteItemOverlays[i]);
         }
         Overlays.deleteOverlay(palettePanelOverlay);
+        Overlays.deleteOverlay(paletteTitleOverlay);
+        Overlays.deleteOverlay(paletteHeaderBarOverlay);
+        Overlays.deleteOverlay(paletteHeaderOverlay);
         Overlays.deleteOverlay(paletteOriginOverlay);
 
         isDisplaying = false;
