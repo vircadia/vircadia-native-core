@@ -22,7 +22,7 @@ void main() {
     vec3 currentColor = texture(colorMap, varTexCoord0).xyz;
 
     vec2 pixVelocity = texture(velocityMap, varTexCoord0).xy;
-    vec2 velocity = params.motionScale * pixVelocity * getInvWidthHeight();
+    vec2 velocity = params.motionScale * pixVelocity;// *getInvWidthHeight();
     vec2 prevTexCoord = varTexCoord0 - velocity;
     
     vec3 prevColor = currentColor;

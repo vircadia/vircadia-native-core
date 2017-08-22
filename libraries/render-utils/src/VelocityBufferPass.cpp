@@ -162,7 +162,7 @@ const gpu::PipelinePointer& VelocityBufferPass::getCameraMotionPipeline() {
         PrepareStencil::testShape(*state);
 
         state->setColorWriteMask(true, true, false, false);
-
+        
         // Good to go add the brand new pipeline
         _cameraMotionPipeline = gpu::Pipeline::create(program, state);
     }
