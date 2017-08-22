@@ -116,19 +116,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         UI_HIGHLIGHT_COLOR = { red: 100, green: 240, blue: 100 },
 
         UI_ELEMENTS = {
-            "panel": {
-                overlay: "cube",
-                properties: {
-                    dimensions: { x: 0.10, y: 0.12, z: 0.01 },
-                    localRotation: Quat.ZERO,
-                    color: { red: 192, green: 192, blue: 192 },
-                    //alpha: 1.0,
-                    alpha: 0.5,
-                    solid: true,
-                    ignoreRayIntersection: false,
-                    visible: true
-                }
-            },
             "button": {
                 overlay: "cube",
                 properties: {
@@ -370,13 +357,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         OPTONS_PANELS = {
             scaleOptions: [
                 {
-                    id: "scaleOptionsPanel",
-                    type: "panel",
-                    properties: {
-                        localPosition: { x: 0.0, y: 0.0, z: 0.005 }
-                    }
-                },
-                {
                     id: "scaleFinishButton",
                     type: "button",
                     properties: {
@@ -392,13 +372,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             ],
             cloneOptions: [
                 {
-                    id: "cloneOptionsPanel",
-                    type: "panel",
-                    properties: {
-                        localPosition: { x: 0.0, y: 0.0, z: 0.005 }
-                    }
-                },
-                {
                     id: "cloneFinishButton",
                     type: "button",
                     properties: {
@@ -413,13 +386,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
             ],
             groupOptions: [
-                {
-                    id: "groupOptionsPanel",
-                    type: "panel",
-                    properties: {
-                        localPosition: { x: 0.0, y: 0.0, z: 0.005 }
-                    }
-                },
                 {
                     id: "groupButton",
                     type: "button",
@@ -450,13 +416,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
             ],
             colorOptions: [
-                {
-                    id: "colorOptionsPanel",
-                    type: "panel",
-                    properties: {
-                        localPosition: { x: 0.0, y: 0.0, z: 0.005 }
-                    }
-                },
                 {
                     id: "colorCircle",
                     type: "colorCircle",
@@ -586,14 +545,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
             ],
             physicsOptions: [
-                {
-                    id: "physicsOptionsPanel",
-                    type: "panel",
-                    properties: {
-                        localPosition: { x: 0.0, y: 0.0, z: 0.005 }
-                    }
-                },
-
                 {
                     id: "propertiesLabel",
                     type: "label",
@@ -847,13 +798,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             ],
             deleteOptions: [
                 {
-                    id: "deleteOptionsPanel",
-                    type: "panel",
-                    properties: {
-                        localPosition: { x: 0.0, y: 0.0, z: 0.005 }
-                    }
-                },
-                {
                     id: "deleteFinishButton",
                     type: "button",
                     properties: {
@@ -870,13 +814,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         MENU_ITEMS = [
-            {
-                id: "toolsMenuPanel",
-                type: "panel",
-                properties: {
-                    localPosition: { x: 0, y: 0, z: 0.005 }
-                }
-            },
             {
                 id: "scaleButton",
                 type: "button",
@@ -1041,7 +978,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             i,
             length;
 
-        parentID = menuPanelOverlay;  // Menu panel parents to background panel.
+        parentID = menuPanelOverlay;
         for (i = 0, length = MENU_ITEMS.length; i < length; i += 1) {
             properties = Object.clone(UI_ELEMENTS[MENU_ITEMS[i].type].properties);
             properties = Object.merge(properties, MENU_ITEMS[i].properties);
@@ -1053,7 +990,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 properties.parentID = menuOverlays[menuOverlays.length - 1];
                 Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
             }
-            parentID = menuOverlays[0];  // Menu buttons parent to menu panel.
         }
     }
 
@@ -1118,14 +1054,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // Remove menu items.
         closeMenu();
 
-        // TODO: Remove once all tools have an options panel.
-        if (OPTONS_PANELS[toolOptions] === undefined) {
-            return;
-        }
-
         // Open specified options panel.
         optionsItems = OPTONS_PANELS[toolOptions];
-        parentID = menuPanelOverlay;  // Menu panel parents to background panel.
+        parentID = menuPanelOverlay;
         for (i = 0, length = optionsItems.length; i < length; i += 1) {
             properties = Object.clone(UI_ELEMENTS[optionsItems[i].type].properties);
             if (optionsItems[i].properties) {
@@ -1323,7 +1254,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 Overlays.addOverlay(UI_ELEMENTS.circlePointer.overlay, auxiliaryProperties);
             }
 
-            parentID = optionsOverlays[0];  // Menu buttons parent to menu panel.
             optionsEnabled.push(true);
         }
 
