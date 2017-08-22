@@ -430,3 +430,6 @@ void Wallet::getSecurityImage() {
         emit securityImageResult(nullptr);
     }
 }
+void Wallet::getKeyFilePath() {
+    emit keyFilePathResult(keyFilePath());
+}

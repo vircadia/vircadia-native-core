@@ -30,12 +30,25 @@ public:
     QString signWithKey(const QByteArray& text, const QString& key);
     void chooseSecurityImage(const QString& imageFile);
     void getSecurityImage();
+    void getKeyFilePath();
 
     void setSalt(const QByteArray& salt) { _salt = salt; }
     QByteArray getSalt() { return _salt; }
 
 signals:
     void securityImageResult(QPixmap* image);
+    void keyFilePathResult(const QString& path);
+
+protected:
+    enum SecurityImage {
+        NONE = 0,
+        Cat,
+        Car,
+        Dog,
+        Stars,
+        Plane,
+        Gingerbread
+    };
 
 private:
     QStringList _publicKeys{};
