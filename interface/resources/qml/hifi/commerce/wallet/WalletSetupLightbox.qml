@@ -38,9 +38,9 @@ Rectangle {
                 loginPageContainer.visible = true;
             }
         }
-        
+
         onSecurityImageResult: {
-            if (imageID === 0 && root.lastPage === "securityImage") {
+            if (!image && root.lastPage === "securityImage") {
                 // ERROR! Invalid security image.
                 securityImageContainer.visible = true;
                 choosePassphraseContainer.visible = false;
@@ -327,7 +327,7 @@ Rectangle {
                 text: "Next";
                 onClicked: {
                     root.lastPage = "securityImage";
-                    commerce.chooseSecurityImage(securityImageSelection.getSelectedImageIndex());
+                    commerce.chooseSecurityImage(securityImageSelection.getImagePathFromImageID(1));
                     securityImageContainer.visible = false;
                     choosePassphraseContainer.visible = true;
                 }
@@ -589,7 +589,7 @@ Rectangle {
                 Window.copyToClipboard(keyFilePath.text);
             }
         }
-        
+
         // Navigation Bar
         Item {
             // Size

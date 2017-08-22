@@ -38,6 +38,7 @@ Rectangle {
             if (!isManuallyChangingSecurityImage) {
                 securityImageSelectionRoot.visible = true;
             }
+            securityImageGrid.currentIndex = 0
             //if (imageID > 0) {
             //    for (var itr = 0; itr < gridModel.count; itr++) {
             //        var thisValue = gridModel.get(itr).securityImageEnumValue;

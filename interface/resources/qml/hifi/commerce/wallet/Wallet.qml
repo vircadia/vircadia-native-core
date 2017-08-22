@@ -33,7 +33,7 @@ Rectangle {
         id: commerce;
 
         onSecurityImageResult: {
-            if (imageID === 0) { // "If security image is not set up"
+            if (!image) { // "If security image is not set up"
                 if (root.activeView !== "notSetUp") {
                     root.activeView = "notSetUp";
                 }

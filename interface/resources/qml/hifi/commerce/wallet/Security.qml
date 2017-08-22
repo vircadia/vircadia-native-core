@@ -29,8 +29,8 @@ Item {
         id: commerce;
 
         onSecurityImageResult: {
-            if (imageID !== 0) { // "If security image is set up"
-                var path = securityImageModel.getImagePathFromImageID(imageID);
+            if (image) { // "If security image is set up"
+                var path = securityImageModel.getImagePathFromImageID(1);
                 topSecurityImage.source = path;
                 changeSecurityImageImage.source = path;
             }

@@ -36,7 +36,7 @@ Item {
     Hifi.QmlCommerce {
         id: commerce;
         onSecurityImageResult: {
-            passphrasePageSecurityImage.source = gridModel.getImagePathFromImageID(imageID);
+            //passphrasePageSecurityImage.source = gridModel.getImagePathFromImageID(imageID);
         }
 
         onPassphraseSetupStatusResult: {

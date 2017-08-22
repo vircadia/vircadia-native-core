@@ -38,7 +38,7 @@ Rectangle {
         id: commerce;
 
         onSecurityImageResult: {
-            if (imageID !== 0) { // Success submitting new security image
+            if (image) { // Success submitting new security image
                 if (root.justSubmitted) {
                     root.resetSubmitButton();
                     root.visible = false;
@@ -51,7 +51,7 @@ Rectangle {
             }
         }
     }
-    
+
     //
     // SECURITY IMAGE SELECTION START
     //
@@ -183,7 +183,7 @@ Rectangle {
                     root.justSubmitted = true;
                     securityImageSubmitButton.text = "Submitting...";
                     securityImageSubmitButton.enabled = false;
-                    commerce.chooseSecurityImage(securityImageSelection.getSelectedImageIndex());
+                    commerce.chooseSecurityImage(securityImageSelection.getImagePathFromImageID(1));
                 }
             }
         }

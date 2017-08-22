@@ -68,7 +68,7 @@ Rectangle {
             }
         }
         onSecurityImageResult: {
-            securityImage.source = securityImageSelection.getImagePathFromImageID(0);
+            securityImage.source = securityImageSelection.getImagePathFromImageID(1);
         }
     }
 

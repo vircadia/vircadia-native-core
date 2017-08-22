@@ -28,15 +28,17 @@ Item {
     Hifi.QmlCommerce {
         id: commerce;
         onSecurityImageResult: {
-            if (imageID > 0) {
-                for (var itr = 0; itr < gridModel.count; itr++) {
-                    var thisValue = gridModel.get(itr).securityImageEnumValue;
-                    if (thisValue === imageID) {
-                        securityImageGrid.currentIndex = itr;
-                        break;
-                    }
-                }
-            }
+            // for now just hardwire the index
+            securityImageGrid.currentIndex = 1;
+            //if (imageID > 0) {
+            //    for (var itr = 0; itr < gridModel.count; itr++) {
+            //        var thisValue = gridModel.get(itr).securityImageEnumValue;
+            //        if (thisValue === imageID) {
+            //            securityImageGrid.currentIndex = itr;
+            //            break;
+            //        }
+            //    }
+            //}
         }
     }
 
