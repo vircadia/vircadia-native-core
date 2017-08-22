@@ -16,17 +16,9 @@ Column {
     spacing: 8
     Column {
         id: antialiasing
-        spacing: 10
+        spacing: 20
 
         Column{
-            ConfigSlider {
-                label: qsTr("Debug X")
-                integral: false
-                config: Render.getConfig("RenderMainView.Antialiasing")
-                property: "debugX"
-                max: 1.0
-                min: 0.0
-            }
             ConfigSlider {
                 label: qsTr("Source blend")
                 integral: false
@@ -43,12 +35,25 @@ Column {
                 max: 1.0
                 min: 0.0
             }
+            CheckBox {
+                    text: "Freeze "
+                    checked: Render.getConfig("RenderMainView.JitterCam")["freeze"]
+                    onCheckedChanged: { Render.getConfig("RenderMainView.JitterCam")["freeze"] = checked }
+            }
+            ConfigSlider {
+                label: qsTr("Debug X")
+                integral: false
+                config: Render.getConfig("RenderMainView.Antialiasing")
+                property: "debugX"
+                max: 1.0
+                min: 0.0
+            }
             ConfigSlider {
                 label: qsTr("Debug Velocity Threshold [pix]")
                 integral: false
                 config: Render.getConfig("RenderMainView.Antialiasing")
                 property: "debugShowVelocityThreshold"
-                max: 20
+                max: 50
                 min: 0.0
             }
             CheckBox {

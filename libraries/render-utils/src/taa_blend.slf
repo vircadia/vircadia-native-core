@@ -12,35 +12,10 @@
 //  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
 //
 
-<@include DeferredTransform.slh@>
-<$declareDeferredFrameTransform()$>
-
-
-uniform sampler2D currentMap;
-uniform sampler2D colorMap;
-uniform sampler2D historyMap;
-uniform sampler2D velocityMap;
+<@include taa.slh@>
 
 in vec2 varTexCoord0;
 layout(location = 0) out vec4 outFragColor;
-
-struct TAAParams
-{
-	float debugX;
-	float blend;
-	float motionScale;
-	float debugShowVelocityThreshold;
-    vec4 debugCursor;
-    vec4 pixelInfo;
-};
-
-layout(std140) uniform taaParamsBuffer {
-    TAAParams params;
-};
-
-vec2 getDebugCursorTexcoord() {
-    return params.pixelInfo.xy;
-}
 
 void main(void) {
     vec3 newColor = texture(currentMap, varTexCoord0).xyz;
@@ -53,11 +28,10 @@ void main(void) {
 
     vec2 pixPos = varTexCoord0 * imageSize;
     vec2 pixVelocity = texture(velocityMap, varTexCoord0).xy;
+    float pixVelocityLength = length(pixVelocity);
     vec2 velocity = params.motionScale * pixVelocity * getInvWidthHeight();
     vec2 prevTexCoord = varTexCoord0 - velocity;
     vec2 prevPix = prevTexCoord * imageSize;
-
-    outFragColor = vec4(sourceColor, 1.0);
 
     // Pixel Debugged
     vec2 cursorUV = getDebugCursorTexcoord();
@@ -68,23 +42,31 @@ void main(void) {
     vec2 cursorToFragVec = pixPos - cursorPixelPos;
     float cursorToFragLength = length(cursorToFragVec);
 
-    if (cursorToFragLength <= cursorVelocityLength) {
-        vec2 cursorVelocityDir = cursorVelocity / cursorVelocityLength;
+    if ((cursorToFragLength <= cursorVelocityLength)) {
+       vec2 cursorVelocityDir = cursorVelocity / cursorVelocityLength;
+       vec2 cursorVelocityNor = vec2(cursorVelocityDir.y, -cursorVelocityDir.x);
 
-       if (abs(dot(cursorVelocityDir, cursorToFragVec)) < 3.0) {
-           outFragColor = vec4(0.5, 1.0, 1.0, 1.0);
+       if ((dot(cursorVelocityDir, cursorToFragVec) < 0) && abs(dot(cursorVelocityNor, cursorToFragVec)) < 1.0) {
+            
+           vec3 speedColor = getVelocityColorRelative(cursorToFragLength);
+
+           outFragColor = vec4(speedColor, 1.0);
            return;
        }
     }
 
+    // Debug region before debugX
     if (varTexCoord0.x > params.debugX) {
         return;
     }
 
-	if (abs(varTexCoord0.x - params.debugX) < getInvWidthHeight().x) {
+    // draw a region splitter
+    if (abs(varTexCoord0.x - params.debugX) < getInvWidthHeight().x) {
 		outFragColor.rgb = vec3(1.0, 1.0, 0.0);
 		return;
 	}
+    
+    outFragColor = vec4(sourceColor, 1.0);	
 
     vec3 prevColor = sourceColor;
 
@@ -93,7 +75,9 @@ void main(void) {
     }
     outFragColor.xyz =  prevColor;
 
-    if (dot(pixVelocity, pixVelocity) > (params.debugShowVelocityThreshold * params.debugShowVelocityThreshold)) {
+    if (pixVelocityLength > params.debugShowVelocityThreshold) {
+        vec3 speedColor = getVelocityColorAboveThreshold(pixVelocityLength);
+
         outFragColor = vec4(0.0, 1.0, 1.0, 1.0);
     }
 

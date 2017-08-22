@@ -8,12 +8,7 @@
 
 struct OverlayData {
     mat4 mvp;
-    vec4 glowPoints;
-    vec4 glowColors[2];
-    vec4 resolutionRadiusAlpha;
-
-    vec4 extraGlowColor;
-    vec2 extraGlowPoint;
+    float alpha;
 };
 
 layout(std140) uniform overlayBuffer {
@@ -25,11 +20,9 @@ mat4 mvp = overlay.mvp;
 layout(location = 0) in vec3 Position;
 layout(location = 3) in vec2 TexCoord;
 
-out vec3 vPosition;
 out vec2 vTexCoord;
 
 void main() {
   gl_Position = mvp * vec4(Position, 1);
   vTexCoord = TexCoord;
-  vPosition = Position;
 }

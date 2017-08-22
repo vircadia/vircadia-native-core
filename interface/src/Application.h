@@ -71,6 +71,9 @@
 #include "ui/overlays/Overlays.h"
 #include "UndoStackScriptingInterface.h"
 
+#include "raypick/RayPickManager.h"
+#include "raypick/LaserPointerManager.h"
+
 #include <procedural/ProceduralSkybox.h>
 #include <model/Skybox.h>
 #include <ModelScriptingInterface.h>
@@ -302,6 +305,9 @@ public:
     QUrl getAvatarOverrideUrl() { return _avatarOverrideUrl; }
     bool getSaveAvatarOverrideUrl() { return _saveAvatarOverrideUrl; }
 
+    LaserPointerManager& getLaserPointerManager() { return _laserPointerManager; }
+    RayPickManager& getRayPickManager() { return _rayPickManager; }
+
 signals:
     void svoImportRequested(const QString& url);
 
@@ -333,14 +339,14 @@ public slots:
     // FIXME: Move addAssetToWorld* methods to own class?
     void addAssetToWorldFromURL(QString url);
     void addAssetToWorldFromURLRequestFinished();
-    void addAssetToWorld(QString filePath, QString zipFile, bool isZip);
+    void addAssetToWorld(QString filePath, QString zipFile, bool isZip, bool isBlocks);
     void addAssetToWorldUnzipFailure(QString filePath);
     void addAssetToWorldWithNewMapping(QString filePath, QString mapping, int copy);
     void addAssetToWorldUpload(QString filePath, QString mapping);
     void addAssetToWorldSetMapping(QString filePath, QString mapping, QString hash);
     void addAssetToWorldAddEntity(QString filePath, QString mapping);
 
-    void handleUnzip(QString sourceFile, QStringList destinationFile, bool autoAdd, bool isZip);
+    void handleUnzip(QString sourceFile, QStringList destinationFile, bool autoAdd, bool isZip, bool isBlocks);
 
     FileScriptingInterface* getFileDownloadInterface() { return _fileDownload; }
 
@@ -700,6 +706,9 @@ private:
 
     QUrl _avatarOverrideUrl;
     bool _saveAvatarOverrideUrl { false };
+
+    LaserPointerManager _laserPointerManager;
+    RayPickManager _rayPickManager;
 
 };
 #endif // hifi_Application_h

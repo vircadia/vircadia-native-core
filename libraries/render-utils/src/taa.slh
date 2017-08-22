@@ -1,0 +1,48 @@
+//  Generated on <$_SCRIBE_DATE$>
+//
+//  TAA.slh
+//  Common component needed by TemporalAntialiasing fragment shader
+//
+//  Created by Sam Gateau on 8/17/2017
+//  Copyright 2017 High Fidelity, Inc.
+//
+//  Distributed under the Apache License, Version 2.0.
+//  See the accompanying file LICENSE or http://www.apache.org/licenses/LICENSE-2.0.html
+//
+
+<@include DeferredTransform.slh@>
+<$declareDeferredFrameTransform()$>
+
+uniform sampler2D currentMap;
+uniform sampler2D colorMap;
+uniform sampler2D historyMap;
+uniform sampler2D velocityMap;
+
+struct TAAParams
+{
+	float debugX;
+	float blend;
+	float motionScale;
+	float debugShowVelocityThreshold;
+    vec4 debugCursor;
+    vec4 pixelInfo;
+};
+
+layout(std140) uniform taaParamsBuffer {
+    TAAParams params;
+};
+
+vec2 getDebugCursorTexcoord() {
+    return params.pixelInfo.xy;
+}
+
+<@include gpu/Color.slh@>
+<$declareColorWheel()$>
+
+vec3 getVelocityColorRelative(float velocityPixLength) {
+    return colorRamp(velocityPixLength/params.debugShowVelocityThreshold);
+}
+
+vec3 getVelocityColorAboveThreshold(float velocityPixLength) {
+    return colorRamp((velocityPixLength - params.debugShowVelocityThreshold)/params.debugShowVelocityThreshold);
+}
