@@ -18,6 +18,9 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     var attachmentJointName,
 
         menuOriginOverlay,
+        menuHeaderOverlay,
+        menuHeaderBarOverlay,
+        menuTitleOverlay,
         menuPanelOverlay,
 
         menuOverlays = [],
@@ -33,12 +36,11 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         highlightOverlay,
 
         LEFT_HAND = 0,
-
-        /* Coordinate system: UI lies in x-y plane with the front surface being in the +ve z direction. */
-        CANVAS_SIZE = { x: 0.21, y: 0.13 },
-        HAND_JOINT_OFFSET = 0.15,  // Distance from hand (wrist) joint to center of panel.
-        PANELS_SEPARATION = 0.01,  // Gap between Tools menu and Create panel.
-        PANEL_ORIGIN_POSITION = { x: -PANELS_SEPARATION - CANVAS_SIZE.x / 2, y: HAND_JOINT_OFFSET - CANVAS_SIZE.y / 2, z: 0 },
+        PANEL_ORIGIN_POSITION = {
+            x: -UIT.dimensions.canvasSeparation - UIT.dimensions.canvas.x / 2,
+            y: UIT.dimensions.handOffset,
+            z: 0
+        },
         PANEL_ORIGIN_ROTATION = Quat.fromVec3Degrees({ x: 0, y: -90, z: 0 }),
         panelLateralOffset,
 
@@ -50,18 +52,59 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             alpha: 1.0,
             parentID: Uuid.SELF,
             ignoreRayIntersection: true,
-            //visible: false
-            visible: true,
+            visible: false,
             displayInFront: true
         },
 
-        MENU_PANEL_PROPERTIES = {
-            dimensions: { x: CANVAS_SIZE.x, y: CANVAS_SIZE.y, z: 0.01 },
-            localPosition: { x: 0, y: 0, z: 0.0 },
+        MENU_HEADER_PROPERTIES = {
+            dimensions: UIT.dimensions.header,
+            localPosition: {
+                x: 0,
+                y: UIT.dimensions.canvas.y / 2 - UIT.dimensions.header.y / 2,
+                z: UIT.dimensions.header.z / 2
+            },
             localRotation: Quat.ZERO,
-            color: { red: 164, green: 164, blue: 164 },
-            //alpha: 1.0,
-            alpha: 0.5,
+            color: UIT.colors.baseGray,
+            alpha: 1.0,
+            solid: true,
+            ignoreRayIntersection: false,
+            visible: true
+        },
+
+        MENU_HEADER_BAR_PROPERTIES = {
+            dimensions: UIT.dimensions.headerBar,
+            localPosition: {
+                x: 0,
+                y: UIT.dimensions.canvas.y / 2 - UIT.dimensions.header.y - UIT.dimensions.headerBar.y / 2,
+                z: UIT.dimensions.headerBar.z / 2
+            },
+            localRotation: Quat.ZERO,
+            color: UIT.colors.blueHighlight,
+            alpha: 1.0,
+            solid: true,
+            ignoreRayIntersection: false,
+            visible: true
+        },
+
+        MENU_TITLE_PROPERTIES = {
+            url: "../assets/tools/tools-heading.svg",
+            scale: 0.0363,
+            localPosition: { x: 0, y: 0, z: MENU_HEADER_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOffset },
+            localRotation: Quat.ZERO,
+            color: UIT.colors.white,
+            alpha: 1.0,
+            emissive: true,
+            ignoreRayIntersection: true,
+            isFacingAvatar: false,
+            visible: true
+        },
+
+        MENU_PANEL_PROPERTIES = {
+            dimensions: UIT.dimensions.panel,
+            localPosition: { x: 0, y: UIT.dimensions.panel.y / 2 - UIT.dimensions.canvas.y / 2, z: UIT.dimensions.panel.z / 2 },
+            localRotation: Quat.ZERO,
+            color: UIT.colors.baseGray,
+            alpha: 1.0,
             solid: true,
             ignoreRayIntersection: false,
             visible: true
@@ -983,13 +1026,13 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         side = hand;
         controlHand = side === LEFT_HAND ? rightInputs.hand() : leftInputs.hand();
         attachmentJointName = side === LEFT_HAND ? "LeftHand" : "RightHand";
-        panelLateralOffset = side === LEFT_HAND ? -0.01 : 0.01;
+        panelLateralOffset = side === LEFT_HAND ? -UIT.dimensions.handLateralOffset : UIT.dimensions.handLateralOffset;
     }
 
     setHand(side);
 
     function getEntityIDs() {
-        return [menuPanelOverlay].concat(menuOverlays).concat(optionsOverlays);
+        return [menuPanelOverlay, menuHeaderOverlay, menuHeaderBarOverlay].concat(menuOverlays).concat(optionsOverlays);
     }
 
     function openMenu() {
@@ -1976,6 +2019,18 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         properties.localPosition = Vec3.sum(properties.localPosition, { x: panelLateralOffset, y: 0, z: 0 });
         menuOriginOverlay = Overlays.addOverlay("sphere", properties);
 
+        // Header.
+        properties = Object.clone(MENU_HEADER_PROPERTIES);
+        properties.parentID = menuOriginOverlay;
+        menuHeaderOverlay = Overlays.addOverlay("cube", properties);
+        properties = Object.clone(MENU_HEADER_BAR_PROPERTIES);
+        properties.parentID = menuOriginOverlay;
+        menuHeaderBarOverlay = Overlays.addOverlay("cube", properties);
+        properties = Object.clone(MENU_TITLE_PROPERTIES);
+        properties.parentID = menuHeaderOverlay;
+        properties.url = Script.resolvePath(properties.url);
+        menuTitleOverlay = Overlays.addOverlay("image3d", properties);
+
         // Panel background.
         properties = Object.clone(MENU_PANEL_PROPERTIES);
         properties.parentID = menuOriginOverlay;
@@ -2045,6 +2100,9 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
         menuOverlays = [];
 
+        Overlays.deleteOverlay(menuHeaderOverlay);
+        Overlays.deleteOverlay(menuHeaderBarOverlay);
+        Overlays.deleteOverlay(menuTitleOverlay);
         Overlays.deleteOverlay(menuPanelOverlay);
         Overlays.deleteOverlay(menuOriginOverlay);
 

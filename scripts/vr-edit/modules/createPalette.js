@@ -34,7 +34,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             z: UIT.dimensions.canvasSeparation + UIT.dimensions.canvas.x / 2
         },
         PALETTE_ORIGIN_ROTATION = Quat.ZERO,
-        lateralOffset,
+        paletteLateralOffset,
 
         PALETTE_ORIGIN_PROPERTIES = {
             dimensions: { x: 0.005, y: 0.005, z: 0.005 },
@@ -78,7 +78,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         PALETTE_TITLE_PROPERTIES = {
-            url: "../assets/create/create.svg",
+            url: "../assets/create/create-heading.svg",
             scale: 0.0363,
             localPosition: { x: 0, y: 0, z: PALETTE_HEADER_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOffset },
             localRotation: Quat.ZERO,
@@ -221,7 +221,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         side = hand;
         controlHand = side === LEFT_HAND ? rightInputs.hand() : leftInputs.hand();
         controlJointName = side === LEFT_HAND ? "LeftHand" : "RightHand";
-        lateralOffset = side === LEFT_HAND ? -UIT.dimensions.handLateralOffset : UIT.dimensions.handLateralOffset;
+        paletteLateralOffset = side === LEFT_HAND ? -UIT.dimensions.handLateralOffset : UIT.dimensions.handLateralOffset;
     }
 
     setHand(side);
@@ -330,27 +330,27 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // Calculate position to put palette.
         properties = Object.clone(PALETTE_ORIGIN_PROPERTIES);
         properties.parentJointIndex = handJointIndex;
-        properties.localPosition = Vec3.sum(PALETTE_ORIGIN_POSITION, { x: lateralOffset, y: 0, z: 0 });
+        properties.localPosition = Vec3.sum(PALETTE_ORIGIN_POSITION, { x: paletteLateralOffset, y: 0, z: 0 });
         paletteOriginOverlay = Overlays.addOverlay("sphere", properties);
 
-        // Create palette.
+        // Header.
         properties = Object.clone(PALETTE_HEADER_PROPERTIES);
         properties.parentID = paletteOriginOverlay;
         paletteHeaderOverlay = Overlays.addOverlay("cube", properties);
-
         properties = Object.clone(PALETTE_HEADER_BAR_PROPERTIES);
         properties.parentID = paletteOriginOverlay;
         paletteHeaderBarOverlay = Overlays.addOverlay("cube", properties);
-
         properties = Object.clone(PALETTE_TITLE_PROPERTIES);
         properties.parentID = paletteHeaderOverlay;
         properties.url = Script.resolvePath(properties.url);
         paletteTitleOverlay = Overlays.addOverlay("image3d", properties);
 
+        // Palette background.
         properties = Object.clone(PALETTE_PANEL_PROPERTIES);
         properties.parentID = paletteOriginOverlay;
         palettePanelOverlay = Overlays.addOverlay("cube", properties);
 
+        // Palette items.
         for (i = 0, length = PALETTE_ITEMS.length; i < length; i += 1) {
             properties = Object.clone(PALETTE_ITEMS[i].overlay.properties);
             properties.parentID = palettePanelOverlay;
