@@ -56,6 +56,7 @@ Rectangle {
         spacing: 0
         width: parent.width
         height: 42
+        currentIndex: isVR ? 1 : 0
 
         AudioControls.AudioTabButton {
             height: parent.height
