@@ -708,7 +708,7 @@ private:
     float _hmdRollControlRate { ROLL_CONTROL_RATE_DEFAULT };
     float _lastDrivenSpeed { 0.0f };
 
-    // working copies -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
+    // working copy -- see AvatarData for thread-safe _sensorToWorldMatrixCache, used for outward facing access
     glm::mat4 _sensorToWorldMatrix { glm::mat4() };
 
     // cache of the current HMD sensor position and orientation in sensor space.

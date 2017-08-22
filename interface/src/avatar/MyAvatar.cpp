@@ -667,8 +667,8 @@ void MyAvatar::updateSensorToWorldMatrix() {
 
     // update the sensor mat so that the body position will end up in the desired
     // position when driven from the head.
-    float heightRatio = getEyeHeight() / getUserEyeHeight();
-    glm::mat4 desiredMat = createMatFromScaleQuatAndPos(glm::vec3(heightRatio), getOrientation(), getPosition());
+    float sensorToWorldScale = getEyeHeight() / getUserEyeHeight();
+    glm::mat4 desiredMat = createMatFromScaleQuatAndPos(glm::vec3(sensorToWorldScale), getOrientation(), getPosition());
     _sensorToWorldMatrix = desiredMat * glm::inverse(_bodySensorMatrix);
 
     lateUpdatePalms();
@@ -679,6 +679,7 @@ void MyAvatar::updateSensorToWorldMatrix() {
     }
 
     _sensorToWorldMatrixCache.set(_sensorToWorldMatrix);
+    _sensorToWorldScaleCache.set(sensorToWorldScale);
 
     updateJointFromController(controller::Action::LEFT_HAND, _controllerLeftHandMatrixCache);
     updateJointFromController(controller::Action::RIGHT_HAND, _controllerRightHandMatrixCache);
@@ -2871,6 +2872,10 @@ glm::mat4 MyAvatar::computeCameraRelativeHandControllerMatrix(const glm::mat4& c
 
     // move the camera into sensor space.
     glm::mat4 cameraSensorMatrix = glm::inverse(getSensorToWorldMatrix()) * cameraWorldMatrix;
+
+    // cancel out scale
+    glm::vec3 scale = extractScale(cameraSensorMatrix);
+    cameraSensorMatrix = glm::scale(cameraSensorMatrix, 1.0f / scale);
 
     // measure the offset from the hmd and the camera, in sensor space
     glm::mat4 delta = cameraSensorMatrix * glm::inverse(getHMDSensorMatrix());
