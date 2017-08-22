@@ -265,7 +265,11 @@ void CharacterController::playerStep(btCollisionWorld* collisionWorld, btScalar 
         btVector3 endPos = startPos + linearDisplacement;
 
         btQuaternion startRot = bodyTransform.getRotation();
-        btQuaternion deltaRot = _followDesiredBodyTransform.getRotation() * startRot.inverse();
+        btQuaternion desiredRot = _followDesiredBodyTransform.getRotation();
+        if (desiredRot.dot(startRot) < 0.0f) {
+            desiredRot = -desiredRot;
+        }
+        btQuaternion deltaRot = desiredRot * startRot.inverse();
         float angularSpeed = deltaRot.getAngle() / _followTimeRemaining;
         btQuaternion angularDisplacement = btQuaternion(deltaRot.getAxis(), angularSpeed * dt);
         btQuaternion endRot = angularDisplacement * startRot;
