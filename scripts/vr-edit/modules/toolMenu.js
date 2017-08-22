@@ -939,7 +939,6 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         isPicklistOpen,
         pressedItem = null,
         pressedSource,
-        isButtonPressed,
         isPicklistPressed,
         isPicklistItemPressed,
         isTriggerClicked,
@@ -1776,11 +1775,9 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
 
         // Press/unpress button.
-        if (controlHand.triggerClicked() !== isTriggerClicked) {
-            isTriggerClicked = !isTriggerClicked;
-        }
+        isTriggerClicked = controlHand.triggerClicked();
         if ((pressedItem && intersectedItem !== pressedItem.index) || intersectionOverlays !== pressedSource
-                || isTriggerClicked !== isButtonPressed) {
+                || isTriggerClicked !== (pressedItem !== null)) {
             if (pressedItem) {
                 // Unpress previous button.
                 Overlays.editOverlay(intersectionOverlays[pressedItem.index], {
@@ -1791,7 +1788,6 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             if (isHighlightingButton && (intersectionEnabled === null || intersectionEnabled[intersectedItem])
                     && isTriggerClicked && !wasTriggerClicked) {
                 // Press new button.
-                isButtonPressed = true;
                 localPosition = intersectionItems[intersectedItem].properties.localPosition;
                 Overlays.editOverlay(intersectionOverlays[intersectedItem], {
                     localPosition: Vec3.sum(localPosition, BUTTON_PRESS_DELTA)
@@ -1998,7 +1994,6 @@ ToolMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         isPicklistOpen = false;
         pressedItem = null;
         pressedSource = null;
-        isButtonPressed = false;
         isPicklistPressed = false;
         isPicklistItemPressed = false;
         isTriggerClicked = false;
