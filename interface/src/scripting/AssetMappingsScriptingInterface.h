@@ -38,9 +38,10 @@ public slots:
 
 signals:
     void errorGettingMappings(QString errorString);
+    void updated();
 
 private:
-    void setupHeaders();
+    void setupRoles();
 
     QHash<QString, QStandardItem*> _pathToItemMap;
 };

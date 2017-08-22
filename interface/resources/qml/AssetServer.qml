@@ -48,6 +48,7 @@ ScrollingWindow {
     Component.onCompleted: {
         ApplicationInterface.uploadRequest.connect(uploadClicked);
         assetMappingsModel.errorGettingMappings.connect(handleGetMappingsError);
+
         reload();
     }
     
@@ -464,19 +465,9 @@ ScrollingWindow {
             HifiControls.VerticalSpacer {}
 
             Row {
-                id: buttonRow
                 anchors.left: parent.left
                 anchors.right: parent.right
                 spacing: hifi.dimensions.contentSpacing.x
-
-                HifiControls.GlyphButton {
-                    glyph: hifi.glyphs.reload
-                    color: hifi.buttons.black
-                    colorScheme: root.colorScheme
-                    width: hifi.dimensions.controlLineHeight
-
-                    onClicked: root.reload()
-                }
 
                 HifiControls.Button {
                     text: "Add To World"
@@ -510,8 +501,64 @@ ScrollingWindow {
                     onClicked: root.deleteFile()
                     enabled: treeView.selection.hasSelection
                 }
-            }
+                
+                HifiControls.GlyphButton {
 
+                    glyph: hifi.glyphs.reload
+                    color: hifi.buttons.black
+                    colorScheme: root.colorScheme
+                    width: hifi.dimensions.controlLineHeight
+
+                    onClicked: root.reload()
+                }
+            }
+        }
+
+        HifiControls.Tree {
+            id: treeView
+            anchors.top: assetDirectory.bottom
+            anchors.bottom: infoRow.top
+            anchors.margins: hifi.dimensions.contentMargin.x + 2  // Extra for border
+            anchors.left: parent.left
+            anchors.right: parent.right
+            
+            treeModel: assetProxyModel
+            selectionMode: SelectionMode.ExtendedSelection
+            headerVisible: true
+            sortIndicatorVisible: true
+
+            canEdit: true
+            colorScheme: root.colorScheme
+
+            modifyEl: renameEl
+
+            TableViewColumn {
+                id: nameColumn
+                title: "Name:"
+                role: "name"
+                width: treeView.width - bakedColumn.width;
+            }
+            TableViewColumn {
+                id: bakedColumn
+                title: "Use Baked?"
+                role: "baked"
+                width: 120
+            }
+            
+            MouseArea {
+                propagateComposedEvents: true
+                anchors.fill: parent
+                acceptedButtons: Qt.RightButton
+                onClicked: {
+                    if (!HMD.active) {  // Popup only displays properly on desktop
+                        var index = treeView.indexAt(mouse.x, mouse.y);
+                        treeView.selection.setCurrentIndex(index, 0x0002);
+                        contextMenu.currentIndex = index;
+                        contextMenu.popup();
+                    }
+                }
+            }
+                
             Menu {
                 id: contextMenu
                 title: "Edit"
@@ -541,36 +588,25 @@ ScrollingWindow {
             }
         }
 
-        HifiControls.Tree {
-            id: treeView
-            anchors.top: assetDirectory.bottom
+        Row {
+            id: infoRow
+            anchors.left: treeView.left
+            anchors.right: treeView.right
             anchors.bottom: uploadSection.top
-            anchors.margins: hifi.dimensions.contentMargin.x + 2  // Extra for border
-            anchors.left: parent.left
-            anchors.right: parent.right
-
-            treeModel: assetProxyModel
-            canEdit: true
-            colorScheme: root.colorScheme
-            selectionMode: SelectionMode.ExtendedSelection
-
-            modifyEl: renameEl
-
-            MouseArea {
-                propagateComposedEvents: true
-                anchors.fill: parent
-                acceptedButtons: Qt.RightButton
-                onClicked: {
-                    if (!HMD.active) {  // Popup only displays properly on desktop
-                        var index = treeView.indexAt(mouse.x, mouse.y);
-                        treeView.selection.setCurrentIndex(index, 0x0002);
-                        contextMenu.currentIndex = index;
-                        contextMenu.popup();
-                    }
-                }
+            anchors.bottomMargin: hifi.dimensions.contentSpacing.y
+            spacing: hifi.dimensions.contentSpacing.x
+            
+            HifiControls.Label {
+                text: treeView.selection.selectedIndexes.length + " ITEMS SELECTED"
+                colorScheme: root.colorScheme
             }
 
+            HifiControls.CheckBox {
+                text: "Use baked (optimized) versions"
+                colorScheme: root.colorScheme
+            }
         }
+
         HifiControls.ContentSection {
             id: uploadSection
             name: "Upload A File"

@@ -172,7 +172,7 @@ void AssetMappingsScriptingInterface::renameMapping(QString oldPath, QString new
 }
 
 AssetMappingModel::AssetMappingModel() {
-    setupHeaders();
+    setupRoles();
 }
 
 bool AssetMappingModel::isKnownFolder(QString path) const {
@@ -288,6 +288,8 @@ void AssetMappingModel::refresh() {
             emit errorGettingMappings(request->getErrorString());
         }
 
+        emit updated();
+
         request->deleteLater();
     });
 
@@ -305,11 +307,9 @@ void AssetMappingModel::clear() {
 
     _pathToItemMap.clear();
     QStandardItemModel::clear();
-    setupHeaders(); // restore headers
 }
 
-void AssetMappingModel::setupHeaders() {
-    setHorizontalHeaderLabels(QStringList() << "Name" << "Use Baked?");
+void AssetMappingModel::setupRoles() {
     QHash<int, QByteArray> roleNames;
     roleNames[Qt::DisplayRole] = "name";
     roleNames[Qt::UserRole + 5] = "baked";

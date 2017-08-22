@@ -371,6 +371,10 @@ ScrollingWindow {
                 colorScheme: hifi.colorSchemes.dark
                 anchors.left: parent.left
                 anchors.right: parent.right
+                
+                TableViewColumn {
+                    role: "display";
+                }
             }
 
             HifiControls.VerticalSpacer {
