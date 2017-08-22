@@ -639,6 +639,7 @@ function update() {
 
     // If there's a HUD element at the (newly moved) reticle, just make it visible and bail.
     if (isPointingAtOverlay(hudPoint2d) && isPointerEnabled) {
+        //print("--------> pointing at HUD <--------");
         if (HMD.active) {
             Reticle.depth = hudReticleDistance();
 

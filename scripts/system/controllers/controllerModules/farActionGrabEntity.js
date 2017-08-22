@@ -376,6 +376,8 @@ Script.include("/~/system/libraries/controllers.js");
                 }
 
                 var rayPickInfo = controllerData.rayPicks[this.hand];
+                var hudRayPickInfo = controllerData.hudRayPicks[this.hand];
+                var hudPoint2d = HMD.overlayFromWorldPoint(hudRayPickInfo.intersection);
                 if (rayPickInfo.type == RayPick.INTERSECTED_ENTITY) {
                     var entityID = rayPickInfo.objectID;
                     var targetProps = Entities.getEntityProperties(entityID, ["dynamic", "shapeType", "position",
@@ -397,6 +399,10 @@ Script.include("/~/system/libraries/controllers.js");
                             this.startFarGrabAction(controllerData, targetProps);
                         }
                     }
+                } else if (Reticle.pointingAtSystemOverlay || Overlays.getOverlayAtPoint(hudPoint2d || Reticle.position)) {
+                    this.endNearGrabAction();
+                    this.laserPointerOff();
+                    return makeRunningValues(false, [], []);
                 }
             }
             return makeRunningValues(true, [], []);

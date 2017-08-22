@@ -57,6 +57,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         };
 
         this.continueNearTrigger = function (controllerData) {
+            print("-------> continue near trigger <-------");
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "continueNearTrigger", args);
         };

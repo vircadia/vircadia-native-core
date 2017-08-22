@@ -196,6 +196,10 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             RayPick.getPrevRayPickResult(_this.leftControllerRayPick),
             RayPick.getPrevRayPickResult(_this.rightControllerRayPick)
         ];
+        var hudRayPicks = [
+            RayPick.getPrevRayPickResult(_this.leftControllerHudRayPick),
+            RayPick.getPrevRayPickResult(_this.rightControllerHudRayPick)
+        ];
         // if the pickray hit something very nearby, put it into the nearby entities list
         for (h = LEFT_HAND; h <= RIGHT_HAND; h++) {
 
@@ -234,7 +238,8 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             nearbyEntityProperties: nearbyEntityProperties,
             nearbyEntityPropertiesByID: nearbyEntityPropertiesByID,
             nearbyOverlayIDs: nearbyOverlayIDs,
-            rayPicks: rayPicks
+            rayPicks: rayPicks,
+            hudRayPicks: hudRayPicks
         };
 
         // check for plugins that would like to start.  ask in order of increasing priority value
@@ -298,15 +303,33 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         enabled: true
     });
 
+    this.mouseHudRayPick = RayPick.createRayPick({
+        joint: "Mouse",
+        filter: RayPick.PICK_HUD,
+        enabled: true
+    });
+
     this.leftControllerRayPick = RayPick.createRayPick({
         joint: "_CONTROLLER_LEFTHAND",
         filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
         enabled: true,
         maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE
     });
+    this.leftControllerHudRayPick = RayPick.createRayPick({
+        joint: "_CONTROLLER_LEFTHAND",
+        filter: RayPick.PICK_HUD,
+        enabled: true,
+        maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE
+    });
     this.rightControllerRayPick = RayPick.createRayPick({
         joint: "_CONTROLLER_RIGHTHAND",
         filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
+        enabled: true,
+        maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE
+    });
+    this.rightControllerHudRayPick = RayPick.createRayPick({
+        joint: "_CONTROLLER_RIGHTHAND",
+        filter: RayPick.PICK_HUD,
         enabled: true,
         maxDistance: DEFAULT_SEARCH_SPHERE_DISTANCE
     });
@@ -318,6 +341,8 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         // RayPick.removeRayPick(_this.mouseRayPick);
         RayPick.removeRayPick(_this.leftControllerRayPick);
         RayPick.removeRayPick(_this.rightControllerRayPick);
+        RayPick.removeRayPick(_this.rightControllerHudRayPick);
+        RayPick.removeRayPick(_this.leftControllerHudRayPick);
     };
 
     Script.scriptEnding.connect(this.cleanup);
