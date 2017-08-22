@@ -34,6 +34,8 @@ public:
 
     RenderableEntityInterface* getRenderableInterface() override { return this; }
 
+    render::ItemID getMetaRenderItemID() override { return _myMetaItem; }
+
     virtual void setDimensions(const glm::vec3& value) override;
     virtual void setModelURL(const QString& url) override;
 

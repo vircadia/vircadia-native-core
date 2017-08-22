@@ -24,6 +24,8 @@ public:
 
     RenderableEntityInterface* getRenderableInterface() override { return this; }
 
+    render::ItemID getMetaRenderItemID() override { return render::Item::INVALID_ITEM_ID; }
+
     virtual bool supportsDetailedRayIntersection() const override { return true; }
     virtual bool findDetailedRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                          bool& keepSearching, OctreeElementPointer& element, float& distance, 

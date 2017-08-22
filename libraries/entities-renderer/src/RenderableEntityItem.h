@@ -44,6 +44,9 @@ public:
     const SharedSoundPointer& getCollisionSound() { return _collisionSound; }
     void setCollisionSound(const SharedSoundPointer& sound) { _collisionSound = sound; }
     virtual RenderableEntityInterface* getRenderableInterface() { return nullptr; }
+
+    virtual render::ItemID getMetaRenderItemID() { return render::Item::INVALID_ITEM_ID; }
+
 private:
     SharedSoundPointer _collisionSound;
 };
@@ -86,6 +89,7 @@ public: \
     virtual void locationChanged(bool tellPhysics = true) override { EntityItem::locationChanged(tellPhysics); notifyChanged(); } \
     virtual void dimensionsChanged() override { EntityItem::dimensionsChanged(); notifyChanged(); } \
     virtual RenderableEntityInterface* getRenderableInterface() override { return this; } \
+    render::ItemID getMetaRenderItemID() override { return render::Item::INVALID_ITEM_ID; } \
     void checkFading() { \
         bool transparent = isTransparent(); \
         if (transparent != _prevIsTransparent) { \

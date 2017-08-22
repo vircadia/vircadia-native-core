@@ -68,6 +68,8 @@ public:
 
     RenderableEntityInterface* getRenderableInterface() override { return this; }
 
+    render::ItemID getMetaRenderItemID() override { return _myItem; }
+
     void initializePolyVox();
 
     virtual void somethingChangedNotification() override {

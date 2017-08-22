@@ -17,7 +17,7 @@
 
 #include <AbstractViewStateInterface.h>
 
-#include "EntityItemID.h"
+#include "RenderableEntityItem.h"
 #include "ui/overlays/Overlay.h"
 
 class ItemHighlightScriptingInterface : public QObject, public Dependency {

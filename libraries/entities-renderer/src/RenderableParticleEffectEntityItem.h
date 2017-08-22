@@ -23,6 +23,8 @@ public:
 
     RenderableEntityInterface* getRenderableInterface() override { return this; }
 
+    render::ItemID getMetaRenderItemID() override { return _renderItemId; }
+
     virtual void update(const quint64& now) override;
 
     void updateRenderItem();

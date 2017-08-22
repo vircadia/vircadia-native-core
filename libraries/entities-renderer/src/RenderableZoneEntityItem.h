@@ -33,6 +33,8 @@ public:
     
     RenderableEntityInterface* getRenderableInterface() override { return this; }
 
+    render::ItemID getMetaRenderItemID() override { return _myMetaItem; }
+
     virtual bool setProperties(const EntityItemProperties& properties) override;
     virtual void somethingChangedNotification() override;
 
