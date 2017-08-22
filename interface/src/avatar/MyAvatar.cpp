@@ -2869,15 +2869,16 @@ glm::mat4 MyAvatar::computeCameraRelativeHandControllerMatrix(const glm::mat4& c
         cameraWorldMatrix *= createMatFromScaleQuatAndPos(vec3(-1.0f, 1.0f, 1.0f), glm::quat(), glm::vec3());
     }
 
-    // compute a NEW sensorToWorldMatrix for the camera.
-    // The equation is cameraWorldMatrix = cameraSensorToWorldMatrix * _hmdSensorMatrix.
-    // here we solve for the unknown cameraSensorToWorldMatrix.
-    glm::mat4 cameraSensorToWorldMatrix = cameraWorldMatrix * glm::inverse(getHMDSensorMatrix());
+    // move the camera into sensor space.
+    glm::mat4 cameraSensorMatrix = glm::inverse(getSensorToWorldMatrix()) * cameraWorldMatrix;
 
-    // Using the new cameraSensorToWorldMatrix, compute where the controller is in world space.
-    glm::mat4 controllerWorldMatrix = cameraSensorToWorldMatrix * controllerSensorMatrix;
+    // measure the offset from the hmd and the camera, in sensor space
+    glm::mat4 delta = cameraSensorMatrix * glm::inverse(getHMDSensorMatrix());
 
-    // move it into avatar space
+    // apply the delta offset to the controller, in sensor space, then transform it into world space.
+    glm::mat4 controllerWorldMatrix = getSensorToWorldMatrix() * delta * controllerSensorMatrix;
+
+    // transform controller into avatar space
     glm::mat4 avatarMatrix = createMatFromQuatAndPos(getOrientation(), getPosition());
     return glm::inverse(avatarMatrix) * controllerWorldMatrix;
 }
