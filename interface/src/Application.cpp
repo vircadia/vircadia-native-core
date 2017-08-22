@@ -166,7 +166,7 @@
 #include "scripting/WindowScriptingInterface.h"
 #include "scripting/ControllerScriptingInterface.h"
 #include "scripting/RatesScriptingInterface.h"
-#include "scripting/ItemHighlightScriptingInterface.h"
+#include "scripting/SelectionScriptingInterface.h"
 #if defined(Q_OS_MAC) || defined(Q_OS_WIN)
 #include "SpeechRecognizer.h"
 #endif
@@ -612,7 +612,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<ContextOverlayInterface>();
     DependencyManager::set<Ledger>();
     DependencyManager::set<Wallet>();
-    DependencyManager::set<ItemHighlightScriptingInterface>(qApp);
+    DependencyManager::set<SelectionScriptingInterface>(qApp);
 
     DependencyManager::set<LaserPointerScriptingInterface>();
     DependencyManager::set<RayPickScriptingInterface>();

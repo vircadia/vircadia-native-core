@@ -27,7 +27,7 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>();
     _hmdScriptingInterface = DependencyManager::get<HMDScriptingInterface>();
     _tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
-    _itemHighlightScriptingInterface = DependencyManager::get<ItemHighlightScriptingInterface>();
+    _selectionScriptingInterface = DependencyManager::get<SelectionScriptingInterface>();
 
     _entityPropertyFlags += PROP_POSITION;
     _entityPropertyFlags += PROP_ROTATION;
@@ -261,11 +261,11 @@ void ContextOverlayInterface::openMarketplace() {
 }
 
 void ContextOverlayInterface::enableEntityHighlight(const EntityItemID& entityItemID) {
-    _itemHighlightScriptingInterface->addToHighlightedItemsList(entityItemID);
+    _selectionScriptingInterface->addToSelectedItemsList("contextOverlayHighlightList", entityItemID);
 }
 
 void ContextOverlayInterface::disableEntityHighlight(const EntityItemID& entityItemID) {
-    _itemHighlightScriptingInterface->removeFromHighlightedItemsList(entityItemID);
+    _selectionScriptingInterface->removeFromSelectedItemsList("contextOverlayHighlightList", entityItemID);
 }
 
 void ContextOverlayInterface::deletingEntity(const EntityItemID& entityID) {
