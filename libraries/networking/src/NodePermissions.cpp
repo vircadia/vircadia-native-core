@@ -53,8 +53,12 @@ QVariant NodePermissions::toVariant(QHash<QUuid, GroupRank> groupRanks) {
     values["permissions_id"] = _id;
     if (_groupIDSet) {
         values["group_id"] = _groupID;
-        if (groupRanks.contains(_rankID)) {
+
+        if (!_rankID.isNull()) {
             values["rank_id"] = _rankID;
+        }
+
+        if (groupRanks.contains(_rankID)) {
             values["rank_name"] = groupRanks[_rankID].name;
             values["rank_order"] = groupRanks[_rankID].order;
         }
