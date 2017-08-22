@@ -22,6 +22,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         palettePanelOverlay,
         highlightOverlay,
         paletteItemOverlays = [],
+        paletteItemPositions = [],
 
         LEFT_HAND = 0,
 
@@ -112,15 +113,19 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             visible: false
         },
 
+        PALETTE_ENTITY_DIMENSIONS = { x: 0.024, y: 0.024, z: 0.024 },
+        PALETTE_ENTITY_COLOR = UIT.colors.faintGray,
+        ENTITY_CREATION_DIMENSIONS = { x: 0.2, y: 0.2, z: 0.2 },
+        ENTITY_CREATION_COLOR = { red: 192, green: 192, blue: 192 },
+
         PALETTE_ITEMS = [
             {
                 overlay: {
                     type: "cube",
                     properties: {
-                        dimensions: { x: 0.03, y: 0.03, z: 0.03 },
-                        localPosition: { x: -0.04, y: 0.04, z: 0.03 },
+                        dimensions: PALETTE_ENTITY_DIMENSIONS,
                         localRotation: Quat.ZERO,
-                        color: { red: 240, green: 0, blue: 0 },
+                        color: PALETTE_ENTITY_COLOR,
                         alpha: 1.0,
                         solid: true,
                         ignoreRayIntersection: false,
@@ -129,8 +134,8 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 entity: {
                     type: "Box",
-                    dimensions: { x: 0.2, y: 0.2, z: 0.2 },
-                    color: { red: 192, green: 192, blue: 192 }
+                    dimensions: ENTITY_CREATION_DIMENSIONS,
+                    color: ENTITY_CREATION_COLOR
                 }
             },
             {
@@ -138,10 +143,9 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "shape",
                     properties: {
                         shape: "Cylinder",
-                        dimensions: { x: 0.03, y: 0.03, z: 0.03 },
-                        localPosition: { x: 0.0, y: 0.04, z: 0.03 },
+                        dimensions: PALETTE_ENTITY_DIMENSIONS,
                         localRotation: Quat.fromVec3Degrees({ x: -90, y: 0, z: 0 }),
-                        color: { red: 240, green: 0, blue: 0 },
+                        color: PALETTE_ENTITY_COLOR,
                         alpha: 1.0,
                         solid: true,
                         ignoreRayIntersection: false,
@@ -151,8 +155,8 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 entity: {
                     type: "Shape",
                     shape: "Cylinder",
-                    dimensions: { x: 0.2, y: 0.2, z: 0.2 },
-                    color: { red: 192, green: 192, blue: 192 }
+                    dimensions: ENTITY_CREATION_DIMENSIONS,
+                    color: ENTITY_CREATION_COLOR
                 }
             },
             {
@@ -160,10 +164,9 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     type: "shape",
                     properties: {
                         shape: "Cone",
-                        dimensions: { x: 0.03, y: 0.03, z: 0.03 },
-                        localPosition: { x: 0.04, y: 0.04, z: 0.03 },
+                        dimensions: PALETTE_ENTITY_DIMENSIONS,
                         localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 }),
-                        color: { red: 240, green: 0, blue: 0 },
+                        color: PALETTE_ENTITY_COLOR,
                         alpha: 1.0,
                         solid: true,
                         ignoreRayIntersection: false,
@@ -173,18 +176,17 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 entity: {
                     type: "Shape",
                     shape: "Cone",
-                    dimensions: { x: 0.2, y: 0.2, z: 0.2 },
-                    color: { red: 192, green: 192, blue: 192 }
+                    dimensions: ENTITY_CREATION_DIMENSIONS,
+                    color: ENTITY_CREATION_COLOR
                 }
             },
             {
                 overlay: {
                     type: "sphere",
                     properties: {
-                        dimensions: { x: 0.03, y: 0.03, z: 0.03 },
-                        localPosition: { x: -0.04, y: 0.0, z: 0.03 },
+                        dimensions: PALETTE_ENTITY_DIMENSIONS,
                         localRotation: Quat.ZERO,
-                        color: { red: 240, green: 0, blue: 0 },
+                        color: PALETTE_ENTITY_COLOR,
                         alpha: 1.0,
                         solid: true,
                         ignoreRayIntersection: false,
@@ -193,8 +195,8 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 },
                 entity: {
                     type: "Sphere",
-                    dimensions: { x: 0.2, y: 0.2, z: 0.2 },
-                    color: { red: 192, green: 192, blue: 192 }
+                    dimensions: ENTITY_CREATION_DIMENSIONS,
+                    color: ENTITY_CREATION_COLOR
                 }
             }
         ],
@@ -257,7 +259,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // Unpress currently pressed item.
         if (pressedItem !== NONE && pressedItem !== itemIndex) {
             Overlays.editOverlay(paletteItemOverlays[pressedItem], {
-                localPosition: PALETTE_ITEMS[pressedItem].overlay.properties.localPosition
+                localPosition: paletteItemPositions[pressedItem]
             });
             pressedItem = NONE;
         }
@@ -266,7 +268,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         isTriggerClicked = controlHand.triggerClicked();
         if (highlightedItem !== NONE && pressedItem === NONE && isTriggerClicked && !wasTriggerClicked) {
             Overlays.editOverlay(paletteItemOverlays[itemIndex], {
-                localPosition: Vec3.sum(PALETTE_ITEMS[itemIndex].overlay.properties.localPosition, PRESS_DELTA)
+                localPosition: Vec3.sum(paletteItemPositions[itemIndex], PRESS_DELTA)
             });
             pressedItem = itemIndex;
 
@@ -281,6 +283,26 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
 
         wasTriggerClicked = isTriggerClicked;
+    }
+
+    function itemPosition(index) {
+        // Position relative to palette panel.
+        var ITEMS_PER_ROW = 3,
+            ROW_ZERO_Y_OFFSET = 0.0580,
+            ROW_SPACING = 0.0560,
+            COLUMN_ZERO_OFFSET = -0.08415,
+            COLUMN_SPACING = 0.0561,
+            row,
+            column;
+
+        row = Math.floor(index / ITEMS_PER_ROW);
+        column = index % ITEMS_PER_ROW;
+
+        return {
+            x: COLUMN_ZERO_OFFSET + column * COLUMN_SPACING,
+            y: ROW_ZERO_Y_OFFSET - row * ROW_SPACING,
+            z: UIT.dimensions.panel.z + PALETTE_ENTITY_DIMENSIONS.z / 2
+        };
     }
 
     function display() {
@@ -329,8 +351,10 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         for (i = 0, length = PALETTE_ITEMS.length; i < length; i += 1) {
             properties = Object.clone(PALETTE_ITEMS[i].overlay.properties);
-            properties.parentID = paletteOriginOverlay;
+            properties.parentID = palettePanelOverlay;
+            properties.localPosition = itemPosition(i);
             paletteItemOverlays[i] = Overlays.addOverlay(PALETTE_ITEMS[i].overlay.type, properties);
+            paletteItemPositions[i] = properties.localPosition;
         }
 
         // Prepare cube highlight overlay.

@@ -15,9 +15,10 @@ UIT = (function () {
 
     return {
         colors: {
+            white: { red: 0xff, green: 0xff, blue: 0xff },
+            faintGray: { red: 0xe3, green: 0xe3, blue: 0xe3 },
             baseGray: { red: 0x40, green: 0x40, blue: 0x40 },
-            blueHighlight: { red: 0x00, green: 0xbf, blue: 0xef },
-            white: { red: 0xff, green: 0xff, blue: 0xff }
+            blueHighlight: { red: 0x00, green: 0xbf, blue: 0xef }
         },
 
         // Coordinate system: UI lies in x-y plane with the front surface being +z.
