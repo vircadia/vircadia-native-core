@@ -80,7 +80,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 z: UIT.dimensions.headerBar.z / 2
             },
             localRotation: Quat.ZERO,
-            color: UIT.colors.blueHighlight,
+            color: UIT.colors.greenHighlight,
             alpha: 1.0,
             solid: true,
             ignoreRayIntersection: false,
