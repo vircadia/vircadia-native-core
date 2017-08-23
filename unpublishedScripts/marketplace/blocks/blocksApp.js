@@ -16,6 +16,7 @@
 	var APP_NAME = "BLOCKS";
 	var APP_URL = "https://vr.google.com/objects/";
 	var APP_ICON = "https://hifi-content.s3.amazonaws.com/elisalj/blocks/blocks-i.svg";
+	var APP_ICON_ACTIVE = "https://hifi-content.s3.amazonaws.com/elisalj/blocks/blocks-a.svg";
 
     try {
         print("Current Interface version: " + Window.checkVersion());
@@ -26,7 +27,8 @@
 
 	var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
 	var button = tablet.addButton({
-		icon: APP_ICON,
+	    icon: APP_ICON,
+        activeIcon: APP_ICON_ACTIVE,
 		text: APP_NAME
 	});
 
@@ -34,6 +36,26 @@
 		tablet.gotoWebScreen(APP_URL, "", true);
 	}
 	button.clicked.connect(onClicked);
+
+	function onScreenChanged(type, url) {
+	    if (url !== null) {
+	        tabletButton.editProperties({ isActive: true });
+
+	        if (!shown) {
+	            // hook up to the event bridge
+	            tablet.webEventReceived.connect(onWebEventReceived);
+	        }
+	        shown = true;
+	    } else {
+	        tabletButton.editProperties({ isActive: false });
+
+	        if (shown) {
+	            // disconnect from the event bridge
+	            tablet.webEventReceived.disconnect(onWebEventReceived);
+	        }
+	        shown = false;
+	    }
+	}
 
 	function cleanup() {
 		tablet.removeButton(button);
