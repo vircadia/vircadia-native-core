@@ -119,15 +119,18 @@
     var button;
     var buttonName = "WALLET";
     var tablet = null;
+    var walletEnabled = Settings.getValue("inspectionMode", false);
     function startup() {
-        tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
-        button = tablet.addButton({
-            text: buttonName,
-            icon: "icons/tablet-icons/wallet-i.svg",
-            activeIcon: "icons/tablet-icons/wallet-a.svg"
-        });
-        button.clicked.connect(onButtonClicked);
-        tablet.screenChanged.connect(onTabletScreenChanged);
+        if (walletEnabled) {
+            tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
+            button = tablet.addButton({
+                text: buttonName,
+                icon: "icons/tablet-icons/wallet-i.svg",
+                activeIcon: "icons/tablet-icons/wallet-a.svg"
+            });
+            button.clicked.connect(onButtonClicked);
+            tablet.screenChanged.connect(onTabletScreenChanged);
+        }
     }
     function shutdown() {
         button.clicked.disconnect(onButtonClicked);
