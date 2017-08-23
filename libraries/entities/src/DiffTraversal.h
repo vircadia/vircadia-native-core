@@ -66,6 +66,8 @@ public:
 
     float getCurrentRootSizeScale() const { return _currentView.rootSizeScale; }
     float getCompletedRootSizeScale() const { return _completedView.rootSizeScale; }
+    float getCurrentLODOffset() const { return _currentView.lodLevelOffset; }
+    float getCompletedLODOffset() const { return _completedView.lodLevelOffset; }
 
     uint64_t getStartOfCompletedTraversal() const { return _completedView.startTime; }
     bool finished() const { return _path.empty(); }

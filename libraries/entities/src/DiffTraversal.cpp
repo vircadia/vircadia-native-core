@@ -89,22 +89,15 @@ void DiffTraversal::Waypoint::getNextVisibleElementRepeat(
     next.intersection = ViewFrustum::OUTSIDE;
 }
 
-DiffTraversal::DiffTraversal() {
-    const int32_t MIN_PATH_DEPTH = 16;
-    _path.reserve(MIN_PATH_DEPTH);
-}
-
 void DiffTraversal::Waypoint::getNextVisibleElementDifferential(DiffTraversal::VisibleElement& next,
         const DiffTraversal::View& view, const DiffTraversal::View& lastView) {
     if (_nextIndex == -1) {
         // root case is special
         ++_nextIndex;
         EntityTreeElementPointer element = _weakElement.lock();
-        if (element->getLastChangedContent() > lastView.startTime) {
-            next.element = element;
-            next.intersection = ViewFrustum::INTERSECT;
-            return;
-        }
+        next.element = element;
+        next.intersection = ViewFrustum::INTERSECT;
+        return;
     }
     if (_nextIndex < NUMBER_OF_CHILDREN) {
         EntityTreeElementPointer element = _weakElement.lock();
@@ -147,6 +140,11 @@ void DiffTraversal::Waypoint::getNextVisibleElementDifferential(DiffTraversal::V
     }
     next.element.reset();
     next.intersection = ViewFrustum::OUTSIDE;
+}
+
+DiffTraversal::DiffTraversal() {
+    const int32_t MIN_PATH_DEPTH = 16;
+    _path.reserve(MIN_PATH_DEPTH);
 }
 
 DiffTraversal::Type DiffTraversal::prepareNewTraversal(
@@ -246,7 +244,7 @@ std::ostream& operator<<(std::ostream& s, const DiffTraversal& traversal) {
     for (size_t i = 0; i < traversal._path.size(); ++i) {
         s << (int32_t)(traversal._path[i].getNextIndex());
         if (i < traversal._path.size() - 1) {
-            s << "-->";
+            s << ":";
         }
     }
     return s;

@@ -39,11 +39,17 @@ private:
     bool addDescendantsToExtraFlaggedEntities(const QUuid& filteredEntityID, EntityItem& entityItem, EntityNodeData& nodeData);
 
     void startNewTraversal(const ViewFrustum& viewFrustum, EntityTreeElementPointer root, int32_t lodLevelOffset);
+    bool traverseTreeAndBuildNextPacketPayload(EncodeBitstreamParams& params) override;
 
     DiffTraversal _traversal;
     EntityPriorityQueue _sendQueue;
     std::unordered_set<EntityItemPointer> _entitiesToSend;
     ConicalView _conicalView; // cached optimized view for fast priority calculations
+
+    // packet construction stuff
+    EntityTreeElementExtraEncodeDataPointer _extraEncodeData { new EntityTreeElementExtraEncodeData() };
+    int32_t _numEntitiesOffset { 0 };
+    uint16_t _numEntities { 0 };
 };
 
 #endif // hifi_EntityTreeSendThread_h

@@ -17,6 +17,8 @@
 
 #include "EntityServer.h"
 
+//#define SEND_SORTED_ENTITIES
+
 void EntityTreeSendThread::preDistributionProcessing() {
     auto node = _node.toStrongRef();
     auto nodeData = static_cast<EntityNodeData*>(node->getLinkedData());
@@ -145,6 +147,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
         std::cout << "adebug  traversal complete " << "  Q.size = " << _sendQueue.size() << "  dt = " << dt << std::endl;  // adebug
     }
 
+#ifndef SEND_SORTED_ENTITIES
     if (!_sendQueue.empty()) {
         // print what needs to be sent
         while (!_sendQueue.empty()) {
@@ -157,6 +160,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
             _entitiesToSend.erase(entity);
         }
     }
+#endif // SEND_SORTED_ENTITIES
     // END EXPERIMENTAL DIFFERENTIAL TRAVERSAL
 
     OctreeSendThread::traverseTreeAndSendContents(node, nodeData, viewFrustumChanged, isFullScene);
@@ -245,7 +249,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                         float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
                                                                        cube,
                                                                        _traversal.getCurrentRootSizeScale(),
-                                                                       lodLevelOffset);
+                                                                       _traversal.getCurrentLODOffset());
 
                         // Only send entities if they are large enough to see
                         if (renderAccuracy > 0.0f) {
@@ -280,7 +284,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                                 float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
                                                                                cube,
                                                                                _traversal.getCurrentRootSizeScale(),
-                                                                               lodLevelOffset);
+                                                                               _traversal.getCurrentLODOffset());
 
                                 // Only send entities if they are large enough to see
                                 if (renderAccuracy > 0.0f) {
@@ -317,7 +321,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                             float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
                                                                            cube,
                                                                            _traversal.getCurrentRootSizeScale(),
-                                                                           lodLevelOffset);
+                                                                           _traversal.getCurrentLODOffset());
 
                             // Only send entities if they are large enough to see
                             if (renderAccuracy > 0.0f) {
@@ -330,7 +334,7 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
                                     float lastRenderAccuracy = calculateRenderAccuracy(_traversal.getCompletedView().getPosition(),
                                                                                        cube,
                                                                                         _traversal.getCompletedRootSizeScale(),
-                                                                                       lodLevelOffset);
+                                                                                        _traversal.getCompletedLODOffset());
 
                                     if (lastRenderAccuracy <= 0.0f) {
                                         float priority = _conicalView.computePriority(cube);
@@ -350,5 +354,79 @@ void EntityTreeSendThread::startNewTraversal(const ViewFrustum& view, EntityTree
         });
         break;
     }
+}
+
+bool EntityTreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstreamParams& params) {
+#ifdef SEND_SORTED_ENTITIES
+    //auto entityTree = std::static_pointer_cast<EntityTree>(_myServer->getOctree());
+    if (_sendQueue.empty()) {
+        return false;
+    }
+    if (!_packetData.hasContent()) {
+        // This is the beginning of a new packet.
+        // We pack minimal data for this to be accepted as an OctreeElement payload for the root element.
+        // The Octree header bytes look like this:
+        //
+        // 0x00  octalcode for root
+        // 0x00  colors (1 bit where recipient should call: child->readElementDataFromBuffer())
+        // 0xXX  childrenInTreeMask (when params.includeExistsBits is true: 1 bit where child is existant)
+        // 0x00  childrenInBufferMask (1 bit where recipient should call: child->readElementData() recursively)
+        const uint8_t zeroByte = 0;
+        _packetData.appendValue(zeroByte); // octalcode
+        _packetData.appendValue(zeroByte); // colors
+        if (params.includeExistsBits) {
+            uint8_t childrenExistBits = 0;
+            EntityTreeElementPointer root = std::dynamic_pointer_cast<EntityTreeElement>(_myServer->getOctree()->getRoot());
+            for (int32_t i = 0; i < NUMBER_OF_CHILDREN; ++i) {
+                if (root->getChildAtIndex(i)) {
+                    childrenExistBits += (1 << i);
+                }
+            }
+            _packetData.appendValue(childrenExistBits); // childrenInTreeMask
+        }
+        _packetData.appendValue(zeroByte); // childrenInBufferMask
+
+        // Pack zero for numEntities.
+        // But before we do: grab current byteOffset so we can come back later
+        // and update this with the real number.
+        _numEntities = 0;
+        _numEntitiesOffset = _packetData.getUncompressedByteOffset();
+        _packetData.appendValue(_numEntities);
+    }
+
+    LevelDetails entitiesLevel = _packetData.startLevel();
+    while(!_sendQueue.empty()) {
+        PrioritizedEntity queuedItem = _sendQueue.top();
+        EntityItemPointer entity = queuedItem.getEntity();
+        if (entity) {
+            OctreeElement::AppendState appendEntityState = entity->appendEntityData(&_packetData, params, _extraEncodeData);
+
+            if (appendEntityState != OctreeElement::COMPLETED) {
+                if (appendEntityState == OctreeElement::PARTIAL) {
+                    ++_numEntities;
+                }
+                params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
+                break;
+            }
+            ++_numEntities;
+        }
+        _sendQueue.pop();
+    }
+    if (_sendQueue.empty()) {
+        params.stopReason = EncodeBitstreamParams::FINISHED;
+        _extraEncodeData->entities.clear();
+    }
+
+    if (_numEntities == 0) {
+        _packetData.discardLevel(entitiesLevel);
+        return false;
+    }
+    _packetData.endLevel(entitiesLevel);
+    _packetData.updatePriorBytes(_numEntitiesOffset, (const unsigned char*)&_numEntities, sizeof(_numEntities));
+    return true;
+
+#else // SEND_SORTED_ENTITIES
+    return OctreeSendThread::traverseTreeAndBuildNextPacketPayload(params);
+#endif // SEND_SORTED_ENTITIES
 }
 
