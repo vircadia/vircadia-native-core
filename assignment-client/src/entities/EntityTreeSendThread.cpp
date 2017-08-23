@@ -84,7 +84,6 @@ void EntityTreeSendThread::preDistributionProcessing() {
 void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, OctreeQueryNode* nodeData,
             bool viewFrustumChanged, bool isFullScene) {
     // BEGIN EXPERIMENTAL DIFFERENTIAL TRAVERSAL
-    int32_t lodLevelOffset = nodeData->getBoundaryLevelAdjust() + (viewFrustumChanged ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
     if (nodeData->getUsesFrustum()) {
         // DEBUG HACK: trigger traversal (Repeat) every so often
         const uint64_t TRAVERSE_AGAIN_PERIOD = 4 * USECS_PER_SECOND;
@@ -93,17 +92,18 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
             ViewFrustum viewFrustum;
             nodeData->copyCurrentViewFrustum(viewFrustum);
             EntityTreeElementPointer root = std::dynamic_pointer_cast<EntityTreeElement>(_myServer->getOctree()->getRoot());
+            int32_t lodLevelOffset = nodeData->getBoundaryLevelAdjust() + (viewFrustumChanged ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
             startNewTraversal(viewFrustum, root, lodLevelOffset);
 
             // If the previous traversal didn't finish, we'll need to resort the entities still in _sendQueue after calling traverse
             if (!_sendQueue.empty()) {
                 EntityPriorityQueue prevSendQueue;
                 _sendQueue.swap(prevSendQueue);
+                _entitiesToSend.clear();
                 // Re-add elements from previous traveral if they still need to be sent
                 while (!prevSendQueue.empty()) {
                     EntityItemPointer entity = prevSendQueue.top().getEntity();
                     prevSendQueue.pop();
-                    _entitiesToSend.clear();
                     if (entity) {
                         bool success = false;
                         AACube cube = entity->getQueryAACube(success);
@@ -113,9 +113,9 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
                                 float priority = _conicalView.computePriority(cube);
                                 if (priority != DO_NOT_SEND) {
                                     float renderAccuracy = calculateRenderAccuracy(_traversal.getCurrentView().getPosition(),
-                                        cube,
-                                        _traversal.getCurrentRootSizeScale(),
-                                        lodLevelOffset);
+                                                                                   cube,
+                                                                                   _traversal.getCurrentRootSizeScale(),
+                                                                                   lodLevelOffset);
 
                                     // Only send entities if they are large enough to see
                                     if (renderAccuracy > 0.0f) {
