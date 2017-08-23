@@ -13,10 +13,11 @@
 <@include DeferredTransform.slh@>
 <$declareDeferredFrameTransform()$>
 
-uniform sampler2D currentMap;
-uniform sampler2D colorMap;
+uniform sampler2D depthMap;
+uniform sampler2D sourceMap;
 uniform sampler2D historyMap;
 uniform sampler2D velocityMap;
+uniform sampler2D nextMap;
 
 struct TAAParams
 {
@@ -25,7 +26,7 @@ struct TAAParams
 	float motionScale;
 	float debugShowVelocityThreshold;
     vec4 debugCursor;
-    vec4 pixelInfo;
+    vec4 pixelInfo_orbZoom;
 };
 
 layout(std140) uniform taaParamsBuffer {
@@ -33,8 +34,56 @@ layout(std140) uniform taaParamsBuffer {
 };
 
 vec2 getDebugCursorTexcoord() {
-    return params.pixelInfo.xy;
+    return params.pixelInfo_orbZoom.xy;
 }
+
+float getOrbZoom() {
+    return params.pixelInfo_orbZoom.z;
+}
+
+float fetchDepth(vec2 uv) {
+	return texture(depthMap, vec2(uv), 0).x;
+}
+
+float resolveDepthLinear(float depth) {
+    return Zeye = -evalZeyeFromZdb(Zdb);
+ }
+
+#define ZCMP_GT(a, b) (a < b)
+
+vec3 find_closest_fragment_3x3(vec2 uv)
+{
+	vec2 dd = abs(getInvWidthHeight());
+	vec2 du = vec2(dd.x, 0.0);
+	vec2 dv = vec2(0.0, dd.y);
+
+	vec3 dtl = vec3(-1, -1, fetchDepth(uv - dv - du);
+	vec3 dtc = vec3( 0, -1, fetchDepth(uv - dv).x);
+	vec3 dtr = vec3( 1, -1, fetchDepth(uv - dv + du);
+
+	vec3 dml = vec3(-1, 0, fetchDepth(CameraDepthTexture, uv - du);
+	vec3 dmc = vec3( 0, 0, fetchDepth(CameraDepthTexture, uv);
+	vec3 dmr = vec3( 1, 0, fetchDepth(CameraDepthTexture, uv + du);
+
+	vec3 dbl = vec3(-1, 1, fetchDepth(CameraDepthTexture, uv + dv - du);
+	vec3 dbc = vec3( 0, 1, fetchDepth(CameraDepthTexture, uv + dv);
+	vec3 dbr = vec3( 1, 1, fetchDepth(CameraDepthTexture, uv + dv + du);
+
+	vec3 dmin = dtl;
+	if (ZCMP_GT(dmin.z, dtc.z)) dmin = dtc;
+	if (ZCMP_GT(dmin.z, dtr.z)) dmin = dtr;
+
+	if (ZCMP_GT(dmin.z, dml.z)) dmin = dml;
+	if (ZCMP_GT(dmin.z, dmc.z)) dmin = dmc;
+	if (ZCMP_GT(dmin.z, dmr.z)) dmin = dmr;
+
+	if (ZCMP_GT(dmin.z, dbl.z)) dmin = dbl;
+	if (ZCMP_GT(dmin.z, dbc.z)) dmin = dbc;
+	if (ZCMP_GT(dmin.z, dbr.z)) dmin = dbr;
+
+	return vec3(uv + dd.xy * dmin.xy, dmin.z);
+}
+
 
 <@include gpu/Color.slh@>
 <$declareColorWheel()$>

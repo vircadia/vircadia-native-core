@@ -18,11 +18,11 @@ in vec2 varTexCoord0;
 layout(location = 0) out vec4 outFragColor;
 
 void main(void) {
-    vec3 newColor = texture(currentMap, varTexCoord0).xyz;
-    outFragColor = vec4(newColor, 1.0);
+    vec3 nextColor = texture(nextMap, varTexCoord0).xyz;
+    outFragColor = vec4(nextColor, 1.0);
 
     // Pixel being shaded
-	vec3 sourceColor = texture(colorMap, varTexCoord0).xyz;
+	vec3 sourceColor = texture(sourceMap, varTexCoord0).xyz;
 
     vec2 imageSize = getWidthHeight(0);
 
@@ -34,12 +34,14 @@ void main(void) {
     vec2 prevPix = prevTexCoord * imageSize;
 
     // Pixel Debugged
-    vec2 cursorUV = getDebugCursorTexcoord();
+    vec3 cursorFrag = find_closest_fragment_3x3(getDebugCursorTexcoord());
+    vec2 cursorUV = cursorFrag.xy;
     vec2 cursorPixelPos = cursorUV * imageSize;
     vec2 cursorVelocity = texture(velocityMap, cursorUV).xy;
     vec2 cursorPrevUV = cursorUV - cursorVelocity;
     cursorVelocity *= imageSize;
     float cursorVelocityLength = length(cursorVelocity);
+    vec2 cursorVelocityDir = cursorVelocity / cursorVelocityLength;
 
     vec2 cursorToFragVec = pixPos - cursorPixelPos;
     float cursorToFragLength = length(cursorToFragVec);
@@ -60,25 +62,44 @@ void main(void) {
     float tenPercentHeight = 0.1 * imageSize.y;
     float centerWidth = imageSize.x * 0.5;
 
-    vec2 prevOrbPos = vec2(centerWidth - tenPercentHeight, imageSize.y - tenPercentHeight);
+    vec2 nextOrbPos = vec2(centerWidth, imageSize.y - 3 * tenPercentHeight);
+    vec2 nextOrbPosToPix = pixPos - nextOrbPos;
+    
+    vec2 prevOrbPos = nextOrbPos + cursorVelocityDir * 2.0 * tenPercentHeight;
     vec2 prevOrbPosToPix = pixPos - prevOrbPos;
+
     if (dot(prevOrbPosToPix, prevOrbPosToPix) < tenPercentHeight * tenPercentHeight) {
-        vec2 prevOrbPosToPix_uv = cursorPrevUV + prevOrbPosToPix * getInvWidthHeight() * 0.5;
+        vec2 prevOrbPosToPix_uv = cursorPrevUV + prevOrbPosToPix * getInvWidthHeight() / getOrbZoom();
         vec3 preOrbColor = vec3(0.0);
         if (!(any(lessThan(prevOrbPosToPix_uv, vec2(0.0))) || any(greaterThan(prevOrbPosToPix_uv, vec2(1.0))))) {
             preOrbColor = texture(historyMap, prevOrbPosToPix_uv).xyz;
         }
+        float distanceToPrev = length(prevOrbPosToPix);
+        if (distanceToPrev < 2.0) {
+            preOrbColor = vec3(1.0, 0.0, 1.0);
+        }
+        float distanceToNext = length(imageSize * (cursorUV -  prevOrbPosToPix_uv));
+        if (distanceToNext < 2.0) {
+            preOrbColor = vec3(1.0, 0.5, 0.0);
+        }
         outFragColor = vec4(preOrbColor, 1.0);
         return;
     }
-    vec2 nextOrbPos = vec2(centerWidth + tenPercentHeight, imageSize.y - tenPercentHeight);
-    vec2 nextOrbPosToPix = pixPos - nextOrbPos;
     if (dot(nextOrbPosToPix, nextOrbPosToPix) < tenPercentHeight * tenPercentHeight) {
-        vec2 nextOrbPosToPix_uv = cursorUV + nextOrbPosToPix * getInvWidthHeight() * 0.5;
+        vec2 nextOrbPosToPix_uv = cursorUV + nextOrbPosToPix * getInvWidthHeight() / getOrbZoom();
         vec3 nextOrbColor = vec3(0.0);
         if (!(any(lessThan(nextOrbPosToPix_uv, vec2(0.0))) || any(greaterThan(nextOrbPosToPix_uv, vec2(1.0))))) {
-            nextOrbColor = texture(colorMap, nextOrbPosToPix_uv).xyz;
+            nextOrbColor = texture(nextMap, nextOrbPosToPix_uv).xyz;
         }
+        float distanceToPrev = length(imageSize * (cursorPrevUV -  nextOrbPosToPix_uv));
+        if (distanceToPrev < 2.0) {
+            nextOrbColor = vec3(1.0, 0.0, 1.0);
+        }
+        float distanceToNext = length(nextOrbPosToPix);
+        if (distanceToNext < 2.0) {
+            nextOrbColor = vec3(1.0, 0.5, 0.0);
+        }
+        
         outFragColor = vec4(nextOrbColor, 1.0);
         return;
     }
@@ -94,9 +115,9 @@ void main(void) {
 		return;
 	}
     
-    outFragColor = vec4(sourceColor, 1.0);	
+    outFragColor = vec4(nextColor, 1.0);	
 
-    vec3 prevColor = sourceColor;
+    vec3 prevColor = nextColor;
 
     if (!(any(lessThan(prevTexCoord, vec2(0.0))) || any(greaterThan(prevTexCoord, vec2(1.0))))) {
         prevColor = texture(historyMap, prevTexCoord).xyz;

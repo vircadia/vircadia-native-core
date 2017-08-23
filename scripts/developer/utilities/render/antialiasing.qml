@@ -56,12 +56,14 @@ Column {
                 max: 50
                 min: 0.0
             }
-            CheckBox {
-                    text: "Freeze "
-                    checked: Render.getConfig("RenderMainView.JitterCam")["freeze"]
-                    onCheckedChanged: { Render.getConfig("RenderMainView.JitterCam")["freeze"] = checked }
-            }
-           
+            ConfigSlider {
+                label: qsTr("Debug Orb Zoom")
+                integral: false
+                config: Render.getConfig("RenderMainView.Antialiasing")
+                property: "debugOrbZoom"
+                max: 8.0
+                min: 0.0
+            } 
         }
     }
 }

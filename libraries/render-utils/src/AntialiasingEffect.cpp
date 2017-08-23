@@ -182,7 +182,8 @@ const int AntialiasingPass_FrameTransformSlot = 1;
 const int AntialiasingPass_HistoryMapSlot = 0;
 const int AntialiasingPass_SourceMapSlot = 1;
 const int AntialiasingPass_VelocityMapSlot = 2;
-const int AntialiasingPass_CurrentMapSlot = 3;
+const int AntialiasingPass_NextMapSlot = 3;
+const int AntialiasingPass_DepthMapSlot = 3;
 
 
 Antialiasing::Antialiasing() {
@@ -209,8 +210,10 @@ const gpu::PipelinePointer& Antialiasing::getAntialiasingPipeline() {
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), AntialiasingPass_FrameTransformSlot));
    
         slotBindings.insert(gpu::Shader::Binding(std::string("historyMap"), AntialiasingPass_HistoryMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), AntialiasingPass_SourceMapSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("sourceMap"), AntialiasingPass_SourceMapSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("velocityMap"), AntialiasingPass_VelocityMapSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), AntialiasingPass_DepthMapSlot));
+        
         
         gpu::Shader::makeProgram(*program, slotBindings);
         
@@ -232,7 +235,7 @@ const gpu::PipelinePointer& Antialiasing::getBlendPipeline() {
         gpu::ShaderPointer program = gpu::Shader::createProgram(vs, ps);
         
         gpu::Shader::BindingSet slotBindings;
-        slotBindings.insert(gpu::Shader::Binding(std::string("colorTexture"), AntialiasingPass_CurrentMapSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("colorTexture"), AntialiasingPass_NextMapSlot));
 
         gpu::Shader::makeProgram(*program, slotBindings);
         
@@ -256,10 +259,11 @@ const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
         slotBindings.insert(gpu::Shader::Binding(std::string("taaParamsBuffer"), AntialiasingPass_ParamsSlot));
 
         slotBindings.insert(gpu::Shader::Binding(std::string("deferredFrameTransformBuffer"), AntialiasingPass_FrameTransformSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("currentMap"), AntialiasingPass_CurrentMapSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("nextMap"), AntialiasingPass_NextMapSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("historyMap"), AntialiasingPass_HistoryMapSlot));
-        slotBindings.insert(gpu::Shader::Binding(std::string("colorMap"), AntialiasingPass_SourceMapSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("sourceMap"), AntialiasingPass_SourceMapSlot));
         slotBindings.insert(gpu::Shader::Binding(std::string("velocityMap"), AntialiasingPass_VelocityMapSlot));
+        slotBindings.insert(gpu::Shader::Binding(std::string("depthMap"), AntialiasingPass_DepthMapSlot));
 
 
         gpu::Shader::makeProgram(*program, slotBindings);
@@ -282,9 +286,10 @@ void Antialiasing::configure(const Config& config) {
 
     _params.edit().debugCursor.x = config.showCursorPixel;
 
+    auto orbZoom = (_params->pixelInfo.z);
     auto cursorPos = glm::vec2(_params->pixelInfo);
-    if (cursorPos != config.debugCursorTexcoord) {
-        _params.edit().pixelInfo = glm::vec4(config.debugCursorTexcoord, 0.0f, 0.0f);
+    if (cursorPos != config.debugCursorTexcoord || (orbZoom != config.debugOrbZoom)) {
+        _params.edit().pixelInfo = glm::vec4(config.debugCursorTexcoord, config.debugOrbZoom, 0.0f);
     }
 
 }
@@ -322,8 +327,8 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
             _antialiasingBuffer[i]->setRenderBuffer(0, _antialiasingTexture[i]);
         }
     }
-    int currentFrame = (_currentFrame++) % 2;
-    int prevFrame = (currentFrame + 1) % 2;
+    int nextFrame = (_currentFrame++) % 2;
+    int prevFrame = (nextFrame + 1) % 2;
     
     gpu::doInBatch(args->_context, [&](gpu::Batch& batch) {
         batch.enableStereo(false);
@@ -334,31 +339,34 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setResourceTexture(AntialiasingPass_HistoryMapSlot, _antialiasingTexture[prevFrame]);
         batch.setResourceTexture(AntialiasingPass_SourceMapSlot, sourceBuffer->getRenderBuffer(0));
         batch.setResourceTexture(AntialiasingPass_VelocityMapSlot, velocityBuffer->getVelocityTexture());
+        batch.setResourceTexture(AntialiasingPass_DepthMapSlot, sourceBuffer->getDepthStencilBuffer());
 
         batch.setUniformBuffer(AntialiasingPass_ParamsSlot, _params._buffer);
         batch.setUniformBuffer(AntialiasingPass_FrameTransformSlot, deferredFrameTransform->getFrameTransformBuffer());
 
-        batch.setFramebuffer(_antialiasingBuffer[currentFrame]);
+        batch.setFramebuffer(_antialiasingBuffer[nextFrame]);
         batch.setPipeline(getAntialiasingPipeline());       
         batch.draw(gpu::TRIANGLE_STRIP, 4);
 
         // Blend step
+        batch.setResourceTexture(AntialiasingPass_SourceMapSlot, nullptr);
+
         batch.setFramebuffer(sourceBuffer);
         if (_params->debugX <= 0.0) {
             batch.setPipeline(getBlendPipeline());
         }  else {
             batch.setPipeline(getDebugBlendPipeline());
         }
-        batch.setResourceTexture(AntialiasingPass_CurrentMapSlot, _antialiasingTexture[currentFrame]);
+        batch.setResourceTexture(AntialiasingPass_NextMapSlot, _antialiasingTexture[nextFrame]);
         batch.draw(gpu::TRIANGLE_STRIP, 4); 
         
         batch.setUniformBuffer(AntialiasingPass_ParamsSlot, nullptr);
         batch.setUniformBuffer(AntialiasingPass_FrameTransformSlot, nullptr);
+        batch.setResourceTexture(AntialiasingPass_DepthMapSlot, nullptr);
 
         batch.setResourceTexture(AntialiasingPass_HistoryMapSlot, nullptr);
-        batch.setResourceTexture(AntialiasingPass_SourceMapSlot, nullptr);
         batch.setResourceTexture(AntialiasingPass_VelocityMapSlot, nullptr);
-        batch.setResourceTexture(AntialiasingPass_CurrentMapSlot, nullptr);
+        batch.setResourceTexture(AntialiasingPass_NextMapSlot, nullptr);
     });
 }
 

@@ -19,19 +19,21 @@ in vec2 varTexCoord0;
 layout(location = 0) out vec4 outFragColor;
 
 void main() {
-    vec3 currentColor = texture(colorMap, varTexCoord0).xyz;
 
-    vec2 pixVelocity = texture(velocityMap, varTexCoord0).xy;
+    vec2 fragUV = find_closest_fragment_3x3(varTexCoord0);
+    vec3 sourceColor = texture(sourceMap, fragUV).xyz;
+
+    vec2 pixVelocity = texture(velocityMap, fragUV).xy;
     vec2 velocity = params.motionScale * pixVelocity;// *getInvWidthHeight();
     vec2 prevTexCoord = varTexCoord0 - velocity;
     
-    vec3 prevColor = currentColor;
+    vec3 historyColor = sourceColor;
 
     if (!(any(lessThan(prevTexCoord, vec2(0.0))) || any(greaterThan(prevTexCoord, vec2(1.0))))) {
-        prevColor = texture(historyMap, prevTexCoord).xyz;
+        historyColor = texture(historyMap, prevTexCoord).xyz;
     }
 
-    vec3 newColor = mix(prevColor, currentColor, params.blend);
+    vec3 nextColor = mix(historyColor, sourceColor, params.blend);
 
-    outFragColor = vec4(newColor, 1.0);
+    outFragColor = vec4(nextColor, 1.0);
 }

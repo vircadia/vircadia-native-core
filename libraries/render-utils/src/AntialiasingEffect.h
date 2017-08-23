@@ -26,6 +26,7 @@ class AntialiasingConfig : public render::Job::Config {
     Q_PROPERTY(float debugShowVelocityThreshold MEMBER debugShowVelocityThreshold NOTIFY dirty)
     Q_PROPERTY(bool showCursorPixel MEMBER showCursorPixel NOTIFY dirty)
     Q_PROPERTY(glm::vec2 debugCursorTexcoord MEMBER debugCursorTexcoord NOTIFY dirty)
+    Q_PROPERTY(float debugOrbZoom MEMBER debugOrbZoom NOTIFY dirty)
 public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
@@ -36,6 +37,7 @@ public:
 
     bool showCursorPixel{ false };
     glm::vec2 debugCursorTexcoord{ 0.5f, 0.5f };
+    float debugOrbZoom{ 2.0f };
 
 signals:
     void dirty();
@@ -49,7 +51,7 @@ struct TAAParams {
     float debugShowVelocityThreshold{ 1.0f };
 
     glm::vec4 debugCursor{ 0.0f };
-    glm::vec4 pixelInfo{ 0.5f, 0.5f, 0.0f, 0.0f };
+    glm::vec4 pixelInfo{ 0.5f, 0.5f, 2.0f, 0.0f };
 
 };
 using TAAParamsBuffer = gpu::StructBuffer<TAAParams>;
