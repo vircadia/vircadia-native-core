@@ -50,25 +50,26 @@ class SelectionScriptingInterface : public QObject, public Dependency {
 public:
     SelectionScriptingInterface(AbstractViewStateInterface* viewState);
 
-    Q_INVOKABLE bool removeListFromMap(const render::Selection::Name& listName);
+    Q_INVOKABLE void printList(const QString& listName);
+    Q_INVOKABLE bool removeListFromMap(const QString& listName);
 
-    Q_INVOKABLE bool addToSelectedItemsList(const render::Selection::Name& listName, const QUuid& avatarSessionID);
-    Q_INVOKABLE bool removeFromSelectedItemsList(const render::Selection::Name& listName, const QUuid& avatarSessionID);
+    Q_INVOKABLE bool addToSelectedItemsList(const QString& listName, const QUuid& avatarSessionID);
+    Q_INVOKABLE bool removeFromSelectedItemsList(const QString& listName, const QUuid& avatarSessionID);
 
-    Q_INVOKABLE bool addToSelectedItemsList(const render::Selection::Name& listName, const EntityItemID& entityID);
-    Q_INVOKABLE bool removeFromSelectedItemsList(const render::Selection::Name& listName, const EntityItemID& entityID);
+    Q_INVOKABLE bool addToSelectedItemsList(const QString& listName, const EntityItemID& entityID);
+    Q_INVOKABLE bool removeFromSelectedItemsList(const QString& listName, const EntityItemID& entityID);
     
-    Q_INVOKABLE bool addToSelectedItemsList(const render::Selection::Name& listName, const OverlayID& overlayID);
-    Q_INVOKABLE bool removeFromSelectedItemsList(const render::Selection::Name& listName, const OverlayID& overlayID);
+    Q_INVOKABLE bool addToSelectedItemsList(const QString& listName, const OverlayID& overlayID);
+    Q_INVOKABLE bool removeFromSelectedItemsList(const QString& listName, const OverlayID& overlayID);
 
 private:
     AbstractViewStateInterface* _viewState;
-    QMap<render::Selection::Name, GameplayObjects> _selectedItemsListMap;
+    QMap<QString, GameplayObjects> _selectedItemsListMap;
 
-    template <class T> bool addToGameplayObjects(const render::Selection::Name& listName, T idToAdd);
-    template <class T> bool removeFromGameplayObjects(const render::Selection::Name& listName, T idToRemove);
+    template <class T> bool addToGameplayObjects(const QString& listName, T idToAdd);
+    template <class T> bool removeFromGameplayObjects(const QString& listName, T idToRemove);
 
-    void updateRendererSelectedList(const render::Selection::Name& listName);
+    void updateRendererSelectedList(const QString& listName);
 };
 
 #endif // hifi_SelectionScriptingInterface_h

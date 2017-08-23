@@ -60,6 +60,8 @@ public:
 
     // Selection transactions
     void resetSelection(const Selection& selection);
+    void pushSelection(const Selection& selection);
+    void popSelection(const Selection& selection);
 
     void merge(const Transaction& transaction);
 

@@ -10,6 +10,7 @@
 //
 
 #include "SelectionScriptingInterface.h"
+#include <QDebug>
 #include "Application.h"
 
 GameplayObjects::GameplayObjects() {
@@ -49,10 +50,10 @@ SelectionScriptingInterface::SelectionScriptingInterface(AbstractViewStateInterf
 //
 // START HANDLING AVATARS
 //
-bool SelectionScriptingInterface::addToSelectedItemsList(const render::Selection::Name& listName, const QUuid& avatarSessionID) {
+bool SelectionScriptingInterface::addToSelectedItemsList(const QString& listName, const QUuid& avatarSessionID) {
     return addToGameplayObjects(listName, avatarSessionID);
 }
-bool SelectionScriptingInterface::removeFromSelectedItemsList(const render::Selection::Name& listName, const QUuid& avatarSessionID) {
+bool SelectionScriptingInterface::removeFromSelectedItemsList(const QString& listName, const QUuid& avatarSessionID) {
     return addToGameplayObjects(listName, avatarSessionID);
 }
 //
@@ -62,10 +63,10 @@ bool SelectionScriptingInterface::removeFromSelectedItemsList(const render::Sele
 //
 // START HANDLING ENTITIES
 //
-bool SelectionScriptingInterface::addToSelectedItemsList(const render::Selection::Name& listName, const EntityItemID& entityID) {
+bool SelectionScriptingInterface::addToSelectedItemsList(const QString& listName, const EntityItemID& entityID) {
     return addToGameplayObjects(listName, entityID);
 }
-bool SelectionScriptingInterface::removeFromSelectedItemsList(const render::Selection::Name& listName, const EntityItemID& entityID) {
+bool SelectionScriptingInterface::removeFromSelectedItemsList(const QString& listName, const EntityItemID& entityID) {
     return addToGameplayObjects(listName, entityID);
 }
 //
@@ -75,10 +76,10 @@ bool SelectionScriptingInterface::removeFromSelectedItemsList(const render::Sele
 //
 // START HANDLING OVERLAYS
 //
-bool SelectionScriptingInterface::addToSelectedItemsList(const render::Selection::Name& listName, const OverlayID& overlayID) {
+bool SelectionScriptingInterface::addToSelectedItemsList(const QString& listName, const OverlayID& overlayID) {
     return addToGameplayObjects(listName, overlayID);
 }
-bool SelectionScriptingInterface::removeFromSelectedItemsList(const render::Selection::Name& listName, const OverlayID& overlayID) {
+bool SelectionScriptingInterface::removeFromSelectedItemsList(const QString& listName, const OverlayID& overlayID) {
     return addToGameplayObjects(listName, overlayID);
 }
 //
@@ -88,23 +89,25 @@ bool SelectionScriptingInterface::removeFromSelectedItemsList(const render::Sele
 //
 // START HANDLING GENERIC ITEMS
 //
-template <class T> bool SelectionScriptingInterface::addToGameplayObjects(const render::Selection::Name& listName, T idToAdd) {
+template <class T> bool SelectionScriptingInterface::addToGameplayObjects(const QString& listName, T idToAdd) {
     if (_selectedItemsListMap.contains(listName)) {
         auto currentList = _selectedItemsListMap.take(listName);
         currentList.addToGameplayObjects(idToAdd);
         _selectedItemsListMap.insert(listName, currentList);
+
         updateRendererSelectedList(listName);
         return true;
     } else {
         _selectedItemsListMap.insert(listName, GameplayObjects());
-        return addToSelectedItemsList(listName, idToAdd);
+        return addToGameplayObjects(listName, idToAdd);
     }
 }
-template <class T> bool SelectionScriptingInterface::removeFromGameplayObjects(const render::Selection::Name& listName, T idToRemove) {
+template <class T> bool SelectionScriptingInterface::removeFromGameplayObjects(const QString& listName, T idToRemove) {
     if (_selectedItemsListMap.contains(listName)) {
         auto currentList = _selectedItemsListMap.take(listName);
         currentList.removeFromGameplayObjects(idToRemove);
         _selectedItemsListMap.insert(listName, currentList);
+
         updateRendererSelectedList(listName);
         return true;
     } else {
@@ -115,15 +118,42 @@ template <class T> bool SelectionScriptingInterface::removeFromGameplayObjects(c
 // END HANDLING GENERIC ITEMS
 //
 
-bool SelectionScriptingInterface::removeListFromMap(const render::Selection::Name& listName) {
+void SelectionScriptingInterface::printList(const QString& listName) {
+    if (_selectedItemsListMap.contains(listName)) {
+        auto currentList = _selectedItemsListMap.value(listName);
+
+        qDebug() << "Avatar IDs:";
+        for (auto i : currentList.getAvatarIDs()) {
+            qDebug() << i << '; ';
+        }
+        qDebug() << "";
+
+        qDebug() << "Entity IDs:";
+        for (auto j : currentList.getEntityIDs()) {
+            qDebug() << j << '; ';
+        }
+        qDebug() << "";
+
+        qDebug() << "Overlay IDs:";
+        for (auto k : currentList.getOverlayIDs()) {
+            qDebug() << k << '; ';
+        }
+        qDebug() << "";
+    } else {
+        qDebug() << "List named" << listName << "doesn't exist.";
+    }
+}
+
+bool SelectionScriptingInterface::removeListFromMap(const QString& listName) {
     if (_selectedItemsListMap.remove(listName)) {
+        updateRendererSelectedList(listName);
         return true;
     } else {
         return false;
     }
 }
 
-void SelectionScriptingInterface::updateRendererSelectedList(const render::Selection::Name& listName) {
+void SelectionScriptingInterface::updateRendererSelectedList(const QString& listName) {
     auto scene = _viewState->getMain3DScene();
     if (scene) {
         render::Transaction transaction;
@@ -170,7 +200,7 @@ void SelectionScriptingInterface::updateRendererSelectedList(const render::Selec
                 }
             }
 
-            render::Selection selection(listName, finalList);
+            render::Selection selection(listName.toStdString(), finalList);
             transaction.resetSelection(selection);
 
             scene->enqueueTransaction(transaction);
