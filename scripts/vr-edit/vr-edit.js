@@ -227,10 +227,6 @@
             toolIcon.display(icon);
         }
 
-        function setToolColor(color) {
-            toolIcon.setColor(color);
-        }
-
         function clearTool() {
             toolIcon.clear();
             toolsMenu.clearTool();
@@ -292,7 +288,6 @@
         return {
             setHand: setHand,
             setToolIcon: setToolIcon,
-            setToolColor: setToolColor,
             clearTool: clearTool,
             SCALE_TOOL: toolIcon.SCALE_TOOL,
             CLONE_TOOL: toolIcon.CLONE_TOOL,
@@ -912,11 +907,9 @@
                         if (color) {
                             colorToolColor = color;
                             ui.doPickColor(colorToolColor);
-                            ui.setToolColor(colorToolColor);
                         }
                         toolSelected = TOOL_COLOR;
                         ui.setToolIcon(ui.COLOR_TOOL);
-                        ui.setToolColor(colorToolColor);
                     } else if (toolSelected === TOOL_PHYSICS) {
                         setState(EDITOR_HIGHLIGHTING);
                         selection.applyPhysics(physicsToolPhysics);
@@ -995,11 +988,9 @@
                         if (color) {
                             colorToolColor = color;
                             ui.doPickColor(colorToolColor);
-                            ui.setToolColor(colorToolColor);
                         }
                         toolSelected = TOOL_COLOR;
                         ui.setToolIcon(ui.COLOR_TOOL);
-                        ui.setToolColor(colorToolColor);
                     } else if (toolSelected === TOOL_PHYSICS) {
                         selection.applyPhysics(physicsToolPhysics);
                     } else if (toolSelected === TOOL_DELETE) {
@@ -1358,7 +1349,6 @@
             grouping.clear();
             toolSelected = TOOL_COLOR;
             ui.setToolIcon(ui.COLOR_TOOL);
-            ui.setToolColor(parameter);
             colorToolColor = parameter;
             ui.updateUIEntities();
             break;
@@ -1397,7 +1387,6 @@
                 toolSelected = TOOL_COLOR;
                 ui.setToolIcon(ui.COLOR_TOOL);
             }
-            ui.setToolColor(parameter);
             colorToolColor = parameter;
             break;
 
