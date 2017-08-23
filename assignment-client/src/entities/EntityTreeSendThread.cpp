@@ -100,7 +100,7 @@ void EntityTreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, O
                 EntityPriorityQueue prevSendQueue;
                 _sendQueue.swap(prevSendQueue);
                 _entitiesToSend.clear();
-                // Re-add elements from previous traveral if they still need to be sent
+                // Re-add elements from previous traversal if they still need to be sent
                 while (!prevSendQueue.empty()) {
                     EntityItemPointer entity = prevSendQueue.top().getEntity();
                     prevSendQueue.pop();
