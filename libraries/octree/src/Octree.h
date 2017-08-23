@@ -92,7 +92,8 @@ public:
         OUT_OF_VIEW,
         WAS_IN_VIEW,
         NO_CHANGE,
-        OCCLUDED
+        OCCLUDED,
+        FINISHED
     } reason;
     reason stopReason;
 

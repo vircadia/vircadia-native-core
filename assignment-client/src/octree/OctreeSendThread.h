@@ -57,17 +57,15 @@ protected:
             bool viewFrustumChanged, bool isFullScene);
     virtual bool traverseTreeAndBuildNextPacketPayload(EncodeBitstreamParams& params);
 
-    OctreeServer* _myServer { nullptr };
+    OctreePacketData _packetData;
     QWeakPointer<Node> _node;
+    OctreeServer* _myServer { nullptr };
 
 private:
     int handlePacketSend(SharedNodePointer node, OctreeQueryNode* nodeData, bool dontSuppressDuplicate = false);
     int packetDistributor(SharedNodePointer node, OctreeQueryNode* nodeData, bool viewFrustumChanged);
 
-
     QUuid _nodeUuid;
-
-    OctreePacketData _packetData;
 
     int _truePacketsSent { 0 }; // available for debug stats
     int _trueBytesSent { 0 }; // available for debug stats

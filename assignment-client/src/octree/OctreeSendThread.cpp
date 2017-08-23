@@ -27,8 +27,8 @@ quint64 startSceneSleepTime = 0;
 quint64 endSceneSleepTime = 0;
 
 OctreeSendThread::OctreeSendThread(OctreeServer* myServer, const SharedNodePointer& node) :
-    _myServer(myServer),
     _node(node),
+    _myServer(myServer),
     _nodeUuid(node->getUUID())
 {
     QString safeServerName("Octree");
