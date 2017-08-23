@@ -64,11 +64,11 @@ void RayPickManager::update() {
             RayToEntityIntersectionResult entityRes;
             bool fromCache = true;
             bool invisible = rayPick->getFilter().doesPickInvisible();
-            bool noncollidable = rayPick->getFilter().doesPickNonCollidable();
+            bool nonCollidable = rayPick->getFilter().doesPickNonCollidable();
             RayPickFilter::Flags entityMask = rayPick->getFilter().getEntityFlags();
             if (!checkAndCompareCachedResults(rayKey, results, res, entityMask)) {
-                entityRes = DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(ray, rayPick->doesPrecisionPicking(),
-                    rayPick->getIncludeEntites(), rayPick->getIgnoreEntites(), !invisible, !noncollidable);
+                entityRes = DependencyManager::get<EntityScriptingInterface>()->findRayIntersectionVector(ray, !rayPick->getFilter().doesPickCourse(),
+                    rayPick->getIncludeEntites(), rayPick->getIgnoreEntites(), !invisible, !nonCollidable);
                 fromCache = false;
             }
 
@@ -82,11 +82,11 @@ void RayPickManager::update() {
             RayToOverlayIntersectionResult overlayRes;
             bool fromCache = true;
             bool invisible = rayPick->getFilter().doesPickInvisible();
-            bool noncollidable = rayPick->getFilter().doesPickNonCollidable();
+            bool nonCollidable = rayPick->getFilter().doesPickNonCollidable();
             RayPickFilter::Flags overlayMask = rayPick->getFilter().getOverlayFlags();
             if (!checkAndCompareCachedResults(rayKey, results, res, overlayMask)) {
-                overlayRes = qApp->getOverlays().findRayIntersectionVector(ray, rayPick->doesPrecisionPicking(),
-                    rayPick->getIncludeOverlays(), rayPick->getIgnoreOverlays(), !invisible, !noncollidable);
+                overlayRes = qApp->getOverlays().findRayIntersectionVector(ray, !rayPick->getFilter().doesPickCourse(),
+                    rayPick->getIncludeOverlays(), rayPick->getIgnoreOverlays(), !invisible, !nonCollidable);
                 fromCache = false;
             }
 

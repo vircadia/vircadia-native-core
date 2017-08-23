@@ -47,6 +47,8 @@ public:
     bool operator== (const RayPickFilter& rhs) const { return _flags == rhs._flags; }
     bool operator!= (const RayPickFilter& rhs) const { return _flags != rhs._flags; }
 
+    void setFlag(FlagBit flag, bool value) { _flags[flag] = value; }
+
     bool doesPickNothing() const { return _flags[PICK_NOTHING]; }
     bool doesPickEntities() const { return _flags[PICK_ENTITIES]; }
     bool doesPickOverlays() const { return _flags[PICK_OVERLAYS]; }
@@ -102,8 +104,7 @@ public:
     bool isEnabled() { return _enabled; }
     const RayPickResult& getPrevRayPickResult() { return _prevResult; }
 
-    void setPrecisionPicking(bool precisionPicking) { _precisionPicking = precisionPicking; }
-    bool doesPrecisionPicking() { return _precisionPicking; }
+    void setPrecisionPicking(bool precisionPicking) { _filter.setFlag(RayPickFilter::PICK_COURSE, !precisionPicking); }
 
     void setRayPickResult(const RayPickResult& rayPickResult) { _prevResult = rayPickResult; }
 
@@ -126,7 +127,6 @@ private:
     bool _enabled;
     RayPickResult _prevResult;
 
-    bool _precisionPicking { true };
     QVector<EntityItemID> _ignoreEntities;
     QVector<EntityItemID> _includeEntities;
     QVector<OverlayID> _ignoreOverlays;
