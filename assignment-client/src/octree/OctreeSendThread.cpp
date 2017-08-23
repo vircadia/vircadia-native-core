@@ -480,6 +480,9 @@ bool OctreeSendThread::traverseTreeAndBuildNextPacketPayload(EncodeBitstreamPara
         });
 
         OctreeServer::trackEncodeTime((float)(usecTimestampNow() - encodeStart));
+    } else {
+        OctreeServer::trackTreeWaitTime(OctreeServer::SKIP_TIME);
+        OctreeServer::trackEncodeTime(OctreeServer::SKIP_TIME);
     }
     return somethingToSend;
 }
@@ -512,8 +515,8 @@ void OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, Octre
     bool somethingToSend = true; // assume we have something
     bool bagHadSomething = !nodeData->elementBag.isEmpty();
     while (somethingToSend && _packetsSentThisInterval < maxPacketsPerInterval && !nodeData->isShuttingDown()) {
-        float compressAndWriteElapsedUsec = 0.0f;
-        float packetSendingElapsedUsec = 0.0f;
+        float compressAndWriteElapsedUsec = OctreeServer::SKIP_TIME;
+        float packetSendingElapsedUsec = OctreeServer::SKIP_TIME;
 
         quint64 startInside = usecTimestampNow();
 
@@ -567,11 +570,6 @@ void OctreeSendThread::traverseTreeAndSendContents(SharedNodePointer node, Octre
                 targetSize = nodeData->getAvailable() - sizeof(OCTREE_PACKET_INTERNAL_SECTION_SIZE) - COMPRESS_PADDING;
             }
             _packetData.changeSettings(true, targetSize); // will do reset - NOTE: Always compressed
-        }
-        if (!somethingToSend) {
-            // these stats were not updated so we record zero to record this fact
-            OctreeServer::trackTreeWaitTime(0.0f);
-            OctreeServer::trackEncodeTime(0.0f);
         }
         OctreeServer::trackCompressAndWriteTime(compressAndWriteElapsedUsec);
         OctreeServer::trackPacketSendingTime(packetSendingElapsedUsec);
