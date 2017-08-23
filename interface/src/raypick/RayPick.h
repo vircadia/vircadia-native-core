@@ -41,7 +41,7 @@ public:
     // The key is the Flags
     Flags _flags;
 
-    RayPickFilter() : _flags(PICK_NOTHING) {}
+    RayPickFilter() : _flags(getBitMask(PICK_NOTHING)) {}
     RayPickFilter(const Flags& flags) : _flags(flags) {}
 
     bool operator== (const RayPickFilter& rhs) const { return _flags == rhs._flags; }
@@ -63,27 +63,27 @@ public:
 
     // Helpers for RayPickManager
     Flags getEntityFlags() const {
-        Flags toReturn(PICK_ENTITIES);
+        unsigned int toReturn = getBitMask(PICK_ENTITIES);
         if (doesPickInvisible()) {
-            toReturn |= Flags(PICK_INCLUDE_INVISIBLE);
+            toReturn |= getBitMask(PICK_INCLUDE_INVISIBLE);
         }
         if (doesPickNonCollidable()) {
-            toReturn |= Flags(PICK_INCLUDE_NONCOLLIDABLE);
+            toReturn |= getBitMask(PICK_INCLUDE_NONCOLLIDABLE);
         }
-        return toReturn;
+        return Flags(toReturn);
     }
     Flags getOverlayFlags() const {
-        Flags toReturn(PICK_OVERLAYS);
+        unsigned int toReturn = getBitMask(PICK_OVERLAYS);
         if (doesPickInvisible()) {
-            toReturn |= Flags(PICK_INCLUDE_INVISIBLE);
+            toReturn |= getBitMask(PICK_INCLUDE_INVISIBLE);
         }
         if (doesPickNonCollidable()) {
-            toReturn |= Flags(PICK_INCLUDE_NONCOLLIDABLE);
+            toReturn |= getBitMask(PICK_INCLUDE_NONCOLLIDABLE);
         }
-        return toReturn;
+        return Flags(toReturn);
     }
-    Flags getAvatarFlags() const { return Flags(PICK_AVATARS); }
-    Flags getHUDFlags() const { return Flags(PICK_HUD); }
+    Flags getAvatarFlags() const { return Flags(getBitMask(PICK_AVATARS)); }
+    Flags getHUDFlags() const { return Flags(getBitMask(PICK_HUD)); }
 
     static unsigned int getBitMask(FlagBit bit) { return 1 << bit; }
 
