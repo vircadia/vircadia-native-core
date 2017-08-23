@@ -486,8 +486,6 @@ bool DomainServer::isPacketVerified(const udt::Packet& packet) {
             bool bothPrivateAddresses = nodeData->getSendingSockAddr().hasPrivateAddress()
                 && packet.getSenderSockAddr().hasPrivateAddress();
 
-            qDebug() << exactAddressMatch << bothPrivateAddresses;
-
             if (nodeData && (exactAddressMatch || bothPrivateAddresses)) {
                 // to the best of our ability we've verified that this packet comes from the right place
                 // let the NodeList do its checks now (but pass it the sourceNode so it doesn't need to look it up again)
