@@ -80,7 +80,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         PALETTE_TITLE_PROPERTIES = {
             url: "../assets/create/create-heading.svg",
             scale: 0.0363,
-            localPosition: { x: 0, y: 0, z: PALETTE_HEADER_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOffset },
+            localPosition: { x: 0, y: 0, z: PALETTE_HEADER_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
             localRotation: Quat.ZERO,
             color: UIT.colors.white,
             alpha: 1.0,

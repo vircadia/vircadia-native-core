@@ -24,6 +24,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         menuPanelOverlay,
 
         menuOverlays = [],
+        menuHoverOverlays = [],
 
         optionsOverlays = [],
         optionsOverlaysIDs = [],  // Text ids (names) of options overlays.
@@ -89,7 +90,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         MENU_TITLE_PROPERTIES = {
             url: "../assets/tools/tools-heading.svg",
             scale: 0.0363,
-            localPosition: { x: 0, y: 0, z: MENU_HEADER_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOffset },
+            localPosition: { x: 0, y: 0, z: MENU_HEADER_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
             localRotation: Quat.ZERO,
             color: UIT.colors.white,
             alpha: 1.0,
@@ -125,6 +126,71 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     solid: true,
                     ignoreRayIntersection: false,
                     visible: true
+                }
+            },
+            "menuButton": {
+                overlay: "cube",  // Invisible cube for hit area.
+                properties: {
+                    dimensions: UIT.dimensions.itemCollisionZone,
+                    localRotation: Quat.ZERO,
+                    alpha: 0.0,  // Invisible.
+                    solid: true,
+                    ignoreRayIntersection: false,
+                    visible: true  // So that laser intersects.
+                },
+                hoverButton: {
+                    overlay: "shape",
+                    properties: {
+                        shape: "Cylinder",
+                        dimensions: {
+                            x: UIT.dimensions.menuButton.x,
+                            y: UIT.dimensions.menuButton.z,
+                            z: UIT.dimensions.menuButton.y
+                        },
+                        localPosition: UIT.dimensions.menuButtonIconOffset,
+                        localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: -90 }),
+                        color: UIT.colors.greenHighlight,
+                        alpha: 1.0,
+                        emissive: true,  // TODO: This has no effect.
+                        solid: true,
+                        ignoreRayIntersection: true,
+                        visible: false
+                    }
+                },
+                icon: {
+                    // Relative to hoverButton.
+                    type: "image",
+                    properties: {
+                        localPosition: { x: 0, y: UIT.dimensions.menuButton.z / 2 + UIT.dimensions.imageOverlayOffset, z: 0 },
+                        localRotation: Quat.fromVec3Degrees({ x: -90, y: 90, z: 0 }),
+                        color: UIT.colors.lightGrayText
+                    }
+                },
+                label: {
+                    // Relative to menuButton.
+                    type: "image",
+                    properties: {
+                        localPosition: {
+                            x: 0,
+                            y: UIT.dimensions.menuButtonLabelYOffset,
+                            z: -UIT.dimensions.itemCollisionZone.z / 2 + UIT.dimensions.imageOverlayOffset
+                        },
+                        color: UIT.colors.white
+                    }
+                },
+                sublabel: {
+                    // Relative to menuButton.
+                    type: "image",
+                    properties: {
+                        url: "../assets/tools/tool-label.svg",
+                        scale: 0.0152,
+                        localPosition: {
+                            x: 0,
+                            y: UIT.dimensions.menuButtonSublabelYOffset,
+                            z: -UIT.dimensions.itemCollisionZone.z / 2 + UIT.dimensions.imageOverlayOffset
+                        },
+                        color: UIT.colors.lightGrayText
+                    }
                 }
             },
             "toggleButton": {
@@ -186,11 +252,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             "image": {
                 overlay: "image3d",
                 properties: {
-                    dimensions: { x: 0.1, y: 0.1 },
                     localPosition: { x: 0, y: 0, z: 0 },
                     localRotation: Quat.ZERO,
                     color: { red: 255, green: 255, blue: 255 },
                     alpha: 1.0,
+                    emissive: true,
                     ignoreRayIntersection: true,
                     isFacingAvatar: false,
                     visible: true
@@ -329,7 +395,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
         },
 
-        BUTTON_UI_ELEMENTS = ["button", "toggleButton", "swatch"],
+        BUTTON_UI_ELEMENTS = ["button", "menuButton", "toggleButton", "swatch"],
         BUTTON_PRESS_DELTA = { x: 0, y: 0, z: -0.004 },
 
         SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
@@ -813,54 +879,34 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             ]
         },
 
+        MENU_ITEM_XS = [-0.08415, -0.02805, 0.02805, 0.08415],
+        MENU_ITEM_YS = [0.058, 0.002, -0.054],
+
         MENU_ITEMS = [
             {
-                id: "scaleButton",
-                type: "button",
-                properties: {
-                    localPosition: { x: -0.022, y: 0.04, z: 0.005 },
-                    color: { red: 0, green: 240, blue: 240 }
-                },
-                label: "  SCALE",
-                toolOptions: "scaleOptions",
-                callback: {
-                    method: "scaleTool"
-                }
-            },
-            {
-                id: "cloneButton",
-                type: "button",
-                properties: {
-                    localPosition: { x: 0.022, y: 0.04, z: 0.005 },
-                    color: { red: 240, green: 240, blue: 0 }
-                },
-                label: "  CLONE",
-                toolOptions: "cloneOptions",
-                callback: {
-                    method: "cloneTool"
-                }
-            },
-            {
-                id: "groupButton",
-                type: "button",
-                properties: {
-                    localPosition: { x: -0.022, y: 0.0, z: 0.005 },
-                    color: { red: 220, green: 60, blue: 220 }
-                },
-                label: " GROUP",
-                toolOptions: "groupOptions",
-                callback: {
-                    method: "groupTool"
-                }
-            },
-            {
                 id: "colorButton",
-                type: "button",
+                type: "menuButton",
                 properties: {
-                    localPosition: { x: 0.022, y: 0.0, z: 0.005 },
-                    color: { red: 220, green: 220, blue: 220 }
+                    localPosition: {
+                        x: MENU_ITEM_XS[0],
+                        y: MENU_ITEM_YS[0],
+                        z: UIT.dimensions.panel.z / 2 + UI_ELEMENTS.menuButton.properties.dimensions.z / 2
+                    }
                 },
-                label: "  COLOR",
+                icon: {
+                    type: "image",
+                    properties: {
+                        url: "../assets/tools/color-icon.svg",
+                        dimensions: { x: 0.0165, y: 0.0187 }
+                    }
+                },
+                label: {
+                    type: "image",
+                    properties: {
+                        url: "../assets/tools/color-label.svg",
+                        scale: 0.0241
+                    }
+                },
                 toolOptions: "colorOptions",
                 callback: {
                     method: "colorTool",
@@ -868,13 +914,116 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
             },
             {
-                id: "physicsButton",
-                type: "button",
+                id: "scaleButton",
+                type: "menuButton",
                 properties: {
-                    localPosition: { x: -0.022, y: -0.04, z: 0.005 },
-                    color: { red: 60, green: 60, blue: 240 }
+                    localPosition: {
+                        x: MENU_ITEM_XS[1],
+                        y: MENU_ITEM_YS[0],
+                        z: UIT.dimensions.panel.z / 2 + UI_ELEMENTS.menuButton.properties.dimensions.z / 2
+                    }
                 },
-                label: "PHYSICS",
+                icon: {
+                    type: "image",
+                    properties: {
+                        url: "../assets/tools/stretch-icon.svg",
+                        dimensions: { x: 0.0167, y: 0.0167 }
+                    }
+                },
+                label: {
+                    type: "image",
+                    properties: {
+                        url: "../assets/tools/stretch-label.svg",
+                        scale: 0.0311
+                    }
+                },
+                toolOptions: "scaleOptions",
+                callback: {
+                    method: "scaleTool"
+                }
+            },
+            {
+                id: "cloneButton",
+                type: "menuButton",
+                properties: {
+                    localPosition: {
+                        x: MENU_ITEM_XS[2],
+                        y: MENU_ITEM_YS[0],
+                        z: UIT.dimensions.panel.z / 2 + UI_ELEMENTS.menuButton.properties.dimensions.z / 2
+                    }
+                },
+                icon: {
+                    type: "image",
+                    properties: {
+                        url: "../assets/tools/clone-icon.svg",
+                        dimensions: { x: 0.0154, y: 0.0155 }
+                    }
+                },
+                label: {
+                    type: "image",
+                    properties: {
+                        url: "../assets/tools/clone-label.svg",
+                        scale: 0.0231
+                    }
+                },
+                toolOptions: "cloneOptions",
+                callback: {
+                    method: "cloneTool"
+                }
+            },
+            {
+                id: "groupButton",
+                type: "menuButton",
+                properties: {
+                    localPosition: {
+                        x: MENU_ITEM_XS[3],
+                        y: MENU_ITEM_YS[0],
+                        z: UIT.dimensions.panel.z / 2 + UI_ELEMENTS.menuButton.properties.dimensions.z / 2
+                    }
+                },
+                icon: {
+                    type: "image",
+                    properties: {
+                        url: "../assets/tools/group-icon.svg",
+                        dimensions: { x: 0.0161, y: 0.0114 }
+                    }
+                },
+                label: {
+                    type: "image",
+                    properties: {
+                        url: "../assets/tools/group-label.svg",
+                        scale: 0.0250
+                    }
+                },
+                toolOptions: "groupOptions",
+                callback: {
+                    method: "groupTool"
+                }
+            },
+            {
+                id: "physicsButton",
+                type: "menuButton",
+                properties: {
+                    localPosition: {
+                        x: MENU_ITEM_XS[0],
+                        y: MENU_ITEM_YS[1],
+                        z: UIT.dimensions.panel.z / 2 + UI_ELEMENTS.menuButton.properties.dimensions.z / 2
+                    }
+                },
+                icon: {
+                    type: "image",
+                    properties: {
+                        url: "../assets/tools/physics-icon.svg",
+                        dimensions: { x: 0.0180, y: 0.0198 }
+                    }
+                },
+                label: {
+                    type: "image",
+                    properties: {
+                        url: "../assets/tools/physics-label.svg",
+                        scale: 0.0297
+                    }
+                },
                 toolOptions: "physicsOptions",
                 callback: {
                     method: "physicsTool"
@@ -882,12 +1031,28 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             },
             {
                 id: "deleteButton",
-                type: "button",
+                type: "menuButton",
                 properties: {
-                    localPosition: { x: 0.022, y: -0.04, z: 0.005 },
-                    color: { red: 240, green: 60, blue: 60 }
+                    localPosition: {
+                        x: MENU_ITEM_XS[1],
+                        y: MENU_ITEM_YS[1],
+                        z: UIT.dimensions.panel.z / 2 + UI_ELEMENTS.menuButton.properties.dimensions.z / 2
+                    }
                 },
-                label: " DELETE",
+                icon: {
+                    type: "image",
+                    properties: {
+                        url: "../assets/tools/delete-icon.svg",
+                        dimensions: { x: 0.0161, y: 0.0161 }
+                    }
+                },
+                label: {
+                    type: "image",
+                    properties: {
+                        url: "../assets/tools/delete-label.svg",
+                        scale: 0.0254
+                    }
+                },
                 toolOptions: "deleteOptions",
                 callback: {
                     method: "deleteTool"
@@ -920,6 +1085,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         highlightedItems,
         highlightedSource,
         isHighlightingButton,
+        isHighlightingMenuButton,
         isHighlightingSlider,
         isHighlightingColorCircle,
         isHighlightingPicklist,
@@ -973,22 +1139,55 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     }
 
     function openMenu() {
-        var parentID,
-            properties,
+        var properties,
+            itemID,
+            buttonID,
             i,
             length;
 
-        parentID = menuPanelOverlay;
         for (i = 0, length = MENU_ITEMS.length; i < length; i += 1) {
             properties = Object.clone(UI_ELEMENTS[MENU_ITEMS[i].type].properties);
             properties = Object.merge(properties, MENU_ITEMS[i].properties);
-            properties.parentID = parentID;
-            menuOverlays.push(Overlays.addOverlay(UI_ELEMENTS[MENU_ITEMS[i].type].overlay, properties));
+            properties.parentID = menuPanelOverlay;
+            itemID = Overlays.addOverlay(UI_ELEMENTS[MENU_ITEMS[i].type].overlay, properties);
+            menuOverlays[i] = itemID;
+
             if (MENU_ITEMS[i].label) {
                 properties = Object.clone(UI_ELEMENTS.label.properties);
                 properties.text = MENU_ITEMS[i].label;
-                properties.parentID = menuOverlays[menuOverlays.length - 1];
+                properties.parentID = itemID;
                 Overlays.addOverlay(UI_ELEMENTS.label.overlay, properties);
+            }
+
+            if (MENU_ITEMS[i].type === "menuButton") {
+                // Hover button.
+                properties = Object.clone(UI_ELEMENTS.menuButton.hoverButton.properties);
+                properties.parentID = itemID;
+                buttonID = Overlays.addOverlay(UI_ELEMENTS.menuButton.hoverButton.overlay, properties);
+                menuHoverOverlays[i] = buttonID;
+
+                // Icon.
+                properties = Object.clone(UI_ELEMENTS[UI_ELEMENTS.menuButton.icon.type].properties);
+                properties = Object.merge(properties, UI_ELEMENTS.menuButton.icon.properties);
+                properties = Object.merge(properties, MENU_ITEMS[i].icon.properties);
+                properties.url = Script.resolvePath(properties.url);
+                properties.parentID = buttonID;
+                Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.icon.type].overlay, properties);
+
+                // Label.
+                properties = Object.clone(UI_ELEMENTS[UI_ELEMENTS.menuButton.label.type].properties);
+                properties = Object.merge(properties, UI_ELEMENTS.menuButton.label.properties);
+                properties = Object.merge(properties, MENU_ITEMS[i].label.properties);
+                properties.url = Script.resolvePath(properties.url);
+                properties.parentID = itemID;
+                Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.label.type].overlay, properties);
+
+                // Sublabel.
+                properties = Object.clone(UI_ELEMENTS[UI_ELEMENTS.menuButton.sublabel.type].properties);
+                properties = Object.merge(properties, UI_ELEMENTS.menuButton.sublabel.properties);
+                properties.url = Script.resolvePath(properties.url);
+                properties.parentID = itemID;
+                Overlays.addOverlay(UI_ELEMENTS[UI_ELEMENTS.menuButton.sublabel.type].overlay, properties);
             }
         }
     }
@@ -1006,6 +1205,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
 
         menuOverlays = [];
+        menuHoverOverlays = [];
         pressedItem = null;
     }
 
@@ -1146,7 +1346,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     delete childProperties.dimensions;
                     childProperties.scale = properties.dimensions.y;
                     imageOffset += IMAGE_OFFSET;
-                    childProperties.emissive = true;
                     if (optionsItems[i].useBaseColor) {
                         childProperties.color = properties.color;
                     }
@@ -1164,6 +1363,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     childProperties.drawInFront = true;  // TODO: Work-around for rendering bug; remove when bug fixed.
                     delete childProperties.dimensions;
                     childProperties.scale = properties.dimensions.y;
+                    childProperties.emissive = false;
                     imageOffset += IMAGE_OFFSET;
                     childProperties.localPosition = { x: 0, y: 0, z: properties.dimensions.z / 2 + imageOffset };
                     childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
@@ -1197,7 +1397,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     delete childProperties.dimensions;
                     childProperties.scale = 0.95 * properties.dimensions.x;  // TODO: Magic number.
                     imageOffset += IMAGE_OFFSET;
-                    childProperties.emissive = true;
                     childProperties.localPosition = { x: 0, y: properties.dimensions.y / 2 + imageOffset, z: 0 };
                     childProperties.localRotation = Quat.fromVec3Degrees({ x: -90, y: 90, z: 0 });
                     childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
@@ -1212,6 +1411,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     delete childProperties.dimensions;
                     childProperties.scale = 0.95 * properties.dimensions.x;  // TODO: Magic number.
                     imageOffset += IMAGE_OFFSET;
+                    childProperties.emissive = false;
                     childProperties.localPosition = { x: 0, y: properties.dimensions.y / 2 + imageOffset, z: 0 };
                     childProperties.localRotation = Quat.fromVec3Degrees({ x: 90, y: 90, z: 0 });
                     childProperties.parentID = optionsOverlays[optionsOverlays.length - 1];
@@ -1676,22 +1876,34 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             if (intersectedItem !== NONE && intersectionItems[intersectedItem] &&
                     (intersectionItems[intersectedItem].command !== undefined
                     || intersectionItems[intersectedItem].callback !== undefined)) {
-                // Lower old slider or color circle.
-                if (isHighlightingSlider || isHighlightingColorCircle) {
-                    localPosition = highlightedItems[highlightedItem].properties.localPosition;
+                if (isHighlightingMenuButton) {
+                    // Lower menu button.
+                    Overlays.editOverlay(menuHoverOverlays[highlightedItem], {
+                        localPosition: UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
+                        visible: false
+                    });
+                } else if (isHighlightingSlider || isHighlightingColorCircle) {
+                    // Lower old slider or color circle.
                     Overlays.editOverlay(highlightedSource[highlightedItem], {
-                        localPosition: localPosition
+                        localPosition: highlightedItems[highlightedItem].properties.localPosition
                     });
                 }
                 // Update status variables.
                 highlightedItem = intersectedItem;
                 highlightedItems = intersectionItems;
                 isHighlightingButton = BUTTON_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
+                isHighlightingMenuButton = intersectionItems[highlightedItem].type === "menuButton";
                 isHighlightingSlider = SLIDER_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
                 isHighlightingColorCircle = COLOR_CIRCLE_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
                 isHighlightingPicklist = PICKLIST_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
-                // Raise new slider or color circle.
-                if (isHighlightingSlider || isHighlightingColorCircle) {
+                if (isHighlightingMenuButton) {
+                    // Raise menu button.
+                    Overlays.editOverlay(menuHoverOverlays[highlightedItem], {
+                        localPosition: Vec3.sum(UI_ELEMENTS.menuButton.hoverButton.properties.localPosition, ITEM_RAISE_DELTA),
+                        visible: true
+                    });
+                } else if (isHighlightingSlider || isHighlightingColorCircle) {
+                    // Raise new slider or color circle.
                     localPosition = intersectionItems[highlightedItem].properties.localPosition;
                     Overlays.editOverlay(intersectionOverlays[highlightedItem], {
                         localPosition: Vec3.sum(localPosition, ITEM_RAISE_DELTA)
@@ -1719,7 +1931,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         color: HIGHLIGHT_PROPERTIES.properties.color,
                         visible: true
                     });
-                } else {
+                } else if (!isHighlightingMenuButton) {
                     Overlays.editOverlay(highlightOverlay, {
                         parentID: intersectionOverlays[intersectedItem],
                         dimensions: {
@@ -1738,16 +1950,22 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 Overlays.editOverlay(highlightOverlay, {
                     visible: false
                 });
-                // Lower slider or color circle.
-                if (isHighlightingSlider || isHighlightingColorCircle) {
-                    localPosition = highlightedItems[highlightedItem].properties.localPosition;
+                if (isHighlightingMenuButton) {
+                    // Lower menu button.
+                    Overlays.editOverlay(menuHoverOverlays[highlightedItem], {
+                        localPosition: UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
+                        visible: false
+                    });
+                    // Lower slider or color circle.
+                } else if (isHighlightingSlider || isHighlightingColorCircle) {
                     Overlays.editOverlay(highlightedSource[highlightedItem], {
-                        localPosition: localPosition
+                        localPosition: highlightedItems[highlightedItem].properties.localPosition
                     });
                 }
                 // Update status variables.
                 highlightedItem = NONE;
                 isHighlightingButton = false;
+                isHighlightingMenuButton = false;
                 isHighlightingSlider = false;
                 isHighlightingColorCircle = false;
                 isHighlightingPicklist = false;
@@ -1770,9 +1988,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     && isTriggerClicked && !wasTriggerClicked) {
                 // Press new button.
                 localPosition = intersectionItems[intersectedItem].properties.localPosition;
-                Overlays.editOverlay(intersectionOverlays[intersectedItem], {
-                    localPosition: Vec3.sum(localPosition, BUTTON_PRESS_DELTA)
-                });
+                if (!isHighlightingMenuButton) {
+                    Overlays.editOverlay(intersectionOverlays[intersectedItem], {
+                        localPosition: Vec3.sum(localPosition, BUTTON_PRESS_DELTA)
+                    });
+                }
                 pressedSource = intersectionOverlays;
                 pressedItem = {
                     index: intersectedItem,
@@ -1981,6 +2201,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         highlightedItem = NONE;
         highlightedSource = null;
         isHighlightingButton = false;
+        isHighlightingMenuButton = false;
         isHighlightingSlider = false;
         isHighlightingColorCircle = false;
         isHighlightingPicklist = false;
@@ -2020,15 +2241,15 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         Overlays.deleteOverlay(highlightOverlay);
         for (i = 0, length = optionsOverlays.length; i < length; i += 1) {
-            Overlays.deleteOverlay(optionsOverlays[i]);
-            // Any auxiliary overlays parented to this overlay are automatically deleted.
+            Overlays.deleteOverlay(optionsOverlays[i]);  // Automatically deletes any child overlays.
         }
         optionsOverlays = [];
 
         for (i = 0, length = menuOverlays.length; i < length; i += 1) {
-            Overlays.deleteOverlay(menuOverlays[i]);
+            Overlays.deleteOverlay(menuOverlays[i]);  // Automatically deletes any child overlays.
         }
         menuOverlays = [];
+        menuHoverOverlays = [];
 
         Overlays.deleteOverlay(menuHeaderOverlay);
         Overlays.deleteOverlay(menuHeaderBarOverlay);

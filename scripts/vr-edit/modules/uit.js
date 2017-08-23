@@ -17,11 +17,15 @@ UIT = (function () {
         colors: {
             white: { red: 0xff, green: 0xff, blue: 0xff },
             faintGray: { red: 0xe3, green: 0xe3, blue: 0xe3 },
+            lightGrayText: { red: 0xaf, green: 0xaf, blue: 0xaf },
             baseGray: { red: 0x40, green: 0x40, blue: 0x40 },
+            darkGray: { red: 0x12, green: 0x12, blue: 0x12 },
+            greenHighlight: { red: 0x1f, green: 0xc6, blue: 0xa6 },
             blueHighlight: { red: 0x00, green: 0xbf, blue: 0xef }
         },
 
         // Coordinate system: UI lies in x-y plane with the front surface being +z.
+        // Offsets are relative to parents' centers.
         dimensions: {
             canvas: { x: 0.24, y: 0.24 },  // Overall UI size.
             canvasSeparation: 0.01,  // Gap between Tools menu and Create panel.
@@ -32,7 +36,14 @@ UIT = (function () {
             headerBar: { x: 0.24, y: 0.004, z: 0.012 },
             panel: { x: 0.24, y: 0.18, z: 0.008 },
 
-            imageOffset: 0.001  // Raise image above surface.
+            itemCollisionZone: { x: 0.0481, y: 0.0480, z: 0.0060 },  // Cursor intersection zone for Tools and Create items.
+
+            menuButton: { x: 0.0267, y: 0.0267, z: 0.0040 },
+            menuButtonIconOffset: { x: 0, y: 0.00935, z: -0.0050 },  // Non-hovered position.
+            menuButtonLabelYOffset: -0.00915,  // Relative to itemCollisionZone.
+            menuButtonSublabelYOffset: -0.01775,  // Relative to itemCollisionZone.
+
+            imageOverlayOffset: 0.001  // Raise image above surface.
         }
     };
 }());
