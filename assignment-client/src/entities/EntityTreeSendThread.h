@@ -42,7 +42,7 @@ private:
 
     DiffTraversal _traversal;
     EntityPriorityQueue _sendQueue;
-    std::unordered_set<EntityItemPointer> _prevEntitySet;
+    std::unordered_set<EntityItemPointer> _entitiesToSend;
     ConicalView _conicalView; // cached optimized view for fast priority calculations
 };
 
