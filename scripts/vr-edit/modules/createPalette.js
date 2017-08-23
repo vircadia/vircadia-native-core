@@ -161,6 +161,74 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             {
                 icon: {
                     properties: {
+                        url: "../assets/create/sphere.fbx"
+                    }
+                },
+                entity: {
+                    type: "Sphere",
+                    dimensions: ENTITY_CREATION_DIMENSIONS,
+                    color: ENTITY_CREATION_COLOR
+                }
+            },
+            {
+                icon: {
+                    properties: {
+                        url: "../assets/create/tetrahedron.fbx"
+                    }
+                },
+                entity: {
+                    type: "Shape",
+                    shape: "Tetrahedron",
+                    dimensions: ENTITY_CREATION_DIMENSIONS,
+                    color: ENTITY_CREATION_COLOR
+                }
+            },
+            {
+                icon: {
+                    properties: {
+                        url: "../assets/create/octahedron.fbx"
+                    }
+                },
+                entity: {
+                    type: "Shape",
+                    shape: "Octahedron",
+                    dimensions: ENTITY_CREATION_DIMENSIONS,
+                    color: ENTITY_CREATION_COLOR
+                }
+            },
+            {
+                icon: {
+                    properties: {
+                        url: "../assets/create/icosahedron.fbx"
+                    }
+                },
+                entity: {
+                    type: "Shape",
+                    shape: "Icosahedron",
+                    dimensions: ENTITY_CREATION_DIMENSIONS,
+                    color: ENTITY_CREATION_COLOR
+                }
+            },
+            // TODO: "Dodecahedron" shape type per edit.js.
+            // TODO: "Hexagon" shape type per edit.js.
+            {
+                icon: {
+                    properties: {
+                        url: "../assets/create/prism.fbx",
+                        localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 })
+            }
+                },
+                entity: {
+                    type: "Shape",
+                    shape: "Triangle",
+                    dimensions: ENTITY_CREATION_DIMENSIONS,
+                    color: ENTITY_CREATION_COLOR
+                }
+            },
+            // TODO: "Octagon" shape type per edit.js.
+            {
+                icon: {
+                    properties: {
                         url: "../assets/create/cylinder.fbx",
                         localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 })
                     }
@@ -185,19 +253,8 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     dimensions: ENTITY_CREATION_DIMENSIONS,
                     color: ENTITY_CREATION_COLOR
                 }
-            },
-            {
-                icon: {
-                    properties: {
-                        url: "../assets/create/sphere.fbx"
-                    }
-                },
-                entity: {
-                    type: "Sphere",
-                    dimensions: ENTITY_CREATION_DIMENSIONS,
-                    color: ENTITY_CREATION_COLOR
-                }
             }
+            // TODO: "Circle" shape type per edit.js.
         ],
 
         isDisplaying = false,
@@ -280,7 +337,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     function itemPosition(index) {
         // Position relative to palette panel.
-        var ITEMS_PER_ROW = 3,
+        var ITEMS_PER_ROW = 4,
             ROW_ZERO_Y_OFFSET = 0.0580,
             ROW_SPACING = 0.0560,
             COLUMN_ZERO_OFFSET = -0.08415,
