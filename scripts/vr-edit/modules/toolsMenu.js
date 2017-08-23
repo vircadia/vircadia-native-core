@@ -143,9 +143,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         shape: "Cylinder",
                         dimensions: {
-                            x: UIT.dimensions.menuButton.x,
-                            y: UIT.dimensions.menuButton.z,
-                            z: UIT.dimensions.menuButton.y
+                            x: UIT.dimensions.menuButtonDimensions.x,
+                            y: UIT.dimensions.menuButtonDimensions.z,
+                            z: UIT.dimensions.menuButtonDimensions.y
                         },
                         localPosition: UIT.dimensions.menuButtonIconOffset,
                         localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: -90 }),
@@ -161,7 +161,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     // Relative to hoverButton.
                     type: "image",
                     properties: {
-                        localPosition: { x: 0, y: UIT.dimensions.menuButton.z / 2 + UIT.dimensions.imageOverlayOffset, z: 0 },
+                        localPosition: {
+                            x: 0,
+                            y: UIT.dimensions.menuButtonDimensions.z / 2 + UIT.dimensions.imageOverlayOffset,
+                            z: 0
+                        },
                         localRotation: Quat.fromVec3Degrees({ x: -90, y: 90, z: 0 }),
                         color: UIT.colors.lightGrayText
                     }
@@ -401,6 +405,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         SLIDER_UI_ELEMENTS = ["barSlider", "imageSlider"],
         COLOR_CIRCLE_UI_ELEMENTS = ["colorCircle"],
         PICKLIST_UI_ELEMENTS = ["picklist", "picklistItem"],
+        MENU_RAISE_DELTA = { x: 0, y: 0, z: 0.006 },
         ITEM_RAISE_DELTA = { x: 0, y: 0, z: 0.004 },
 
         MIN_BAR_SLIDER_DIMENSION = 0.0001,  // Avoid visual artifact for 0 slider values.
@@ -1160,7 +1165,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             }
 
             if (MENU_ITEMS[i].type === "menuButton") {
-                // Hover button.
+                // Collision overlay.
                 properties = Object.clone(UI_ELEMENTS.menuButton.hoverButton.properties);
                 properties.parentID = itemID;
                 buttonID = Overlays.addOverlay(UI_ELEMENTS.menuButton.hoverButton.overlay, properties);
@@ -1877,7 +1882,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     (intersectionItems[intersectedItem].command !== undefined
                     || intersectionItems[intersectedItem].callback !== undefined)) {
                 if (isHighlightingMenuButton) {
-                    // Lower menu button.
+                    // Lower old menu button.
                     Overlays.editOverlay(menuHoverOverlays[highlightedItem], {
                         localPosition: UI_ELEMENTS.menuButton.hoverButton.properties.localPosition,
                         visible: false
@@ -1897,9 +1902,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 isHighlightingColorCircle = COLOR_CIRCLE_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
                 isHighlightingPicklist = PICKLIST_UI_ELEMENTS.indexOf(intersectionItems[highlightedItem].type) !== NONE;
                 if (isHighlightingMenuButton) {
-                    // Raise menu button.
+                    // Raise new menu button.
                     Overlays.editOverlay(menuHoverOverlays[highlightedItem], {
-                        localPosition: Vec3.sum(UI_ELEMENTS.menuButton.hoverButton.properties.localPosition, ITEM_RAISE_DELTA),
+                        localPosition: Vec3.sum(UI_ELEMENTS.menuButton.hoverButton.properties.localPosition, MENU_RAISE_DELTA),
                         visible: true
                     });
                 } else if (isHighlightingSlider || isHighlightingColorCircle) {

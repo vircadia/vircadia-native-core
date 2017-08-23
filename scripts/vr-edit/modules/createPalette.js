@@ -20,9 +20,9 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         paletteHeaderBarOverlay,
         paletteTitleOverlay,
         palettePanelOverlay,
-        highlightOverlay,
         paletteItemOverlays = [],
         paletteItemPositions = [],
+        paletteItemHoverOverlays = [],
 
         LEFT_HAND = 0,
 
@@ -101,35 +101,55 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             visible: true
         },
 
-        HIGHLIGHT_PROPERTIES = {
-            dimensions: { x: 0.034, y: 0.034, z: 0.034 },
-            localPosition: { x: 0.02, y: 0.02, z: 0.0 },
-            localRotation: Quat.ZERO,
-            color: { red: 240, green: 240, blue: 0 },
-            alpha: 0.8,
-            solid: false,
-            drawInFront: true,
-            ignoreRayIntersection: true,
-            visible: false
-        },
-
-        PALETTE_ENTITY_DIMENSIONS = { x: 0.024, y: 0.024, z: 0.024 },
-        PALETTE_ENTITY_COLOR = UIT.colors.faintGray,
         ENTITY_CREATION_DIMENSIONS = { x: 0.2, y: 0.2, z: 0.2 },
         ENTITY_CREATION_COLOR = { red: 192, green: 192, blue: 192 },
 
+        PALETTE_ITEM = {
+            overlay: "cube",  // Invisible cube for hit area.
+            properties: {
+                dimensions: UIT.dimensions.itemCollisionZone,
+                localRotation: Quat.ZERO,
+                alpha: 0.0,  // Invisible.
+                solid: true,
+                ignoreRayIntersection: false,
+                visible: true  // So that laser intersects.
+            },
+            hoverButton: {
+                // Relative to root overlay.
+                overlay: "cube",
+                properties: {
+                    dimensions: UIT.dimensions.paletteItemButtonDimensions,
+                    localPosition: UIT.dimensions.paletteItemButtonOffset,
+                    localRotation: Quat.ZERO,
+                    color: UIT.colors.blueHighlight,
+                    alpha: 1.0,
+                    emissive: true,  // TODO: This has no effect.
+                    solid: true,
+                    ignoreRayIntersection: true,
+                    visible: false
+                }
+            },
+            icon: {
+                // Relative to hoverButton.
+                overlay: "model",
+                properties: {
+                    dimensions: UIT.dimensions.paletteItemIconDimensions,
+                    localPosition: UIT.dimensions.paletteItemIconOffset,
+                    localRotation: Quat.ZERO,
+                    emissive: true,  // TODO: This has no effect.
+                    ignoreRayIntersection: true
+                }
+            },
+            entity: {
+                dimensions: ENTITY_CREATION_DIMENSIONS
+            }
+        },
+
         PALETTE_ITEMS = [
             {
-                overlay: {
-                    type: "cube",
+                icon: {
                     properties: {
-                        dimensions: PALETTE_ENTITY_DIMENSIONS,
-                        localRotation: Quat.ZERO,
-                        color: PALETTE_ENTITY_COLOR,
-                        alpha: 1.0,
-                        solid: true,
-                        ignoreRayIntersection: false,
-                        visible: true
+                        url: "../assets/create/cube.fbx"
                     }
                 },
                 entity: {
@@ -139,17 +159,10 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
             },
             {
-                overlay: {
-                    type: "shape",
+                icon: {
                     properties: {
-                        shape: "Cylinder",
-                        dimensions: PALETTE_ENTITY_DIMENSIONS,
-                        localRotation: Quat.fromVec3Degrees({ x: -90, y: 0, z: 0 }),
-                        color: PALETTE_ENTITY_COLOR,
-                        alpha: 1.0,
-                        solid: true,
-                        ignoreRayIntersection: false,
-                        visible: true
+                        url: "../assets/create/cylinder.fbx",
+                        localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 })
                     }
                 },
                 entity: {
@@ -160,17 +173,10 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
             },
             {
-                overlay: {
-                    type: "shape",
+                icon: {
                     properties: {
-                        shape: "Cone",
-                        dimensions: PALETTE_ENTITY_DIMENSIONS,
-                        localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 }),
-                        color: PALETTE_ENTITY_COLOR,
-                        alpha: 1.0,
-                        solid: true,
-                        ignoreRayIntersection: false,
-                        visible: true
+                        url: "../assets/create/cone.fbx",
+                        localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 })
                     }
                 },
                 entity: {
@@ -181,16 +187,9 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
             },
             {
-                overlay: {
-                    type: "sphere",
+                icon: {
                     properties: {
-                        dimensions: PALETTE_ENTITY_DIMENSIONS,
-                        localRotation: Quat.ZERO,
-                        color: PALETTE_ENTITY_COLOR,
-                        alpha: 1.0,
-                        solid: true,
-                        ignoreRayIntersection: false,
-                        visible: true
+                        url: "../assets/create/sphere.fbx"
                     }
                 },
                 entity: {
@@ -205,16 +204,15 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         NONE = -1,
         highlightedItem = NONE,
-        pressedItem = NONE,
         wasTriggerClicked = false,
 
         // References.
         controlHand;
 
-
     if (!this instanceof CreatePalette) {
         return new CreatePalette();
     }
+
 
     function setHand(hand) {
         // Assumes UI is not displaying.
@@ -234,45 +232,32 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         var itemIndex,
             isTriggerClicked,
             properties,
-            PRESS_DELTA = { x: 0, y: 0, z: -0.01 },
             CREATE_OFFSET = { x: 0, y: 0.05, z: -0.02 },
             INVERSE_HAND_BASIS_ROTATION = Quat.fromVec3Degrees({ x: 0, y: 0, z: -90 });
 
-        // Highlight cube.
         itemIndex = paletteItemOverlays.indexOf(intersectionOverlayID);
-        if (itemIndex !== NONE) {
-            if (highlightedItem !== itemIndex) {
-                Overlays.editOverlay(highlightOverlay, {
-                    parentID: intersectionOverlayID,
-                    localPosition: Vec3.ZERO,
-                    visible: true
-                });
-                highlightedItem = itemIndex;
-            }
-        } else {
-            Overlays.editOverlay(highlightOverlay, {
+
+        // Unhighlight and lower old item.
+        if (highlightedItem !== NONE && (itemIndex === NONE || itemIndex !== highlightedItem)) {
+            Overlays.editOverlay(paletteItemHoverOverlays[highlightedItem], {
+                localPosition: UIT.dimensions.paletteItemButtonOffset,
                 visible: false
             });
             highlightedItem = NONE;
         }
 
-        // Unpress currently pressed item.
-        if (pressedItem !== NONE && pressedItem !== itemIndex) {
-            Overlays.editOverlay(paletteItemOverlays[pressedItem], {
-                localPosition: paletteItemPositions[pressedItem]
+        // Highlight and raise new item.
+        if (itemIndex !== NONE && highlightedItem !== itemIndex) {
+            Overlays.editOverlay(paletteItemHoverOverlays[itemIndex], {
+                localPosition: UIT.dimensions.paletteItemButtonHoveredOffset,
+                visible: true
             });
-            pressedItem = NONE;
+            highlightedItem = itemIndex;
         }
 
         // Press item and create new entity.
         isTriggerClicked = controlHand.triggerClicked();
-        if (highlightedItem !== NONE && pressedItem === NONE && isTriggerClicked && !wasTriggerClicked) {
-            // Press item.
-            Overlays.editOverlay(paletteItemOverlays[itemIndex], {
-                localPosition: Vec3.sum(paletteItemPositions[itemIndex], PRESS_DELTA)
-            });
-            pressedItem = itemIndex;
-
+        if (highlightedItem !== NONE && isTriggerClicked && !wasTriggerClicked) {
             // Create entity.
             properties = Object.clone(PALETTE_ITEMS[itemIndex].entity);
             properties.position = Vec3.sum(controlHand.palmPosition(),
@@ -280,6 +265,12 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     Vec3.sum({ x: 0, y: properties.dimensions.z / 2, z: 0 }, CREATE_OFFSET)));
             properties.rotation = Quat.multiply(controlHand.orientation(), INVERSE_HAND_BASIS_ROTATION);
             Entities.addEntity(properties);
+
+            // Lower and unhighlight item.
+            Overlays.editOverlay(paletteItemHoverOverlays[itemIndex], {
+                localPosition: UIT.dimensions.paletteItemButtonOffset,
+                visible: false
+            });
 
             uiCommandCallback("autoGrab");
         }
@@ -303,7 +294,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         return {
             x: COLUMN_ZERO_OFFSET + column * COLUMN_SPACING,
             y: ROW_ZERO_Y_OFFSET - row * ROW_SPACING,
-            z: UIT.dimensions.panel.z + PALETTE_ENTITY_DIMENSIONS.z / 2
+            z: UIT.dimensions.panel.z / 2 + UIT.dimensions.itemCollisionZone.z / 2
         };
     }
 
@@ -352,17 +343,26 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         // Palette items.
         for (i = 0, length = PALETTE_ITEMS.length; i < length; i += 1) {
-            properties = Object.clone(PALETTE_ITEMS[i].overlay.properties);
+            // Collision overlay.
+            properties = Object.clone(PALETTE_ITEM.properties);
             properties.parentID = palettePanelOverlay;
             properties.localPosition = itemPosition(i);
-            paletteItemOverlays[i] = Overlays.addOverlay(PALETTE_ITEMS[i].overlay.type, properties);
-            paletteItemPositions[i] = properties.localPosition;
-        }
 
-        // Prepare cube highlight overlay.
-        properties = Object.clone(HIGHLIGHT_PROPERTIES);
-        properties.parentID = paletteOriginOverlay;
-        highlightOverlay = Overlays.addOverlay("cube", properties);
+            paletteItemOverlays[i] = Overlays.addOverlay(PALETTE_ITEM.overlay, properties);
+            paletteItemPositions[i] = properties.localPosition;
+
+            // Highlight overlay.
+            properties = Object.clone(PALETTE_ITEM.hoverButton.properties);
+            properties.parentID = paletteItemOverlays[i];
+            paletteItemHoverOverlays[i] = Overlays.addOverlay(PALETTE_ITEM.hoverButton.overlay, properties);
+
+            // Icon overlay.
+            properties = Object.clone(PALETTE_ITEM.icon.properties);
+            properties = Object.merge(properties, PALETTE_ITEMS[i].icon.properties);
+            properties.parentID = paletteItemHoverOverlays[i];
+            properties.url = Script.resolvePath(properties.url);
+            Overlays.addOverlay(PALETTE_ITEM.icon.overlay, properties);
+        }
 
         isDisplaying = true;
     }
@@ -376,9 +376,8 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             return;
         }
 
-        Overlays.deleteOverlay(highlightOverlay);
         for (i = 0, length = paletteItemOverlays.length; i < length; i += 1) {
-            Overlays.deleteOverlay(paletteItemOverlays[i]);
+            Overlays.deleteOverlay(paletteItemOverlays[i]);  // Child overlays are automatically deleted.
         }
         Overlays.deleteOverlay(palettePanelOverlay);
         Overlays.deleteOverlay(paletteTitleOverlay);

@@ -36,12 +36,18 @@ UIT = (function () {
             headerBar: { x: 0.24, y: 0.004, z: 0.012 },
             panel: { x: 0.24, y: 0.18, z: 0.008 },
 
-            itemCollisionZone: { x: 0.0481, y: 0.0480, z: 0.0060 },  // Cursor intersection zone for Tools and Create items.
+            itemCollisionZone: { x: 0.0481, y: 0.0480, z: 0.0040 },  // Cursor intersection zone for Tools and Create items.
 
-            menuButton: { x: 0.0267, y: 0.0267, z: 0.0040 },
-            menuButtonIconOffset: { x: 0, y: 0.00935, z: -0.0050 },  // Non-hovered position.
+            menuButtonDimensions: { x: 0.0267, y: 0.0267, z: 0.0040 },
+            menuButtonIconOffset: { x: 0, y: 0.00935, z: -0.0040 },  // Non-hovered position relative to itemCollisionZone.
             menuButtonLabelYOffset: -0.00915,  // Relative to itemCollisionZone.
             menuButtonSublabelYOffset: -0.01775,  // Relative to itemCollisionZone.
+
+            paletteItemButtonDimensions: { x: 0.0481, y: 0.0480, z: 0.0020 },
+            paletteItemButtonOffset: { x: 0, y: 0, z: -0.0020 },  // Non-hovered position relative to itemCollisionZone.
+            paletteItemButtonHoveredOffset: { x: 0, y: 0, z: -0.0010 },
+            paletteItemIconDimensions: { x: 0.024, y: 0.024, z: 0.024 },
+            paletteItemIconOffset: { x: 0, y: 0, z: 0.015 },  // Non-hovered position relative to palette button.
 
             imageOverlayOffset: 0.001  // Raise image above surface.
         }
