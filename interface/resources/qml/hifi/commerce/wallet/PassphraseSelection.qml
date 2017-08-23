@@ -24,7 +24,7 @@ Item {
     HifiConstants { id: hifi; }
 
     id: root;
-    
+
     // This object is always used in a popup.
     // This MouseArea is used to prevent a user from being
     //     able to click on a button/mouseArea underneath the popup.
@@ -36,7 +36,8 @@ Item {
     Hifi.QmlCommerce {
         id: commerce;
         onSecurityImageResult: {
-            //passphrasePageSecurityImage.source = gridModel.getImagePathFromImageID(imageID);
+            passphrasePageSecurityImage.source = "";
+            passphrasePageSecurityImage.source = "image://security/securityImage";
         }
 
         onPassphraseSetupStatusResult: {
@@ -104,7 +105,8 @@ Item {
             width: height;
             fillMode: Image.PreserveAspectFit;
             mipmap: true;
-
+            source: "image://security/securityImage";
+            cache: false;
             onVisibleChanged: {
                 commerce.getSecurityImage();
             }
@@ -124,7 +126,7 @@ Item {
             color: hifi.colors.faintGray;
             // Alignment
             horizontalAlignment: Text.AlignHCenter;
-            verticalAlignment: Text.AlignVCenter;        
+            verticalAlignment: Text.AlignVCenter;
         }
     }
 

@@ -33,7 +33,7 @@ Rectangle {
         id: commerce;
 
         onSecurityImageResult: {
-            if (!image) { // "If security image is not set up"
+            if (!exists) { // "If security image is not set up"
                 if (root.activeView !== "notSetUp") {
                     root.activeView = "notSetUp";
                 }
@@ -104,7 +104,7 @@ Rectangle {
         width: walletSetupLightboxContainer.width - 50;
         height: walletSetupLightboxContainer.height - 50;
     }
-    
+
 
     //
     // TITLE BAR START
@@ -226,7 +226,7 @@ Rectangle {
     //
     // TAB CONTENTS END
     //
-    
+
     //
     // TAB BUTTONS START
     //
@@ -283,7 +283,7 @@ Rectangle {
                 onEntered: parent.color = hifi.colors.blueHighlight;
                 onExited: parent.color = root.activeView === "walletHome" ? hifi.colors.blueAccent : hifi.colors.black;
             }
-            
+
             onVisibleChanged: {
                 if (visible) {
                     commerce.getSecurityImage();
@@ -382,7 +382,7 @@ Rectangle {
                 onEntered: parent.color = hifi.colors.blueHighlight;
                 onExited: parent.color = root.activeView === "security" ? hifi.colors.blueAccent : hifi.colors.black;
             }
-            
+
             onVisibleChanged: {
                 if (visible) {
                     commerce.getSecurityImage();

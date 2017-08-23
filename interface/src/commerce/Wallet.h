@@ -36,7 +36,7 @@ public:
     QByteArray getSalt() { return _salt; }
 
 signals:
-    void securityImageResult(QPixmap* image);
+    void securityImageResult(bool exists) ;
     void keyFilePathResult(const QString& path);
 
 protected:

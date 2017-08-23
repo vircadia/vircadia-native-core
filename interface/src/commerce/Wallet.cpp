@@ -13,11 +13,14 @@
 #include "Ledger.h"
 #include "Wallet.h"
 #include "Application.h"
+#include "ui/ImageProvider.h"
 
 #include <PathUtils.h>
+#include <OffscreenUi.h>
 
 #include <QFile>
 #include <QCryptographicHash>
+#include <QQmlContext>
 
 #include <openssl/ssl.h>
 #include <openssl/err.h>
@@ -402,10 +405,17 @@ void Wallet::chooseSecurityImage(const QString& filename) {
 
     // encrypt it and save.
     if (encryptFile(path, imageFilePath())) {
-        emit securityImageResult(_securityImage);
+        qCDebug(commerce) << "emitting pixmap";
+
+        // inform the image provider
+        auto engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
+        auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
+        imageProvider->setSecurityImage(_securityImage);
+
+        emit securityImageResult(true);
     } else {
         qCDebug(commerce) << "failed to encrypt security image";
-        emit securityImageResult(nullptr);
+        emit securityImageResult(false);
     }
 }
 void Wallet::getSecurityImage() {
@@ -414,7 +424,7 @@ void Wallet::getSecurityImage() {
 
     // if already decrypted, don't do it again
     if (_securityImage) {
-        emit securityImageResult(_securityImage);
+        emit securityImageResult(true);
         return;
     }
 
@@ -424,10 +434,16 @@ void Wallet::getSecurityImage() {
         _securityImage = new QPixmap();
         _securityImage->loadFromData(data, dataLen, "jpg");
         qCDebug(commerce) << "created pixmap from encrypted file";
-        emit securityImageResult(_securityImage);
+
+        // inform the image provider
+        auto engine = DependencyManager::get<OffscreenUi>()->getSurfaceContext()->engine();
+        auto imageProvider = reinterpret_cast<ImageProvider*>(engine->imageProvider(ImageProvider::PROVIDER_NAME));
+        imageProvider->setSecurityImage(_securityImage);
+
+        emit securityImageResult(true);
     } else {
         qCDebug(commerce) << "failed to decrypt security image (maybe none saved yet?)";
-        emit securityImageResult(nullptr);
+        emit securityImageResult(false);
     }
 }
 void Wallet::getKeyFilePath() {

@@ -22,16 +22,17 @@ import "../../../controls" as HifiControls
 
 Item {
     HifiConstants { id: hifi; }
-    
+
     id: root;
 
     Hifi.QmlCommerce {
         id: commerce;
 
         onSecurityImageResult: {
-            if (image) { // "If security image is set up"
-                var path = securityImageModel.getImagePathFromImageID(1);
-                securityImage.source = path;
+            if (exists) {
+                // just set the source again (to be sure the change was noticed)
+                securityImage.source = "";
+                securityImage.source = "image://security/securityImage";
             }
         }
 
@@ -43,7 +44,7 @@ Item {
     SecurityImageModel {
         id: securityImageModel;
     }
-    
+
     Connections {
         target: GlobalServices
         onMyUsernameChanged: {
@@ -66,7 +67,7 @@ Item {
         anchors.left: parent.left;
         anchors.right: hfcBalanceContainer.left;
     }
-    
+
     // HFC Balance Container
     Item {
         id: hfcBalanceContainer;
@@ -99,8 +100,8 @@ Item {
                 color: hifi.colors.darkGray;
                 // Alignment
                 horizontalAlignment: Text.AlignRight;
-                verticalAlignment: Text.AlignVCenter;    
-                
+                verticalAlignment: Text.AlignVCenter;
+
                 onVisibleChanged: {
                     if (visible) {
                         commerce.balance();
@@ -124,7 +125,7 @@ Item {
                 color: hifi.colors.darkGray;
                 // Alignment
                 horizontalAlignment: Text.AlignRight;
-                verticalAlignment: Text.AlignVCenter;        
+                verticalAlignment: Text.AlignVCenter;
             }
         }
         // "balance" text above field
@@ -142,7 +143,7 @@ Item {
             color: hifi.colors.faintGray;
             // Alignment
             horizontalAlignment: Text.AlignLeft;
-            verticalAlignment: Text.AlignVCenter;        
+            verticalAlignment: Text.AlignVCenter;
         }
     }
 
@@ -170,6 +171,8 @@ Item {
             width: height;
             fillMode: Image.PreserveAspectFit;
             mipmap: true;
+            cache: false;
+            source: "image://security/securityImage";
         }
         // "Security picture" text below pic
         RalewayRegular {
@@ -186,7 +189,7 @@ Item {
             color: hifi.colors.faintGray;
             // Alignment
             horizontalAlignment: Text.AlignHCenter;
-            verticalAlignment: Text.AlignVCenter;        
+            verticalAlignment: Text.AlignVCenter;
         }
     }
 
@@ -222,7 +225,7 @@ Item {
             anchors.bottomMargin: 8;
             anchors.left: parent.left;
             anchors.right: parent.right;
-            
+
             // some placeholder stuff
             RalewayRegular {
                 text: homeMessage.visible ? "you <b>CANNOT</b> scroll through this." : "you <b>CAN</b> scroll through this";
@@ -234,10 +237,10 @@ Item {
                 color: hifi.colors.darkGray;
                 // Alignment
                 horizontalAlignment: Text.AlignHCenter;
-                verticalAlignment: Text.AlignVCenter;        
+                verticalAlignment: Text.AlignVCenter;
             }
         }
-        
+
         HifiControlsUit.Button {
             id: toggleFullHistoryButton;
             color: hifi.buttons.black;
@@ -322,7 +325,7 @@ Item {
                     homeMessageButtons.visible = false;
                 }
             }
-        }        
+        }
     }
 
     //

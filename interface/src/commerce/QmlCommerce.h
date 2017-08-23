@@ -29,11 +29,11 @@ public:
 
 signals:
     void buyResult(QJsonObject result);
-    // Balance and Inventory are NOT properties, because QML can't change them (without risk of failure), and 
+    // Balance and Inventory are NOT properties, because QML can't change them (without risk of failure), and
     // because we can't scalably know of out-of-band changes (e.g., another machine interacting with the block chain).
     void balanceResult(QJsonObject result);
     void inventoryResult(QJsonObject result);
-    void securityImageResult(QPixmap* image);
+    void securityImageResult(bool exists);
     void loginStatusResult(bool isLoggedIn);
     void passphraseSetupStatusResult(bool passphraseIsSetup);
     void keyFilePathResult(const QString& path);

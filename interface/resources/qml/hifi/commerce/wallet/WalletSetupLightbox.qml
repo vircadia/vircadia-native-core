@@ -40,7 +40,7 @@ Rectangle {
         }
 
         onSecurityImageResult: {
-            if (!image && root.lastPage === "securityImage") {
+            if (!exists && root.lastPage === "securityImage") {
                 // ERROR! Invalid security image.
                 securityImageContainer.visible = true;
                 choosePassphraseContainer.visible = false;
@@ -327,7 +327,8 @@ Rectangle {
                 text: "Next";
                 onClicked: {
                     root.lastPage = "securityImage";
-                    commerce.chooseSecurityImage(securityImageSelection.getImagePathFromImageID(1));
+                    var securityImagePath = securityImageSelection.getImagePathFromImageID(securityImageSelection.getSelectedImageIndex())
+                    commerce.chooseSecurityImage(securityImagePath);
                     securityImageContainer.visible = false;
                     choosePassphraseContainer.visible = true;
                 }

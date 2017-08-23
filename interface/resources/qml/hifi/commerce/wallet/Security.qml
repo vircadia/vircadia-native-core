@@ -29,10 +29,14 @@ Item {
         id: commerce;
 
         onSecurityImageResult: {
-            if (image) { // "If security image is set up"
-                var path = securityImageModel.getImagePathFromImageID(1);
+            if (exists) { // "If security image is set up"
+                var path = "image://security/securityImage";
+                topSecurityImage.source = "";
                 topSecurityImage.source = path;
+                changeSecurityImageImage.source = "";
                 changeSecurityImageImage.source = path;
+                changePassphraseImage.source = "";
+                changePassphraseImage.source = path;
             }
         }
 
@@ -87,6 +91,8 @@ Item {
             width: height;
             fillMode: Image.PreserveAspectFit;
             mipmap: true;
+            source: "image://security/securityImage";
+            cache: false;
         }
         // "Security picture" text below pic
         RalewayRegular {
@@ -103,7 +109,7 @@ Item {
             color: hifi.colors.faintGray;
             // Alignment
             horizontalAlignment: Text.AlignHCenter;
-            verticalAlignment: Text.AlignVCenter;        
+            verticalAlignment: Text.AlignVCenter;
         }
     }
 
@@ -144,8 +150,10 @@ Item {
                 anchors.left: parent.left;
                 height: parent.height;
                 width: height;
+                source: "image://security/securityImage";
                 fillMode: Image.PreserveAspectFit;
                 mipmap: true;
+                cache: false;
             }
             // "Change Passphrase" button
             HifiControlsUit.Button {
@@ -181,6 +189,8 @@ Item {
                 width: height;
                 fillMode: Image.PreserveAspectFit;
                 mipmap: true;
+                cache: false;
+                source: "image://security/securityImage";
             }
             // "Change Security Image" button
             HifiControlsUit.Button {
