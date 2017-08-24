@@ -286,7 +286,9 @@ public:
 
     void setPacketFilterOperator(udt::PacketFilterOperator filterOperator) { _nodeSocket.setPacketFilterOperator(filterOperator); }
     bool packetVersionMatch(const udt::Packet& packet);
-    bool isPacketVerified(const udt::Packet& packet);
+
+    bool isPacketVerifiedWithSource(const udt::Packet& packet, Node* sourceNode = nullptr);
+    bool isPacketVerified(const udt::Packet& packet) { return isPacketVerifiedWithSource(packet); }
 
     static void makeSTUNRequestPacket(char* stunRequestPacket);
 
@@ -352,7 +354,7 @@ protected:
 
     void setLocalSocket(const HifiSockAddr& sockAddr);
 
-    bool packetSourceAndHashMatchAndTrackBandwidth(const udt::Packet& packet);
+    bool packetSourceAndHashMatchAndTrackBandwidth(const udt::Packet& packet, Node* sourceNode = nullptr);
     void processSTUNResponse(std::unique_ptr<udt::BasePacket> packet);
 
     void handleNodeKill(const SharedNodePointer& node);
