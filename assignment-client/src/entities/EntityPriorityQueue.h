@@ -39,9 +39,10 @@ private:
 // PrioritizedEntity is a placeholder in a sorted queue.
 class PrioritizedEntity {
 public:
-    PrioritizedEntity(EntityItemPointer entity, float priority) : _weakEntity(entity), _priority(priority) { }
+    PrioritizedEntity(EntityItemPointer entity, float priority) : _weakEntity(entity), _rawEntityPointer(entity.get()), _priority(priority) {}
     float updatePriority(const ConicalView& view);
     EntityItemPointer getEntity() const { return _weakEntity.lock(); }
+    EntityItem* getRawEntityPointer() const { return _rawEntityPointer; }
     float getPriority() const { return _priority; }
 
     class Compare {
@@ -52,6 +53,7 @@ public:
 
 private:
     EntityItemWeakPointer _weakEntity;
+    EntityItem* _rawEntityPointer;
     float _priority;
 };
 
