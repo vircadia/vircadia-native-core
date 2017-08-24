@@ -39,16 +39,14 @@ Rectangle {
         id: commerce;
 
         onSecurityImageResult: {
-            if (!exists) { // "If security image is not set up"
-                if (root.activeView !== "notSetUp") {
-                    notSetUp.visible = true;
-                }
+            if (!exists && root.activeView !== "notSetUp") { // "If security image is not set up"
+                root.activeView = "notSetUp";
             }
         }
 
         onKeyFilePathResult: {
             if (path === "" && root.activeView !== "notSetUp") {
-                notSetUp.visible = true;
+                root.activeView = "notSetUp";
             }
         }
 
@@ -61,21 +59,22 @@ Rectangle {
                 root.activeView = "checkoutSuccess";
             }
         }
+
         onBalanceResult: {
             if (result.status !== 'success') {
                 console.log("Failed to get balance", result.data.message);
             } else {
                 balanceReceived = true;
-                hfcBalanceText.text = parseFloat(result.data.balance/100).toFixed(2);
+                hfcBalanceText.text = (parseFloat(result.data.balance/100).toFixed(2)) + " HFC";
                 balanceAfterPurchase = parseFloat(result.data.balance/100) - parseFloat(root.itemPriceFull/100).toFixed(2);
             }
         }
+
         onInventoryResult: {
             if (result.status !== 'success') {
                 console.log("Failed to get inventory", result.data.message);
             } else {
                 inventoryReceived = true;
-                console.log('inventory fixme', JSON.stringify(result));
                 if (inventoryContains(result.data.assets, itemId)) {
                     alreadyOwned = true;
                 } else {
@@ -139,7 +138,7 @@ Rectangle {
         
         RalewayRegular {
             id: notSetUpText;
-            text: "Set up your Wallet (no credit card necessary) to claim your free <b>100 HFC</b> " +
+            text: "Set up your Wallet (no credit card necessary) to claim your <b>free HFC</b> " +
             "and get items from the Marketplace.";
             // Text size
             size: 18;
@@ -225,18 +224,68 @@ Rectangle {
         Item {
             id: itemDescriptionContainer;
             // Size
-            width: parent.width;
             height: childrenRect.height + 20;
             // Anchors
             anchors.left: parent.left;
+            anchors.leftMargin: 32;
+            anchors.right: parent.right;
+            anchors.rightMargin: 32;
             anchors.top: titleBarContainer.bottom;
+
+            // HFC Balance text
+            Item {
+                id: hfcBalanceContainer;
+                // Anchors
+                anchors.top: parent.top;
+                anchors.topMargin: 30;
+                anchors.left: parent.left;
+                anchors.leftMargin: 16;
+                anchors.right: parent.right;
+                anchors.rightMargin: 16;
+                height: childrenRect.height;
+
+                RalewaySemiBold {
+                    id: hfcBalanceTextLabel;
+                    text: "Balance:";
+                    // Anchors
+                    anchors.top: parent.top;
+                    anchors.left: parent.left;
+                    width: paintedWidth;
+                    height: paintedHeight;
+                    // Text size
+                    size: 30;
+                    // Style
+                    color: hifi.colors.lightGrayText;
+                    // Alignment
+                    horizontalAlignment: Text.AlignLeft;
+                    verticalAlignment: Text.AlignVCenter;
+                }
+                RalewayRegular {
+                    id: hfcBalanceText;
+                    text: "-- HFC";
+                    // Text size
+                    size: hfcBalanceTextLabel.size;
+                    // Anchors
+                    anchors.top: parent.top;
+                    anchors.left: hfcBalanceTextLabel.right;
+                    anchors.leftMargin: 16;
+                    anchors.right: parent.right;
+                    anchors.rightMargin: 16;
+                    height: paintedHeight;
+                    // Style
+                    color: hifi.colors.lightGrayText;
+                    // Alignment
+                    horizontalAlignment: Text.AlignRight;
+                    verticalAlignment: Text.AlignVCenter;
+                }
+            }
 
             // Item Name text
             Item {
                 id: itemNameContainer;
                 // Anchors
-                anchors.top: parent.top;
-                anchors.topMargin: 4;
+                anchors.top: hfcBalanceContainer.bottom;
+                anchors.topMargin: 32;
                 anchors.left: parent.left;
                 anchors.leftMargin: 16;
                 anchors.right: parent.right;
@@ -245,17 +294,19 @@ Rectangle {
 
                 RalewaySemiBold {
                     id: itemNameTextLabel;
-                    text: "Item Name:";
+                    text: "Item:";
                     // Anchors
-                    anchors.top: parent.top;
+                    anchors.top: hfcBalanceContainer.bottom;
+                    anchors.topMargin: 20;
                     anchors.left: parent.left;
                     width: paintedWidth;
+                    height: paintedHeight;
                     // Text size
-                    size: 16;
+                    size: 20;
                     // Style
                     color: hifi.colors.lightGrayText;
                     // Alignment
-                    horizontalAlignment: Text.AlignHLeft;
+                    horizontalAlignment: Text.AlignLeft;
                     verticalAlignment: Text.AlignVCenter;
                 }
                 RalewayRegular {
@@ -266,11 +317,14 @@ Rectangle {
                     anchors.top: parent.top;
                     anchors.left: itemNameTextLabel.right;
                     anchors.leftMargin: 16;
-                    width: paintedWidth;
+                    anchors.right: parent.right;
+                    anchors.rightMargin: 16;
+                    height: paintedHeight;
                     // Style
                     color: hifi.colors.lightGrayText;
+                    elide: Text.ElideRight;
                     // Alignment
-                    horizontalAlignment: Text.AlignHLeft;
+                    horizontalAlignment: Text.AlignRight;
                     verticalAlignment: Text.AlignVCenter;
                 }
             }
@@ -290,17 +344,18 @@ Rectangle {
 
                 RalewaySemiBold {
                     id: itemAuthorTextLabel;
-                    text: "Item Author:";
+                    text: "Author:";
                     // Anchors
                     anchors.top: parent.top;
                     anchors.left: parent.left;
                     width: paintedWidth;
+                    height: paintedHeight;
                     // Text size
-                    size: 16;
+                    size: 20;
                     // Style
                     color: hifi.colors.lightGrayText;
                     // Alignment
-                    horizontalAlignment: Text.AlignHLeft;
+                    horizontalAlignment: Text.AlignLeft;
                     verticalAlignment: Text.AlignVCenter;
                 }
                 RalewayRegular {
@@ -311,56 +366,14 @@ Rectangle {
                     anchors.top: parent.top;
                     anchors.left: itemAuthorTextLabel.right;
                     anchors.leftMargin: 16;
-                    width: paintedWidth;
+                    anchors.right: parent.right;
+                    anchors.rightMargin: 16;
+                    height: paintedHeight;
                     // Style
                     color: hifi.colors.lightGrayText;
+                    elide: Text.ElideRight;
                     // Alignment
-                    horizontalAlignment: Text.AlignHLeft;
-                    verticalAlignment: Text.AlignVCenter;
-                }
-            }
-
-            // HFC Balance text
-            Item {
-                id: hfcBalanceContainer;
-                // Anchors
-                anchors.top: itemAuthorContainer.bottom;
-                anchors.topMargin: 16;
-                anchors.left: parent.left;
-                anchors.leftMargin: 16;
-                anchors.right: parent.right;
-                anchors.rightMargin: 16;
-                height: childrenRect.height;
-
-                RalewaySemiBold {
-                    id: hfcBalanceTextLabel;
-                    text: "HFC Balance:";
-                    // Anchors
-                    anchors.top: parent.top;
-                    anchors.left: parent.left;
-                    width: paintedWidth;
-                    // Text size
-                    size: 20;
-                    // Style
-                    color: hifi.colors.lightGrayText;
-                    // Alignment
-                    horizontalAlignment: Text.AlignHLeft;
-                    verticalAlignment: Text.AlignVCenter;
-                }
-                RalewayRegular {
-                    id: hfcBalanceText;
-                    text: "--";
-                    // Text size
-                    size: hfcBalanceTextLabel.size;
-                    // Anchors
-                    anchors.top: parent.top;
-                    anchors.left: hfcBalanceTextLabel.right;
-                    anchors.leftMargin: 16;
-                    width: paintedWidth;
-                    // Style
-                    color: hifi.colors.lightGrayText;
-                    // Alignment
-                    horizontalAlignment: Text.AlignHLeft;
+                    horizontalAlignment: Text.AlignRight;
                     verticalAlignment: Text.AlignVCenter;
                 }
             }
@@ -369,7 +382,7 @@ Rectangle {
             Item {
                 id: itemPriceContainer;
                 // Anchors
-                anchors.top: hfcBalanceContainer.bottom;
+                anchors.top: itemAuthorContainer.bottom;
                 anchors.topMargin: 4;
                 anchors.left: parent.left;
                 anchors.leftMargin: 16;
@@ -379,39 +392,43 @@ Rectangle {
 
                 RalewaySemiBold {
                     id: itemPriceTextLabel;
-                    text: "Item Price:";
+                    text: "Price:";
                     // Anchors
                     anchors.top: parent.top;
                     anchors.left: parent.left;
                     width: paintedWidth;
+                    height: paintedHeight;
                     // Text size
                     size: 20;
                     // Style
                     color: hifi.colors.lightGrayText;
                     // Alignment
-                    horizontalAlignment: Text.AlignHLeft;
+                    horizontalAlignment: Text.AlignLeft;
                     verticalAlignment: Text.AlignVCenter;
                 }
                 RalewayRegular {
                     id: itemPriceText;
+                    text: "-- HFC";
                     // Text size
                     size: itemPriceTextLabel.size;
                     // Anchors
                     anchors.top: parent.top;
                     anchors.left: itemPriceTextLabel.right;
                     anchors.leftMargin: 16;
-                    width: paintedWidth;
+                    anchors.right: parent.right;
+                    anchors.rightMargin: 16;
+                    height: paintedHeight;
                     // Style
                     color: hifi.colors.lightGrayText;
                     // Alignment
-                    horizontalAlignment: Text.AlignHLeft;
+                    horizontalAlignment: Text.AlignRight;
                     verticalAlignment: Text.AlignVCenter;
                 }
             }
 
-            // HFC "Balance After Purchase" text
+            // "Quantity" container
             Item {
-                id: hfcBalanceAfterPurchaseContainer;
+                id: quantityContainer;
                 // Anchors
                 anchors.top: itemPriceContainer.bottom;
                 anchors.topMargin: 4;
@@ -422,34 +439,86 @@ Rectangle {
                 height: childrenRect.height;
 
                 RalewaySemiBold {
-                    id: hfcBalanceAfterPurchaseTextLabel;
-                    text: "HFC Balance After Purchase:";
+                    id: quantityTextLabel;
+                    text: "Quantity:";
                     // Anchors
                     anchors.top: parent.top;
                     anchors.left: parent.left;
                     width: paintedWidth;
+                    height: paintedHeight;
                     // Text size
                     size: 20;
                     // Style
                     color: hifi.colors.lightGrayText;
                     // Alignment
-                    horizontalAlignment: Text.AlignHLeft;
+                    horizontalAlignment: Text.AlignLeft;
+                    verticalAlignment: Text.AlignVCenter;
+                }
+                // ZRF FIXME: MAKE DROPDOWN
+                RalewayRegular {
+                    id: quantityText;
+                    text: "1";
+                    // Text size
+                    size: quantityTextLabel.size;
+                    // Anchors
+                    anchors.top: parent.top;
+                    anchors.left: quantityTextLabel.right;
+                    anchors.leftMargin: 16;
+                    anchors.right: parent.right;
+                    anchors.rightMargin: 16;
+                    height: paintedHeight;
+                    // Style
+                    color: hifi.colors.lightGrayText;
+                    // Alignment
+                    horizontalAlignment: Text.AlignRight;
+                    verticalAlignment: Text.AlignVCenter;
+                }
+            }
+
+            // "Total Cost" container
+            Item {
+                id: totalCostContainer;
+                // Anchors
+                anchors.top: quantityContainer.bottom;
+                anchors.topMargin: 32;
+                anchors.left: parent.left;
+                anchors.leftMargin: 16;
+                anchors.right: parent.right;
+                anchors.rightMargin: 16;
+                height: childrenRect.height;
+
+                RalewaySemiBold {
+                    id: totalCostTextLabel;
+                    text: "Total Cost:";
+                    // Anchors
+                    anchors.top: parent.top;
+                    anchors.left: parent.left;
+                    width: paintedWidth;
+                    height: paintedHeight;
+                    // Text size
+                    size: 30;
+                    // Style
+                    color: hifi.colors.lightGrayText;
+                    // Alignment
+                    horizontalAlignment: Text.AlignLeft;
                     verticalAlignment: Text.AlignVCenter;
                 }
                 RalewayRegular {
-                    id: hfcBalanceAfterPurchaseText;
-                    text: balanceAfterPurchase;
+                    id:totalCostText;
+                    text: "-- HFC";
                     // Text size
-                    size: hfcBalanceAfterPurchaseTextLabel.size;
+                    size: totalCostTextLabel.size;
                     // Anchors
                     anchors.top: parent.top;
-                    anchors.left: hfcBalanceAfterPurchaseTextLabel.right;
+                    anchors.left: totalCostTextLabel.right;
                     anchors.leftMargin: 16;
-                    width: paintedWidth;
+                    anchors.right: parent.right;
+                    anchors.rightMargin: 16;
+                    height: paintedHeight;
                     // Style
                     color: (balanceAfterPurchase >= 0) ? hifi.colors.lightGrayText : hifi.colors.redHighlight;
                     // Alignment
-                    horizontalAlignment: Text.AlignHLeft;
+                    horizontalAlignment: Text.AlignRight;
                     verticalAlignment: Text.AlignVCenter;
                 }
             }
@@ -466,11 +535,31 @@ Rectangle {
             id: checkoutActionButtonsContainer;
             // Size
             width: root.width;
-            height: 130;
+            height: root.alreadyOwned ? 180 : 130;
             // Anchors
             anchors.left: parent.left;
             anchors.bottom: parent.bottom;
             anchors.bottomMargin: 8;
+            
+
+            // "Inventory" button
+            HifiControlsUit.Button {
+                id: goToInventoryButton;
+                visible: root.alreadyOwned;
+                color: hifi.buttons.black;
+                colorScheme: hifi.colorSchemes.dark;
+                anchors.top: parent.top;
+                anchors.topMargin: 3;
+                anchors.bottomMargin: 7;
+                height: 40;
+                anchors.left: parent.left;
+                anchors.leftMargin: 20;
+                width: parent.width - anchors.leftMargin*2;
+                text: "View Inventory"
+                onClicked: {
+                    sendToScript({method: 'checkout_goToInventory'});
+                }
+            }
 
             // "Cancel" button
             HifiControlsUit.Button {
@@ -501,7 +590,7 @@ Rectangle {
                 anchors.right: parent.right;
                 anchors.rightMargin: 20;
                 width: parent.width/2 - anchors.rightMargin*2;
-                text: (inventoryReceived && balanceReceived) ? ("Buy") : "--";
+                text: (inventoryReceived && balanceReceived) ? (root.alreadyOwned ? "Buy Again" : "Buy"): "--";
                 onClicked: {
                     buyButton.enabled = false;
                     commerce.buy(itemId, itemPriceFull);
@@ -510,7 +599,9 @@ Rectangle {
         
             RalewayRegular {
                 id: buyText;
-                text: (balanceAfterPurchase >= 0) ? "This item will be added to your <b>Inventory</b>, which can be accessed from <b>Marketplace</b>." : "OUT OF MONEY LOL";
+                text: (inventoryReceived && balanceReceived) ? ((balanceAfterPurchase < 0) ? "You do not have enough HFC to purchase this item." :
+                (root.alreadyOwned ? "<b>You already own this item.</b> If you buy it again, you'll be able to use multiple copies of it at once." :
+                "This item will be added to your <b>Inventory</b>, which can be accessed from <b>Marketplace</b>.")) : "";
                 // Text size
                 size: 20;
                 // Anchors
@@ -752,7 +843,8 @@ Rectangle {
                 itemNameText.text = message.params.itemName;
                 itemAuthorText.text = message.params.itemAuthor;
                 root.itemPriceFull = message.params.itemPrice;
-                itemPriceText.text = parseFloat(root.itemPriceFull/100).toFixed(2);
+                itemPriceText.text = (parseFloat(root.itemPriceFull/100).toFixed(2)) + " HFC";
+                totalCostText.text = (parseFloat(root.itemPriceFull/100).toFixed(2)) + " HFC";
                 itemHref = message.params.itemHref;
                 commerce.balance();
                 commerce.inventory();
