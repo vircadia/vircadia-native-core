@@ -20,7 +20,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         menuOriginOverlay,
         menuHeaderOverlay,
         menuHeaderBarOverlay,
-        menuTitleOverlay,
+        menuHeaderBackOverlay,
+        menuHeaderTitleOverlay,
+        menuHeaderIconOverlay,
         menuPanelOverlay,
 
         menuOverlays = [],
@@ -87,9 +89,26 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             visible: true
         },
 
-        MENU_TITLE_PROPERTIES = {
+        MENU_HEADER_BACK_PROPERTIES = {
+            url: "../assets/tools/back-icon.svg",
+            dimensions: { x: 0.0069, y: 0.0107 },
+            localPosition: {
+                x: -MENU_HEADER_PROPERTIES.dimensions.x / 2 + 0.0118 + 0.0069 / 2,
+                y: 0,
+                z: MENU_HEADER_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+            },
+            localRotation: Quat.ZERO,
+            color: UIT.colors.lightGrayText,
+            alpha: 1.0,
+            emissive: true,
+            ignoreRayIntersection: true,
+            isFacingAvatar: false,
+            visible: true
+        },
+
+        MENU_HEADER_TITLE_PROPERTIES = {
             url: "../assets/tools/tools-heading.svg",
-            scale: 0.0363,
+            scale: 0.0327,
             localPosition: { x: 0, y: 0, z: MENU_HEADER_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
             localRotation: Quat.ZERO,
             color: UIT.colors.white,
@@ -98,6 +117,26 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             ignoreRayIntersection: true,
             isFacingAvatar: false,
             visible: true
+        },
+
+        MENU_HEADER_ICON_OFFSET = {
+            // Default right center position for header tool icons.
+            x: MENU_HEADER_PROPERTIES.dimensions.x / 2 - 0.0118,
+            y: 0,
+            z: MENU_HEADER_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+        },
+
+        MENU_HEADER_ICON_PROPERTIES = {
+            url: "../assets/tools/color-icon.svg",  // Initial value so that the overlay is initialized OK.
+            dimensions: { x: 0.01, y: 0.01 },       // ""
+            localPosition: Vec3.ZERO,               // ""
+            localRotation: Quat.ZERO,
+            color: UIT.colors.lightGrayText,
+            alpha: 1.0,
+            emissive: true,
+            ignoreRayIntersection: true,
+            isFacingAvatar: false,
+            visible: false
         },
 
         MENU_PANEL_PROPERTIES = {
@@ -903,7 +942,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         url: "../assets/tools/color-icon.svg",
                         dimensions: { x: 0.0165, y: 0.0187 }
-                    }
+                    },
+                    headerOffset: { x: -0.00825, y: 0.0020, z: 0 }
                 },
                 label: {
                     type: "image",
@@ -911,6 +951,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         url: "../assets/tools/color-label.svg",
                         scale: 0.0241
                     }
+                },
+                title: {
+                    url: "../assets/tools/color-tool-heading.svg",
+                    scale: 0.0631
                 },
                 toolOptions: "colorOptions",
                 callback: {
@@ -933,7 +977,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         url: "../assets/tools/stretch-icon.svg",
                         dimensions: { x: 0.0167, y: 0.0167 }
-                    }
+                    },
+                    headerOffset: { x: -0.00835, y: 0, z: 0 }
                 },
                 label: {
                     type: "image",
@@ -941,6 +986,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         url: "../assets/tools/stretch-label.svg",
                         scale: 0.0311
                     }
+                },
+                title: {
+                    url: "../assets/tools/stretch-tool-heading.svg",
+                    scale: 0.0737
                 },
                 toolOptions: "scaleOptions",
                 callback: {
@@ -962,7 +1011,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         url: "../assets/tools/clone-icon.svg",
                         dimensions: { x: 0.0154, y: 0.0155 }
-                    }
+                    },
+                    headerOffset: { x: -0.0077, y: 0, z: 0 }
                 },
                 label: {
                     type: "image",
@@ -970,6 +1020,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         url: "../assets/tools/clone-label.svg",
                         scale: 0.0231
                     }
+                },
+                title: {
+                    url: "../assets/tools/clone-tool-heading.svg",
+                    scale: 0.0621
                 },
                 toolOptions: "cloneOptions",
                 callback: {
@@ -991,7 +1045,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         url: "../assets/tools/group-icon.svg",
                         dimensions: { x: 0.0161, y: 0.0114 }
-                    }
+                    },
+                    headerOffset: { x: -0.00805, y: 0, z: 0 }
                 },
                 label: {
                     type: "image",
@@ -999,6 +1054,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         url: "../assets/tools/group-label.svg",
                         scale: 0.0250
                     }
+                },
+                title: {
+                    url: "../assets/tools/group-tool-heading.svg",
+                    scale: 0.0647
                 },
                 toolOptions: "groupOptions",
                 callback: {
@@ -1020,7 +1079,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         url: "../assets/tools/physics-icon.svg",
                         dimensions: { x: 0.0180, y: 0.0198 }
-                    }
+                    },
+                    headerOffset: { x: -0.009, y: 0, z: 0 }
                 },
                 label: {
                     type: "image",
@@ -1028,6 +1088,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         url: "../assets/tools/physics-label.svg",
                         scale: 0.0297
                     }
+                },
+                title: {
+                    url: "../assets/tools/physics-tool-heading.svg",
+                    scale: 0.0712
                 },
                 toolOptions: "physicsOptions",
                 callback: {
@@ -1049,7 +1113,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         url: "../assets/tools/delete-icon.svg",
                         dimensions: { x: 0.0161, y: 0.0161 }
-                    }
+                    },
+                    headerOffset: { x: -0.00805, y: 0, z: 0 }
                 },
                 label: {
                     type: "image",
@@ -1057,6 +1122,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                         url: "../assets/tools/delete-label.svg",
                         scale: 0.0254
                     }
+                },
+                title: {
+                    url: "../assets/tools/delete-tool-heading.svg",
+                    scale: 0.0653
                 },
                 toolOptions: "deleteOptions",
                 callback: {
@@ -1150,6 +1219,15 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             i,
             length;
 
+        // Update header.
+        Overlays.editOverlay(menuHeaderBackOverlay, { visible: false });
+        Overlays.editOverlay(menuHeaderTitleOverlay, {
+            url: Script.resolvePath(MENU_HEADER_TITLE_PROPERTIES.url),
+            scale: MENU_HEADER_TITLE_PROPERTIES.scale
+        });
+        Overlays.editOverlay(menuHeaderIconOverlay, { visible: false });
+
+        // Display menu items.
         for (i = 0, length = MENU_ITEMS.length; i < length; i += 1) {
             properties = Object.clone(UI_ELEMENTS[MENU_ITEMS[i].type].properties);
             properties = Object.merge(properties, MENU_ITEMS[i].properties);
@@ -1214,36 +1292,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         pressedItem = null;
     }
 
-    function closeOptions() {
-        var i,
-            length;
-
-        // Remove options items.
-        Overlays.editOverlay(highlightOverlay, {
-            parentID: menuOriginOverlay
-        });
-
-        for (i = 0, length = optionsOverlays.length; i < length; i += 1) {
-            Overlays.deleteOverlay(optionsOverlays[i]);
-        }
-        optionsOverlays = [];
-
-        optionsOverlaysIDs = [];
-        optionsOverlaysLabels = [];
-        optionsSliderData = [];
-        optionsColorData = [];
-        optionsEnabled = [];
-        optionsItems = null;
-
-        isPicklistOpen = false;
-
-        pressedItem = null;
-
-        // Display menu items.
-        openMenu(true);
-    }
-
-    function openOptions(toolOptions) {
+    function openOptions(menuItem) {
         var properties,
             childProperties,
             auxiliaryProperties,
@@ -1259,8 +1308,21 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         // Remove menu items.
         closeMenu();
 
+        // Update header.
+        Overlays.editOverlay(menuHeaderBackOverlay, { visible: true });
+        Overlays.editOverlay(menuHeaderTitleOverlay, {
+            url: Script.resolvePath(menuItem.title.url),
+            scale: menuItem.title.scale
+        });
+        Overlays.editOverlay(menuHeaderIconOverlay, {
+            url: Script.resolvePath(menuItem.icon.properties.url),
+            dimensions: menuItem.icon.properties.dimensions,
+            localPosition: Vec3.sum(MENU_HEADER_ICON_OFFSET, menuItem.icon.headerOffset),
+            visible: true
+        });
+
         // Open specified options panel.
-        optionsItems = OPTONS_PANELS[toolOptions];
+        optionsItems = OPTONS_PANELS[menuItem.toolOptions];
         parentID = menuPanelOverlay;
         for (i = 0, length = optionsItems.length; i < length; i += 1) {
             properties = Object.clone(UI_ELEMENTS[optionsItems[i].type].properties);
@@ -1463,10 +1525,39 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
 
         // Special handling for Group options.
-        if (toolOptions === "groupOptions") {
+        if (menuItem.toolOptions === "groupOptions") {
             optionsEnabled[groupButtonIndex] = false;
             optionsEnabled[ungroupButtonIndex] = false;
         }
+    }
+
+    function closeOptions() {
+        var i,
+            length;
+
+        // Remove options items.
+        Overlays.editOverlay(highlightOverlay, {
+            parentID: menuOriginOverlay
+        });
+
+        for (i = 0, length = optionsOverlays.length; i < length; i += 1) {
+            Overlays.deleteOverlay(optionsOverlays[i]);
+        }
+        optionsOverlays = [];
+
+        optionsOverlaysIDs = [];
+        optionsOverlaysLabels = [];
+        optionsSliderData = [];
+        optionsColorData = [];
+        optionsEnabled = [];
+        optionsItems = null;
+
+        isPicklistOpen = false;
+
+        pressedItem = null;
+
+        // Display menu items.
+        openMenu(true);
     }
 
     function clearTool() {
@@ -2006,7 +2097,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
                 // Button press actions.
                 if (intersectionOverlays === menuOverlays) {
-                    openOptions(intersectionItems[intersectedItem].toolOptions);
+                    openOptions(intersectionItems[intersectedItem]);
                 }
                 if (intersectionItems[intersectedItem].command) {
                     parameter = intersectionItems[intersectedItem].id;
@@ -2181,10 +2272,20 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         properties = Object.clone(MENU_HEADER_BAR_PROPERTIES);
         properties.parentID = menuOriginOverlay;
         menuHeaderBarOverlay = Overlays.addOverlay("cube", properties);
-        properties = Object.clone(MENU_TITLE_PROPERTIES);
+
+        // Header content.
+        properties = Object.clone(MENU_HEADER_BACK_PROPERTIES);
         properties.parentID = menuHeaderOverlay;
         properties.url = Script.resolvePath(properties.url);
-        menuTitleOverlay = Overlays.addOverlay("image3d", properties);
+        menuHeaderBackOverlay = Overlays.addOverlay("image3d", properties);
+        properties = Object.clone(MENU_HEADER_TITLE_PROPERTIES);
+        properties.parentID = menuHeaderOverlay;
+        properties.url = Script.resolvePath(properties.url);
+        menuHeaderTitleOverlay = Overlays.addOverlay("image3d", properties);
+        properties = Object.clone(MENU_HEADER_ICON_PROPERTIES);
+        properties.parentID = menuHeaderOverlay;
+        properties.url = Script.resolvePath(properties.url);
+        menuHeaderIconOverlay = Overlays.addOverlay("image3d", properties);
 
         // Panel background.
         properties = Object.clone(MENU_PANEL_PROPERTIES);
@@ -2258,7 +2359,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         Overlays.deleteOverlay(menuHeaderOverlay);
         Overlays.deleteOverlay(menuHeaderBarOverlay);
-        Overlays.deleteOverlay(menuTitleOverlay);
+        Overlays.deleteOverlay(menuHeaderIconOverlay);
+        Overlays.deleteOverlay(menuHeaderTitleOverlay);
+        Overlays.deleteOverlay(menuHeaderBackOverlay);
         Overlays.deleteOverlay(menuPanelOverlay);
         Overlays.deleteOverlay(menuOriginOverlay);
 

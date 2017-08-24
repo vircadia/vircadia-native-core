@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="69px" height="107px" viewBox="0 0 69 107" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 45.2 (43514) - http://www.bohemiancoding.com/sketch -->
+    <title>back-icon</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Icons" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="Tool-Icons" transform="translate(-2009.000000, -1333.000000)" fill="#AFAFAF">
+            <g id="back-icon" transform="translate(2009.000000, 1333.000000)">
+                <path d="M11.3466431,106.742334 C8.54499352,106.742334 6.30370745,105.901851 4.62271767,104.220862 C-0.420251646,99.7382222 -0.420251646,94.9754893 4.62271767,89.93252 L39.9233264,54.6319113 L3.78222699,17.6503212 C-1.26074233,13.1676818 -1.26074233,8.40494887 3.78222699,3.36197955 C8.26486638,-1.12065985 13.0275993,-1.12065985 18.0705686,3.36197955 L68.5000097,54.6319113 L18.0705686,104.220862 C16.3895788,105.901851 14.1482928,106.742334 11.3466431,106.742334 Z" id="B" transform="translate(34.250005, 53.371167) rotate(180.000000) translate(-34.250005, -53.371167) "></path>
+            </g>
+        </g>
+    </g>
+</svg>
