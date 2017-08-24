@@ -59,8 +59,7 @@ public:
     Q_INVOKABLE bool removeFromSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
 
 signals:
-    void addedToSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
-    void removedFromSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
+    void selectedItemsListChanged(const QString& listName);
 
 private:
     QMap<QString, GameplayObjects> _selectedItemsListMap;
@@ -70,14 +69,16 @@ private:
 };
 
 
-class SelectionToSceneHandler {
+class SelectionToSceneHandler : public QObject {
+    Q_OBJECT
 public:
     SelectionToSceneHandler();
     void initialize(render::ScenePointer mainScene, const QString& listName);
 
+    void updateSceneFromSelectedList();
+
 public slots:
-    void addedToSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
-    void removedFromSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id);
+    void selectedItemsListChanged(const QString& listName);
 
 private:
     render::ScenePointer _mainScene;

@@ -60,6 +60,8 @@ ContextOverlayInterface::ContextOverlayInterface() {
     });
     auto entityScriptingInterface = DependencyManager::get<EntityScriptingInterface>().data();
     connect(entityScriptingInterface, &EntityScriptingInterface::deletingEntity, this, &ContextOverlayInterface::deletingEntity);
+
+    connect(_selectionScriptingInterface.data(), &SelectionScriptingInterface::selectedItemsListChanged, &_selectionToSceneHandler, &SelectionToSceneHandler::selectedItemsListChanged);
 }
 
 static const uint32_t LEFT_HAND_HW_ID = 1;
@@ -263,11 +265,11 @@ void ContextOverlayInterface::openMarketplace() {
 }
 
 void ContextOverlayInterface::enableEntityHighlight(const EntityItemID& entityItemID) {
-    //_selectionScriptingInterface->addToSelectedItemsList("contextOverlayHighlightList", "entity", entityItemID);
+    _selectionScriptingInterface->addToSelectedItemsList("contextOverlayHighlightList", "entity", entityItemID);
 }
 
 void ContextOverlayInterface::disableEntityHighlight(const EntityItemID& entityItemID) {
-    //_selectionScriptingInterface->removeFromSelectedItemsList("contextOverlayHighlightList", "entity", entityItemID);
+    _selectionScriptingInterface->removeFromSelectedItemsList("contextOverlayHighlightList", "entity", entityItemID);
 }
 
 void ContextOverlayInterface::deletingEntity(const EntityItemID& entityID) {

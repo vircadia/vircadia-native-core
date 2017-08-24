@@ -612,7 +612,7 @@ bool setupEssentials(int& argc, char** argv, bool runningMarkerExisted) {
     DependencyManager::set<ContextOverlayInterface>();
     DependencyManager::set<Ledger>();
     DependencyManager::set<Wallet>();
-    DependencyManager::set<SelectionScriptingInterface>(qApp);
+    DependencyManager::set<SelectionScriptingInterface>();
 
     DependencyManager::set<LaserPointerScriptingInterface>();
     DependencyManager::set<RayPickScriptingInterface>();
