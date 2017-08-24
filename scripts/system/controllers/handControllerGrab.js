@@ -1182,7 +1182,7 @@ function MyController(hand) {
     this.fullEnd = fullEnd;
     this.laserPointer = LaserPointers.createLaserPointer({
         joint: (hand == RIGHT_HAND) ? "_CAMERA_RELATIVE_CONTROLLER_RIGHTHAND" : "_CAMERA_RELATIVE_CONTROLLER_LEFTHAND",
-        filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
+        filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS | RayPick.PICK_INCLUDE_NONCOLLIDABLE,
         maxDistance: PICK_MAX_DISTANCE,
         posOffset: getGrabPointSphereOffset(this.handToController()),
         renderStates: renderStates,
@@ -1191,7 +1191,7 @@ function MyController(hand) {
     });
     this.headLaserPointer = LaserPointers.createLaserPointer({
         joint: "Avatar",
-        filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS,
+        filter: RayPick.PICK_ENTITIES | RayPick.PICK_OVERLAYS | RayPick.PICK_INCLUDE_NONCOLLIDABLE,
         maxDistance: PICK_MAX_DISTANCE,
         renderStates: headRenderStates,
         faceAvatar: true,

@@ -183,6 +183,7 @@
 #include "ui/UpdateDialog.h"
 #include "ui/overlays/Overlays.h"
 #include "ui/DomainConnectionModel.h"
+#include "ui/ImageProvider.h"
 #include "Util.h"
 #include "InterfaceParentFinder.h"
 #include "ui/OctreeStatsProvider.h"
@@ -1735,6 +1736,27 @@ Application::Application(int& argc, char** argv, QElapsedTimer& startupTimer, bo
 
     connect(&_myCamera, &Camera::modeUpdated, this, &Application::cameraModeChanged);
 
+    // Setup the mouse ray pick and related operators
+    DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickID(_rayPickManager.createRayPick(
+        RayPickFilter(DependencyManager::get<RayPickScriptingInterface>()->PICK_ENTITIES() | DependencyManager::get<RayPickScriptingInterface>()->PICK_INCLUDE_NONCOLLIDABLE()),
+        0.0f, true));
+    DependencyManager::get<EntityTreeRenderer>()->setMouseRayPickResultOperator([&](QUuid rayPickID) {
+        RayToEntityIntersectionResult entityResult;
+        RayPickResult result = _rayPickManager.getPrevRayPickResult(rayPickID);
+        entityResult.intersects = result.type != DependencyManager::get<RayPickScriptingInterface>()->INTERSECTED_NONE();
+        if (entityResult.intersects) {
+            entityResult.intersection = result.intersection;
+            entityResult.distance = result.distance;
+            entityResult.surfaceNormal = result.surfaceNormal;
+            entityResult.entityID = result.objectID;
+            entityResult.entity = DependencyManager::get<EntityTreeRenderer>()->getTree()->findEntityByID(entityResult.entityID);
+        }
+        return entityResult;
+    });
+    DependencyManager::get<EntityTreeRenderer>()->setSetPrecisionPickingOperator([&](QUuid rayPickID, bool value) {
+        _rayPickManager.setPrecisionPicking(rayPickID, value);
+    });
+
     qCDebug(interfaceapp) << "Metaverse session ID is" << uuidStringWithoutCurlyBraces(accountManager->getSessionID());
 }
 
@@ -2143,6 +2165,9 @@ void Application::initializeUi() {
     connect(engine, &QQmlEngine::quit, [] {
         qApp->quit();
     });
+
+    // register the pixmap image provider (used only for security image, for now)
+    engine->addImageProvider(ImageProvider::PROVIDER_NAME, new ImageProvider());
 
     setupPreferences();
 
@@ -3736,7 +3761,7 @@ bool Application::shouldPaint() {
             (float)paintDelaySamples / paintDelayUsecs << "us";
     }
 #endif
-    
+
     // Throttle if requested
     if (displayPlugin->isThrottled() && (_lastTimeUpdated.elapsed() < THROTTLED_SIM_FRAME_PERIOD_MS)) {
         return false;
@@ -6276,7 +6301,7 @@ bool Application::askToReplaceDomainContent(const QString& url) {
             OffscreenUi::warning("Unable to replace content", "You do not have permissions to replace domain content",
                                  QMessageBox::Ok, QMessageBox::Ok);
     }
-    QJsonObject messageProperties = { 
+    QJsonObject messageProperties = {
         { "status", methodDetails },
         { "content_set_url", url }
     };
@@ -6359,7 +6384,7 @@ void Application::showAssetServerWidget(QString filePath) {
 
 void Application::addAssetToWorldFromURL(QString url) {
     qInfo(interfaceapp) << "Download model and add to world from" << url;
-    
+
     QString filename;
     if (url.contains("filename")) {
         filename = url.section("filename=", 1, 1);  // Filename is in "?filename=" parameter at end of URL.

@@ -82,6 +82,10 @@ RayPickResult RayPickScriptingInterface::getPrevRayPickResult(QUuid uid) {
     return qApp->getRayPickManager().getPrevRayPickResult(uid);
 }
 
+void RayPickScriptingInterface::setPrecisionPicking(QUuid uid, const bool precisionPicking) {
+    qApp->getRayPickManager().setPrecisionPicking(uid, precisionPicking);
+}
+
 void RayPickScriptingInterface::setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities) {
     qApp->getRayPickManager().setIgnoreEntities(uid, ignoreEntities);
 }
