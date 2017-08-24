@@ -43,8 +43,7 @@ bool GameplayObjects::removeFromGameplayObjects(const OverlayID& overlayID) {
     return true;
 }
 
-SelectionScriptingInterface::SelectionScriptingInterface(AbstractViewStateInterface* viewState) {
-    _viewState = viewState;
+SelectionScriptingInterface::SelectionScriptingInterface() {
 }
 
 bool SelectionScriptingInterface::addToSelectedItemsList(const QString& listName, const QString& itemType, const QUuid& id) {
@@ -97,6 +96,14 @@ template <class T> bool SelectionScriptingInterface::removeFromGameplayObjects(c
 // END HANDLING GENERIC ITEMS
 //
 
+GameplayObjects* SelectionScriptingInterface::getList(const QString& listName) {
+    if (_selectedItemsListMap.contains(listName)) {
+        return _selectedItemsListMap.value(listName);
+    } else {
+        return NULL;
+    }
+}
+
 void SelectionScriptingInterface::printList(const QString& listName) {
     if (_selectedItemsListMap.contains(listName)) {
         auto currentList = _selectedItemsListMap.value(listName);
@@ -143,14 +150,15 @@ void SelectionToSceneHandler::initialize(render::ScenePointer mainScene, const Q
 
 void SelectionToSceneHandler::updateRendererSelectedList() {
     if (_mainScene) {
+        GameplayObjects* thisList = DependencyManager::get<SelectionScriptingInterface>()->getList(_listName);
         render::Transaction transaction;
 
-        if (_selectedItemsListMap.contains(_listName)) {
+        if (thisList != NULL) {
             render::ItemIDs finalList;
             render::ItemID currentID;
             auto entityTree = qApp->getEntities()->getTree();
             auto& overlays = qApp->getOverlays();
-            auto currentList = _selectedItemsListMap.value(_listName);
+            auto currentList = thisList.value(_listName);
 
             for (QUuid& currentAvatarID : currentList.getAvatarIDs()) {
                 auto avatar = std::static_pointer_cast<Avatar>(DependencyManager::get<AvatarManager>()->getAvatarBySessionID(currentAvatarID));
@@ -192,7 +200,7 @@ void SelectionToSceneHandler::updateRendererSelectedList() {
 
             _mainScene->enqueueTransaction(transaction);
         } else {
-            qWarning() << "List of GameplayObjects doesn't exist in _selectedItemsListMap";
+            qWarning() << "List of GameplayObjects doesn't exist in thisList";
         }
     } else {
         qWarning() << "SelectionScriptingInterface::updateRendererSelectedList(), Unexpected null scene, possibly during application shutdown";

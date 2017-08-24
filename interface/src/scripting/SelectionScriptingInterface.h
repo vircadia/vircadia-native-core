@@ -48,7 +48,9 @@ class SelectionScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 
 public:
-    SelectionScriptingInterface(AbstractViewStateInterface* viewState);
+    SelectionScriptingInterface();
+
+    GameplayObjects getList(const QString& listName);
 
     Q_INVOKABLE void printList(const QString& listName);
     Q_INVOKABLE bool removeListFromMap(const QString& listName);
