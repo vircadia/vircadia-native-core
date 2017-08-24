@@ -152,56 +152,51 @@ void SelectionToSceneHandler::updateSceneFromSelectedList() {
     auto mainScene = qApp->getMain3DScene();
     if (mainScene) {
         GameplayObjects thisList = DependencyManager::get<SelectionScriptingInterface>()->getList(_listName);
+        render::Transaction transaction;
+        render::ItemIDs finalList;
+        render::ItemID currentID;
+        auto entityTree = qApp->getEntities()->getTree();
+        auto& overlays = qApp->getOverlays();
 
-        if (thisList.getContainsData()) {
-            render::Transaction transaction;
-            render::ItemIDs finalList;
-            render::ItemID currentID;
-            auto entityTree = qApp->getEntities()->getTree();
-            auto& overlays = qApp->getOverlays();
-
-            for (QUuid& currentAvatarID : thisList.getAvatarIDs()) {
-                auto avatar = std::static_pointer_cast<Avatar>(DependencyManager::get<AvatarManager>()->getAvatarBySessionID(currentAvatarID));
-                if (avatar) {
-                    currentID = avatar->getRenderItemID();
-                    if (currentID != render::Item::INVALID_ITEM_ID) {
-                        finalList.push_back(currentID);
-                    }
+        for (QUuid& currentAvatarID : thisList.getAvatarIDs()) {
+            auto avatar = std::static_pointer_cast<Avatar>(DependencyManager::get<AvatarManager>()->getAvatarBySessionID(currentAvatarID));
+            if (avatar) {
+                currentID = avatar->getRenderItemID();
+                if (currentID != render::Item::INVALID_ITEM_ID) {
+                    finalList.push_back(currentID);
                 }
             }
+        }
 
-            for (EntityItemID& currentEntityID : thisList.getEntityIDs()) {
-                entityTree->withReadLock([&] {
-                    auto entityItem = entityTree->findEntityByEntityItemID(currentEntityID);
-                    if (entityItem != NULL) {
-                        auto renderableInterface = entityItem->getRenderableInterface();
-                        if (renderableInterface != NULL) {
-                            currentID = renderableInterface->getMetaRenderItemID();
-                            if (currentID != render::Item::INVALID_ITEM_ID) {
-                                finalList.push_back(currentID);
-                            }
+        for (EntityItemID& currentEntityID : thisList.getEntityIDs()) {
+            entityTree->withReadLock([&] {
+                auto entityItem = entityTree->findEntityByEntityItemID(currentEntityID);
+                if (entityItem != NULL) {
+                    auto renderableInterface = entityItem->getRenderableInterface();
+                    if (renderableInterface != NULL) {
+                        currentID = renderableInterface->getMetaRenderItemID();
+                        if (currentID != render::Item::INVALID_ITEM_ID) {
+                            finalList.push_back(currentID);
                         }
                     }
-                });
-            }
+                }
+            });
+        }
 
-            for (OverlayID& currentOverlayID : thisList.getOverlayIDs()) {
-                auto overlay = overlays.getOverlay(currentOverlayID);
-                if (overlay != NULL) {
-                    currentID = overlay->getRenderItemID();
-                    if (currentID != render::Item::INVALID_ITEM_ID) {
-                        finalList.push_back(currentID);
-                    }
+        for (OverlayID& currentOverlayID : thisList.getOverlayIDs()) {
+            auto overlay = overlays.getOverlay(currentOverlayID);
+            if (overlay != NULL) {
+                currentID = overlay->getRenderItemID();
+                if (currentID != render::Item::INVALID_ITEM_ID) {
+                    finalList.push_back(currentID);
                 }
             }
-
-            render::Selection selection(_listName.toStdString(), finalList);
-            transaction.resetSelection(selection);
-
-            mainScene->enqueueTransaction(transaction);
-        } else {
-            qWarning() << "List of GameplayObjects doesn't exist in thisList";
         }
+
+        render::Selection selection(_listName.toStdString(), finalList);
+        transaction.resetSelection(selection);
+
+        mainScene->enqueueTransaction(transaction);
     } else {
         qWarning() << "SelectionToSceneHandler::updateRendererSelectedList(), Unexpected null scene, possibly during application shutdown";
     }
