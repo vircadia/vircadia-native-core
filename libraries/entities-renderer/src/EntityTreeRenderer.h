@@ -59,6 +59,10 @@ public:
     float getEntityLoadingPriority(const EntityItem& item) const { return _calculateEntityLoadingPriorityFunc(item); }
     void setEntityLoadingPriorityFunction(CalculateEntityLoadingPriority fn) { this->_calculateEntityLoadingPriorityFunc = fn; }
 
+    void setMouseRayPickID(QUuid rayPickID) { _mouseRayPickID = rayPickID; }
+    void setMouseRayPickResultOperator(std::function<RayToEntityIntersectionResult(QUuid)> getPrevRayPickResultOperator) { _getPrevRayPickResultOperator = getPrevRayPickResultOperator;  }
+    void setSetPrecisionPickingOperator(std::function<void(QUuid, bool)> setPrecisionPickingOperator) { _setPrecisionPickingOperator = setPrecisionPickingOperator; }
+
     void shutdown();
     void update();
 
@@ -130,7 +134,7 @@ public slots:
 
     // optional slots that can be wired to menu items
     void setDisplayModelBounds(bool value) { _displayModelBounds = value; }
-    void setDontDoPrecisionPicking(bool value) { _dontDoPrecisionPicking = value; }
+    void setPrecisionPicking(bool value) { _setPrecisionPickingOperator(_mouseRayPickID, value); }
 
 protected:
     virtual OctreePointer createTree() override {
@@ -150,10 +154,6 @@ private:
     void checkAndCallPreload(const EntityItemID& entityID, bool reload = false, bool unloadFirst = false);
 
     QList<ModelPointer> _releasedModels;
-    RayToEntityIntersectionResult findRayIntersectionWorker(const PickRay& ray, Octree::lockType lockType,
-                                                                bool precisionPicking, const QVector<EntityItemID>& entityIdsToInclude = QVector<EntityItemID>(),
-                                                                const QVector<EntityItemID>& entityIdsToDiscard = QVector<EntityItemID>(), bool visibleOnly=false,
-                                                                bool collidableOnly = false);
 
     EntityItemID _currentHoverOverEntityID;
     EntityItemID _currentClickingOnEntityID;
@@ -176,11 +176,14 @@ private:
     AbstractViewStateInterface* _viewState;
     AbstractScriptingServicesInterface* _scriptingServices;
     bool _displayModelBounds;
-    bool _dontDoPrecisionPicking;
 
     bool _shuttingDown { false };
 
     QMultiMap<QUrl, EntityItemID> _waitingOnPreload;
+
+    QUuid _mouseRayPickID;
+    std::function<RayToEntityIntersectionResult(QUuid)> _getPrevRayPickResultOperator;
+    std::function<void(QUuid, bool)> _setPrecisionPickingOperator;
 
     class LayeredZone {
     public:

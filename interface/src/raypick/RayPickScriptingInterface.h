@@ -43,6 +43,7 @@ public slots:
     Q_INVOKABLE void removeRayPick(QUuid uid);
     Q_INVOKABLE RayPickResult getPrevRayPickResult(QUuid uid);
 
+    Q_INVOKABLE void setPrecisionPicking(QUuid uid, const bool precisionPicking);
     Q_INVOKABLE void setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities);
     Q_INVOKABLE void setIncludeEntities(QUuid uid, const QScriptValue& includeEntities);
     Q_INVOKABLE void setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays);
@@ -50,7 +51,6 @@ public slots:
     Q_INVOKABLE void setIgnoreAvatars(QUuid uid, const QScriptValue& ignoreAvatars);
     Q_INVOKABLE void setIncludeAvatars(QUuid uid, const QScriptValue& includeAvatars);
 
-private:
     unsigned int PICK_NOTHING() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_NOTHING); }
     unsigned int PICK_ENTITIES() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_ENTITIES); }
     unsigned int PICK_OVERLAYS() { return RayPickFilter::getBitMask(RayPickFilter::FlagBit::PICK_OVERLAYS); }

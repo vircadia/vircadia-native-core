@@ -64,6 +64,7 @@ public:
     // You cannot use editRenderState to change the overlay type of any part of the laser pointer.  You can only edit the properties of the existing overlays.
     void editRenderState(const std::string& state, const QVariant& startProps, const QVariant& pathProps, const QVariant& endProps);
 
+    void setPrecisionPicking(const bool precisionPicking) { DependencyManager::get<RayPickScriptingInterface>()->setPrecisionPicking(_rayPickUID, precisionPicking); }
     void setIgnoreEntities(const QScriptValue& ignoreEntities) { DependencyManager::get<RayPickScriptingInterface>()->setIgnoreEntities(_rayPickUID, ignoreEntities); }
     void setIncludeEntities(const QScriptValue& includeEntities) { DependencyManager::get<RayPickScriptingInterface>()->setIncludeEntities(_rayPickUID, includeEntities); }
     void setIgnoreOverlays(const QScriptValue& ignoreOverlays) { DependencyManager::get<RayPickScriptingInterface>()->setIgnoreOverlays(_rayPickUID, ignoreOverlays); }
