@@ -45,6 +45,7 @@ public:
 
     void setProperties(const QVariantMap& properties) override;
     QVariant getProperty(const QString& property) override;
+    bool isTransparent() override { return Base3DOverlay::isTransparent() || _glow > 0.0f; }
 
     virtual Line3DOverlay* createClone() const override;
 

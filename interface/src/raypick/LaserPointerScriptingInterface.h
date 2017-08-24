@@ -30,6 +30,7 @@ public slots:
     Q_INVOKABLE void setRenderState(QUuid uid, const QString& renderState) { qApp->getLaserPointerManager().setRenderState(uid, renderState.toStdString()); }
     Q_INVOKABLE RayPickResult getPrevRayPickResult(QUuid uid) { return qApp->getLaserPointerManager().getPrevRayPickResult(uid); }
 
+    Q_INVOKABLE void setPrecisionPicking(QUuid uid, const bool precisionPicking) { qApp->getLaserPointerManager().setPrecisionPicking(uid, precisionPicking); }
     Q_INVOKABLE void setIgnoreEntities(QUuid uid, const QScriptValue& ignoreEntities) { qApp->getLaserPointerManager().setIgnoreEntities(uid, ignoreEntities); }
     Q_INVOKABLE void setIncludeEntities(QUuid uid, const QScriptValue& includeEntities) { qApp->getLaserPointerManager().setIncludeEntities(uid, includeEntities); }
     Q_INVOKABLE void setIgnoreOverlays(QUuid uid, const QScriptValue& ignoreOverlays) { qApp->getLaserPointerManager().setIgnoreOverlays(uid, ignoreOverlays); }

@@ -35,7 +35,6 @@ Column {
     property string metaverseServerUrl: '';
     property string actions: 'snapshot';
     // sendToScript doesn't get wired until after everything gets created. So we have to queue fillDestinations on nextTick.
-    Component.onCompleted: delay.start();
     property string labelText: actions;
     property string filter: '';
     onFilterChanged: filterChoicesByText();
@@ -125,11 +124,9 @@ Column {
             cb();
         });
     }
-    property var delay: Timer { // No setTimeout or nextTick in QML.
-        interval: 0;
-        onTriggered: fillDestinations();
-    }
     function fillDestinations() { // Public
+        console.debug('Feed::fillDestinations()')
+
         function report(label, error) {
             console.log(label, actions, error || 'ok', allStories.length, 'filtered to', suggestions.count);
         }

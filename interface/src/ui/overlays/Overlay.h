@@ -59,6 +59,7 @@ public:
     bool isLoaded() { return _isLoaded; }
     bool getVisible() const { return _visible; }
     bool shouldDrawHUDLayer() const { return _drawHUDLayer; }
+    virtual bool isTransparent() { return getAlphaPulse() != 0.0f || getAlpha() != 1.0f; };
     xColor getColor();
     float getAlpha();
     Anchor getAnchor() const { return _anchor; }
