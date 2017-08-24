@@ -121,11 +121,19 @@
     }
 
     function injectBuyButtonOnMainPage() {
+        var cost;
+        
         $('.grid-item').find('#price-or-edit').find('a').each(function() {
             $(this).attr('data-href', $(this).attr('href'));
             $(this).attr('href', '#');
-            });
-        $('.grid-item').find('#price-or-edit').find('.price').text("BUY");
+            cost = $(this).closest('.col-xs-3').find('.item-cost').text();
+            
+            if (parseInt(cost) > 0) {
+                $(this).find('.price').text("BUY");
+            }
+        });
+        
+        
         $('.grid-item').find('#price-or-edit').find('a').on('click', function () {
             buyButtonClicked($(this).closest('.grid-item').attr('data-item-id'),
                 $(this).closest('.grid-item').find('.item-title').text(),
@@ -161,12 +169,18 @@
         if (confirmAllPurchases) {
             var href = $('#side-info').find('.btn').attr('href');
             $('#side-info').find('.btn').attr('href', '#');
-            $('#side-info').find('.btn').html('<span class="glyphicon glyphicon-download"></span>Buy Item  ');
+            
+            var cost = $('.item-cost').text();
+
+            if (parseInt(cost) > 0) {
+                $('#side-info').find('.btn').html('<span class="glyphicon glyphicon-download"></span>Buy Item  ');
+            }
+
             $('#side-info').find('.btn').on('click', function () {
                 buyButtonClicked(window.location.pathname.split("/")[3],
                     $('#top-center').find('h1').text(),
                     $('#creator').find('.value').text(),
-                    $('.item-cost').text(),
+                    cost,
                     href);
             });
             addInventoryButton();
