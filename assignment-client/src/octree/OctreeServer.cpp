@@ -35,7 +35,7 @@
 #include <QtCore/QDir>
 
 int OctreeServer::_clientCount = 0;
-const int MOVING_AVERAGE_SAMPLE_COUNTS = 1000000;
+const int MOVING_AVERAGE_SAMPLE_COUNTS = 1000;
 
 float OctreeServer::SKIP_TIME = -1.0f; // use this for trackXXXTime() calls for non-times
 
