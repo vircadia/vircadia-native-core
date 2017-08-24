@@ -426,22 +426,12 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     function clear() {
         // Deletes menu entities.
-        var i,
-            length;
-
         if (!isDisplaying) {
             return;
         }
-
-        for (i = 0, length = paletteItemOverlays.length; i < length; i += 1) {
-            Overlays.deleteOverlay(paletteItemOverlays[i]);  // Child overlays are automatically deleted.
-        }
-        Overlays.deleteOverlay(palettePanelOverlay);
-        Overlays.deleteOverlay(paletteTitleOverlay);
-        Overlays.deleteOverlay(paletteHeaderBarOverlay);
-        Overlays.deleteOverlay(paletteHeaderOverlay);
-        Overlays.deleteOverlay(paletteOriginOverlay);
-
+        Overlays.deleteOverlay(paletteOriginOverlay);  // Automatically deletes all other overlays because they're children.
+        paletteItemOverlays = [],
+        paletteItemHoverOverlays = [],
         isDisplaying = false;
     }
 

@@ -2338,33 +2338,13 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
     function clear() {
         // Deletes menu entities.
-        var i,
-            length;
-
         if (!isDisplaying) {
             return;
         }
-
-        Overlays.deleteOverlay(highlightOverlay);
-        for (i = 0, length = optionsOverlays.length; i < length; i += 1) {
-            Overlays.deleteOverlay(optionsOverlays[i]);  // Automatically deletes any child overlays.
-        }
-        optionsOverlays = [];
-
-        for (i = 0, length = menuOverlays.length; i < length; i += 1) {
-            Overlays.deleteOverlay(menuOverlays[i]);  // Automatically deletes any child overlays.
-        }
+        Overlays.deleteOverlay(menuOriginOverlay);  // Automatically deletes all other overlays because they're children.
         menuOverlays = [];
         menuHoverOverlays = [];
-
-        Overlays.deleteOverlay(menuHeaderOverlay);
-        Overlays.deleteOverlay(menuHeaderBarOverlay);
-        Overlays.deleteOverlay(menuHeaderIconOverlay);
-        Overlays.deleteOverlay(menuHeaderTitleOverlay);
-        Overlays.deleteOverlay(menuHeaderBackOverlay);
-        Overlays.deleteOverlay(menuPanelOverlay);
-        Overlays.deleteOverlay(menuOriginOverlay);
-
+        optionsOverlays = [];
         isDisplaying = false;
     }
 
