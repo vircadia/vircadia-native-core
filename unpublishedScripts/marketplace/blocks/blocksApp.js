@@ -15,6 +15,7 @@
 (function () {
 	var APP_NAME = "BLOCKS";
 	var APP_URL = "https://vr.google.com/objects/";
+	var APP_OUTDATED_URL = "https://hifi-content.s3.amazonaws.com/elisalj/blocks/updateToBlocks.html";
 	var APP_ICON = "https://hifi-content.s3.amazonaws.com/elisalj/blocks/blocks-i.svg";
 	var APP_ICON_ACTIVE = "https://hifi-content.s3.amazonaws.com/elisalj/blocks/blocks-a.svg";
 
@@ -22,7 +23,7 @@
         print("Current Interface version: " + Window.checkVersion());
     } catch(err) {
         print("Outdated Interface version does not support Blocks");
-        APP_URL = "https://hifi-content.s3.amazonaws.com/elisalj/blocks/updateToBlocks.html";
+        APP_URL = APP_OUTDATED_URL;
     }
 
 	var tablet = Tablet.getTablet("com.highfidelity.interface.tablet.system");
@@ -33,32 +34,40 @@
 	});
 
 	function onClicked() {
-		tablet.gotoWebScreen(APP_URL, "", true);
+	    if (!shown) {
+	        tablet.gotoWebScreen(APP_URL, "", true);
+	    } else {
+	        tablet.gotoHomeScreen();
+	    }
 	}
 	button.clicked.connect(onClicked);
 
-	function onScreenChanged(type, url) {
-	    if (url !== null) {
-	        tabletButton.editProperties({ isActive: true });
+	var shown = false;
 
-	        if (!shown) {
-	            // hook up to the event bridge
-	            tablet.webEventReceived.connect(onWebEventReceived);
-	        }
+	function checkIfBlocks(url) {
+	    if (url.indexOf("google") !== -1) {
+	        return true;
+	    }
+	    return false;
+	}
+
+	function onScreenChanged(type, url) {
+	    if ((type === 'Web' && checkIfBlocks(url)) || url === APP_OUTDATED_URL) {
+	        button.editProperties({ isActive: true });
 	        shown = true;
 	    } else {
-	        tabletButton.editProperties({ isActive: false });
-
-	        if (shown) {
-	            // disconnect from the event bridge
-	            tablet.webEventReceived.disconnect(onWebEventReceived);
-	        }
+	        button.editProperties({ isActive: false });
 	        shown = false;
 	    }
 	}
 
+	tablet.screenChanged.connect(onScreenChanged);
+
 	function cleanup() {
-		tablet.removeButton(button);
+	    tablet.removeButton(button);
+	    if (shown) {
+	        tablet.webEventReceived.disconnect(onWebEventReceived);
+	    }
 	}
 
 	Script.scriptEnding.connect(cleanup);
