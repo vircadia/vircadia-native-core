@@ -6263,7 +6263,11 @@ bool Application::askToReplaceDomainContent(const QString& url) {
                     octreeFilePacket->write(urlData);
                     limitedNodeList->sendPacket(std::move(octreeFilePacket), *octreeNode);
                 });
-                DependencyManager::get<AddressManager>()->handleLookupString(DOMAIN_SPAWNING_POINT);
+                auto addressManager = DependencyManager::get<AddressManager>();
+                addressManager->handleLookupString(DOMAIN_SPAWNING_POINT);
+                QString newHomeAddress = addressManager->getHost() + DOMAIN_SPAWNING_POINT;
+                qCDebug(interfaceapp) << "Setting new home bookmark to: " << newHomeAddress;
+                DependencyManager::get<LocationBookmarks>()->setHomeLocationToAddress(newHomeAddress);
                 methodDetails = "SuccessfulRequestToReplaceContent";
             } else {
                 methodDetails = "UserDeclinedToReplaceContent";
