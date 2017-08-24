@@ -13,6 +13,7 @@
 
 #include "DependencyManager.h"
 #include "SharedUtil.h"
+#include "StreamUtils.h"
 #include "SharedLogging.h"
 #include "SpatiallyNestable.h"
 
@@ -82,8 +83,12 @@ Transform SpatiallyNestable::getParentTransform(bool& success, int depth) const 
         return result;
     }
     if (parent) {
+#ifdef SPATIALLY_NESTABLE_SCALE_SUPPORT
+        result = parent->getTransform(_parentJointIndex, success, depth + 1);
+#else
         Transform parentTransform = parent->getTransform(_parentJointIndex, success, depth + 1);
         result = parentTransform.setScale(1.0f); // TODO: scaling
+#endif
     }
     return result;
 }
@@ -179,7 +184,9 @@ glm::vec3 SpatiallyNestable::worldToLocal(const glm::vec3& position,
         if (!success) {
             return glm::vec3(0.0f);
         }
+#ifndef SPATIALLY_NESTABLE_SCALE_SUPPORT
         parentTransform.setScale(1.0f); // TODO: scale
+#endif
     }
     success = true;
 
@@ -219,7 +226,9 @@ glm::quat SpatiallyNestable::worldToLocal(const glm::quat& orientation,
         if (!success) {
             return glm::quat();
         }
+#ifndef SPATIALLY_NESTABLE_SCALE_SUPPORT
         parentTransform.setScale(1.0f); // TODO: scale
+#endif
     }
     success = true;
 
@@ -291,7 +300,9 @@ glm::vec3 SpatiallyNestable::localToWorld(const glm::vec3& position,
         if (!success) {
             return glm::vec3(0.0f);
         }
+#ifndef SPATIALLY_NESTABLE_SCALE_SUPPORT
         parentTransform.setScale(1.0f); // TODO: scale
+#endif
     }
     success = true;
 
@@ -633,7 +644,9 @@ const Transform SpatiallyNestable::getTransform(int jointIndex, bool& success, i
     }
 
     Transform worldTransform = getTransform(success, depth);
-    worldTransform.setScale(1.0f); // TODO -- scale;
+#ifndef SPATIALLY_NESTABLE_SCALE_SUPPORT
+    worldTransform.setScale(1.0f); // TODO: scale
+#endif
     if (!success) {
         return jointInWorldFrame;
     }
@@ -904,6 +917,10 @@ const Transform SpatiallyNestable::getAbsoluteJointTransformInObjectFrame(int jo
     Transform jointTransformInObjectFrame;
     glm::vec3 position = getAbsoluteJointTranslationInObjectFrame(jointIndex);
     glm::quat orientation = getAbsoluteJointRotationInObjectFrame(jointIndex);
+#ifdef SPATIALLY_NESTABLE_SCALE_SUPPORT
+    glm::vec3 scale = getAbsoluteJointScaleInObjectFrame(jointIndex);
+    jointTransformInObjectFrame.setScale(scale);
+#endif
     jointTransformInObjectFrame.setRotation(orientation);
     jointTransformInObjectFrame.setTranslation(position);
     return jointTransformInObjectFrame;

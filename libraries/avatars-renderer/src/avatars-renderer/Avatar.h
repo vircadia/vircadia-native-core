@@ -149,6 +149,9 @@ public:
      */
     Q_INVOKABLE virtual glm::vec3 getAbsoluteDefaultJointTranslationInObjectFrame(int index) const;
 
+#ifdef SPATIALLY_NESTABLE_SCALE_SUPPORT
+    virtual glm::vec3 getAbsoluteJointScaleInObjectFrame(int index) const override;
+#endif
     virtual glm::quat getAbsoluteJointRotationInObjectFrame(int index) const override;
     virtual glm::vec3 getAbsoluteJointTranslationInObjectFrame(int index) const override;
     virtual bool setAbsoluteJointRotationInObjectFrame(int index, const glm::quat& rotation) override { return false; }

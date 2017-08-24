@@ -987,14 +987,15 @@ glm::quat Avatar::getAbsoluteJointRotationInObjectFrame(int index) const {
         index += numeric_limits<unsigned short>::max() + 1; // 65536
     }
 
-    switch(index) {
+    switch (index) {
         case SENSOR_TO_WORLD_MATRIX_INDEX: {
             glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
             bool success;
             Transform avatarTransform;
             Transform::mult(avatarTransform, getParentTransform(success), getLocalTransform());
             glm::mat4 invAvatarMat = avatarTransform.getInverseMatrix();
-            return glmExtractRotation(invAvatarMat * sensorToWorldMatrix);
+            glm::mat4 finalMat = invAvatarMat * sensorToWorldMatrix;
+            return glmExtractRotation(finalMat);
         }
         case CONTROLLER_LEFTHAND_INDEX: {
             Transform controllerLeftHandTransform = Transform(getControllerLeftHandMatrix());
@@ -1027,14 +1028,15 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
         index += numeric_limits<unsigned short>::max() + 1; // 65536
     }
 
-    switch(index) {
+    switch (index) {
         case SENSOR_TO_WORLD_MATRIX_INDEX: {
             glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
             bool success;
             Transform avatarTransform;
             Transform::mult(avatarTransform, getParentTransform(success), getLocalTransform());
             glm::mat4 invAvatarMat = avatarTransform.getInverseMatrix();
-            return extractTranslation(invAvatarMat * sensorToWorldMatrix);
+            glm::mat4 finalMat = invAvatarMat * sensorToWorldMatrix;
+            return extractTranslation(finalMat);
         }
         case CONTROLLER_LEFTHAND_INDEX: {
             Transform controllerLeftHandTransform = Transform(getControllerLeftHandMatrix());
@@ -1061,6 +1063,24 @@ glm::vec3 Avatar::getAbsoluteJointTranslationInObjectFrame(int index) const {
         }
     }
 }
+
+#ifdef SPATIALLY_NESTABLE_SCALE_SUPPORT
+glm::vec3 Avatar::getAbsoluteJointScaleInObjectFrame(int index) const {
+    if (index < 0) {
+        index += numeric_limits<unsigned short>::max() + 1; // 65536
+    }
+
+    // only sensor to world matrix has non identity scale.
+    switch (index) {
+        case SENSOR_TO_WORLD_MATRIX_INDEX: {
+            glm::mat4 sensorToWorldMatrix = getSensorToWorldMatrix();
+            return extractScale(sensorToWorldMatrix);
+        }
+        default:
+            return AvatarData::getAbsoluteJointScaleInObjectFrame(index);
+    }
+}
+#endif
 
 void Avatar::invalidateJointIndicesCache() const {
     QWriteLocker writeLock(&_modelJointIndicesCacheLock);
