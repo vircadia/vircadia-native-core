@@ -17,6 +17,7 @@ GameplayObjects::GameplayObjects() {
 }
 
 bool GameplayObjects::addToGameplayObjects(const QUuid& avatarID) {
+    containsData = true;
     _avatarIDs.push_back(avatarID);
     return true;
 }
@@ -26,6 +27,7 @@ bool GameplayObjects::removeFromGameplayObjects(const QUuid& avatarID) {
 }
 
 bool GameplayObjects::addToGameplayObjects(const EntityItemID& entityID) {
+    containsData = true;
     _entityIDs.push_back(entityID);
     return true;
 }
@@ -35,6 +37,7 @@ bool GameplayObjects::removeFromGameplayObjects(const EntityItemID& entityID) {
 }
 
 bool GameplayObjects::addToGameplayObjects(const OverlayID& overlayID) {
+    containsData = true;
     _overlayIDs.push_back(overlayID);
     return true;
 }
@@ -96,12 +99,8 @@ template <class T> bool SelectionScriptingInterface::removeFromGameplayObjects(c
 // END HANDLING GENERIC ITEMS
 //
 
-GameplayObjects* SelectionScriptingInterface::getList(const QString& listName) {
-    if (_selectedItemsListMap.contains(listName)) {
-        return _selectedItemsListMap.value(listName);
-    } else {
-        return NULL;
-    }
+GameplayObjects SelectionScriptingInterface::getList(const QString& listName) {
+    return _selectedItemsListMap.value(listName);
 }
 
 void SelectionScriptingInterface::printList(const QString& listName) {
@@ -132,7 +131,7 @@ void SelectionScriptingInterface::printList(const QString& listName) {
 
 bool SelectionScriptingInterface::removeListFromMap(const QString& listName) {
     if (_selectedItemsListMap.remove(listName)) {
-        //updateRendererSelectedList(listName);
+        emit selectedItemsListChanged(listName);
         return true;
     } else {
         return false;
@@ -156,16 +155,16 @@ void SelectionToSceneHandler::selectedItemsListChanged(const QString& listName) 
 
 void SelectionToSceneHandler::updateSceneFromSelectedList() {
     if (_mainScene) {
-        GameplayObjects* thisList = &DependencyManager::get<SelectionScriptingInterface>()->getList(_listName);
+        GameplayObjects thisList = DependencyManager::get<SelectionScriptingInterface>()->getList(_listName);
         render::Transaction transaction;
 
-        if (thisList != NULL) {
+        if (thisList.getContainsData()) {
             render::ItemIDs finalList;
             render::ItemID currentID;
             auto entityTree = qApp->getEntities()->getTree();
             auto& overlays = qApp->getOverlays();
 
-            for (QUuid& currentAvatarID : thisList->getAvatarIDs()) {
+            for (QUuid& currentAvatarID : thisList.getAvatarIDs()) {
                 auto avatar = std::static_pointer_cast<Avatar>(DependencyManager::get<AvatarManager>()->getAvatarBySessionID(currentAvatarID));
                 if (avatar) {
                     currentID = avatar->getRenderItemID();
@@ -175,7 +174,7 @@ void SelectionToSceneHandler::updateSceneFromSelectedList() {
                 }
             }
 
-            for (EntityItemID& currentEntityID : thisList->getEntityIDs()) {
+            for (EntityItemID& currentEntityID : thisList.getEntityIDs()) {
                 entityTree->withReadLock([&] {
                     auto entityItem = entityTree->findEntityByEntityItemID(currentEntityID);
                     if (entityItem != NULL) {
@@ -190,7 +189,7 @@ void SelectionToSceneHandler::updateSceneFromSelectedList() {
                 });
             }
 
-            for (OverlayID& currentOverlayID : thisList->getOverlayIDs()) {
+            for (OverlayID& currentOverlayID : thisList.getOverlayIDs()) {
                 auto overlay = overlays.getOverlay(currentOverlayID);
                 if (overlay != NULL) {
                     currentID = overlay->getRenderItemID();
