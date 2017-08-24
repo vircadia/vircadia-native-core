@@ -147,10 +147,10 @@ GateImpl::GateImpl(int sampleRate) {
     _sampleRate = sampleRate;
 
     // defaults
-    setThreshold(-30.0);
-    setHold(20.0);
-    setHysteresis(6.0);
-    setRelease(1000.0);
+    setThreshold(-30.0f);
+    setHold(20.0f);
+    setHysteresis(6.0f);
+    setRelease(1000.0f);
 }
 
 //
