@@ -51,18 +51,26 @@ QString imageFilePath() {
     return PathUtils::getAppDataFilePath(IMAGE_FILE);
 }
 
-// for now the callback function just returns the same string.  Later we can hook
-// this to the gui (some thought required)
+// use the cached _passphrase if it exists, otherwise we need to prompt
 int passwordCallback(char* password, int maxPasswordSize, int rwFlag, void* u) {
     // just return a hardcoded pwd for now
-    static const char* pwd = "pwd";
-    strcpy(password, pwd);
-    return static_cast<int>(strlen(pwd));
+    auto passphrase = DependencyManager::get<Wallet>()->getPassphrase();
+    if (passphrase) {
+        strcpy(password, passphrase->toLocal8Bit().constData());
+        return static_cast<int>(passphrase->size());
+    } else {
+        // ok gotta bring up modal dialog... But right now lets just
+        // just keep it empty
+        return 0;
+    }
 }
 
 // BEGIN copied code - this will be removed/changed at some point soon
 // copied (without emits for various signals) from libraries/networking/src/RSAKeypairGenerator.cpp.
 // We will have a different implementation in practice, but this gives us a start for now
+//
+// NOTE: we don't really use the private keys returned - we can see how this evolves, but probably
+// we should just return a list of public keys?
 QPair<QByteArray*, QByteArray*> generateRSAKeypair() {
 
     RSA* keyPair = RSA_new();
@@ -138,7 +146,9 @@ QPair<QByteArray*, QByteArray*> generateRSAKeypair() {
 
     RSA_free(keyPair);
 
-    // prepare the return values
+    // prepare the return values.  TODO: Fix this - we probably don't really even want the
+    // private key at all (better to read it when we need it?).  Or maybe we do, when we have
+    // multiple keys?
     retval.first = new QByteArray(reinterpret_cast<char*>(publicKeyDER), publicKeyLength ),
     retval.second = new QByteArray(reinterpret_cast<char*>(privateKeyDER), privateKeyLength );
 
@@ -214,6 +224,13 @@ void initializeAESKeys(unsigned char* ivec, unsigned char* ckey, const QByteArra
     memcpy(ckey, hash.data(), 16);
 }
 
+void Wallet::setPassphrase(const QString& passphrase) {
+    if (_passphrase) {
+        delete _passphrase;
+    }
+    _passphrase = new QString(passphrase);
+}
+
 // encrypt some stuff
 bool Wallet::encryptFile(const QString& inputFilePath, const QString& outputFilePath) {
     // aes requires a couple 128-bit keys (ckey and ivec).  For now, I'll just
@@ -243,17 +260,20 @@ bool Wallet::encryptFile(const QString& inputFilePath, const QString& outputFile
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
 
     // TODO: add error handling!!!
-    if (!EVP_EncryptInit_ex(ctx, EVP_idea_cbc(), NULL, ckey, ivec)) {
+    if (!EVP_EncryptInit_ex(ctx, EVP_des_ede3_cbc(), NULL, ckey, ivec)) {
         qCDebug(commerce) << "encrypt init failure";
+        delete outputFileBuffer;
         return false;
     }
     if (!EVP_EncryptUpdate(ctx, outputFileBuffer, &tempSize, (unsigned char*)inputFileBuffer.data(), inputFileBuffer.size())) {
         qCDebug(commerce) << "encrypt update failure";
+        delete outputFileBuffer;
         return false;
     }
     outSize = tempSize;
     if (!EVP_EncryptFinal_ex(ctx, outputFileBuffer + outSize, &tempSize)) {
         qCDebug(commerce) << "encrypt final failure";
+        delete outputFileBuffer;
         return false;
     }
 
@@ -266,6 +286,7 @@ bool Wallet::encryptFile(const QString& inputFilePath, const QString& outputFile
     outputFile.write(output);
     outputFile.close();
 
+    delete outputFileBuffer;
     return true;
 }
 
@@ -290,27 +311,29 @@ bool Wallet::decryptFile(const QString& inputFilePath, unsigned char** outputBuf
 
     // TODO: add error handling
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
-    if (!EVP_DecryptInit_ex(ctx, EVP_idea_cbc(), NULL, ckey, ivec)) {
+    if (!EVP_DecryptInit_ex(ctx, EVP_des_ede3_cbc(), NULL, ckey, ivec)) {
         qCDebug(commerce) << "decrypt init failure";
+        delete outputBuffer;
         return false;
     }
     if (!EVP_DecryptUpdate(ctx, outputBuffer, &tempSize, (unsigned char*)encryptedBuffer.data(), encryptedBuffer.size())) {
         qCDebug(commerce) << "decrypt update failure";
+        delete outputBuffer;
         return false;
     }
     *outputBufferSize = tempSize;
     if (!EVP_DecryptFinal_ex(ctx, outputBuffer + tempSize, &tempSize)) {
         qCDebug(commerce) << "decrypt final failure";
+        delete outputBuffer;
         return false;
     }
     EVP_CIPHER_CTX_free(ctx);
     *outputBufferSize += tempSize;
     *outputBufferPtr = outputBuffer;
     qCDebug(commerce) << "decrypted buffer size" << *outputBufferSize;
+    delete outputBuffer;
     return true;
 }
-
-
 
 bool Wallet::createIfNeeded() {
     if (_publicKeys.count() > 0) return false;
@@ -348,6 +371,7 @@ bool Wallet::generateKeyPair() {
     auto ledger = DependencyManager::get<Ledger>();
     return ledger->receiveAt(key, oldKey);
 }
+
 QStringList Wallet::listPublicKeys() {
     qCInfo(commerce) << "Enumerating public keys.";
     createIfNeeded();
@@ -418,6 +442,7 @@ void Wallet::chooseSecurityImage(const QString& filename) {
         emit securityImageResult(false);
     }
 }
+
 void Wallet::getSecurityImage() {
     unsigned char* data;
     int dataLen;

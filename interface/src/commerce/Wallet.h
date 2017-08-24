@@ -35,6 +35,9 @@ public:
     void setSalt(const QByteArray& salt) { _salt = salt; }
     QByteArray getSalt() { return _salt; }
 
+    void setPassphrase(const QString& passphrase);
+    QString* getPassphrase() { return _passphrase; }
+
 signals:
     void securityImageResult(bool exists) ;
     void keyFilePathResult(const QString& path);
@@ -54,6 +57,7 @@ private:
     QStringList _publicKeys{};
     QPixmap* _securityImage { nullptr };
     QByteArray _salt {"iamsalt!"};
+    QString* _passphrase { new QString("pwd") };
 
     bool encryptFile(const QString& inputFilePath, const QString& outputFilePath);
     bool decryptFile(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferLen);

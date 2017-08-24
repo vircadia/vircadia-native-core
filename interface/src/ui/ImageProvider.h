@@ -20,7 +20,7 @@ public:
 
     ImageProvider() : QQuickImageProvider(QQuickImageProvider::Pixmap) {}
 
-    QPixmap requestPixmap(const QString& id, QSize* size, const QSize& requestedSize);
+    QPixmap requestPixmap(const QString& id, QSize* size, const QSize& requestedSize) override;
 
     void setSecurityImage(QPixmap* pixmap) { _securityImage = pixmap; }
 
