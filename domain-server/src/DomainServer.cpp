@@ -725,6 +725,9 @@ void DomainServer::timeoutICEAddressLookup() {
     if (_iceAddressLookupID != INVALID_ICE_LOOKUP_ID) {
         // we waited 5s and didn't hear back for our ICE DNS lookup
         // so time that one out and kick off another
+
+        qDebug() << "IP address lookup timed out for" << _iceServerAddr << "- retrying";
+
         QHostInfo::abortHostLookup(_iceAddressLookupID);
 
         _iceAddressLookupID = INVALID_ICE_LOOKUP_ID;
