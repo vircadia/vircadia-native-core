@@ -29,7 +29,7 @@ ContextOverlayInterface::ContextOverlayInterface() {
     _tabletScriptingInterface = DependencyManager::get<TabletScriptingInterface>();
     _selectionScriptingInterface = DependencyManager::get<SelectionScriptingInterface>();
 
-    _selectionToSceneHandler.initialize(qApp->getMain3DScene(), "contextOverlayHighlightList");
+    _selectionToSceneHandler.initialize("contextOverlayHighlightList");
 
     _entityPropertyFlags += PROP_POSITION;
     _entityPropertyFlags += PROP_ROTATION;

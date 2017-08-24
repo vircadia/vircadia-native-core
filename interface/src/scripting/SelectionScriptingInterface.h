@@ -47,6 +47,7 @@ private:
     std::vector<OverlayID> _overlayIDs;
 };
 
+
 class SelectionScriptingInterface : public QObject, public Dependency {
     Q_OBJECT
 
@@ -67,6 +68,8 @@ signals:
 private:
     QMap<QString, GameplayObjects> _selectedItemsListMap;
 
+    QReadWriteLock _mapLock;
+
     template <class T> bool addToGameplayObjects(const QString& listName, T idToAdd);
     template <class T> bool removeFromGameplayObjects(const QString& listName, T idToRemove);
 };
@@ -76,7 +79,7 @@ class SelectionToSceneHandler : public QObject {
     Q_OBJECT
 public:
     SelectionToSceneHandler();
-    void initialize(render::ScenePointer mainScene, const QString& listName);
+    void initialize(const QString& listName);
 
     void updateSceneFromSelectedList();
 
@@ -84,7 +87,6 @@ public slots:
     void selectedItemsListChanged(const QString& listName);
 
 private:
-    render::ScenePointer _mainScene;
     QString _listName { "" };
 };
 

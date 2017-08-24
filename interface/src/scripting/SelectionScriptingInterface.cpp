@@ -46,6 +46,7 @@ bool GameplayObjects::removeFromGameplayObjects(const OverlayID& overlayID) {
     return true;
 }
 
+
 SelectionScriptingInterface::SelectionScriptingInterface() {
 }
 
@@ -71,8 +72,9 @@ bool SelectionScriptingInterface::removeFromSelectedItemsList(const QString& lis
 }
 
 template <class T> bool SelectionScriptingInterface::addToGameplayObjects(const QString& listName, T idToAdd) {
-    if (_selectedItemsListMap.contains(listName)) {
-        auto currentList = _selectedItemsListMap.take(listName);
+    QWriteLocker writeLock(&_mapLock);
+    auto currentList = _selectedItemsListMap.value(listName);
+    if (currentList.getContainsData()) {
         currentList.addToGameplayObjects(idToAdd);
         _selectedItemsListMap.insert(listName, currentList);
 
@@ -84,8 +86,9 @@ template <class T> bool SelectionScriptingInterface::addToGameplayObjects(const 
     }
 }
 template <class T> bool SelectionScriptingInterface::removeFromGameplayObjects(const QString& listName, T idToRemove) {
-    if (_selectedItemsListMap.contains(listName)) {
-        auto currentList = _selectedItemsListMap.take(listName);
+    QWriteLocker writeLock(&_mapLock);
+    auto currentList = _selectedItemsListMap.value(listName);
+    if (currentList.getContainsData()) {
         currentList.removeFromGameplayObjects(idToRemove);
         _selectedItemsListMap.insert(listName, currentList);
 
@@ -100,12 +103,14 @@ template <class T> bool SelectionScriptingInterface::removeFromGameplayObjects(c
 //
 
 GameplayObjects SelectionScriptingInterface::getList(const QString& listName) {
+    QReadLocker readLock(&_mapLock);
     return _selectedItemsListMap.value(listName);
 }
 
 void SelectionScriptingInterface::printList(const QString& listName) {
-    if (_selectedItemsListMap.contains(listName)) {
-        auto currentList = _selectedItemsListMap.value(listName);
+    QReadLocker readLock(&_mapLock);
+    auto currentList = _selectedItemsListMap.value(listName);
+    if (currentList.getContainsData()) {
 
         qDebug() << "Avatar IDs:";
         for (auto i : currentList.getAvatarIDs()) {
@@ -130,6 +135,7 @@ void SelectionScriptingInterface::printList(const QString& listName) {
 }
 
 bool SelectionScriptingInterface::removeListFromMap(const QString& listName) {
+    QWriteLocker writeLock(&_mapLock);
     if (_selectedItemsListMap.remove(listName)) {
         emit selectedItemsListChanged(listName);
         return true;
@@ -142,8 +148,7 @@ bool SelectionScriptingInterface::removeListFromMap(const QString& listName) {
 SelectionToSceneHandler::SelectionToSceneHandler() {
 }
 
-void SelectionToSceneHandler::initialize(render::ScenePointer mainScene, const QString& listName) {
-    _mainScene = mainScene;
+void SelectionToSceneHandler::initialize(const QString& listName) {
     _listName = listName;
 }
 
@@ -154,11 +159,12 @@ void SelectionToSceneHandler::selectedItemsListChanged(const QString& listName) 
 }
 
 void SelectionToSceneHandler::updateSceneFromSelectedList() {
-    if (_mainScene) {
+    auto mainScene = qApp->getMain3DScene();
+    if (mainScene) {
         GameplayObjects thisList = DependencyManager::get<SelectionScriptingInterface>()->getList(_listName);
-        render::Transaction transaction;
 
         if (thisList.getContainsData()) {
+            render::Transaction transaction;
             render::ItemIDs finalList;
             render::ItemID currentID;
             auto entityTree = qApp->getEntities()->getTree();
@@ -202,7 +208,7 @@ void SelectionToSceneHandler::updateSceneFromSelectedList() {
             render::Selection selection(_listName.toStdString(), finalList);
             transaction.resetSelection(selection);
 
-            _mainScene->enqueueTransaction(transaction);
+            mainScene->enqueueTransaction(transaction);
         } else {
             qWarning() << "List of GameplayObjects doesn't exist in thisList";
         }
