@@ -16,7 +16,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
     "use strict";
 
     var paletteOriginOverlay,
-        paletteHeaderOverlay,
+        paletteHeaderHeadingOverlay,
         paletteHeaderBarOverlay,
         paletteTitleOverlay,
         palettePanelOverlay,
@@ -47,12 +47,12 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             visible: false
         },
 
-        PALETTE_HEADER_PROPERTIES = {
-            dimensions: UIT.dimensions.header,
+        PALETTE_HEADER_HEADING_PROPERTIES = {
+            dimensions: UIT.dimensions.headerHeading,
             localPosition: {
                 x: 0,
-                y: UIT.dimensions.canvas.y / 2 - UIT.dimensions.header.y / 2,
-                z: UIT.dimensions.header.z / 2
+                y: UIT.dimensions.canvas.y / 2 - UIT.dimensions.headerHeading.y / 2,
+                z: UIT.dimensions.headerHeading.z / 2
             },
             localRotation: Quat.ZERO,
             color: UIT.colors.baseGray,
@@ -66,7 +66,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             dimensions: UIT.dimensions.headerBar,
             localPosition: {
                 x: 0,
-                y: UIT.dimensions.canvas.y / 2 - UIT.dimensions.header.y - UIT.dimensions.headerBar.y / 2,
+                y: UIT.dimensions.canvas.y / 2 - UIT.dimensions.headerHeading.y - UIT.dimensions.headerBar.y / 2,
                 z: UIT.dimensions.headerBar.z / 2
             },
             localRotation: Quat.ZERO,
@@ -80,7 +80,11 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         PALETTE_TITLE_PROPERTIES = {
             url: "../assets/create/create-heading.svg",
             scale: 0.0363,
-            localPosition: { x: 0, y: 0, z: PALETTE_HEADER_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
+            localPosition: {
+                x: 0,
+                y: 0,
+                z: PALETTE_HEADER_HEADING_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+            },
             localRotation: Quat.ZERO,
             color: UIT.colors.white,
             alpha: 1.0,
@@ -92,7 +96,11 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         PALETTE_PANEL_PROPERTIES = {
             dimensions: UIT.dimensions.panel,
-            localPosition: { x: 0, y: UIT.dimensions.panel.y / 2 - UIT.dimensions.canvas.y / 2, z: UIT.dimensions.panel.z / 2 },
+            localPosition: {
+                x: 0,
+                y: UIT.dimensions.panel.y / 2 - UIT.dimensions.canvas.y / 2,
+                z: UIT.dimensions.panel.z / 2
+            },
             localRotation: Quat.ZERO,
             color: UIT.colors.baseGray,
             alpha: 1.0,
@@ -216,7 +224,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     properties: {
                         url: "../assets/create/prism.fbx",
                         localRotation: Quat.fromVec3Degrees({ x: 90, y: 0, z: 0 })
-            }
+                    }
                 },
                 entity: {
                     type: "Shape",
@@ -282,7 +290,7 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
     setHand(side);
 
     function getEntityIDs() {
-        return [palettePanelOverlay, paletteHeaderOverlay, paletteHeaderBarOverlay].concat(paletteItemOverlays);
+        return [palettePanelOverlay, paletteHeaderHeadingOverlay, paletteHeaderBarOverlay].concat(paletteItemOverlays);
     }
 
     function update(intersectionOverlayID) {
@@ -382,14 +390,14 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
         paletteOriginOverlay = Overlays.addOverlay("sphere", properties);
 
         // Header.
-        properties = Object.clone(PALETTE_HEADER_PROPERTIES);
+        properties = Object.clone(PALETTE_HEADER_HEADING_PROPERTIES);
         properties.parentID = paletteOriginOverlay;
-        paletteHeaderOverlay = Overlays.addOverlay("cube", properties);
+        paletteHeaderHeadingOverlay = Overlays.addOverlay("cube", properties);
         properties = Object.clone(PALETTE_HEADER_BAR_PROPERTIES);
         properties.parentID = paletteOriginOverlay;
         paletteHeaderBarOverlay = Overlays.addOverlay("cube", properties);
         properties = Object.clone(PALETTE_TITLE_PROPERTIES);
-        properties.parentID = paletteHeaderOverlay;
+        properties.parentID = paletteHeaderHeadingOverlay;
         properties.url = Script.resolvePath(properties.url);
         paletteTitleOverlay = Overlays.addOverlay("image3d", properties);
 
@@ -430,8 +438,8 @@ CreatePalette = function (side, leftInputs, rightInputs, uiCommandCallback) {
             return;
         }
         Overlays.deleteOverlay(paletteOriginOverlay);  // Automatically deletes all other overlays because they're children.
-        paletteItemOverlays = [],
-        paletteItemHoverOverlays = [],
+        paletteItemOverlays = [];
+        paletteItemHoverOverlays = [];
         isDisplaying = false;
     }
 

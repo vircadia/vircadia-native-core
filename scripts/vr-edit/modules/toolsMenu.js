@@ -19,6 +19,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         menuOriginOverlay,
         menuHeaderOverlay,
+        menuHeaderHeadingOverlay,
         menuHeaderBarOverlay,
         menuHeaderBackOverlay,
         menuHeaderTitleOverlay,
@@ -59,33 +60,41 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             displayInFront: true
         },
 
+        MENU_HEADER_HOVER_OFFSET = { x: 0, y: 0, z: 0.0040 },
+
         MENU_HEADER_PROPERTIES = {
-            dimensions: UIT.dimensions.header,
+            dimensions: Vec3.sum(UIT.dimensions.header, MENU_HEADER_HOVER_OFFSET),  // Keep the laser on top when hover.
             localPosition: {
                 x: 0,
                 y: UIT.dimensions.canvas.y / 2 - UIT.dimensions.header.y / 2,
-                z: UIT.dimensions.header.z / 2
+                z: UIT.dimensions.header.z / 2 + MENU_HEADER_HOVER_OFFSET.z / 2
             },
+            localRotation: Quat.ZERO,
+            alpha: 0.0,  // Invisible
+            solid: true,
+            ignoreRayIntersection: false,
+            visible: true  // Catch laser intersections.
+        },
+
+        MENU_HEADER_HEADING_PROPERTIES = {
+            dimensions:  UIT.dimensions.headerHeading,
+            localPosition: { x: 0, y: UIT.dimensions.headerBar.y / 2, z: -MENU_HEADER_HOVER_OFFSET.z / 2 },
             localRotation: Quat.ZERO,
             color: UIT.colors.baseGray,
             alpha: 1.0,
             solid: true,
-            ignoreRayIntersection: false,
+            ignoreRayIntersection: true,
             visible: true
         },
 
         MENU_HEADER_BAR_PROPERTIES = {
             dimensions: UIT.dimensions.headerBar,
-            localPosition: {
-                x: 0,
-                y: UIT.dimensions.canvas.y / 2 - UIT.dimensions.header.y - UIT.dimensions.headerBar.y / 2,
-                z: UIT.dimensions.headerBar.z / 2
-            },
+            localPosition: { x: 0, y: -UIT.dimensions.headerHeading.y / 2 - UIT.dimensions.headerBar.y / 2, z: 0 },
             localRotation: Quat.ZERO,
             color: UIT.colors.greenHighlight,
             alpha: 1.0,
             solid: true,
-            ignoreRayIntersection: false,
+            ignoreRayIntersection: true,
             visible: true
         },
 
@@ -93,9 +102,9 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             url: "../assets/tools/back-icon.svg",
             dimensions: { x: 0.0069, y: 0.0107 },
             localPosition: {
-                x: -MENU_HEADER_PROPERTIES.dimensions.x / 2 + 0.0118 + 0.0069 / 2,
+                x: -MENU_HEADER_HEADING_PROPERTIES.dimensions.x / 2 + 0.0118 + 0.0069 / 2,
                 y: 0,
-                z: MENU_HEADER_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+                z: MENU_HEADER_HEADING_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOverlayOffset
             },
             localRotation: Quat.ZERO,
             color: UIT.colors.lightGrayText,
@@ -109,7 +118,11 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         MENU_HEADER_TITLE_PROPERTIES = {
             url: "../assets/tools/tools-heading.svg",
             scale: 0.0327,
-            localPosition: { x: 0, y: 0, z: MENU_HEADER_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOverlayOffset },
+            localPosition: {
+                x: 0,
+                y: 0,
+                z: MENU_HEADER_HEADING_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+            },
             localRotation: Quat.ZERO,
             color: UIT.colors.white,
             alpha: 1.0,
@@ -119,11 +132,14 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             visible: true
         },
 
+        MENU_HEADER_TITLE_BACK_URL = "../assets/tools/back-heading.svg",
+        MENU_HEADER_TITLE_BACK_SCALE = 0.0256,
+
         MENU_HEADER_ICON_OFFSET = {
             // Default right center position for header tool icons.
-            x: MENU_HEADER_PROPERTIES.dimensions.x / 2 - 0.0118,
+            x: MENU_HEADER_HEADING_PROPERTIES.dimensions.x / 2 - 0.0118,
             y: 0,
-            z: MENU_HEADER_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOverlayOffset
+            z: MENU_HEADER_HEADING_PROPERTIES.dimensions.z / 2 + UIT.dimensions.imageOverlayOffset
         },
 
         MENU_HEADER_ICON_PROPERTIES = {
@@ -1165,7 +1181,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         isHighlightingPicklist,
         isPicklistOpen,
         pressedItem = null,
-        pressedSource,
+        pressedSource = null,
         isPicklistPressed,
         isPicklistItemPressed,
         isTriggerClicked,
@@ -1184,6 +1200,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         },
 
         isDisplaying = false,
+        isOptionsOpen = false,
+        isOptionsHeadingRaised = false,
+        optionsHeadingURL,
+        optionsHeadingScale,
 
         // References.
         controlHand,
@@ -1209,7 +1229,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
     setHand(side);
 
     function getEntityIDs() {
-        return [menuPanelOverlay, menuHeaderOverlay, menuHeaderBarOverlay].concat(menuOverlays).concat(optionsOverlays);
+        return [menuPanelOverlay, menuHeaderOverlay].concat(menuOverlays).concat(optionsOverlays);
     }
 
     function openMenu() {
@@ -1309,10 +1329,12 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         closeMenu();
 
         // Update header.
+        optionsHeadingURL = Script.resolvePath(menuItem.title.url);
+        optionsHeadingScale = menuItem.title.scale;
         Overlays.editOverlay(menuHeaderBackOverlay, { visible: true });
         Overlays.editOverlay(menuHeaderTitleOverlay, {
-            url: Script.resolvePath(menuItem.title.url),
-            scale: menuItem.title.scale
+            url: optionsHeadingURL,
+            scale: optionsHeadingScale
         });
         Overlays.editOverlay(menuHeaderIconOverlay, {
             url: Script.resolvePath(menuItem.icon.properties.url),
@@ -1529,6 +1551,8 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             optionsEnabled[groupButtonIndex] = false;
             optionsEnabled[ungroupButtonIndex] = false;
         }
+
+        isOptionsOpen = true;
     }
 
     function closeOptions() {
@@ -1556,8 +1580,10 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
 
         pressedItem = null;
 
+        isOptionsOpen = false;
+
         // Display menu items.
-        openMenu(true);
+        openMenu();
     }
 
     function clearTool() {
@@ -1947,13 +1973,62 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
             s,
             h;
 
-        // Intersection details.
+        isTriggerClicked = controlHand.triggerClicked();
+
+        // Handle heading.
+        if (isOptionsOpen && intersection.overlayID === menuHeaderOverlay) {
+            if (isTriggerClicked && !wasTriggerClicked) {
+                // Lower and unhighlight heading; go back to Tools menu.
+                Overlays.editOverlay(menuHeaderHeadingOverlay, {
+                    localPosition: MENU_HEADER_HEADING_PROPERTIES.localPosition,
+                    color: UIT.colors.baseGray,
+                    emissive: false
+                });
+                isOptionsHeadingRaised = false;
+                doCommand("clearTool");
+            } else if (!isOptionsHeadingRaised) {
+                // Hover heading.
+                Overlays.editOverlay(menuHeaderHeadingOverlay, {
+                    localPosition: Vec3.sum(MENU_HEADER_HEADING_PROPERTIES.localPosition, MENU_HEADER_HOVER_OFFSET),
+                    color: UIT.colors.greenHighlight,
+                    emissive: true  // TODO: This has no effect.
+                });
+                Overlays.editOverlay(menuHeaderTitleOverlay, {
+                    url: Script.resolvePath(MENU_HEADER_TITLE_BACK_URL),
+                    scale: MENU_HEADER_TITLE_BACK_SCALE
+                });
+                Overlays.editOverlay(menuHeaderIconOverlay, {
+                    visible: false
+                });
+                isOptionsHeadingRaised = true;
+            }
+        } else {
+            if (isOptionsHeadingRaised) {
+                // Unhover heading.
+                Overlays.editOverlay(menuHeaderHeadingOverlay, {
+                    localPosition: MENU_HEADER_HEADING_PROPERTIES.localPosition,
+                    color: UIT.colors.baseGray,
+                    emissive: false
+                });
+                Overlays.editOverlay(menuHeaderTitleOverlay, {
+                    url: optionsHeadingURL,
+                    scale: optionsHeadingScale
+                });
+                Overlays.editOverlay(menuHeaderIconOverlay, {
+                    visible: true
+                });
+                isOptionsHeadingRaised = false;
+            }
+        }
+
+        // Intersection details for menus and options.
+        intersectionOverlays = null;
+        intersectionEnabled = null;
         if (intersection.overlayID) {
             intersectedItem = menuOverlays.indexOf(intersection.overlayID);
             if (intersectedItem !== NONE) {
                 intersectionItems = MENU_ITEMS;
                 intersectionOverlays = menuOverlays;
-                intersectionEnabled = null;
             } else {
                 intersectedItem = optionsOverlays.indexOf(intersection.overlayID);
                 if (intersectedItem !== NONE) {
@@ -1962,9 +2037,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     intersectionEnabled = optionsEnabled;
                 }
             }
-        }
-        if (!intersectionOverlays) {
-            return;
         }
 
         // Highlight clickable item.
@@ -2043,6 +2115,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                 }
             } else if (highlightedItem !== NONE) {
                 // Un-highlight previous button.
+                print("$$$$$$$ unhighlight clickable item");
                 Overlays.editOverlay(highlightOverlay, {
                     visible: false
                 });
@@ -2070,7 +2143,6 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         }
 
         // Press/unpress button.
-        isTriggerClicked = controlHand.triggerClicked();
         if ((pressedItem && intersectedItem !== pressedItem.index) || intersectionOverlays !== pressedSource
                 || isTriggerClicked !== (pressedItem !== null)) {
             if (pressedItem) {
@@ -2079,6 +2151,7 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
                     localPosition: pressedItem.localPosition
                 });
                 pressedItem = null;
+                pressedSource = null;
             }
             if (isHighlightingButton && (intersectionEnabled === null || intersectionEnabled[intersectedItem])
                     && isTriggerClicked && !wasTriggerClicked) {
@@ -2269,21 +2342,24 @@ ToolsMenu = function (side, leftInputs, rightInputs, uiCommandCallback) {
         properties = Object.clone(MENU_HEADER_PROPERTIES);
         properties.parentID = menuOriginOverlay;
         menuHeaderOverlay = Overlays.addOverlay("cube", properties);
+        properties = Object.clone(MENU_HEADER_HEADING_PROPERTIES);
+        properties.parentID = menuHeaderOverlay;
+        menuHeaderHeadingOverlay = Overlays.addOverlay("cube", properties);
         properties = Object.clone(MENU_HEADER_BAR_PROPERTIES);
-        properties.parentID = menuOriginOverlay;
+        properties.parentID = menuHeaderHeadingOverlay;
         menuHeaderBarOverlay = Overlays.addOverlay("cube", properties);
 
-        // Header content.
+        // Heading content.
         properties = Object.clone(MENU_HEADER_BACK_PROPERTIES);
-        properties.parentID = menuHeaderOverlay;
+        properties.parentID = menuHeaderHeadingOverlay;
         properties.url = Script.resolvePath(properties.url);
         menuHeaderBackOverlay = Overlays.addOverlay("image3d", properties);
         properties = Object.clone(MENU_HEADER_TITLE_PROPERTIES);
-        properties.parentID = menuHeaderOverlay;
+        properties.parentID = menuHeaderHeadingOverlay;
         properties.url = Script.resolvePath(properties.url);
         menuHeaderTitleOverlay = Overlays.addOverlay("image3d", properties);
         properties = Object.clone(MENU_HEADER_ICON_PROPERTIES);
-        properties.parentID = menuHeaderOverlay;
+        properties.parentID = menuHeaderHeadingOverlay;
         properties.url = Script.resolvePath(properties.url);
         menuHeaderIconOverlay = Overlays.addOverlay("image3d", properties);
 

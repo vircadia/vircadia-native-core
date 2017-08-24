@@ -32,7 +32,8 @@ UIT = (function () {
             handOffset: 0.085,  // Distance from hand (wrist) joint to center of canvas.
             handLateralOffset: 0.01,  // Offset of UI in direction of palm normal.
 
-            header: { x: 0.24, y: 0.044, z: 0.012 },
+            header: { x: 0.24, y: 0.048, z: 0.012 },
+            headerHeading: { x: 0.24, y: 0.044, z: 0.012 },
             headerBar: { x: 0.24, y: 0.004, z: 0.012 },
             panel: { x: 0.24, y: 0.18, z: 0.008 },
 
