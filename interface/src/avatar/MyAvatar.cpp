@@ -1893,6 +1893,17 @@ void MyAvatar::preDisplaySide(RenderArgs* renderArgs) {
     const bool shouldDrawHead = shouldRenderHead(renderArgs);
     if (shouldDrawHead != _prevShouldDrawHead) {
         _skeletonModel->setEnableCauterization(!shouldDrawHead);
+
+        for (int i = 0; i < _attachmentData.size(); i++) {
+            if (_attachmentData[i].jointName.compare("Head", Qt::CaseInsensitive) == 0 ||
+                _attachmentData[i].jointName.compare("Neck", Qt::CaseInsensitive) == 0 ||
+                _attachmentData[i].jointName.compare("LeftEye", Qt::CaseInsensitive) == 0 ||
+                _attachmentData[i].jointName.compare("RightEye", Qt::CaseInsensitive) == 0 ||
+                _attachmentData[i].jointName.compare("HeadTop_End", Qt::CaseInsensitive) == 0 ||
+                _attachmentData[i].jointName.compare("Face", Qt::CaseInsensitive) == 0) {
+                _attachmentModels[i]->setVisibleInScene(shouldDrawHead, qApp->getMain3DScene());
+            }
+        }
     }
     _prevShouldDrawHead = shouldDrawHead;
 }
