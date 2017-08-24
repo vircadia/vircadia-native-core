@@ -1129,7 +1129,6 @@ static bool findPointKDopDisplacement(const glm::vec3& point, const AnimPose& sh
     glm::vec3 localPoint = shapePose.inverse().xformPoint(point);
 
     // Only works for 14-dop shape infos.
-    assert(shapeInfo.dots.size() == DOP14_COUNT);
     if (shapeInfo.dots.size() != DOP14_COUNT) {
         return false;
     }
