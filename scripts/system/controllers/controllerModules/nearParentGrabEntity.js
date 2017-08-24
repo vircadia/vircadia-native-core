@@ -30,7 +30,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
 
         this.parameters = makeDispatcherModuleParameters(
             500,
-            this.hand === RIGHT_HAND ? ["rightHand", "rightHandTrigger"] : ["leftHand", "leftHandTrigger"],
+            this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100);
 
@@ -134,7 +134,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                 var handPosition = controllerData.controllerLocations[this.hand].position;
                 var distance = Vec3.distance(props.position, handPosition);
                 if (distance > NEAR_GRAB_RADIUS) {
-                    break;
+                    continue;
                 }
                 if (entityIsGrabbable(props)) {
                     // if we've attempted to grab a child, roll up to the root of the tree
@@ -148,7 +148,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             return null;
         };
 
-        this.isReady = function (controllerData) {
+        this.isReady = function (controllerData, deltaTime) {
             this.targetEntityID = null;
             this.grabbing = false;
 
@@ -169,7 +169,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             }
         };
 
-        this.run = function (controllerData) {
+        this.run = function (controllerData, deltaTime) {
             if (this.grabbing) {
                 if (controllerData.triggerClicks[this.hand] == 0) {
                     this.endNearParentingGrabEntity();

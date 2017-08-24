@@ -248,6 +248,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             var candidatePlugin = controllerDispatcherPlugins[orderedPluginName];
 
             if (_this.slotsAreAvailableForPlugin(candidatePlugin)) {
+                //print(orderedPluginName);
                 var readiness = candidatePlugin.isReady(controllerData, deltaTime);
                 if (readiness.active) {
                     // this plugin will start.  add it to the list of running plugins and mark the

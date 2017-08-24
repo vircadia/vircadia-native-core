@@ -13,6 +13,7 @@
 */
 
 Script.include("/~/system/controllers/controllerDispatcherUtils.js");
+var GRAB_RADIUS = 0.35;
 
 (function() {
 
@@ -123,6 +124,19 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
             this.grabbedThingID = null;
         };
 
+        this.getTargetID = function(overlays, controllerData) {
+            for (var i = 0; i < overlays.length; i++) {
+                var overlayPosition = Overlays.getProperty(overlays[i], "position");
+                var handPosition = controllerData.controllerLocations[this.hand].position;
+                var distance = Vec3.distance(overlayPosition, handPosition);
+                if (distance <= GRAB_RADIUS) {
+                    return overlays[i];
+                }
+            }
+            return null;
+        };
+            
+
         this.isReady = function (controllerData) {
             if (controllerData.triggerClicks[this.hand] == 0) {
                 return makeRunningValues(false, [], []);
@@ -135,8 +149,9 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                 return Overlays.getProperty(overlayID, "grabbable");
             });
 
-            if (grabbableOverlays.length > 0) {
-                this.grabbedThingID = grabbableOverlays[0];
+            var targetID = this.getTargetID(grabbableOverlays, controllerData);
+            if (targetID) {
+                this.grabbedThingID = targetID;
                 this.startNearParentingGrabOverlay(controllerData);
                 return makeRunningValues(true, [this.grabbedThingID], []);
             } else {

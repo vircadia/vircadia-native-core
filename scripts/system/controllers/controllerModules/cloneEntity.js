@@ -49,7 +49,7 @@ if (typeof Object.assign != 'function') {
         this.previouslyUnhooked = {};
 
         this.parameters = makeDispatcherModuleParameters(
-            150,
+            300,
             this.hand === RIGHT_HAND ? ["rightHand"] : ["leftHand"],
             [],
             100);
@@ -78,12 +78,15 @@ if (typeof Object.assign != 'function') {
             }
 
             if (controllerData.triggerValues[this.hand] > TRIGGER_ON_VALUE) {
-                if (this.waiting) {
-                    return makeRunningValues(false, [], []);
+                if (!this.waiting) {
+                    this.waiting = true;
+                    return makeRunningValues(true, [], []);
                 }
-                this.waiting = true;
             }
+            return makeRunningValues(false, [], []);
+        };
 
+        this.run = function (controllerData, deltaTime) {
             var cloneableProps = this.getTargetProps(controllerData);
             if (!cloneableProps) {
                 return makeRunningValues(false, [], []);
@@ -133,22 +136,18 @@ if (typeof Object.assign != 'function') {
             cProperties.userData = JSON.stringify(cUserData);
             // var cloneID =
             Entities.addEntity(cProperties);
-
             return makeRunningValues(false, [], []);
-        };
-
-        this.run = function (controllerData) {
         };
 
         this.cleanup = function () {
         };
     }
 
-    var leftNearParentingGrabEntity = new CloneEntity(LEFT_HAND);
-    var rightNearParentingGrabEntity = new CloneEntity(RIGHT_HAND);
+    var leftCloneEntity = new CloneEntity(LEFT_HAND);
+    var rightCloneEntity = new CloneEntity(RIGHT_HAND);
 
-    enableDispatcherModule("LeftNearParentingGrabEntity", leftNearParentingGrabEntity);
-    enableDispatcherModule("RightNearParentingGrabEntity", rightNearParentingGrabEntity);
+    enableDispatcherModule("LeftCloneEntity", leftCloneEntity);
+    enableDispatcherModule("RightCloneEntity", rightCloneEntity);
 
     this.cleanup = function () {
         leftNearParentingGrabEntity.cleanup();

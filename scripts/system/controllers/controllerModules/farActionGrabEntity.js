@@ -317,7 +317,20 @@ Script.include("/~/system/libraries/controllers.js");
             this.grabbedThingID = null;
         };
 
+        this.pointingOnTablet = function(controllerData) {
+            var target = controllerData.rayPicks[this.hand].objectID;
+
+            if (target === HMD.homeButtonID || target === HMD.tabletScreenID) {
+                return true;
+            }
+            return false
+        };
+
         this.isReady = function (controllerData) {
+            if (this.pointingOnTablet(controllerData)) {
+                return makeRunningValues(false, [], []);
+            }
+            
             this.distanceHolding = false;
             this.distanceRotating = false;
 
@@ -330,7 +343,7 @@ Script.include("/~/system/libraries/controllers.js");
         };
 
         this.run = function (controllerData) {
-            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE) {
+            if (controllerData.triggerValues[this.hand] < TRIGGER_OFF_VALUE || this.pointingOnTablet(controllerData)) {
                 this.endNearGrabAction();
                 this.laserPointerOff();
                 return makeRunningValues(false, [], []);

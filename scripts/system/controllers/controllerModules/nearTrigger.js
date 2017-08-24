@@ -29,7 +29,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         this.previouslyUnhooked = {};
 
         this.parameters = makeDispatcherModuleParameters(
-            200,
+            520,
             this.hand === RIGHT_HAND ? ["rightHandTrigger"] : ["leftHandTrigger"],
             [],
             100);
@@ -42,7 +42,7 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
                 var handPosition = controllerData.controllerLocations[this.hand].position;
                 var distance = Vec3.distance(props.position, handPosition);
                 if (distance > NEAR_GRAB_RADIUS) {
-                    break;
+                    continue;
                 }
                 if (entityWantsNearTrigger(props)) {
                     return props;
@@ -57,7 +57,6 @@ Script.include("/~/system/controllers/controllerDispatcherUtils.js");
         };
 
         this.continueNearTrigger = function (controllerData) {
-            print("-------> continue near trigger <-------");
             var args = [this.hand === RIGHT_HAND ? "right" : "left", MyAvatar.sessionUUID];
             Entities.callEntityMethod(this.targetEntityID, "continueNearTrigger", args);
         };
