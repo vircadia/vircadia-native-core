@@ -262,18 +262,18 @@ bool Wallet::encryptFile(const QString& inputFilePath, const QString& outputFile
     // TODO: add error handling!!!
     if (!EVP_EncryptInit_ex(ctx, EVP_des_ede3_cbc(), NULL, ckey, ivec)) {
         qCDebug(commerce) << "encrypt init failure";
-        delete outputFileBuffer;
+        delete[] outputFileBuffer;
         return false;
     }
     if (!EVP_EncryptUpdate(ctx, outputFileBuffer, &tempSize, (unsigned char*)inputFileBuffer.data(), inputFileBuffer.size())) {
         qCDebug(commerce) << "encrypt update failure";
-        delete outputFileBuffer;
+        delete[] outputFileBuffer;
         return false;
     }
     outSize = tempSize;
     if (!EVP_EncryptFinal_ex(ctx, outputFileBuffer + outSize, &tempSize)) {
         qCDebug(commerce) << "encrypt final failure";
-        delete outputFileBuffer;
+        delete[] outputFileBuffer;
         return false;
     }
 
@@ -286,7 +286,7 @@ bool Wallet::encryptFile(const QString& inputFilePath, const QString& outputFile
     outputFile.write(output);
     outputFile.close();
 
-    delete outputFileBuffer;
+    delete[] outputFileBuffer;
     return true;
 }
 
@@ -313,25 +313,25 @@ bool Wallet::decryptFile(const QString& inputFilePath, unsigned char** outputBuf
     EVP_CIPHER_CTX* ctx = EVP_CIPHER_CTX_new();
     if (!EVP_DecryptInit_ex(ctx, EVP_des_ede3_cbc(), NULL, ckey, ivec)) {
         qCDebug(commerce) << "decrypt init failure";
-        delete outputBuffer;
+        delete[] outputBuffer;
         return false;
     }
     if (!EVP_DecryptUpdate(ctx, outputBuffer, &tempSize, (unsigned char*)encryptedBuffer.data(), encryptedBuffer.size())) {
         qCDebug(commerce) << "decrypt update failure";
-        delete outputBuffer;
+        delete[] outputBuffer;
         return false;
     }
     *outputBufferSize = tempSize;
     if (!EVP_DecryptFinal_ex(ctx, outputBuffer + tempSize, &tempSize)) {
         qCDebug(commerce) << "decrypt final failure";
-        delete outputBuffer;
+        delete[] outputBuffer;
         return false;
     }
     EVP_CIPHER_CTX_free(ctx);
     *outputBufferSize += tempSize;
     *outputBufferPtr = outputBuffer;
     qCDebug(commerce) << "decrypted buffer size" << *outputBufferSize;
-    delete outputBuffer;
+    delete[] outputBuffer;
     return true;
 }
 
