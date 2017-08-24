@@ -16,6 +16,8 @@
 
 #include <DependencyManager.h>
 
+#include <QPixmap>
+
 class Wallet : public QObject, public Dependency {
     Q_OBJECT
     SINGLETON_DEPENDENCY
@@ -26,16 +28,21 @@ public:
     bool generateKeyPair();
     QStringList listPublicKeys();
     QString signWithKey(const QByteArray& text, const QString& key);
-    void chooseSecurityImage(uint imageID);
+    void chooseSecurityImage(const QString& imageFile);
     void getSecurityImage();
+    void getKeyFilePath();
+
+    void setSalt(const QByteArray& salt) { _salt = salt; }
+    QByteArray getSalt() { return _salt; }
+
+    void setPassphrase(const QString& passphrase);
+    QString* getPassphrase() { return _passphrase; }
 
 signals:
-    void securityImageResult(uint imageID);
+    void securityImageResult(bool exists) ;
+    void keyFilePathResult(const QString& path);
 
 protected:
-    // ALWAYS add SecurityImage enum values to the END of the enum.
-    // They must be in the same order as the images are listed in
-    //     SecurityImageSelection.qml
     enum SecurityImage {
         NONE = 0,
         Cat,
@@ -48,7 +55,12 @@ protected:
 
 private:
     QStringList _publicKeys{};
-    SecurityImage _chosenSecurityImage = SecurityImage::NONE;
+    QPixmap* _securityImage { nullptr };
+    QByteArray _salt {"iamsalt!"};
+    QString* _passphrase { new QString("pwd") };
+
+    bool encryptFile(const QString& inputFilePath, const QString& outputFilePath);
+    bool decryptFile(const QString& inputFilePath, unsigned char** outputBufferPtr, int* outputBufferLen);
 };
 
 #endif // hifi_Wallet_h
