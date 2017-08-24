@@ -20,9 +20,11 @@
 
 class AntialiasingConfig : public render::Job::Config {
     Q_OBJECT
-    Q_PROPERTY(float debugX MEMBER debugX NOTIFY dirty)
     Q_PROPERTY(float blend MEMBER blend NOTIFY dirty)
     Q_PROPERTY(float velocityScale MEMBER velocityScale NOTIFY dirty)
+    
+    Q_PROPERTY(bool debug MEMBER debug NOTIFY dirty)
+    Q_PROPERTY(float debugX MEMBER debugX NOTIFY dirty)
     Q_PROPERTY(float debugShowVelocityThreshold MEMBER debugShowVelocityThreshold NOTIFY dirty)
     Q_PROPERTY(bool showCursorPixel MEMBER showCursorPixel NOTIFY dirty)
     Q_PROPERTY(glm::vec2 debugCursorTexcoord MEMBER debugCursorTexcoord NOTIFY dirty)
@@ -30,14 +32,16 @@ class AntialiasingConfig : public render::Job::Config {
 public:
     AntialiasingConfig() : render::Job::Config(true) {}
 
-    float debugX{ 0.0f };
     float blend{ 0.1f };
     float velocityScale{ 1.0f };
-    float debugShowVelocityThreshold{ 1.0f };
 
-    bool showCursorPixel{ false };
+    float debugX{ 0.0f };
+    float debugShowVelocityThreshold{ 1.0f };
     glm::vec2 debugCursorTexcoord{ 0.5f, 0.5f };
     float debugOrbZoom{ 2.0f };
+
+    bool debug { false };
+    bool showCursorPixel { false };
 
 signals:
     void dirty();
@@ -50,8 +54,17 @@ struct TAAParams {
     float velocityScale{ 1.0f };
     float debugShowVelocityThreshold{ 1.0f };
 
-    glm::vec4 debugCursor{ 0.0f };
+    glm::vec4 debug{ 0.0f };
     glm::vec4 pixelInfo{ 0.5f, 0.5f, 2.0f, 0.0f };
+
+    void setDebug(bool enabled) { debug.x = (float)enabled; }
+    bool isDebug() const { return (bool) debug.x; }
+
+    void setDebugCursor(glm::vec2 debugCursor) { pixelInfo.x = debugCursor.x; pixelInfo.y = debugCursor.y; }
+    glm::vec2 getDebugCursor() const { return glm::vec2(pixelInfo.x, pixelInfo.y); }
+    
+    void setDebugOrbZoom(float orbZoom) { pixelInfo.z = orbZoom; }
+    float getDebugOrbZoom() const { return pixelInfo.z; }
 
 };
 using TAAParamsBuffer = gpu::StructBuffer<TAAParams>;

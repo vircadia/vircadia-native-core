@@ -20,11 +20,11 @@ layout(location = 0) out vec4 outFragColor;
 
 void main() {
 
-    vec2 fragUV = find_closest_fragment_3x3(varTexCoord0);
-    vec3 sourceColor = texture(sourceMap, fragUV).xyz;
+    vec3 fragUV = taa_findClosestFragment3x3(varTexCoord0);
+    vec3 sourceColor = texture(sourceMap, fragUV.xy).xyz;
 
-    vec2 pixVelocity = texture(velocityMap, fragUV).xy;
-    vec2 velocity = params.motionScale * pixVelocity;// *getInvWidthHeight();
+    vec2 pixVelocity = texture(velocityMap, fragUV.xy).xy;
+    vec2 velocity = params.motionScale * pixVelocity;
     vec2 prevTexCoord = varTexCoord0 - velocity;
     
     vec3 historyColor = sourceColor;

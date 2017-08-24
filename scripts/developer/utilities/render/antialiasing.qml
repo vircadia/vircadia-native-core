@@ -8,12 +8,15 @@
 //  See the accompanying file LICENSE or https://www.apache.org/licenses/LICENSE-2.0.html
 //
 import QtQuick 2.5
+import QtQuick.Layouts 1.3
 import QtQuick.Controls 1.4
 import "configSlider"
 import "../lib/plotperf"
 
 Column {
-    spacing: 8
+    id: root;
+   // color: hifi.colors.baseGray;
+
     Column {
         id: antialiasing
         spacing: 20
@@ -36,9 +39,14 @@ Column {
                 min: 0.0
             }
             CheckBox {
-                    text: "Freeze "
-                    checked: Render.getConfig("RenderMainView.JitterCam")["freeze"]
-                    onCheckedChanged: { Render.getConfig("RenderMainView.JitterCam")["freeze"] = checked }
+                text: "Debug"
+                checked: Render.getConfig("RenderMainView.Antialiasing")["debug"]
+                onCheckedChanged: { Render.getConfig("RenderMainView.Antialiasing")["debug"] = checked }
+            }
+            CheckBox {
+                text: "Freeze "
+                checked: Render.getConfig("RenderMainView.JitterCam")["freeze"]
+                onCheckedChanged: { Render.getConfig("RenderMainView.JitterCam")["freeze"] = checked }
             }
             ConfigSlider {
                 label: qsTr("Debug X")

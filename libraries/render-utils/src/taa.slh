@@ -33,41 +33,37 @@ layout(std140) uniform taaParamsBuffer {
     TAAParams params;
 };
 
-vec2 getDebugCursorTexcoord() {
+vec2 taa_getDebugCursorTexcoord() {
     return params.pixelInfo_orbZoom.xy;
 }
 
-float getOrbZoom() {
+float taa_getDebugOrbZoom() {
     return params.pixelInfo_orbZoom.z;
 }
 
-float fetchDepth(vec2 uv) {
+float taa_fetchDepth(vec2 uv) {
 	return texture(depthMap, vec2(uv), 0).x;
 }
 
-float resolveDepthLinear(float depth) {
-    return Zeye = -evalZeyeFromZdb(Zdb);
- }
-
 #define ZCMP_GT(a, b) (a < b)
 
-vec3 find_closest_fragment_3x3(vec2 uv)
+vec3 taa_findClosestFragment3x3(vec2 uv)
 {
 	vec2 dd = abs(getInvWidthHeight());
 	vec2 du = vec2(dd.x, 0.0);
 	vec2 dv = vec2(0.0, dd.y);
 
-	vec3 dtl = vec3(-1, -1, fetchDepth(uv - dv - du);
-	vec3 dtc = vec3( 0, -1, fetchDepth(uv - dv).x);
-	vec3 dtr = vec3( 1, -1, fetchDepth(uv - dv + du);
+	vec3 dtl = vec3(-1, -1, taa_fetchDepth(uv - dv - du));
+	vec3 dtc = vec3( 0, -1, taa_fetchDepth(uv - dv));
+	vec3 dtr = vec3( 1, -1, taa_fetchDepth(uv - dv + du));
 
-	vec3 dml = vec3(-1, 0, fetchDepth(CameraDepthTexture, uv - du);
-	vec3 dmc = vec3( 0, 0, fetchDepth(CameraDepthTexture, uv);
-	vec3 dmr = vec3( 1, 0, fetchDepth(CameraDepthTexture, uv + du);
+	vec3 dml = vec3(-1, 0, taa_fetchDepth(uv - du));
+	vec3 dmc = vec3( 0, 0, taa_fetchDepth(uv));
+	vec3 dmr = vec3( 1, 0, taa_fetchDepth(uv + du));
 
-	vec3 dbl = vec3(-1, 1, fetchDepth(CameraDepthTexture, uv + dv - du);
-	vec3 dbc = vec3( 0, 1, fetchDepth(CameraDepthTexture, uv + dv);
-	vec3 dbr = vec3( 1, 1, fetchDepth(CameraDepthTexture, uv + dv + du);
+	vec3 dbl = vec3(-1, 1, taa_fetchDepth(uv + dv - du));
+	vec3 dbc = vec3( 0, 1, taa_fetchDepth(uv + dv));
+	vec3 dbr = vec3( 1, 1, taa_fetchDepth(uv + dv + du));
 
 	vec3 dmin = dtl;
 	if (ZCMP_GT(dmin.z, dtc.z)) dmin = dtc;
@@ -88,10 +84,10 @@ vec3 find_closest_fragment_3x3(vec2 uv)
 <@include gpu/Color.slh@>
 <$declareColorWheel()$>
 
-vec3 getVelocityColorRelative(float velocityPixLength) {
+vec3 taa_getVelocityColorRelative(float velocityPixLength) {
     return colorRamp(velocityPixLength/params.debugShowVelocityThreshold);
 }
 
-vec3 getVelocityColorAboveThreshold(float velocityPixLength) {
+vec3 taa_getVelocityColorAboveThreshold(float velocityPixLength) {
     return colorRamp((velocityPixLength - params.debugShowVelocityThreshold)/params.debugShowVelocityThreshold);
 }

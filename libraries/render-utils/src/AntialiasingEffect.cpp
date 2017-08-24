@@ -279,19 +279,14 @@ const gpu::PipelinePointer& Antialiasing::getDebugBlendPipeline() {
 }
 
 void Antialiasing::configure(const Config& config) {
-    _params.edit().debugX = config.debugX;
     _params.edit().blend = config.blend;
     _params.edit().velocityScale = config.velocityScale;
     _params.edit().debugShowVelocityThreshold = config.debugShowVelocityThreshold;
 
-    _params.edit().debugCursor.x = config.showCursorPixel;
-
-    auto orbZoom = (_params->pixelInfo.z);
-    auto cursorPos = glm::vec2(_params->pixelInfo);
-    if (cursorPos != config.debugCursorTexcoord || (orbZoom != config.debugOrbZoom)) {
-        _params.edit().pixelInfo = glm::vec4(config.debugCursorTexcoord, config.debugOrbZoom, 0.0f);
-    }
-
+    _params.edit().debugX = config.debugX;
+    _params.edit().setDebug(config.debug);
+    _params.edit().setDebugCursor(config.debugCursorTexcoord);
+    _params.edit().setDebugOrbZoom(config.debugOrbZoom);
 }
 
 
@@ -352,10 +347,10 @@ void Antialiasing::run(const render::RenderContextPointer& renderContext, const 
         batch.setResourceTexture(AntialiasingPass_SourceMapSlot, nullptr);
 
         batch.setFramebuffer(sourceBuffer);
-        if (_params->debugX <= 0.0) {
-            batch.setPipeline(getBlendPipeline());
-        }  else {
+        if (_params->isDebug()) {
             batch.setPipeline(getDebugBlendPipeline());
+        }  else {
+            batch.setPipeline(getBlendPipeline());
         }
         batch.setResourceTexture(AntialiasingPass_NextMapSlot, _antialiasingTexture[nextFrame]);
         batch.draw(gpu::TRIANGLE_STRIP, 4); 
