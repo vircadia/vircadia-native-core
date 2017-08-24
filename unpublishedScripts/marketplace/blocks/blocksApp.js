@@ -65,9 +65,6 @@
 
 	function cleanup() {
 	    tablet.removeButton(button);
-	    if (shown) {
-	        tablet.webEventReceived.disconnect(onWebEventReceived);
-	    }
 	}
 
 	Script.scriptEnding.connect(cleanup);
