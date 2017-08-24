@@ -28,7 +28,7 @@ UIT = (function () {
         // Offsets are relative to parents' centers.
         dimensions: {
             canvas: { x: 0.24, y: 0.24 },  // Overall UI size.
-            canvasSeparation: 0.01,  // Gap between Tools menu and Create panel.
+            canvasSeparation: 0.004,  // Gap between Tools menu and Create panel.
             handOffset: 0.085,  // Distance from hand (wrist) joint to center of canvas.
             handLateralOffset: 0.01,  // Offset of UI in direction of palm normal.
 
